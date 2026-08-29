@@ -5,6 +5,8 @@
 import { describe, it, expect } from "vitest";
 import AssignmentHandlerUtils from "../AssignmentHandlerUtils";
 import TestScopeUtils from "../../../../../logic/symbols/cnext/__tests__/testUtils";
+import SymbolRegistry from "../../../../../state/SymbolRegistry";
+import ScopeUtils from "../../../../../../utils/ScopeUtils";
 
 describe("AssignmentHandlerUtils", () => {
   describe("validateScopeContext", () => {
@@ -109,18 +111,32 @@ describe("AssignmentHandlerUtils", () => {
 
   describe("buildScopedRegisterName", () => {
     it("should join scope and parts with underscores", () => {
-      const result = AssignmentHandlerUtils.buildScopedRegisterName("Motor", [
-        "GPIO7",
-        "DR_SET",
-      ]);
+      const result = AssignmentHandlerUtils.buildScopedRegisterName(
+        SymbolRegistry.getOrCreateScope("Motor"),
+        ["GPIO7", "DR_SET"],
+      );
       expect(result).toBe("Motor__GPIO7__DR_SET");
     });
 
     it("should handle single part", () => {
-      const result = AssignmentHandlerUtils.buildScopedRegisterName("Scope", [
-        "REG",
-      ]);
+      const result = AssignmentHandlerUtils.buildScopedRegisterName(
+        SymbolRegistry.getOrCreateScope("Scope"),
+        ["REG"],
+      );
       expect(result).toBe("Scope__REG");
+    });
+
+    it("keeps the outer scope for a nested declaring scope", () => {
+      // #1285: the previous signature took a scope NAME, so the caller in
+      // RegisterHandlers read `.name` off the scope symbol it already held and
+      // dropped every outer component. Passing the symbol keeps the chain.
+      const outer = SymbolRegistry.getOrCreateScope("Board");
+      const inner = ScopeUtils.createScope("Teensy4", outer);
+      const result = AssignmentHandlerUtils.buildScopedRegisterName(inner, [
+        "GPIO7",
+        "DR_SET",
+      ]);
+      expect(result).toBe("Board__Teensy4__GPIO7__DR_SET");
     });
   });
 

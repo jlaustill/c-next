@@ -9,6 +9,7 @@ import QualifiedNameGenerator from "../QualifiedNameGenerator";
 import SymbolRegistry from "../../../../state/SymbolRegistry";
 import FunctionUtils from "../../../../../utils/FunctionUtils";
 import TTypeUtils from "../../../../../utils/TTypeUtils";
+import ScopeUtils from "../../../../../utils/ScopeUtils";
 
 describe("QualifiedNameGenerator", () => {
   beforeEach(() => {
@@ -115,27 +116,34 @@ describe("QualifiedNameGenerator", () => {
     });
   });
 
-  describe("forFunctionStrings", () => {
-    it("returns bare name for undefined scope", () => {
-      expect(QualifiedNameGenerator.forFunctionStrings(undefined, "main")).toBe(
+  describe("forFunctionInScope", () => {
+    it("returns bare name for a null scope", () => {
+      expect(QualifiedNameGenerator.forFunctionInScope(null, "main")).toBe(
         "main",
       );
     });
 
-    it("returns transpiled C name for simple scope", () => {
-      expect(
-        QualifiedNameGenerator.forFunctionStrings("Test", "fillData"),
-      ).toBe("Test__fillData");
+    it("returns transpiled C name for a simple scope", () => {
+      const scope = SymbolRegistry.getOrCreateScope("Test");
+      expect(QualifiedNameGenerator.forFunctionInScope(scope, "fillData")).toBe(
+        "Test__fillData",
+      );
     });
 
-    it("converts dotted scope to underscores", () => {
-      expect(
-        QualifiedNameGenerator.forFunctionStrings("Outer.Inner", "func"),
-      ).toBe("Outer__Inner__func");
+    it("walks the parent chain for a nested scope", () => {
+      // #1285: the string signature this replaced took a scope NAME, so a nested
+      // scope could only be expressed by pre-flattening it to "Outer.Inner" at the
+      // call site -- and any caller holding a symbol had to read `.name` off it,
+      // which is the leaf. That call site returned `Inner__func`. The symbol
+      // carries the chain, so the outer component cannot be dropped.
+      const outer = SymbolRegistry.getOrCreateScope("Outer");
+      const inner = ScopeUtils.createScope("Inner", outer);
+      expect(QualifiedNameGenerator.forFunctionInScope(inner, "func")).toBe(
+        "Outer__Inner__func",
+      );
     });
 
     it("uses SymbolRegistry when function is registered", () => {
-      // Register a function in SymbolRegistry
       const scope = SymbolRegistry.getOrCreateScope("Motor");
       const func = FunctionUtils.create({
         name: "init",
@@ -149,36 +157,37 @@ describe("QualifiedNameGenerator", () => {
       });
       SymbolRegistry.registerFunction(func);
 
-      // forFunctionStrings should find it via SymbolRegistry
-      expect(QualifiedNameGenerator.forFunctionStrings("Motor", "init")).toBe(
+      expect(QualifiedNameGenerator.forFunctionInScope(scope, "init")).toBe(
         "Motor__init",
       );
     });
 
-    it("falls back to string concat when function not in registry", () => {
-      // Don't register the function - should fall back to string concat
-      expect(QualifiedNameGenerator.forFunctionStrings("Unknown", "func")).toBe(
+    it("falls back to qualifying the bare name when not in the registry", () => {
+      const scope = SymbolRegistry.getOrCreateScope("Unknown");
+      expect(QualifiedNameGenerator.forFunctionInScope(scope, "func")).toBe(
         "Unknown__func",
       );
     });
   });
 
   describe("forMember", () => {
-    it("returns bare name for undefined scope", () => {
-      expect(QualifiedNameGenerator.forMember(undefined, "value")).toBe(
-        "value",
-      );
+    it("returns bare name for a null scope", () => {
+      expect(QualifiedNameGenerator.forMember(null, "value")).toBe("value");
     });
 
-    it("returns transpiled C name for simple scope", () => {
-      expect(QualifiedNameGenerator.forMember("Test", "counter")).toBe(
+    it("returns transpiled C name for a simple scope", () => {
+      const scope = SymbolRegistry.getOrCreateScope("Test");
+      expect(QualifiedNameGenerator.forMember(scope, "counter")).toBe(
         "Test__counter",
       );
     });
 
-    it("converts dotted scope to underscores", () => {
-      expect(QualifiedNameGenerator.forMember("Outer.Inner", "data")).toBe(
-        "Outer__Inner__data",
+    it("walks the parent chain for a nested scope", () => {
+      // The member counterpart of the guard above.
+      const outer = SymbolRegistry.getOrCreateScope("OuterData");
+      const inner = ScopeUtils.createScope("InnerData", outer);
+      expect(QualifiedNameGenerator.forMember(inner, "data")).toBe(
+        "OuterData__InnerData__data",
       );
     });
   });

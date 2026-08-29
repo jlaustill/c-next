@@ -24,8 +24,11 @@ import generateScopedRegister from "./ScopedRegisterGenerator";
 import BitmapCommentUtils from "./BitmapCommentUtils";
 import ArrayDimensionUtils from "./ArrayDimensionUtils";
 import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
+import type IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 import CodeGenState from "../../../../state/CodeGenState";
+import SymbolRegistry from "../../../../state/SymbolRegistry";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
+import QualifiedCName from "../../../../../utils/QualifiedCName";
 import VariableModifierBuilder from "../../helpers/VariableModifierBuilder";
 
 /**
@@ -57,10 +60,13 @@ function generateInitializer(
  */
 function getScopedName(
   node: { IDENTIFIER(): { getText(): string } },
-  scopeName: string,
+  declaringScope: IScopeSymbol | null,
 ): { name: string; fullName: string } {
   const name = node.IDENTIFIER().getText();
-  return { name, fullName: QualifiedNameGenerator.forMember(scopeName, name) };
+  return {
+    name,
+    fullName: QualifiedNameGenerator.forMember(declaringScope, name),
+  };
 }
 
 /**
@@ -69,7 +75,7 @@ function getScopedName(
  */
 function resolveConstructorArgs(
   argIdentifiers: { getText(): string }[],
-  scopeName: string,
+  declaringScope: IScopeSymbol | null,
   line: number,
   orchestrator: IOrchestrator,
 ): string[] {
@@ -78,7 +84,10 @@ function resolveConstructorArgs(
   for (const argNode of argIdentifiers) {
     const argName = argNode.getText();
     // Arguments must be resolved with scope prefix
-    const scopedArgName = QualifiedNameGenerator.forMember(scopeName, argName);
+    const scopedArgName = QualifiedNameGenerator.forMember(
+      declaringScope,
+      argName,
+    );
 
     // Check if it's const using orchestrator
     if (!orchestrator.isConstValue(scopedArgName)) {
@@ -100,7 +109,7 @@ function resolveConstructorArgs(
  */
 function generateScopeVariable(
   varDecl: Parser.VariableDeclarationContext,
-  scopeName: string,
+  declaringScope: IScopeSymbol | null,
   isPrivate: boolean,
   orchestrator: IOrchestrator,
 ): string | null {
@@ -112,7 +121,7 @@ function generateScopeVariable(
     return generateConstructorVariable(
       varDecl,
       varName,
-      scopeName,
+      declaringScope,
       isPrivate,
       constructorArgList,
       orchestrator,
@@ -139,7 +148,7 @@ function generateScopeVariable(
   return generateRegularVariable(
     varDecl,
     varName,
-    scopeName,
+    declaringScope,
     isPrivate,
     orchestrator,
   );
@@ -151,14 +160,14 @@ function generateScopeVariable(
 function generateConstructorVariable(
   varDecl: Parser.VariableDeclarationContext,
   varName: string,
-  scopeName: string,
+  declaringScope: IScopeSymbol | null,
   isPrivate: boolean,
   constructorArgList: Parser.ConstructorArgumentListContext,
   orchestrator: IOrchestrator,
 ): string {
   // ADR-016: All scope variables are emitted at file scope
   const type = orchestrator.generateType(varDecl.type());
-  const fullName = QualifiedNameGenerator.forMember(scopeName, varName);
+  const fullName = QualifiedNameGenerator.forMember(declaringScope, varName);
   const prefix = isPrivate ? "static " : "";
 
   // Validate and resolve constructor arguments
@@ -166,7 +175,7 @@ function generateConstructorVariable(
   const line = varDecl.start?.line ?? 0;
   const resolvedArgs = resolveConstructorArgs(
     argIdentifiers,
-    scopeName,
+    declaringScope,
     line,
     orchestrator,
   );
@@ -180,7 +189,7 @@ function generateConstructorVariable(
 function generateRegularVariable(
   varDecl: Parser.VariableDeclarationContext,
   varName: string,
-  scopeName: string,
+  declaringScope: IScopeSymbol | null,
   isPrivate: boolean,
   orchestrator: IOrchestrator,
 ): string {
@@ -199,7 +208,7 @@ function generateRegularVariable(
   if (callbackTypedef !== null) {
     type = callbackTypedef;
   }
-  const fullName = QualifiedNameGenerator.forMember(scopeName, varName);
+  const fullName = QualifiedNameGenerator.forMember(declaringScope, varName);
 
   // Issue #948: Check if this is an opaque (forward-declared) struct type
   // Issue #958: Also check for external typedef struct types (complete definitions)
@@ -266,15 +275,15 @@ function generateRegularVariable(
  */
 function generateScopeFunction(
   funcDecl: Parser.FunctionDeclarationContext,
-  scopeName: string,
+  declaringScope: IScopeSymbol | null,
   isPrivate: boolean,
   orchestrator: IOrchestrator,
 ): string[] {
   const returnType = orchestrator.generateType(funcDecl.type());
   const funcName = funcDecl.IDENTIFIER().getText();
   // Use QualifiedNameGenerator for consistent C-style name generation
-  const fullName = QualifiedNameGenerator.forFunctionStrings(
-    scopeName,
+  const fullName = QualifiedNameGenerator.forFunctionInScope(
+    declaringScope,
     funcName,
   );
   const prefix = isPrivate ? "static " : "";
@@ -329,11 +338,9 @@ function generateEnumMembersFromAST(
   for (let i = 0; i < members.length; i++) {
     const member = members[i];
     const memberName = member.IDENTIFIER().getText();
-    // Enum members use the full enum name as their "scope"
-    const fullMemberName = QualifiedNameGenerator.forMember(
-      fullName,
-      memberName,
-    );
+    // #1285: qualified by the ENUM, not a scope -- see the note in
+    // generateScopedEnumInline. `fullName` is already fully qualified.
+    const fullMemberName = QualifiedCName.join(fullName, memberName);
 
     if (member.expression()) {
       const constValue = orchestrator.tryEvaluateConstant(member.expression()!);
@@ -355,7 +362,7 @@ function generateEnumMembersFromAST(
  */
 function processScopeMember(
   member: Parser.ScopeMemberContext,
-  scopeName: string,
+  declaringScope: IScopeSymbol | null,
   input: IGeneratorInput,
   state: IGeneratorState,
   orchestrator: IOrchestrator,
@@ -372,7 +379,7 @@ function processScopeMember(
     const varDecl = member.variableDeclaration()!;
     const result = generateScopeVariable(
       varDecl,
-      scopeName,
+      declaringScope,
       isPrivate,
       orchestrator,
     );
@@ -382,7 +389,12 @@ function processScopeMember(
   // Handle function declarations
   if (member.functionDeclaration()) {
     const funcDecl = member.functionDeclaration()!;
-    return generateScopeFunction(funcDecl, scopeName, isPrivate, orchestrator);
+    return generateScopeFunction(
+      funcDecl,
+      declaringScope,
+      isPrivate,
+      orchestrator,
+    );
   }
 
   // ADR-017: Handle enum declarations inside scopes
@@ -391,7 +403,7 @@ function processScopeMember(
     const enumDecl = member.enumDeclaration()!;
     return [
       "",
-      generateScopedEnumInline(enumDecl, scopeName, input, orchestrator),
+      generateScopedEnumInline(enumDecl, declaringScope, input, orchestrator),
     ];
   }
 
@@ -399,7 +411,7 @@ function processScopeMember(
   // Issue #369: Skip bitmap definition if self-include was added (it will be in the header)
   if (member.bitmapDeclaration() && !state.selfIncludeAdded) {
     const bitmapDecl = member.bitmapDeclaration()!;
-    return ["", generateScopedBitmapInline(bitmapDecl, scopeName, input)];
+    return ["", generateScopedBitmapInline(bitmapDecl, declaringScope, input)];
   }
 
   // Handle register declarations inside scopes
@@ -407,7 +419,7 @@ function processScopeMember(
     const regDecl = member.registerDeclaration()!;
     const result = generateScopedRegister(
       regDecl,
-      scopeName,
+      declaringScope,
       input,
       state,
       orchestrator,
@@ -421,7 +433,12 @@ function processScopeMember(
     const structDecl = member.structDeclaration()!;
     return [
       "",
-      generateScopedStructInline(structDecl, scopeName, input, orchestrator),
+      generateScopedStructInline(
+        structDecl,
+        declaringScope,
+        input,
+        orchestrator,
+      ),
     ];
   }
 
@@ -447,11 +464,27 @@ const generateScope: TGeneratorFn<Parser.ScopeDeclarationContext> = (
   // Set current scope for nested generation (imperative, not effect-based)
   orchestrator.setCurrentScope(name);
 
+  // #1285: thread the scope SYMBOL, not its name, so every member below qualifies
+  // through the parent chain instead of re-joining one level from a leaf.
+  //
+  // Resolved here rather than read back from `CodeGenState.currentScope`: that
+  // would make the generated NAMES depend on `orchestrator.setCurrentScope` having
+  // reached global state, which is a side effect through an interface. A mock
+  // orchestrator that does not forward it produced bare names with nothing failing
+  // at the type level. `getOrCreateScope` is the same resolver `setCurrentScopeByPath`
+  // uses, and it is cached, so this is one decision asked twice -- not two decisions.
+  //
+  // Passing a leaf path is correct while `scopeMember` admits no `scopeDeclaration`;
+  // that limit is tracked as #1304 and is unchanged by this.
+  const declaringScope = SymbolRegistry.getOrCreateScope(name);
+
   const lines: string[] = [];
   lines.push(`/* Scope: ${name} */`);
 
   for (const member of node.scopeMember()) {
-    lines.push(...processScopeMember(member, name, input, state, orchestrator));
+    lines.push(
+      ...processScopeMember(member, declaringScope, input, state, orchestrator),
+    );
   }
 
   lines.push("");
@@ -471,11 +504,11 @@ const generateScope: TGeneratorFn<Parser.ScopeDeclarationContext> = (
  */
 function generateScopedEnumInline(
   node: Parser.EnumDeclarationContext,
-  scopeName: string,
+  declaringScope: IScopeSymbol | null,
   input: IGeneratorInput,
   orchestrator: IOrchestrator,
 ): string {
-  const { fullName } = getScopedName(node, scopeName);
+  const { fullName } = getScopedName(node, declaringScope);
   const lines: string[] = [`typedef enum {`];
 
   // Try to get members from symbol info first
@@ -484,11 +517,11 @@ function generateScopedEnumInline(
     const memberEntries = Array.from(symbolMembers.entries());
     for (let i = 0; i < memberEntries.length; i++) {
       const [memberName, value] = memberEntries[i];
-      // Enum members use the full enum name as their "scope"
-      const fullMemberName = QualifiedNameGenerator.forMember(
-        fullName,
-        memberName,
-      );
+      // #1285: an enum member is qualified by its ENUM, not by a scope, and
+      // `fullName` is already fully qualified. Joining two qualified names is
+      // `QualifiedCName.join`; routing it through `forMember` was what forced that
+      // helper to keep taking plain strings, hiding a scope encoder behind an enum one.
+      const fullMemberName = QualifiedCName.join(fullName, memberName);
       const comma = i < memberEntries.length - 1 ? "," : "";
       lines.push(`    ${fullMemberName} = ${value}${comma}`);
     }
@@ -563,11 +596,11 @@ function _generateBitmapFieldCommentsFromAST(
  */
 function generateScopedBitmapInline(
   node: Parser.BitmapDeclarationContext,
-  scopeName: string,
+  declaringScope: IScopeSymbol | null,
   input: IGeneratorInput,
 ): string {
   const name = node.IDENTIFIER().getText();
-  const fullName = QualifiedNameGenerator.forMember(scopeName, name);
+  const fullName = QualifiedNameGenerator.forMember(declaringScope, name);
   const backingType = _getBitmapBackingType(fullName, node, input);
 
   const lines: string[] = [];
@@ -621,11 +654,11 @@ function generateScopedStructField(
  */
 function generateScopedStructInline(
   node: Parser.StructDeclarationContext,
-  scopeName: string,
+  declaringScope: IScopeSymbol | null,
   _input: IGeneratorInput,
   orchestrator: IOrchestrator,
 ): string {
-  const { fullName } = getScopedName(node, scopeName);
+  const { fullName } = getScopedName(node, declaringScope);
   const lines: string[] = [`typedef struct ${fullName} {`];
 
   // Process struct members

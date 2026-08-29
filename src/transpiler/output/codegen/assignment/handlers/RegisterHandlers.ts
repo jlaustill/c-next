@@ -124,7 +124,7 @@ function handleScopedRegisterBit(ctx: IAssignmentContext): string {
 
   // Build scoped name: Scope_Register_Member
   const regName = AssignmentHandlerUtils.buildScopedRegisterName(
-    CodeGenState.currentScope!.name,
+    CodeGenState.currentScope,
     ctx.identifiers,
   );
 
@@ -159,14 +159,17 @@ function handleScopedRegisterBitRange(ctx: IAssignmentContext): string {
     ctx.cnextOp,
   );
 
-  const scopeName = CodeGenState.currentScope!;
+  // #1285: `currentScope` IS the symbol, carrying the parent chain. Reading
+  // `.name` off it took the leaf and discarded every outer scope -- the exact
+  // leaf-only encoder this issue removes. Pass the symbol.
+  const declaringScope = CodeGenState.currentScope;
   const parts = ctx.identifiers;
   const regName = AssignmentHandlerUtils.buildScopedRegisterName(
-    scopeName.name,
+    declaringScope,
     parts,
   );
   const scopedRegName = QualifiedNameGenerator.forMember(
-    scopeName.name,
+    declaringScope,
     parts[0],
   );
 

@@ -6,8 +6,8 @@
  */
 
 import IRegisterNameResult from "./IRegisterNameResult";
-import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
+import ScopeUtils from "../../../../../utils/ScopeUtils";
 import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 
 /**
@@ -79,15 +79,17 @@ function validateWriteOnlyValue(
  * @returns The full scoped register name (e.g., "Scope_Register_Member")
  */
 function buildScopedRegisterName(
-  scopeName: string,
+  declaringScope: IScopeSymbol | null,
   parts: readonly string[],
 ): string {
-  // Build the name progressively: Scope_Part1_Part2_...
-  let result = scopeName;
-  for (const part of parts) {
-    result = QualifiedNameGenerator.forMember(result, part);
-  }
-  return result;
+  // #1285: the accumulator loop was a hand-rolled join -- each turn fed the
+  // PREVIOUS result back in as if it were a scope, which is why `forMember` had to
+  // accept an arbitrary string. The scope qualifies the head; the remaining parts
+  // are register/member components joined textually.
+  return QualifiedCName.join(
+    ScopeUtils.qualifyInScope(parts[0], declaringScope),
+    ...parts.slice(1),
+  );
 }
 
 /**

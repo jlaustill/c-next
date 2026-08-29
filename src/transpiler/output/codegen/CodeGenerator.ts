@@ -134,7 +134,9 @@ import CastValidator from "./helpers/CastValidator";
 import FunctionContextManager from "./helpers/FunctionContextManager";
 import IFunctionContextCallbacks from "./types/IFunctionContextCallbacks";
 // Global state for code generation (simplifies debugging, eliminates DI complexity)
+import type IScopeSymbol from "../../types/symbols/IScopeSymbol";
 import CodeGenState from "../../state/CodeGenState";
+import SymbolRegistry from "../../state/SymbolRegistry";
 import CallbackTypedefFormatter from "./helpers/CallbackTypedefFormatter";
 // Issue #269: Pass-by-value analysis extracted from CodeGenerator
 import PassByValueAnalyzer from "../../logic/analysis/PassByValueAnalyzer";
@@ -2730,7 +2732,12 @@ export default class CodeGenerator implements IOrchestrator {
     for (const member of scopeDecl.scopeMember()) {
       const funcDecl = member.functionDeclaration();
       if (funcDecl) {
-        this._registerScopeFunction(scopeName, funcDecl);
+        // #1285: resolve the scope SYMBOL rather than reading back mutable
+        // state, so the generated name does not depend on when it is asked.
+        this._registerScopeFunction(
+          SymbolRegistry.getOrCreateScope(scopeName),
+          funcDecl,
+        );
       }
     }
 
@@ -2759,13 +2766,13 @@ export default class CodeGenerator implements IOrchestrator {
    * reference to one is resolved.
    */
   private _registerScopeFunction(
-    scopeName: string,
+    declaringScope: IScopeSymbol | null,
     funcDecl: Parser.FunctionDeclarationContext,
   ): void {
     const funcName = funcDecl.IDENTIFIER().getText();
     // Track fully qualified function name: Scope_function
-    const fullName = QualifiedNameGenerator.forFunctionStrings(
-      scopeName,
+    const fullName = QualifiedNameGenerator.forFunctionInScope(
+      declaringScope,
       funcName,
     );
     CodeGenState.knownFunctions.add(fullName);
@@ -3380,11 +3387,17 @@ export default class CodeGenerator implements IOrchestrator {
     const name = ctx.IDENTIFIER().getText();
     CodeGenState.setCurrentScopeByPath(name);
 
+    // #1285: thread the scope SYMBOL, not the leaf name. Resolved from the
+    // registry rather than read back from `currentScope` -- see the note in
+    // ScopeGenerator.generateScope for why deriving names from mutable state is
+    // what let a mock produce bare names with nothing failing.
+    const declaringScope = SymbolRegistry.getOrCreateScope(name);
+
     const lines: string[] = [];
     lines.push(`/* Scope: ${name} */`);
 
     for (const member of ctx.scopeMember()) {
-      this._generateScopeMember(member, name, lines);
+      this._generateScopeMember(member, declaringScope, lines);
     }
 
     lines.push("");
@@ -3397,7 +3410,7 @@ export default class CodeGenerator implements IOrchestrator {
    */
   private _generateScopeMember(
     member: Parser.ScopeMemberContext,
-    scopeName: string,
+    declaringScope: IScopeSymbol | null,
     lines: string[],
   ): void {
     const visibility = member.visibilityModifier()?.getText() || "private";
@@ -3406,14 +3419,14 @@ export default class CodeGenerator implements IOrchestrator {
     if (member.variableDeclaration()) {
       this._generateScopeVariable(
         member.variableDeclaration()!,
-        scopeName,
+        declaringScope,
         isPrivate,
         lines,
       );
     } else if (member.functionDeclaration()) {
       this._generateScopeFunction(
         member.functionDeclaration()!,
-        scopeName,
+        declaringScope,
         isPrivate,
         lines,
       );
@@ -3424,7 +3437,10 @@ export default class CodeGenerator implements IOrchestrator {
     } else if (member.registerDeclaration()) {
       lines.push(
         "",
-        this.generateScopedRegister(member.registerDeclaration()!, scopeName),
+        this.generateScopedRegister(
+          member.registerDeclaration()!,
+          declaringScope,
+        ),
       );
     }
   }
@@ -3434,13 +3450,13 @@ export default class CodeGenerator implements IOrchestrator {
    */
   private _generateScopeVariable(
     varDecl: Parser.VariableDeclarationContext,
-    scopeName: string,
+    declaringScope: IScopeSymbol | null,
     isPrivate: boolean,
     lines: string[],
   ): void {
     const type = this.generateType(varDecl.type());
     const varName = varDecl.IDENTIFIER().getText();
-    const fullName = QualifiedNameGenerator.forMember(scopeName, varName);
+    const fullName = QualifiedNameGenerator.forMember(declaringScope, varName);
     const prefix = isPrivate ? "static " : "";
 
     const arrayDims = varDecl.arrayDimension();
@@ -3490,14 +3506,14 @@ export default class CodeGenerator implements IOrchestrator {
    */
   private _generateScopeFunction(
     funcDecl: Parser.FunctionDeclarationContext,
-    scopeName: string,
+    declaringScope: IScopeSymbol | null,
     isPrivate: boolean,
     lines: string[],
   ): void {
     const returnType = this.generateType(funcDecl.type());
     const funcName = funcDecl.IDENTIFIER().getText();
-    const fullName = QualifiedNameGenerator.forFunctionStrings(
-      scopeName,
+    const fullName = QualifiedNameGenerator.forFunctionInScope(
+      declaringScope,
       funcName,
     );
     const prefix = isPrivate ? "static " : "";
@@ -3585,12 +3601,12 @@ export default class CodeGenerator implements IOrchestrator {
    */
   private generateScopedRegister(
     ctx: Parser.RegisterDeclarationContext,
-    scopeName: string,
+    declaringScope: IScopeSymbol | null,
   ): string {
     // Delegate to extracted generator
     const result = scopedRegisterGenerator(
       ctx,
-      scopeName,
+      declaringScope,
       this.getInput(),
       this.getState(),
       this,
