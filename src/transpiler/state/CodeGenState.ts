@@ -700,10 +700,14 @@ export default class CodeGenState {
   /**
    * Check if a *qualified* name is a known type declared in a scope.
    * Used by QualifedCName.qualifyScopeType() to ensure only actual type
-   * declarations (enum/struct/bitmap) capture the name at a type position.
+   * declarations (enum/struct/bitmap/function) capture the name at a type
+   * position. ADR-029 makes a function definition create a callback type, so a
+   * scope function is a type declaration for this purpose; a scope VARIABLE is
+   * not, and deliberately does not capture (ADR-057).
    *
    * @param qualifiedName The already-joined C name (e.g. "A__B")
-   * @returns true if the qualified name is a known enum, struct, or bitmap
+   * @returns true if the qualified name is a known enum, struct, bitmap, or
+   *          function-as-type (ADR-029)
    */
   static isScopeType(qualifiedName: string): boolean {
     return (

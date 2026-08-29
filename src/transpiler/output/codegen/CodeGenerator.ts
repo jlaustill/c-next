@@ -2785,8 +2785,9 @@ export default class CodeGenerator implements IOrchestrator {
     // is the same declaration-order invariant ADR-057 states for the symbols
     // layer's Pass 0b.
     for (const member of scopeDecl.scopeMember()) {
-      if (member.functionDeclaration()) {
-        this._registerScopeFunction(scopeName, member.functionDeclaration()!);
+      const funcDecl = member.functionDeclaration();
+      if (funcDecl) {
+        this._registerScopeFunction(scopeName, funcDecl);
       }
     }
 

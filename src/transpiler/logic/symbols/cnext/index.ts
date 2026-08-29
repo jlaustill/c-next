@@ -21,6 +21,22 @@ import QualifiedCName from "../../../../utils/QualifiedCName";
 import TYPE_FORMING_KINDS from "../TYPE_FORMING_KINDS";
 import TSymbolKindCNext from "../../../types/symbol-kinds/TSymbolKindCNext";
 
+/**
+ * The declaration node behind any one `scopeMember` alternative.
+ *
+ * A union of the real parse-tree context types rather than a structural
+ * `{ IDENTIFIER(): ... }`: every scopeMember accessor satisfies the structural
+ * shape, so a wrong kind/accessor pairing in `byKind` would still compile.
+ */
+type TScopeMemberDeclaration =
+  | Parser.EnumDeclarationContext
+  | Parser.StructDeclarationContext
+  | Parser.BitmapDeclarationContext
+  | Parser.FunctionDeclarationContext
+  | Parser.VariableDeclarationContext
+  | Parser.RegisterDeclarationContext
+  | null;
+
 class CNextResolver {
   /**
    * Resolve all symbols from a C-Next program parse tree.
@@ -167,14 +183,22 @@ class CNextResolver {
    */
   private static typeFormingDeclaration(
     member: Parser.ScopeMemberContext,
-  ): { IDENTIFIER(): { getText(): string } } | null {
-    const byKind: ReadonlyArray<
-      [TSymbolKindCNext, { IDENTIFIER(): { getText(): string } } | null]
-    > = [
+  ): TScopeMemberDeclaration {
+    const byKind: ReadonlyArray<[TSymbolKindCNext, TScopeMemberDeclaration]> = [
       ["enum", member.enumDeclaration()],
       ["struct", member.structDeclaration()],
       ["bitmap", member.bitmapDeclaration()],
       ["function", member.functionDeclaration()],
+      // All six `scopeMember` alternatives (grammar/CNext.g4:81-88) are listed
+      // so TYPE_FORMING_KINDS is the ONLY thing that excludes a kind. Omitting
+      // these two instead would put the exclusion here while the reasoning for
+      // it lives in TYPE_FORMING_KINDS -- one file apart, which is the shape
+      // this work exists to remove. Listing them costs nothing (both are absent
+      // from the set, so behavior is unchanged) and makes the exclusions
+      // mutation-testable: adding "variable" to the set now actually changes
+      // behavior, and a fixture can fail on it.
+      ["variable", member.variableDeclaration()],
+      ["register", member.registerDeclaration()],
     ];
 
     for (const [kind, decl] of byKind) {

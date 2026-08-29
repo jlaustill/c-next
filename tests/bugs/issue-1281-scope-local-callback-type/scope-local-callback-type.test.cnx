@@ -53,12 +53,84 @@ scope Later {
     }
 }
 
+
+// ADR-057:97-101 has TWO halves, and TYPE_FORMING_KINDS is what decides between
+// them. Neither had a fixture anywhere.
+//
+//   "A scope member captures a bare name at a type position only if that member
+//    is itself a type. A scope function IS a type (ADR-029), so it captures; a
+//    scope variable is not, so it does not."
+//
+// `Shadow` is the capture half and is the most consequential behavior change
+// here: on main this field emits the GLOBAL `Config`, on this branch it emits
+// `Shadow__Config_fp`. Nothing in the suite noticed.
+//
+// `NoCapture` is the negative control. An assertion catches under-enforcement;
+// a control catches OVER-enforcement. Adding "variable" to TYPE_FORMING_KINDS
+// would silently break ADR-057 -- this makes that fail instead.
+
+struct Config {
+    u32 x;
+}
+
+scope Shadow {
+    public u32 Config() {
+        return 9;
+    }
+
+    public struct Wrapper {
+        Config c;
+    }
+
+    public u32 run() {
+        Wrapper w;
+        w.c <- Config;
+        return w.c();
+    }
+}
+
+// The control uses a global ENUM rather than a global struct, deliberately: a
+// scope struct whose field names a global STRUCT is emitted before that struct's
+// typedef, so the header does not compile. That is a pre-existing ordering
+// defect on main (#1332), unrelated to kind-awareness -- routing
+// around it keeps this fixture pinning the rule it is here for.
+enum Mode {
+    ALPHA <- 1,
+    BETA <- 2
+}
+
+scope NoCapture {
+    u32 Mode <- 5;
+
+    public struct Holder {
+        Mode m;
+    }
+
+    public u32 run() {
+        // `global.` is required in VALUE position because the scope variable
+        // shadows the enum -- ADR-057 diagnoses that. The FIELD TYPE above is
+        // the half under test: it stays the global `Mode`, because a scope
+        // variable is not type-forming.
+        Holder h <- {m: global.Mode.BETA};
+        return h.m + Mode;
+    }
+}
+
 u32 main() {
     u32 timing <- Timing.run();
     if (timing != 44) return 1;
 
     u32 later <- Later.run();
     if (later != 2) return 2;
+
+    // Scope function shadowing a global struct name: the FUNCTION captures.
+    u32 shadowed <- Shadow.run();
+    if (shadowed != 9) return 3;
+
+    // Scope variable sharing a global type's name: the global TYPE survives.
+    // BETA (2) + the scope variable Mode (5) = 7.
+    u32 uncaptured <- NoCapture.run();
+    if (uncaptured != 7) return 4;
 
     return 0;
 }
