@@ -9,13 +9,20 @@ interface IConflict {
    * The diagnostic code this conflict reports under, without brackets --
    * `"E0425"` for a symbol conflict, `"E0204"` for MISRA Rule 5.1.
    *
+   * A union, not `string`, for the reason the sibling `severity` field gives:
+   * it is interpolated straight into `error[${conflict.code}]`, so as `string`
+   * the values `"E425"`, `"e0204"` and `""` would all typecheck. The corpus pins
+   * the two existing codes through their `.expected.error` files, but a typo in a
+   * FUTURE producer would render into a fresh snapshot that `--update` accepts
+   * silently (#1316). Extend the union when a third conflict code appears.
+   *
    * On the conflict, not on the consumer. #1342 hardcoded `error[E0425]` at the
    * point of consumption, and #1339 landed a second producer whose code is
    * E0204 -- so the two merged into a state where the code a conflict reports
    * under depended on which consumer happened to read it. One producer knows
    * its own code; no consumer should be guessing.
    */
-  readonly code: string;
+  readonly code: "E0204" | "E0425";
 
   symbolName: string;
   definitions: TAnySymbol[];

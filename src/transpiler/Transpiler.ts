@@ -1008,19 +1008,6 @@ class Transpiler {
   }
 
   /**
-   * Stage 4c: Reject external identifiers that are not distinct within the
-   * target's significant-character limit (MISRA C:2012 Rule 5.1, issue #1307).
-   *
-   * A sibling of Stage 4b rather than part of Stage 4: a symbol *conflict* is
-   * two declarations competing for one name, which is a fact about the symbol
-   * table. This is a fact about the C target -- the same two declarations are
-   * fine at 63 significant characters and wrong at 31 -- so it is reported as a
-   * coded diagnostic against a source line, the way E0203 is, instead of going
-   * through the untyped `conflicts` channel.
-   *
-   * @returns true when every external identifier is distinct within the budget
-   */
-  /**
    * The one rendering of a conflict as a diagnostic.
    *
    * Both conflict checks used to do this themselves and disagreed on both halves:
@@ -1045,6 +1032,19 @@ class Transpiler {
     };
   }
 
+  /**
+   * Stage 4c: Reject external identifiers that are not distinct within the
+   * target's significant-character limit (MISRA C:2012 Rule 5.1, issue #1307).
+   *
+   * A sibling of Stage 4b rather than part of Stage 4: a symbol *conflict* is
+   * two declarations competing for one name, which is a fact about the symbol
+   * table. This is a fact about the C target -- the same two declarations are
+   * fine at 63 significant characters and wrong at 31 -- so it is reported as a
+   * coded diagnostic against a source line, the way E0203 is, instead of going
+   * through the untyped `conflicts` channel.
+   *
+   * @returns true when every external identifier is distinct within the budget
+   */
   private _checkExternalIdentifierSignificance(
     result: ITranspilerResult,
   ): boolean {
