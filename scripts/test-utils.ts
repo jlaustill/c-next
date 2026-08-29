@@ -1279,18 +1279,23 @@ class TestUtils {
     const result = transpileViaCli(cnxFile, rootDir, false);
 
     if (result.success) {
+      // Issue #1316: --update must not resolve "a diagnostic was dropped" in
+      // favour of "this fixture was always meant to succeed". Unlinking the
+      // .expected.error erased the only assertion that the diagnostic fires and
+      // reported the run green, so a regression and an intentional fix were
+      // indistinguishable -- across 287 error fixtures, on the one command a
+      // diagnostic migration runs repeatedly. The snapshot is still written so
+      // an author who meant to remove the diagnostic can see the new output;
+      // removing the assertion stays their explicit act, made by deleting the
+      // .expected.error and its DIAGNOSTIC-MANIFEST.md entry in the same commit.
       if (updateMode) {
-        unlinkSync(expectedErrorFile);
         writeFileSync(expectedCFile, result.code);
-        return {
-          passed: true,
-          message: "Switched from error to C snapshot",
-          updated: true,
-        };
       }
       return {
         passed: false,
-        message: "Expected errors but transpilation succeeded",
+        message: updateMode
+          ? `test-error fixture no longer errors: .expected.error kept, wrote ${basename(expectedCFile)} for inspection. If intentional, delete the .expected.error and its DIAGNOSTIC-MANIFEST.md entry.`
+          : "Expected errors but transpilation succeeded",
         expected: expectedErrors,
         actual: "(no errors)",
       };
