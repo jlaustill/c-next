@@ -225,9 +225,10 @@ describe("ArrayHandlers", () => {
 
       getHandler()!(ctx);
 
+      // #1360: dimensions are no longer passed in -- checkArrayBounds owns the
+      // whether-to-check decision, so every caller asks the same question.
       expect(mockCheckArrayBounds).toHaveBeenCalledWith(
         "matrix",
-        [10, 10],
         ctx.subscripts,
         10,
         expect.any(Function), // tryEvaluateConstant callback

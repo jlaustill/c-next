@@ -1,0 +1,15 @@
+// test-error
+// #1360 / ADR-036: the second subscript of a multi-dimensional read must be
+// judged against the SECOND dimension. The read path walks a postfix chain one
+// subscript at a time, so it reports its depth rather than slicing the
+// dimension list -- slicing would shift every later dimension and check
+// grid[0][9] against 2 instead of 4.
+//
+// The in-bounds read above must stay SILENT.
+u8[2][4] grid;
+
+i32 main() {
+    u8 inBounds <- grid[1][3];
+    u8 outOfBounds <- grid[0][9];
+    return 0;
+}

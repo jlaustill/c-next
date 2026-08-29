@@ -979,9 +979,24 @@ export default class CodeGenState {
       baseType,
       bitWidth: isString ? 8 : TYPE_WIDTH[baseType] || 0,
       isArray: symbol.isArray || false,
-      arrayDimensions: symbol.arrayDimensions
-        ?.map((d) => (typeof d === "number" ? d : Number.parseInt(d, 10)))
-        .filter((n) => !Number.isNaN(n)),
+      // #1360: keep the slot. Filtering a dimension that cannot be folded out shifted
+      // every dimension after it, so a cross-file `u8[BUF_SIZE][3]` arrived as
+      // [3] and dimension 2's bound was applied to dimension 1 -- rejecting a
+      // valid `grid[10][0]` and never checking dimension 2 at all. That is the
+      // same defect #1127 fixed in getMemberTypeInfo, whose comment already
+      // records the reasoning; this path simply did not follow it.
+      //
+      // A numeric string still parses to its value -- only a genuinely
+      // dimension that cannot be folded (a macro name, or "" for an unsized `[]`) becomes
+      // UNRESOLVED_DIMENSION, which reads as "size unknown, cannot validate"
+      // because checkArrayBounds skips a non-positive bound.
+      arrayDimensions: symbol.arrayDimensions?.map((d) => {
+        if (typeof d === "number") {
+          return d;
+        }
+        const parsed = Number.parseInt(d, 10);
+        return Number.isNaN(parsed) ? UNRESOLVED_DIMENSION : parsed;
+      }),
       isConst: symbol.isConst || false,
       isAtomic: symbol.isAtomic || false,
       isEnum,

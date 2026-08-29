@@ -15,6 +15,7 @@ import TestSymbolUtils from "../../logic/symbols/cnext/__tests__/testSymbolUtils
 import SymbolRegistry from "../SymbolRegistry";
 import ScopeUtils from "../../../utils/ScopeUtils";
 import createMockSymbols from "../../__tests__/codeGenSymbolsHelpers";
+import UNRESOLVED_DIMENSION from "../../constants/UNRESOLVED_DIMENSION";
 
 /**
  * Create a minimal C-Next IVariableSymbol for testing.
@@ -805,7 +806,7 @@ describe("CodeGenState", () => {
       expect(result?.isAtomic).toBe(true);
     });
 
-    it("convertSymbolToTypeInfo filters invalid array dimensions", () => {
+    it("convertSymbolToTypeInfo keeps the slot of a dimension it cannot fold (#1360)", () => {
       CodeGenState.symbolTable.addTSymbol(
         createCNextVariableSymbol({
           name: "arrayVar",
@@ -817,8 +818,31 @@ describe("CodeGenState", () => {
 
       const result = CodeGenState.getVariableTypeInfo("arrayVar");
 
-      // Should only include valid numeric dimensions
-      expect(result?.arrayDimensions).toEqual([10, 20]);
+      // This used to assert [10, 20]. Dropping the slot slides every later
+      // bound one position left, so checkArrayBounds validated dimension 3's
+      // index against dimension 2's bound -- rejecting valid code and skipping
+      // the real bound entirely. #1127 already established slot preservation
+      // for the sibling conversion (getMemberTypeInfo); this one did not follow
+      // it. UNRESOLVED_DIMENSION reads as "size unknown, cannot validate".
+      expect(result?.arrayDimensions).toEqual([10, UNRESOLVED_DIMENSION, 20]);
+    });
+
+    it("convertSymbolToTypeInfo still folds a numeric string dimension (#1360)", () => {
+      // Negative control for the case above: only a dimension that genuinely
+      // cannot be folded becomes UNRESOLVED_DIMENSION. A numeric string carries a real
+      // bound and must keep it, or the check would silently stop enforcing it.
+      CodeGenState.symbolTable.addTSymbol(
+        createCNextVariableSymbol({
+          name: "numericStringDims",
+          type: TTypeUtils.createPrimitive("u8"),
+          isArray: true,
+          arrayDimensions: ["16", 3],
+        }),
+      );
+
+      const result = CodeGenState.getVariableTypeInfo("numericStringDims");
+
+      expect(result?.arrayDimensions).toEqual([16, 3]);
     });
   });
 

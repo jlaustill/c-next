@@ -1,0 +1,15 @@
+// test-error
+// #1360 / ADR-036: a constant subscript out of range must be rejected in a
+// VALUE position exactly as in an assignment target. Today `arr[5] <- 1` is
+// rejected and `u8 x <- arr[5]` compiles at exit 0, emitting `arr[5U]`.
+//
+// The in-bounds read on the line above the flagged one must stay SILENT --
+// without it this fixture would also pass a check that rejected every
+// subscript.
+u8[5] arr;
+
+i32 main() {
+    u8 inBounds <- arr[4];
+    u8 outOfBounds <- arr[5];
+    return 0;
+}

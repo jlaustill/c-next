@@ -1,0 +1,15 @@
+// test-error
+// #1360 / ADR-036: a read through an array PARAMETER is bounds-checked. ADR-036
+// makes MISRA 17.5 mandatory ("bounds always specified and checked"), so a
+// parameter carries its dimensions and there is a bound to check against.
+//
+// The in-bounds read above must stay SILENT.
+u8 readFrom(u8[4] values) {
+    u8 inBounds <- values[3];
+    u8 outOfBounds <- values[9];
+    return outOfBounds;
+}
+
+i32 main() {
+    return 0;
+}

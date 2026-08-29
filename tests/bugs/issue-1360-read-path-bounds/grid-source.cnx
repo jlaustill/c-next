@@ -1,0 +1,8 @@
+// Helper for issue-1360. `sharedGrid`'s FIRST dimension is a C macro, so it is
+// not foldable at collection time and is carried as a string; the second is a
+// literal. Read from another file, this is the shape whose unfoldable slot used
+// to be filtered out -- collapsing [GRID_ROWS, 3] to [3] and sliding dimension
+// 2's bound into dimension 1.
+#include "grid-sizes.h"
+
+u8[GRID_ROWS][3] sharedGrid;

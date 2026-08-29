@@ -53,21 +53,17 @@ function handleArrayElement(ctx: IAssignmentContext): string {
  * Uses resolvedBaseIdentifier for type lookups to support scoped arrays.
  */
 function handleMultiDimArrayElement(ctx: IAssignmentContext): string {
-  // Use resolvedBaseIdentifier for type lookup (includes scope prefix)
-  // e.g., "ArrayBug_data" instead of "data"
-  const typeInfo = CodeGenState.getVariableTypeInfo(ctx.resolvedBaseIdentifier);
-
-  // ADR-036: Compile-time bounds checking for constant indices
-  if (typeInfo?.arrayDimensions) {
-    const line = ctx.subscripts[0]?.start?.line ?? 0;
-    TypeValidator.checkArrayBounds(
-      ctx.resolvedBaseIdentifier,
-      [...typeInfo.arrayDimensions],
-      [...ctx.subscripts],
-      line,
-      (expr) => CodeGenState.requireGenerator().tryEvaluateConstant(expr),
-    );
-  }
+  // ADR-036: Compile-time bounds checking for constant indices. Uses
+  // resolvedBaseIdentifier (includes the scope prefix, e.g. "ArrayBug_data"
+  // rather than "data"); the whether-to-check guard lives in checkArrayBounds
+  // so all three callers ask the same question (#1360).
+  const line = ctx.subscripts[0]?.start?.line ?? 0;
+  TypeValidator.checkArrayBounds(
+    ctx.resolvedBaseIdentifier,
+    [...ctx.subscripts],
+    line,
+    (expr) => CodeGenState.requireGenerator().tryEvaluateConstant(expr),
+  );
 
   return `${ctx.resolvedTarget} ${ctx.cOp} ${ctx.generatedValue};`;
 }
