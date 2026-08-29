@@ -6,40 +6,9 @@ import { describe, it, expect, beforeEach } from "vitest";
 import EnumTypeResolver from "../EnumTypeResolver";
 import CodeGenState from "../../../../state/CodeGenState";
 import SymbolTable from "../../../../logic/symbols/SymbolTable";
-import ICodeGenSymbols from "../../../../types/ICodeGenSymbols";
+import createMockSymbols from "../../../../__tests__/codeGenSymbolsHelpers";
 
 describe("EnumTypeResolver", () => {
-  const createMockSymbols = (
-    overrides: Partial<ICodeGenSymbols> = {},
-  ): ICodeGenSymbols =>
-    ({
-      knownScopes: new Set(),
-      knownEnums: new Set(),
-      knownBitmaps: new Set(),
-      knownStructs: new Set(),
-      knownRegisters: new Set(),
-      bitmapBitWidth: new Map(),
-      bitmapFields: new Map(),
-      bitmapBackingType: new Map(),
-      enumMembers: new Map(),
-      structFields: new Map(),
-      structFieldArrays: new Map(),
-      structFieldDimensions: new Map(),
-      functionReturnTypes: new Map(),
-      scopeMembers: new Map(),
-      scopeMemberVisibility: new Map(),
-      scopedRegisters: new Map(),
-      registerMemberAccess: new Map(),
-      registerMemberTypes: new Map(),
-      registerBaseAddresses: new Map(),
-      registerMemberOffsets: new Map(),
-      registerMemberCTypes: new Map(),
-      scopeVariableUsage: new Map(),
-      scopePrivateConstValues: new Map(),
-      getSingleFunctionForVariable: () => null,
-      ...overrides,
-    }) as ICodeGenSymbols;
-
   beforeEach(() => {
     CodeGenState.reset();
   });

@@ -5,7 +5,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import CodeGenState from "../CodeGenState";
 import TTypeInfo from "../../output/codegen/types/TTypeInfo";
-import ICodeGenSymbols from "../../types/ICodeGenSymbols";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import IVariableSymbol from "../../types/symbols/IVariableSymbol";
 import ICVariableSymbol from "../../types/symbols/c/ICVariableSymbol";
@@ -14,6 +13,7 @@ import TTypeUtils from "../../../utils/TTypeUtils";
 import TestSymbolUtils from "../../logic/symbols/cnext/__tests__/testSymbolUtils";
 import SymbolRegistry from "../SymbolRegistry";
 import ScopeUtils from "../../../utils/ScopeUtils";
+import createMockSymbols from "../../__tests__/codeGenSymbolsHelpers";
 
 /**
  * Create a minimal C-Next IVariableSymbol for testing.
@@ -57,54 +57,6 @@ function createCVariableSymbol(
     isConst: overrides.isConst,
     isArray: overrides.isArray,
     arrayDimensions: overrides.arrayDimensions,
-  };
-}
-
-/**
- * Create a minimal mock ICodeGenSymbols with default empty collections.
- */
-function createMockSymbols(
-  overrides: Partial<{
-    knownScopes: Set<string>;
-    knownEnums: Set<string>;
-    knownBitmaps: Set<string>;
-    knownStructs: Set<string>;
-    knownRegisters: Set<string>;
-    enumMembers: Map<string, Map<string, number>>;
-    structFields: Map<string, Map<string, string>>;
-    structFieldArrays: Map<string, Set<string>>;
-    functionReturnTypes: Map<string, string>;
-    scopeMemberVisibility: Map<string, Map<string, "public" | "private">>;
-    opaqueTypes: Set<string>;
-  }> = {},
-): ICodeGenSymbols {
-  return {
-    knownScopes: overrides.knownScopes ?? new Set(),
-    knownEnums: overrides.knownEnums ?? new Set(),
-    knownBitmaps: overrides.knownBitmaps ?? new Set(),
-    knownStructs: overrides.knownStructs ?? new Set(),
-    knownRegisters: overrides.knownRegisters ?? new Set(),
-    scopeMembers: new Map(),
-    scopeMemberVisibility: overrides.scopeMemberVisibility ?? new Map(),
-    structFields: overrides.structFields ?? new Map(),
-    structFieldArrays: overrides.structFieldArrays ?? new Map(),
-    structFieldDimensions: new Map(),
-    enumMembers: overrides.enumMembers ?? new Map(),
-    bitmapFields: new Map(),
-    bitmapBackingType: new Map(),
-    bitmapBitWidth: new Map(),
-    scopedRegisters: new Map(),
-    registerMemberAccess: new Map(),
-    registerMemberTypes: new Map(),
-    registerBaseAddresses: new Map(),
-    registerMemberOffsets: new Map(),
-    registerMemberCTypes: new Map(),
-    scopeVariableUsage: new Map(),
-    scopePrivateConstValues: new Map(),
-    functionReturnTypes: overrides.functionReturnTypes ?? new Map(),
-    opaqueTypes: overrides.opaqueTypes ?? new Set(),
-    hasPublicInterface: false,
-    getSingleFunctionForVariable: () => null,
   };
 }
 

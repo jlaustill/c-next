@@ -3,52 +3,20 @@
  * Tests all validation methods for 100% coverage
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import TypeValidator from "../TypeValidator";
-import TypeResolver from "../TypeResolver";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import createMockSymbols from "../../../__tests__/codeGenSymbolsHelpers";
+import * as Parser from "../../../logic/parser/grammar/CNextParser";
 import CodeGenState from "../../../state/CodeGenState";
 import type ICodeGenSymbols from "../../../types/ICodeGenSymbols";
-import type TTypeInfo from "../types/TTypeInfo";
-import type TParameterInfo from "../types/TParameterInfo";
+import TypeResolver from "../TypeResolver";
 import type ICallbackTypeInfo from "../types/ICallbackTypeInfo";
-import * as Parser from "../../../logic/parser/grammar/CNextParser";
+import type TParameterInfo from "../types/TParameterInfo";
+import type TTypeInfo from "../types/TTypeInfo";
+import TypeValidator from "../TypeValidator";
 
 // ========================================================================
 // Test Helpers - Mock Symbols
 // ========================================================================
-
-function createMockSymbols(
-  overrides?: Partial<ICodeGenSymbols>,
-): ICodeGenSymbols {
-  return {
-    knownScopes: new Set(),
-    knownRegisters: new Set(),
-    knownEnums: new Set(),
-    knownStructs: new Set(),
-    knownBitmaps: new Set(),
-    scopeMembers: new Map(),
-    scopeMemberVisibility: new Map(),
-    structFields: new Map(),
-    structFieldArrays: new Map(),
-    structFieldDimensions: new Map(),
-    enumMembers: new Map(),
-    bitmapFields: new Map(),
-    bitmapBackingType: new Map(),
-    bitmapBitWidth: new Map(),
-    scopedRegisters: new Map(),
-    registerMemberAccess: new Map(),
-    registerMemberTypes: new Map(),
-    registerBaseAddresses: new Map(),
-    registerMemberOffsets: new Map(),
-    registerMemberCTypes: new Map(),
-    scopeVariableUsage: new Map(),
-    scopePrivateConstValues: new Map(),
-    functionReturnTypes: new Map(),
-    getSingleFunctionForVariable: () => null,
-    ...overrides,
-  } as ICodeGenSymbols;
-}
-
 // ========================================================================
 // Test Helpers - Setup State
 // ========================================================================
