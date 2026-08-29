@@ -166,8 +166,16 @@ const generateEqualityExpr = (
       ]);
       effects.push(...leftResult.effects, ...rightResult.effects);
 
-      const fullText = node.getText();
-      const isNotEqual = fullText.includes("!=");
+      // #1302: read the operator from the parse tree, not from the text of the
+      // whole comparison. `node.getText()` includes both operands, so a string
+      // literal CONTAINING "!=" selected inequality -- `t = "a!=b"` generated
+      // `strcmp(t, "a!=b") != 0`, compiling clean with the condition inverted.
+      //
+      // This is the mechanism the non-string path below already uses (#152);
+      // asking it here means one decision about what the operator is, rather
+      // than two that agree only while no literal happens to contain "!=".
+      const operators = orchestrator.getOperatorsFromChildren(node);
+      const isNotEqual = operators[0] === "!=";
 
       return {
         code: BinaryExprUtils.generateStrcmpCode(
