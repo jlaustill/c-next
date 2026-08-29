@@ -1,0 +1,4 @@
+24:0 error[E0425]: Symbol conflict: 'helper' is defined in multiple languages:
+  tests/bugs/issue-1334-scope-declaration-sites/cross-language-conflict.test.cnx:24 (C-Next)
+  tests/bugs/issue-1334-scope-declaration-sites/legacy-c-types.h:17 (C)
+  Rename the C-Next symbol to resolve.

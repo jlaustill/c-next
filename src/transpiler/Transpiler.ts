@@ -716,7 +716,6 @@ class Transpiler {
       files: [],
       filesProcessed: 0,
       symbolsCollected: 0,
-      conflicts: [],
       errors: [],
       warnings: [],
       outputFiles: [],
@@ -970,10 +969,13 @@ class Transpiler {
       // every other diagnostic. The code is embedded in the message because
       // ITranspileError carries no `code` field -- the same precedent E0203 uses
       // above, and how runAnalyzers formats analyzer codes.
-      result.conflicts.push(conflict.message);
-      if (conflict.severity === "error") {
-        result.success = false;
-      }
+      //
+      // The channel is retired whole: `ITranspilerResult.conflicts` is gone along
+      // with its reader, so a conflict has ONE representation in the result. Deleting
+      // only the reader would have left a field written here and read nowhere, which
+      // `npx knip` cannot see -- it does not analyze interface fields.
+      // IConflict.severity is `"error"`, so this is unconditional by construction.
+      result.success = false;
       result.errors.push({
         line: conflict.line,
         column: conflict.column,

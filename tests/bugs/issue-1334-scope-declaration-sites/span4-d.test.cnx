@@ -13,10 +13,15 @@
 // single one is visible. The mutation table runs both the keep-first and keep-last
 // mutations against this fixture and both must redden.
 //
-// The depth is load-bearing on its own: `Point` is declared in block 1 and used
-// bare in blocks 3 and 4, so resolution has to cross two and three include hops.
-// ADR-016's matrix declares `imported transitive` cells and the existing
-// cross-file-span fixture only reaches depth 1.
+// The depth is load-bearing as BEHAVIORAL coverage: `Point` is declared in block 1
+// and used bare in blocks 3 and 4, so resolution has to cross two and three include
+// hops, where the existing cross-file-span fixture only reaches depth 1.
+//
+// It does NOT occupy ADR-016's `imported transitive` matrix cells, and reading it as
+// a claim to would overstate the corpus. Occupancy is derived from a diagnostic's
+// position; this fixture has no `.expected.error`, so no context is derivable and
+// docs/scope-context-matrix.md lists it under the linked fixtures with none. That is
+// the limit CLAUDE.md records as #1241.
 
 #include "span4-c.cnx"
 

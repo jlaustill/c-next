@@ -7,7 +7,17 @@ import TAnySymbol from "./symbols/TAnySymbol";
 interface IConflict {
   symbolName: string;
   definitions: TAnySymbol[];
-  severity: "error" | "warning";
+  /**
+   * Always `"error"`.
+   *
+   * #1334 review: the message prefix is a hardcoded `error[E0425]`, so a
+   * warning-severity conflict would print as an error, go through ResultPrinter's
+   * `Error:` prefix, and still leave `result.success` true. Both producers return
+   * `"error"`, so that agreed with the truth only by coincidence. Narrowing the type
+   * makes it agree by construction; widen it again only alongside a prefix derived
+   * from this field.
+   */
+  severity: "error";
   message: string;
 
   /**

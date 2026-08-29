@@ -1,4 +1,5 @@
 import { describe, expect, it, beforeEach } from "vitest";
+import DeclarationSite from "../../../../../utils/DeclarationSite";
 import parse from "./testHelpers";
 import ScopeCollector from "../collectors/ScopeCollector";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
@@ -37,7 +38,9 @@ describe("ScopeCollector", () => {
       collectBlock(`scope Span {\n  u32 c;\n}`, "span4-c.cnx");
       const last = collectBlock(`scope Span {\n  u32 d;\n}`, "span4-d.cnx");
 
-      expect([...last.scopeSymbol.declarationSites].sort()).toEqual([
+      expect(
+        [...last.scopeSymbol.declarationSites].sort(DeclarationSite.compare),
+      ).toEqual([
         "span4-a.cnx:1",
         "span4-b.cnx:1",
         "span4-c.cnx:1",

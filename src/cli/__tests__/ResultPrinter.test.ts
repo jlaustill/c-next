@@ -17,7 +17,6 @@ function createResult(
     files: [],
     filesProcessed: 0,
     symbolsCollected: 0,
-    conflicts: [],
     errors: [],
     warnings: [],
     outputFiles: [],
@@ -69,23 +68,9 @@ describe("ResultPrinter", () => {
       expect(warnOutput).toContain("Warning: Deprecated function");
     });
 
-    // #1334: the `Conflict:` channel is gone. A symbol conflict is an ordinary
-    // coded diagnostic in `errors` now, with a real position -- it used to arrive
-    // through a second channel AND a companion error with no position, so one problem
-    // printed two lines and neither carried an error code.
-    it("does not print result.conflicts — conflicts arrive as ordinary errors", () => {
-      ResultPrinter.print(
-        createResult({
-          filesProcessed: 1,
-          conflicts: ["Symbol 'foo' defined twice", "Type mismatch"],
-          outputFiles: ["output.c"],
-        }),
-      );
-
-      expect(errorOutput).not.toContain("Conflict:");
-      expect(errorOutput).not.toContain("Symbol 'foo' defined twice");
-    });
-
+    // #1334: the `Conflict:` channel is gone -- the field, its producer, and its
+    // reader. A conflict used to arrive through it AND as a companion error with no
+    // position, so one problem printed two lines and neither carried an error code.
     it("prints a symbol conflict as a coded error at its real position", () => {
       ResultPrinter.print(
         createResult({
@@ -240,7 +225,6 @@ describe("ResultPrinter", () => {
       ResultPrinter.print(
         createResult({
           success: false,
-          conflicts: ["Conflict 1"],
           errors: [
             { line: 1, column: 1, message: "Error 1", severity: "error" },
           ],

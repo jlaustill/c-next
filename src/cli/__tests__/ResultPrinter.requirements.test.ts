@@ -20,7 +20,6 @@ function createResult(
     files: [],
     filesProcessed: 1,
     symbolsCollected: 0,
-    conflicts: [],
     errors: [],
     warnings: [],
     outputFiles: [],

@@ -7,6 +7,7 @@
  */
 
 import * as Parser from "../../../parser/grammar/CNextParser";
+import DeclarationSite from "../../../../../utils/DeclarationSite";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
 import TSymbol from "../../../../types/symbols/TSymbol";
@@ -72,7 +73,7 @@ class ScopeCollector {
     // Set membership is keyed on the rendered `file:line`, so re-collecting the
     // same textual block (CNextResolver.resolve runs more than once per file on
     // some paths) is a no-op rather than a duplicate entry.
-    mutableScope.declarationSites.add(`${sourceFile}:${line}`);
+    mutableScope.declarationSites.add(DeclarationSite.format(sourceFile, line));
 
     // The scalars keep the FIRST site. Lossless now that declarationSites holds
     // the rest: `sourceLine === 0` is createScope's initial value, so an unset

@@ -614,6 +614,22 @@ composition is a property of a scope, so a declaration that is not inside one
 cannot occupy a cell of this rule. A global variable declared twice is an ordinary
 duplicate-definition error and belongs to whatever ADR governs that, not here.
 
+## Diagnostics
+
+| Code  | Reported when                                                                                       | Reported by                                                      |
+| ----- | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| E0425 | Two definitions of the same member name in one scope, or a C-Next symbol colliding with a C/C++ one | `SymbolTable.detectCNextDuplicate`, `SymbolTable.detectConflict` |
+
+A scope **composes**: reopening it in another file adds members rather than
+redefining it (see Scope Composition above). Member names stay unique across every
+block, so the check groups by scope identity, not by declaration block — two blocks in
+different files that both define `Lib.useIt` are a conflict, and the diagnostic names
+each definition's own file and line plus every block the scope is declared in.
+
+The scope's declaration sites are kept on `IScopeSymbol.declarationSites`, one entry
+per block. Before #1334 a reopened scope recorded only one position, so a conflict
+spanning two files printed the same location twice.
+
 ## Implementation Status
 
 The `scope` keyword replaces `namespace` in the current implementation:
@@ -634,6 +650,18 @@ The class implementation has been removed pending further research.
 ---
 
 ## References
+
+### Implementing Modules
+
+- `src/transpiler/logic/symbols/cnext/collectors/ScopeCollector.ts:76` — records every
+  block that declares a scope (`declarationSites`)
+- `src/transpiler/logic/symbols/SymbolTable.ts:874` — `detectCNextDuplicate`, member
+  uniqueness across a composed scope (E0425)
+- `src/transpiler/logic/symbols/SymbolTable.ts:718` — `scopeDeclarationNote`, the
+  declaring blocks named in the diagnostic
+- `src/transpiler/Transpiler.ts:958` — `_checkSymbolConflicts`, one coded error per
+  conflict at the offending definition
+- `src/utils/DeclarationSite.ts` — how a `file:line` is rendered and ordered
 
 ### Rejected ADRs
 

@@ -393,11 +393,12 @@ describe("Transpiler coverage tests", () => {
 
       const result = await transpiler.transpile({ kind: "files" });
 
-      // This test exercises the symbol conflict detection path (lines 240-256)
-      // Duplicate function definitions across included files trigger conflicts
+      // This test exercises the symbol conflict detection path.
+      // #1334: a conflict is an ordinary coded error now, not a second channel.
       expect(result).toBeDefined();
-      expect(result.conflicts).toBeDefined();
-      expect(result.conflicts.length).toBeGreaterThan(0);
+      expect(
+        result.errors.filter((e) => e.message.includes("E0425")),
+      ).not.toHaveLength(0);
     });
   });
 
