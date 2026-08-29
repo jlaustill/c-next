@@ -8,13 +8,14 @@
  * the nearest `throw new` instead, which is enough to correct a row by hand.
  */
 
-import { readdirSync, readFileSync, statSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { readFileSync } from "node:fs";
+import { dirname, join, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import chalk from "chalk";
 
 import ThrowCitations from "./diagnostics/ThrowCitations";
+import FileScanner from "./utils/FileScanner";
 
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const docPath = join(
@@ -25,28 +26,20 @@ const docPath = join(
 );
 const outputDir = join(rootDir, "src", "transpiler", "output");
 
-/** Every non-test `.ts` under `output/`, relative to the repo root. */
-function collectSources(dir: string, into: Map<string, string>): void {
-  for (const entry of readdirSync(dir)) {
-    const full = join(dir, entry);
-    if (statSync(full).isDirectory()) {
-      if (entry !== "__tests__") {
-        collectSources(full, into);
-      }
-    } else if (entry.endsWith(".ts")) {
-      into.set(full.slice(rootDir.length + 1), readFileSync(full, "utf-8"));
-    }
-  }
-}
-
 function main(): void {
+  // FileScanner is the shared recursive walk this repo standardized on; two
+  // other scripts carry a comment recording that a local copy was removed in
+  // favour of it. The `__tests__` skip composes on top, and is what the
+  // document's own command spells as `| grep -v __tests__`.
   const sources = new Map<string, string>();
-  collectSources(outputDir, sources);
+  for (const full of FileScanner.findFiles(outputDir, ".ts")) {
+    if (full.includes(`${sep}__tests__${sep}`)) {
+      continue;
+    }
+    sources.set(full.slice(rootDir.length + 1), readFileSync(full, "utf-8"));
+  }
 
-  const outcome = ThrowCitations.check(
-    ThrowCitations.parse(readFileSync(docPath, "utf-8")),
-    sources,
-  );
+  const outcome = ThrowCitations.check(readFileSync(docPath, "utf-8"), sources);
 
   for (const line of outcome.info) {
     console.log(chalk.green(line));

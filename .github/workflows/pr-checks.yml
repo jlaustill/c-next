@@ -125,7 +125,8 @@ jobs:
         continue-on-error: true
 
       # Issue #1365: docs/architecture/output-throw-classification.md cites all
-      # 181 throw sites by file:line, and a line number decays silently. #1362
+      # every throw site in output/ by file:line, and a line number decays
+      # silently. #1362
       # committed it correct; #1363 then added 62 lines to TypeValidator.ts and
       # 64 citations began pointing at a docstring. Each PR was green alone, and
       # main is unprotected (#1344), so nothing evaluated the pair. This also

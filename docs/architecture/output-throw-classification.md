@@ -1,4 +1,4 @@
-# Classification of every `throw new Error` in `output/`
+# Classification of every `throw new` in `output/`
 
 Deliverable of [#1321](https://github.com/jlaustill/c-next/issues/1321). Resolves open
 question 4 of [#1313](https://github.com/jlaustill/c-next/issues/1313) — _"Does Render really

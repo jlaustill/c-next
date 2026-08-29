@@ -3,7 +3,7 @@
  * line number decays silently.
  *
  * `docs/architecture/output-throw-classification.md` (#1321) is the input that
- * splits #1322. It names all 181 `throw new` sites in `output/` by file and
+ * splits #1322. It names every `throw new` site in `output/` by file and
  * line. #1362 committed it with correct citations; #1363 then added 62 lines to
  * `TypeValidator.ts`, and 64 of the 180 citations silently began pointing at a
  * docstring or a closing brace. Each pull request was green on its own -- one
@@ -54,13 +54,84 @@ class ThrowCitations {
     return found;
   }
 
-  /** 1-based line numbers of every `throw new` in a source file. */
+  /**
+   * 1-based line numbers of every `throw new` STATEMENT in a source file.
+   *
+   * A raw substring test would count a comment or a string literal that merely
+   * mentions `throw new`, and invariant 2 would then demand a classification
+   * row for it -- pushing an author into corrupting the document this gate
+   * exists to protect. That is not hypothetical here: five bucket-2 sites carry
+   * an in-file comment whose subject is throwing.
+   *
+   * So the match is structural: a comment marker is stripped, and `throw new`
+   * must OPEN the statement rather than merely appear on the line. Every site
+   * in `output/` is a bare `throw new` statement, verified, so nothing is lost
+   * by requiring it.
+   */
   static throwLines(source: string): number[] {
     return source
       .split("\n")
-      .map((text, index) => ({ text, line: index + 1 }))
-      .filter((entry) => entry.text.includes("throw new"))
+      .map((text, index) => ({ text: text.trim(), line: index + 1 }))
+      .filter((entry) => entry.text.startsWith("throw new"))
       .map((entry) => entry.line);
+  }
+
+  /**
+   * The count each `## Bucket N — … (C)` heading declares, paired with the
+   * citation rows beneath it.
+   *
+   * #1365 is a number in this document going stale with nothing noticing. The
+   * bucket headings, the total, and the by-area table are the same kind of
+   * claim as a citation, so they are held to the corpus the same way -- adding
+   * a throw and its row must not leave a heading reading the old count.
+   */
+  static bucketCounts(
+    markdown: string,
+  ): Array<{ heading: string; declared: number; rows: number }> {
+    // Headings nest: `## Bucket 1 — … (144)` contains `### <area> — 39`
+    // subsections whose rows belong to both. A section therefore accumulates
+    // rows until the next heading of the SAME OR HIGHER level, not until the
+    // next heading of any level.
+    const open: Array<{
+      level: number;
+      heading: string;
+      declared: number;
+      rows: number;
+    }> = [];
+    const closed: Array<{ heading: string; declared: number; rows: number }> =
+      [];
+
+    const close = (level: number): void => {
+      while (open.length > 0 && open.at(-1)!.level >= level) {
+        closed.push(open.pop()!);
+      }
+    };
+
+    for (const line of markdown.split("\n")) {
+      const heading = /^(#{2,6}) (.*)$/.exec(line);
+      if (heading !== null) {
+        const level = heading[1].length;
+        close(level);
+        // A count is declared either as `(144)` or as a trailing `— 39`.
+        const declared = /\((\d+)\)\s*$|[—-]\s*(\d+)\s*$/.exec(heading[2]);
+        if (declared !== null) {
+          open.push({
+            level,
+            heading: line.trim(),
+            declared: Number.parseInt(declared[1] ?? declared[2], 10),
+            rows: 0,
+          });
+        }
+        continue;
+      }
+      if (/^\| `[A-Za-z0-9_/….]+\.ts:\d+`/.test(line)) {
+        for (const section of open) {
+          section.rows += 1;
+        }
+      }
+    }
+    close(0);
+    return closed;
   }
 
   /**
@@ -87,9 +158,13 @@ class ThrowCitations {
    * @param sources every non-test `.ts` under `output/`, mapped to its contents
    */
   static check(
-    cited: readonly IThrowCitation[],
+    markdown: string,
     sources: ReadonlyMap<string, string>,
   ): IThrowCitationOutcome {
+    // Citations are parsed here rather than passed in: they are derived from
+    // this same markdown, and two parameters that must agree is one more thing
+    // a caller can get wrong.
+    const cited = ThrowCitations.parse(markdown);
     const files = [...sources.keys()];
     const errors: string[] = [];
     const citedByFile = new Map<string, number[]>();
@@ -140,6 +215,8 @@ class ThrowCitations {
       }
     }
 
+    errors.push(...ThrowCitations.checkDeclaredCounts(markdown, cited.length));
+
     return {
       ok: errors.length === 0,
       errors,
@@ -147,6 +224,53 @@ class ThrowCitations {
         `${cited.length} citation(s) checked against ${total} \`throw new\` site(s) in output/.`,
       ],
     };
+  }
+
+  /**
+   * Hold the document's self-describing numbers to its own rows.
+   *
+   * #1365 is a number here going stale with nothing noticing. A bucket heading,
+   * the total, and the by-area table make the same kind of claim a citation
+   * does, so adding a throw and its classification row must not be able to
+   * leave any of them reading the old figure.
+   */
+  static checkDeclaredCounts(markdown: string, cited: number): string[] {
+    const errors: string[] = [];
+
+    // Sections nest, so their row counts deliberately overlap and are NOT
+    // summed -- the total is held by the counts table and the by-area table
+    // below, each against the citation count directly.
+    for (const section of ThrowCitations.bucketCounts(markdown)) {
+      if (section.declared !== section.rows) {
+        errors.push(
+          `${section.heading} -- declares ${section.declared}, has ${section.rows} row(s)`,
+        );
+      }
+    }
+
+    const total = /^\|\s*\|\s*\*\*total\*\*\s*\|\s*\*\*(\d+)\*\*\s*\|/m.exec(
+      markdown,
+    );
+    if (total === null) {
+      errors.push("counts table has no **total** row");
+    } else if (Number.parseInt(total[1], 10) !== cited) {
+      errors.push(
+        `counts table total says ${total[1]}, document cites ${cited}`,
+      );
+    }
+
+    const areas = [...markdown.matchAll(/^\| `[^`]+`[^|]*\|\s*(\d+)\s*\|/gm)];
+    if (areas.length > 0) {
+      const summed = areas.reduce(
+        (sum, row) => sum + Number.parseInt(row[1], 10),
+        0,
+      );
+      if (summed !== cited) {
+        errors.push(`by-area table sums to ${summed}, document cites ${cited}`);
+      }
+    }
+
+    return errors;
   }
 }
 
