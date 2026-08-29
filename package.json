@@ -72,7 +72,8 @@
     "analyze:madge:graph": "madge src/ --image docs/architecture/dependency-graph.svg --extensions ts --exclude '(parser/(grammar|c/grammar|cpp/grammar)|__tests__)' --layout sfdp",
     "analyze:cpd": "./scripts/cpd.sh",
     "analyze:duplication": "npx jscpd src/ scripts/",
-    "analyze:all": "npm run analyze:duplication && npm run analyze:prune && npm run analyze:madge"
+    "analyze:all": "npm run analyze:duplication && npm run analyze:prune && npm run analyze:madge",
+    "docs:throw-citations:check": "tsx scripts/throw-citations.ts"
   },
   "keywords": [
     "c",
