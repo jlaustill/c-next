@@ -770,50 +770,68 @@ class SymbolTable {
     }
 
     // Multiple definitions in same language (excluding overloads) = ERROR
-    // Issue #817: Group by scope AND kind - symbols in different scopes don't conflict,
-    // and symbols with different kinds (variable vs scope) don't conflict either
-    if (cnextDefs.length > 1) {
-      const byScopeAndKind = this.groupCNextSymbolsByScopeAndKind(cnextDefs);
-
-      // Check each scope+kind group for conflicts (multiple symbols in same scope with same kind)
-      for (const symbols of byScopeAndKind.values()) {
-        if (symbols.length > 1) {
-          // #1333: a scope declaration is not a definition in the sense this
-          // rule means. Declaring `scope Lib` a second time REOPENS it and adds
-          // members; it does not redefine it -- the model ADR-002:256 described
-          // ("one namespace can span files") and ADR-016 carries forward.
-          // Without this, a scope could not be split across files, and could not
-          // even be reopened within one file, which defeats the organizational
-          // purpose scopes exist for.
-          //
-          // Members still conflict normally: they are grouped by the scope's own
-          // identity, so two `Lib.useIt` definitions collide whichever block
-          // they were written in.
-          if (symbols[0].kind === "scope") {
-            continue;
-          }
-
-          const locations = symbols.map(
-            (s) => `${s.sourceFile}:${s.sourceLine}`,
-          );
-          // #1285: the symbol's own source-language name. This was built here
-          // by hand from `scope.name`, which is the leaf -- at depth two it
-          // reported `Inner.tick` for a symbol the author writes as
-          // `Outer.Inner.tick`.
-          const displayName = symbols[0].cnxScopedName;
-          return {
-            symbolName: displayName,
-            definitions: symbols,
-            severity: "error",
-            message: `Symbol conflict: '${displayName}' is defined multiple times in C-Next:\n  ${locations.join("\n  ")}`,
-          };
-        }
-      }
+    const cnextConflict = this.detectCNextDuplicate(cnextDefs);
+    if (cnextConflict) {
+      return cnextConflict;
     }
 
     // Same symbol in C and C++ - typically OK (same symbol)
     if (cDefs.length > 0 && cppDefs.length > 0) {
       return null;
+    }
+
+    return null;
+  }
+
+  /**
+   * Two definitions of the same C-Next symbol in the same scope = ERROR.
+   *
+   * Issue #817: grouped by scope AND kind — symbols in different scopes do not
+   * conflict (`Foo.enabled` and `Bar.enabled` generate distinct C names), and
+   * symbols of different kinds do not either (a variable `LED` and a scope `LED`
+   * are distinct).
+   *
+   * Extracted from detectConflict so that method stays under SonarCloud's
+   * cognitive-complexity limit; the #1333 scope-reopening branch pushed it over.
+   */
+  private detectCNextDuplicate(cnextDefs: TAnySymbol[]): IConflict | null {
+    if (cnextDefs.length <= 1) {
+      return null;
+    }
+
+    const byScopeAndKind = this.groupCNextSymbolsByScopeAndKind(cnextDefs);
+
+    for (const symbols of byScopeAndKind.values()) {
+      if (symbols.length <= 1) {
+        continue;
+      }
+
+      // #1333: a scope declaration is not a definition in the sense this rule
+      // means. Declaring `scope Lib` a second time REOPENS it and adds members;
+      // it does not redefine it -- the model ADR-002:256 described ("one
+      // namespace can span files") and ADR-016 now carries forward. Without
+      // this, a scope could not be split across files, and could not even be
+      // reopened within one file, which defeats the organizational purpose
+      // scopes exist for.
+      //
+      // Members still conflict normally: they are grouped by the scope's own
+      // identity, so two `Lib.useIt` definitions collide whichever block they
+      // were written in.
+      if (symbols[0].kind === "scope") {
+        continue;
+      }
+
+      const locations = symbols.map((s) => `${s.sourceFile}:${s.sourceLine}`);
+      // #1285: the symbol's own source-language name. This was built here by
+      // hand from `scope.name`, which is the leaf -- at depth two it reported
+      // `Inner.tick` for a symbol the author writes as `Outer.Inner.tick`.
+      const displayName = symbols[0].cnxScopedName;
+      return {
+        symbolName: displayName,
+        definitions: symbols,
+        severity: "error",
+        message: `Symbol conflict: '${displayName}' is defined multiple times in C-Next:\n  ${locations.join("\n  ")}`,
+      };
     }
 
     return null;

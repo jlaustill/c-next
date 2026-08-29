@@ -41,6 +41,28 @@ interface IRegisterMaps {
  * Converts TSymbol[] to ISymbolInfo for CodeGenerator.
  * Replaces the need for SymbolCollector during code generation.
  */
+/**
+ * The mutable collections mergeExternalSymbols accumulates into.
+ *
+ * Grouped into one object rather than passed as eight parameters: adding the
+ * three type-forming sets for #1333 took the parameter list past what is
+ * readable, and a positional list of eight same-shaped collections is a
+ * transposition waiting to happen.
+ */
+interface IMergeAccumulator {
+  readonly knownEnums: Set<string>;
+  readonly knownScopes: Set<string>;
+  readonly enumMembers: Map<string, Map<string, number>>;
+  readonly functionReturnTypes: Map<string, string>;
+  readonly scopeMemberVisibility: Map<
+    string,
+    Map<string, "public" | "private">
+  >;
+  readonly knownStructs: Set<string>;
+  readonly knownBitmaps: Set<string>;
+  readonly knownRegisters: Set<string>;
+}
+
 class TSymbolInfoAdapter {
   /**
    * Convert TSymbol[] to ISymbolInfo for CodeGenerator consumption.
@@ -507,15 +529,18 @@ class TSymbolInfoAdapter {
    */
   private static _mergeExternalSource(
     external: ICodeGenSymbols,
-    mergedKnownEnums: Set<string>,
-    mergedKnownScopes: Set<string>,
-    mergedEnumMembers: Map<string, Map<string, number>>,
-    mergedFunctionReturnTypes: Map<string, string>,
-    mergedScopeMemberVisibility: Map<string, Map<string, "public" | "private">>,
-    mergedKnownStructs: Set<string>,
-    mergedKnownBitmaps: Set<string>,
-    mergedKnownRegisters: Set<string>,
+    into: IMergeAccumulator,
   ): void {
+    const {
+      knownEnums: mergedKnownEnums,
+      knownScopes: mergedKnownScopes,
+      enumMembers: mergedEnumMembers,
+      functionReturnTypes: mergedFunctionReturnTypes,
+      scopeMemberVisibility: mergedScopeMemberVisibility,
+      knownStructs: mergedKnownStructs,
+      knownBitmaps: mergedKnownBitmaps,
+      knownRegisters: mergedKnownRegisters,
+    } = into;
     // Merge known enums
     for (const enumName of external.knownEnums) {
       mergedKnownEnums.add(enumName);
@@ -606,17 +631,16 @@ class TSymbolInfoAdapter {
 
     // Merge in external enum info, function return types, scopes and visibility
     for (const external of externalSources) {
-      this._mergeExternalSource(
-        external,
-        mergedKnownEnums,
-        mergedKnownScopes,
-        mergedEnumMembers,
-        mergedFunctionReturnTypes,
-        mergedScopeMemberVisibility,
-        mergedKnownStructs,
-        mergedKnownBitmaps,
-        mergedKnownRegisters,
-      );
+      this._mergeExternalSource(external, {
+        knownEnums: mergedKnownEnums,
+        knownScopes: mergedKnownScopes,
+        enumMembers: mergedEnumMembers,
+        functionReturnTypes: mergedFunctionReturnTypes,
+        scopeMemberVisibility: mergedScopeMemberVisibility,
+        knownStructs: mergedKnownStructs,
+        knownBitmaps: mergedKnownBitmaps,
+        knownRegisters: mergedKnownRegisters,
+      });
     }
 
     // Return new ICodeGenSymbols with merged enum data and scope info
