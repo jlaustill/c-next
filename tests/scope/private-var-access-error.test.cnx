@@ -2,9 +2,9 @@
 // This should fail with a visibility error per ADR-016
 
 scope Counter {
-    i32 privateValue <- 100;  // private by default
+    i32 privateValue <- 100; // private by default
 }
 
 void main() {
-    Counter.privateValue <- 50;  // ERROR: accessing private member
+    Counter.privateValue <- 50; // ERROR: accessing private member
 }

@@ -37,8 +37,8 @@ struct Buffer {
     u8[0x10] hex;
     u8[0b100] binary;
     u8[SIZE] constRef;
-    u8[8+1] addLiteral;
-    u8[SIZE+2] addConst;
+    u8[8 + 1] addLiteral;
+    u8[SIZE + 2] addConst;
     u8[sizeof(u32)] sizeofDim;
 }
 

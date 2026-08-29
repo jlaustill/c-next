@@ -37,8 +37,8 @@ u32 main() {
     if (global.Motor.speed != 0) return 3;
 
     // Test 4: Run controller (exercises scope calls)
-    global.Motor.start();  // Set to 100 first
-    global.Controller.run();  // This calls start() then stop()
+    global.Motor.start(); // Set to 100 first
+    global.Controller.run(); // This calls start() then stop()
     if (global.Motor.speed != 0) return 4;
 
     return 0;

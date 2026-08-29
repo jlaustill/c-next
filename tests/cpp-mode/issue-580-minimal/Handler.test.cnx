@@ -13,6 +13,6 @@ scope Handler {
 }
 
 void main() {
-    Config c <- {value: 0};
+    Config c <- { value: 0 };
     global.Handler.passThrough(c);
 }

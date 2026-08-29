@@ -3,10 +3,10 @@
 // Demonstrates: enum declaration, values, assignment, comparison
 
 enum Status {
-    IDLE,       // 0 (implicit)
-    RUNNING,    // 1
-    PAUSED,     // 2
-    STOPPED     // 3
+    IDLE, // 0 (implicit)
+    RUNNING, // 1
+    PAUSED, // 2
+    STOPPED // 3
 }
 
 enum Priority {

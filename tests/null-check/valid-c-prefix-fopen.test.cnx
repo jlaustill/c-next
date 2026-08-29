@@ -8,9 +8,9 @@ void readFile() {
     if (c_file != NULL) {
         cstring c_result <- fgets(line, line.size, c_file);
         while (c_result != NULL) {
-            (void) printf("%s", line);
+            (void)printf("%s", line);
             c_result <- fgets(line, line.size, c_file);
         }
-        (void) fclose(c_file);
+        (void)fclose(c_file);
     }
 }

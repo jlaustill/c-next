@@ -2,9 +2,9 @@
 // Tests: array fields inside structs
 scope StructWithArray {
     public struct Buffer {
-    u8[16] data;
-    u32 len;
-}
+        u8[16] data;
+        u32 len;
+    }
 }
 
 void main() {

@@ -31,14 +31,18 @@ scope DeviceManager {
 }
 
 u32 main() {
-    DeviceConfig cfg <- {baudRate: 115200, address: 0x42};
+    DeviceConfig cfg <- { baudRate: 115200, address: 0x42 };
     DeviceManager.configure(cfg);
 
     DeviceConfig retrievedCfg <- DeviceManager.getConfig();
     if (retrievedCfg.baudRate != 115200) return 1;
     if (retrievedCfg.address != 0x42) return 2;
 
-    DeviceStatus stat <- {state: EDeviceState.STATE_ACTIVE, errorCount: 0, connected: true};
+    DeviceStatus stat <- {
+        state: EDeviceState.STATE_ACTIVE,
+        errorCount: 0,
+        connected: true
+    };
     DeviceManager.setStatus(stat);
 
     DeviceStatus retrievedStat <- DeviceManager.getStatus();

@@ -3,8 +3,8 @@
 
 scope ChainTypesBase {
     public struct Coordinate {
-    i32 x;
-    i32 y;
-    i32 z;
-}
+        i32 x;
+        i32 y;
+        i32 z;
+    }
 }

@@ -11,7 +11,7 @@ struct Controller {
 }
 
 u32 main() {
-    Controller c <- {_handler: 42, count: 7};
+    Controller c <- { _handler: 42, count: 7 };
 
     if (c._handler != 42) return 1;
     if (c.count != 7) return 2;

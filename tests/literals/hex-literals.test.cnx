@@ -74,7 +74,7 @@ u32 main() {
 
     // Test hex in array
     u8[4] bytes <- [0x48, 0x65, 0x6C, 0x6C];
-    if (bytes[0] != 72) return 15;  // 'H'
+    if (bytes[0] != 72) return 15; // 'H'
     if (bytes[1] != 101) return 16; // 'e'
     if (bytes[2] != 108) return 17; // 'l'
     if (bytes[3] != 108) return 18; // 'l'

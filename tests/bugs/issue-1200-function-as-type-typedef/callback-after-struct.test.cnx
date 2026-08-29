@@ -5,7 +5,7 @@ struct Message {
     u32 id;
 }
 
-void onReceive(const Message msg) { }
+void onReceive(const Message msg) {}
 
 struct Controller {
     onReceive handler;

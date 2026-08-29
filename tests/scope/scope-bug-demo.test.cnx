@@ -2,14 +2,14 @@
 // Test: Scope member shadowing works correctly (ADR-016)
 // The scope member 'count' should shadow the global 'count'
 
-u8 globalCount <- 0;   // Global
-const u8 limit <- 10;  // Global const
+u8 globalCount <- 0; // Global
+const u8 limit <- 10; // Global const
 
 scope Counter {
-    u8 count <- 0;  // Scope member shadows any global 'count'
+    u8 count <- 0; // Scope member shadows any global 'count'
 
     public void increment() {
-        count <- count + 1;  // Should reference Counter.count
+        count <- count + 1; // Should reference Counter.count
     }
 
     public u8 getCount() {

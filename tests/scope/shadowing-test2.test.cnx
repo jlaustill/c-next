@@ -2,11 +2,11 @@
 // Test: Scope shadowing between global and scope (no const) (ADR-016)
 // Scope member should shadow global with same name
 
-u8 globalFlags <- 0;  // Global with different name
-u8 flags <- 0;        // Global 'flags'
+u8 globalFlags <- 0; // Global with different name
+u8 flags <- 0; // Global 'flags'
 
 scope Control {
-    u8 flags <- 0b11111111;  // Scope member - shadows global!
+    u8 flags <- 0b11111111; // Scope member - shadows global!
 
     public void setFlag() {
         // Should reference Control.flags, not global flags

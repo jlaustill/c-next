@@ -26,10 +26,7 @@ i32 check_panel(PanelConfig panel) {
 
 i32 main() {
     // Test 1: Simple struct with anon member
-    SimpleConfig cfg <- {
-        value: 99,
-        flags: { flag_b: 1 }
-    };
+    SimpleConfig cfg <- { value: 99, flags: { flag_b: 1 } };
     i32 result <- check_simple(cfg);
     if (result != 0) return result;
 

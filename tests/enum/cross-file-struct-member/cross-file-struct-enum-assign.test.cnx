@@ -18,7 +18,7 @@ u32 main() {
     // Test in a loop (original reproducer pattern)
     u8 countAssigned <- 0;
     for (u8 i <- 0; i < COUNT; i +<- 1) {
-        MyEnum current <- config.items[i].assigned;  // This is the failing line
+        MyEnum current <- config.items[i].assigned; // This is the failing line
         if (current != MyEnum.NONE) {
             countAssigned +<- 1;
         }

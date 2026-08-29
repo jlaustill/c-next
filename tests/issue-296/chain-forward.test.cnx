@@ -26,8 +26,8 @@ scope Navigator {
 }
 
 u32 main() {
-    ChainTypesBase.Coordinate dest <- {x: 100, y: 200, z: 50};
-    Waypoint wp <- {position: dest, id: 42};
+    ChainTypesBase.Coordinate dest <- { x: 100, y: 200, z: 50 };
+    Waypoint wp <- { position: dest, id: 42 };
 
     Navigator.setDestination(wp);
 
@@ -37,7 +37,7 @@ u32 main() {
     if (retrieved.position.y != 200) return 3;
     if (retrieved.position.z != 50) return 4;
 
-    ChainTypesBase.Coordinate newPos <- {x: 10, y: 20, z: 5};
+    ChainTypesBase.Coordinate newPos <- { x: 10, y: 20, z: 5 };
     Navigator.moveTo(newPos);
 
     ChainTypesBase.Coordinate currentPos <- Navigator.getCurrentPosition();

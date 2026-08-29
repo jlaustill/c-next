@@ -4,7 +4,9 @@
 
 scope S {
     string<16> buf;
-    public u8 first() { return buf[0]; }   // ERROR: reads buf before it is ever written
+    public u8 first() {
+        return buf[0];
+    } // ERROR: reads buf before it is ever written
 }
 
 u32 main() {

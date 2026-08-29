@@ -5,3 +5,25 @@ src/transpiler/logic/parser/c/grammar/
 src/transpiler/logic/parser/cpp/grammar/
 package-lock.json
 .claude/
+
+# Issue #1364: fixtures that are deliberately not valid C-Next.
+#
+# Each asserts a *syntax* error and has a committed .expected.error to prove it.
+# A formatter cannot format what it cannot parse, and Prettier treats an
+# unparseable file as an error rather than skipping it, so these are excluded by
+# name. `npm run format:fidelity` fails if this list drifts from the set of
+# fixtures the parser actually rejects.
+tests/atomic/atomic-struct-member.test.cnx
+tests/c-interop/use-c-union-basic.test.cnx
+tests/c-interop/use-c-union-typedef.test.cnx
+tests/constructor-syntax/error-literal-arg.test.cnx
+tests/null-check/null-in-ternary.test.cnx
+tests/preprocessor/nested-ifdef.test.cnx
+tests/register/register-bits-syntax-error.test.cnx
+tests/scope/nested-scope-error.test.cnx
+tests/ternary/ternary-error-nested.test.cnx
+tests/ternary/ternary-error-no-parens.test.cnx
+
+# Issue #1370: dead helper using C-style forward declarations, which C-Next does
+# not have (ADR-030). Unreferenced, so it is ignored rather than fixed here.
+tests/include/helper-functions.cnx

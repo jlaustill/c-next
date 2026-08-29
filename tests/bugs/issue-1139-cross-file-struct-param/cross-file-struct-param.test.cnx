@@ -34,7 +34,7 @@
 #include "lib/sensors.cnx"
 
 u32 main() {
-    Sample sample <- {value: 42};
+    Sample sample <- { value: 42 };
 
     u8 v <- Sensors.readValue(sample);
     if (v != 42) return 1;

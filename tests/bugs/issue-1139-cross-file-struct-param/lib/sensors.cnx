@@ -5,7 +5,9 @@
 // both the .c definition and the .h prototype must say `const Sample*`.
 // bump does modify it, so it must stay non-const — the two together prove the
 // auto-const decision is per-parameter and not a blanket qualifier.
-struct Sample { u8 value; }
+struct Sample {
+    u8 value;
+}
 
 scope Sensors {
     public u8 readValue(Sample sample) {

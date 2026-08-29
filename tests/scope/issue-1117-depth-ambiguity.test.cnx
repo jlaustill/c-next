@@ -27,7 +27,10 @@
 // values rather than only on the non-compiling form.
 
 scope A {
-    public enum B { c, d }
+    public enum B {
+        c,
+        d
+    }
 
     public u8 B_c <- 7;
 

@@ -22,7 +22,7 @@ void handleCommand(ECommand cmd) {
         case ECommand.WRITE || ECommand.POKE {
             doWrite();
         }
-    default {
+        default {
             doOther();
         }
     }

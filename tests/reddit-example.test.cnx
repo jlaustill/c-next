@@ -5,10 +5,10 @@ u32 main() {
     u8 header <- 0;
 
     // Writing bits
-    header[0, 4] <- 5;      // bits 0-3: message type
-    header[4, 2] <- 2;      // bits 4-5: priority
-    header[6] <- true;      // bit 6: encryption flag
-    header[7] <- false;     // bit 7: compression flag
+    header[0, 4] <- 5; // bits 0-3: message type
+    header[4, 2] <- 2; // bits 4-5: priority
+    header[6] <- true; // bit 6: encryption flag
+    header[7] <- false; // bit 7: compression flag
 
     // Validate writes
     u8 msgType <- header[0, 4];

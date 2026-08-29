@@ -27,8 +27,7 @@ void record(u8 v) {
     witness <- v;
 }
 
-void inspect(u8 v) {
-}
+void inspect(u8 v) {}
 
 void viaParameter(record cb, u8 value) {
     cb(value);
@@ -47,15 +46,23 @@ u32 main() {
     u8 sent <- 7;
 
     viaParameter(record, sent);
-    if (witness != 7) { return 1; }
+    if (witness != 7) {
+        return 1;
+    }
 
     // The argument must survive by value -- a phantom modification would have
     // routed it through a discarded temporary.
-    if (sent != 7) { return 2; }
+    if (sent != 7) {
+        return 2;
+    }
 
     u8 echoed <- Bus.publish(sent);
-    if (echoed != 7) { return 3; }
-    if (sent != 7) { return 4; }
+    if (echoed != 7) {
+        return 3;
+    }
+    if (sent != 7) {
+        return 4;
+    }
 
     return 0;
 }

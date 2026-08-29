@@ -203,5 +203,5 @@ u32 main() {
     value[24, 4] <- 0xF;
     if (value != 0x0F0F0F0F) return 36;
 
-    return 0;  // All tests passed
+    return 0; // All tests passed
 }

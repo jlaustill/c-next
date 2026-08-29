@@ -3,27 +3,27 @@
 
 scope ArrayChain {
     public struct Vec3 {
-    f32 x;
-    f32 y;
-    f32 z;
-}
+        f32 x;
+        f32 y;
+        f32 z;
+    }
 
     public struct Transform {
-    this.Vec3 position;
-    this.Vec3 rotation;
-    this.Vec3 scale;
-}
+        this.Vec3 position;
+        this.Vec3 rotation;
+        this.Vec3 scale;
+    }
 
     public struct Entity {
-    this.Transform transform;
-    u32 id;
-    u8 flags;
-}
+        this.Transform transform;
+        u32 id;
+        u8 flags;
+    }
 
     public struct Mesh {
-    this.Vec3[8] vertices;
-    u32[12] indices;
-}
+        this.Vec3[8] vertices;
+        u32[12] indices;
+    }
 }
 
 // 2D array of structs

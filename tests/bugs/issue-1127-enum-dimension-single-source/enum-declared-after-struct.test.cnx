@@ -24,6 +24,13 @@ struct Palette {
 
 u8[EColor.COUNT] globalSlots;
 
-enum EColor { RED, GREEN, BLUE, COUNT }
+enum EColor {
+    RED,
+    GREEN,
+    BLUE,
+    COUNT
+}
 
-i32 main() { return 0; }
+i32 main() {
+    return 0;
+}

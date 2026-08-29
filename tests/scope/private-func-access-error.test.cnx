@@ -4,9 +4,9 @@
 // Functions are public by default, so we need explicit 'private' keyword
 
 scope Service {
-    private void internalHelper() { }  // private with explicit keyword
+    private void internalHelper() {} // private with explicit keyword
 }
 
 void main() {
-    Service.internalHelper();  // ERROR: calling private function
+    Service.internalHelper(); // ERROR: calling private function
 }

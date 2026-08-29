@@ -35,6 +35,8 @@ i32 sameCategoryAddition() {
 u32 booleanCondition() {
     // A cross-file bool used as a condition is not an arithmetic operand,
     // so E0807 must not fire on it.
-    if (flagValue = true) { return RELAY_MARKER; }
+    if (flagValue = true) {
+        return RELAY_MARKER;
+    }
     return 0;
 }

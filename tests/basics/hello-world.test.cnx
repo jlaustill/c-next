@@ -3,10 +3,9 @@
 string<50> userName;
 
 u32 main(string args[]) {
-    (void) printf("What is your name in 50 characters or less? ");
+    (void)printf("What is your name in 50 characters or less? ");
 
-
-// ADR-046: c_ prefix required for nullable C pointers
+    // ADR-046: c_ prefix required for nullable C pointers
     cstring c_result <- fgets(userName, userName.size, stdin);
     if (c_result != NULL) {
         if (userName.char_count > 0 && userName[userName.char_count - 1] = '\n') {
@@ -16,7 +15,7 @@ u32 main(string args[]) {
 
     u8 whoAmIByte <- args[0][0];
 
-    (void) printf("Hello from %s %s! Your special character is %c\n", args[0], userName, whoAmIByte);
+    (void)printf("Hello from %s %s! Your special character is %c\n", args[0], userName, whoAmIByte);
 
     return 0;
 }

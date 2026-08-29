@@ -5,9 +5,9 @@
 
 scope ConstCond {
     public struct Config {
-    u32 value;
-    bool enabled;
-}
+        u32 value;
+        bool enabled;
+    }
 }
 
 // A scope with a method that modifies its config parameter
@@ -27,9 +27,9 @@ scope CommandHandler {
 // This pattern triggers issue #565 - the reassignment's RHS isn't walked for calls
 void handleEnableSpn(ConstCond.Config config) {
     bool enable <- true;
-    u8 errorCode <- 0;  // Declaration
+    u8 errorCode <- 0; // Declaration
     if (enable = true) {
-        errorCode <- global.CommandHandler.setValue(config, 42);  // Reassignment in conditional
+        errorCode <- global.CommandHandler.setValue(config, 42); // Reassignment in conditional
     } else {
         errorCode <- global.CommandHandler.setValue(config, 0);
     }
@@ -40,9 +40,9 @@ void handleElseBranch(ConstCond.Config config) {
     bool enable <- false;
     u8 errorCode <- 0;
     if (enable = true) {
-        errorCode <- 1;  // No modifying call here
+        errorCode <- 1; // No modifying call here
     } else {
-        errorCode <- global.CommandHandler.enable(config);  // Modifying call in else
+        errorCode <- global.CommandHandler.enable(config); // Modifying call in else
     }
 }
 
@@ -68,14 +68,14 @@ void handleForLoop(ConstCond.Config config) {
 void handleDeclaration(ConstCond.Config config) {
     bool enable <- true;
     if (enable = true) {
-        u8 errorCode <- global.CommandHandler.setValue(config, 42);  // Declaration
+        u8 errorCode <- global.CommandHandler.setValue(config, 42); // Declaration
     }
 }
 
 // Control case: top-level reassignment (outside conditional)
 void handleTopLevel(ConstCond.Config config) {
     u8 errorCode <- 0;
-    errorCode <- global.CommandHandler.setValue(config, 300);  // Top-level reassignment
+    errorCode <- global.CommandHandler.setValue(config, 300); // Top-level reassignment
 }
 
 u32 main() {

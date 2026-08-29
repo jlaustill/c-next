@@ -2,18 +2,18 @@
 // test-execution
 // test-adr: 057
 
-u32 globalCount <- 1000;  // Global (renamed to avoid shadowing)
+u32 globalCount <- 1000; // Global (renamed to avoid shadowing)
 
 scope Counter {
-    u32 count <- 100;  // Scope
+    u32 count <- 100; // Scope
 
     public u32 testAllLevels() {
-        u32 count <- 10;           // Local
+        u32 count <- 10; // Local
         u32 sum <- 0;
 
-        sum +<- count;             // Local (10)
-        sum +<- this.count;        // Scope (100)
-        sum +<- global.globalCount;  // Global (1000)
+        sum +<- count; // Local (10)
+        sum +<- this.count; // Scope (100)
+        sum +<- global.globalCount; // Global (1000)
 
         return sum;
     }

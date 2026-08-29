@@ -8,5 +8,4 @@
 // cannot use struct initializer syntax at global scope
 CppTestClass globalObj <- { value: 42 };
 
-void main() {
-}
+void main() {}

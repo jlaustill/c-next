@@ -174,6 +174,39 @@ u32 x <- 5;`;
     });
   });
 
+  describe("Nested templates", () => {
+    it("keeps the space that stops >> lexing as a right shift", async () => {
+      const input = "Container<Pair<Element, Element> > nestedPair;";
+      const result = await format(input);
+      // `>>` would lex as a shift operator, making the output unparseable.
+      expect(result).not.toContain(">>");
+      expect(result).toContain("Element> >");
+      // The strongest form of the assertion: the output must re-parse.
+      await expect(format(result)).resolves.toBe(result);
+    });
+  });
+
+  describe("Comment placement", () => {
+    it("keeps a trailing comment on its own statement", async () => {
+      const input = "u32 f() {\n    return 1; // one\n}\n";
+      const result = await format(input);
+      expect(result).toContain("return 1; // one");
+    });
+
+    it("does not migrate a comment across an operator", async () => {
+      const input = "u32 f() {\n    return 1 /* c */ + 2;\n}\n";
+      const once = await format(input);
+      expect(once).toContain("1 /* c */ + 2");
+      expect(await format(once)).toBe(once);
+    });
+
+    it("keeps a comment before a closing brace inside the block", async () => {
+      const input = "u32 f() {\n    u32 a <- 1;\n    // done\n}\n";
+      const result = await format(input);
+      expect(result).toContain("    // done\n}");
+    });
+  });
+
   describe("Blank line preservation", () => {
     it("should preserve blank lines between statements in blocks", async () => {
       const input = `void test() {

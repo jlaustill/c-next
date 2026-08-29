@@ -21,8 +21,14 @@ i32 main() {
 
     // Test 2: Array with multiple anonymous struct fields per element
     DisplayConfig[2] displays <- [
-        { resolution: { width: 800, height: 600 }, settings: { brightness: 50 } },
-        { resolution: { width: 1920, height: 1080 }, settings: { brightness: 100 } }
+        {
+            resolution: { width: 800, height: 600 },
+            settings: { brightness: 50 }
+        },
+        {
+            resolution: { width: 1920, height: 1080 },
+            settings: { brightness: 100 }
+        }
     ];
 
     if (displays[0].resolution.width != 800) return 8;

@@ -21,18 +21,16 @@ void setNested(u32 level) {
 }
 
 u32 main() {
-   
-// Test if branch
+
+    // Test if branch
     setStatus(true);
     if (status.char_count != 7) return 1;
 
-   
-// Test else branch
+    // Test else branch
     setStatus(false);
     if (status.char_count != 7) return 2;
 
-   
-// Test nested if via function
+    // Test nested if via function
     setNested(2);
     if (status.char_count != 6) return 3;
 

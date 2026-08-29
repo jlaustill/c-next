@@ -31,7 +31,7 @@ u32 main() {
     u16 mask <- 1 << bit_pos; // Create mask for bit 5: 0x0020 = 32
     u16 test_val <- 0b00100101;
     u16 bit_test <- (test_val & mask) >> bit_pos;
-// Test bit 5: 1
+    // Test bit 5: 1
 
     // Multi-level operations
     u32 g <- 0x12345678;

@@ -6,8 +6,8 @@
 
 scope ExtEnumPrefix {
     public struct Config {
-    EPressureType pType;
-}
+        EPressureType pType;
+    }
 }
 
 void setDefault(ExtEnumPrefix.Config config) {
@@ -20,7 +20,7 @@ void setExplicit(ExtEnumPrefix.Config config) {
 }
 
 u32 main() {
-    ExtEnumPrefix.Config cfg <- {pType: PRESSURE_TYPE_PSIA};
+    ExtEnumPrefix.Config cfg <- { pType: PRESSURE_TYPE_PSIA };
 
     // Test 1: Initial value via struct initializer
     if (cfg.pType != EPressureType.PRESSURE_TYPE_PSIA) return 1;

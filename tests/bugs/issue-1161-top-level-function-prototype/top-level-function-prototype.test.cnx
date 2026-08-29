@@ -7,7 +7,7 @@
 #include "lib/global-helpers.cnx"
 
 u32 main() {
-    Point point <- {value: 7};
+    Point point <- { value: 7 };
 
     u8 fromStruct <- readStructField(point);
     if (fromStruct != 7) return 1;

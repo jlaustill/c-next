@@ -14,41 +14,35 @@ u32 getElementLength(string<32>[5] arr, u32 index) {
 }
 
 i32 main() {
-   
-// Test 1: Initialize global array elements
+
+    // Test 1: Initialize global array elements
     globalNames[0] <- "Alice";
     globalNames[1] <- "Bob";
     globalNames[2] <- "Charlie";
     globalNames[3] <- "Diana";
     globalNames[4] <- "Eve";
 
-   
-// Test 2: Array .element_count returns element count
+    // Test 2: Array .element_count returns element count
     if (globalNames.element_count != 5) return 1;
 
-   
-// Test 3: Element .length returns string length (strlen)
+    // Test 3: Element .length returns string length (strlen)
     if (globalNames[0].char_count != 5) return 2; // "Alice"
     if (globalNames[1].char_count != 3) return 3; // "Bob"
     if (globalNames[2].char_count != 7) return 4; // "Charlie"
     if (globalNames[3].char_count != 5) return 5; // "Diana"
     if (globalNames[4].char_count != 3) return 6; // "Eve"
 
-   
-// Test 4: Element .capacity
+    // Test 4: Element .capacity
     if (globalNames[0].capacity != 32) return 7;
 
-   
-// Test 5: Element .size
+    // Test 5: Element .size
     if (globalNames[0].size != 33) return 8;
 
-   
-// Test 6: String comparison on array elements with literals
+    // Test 6: String comparison on array elements with literals
     if (globalNames[0] != "Alice") return 9;
     if (globalNames[2] != "Charlie") return 10;
 
-   
-// Test 7: Array element-to-element comparison (issue #137 fixed)
+    // Test 7: Array element-to-element comparison (issue #137 fixed)
     string<32>[3] dupes;
     dupes[0] <- "Alice";
     dupes[1] <- "Alice";
@@ -56,8 +50,7 @@ i32 main() {
     if (dupes[0] != dupes[1]) return 11; // Same content should be equal
     if (dupes[0] = dupes[2]) return 12; // Different content should not be equal
 
-   
-// Test 8: Local array of strings
+    // Test 8: Local array of strings
     string<64>[3] colors;
     colors[0] <- "Red";
     colors[1] <- "Green";
@@ -68,13 +61,11 @@ i32 main() {
     if (colors[1].char_count != 5) return 15;
     if (colors[2].char_count != 4) return 16;
 
-   
-// Test 9: Pass array to function - get array length
+    // Test 9: Pass array to function - get array length
     u32 arrLen <- getArrayLength(globalNames);
     if (arrLen != 5) return 17;
 
-   
-// Test 10: Pass array to function - get element length (issue #136 fixed)
+    // Test 10: Pass array to function - get element length (issue #136 fixed)
     u32 elemLen0 <- getElementLength(globalNames, 0);
     if (elemLen0 != 5) return 18; // "Alice"
     u32 elemLen1 <- getElementLength(globalNames, 1);
@@ -86,8 +77,7 @@ i32 main() {
     u32 elemLen4 <- getElementLength(globalNames, 4);
     if (elemLen4 != 3) return 22; // "Eve"
 
-   
-// Test 11: Loop through array with index
+    // Test 11: Loop through array with index
     u32 totalLength <- 0;
     u32 i <- 0;
     while (i < globalNames.element_count) {
@@ -98,14 +88,12 @@ i32 main() {
     // 5 + 3 + 7 + 5 + 3 = 23
     if (totalLength != 23) return 23;
 
-   
-// Test 12: Reassign array element
+    // Test 12: Reassign array element
     globalNames[1] <- "Benjamin";
     if (globalNames[1].char_count != 8) return 24;
     if (globalNames[1] != "Benjamin") return 25;
 
-   
-// Test 13: Empty string in array
+    // Test 13: Empty string in array
     string<32>[3] sparse;
 
     // sparse[0] is empty by default

@@ -10,15 +10,15 @@ const u32 STATUS_BIT <- 7;
 
 scope ConstExprChain {
     public struct Sensor {
-    u32 id;
-    u8 data;
-}
+        u32 id;
+        u8 data;
+    }
 }
 
 ConstExprChain.Sensor[SENSOR_COUNT] sensors;
 
 register GPIO @ 0x40000000 {
-    DR:     u32 rw @ 0x00,
+    DR: u32 rw @ 0x00,
     DR_SET: u32 wo @ 0x84,
 }
 
@@ -45,7 +45,7 @@ void main() {
     GPIO.DR_SET[LED_BIT] <- true;
 
     // Const expression as index (computed at compile time)
-    const u32 COMPUTED_IDX <- INDEX_1 + INDEX_1;  // Should be 2
+    const u32 COMPUTED_IDX <- INDEX_1 + INDEX_1; // Should be 2
     sensors[COMPUTED_IDX].id <- 500;
     u32 computedId <- sensors[COMPUTED_IDX].id;
 

@@ -2,9 +2,9 @@
 
 scope Teensy4 {
     public register GPIO7 @ 0x42004000 {
-        DR:         u32 rw @ 0x00,
-        DR_SET:     u32 wo @ 0x84,
-        DR_TOGGLE:  u32 wo @ 0x8C,
+        DR: u32 rw @ 0x00,
+        DR_SET: u32 wo @ 0x84,
+        DR_TOGGLE: u32 wo @ 0x8C,
     }
 }
 

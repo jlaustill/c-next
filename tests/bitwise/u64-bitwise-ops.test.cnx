@@ -18,8 +18,7 @@ u32 main() {
     u64 c <- 0xAAAAAAAAAAAAAAAA;
     u64 not_result <- ~c; // 0x5555555555555555
 
-   
-// Test with smaller values
+    // Test with smaller values
     u64 small_a <- 0xFFA0;
     u64 small_b <- 0xAA;
     u64 small_and <- small_a & small_b; // 0x00A0 = 160
@@ -29,8 +28,7 @@ u32 main() {
     u64 all_bits <- 0xFFFFFFFFFFFFFFFF;
     u64 not_all <- ~all_bits; // 0x0000000000000000 = 0
 
-   
-// Test lower 32 bits
+    // Test lower 32 bits
     u64 lower32 <- 0x12345678;
     u64 mask32 <- 0x00000000FFFFFFFF;
     u64 masked <- lower32 & mask32; // 0x12345678

@@ -3,16 +3,16 @@ scope Test {
     public void working() {
         u8 x <- 1;
         switch (x) {
-            case 1 { }
-            default { }
+            case 1 {}
+            default {}
         }
     }
 
     public void failing() {
         u8[4] data <- [1, 2, 3, 4];
         switch (data[0]) {
-            case 1 { }
-            default { }
+            case 1 {}
+            default {}
         }
     }
 }

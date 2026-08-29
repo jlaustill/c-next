@@ -3,7 +3,7 @@
 // should fail because strncpy cannot be used outside a function body
 
 string<32> source <- "Hello";
-string<64> dest <- source;  // Error: cannot use strcpy at global scope
+string<64> dest <- source; // Error: cannot use strcpy at global scope
 
 i32 main() {
     return 0;

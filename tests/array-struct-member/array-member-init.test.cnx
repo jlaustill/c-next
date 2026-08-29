@@ -4,15 +4,15 @@
 
 scope ArrayMemberInit {
     public struct Config {
-    u8[4] flags;
-    u32 version;
-}
+        u8[4] flags;
+        u32 version;
+    }
 
     public struct Packet {
-    u8[4] header;
-    u8[8] payload;
-    u32 checksum;
-}
+        u8[4] header;
+        u8[8] payload;
+        u32 checksum;
+    }
 }
 
 u32 main() {

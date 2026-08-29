@@ -49,7 +49,7 @@ bool isCounterAtMax(Counter c) {
 
 u32 main() {
     // Test struct modification visible to caller
-    Point pt <- {x: 10, y: 20};
+    Point pt <- { x: 10, y: 20 };
     movePoint(pt, 5, -3);
     if (pt.x != 15) return 1;
     if (pt.y != 17) return 2;
@@ -60,7 +60,7 @@ u32 main() {
     if (pt.y != 0) return 4;
 
     // Test counter increment
-    Counter cnt <- {value: 0, maxValue: 5};
+    Counter cnt <- { value: 0, maxValue: 5 };
     incrementCounter(cnt);
     if (cnt.value != 1) return 5;
 
@@ -82,13 +82,13 @@ u32 main() {
     if (cnt.value != 6) return 9;
 
     // Test read-only struct functions
-    Point readPt <- {x: 100, y: 200};
+    Point readPt <- { x: 100, y: 200 };
     i32 sum <- getPointSum(readPt);
     if (sum != 300) return 10;
     if (readPt.x != 100) return 11;
     if (readPt.y != 200) return 12;
 
-    Counter readCnt <- {value: 42, maxValue: 100};
+    Counter readCnt <- { value: 42, maxValue: 100 };
     u32 val <- getCounterValue(readCnt);
     if (val != 42) return 13;
 

@@ -4,9 +4,9 @@
 #include "lib_with_late_def.h"
 
 scope Draw {
-  point_t origin;
+    point_t origin;
 
-  public void setup() {
-    global.point_init(this.origin);
-  }
+    public void setup() {
+        global.point_init(this.origin);
+    }
 }

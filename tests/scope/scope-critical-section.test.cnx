@@ -197,45 +197,39 @@ scope CriticalTest {
 
     // Public method: chain lock-operation-unlock pattern
     public void lockedEnqueue(u8 data) {
-        (void) this.internalTryLock();
+        (void)this.internalTryLock();
         this.internalEnqueue(data);
         this.internalUnlock();
     }
 }
 
 void main() {
-   
-// Test public methods with critical sections - basic this. operations
+
+    // Test public methods with critical sections - basic this. operations
     CriticalTest.enqueue(42);
     CriticalTest.enqueue(84);
-    (void) CriticalTest.dequeue();
+    (void)CriticalTest.dequeue();
 
-   
-// Test public methods with critical sections - global. operations
+    // Test public methods with critical sections - global. operations
     CriticalTest.updateGlobalIndex();
     CriticalTest.transferToGlobal();
 
-   
-// Test thread-safe reads
-    (void) CriticalTest.getCount();
-    (void) CriticalTest.isLocked();
+    // Test thread-safe reads
+    (void)CriticalTest.getCount();
+    (void)CriticalTest.isLocked();
 
-   
-// Test lock/unlock pattern
-    (void) CriticalTest.tryLock();
+    // Test lock/unlock pattern
+    (void)CriticalTest.tryLock();
     CriticalTest.unlock();
 
-   
-// Test reset
+    // Test reset
     CriticalTest.resetAll();
 
-   
-// Test sync check
-    (void) CriticalTest.isInSync();
+    // Test sync check
+    (void)CriticalTest.isInSync();
 
-   
-// Test wrappers calling internal critical methods
+    // Test wrappers calling internal critical methods
     CriticalTest.safeEnqueue(10);
-    (void) CriticalTest.safeDequeue();
+    (void)CriticalTest.safeDequeue();
     CriticalTest.lockedEnqueue(20);
 }

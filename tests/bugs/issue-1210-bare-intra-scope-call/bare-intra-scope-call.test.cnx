@@ -36,14 +36,20 @@ u32 main() {
     u8 start <- 3;
 
     u8 bare <- Counter.viaBare(start);
-    if (bare != 4) { return 1; }
+    if (bare != 4) {
+        return 1;
+    }
 
     u8 qualified <- Counter.viaThis(start);
-    if (qualified != 4) { return 2; }
+    if (qualified != 4) {
+        return 2;
+    }
 
     // The argument must survive the call unchanged -- a phantom modification
     // would have routed it through a discarded temporary.
-    if (start != 3) { return 3; }
+    if (start != 3) {
+        return 3;
+    }
 
     return 0;
 }

@@ -7,8 +7,8 @@ struct Point {
 
 scope HelperTypes {
     public struct Color {
-    u8 red;
-    u8 green;
-    u8 blue;
-}
+        u8 red;
+        u8 green;
+        u8 blue;
+    }
 }

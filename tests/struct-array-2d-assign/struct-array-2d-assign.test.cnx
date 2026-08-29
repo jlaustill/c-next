@@ -3,10 +3,10 @@
 
 scope StructArr2D {
     public struct TReading {
-    i16 value;
-    u32 timestamp;
-    bool valid;
-}
+        i16 value;
+        u32 timestamp;
+        bool valid;
+    }
 }
 
 StructArr2D.TReading[4][4] readings;

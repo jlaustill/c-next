@@ -12,7 +12,7 @@ scope Motor {
 // Another scope to test nesting
 scope Sensor {
     public struct Reading {
-        Motor.State motorState;  // Should be Motor_State, NOT Motor::State
+        Motor.State motorState; // Should be Motor_State, NOT Motor::State
         i32 value;
     }
 }

@@ -38,22 +38,22 @@ void setStatusRed(StatusConfig cfg) {
 
 u32 main() {
     // Test 1: Color.RED via type-aware resolution
-    ColorConfig colorCfg <- {color: Color.BLUE};
+    ColorConfig colorCfg <- { color: Color.BLUE };
     setColorRed(colorCfg);
-    if ((u32)colorCfg.color != 0) return 1;  // Color_RED = 0
+    if ((u32)colorCfg.color != 0) return 1; // Color_RED = 0
 
     // Test 2: Status.RED via type-aware resolution
-    StatusConfig statusCfg <- {status: Status.YELLOW};
+    StatusConfig statusCfg <- { status: Status.YELLOW };
     setStatusRed(statusCfg);
-    if ((u32)statusCfg.status != 10) return 2;  // Status_RED = 10
+    if ((u32)statusCfg.status != 10) return 2; // Status_RED = 10
 
     // Test 3: GREEN is also in both - verify Color resolution
     colorCfg.color <- GREEN;
-    if ((u32)colorCfg.color != 1) return 3;  // Color_GREEN = 1
+    if ((u32)colorCfg.color != 1) return 3; // Color_GREEN = 1
 
     // Test 4: GREEN - verify Status resolution
     statusCfg.status <- GREEN;
-    if ((u32)statusCfg.status != 30) return 4;  // Status_GREEN = 30
+    if ((u32)statusCfg.status != 30) return 4; // Status_GREEN = 30
 
     // Test 5: BLUE only in Color (unambiguous)
     colorCfg.color <- BLUE;
@@ -63,5 +63,5 @@ u32 main() {
     statusCfg.status <- YELLOW;
     if ((u32)statusCfg.status != 20) return 6;
 
-    return 0;  // All tests passed
+    return 0; // All tests passed
 }

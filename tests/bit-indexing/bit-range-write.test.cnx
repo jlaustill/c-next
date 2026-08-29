@@ -3,10 +3,10 @@
 
 void main() {
     u8 config <- 0;
-    config[0, 4] <- 5;    // Set bits 0-3 to 0101
-    config[4, 4] <- 15;   // Set bits 4-7 to 1111
+    config[0, 4] <- 5; // Set bits 0-3 to 0101
+    config[4, 4] <- 15; // Set bits 4-7 to 1111
 
     u16 value <- 0;
-    value[0, 8] <- 0xFF;  // Set lower byte
-    value[8, 8] <- 0xAB;  // Set upper byte
+    value[0, 8] <- 0xFF; // Set lower byte
+    value[8, 8] <- 0xAB; // Set upper byte
 }

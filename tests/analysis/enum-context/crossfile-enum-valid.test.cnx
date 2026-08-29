@@ -5,16 +5,24 @@
 
 // Valid: return type IS ESpnCategory - unqualified enum should work
 ESpnCategory getCategory(u16 spn) {
-    if (spn = 100) { return SPN_CAT_PRESSURE; }
+    if (spn = 100) {
+        return SPN_CAT_PRESSURE;
+    }
     return SPN_CAT_UNKNOWN;
 }
 
 // Valid: switch on enum type with unqualified case labels
 u32 categoryToValue(ESpnCategory cat) {
     switch (cat) {
-        case SPN_CAT_TEMPERATURE { return 0; }
-        case SPN_CAT_PRESSURE { return 1; }
-        case SPN_CAT_UNKNOWN { return 2; }
+        case SPN_CAT_TEMPERATURE {
+            return 0;
+        }
+        case SPN_CAT_PRESSURE {
+            return 1;
+        }
+        case SPN_CAT_UNKNOWN {
+            return 2;
+        }
     }
     return 99;
 }

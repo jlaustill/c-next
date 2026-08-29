@@ -10,6 +10,9 @@
  *   - CI pipeline jobs
  */
 
+import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
+
 import { build } from "esbuild";
 
 await build({
@@ -25,3 +28,34 @@ await build({
   // compiled and bundled — the main win is eliminating tsx JIT compilation.
   packages: "external",
 });
+
+// Issue #1364: the Prettier plugin is built here too.
+//
+// `.prettierrc` loads it from `prettier-plugin/dist/`, so every Prettier run --
+// including the `lint-staged` pre-commit hook -- needs it present. Building it
+// out of band meant a fresh clone could not run `prettier --check .` at all.
+//
+// The esbuild invocation lives in `prettier-plugin/package.json` and is called
+// rather than repeated here: the plugin is a separately publishable package and
+// must build the same way from either entry point.
+//
+// It has its own dependency tree, so it is skipped (rather than failed) when
+// that tree has not been installed.
+const pluginDir = new URL("../prettier-plugin/", import.meta.url);
+if (existsSync(new URL("node_modules/antlr4ng/", pluginDir))) {
+  const result = spawnSync(
+    "npm",
+    ["--prefix", "prettier-plugin", "run", "build"],
+    {
+      stdio: "inherit",
+      shell: process.platform === "win32",
+    },
+  );
+  if (result.status !== 0) {
+    process.exit(result.status ?? 1);
+  }
+} else {
+  console.warn(
+    "Skipping prettier-plugin build: run `npm --prefix prettier-plugin ci` first.",
+  );
+}

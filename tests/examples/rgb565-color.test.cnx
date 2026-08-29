@@ -24,9 +24,9 @@ u32 main() {
     u16 pixel <- 0x7BEF;
 
     // Extract each color channel using bit indexing
-    u8 red   <- pixel[11, 5];   // 5 bits at position 11
-    u8 green <- pixel[5, 6];    // 6 bits at position 5
-    u8 blue  <- pixel[0, 5];    // 5 bits at position 0
+    u8 red <- pixel[11, 5]; // 5 bits at position 11
+    u8 green <- pixel[5, 6]; // 6 bits at position 5
+    u8 blue <- pixel[0, 5]; // 5 bits at position 0
 
     // Verify extraction
     if (red != 15) return 1;
@@ -67,9 +67,9 @@ u32 main() {
     // === Building a color from scratch ===
 
     u16 custom <- 0;
-    custom[11, 5] <- 31;   // Red = max (31)
-    custom[5, 6] <- 32;    // Green = half (32 of 63)
-    custom[0, 5] <- 16;    // Blue = half (16 of 31)
+    custom[11, 5] <- 31; // Red = max (31)
+    custom[5, 6] <- 32; // Green = half (32 of 63)
+    custom[0, 5] <- 16; // Blue = half (16 of 31)
 
     // Verify each channel
     if (custom[11, 5] != 31) return 16;

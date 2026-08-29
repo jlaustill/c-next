@@ -1,399 +1,482 @@
 /**
- * Printer for Prettier C-Next Plugin
+ * Printer for the C-Next Prettier plugin (#1364).
  *
- * Converts AST nodes back to formatted source code using Prettier's Doc IR.
+ * Prints ANTLR's parse tree directly. Every case dispatches on the *generated*
+ * rule index (`CNextParser.RULE_*`), so `tests/rule-coverage.test.ts` can assert
+ * that no grammar rule is unhandled -- which is what turns "the grammar grew
+ * and the formatter did not" into a CI failure instead of silent bit-rot.
  *
- * Formatting style (opinionated):
+ * The one invariant every layout function must hold: **consume every child
+ * exactly once**. Comments are anchored to tokens, so synthesizing punctuation
+ * instead of printing the token deletes that token's comments. Only whitespace
+ * is ever synthesized here.
+ *
+ * Formatting style (asserted by tests/format.test.ts):
  * - 4-space indentation
  * - Same-line braces: `void foo() {`
  * - Spaced assignment: `x <- 5`
+ * - Author's blank lines preserved, collapsed to at most one
  */
 
-import { Doc, doc } from "prettier";
-import * as AST from "./nodes";
+import { ParserRuleContext } from "antlr4ng";
+import { AstPath, Doc, ParserOptions, doc } from "prettier";
 
-const { group, indent, join, line, hardline, softline } = doc.builders;
+import { CNextParser } from "../../src/transpiler/logic/parser/grammar/CNextParser";
 
-type PrintFn = (path: AstPath) => Doc;
-type AstPath = {
-  getValue: () => AST.ASTNode;
-  call: <T>(callback: (path: AstPath) => T, ...names: (string | number)[]) => T;
-  map: <T>(callback: (path: AstPath) => T, name: string) => T[];
-};
-type PrinterOptions = {
-  originalText?: string;
-  [key: string]: unknown;
-};
+import ChildCursor from "./childCursor";
+import Cst from "./cst";
+import ICommentNode from "./types/ICommentNode";
+import TCstNode from "./types/TCstNode";
 
-function print(path: AstPath, options: PrinterOptions, print: PrintFn): Doc {
-  const node = path.getValue();
+const {
+  group,
+  indent,
+  join,
+  hardline,
+  softline,
+  line,
+  lineSuffix,
+  breakParent,
+} = doc.builders;
 
-  switch (node.type) {
-    case "Program":
-      return printProgram(path, print);
-    case "IncludeDirective":
-      return printIncludeDirective(node);
-    case "DefineFlag":
-      return printDefineFlag(node);
-    case "DefineWithValue":
-    case "DefineFunction":
-      return node.raw;
-    case "IfdefDirective":
-      return `#ifdef ${node.name}`;
-    case "IfndefDirective":
-      return `#ifndef ${node.name}`;
-    case "ElseDirective":
-      return "#else";
-    case "EndifDirective":
-      return "#endif";
-    case "PragmaTarget":
-      return `#pragma target ${node.target}`;
-    case "ScopeDeclaration":
-      return printScopeDeclaration(path, print);
-    case "ScopeMember":
-      return printScopeMember(path, print);
-    case "RegisterDeclaration":
-      return printRegisterDeclaration(path, print);
-    case "RegisterMember":
-      return printRegisterMember(path, print);
-    case "StructDeclaration":
-      return printStructDeclaration(path, print);
-    case "StructMember":
-      return printStructMember(path, print);
-    case "EnumDeclaration":
-      return printEnumDeclaration(path, print);
-    case "EnumMember":
-      return printEnumMember(path, print);
-    case "BitmapDeclaration":
-      return printBitmapDeclaration(path, print);
-    case "BitmapMember":
-      return printBitmapMember(node);
-    case "FunctionDeclaration":
-      return printFunctionDeclaration(path, print);
-    case "Parameter":
-      return printParameter(path, print);
-    case "VariableDeclaration":
-      return printVariableDeclaration(path, print);
-    case "Block":
-      return printBlock(path, print, options);
-    case "AssignmentStatement":
-      return printAssignmentStatement(path, print);
-    case "ExpressionStatement":
-      return printExpressionStatement(path, print);
-    case "IfStatement":
-      return printIfStatement(path, print);
-    case "WhileStatement":
-      return printWhileStatement(path, print);
-    case "DoWhileStatement":
-      return printDoWhileStatement(path, print);
-    case "ForStatement":
-      return printForStatement(path, print);
-    case "ForVarDecl":
-      return printForVarDecl(path, print);
-    case "ForAssignment":
-    case "ForUpdate":
-      return printForAssignment(path, print);
-    case "SwitchStatement":
-      return printSwitchStatement(path, print);
-    case "SwitchCase":
-      return printSwitchCase(path, print);
-    case "DefaultCase":
-      return printDefaultCase(path, print);
-    case "ReturnStatement":
-      return printReturnStatement(path, print);
-    case "CriticalStatement":
-      return printCriticalStatement(path, print);
-    case "TernaryExpression":
-      return printTernaryExpression(path, print);
-    case "BinaryExpression":
-      return printBinaryExpression(path, print);
-    case "UnaryExpression":
-      return printUnaryExpression(path, print);
-    case "CallExpression":
-      return printCallExpression(path, print);
-    case "MemberAccess":
-      return printMemberAccess(path, print);
-    case "ArrayAccess":
-      return printArrayAccess(path, print);
-    case "ThisAccess":
-      return printThisAccess(path, print);
-    case "GlobalAccess":
-      return printGlobalAccess(path, print);
-    case "CastExpression":
-      return printCastExpression(path, print);
-    case "SizeofExpression":
-      return printSizeofExpression(path, print);
-    case "StructInitializer":
-      return printStructInitializer(path, print);
-    case "FieldInitializer":
-      return printFieldInitializer(path, print);
-    case "ArrayInitializer":
-      return printArrayInitializer(path, print);
-    case "Identifier":
-      return node.name;
-    case "ParenExpression":
-      return ["(", path.call(print, "expression"), ")"];
-    case "Literal":
-      return node.value;
-    case "PrimitiveType":
-      return node.name;
-    case "StringType":
-      return node.capacity !== null ? `string<${node.capacity}>` : "string";
-    case "ScopedType":
-      return `this.${node.name}`;
-    case "QualifiedType":
-      return `${node.scope}.${node.name}`;
-    case "UserType":
-      return node.name;
-    case "ArrayType":
-      return printArrayType(path, print);
-    case "VoidType":
-      return "void";
-    case "Comment":
-      return node.value;
-    default:
-      throw new Error(`Unknown node type: ${(node as AST.ASTNode).type}`);
-  }
-}
+type TPrintFn = (path: AstPath<TCstNode>) => Doc;
+type TPath = AstPath<TCstNode>;
+
+/** Modifiers that may precede a type in a declaration, in grammar order. */
+const DECLARATION_MODIFIERS: readonly number[] = [
+  CNextParser.RULE_atomicModifier,
+  CNextParser.RULE_volatileModifier,
+  CNextParser.RULE_constModifier,
+  CNextParser.RULE_overflowModifier,
+];
+
+/**
+ * Rules whose text is exactly their tokens run together.
+ *
+ * Membership counts as "handled" for the rule-coverage gate.
+ */
+const CONCATENATED_RULES: ReadonlySet<number> = new Set([
+  CNextParser.RULE_includeDirective,
+  CNextParser.RULE_defineDirective,
+  CNextParser.RULE_conditionalDirective,
+  CNextParser.RULE_pragmaDirective,
+  CNextParser.RULE_visibilityModifier,
+  CNextParser.RULE_accessModifier,
+  CNextParser.RULE_bitmapType,
+  CNextParser.RULE_constModifier,
+  CNextParser.RULE_volatileModifier,
+  CNextParser.RULE_overflowModifier,
+  CNextParser.RULE_atomicModifier,
+  CNextParser.RULE_assignmentOperator,
+  CNextParser.RULE_primitiveType,
+  CNextParser.RULE_userType,
+  CNextParser.RULE_literal,
+  CNextParser.RULE_caseLabel,
+  CNextParser.RULE_bitmapMember,
+  CNextParser.RULE_scopedType,
+  CNextParser.RULE_globalType,
+  CNextParser.RULE_qualifiedType,
+  CNextParser.RULE_stringType,
+]);
+
+/**
+ * Rules that are a bare choice between alternatives: the layout belongs to
+ * whichever alternative was taken, so they delegate to their only child.
+ *
+ * This is what collapses the precedence cascade -- `expression` down to
+ * `primaryExpression` is 16 levels deep for a single literal.
+ */
+const DELEGATING_RULES: ReadonlySet<number> = new Set([
+  CNextParser.RULE_preprocessorDirective,
+  CNextParser.RULE_declaration,
+  CNextParser.RULE_statement,
+  CNextParser.RULE_expression,
+  CNextParser.RULE_forInit,
+  CNextParser.RULE_arrayInitializerElement,
+  CNextParser.RULE_templateArgument,
+  CNextParser.RULE_type,
+  CNextParser.RULE_arrayType,
+  CNextParser.RULE_postfixExpression,
+]);
+
+/** Left-associative binary chains, all of the shape `operand (OP operand)*`. */
+const BINARY_CHAIN_RULES: ReadonlySet<number> = new Set([
+  CNextParser.RULE_orExpression,
+  CNextParser.RULE_andExpression,
+  CNextParser.RULE_equalityExpression,
+  CNextParser.RULE_relationalExpression,
+  CNextParser.RULE_bitwiseOrExpression,
+  CNextParser.RULE_bitwiseXorExpression,
+  CNextParser.RULE_bitwiseAndExpression,
+  CNextParser.RULE_shiftExpression,
+  CNextParser.RULE_additiveExpression,
+  CNextParser.RULE_multiplicativeExpression,
+]);
+
+/** Comma-separated lists that share one layout: `item (',' item)*`. */
+const COMMA_LIST_RULES: ReadonlySet<number> = new Set([
+  CNextParser.RULE_parameterList,
+  CNextParser.RULE_argumentList,
+  CNextParser.RULE_constructorArgumentList,
+  CNextParser.RULE_templateArgumentList,
+]);
 
 // ============================================================================
-// Program
+// Comments
 // ============================================================================
 
-function printProgram(path: AstPath, print: PrintFn): Doc {
-  const node = path.getValue() as AST.Program;
+/** Comments that sat after a token on its own line. */
+function printTrailingComments(comments: ICommentNode[]): Doc[] {
   const parts: Doc[] = [];
-
-  // Note: Comments are handled by Prettier's comment attachment system
-  // We tell Prettier all comments are "block comments" so they get separate lines
-
-  // Print includes
-  if (node.includes.length > 0) {
-    parts.push(join(hardline, path.map(print, "includes")));
-    parts.push(hardline);
+  for (const comment of comments) {
+    if (comment.block) {
+      // A block comment ends where it ends, so it can stay inline.
+      parts.push(" ", comment.value);
+      continue;
+    }
+    // A line comment runs to end of line. `lineSuffix` defers it to whatever
+    // newline the enclosing layout already emits, so the comment terminates
+    // the line without the printer having to add a second one -- emitting a
+    // hardline here as well produced a blank line after every commented
+    // bitmap field, and another on each subsequent run.
+    parts.push(lineSuffix([" ", comment.value]), breakParent);
   }
-
-  // Print preprocessor directives
-  if (node.preprocessor.length > 0) {
-    if (parts.length > 0) parts.push(hardline);
-    parts.push(join(hardline, path.map(print, "preprocessor")));
-    parts.push(hardline);
-  }
-
-  // Print declarations with blank lines between them
-  if (node.declarations.length > 0) {
-    if (parts.length > 0) parts.push(hardline);
-    parts.push(join([hardline, hardline], path.map(print, "declarations")));
-  }
-
-  // Ensure file ends with newline
-  parts.push(hardline);
-
   return parts;
 }
 
-function printIncludeDirective(node: AST.IncludeDirective): Doc {
-  if (node.isSystem) {
-    return `#include <${node.path}>`;
-  }
-  return `#include "${node.path}"`;
+/** A comment that leads a token, plus the separation that must follow it. */
+function printLeadingComment(comment: ICommentNode): Doc[] {
+  const parts: Doc[] = [];
+  if (comment.precededByBlankLine) parts.push(hardline);
+  parts.push(comment.value);
+  // A line comment runs to end of line, so anything after it must start a new
+  // one -- otherwise the following token is swallowed into the comment. A block
+  // comment keeps whichever it had: alone on its line, or inline before code.
+  parts.push(comment.endsItsLine ? hardline : " ");
+  return parts;
 }
 
-function printDefineFlag(node: AST.DefineFlag): Doc {
-  return `#define ${node.name}`;
+/**
+ * The comments leading a token, laid out as their own lines.
+ *
+ * A closing brace is the anchor for any comment written just before it, but
+ * the brace sits at the enclosing indentation while the comment belongs with
+ * the body. Callers that own an indented body render those comments through
+ * this and print the brace itself with `printTerminalBody`.
+ */
+function printLeadingCommentLines(node: TCstNode): Doc[] {
+  const anchor = Cst.commentsOf(node);
+  if (anchor === undefined || anchor.before.length === 0) return [];
+  const lines: Doc[] = [];
+  for (let index = 0; index < anchor.before.length; index += 1) {
+    const comment = anchor.before[index];
+    if (index > 0)
+      lines.push(anchor.before[index - 1].endsItsLine ? hardline : " ");
+    if (comment.precededByBlankLine) lines.push(hardline);
+    lines.push(comment.value);
+  }
+  if (anchor.blankLineBeforeToken) lines.push(hardline);
+  return lines;
+}
+
+/** A token and its trailing comments, without anything that leads it. */
+function printTerminalBody(node: TCstNode): Doc {
+  const anchor = Cst.commentsOf(node);
+  const text = Cst.isEndOfFile(node) ? "" : Cst.textOf(node);
+  if (anchor === undefined) return text;
+  return [text, ...printTrailingComments(anchor.after)];
+}
+
+/**
+ * Print a token, restoring the comments anchored to it.
+ *
+ * Comments were bound to their token during parsing, so they land exactly where
+ * they were written: no formatting pass can migrate one across an operator.
+ */
+function printTerminal(node: TCstNode): Doc {
+  const anchor = Cst.commentsOf(node);
+  // EOF carries no text, but may still trail the file's last comments.
+  const text = Cst.isEndOfFile(node) ? "" : Cst.textOf(node);
+  if (anchor === undefined) return text;
+
+  const parts: Doc[] = [];
+  for (const comment of anchor.before) {
+    parts.push(...printLeadingComment(comment));
+  }
+  // The separator above already ended the line after a comment that owned it,
+  // so a blank line needs one more break than a comment sharing its line.
+  if (anchor.blankLineBeforeToken) parts.push(hardline);
+  parts.push(text, ...printTrailingComments(anchor.after));
+  return parts;
+}
+
+// ============================================================================
+// Shared layout
+// ============================================================================
+
+/**
+ * Join docs with `separator`, preserving a single blank line wherever the
+ * author left one. Collapsing two-or-more to one keeps the output idempotent.
+ */
+function joinPreservingBlankLines(
+  taken: { doc: Doc; node: TCstNode }[],
+  separator: Doc,
+): Doc[] {
+  const parts: Doc[] = [];
+  for (let index = 0; index < taken.length; index += 1) {
+    if (index > 0) {
+      parts.push(separator);
+      if (Cst.hasBlankLineBetween(taken[index - 1].node, taken[index].node)) {
+        parts.push(hardline);
+      }
+    }
+    parts.push(taken[index].doc);
+  }
+  return parts;
+}
+
+/**
+ * `{ body }` with the real brace tokens, collapsing an empty body to `{}`.
+ *
+ * Takes the closing brace as a node rather than a printed doc so the comments
+ * anchored to it can be laid out inside the braces, at body indentation, where
+ * they were written.
+ */
+function printBraced(open: Doc, body: Doc[], closeNode: TCstNode): Doc {
+  const trailingComments = printLeadingCommentLines(closeNode);
+  const close = printTerminalBody(closeNode);
+  const contents = [...body];
+  if (trailingComments.length > 0) {
+    if (contents.length > 0) contents.push(hardline);
+    contents.push(...trailingComments);
+  }
+  if (contents.length === 0) return [open, close];
+  return [open, indent([hardline, ...contents]), hardline, close];
+}
+
+/** A brace-delimited member list: `'{' member* '}'`. */
+function printMemberBlock(cursor: ChildCursor, memberRule: number): Doc {
+  const open = cursor.take();
+  const members = cursor.takeWhileRule(memberRule);
+  const close = cursor.takeChild();
+  return printBraced(
+    open,
+    joinPreservingBlankLines(members, hardline),
+    close.node,
+  );
+}
+
+/**
+ * A comma-separated member list inside braces: `'{' m (',' m)* ','? '}'`.
+ *
+ * The comma tokens are printed, not synthesized. A trailing comment such as
+ * `RED <- 0, // implicit` is anchored to the comma, so consuming the comma
+ * without printing it deletes the comment.
+ */
+function printCommaMemberBlock(cursor: ChildCursor, memberRule: number): Doc {
+  const open = cursor.take();
+  const parts: Doc[] = [];
+  let previous: TCstNode | null = null;
+  while (cursor.peekRule() === memberRule) {
+    const member = cursor.takeChild();
+    if (previous !== null && Cst.hasBlankLineBetween(previous, member.node)) {
+      parts.push(hardline);
+    }
+    parts.push(member.doc);
+    previous = member.node;
+    const comma = cursor.takeIfText(",");
+    if (comma !== null) parts.push(comma);
+    if (cursor.peekRule() === memberRule) parts.push(hardline);
+  }
+  const close = cursor.takeChild();
+  return printBraced(open, parts, close.node);
+}
+
+/** `keyword body`, e.g. `critical { ... }` and `forever { ... }`. */
+function printKeywordBlock(cursor: ChildCursor): Doc {
+  const keyword = cursor.take();
+  return [keyword, " ", cursor.take()];
+}
+
+/** Trailing array dimensions on a declarator: `name[4][4]`. */
+function printDimensions(cursor: ChildCursor, dimensionRule: number): Doc[] {
+  return cursor.takeWhileRule(dimensionRule).map((taken) => taken.doc);
+}
+
+/** `type name dims? ('<-' value)?` — shared by variable and for-loop decls. */
+function printDeclarator(cursor: ChildCursor): Doc[] {
+  const parts: Doc[] = [cursor.take(), " ", cursor.take()];
+  parts.push(...printDimensions(cursor, CNextParser.RULE_arrayDimension));
+  const arrow = cursor.takeIfText("<-");
+  if (arrow !== null) parts.push(" ", arrow, " ", cursor.take());
+  return parts;
+}
+
+// ============================================================================
+// Top level
+// ============================================================================
+
+function printProgram(cursor: ChildCursor): Doc {
+  const declarations = cursor.takeAllButLast(1);
+  const endOfFile = cursor.takeChild();
+  // Comments after the last declaration anchor to EOF, which carries no text of
+  // its own. They are laid out as lines here rather than through the token, so
+  // the file's single closing newline is not doubled.
+  const trailing = printLeadingCommentLines(endOfFile.node);
+  const parts = joinPreservingBlankLines(declarations, hardline);
+  if (trailing.length > 0) {
+    if (parts.length > 0) parts.push(hardline);
+    parts.push(...trailing);
+  }
+  return [...parts, hardline];
 }
 
 // ============================================================================
 // Declarations
 // ============================================================================
 
-function printScopeDeclaration(path: AstPath, print: PrintFn): Doc {
-  const node = path.getValue() as AST.ScopeDeclaration;
-
-  return group([
-    `scope ${node.name} {`,
-    indent([hardline, join(hardline, path.map(print, "members"))]),
-    hardline,
-    "}",
-  ]);
-}
-
-function printScopeMember(path: AstPath, print: PrintFn): Doc {
-  const node = path.getValue() as AST.ScopeMember;
-  const parts: Doc[] = [];
-
-  if (node.visibility) {
-    parts.push(node.visibility, " ");
-  }
-
-  parts.push(path.call(print, "declaration"));
-
-  return parts;
-}
-
-function printRegisterDeclaration(path: AstPath, print: PrintFn): Doc {
-  const node = path.getValue() as AST.RegisterDeclaration;
-
-  return group([
-    "register ",
-    node.name,
-    " @ ",
-    path.call(print, "address"),
-    " {",
-    indent([hardline, join(hardline, path.map(print, "members"))]),
-    hardline,
-    "}",
-  ]);
-}
-
-function printRegisterMember(path: AstPath, print: PrintFn): Doc {
-  const node = path.getValue() as AST.RegisterMember;
-
+function printScopeDeclaration(cursor: ChildCursor): Doc {
+  const keyword = cursor.take();
+  const name = cursor.take();
   return [
-    node.name,
-    ": ",
-    path.call(print, "dataType"),
+    keyword,
     " ",
-    node.access,
-    " @ ",
-    path.call(print, "offset"),
-    ",",
+    name,
+    " ",
+    printMemberBlock(cursor, CNextParser.RULE_scopeMember),
   ];
 }
 
-function printStructDeclaration(path: AstPath, print: PrintFn): Doc {
-  const node = path.getValue() as AST.StructDeclaration;
-
-  return group([
-    `struct ${node.name} {`,
-    indent([hardline, join(hardline, path.map(print, "members"))]),
-    hardline,
-    "}",
-  ]);
+function printRegisterDeclaration(cursor: ChildCursor): Doc {
+  const keyword = cursor.take();
+  const name = cursor.take();
+  const at = cursor.take();
+  const address = cursor.take();
+  return [
+    keyword,
+    " ",
+    name,
+    " ",
+    at,
+    " ",
+    address,
+    " ",
+    printMemberBlock(cursor, CNextParser.RULE_registerMember),
+  ];
 }
 
-function printStructMember(path: AstPath, print: PrintFn): Doc {
-  const node = path.getValue() as AST.StructMember;
-  const parts: Doc[] = [path.call(print, "dataType"), " ", node.name];
+function printRegisterMember(cursor: ChildCursor): Doc {
+  const name = cursor.take();
+  const colon = cursor.take();
+  const type = cursor.take();
+  const access = cursor.take();
+  const at = cursor.take();
+  const address = cursor.take();
+  const comma = cursor.takeIfText(",");
+  return [
+    name,
+    colon,
+    " ",
+    type,
+    " ",
+    access,
+    " ",
+    at,
+    " ",
+    address,
+    comma ?? ",",
+  ];
+}
 
-  for (let i = 0; i < node.dimensions.length; i++) {
-    // null dimension = empty [], non-null = [expr]
-    if (node.dimensions[i] === null) {
-      parts.push("[]");
-    } else {
-      parts.push("[", path.call(print, "dimensions", i), "]");
-    }
-  }
+function printStructDeclaration(cursor: ChildCursor): Doc {
+  const keyword = cursor.take();
+  const name = cursor.take();
+  return [
+    keyword,
+    " ",
+    name,
+    " ",
+    printMemberBlock(cursor, CNextParser.RULE_structMember),
+  ];
+}
 
-  parts.push(";");
+function printStructMember(cursor: ChildCursor): Doc {
+  const type = cursor.take();
+  const name = cursor.take();
+  const dimensions = printDimensions(cursor, CNextParser.RULE_arrayDimension);
+  return [type, " ", name, ...dimensions, cursor.take()];
+}
+
+function printEnumDeclaration(cursor: ChildCursor): Doc {
+  const keyword = cursor.take();
+  const name = cursor.take();
+  return [
+    keyword,
+    " ",
+    name,
+    " ",
+    printCommaMemberBlock(cursor, CNextParser.RULE_enumMember),
+  ];
+}
+
+function printEnumMember(cursor: ChildCursor): Doc {
+  const name = cursor.take();
+  const arrow = cursor.takeIfText("<-");
+  if (arrow === null) return name;
+  return [name, " ", arrow, " ", cursor.take()];
+}
+
+function printBitmapDeclaration(cursor: ChildCursor): Doc {
+  const kind = cursor.take();
+  const name = cursor.take();
+  return [
+    kind,
+    " ",
+    name,
+    " ",
+    printCommaMemberBlock(cursor, CNextParser.RULE_bitmapMember),
+  ];
+}
+
+function printFunctionDeclaration(cursor: ChildCursor): Doc {
+  const type = cursor.take();
+  const name = cursor.take();
+  const open = cursor.take();
+  const parameters = cursor.takeIfRule(CNextParser.RULE_parameterList);
+  const close = cursor.take();
+  const body = cursor.take();
+  return [type, " ", name, open, parameters ?? "", close, " ", body];
+}
+
+function printParameter(cursor: ChildCursor): Doc {
+  const parts: Doc[] = [];
+  const constModifier = cursor.takeIfRule(CNextParser.RULE_constModifier);
+  if (constModifier !== null) parts.push(constModifier, " ");
+  parts.push(cursor.take(), " ", cursor.take());
+  parts.push(...printDimensions(cursor, CNextParser.RULE_arrayDimension));
   return parts;
 }
 
-function printEnumDeclaration(path: AstPath, print: PrintFn): Doc {
-  const node = path.getValue() as AST.EnumDeclaration;
-
-  return group([
-    `enum ${node.name} {`,
-    indent([hardline, join([",", hardline], path.map(print, "members"))]),
-    hardline,
-    "}",
-  ]);
-}
-
-function printEnumMember(path: AstPath, print: PrintFn): Doc {
-  const node = path.getValue() as AST.EnumMember;
-
-  if (node.value) {
-    return [node.name, " <- ", path.call(print, "value")];
-  }
-  return node.name;
-}
-
-function printBitmapDeclaration(path: AstPath, print: PrintFn): Doc {
-  const node = path.getValue() as AST.BitmapDeclaration;
-
-  return group([
-    node.bitmapType,
-    " ",
-    node.name,
-    " {",
-    indent([hardline, join([",", hardline], path.map(print, "members"))]),
-    hardline,
-    "}",
-  ]);
-}
-
-function printBitmapMember(node: AST.BitmapMember): Doc {
-  if (node.width !== null) {
-    return `${node.name}[${node.width}]`;
-  }
-  return node.name;
-}
-
-function printFunctionDeclaration(path: AstPath, print: PrintFn): Doc {
-  const node = path.getValue() as AST.FunctionDeclaration;
-
-  const params =
-    node.parameters.length > 0 ? join(", ", path.map(print, "parameters")) : "";
-
-  return group([
-    path.call(print, "returnType"),
-    " ",
-    node.name,
-    "(",
-    params,
-    ") ",
-    path.call(print, "body"),
-  ]);
-}
-
-function printParameter(path: AstPath, print: PrintFn): Doc {
-  const node = path.getValue() as AST.Parameter;
+function printVariableDeclaration(cursor: ChildCursor): Doc {
+  const modifiers = cursor.takeWhileAnyRule(DECLARATION_MODIFIERS);
   const parts: Doc[] = [];
+  for (const modifier of modifiers) parts.push(modifier.doc, " ");
 
-  if (node.isConst) {
-    parts.push("const ");
+  const type = cursor.take();
+  const name = cursor.take();
+  parts.push(type, " ", name);
+
+  // Alternative 2 (issue #375): `Type name(constArg, ...)` C++ constructor form.
+  const open = cursor.takeIfText("(");
+  if (open !== null) {
+    parts.push(open, cursor.take(), cursor.take(), cursor.take());
+    return parts;
   }
 
-  parts.push(path.call(print, "dataType"), " ", node.name);
-
-  for (let i = 0; i < node.dimensions.length; i++) {
-    // null dimension = empty [], non-null = [expr]
-    if (node.dimensions[i] === null) {
-      parts.push("[]");
-    } else {
-      parts.push("[", path.call(print, "dimensions", i), "]");
-    }
-  }
-
-  return parts;
-}
-
-function printVariableDeclaration(path: AstPath, print: PrintFn): Doc {
-  const node = path.getValue() as AST.VariableDeclaration;
-  const parts: Doc[] = [];
-
-  if (node.isAtomic) parts.push("atomic ");
-  if (node.isVolatile) parts.push("volatile ");
-  if (node.isConst) parts.push("const ");
-  if (node.overflow) parts.push(node.overflow, " ");
-
-  parts.push(path.call(print, "dataType"), " ", node.name);
-
-  for (let i = 0; i < node.dimensions.length; i++) {
-    // null dimension = empty [], non-null = [expr]
-    if (node.dimensions[i] === null) {
-      parts.push("[]");
-    } else {
-      parts.push("[", path.call(print, "dimensions", i), "]");
-    }
-  }
-
-  if (node.initializer) {
-    parts.push(" <- ", path.call(print, "initializer"));
-  }
-
-  parts.push(";");
+  parts.push(...printDimensions(cursor, CNextParser.RULE_arrayDimension));
+  const arrow = cursor.takeIfText("<-");
+  if (arrow !== null) parts.push(" ", arrow, " ", cursor.take());
+  parts.push(cursor.take());
   return parts;
 }
 
@@ -401,391 +484,462 @@ function printVariableDeclaration(path: AstPath, print: PrintFn): Doc {
 // Statements
 // ============================================================================
 
-function printBlock(
-  path: AstPath,
-  print: PrintFn,
-  options: PrinterOptions,
-): Doc {
-  const node = path.getValue() as AST.Block;
-
-  if (node.statements.length === 0) {
-    return "{}";
-  }
-
-  // Build statements with blank line preservation
-  const stmtDocs = path.map(print, "statements");
-  const parts: Doc[] = [];
-
-  for (let i = 0; i < stmtDocs.length; i++) {
-    if (i > 0) {
-      // Check if there was a blank line between this statement and the previous one
-      const prevStmt = node.statements[i - 1];
-      const currStmt = node.statements[i];
-
-      if (
-        options.originalText &&
-        hasBlankLineBetween(options.originalText, prevStmt.end, currStmt.start)
-      ) {
-        // Preserve blank line
-        parts.push(hardline, hardline);
-      } else {
-        parts.push(hardline);
-      }
-    }
-    parts.push(stmtDocs[i]);
-  }
-
-  return group(["{", indent([hardline, parts]), hardline, "}"]);
-}
-
-/**
- * Check if there's a blank line (2+ newlines) between two positions in the source
- */
-function hasBlankLineBetween(
-  text: string,
-  startPos: number,
-  endPos: number,
-): boolean {
-  const between = text.slice(startPos + 1, endPos);
-  // Count newlines - if there are 2 or more, there's at least one blank line
-  const newlineCount = (between.match(/\n/g) || []).length;
-  return newlineCount >= 2;
-}
-
-function printAssignmentStatement(path: AstPath, print: PrintFn): Doc {
-  const node = path.getValue() as AST.AssignmentStatement;
-
-  return [
-    path.call(print, "target"),
+function printScopeMember(cursor: ChildCursor): Doc {
+  return join(
     " ",
-    node.operator,
-    " ",
-    path.call(print, "value"),
-    ";",
-  ];
+    cursor.takeRest().map((taken) => taken.doc),
+  );
 }
 
-function printExpressionStatement(path: AstPath, print: PrintFn): Doc {
-  return [path.call(print, "expression"), ";"];
+function printBlock(cursor: ChildCursor): Doc {
+  return printMemberBlock(cursor, CNextParser.RULE_statement);
 }
 
-function printIfStatement(path: AstPath, print: PrintFn): Doc {
-  const node = path.getValue() as AST.IfStatement;
-  const parts: Doc[] = ["if (", path.call(print, "condition"), ") "];
-
-  // Handle consequent - preserve original brace style
-  if (node.consequent.type === "Block") {
-    parts.push(path.call(print, "consequent"));
-  } else {
-    // Single statement - don't add braces
-    parts.push(path.call(print, "consequent"));
-  }
-
-  // Handle alternate (else)
-  if (node.alternate) {
-    parts.push(" else ");
-    if (node.alternate.type === "IfStatement") {
-      // else if
-      parts.push(path.call(print, "alternate"));
-    } else if (node.alternate.type === "Block") {
-      parts.push(path.call(print, "alternate"));
-    } else {
-      // Single statement - don't add braces
-      parts.push(path.call(print, "alternate"));
-    }
-  }
-
-  return group(parts);
-}
-
-function printWhileStatement(path: AstPath, print: PrintFn): Doc {
-  const node = path.getValue() as AST.WhileStatement;
-  const parts: Doc[] = ["while (", path.call(print, "condition"), ") "];
-
-  // Preserve original brace style
-  parts.push(path.call(print, "body"));
-
-  return group(parts);
-}
-
-function printDoWhileStatement(path: AstPath, print: PrintFn): Doc {
-  return group([
-    "do ",
-    path.call(print, "body"),
-    " while (",
-    path.call(print, "condition"),
-    ");",
-  ]);
-}
-
-function printForStatement(path: AstPath, print: PrintFn): Doc {
-  const node = path.getValue() as AST.ForStatement;
-  const parts: Doc[] = ["for ("];
-
-  if (node.init) {
-    parts.push(path.call(print, "init"));
-  }
-  parts.push("; ");
-
-  if (node.condition) {
-    parts.push(path.call(print, "condition"));
-  }
-  parts.push("; ");
-
-  if (node.update) {
-    parts.push(path.call(print, "update"));
-  }
-  parts.push(") ");
-
-  // Preserve original brace style
-  parts.push(path.call(print, "body"));
-
-  return group(parts);
-}
-
-function printForVarDecl(path: AstPath, print: PrintFn): Doc {
-  const node = path.getValue() as AST.ForVarDecl;
-  const parts: Doc[] = [];
-
-  if (node.isAtomic) parts.push("atomic ");
-  if (node.isVolatile) parts.push("volatile ");
-  if (node.overflow) parts.push(node.overflow, " ");
-
-  parts.push(path.call(print, "dataType"), " ", node.name);
-
-  for (let i = 0; i < node.dimensions.length; i++) {
-    // null dimension = empty [], non-null = [expr]
-    if (node.dimensions[i] === null) {
-      parts.push("[]");
-    } else {
-      parts.push("[", path.call(print, "dimensions", i), "]");
-    }
-  }
-
-  if (node.initializer) {
-    parts.push(" <- ", path.call(print, "initializer"));
-  }
-
+function printAssignmentLike(cursor: ChildCursor): Doc {
+  const target = cursor.take();
+  const operator = cursor.take();
+  const value = cursor.take();
+  const parts: Doc[] = [target, " ", operator, " ", value];
+  if (!cursor.done()) parts.push(cursor.take());
   return parts;
 }
 
-function printForAssignment(path: AstPath, print: PrintFn): Doc {
-  const node = path.getValue() as AST.ForAssignment | AST.ForUpdate;
-
-  return [
-    path.call(print, "target"),
-    " ",
-    node.operator,
-    " ",
-    path.call(print, "value"),
-  ];
+function printAssignmentTarget(cursor: ChildCursor): Doc {
+  // `global . x`, `this . x` and a bare identifier all concatenate verbatim;
+  // the postfix chain supplies its own punctuation.
+  return cursor.takeRest().map((taken) => taken.doc);
 }
 
-function printSwitchStatement(path: AstPath, print: PrintFn): Doc {
-  const node = path.getValue() as AST.SwitchStatement;
+function printPostfixOperation(cursor: ChildCursor): Doc {
+  const opening = cursor.take();
+  const parts: Doc[] = [opening];
+  while (cursor.remaining() > 0) {
+    if (cursor.peekText() === ",") {
+      cursor.take();
+      parts.push(", ");
+      continue;
+    }
+    parts.push(cursor.take());
+  }
+  return parts;
+}
+
+function printExpressionStatement(cursor: ChildCursor): Doc {
+  return [cursor.take(), cursor.take()];
+}
+
+function printIfStatement(cursor: ChildCursor): Doc {
+  const keyword = cursor.take();
+  const open = cursor.take();
+  const condition = cursor.take();
+  const close = cursor.take();
   const parts: Doc[] = [
-    "switch (",
-    path.call(print, "expression"),
-    ") {",
-    indent([hardline, join(hardline, path.map(print, "cases"))]),
-  ];
-
-  if (node.defaultCase) {
-    parts.push(hardline, indent(path.call(print, "defaultCase")));
-  }
-
-  parts.push(hardline, "}");
-  return group(parts);
-}
-
-function printSwitchCase(path: AstPath, print: PrintFn): Doc {
-  const node = path.getValue() as AST.SwitchCase;
-
-  return group([
-    "case ",
-    join(" || ", path.map(print, "labels")),
+    keyword,
     " ",
-    path.call(print, "body"),
-  ]);
+    open,
+    condition,
+    close,
+    " ",
+    cursor.take(),
+  ];
+  const elseKeyword = cursor.takeIfText("else");
+  if (elseKeyword !== null) parts.push(" ", elseKeyword, " ", cursor.take());
+  return parts;
 }
 
-function printDefaultCase(path: AstPath, print: PrintFn): Doc {
-  const node = path.getValue() as AST.DefaultCase;
+function printWhileStatement(cursor: ChildCursor): Doc {
+  const keyword = cursor.take();
+  const open = cursor.take();
+  const condition = cursor.take();
+  const close = cursor.take();
+  return [keyword, " ", open, condition, close, " ", cursor.take()];
+}
 
-  if (node.count !== null) {
-    return group([
-      "default(",
-      String(node.count),
-      ") ",
-      path.call(print, "body"),
-    ]);
+function printDoWhileStatement(cursor: ChildCursor): Doc {
+  const doKeyword = cursor.take();
+  const body = cursor.take();
+  const whileKeyword = cursor.take();
+  const open = cursor.take();
+  const condition = cursor.take();
+  const close = cursor.take();
+  const semicolon = cursor.take();
+  return [
+    doKeyword,
+    " ",
+    body,
+    " ",
+    whileKeyword,
+    " ",
+    open,
+    condition,
+    close,
+    semicolon,
+  ];
+}
+
+function printForStatement(cursor: ChildCursor): Doc {
+  const keyword = cursor.take();
+  const open = cursor.take();
+  const initializer = cursor.takeIfRule(CNextParser.RULE_forInit);
+  const firstSemicolon = cursor.take();
+  const condition = cursor.takeIfRule(CNextParser.RULE_expression);
+  const secondSemicolon = cursor.take();
+  const update = cursor.takeIfRule(CNextParser.RULE_forUpdate);
+  const close = cursor.take();
+  return [
+    keyword,
+    " ",
+    open,
+    initializer ?? "",
+    firstSemicolon,
+    " ",
+    condition ?? "",
+    secondSemicolon,
+    " ",
+    update ?? "",
+    close,
+    " ",
+    cursor.take(),
+  ];
+}
+
+function printForVarDecl(cursor: ChildCursor): Doc {
+  const modifiers = cursor.takeWhileAnyRule(DECLARATION_MODIFIERS);
+  const parts: Doc[] = [];
+  for (const modifier of modifiers) parts.push(modifier.doc, " ");
+  parts.push(...printDeclarator(cursor));
+  return parts;
+}
+
+function printReturnStatement(cursor: ChildCursor): Doc {
+  const keyword = cursor.take();
+  const value = cursor.takeIfRule(CNextParser.RULE_expression);
+  const semicolon = cursor.take();
+  return value === null
+    ? [keyword, semicolon]
+    : [keyword, " ", value, semicolon];
+}
+
+function printSwitchStatement(cursor: ChildCursor): Doc {
+  const keyword = cursor.take();
+  const open = cursor.take();
+  const subject = cursor.take();
+  const close = cursor.take();
+  const openBrace = cursor.take();
+  const cases = cursor.takeAllButLast(1);
+  const closeBrace = cursor.takeChild();
+  return [
+    keyword,
+    " ",
+    open,
+    subject,
+    close,
+    " ",
+    printBraced(
+      openBrace,
+      joinPreservingBlankLines(cases, hardline),
+      closeBrace.node,
+    ),
+  ];
+}
+
+function printSwitchCase(cursor: ChildCursor): Doc {
+  const keyword = cursor.take();
+  const parts: Doc[] = [keyword, " "];
+  parts.push(cursor.take());
+  while (cursor.peekText() === "||") {
+    parts.push(" ", cursor.take(), " ", cursor.take());
   }
-  return group(["default ", path.call(print, "body")]);
+  parts.push(" ", cursor.take());
+  return parts;
 }
 
-function printReturnStatement(path: AstPath, print: PrintFn): Doc {
-  const node = path.getValue() as AST.ReturnStatement;
-
-  if (node.value) {
-    return ["return ", path.call(print, "value"), ";"];
-  }
-  return "return;";
-}
-
-function printCriticalStatement(path: AstPath, print: PrintFn): Doc {
-  return group(["critical ", path.call(print, "body")]);
+function printDefaultCase(cursor: ChildCursor): Doc {
+  const keyword = cursor.take();
+  const parts: Doc[] = [keyword];
+  const open = cursor.takeIfText("(");
+  if (open !== null) parts.push(open, cursor.take(), cursor.take());
+  parts.push(" ", cursor.take());
+  return parts;
 }
 
 // ============================================================================
 // Expressions
 // ============================================================================
 
-function printTernaryExpression(path: AstPath, print: PrintFn): Doc {
-  return group([
-    "(",
-    path.call(print, "condition"),
-    ") ? ",
-    path.call(print, "consequent"),
-    " : ",
-    path.call(print, "alternate"),
-  ]);
-}
-
-function printBinaryExpression(path: AstPath, print: PrintFn): Doc {
-  const node = path.getValue() as AST.BinaryExpression;
-
-  return group([
-    path.call(print, "left"),
-    " ",
-    node.operator,
-    " ",
-    path.call(print, "right"),
-  ]);
-}
-
-function printUnaryExpression(path: AstPath, print: PrintFn): Doc {
-  const node = path.getValue() as AST.UnaryExpression;
-
-  return [node.operator, path.call(print, "operand")];
-}
-
-function printCallExpression(path: AstPath, print: PrintFn): Doc {
-  const node = path.getValue() as AST.CallExpression;
-
-  return group([
-    path.call(print, "callee"),
-    "(",
-    join(", ", path.map(print, "arguments")),
-    ")",
-  ]);
-}
-
-function printMemberAccess(path: AstPath, print: PrintFn): Doc {
-  const node = path.getValue() as AST.MemberAccess;
-
-  return [path.call(print, "object"), ".", node.property];
-}
-
-function printArrayAccess(path: AstPath, print: PrintFn): Doc {
-  const node = path.getValue() as AST.ArrayAccess;
-
-  if (node.width) {
-    return [
-      path.call(print, "object"),
-      "[",
-      path.call(print, "index"),
-      ", ",
-      path.call(print, "width"),
-      "]",
-    ];
-  }
-  return [path.call(print, "object"), "[", path.call(print, "index"), "]"];
-}
-
-function printThisAccess(path: AstPath, print: PrintFn): Doc {
-  const node = path.getValue() as AST.ThisAccess;
-  const parts: Doc[] = ["this.", node.path.join(".")];
-
-  if (node.index) {
-    parts.push("[", path.call(print, "index"));
-    if (node.width) {
-      parts.push(", ", path.call(print, "width"));
-    }
-    parts.push("]");
-  }
-
-  return parts;
-}
-
-function printGlobalAccess(path: AstPath, print: PrintFn): Doc {
-  const node = path.getValue() as AST.GlobalAccess;
-  const parts: Doc[] = ["global.", node.path.join(".")];
-
-  if (node.index) {
-    parts.push("[", path.call(print, "index"));
-    if (node.width) {
-      parts.push(", ", path.call(print, "width"));
-    }
-    parts.push("]");
-  }
-
-  return parts;
-}
-
-function printCastExpression(path: AstPath, print: PrintFn): Doc {
+function printTernaryExpression(cursor: ChildCursor): Doc {
+  // ADR-022 requires the parentheses, so the ternary form always starts with
+  // the `(` token; the non-ternary alternative is a lone orExpression.
+  const open = cursor.takeIfText("(");
+  if (open === null) return cursor.take();
+  const condition = cursor.take();
+  const close = cursor.take();
+  const question = cursor.take();
+  const whenTrue = cursor.take();
+  const colon = cursor.take();
+  const whenFalse = cursor.take();
   return [
-    "(",
-    path.call(print, "targetType"),
-    ")",
-    path.call(print, "expression"),
+    open,
+    condition,
+    close,
+    " ",
+    question,
+    " ",
+    whenTrue,
+    " ",
+    colon,
+    " ",
+    whenFalse,
   ];
 }
 
-function printSizeofExpression(path: AstPath, print: PrintFn): Doc {
-  return ["sizeof(", path.call(print, "operand"), ")"];
+function printBinaryChain(cursor: ChildCursor): Doc {
+  const parts: Doc[] = [cursor.take()];
+  while (!cursor.done()) {
+    parts.push(" ", cursor.take(), " ", cursor.take());
+  }
+  return parts;
 }
 
-function printStructInitializer(path: AstPath, print: PrintFn): Doc {
-  const node = path.getValue() as AST.StructInitializer;
-  const parts: Doc[] = [];
+function printUnaryExpression(cursor: ChildCursor): Doc {
+  const first = cursor.take();
+  if (cursor.done()) return first;
+  return [first, cursor.take()];
+}
 
-  if (node.structName) {
-    parts.push(node.structName, " ");
+function printPrimaryExpression(cursor: ChildCursor): Doc {
+  // `'(' expression ')'`, `this`, `global`, IDENTIFIER, or a nested rule.
+  return cursor.takeRest().map((taken) => taken.doc);
+}
+
+function printSizeofExpression(cursor: ChildCursor): Doc {
+  return [cursor.take(), cursor.take(), cursor.take(), cursor.take()];
+}
+
+function printCastExpression(cursor: ChildCursor): Doc {
+  return [cursor.take(), cursor.take(), cursor.take(), cursor.take()];
+}
+
+function printStructInitializer(cursor: ChildCursor): Doc {
+  // Explicit form carries the type name before the brace; inferred form does not.
+  const name = cursor.peekText() === "{" ? null : cursor.take();
+  const open = cursor.take();
+  const fields = cursor.takeIfRule(CNextParser.RULE_fieldInitializerList);
+  const close = cursor.take();
+  const prefix: Doc[] = name === null ? [] : [name, " "];
+  if (fields === null) return [...prefix, open, close];
+  return group([...prefix, open, indent([line, fields]), line, close]);
+}
+
+function printFieldInitializerList(cursor: ChildCursor): Doc {
+  const parts: Doc[] = [cursor.take()];
+  while (cursor.peekText() === ",") {
+    const comma = cursor.take();
+    if (cursor.done()) {
+      // A trailing comma is dropped: re-emitting it would fight the group's
+      // own separator and make the output non-idempotent.
+      break;
+    }
+    parts.push(comma, line, cursor.take());
   }
+  return parts;
+}
 
-  parts.push(
-    "{",
-    indent([softline, join([",", line], path.map(print, "fields"))]),
-    softline,
-    "}",
+function printFieldInitializer(cursor: ChildCursor): Doc {
+  const name = cursor.take();
+  const colon = cursor.take();
+  return [name, colon, " ", cursor.take()];
+}
+
+function printArrayInitializer(cursor: ChildCursor): Doc {
+  const open = cursor.take();
+  const first = cursor.take();
+  // Fill-all form (ADR-035): `[0*]`
+  if (cursor.peekText() === "*") {
+    const star = cursor.take();
+    return [open, first, star, cursor.take()];
+  }
+  const elements: Doc[] = [first];
+  while (cursor.peekText() === ",") {
+    const comma = cursor.take();
+    if (cursor.remaining() <= 1) break;
+    elements.push(comma, line, cursor.take());
+  }
+  const close = cursor.take();
+  return group([open, indent([softline, ...elements]), softline, close]);
+}
+
+function printCommaList(cursor: ChildCursor): Doc {
+  const parts: Doc[] = [cursor.take()];
+  while (!cursor.done()) {
+    parts.push(cursor.take(), " ", cursor.take());
+  }
+  return parts;
+}
+
+// ============================================================================
+// Types
+// ============================================================================
+
+function printTemplateType(cursor: ChildCursor): Doc {
+  const name = cursor.take();
+  const open = cursor.take();
+  const argumentList = cursor.takeChild();
+  const close = cursor.take();
+  // `Container<Pair<A, B>>` lexes `>>` as a right shift, exactly as it did in
+  // C++ before C++11. A nested template must keep the separating space, or the
+  // formatter emits a file it cannot itself parse.
+  const closesNestedTemplate = Cst.textOf(argumentList.node).endsWith(">");
+  return [name, open, argumentList.doc, closesNestedTemplate ? " " : "", close];
+}
+
+function printDimension(cursor: ChildCursor): Doc {
+  return cursor.takeRest().map((taken) => taken.doc);
+}
+
+// ============================================================================
+// Dispatcher
+// ============================================================================
+
+/**
+ * Layout per grammar rule, keyed by the *generated* rule index.
+ *
+ * A map rather than a switch so the set of handled rules is derived from the
+ * dispatcher itself. `Printer.handledRuleIndices()` reads it directly, which is
+ * what lets `tests/rule-coverage.test.ts` compare the printer against
+ * `CNextParser.ruleNames` without maintaining a second list that could drift --
+ * the drift being exactly how this plugin rotted for seven months.
+ */
+const RULE_LAYOUTS: ReadonlyMap<number, (cursor: ChildCursor) => Doc> = new Map(
+  [
+    [CNextParser.RULE_program, printProgram],
+    [CNextParser.RULE_scopeDeclaration, printScopeDeclaration],
+    [CNextParser.RULE_scopeMember, printScopeMember],
+    [CNextParser.RULE_registerDeclaration, printRegisterDeclaration],
+    [CNextParser.RULE_registerMember, printRegisterMember],
+    [CNextParser.RULE_structDeclaration, printStructDeclaration],
+    [CNextParser.RULE_structMember, printStructMember],
+    [CNextParser.RULE_enumDeclaration, printEnumDeclaration],
+    [CNextParser.RULE_enumMember, printEnumMember],
+    [CNextParser.RULE_bitmapDeclaration, printBitmapDeclaration],
+    [CNextParser.RULE_functionDeclaration, printFunctionDeclaration],
+    [CNextParser.RULE_parameter, printParameter],
+    [CNextParser.RULE_variableDeclaration, printVariableDeclaration],
+    [CNextParser.RULE_arrayDimension, printDimension],
+    [CNextParser.RULE_arrayTypeDimension, printDimension],
+    [CNextParser.RULE_block, printBlock],
+    [CNextParser.RULE_criticalStatement, printKeywordBlock],
+    [CNextParser.RULE_foreverStatement, printKeywordBlock],
+    [CNextParser.RULE_assignmentStatement, printAssignmentLike],
+    [CNextParser.RULE_forAssignment, printAssignmentLike],
+    [CNextParser.RULE_forUpdate, printAssignmentLike],
+    [CNextParser.RULE_assignmentTarget, printAssignmentTarget],
+    [CNextParser.RULE_postfixTargetOp, printPostfixOperation],
+    [CNextParser.RULE_postfixOp, printPostfixOperation],
+    [CNextParser.RULE_expressionStatement, printExpressionStatement],
+    [CNextParser.RULE_ifStatement, printIfStatement],
+    [CNextParser.RULE_whileStatement, printWhileStatement],
+    [CNextParser.RULE_doWhileStatement, printDoWhileStatement],
+    [CNextParser.RULE_forStatement, printForStatement],
+    [CNextParser.RULE_forVarDecl, printForVarDecl],
+    [CNextParser.RULE_returnStatement, printReturnStatement],
+    [CNextParser.RULE_switchStatement, printSwitchStatement],
+    [CNextParser.RULE_switchCase, printSwitchCase],
+    [CNextParser.RULE_defaultCase, printDefaultCase],
+    [CNextParser.RULE_ternaryExpression, printTernaryExpression],
+    [CNextParser.RULE_unaryExpression, printUnaryExpression],
+    [CNextParser.RULE_primaryExpression, printPrimaryExpression],
+    [CNextParser.RULE_sizeofExpression, printSizeofExpression],
+    [CNextParser.RULE_castExpression, printCastExpression],
+    [CNextParser.RULE_structInitializer, printStructInitializer],
+    [CNextParser.RULE_fieldInitializerList, printFieldInitializerList],
+    [CNextParser.RULE_fieldInitializer, printFieldInitializer],
+    [CNextParser.RULE_arrayInitializer, printArrayInitializer],
+    [CNextParser.RULE_templateType, printTemplateType],
+  ],
+);
+
+/** Print every remaining child with nothing between them. */
+function printConcatenated(cursor: ChildCursor): Doc {
+  return cursor.takeRest().map((taken) => taken.doc);
+}
+
+function printRule(
+  cursor: ChildCursor,
+  node: TCstNode,
+  ruleIndex: number,
+): Doc {
+  if (CONCATENATED_RULES.has(ruleIndex)) return printConcatenated(cursor);
+  if (DELEGATING_RULES.has(ruleIndex)) return printConcatenated(cursor);
+  if (BINARY_CHAIN_RULES.has(ruleIndex)) return printBinaryChain(cursor);
+  if (COMMA_LIST_RULES.has(ruleIndex)) return printCommaList(cursor);
+
+  const layout = RULE_LAYOUTS.get(ruleIndex);
+  if (layout !== undefined) return layout(cursor);
+
+  // Never silently pass text through: a formatter that guesses at an unknown
+  // construct can mangle it. Refusing leaves the file untouched.
+  throw new Error(
+    `C-Next formatter has no layout for grammar rule '${Cst.ruleNameOf(node) ?? ruleIndex}'`,
   );
-
-  return group(parts);
 }
 
-function printFieldInitializer(path: AstPath, print: PrintFn): Doc {
-  const node = path.getValue() as AST.FieldInitializer;
+function printNode(
+  path: TPath,
+  _options: ParserOptions<TCstNode>,
+  printChildNode: TPrintFn,
+): Doc {
+  const node = path.node;
+  if (Cst.isTerminal(node)) return printTerminal(node);
 
-  return [node.name, ": ", path.call(print, "value")];
+  const ruleIndex = Cst.ruleIndexOf(node);
+  if (ruleIndex === null) return "";
+
+  const cursor = ChildCursor.over(node, (index) => {
+    const contextPath = path as AstPath<ParserRuleContext>;
+    return contextPath.call(
+      (childPath) => printChildNode(childPath as TPath),
+      "children",
+      index,
+    );
+  });
+  const result = printRule(cursor, node, ruleIndex);
+
+  if (!cursor.done()) {
+    // A layout that leaves children behind has dropped their text and any
+    // comments anchored to them. Fail loudly rather than emit a lossy file.
+    throw new Error(
+      `C-Next formatter left ${cursor.remaining()} child node(s) unprinted in rule '${Cst.ruleNameOf(node) ?? ruleIndex}'`,
+    );
+  }
+  return result;
 }
 
-function printArrayInitializer(path: AstPath, print: PrintFn): Doc {
-  const node = path.getValue() as AST.ArrayInitializer;
-
-  if (node.fillValue) {
-    return ["[", path.call(print, "fillValue"), "*]"];
+class CNextPrinter {
+  /** Prettier's printer entry point. */
+  static print(
+    path: TPath,
+    options: ParserOptions<TCstNode>,
+    printChildNode: TPrintFn,
+  ): Doc {
+    return printNode(path, options, printChildNode);
   }
 
-  return group([
-    "[",
-    indent([softline, join([",", line], path.map(print, "elements"))]),
-    softline,
-    "]",
-  ]);
+  /**
+   * Every grammar rule index this printer can lay out.
+   *
+   * Derived from the dispatcher, never hand-listed: a hand-listed copy is the
+   * same second model of the grammar that let the previous plugin rot.
+   */
+  static handledRuleIndices(): Set<number> {
+    return new Set<number>([
+      ...CONCATENATED_RULES,
+      ...DELEGATING_RULES,
+      ...BINARY_CHAIN_RULES,
+      ...COMMA_LIST_RULES,
+      ...RULE_LAYOUTS.keys(),
+    ]);
+  }
 }
 
-function printArrayType(path: AstPath, print: PrintFn): Doc {
-  return [path.call(print, "elementType"), "[", path.call(print, "size"), "]"];
-}
-
-export default print;
+export default CNextPrinter;

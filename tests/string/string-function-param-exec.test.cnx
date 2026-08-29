@@ -19,8 +19,7 @@ bool matchesLiteral(const string<64> s, const string<64> lit) {
 i32 main() {
     string<64> test <- "Hello";
 
-   
-// Test 1-3: Get length via function
+    // Test 1-3: Get length via function
     u32 len1 <- getLen(test);
     if (len1 != 5) return 1;
     u32 len2 <- getLen("World");
@@ -28,8 +27,7 @@ i32 main() {
     u32 len3 <- getLen("");
     if (len3 != 0) return 3;
 
-   
-// Test 4-5: Get capacity via function
+    // Test 4-5: Get capacity via function
     u32 cap1 <- getCap(test);
     if (cap1 != 64) return 4;
 
@@ -37,8 +35,7 @@ i32 main() {
     u32 cap2 <- getCap("Hi");
     if (cap2 != 64) return 5;
 
-   
-// Test 6-8: Comparison via function
+    // Test 6-8: Comparison via function
     string<64> same <- "Hello";
     bool eq1 <- isEqual(test, same);
     if (eq1 = false) return 6;
@@ -49,23 +46,20 @@ i32 main() {
     bool eq3 <- isEqual(test, diff);
     if (eq3 = true) return 8;
 
-   
-// Test 9-10: Literal matching
+    // Test 9-10: Literal matching
     bool match1 <- matchesLiteral(test, "Hello");
     if (match1 = false) return 9;
     bool match2 <- matchesLiteral(test, "World");
     if (match2 = true) return 10;
 
-   
-// Test 11-12: Empty string as parameter
+    // Test 11-12: Empty string as parameter
     string<64> empty;
     u32 emptyLen <- getLen(empty);
     if (emptyLen != 0) return 11;
     bool emptyEq <- isEqual(empty, "");
     if (emptyEq = false) return 12;
 
-   
-// Test 13-14: Longer string parameter
+    // Test 13-14: Longer string parameter
     string<64> longer <- "This is a longer string";
     u32 longerLen <- getLen(longer);
     if (longerLen != 23) return 13;

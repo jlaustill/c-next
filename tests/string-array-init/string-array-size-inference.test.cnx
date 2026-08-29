@@ -2,11 +2,7 @@
 // Tests: array size inferred from initializer count
 
 // Size inferred from initializer count (3 elements)
-const string<16>[] DAYS <- [
-    "Monday",
-    "Tuesday",
-    "Wednesday"
-];
+const string<16>[] DAYS <- ["Monday", "Tuesday", "Wednesday"];
 
 // Local array with size inference (C-style for string arrays)
 u32 test() {
@@ -15,8 +11,8 @@ u32 test() {
 
     // Verify local array size inference
     if (count != 4) return 1;
-    if (items[0].char_count != 1) return 2;  // "A"
-    if (items[3].char_count != 1) return 3;  // "D"
+    if (items[0].char_count != 1) return 2; // "A"
+    if (items[3].char_count != 1) return 3; // "D"
 
     return 0;
 }
@@ -26,9 +22,9 @@ u32 main() {
     if (global.DAYS.element_count != 3) return 1;
 
     // Test 2: Check DAYS string lengths
-    if (global.DAYS[0].char_count != 6) return 2;  // "Monday"
-    if (global.DAYS[1].char_count != 7) return 3;  // "Tuesday"
-    if (global.DAYS[2].char_count != 9) return 4;  // "Wednesday"
+    if (global.DAYS[0].char_count != 6) return 2; // "Monday"
+    if (global.DAYS[1].char_count != 7) return 3; // "Tuesday"
+    if (global.DAYS[2].char_count != 9) return 4; // "Wednesday"
 
     // Test 3: Run local test function
     u32 localResult <- test();

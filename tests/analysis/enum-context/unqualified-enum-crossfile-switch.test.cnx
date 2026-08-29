@@ -8,8 +8,8 @@ void test(u16 spn) {
 
     // ERROR: switch on u8 with unqualified enum case labels
     switch (category) {
-        case SPN_CAT_TEMPERATURE { }
-        case SPN_CAT_PRESSURE { }
-        case SPN_CAT_UNKNOWN { }
+        case SPN_CAT_TEMPERATURE {}
+        case SPN_CAT_PRESSURE {}
+        case SPN_CAT_UNKNOWN {}
     }
 }

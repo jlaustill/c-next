@@ -2,7 +2,7 @@
 // test-error
 void run() {
     u8 state <- 0;
-    for (;;) {
+    for (; ; ) {
         state <- 1;
     }
 }

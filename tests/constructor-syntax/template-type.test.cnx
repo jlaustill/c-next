@@ -8,5 +8,4 @@ const u16 txSize <- 16;
 
 FlexCAN_T4<CAN1, 256, 16> canController(canBus);
 
-void main() {
-}
+void main() {}

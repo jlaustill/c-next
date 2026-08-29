@@ -10,5 +10,4 @@ enum EColor {
 
 u8[COUNT] DATA <- [10, 20, 30];
 
-void main() {
-}
+void main() {}

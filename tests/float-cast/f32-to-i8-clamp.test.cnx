@@ -12,26 +12,26 @@ u32 main() {
 
     // Test overflow clamping (above 127)
     i8 result <- (i8)over;
-    if (result != 127) return 1;  // 200.0 should clamp to 127
+    if (result != 127) return 1; // 200.0 should clamp to 127
 
     // Test underflow clamping (below -128)
     result <- (i8)under;
-    if (result != -128) return 2;  // -200.0 should clamp to -128
+    if (result != -128) return 2; // -200.0 should clamp to -128
 
     // Test in-range positive value
     result <- (i8)in_range;
-    if (result != 50) return 3;  // 50.0 -> 50
+    if (result != 50) return 3; // 50.0 -> 50
 
     // Test boundary values
     result <- (i8)at_max;
-    if (result != 127) return 4;  // 127.0 -> 127
+    if (result != 127) return 4; // 127.0 -> 127
 
     result <- (i8)at_min;
-    if (result != -128) return 5;  // -128.0 -> -128
+    if (result != -128) return 5; // -128.0 -> -128
 
     // Test negative in-range value
     result <- (i8)negative;
-    if (result != -50) return 6;  // -50.5 -> -50 (truncates toward zero)
+    if (result != -50) return 6; // -50.5 -> -50 (truncates toward zero)
 
     return 0;
 }

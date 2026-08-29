@@ -8,13 +8,12 @@
 volatile const u32 hardware_status <- 0x0000FFFF;
 
 u32 main() {
-   
-// Test 1: Read volatile const
+
+    // Test 1: Read volatile const
     u32 status <- hardware_status;
     if (status != 0x0000FFFF) return 1;
 
-   
-// Test 2: Multiple reads (should not be optimized away)
+    // Test 2: Multiple reads (should not be optimized away)
     u32 read1 <- hardware_status;
     u32 read2 <- hardware_status;
     u32 read3 <- hardware_status;
@@ -24,15 +23,13 @@ u32 main() {
     if (read2 != 0x0000FFFF) return 3;
     if (read3 != 0x0000FFFF) return 4;
 
-   
-// Test 3: Const volatile in expression
+    // Test 3: Const volatile in expression
     u32 masked <- hardware_status & 0x00FF;
     if (masked != 0x00FF) return 5;
 
-   
-// Test 4: Local volatile const
+    // Test 4: Local volatile const
     volatile const u32 local_status <- 42;
     if (local_status != 42) return 6;
 
-    return 0;  // All tests passed
+    return 0; // All tests passed
 }

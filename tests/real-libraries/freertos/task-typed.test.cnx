@@ -19,7 +19,7 @@ void counterTask_typed(TaskData data) {
 
 // Test function demonstrating typed usage
 void testTypedAccess() {
-    TaskData data <- {counter: 0, maxCount: 10, taskRan: false};
+    TaskData data <- { counter: 0, maxCount: 10, taskRan: false };
 
     // Direct typed call (for testing)
     counterTask_typed(data);

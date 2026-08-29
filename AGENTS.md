@@ -360,7 +360,7 @@ what you move by hand — is documented once in
 ## Dead Code Detection
 
 - `npx knip` — Find unused files, exports, and dependencies
-- Config in `knip.json` — ignores vscode-extension, prettier-plugin, tests
+- Config in `knip.json` — ignores vscode-extension and tests. `prettier-plugin/src` is in scope as of #1364: dropping its ignore entry was not enough, because `project` never covered the directory in the first place.
 - `parseWithSymbols.ts` is a public API entry point (used by vscode-extension)
 
 ## Release Checklist

@@ -3,23 +3,23 @@
 // HIGH RISK AREA: Lines 5850-6285 in CodeGenerator.ts
 
 bitmap8 StatusFlags {
-    Ready,          // bit 0
-    Error,          // bit 1
-    Mode[3],        // bits 2-4
-    Reserved[3]     // bits 5-7
+    Ready, // bit 0
+    Error, // bit 1
+    Mode[3], // bits 2-4
+    Reserved[3] // bits 5-7
 }
 
 bitmap16 ControlFlags {
-    Enable,         // bit 0
-    Direction,      // bit 1
-    Speed[8],       // bits 2-9
-    Reserved[6]     // bits 10-15
+    Enable, // bit 0
+    Direction, // bit 1
+    Speed[8], // bits 2-9
+    Reserved[6] // bits 10-15
 }
 
 register MOTOR @ 0x40001000 {
-    STATUS:  StatusFlags rw @ 0x00,
+    STATUS: StatusFlags rw @ 0x00,
     CONTROL: ControlFlags rw @ 0x04,
-    DATA:    u32 rw @ 0x08,
+    DATA: u32 rw @ 0x08,
 }
 
 void main() {

@@ -10,13 +10,13 @@ enum MyEnum {
 
 scope SingleFileEnum {
     public struct TItem {
-    MyEnum assigned;
-    u8 padding;
-}
+        MyEnum assigned;
+        u8 padding;
+    }
 
     public struct Config {
-    this.TItem[4] items;
-}
+        this.TItem[4] items;
+    }
 }
 
 const u8 COUNT <- 4;

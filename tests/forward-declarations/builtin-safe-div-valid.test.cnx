@@ -2,6 +2,6 @@
 // Tests: safe_div and safe_mod are recognized as built-ins
 void main() {
     u32 result;
-    (void) safe_div(result, 100, 0, 999);
-    (void) safe_mod(result, 100, 0, 0);
+    (void)safe_div(result, 100, 0, 999);
+    (void)safe_mod(result, 100, 0, 0);
 }

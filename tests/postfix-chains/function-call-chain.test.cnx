@@ -4,15 +4,15 @@
 
 scope FuncCallChain {
     public struct Vec3 {
-    f32 x;
-    f32 y;
-    f32 z;
-}
+        f32 x;
+        f32 y;
+        f32 z;
+    }
 
     public struct Transform {
-    this.Vec3 position;
-    this.Vec3 scale;
-}
+        this.Vec3 position;
+        this.Vec3 scale;
+    }
 }
 
 FuncCallChain.Transform[4] transforms;
@@ -31,7 +31,11 @@ f32 multiplyF32(f32 a, f32 b) {
 }
 
 FuncCallChain.Vec3 scaleVec3(FuncCallChain.Vec3 v, f32 scale) {
-    FuncCallChain.Vec3 result <- {x: v.x * scale, y: v.y * scale, z: v.z * scale};
+    FuncCallChain.Vec3 result <- {
+        x: v.x * scale,
+        y: v.y * scale,
+        z: v.z * scale
+    };
     return result;
 }
 
@@ -60,10 +64,7 @@ void main() {
     f32 product <- multiplyF32(transforms[1].position.x, transforms[1].scale.x);
 
     // Nested function calls with chains
-    f32 nestedSum <- addF32(
-        multiplyF32(transforms[0].position.x, 2.0),
-        transforms[0].position.y
-    );
+    f32 nestedSum <- addF32(multiplyF32(transforms[0].position.x, 2.0), transforms[0].position.y);
 
     // Function returning struct, then accessing members
     FuncCallChain.Vec3 scaled <- scaleVec3(transforms[0].position, 2.0);

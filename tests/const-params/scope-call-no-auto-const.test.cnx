@@ -61,7 +61,7 @@ u32 main() {
     // Test saveConfig - should not modify cfg
     cfg.value <- 999;
     saveConfig(cfg);
-    if (cfg.value != 999) return 5;  // unchanged
+    if (cfg.value != 999) return 5; // unchanged
 
     return 0;
 }

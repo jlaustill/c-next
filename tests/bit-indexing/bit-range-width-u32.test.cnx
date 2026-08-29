@@ -165,5 +165,5 @@ u32 main() {
     value[0, 32] <- 4294967295;
     if (value != 0xFFFFFFFF) return 32;
 
-    return 0;  // All tests passed
+    return 0; // All tests passed
 }

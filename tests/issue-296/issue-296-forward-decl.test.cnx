@@ -19,7 +19,7 @@ scope DataHandler {
 }
 
 u32 main() {
-    AppData input <- {humidity: 65.5, temperature: 22.3};
+    AppData input <- { humidity: 65.5, temperature: 22.3 };
     DataHandler.initialize(input);
 
     AppData output <- DataHandler.getData();

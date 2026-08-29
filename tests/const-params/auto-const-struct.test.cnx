@@ -9,9 +9,9 @@ struct Point {
 
 scope AutoConst {
     public struct Config {
-    u32 value;
-    bool enabled;
-}
+        u32 value;
+        bool enabled;
+    }
 }
 
 // Read-only struct parameter - should get const
@@ -32,8 +32,8 @@ u32 getConfigValue(AutoConst.Config c) {
 
 // Mixed: read one field, modify another - should NOT get const
 void toggleAndRead(AutoConst.Config c) {
-    u32 temp <- c.value;  // Read
-    c.enabled <- !c.enabled;  // Modify
+    u32 temp <- c.value; // Read
+    c.enabled <- !c.enabled; // Modify
 }
 
 // Pass through to read-only - should get const
@@ -48,10 +48,10 @@ void wrapMovePoint(Point p) {
 
 u32 main() {
     // Test read-only struct access
-    Point pt <- {x: 10, y: 20};
+    Point pt <- { x: 10, y: 20 };
     i32 sum <- getPointSum(pt);
     if (sum != 30) return 1;
-    if (pt.x != 10) return 2;  // Should be unchanged
+    if (pt.x != 10) return 2; // Should be unchanged
     if (pt.y != 20) return 3;
 
     // Test modified struct
@@ -60,7 +60,7 @@ u32 main() {
     if (pt.y != 17) return 5;
 
     // Test config read
-    AutoConst.Config cfg <- {value: 42, enabled: true};
+    AutoConst.Config cfg <- { value: 42, enabled: true };
     u32 val <- getConfigValue(cfg);
     if (val != 42) return 6;
 
@@ -69,7 +69,7 @@ u32 main() {
     if (cfg.enabled != false) return 7;
 
     // Test wrapped read-only
-    Point pt2 <- {x: 100, y: 200};
+    Point pt2 <- { x: 100, y: 200 };
     sum <- wrapGetSum(pt2);
     if (sum != 300) return 8;
     if (pt2.x != 100) return 9;

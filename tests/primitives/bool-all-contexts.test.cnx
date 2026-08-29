@@ -26,18 +26,16 @@ bool identity(bool value) {
 
 // 5. Main with validations (unique error codes)
 u32 main() {
-   
-// Test global variables
+
+    // Test global variables
     if (globalTrue != true) return 1;
     if (globalFalse != false) return 2;
 
-   
-// Test local variables (needed for function param tests)
+    // Test local variables (needed for function param tests)
     bool localTrue <- true;
     bool localFalse <- false;
 
-   
-// Test function param + return (pass variables, not literals)
+    // Test function param + return (pass variables, not literals)
     bool negResult1 <- negate(localTrue);
     if (negResult1 != false) return 3;
     bool negResult2 <- negate(localFalse);
@@ -45,28 +43,24 @@ u32 main() {
     bool idResult <- identity(localTrue);
     if (idResult != true) return 5;
 
-   
-// Test local variables
+    // Test local variables
     bool localBool <- true;
     if (localBool != true) return 6;
 
-   
-// Test struct members
+    // Test struct members
     Flags flags;
     flags.enabled <- true;
     flags.active <- false;
     if (flags.enabled != true) return 7;
     if (flags.active != false) return 8;
 
-   
-// Test arrays
+    // Test arrays
     flagArray[0] <- true;
     flagArray[1] <- false;
     if (flagArray[0] != true) return 9;
     if (flagArray[1] != false) return 10;
 
-   
-// Test bool in expressions
+    // Test bool in expressions
     bool combined <- globalTrue && localBool;
     if (combined != true) return 11;
 

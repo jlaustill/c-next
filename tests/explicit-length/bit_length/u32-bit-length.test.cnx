@@ -20,8 +20,8 @@ u32 checkParamBitLength(u32 param) {
 
 scope U32BitLen {
     public struct TestStruct {
-    u32 member;
-}
+        u32 member;
+    }
 }
 
 i32 main() {

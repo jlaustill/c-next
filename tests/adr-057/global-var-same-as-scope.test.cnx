@@ -3,7 +3,7 @@
 // test-execution
 // test-adr: 057
 
-u8 LED <- 5;  // Global variable named same as scope
+u8 LED <- 5; // Global variable named same as scope
 
 scope LED {
     public u8 brightness <- 100;
@@ -15,14 +15,14 @@ scope LED {
 
 scope Motor {
     public u32 test() {
-        u8 val <- global.LED;    // Access global variable (5)
-        LED.on();                 // Access scope function
+        u8 val <- global.LED; // Access global variable (5)
+        LED.on(); // Access scope function
         // MISRA: get brightness into variable first
         u8 bright <- LED.brightness;
         // Need to return u32, so cast the sum
         u32 result <- val;
         result +<- bright;
-        return result;  // 5 + 255 = 260
+        return result; // 5 + 255 = 260
     }
 }
 

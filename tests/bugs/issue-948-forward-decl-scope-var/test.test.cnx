@@ -2,10 +2,10 @@
 #include "fake_lib.h"
 
 scope MyScope {
-  widget_t w;
+    widget_t w;
 
-  public void init() {
-    this.w <- global.widget_create();
-    global.widget_set_value(this.w, 42);
-  }
+    public void init() {
+        this.w <- global.widget_create();
+        global.widget_set_value(this.w, 42);
+    }
 }

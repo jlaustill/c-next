@@ -12,9 +12,9 @@ struct CNextStruct {
 // Nested struct
 scope GlobalStruct {
     public struct Outer {
-    ExternalStruct inner;
-    u8[8] direct;
-}
+        ExternalStruct inner;
+        u8[8] direct;
+    }
 }
 
 // Global variables

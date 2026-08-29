@@ -10,7 +10,7 @@ scope SPI {
     spi_device_handle_t device;
 
     public void init() {
-        (void) global.spi_device_init(this.device);
+        (void)global.spi_device_init(this.device);
     }
 
     public void write(u8 data) {

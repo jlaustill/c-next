@@ -26,8 +26,8 @@ scope handler {
 u32 main() {
     // Create test data
     u8[8] testData;
-    testData[0] <- 0x34;  // Low byte
-    testData[1] <- 0x12;  // High byte (0x1234 = 4660)
+    testData[0] <- 0x34; // Low byte
+    testData[1] <- 0x12; // High byte (0x1234 = 4660)
     testData[2] <- 0xAB;
     testData[3] <- 0xCD;
     testData[4] <- 0x00;

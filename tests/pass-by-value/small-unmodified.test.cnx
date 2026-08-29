@@ -110,26 +110,26 @@ u32 main() {
     u32 mixedA <- 5;
     u32 mixedB <- 10;
     u32 mixedResult <- addAndIncrement(mixedA, mixedB);
-    if (mixedResult != 16) return 9;  // (5+1) + 10 = 16
-    if (mixedA != 6) return 10;       // a was modified
+    if (mixedResult != 16) return 9; // (5+1) + 10 = 16
+    if (mixedA != 6) return 10; // a was modified
 
     // Test modification in switch (Issue #269 bug fix)
     u32 switchVal <- 100;
     modifyInSwitch(switchVal, 1);
-    if (switchVal != 110) return 11;  // case 1: +10
+    if (switchVal != 110) return 11; // case 1: +10
 
     switchVal <- 100;
     modifyInSwitch(switchVal, 2);
-    if (switchVal != 120) return 12;  // case 2: +20
+    if (switchVal != 120) return 12; // case 2: +20
 
     switchVal <- 100;
-    modifyInSwitch(switchVal, 99);    // hits default
-    if (switchVal != 101) return 13;  // default: +1
+    modifyInSwitch(switchVal, 99); // hits default
+    if (switchVal != 101) return 13; // default: +1
 
     // Test modification in critical section (ADR-050)
     u32 criticalVal <- 50;
     modifyInCritical(criticalVal);
-    if (criticalVal != 100) return 14;  // *2
+    if (criticalVal != 100) return 14; // *2
 
     return 0;
 }

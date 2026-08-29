@@ -22,7 +22,7 @@ void handleStatus(EHttpStatus status) {
         case EHttpStatus.CREATED {
             handleCreated();
         }
-    default(3) {
+        default(3) {
             handleOther();
         }
     }

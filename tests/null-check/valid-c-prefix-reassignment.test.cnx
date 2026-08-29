@@ -10,7 +10,7 @@ void testReassignment() {
     // First assignment - use cstring for C pointer returns
     cstring c_found <- strstr(haystack, "hello");
     if (c_found != NULL) {
-        (void) printf("Found: %s\n", c_found);  // OK - checked
+        (void)printf("Found: %s\n", c_found); // OK - checked
     }
 
     // Re-assignment is allowed for c_ prefixed variables
@@ -19,6 +19,6 @@ void testReassignment() {
     // Reassignment resets NULL-check state - new value could be NULL
     // Must check again before use
     if (c_found != NULL) {
-        (void) printf("Found: %s\n", c_found);  // OK - checked after reassignment
+        (void)printf("Found: %s\n", c_found); // OK - checked after reassignment
     }
 }

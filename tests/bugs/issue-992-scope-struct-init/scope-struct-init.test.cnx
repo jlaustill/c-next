@@ -9,5 +9,5 @@ struct Point {
 }
 
 scope Origin {
-    public Point p <- {x: 0, y: 0};
+    public Point p <- { x: 0, y: 0 };
 }

@@ -90,7 +90,7 @@ void UART_begin(UART self, const u32 baud) {
 
 // Write a byte to TX buffer
 void UART_write(UART self, const u8 data) {
-    (void) RingBuffer_push(self.txBuffer, data);
+    (void)RingBuffer_push(self.txBuffer, data);
     // Trigger TX interrupt...
 }
 
@@ -102,7 +102,7 @@ bool UART_available(const UART self) {
 // Read a byte from RX buffer
 u8 UART_read(UART self) {
     u8 data;
-    (void) RingBuffer_pop(self.rxBuffer, data);
+    (void)RingBuffer_pop(self.rxBuffer, data);
     return data;
 }
 

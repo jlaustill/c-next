@@ -6,6 +6,6 @@
 // trigger E0381 when the LHS is uninitialized.
 
 void demoAdd() {
-    u32 sum;      // Declared but not initialized
-    sum +<- 5;    // ERROR: reads sum before init
+    u32 sum; // Declared but not initialized
+    sum +<- 5; // ERROR: reads sum before init
 }

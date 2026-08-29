@@ -62,7 +62,7 @@ u32 main() {
 
     // Test 4: Sum values
     u16 sum <- Sensor.sumValues();
-    if (sum != 330) return 9;  // 100 + 110 + 120 = 330
+    if (sum != 330) return 9; // 100 + 110 + 120 = 330
 
     // Test 5: Clear and verify
     Sensor.clear();

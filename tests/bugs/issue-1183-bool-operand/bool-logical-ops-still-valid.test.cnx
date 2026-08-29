@@ -14,9 +14,19 @@ void main() {
 
     a <- !a;
 
-    if (both = false) { hits +<- 1; }
-    if (either = true) { hits +<- 1; }
-    if (negated = false) { hits +<- 1; }
-    if (same = false) { hits +<- 1; }
-    if (different = true) { hits +<- 1; }
+    if (both = false) {
+        hits +<- 1;
+    }
+    if (either = true) {
+        hits +<- 1;
+    }
+    if (negated = false) {
+        hits +<- 1;
+    }
+    if (same = false) {
+        hits +<- 1;
+    }
+    if (different = true) {
+        hits +<- 1;
+    }
 }

@@ -15,7 +15,7 @@ void testNestedBasic(u32 outer, u32 inner) {
                 case 1 {
                     result <- 101;
                 }
-            default {
+                default {
                     result <- 199;
                 }
             }
@@ -28,12 +28,12 @@ void testNestedBasic(u32 outer, u32 inner) {
                 case 1 {
                     result <- 201;
                 }
-            default {
+                default {
                     result <- 299;
                 }
             }
         }
-    default {
+        default {
             switch (inner) {
                 case 0 {
                     result <- 900;
@@ -41,7 +41,7 @@ void testNestedBasic(u32 outer, u32 inner) {
                 case 1 {
                     result <- 901;
                 }
-            default {
+                default {
                     result <- 999;
                 }
             }
@@ -60,7 +60,7 @@ void testNestedMixedTypes(u8 outer, u16 inner) {
                 case 1000 {
                     result <- 1001;
                 }
-            default {
+                default {
                     result <- 1099;
                 }
             }
@@ -70,12 +70,12 @@ void testNestedMixedTypes(u8 outer, u16 inner) {
                 case 65535 {
                     result <- 2000;
                 }
-            default {
+                default {
                     result <- 2099;
                 }
             }
         }
-    default {
+        default {
             result <- 9999;
         }
     }
@@ -94,7 +94,7 @@ void testTripleNested(u8 a, u8 b, u8 c) {
                         case 1 {
                             result <- 112;
                         }
-                    default {
+                        default {
                             result <- 119;
                         }
                     }
@@ -104,12 +104,12 @@ void testTripleNested(u8 a, u8 b, u8 c) {
                         case 0 {
                             result <- 121;
                         }
-                    default {
+                        default {
                             result <- 129;
                         }
                     }
                 }
-            default {
+                default {
                     result <- 190;
                 }
             }
@@ -119,12 +119,12 @@ void testTripleNested(u8 a, u8 b, u8 c) {
                 case 0 {
                     result <- 210;
                 }
-            default {
+                default {
                     result <- 290;
                 }
             }
         }
-    default {
+        default {
             result <- 900;
         }
     }
@@ -144,7 +144,7 @@ void testNestedSigned(i8 outer, i8 inner) {
                 case 50 {
                     result <- 13;
                 }
-            default {
+                default {
                     result <- 19;
                 }
             }
@@ -160,7 +160,7 @@ void testNestedSigned(i8 outer, i8 inner) {
                 case 50 {
                     result <- 23;
                 }
-            default {
+                default {
                     result <- 29;
                 }
             }
@@ -176,12 +176,12 @@ void testNestedSigned(i8 outer, i8 inner) {
                 case 50 {
                     result <- 33;
                 }
-            default {
+                default {
                     result <- 39;
                 }
             }
         }
-    default {
+        default {
             result <- 99;
         }
     }

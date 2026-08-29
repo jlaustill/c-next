@@ -5,11 +5,11 @@
 
 scope SliceFields {
     public struct Config {
-    u32 magic;
-    u16 version;
-    u8 flags;
-    u64 timestamp;
-}
+        u32 magic;
+        u16 version;
+        u8 flags;
+        u64 timestamp;
+    }
 }
 
 u32 main() {

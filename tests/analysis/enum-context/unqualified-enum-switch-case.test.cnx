@@ -10,8 +10,8 @@ enum Mode {
 void handleMode(u8 mode) {
     // mode is u8, not Mode - unqualified enum case labels should be rejected
     switch (mode) {
-        case OFF { }
-        case ON { }
-        case AUTO { }
+        case OFF {}
+        case ON {}
+        case AUTO {}
     }
 }

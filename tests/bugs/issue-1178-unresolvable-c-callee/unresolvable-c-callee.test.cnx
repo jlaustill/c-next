@@ -20,7 +20,9 @@
 // Sample*`, cannot mutate, and keeps its auto-const.
 #include "c_sink.h"
 
-struct Sample { u8 value; }
+struct Sample {
+    u8 value;
+}
 
 scope Use {
     public void forward(Sample s) {

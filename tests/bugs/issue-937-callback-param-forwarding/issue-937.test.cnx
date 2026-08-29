@@ -25,9 +25,9 @@ i32 main() {
     Port.init();
 
     // Create test data
-    rect_t r <- {x1: 10, y1: 20, x2: 100, y2: 200};
+    rect_t r <- { x1: 10, y1: 20, x2: 100, y2: 200 };
     u8[4] buffer <- [0xAA, 0xBB, 0xCC, 0xDD];
-    widget_t dummy_widget <- {dummy: 42};
+    widget_t dummy_widget <- { dummy: 42 };
 
     // Invoke the callback via helper - the callback should forward params correctly
     i32 invoked <- global.invoke_registered_cb(&dummy_widget, &r, buffer);
@@ -36,8 +36,8 @@ i32 main() {
     // Verify the forwarded values
     if (last_x1 != 10) return 2;
     if (last_y1 != 20) return 3;
-    if (last_x2 != 101) return 4;  // x2 + 1
-    if (last_y2 != 201) return 5;  // y2 + 1
+    if (last_x2 != 101) return 4; // x2 + 1
+    if (last_y2 != 201) return 5; // y2 + 1
 
     // Verify buf was forwarded as pointer (last_data should point to buffer)
     if (last_data != buffer) return 6;

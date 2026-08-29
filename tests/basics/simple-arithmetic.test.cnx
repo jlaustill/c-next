@@ -29,7 +29,7 @@ u32 main() {
     u32 result <- (a + b) * 2;
     if (result != 60) return 6;
 
-    result <- a + b * 2;  // Precedence: multiply before add
+    result <- a + b * 2; // Precedence: multiply before add
     if (result != 50) return 7;
 
     // Signed arithmetic

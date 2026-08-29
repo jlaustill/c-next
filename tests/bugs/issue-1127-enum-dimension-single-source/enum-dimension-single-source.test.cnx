@@ -14,7 +14,12 @@
 // The rule now lives on QualifiedCName.resolveDimensionName and is applied once,
 // in a second pass over the collected symbols -- after every enum is known, so
 // the answer does not depend on whether the enum is declared above the struct.
-enum EColor { RED, GREEN, BLUE, COUNT }
+enum EColor {
+    RED,
+    GREEN,
+    BLUE,
+    COUNT
+}
 
 struct Palette {
     u8[EColor.COUNT] slots;

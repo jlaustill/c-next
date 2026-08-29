@@ -63,7 +63,7 @@ u32 main() {
 
     // Test 4: Calculate area
     u32 area <- DataManager.getViewportArea();
-    if (area != 30000) return 9;  // 200 * 150
+    if (area != 30000) return 9; // 200 * 150
 
     // Test 5: Direct access from outside
     DataManager.cursor.x <- -5;

@@ -10,10 +10,18 @@
 // `Motor__State__COUNT`, and the header did not compile. The `this.` spelling
 // was worse: `this__State__COUNT`, with `this` joined in as a name component.
 
-enum Global { A, B, COUNT }
+enum Global {
+    A,
+    B,
+    COUNT
+}
 
 scope Motor {
-    enum State { IDLE, RUN, COUNT }
+    enum State {
+        IDLE,
+        RUN,
+        COUNT
+    }
 
     // bare scope-local enum -> Motor__State__COUNT
     public u8[State.COUNT] fromScope;

@@ -13,12 +13,12 @@ scope Hw {
 // time). Both spellings are exercised below; they must generate identical C.
 scope App {
     public void configure() {
-        global.Hw.GPIO.Mode[10, 2] <- 3;   // bit range
-        global.Hw.GPIO.Mode[5] <- true;     // single bit
+        global.Hw.GPIO.Mode[10, 2] <- 3; // bit range
+        global.Hw.GPIO.Mode[5] <- true; // single bit
     }
 
     public void configureBareScope() {
-        Hw.GPIO.Mode[10, 2] <- 3;   // bit range
-        Hw.GPIO.Mode[5] <- true;     // single bit
+        Hw.GPIO.Mode[10, 2] <- 3; // bit range
+        Hw.GPIO.Mode[5] <- true; // single bit
     }
 }
