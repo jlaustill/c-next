@@ -503,6 +503,7 @@
     "uint32_t",
     "uint64_t",
     "uint8_t",
+    "uncoded",
     "UNDERCOUNTED",
     "uninit",
     "uninitialised",
@@ -586,6 +587,7 @@
     "docs/LANGUAGE-FEATURE-TESTING-RESEARCH.md",
     "grammar/**",
     "prettier-plugin/**",
+    "docs/diagnostic-manifest.md",
     "GRAMMAR-COVERAGE.md"
   ],
   "enableFiletypes": ["typescript", "markdown", "json"],
