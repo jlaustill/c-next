@@ -10,7 +10,7 @@ import IAssignmentContext from "../IAssignmentContext";
 import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import CodeGenState from "../../../../state/CodeGenState";
-import TTypeInfo from "../../types/TTypeInfo";
+import TTypeInfo from "../../../../types/TTypeInfo";
 import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
 
 /** Maps C operators to clamp helper operation names */

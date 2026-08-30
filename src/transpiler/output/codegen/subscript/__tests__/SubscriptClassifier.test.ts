@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import SubscriptClassifier from "../SubscriptClassifier";
-import TTypeInfo from "../../types/TTypeInfo";
+import TTypeInfo from "../../../../types/TTypeInfo";
 
 describe("SubscriptClassifier", () => {
   describe("classify", () => {

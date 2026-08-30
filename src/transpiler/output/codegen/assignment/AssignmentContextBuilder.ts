@@ -6,7 +6,7 @@
  */
 import * as Parser from "../../../logic/parser/grammar/CNextParser";
 import IAssignmentContext from "./IAssignmentContext";
-import TTypeInfo from "../types/TTypeInfo";
+import TTypeInfo from "../../../types/TTypeInfo";
 import ASSIGNMENT_OPERATOR_MAP from "../../../../utils/constants/OperatorMappings";
 import IScopeSymbol from "../../../types/symbols/IScopeSymbol";
 

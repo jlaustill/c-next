@@ -2,7 +2,7 @@
  * Dependencies needed for simple identifier resolution
  */
 
-import TParameterInfo from "./TParameterInfo";
+import TParameterInfo from "../../../types/TParameterInfo";
 
 interface ISimpleIdentifierDeps {
   /** Get parameter info by name */

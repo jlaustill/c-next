@@ -6,8 +6,8 @@
  * - Type-safe payloads per effect type
  * - Central effect processing in the orchestrator
  */
-import TTypeInfo from "../types/TTypeInfo";
-import TParameterInfo from "../types/TParameterInfo";
+import TTypeInfo from "../../../types/TTypeInfo";
+import TParameterInfo from "../../../types/TParameterInfo";
 import TIncludeHeader from "./TIncludeHeader";
 import type TRequirementKey from "../../../types/TRequirementKey";
 

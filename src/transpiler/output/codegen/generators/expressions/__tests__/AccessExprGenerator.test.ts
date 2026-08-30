@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import accessGenerators from "../AccessExprGenerator";
-import TTypeInfo from "../../../types/TTypeInfo";
+import TTypeInfo from "../../../../../types/TTypeInfo";
 
 describe("AccessExprGenerator", () => {
   describe("generateCapacityProperty", () => {

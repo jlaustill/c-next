@@ -10,7 +10,7 @@ import SymbolTable from "../../../logic/symbols/SymbolTable";
 import CNextResolver from "../../../logic/symbols/cnext/index";
 import TSymbolInfoAdapter from "../../../logic/symbols/cnext/adapters/TSymbolInfoAdapter";
 import ICodeGenSymbols from "../../../types/ICodeGenSymbols";
-import TParameterInfo from "../types/TParameterInfo";
+import TParameterInfo from "../../../types/TParameterInfo";
 import CodeGenState from "../../../state/CodeGenState";
 import SymbolRegistry from "../../../state/SymbolRegistry";
 

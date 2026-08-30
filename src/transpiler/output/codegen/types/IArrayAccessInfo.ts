@@ -2,7 +2,7 @@
  * Intermediate representation for array access operations.
  * Decouples code generation from ANTLR parser contexts.
  */
-import TTypeInfo from "./TTypeInfo";
+import TTypeInfo from "../../../types/TTypeInfo";
 
 type IArrayAccessInfo = {
   /** The raw identifier name from source */

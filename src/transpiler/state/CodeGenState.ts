@@ -27,18 +27,18 @@ import ESourceLanguage from "../../utils/types/ESourceLanguage";
 import type TSymbolKindCNext from "../types/symbol-kinds/TSymbolKindCNext";
 import ReservedCnxName from "../../utils/ReservedCnxName";
 import ICodeGenSymbols from "../types/ICodeGenSymbols";
-import TTypeInfo from "../output/codegen/types/TTypeInfo";
-import TParameterInfo from "../output/codegen/types/TParameterInfo";
-import IFunctionSignature from "../output/codegen/types/IFunctionSignature";
-import ICallbackTypeInfo from "../output/codegen/types/ICallbackTypeInfo";
+import TTypeInfo from "../types/TTypeInfo";
+import TParameterInfo from "../types/TParameterInfo";
+import IFunctionSignature from "../types/IFunctionSignature";
+import ICallbackTypeInfo from "../types/ICallbackTypeInfo";
 import type IRequirementSite from "../types/IRequirementSite";
 import type TRequirementKey from "../types/TRequirementKey";
 import RequirementSites from "../../utils/RequirementSites";
 import ITargetCapabilities from "../types/ITargetCapabilities";
-import TOverflowBehavior from "../output/codegen/types/TOverflowBehavior";
+import TOverflowBehavior from "../types/TOverflowBehavior";
 import TYPE_WIDTH from "../constants/TYPE_WIDTH";
 import UNRESOLVED_DIMENSION from "../constants/UNRESOLVED_DIMENSION";
-import type ICodeGenApi from "../output/codegen/types/ICodeGenApi";
+import type ICodeGenApi from "../types/ICodeGenApi";
 import TypeResolver from "../../utils/TypeResolver";
 import type IVariableSymbol from "../types/symbols/IVariableSymbol";
 import QualifiedCName from "../../utils/QualifiedCName";
@@ -84,9 +84,19 @@ export default class CodeGenState {
 
   /**
    * Reference to the CodeGenerator instance for handlers to call its methods,
-   * typed to the method subset they use (ICodeGenApi). `import type` keeps this a
-   * compile-time-only edge, and CodeGenState already imports sibling types from
-   * output/codegen/types, so this introduces no runtime/circular dependency.
+   * typed to the method subset they use (ICodeGenApi).
+   *
+   * #1297: `ICodeGenApi` lives in `transpiler/types/`, a layer both sides may
+   * depend on, rather than in `output/`. The previous note here argued the edge
+   * was harmless because it was `import type` and CodeGenState already imported
+   * siblings from `output/codegen/types` -- but that was the whole problem:
+   * `logic/ -> state/ -> output/` was live through exactly those imports while
+   * `logic-cannot-import-output` reported clean, because it matched only direct
+   * edges. The rule is now transitive and `state/` has one of its own.
+   *
+   * The reference itself is still a `state/` object holding a codegen contract.
+   * That coupling is by design today and is #1323's to move; what this removes
+   * is the layer VIOLATION, not the dependency.
    */
   static generator: ICodeGenApi | null = null;
 

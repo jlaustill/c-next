@@ -64,11 +64,29 @@ module.exports = {
     {
       name: "logic-cannot-import-output",
       comment:
-        "Logic layer must not depend on output layer. " +
-        "If you need shared types, move them to transpiler/types/.",
+        "Logic layer must not depend on output layer, through ANY number of " +
+        "hops. If you need shared types, move them to transpiler/types/. " +
+        "#1297: this matched only DIRECT edges, so logic/ -> state/ -> output/ " +
+        "satisfied it while violating what it says -- ten analyzers were " +
+        "transitively coupled to codegen's type vocabulary and CI reported the " +
+        "layering clean. `reachable` is what makes the rule enforce its own " +
+        "statement; without it the guard reports green on the case it exists " +
+        "to catch.",
       severity: "error",
       from: { path: "^src/transpiler/logic/" },
-      to: { path: "^src/transpiler/output/" },
+      to: { path: "^src/transpiler/output/", reachable: true },
+    },
+    {
+      name: "state-cannot-import-output",
+      comment:
+        "State layer must not depend on output layer. #1297: state/ sat " +
+        "outside the layer model entirely, which is precisely why it could " +
+        "become the place facts get stashed instead of carried -- it was the " +
+        "one module nothing forbade the coupling in. Shared contracts belong " +
+        "in transpiler/types/, which both layers may depend on.",
+      severity: "error",
+      from: { path: "^src/transpiler/state/" },
+      to: { path: "^src/transpiler/output/", reachable: true },
     },
 
     // ==========================================================================

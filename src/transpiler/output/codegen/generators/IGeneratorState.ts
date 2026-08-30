@@ -3,7 +3,7 @@
  * Represents the current position in the AST traversal.
  * Generators read this but return effects to modify it.
  */
-import TParameterInfo from "../types/TParameterInfo";
+import TParameterInfo from "../../../types/TParameterInfo";
 import IScopeSymbol from "../../../types/symbols/IScopeSymbol";
 
 interface IGeneratorState {

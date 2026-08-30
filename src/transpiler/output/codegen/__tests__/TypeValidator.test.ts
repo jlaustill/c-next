@@ -9,9 +9,9 @@ import * as Parser from "../../../logic/parser/grammar/CNextParser";
 import CodeGenState from "../../../state/CodeGenState";
 import type ICodeGenSymbols from "../../../types/ICodeGenSymbols";
 import TypeResolver from "../TypeResolver";
-import type ICallbackTypeInfo from "../types/ICallbackTypeInfo";
-import type TParameterInfo from "../types/TParameterInfo";
-import type TTypeInfo from "../types/TTypeInfo";
+import type ICallbackTypeInfo from "../../../types/ICallbackTypeInfo";
+import type TParameterInfo from "../../../types/TParameterInfo";
+import type TTypeInfo from "../../../types/TTypeInfo";
 import TypeValidator from "../TypeValidator";
 
 // ========================================================================

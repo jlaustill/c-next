@@ -131,7 +131,14 @@ When in doubt: **ASK.** Syntax changes require ADR discussion and user approval.
 
 **Always use `dryRun: true` first.** Gotcha: May add `.ts` extensions to imports — remove them manually after moves.
 
-**Layer constraints (depcruise)**: `logic/` cannot import from `output/`. Check import dependencies before choosing extraction location.
+**Layer constraints (depcruise)**: `logic/` cannot import from `output/`, and neither can
+`state/` — **transitively**, not just as a direct edge. Check import dependencies before
+choosing extraction location; shared contracts go in `transpiler/types/`, which both layers
+may depend on. Until #1297 the rule matched direct edges only, so `logic/ -> state/ -> output/`
+was live through `CodeGenState` while CI printed `no dependency violations found` — ten
+analyzers coupled to codegen's type vocabulary with the guard green. A rule that cannot fail
+on the case it exists to catch is the `/* test-no-warnings */` shape (#1143) at the
+architecture level, so mutation-check a layer rule by re-adding the edge it forbids.
 
 **Local MISRA validation**: `sudo apt-get install cppcheck` then `npm run validate:c`
 

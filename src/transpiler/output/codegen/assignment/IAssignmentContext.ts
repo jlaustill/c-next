@@ -6,7 +6,7 @@
  * by the classifier and handlers.
  */
 import * as Parser from "../../../logic/parser/grammar/CNextParser";
-import TTypeInfo from "../types/TTypeInfo";
+import TTypeInfo from "../../../types/TTypeInfo";
 
 /**
  * Context extracted from assignment statement for classification.

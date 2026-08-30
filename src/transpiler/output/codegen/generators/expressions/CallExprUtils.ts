@@ -3,7 +3,7 @@
  * Extracted from CallExprGenerator for testability (Issue #420).
  */
 import TYPE_MAP from "../../types/TYPE_MAP";
-import IFunctionSignature from "../../types/IFunctionSignature";
+import IFunctionSignature from "../../../../types/IFunctionSignature";
 import SymbolTable from "../../../../logic/symbols/SymbolTable";
 import TypeResolver from "../../../../../utils/TypeResolver";
 
