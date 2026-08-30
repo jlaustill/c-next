@@ -21,10 +21,70 @@
  * 61 -> 65 with nothing going red.
  */
 
-/** One file's scope-denoting site count. */
-interface IFileCount {
+/** One distinct call shape in one file, and how many times it occurs there. */
+interface ISite {
   readonly file: string;
+  readonly element: string;
   readonly count: number;
+}
+
+/**
+ * What kind of join a site performs. An ORDERED partition, not a set of labels:
+ * the descriptions overlap (a site can be built from source text AND read a
+ * leaf-keyed map), so a site takes the FIRST kind that applies, in the order
+ * declared here.
+ *
+ * Nothing APPLIES this -- no code picks a kind; the ordering is an instruction
+ * to the human writing the row. But it is no longer stated twice: `TKind` is
+ * derived from `KIND_SECTIONS`, and `render` emits the preamble bullets from
+ * the same array, so the union and the document cannot disagree about
+ * precedence. They did disagree once, in opposite directions, and the
+ * preamble's order would have sent an adjudicator the other way on
+ * `cnext/index.ts`'s `scopeName`: source text from a parse-tree identifier, so
+ * `path` by description, but `leaf-keyed` is the answer that matters because it
+ * is paired with a collection. Reordering the array now moves both, and a
+ * reorder that touches only one is unrepresentable.
+ */
+const KIND_SECTIONS = [
+  {
+    kind: "via-scope-utils",
+    lines: [
+      "- **via-scope-utils** -- already routed correctly, and matched only because",
+      "  the enclosing block mentions a scope.",
+    ],
+  },
+  {
+    kind: "leaf-keyed",
+    lines: [
+      "- **leaf-keyed** -- paired with a collection filed under a leaf-built key.",
+      "  Converting one side alone breaks the pairing, so the row names the",
+      "  collection and the card that must move both.",
+    ],
+  },
+  {
+    kind: "path",
+    lines: [
+      "- **path** -- the first element is source text from a parse-tree identifier",
+      "  chain. `ids[0]` in `Scope.REG.MEMBER` is what the author wrote, so joining",
+      "  it rebuilds a lookup KEY rather than qualifying a member by its declaring",
+      "  scope. Under nesting the author writes more components and the INDEXING",
+      "  changes, not the join. `fromParts` documents this as its remaining use.",
+    ],
+  },
+] as const;
+
+type TKind = (typeof KIND_SECTIONS)[number]["kind"];
+
+/** A reviewed judgement about one call shape. */
+interface IAdjudication {
+  readonly file: string;
+  readonly element: string;
+  readonly kind: TKind;
+  /** The collection whose keying this join must match, for `leaf-keyed`. */
+  readonly pairedWith: string | null;
+  /** The card that must move this site, or null when nothing needs to. */
+  readonly movesWith: string | null;
+  readonly why: string;
 }
 
 /** What `check` concluded. */
@@ -51,6 +111,130 @@ class ScopeJoinSites {
 
   /** Routing through here is the CORRECT form, whatever the argument is called. */
   private static readonly VIA_SCOPE_UTILS = "ScopeUtils.";
+
+  /**
+   * The reviewed judgement for every site the scan finds.
+   *
+   * Keyed on (file, first element) rather than `file:line`, for the reason the
+   * module docblock gives: line citations rot silently when code moves. An
+   * element text moves WITH its call, and when it does change -- a rename, a
+   * different expression -- the site becomes undeclared and the gate says so.
+   * That is the intended behavior: the adjudication was made about a specific
+   * expression, so a different expression has not been adjudicated.
+   *
+   * `check` fails on a site with no entry here and on an entry matching no site,
+   * so this list can neither miss a site nor keep a stale judgement. Before this
+   * existed, the committed document classified the POPULATION in prose and left
+   * the reader to work out which row was which -- and both sites it described as
+   * "moving with #1295" turned out not to: one reads a map that is never written
+   * (#1394), the other reads `constValues`, which #1295 does not own.
+   */
+  private static readonly ADJUDICATIONS: readonly IAdjudication[] = [
+    {
+      file: "src/transpiler/logic/analysis/helpers/CalleeNameResolver.ts",
+      element: "resolvedName",
+      kind: "path",
+      pairedWith: null,
+      movesWith: null,
+      why: "callee chain `Scope.method()`; `resolvedName` is source text, and the `isScope` guard only confirms the author named a scope",
+    },
+    {
+      file: "src/transpiler/logic/symbols/cnext/adapters/TSymbolInfoAdapter.ts",
+      element: "scopeName",
+      kind: "leaf-keyed",
+      pairedWith: "scopeVariableUsage",
+      movesWith: "#1394",
+      why: "reads a map that is never written, in a method with no caller -- the in-source claim that both sides move together describes a pairing with no producer",
+    },
+    {
+      file: "src/transpiler/logic/symbols/cnext/index.ts",
+      element: "scopeName",
+      kind: "leaf-keyed",
+      pairedWith: "constValues",
+      movesWith: "#1295",
+      why: "files each scoped const under a leaf-joined key; live, and the same latent shape as #1295's three collections, but not one of them -- scope question raised on that card",
+    },
+    {
+      file: "src/transpiler/output/codegen/assignment/AssignmentClassifier.ts",
+      element: "scopeName",
+      kind: "path",
+      pairedWith: null,
+      movesWith: null,
+      why: "`ids[0]` of a parse-tree chain, admitted by `isKnownScope(scopeName)` (`:229`, `:554`); under nesting the author writes more components and the INDEXING changes, not the join",
+    },
+    {
+      file: "src/transpiler/output/codegen/assignment/AssignmentClassifier.ts",
+      element: "firstId",
+      kind: "path",
+      pairedWith: null,
+      movesWith: null,
+      why: "`ids[0]` of `Scope.REG.MEMBER[bit]`, guarded by `isKnownScope`",
+    },
+    {
+      file: "src/transpiler/output/codegen/assignment/handlers/AssignmentHandlerUtils.ts",
+      element: "leadingId",
+      kind: "path",
+      pairedWith: null,
+      movesWith: null,
+      why: "`identifiers[0]` of `Scope.Register.Member`, guarded by the injected `isKnownScope`",
+    },
+    {
+      file: "src/transpiler/output/codegen/assignment/handlers/BitmapHandlers.ts",
+      element: "scopeName",
+      kind: "path",
+      pairedWith: null,
+      movesWith: null,
+      why: "`ctx.identifiers[0]` of `Scope.REG.MEMBER.field`; the sibling `this.` branch already routes through `ScopeUtils.qualifyInScope`",
+    },
+    {
+      file: "src/transpiler/output/codegen/helpers/MemberSeparatorResolver.ts",
+      element: "identifierChain[0]",
+      kind: "path",
+      pairedWith: null,
+      movesWith: null,
+      why: "source chain `Board.GPIO`, admitted by `deps.isKnownScope(identifierChain[0])`; the JOINED name is then tested against `isKnownRegister` before any cross-scope check",
+    },
+    {
+      file: "src/transpiler/output/codegen/resolution/EnumTypeResolver.ts",
+      element: "scopeName",
+      kind: "path",
+      pairedWith: null,
+      movesWith: null,
+      why: "`parts[0]` of `Motor.State.IDLE`; builds a candidate key from source text, not a qualification of a member by its declaring scope",
+    },
+    {
+      file: "src/transpiler/output/codegen/resolution/EnumTypeResolver.ts",
+      element: "parts[0]",
+      kind: "path",
+      pairedWith: null,
+      movesWith: null,
+      why: "`Scope.method()` callee text, guarded by `isKnownScope`",
+    },
+    {
+      file: "src/transpiler/output/codegen/resolution/EnumTypeResolver.ts",
+      element: "parts[1]",
+      kind: "path",
+      pairedWith: null,
+      movesWith: null,
+      why: "`global.Scope.method()` callee text, admitted by `isKnownScope(parts[1])` (`:221`); `parts[0]` is the `global` qualifier the author wrote",
+    },
+  ];
+
+  /**
+   * The adjudication for a site, or undefined when it has not been reviewed.
+   *
+   * `verdicts` defaults to the committed table and is injectable so the unit
+   * tests exercise the MECHANISM rather than today's twelve sites -- otherwise
+   * every test would have to name a real file, and closing a site would redden
+   * tests that are not about it.
+   */
+  private static adjudicationFor(
+    file: string,
+    element: string,
+    verdicts: readonly IAdjudication[],
+  ): IAdjudication | undefined {
+    return verdicts.find((row) => row.file === file && row.element === element);
+  }
 
   /**
    * `source` with comments removed.
@@ -179,12 +363,11 @@ class ScopeJoinSites {
     return ScopeJoinSites.SCOPE_DENOTING.test(element);
   }
 
-  /** Per-file counts, ascending by path, omitting files with none. */
-  static count(sources: ReadonlyMap<string, string>): readonly IFileCount[] {
-    const counts: IFileCount[] = [];
-    for (const [file, source] of sources) {
-      const stripped = ScopeJoinSites.withoutComments(source);
-      const n = ScopeJoinSites.calls(source).filter(
+  /** Every counted call in `source`, as first-element texts. */
+  private static countedElements(source: string): readonly string[] {
+    const stripped = ScopeJoinSites.withoutComments(source);
+    return ScopeJoinSites.calls(source)
+      .filter(
         (call) =>
           ScopeJoinSites.isScopeDenoting(call.element) ||
           ScopeJoinSites.guardedByScopePredicate(
@@ -192,102 +375,220 @@ class ScopeJoinSites {
             call.element,
             call.at,
           ),
-      ).length;
-      if (n > 0) {
-        counts.push({ file, count: n });
+      )
+      .map((call) => call.element);
+  }
+
+  /**
+   * Distinct (file, first element) sites with their occurrence counts.
+   *
+   * Two calls in one file can share an element text -- `AssignmentClassifier`
+   * has `scopeName` twice, in different methods. They collapse to one row on
+   * purpose: an adjudication is about what the expression IS, and identical text
+   * in one file is the same judgement. A row's count still fails the gate if it
+   * grows, so the collapse cannot hide a new site.
+   */
+  static sites(sources: ReadonlyMap<string, string>): readonly ISite[] {
+    const rows: ISite[] = [];
+    for (const [file, source] of sources) {
+      const tally = new Map<string, number>();
+      for (const element of ScopeJoinSites.countedElements(source)) {
+        tally.set(element, (tally.get(element) ?? 0) + 1);
+      }
+      for (const [element, count] of tally) {
+        rows.push({ file, element, count });
       }
     }
-    return counts.sort((a, b) => a.file.localeCompare(b.file));
+    return rows.sort(
+      (a, b) =>
+        a.file.localeCompare(b.file) || a.element.localeCompare(b.element),
+    );
+  }
+
+  /**
+   * The totals both `render` and `check` report.
+   *
+   * Shared rather than computed twice: the two must agree, and jscpd caught the
+   * copy the moment it existed.
+   */
+  private static summarize(
+    sites: readonly ISite[],
+    verdicts: readonly IAdjudication[],
+  ): { total: number; files: number; moving: readonly ISite[] } {
+    return {
+      total: sites.reduce((sum, row) => sum + row.count, 0),
+      files: new Set(sites.map((row) => row.file)).size,
+      moving: sites.filter(
+        (row) =>
+          ScopeJoinSites.adjudicationFor(row.file, row.element, verdicts)
+            ?.movesWith,
+      ),
+    };
   }
 
   /** The committed document body. No timestamp: it would churn every run. */
-  static render(counts: readonly IFileCount[]): string {
-    const total = counts.reduce((sum, row) => sum + row.count, 0);
+  static render(
+    sites: readonly ISite[],
+    verdicts: readonly IAdjudication[] = ScopeJoinSites.ADJUDICATIONS,
+  ): string {
+    const { total, files, moving } = ScopeJoinSites.summarize(sites, verdicts);
     const lines = [
       "# Scope-denoting `fromParts` sites",
       "",
       "<!-- Generated by `npm run scope-joins`. Do not edit by hand. -->",
       "",
-      "Issue #1357. Each row is a file where the scan's heuristic matched a",
-      "`fromParts` call -- the first element reads as a scope, or a nearby",
-      "`isScope` guard proves it is one.",
+      "Issue #1357. Each row is one call shape in one file: the first element",
+      "reads as a scope, or a nearby `isScope` guard proves it is one.",
       "",
       "**A row is not by itself a defect.** The population that WAS one -- a",
       "scope's leaf name standing in for a complete path, correct only while",
       "`scopeMember` admits no `scopeDeclaration` (`grammar/CNext.g4`) -- has been",
       "converted to the scope REFERENCE via `ScopeUtils.qualifyInScope`, which",
-      "walks the parent chain. What remains was read and adjudicated, and falls",
-      "into three kinds:",
+      "walks the parent chain. Every row below carries the judgement that was made",
+      "about it, so no reader has to re-derive which is which:",
       "",
-      "1. **A complete path from a parse-tree identifier chain.** `ids[0]` in",
-      "   `Scope.REG.MEMBER` is source text the author wrote, not a scope symbol",
-      "   standing in for one, so joining it builds a lookup KEY rather than",
-      "   qualifying a member by its declaring scope. `fromParts` documents this",
-      "   as its remaining legitimate use.",
-      "2. **Paired with a leaf-keyed map (#1295).** `scopeMembers`,",
-      "   `scopeMemberVisibility` and `knownScopes` are keyed by the scope leaf,",
-      "   so a lookup against them must be built the same way. Converting one side",
-      "   alone breaks the pairing; these move when #1295 does, not before.",
-      "3. **Already routed through `ScopeUtils`,** and matched only because the",
-      "   enclosing block mentions a scope.",
+      ...KIND_SECTIONS.flatMap((section) => section.lines),
+      "",
+      "They overlap as descriptions -- a site can be built from source text AND",
+      "read a leaf-keyed map -- so a site takes the FIRST kind above that applies,",
+      "which makes them a partition rather than labels. **Nothing computes this.**",
+      "The order is an instruction to whoever writes the row: `cnext/index.ts`'s",
+      "`scopeName` is source text from a parse-tree identifier, and is still",
+      "`leaf-keyed`, because being paired with a collection is the fact that",
+      "decides what must move.",
       "",
       "This list may shrink freely. It may not grow: `npm run scope-joins:check`",
-      "fails on a file that gains a site or appears anew, so the population cannot",
-      "drift upward unnoticed the way it did when #1348 moved it 61 to 65. A new",
-      "row is therefore a prompt to adjudicate, not proof of a bug -- but it must",
-      "be adjudicated before it lands.",
+      "fails on a file that gains a site, on a call shape nobody has adjudicated,",
+      "and on a judgement that no longer matches any site. So the population cannot",
+      "drift upward unnoticed the way it did when #1348 moved it 61 to 65, and a",
+      "judgement cannot outlive the code it was made about. A new row is a prompt",
+      "to adjudicate, not proof of a bug -- but it must be adjudicated before it",
+      "lands.",
       "",
-      "| File | Sites |",
-      "| --- | --- |",
-      ...counts.map((row) => `| \`${row.file}\` | ${row.count} |`),
-      `| **total** | **${total}** |`,
+      "| File | First element | Sites | Kind | Moves with |",
+      "| --- | --- | --- | --- | --- |",
+      ...sites.map((row) => {
+        const verdict = ScopeJoinSites.adjudicationFor(
+          row.file,
+          row.element,
+          verdicts,
+        );
+        const kind = verdict?.kind ?? "**UNADJUDICATED**";
+        const moves = verdict?.movesWith ?? "--";
+        return `| \`${row.file}\` | \`${row.element}\` | ${row.count} | ${kind} | ${moves} |`;
+      }),
+      `| **total** | | **${total}** | | |`,
+      "",
+      `${total} site(s) across ${files} file(s).`,
+      "",
+      "## What must move, and with what",
       "",
     ];
+    if (moving.length === 0) {
+      lines.push(
+        "Nothing. Every remaining site is adjudicated as needing no change.",
+        "",
+      );
+    } else {
+      lines.push(
+        "The checklist for whoever re-keys these collections. Each row is a call",
+        "shape that must change in the SAME commit as its collection's keying --",
+        "a key built one way against a map filed another returns empty, which",
+        'reads as "no such symbol" rather than "wrong question" (#1139).',
+        "",
+        "| Site | Paired with | Moves with | Why |",
+        "| --- | --- | --- | --- |",
+      );
+      for (const row of moving) {
+        const verdict = ScopeJoinSites.adjudicationFor(
+          row.file,
+          row.element,
+          verdicts,
+        )!;
+        lines.push(
+          `| \`${row.file}\` (\`${row.element}\`) | \`${verdict.pairedWith}\` | ${verdict.movesWith} | ${verdict.why} |`,
+        );
+      }
+      lines.push("");
+    }
     return lines.join("\n");
   }
 
-  /** Compare freshly-scanned counts against the committed document. */
+  /** Compare freshly-scanned sites against the committed document. */
   static check(
     committed: string,
-    counts: readonly IFileCount[],
+    sites: readonly ISite[],
+    verdicts: readonly IAdjudication[] = ScopeJoinSites.ADJUDICATIONS,
   ): ICheckOutcome {
     const errors: string[] = [];
-    const expected = new Map<string, number>();
+
     // Tolerant of padding: the committed document is Prettier-formatted, which
     // pads table cells to a common width. A parser requiring single spaces
     // fails against the very file the generator just wrote.
+    const expected = new Map<string, number>();
     for (const match of committed.matchAll(
-      /^\|\s*`([^`]+)`\s*\|\s*(\d+)\s*\|\s*$/gm,
+      /^\|\s*`([^`]+)`\s*\|\s*`([^`]+)`\s*\|\s*(\d+)\s*\|/gm,
     )) {
-      expected.set(match[1], Number(match[2]));
+      expected.set(`${match[1]}\u0000${match[2]}`, Number(match[3]));
     }
-    const actual = new Map(counts.map((row) => [row.file, row.count]));
+    const actual = new Map(
+      sites.map((row) => [`${row.file}\u0000${row.element}`, row.count]),
+    );
 
-    for (const [file, n] of actual) {
-      const was = expected.get(file);
+    for (const [key, n] of actual) {
+      const [file, element] = key.split("\u0000");
+      const was = expected.get(key);
       if (was === undefined) {
         errors.push(
-          `${file}: ${n} new scope-denoting site(s); this file had none`,
+          `${file}: new scope-denoting call shape \`${element}\` (${n} site(s))`,
         );
       } else if (n > was) {
-        errors.push(`${file}: grew from ${was} to ${n} scope-denoting site(s)`);
+        errors.push(`${file}: \`${element}\` grew from ${was} to ${n} site(s)`);
       }
     }
-    for (const [file, was] of expected) {
-      const now = actual.get(file) ?? 0;
+    for (const [key, was] of expected) {
+      const [file, element] = key.split("\u0000");
+      const now = actual.get(key) ?? 0;
       if (now < was) {
         errors.push(
-          `${file}: down from ${was} to ${now} -- run \`npm run scope-joins\` to record the win`,
+          `${file}: \`${element}\` down from ${was} to ${now} -- run ` +
+            "`npm run scope-joins` AND update its `ADJUDICATIONS` entry: drop " +
+            "it if the site is gone, re-key it if the expression was renamed. " +
+            "Regenerating alone cannot green this -- the entry is source code",
         );
       }
     }
 
-    const total = counts.reduce((sum, row) => sum + row.count, 0);
+    // A site nobody has judged, and a judgement about code that is gone. The
+    // first is the point of the table; the second keeps it from rotting into
+    // the prose promise it replaced.
+    for (const row of sites) {
+      if (!ScopeJoinSites.adjudicationFor(row.file, row.element, verdicts)) {
+        errors.push(
+          `${row.file}: \`${row.element}\` has no adjudication -- add one to ` +
+            "`ScopeJoinSites.ADJUDICATIONS` saying which kind it is and why",
+        );
+      }
+    }
+    for (const verdict of verdicts) {
+      const stillThere = sites.some(
+        (row) => row.file === verdict.file && row.element === verdict.element,
+      );
+      if (!stillThere) {
+        errors.push(
+          `${verdict.file}: adjudication for \`${verdict.element}\` matches no ` +
+            "site -- remove it, the judgement outlived its code",
+        );
+      }
+    }
+
+    const { total, files, moving } = ScopeJoinSites.summarize(sites, verdicts);
     return {
       ok: errors.length === 0,
       errors,
       info: [
-        `${total} scope-denoting site(s) across ${counts.length} file(s).`,
+        `${total} scope-denoting site(s) across ${files} file(s); ` +
+          `${moving.length} awaiting another card.`,
       ],
     };
   }
