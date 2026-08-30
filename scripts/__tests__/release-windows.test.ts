@@ -120,3 +120,38 @@ describe("ReleaseWindows.preparing", () => {
     ).toThrow(/Ambiguous release in preparation: v0\.3\.1, v0\.4\.0/);
   });
 });
+
+describe("ReleaseWindows.headRef", () => {
+  const existing =
+    (...refs: string[]) =>
+    (ref: string) =>
+      refs.includes(ref);
+
+  it("measures to the default branch, not to whatever is checked out", () => {
+    // The bug this replaced: on a feature branch, `HEAD` does not contain
+    // main's newer merges, so every one of them reads as `not-shipped`.
+    expect(
+      ReleaseWindows.headRef(
+        ["origin/main", "main", "HEAD"],
+        existing("origin/main", "main", "HEAD"),
+      ),
+    ).toBe("origin/main");
+  });
+
+  it("falls through to the next candidate when the first is absent", () => {
+    expect(
+      ReleaseWindows.headRef(
+        ["origin/main", "main", "HEAD"],
+        existing("main", "HEAD"),
+      ),
+    ).toBe("main");
+  });
+
+  it("falls back to HEAD for a detached checkout at a tag", () => {
+    // What `publish.yml` produces. There is no branch ref to prefer, and the
+    // tag itself is the right thing to measure from.
+    expect(ReleaseWindows.headRef(["origin/main", "main"], existing())).toBe(
+      "HEAD",
+    );
+  });
+});

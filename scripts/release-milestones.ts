@@ -39,6 +39,9 @@ import type IReleaseItem from "./types/IReleaseItem";
 const OWNER = "jlaustill";
 const REPO = "c-next";
 
+/** The branch releases are cut from; the unreleased window is measured to it. */
+const DEFAULT_BRANCH = "main";
+
 /**
  * GitHub asks for roughly a second between writes and answers a burst with a
  * secondary rate limit rather than an error you can retry blindly. A backfill
@@ -98,6 +101,16 @@ function git(args: readonly string[]): string {
     encoding: "utf-8",
     maxBuffer: 64 * 1024 * 1024,
   });
+}
+
+/** Whether a ref resolves, without failing the run when it does not. */
+function refExists(ref: string): boolean {
+  try {
+    git(["rev-parse", "--verify", "--quiet", `${ref}^{commit}`]);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function lines(output: string): string[] {
@@ -284,15 +297,21 @@ async function main(): Promise<void> {
     existing.filter((m) => m.state === "open").map((m) => m.title),
     tags,
   );
+  const head = ReleaseWindows.headRef(
+    [`origin/${DEFAULT_BRANCH}`, DEFAULT_BRANCH, "HEAD"],
+    refExists,
+  );
   const windows = ReleaseWindows.build(
     tags,
-    preparing === null ? null : { milestone: preparing, head: "HEAD" },
+    preparing === null ? null : { milestone: preparing, head },
     (range) => lines(git(["rev-list", range])),
   );
   console.log(
     chalk.cyan(
       `${windows.length} release window(s)` +
-        (preparing === null ? "" : `, preparing ${preparing}`),
+        (preparing === null
+          ? ""
+          : `, preparing ${preparing} measured to ${head}`),
     ),
   );
 
@@ -306,6 +325,19 @@ async function main(): Promise<void> {
 
   for (const referral of plan.referrals) {
     console.warn(chalk.yellow(`  ${describe(referral)}`));
+  }
+  // A `not-shipped` item whose merge commit simply is not in this clone yet
+  // reads exactly like one merged into a stack that never landed. The run only
+  // writes answers it owns, so a stale checkout costs a false referral rather
+  // than a wrong milestone -- but the reader still has to be told which they
+  // are looking at.
+  if (plan.referrals.some((referral) => referral.reason === "not-shipped")) {
+    console.warn(
+      chalk.yellow(
+        "  note: `not-shipped` means the merge commit is on no tag and not on " +
+          "HEAD. Run `git fetch` and re-run if this clone may be behind.",
+      ),
+    );
   }
 
   if (plan.changes.length === 0) {

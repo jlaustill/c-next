@@ -61,6 +61,25 @@ class ReleaseWindows {
   }
 
   /**
+   * The ref the unreleased window is measured to.
+   *
+   * NOT `HEAD`. "Unreleased" means merged and awaiting a release, and what
+   * ships is the default branch -- so measuring from whatever is checked out
+   * under-reports on every feature branch, which is precisely where someone
+   * runs the check. It reads as `not-shipped`, indistinguishable from a pull
+   * request merged into a stack that never landed.
+   *
+   * Falls back through the candidates so a detached checkout at a tag, which
+   * is what `publish.yml` produces, still has a ref to measure to.
+   */
+  static headRef(
+    candidates: readonly string[],
+    exists: (ref: string) => boolean,
+  ): string {
+    return candidates.find((ref) => exists(ref)) ?? "HEAD";
+  }
+
+  /**
    * The release being prepared: the open milestone that is not yet a tag.
    *
    * `docs/WORKFLOW.md` already requires the release issue to set that

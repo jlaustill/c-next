@@ -157,6 +157,12 @@ Two things it will not do, both by design:
 
 `npm run release:milestones:check` reports drift and writes nothing.
 
+Run `git fetch` first when running it locally. The derivation reads this clone,
+so a merge commit that has not arrived yet is indistinguishable from one that
+never landed, and reports as `not-shipped`. It costs a false referral, never a
+wrong milestone -- the run writes only answers it owns -- and `publish.yml`
+checks out fresh with `fetch-depth: 0`, so CI cannot hit it.
+
 ---
 
 ## Board setup
