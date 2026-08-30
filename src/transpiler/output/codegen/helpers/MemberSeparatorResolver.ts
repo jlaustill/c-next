@@ -118,10 +118,10 @@ class MemberSeparatorResolver {
     if (deps.isKnownScope(identifierChain[0])) {
       // Issue #779: Skip cross-scope validation for scoped register access
       // Board.GPIO where Board_GPIO is a known register is valid
-      const scopedRegisterName = QualifiedCName.join(
+      const scopedRegisterName = QualifiedCName.fromParts([
         identifierChain[0],
         memberName,
-      );
+      ]);
       if (!deps.isKnownRegister(scopedRegisterName)) {
         deps.validateCrossScopeVisibility(identifierChain[0], memberName);
       }
@@ -146,7 +146,9 @@ class MemberSeparatorResolver {
     deps: IMemberSeparatorDeps,
   ): string {
     // Check for register chains
-    const chainSoFar = QualifiedCName.join(...identifierChain.slice(0, -1));
+    const chainSoFar = QualifiedCName.fromParts([
+      ...identifierChain.slice(0, -1),
+    ]);
     const isRegisterChain =
       deps.isKnownRegister(identifierChain[0]) ||
       deps.isKnownRegister(chainSoFar) ||

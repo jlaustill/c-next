@@ -47,6 +47,8 @@
     "coverage:matrix:check": "tsx scripts/adr-matrix.ts check",
     "diagnostics:manifest": "tsx scripts/diagnostic-manifest.ts write",
     "diagnostics:manifest:check": "tsx scripts/diagnostic-manifest.ts check",
+    "scope-joins": "tsx scripts/scope-join-sites.ts write",
+    "scope-joins:check": "tsx scripts/scope-join-sites.ts check",
     "coverage:matrix:gaps": "tsx scripts/adr-matrix.ts gaps",
     "coverage:matrix:console": "tsx scripts/adr-matrix.ts console",
     "coverage:grammar": "tsx scripts/grammar-coverage.ts report",

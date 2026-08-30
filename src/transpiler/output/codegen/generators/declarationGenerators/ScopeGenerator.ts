@@ -341,7 +341,7 @@ function generateEnumMembersFromAST(
     const memberName = member.IDENTIFIER().getText();
     // #1285: qualified by the ENUM, not a scope -- see the note in
     // generateScopedEnumInline. `fullName` is already fully qualified.
-    const fullMemberName = QualifiedCName.join(fullName, memberName);
+    const fullMemberName = QualifiedCName.fromParts([fullName, memberName]);
 
     if (member.expression()) {
       const constValue = orchestrator.tryEvaluateConstant(member.expression()!);
@@ -530,7 +530,7 @@ function generateScopedEnumInline(
       // `fullName` is already fully qualified. Joining two qualified names is
       // `QualifiedCName.join`; routing it through `forMember` was what forced that
       // helper to keep taking plain strings, hiding a scope encoder behind an enum one.
-      const fullMemberName = QualifiedCName.join(fullName, memberName);
+      const fullMemberName = QualifiedCName.fromParts([fullName, memberName]);
       const comma = i < memberEntries.length - 1 ? "," : "";
       lines.push(`    ${fullMemberName} = ${value}${comma}`);
     }

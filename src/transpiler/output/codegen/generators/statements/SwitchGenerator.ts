@@ -60,7 +60,9 @@ function tryResolveEnumMember(
 ): string | null {
   if (!symbols) return null;
   const members = symbols.enumMembers.get(switchEnumType);
-  return members?.has(id) ? QualifiedCName.join(switchEnumType, id) : null;
+  return members?.has(id)
+    ? QualifiedCName.fromParts([switchEnumType, id])
+    : null;
 }
 
 /**
@@ -115,7 +117,7 @@ function generateQualifiedTypeLabel(node: CaseLabelContext): string | null {
   const qt = node.qualifiedType();
   if (!qt) return null;
   const parts = qt.IDENTIFIER();
-  return QualifiedCName.join(...parts.map((id) => id.getText()));
+  return QualifiedCName.fromParts([...parts.map((id) => id.getText())]);
 }
 
 /**

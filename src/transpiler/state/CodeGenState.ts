@@ -1493,7 +1493,10 @@ export default class CodeGenState {
     if (!functionName || !this.shadowsFileScopeSymbol(name)) {
       return;
     }
-    this.registerLocalRename(name, QualifiedCName.join(functionName, name));
+    this.registerLocalRename(
+      name,
+      QualifiedCName.fromParts([functionName, name]),
+    );
   }
 
   /**

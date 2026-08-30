@@ -86,10 +86,10 @@ function buildScopedRegisterName(
   // PREVIOUS result back in as if it were a scope, which is why `forMember` had to
   // accept an arbitrary string. The scope qualifies the head; the remaining parts
   // are register/member components joined textually.
-  return QualifiedCName.join(
+  return QualifiedCName.fromParts([
     ScopeUtils.qualifyInScope(parts[0], declaringScope),
     ...parts.slice(1),
-  );
+  ]);
 }
 
 /**
@@ -107,13 +107,13 @@ function buildRegisterNameWithScopeDetection(
 
   if (isKnownScope(leadingId) && identifiers.length >= 3) {
     // Scoped: Scope.Register.Member
-    const regName = QualifiedCName.join(leadingId, identifiers[1]);
-    const fullName = QualifiedCName.join(regName, identifiers[2]);
+    const regName = QualifiedCName.fromParts([leadingId, identifiers[1]]);
+    const fullName = QualifiedCName.fromParts([regName, identifiers[2]]);
     return { fullName, regName, isScoped: true };
   } else {
     // Non-scoped: Register.Member
     const regName = leadingId;
-    const fullName = QualifiedCName.join(leadingId, identifiers[1]);
+    const fullName = QualifiedCName.fromParts([leadingId, identifiers[1]]);
     return { fullName, regName, isScoped: false };
   }
 }

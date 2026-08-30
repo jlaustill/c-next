@@ -91,7 +91,7 @@ class FunctionCallListener extends CNextListener {
     // If inside a scope, the full name is Scope_functionName
     let fullName: string;
     if (this.currentScope) {
-      fullName = QualifiedCName.join(this.currentScope, name);
+      fullName = QualifiedCName.fromParts([this.currentScope, name]);
     } else {
       fullName = name;
     }
@@ -344,7 +344,7 @@ class FunctionCallAnalyzer {
               .IDENTIFIER()
               .getText();
             this.allLocalFunctions.add(
-              QualifiedCName.join(scopeName, funcName),
+              QualifiedCName.fromParts([scopeName, funcName]),
             );
           }
         }
@@ -544,7 +544,7 @@ class FunctionCallAnalyzer {
     // Scope-qualified names use dot in source (MyScope.handler) but
     // allLocalFunctions stores them with underscore (MyScope_handler)
     const lookupName = funcRef.includes(".")
-      ? QualifiedCName.join(funcRef)
+      ? QualifiedCName.fromParts([funcRef])
       : funcRef;
 
     if (this.allLocalFunctions.has(lookupName)) {
@@ -627,7 +627,7 @@ class FunctionCallAnalyzer {
 
       // Normalize scope-qualified names
       const lookupName = funcRef.includes(".")
-        ? QualifiedCName.join(funcRef)
+        ? QualifiedCName.fromParts([funcRef])
         : funcRef;
 
       // Mark as callback-compatible if it's a local C-Next function
@@ -678,7 +678,9 @@ class FunctionCallAnalyzer {
       if (op.IDENTIFIER()) {
         // Member access: build qualified name
         const member = op.IDENTIFIER()!.getText();
-        funcName = funcName ? QualifiedCName.join(funcName, member) : member;
+        funcName = funcName
+          ? QualifiedCName.fromParts([funcName, member])
+          : member;
       } else if (op.argumentList() || op.getText().startsWith("(")) {
         // Found the call - this op has the arguments
         argListOp = op;
@@ -787,7 +789,7 @@ class FunctionCallAnalyzer {
     // e.g., calling helper() instead of this.helper() inside a scope
     // Skip for global. calls — global. explicitly means global scope
     if (currentScope && !isGlobalCall) {
-      const qualifiedName = QualifiedCName.join(currentScope, name);
+      const qualifiedName = QualifiedCName.fromParts([currentScope, name]);
       if (this.definedFunctions.has(qualifiedName)) {
         // #1241: the enclosing scope resolved a bare call -- ADR-057's rule
         // firing at a position. Recorded HERE, where the candidate is

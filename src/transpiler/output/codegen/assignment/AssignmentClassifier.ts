@@ -232,7 +232,7 @@ class AssignmentClassifier {
 
     // #1285: textual candidate built from parse-tree identifiers, not scope
     // qualification -- see EnumTypeResolver.getEnumTypeFromScopedEnum.
-    const fullRegName = QualifiedCName.join(scopeName, ids[1]);
+    const fullRegName = QualifiedCName.fromParts([scopeName, ids[1]]);
     if (!CodeGenState.symbols!.knownRegisters.has(fullRegName)) {
       return null;
     }
@@ -361,7 +361,7 @@ class AssignmentClassifier {
 
     // Check for scoped register: Scope.REG.MEMBER[bit]
     if (CodeGenState.isKnownScope(firstId) && ids.length >= 3) {
-      const scopedRegName = QualifiedCName.join(firstId, ids[1]);
+      const scopedRegName = QualifiedCName.fromParts([firstId, ids[1]]);
       if (CodeGenState.symbols!.knownRegisters.has(scopedRegName)) {
         return subscriptCount === 2
           ? AssignmentKind.REGISTER_BIT_RANGE
@@ -571,7 +571,7 @@ class AssignmentClassifier {
     if (ids.length === 2) {
       return AssignmentClassifier.classifySubscriptAccess(
         ctx,
-        QualifiedCName.join(scopeName, ids[1]),
+        QualifiedCName.fromParts([scopeName, ids[1]]),
         `${displayPrefix}${ids.join(".")}`,
       );
     }
@@ -1024,7 +1024,7 @@ class AssignmentClassifier {
     registerName: string,
     memberName: string,
   ): string | null {
-    const key = QualifiedCName.join(registerName, memberName);
+    const key = QualifiedCName.fromParts([registerName, memberName]);
     return CodeGenState.symbols!.registerMemberTypes.get(key) ?? null;
   }
 }

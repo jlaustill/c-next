@@ -114,7 +114,7 @@ function convertEnum(
   for (const [memberName] of enumSym.members) {
     result.push({
       name: memberName,
-      fullName: QualifiedCName.join(cName, memberName),
+      fullName: QualifiedCName.fromParts([cName, memberName]),
       kind: "enumMember",
       parent: cName,
       id: `${enumId}.${memberName}`,

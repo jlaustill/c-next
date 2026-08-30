@@ -175,7 +175,7 @@ export default class EnumTypeResolver {
     // candidate KEY from components -- it is not qualifying a member by its
     // declaring scope symbol. Those are different operations; `forMember` now
     // takes a symbol and this one stays textual.
-    const scopedEnumName = QualifiedCName.join(scopeName, enumName);
+    const scopedEnumName = QualifiedCName.fromParts([scopeName, enumName]);
     return CodeGenState.isKnownEnum(scopedEnumName) ? scopedEnumName : null;
   }
 
@@ -216,12 +216,12 @@ export default class EnumTypeResolver {
         fullFuncName = parts[1];
       } else if (CodeGenState.isKnownScope(parts[0])) {
         // Scope.method() -> Scope_method
-        fullFuncName = QualifiedCName.join(parts[0], parts[1]);
+        fullFuncName = QualifiedCName.fromParts([parts[0], parts[1]]);
       }
     } else if (parts.length === 3) {
       if (parts[0] === "global" && CodeGenState.isKnownScope(parts[1])) {
         // global.Scope.method() -> Scope_method
-        fullFuncName = QualifiedCName.join(parts[1], parts[2]);
+        fullFuncName = QualifiedCName.fromParts([parts[1], parts[2]]);
       }
     }
 

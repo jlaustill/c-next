@@ -1460,7 +1460,7 @@ const tryRegisterMemberAccess = (
   );
 
   MemberAccessValidator.validateRegisterReadAccess(
-    QualifiedCName.join(ctx.result, ctx.memberName),
+    QualifiedCName.fromParts([ctx.result, ctx.memberName]),
     ctx.memberName,
     `${ctx.result}.${ctx.memberName}`,
     input.symbols!.registerMemberAccess,
@@ -1468,7 +1468,7 @@ const tryRegisterMemberAccess = (
   );
 
   const output = initializeMemberOutput(ctx);
-  output.result = QualifiedCName.join(ctx.result, ctx.memberName);
+  output.result = QualifiedCName.fromParts([ctx.result, ctx.memberName]);
   output.isRegisterChain = true;
   return output;
 };

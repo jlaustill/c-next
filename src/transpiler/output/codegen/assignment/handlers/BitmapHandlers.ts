@@ -167,7 +167,7 @@ function handleRegisterMemberBitmapField(ctx: IAssignmentContext): string {
   const memberName = ctx.identifiers[1];
   const fieldName = ctx.identifiers[2];
 
-  const fullRegMember = QualifiedCName.join(regName, memberName);
+  const fullRegMember = QualifiedCName.fromParts([regName, memberName]);
   const bitmapType =
     CodeGenState.symbols!.registerMemberTypes.get(fullRegMember)!;
 
@@ -215,11 +215,11 @@ function handleScopedRegisterMemberBitmapField(
       regName,
     );
 
-    fullRegName = QualifiedCName.join(scopeName, regName);
+    fullRegName = QualifiedCName.fromParts([scopeName, regName]);
   }
 
   // A register MEMBER is qualified by its register, textually -- not by a scope.
-  const fullRegMember = QualifiedCName.join(fullRegName, memberName);
+  const fullRegMember = QualifiedCName.fromParts([fullRegName, memberName]);
   const bitmapType =
     CodeGenState.symbols!.registerMemberTypes.get(fullRegMember)!;
 

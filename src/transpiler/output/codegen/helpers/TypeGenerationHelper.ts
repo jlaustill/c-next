@@ -103,7 +103,7 @@ class TypeGenerationHelper {
       validateVisibility(identifiers[0], identifiers[1]);
     }
 
-    return QualifiedCName.join(...identifiers);
+    return QualifiedCName.fromParts([...identifiers]);
   }
 
   /**

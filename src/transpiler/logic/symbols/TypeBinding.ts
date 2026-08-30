@@ -159,7 +159,7 @@ class TypeBinding {
       const names = qualified.IDENTIFIER().map((id) => id.getText());
       return deps?.resolveQualifiedType
         ? deps.resolveQualifiedType(names)
-        : QualifiedCName.join(...names);
+        : QualifiedCName.fromParts([...names]);
     }
 
     // Bare T -- the ONLY branch that resolves local -> scope -> global
