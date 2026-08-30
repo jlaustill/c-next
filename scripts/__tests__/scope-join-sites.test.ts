@@ -97,19 +97,37 @@ describe("ScopeJoinSites", () => {
       }`;
 
     it("counts an element the enclosing block proves is a scope", () => {
-      expect(ScopeJoinSites.count(new Map([["src/a.ts", guarded]]))).toEqual([
-        { file: "src/a.ts", count: 1 },
+      expect(ScopeJoinSites.sites(new Map([["src/a.ts", guarded]]))).toEqual([
+        { file: "src/a.ts", element: "parts[0]", count: 1 },
       ]);
     });
 
     it("does not count the same element with no guard", () => {
       expect(
-        ScopeJoinSites.count(
+        ScopeJoinSites.sites(
           new Map([
             ["src/a.ts", "QualifiedCName.fromParts([parts[0], parts[1]]);"],
           ]),
         ),
       ).toEqual([]);
+    });
+
+    it("counts a guarded call that follows a complete nested block", () => {
+      // The backward scan has to step over a closed sibling block to find the
+      // guard's own brace. If it stopped at the inner `{` the window would miss
+      // `isKnownScope` and the site would go UNCOUNTED -- the false negative
+      // that left six sites out of the baseline before #1385.
+      const nested = `
+        function f() {
+          if (CodeGenState.isKnownScope(parts[0])) {
+            if (other) { helper(); }
+            return QualifiedCName.fromParts([parts[0], parts[1]]);
+          }
+        }`;
+
+      expect(ScopeJoinSites.sites(new Map([["src/a.ts", nested]]))).toEqual([
+        { file: "src/a.ts", element: "parts[0]", count: 1 },
+      ]);
     });
 
     it("does not count a guard that sits in a different block", () => {
@@ -126,7 +144,7 @@ describe("ScopeJoinSites", () => {
           }
         }`;
 
-      expect(ScopeJoinSites.count(new Map([["src/a.ts", elsewhere]]))).toEqual(
+      expect(ScopeJoinSites.sites(new Map([["src/a.ts", elsewhere]]))).toEqual(
         [],
       );
     });
@@ -166,9 +184,9 @@ describe("ScopeJoinSites", () => {
     });
   });
 
-  describe("count", () => {
+  describe("sites", () => {
     it("counts only the scope-denoting sites in each file", () => {
-      const counts = ScopeJoinSites.count(
+      const rows = ScopeJoinSites.sites(
         new Map([
           [
             "src/b.ts",
@@ -177,12 +195,14 @@ describe("ScopeJoinSites", () => {
         ]),
       );
 
-      expect(counts).toEqual([{ file: "src/b.ts", count: 1 }]);
+      expect(rows).toEqual([
+        { file: "src/b.ts", element: "scopeName", count: 1 },
+      ]);
     });
 
     it("omits files with no scope-denoting site", () => {
       expect(
-        ScopeJoinSites.count(
+        ScopeJoinSites.sites(
           new Map([["src/clean.ts", "QualifiedCName.fromParts([cName, x]);"]]),
         ),
       ).toEqual([]);
@@ -192,7 +212,7 @@ describe("ScopeJoinSites", () => {
       // Without this the generated table would reorder on a filesystem whose
       // walk order differs, and every run would produce a spurious diff.
       const call = "QualifiedCName.fromParts([scopeName, x]);";
-      const counts = ScopeJoinSites.count(
+      const rows = ScopeJoinSites.sites(
         new Map([
           ["src/z.ts", call],
           ["src/a.ts", call],
@@ -200,15 +220,13 @@ describe("ScopeJoinSites", () => {
         ]),
       );
 
-      expect(counts.map((row) => row.file)).toEqual([
+      expect(rows.map((row) => row.file)).toEqual([
         "src/a.ts",
         "src/m.ts",
         "src/z.ts",
       ]);
     });
-  });
 
-  describe("sites", () => {
     it("collapses identical call shapes in one file and counts them", () => {
       const call = "QualifiedCName.fromParts([scopeName, x]);";
       const sites = ScopeJoinSites.sites(new Map([["src/a.ts", call + call]]));
@@ -313,6 +331,32 @@ describe("ScopeJoinSites", () => {
       // rather than joining an unlabeled population the next reader has to
       // re-derive -- which is how both #1295 claims went unchecked.
       const outcome = ScopeJoinSites.check(doc, population, [verdicts[0]]);
+
+      expect(outcome.ok).toBe(false);
+      expect(outcome.errors.join("\n")).toContain("has no adjudication");
+    });
+
+    it("marks an unadjudicated site in the document it writes", () => {
+      // The writer-facing half of the gate. `check` refuses an unadjudicated
+      // site, but the document `write` emits is what the contributor reads
+      // first, so a render that silently omitted or blank-filled the row would
+      // hide the very thing they have to act on.
+      expect(ScopeJoinSites.render(population, [verdicts[0]])).toContain(
+        "**UNADJUDICATED**",
+      );
+    });
+
+    it("stays red on an unadjudicated site after the document is regenerated", () => {
+      // The one path that silently defeats this gate. Every other generated-doc
+      // gate in this repo is greened by running its regenerate command, so a
+      // contributor who hits "has no adjudication" reaches for `npm run
+      // scope-joins` reflexively. It must not work: the judgement lives in
+      // `ADJUDICATIONS`, which is source code, and regenerating only rewrites
+      // the row that reports the gap.
+      const regenerated = ScopeJoinSites.render(population, [verdicts[0]]);
+      const outcome = ScopeJoinSites.check(regenerated, population, [
+        verdicts[0],
+      ]);
 
       expect(outcome.ok).toBe(false);
       expect(outcome.errors.join("\n")).toContain("has no adjudication");

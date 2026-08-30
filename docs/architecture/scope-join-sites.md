@@ -12,20 +12,24 @@ converted to the scope REFERENCE via `ScopeUtils.qualifyInScope`, which
 walks the parent chain. Every row below carries the judgement that was made
 about it, so no reader has to re-derive which is which:
 
+- **via-scope-utils** -- already routed correctly, and matched only because
+  the enclosing block mentions a scope.
+- **leaf-keyed** -- paired with a collection filed under a leaf-built key.
+  Converting one side alone breaks the pairing, so the row names the
+  collection and the card that must move both.
 - **path** -- the first element is source text from a parse-tree identifier
   chain. `ids[0]` in `Scope.REG.MEMBER` is what the author wrote, so joining
   it rebuilds a lookup KEY rather than qualifying a member by its declaring
   scope. Under nesting the author writes more components and the INDEXING
   changes, not the join. `fromParts` documents this as its remaining use.
-- **leaf-keyed** -- paired with a collection filed under a leaf-built key.
-  Converting one side alone breaks the pairing, so the row names the
-  collection and the card that must move both.
-- **via-scope-utils** -- already routed correctly, and matched only because
-  the enclosing block mentions a scope.
 
-The kinds are applied in that order. They overlap as descriptions -- a site
-can be built from source text AND read a leaf-keyed map -- so a site takes
-the first that applies, which makes them a partition rather than labels.
+They overlap as descriptions -- a site can be built from source text AND
+read a leaf-keyed map -- so a site takes the FIRST kind above that applies,
+which makes them a partition rather than labels. **Nothing computes this.**
+The order is an instruction to whoever writes the row: `cnext/index.ts`'s
+`scopeName` is source text from a parse-tree identifier, and is still
+`leaf-keyed`, because being paired with a collection is the fact that
+decides what must move.
 
 This list may shrink freely. It may not grow: `npm run scope-joins:check`
 fails on a file that gains a site, on a call shape nobody has adjudicated,

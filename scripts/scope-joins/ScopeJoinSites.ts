@@ -21,12 +21,6 @@
  * 61 -> 65 with nothing going red.
  */
 
-/** One file's scope-denoting site count. */
-interface IFileCount {
-  readonly file: string;
-  readonly count: number;
-}
-
 /** One distinct call shape in one file, and how many times it occurs there. */
 interface ISite {
   readonly file: string;
@@ -36,8 +30,17 @@ interface ISite {
 
 /**
  * What kind of join a site performs. An ORDERED partition, not a set of labels:
- * the doc's three descriptions overlap (a site can be built from source text
- * AND read a leaf-keyed map), so a site takes the first kind that applies.
+ * the descriptions overlap (a site can be built from source text AND read a
+ * leaf-keyed map), so a site takes the FIRST kind that applies, in the order
+ * declared here.
+ *
+ * Nothing computes this. The ordering is an instruction to the human writing
+ * the row, which is why the generated preamble must list the kinds in this same
+ * order -- it is the only statement of the rule an adjudicator reads. The two
+ * disagreed once, and the preamble's order would have sent an adjudicator the
+ * other way on `cnext/index.ts`'s `scopeName`: source text from a parse-tree
+ * identifier, so `path` by description, but `leaf-keyed` is the answer that
+ * matters because it is paired with a collection.
  */
 type TKind = "via-scope-utils" | "leaf-keyed" | "path";
 
@@ -126,7 +129,7 @@ class ScopeJoinSites {
       kind: "path",
       pairedWith: null,
       movesWith: null,
-      why: "`ids[0]` of a parse-tree chain; under nesting the author writes more components and the INDEXING changes, not the join",
+      why: "`ids[0]` of a parse-tree chain, admitted by `isKnownScope(scopeName)` (`:229`, `:554`); under nesting the author writes more components and the INDEXING changes, not the join",
     },
     {
       file: "src/transpiler/output/codegen/assignment/AssignmentClassifier.ts",
@@ -158,7 +161,7 @@ class ScopeJoinSites {
       kind: "path",
       pairedWith: null,
       movesWith: null,
-      why: "source chain `Board.GPIO`, tested against `isKnownRegister` before any cross-scope check",
+      why: "source chain `Board.GPIO`, admitted by `deps.isKnownScope(identifierChain[0])`; the JOINED name is then tested against `isKnownRegister` before any cross-scope check",
     },
     {
       file: "src/transpiler/output/codegen/resolution/EnumTypeResolver.ts",
@@ -182,7 +185,7 @@ class ScopeJoinSites {
       kind: "path",
       pairedWith: null,
       movesWith: null,
-      why: "`global.Scope.method()` callee text; `parts[0]` is the `global` qualifier the author wrote",
+      why: "`global.Scope.method()` callee text, admitted by `isKnownScope(parts[1])` (`:221`); `parts[0]` is the `global` qualifier the author wrote",
     },
   ];
 
@@ -371,17 +374,6 @@ class ScopeJoinSites {
     );
   }
 
-  /** Per-file counts, ascending by path, omitting files with none. */
-  static count(sources: ReadonlyMap<string, string>): readonly IFileCount[] {
-    const perFile = new Map<string, number>();
-    for (const site of ScopeJoinSites.sites(sources)) {
-      perFile.set(site.file, (perFile.get(site.file) ?? 0) + site.count);
-    }
-    return [...perFile]
-      .map(([file, count]) => ({ file, count }))
-      .sort((a, b) => a.file.localeCompare(b.file));
-  }
-
   /**
    * The totals both `render` and `check` report.
    *
@@ -424,20 +416,24 @@ class ScopeJoinSites {
       "walks the parent chain. Every row below carries the judgement that was made",
       "about it, so no reader has to re-derive which is which:",
       "",
+      "- **via-scope-utils** -- already routed correctly, and matched only because",
+      "  the enclosing block mentions a scope.",
+      "- **leaf-keyed** -- paired with a collection filed under a leaf-built key.",
+      "  Converting one side alone breaks the pairing, so the row names the",
+      "  collection and the card that must move both.",
       "- **path** -- the first element is source text from a parse-tree identifier",
       "  chain. `ids[0]` in `Scope.REG.MEMBER` is what the author wrote, so joining",
       "  it rebuilds a lookup KEY rather than qualifying a member by its declaring",
       "  scope. Under nesting the author writes more components and the INDEXING",
       "  changes, not the join. `fromParts` documents this as its remaining use.",
-      "- **leaf-keyed** -- paired with a collection filed under a leaf-built key.",
-      "  Converting one side alone breaks the pairing, so the row names the",
-      "  collection and the card that must move both.",
-      "- **via-scope-utils** -- already routed correctly, and matched only because",
-      "  the enclosing block mentions a scope.",
       "",
-      "The kinds are applied in that order. They overlap as descriptions -- a site",
-      "can be built from source text AND read a leaf-keyed map -- so a site takes",
-      "the first that applies, which makes them a partition rather than labels.",
+      "They overlap as descriptions -- a site can be built from source text AND",
+      "read a leaf-keyed map -- so a site takes the FIRST kind above that applies,",
+      "which makes them a partition rather than labels. **Nothing computes this.**",
+      "The order is an instruction to whoever writes the row: `cnext/index.ts`'s",
+      "`scopeName` is source text from a parse-tree identifier, and is still",
+      "`leaf-keyed`, because being paired with a collection is the fact that",
+      "decides what must move.",
       "",
       "This list may shrink freely. It may not grow: `npm run scope-joins:check`",
       "fails on a file that gains a site, on a call shape nobody has adjudicated,",
@@ -534,7 +530,9 @@ class ScopeJoinSites {
       if (now < was) {
         errors.push(
           `${file}: \`${element}\` down from ${was} to ${now} -- run ` +
-            "`npm run scope-joins` to record the win",
+            "`npm run scope-joins` AND update its `ADJUDICATIONS` entry: drop " +
+            "it if the site is gone, re-key it if the expression was renamed. " +
+            "Regenerating alone cannot green this -- the entry is source code",
         );
       }
     }
