@@ -233,10 +233,7 @@ class ScopeUtils {
    * keeps its bare name, which is what makes `global.x` reachable.
    */
   static qualifyInScope(name: string, scope: IScopeSymbol | null): string {
-    if (!scope || ScopeUtils.isGlobalScope(scope)) {
-      return name;
-    }
-    return ScopeUtils.getTranspiledCName({ name, scope });
+    return ScopeUtils.qualifyPathInScope([name], scope);
   }
 
   /**
@@ -333,7 +330,23 @@ class ScopeUtils {
 
   /**
    * The C name a multi-part member path takes inside `scope`, or the bare joined
-   * path at file scope. The path-shaped counterpart to qualifyInScope.
+   * path at file scope. The one implementation; `qualifyInScope` is the
+   * single-component spelling of it.
+   *
+   * #1385 review: the two used to branch on the same guard and then both build
+   * `fromParts([...getScopePath(scope), ...])`, which is one decision written
+   * twice -- in the file whose entire purpose is being the one encoder.
+   *
+   * Collapsing them settles a divergence rather than introducing one. The old
+   * `qualifyInScope` returned a DOTTED name verbatim at file scope but expanded
+   * it inside a scope, because only the second path reached `fromParts`:
+   *
+   *     qualifyInScope("a.b", null)   -> "a.b"      <- did not expand
+   *     qualifyInScope("a.b", Motor)  -> "Motor__a__b"
+   *
+   * Both now expand. Nothing passes a dotted name today -- every one of the 21
+   * call sites hands over a bare identifier or an already-split component -- so
+   * this is behavior-preserving in practice and consistent for the first time.
    */
   static qualifyPathInScope(
     path: readonly string[],

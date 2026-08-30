@@ -528,7 +528,7 @@ function generateScopedEnumInline(
       const [memberName, value] = memberEntries[i];
       // #1285: an enum member is qualified by its ENUM, not by a scope, and
       // `fullName` is already fully qualified. Joining two qualified names is
-      // `QualifiedCName.join`; routing it through `forMember` was what forced that
+      // `QualifiedCName.fromParts`; routing it through `forMember` was what forced
       // helper to keep taking plain strings, hiding a scope encoder behind an enum one.
       const fullMemberName = QualifiedCName.fromParts([fullName, memberName]);
       const comma = i < memberEntries.length - 1 ? "," : "";

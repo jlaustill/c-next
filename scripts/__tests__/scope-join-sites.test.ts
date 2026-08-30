@@ -55,6 +55,83 @@ describe("ScopeJoinSites", () => {
     });
   });
 
+  describe("comment blindness (#1385 review)", () => {
+    it("does not count a call that appears in a block comment", () => {
+      // These calls are what the JSDoc in this repo is ABOUT, so the text the
+      // scan looks for appears in prose constantly. Counting a sentence creates
+      // a baseline row for a file with no such site, and the only way to green
+      // that is to record the phantom permanently.
+      expect(
+        ScopeJoinSites.firstElements(
+          "/** The drop-in for `QualifiedCName.fromParts([scopeName, name])`. */",
+        ),
+      ).toEqual([]);
+    });
+
+    it("does not count a call that appears in a line comment", () => {
+      expect(
+        ScopeJoinSites.firstElements(
+          "// was QualifiedCName.fromParts([scopeName, x]);",
+        ),
+      ).toEqual([]);
+    });
+
+    it("still counts the real call on a line that also has a comment", () => {
+      // Negative control: stripping comments must not swallow code beside them.
+      expect(
+        ScopeJoinSites.firstElements(
+          "const n = QualifiedCName.fromParts([scopeName, x]); // trailing note",
+        ),
+      ).toEqual(["scopeName"]);
+    });
+  });
+
+  describe("guard-proven elements (#1385 review)", () => {
+    // The document's criterion is "passes a scope's NAME as the first element".
+    // A name heuristic cannot see `parts[0]`; the predicate above it can.
+    const guarded = `
+      function f() {
+        if (CodeGenState.isKnownScope(parts[0])) {
+          return QualifiedCName.fromParts([parts[0], parts[1]]);
+        }
+      }`;
+
+    it("counts an element the enclosing block proves is a scope", () => {
+      expect(ScopeJoinSites.count(new Map([["src/a.ts", guarded]]))).toEqual([
+        { file: "src/a.ts", count: 1 },
+      ]);
+    });
+
+    it("does not count the same element with no guard", () => {
+      expect(
+        ScopeJoinSites.count(
+          new Map([
+            ["src/a.ts", "QualifiedCName.fromParts([parts[0], parts[1]]);"],
+          ]),
+        ),
+      ).toEqual([]);
+    });
+
+    it("does not count a guard that sits in a different block", () => {
+      // The false positive a file-wide search produces: three of nine on a naive
+      // pass, including two `ctx.result` calls guarded by `knownRegisters.has`
+      // while an unrelated function in the same file calls isKnownScope on it.
+      const elsewhere = `
+        function other() {
+          if (CodeGenState.isKnownScope(ctx.result)) { return 1; }
+        }
+        function f() {
+          if (knownRegisters.has(ctx.result)) {
+            return QualifiedCName.fromParts([ctx.result, memberName]);
+          }
+        }`;
+
+      expect(ScopeJoinSites.count(new Map([["src/a.ts", elsewhere]]))).toEqual(
+        [],
+      );
+    });
+  });
+
   describe("isScopeDenoting", () => {
     it.each([
       ["scopeName", true],

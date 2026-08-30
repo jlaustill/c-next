@@ -11,17 +11,19 @@ This list may shrink freely. It may not grow: `npm run scope-joins:check`
 fails on a file that gains a site or appears anew, so the population cannot
 drift upward unnoticed the way it did when #1348 moved it 61 to 65.
 
-| File                                                                  | Sites  |
-| --------------------------------------------------------------------- | ------ |
-| `src/transpiler/logic/analysis/FunctionCallAnalyzer.ts`               | 3      |
-| `src/transpiler/logic/analysis/helpers/CalleeNameResolver.ts`         | 2      |
-| `src/transpiler/logic/analysis/InitializationAnalyzer.ts`             | 1      |
-| `src/transpiler/logic/analysis/OperandTypeResolver.ts`                | 1      |
-| `src/transpiler/logic/analysis/PassByValueAnalyzer.ts`                | 2      |
-| `src/transpiler/logic/symbols/cnext/adapters/TSymbolInfoAdapter.ts`   | 1      |
-| `src/transpiler/logic/symbols/cnext/index.ts`                         | 1      |
-| `src/transpiler/output/codegen/assignment/AssignmentClassifier.ts`    | 2      |
-| `src/transpiler/output/codegen/assignment/handlers/BitmapHandlers.ts` | 1      |
-| `src/transpiler/output/codegen/resolution/EnumTypeResolver.ts`        | 1      |
-| `src/transpiler/state/SymbolRegistry.ts`                              | 1      |
-| **total**                                                             | **16** |
+| File                                                                          | Sites  |
+| ----------------------------------------------------------------------------- | ------ |
+| `src/transpiler/logic/analysis/FunctionCallAnalyzer.ts`                       | 3      |
+| `src/transpiler/logic/analysis/helpers/CalleeNameResolver.ts`                 | 3      |
+| `src/transpiler/logic/analysis/InitializationAnalyzer.ts`                     | 1      |
+| `src/transpiler/logic/analysis/OperandTypeResolver.ts`                        | 1      |
+| `src/transpiler/logic/analysis/PassByValueAnalyzer.ts`                        | 2      |
+| `src/transpiler/logic/symbols/cnext/adapters/TSymbolInfoAdapter.ts`           | 1      |
+| `src/transpiler/logic/symbols/cnext/index.ts`                                 | 1      |
+| `src/transpiler/output/codegen/assignment/AssignmentClassifier.ts`            | 3      |
+| `src/transpiler/output/codegen/assignment/handlers/AssignmentHandlerUtils.ts` | 1      |
+| `src/transpiler/output/codegen/assignment/handlers/BitmapHandlers.ts`         | 1      |
+| `src/transpiler/output/codegen/helpers/MemberSeparatorResolver.ts`            | 1      |
+| `src/transpiler/output/codegen/resolution/EnumTypeResolver.ts`                | 3      |
+| `src/transpiler/state/SymbolRegistry.ts`                                      | 1      |
+| **total**                                                                     | **22** |

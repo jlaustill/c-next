@@ -53,13 +53,48 @@ class ScopeJoinSites {
   private static readonly VIA_SCOPE_UTILS = "ScopeUtils.";
 
   /**
+   * `source` with comments removed.
+   *
+   * The scan is a text search, and in this codebase the text it looks for appears
+   * in JSDoc constantly -- these calls are what the prose is ABOUT
+   * (`ScopeUtils.ts` and `HeaderSymbolAdapter.ts` each carry one today). Counting
+   * a sentence produces a baseline row for a file with no such site, and the only
+   * way to green that is to record the phantom permanently. `ScopeUtils.ts` is
+   * precisely the file that must never hold a row, so the phantom would read as
+   * the encoder itself having regressed, with nothing saying it came from a
+   * comment.
+   *
+   * String literals are the other theoretical vector; no call is spelled inside
+   * one today, so they are deliberately not handled.
+   */
+  private static withoutComments(source: string): string {
+    return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+  }
+
+  /**
    * The first array element of each `fromParts([...])` call in `source`.
    *
    * Scans for the matching delimiter rather than matching a regex: several of
    * these calls span four lines and contain nested calls with their own commas.
    */
-  static firstElements(source: string): readonly string[] {
-    const found: string[] = [];
+  static firstElements(rawSource: string): readonly string[] {
+    return ScopeJoinSites.calls(rawSource).map((call) => call.element);
+  }
+
+  /**
+   * Every `fromParts([...])` call: its first element and where it sits.
+   *
+   * The position is what lets `isScopeDenoting` look at the ENCLOSING BLOCK. A
+   * file-wide search for the guard would count
+   * `PostfixExpressionGenerator`'s two `ctx.result` calls, which are guarded by
+   * `knownRegisters.has` while an unrelated function in the same file happens to
+   * call `isKnownScope(ctx.result)` -- three false positives out of nine on a
+   * naive pass, which is the argument for scoping the search rather than
+   * widening it.
+   */
+  static calls(rawSource: string): readonly { element: string; at: number }[] {
+    const source = ScopeJoinSites.withoutComments(rawSource);
+    const found: { element: string; at: number }[] = [];
     let from = 0;
     for (;;) {
       const at = source.indexOf(ScopeJoinSites.CALL, from);
@@ -83,9 +118,57 @@ class ScopeJoinSites {
         }
         element += c;
       }
-      found.push(element.trim().replace(/\s+/g, " "));
+      found.push({ element: element.trim().replace(/\s+/g, " "), at });
       from = i + 1;
     }
+  }
+
+  /**
+   * Is `element` proven to hold a scope name by a guard in its enclosing block?
+   *
+   * The committed document's criterion is "passes a scope's NAME as the first
+   * element". A name heuristic cannot see `parts[0]`, `ids[0]` or
+   * `identifierChain[0]` -- and nobody is going to rename those, so the module's
+   * stated mitigation ("caught the next time the expression is renamed") never
+   * fires for them. Six sites satisfied the document's criterion and went
+   * uncounted, which would have let PR 3 report a zero baseline with live sites
+   * remaining, and a zero licenses removing this gate.
+   *
+   * The window runs from the head of the enclosing block to the call, so the
+   * predicate must guard THIS call rather than merely appear in the file.
+   */
+  private static guardedByScopePredicate(
+    source: string,
+    element: string,
+    at: number,
+  ): boolean {
+    let depth = 0;
+    let open = -1;
+    for (let i = at; i >= 0; i--) {
+      const c = source[i];
+      if (c === "}") depth++;
+      else if (c === "{") {
+        if (depth === 0) {
+          open = i;
+          break;
+        }
+        depth--;
+      }
+    }
+    if (open < 0) return false;
+    // Back up over the block's header (`if (...)`) to the previous statement end.
+    let start = 0;
+    for (let i = open - 1; i >= 0; i--) {
+      if (";}{".includes(source[i])) {
+        start = i + 1;
+        break;
+      }
+    }
+    const window = source.slice(start, at);
+    const escaped = element.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp(`\\bis(?:Known)?Scope\\(\\s*${escaped}\\s*[),]`).test(
+      window,
+    );
   }
 
   /** Does this first element name a scope instead of an outermost component? */
@@ -100,8 +183,15 @@ class ScopeJoinSites {
   static count(sources: ReadonlyMap<string, string>): readonly IFileCount[] {
     const counts: IFileCount[] = [];
     for (const [file, source] of sources) {
-      const n = ScopeJoinSites.firstElements(source).filter((element) =>
-        ScopeJoinSites.isScopeDenoting(element),
+      const stripped = ScopeJoinSites.withoutComments(source);
+      const n = ScopeJoinSites.calls(source).filter(
+        (call) =>
+          ScopeJoinSites.isScopeDenoting(call.element) ||
+          ScopeJoinSites.guardedByScopePredicate(
+            stripped,
+            call.element,
+            call.at,
+          ),
       ).length;
       if (n > 0) {
         counts.push({ file, count: n });

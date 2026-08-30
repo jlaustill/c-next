@@ -62,9 +62,26 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const outcome = ScopeJoinSites.check(readFileSync(docPath, "utf-8"), counts);
+  const committed = readFileSync(docPath, "utf-8");
+  const outcome = ScopeJoinSites.check(committed, counts);
+  // The counts are not the whole document. Comparing only what the parser can
+  // read leaves the preamble, the header comment and the total row free to drift
+  // from what the generator emits, with the gate still green -- the sibling this
+  // script follows (diagnostic-manifest.ts) compares in full for that reason.
+  // `render` emits no timestamp and Prettier is deterministic, so equality holds.
+  const stale = document !== committed;
   for (const line of outcome.info) {
     console.log(chalk.green(line));
+  }
+  if (stale && outcome.ok) {
+    console.error(
+      chalk.red(
+        `${docPath} does not match what the generator produces, though the ` +
+          "counts agree -- prose or the total row was edited by hand. Run " +
+          "`npm run scope-joins`.",
+      ),
+    );
+    process.exit(1);
   }
   if (!outcome.ok) {
     console.error(

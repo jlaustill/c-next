@@ -425,7 +425,12 @@ Live diagnostics in the VS Code extension are tracked separately: every transpil
   `collectors-build-names-from-scopes` from the collectors seam to every directory
   measurably needing nothing from `QualifiedCName` (parser, preprocessor, data — 42
   files against the original 7), and `npm run scope-joins:check` holds the residual
-  population at `docs/architecture/scope-join-sites.md`, 16 sites across 11 files.
+  population at `docs/architecture/scope-join-sites.md`, 22 sites across 13 files.
+  That inventory counts an element as scope-denoting when its NAME says so or when
+  the enclosing block guards it with `is(Known)Scope(<that element>)`; a name
+  heuristic alone missed six sites spelled `parts[0]` or `identifierChain[0]`,
+  which nobody will ever rename, so the residue would have been undercounted and a
+  later zero would have licensed removing the gate.
   That inventory is keyed on per-file counts rather than `file:line`: #1374 records
   that a citation gate cannot detect two rows trading sites, and one unrelated
   eleven-site change silently invalidated eighteen `file:line` citations elsewhere in
