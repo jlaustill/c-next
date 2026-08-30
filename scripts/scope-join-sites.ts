@@ -42,15 +42,15 @@ function collectSources(): Map<string, string> {
 async function main(): Promise<void> {
   const mode = GeneratedMarkdown.requireMode(process.argv[2]);
 
-  const counts = ScopeJoinSites.count(collectSources());
+  const sites = ScopeJoinSites.sites(collectSources());
   const document = await GeneratedMarkdown.format(
-    ScopeJoinSites.render(counts),
+    ScopeJoinSites.render(sites),
     docPath,
   );
 
   if (mode === "write") {
     writeFileSync(docPath, document);
-    const total = counts.reduce((sum, row) => sum + row.count, 0);
+    const total = sites.reduce((sum, row) => sum + row.count, 0);
     console.log(chalk.green(`Wrote ${docPath} (${total} site(s))`));
     return;
   }
@@ -63,8 +63,8 @@ async function main(): Promise<void> {
   }
 
   const committed = readFileSync(docPath, "utf-8");
-  const outcome = ScopeJoinSites.check(committed, counts);
-  // The counts are not the whole document. Comparing only what the parser can
+  const outcome = ScopeJoinSites.check(committed, sites);
+  // The rows are not the whole document. Comparing only what the parser can
   // read leaves the preamble, the header comment and the total row free to drift
   // from what the generator emits, with the gate still green -- the sibling this
   // script follows (diagnostic-manifest.ts) compares in full for that reason.
