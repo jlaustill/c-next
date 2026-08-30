@@ -142,7 +142,7 @@ class OperandTypeResolver {
         // re-derived by hand (CLAUDE.md).
         return (
           CodeGenState.getFunctionReturnType(
-            QualifiedCName.fromParts([...nameParts]),
+            QualifiedCName.fromParts(nameParts),
           ) ?? null
         );
       }

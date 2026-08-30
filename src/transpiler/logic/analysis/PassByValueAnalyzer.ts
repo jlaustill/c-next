@@ -716,7 +716,7 @@ class PassByValueAnalyzer {
         // precedes the parenthesis, so opIndex > 0 and the chain is genuinely
         // qualified.
         if (opIndex > 0 && memberNames.length >= 1) {
-          const calleeName = QualifiedCName.fromParts([...memberNames]);
+          const calleeName = QualifiedCName.fromParts(memberNames);
           PassByValueAnalyzer.recordCallsFromArgList(
             funcName,
             paramSet,

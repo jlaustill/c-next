@@ -117,7 +117,7 @@ function generateQualifiedTypeLabel(node: CaseLabelContext): string | null {
   const qt = node.qualifiedType();
   if (!qt) return null;
   const parts = qt.IDENTIFIER();
-  return QualifiedCName.fromParts([...parts.map((id) => id.getText())]);
+  return QualifiedCName.fromParts(parts.map((id) => id.getText()));
 }
 
 /**
