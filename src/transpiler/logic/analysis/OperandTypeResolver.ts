@@ -23,6 +23,7 @@ import IScopeFrame from "./types/IScopeFrame";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 import CodeGenState from "../../state/CodeGenState";
 import QualifiedCName from "../../../utils/QualifiedCName";
+import ScopeUtils from "../../../utils/ScopeUtils";
 
 /** One step of a member/subscript/call chain. */
 interface IChainStep {
@@ -216,8 +217,8 @@ class OperandTypeResolver {
       // `this.member()` transpiles to a scope-qualified C name, so the callee
       // key needs the enclosing scope. `global.` is deliberately not qualified.
       baseName =
-        primary.THIS() !== null && frame.scopeName
-          ? QualifiedCName.fromParts([frame.scopeName, firstMember])
+        primary.THIS() !== null && frame.scope
+          ? ScopeUtils.qualifyInScope(firstMember, frame.scope)
           : firstMember;
       base = this.scopes.typeOfName(firstMember, frame);
     } else {

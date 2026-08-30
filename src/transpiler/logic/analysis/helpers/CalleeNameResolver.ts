@@ -20,7 +20,9 @@
 
 import * as Parser from "../../parser/grammar/CNextParser";
 import QualifiedCName from "../../../../utils/QualifiedCName";
+import ScopeUtils from "../../../../utils/ScopeUtils";
 import ICalleeResolution from "../types/ICalleeResolution";
+import type IScopeSymbol from "../../../types/symbols/IScopeSymbol";
 
 class CalleeNameResolver {
   /**
@@ -48,7 +50,7 @@ class CalleeNameResolver {
   static resolveMemberAccess(
     resolvedName: string,
     op: Parser.PostfixOpContext,
-    currentScope: string | null,
+    currentScope: IScopeSymbol | null,
     isScope: (name: string) => boolean,
   ): string | null {
     const memberName = op.IDENTIFIER()!.getText();
@@ -56,7 +58,7 @@ class CalleeNameResolver {
     // this.member -> CurrentScope__member (only meaningful inside a scope)
     if (resolvedName === "this") {
       return currentScope
-        ? QualifiedCName.fromParts([currentScope, memberName])
+        ? ScopeUtils.qualifyInScope(memberName, currentScope)
         : null;
     }
 
@@ -80,7 +82,7 @@ class CalleeNameResolver {
   static resolveCallTarget(
     ops: Parser.PostfixOpContext[],
     baseName: string,
-    currentScope: string | null,
+    currentScope: IScopeSymbol | null,
     isScope: (name: string) => boolean,
   ): ICalleeResolution {
     let resolvedName = baseName;
@@ -126,7 +128,7 @@ class CalleeNameResolver {
    */
   static resolveDetailed(
     postfix: Parser.PostfixExpressionContext,
-    currentScope: string | null,
+    currentScope: IScopeSymbol | null,
     isScope: (name: string) => boolean,
   ): { name: string; isGlobalCall: boolean } | null {
     const base = CalleeNameResolver.baseName(postfix.primaryExpression());
@@ -150,7 +152,7 @@ class CalleeNameResolver {
    */
   static resolve(
     postfix: Parser.PostfixExpressionContext,
-    currentScope: string | null,
+    currentScope: IScopeSymbol | null,
     isScope: (name: string) => boolean,
   ): string | null {
     return (
@@ -172,13 +174,13 @@ class CalleeNameResolver {
    */
   static scopeQualifiedCandidate(
     name: string,
-    currentScope: string | null,
+    currentScope: IScopeSymbol | null,
     isGlobalCall: boolean,
   ): string | null {
     if (!currentScope || isGlobalCall) return null;
     // Already qualified -- there is nothing to fall back from.
     if (QualifiedCName.isQualified(name)) return null;
-    return QualifiedCName.fromParts([currentScope, name]);
+    return ScopeUtils.qualifyInScope(name, currentScope);
   }
 }
 

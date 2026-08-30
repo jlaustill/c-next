@@ -19,6 +19,10 @@ import QualifiedCName from "../../../utils/QualifiedCName";
 import AdrProvenance from "../../state/AdrProvenance";
 import StdlibFunctions from "./StdlibFunctions";
 import CalleeNameResolver from "./helpers/CalleeNameResolver";
+import EnclosingScope from "./helpers/EnclosingScope";
+import ScopeUtils from "../../../utils/ScopeUtils";
+import SymbolRegistry from "../../state/SymbolRegistry";
+import type IScopeSymbol from "../../types/symbols/IScopeSymbol";
 
 /**
  * C-Next built-in functions
@@ -32,8 +36,8 @@ const CNEXT_BUILTINS: Set<string> = new Set(StdlibFunctions.builtinNames());
 class FunctionCallListener extends CNextListener {
   private readonly analyzer: FunctionCallAnalyzer;
 
-  /** Current scope name (for member function resolution) */
-  private currentScope: string | null = null;
+  /** The `scope` currently open, as a reference (#1357). */
+  private readonly enclosing = new EnclosingScope();
 
   constructor(analyzer: FunctionCallAnalyzer) {
     super();
@@ -89,12 +93,7 @@ class FunctionCallListener extends CNextListener {
     const name = ctx.IDENTIFIER().getText();
 
     // If inside a scope, the full name is Scope_functionName
-    let fullName: string;
-    if (this.currentScope) {
-      fullName = QualifiedCName.fromParts([this.currentScope, name]);
-    } else {
-      fullName = name;
-    }
+    const fullName = ScopeUtils.qualifyInScope(name, this.enclosing.current());
 
     // Track that we're currently inside this function (for self-recursion detection)
     this.analyzer.enterFunction(fullName);
@@ -115,13 +114,13 @@ class FunctionCallListener extends CNextListener {
   override enterScopeDeclaration = (
     ctx: Parser.ScopeDeclarationContext,
   ): void => {
-    this.currentScope = ctx.IDENTIFIER().getText();
+    this.enclosing.enter(ctx.IDENTIFIER().getText());
   };
 
   override exitScopeDeclaration = (
     _ctx: Parser.ScopeDeclarationContext,
   ): void => {
-    this.currentScope = null;
+    this.enclosing.exit();
   };
 
   // ========================================================================
@@ -154,7 +153,7 @@ class FunctionCallListener extends CNextListener {
       resolvedName,
       line,
       column,
-      this.currentScope,
+      this.enclosing.current(),
       isGlobalCall,
     );
   };
@@ -180,7 +179,7 @@ class FunctionCallListener extends CNextListener {
     return CalleeNameResolver.resolveCallTarget(
       ops,
       baseName,
-      this.currentScope,
+      this.enclosing.current(),
       (name) => this.analyzer.isScope(name),
     );
   }
@@ -195,7 +194,7 @@ class FunctionCallListener extends CNextListener {
     return CalleeNameResolver.resolveMemberAccess(
       resolvedName,
       op,
-      this.currentScope,
+      this.enclosing.current(),
       (name) => this.analyzer.isScope(name),
     );
   }
@@ -336,7 +335,9 @@ class FunctionCallAnalyzer {
       // Scope member functions
       if (decl.scopeDeclaration()) {
         const scopeDecl = decl.scopeDeclaration()!;
-        const scopeName = scopeDecl.IDENTIFIER().getText();
+        const scope = SymbolRegistry.getOrCreateScope(
+          scopeDecl.IDENTIFIER().getText(),
+        );
         for (const member of scopeDecl.scopeMember()) {
           if (member.functionDeclaration()) {
             const funcName = member
@@ -344,7 +345,7 @@ class FunctionCallAnalyzer {
               .IDENTIFIER()
               .getText();
             this.allLocalFunctions.add(
-              QualifiedCName.fromParts([scopeName, funcName]),
+              ScopeUtils.qualifyInScope(funcName, scope),
             );
           }
         }
@@ -737,14 +738,14 @@ class FunctionCallAnalyzer {
    * @param name The function name being called
    * @param line Source line number
    * @param column Source column number
-   * @param currentScope The current scope name (if inside a scope)
+   * @param currentScope The scope enclosing the call, or null at file scope
    * @param isGlobalCall Whether the call used global. prefix
    */
   public checkFunctionCall(
     name: string,
     line: number,
     column: number,
-    currentScope: string | null,
+    currentScope: IScopeSymbol | null,
     isGlobalCall: boolean = false,
   ): void {
     // Check for self-recursion (MISRA C:2012 Rule 17.2)
@@ -789,7 +790,7 @@ class FunctionCallAnalyzer {
     // e.g., calling helper() instead of this.helper() inside a scope
     // Skip for global. calls — global. explicitly means global scope
     if (currentScope && !isGlobalCall) {
-      const qualifiedName = QualifiedCName.fromParts([currentScope, name]);
+      const qualifiedName = ScopeUtils.qualifyInScope(name, currentScope);
       if (this.definedFunctions.has(qualifiedName)) {
         // #1241: the enclosing scope resolved a bare call -- ADR-057's rule
         // firing at a position. Recorded HERE, where the candidate is

@@ -19,12 +19,13 @@ import { ParserRuleContext } from "antlr4ng";
 import { CNextListener } from "../parser/grammar/CNextListener";
 import * as Parser from "../parser/grammar/CNextParser";
 import IScopeFrame from "./types/IScopeFrame";
+import EnclosingScope from "./helpers/EnclosingScope";
 
 class DeclarationScopeCollector extends CNextListener {
   private readonly globalFrame: IScopeFrame = {
     vars: new Map(),
     parent: null,
-    scopeName: null,
+    scope: null,
   };
 
   // eslint-disable-next-line @typescript-eslint/lines-between-class-members
@@ -45,13 +46,18 @@ class DeclarationScopeCollector extends CNextListener {
     return this.stack.at(-1) ?? this.globalFrame;
   }
 
-  private pushFrame(node: ParserRuleContext, scopeName?: string): void {
+  private pushFrame(node: ParserRuleContext, scopeLeaf?: string): void {
     const parent = this.top();
     const frame: IScopeFrame = {
       vars: new Map(),
       parent,
       // Inherited so a nested block inside a scope still knows its scope.
-      scopeName: scopeName ?? parent.scopeName,
+      // #1357: descending from the PARENT scope keeps the outer components, so
+      // a scope declared inside another is not flattened to its leaf.
+      scope:
+        scopeLeaf === undefined
+          ? parent.scope
+          : EnclosingScope.child(parent.scope, scopeLeaf),
     };
     this.frameOf.set(node, frame);
     this.stack.push(frame);

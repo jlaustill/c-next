@@ -126,10 +126,17 @@ class PassByValueAnalyzer {
     // A scope field is indexed under its transpiled name (`Bus__listener`),
     // while the call graph records the bare name the source used, so qualify
     // with the caller's own scope before giving up.
-    const callerScope = QualifiedCName.split(callerName)[0];
-    if (!callerScope || callerScope === callerName) return false;
+    //
+    // #1357: swap the caller's own leaf for the field name, keeping every
+    // component before it. Taking `split(...)[0]` read only the OUTERMOST
+    // component, so at depth two `Outer__Inner__handler` asked about
+    // `Outer__field` -- a name that does not exist -- instead of
+    // `Outer__Inner__field`.
+    const parts = QualifiedCName.split(callerName);
+    if (parts.length < 2) return false;
+    parts[parts.length - 1] = root;
     return PassByValueAnalyzer.nameIsValueSymbol(
-      QualifiedCName.fromParts([callerScope, root]),
+      QualifiedCName.fromParts(parts),
     );
   }
 
@@ -334,13 +341,16 @@ class PassByValueAnalyzer {
       // Handle scope-level functions
       if (decl.scopeDeclaration()) {
         const scopeDecl = decl.scopeDeclaration()!;
-        const scopeName = scopeDecl.IDENTIFIER().getText();
+        // #1357: the scope REFERENCE, so qualification walks the parent chain.
+        const scope = SymbolRegistry.getOrCreateScope(
+          scopeDecl.IDENTIFIER().getText(),
+        );
 
         for (const member of scopeDecl.scopeMember()) {
           if (member.functionDeclaration()) {
             const funcDecl = member.functionDeclaration()!;
             const funcName = funcDecl.IDENTIFIER().getText();
-            const fullName = QualifiedCName.fromParts([scopeName, funcName]);
+            const fullName = ScopeUtils.qualifyInScope(funcName, scope);
             PassByValueAnalyzer.analyzeFunctionForModifications(
               fullName,
               funcDecl,
