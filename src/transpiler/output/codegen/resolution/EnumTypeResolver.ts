@@ -19,7 +19,6 @@ import CodeGenState from "../../../state/CodeGenState";
 import TypeResolver from "../TypeResolver";
 import ExpressionUnwrapper from "../../../../utils/ExpressionUnwrapper";
 import QualifiedCName from "../../../../utils/QualifiedCName";
-import ScopeUtils from "../../../../utils/ScopeUtils";
 import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
 
 /**
@@ -207,9 +206,9 @@ export default class EnumTypeResolver {
     } else if (parts.length === 2) {
       if (parts[0] === "this" && CodeGenState.currentScope) {
         // this.method() -> Scope_method
-        fullFuncName = ScopeUtils.qualifyInScope(
-          parts[1],
+        fullFuncName = QualifiedNameGenerator.forMember(
           CodeGenState.currentScope,
+          parts[1],
         );
       } else if (parts[0] === "global") {
         // global.func() -> func
