@@ -628,6 +628,23 @@ A task is NOT complete until:
 
 See [`releasing.md`](releasing.md) for complete process.
 
+**Release attribution is derived, never recorded.** `npm run release:milestones`
+gives every issue and pull request the milestone of the release that shipped it,
+taken from the first tag containing its closing merge commit; `:check` reports
+drift and writes nothing. It runs at the end of `publish.yml`, so a release
+attributes itself, and the same command is also the backfill and the drift check
+— one derivation, not three. The only milestone set by hand is the one on the
+release issue, naming the version being prepared; the script reads it from the
+open milestone that is not yet a tag.
+
+An item closed by hand with no linked commit is **reported, not guessed at** —
+an issue can close months after its fix shipped (#916 closed 2026-06-20; its fix
+shipped in v0.2.7 on 2026-02-23), and a commit names an issue before it fixes
+one, so both cheap heuristics are wrong in opposite directions. A pull request
+merged into a stack that never landed is `not-shipped`: GitHub calls #1276 and
+#1284 `MERGED` while their code is not on `main`, because `state: MERGED`
+conflates merged with shipped and `git merge-base --is-ancestor` does not.
+
 VS Code extension updates (if grammar changed):
 
 1. `npm run antlr`

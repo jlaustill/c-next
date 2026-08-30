@@ -125,6 +125,60 @@ answers.
 The checklist inside the template is the operational one; the reasoning behind
 each step lives in [`releasing.md`](../releasing.md).
 
+### Which release something shipped in is derived, not recorded
+
+**Do not set a milestone to say what has already shipped.** The only milestone
+anyone sets by hand is the one on the release issue, which names the version
+being prepared. Everything else is written by `npm run release:milestones`,
+from a fact about the repository: the first tag containing the merge commit
+that closed the item.
+
+It runs at the end of `publish.yml`, so a release attributes itself. The same
+command run at any time is also the backfill and the drift check -- one
+derivation, no second answer to disagree with the first.
+
+Recorded by hand it drifted, twice over. Every pull request merged from #1327
+onward carried no milestone and nothing noticed for four days. And #1157
+carried `v0.3.1` while its fix was already an ancestor of the `v0.3.0` tag: it
+closed one second after the tag commit, which is not a race a person can be
+expected to win.
+
+Two things it will not do, both by design:
+
+- An item closed by hand with no linked commit or pull request is **reported,
+  never guessed at**. Two heuristics were measured and both are unsafe -- an
+  issue can close months after its fix shipped (#916 closed 2026-06-20; its fix
+  shipped in v0.2.7 on 2026-02-23), and a commit can name an issue before
+  fixing it.
+- A pull request merged into a stack that never landed is `not-shipped`, not
+  attributed. GitHub reports #1276 and #1284 as `MERGED`; their code is not on
+  `main`. `state: MERGED` conflates merged with shipped, and
+  `git merge-base --is-ancestor` does not.
+
+### Who runs the check
+
+`npm run release:milestones:check` reports drift and writes nothing. It is
+**not** a CI gate, deliberately: a pull request becomes a merged pull request
+with no milestone the instant it lands, so gating on it would redden every
+other open pull request until someone ran `apply`.
+
+So it is run by hand, at two moments:
+
+| When                      | Why                                                                                                                                     |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Preparing a release       | The release issue's own checklist -- confirms the previous release is fully attributed before another one is cut                        |
+| After `publish.yml` warns | The attribution step is `continue-on-error`, and emits a `::warning::` when it fails. That warning is the signal to run `apply` locally |
+
+Nothing else is watching, which is the honest position: the derivation is
+idempotent and self-healing, so the cost of a missed run is a delay, not a
+wrong answer.
+
+Run `git fetch` first when running it locally. The derivation reads this clone,
+so a merge commit that has not arrived yet is indistinguishable from one that
+never landed, and reports as `not-shipped`. It costs a false referral, never a
+wrong milestone -- the run writes only answers it owns -- and `publish.yml`
+checks out fresh with `fetch-depth: 0`, so CI cannot hit it.
+
 ---
 
 ## Board setup

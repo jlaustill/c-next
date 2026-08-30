@@ -28,7 +28,8 @@
 import { execFileSync } from "node:child_process";
 import chalk from "chalk";
 
-const OWNER = "jlaustill";
+import Repo from "./utils/Repo";
+
 const PROJECT_TITLE = "C-Next";
 const PROJECT_DESCRIPTION =
   "Issue, PR and release tracking for C-Next. Workflow: docs/WORKFLOW.md";
@@ -252,7 +253,7 @@ class SetupProject {
           }
         }
       `,
-        { owner: OWNER, name },
+        { owner: Repo.OWNER, name },
       ) as unknown as {
         repository: { id: string; projectsV2: { nodes: { id: string }[] } };
       };
@@ -261,11 +262,11 @@ class SetupProject {
         (node) => node.id === projectId,
       );
       if (alreadyLinked) {
-        SetupProject.skip(`${OWNER}/${name} already linked`);
+        SetupProject.skip(`${Repo.OWNER}/${name} already linked`);
         continue;
       }
       if (SetupProject.dryRun) {
-        SetupProject.record(`would link ${OWNER}/${name}`);
+        SetupProject.record(`would link ${Repo.OWNER}/${name}`);
         continue;
       }
 
@@ -279,7 +280,7 @@ class SetupProject {
       `,
         { projectId, repositoryId: repository.repository.id },
       );
-      SetupProject.record(`linked ${OWNER}/${name}`);
+      SetupProject.record(`linked ${Repo.OWNER}/${name}`);
     }
   }
 
@@ -397,8 +398,8 @@ class SetupProject {
             }
           `,
             cursor === ""
-              ? { owner: OWNER, name }
-              : { owner: OWNER, name, cursor },
+              ? { owner: Repo.OWNER, name }
+              : { owner: Repo.OWNER, name, cursor },
           ) as unknown as {
             repository: Record<
               string,

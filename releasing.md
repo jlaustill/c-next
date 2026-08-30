@@ -79,6 +79,12 @@ git push origin v0.1.19
 
 The GitHub Actions workflow will automatically publish to npm when a new tag is pushed.
 
+It then runs `npm run release:milestones`, which gives every issue and pull
+request the milestone of the release that shipped it -- derived from the first
+tag containing its closing merge commit, not recorded by hand. Nothing to do:
+see [`docs/WORKFLOW.md`](./docs/WORKFLOW.md#which-release-something-shipped-in-is-derived-not-recorded).
+If that step fails it does not block the publish; re-run the command locally.
+
 ## CHANGELOG Format
 
 Follow [Keep a Changelog](https://keepachangelog.com/):

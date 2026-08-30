@@ -13,10 +13,17 @@ jobs:
     permissions:
       contents: write # Required for creating GitHub releases
       id-token: write # Required for npm provenance
+      issues: write # Required to set release milestones (Issue #1388)
+      pull-requests: write # Milestones on pull requests go through the same API
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          # The derivation asks which tag first contains a merge commit, so it
+          # needs every tag and every commit. The default shallow checkout has
+          # neither, and would attribute the whole history to this release.
+          fetch-depth: 0
 
       - name: Setup Volta
         uses: volta-cli/action@v4
@@ -47,3 +54,27 @@ jobs:
             See [CHANGELOG.md](https://github.com/jlaustill/c-next/blob/main/CHANGELOG.md) for details.
           draft: false
           prerelease: false
+
+      # Stamps every issue and pull request with the release that shipped it,
+      # derived from the closing merge commit rather than recorded by hand.
+      # Runs last: a failure here must not block the publish, and the run is
+      # idempotent, so `npm run release:milestones` recovers it locally.
+      - name: Attribute issues and pull requests to this release
+        id: attribute
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run release:milestones
+
+      # `continue-on-error` alone would make this the one automation that
+      # cannot report itself broken -- a token scope, or a rate limit outliving
+      # the retries mid-run, would leave a green job and no signal until the
+      # next release. That is the failure this whole issue is about, so the
+      # outcome is surfaced rather than swallowed.
+      - name: Report attribution failure
+        if: steps.attribute.outcome == 'failure'
+        run: |
+          echo "::warning title=Release attribution did not run::" \
+            "Issues and pull requests were not stamped with ${{ github.ref_name }}." \
+            "Nothing is lost -- the derivation is idempotent." \
+            "Re-run locally: npm run release:milestones"
