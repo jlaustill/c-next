@@ -44,7 +44,15 @@ interface IPullRequestNode {
 }
 
 class ReleaseItems {
-  /** Drops empties so `candidateShas` never carries a hole to look up. */
+  /**
+   * Drops empties so `candidateShas` never carries a hole to look up.
+   *
+   * The empty-string case is not decoration. A `""` reaching `candidateShas`
+   * would be looked up, miss, and make the item `not-shipped` -- "a commit
+   * exists and no release contains it", which is a claim about a stack that
+   * never landed. An absent oid supports no such claim; the truthful reason is
+   * `underivable`. The two are triaged differently, so the difference is real.
+   */
   private static compact(
     shas: readonly (string | null | undefined)[],
   ): string[] {

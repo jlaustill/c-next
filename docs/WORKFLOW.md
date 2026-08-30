@@ -155,7 +155,23 @@ Two things it will not do, both by design:
   `main`. `state: MERGED` conflates merged with shipped, and
   `git merge-base --is-ancestor` does not.
 
-`npm run release:milestones:check` reports drift and writes nothing.
+### Who runs the check
+
+`npm run release:milestones:check` reports drift and writes nothing. It is
+**not** a CI gate, deliberately: a pull request becomes a merged pull request
+with no milestone the instant it lands, so gating on it would redden every
+other open pull request until someone ran `apply`.
+
+So it is run by hand, at two moments:
+
+| When                      | Why                                                                                                                                     |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Preparing a release       | The release issue's own checklist -- confirms the previous release is fully attributed before another one is cut                        |
+| After `publish.yml` warns | The attribution step is `continue-on-error`, and emits a `::warning::` when it fails. That warning is the signal to run `apply` locally |
+
+Nothing else is watching, which is the honest position: the derivation is
+idempotent and self-healing, so the cost of a missed run is a delay, not a
+wrong answer.
 
 Run `git fetch` first when running it locally. The derivation reads this clone,
 so a merge commit that has not arrived yet is indistinguishable from one that

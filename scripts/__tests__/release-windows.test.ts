@@ -88,8 +88,8 @@ describe("ReleaseWindows.build", () => {
 
 describe("ReleaseWindows.preparing", () => {
   it("names the open milestone that is not yet a tag", () => {
-    expect(ReleaseWindows.preparing(["v0.3.1"], ["v0.2.18", "v0.3.0"])).toBe(
-      "v0.3.1",
+    expect(ReleaseWindows.preparing(["v0.3.1"], ["v0.2.18", "v0.3.0"])).toEqual(
+      { milestone: "v0.3.1", ambiguous: [] },
     );
   });
 
@@ -97,7 +97,10 @@ describe("ReleaseWindows.preparing", () => {
     // A milestone stays open until someone closes it, so a shipped release can
     // still be open. Treating it as the one in preparation would attribute
     // every in-flight merge to a release that is already out.
-    expect(ReleaseWindows.preparing(["v0.3.0"], ["v0.3.0"])).toBeNull();
+    expect(ReleaseWindows.preparing(["v0.3.0"], ["v0.3.0"])).toEqual({
+      milestone: null,
+      ambiguous: [],
+    });
   });
 
   it("ignores an open milestone that does not name a release", () => {
@@ -105,19 +108,41 @@ describe("ReleaseWindows.preparing", () => {
     // milestones name releases and nothing else, but the repository has one.
     expect(
       ReleaseWindows.preparing(["v1 Test Coverage Complete"], ["v0.3.0"]),
-    ).toBeNull();
+    ).toEqual({ milestone: null, ambiguous: [] });
   });
 
   it("returns null when nothing is being prepared", () => {
-    expect(ReleaseWindows.preparing([], ["v0.3.0"])).toBeNull();
+    expect(ReleaseWindows.preparing([], ["v0.3.0"])).toEqual({
+      milestone: null,
+      ambiguous: [],
+    });
   });
 
   it("refuses two candidates rather than choosing by sort order", () => {
     // The run writes milestones, so a guess here is a guess written across the
     // backlog.
-    expect(() =>
-      ReleaseWindows.preparing(["v0.3.1", "v0.4.0"], ["v0.3.0"]),
-    ).toThrow(/Ambiguous release in preparation: v0\.3\.1, v0\.4\.0/);
+    expect(ReleaseWindows.preparing(["v0.3.1", "v0.4.0"], ["v0.3.0"])).toEqual({
+      milestone: null,
+      ambiguous: ["v0.3.1", "v0.4.0"],
+    });
+  });
+
+  it("keeps attributing shipped work when the next release is ambiguous", () => {
+    // Opening v0.3.2 while v0.3.1 is untagged is ordinary planning. Throwing
+    // would also stop the released work being attributed, which is never
+    // ambiguous -- a tool whose purpose is that nothing stops noticing must not
+    // go quiet over a second milestone.
+    const { milestone, ambiguous } = ReleaseWindows.preparing(
+      ["v0.3.1", "v0.3.2"],
+      ["v0.3.0"],
+    );
+    const windows = ReleaseWindows.build(
+      ["v0.3.0"],
+      milestone === null ? null : { milestone, head: "origin/main" },
+      () => ["sha"],
+    );
+    expect(ambiguous).toHaveLength(2);
+    expect(windows.map((w) => w.milestone)).toEqual(["v0.3.0"]);
   });
 });
 

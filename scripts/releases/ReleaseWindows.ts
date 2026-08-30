@@ -8,7 +8,19 @@
 
 import type IReleaseWindow from "../types/IReleaseWindow";
 
-/** `vMAJOR.MINOR.PATCH`, the only tag shape `publish.yml` reacts to. */
+/**
+ * `vMAJOR.MINOR.PATCH` -- deliberately stricter than what starts a publish.
+ *
+ * `publish.yml` triggers on the glob `v*.*.*`, and an Actions glob lets `*`
+ * match any run of characters, so `v0.4.0-rc.1` and `v1.2.3.4` both fire it.
+ * They are not releases for attribution: a prerelease ships nothing that a
+ * milestone should name, so it contributes no window and the work it contains
+ * stays attributed to the release being prepared -- which is where it will
+ * actually ship.
+ *
+ * An earlier version of this comment claimed the regex was the only shape the
+ * workflow reacts to. That was checkable and false.
+ */
 const RELEASE_TAG = /^v\d+\.\d+\.\d+$/;
 
 class ReleaseWindows {
@@ -86,27 +98,30 @@ class ReleaseWindows {
    * milestone, so reading it beats a flag -- the board and this script cannot
    * disagree about which version is next.
    *
-   * Two candidates is refused rather than resolved. Picking one would attribute
-   * every in-flight merge to a release chosen by sort order, and the run writes
-   * milestones, so a wrong guess here is a wrong guess written across the
-   * backlog.
+   * Two candidates is refused rather than resolved: picking one would attribute
+   * every in-flight merge to a release chosen by sort order, and this run
+   * writes milestones, so a guess here is a guess written across the backlog.
+   *
+   * Refused, but not fatal. Opening `v0.3.2` while `v0.3.1` is still untagged
+   * is ordinary planning, and aborting on it would also stop the *released*
+   * work being attributed -- which is never ambiguous. So ambiguity drops only
+   * the unreleased window and is returned for the caller to report, rather than
+   * thrown. A tool whose whole purpose is that nothing stops noticing should
+   * not go quiet over a second milestone.
    */
   static preparing(
     openMilestoneTitles: readonly string[],
     tags: readonly string[],
-  ): string | null {
+  ): { milestone: string | null; ambiguous: readonly string[] } {
     const tagged = new Set(tags);
     const candidates = ReleaseWindows.releaseTags(openMilestoneTitles).filter(
       (title) => !tagged.has(title),
     );
 
     if (candidates.length > 1) {
-      throw new Error(
-        `Ambiguous release in preparation: ${candidates.join(", ")}. ` +
-          "Exactly one open milestone may name an untagged release.",
-      );
+      return { milestone: null, ambiguous: candidates };
     }
-    return candidates[0] ?? null;
+    return { milestone: candidates[0] ?? null, ambiguous: [] };
   }
 }
 

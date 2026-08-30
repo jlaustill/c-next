@@ -144,3 +144,28 @@ describe("ReleaseItems.fromPullRequestNodes", () => {
     ).toEqual([]);
   });
 });
+
+describe("ReleaseItems empty-oid handling", () => {
+  it("drops an empty oid so the item reads as underivable, not not-shipped", () => {
+    // Not a filter for its own sake. A "" would be looked up, miss, and make
+    // the item `not-shipped` -- a claim that a commit exists and no release
+    // contains it. An absent oid supports no such claim, and the two reasons
+    // are triaged differently.
+    expect(
+      ReleaseItems.fromIssueNodes([
+        {
+          number: 5,
+          timelineItems: { nodes: [{ closer: { oid: "" } }] },
+        },
+      ] as never)[0].candidateShas,
+    ).toEqual([]);
+  });
+
+  it("drops an empty merge-commit oid on a pull request too", () => {
+    expect(
+      ReleaseItems.fromPullRequestNodes([
+        { number: 6, mergeCommit: { oid: "" } },
+      ] as never)[0].candidateShas,
+    ).toEqual([]);
+  });
+});

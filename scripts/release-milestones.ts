@@ -32,25 +32,14 @@ import chalk from "chalk";
 
 import ReleaseAttribution from "./releases/ReleaseAttribution";
 import ReleaseItems from "./releases/ReleaseItems";
+import MilestoneWriter from "./releases/MilestoneWriter";
 import ReleaseWindows from "./releases/ReleaseWindows";
+import Repo from "./utils/Repo";
 import type IReleaseAssignment from "./types/IReleaseAssignment";
 import type IReleaseItem from "./types/IReleaseItem";
 
-const OWNER = "jlaustill";
-const REPO = "c-next";
-
 /** The branch releases are cut from; the unreleased window is measured to it. */
 const DEFAULT_BRANCH = "main";
-
-/**
- * GitHub asks for roughly a second between writes and answers a burst with a
- * secondary rate limit rather than an error you can retry blindly. A backfill
- * is ~400 writes, so it is paced rather than fired.
- */
-const WRITE_INTERVAL_MS = 1100;
-
-/** First backoff after a rejected write; doubled on each further attempt. */
-const RETRY_BASE_MS = 15_000;
 
 interface IMilestone {
   number: number;
@@ -117,18 +106,27 @@ function lines(output: string): string[] {
   return output.split("\n").filter((line) => line.length > 0);
 }
 
-/** Walks a paginated connection, returning every node. */
-function paginate(query: string, path: string): unknown[] {
-  const nodes: unknown[] = [];
+/**
+ * Walks a paginated connection, returning every node.
+ *
+ * Generic rather than `unknown[]`: the concrete type flows in from the argument
+ * position at the call site, so the node interfaces stay private to
+ * `ReleaseItems` and no `as never` is needed. `as never` is assignable to any
+ * parameter, so it would have silenced a drift between these queries and the
+ * shapes that parse them -- at the boundary where a wrong assumption becomes a
+ * wrong milestone written across hundreds of items.
+ */
+function paginate<T>(query: string, path: string): T[] {
+  const nodes: T[] = [];
   let after: string | null = null;
   for (;;) {
     const args = [
       "api",
       "graphql",
       "-f",
-      `owner=${OWNER}`,
+      `owner=${Repo.OWNER}`,
       "-f",
-      `name=${REPO}`,
+      `name=${Repo.NAME}`,
     ];
     if (after !== null) {
       args.push("-f", `after=${after}`);
@@ -156,7 +154,7 @@ function milestones(): IMilestone[] {
     gh([
       "api",
       "--paginate",
-      `repos/${OWNER}/${REPO}/milestones?state=all&per_page=100`,
+      `repos/${Repo.slug()}/milestones?state=all&per_page=100`,
       "--jq",
       ".[] | {number, title, state}",
     ]),
@@ -180,20 +178,11 @@ function ensureMilestones(
     if (byTitle.has(title)) {
       continue;
     }
-    const args = [
-      "api",
-      `repos/${OWNER}/${REPO}/milestones`,
-      "-X",
-      "POST",
-      "-f",
-      `title=${title}`,
-      "-f",
-      "description=Release milestone. Assigned by scripts/release-milestones.ts: the closing merge commit is contained in this release.",
-    ];
-    const due = tagDates.get(title);
-    if (due !== undefined) {
-      args.push("-f", `due_on=${due}`);
-    }
+    const args = MilestoneWriter.createArgs(
+      Repo.slug(),
+      title,
+      tagDates.get(title),
+    );
     const created = JSON.parse(gh([...args, "--jq", "{number:.number}"]));
     byTitle.set(title, created.number);
     console.log(chalk.green(`  created milestone ${title}`));
@@ -201,72 +190,40 @@ function ensureMilestones(
   return byTitle;
 }
 
-/**
- * One milestone write, retried through a secondary rate limit.
- *
- * `-f` sends an empty string, which is how the REST API is told to clear a
- * milestone; `-F` sends the number as a typed value. A cleared milestone and a
- * milestone numbered zero are different requests, so the flag is chosen by the
- * value rather than fixed.
- */
-async function writeMilestone(
-  change: IReleaseAssignment,
-  byTitle: ReadonlyMap<string, number>,
-): Promise<void> {
-  const target =
-    change.derived === null ? "" : String(byTitle.get(change.derived));
-  const args = [
-    "api",
-    `repos/${OWNER}/${REPO}/issues/${change.number}`,
-    "-X",
-    "PATCH",
-    change.derived === null ? "-f" : "-F",
-    `milestone=${target}`,
-    "--jq",
-    ".number",
-  ];
-
-  for (let attempt = 0; ; attempt += 1) {
-    try {
-      gh(args);
-      return;
-    } catch (error) {
-      // A backfill is a thousand writes, so a secondary rate limit is a normal
-      // event rather than a failure. Three attempts, then let it stop -- the
-      // run is idempotent, so re-running resumes where it left off.
-      if (attempt >= 2) {
-        throw error;
-      }
-      const wait = RETRY_BASE_MS * 2 ** attempt;
-      console.warn(
-        chalk.yellow(`  #${change.number} write failed, retrying in ${wait}ms`),
-      );
-      await pause(wait);
-    }
-  }
-}
-
 async function applyChanges(
   changes: readonly IReleaseAssignment[],
   byTitle: ReadonlyMap<string, number>,
 ): Promise<void> {
   for (const [done, change] of changes.entries()) {
-    await writeMilestone(change, byTitle);
+    const milestone =
+      change.derived === null
+        ? null
+        : (byTitle.get(change.derived) ?? Number.NaN);
+    await MilestoneWriter.write(
+      MilestoneWriter.patchArgs(Repo.slug(), change.number, milestone),
+      (args) => gh(args),
+      pause,
+      (attempt, waitMs) => {
+        console.warn(
+          chalk.yellow(
+            `  #${change.number} write failed (attempt ${attempt + 1}/${MilestoneWriter.maxAttempts}), retrying in ${waitMs}ms`,
+          ),
+        );
+      },
+    );
     console.log(
       chalk.green(
         `  [${done + 1}/${changes.length}] ${ReleaseAttribution.describe(change)}`,
       ),
     );
-    await pause(WRITE_INTERVAL_MS);
+    await pause(MilestoneWriter.intervalMs);
   }
 }
 
 function collectItems(): IReleaseItem[] {
   return [
-    ...ReleaseItems.fromIssueNodes(paginate(ISSUE_QUERY, "issues") as never),
-    ...ReleaseItems.fromPullRequestNodes(
-      paginate(PR_QUERY, "pullRequests") as never,
-    ),
+    ...ReleaseItems.fromIssueNodes(paginate(ISSUE_QUERY, "issues")),
+    ...ReleaseItems.fromPullRequestNodes(paginate(PR_QUERY, "pullRequests")),
   ];
 }
 
@@ -289,10 +246,19 @@ async function main(): Promise<void> {
   const tagDates = new Map(tagRefs.map(([tag, date]) => [tag, date]));
 
   const existing = milestones();
-  const preparing = ReleaseWindows.preparing(
+  const { milestone: preparing, ambiguous } = ReleaseWindows.preparing(
     existing.filter((m) => m.state === "open").map((m) => m.title),
     tags,
   );
+  if (ambiguous.length > 0) {
+    console.warn(
+      chalk.yellow(
+        `  warning: ${ambiguous.join(" and ")} are both open and untagged, so ` +
+          "which release is in preparation cannot be told. Attributing shipped " +
+          "work only; unreleased merges are left alone until one is tagged.",
+      ),
+    );
+  }
   const head = ReleaseWindows.headRef(
     [`origin/${DEFAULT_BRANCH}`, DEFAULT_BRANCH, "HEAD"],
     refExists,
@@ -330,8 +296,8 @@ async function main(): Promise<void> {
   if (plan.referrals.some((referral) => referral.reason === "not-shipped")) {
     console.warn(
       chalk.yellow(
-        "  note: `not-shipped` means the merge commit is on no tag and not on " +
-          "HEAD. Run `git fetch` and re-run if this clone may be behind.",
+        "  note: `not-shipped` means the merge commit is on no tag and not " +
+          `on ${head}. Run \`git fetch\` and re-run if this clone may be behind.`,
       ),
     );
   }
