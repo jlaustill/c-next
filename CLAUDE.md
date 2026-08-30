@@ -131,7 +131,19 @@ When in doubt: **ASK.** Syntax changes require ADR discussion and user approval.
 
 **Always use `dryRun: true` first.** Gotcha: May add `.ts` extensions to imports — remove them manually after moves.
 
-**Layer constraints (depcruise)**: `logic/` cannot import from `output/`. Check import dependencies before choosing extraction location.
+**Layer constraints (depcruise)**: `data/` cannot import from `logic/` or `output/`, and
+`logic/` and `state/` cannot import from `output/` — all four **transitively**, not just as a
+direct edge. Check import dependencies before choosing extraction location; shared contracts
+go in `transpiler/types/`, which every layer may depend on. Until #1297 these matched direct
+edges only, so `logic/ -> state/ -> output/` was live through `CodeGenState` while CI printed
+`no dependency violations found` — ten analyzers coupled to codegen's type vocabulary with the
+guard green. A rule that cannot fail on the case it exists to catch is the
+`/* test-no-warnings */` shape (#1143) at the architecture level, so the property is asserted
+rather than remembered: `scripts/__tests__/layer-rules.test.ts` requires every rule whose
+`from` and `to` are both transpiler paths to carry `reachable: true`. It keys on that shape
+because transitivity is wrong for the other rules — `collectors-build-names-from-scopes` names
+a single utility module and yields seven errors under `reachable`, since everything reaches
+`QualifiedCName` through `utils/`.
 
 **Local MISRA validation**: `sudo apt-get install cppcheck` then `npm run validate:c`
 

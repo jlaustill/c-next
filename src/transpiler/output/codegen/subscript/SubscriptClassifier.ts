@@ -31,7 +31,7 @@
  * documented and supported spelling — see tests/params/param-array-indexing.test.cnx.
  */
 import TSubscriptKind from "./TSubscriptKind";
-import TTypeInfo from "../types/TTypeInfo";
+import TTypeInfo from "../../../types/TTypeInfo";
 
 /**
  * Context needed for subscript classification

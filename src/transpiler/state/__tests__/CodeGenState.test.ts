@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import installMockSymbols from "../../__tests__/installMockSymbols";
 import CodeGenState from "../CodeGenState";
-import TTypeInfo from "../../output/codegen/types/TTypeInfo";
+import TTypeInfo from "../../types/TTypeInfo";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import IVariableSymbol from "../../types/symbols/IVariableSymbol";
 import ICVariableSymbol from "../../types/symbols/c/ICVariableSymbol";

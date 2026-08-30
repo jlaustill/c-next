@@ -18,8 +18,8 @@ import TYPE_WIDTH from "../../constants/TYPE_WIDTH";
 import TYPE_MAP from "./types/TYPE_MAP";
 import TYPE_LIMITS from "./types/TYPE_LIMITS";
 // Issue #60: BITMAP_SIZE and BITMAP_BACKING_TYPE moved to SymbolCollector
-import TTypeInfo from "./types/TTypeInfo";
-import TParameterInfo from "./types/TParameterInfo";
+import TTypeInfo from "../../types/TTypeInfo";
+import TParameterInfo from "../../types/TParameterInfo";
 import ICodeGeneratorOptions from "./types/ICodeGeneratorOptions";
 import TypeResolver from "./TypeResolver";
 import ICodeGenSymbols from "../../types/ICodeGenSymbols";

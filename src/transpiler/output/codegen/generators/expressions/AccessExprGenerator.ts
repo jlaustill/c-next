@@ -12,7 +12,7 @@
  * The deprecated .length property was removed per ADR-058.
  */
 import IGeneratorOutput from "../IGeneratorOutput";
-import TTypeInfo from "../../types/TTypeInfo";
+import TTypeInfo from "../../../../types/TTypeInfo";
 import CodeGenState from "../../../../state/CodeGenState.js";
 import NarrowingCastHelper from "../../helpers/NarrowingCastHelper.js";
 

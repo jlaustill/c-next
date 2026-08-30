@@ -7,7 +7,7 @@
  */
 
 import CodeGenState from "../../state/CodeGenState";
-import TOverflowBehavior from "./types/TOverflowBehavior";
+import TOverflowBehavior from "../../types/TOverflowBehavior";
 
 /**
  * Minimal symbol info interface for type registration.

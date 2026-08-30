@@ -14,7 +14,7 @@
  * Issue #551, #558, #644, ADR-006, ADR-029
  */
 
-import TParameterInfo from "../types/TParameterInfo";
+import TParameterInfo from "../../../types/TParameterInfo";
 import IParameterDereferenceDeps from "../types/IParameterDereferenceDeps";
 
 /**

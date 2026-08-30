@@ -12,7 +12,7 @@ import IAssignmentContext from "./IAssignmentContext";
 import CodeGenState from "../../../state/CodeGenState";
 import SubscriptClassifier from "../subscript/SubscriptClassifier";
 import SubscriptDepthValidator from "../subscript/SubscriptDepthValidator";
-import TTypeInfo from "../types/TTypeInfo";
+import TTypeInfo from "../../../types/TTypeInfo";
 import TypeCheckUtils from "../../../../utils/TypeCheckUtils";
 import QualifiedCName from "../../../../utils/QualifiedCName";
 import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";

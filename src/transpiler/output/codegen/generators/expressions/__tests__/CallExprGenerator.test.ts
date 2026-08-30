@@ -5,7 +5,7 @@ import IGeneratorState from "../../IGeneratorState";
 import IOrchestrator from "../../IOrchestrator";
 import * as Parser from "../../../../../logic/parser/grammar/CNextParser";
 import CodeGenState from "../../../../../state/CodeGenState";
-import TTypeInfo from "../../../types/TTypeInfo";
+import TTypeInfo from "../../../../../types/TTypeInfo";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
 
 // ========================================================================

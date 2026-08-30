@@ -15,7 +15,7 @@ import type ISubstringOps from "../types/ISubstringOps";
 import IGeneratorInput from "./IGeneratorInput";
 import IGeneratorState from "./IGeneratorState";
 import TGeneratorEffect from "./TGeneratorEffect";
-import TTypeInfo from "../types/TTypeInfo";
+import TTypeInfo from "../../../types/TTypeInfo";
 import * as Parser from "../../../logic/parser/grammar/CNextParser";
 import { ParserRuleContext } from "antlr4ng";
 

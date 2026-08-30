@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import SimpleIdentifierResolver from "../SimpleIdentifierResolver";
 import ISimpleIdentifierDeps from "../../types/ISimpleIdentifierDeps";
-import TParameterInfo from "../../types/TParameterInfo";
+import TParameterInfo from "../../../../types/TParameterInfo";
 
 describe("SimpleIdentifierResolver", () => {
   const createMockDeps = (

@@ -4,32 +4,48 @@ module.exports = {
     // ==========================================================================
     // 3-Layer Architecture Rules (Issue #572)
     // ==========================================================================
-    // Architecture: Transpiler orchestrates data/, logic/, output/
+    // Architecture: Transpiler orchestrates data/, logic/, output/, state/
     //
     // Allowed dependencies:
     //   - Transpiler.ts → data/, logic/, output/ (orchestrator)
     //   - output/ → logic/ (code gen needs parser types, symbols)
     //   - Any layer → utils/ (shared utilities)
     //   - Any layer → lib/types/ (shared public types)
+    //   - Any layer → transpiler/types/ (shared contracts, layer-neutral)
     //
     // Forbidden dependencies:
     //   - data/ → logic/, output/ (data layer is independent)
     //   - logic/ → output/ (logic should not depend on output)
+    //   - state/ → output/ (#1297: state is shared, so it must not carry
+    //     output's vocabulary into whoever reads it)
+    //
+    // All four are `reachable: true`: a layer boundary is a claim about what a
+    // module can END UP depending on, not about who wrote the import. Asserted
+    // mechanically by scripts/__tests__/layer-rules.test.ts, because the
+    // missing keyword is invisible on reading -- see #1297.
     // ==========================================================================
 
     {
       name: "data-cannot-import-logic",
-      comment: "Data layer must not depend on logic layer",
+      comment:
+        "Data layer must not depend on logic layer, through ANY number of " +
+        "hops. #1297: this matched only DIRECT edges, so a data/ module could " +
+        "reach logic/ through transpiler/types/ -- one import away, not " +
+        "hypothetical -- while the rule reported green.",
       severity: "error",
       from: { path: "^src/transpiler/data/" },
-      to: { path: "^src/transpiler/logic/" },
+      to: { path: "^src/transpiler/logic/", reachable: true },
     },
     {
       name: "data-cannot-import-output",
-      comment: "Data layer must not depend on output layer",
+      comment:
+        "Data layer must not depend on output layer, through ANY number of " +
+        "hops. #1297: this matched only DIRECT edges, so a data/ module could " +
+        "reach output/ through transpiler/types/ -- one import away, not " +
+        "hypothetical -- while the rule reported green.",
       severity: "error",
       from: { path: "^src/transpiler/data/" },
-      to: { path: "^src/transpiler/output/" },
+      to: { path: "^src/transpiler/output/", reachable: true },
     },
     {
       name: "collectors-build-names-from-scopes",
@@ -64,11 +80,29 @@ module.exports = {
     {
       name: "logic-cannot-import-output",
       comment:
-        "Logic layer must not depend on output layer. " +
-        "If you need shared types, move them to transpiler/types/.",
+        "Logic layer must not depend on output layer, through ANY number of " +
+        "hops. If you need shared types, move them to transpiler/types/. " +
+        "#1297: this matched only DIRECT edges, so logic/ -> state/ -> output/ " +
+        "satisfied it while violating what it says -- ten analyzers were " +
+        "transitively coupled to codegen's type vocabulary and CI reported the " +
+        "layering clean. `reachable` is what makes the rule enforce its own " +
+        "statement; without it the guard reports green on the case it exists " +
+        "to catch.",
       severity: "error",
       from: { path: "^src/transpiler/logic/" },
-      to: { path: "^src/transpiler/output/" },
+      to: { path: "^src/transpiler/output/", reachable: true },
+    },
+    {
+      name: "state-cannot-import-output",
+      comment:
+        "State layer must not depend on output layer. #1297: state/ sat " +
+        "outside the layer model entirely, which is precisely why it could " +
+        "become the place facts get stashed instead of carried -- it was the " +
+        "one module nothing forbade the coupling in. Shared contracts belong " +
+        "in transpiler/types/, which both layers may depend on.",
+      severity: "error",
+      from: { path: "^src/transpiler/state/" },
+      to: { path: "^src/transpiler/output/", reachable: true },
     },
 
     // ==========================================================================

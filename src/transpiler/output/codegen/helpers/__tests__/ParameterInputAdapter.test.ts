@@ -9,7 +9,7 @@ import ParameterInputAdapter from "../ParameterInputAdapter";
 import IParameterSymbol from "../../../../../utils/types/IParameterSymbol";
 import CNextSourceParser from "../../../../logic/parser/CNextSourceParser.js";
 import * as Parser from "../../../../logic/parser/grammar/CNextParser.js";
-import ICallbackTypeInfo from "../../types/ICallbackTypeInfo";
+import ICallbackTypeInfo from "../../../../types/ICallbackTypeInfo";
 
 /**
  * Extract the first parameter context from a function declaration.

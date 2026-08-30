@@ -12,7 +12,7 @@ import IAssignmentContext from "../IAssignmentContext";
 import TAssignmentHandler from "./TAssignmentHandler";
 import CodeGenState from "../../../../state/CodeGenState";
 import TypeValidator from "../../TypeValidator";
-import type TTypeInfo from "../../types/TTypeInfo";
+import type TTypeInfo from "../../../../types/TTypeInfo";
 import CNEXT_TO_C_TYPE_MAP from "../../../../../utils/constants/TypeMappings";
 import TypeResolver from "../../TypeResolver";
 

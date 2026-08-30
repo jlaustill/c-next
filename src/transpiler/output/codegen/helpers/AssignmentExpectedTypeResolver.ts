@@ -10,7 +10,7 @@
  */
 
 import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
-import TOverflowBehavior from "../types/TOverflowBehavior.js";
+import TOverflowBehavior from "../../../types/TOverflowBehavior.js";
 import analyzePostfixOps from "../../../../utils/PostfixAnalysisUtils.js";
 import CodeGenState from "../../../state/CodeGenState.js";
 
