@@ -13,24 +13,38 @@ import GeneratedMarkdown from "../utils/GeneratedMarkdown";
 
 describe("GeneratedMarkdown", () => {
   describe("format", () => {
-    it("pads table cells the way the committed documents store them", () => {
-      // The shape every generator here emits, and the shape that broke the
-      // scope-join gate: it wrote padded cells and then parsed with a regex
-      // requiring single spaces, so check failed against write's own output.
-      const raw = "| File | Sites |\n| --- | --- |\n| `a/b.ts` | 2 |\n";
+    // Both assertions below must be impossible to satisfy with the INPUT, or the
+    // test passes when format() stops calling Prettier at all. The first version
+    // of these did exactly that: `toContain("| `a/b.ts` |")` found a string the
+    // raw table already had, and `/\| File\s+\|/` matched its single space. A
+    // mutation replacing the whole body with `return markdown` left them green.
+    const RAW = "| File | Sites |\n| --- | --- |\n| `a/b.ts` | 2 |\n";
 
-      return GeneratedMarkdown.format(raw, "docs/x.md").then((out) => {
-        expect(out).toContain("| `a/b.ts` |");
-        expect(out.split("\n")[0]).toMatch(/\| File\s+\| Sites \|/);
-      });
+    it("aligns every column, which the input does not", async () => {
+      const out = await GeneratedMarkdown.format(RAW, "docs/x.md");
+      const rows = out.trim().split("\n");
+      const secondPipe = rows.map((row) => row.indexOf("|", 1));
+
+      // Prettier pads each cell to its column width, so the pipes line up. In
+      // RAW they sit at three different offsets.
+      expect(new Set(secondPipe).size).toBe(1);
+      expect(
+        new Set(
+          RAW.trim()
+            .split("\n")
+            .map((r) => r.indexOf("|", 1)),
+        ).size,
+      ).toBeGreaterThan(1);
     });
 
-    it("is idempotent, so a second run produces no diff", async () => {
-      // A generator whose output is not a fixed point of the formatter churns
-      // its committed file on every run, which makes a diff gate useless.
-      const once = await GeneratedMarkdown.format("# T\n\ntext\n", "docs/x.md");
-      const twice = await GeneratedMarkdown.format(once, "docs/x.md");
+    it("is a fixed point, and does change unformatted input", async () => {
+      // Idempotence alone cannot catch an identity function -- it is trivially
+      // idempotent. Asserting the FIRST pass changes something is what makes the
+      // second assertion mean anything.
+      const once = await GeneratedMarkdown.format(RAW, "docs/x.md");
+      expect(once).not.toBe(RAW);
 
+      const twice = await GeneratedMarkdown.format(once, "docs/x.md");
       expect(twice).toBe(once);
     });
   });
