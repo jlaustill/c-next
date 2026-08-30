@@ -15,7 +15,7 @@ import StringUtils from "../../../../../utils/StringUtils";
 import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import CodeGenState from "../../../../state/CodeGenState";
-import QualifiedCName from "../../../../../utils/QualifiedCName";
+import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
 
 /**
  * Validate compound operators are not used with strings.
@@ -102,10 +102,14 @@ function handleStringThisMember(ctx: IAssignmentContext): string {
   validateNotCompound(ctx);
 
   const memberName = ctx.identifiers[0];
-  // #1295: leaf key. AssignmentClassifier routes here after hitting the same
-  // map with a leaf key; a chain key would miss and the `!` below would throw.
-  const scopedName = QualifiedCName.join(
-    CodeGenState.currentScope?.name,
+  // The key must match `_classifyThisMemberString`
+  // (AssignmentClassifier.ts:846), which hits the same map to decide whether to
+  // route here at all -- so a mismatch makes the `!` below throw rather than
+  // return a wrong answer. #1357 deleted a comment that said this alongside a
+  // claim that had gone false ("leaf key, matching forMember"); the false half
+  // deserved deleting and this half did not.
+  const scopedName = QualifiedNameGenerator.forMember(
+    CodeGenState.currentScope,
     memberName,
   );
   const typeInfo = CodeGenState.getVariableTypeInfo(scopedName);

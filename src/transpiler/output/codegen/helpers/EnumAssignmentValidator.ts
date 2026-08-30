@@ -16,6 +16,7 @@ import CodeGenState from "../../../state/CodeGenState.js";
 import EnumTypeResolver from "../resolution/EnumTypeResolver.js";
 import TypeCheckUtils from "../../../../utils/TypeCheckUtils.js";
 import QualifiedCName from "../../../../utils/QualifiedCName";
+import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
 
 /**
  * Validates enum type assignments.
@@ -154,8 +155,8 @@ class EnumAssignmentValidator {
         `Error: Cannot assign non-enum value to ${typeName} enum`,
       );
     }
-    const scopedEnumName = QualifiedCName.join(
-      CodeGenState.currentScope.name,
+    const scopedEnumName = QualifiedNameGenerator.forMember(
+      CodeGenState.currentScope,
       parts[1],
     );
     if (scopedEnumName !== typeName) {

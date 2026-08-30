@@ -27,7 +27,7 @@ import StringDeclHelper from "./StringDeclHelper.js";
 import VariableModifierBuilder from "./VariableModifierBuilder.js";
 import TYPE_MAP from "../types/TYPE_MAP.js";
 import ExpressionUnwrapper from "../../../../utils/ExpressionUnwrapper";
-import QualifiedCName from "../../../../utils/QualifiedCName";
+import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
 
 /**
  * Callbacks for integer validation in variable declarations.
@@ -757,9 +757,8 @@ class VariableDeclHelper {
       let scopedArgName = argName;
       let scopedTypeInfo = typeInfo;
       if (!typeInfo && CodeGenState.currentScope) {
-        // #1295: leaf key -- see QualifiedNameGenerator.forMember.
-        scopedArgName = QualifiedCName.join(
-          CodeGenState.currentScope.name,
+        scopedArgName = QualifiedNameGenerator.forMember(
+          CodeGenState.currentScope,
           argName,
         );
         scopedTypeInfo = CodeGenState.getVariableTypeInfo(scopedArgName);

@@ -75,19 +75,20 @@ class QualifiedNameGenerator {
   }
 
   /**
-   * Generate a qualified name for any scoped member (variable, enum, etc.).
+   * The C name a bare member of `scope` is emitted under. **The canonical
+   * spelling for `output/`.**
    *
-   * Takes the scope SYMBOL, not its name. #1285: the previous signature took a
-   * `string`, so it could only ever join one level -- a scope's `name` is its leaf,
-   * and an outer chain has no way to reach this function. That made it the producer
-   * half of a leaf-only pair, and `SpecialHandlers` the consumer half; the two
-   * agreed because both dropped the same components, not because they shared a
-   * decision. Threading the symbol makes the outer chain reachable, which is what
-   * `ScopeUtils.qualifyInScope` walks.
+   * A one-line delegate to `ScopeUtils.qualifyInScope`, so there is one
+   * implementation and no divergence to fix. What it settles is which of the two
+   * public NAMES a codegen call site uses, because the two take their arguments in
+   * opposite orders -- `forMember(scope, name)` against `qualifyInScope(name,
+   * scope)`. Two spellings of one decision sixty lines apart in a file is how a
+   * silently inverted call gets written by the next person editing nearby (#1357
+   * review).
    *
-   * @param scope Declaring scope, or null/global scope for an unqualified name
-   * @param memberName Member name
-   * @returns Transpiled C name
+   * `logic/` cannot import from `output/` (depcruise `logic-cannot-import-output`),
+   * so `ScopeUtils.qualifyInScope` remains that layer's door and this one is not a
+   * replacement for it -- it is the door for the layer that CAN reach it.
    */
   static forMember(scope: IScopeSymbol | null, memberName: string): string {
     return ScopeUtils.qualifyInScope(memberName, scope);

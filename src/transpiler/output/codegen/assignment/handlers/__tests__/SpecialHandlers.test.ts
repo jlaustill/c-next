@@ -127,6 +127,48 @@ describe("SpecialHandlers", () => {
       expect(result).toBe("atomic result");
     });
 
+    // #1357: qualify through the whole scope chain, not the leaf.
+    // `setCurrentScopeByPath("Outer.Inner")` resolves a scope whose parent is
+    // `Outer`, and the type registry is populated through the chain-walking
+    // encoder (TypeRegistrationEngine -> QualifiedNameGenerator.forMember). A
+    // handler that joins `currentScope.name` asks for `Inner__count` and misses.
+    //
+    // Not reachable from .cnx: `scopeMember` admits no `scopeDeclaration`
+    // (grammar/CNext.g4:81-89), so no fixture can build depth two. It is
+    // reachable here because `SymbolRegistry.getOrCreateScope` takes a dotted
+    // path, which makes this the only level the encoder can be proven at.
+    //
+    // Negative control: "handles this.member atomic variable" above, which
+    // asserts the depth-one case still qualifies as `Motor__count`. A change
+    // that dropped the scope entirely would pass this test and fail that one.
+    it("qualifies a this.member atomic variable through the whole scope chain", () => {
+      CodeGenState.setCurrentScopeByPath("Outer.Inner");
+      HandlerTestUtils.setupMockTypeRegistry([
+        ["Outer__Inner__count", { baseType: "u32", isAtomic: true }],
+      ]);
+      const generateAtomicRMW = vi.fn().mockReturnValue("atomic result");
+      HandlerTestUtils.setupMockGenerator({
+        generateAtomicRMW,
+        generateAssignmentTarget: vi
+          .fn()
+          .mockReturnValue("Outer__Inner__count"),
+      });
+      const ctx = createMockContext({
+        identifiers: ["count"],
+        isSimpleIdentifier: false,
+        isSimpleThisAccess: true,
+      });
+
+      getHandler()!(ctx);
+
+      expect(generateAtomicRMW).toHaveBeenCalledWith(
+        "Outer__Inner__count",
+        "+=",
+        "1",
+        expect.objectContaining({ baseType: "u32", isAtomic: true }),
+      );
+    });
+
     it("handles global.member atomic variable", () => {
       HandlerTestUtils.setupMockTypeRegistry([
         ["globalCounter", { baseType: "u32", isAtomic: true }],

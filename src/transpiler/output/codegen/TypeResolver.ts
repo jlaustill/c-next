@@ -12,9 +12,9 @@ import UNSIGNED_TYPES from "./types/UNSIGNED_TYPES";
 import TYPE_WIDTH from "../../constants/TYPE_WIDTH";
 import TYPE_RANGES from "./types/TYPE_RANGES";
 import ExpressionUnwrapper from "../../../utils/ExpressionUnwrapper";
-import QualifiedCName from "../../../utils/QualifiedCName";
 import type TOverflowBehavior from "./types/TOverflowBehavior";
 import type TTypeInfo from "./types/TTypeInfo";
+import QualifiedNameGenerator from "./utils/QualifiedNameGenerator";
 
 /**
  * Internal type info tracked through postfix suffix chains.
@@ -539,9 +539,8 @@ class TypeResolver {
       current.baseType === TypeResolver.THIS_SENTINEL &&
       CodeGenState.currentScope
     ) {
-      // #1295: leaf key, matching QualifiedNameGenerator.forMember.
-      const scopedName = QualifiedCName.join(
-        CodeGenState.currentScope.name,
+      const scopedName = QualifiedNameGenerator.forMember(
+        CodeGenState.currentScope,
         memberName,
       );
       return TypeResolver.resolveRegistryLookup(scopedName);

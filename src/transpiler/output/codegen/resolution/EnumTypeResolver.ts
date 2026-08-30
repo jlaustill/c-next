@@ -19,7 +19,7 @@ import CodeGenState from "../../../state/CodeGenState";
 import TypeResolver from "../TypeResolver";
 import ExpressionUnwrapper from "../../../../utils/ExpressionUnwrapper";
 import QualifiedCName from "../../../../utils/QualifiedCName";
-import ScopeUtils from "../../../../utils/ScopeUtils";
+import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
 
 /**
  * Resolves enum types from expressions.
@@ -120,8 +120,8 @@ export default class EnumTypeResolver {
       return null;
     }
     const enumName = parts[1];
-    const scopedEnumName = QualifiedCName.join(
-      CodeGenState.currentScope.name,
+    const scopedEnumName = QualifiedNameGenerator.forMember(
+      CodeGenState.currentScope,
       enumName,
     );
     return CodeGenState.isKnownEnum(scopedEnumName) ? scopedEnumName : null;
@@ -150,9 +150,8 @@ export default class EnumTypeResolver {
       return null;
     }
     const varName = parts[1];
-    // #1295: leaf key, matching QualifiedNameGenerator.forMember.
-    const scopedVarName = QualifiedCName.join(
-      CodeGenState.currentScope.name,
+    const scopedVarName = QualifiedNameGenerator.forMember(
+      CodeGenState.currentScope,
       varName,
     );
     const typeInfo = CodeGenState.getVariableTypeInfo(scopedVarName);
@@ -207,9 +206,9 @@ export default class EnumTypeResolver {
     } else if (parts.length === 2) {
       if (parts[0] === "this" && CodeGenState.currentScope) {
         // this.method() -> Scope_method
-        fullFuncName = ScopeUtils.qualifyInScope(
-          parts[1],
+        fullFuncName = QualifiedNameGenerator.forMember(
           CodeGenState.currentScope,
+          parts[1],
         );
       } else if (parts[0] === "global") {
         // global.func() -> func

@@ -1,5 +1,6 @@
 {
   "version": "0.2",
+  "useGitignore": true,
   "language": "en",
   "words": [
     "Adafruit",
@@ -558,17 +559,10 @@
     "xyzzy"
   ],
   "ignorePaths": [
-    "node_modules/**",
-    "dist/**",
     "tests-gtest/**",
-    "vscode-extension/node_modules/**",
-    "prettier-plugin/dist/**",
-    "prettier-plugin/node_modules/**",
-    "vscode-extension/dist/**",
     "src/antlr_parser/**",
     "**/parser/**/grammar/**",
     "package-lock.json",
-    "coverage/**",
     "*.expected.c",
     "*.expected.h",
     "*.expected.error",

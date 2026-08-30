@@ -389,6 +389,25 @@ Live diagnostics in the VS Code extension are tracked separately: every transpil
   for one.
 
 - Issue #1338 — the same gap against the 63-character _internal_ budget (Rule 5.9), open
+- Issue #1357 — injectivity is a property of the _encoder_, and there were two. The
+  chain-walking `ScopeUtils.getTranspiledCName` (`src/utils/ScopeUtils.ts:193`) and a
+  one-level `QualifiedCName.join(scope.name, member)` agree at depth one and diverge at
+  depth two, where the latter drops every outer component and so is not injective at all.
+  Eleven codegen sites used the leaf form while their producer,
+  `QualifiedNameGenerator.forMember` (`output/codegen/utils/QualifiedNameGenerator.ts:92`),
+  had already been converted to walk the chain; converted to call it in
+  `EnumTypeResolver.ts:124,154`, `StringHandlers.ts:105`, `SpecialHandlers.ts:39`,
+  `AssignmentClassifier.ts:542,591,784,846`, `VariableDeclHelper.ts:760`,
+  `EnumAssignmentValidator.ts:158` and `TypeResolver.ts:542`.
+
+  Measured, not assumed: the divergence is unreachable from `.cnx` source today because
+  `scopeMember` admits no `scopeDeclaration` (`grammar/CNext.g4:81-89`), so every scope
+  chain a program can build is depth one and the two encoders coincide. That is a
+  property of the grammar, not of the encoding — and ADR-016 defers nesting "for v1"
+  rather than forbidding it, so the coincidence has a scheduled expiry. It is reachable
+  through `SymbolRegistry.getOrCreateScope`, which takes a dotted path and builds the
+  chain, which is the level the guard for it is written at.
+
 - Issue #1292 — diagnostics name `cnxScopedName`, not the generated identifier
 - ADR-016 (Scopes), ADR-017 (Enums), ADR-057 (Implicit Scope Resolution), ADR-010 (C Interoperability), ADR-105 (Prefixed Includes)
 - ISO/IEC 9899:2011 §7.1.3; ISO/IEC 14882 §lex.name/3; MISRA C:2012 Rule 21.2; ISO/IEC 9899:1999 §5.2.4.1

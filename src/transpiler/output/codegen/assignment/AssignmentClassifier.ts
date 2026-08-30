@@ -15,6 +15,7 @@ import SubscriptDepthValidator from "../subscript/SubscriptDepthValidator";
 import TTypeInfo from "../types/TTypeInfo";
 import TypeCheckUtils from "../../../../utils/TypeCheckUtils";
 import QualifiedCName from "../../../../utils/QualifiedCName";
+import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
 
 /**
  * Classifies assignment statements by analyzing their structure.
@@ -537,9 +538,8 @@ class AssignmentClassifier {
     }
 
     return (
-      // #1295: leaf key, matching QualifiedNameGenerator.forMember.
       CodeGenState.getVariableTypeInfo(
-        QualifiedCName.join(scope.name, name),
+        QualifiedNameGenerator.forMember(scope, name),
       ) !== undefined
     );
   }
@@ -588,8 +588,8 @@ class AssignmentClassifier {
     }
 
     const firstId = ctx.identifiers[0];
-    const scopedRegName = QualifiedCName.join(
-      CodeGenState.currentScope.name,
+    const scopedRegName = QualifiedNameGenerator.forMember(
+      CodeGenState.currentScope,
       firstId,
     );
 
@@ -781,9 +781,8 @@ class AssignmentClassifier {
     } else if (ctx.isSimpleThisAccess && CodeGenState.currentScope) {
       // this.member pattern: lookup using scoped name
       const memberName = ctx.identifiers[0];
-      // #1295: leaf key, matching QualifiedNameGenerator.forMember.
-      const scopedName = QualifiedCName.join(
-        CodeGenState.currentScope.name,
+      const scopedName = QualifiedNameGenerator.forMember(
+        CodeGenState.currentScope,
         memberName,
       );
       typeInfo = CodeGenState.getVariableTypeInfo(scopedName);
@@ -844,9 +843,8 @@ class AssignmentClassifier {
   ): AssignmentKind | null {
     if (!ctx.isSimpleThisAccess || !CodeGenState.currentScope) return null;
     const memberName = ctx.identifiers[0];
-    // #1295: leaf key, matching QualifiedNameGenerator.forMember.
-    const scopedName = QualifiedCName.join(
-      CodeGenState.currentScope.name,
+    const scopedName = QualifiedNameGenerator.forMember(
+      CodeGenState.currentScope,
       memberName,
     );
     const typeInfo = CodeGenState.getVariableTypeInfo(scopedName);
