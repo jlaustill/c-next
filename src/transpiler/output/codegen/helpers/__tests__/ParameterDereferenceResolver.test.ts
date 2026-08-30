@@ -7,7 +7,7 @@
 import { describe, it, expect, vi } from "vitest";
 import ParameterDereferenceResolver from "../ParameterDereferenceResolver";
 import type IParameterDereferenceDeps from "../../types/IParameterDereferenceDeps";
-import type TParameterInfo from "../../types/TParameterInfo";
+import type TParameterInfo from "../../../../types/TParameterInfo";
 
 describe("ParameterDereferenceResolver", () => {
   // Helper to create mock dependencies

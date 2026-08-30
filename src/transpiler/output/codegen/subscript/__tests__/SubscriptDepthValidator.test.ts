@@ -3,7 +3,7 @@
  */
 import { describe, it, expect } from "vitest";
 import SubscriptDepthValidator from "../SubscriptDepthValidator";
-import TTypeInfo from "../../types/TTypeInfo";
+import TTypeInfo from "../../../../types/TTypeInfo";
 
 const scalar = (baseType: string): TTypeInfo => ({
   baseType,

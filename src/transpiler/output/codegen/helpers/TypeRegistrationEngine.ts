@@ -9,7 +9,7 @@
 
 import * as Parser from "../../../logic/parser/grammar/CNextParser";
 import TIncludeHeader from "../generators/TIncludeHeader";
-import TOverflowBehavior from "../types/TOverflowBehavior";
+import TOverflowBehavior from "../../../types/TOverflowBehavior";
 import TYPE_WIDTH from "../../../constants/TYPE_WIDTH";
 import CodeGenState from "../../../state/CodeGenState";
 import TypeRegistrationUtils from "../TypeRegistrationUtils";

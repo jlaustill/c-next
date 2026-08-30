@@ -4,7 +4,7 @@ import AssignmentKind from "../AssignmentKind";
 import IAssignmentContext from "../IAssignmentContext";
 import CodeGenState from "../../../../state/CodeGenState";
 import SymbolTable from "../../../../logic/symbols/SymbolTable";
-import TTypeInfo from "../../types/TTypeInfo";
+import TTypeInfo from "../../../../types/TTypeInfo";
 
 // ========================================================================
 // Test Helpers

@@ -16,7 +16,7 @@
  * Migrated to use CodeGenState instead of constructor DI.
  */
 
-import TTypeInfo from "../types/TTypeInfo.js";
+import TTypeInfo from "../../../types/TTypeInfo.js";
 import TIncludeHeader from "../generators/TIncludeHeader.js";
 import CodeGenState from "../../../state/CodeGenState.js";
 

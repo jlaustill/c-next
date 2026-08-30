@@ -8,7 +8,7 @@
  * These are helper functions called from assignment generation,
  * not top-level statement generators.
  */
-import TTypeInfo from "../../types/TTypeInfo";
+import TTypeInfo from "../../../../types/TTypeInfo";
 import IGeneratorOutput from "../IGeneratorOutput";
 import TGeneratorEffect from "../TGeneratorEffect";
 import ITargetCapabilities from "../../../../types/ITargetCapabilities";

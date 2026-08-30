@@ -12,8 +12,8 @@ import UNSIGNED_TYPES from "./types/UNSIGNED_TYPES";
 import TYPE_WIDTH from "../../constants/TYPE_WIDTH";
 import TYPE_RANGES from "./types/TYPE_RANGES";
 import ExpressionUnwrapper from "../../../utils/ExpressionUnwrapper";
-import type TOverflowBehavior from "./types/TOverflowBehavior";
-import type TTypeInfo from "./types/TTypeInfo";
+import type TOverflowBehavior from "../../types/TOverflowBehavior";
+import type TTypeInfo from "../../types/TTypeInfo";
 import QualifiedNameGenerator from "./utils/QualifiedNameGenerator";
 
 /**

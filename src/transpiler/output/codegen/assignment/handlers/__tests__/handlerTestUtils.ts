@@ -7,9 +7,9 @@ import { vi } from "vitest";
 import createMockSymbols from "../../../../../__tests__/codeGenSymbolsHelpers";
 import CodeGenState from "../../../../../state/CodeGenState";
 import SymbolTable from "../../../../../logic/symbols/SymbolTable";
-import type ICodeGenApi from "../../../types/ICodeGenApi";
+import type ICodeGenApi from "../../../../../types/ICodeGenApi";
 import type ICodeGenSymbols from "../../../../../types/ICodeGenSymbols";
-import type TTypeInfo from "../../../types/TTypeInfo";
+import type TTypeInfo from "../../../../../types/TTypeInfo";
 
 /**
  * Set up mock symbols on CodeGenState.
