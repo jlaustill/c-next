@@ -9,6 +9,7 @@ import AssignmentKind from "../../AssignmentKind";
 import IAssignmentContext from "../../IAssignmentContext";
 import CodeGenState from "../../../../../state/CodeGenState";
 import HandlerTestUtils from "./handlerTestUtils";
+import AssignmentClassifier from "../../AssignmentClassifier";
 
 /**
  * Create mock context for testing
@@ -117,6 +118,50 @@ describe("StringHandlers", () => {
       expect(result).toContain("strncpy");
       expect(result).toContain("64");
       expect(CodeGenState.needsString).toBe(true);
+    });
+
+    it("classifier and handler key the same map at depth two", () => {
+      // #1357 review: the depth-2 guard in SpecialHandlers.test.ts covers 1 of
+      // the 11 converted sites. Restoring the leaf join at another one --
+      // AssignmentClassifier.ts:591 -- leaves all 6713 unit tests green, because
+      // the encoder-level test calls ScopeUtils directly and never imports the
+      // mutated file. So a site-level re-inline is invisible until a test drives
+      // the SITE.
+      //
+      // This one guards the PAIR rather than one site, which is what the comment
+      // deleted from StringHandlers.ts:105 used to record: the classifier decides
+      // to route here by hitting the type registry, and the handler then hits it
+      // again and dereferences with `!`. Key them differently and the classifier
+      // routes a member the handler cannot find, so the `!` throws at generation
+      // time. They agree at depth one whichever encoder each uses, so only depth
+      // two can tell a shared decision from a coincidence.
+      CodeGenState.setCurrentScopeByPath("Outer.Inner");
+      HandlerTestUtils.setupMockTypeRegistry([
+        [
+          "Outer__Inner__memberName",
+          { stringCapacity: 48, baseType: "string", isString: true },
+        ],
+      ]);
+      // The shared factory leaves these undefined -- every other test here calls
+      // a handler directly, which is reached only AFTER classification, so none
+      // of them needed the flags that classification reads.
+      const ctx = createMockContext({
+        identifiers: ["memberName"],
+        hasThis: true,
+        isSimpleThisAccess: true,
+      });
+
+      // Half one: the classifier must recognize it through the whole chain.
+      expect(AssignmentClassifier.classify(ctx)).toBe(
+        AssignmentKind.STRING_THIS_MEMBER,
+      );
+
+      // Half two: the handler must find the same entry, not throw on `!`.
+      const handler = stringHandlers.find(
+        ([kind]) => kind === AssignmentKind.STRING_THIS_MEMBER,
+      )?.[1];
+
+      expect(handler!(ctx)).toContain("48");
     });
 
     it("throws when used outside scope", () => {

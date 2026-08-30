@@ -102,6 +102,12 @@ function handleStringThisMember(ctx: IAssignmentContext): string {
   validateNotCompound(ctx);
 
   const memberName = ctx.identifiers[0];
+  // The key must match `_classifyThisMemberString`
+  // (AssignmentClassifier.ts:846), which hits the same map to decide whether to
+  // route here at all -- so a mismatch makes the `!` below throw rather than
+  // return a wrong answer. #1357 deleted a comment that said this alongside a
+  // claim that had gone false ("leaf key, matching forMember"); the false half
+  // deserved deleting and this half did not.
   const scopedName = QualifiedNameGenerator.forMember(
     CodeGenState.currentScope,
     memberName,
