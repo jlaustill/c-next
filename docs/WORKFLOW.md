@@ -125,6 +125,38 @@ answers.
 The checklist inside the template is the operational one; the reasoning behind
 each step lives in [`releasing.md`](../releasing.md).
 
+### Which release something shipped in is derived, not recorded
+
+**Do not set a milestone to say what has already shipped.** The only milestone
+anyone sets by hand is the one on the release issue, which names the version
+being prepared. Everything else is written by `npm run release:milestones`,
+from a fact about the repository: the first tag containing the merge commit
+that closed the item.
+
+It runs at the end of `publish.yml`, so a release attributes itself. The same
+command run at any time is also the backfill and the drift check -- one
+derivation, no second answer to disagree with the first.
+
+Recorded by hand it drifted, twice over. Every pull request merged from #1327
+onward carried no milestone and nothing noticed for four days. And #1157
+carried `v0.3.1` while its fix was already an ancestor of the `v0.3.0` tag: it
+closed one second after the tag commit, which is not a race a person can be
+expected to win.
+
+Two things it will not do, both by design:
+
+- An item closed by hand with no linked commit or pull request is **reported,
+  never guessed at**. Two heuristics were measured and both are unsafe -- an
+  issue can close months after its fix shipped (#916 closed 2026-06-20; its fix
+  shipped in v0.2.7 on 2026-02-23), and a commit can name an issue before
+  fixing it.
+- A pull request merged into a stack that never landed is `not-shipped`, not
+  attributed. GitHub reports #1276 and #1284 as `MERGED`; their code is not on
+  `main`. `state: MERGED` conflates merged with shipped, and
+  `git merge-base --is-ancestor` does not.
+
+`npm run release:milestones:check` reports drift and writes nothing.
+
 ---
 
 ## Board setup
