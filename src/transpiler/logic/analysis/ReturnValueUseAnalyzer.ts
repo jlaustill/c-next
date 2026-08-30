@@ -32,13 +32,15 @@ import * as Parser from "../parser/grammar/CNextParser";
 import CodeGenState from "../../state/CodeGenState";
 import StdlibFunctions from "./StdlibFunctions";
 import CalleeNameResolver from "./helpers/CalleeNameResolver";
+import EnclosingScope from "./helpers/EnclosingScope";
 import IReturnValueUseError from "./types/IReturnValueUseError";
+import type IScopeSymbol from "../../types/symbols/IScopeSymbol";
 
 class ReturnValueUseListener extends CNextListener {
   public readonly errors: IReturnValueUseError[] = [];
 
-  /** Enclosing `scope` name, so `this.member()` resolves to Scope__member. */
-  private currentScope: string | null = null;
+  /** Enclosing `scope`, so `this.member()` resolves to Scope__member (#1357). */
+  private readonly enclosing = new EnclosingScope();
 
   /** Scope names in this file, for resolving `global.Scope.member()`. */
   private readonly knownScopes: ReadonlySet<string>;
@@ -51,11 +53,11 @@ class ReturnValueUseListener extends CNextListener {
   override enterScopeDeclaration = (
     ctx: Parser.ScopeDeclarationContext,
   ): void => {
-    this.currentScope = ctx.IDENTIFIER()?.getText() ?? null;
+    this.enclosing.enter(ctx.IDENTIFIER()?.getText() ?? "");
   };
 
   override exitScopeDeclaration = (): void => {
-    this.currentScope = null;
+    this.enclosing.exit();
   };
 
   override enterExpressionStatement = (
@@ -72,7 +74,7 @@ class ReturnValueUseListener extends CNextListener {
 
     const resolved = CalleeNameResolver.resolveDetailed(
       postfix,
-      this.currentScope,
+      this.enclosing.current(),
       // Scopes reached through an included .cnx are not in this file's
       // declarations; CodeGenState.knownScopes is merged across includes.
       (name) => this.knownScopes.has(name) || CodeGenState.isKnownScope(name),
@@ -81,7 +83,7 @@ class ReturnValueUseListener extends CNextListener {
 
     const funcName = ReturnValueUseAnalyzer.nonVoidCallee(
       resolved,
-      this.currentScope,
+      this.enclosing.current(),
     );
     if (!funcName) return;
 
@@ -187,7 +189,7 @@ class ReturnValueUseAnalyzer {
    */
   static nonVoidCallee(
     resolved: { name: string; isGlobalCall: boolean },
-    currentScope: string | null,
+    currentScope: IScopeSymbol | null,
   ): string | null {
     if (ReturnValueUseAnalyzer.returnsAValue(resolved.name)) {
       return resolved.name;
