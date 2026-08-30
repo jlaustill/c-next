@@ -12,7 +12,6 @@
 import ScopeUtils from "../../utils/ScopeUtils";
 import type IScopeSymbol from "../types/symbols/IScopeSymbol";
 import type IFunctionSymbol from "../types/symbols/IFunctionSymbol";
-import QualifiedCName from "../../utils/QualifiedCName";
 
 class SymbolRegistry {
   /** The global scope singleton (recreated on reset) */
@@ -189,9 +188,9 @@ class SymbolRegistry {
     }
 
     // Check all scopes - the C name should match scope_name pattern
-    for (const [scopePath, scope] of this.scopes) {
+    for (const scope of this.scopes.values()) {
       for (const func of scope.functions) {
-        if (QualifiedCName.fromParts([scopePath, func.name]) === cName) {
+        if (ScopeUtils.getTranspiledCName(func) === cName) {
           return func;
         }
       }

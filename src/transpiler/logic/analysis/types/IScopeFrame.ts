@@ -8,15 +8,21 @@
  * Rule 10.4, essentially-Boolean for Rule 10.1 -- without each analyzer building
  * its own index of declarations.
  */
+import type IScopeSymbol from "../../../types/symbols/IScopeSymbol";
+
 interface IScopeFrame {
   readonly vars: Map<string, string>;
   readonly parent: IScopeFrame | null;
   /**
-   * Name of the `scope` this frame belongs to, or null outside one. Carried so
-   * a `this.member()` call can be keyed by its transpiled C name, which is
+   * The `scope` this frame belongs to, or null outside one. Carried so a
+   * `this.member()` call can be keyed by its transpiled C name, which is
    * qualified by the scope (Issue #1183 review).
+   *
+   * #1357: the scope REFERENCE, not its leaf name. Qualifying from the leaf
+   * dropped every outer scope, so a frame inside `Outer.Inner` keyed
+   * `this.member()` as `Inner__member`.
    */
-  readonly scopeName: string | null;
+  readonly scope: IScopeSymbol | null;
 }
 
 export default IScopeFrame;
