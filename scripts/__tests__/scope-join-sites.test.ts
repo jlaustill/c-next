@@ -389,6 +389,20 @@ describe("ScopeJoinSites", () => {
       expect(doc).toContain("`someMap`");
     });
 
+    it("renders the kind bullets in the declared precedence order", () => {
+      // Finding 5 of the #1395 review: the `TKind` union and this preamble each
+      // stated the precedence, and had drifted into stating OPPOSITE orders --
+      // on a rule nothing computes, so only a reader would ever notice. Both now
+      // derive from `KIND_SECTIONS`; this pins that they still travel together,
+      // since making them agree once is not the same as making them unable to
+      // disagree.
+      const order = ["via-scope-utils", "leaf-keyed", "path"];
+      const positions = order.map((kind) => doc.indexOf(`- **${kind}**`));
+
+      expect(positions.every((at) => at >= 0)).toBe(true);
+      expect(positions).toEqual([...positions].sort((a, b) => a - b));
+    });
+
     it("says so when nothing is waiting on another card", () => {
       const clean = ScopeJoinSites.render([population[0]], [verdicts[0]]);
 

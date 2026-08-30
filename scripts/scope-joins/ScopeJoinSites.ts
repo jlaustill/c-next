@@ -34,15 +34,46 @@ interface ISite {
  * leaf-keyed map), so a site takes the FIRST kind that applies, in the order
  * declared here.
  *
- * Nothing computes this. The ordering is an instruction to the human writing
- * the row, which is why the generated preamble must list the kinds in this same
- * order -- it is the only statement of the rule an adjudicator reads. The two
- * disagreed once, and the preamble's order would have sent an adjudicator the
- * other way on `cnext/index.ts`'s `scopeName`: source text from a parse-tree
- * identifier, so `path` by description, but `leaf-keyed` is the answer that
- * matters because it is paired with a collection.
+ * Nothing APPLIES this -- no code picks a kind; the ordering is an instruction
+ * to the human writing the row. But it is no longer stated twice: `TKind` is
+ * derived from `KIND_SECTIONS`, and `render` emits the preamble bullets from
+ * the same array, so the union and the document cannot disagree about
+ * precedence. They did disagree once, in opposite directions, and the
+ * preamble's order would have sent an adjudicator the other way on
+ * `cnext/index.ts`'s `scopeName`: source text from a parse-tree identifier, so
+ * `path` by description, but `leaf-keyed` is the answer that matters because it
+ * is paired with a collection. Reordering the array now moves both, and a
+ * reorder that touches only one is unrepresentable.
  */
-type TKind = "via-scope-utils" | "leaf-keyed" | "path";
+const KIND_SECTIONS = [
+  {
+    kind: "via-scope-utils",
+    lines: [
+      "- **via-scope-utils** -- already routed correctly, and matched only because",
+      "  the enclosing block mentions a scope.",
+    ],
+  },
+  {
+    kind: "leaf-keyed",
+    lines: [
+      "- **leaf-keyed** -- paired with a collection filed under a leaf-built key.",
+      "  Converting one side alone breaks the pairing, so the row names the",
+      "  collection and the card that must move both.",
+    ],
+  },
+  {
+    kind: "path",
+    lines: [
+      "- **path** -- the first element is source text from a parse-tree identifier",
+      "  chain. `ids[0]` in `Scope.REG.MEMBER` is what the author wrote, so joining",
+      "  it rebuilds a lookup KEY rather than qualifying a member by its declaring",
+      "  scope. Under nesting the author writes more components and the INDEXING",
+      "  changes, not the join. `fromParts` documents this as its remaining use.",
+    ],
+  },
+] as const;
+
+type TKind = (typeof KIND_SECTIONS)[number]["kind"];
 
 /** A reviewed judgement about one call shape. */
 interface IAdjudication {
@@ -416,16 +447,7 @@ class ScopeJoinSites {
       "walks the parent chain. Every row below carries the judgement that was made",
       "about it, so no reader has to re-derive which is which:",
       "",
-      "- **via-scope-utils** -- already routed correctly, and matched only because",
-      "  the enclosing block mentions a scope.",
-      "- **leaf-keyed** -- paired with a collection filed under a leaf-built key.",
-      "  Converting one side alone breaks the pairing, so the row names the",
-      "  collection and the card that must move both.",
-      "- **path** -- the first element is source text from a parse-tree identifier",
-      "  chain. `ids[0]` in `Scope.REG.MEMBER` is what the author wrote, so joining",
-      "  it rebuilds a lookup KEY rather than qualifying a member by its declaring",
-      "  scope. Under nesting the author writes more components and the INDEXING",
-      "  changes, not the join. `fromParts` documents this as its remaining use.",
+      ...KIND_SECTIONS.flatMap((section) => section.lines),
       "",
       "They overlap as descriptions -- a site can be built from source text AND",
       "read a leaf-keyed map -- so a site takes the FIRST kind above that applies,",
