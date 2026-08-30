@@ -219,3 +219,50 @@ describe("ReleaseAttribution.plan", () => {
     expect(plan.changes.map((c) => c.number)).toEqual([10, 20, 30]);
   });
 });
+
+describe("ReleaseAttribution.describe", () => {
+  const assignment = (over = {}) => ({
+    number: 1157,
+    kind: "issue" as const,
+    current: "v0.3.1",
+    derived: "v0.3.0",
+    reason: "shipped" as const,
+    ...over,
+  });
+
+  it("names both sides of the move and how it was decided", () => {
+    expect(ReleaseAttribution.describe(assignment())).toBe(
+      "#1157 issue: v0.3.1 -> v0.3.0 [shipped]",
+    );
+  });
+
+  it("spells an absent current milestone rather than leaving a gap", () => {
+    expect(ReleaseAttribution.describe(assignment({ current: null }))).toBe(
+      "#1157 issue: (none) -> v0.3.0 [shipped]",
+    );
+  });
+
+  it("spells an absent derived milestone, so a clear reads as a clear", () => {
+    // #1347: closed not_planned while carrying v0.3.1. "-> (none)" is the
+    // whole content of that line; an empty right-hand side would read as a
+    // formatting bug rather than a milestone being removed.
+    expect(
+      ReleaseAttribution.describe(
+        assignment({ number: 1347, derived: null, reason: "not-planned" }),
+      ),
+    ).toBe("#1347 issue: v0.3.1 -> (none) [not-planned]");
+  });
+
+  it("distinguishes a pull request from an issue", () => {
+    expect(
+      ReleaseAttribution.describe(
+        assignment({
+          number: 1276,
+          kind: "pull request",
+          derived: null,
+          reason: "not-shipped",
+        }),
+      ),
+    ).toBe("#1276 pull request: v0.3.1 -> (none) [not-shipped]");
+  });
+});

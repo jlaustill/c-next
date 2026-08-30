@@ -119,6 +119,20 @@ class ReleaseAttribution {
     };
   }
 
+  /**
+   * One assignment as a human reads it in the report.
+   *
+   * Lives here rather than in the entry point because it is the only rendering
+   * a triage decision is made from, and `null` -> `(none)` is a real choice: an
+   * item moving *off* a milestone and one that never had one are different
+   * events, and both sides of the arrow have to say which.
+   */
+  static describe(assignment: IReleaseAssignment): string {
+    const from = assignment.current ?? "(none)";
+    const to = assignment.derived ?? "(none)";
+    return `#${assignment.number} ${assignment.kind}: ${from} -> ${to} [${assignment.reason}]`;
+  }
+
   /** Milestone titles the changes need, in release order rather than by item. */
   private static neededMilestones(
     changes: readonly IReleaseAssignment[],

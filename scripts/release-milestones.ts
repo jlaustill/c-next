@@ -163,12 +163,6 @@ function milestones(): IMilestone[] {
   ).map((line) => JSON.parse(line) as IMilestone);
 }
 
-function describe(assignment: IReleaseAssignment): string {
-  const from = assignment.current ?? "(none)";
-  const to = assignment.derived ?? "(none)";
-  return `#${assignment.number} ${assignment.kind}: ${from} -> ${to} [${assignment.reason}]`;
-}
-
 async function pause(ms: number): Promise<void> {
   await new Promise((resolve) => {
     setTimeout(resolve, ms);
@@ -259,7 +253,9 @@ async function applyChanges(
   for (const [done, change] of changes.entries()) {
     await writeMilestone(change, byTitle);
     console.log(
-      chalk.green(`  [${done + 1}/${changes.length}] ${describe(change)}`),
+      chalk.green(
+        `  [${done + 1}/${changes.length}] ${ReleaseAttribution.describe(change)}`,
+      ),
     );
     await pause(WRITE_INTERVAL_MS);
   }
@@ -324,7 +320,7 @@ async function main(): Promise<void> {
   );
 
   for (const referral of plan.referrals) {
-    console.warn(chalk.yellow(`  ${describe(referral)}`));
+    console.warn(chalk.yellow(`  ${ReleaseAttribution.describe(referral)}`));
   }
   // A `not-shipped` item whose merge commit simply is not in this clone yet
   // reads exactly like one merged into a stack that never landed. The run only
@@ -351,7 +347,9 @@ async function main(): Promise<void> {
     console.error(
       chalk.red(
         `${plan.changes.length} item(s) name the wrong release:\n` +
-          plan.changes.map((change) => `  ${describe(change)}`).join("\n") +
+          plan.changes
+            .map((change) => `  ${ReleaseAttribution.describe(change)}`)
+            .join("\n") +
           `\n\nRun: npm run release:milestones`,
       ),
     );
