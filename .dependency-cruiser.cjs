@@ -34,15 +34,28 @@ module.exports = {
     {
       name: "collectors-build-names-from-scopes",
       comment:
-        "#1285: symbol collectors must build qualified names from a scope " +
-        "REFERENCE, through ScopeUtils, never by joining a scope NAME string. " +
-        "Four collectors used to flatten `scope.name` and join one level, which " +
-        "is correct only while the grammar admits no nested scopes -- a " +
-        "coincidence, not a decision. Importing QualifiedCName here is how that " +
-        "comes back, so it fails the build rather than review.",
+        "#1285/#1357: qualified names are built from a scope REFERENCE, through " +
+        "ScopeUtils, never from a scope NAME string. Four collectors used to " +
+        "flatten `scope.name` and join one level, which is correct only while " +
+        "the grammar admits no nested scopes -- a coincidence, not a decision. " +
+        "Importing QualifiedCName here is how that comes back, so it fails the " +
+        "build rather than review. " +
+        "#1357 widened this from the collectors seam to every directory that " +
+        "measurably needs nothing from QualifiedCName: parser, preprocessor and " +
+        "data, 42 files against the original 7. It stops there because an " +
+        "import-level rule is all-or-nothing, and codegen and analysis " +
+        "legitimately decode names (split, isQualified, toCppQualified) and " +
+        "build whole paths (fromParts). What THEY must not do is a call SHAPE, " +
+        "not an import, so it is gated by `npm run scope-joins:check` against " +
+        "docs/architecture/scope-join-sites.md instead.",
       severity: "error",
       from: {
-        path: "^src/transpiler/logic/symbols/cnext/collectors/",
+        path: [
+          "^src/transpiler/logic/symbols/cnext/collectors/",
+          "^src/transpiler/logic/parser/",
+          "^src/transpiler/logic/preprocessor/",
+          "^src/transpiler/data/",
+        ],
       },
       to: {
         path: "^src/utils/QualifiedCName\\.ts$",

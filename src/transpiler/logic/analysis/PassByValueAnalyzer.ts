@@ -129,7 +129,7 @@ class PassByValueAnalyzer {
     const callerScope = QualifiedCName.split(callerName)[0];
     if (!callerScope || callerScope === callerName) return false;
     return PassByValueAnalyzer.nameIsValueSymbol(
-      QualifiedCName.join(callerScope, root),
+      QualifiedCName.fromParts([callerScope, root]),
     );
   }
 
@@ -340,7 +340,7 @@ class PassByValueAnalyzer {
           if (member.functionDeclaration()) {
             const funcDecl = member.functionDeclaration()!;
             const funcName = funcDecl.IDENTIFIER().getText();
-            const fullName = QualifiedCName.join(scopeName, funcName);
+            const fullName = QualifiedCName.fromParts([scopeName, funcName]);
             PassByValueAnalyzer.analyzeFunctionForModifications(
               fullName,
               funcDecl,
@@ -716,7 +716,7 @@ class PassByValueAnalyzer {
         // precedes the parenthesis, so opIndex > 0 and the chain is genuinely
         // qualified.
         if (opIndex > 0 && memberNames.length >= 1) {
-          const calleeName = QualifiedCName.join(...memberNames);
+          const calleeName = QualifiedCName.fromParts(memberNames);
           PassByValueAnalyzer.recordCallsFromArgList(
             funcName,
             paramSet,

@@ -191,7 +191,7 @@ class SymbolRegistry {
     // Check all scopes - the C name should match scope_name pattern
     for (const [scopePath, scope] of this.scopes) {
       for (const func of scope.functions) {
-        if (QualifiedCName.join(scopePath, func.name) === cName) {
+        if (QualifiedCName.fromParts([scopePath, func.name]) === cName) {
           return func;
         }
       }

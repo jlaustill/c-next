@@ -408,6 +408,34 @@ Live diagnostics in the VS Code extension are tracked separately: every transpil
   through `SymbolRegistry.getOrCreateScope`, which takes a dotted path and builds the
   chain, which is the level the guard for it is written at.
 
+  The second half removed the API that made the leaf form expressible.
+  `QualifiedCName.join(...strings)` became `fromParts(parts)` and `joinSource`
+  became `fromSourceParts`, so building a name states that a COMPLETE path is in
+  hand rather than reading as an act of joining two things. `resolveDimensionName`
+  moved to `ScopeUtils` (`src/utils/ScopeUtils.ts:300`) and now takes the scope
+  REFERENCE: three of its four branches qualify against the enclosing scope, so on
+  `QualifiedCName` it was the last route by which a caller holding only a scope name
+  could still build a one-level name. `QualifiedCName` now has no scope-aware API at
+  all, which makes threading the reference the only way to express the correct thing
+  and a compile error the consequence of not having it.
+
+  What remains is a call SHAPE — `fromParts([scopeName, member])` — which no
+  import-level rule can see, because `fromParts` has 38 legitimate whole-path
+  callers. Two gates split that: `.dependency-cruiser.cjs` widened
+  `collectors-build-names-from-scopes` from the collectors seam to every directory
+  measurably needing nothing from `QualifiedCName` (parser, preprocessor, data — 42
+  files against the original 7), and `npm run scope-joins:check` holds the residual
+  population at `docs/architecture/scope-join-sites.md`, 22 sites across 13 files.
+  That inventory counts an element as scope-denoting when its NAME says so or when
+  the enclosing block guards it with `is(Known)Scope(<that element>)`; a name
+  heuristic alone missed six sites spelled `parts[0]` or `identifierChain[0]`,
+  which nobody will ever rename, so the residue would have been undercounted and a
+  later zero would have licensed removing the gate.
+  That inventory is keyed on per-file counts rather than `file:line`: #1374 records
+  that a citation gate cannot detect two rows trading sites, and one unrelated
+  eleven-site change silently invalidated eighteen `file:line` citations elsewhere in
+  these docs through pure line drift.
+
 - Issue #1292 — diagnostics name `cnxScopedName`, not the generated identifier
 - ADR-016 (Scopes), ADR-017 (Enums), ADR-057 (Implicit Scope Resolution), ADR-010 (C Interoperability), ADR-105 (Prefixed Includes)
 - ISO/IEC 9899:2011 §7.1.3; ISO/IEC 14882 §lex.name/3; MISRA C:2012 Rule 21.2; ISO/IEC 9899:1999 §5.2.4.1

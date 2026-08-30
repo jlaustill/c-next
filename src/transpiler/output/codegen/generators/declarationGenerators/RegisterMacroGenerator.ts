@@ -55,7 +55,7 @@ function generateRegisterMacros(
 
     // Generate: #define PREFIX_REGNAME (*(volatile type*)(base + offset))
     lines.push(
-      `#define ${QualifiedCName.join(prefix, regName)} (*(${cast})(${baseAddress} + ${offset}))`,
+      `#define ${QualifiedCName.fromParts([prefix, regName])} (*(${cast})(${baseAddress} + ${offset}))`,
     );
   }
 

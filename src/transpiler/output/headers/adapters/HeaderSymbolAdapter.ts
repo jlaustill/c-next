@@ -10,7 +10,7 @@ import IHeaderSymbol from "../types/IHeaderSymbol";
 import IParameterSymbol from "../../../../utils/types/IParameterSymbol";
 import TypeResolver from "../../../../utils/TypeResolver";
 import ScopeUtils from "../../../../utils/ScopeUtils";
-import QualifiedCName from "../../../../utils/QualifiedCName";
+import type IScopeSymbol from "../../../types/symbols/IScopeSymbol";
 import CodeGenState from "../../../state/CodeGenState";
 import type TType from "../../../types/TType";
 
@@ -106,7 +106,7 @@ class HeaderSymbolAdapter {
     const arrayDimensions = variable.arrayDimensions?.map((d) =>
       typeof d === "number"
         ? String(d)
-        : HeaderSymbolAdapter.resolveArrayDimension(d, variable.scope.name),
+        : HeaderSymbolAdapter.resolveArrayDimension(d, variable.scope),
     );
 
     return {
@@ -269,24 +269,27 @@ class HeaderSymbolAdapter {
    * header and the implementation derive different names for the same array and
    * the header does not compile (#1117 review).
    *
-   * Sharing `QualifiedCName.join()` is not sufficient on its own: both sides must
+   * Sharing `QualifiedCName.fromParts([])` is not sufficient on its own: both sides must
    * also agree on *what to join*. A bare `State.COUNT` written inside `scope Motor`
    * refers to `Motor.State.COUNT` and must become `Motor__State__COUNT`, while a
    * top-level `EColor.COUNT` must stay `EColor__COUNT`.
    *
    * @param dim - Dimension as written in source; may be a qualified enum access
-   * @param scopeName - Name of the scope declaring the variable ("" for global)
+   * @param scope - Scope declaring the variable, or the global scope at file scope
    * @returns C-compatible dimension string
-   * @example resolveArrayDimension("EColor.COUNT", "") => "EColor__COUNT"
-   * @example resolveArrayDimension("State.COUNT", "Motor") => "Motor__State__COUNT"
-   * @example resolveArrayDimension("this.State.COUNT", "Motor") => "Motor__State__COUNT"
-   * @example resolveArrayDimension("global.EColor.COUNT", "Motor") => "EColor__COUNT"
-   * @example resolveArrayDimension("10", "Motor") => "10"
+   * @example resolveArrayDimension("EColor.COUNT", global) => "EColor__COUNT"
+   * @example resolveArrayDimension("State.COUNT", Motor) => "Motor__State__COUNT"
+   * @example resolveArrayDimension("this.State.COUNT", Motor) => "Motor__State__COUNT"
+   * @example resolveArrayDimension("global.EColor.COUNT", Motor) => "EColor__COUNT"
+   * @example resolveArrayDimension("10", Motor) => "10"
    */
-  private static resolveArrayDimension(dim: string, scopeName: string): string {
-    // Issue #1127: the rule itself lives on QualifiedCName so the struct-field
-    // path applies the same one. This wrapper only binds the predicate.
-    return QualifiedCName.resolveDimensionName(dim, scopeName, (qualified) =>
+  private static resolveArrayDimension(
+    dim: string,
+    scope: IScopeSymbol | null,
+  ): string {
+    // Issue #1127: the rule itself lives on ScopeUtils so the struct-field path
+    // applies the same one. This wrapper only binds the predicate.
+    return ScopeUtils.resolveDimensionName(dim, scope, (qualified: string) =>
       CodeGenState.isKnownEnum(qualified),
     );
   }

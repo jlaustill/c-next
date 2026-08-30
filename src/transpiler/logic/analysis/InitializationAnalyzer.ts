@@ -715,7 +715,7 @@ class InitializationAnalyzer {
     if (!memberVar) return;
 
     const varName = memberVar.IDENTIFIER().getText();
-    const fullName = QualifiedCName.join(scopeName, varName); // Transpiled C name
+    const fullName = QualifiedCName.fromParts([scopeName, varName]); // Transpiled C name
     const { line, column } = ParserUtils.getPosition(memberVar);
     const typeName = this._extractUserTypeName(memberVar.type());
 

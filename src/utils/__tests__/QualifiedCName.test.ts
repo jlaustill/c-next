@@ -8,35 +8,35 @@ import QualifiedCName from "../QualifiedCName";
 describe("QualifiedCName", () => {
   describe("join", () => {
     it("joins scope and member", () => {
-      expect(QualifiedCName.join("Motor", "init")).toBe("Motor__init");
+      expect(QualifiedCName.fromParts(["Motor", "init"])).toBe("Motor__init");
     });
 
     it("joins three components (scoped enum member)", () => {
-      expect(QualifiedCName.join("Motor", "State", "IDLE")).toBe(
+      expect(QualifiedCName.fromParts(["Motor", "State", "IDLE"])).toBe(
         "Motor__State__IDLE",
       );
     });
 
     it("returns the bare name for a global symbol", () => {
-      expect(QualifiedCName.join("", "main")).toBe("main");
-      expect(QualifiedCName.join(undefined, "main")).toBe("main");
-      expect(QualifiedCName.join(null, "main")).toBe("main");
+      expect(QualifiedCName.fromParts(["", "main"])).toBe("main");
+      expect(QualifiedCName.fromParts([undefined, "main"])).toBe("main");
+      expect(QualifiedCName.fromParts([null, "main"])).toBe("main");
     });
 
     it("expands a dotted source path into separate components", () => {
-      expect(QualifiedCName.join("Outer.Inner", "deepFunc")).toBe(
+      expect(QualifiedCName.fromParts(["Outer.Inner", "deepFunc"])).toBe(
         "Outer__Inner__deepFunc",
       );
     });
 
     it("preserves single underscores inside a component", () => {
-      expect(QualifiedCName.join("Timer", "tick_count")).toBe(
+      expect(QualifiedCName.fromParts(["Timer", "tick_count"])).toBe(
         "Timer__tick_count",
       );
     });
 
     it("drops empty components rather than emitting a stray separator", () => {
-      expect(QualifiedCName.join("A", "", "b")).toBe("A__b");
+      expect(QualifiedCName.fromParts(["A", "", "b"])).toBe("A__b");
     });
 
     it.each([
@@ -48,7 +48,7 @@ describe("QualifiedCName", () => {
       (_label, input, expected) => {
         // A malformed path must not emit a stray separator — that would produce
         // a name with a run of underscores and break the injectivity guarantee.
-        expect(QualifiedCName.join(input)).toBe(expected);
+        expect(QualifiedCName.fromParts([input])).toBe(expected);
       },
     );
   });
@@ -56,9 +56,9 @@ describe("QualifiedCName", () => {
   describe("split", () => {
     it("is the inverse of join", () => {
       const parts = ["Motor", "State", "IDLE"];
-      expect(QualifiedCName.split(QualifiedCName.join(...parts))).toEqual(
-        parts,
-      );
+      expect(
+        QualifiedCName.split(QualifiedCName.fromParts([...parts])),
+      ).toEqual(parts);
     });
   });
 
@@ -115,8 +115,8 @@ describe("QualifiedCName", () => {
     // must never produce the same C identifier, given ADR-063-conformant input.
     it("separates the #1117 scope-vs-scope collision", () => {
       // scope A_B { c }  vs  scope A { B_c } — identical under a naive join
-      const first = QualifiedCName.join("A_B", "c");
-      const second = QualifiedCName.join("A", "B_c");
+      const first = QualifiedCName.fromParts(["A_B", "c"]);
+      const second = QualifiedCName.fromParts(["A", "B_c"]);
 
       expect(first).toBe("A_B__c");
       expect(second).toBe("A__B_c");
@@ -126,7 +126,7 @@ describe("QualifiedCName", () => {
     it("separates a global from a scope member of the same spelling", () => {
       // u8 Reg_flags  vs  scope Reg { u8 flags }
       const global = "Reg_flags";
-      const member = QualifiedCName.join("Reg", "flags");
+      const member = QualifiedCName.fromParts(["Reg", "flags"]);
 
       expect(member).toBe("Reg__flags");
       expect(member).not.toBe(global);
@@ -135,7 +135,7 @@ describe("QualifiedCName", () => {
     it("cannot produce a name that a plain identifier could spell", () => {
       // A qualified name always contains the separator, and ADR-063 forbids that
       // sequence in any identifier, so the two namespaces cannot intersect.
-      expect(QualifiedCName.join("Reg", "flags")).toContain(
+      expect(QualifiedCName.fromParts(["Reg", "flags"])).toContain(
         QualifiedCName.SEPARATOR,
       );
     });
@@ -147,98 +147,9 @@ describe("QualifiedCName", () => {
         ["A", "B", "c"],
         ["A_B_c"],
       ];
-      const generated = cases.map((c) => QualifiedCName.join(...c));
+      const generated = cases.map((c) => QualifiedCName.fromParts([...c]));
 
       expect(new Set(generated).size).toBe(cases.length);
-    });
-  });
-  describe("resolveDimensionName", () => {
-    // Issue #1127: this is the single rule the .c and the .h both apply to an
-    // array dimension that names a symbol. A fixture proves the forms agree in
-    // one arrangement; these pin the rule itself, including the cases a
-    // fixture cannot easily reach.
-    const declaresState = (qualifiedName: string): boolean =>
-      qualifiedName === "Motor__State";
-
-    it.each([
-      ["a plain numeric dimension", "10", "Motor", "10"],
-      ["a bare macro with no dot", "BUF_SIZE", "Motor", "BUF_SIZE"],
-      ["a scope-local enum", "State.COUNT", "Motor", "Motor__State__COUNT"],
-      [
-        "an explicit this. qualifier",
-        "this.State.COUNT",
-        "Motor",
-        "Motor__State__COUNT",
-      ],
-      [
-        "an explicit global. qualifier",
-        "global.Top.COUNT",
-        "Motor",
-        "Top__COUNT",
-      ],
-      ["a top-level enum at global scope", "EColor.COUNT", "", "EColor__COUNT"],
-    ])("resolves %s", (_label, dim, scopeName, expected) => {
-      expect(
-        QualifiedCName.resolveDimensionName(dim, scopeName, declaresState),
-      ).toBe(expected);
-    });
-
-    it("does not prefix a bare name the scope does not declare", () => {
-      // ADR-057 resolves scope-first then global, so the prefix goes on only
-      // when the scope really declares that enum. Prefixing unconditionally
-      // would emit Motor__Other__COUNT for a global enum and not compile.
-      expect(
-        QualifiedCName.resolveDimensionName(
-          "Other.COUNT",
-          "Motor",
-          declaresState,
-        ),
-      ).toBe("Other__COUNT");
-    });
-
-    it("drops the global. marker at global scope", () => {
-      expect(
-        QualifiedCName.resolveDimensionName(
-          "global.Top.COUNT",
-          "",
-          declaresState,
-        ),
-      ).toBe("Top__COUNT");
-    });
-
-    it("adds no prefix for this. at global scope", () => {
-      // scopeName is "" outside a scope; join must not emit a leading separator.
-      expect(
-        QualifiedCName.resolveDimensionName(
-          "this.EColor.COUNT",
-          "",
-          declaresState,
-        ),
-      ).toBe("EColor__COUNT");
-    });
-
-    it("consults the predicate with the scope-joined first segment", () => {
-      const seen: string[] = [];
-      QualifiedCName.resolveDimensionName("State.COUNT", "Motor", (name) => {
-        seen.push(name);
-        return false;
-      });
-
-      expect(seen).toEqual(["Motor__State"]);
-    });
-
-    it("never consults the predicate for an explicit qualifier", () => {
-      // this. and global. state their answer in the syntax; consulting the
-      // predicate could only override what the author wrote.
-      const seen: string[] = [];
-      const spy = (name: string): boolean => {
-        seen.push(name);
-        return true;
-      };
-      QualifiedCName.resolveDimensionName("this.State.COUNT", "Motor", spy);
-      QualifiedCName.resolveDimensionName("global.Top.COUNT", "Motor", spy);
-
-      expect(seen).toEqual([]);
     });
   });
 });

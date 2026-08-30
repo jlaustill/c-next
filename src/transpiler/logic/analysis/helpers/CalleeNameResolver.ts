@@ -56,7 +56,7 @@ class CalleeNameResolver {
     // this.member -> CurrentScope__member (only meaningful inside a scope)
     if (resolvedName === "this") {
       return currentScope
-        ? QualifiedCName.join(currentScope, memberName)
+        ? QualifiedCName.fromParts([currentScope, memberName])
         : null;
     }
 
@@ -66,7 +66,7 @@ class CalleeNameResolver {
     }
 
     if (isScope(resolvedName)) {
-      return QualifiedCName.join(resolvedName, memberName);
+      return QualifiedCName.fromParts([resolvedName, memberName]);
     }
 
     // Object.method or a chained access -- not a C-Next function call
@@ -178,7 +178,7 @@ class CalleeNameResolver {
     if (!currentScope || isGlobalCall) return null;
     // Already qualified -- there is nothing to fall back from.
     if (QualifiedCName.isQualified(name)) return null;
-    return QualifiedCName.join(currentScope, name);
+    return QualifiedCName.fromParts([currentScope, name]);
   }
 }
 

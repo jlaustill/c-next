@@ -2234,7 +2234,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // C-Next scope type: join all parts with _
-    return QualifiedCName.join(...identifiers);
+    return QualifiedCName.fromParts(identifiers);
   }
 
   /**

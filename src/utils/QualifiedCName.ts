@@ -32,36 +32,49 @@ class QualifiedCName {
   static readonly SOURCE_SEPARATOR = ".";
 
   /**
-   * Build a qualified C name from its components, outermost first.
+   * Build a qualified C name from a COMPLETE path, outermost first.
    *
-   * Empty and undefined components are dropped, so a global symbol (no scope) keeps
-   * its bare name. Any component may itself be a dotted source path (`"Outer.Inner"`),
-   * which is expanded before joining.
+   * Empty and undefined parts are dropped, so a global symbol (no scope) keeps its
+   * bare name. Any part may itself be a dotted source path (`"Outer.Inner"`), which
+   * is expanded before joining.
    *
-   * @param components Ordered name parts, e.g. ["Motor", "State", "IDLE"]
+   * Takes an array rather than a variadic list, and is named for the whole path
+   * for the act of joining, because the variadic spelling it replaces made
+   * `join(scopeName, member)` the obvious call -- a scope LEAF joined to a leaf,
+   * which drops every outer scope and is the divergence #1357 exists to remove. A
+   * caller that holds a scope cannot build a correct path from its name, so it has
+   * no business here: `ScopeUtils.qualifyInScope` takes the scope REFERENCE and
+   * walks the chain. What is left for this method is the case where the caller
+   * genuinely already holds every component -- a parse-tree identifier chain, or an
+   * already-qualified type name plus its member.
+   *
+   * @param parts Ordered name parts, e.g. ["Motor", "State", "IDLE"]
    * @returns The generated C identifier, e.g. "Motor__State__IDLE"
    */
-  static join(...components: (string | undefined | null)[]): string {
-    return QualifiedCName.toParts(components).join(QualifiedCName.SEPARATOR);
+  static fromParts(parts: readonly (string | undefined | null)[]): string {
+    return QualifiedCName.toParts(parts).join(QualifiedCName.SEPARATOR);
   }
 
   /**
    * Build the SOURCE-language qualified name from its components, outermost
    * first — `Outer.Inner.tick`, the way a C-Next author would write it.
    *
-   * The counterpart to join(). The two namespaces are separate on purpose:
+   * The counterpart to fromParts(). The two namespaces are separate on purpose:
    * `Outer__Inner__tick` is what the C compiler sees, `Outer.Inner.tick` is what
    * the author typed, and neither is derivable from the other at a call site
    * without knowing which one it already holds. A diagnostic wants this one; a
-   * lookup key wants join().
+   * lookup key wants fromParts().
    *
-   * @param components Ordered name parts, e.g. ["Motor", "State", "IDLE"]
+   * Takes a complete path for the same reason fromParts() does -- the source
+   * spelling is just as capable of dropping an outer scope as the C spelling.
+   *
+   * @param parts Ordered name parts, e.g. ["Motor", "State", "IDLE"]
    * @returns The source spelling, e.g. "Motor.State.IDLE"
    */
-  static joinSource(...components: (string | undefined | null)[]): string {
-    return QualifiedCName.toParts(components).join(
-      QualifiedCName.SOURCE_SEPARATOR,
-    );
+  static fromSourceParts(
+    parts: readonly (string | undefined | null)[],
+  ): string {
+    return QualifiedCName.toParts(parts).join(QualifiedCName.SOURCE_SEPARATOR);
   }
 
   /**
@@ -126,7 +139,7 @@ class QualifiedCName {
    * Expand components into flat parts, dropping empties and splitting dotted paths.
    */
   private static toParts(
-    components: (string | undefined | null)[],
+    components: readonly (string | undefined | null)[],
   ): readonly string[] {
     const parts: string[] = [];
     for (const component of components) {
@@ -140,58 +153,6 @@ class QualifiedCName {
       }
     }
     return parts;
-  }
-
-  /**
-   * Resolve an array dimension that names a symbol (an enum count, a macro) to
-   * the identifier the generated C should use.
-   *
-   * Issue #1127: this rule previously lived only in
-   * HeaderSymbolAdapter.resolveArrayDimension() and served variables only, so
-   * a struct field carrying `EColor.COUNT` had no way to reach `EColor__COUNT`.
-   * It lives here so the variable path and the struct-field path apply one
-   * rule; `isKnownEnum` is injected rather than read from CodeGenState so this
-   * stays usable from any layer.
-   *
-   * @param dim Dimension text as written in the source
-   * @param scopeName Enclosing scope, or "" at global scope
-   * @param isKnownEnum Does this *qualified* name name an enum?
-   * @returns The C identifier, or `dim` unchanged when it names nothing
-   *
-   * @example resolveDimensionName("EColor.COUNT", "", p)        => "EColor__COUNT"
-   * @example resolveDimensionName("State.COUNT", "Motor", p)    => "Motor__State__COUNT"
-   * @example resolveDimensionName("this.State.COUNT", "Motor", p) => "Motor__State__COUNT"
-   * @example resolveDimensionName("global.EColor.COUNT", "Motor", p) => "EColor__COUNT"
-   * @example resolveDimensionName("10", "Motor", p)             => "10"
-   */
-  static resolveDimensionName(
-    dim: string,
-    scopeName: string,
-    isKnownEnum: (qualifiedName: string) => boolean,
-  ): string {
-    if (!dim.includes(QualifiedCName.SOURCE_SEPARATOR)) {
-      return dim;
-    }
-
-    const parts = dim.split(QualifiedCName.SOURCE_SEPARATOR);
-
-    // `global.X.Y` is explicitly global - drop the marker, add no scope prefix
-    if (parts[0] === "global") {
-      return QualifiedCName.join(...parts.slice(1));
-    }
-
-    // `this.X.Y` is explicitly scope-local - drop the marker, prefix the scope
-    if (parts[0] === "this") {
-      return QualifiedCName.join(scopeName, ...parts.slice(1));
-    }
-
-    // Bare `X.Y` inside a scope resolves scope-first, then global (ADR-057).
-    // Prefix only when the scope really declares that enum.
-    if (scopeName && isKnownEnum(QualifiedCName.join(scopeName, parts[0]))) {
-      return QualifiedCName.join(scopeName, ...parts);
-    }
-
-    return QualifiedCName.join(...parts);
   }
 }
 

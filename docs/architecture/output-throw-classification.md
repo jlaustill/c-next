@@ -49,7 +49,7 @@ By area:
 
 ## Position availability — the finding that shapes #1322
 
-**Only 2 of 181 sites emit a real position.** `SwitchGenerator.ts:92` and
+**Only 2 of 181 sites emit a real position.** `SwitchGenerator.ts:94` and
 `ControlFlowGenerator.ts:46` prefix `line:col ` into the message text, which
 `ParserUtils.parseErrorLocation` scrapes back out at `Transpiler.ts:450`/`:2282`, defaulting to
 `1:0`. That is why those two fixtures read `13:13` and `11:13` while nearly every other reads
@@ -255,7 +255,7 @@ no longer honours — it throws unconditionally once `arrayDimension().length > 
 | file:line                                       | message                                                                                       | code      | position source                                                                                              | fixture                                                 |
 | ----------------------------------------------- | --------------------------------------------------------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
 | `declarationGenerators/ScopeGenerator.ts:95`    | constructor argument must be const (C++)                                                      | NEW       | `varDecl.start` — line read at `:176`, inlined as prose                                                      | `constructor-syntax/error-non-const-arg`                |
-| `statements/SwitchGenerator.ts:92`              | unqualified enum member in a case label                                                       | E0424     | **emits a real position** as a string prefix `ParserUtils` scrapes back                                      | `analysis/enum-context/unqualified-enum-switch-case` +1 |
+| `statements/SwitchGenerator.ts:94`              | unqualified enum member in a case label                                                       | E0424     | **emits a real position** as a string prefix `ParserUtils` scrapes back                                      | `analysis/enum-context/unqualified-enum-switch-case` +1 |
 | `statements/ControlFlowGenerator.ts:46`         | unqualified enum member in a return                                                           | E0424     | same mechanism, `exprCtx.start`                                                                              | `analysis/enum-context/unqualified-enum-return-*` (5)   |
 | `statements/ControlFlowGenerator.ts:302`        | `for (;;)` has no controlling expression (ADR-068)                                            | E0707     | `node.start` in scope, **unused**                                                                            | `control-flow/forever-disguised-for-empty`              |
 | `statements/ControlFlowGenerator.ts:404`        | `forever` in a non-void function (ADR-068)                                                    | E0705     | `node.start` in scope, unused                                                                                | `control-flow/forever-non-void-error`                   |

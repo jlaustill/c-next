@@ -203,7 +203,7 @@ class AssignmentValidator {
       throw new Error(`${constError} (member access)`);
     }
 
-    const fullName = QualifiedCName.join(rootName, memberName);
+    const fullName = QualifiedCName.fromParts([rootName, memberName]);
 
     // ADR-013: Check for read-only register members
     const accessMod = CodeGenState.symbols?.registerMemberAccess.get(fullName);

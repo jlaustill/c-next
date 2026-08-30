@@ -21,11 +21,11 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import chalk from "chalk";
-import prettier from "prettier";
 
 import TOOLCHAIN_REQUIREMENTS from "../src/transpiler/constants/TOOLCHAIN_REQUIREMENTS";
 import type IToolchainRequirement from "../src/transpiler/types/IToolchainRequirement";
 import ToolchainRequirementUtils from "../src/utils/ToolchainRequirementUtils";
+import GeneratedMarkdown from "./utils/GeneratedMarkdown";
 
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const compatibilityPath = join(rootDir, "docs", "compatibility.md");
@@ -377,26 +377,6 @@ function splice(
   );
 }
 
-/**
- * Format through Prettier before writing or comparing.
- *
- * The pre-commit hook formats staged markdown, so a generator that emitted
- * unformatted output would produce a committed file that never matches what it
- * generates -- making `docs:toolchain:check` fail permanently in CI. Formatting
- * here keeps the generated file byte-identical to what the hook would produce.
- */
-async function formatMarkdown(
-  markdown: string,
-  filepath: string,
-): Promise<string> {
-  const config = await prettier.resolveConfig(filepath);
-  return prettier.format(markdown, {
-    ...config,
-    filepath,
-    parser: "markdown",
-  });
-}
-
 function readOrEmpty(path: string): string {
   try {
     return readFileSync(path, "utf-8");
@@ -407,14 +387,14 @@ function readOrEmpty(path: string): string {
 
 async function main(): Promise<void> {
   const mode = process.argv[2] ?? "write";
-  const compatibility = await formatMarkdown(
+  const compatibility = await GeneratedMarkdown.format(
     buildCompatibility(),
     compatibilityPath,
   );
   const misraExisting = readOrEmpty(misraPath);
   const misraUpdated =
     misraExisting.length > 0
-      ? await formatMarkdown(
+      ? await GeneratedMarkdown.format(
           splice(
             splice(misraExisting, MISRA_BEGIN, MISRA_END, buildMisraBlock()),
             SUMMARY_BEGIN,

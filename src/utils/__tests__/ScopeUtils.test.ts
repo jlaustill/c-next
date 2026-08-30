@@ -199,7 +199,7 @@ describe("IScopeSymbol", () => {
     });
 
     it("qualifyInScope walks the whole chain at depth 2", () => {
-      // The drop-in for `QualifiedCName.join(currentScopeName, name)`. The
+      // The drop-in for `QualifiedCName.fromParts([currentScopeName, name])`. The
       // string version produced "Inner__tick" here, dropping `Outer`.
       const global = ScopeUtils.createGlobalScope();
       const outer = ScopeUtils.createScope("Outer", global);
@@ -278,6 +278,108 @@ describe("IScopeSymbol", () => {
       expect(identity.fullyQualifiedCName.split("__")).toHaveLength(
         identity.cnxScopedName.split(".").length,
       );
+    });
+  });
+
+  describe("resolveDimensionName (#1127, moved here by #1357)", () => {
+    // Issue #1127: this is the single rule the .c and the .h both apply to an
+    // array dimension that names a symbol. A fixture proves the forms agree in
+    // one arrangement; these pin the rule itself, including the cases a fixture
+    // cannot easily reach.
+    //
+    // #1357: the scope arrives as a REFERENCE. The name-taking version could not
+    // qualify past one level, so `Outer.Inner` resolved a dimension to
+    // `Inner__State__COUNT` -- see the depth-two case below, which the old
+    // signature had no way to express at all.
+    const declaresState = (qualifiedName: string): boolean =>
+      qualifiedName === "Motor__State";
+
+    const global = ScopeUtils.createGlobalScope();
+    const motor = ScopeUtils.createScope("Motor", global);
+
+    it.each([
+      ["a plain numeric dimension", "10", "10"],
+      ["a bare macro with no dot", "BUF_SIZE", "BUF_SIZE"],
+      ["a scope-local enum", "State.COUNT", "Motor__State__COUNT"],
+      [
+        "an explicit this. qualifier",
+        "this.State.COUNT",
+        "Motor__State__COUNT",
+      ],
+      ["an explicit global. qualifier", "global.Top.COUNT", "Top__COUNT"],
+    ])("resolves %s inside a scope", (_label, dim, expected) => {
+      expect(ScopeUtils.resolveDimensionName(dim, motor, declaresState)).toBe(
+        expected,
+      );
+    });
+
+    it.each([
+      ["a top-level enum at global scope", "EColor.COUNT", "EColor__COUNT"],
+      ["the global. marker at global scope", "global.Top.COUNT", "Top__COUNT"],
+      ["this. at global scope", "this.EColor.COUNT", "EColor__COUNT"],
+    ])("resolves %s", (_label, dim, expected) => {
+      expect(ScopeUtils.resolveDimensionName(dim, global, declaresState)).toBe(
+        expected,
+      );
+    });
+
+    it("does not prefix a bare name the scope does not declare", () => {
+      // ADR-057 resolves scope-first then global, so the prefix goes on only
+      // when the scope really declares that enum. Prefixing unconditionally
+      // would emit Motor__Other__COUNT for a global enum and not compile.
+      expect(
+        ScopeUtils.resolveDimensionName("Other.COUNT", motor, declaresState),
+      ).toBe("Other__COUNT");
+    });
+
+    it("consults the predicate with the scope-joined first segment", () => {
+      const seen: string[] = [];
+      ScopeUtils.resolveDimensionName("State.COUNT", motor, (name) => {
+        seen.push(name);
+        return false;
+      });
+
+      expect(seen).toEqual(["Motor__State"]);
+    });
+
+    it("never consults the predicate for an explicit qualifier", () => {
+      // this. and global. state their answer in the syntax; consulting the
+      // predicate could only override what the author wrote.
+      const seen: string[] = [];
+      const spy = (name: string): boolean => {
+        seen.push(name);
+        return true;
+      };
+      ScopeUtils.resolveDimensionName("this.State.COUNT", motor, spy);
+      ScopeUtils.resolveDimensionName("global.Top.COUNT", motor, spy);
+
+      expect(seen).toEqual([]);
+    });
+
+    it("qualifies a dimension through the WHOLE scope chain", () => {
+      // #1357: unreachable from .cnx -- `scopeMember` admits no
+      // `scopeDeclaration` (grammar/CNext.g4:81-89) -- but reachable here,
+      // and the name-taking signature this replaced could not express it:
+      // it received "Inner" and emitted Inner__State__COUNT.
+      const outer = ScopeUtils.createScope("Outer", global);
+      const inner = ScopeUtils.createScope("Inner", outer);
+      const declaresInnerState = (q: string): boolean =>
+        q === "Outer__Inner__State";
+
+      expect(
+        ScopeUtils.resolveDimensionName(
+          "State.COUNT",
+          inner,
+          declaresInnerState,
+        ),
+      ).toBe("Outer__Inner__State__COUNT");
+      expect(
+        ScopeUtils.resolveDimensionName(
+          "this.State.COUNT",
+          inner,
+          declaresInnerState,
+        ),
+      ).toBe("Outer__Inner__State__COUNT");
     });
   });
 });

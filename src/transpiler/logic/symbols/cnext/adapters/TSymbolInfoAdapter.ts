@@ -332,15 +332,14 @@ class TSymbolInfoAdapter {
       if (!fieldDimensions) {
         continue;
       }
-      const scopeName = symbol.scope.name;
       for (const [fieldName, dimensions] of fieldDimensions) {
         fieldDimensions.set(
           fieldName,
           dimensions.map((dimension) =>
             typeof dimension === "string"
-              ? QualifiedCName.resolveDimensionName(
+              ? ScopeUtils.resolveDimensionName(
                   dimension,
-                  scopeName,
+                  symbol.scope,
                   isKnownEnum,
                 )
               : dimension,
@@ -415,7 +414,7 @@ class TSymbolInfoAdapter {
     }
 
     for (const [memberName, memberInfo] of register.members) {
-      const fullName = QualifiedCName.join(cName, memberName);
+      const fullName = QualifiedCName.fromParts([cName, memberName]);
 
       maps.registerMemberAccess.set(fullName, memberInfo.access);
       maps.registerMemberOffsets.set(fullName, memberInfo.offset);
@@ -488,7 +487,7 @@ class TSymbolInfoAdapter {
   ): string | null {
     // #1295: scopeVariableUsage is populated with leaf-built keys, so this
     // lookup matches it. Both move together or neither does.
-    const fullVarName = QualifiedCName.join(scopeName, varName);
+    const fullVarName = QualifiedCName.fromParts([scopeName, varName]);
     const usedIn = scopeVariableUsage.get(fullVarName);
 
     if (usedIn?.size !== 1) {

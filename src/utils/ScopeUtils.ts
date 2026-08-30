@@ -194,10 +194,10 @@ class ScopeUtils {
     name: string;
     scope: IScopeSymbol;
   }): string {
-    return QualifiedCName.join(
+    return QualifiedCName.fromParts([
       ...ScopeUtils.getScopePath(symbol.scope),
       symbol.name,
-    );
+    ]);
   }
 
   /**
@@ -214,17 +214,17 @@ class ScopeUtils {
     name: string;
     scope: IScopeSymbol;
   }): string {
-    return QualifiedCName.joinSource(
+    return QualifiedCName.fromSourceParts([
       ...ScopeUtils.getScopePath(symbol.scope),
       symbol.name,
-    );
+    ]);
   }
 
   /**
    * The C name a bare member of `scope` is emitted under, or the bare name at
    * file scope.
    *
-   * The drop-in for `QualifiedCName.join(currentScopeName, name)`, which is the
+   * The drop-in for `QualifiedCName.fromParts([currentScopeName, name])`, which is the
    * leaf-only encoder #1285 exists to remove. Identical at depth one -- a
    * top-level scope's leaf name IS its whole chain -- and correct beyond it,
    * where the string version dropped every outer component.
@@ -233,10 +233,7 @@ class ScopeUtils {
    * keeps its bare name, which is what makes `global.x` reachable.
    */
   static qualifyInScope(name: string, scope: IScopeSymbol | null): string {
-    if (!scope || ScopeUtils.isGlobalScope(scope)) {
-      return name;
-    }
-    return ScopeUtils.getTranspiledCName({ name, scope });
+    return ScopeUtils.qualifyPathInScope([name], scope);
   }
 
   /**
@@ -266,6 +263,102 @@ class ScopeUtils {
     }
     const qualified = ScopeUtils.getTranspiledCName({ name: typeName, scope });
     return isKnownType(qualified) ? qualified : typeName;
+  }
+
+  /**
+   * Resolve an array dimension that names a symbol (an enum count, a macro) to
+   * the identifier the generated C should use.
+   *
+   * Issue #1127: this rule previously lived only in
+   * HeaderSymbolAdapter.resolveArrayDimension() and served variables only, so a
+   * struct field carrying `EColor.COUNT` had no way to reach `EColor__COUNT`. It is
+   * shared so the variable path and the struct-field path apply one rule;
+   * `isKnownEnum` is injected rather than read from CodeGenState so this stays
+   * usable from any layer.
+   *
+   * #1357: moved here from QualifiedCName, and takes the scope REFERENCE rather
+   * than its name. It is a scope-aware operation -- three of its four branches
+   * qualify against the enclosing scope -- so on QualifiedCName it was the last
+   * API through which a caller holding only a scope NAME could still build a
+   * one-level qualified name. Qualifying through `qualifyInScope` also walks the
+   * parent chain, which the name-taking version could not.
+   *
+   * @param dim Dimension text as written in the source
+   * @param scope Enclosing scope, or null/global at file scope
+   * @param isKnownEnum Does this *qualified* name name an enum?
+   * @returns The C identifier, or `dim` unchanged when it names nothing
+   *
+   * @example resolveDimensionName("EColor.COUNT", global, p)      => "EColor__COUNT"
+   * @example resolveDimensionName("State.COUNT", Motor, p)        => "Motor__State__COUNT"
+   * @example resolveDimensionName("this.State.COUNT", Motor, p)   => "Motor__State__COUNT"
+   * @example resolveDimensionName("global.EColor.COUNT", Motor, p) => "EColor__COUNT"
+   * @example resolveDimensionName("10", Motor, p)                 => "10"
+   */
+  static resolveDimensionName(
+    dim: string,
+    scope: IScopeSymbol | null,
+    isKnownEnum: (qualifiedName: string) => boolean,
+  ): string {
+    if (!dim.includes(QualifiedCName.SOURCE_SEPARATOR)) {
+      return dim;
+    }
+
+    const parts = dim.split(QualifiedCName.SOURCE_SEPARATOR);
+
+    // `global.X.Y` is explicitly global - drop the marker, add no scope prefix
+    if (parts[0] === "global") {
+      return QualifiedCName.fromParts(parts.slice(1));
+    }
+
+    // `this.X.Y` is explicitly scope-local - drop the marker, prefix the scope
+    if (parts[0] === "this") {
+      return ScopeUtils.qualifyPathInScope(parts.slice(1), scope);
+    }
+
+    // Bare `X.Y` inside a scope resolves scope-first, then global (ADR-057).
+    // Prefix only when the scope really declares that enum.
+    if (
+      scope &&
+      !ScopeUtils.isGlobalScope(scope) &&
+      isKnownEnum(ScopeUtils.qualifyInScope(parts[0], scope))
+    ) {
+      return ScopeUtils.qualifyPathInScope(parts, scope);
+    }
+
+    return QualifiedCName.fromParts(parts);
+  }
+
+  /**
+   * The C name a multi-part member path takes inside `scope`, or the bare joined
+   * path at file scope. The one implementation; `qualifyInScope` is the
+   * single-component spelling of it.
+   *
+   * #1385 review: the two used to branch on the same guard and then both build
+   * `fromParts([...getScopePath(scope), ...])`, which is one decision written
+   * twice -- in the file whose entire purpose is being the one encoder.
+   *
+   * Collapsing them settles a divergence rather than introducing one. The old
+   * `qualifyInScope` returned a DOTTED name verbatim at file scope but expanded
+   * it inside a scope, because only the second path reached `fromParts`:
+   *
+   *     qualifyInScope("a.b", null)   -> "a.b"      <- did not expand
+   *     qualifyInScope("a.b", Motor)  -> "Motor__a__b"
+   *
+   * Both now expand. Nothing passes a dotted name today -- every one of the 21
+   * call sites hands over a bare identifier or an already-split component -- so
+   * this is behavior-preserving in practice and consistent for the first time.
+   */
+  static qualifyPathInScope(
+    path: readonly string[],
+    scope: IScopeSymbol | null,
+  ): string {
+    if (!scope || ScopeUtils.isGlobalScope(scope)) {
+      return QualifiedCName.fromParts(path);
+    }
+    return QualifiedCName.fromParts([
+      ...ScopeUtils.getScopePath(scope),
+      ...path,
+    ]);
   }
 
   /**

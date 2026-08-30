@@ -122,7 +122,7 @@ class EnumAssignmentValidator {
 
     // Check for scoped enum
     if (parts.length >= 3) {
-      const scopedEnumName = QualifiedCName.join(parts[0], parts[1]);
+      const scopedEnumName = QualifiedCName.fromParts([parts[0], parts[1]]);
       if (scopedEnumName !== typeName) {
         throw new Error(
           `Error: Cannot assign non-enum value to ${typeName} enum`,

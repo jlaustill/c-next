@@ -142,7 +142,7 @@ class OperandTypeResolver {
         // re-derived by hand (CLAUDE.md).
         return (
           CodeGenState.getFunctionReturnType(
-            QualifiedCName.join(...nameParts),
+            QualifiedCName.fromParts(nameParts),
           ) ?? null
         );
       }
@@ -217,7 +217,7 @@ class OperandTypeResolver {
       // key needs the enclosing scope. `global.` is deliberately not qualified.
       baseName =
         primary.THIS() !== null && frame.scopeName
-          ? QualifiedCName.join(frame.scopeName, firstMember)
+          ? QualifiedCName.fromParts([frame.scopeName, firstMember])
           : firstMember;
       base = this.scopes.typeOfName(firstMember, frame);
     } else {

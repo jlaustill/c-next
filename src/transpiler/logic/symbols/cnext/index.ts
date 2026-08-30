@@ -149,7 +149,7 @@ class CNextResolver {
     // as-is deliberately -- its consumers look up with leaf-built keys too, and
     // moving one side alone would break the pairing.
     if (scopeName) {
-      constValues.set(QualifiedCName.join(scopeName, name), value);
+      constValues.set(QualifiedCName.fromParts([scopeName, name]), value);
     }
   }
 

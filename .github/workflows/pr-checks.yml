@@ -146,6 +146,19 @@ jobs:
         run: npm run docs:throw-citations:check
         continue-on-error: true
 
+      # Issue #1357: the population of `fromParts([scopeName, ...])` sites, which
+      # claim a complete path while supplying a scope LEAF. No import-level rule
+      # can see this -- `fromParts` has 38 legitimate whole-path callers -- and
+      # the type system already rejects the honest mistake, so what is left is a
+      # call shape. Keyed on per-file COUNTS, not file:line, because #1374 records
+      # that a citation gate cannot detect two rows trading sites, and because a
+      # single unrelated change silently invalidated 18 citations in the throw
+      # classification document through pure line drift.
+      - name: Check scope-join site population
+        id: scopejoins
+        run: npm run scope-joins:check
+        continue-on-error: true
+
       - name: Report results
         if: always()
         run: |
@@ -162,6 +175,7 @@ jobs:
           [ "${{ steps.scopematrix.outcome }}" != "success" ] && echo "❌ Scope-context matrix" && FAILED=1 || echo "✅ Scope-context matrix"
           [ "${{ steps.diagnosticmanifest.outcome }}" != "success" ] && echo "❌ Diagnostic manifest" && FAILED=1 || echo "✅ Diagnostic manifest"
           [ "${{ steps.throwcitations.outcome }}" != "success" ] && echo "❌ Throw citations" && FAILED=1 || echo "✅ Throw citations"
+          [ "${{ steps.scopejoins.outcome }}" != "success" ] && echo "❌ Scope-join sites" && FAILED=1 || echo "✅ Scope-join sites"
           [ $FAILED -eq 1 ] && exit 1 || exit 0
 
   build:
