@@ -15,7 +15,6 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import chalk from "chalk";
-import prettier from "prettier";
 
 import AdrDeclarationReader from "./matrix/AdrDeclarationReader";
 import FixtureOccupancy from "./matrix/FixtureOccupancy";
@@ -23,28 +22,13 @@ import MatrixRenderer from "./matrix/MatrixRenderer";
 import MatrixReport from "./matrix/MatrixReport";
 import FileScanner from "./utils/FileScanner";
 import IMatrixDeclaration from "./types/IMatrixDeclaration";
+import GeneratedMarkdown from "./utils/GeneratedMarkdown";
 
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const decisionsDir = join(rootDir, "docs", "decisions");
 const testsDir = join(rootDir, "tests");
 const reportPath = join(rootDir, "docs", "scope-context-matrix.md");
 const searchPaths = [join(testsDir, "include")];
-
-/**
- * Format through Prettier before writing or comparing.
- *
- * The pre-commit hook formats staged markdown, so a generator emitting
- * unformatted output would produce a committed file that never matches what it
- * generates -- making the check fail permanently in CI.
- */
-async function formatMarkdown(markdown: string): Promise<string> {
-  const config = await prettier.resolveConfig(reportPath);
-  return prettier.format(markdown, {
-    ...config,
-    filepath: reportPath,
-    parser: "markdown",
-  });
-}
 
 async function render(): Promise<{
   document: string;
@@ -62,8 +46,9 @@ async function render(): Promise<{
     searchPaths,
   );
   const declarationErrors = [...declarations.values()].flatMap((d) => d.errors);
-  const document = await formatMarkdown(
+  const document = await GeneratedMarkdown.format(
     MatrixRenderer.renderDocument(declarations, occupancy),
+    reportPath,
   );
   return { document, declarations, occupancy, declarationErrors };
 }

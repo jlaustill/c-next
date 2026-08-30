@@ -13,30 +13,14 @@ import { dirname, join, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import chalk from "chalk";
-import prettier from "prettier";
 
 import ScopeJoinSites from "./scope-joins/ScopeJoinSites";
 import FileScanner from "./utils/FileScanner";
+import GeneratedMarkdown from "./utils/GeneratedMarkdown";
 
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const docPath = join(rootDir, "docs", "architecture", "scope-join-sites.md");
 const srcDir = join(rootDir, "src");
-
-/**
- * Format through Prettier before writing or comparing.
- *
- * The pre-commit hook formats staged markdown, so a generator emitting
- * unformatted output would produce a committed file that never matches what it
- * generates -- making the check fail permanently in CI.
- */
-async function formatMarkdown(markdown: string): Promise<string> {
-  const config = await prettier.resolveConfig(docPath);
-  return prettier.format(markdown, {
-    ...config,
-    filepath: docPath,
-    parser: "markdown",
-  });
-}
 
 function collectSources(): Map<string, string> {
   const sources = new Map<string, string>();
@@ -56,14 +40,13 @@ function collectSources(): Map<string, string> {
 }
 
 async function main(): Promise<void> {
-  const mode = process.argv[2] ?? "check";
-  if (mode !== "write" && mode !== "check") {
-    console.error(chalk.red(`Unknown mode '${mode}'. Use write or check.`));
-    process.exit(1);
-  }
+  const mode = GeneratedMarkdown.requireMode(process.argv[2]);
 
   const counts = ScopeJoinSites.count(collectSources());
-  const document = await formatMarkdown(ScopeJoinSites.render(counts));
+  const document = await GeneratedMarkdown.format(
+    ScopeJoinSites.render(counts),
+    docPath,
+  );
 
   if (mode === "write") {
     writeFileSync(docPath, document);

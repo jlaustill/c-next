@@ -17,38 +17,21 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import chalk from "chalk";
-import prettier from "prettier";
 
 import DiagnosticManifest from "./diagnostics/DiagnosticManifest";
+import GeneratedMarkdown from "./utils/GeneratedMarkdown";
 
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const manifestPath = join(rootDir, "docs", "diagnostic-manifest.md");
 
-/**
- * Format through Prettier before writing or comparing.
- *
- * The pre-commit hook formats staged markdown, so a generator emitting
- * unformatted output would produce a committed file that never matches what it
- * generates -- making the check fail permanently in CI.
- */
-async function formatMarkdown(markdown: string): Promise<string> {
-  const config = await prettier.resolveConfig(manifestPath);
-  return prettier.format(markdown, {
-    ...config,
-    filepath: manifestPath,
-    parser: "markdown",
-  });
-}
-
 async function main(): Promise<void> {
-  const mode = process.argv[2] ?? "check";
-  if (mode !== "write" && mode !== "check") {
-    console.error(chalk.red(`Unknown mode '${mode}'. Use write or check.`));
-    process.exit(1);
-  }
+  const mode = GeneratedMarkdown.requireMode(process.argv[2]);
 
   const current = DiagnosticManifest.collect(rootDir);
-  const document = await formatMarkdown(DiagnosticManifest.render(current));
+  const document = await GeneratedMarkdown.format(
+    DiagnosticManifest.render(current),
+    manifestPath,
+  );
   const committed = existsSync(manifestPath)
     ? readFileSync(manifestPath, "utf-8")
     : null;

@@ -35,6 +35,17 @@ describe("ScopeJoinSites", () => {
       ).toEqual(["ScopeUtils.qualifyInScope(parts[0], scope)"]);
     });
 
+    it("ends the element at the closing bracket of a single-element call", () => {
+      // `fromParts([...parts.slice(1)])` is a real shape in the codebase: one
+      // element, no trailing comma, so the `]` is what terminates it. Every
+      // other case here is comma-terminated, which left this path unexercised.
+      expect(
+        ScopeJoinSites.firstElements(
+          "QualifiedCName.fromParts([...parts.slice(1)]);",
+        ),
+      ).toEqual(["...parts.slice(1)"]);
+    });
+
     it("finds every call in a file", () => {
       expect(
         ScopeJoinSites.firstElements(
@@ -75,6 +86,48 @@ describe("ScopeJoinSites", () => {
           "ScopeUtils.qualifyInScope(parts[0], declaringScope)",
         ),
       ).toBe(false);
+    });
+  });
+
+  describe("count", () => {
+    it("counts only the scope-denoting sites in each file", () => {
+      const counts = ScopeJoinSites.count(
+        new Map([
+          [
+            "src/b.ts",
+            "fromParts is not the call; QualifiedCName.fromParts([scopeName, x]); QualifiedCName.fromParts([cName, y]);",
+          ],
+        ]),
+      );
+
+      expect(counts).toEqual([{ file: "src/b.ts", count: 1 }]);
+    });
+
+    it("omits files with no scope-denoting site", () => {
+      expect(
+        ScopeJoinSites.count(
+          new Map([["src/clean.ts", "QualifiedCName.fromParts([cName, x]);"]]),
+        ),
+      ).toEqual([]);
+    });
+
+    it("sorts by path so the committed document has a stable order", () => {
+      // Without this the generated table would reorder on a filesystem whose
+      // walk order differs, and every run would produce a spurious diff.
+      const call = "QualifiedCName.fromParts([scopeName, x]);";
+      const counts = ScopeJoinSites.count(
+        new Map([
+          ["src/z.ts", call],
+          ["src/a.ts", call],
+          ["src/m.ts", call],
+        ]),
+      );
+
+      expect(counts.map((row) => row.file)).toEqual([
+        "src/a.ts",
+        "src/m.ts",
+        "src/z.ts",
+      ]);
     });
   });
 
