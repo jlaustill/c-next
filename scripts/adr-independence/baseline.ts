@@ -19,7 +19,6 @@ const ADR_INDEPENDENCE_BASELINE: readonly string[] = [
   // Tier 1 -- the ADR's subject IS the implementation. These move to
   // docs/architecture/ or docs/implementation/ rather than being edited.
   "adr-012-static-analysis.md",
-  "adr-048-cli-executable.md",
 
   // Tier 2 -- language ADRs naming transpiler internals in the body or in
   // References. The decision stays; the passage is restated in terms of

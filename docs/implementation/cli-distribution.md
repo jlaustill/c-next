@@ -1,4 +1,10 @@
-# ADR-048: CLI Executable Distribution
+# CLI Executable Distribution
+
+> **Formerly ADR-048.** Moved out of `docs/decisions/` on 2026-08-31 under the rewrite
+> test (#1403): npm packaging, the `npx` entry point and the published binary's name are
+> how this implementation ships, not anything C-Next promises. A transpiler rebuilt in
+> another stack would distribute differently and owe this document nothing. Number 048
+> is retired — see [`../decisions/README.md`](../decisions/README.md).
 
 **Status:** Implemented
 **Date:** 2026-01-01

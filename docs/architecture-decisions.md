@@ -42,7 +42,6 @@ v2 (so "Research (v2 Roadmap)" holds `1xx` ADRs).
 | [ADR-036](decisions/adr-036-multidimensional-arrays.md)    | Multi-dim Arrays           | `arr[i][j]` with compile-time bounds enforcement             |
 | [ADR-040](decisions/adr-040-isr-declaration.md)            | ISR Type                   | Built-in `ISR` type for `void(void)` function pointers       |
 | [ADR-034](decisions/adr-034-bit-fields.md)                 | Bitmap Types               | `bitmap8`/`bitmap16`/`bitmap32` for portable bit-packed data |
-| [ADR-048](decisions/adr-048-cli-executable.md)             | CLI Executable             | `cnext` command with smart defaults                          |
 | [ADR-049](decisions/adr-049-atomic-types.md)               | Atomic Types               | `atomic` keyword with LDREX/STREX or PRIMASK fallback        |
 | [ADR-050](decisions/adr-050-critical-sections.md)          | Critical Sections          | `critical { }` blocks with PRIMASK save/restore              |
 | [ADR-064](decisions/adr-064-volatile-keyword.md)           | Volatile Variables         | `volatile` keyword prevents compiler optimization            |
