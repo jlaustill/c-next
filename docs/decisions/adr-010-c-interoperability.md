@@ -178,9 +178,10 @@ For embedded projects (Arduino, Teensy), option 1 or 2 works well since the buil
 
 ### Phase 2: Unified Symbol Table
 
-1. Design shared `SymbolTable` interface
-2. Both CNext and C parsers populate it
-3. CodeGenerator resolves symbols from unified table
+1. One symbol table, shared across all three languages
+2. C-Next, C and C++ sources all populate it
+3. Every symbol reference resolves against that one table, so a C-Next name and a
+   C name cannot mean different things to different stages
 4. Track symbol origin (which file, which language)
 
 ### Phase 3: Cross-File Resolution
@@ -211,15 +212,14 @@ For embedded projects (Arduino, Teensy), option 1 or 2 works well since the buil
 
 - ✅ Phase 1: C11 and CPP14 grammars imported from grammars-v4
 - ✅ Phase 1: `CSymbolCollector` and `CppSymbolCollector` extract symbols from C/C++ files
-- ✅ Phase 2: `SymbolTable` class with cross-language conflict detection
-- ✅ Phase 2: All parsers (CNext, C, C++) populate unified symbol table
-- ✅ Phase 3: Cross-file resolution with SymbolTable integration
-  - **Implementation:** `CodeGenerator` now queries `SymbolTable` for struct field types
-  - **Fix:** Enhanced `SymbolTable` to store struct field information (type + array dimensions)
-  - **Fix:** Updated `CSymbolCollector` to extract struct field types from C headers
-  - **Fix:** Updated `CodeGenerator` to use unified lookup checking both local structs and SymbolTable
-  - **Impact:** `.length` property now works correctly on C header struct members ([Issue #45](https://github.com/jlaustill/c-next/issues/45))
-- ✅ Phase 4: `HeaderGenerator` emits `.h` files with include guards
+- ✅ Phase 2: cross-language symbol conflicts are detected
+- ✅ Phase 2: all three languages populate one unified symbol table
+- ✅ Phase 3: references resolve across file boundaries
+  - **Behavior:** a struct declared in a C header is indistinguishable from a C-Next
+    one at the point of use -- field types and array dimensions come from the same
+    lookup either way
+  - **Impact:** `.length` works on a C header struct member ([Issue #45](https://github.com/jlaustill/c-next/issues/45))
+- ✅ Phase 4: `.h` files are emitted with include guards
 - ✅ Phase 5: C++ grammar imported and working (with known limitations)
 - ✅ `Preprocessor` with toolchain detection (gcc/clang/arm-gcc)
 - ✅ `Project` class for multi-file compilation
@@ -227,7 +227,7 @@ For embedded projects (Arduino, Teensy), option 1 or 2 works well since the buil
 - ✅ C++ namespace type references ([Issue #388](https://github.com/jlaustill/c-next/issues/388))
   - **Syntax:** Use dot notation: `MockLib.Parse.ParseResult`
   - **Output:** Transpiles to C++ `::` syntax: `MockLib::Parse::ParseResult`
-  - **Detection:** SymbolTable identifies C++ namespaces vs C-Next scopes
+  - **Detection:** a C++ namespace and a C-Next scope are distinguished, so the same dot notation resolves correctly against either
   - **Depth:** Supports arbitrary nesting (e.g., `Deep.Level1.Level2.DeepType`)
 
 **Known Issues:**
@@ -289,7 +289,7 @@ Build process:
      - Multiple `extern` declarations in C (OK - declaration, not definition)
      - C++ function overloads (OK - different signatures)
    - **Rationale:** Catch collisions for safety, don't silently shadow
-   - **Implementation:** `SymbolTable` already implements this behavior
+   - **Status:** implemented
 
 3. **Build system integration** ✅
    - **Decision:** Remove `--project` flag, always use unified parsing
