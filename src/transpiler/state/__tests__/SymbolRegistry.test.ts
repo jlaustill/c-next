@@ -70,9 +70,13 @@ describe("SymbolRegistry", () => {
       expect(scope.functions).toContain(func);
     });
 
-    // #1358: Declare (pass 1.3) runs over the same tree more than once per run,
-    // and reset() runs once per run rather than between them (#1301). An
-    // unconditional push appended a second copy of every function in the program.
+    // #1358: idempotence is the contract of a declare pass, not compensation for
+    // one caller -- #1313 targets "a pass is a pure function of its input". The
+    // concrete failure that exposed it was Transpiler stages 3 and 5 each
+    // resolving every file while reset() ran once per run, which appended a second
+    // copy of every function in the program. #1301 removed that double pass, so
+    // this test and the negative control below are now the guard's live callers,
+    // holding it as a ratchet against a second unconditional pass reappearing.
     it("is idempotent -- re-registering the same declaration does not duplicate it", () => {
       const scope = SymbolRegistry.getOrCreateScope("Test");
       const make = () =>

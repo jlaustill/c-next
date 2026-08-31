@@ -75,7 +75,7 @@ class TSymbolInfoAdapter {
    * @param symbols Array of discriminated union symbols from CNextResolver
    * @returns ISymbolInfo compatible with CodeGenerator
    */
-  static convert(symbols: TSymbol[]): ICodeGenSymbols {
+  static convert(symbols: readonly TSymbol[]): ICodeGenSymbols {
     // === Known Type Sets ===
     const knownScopes = new Set<string>();
     const knownStructs = new Set<string>();
