@@ -121,9 +121,9 @@ describe("MatrixRenderer.renderCell", () => {
   // NOTE: this state is unreachable through the real pipeline. FixtureOccupancy
   // only writes keys built from MatrixCell.relationshipForDepth, which returns
   // one of the three derivable relationships, so no provider-side cell can
-  // carry an occupant until #1241 lands. Unlike every other case in this file
+  // carry an occupant until #1402 lands. Unlike every other case in this file
   // it therefore cannot fail for a reason the corpus could produce -- it pins
-  // the behavior for when #1241 arrives, not behavior anything exercises now.
+  // the behavior for when #1402 arrives, not behavior anything exercises now.
   it("renders an occupied non-derivable cell as ok", () => {
     expect(
       MatrixRenderer.renderCell(

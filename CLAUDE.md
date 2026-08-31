@@ -458,19 +458,28 @@ foo.expected.error    # Expected error (if test-error)
   fixtures and none has a 2+hop one. An ADR owns its matrix: declare per-cell severity in a
   `<!-- MATRIX-SEVERITY -->` table (`off` / `warn` / `error`, undeclared → `off`), mark
   fixtures with `// test-adr: 051`, and run `npm run coverage:matrix`. Occupancy is
-  **derived** — the context from the diagnostic's position through the parse tree, the file
-  relationship from the include graph — so never declare a cell a fixture occupies; declare
+  **derived** — the context from a source position through the parse tree (a diagnostic's
+  position, or one recorded by `AdrProvenance` where the rule fired), the file relationship
+  from the include graph — so never declare a cell a fixture occupies; declare
   only the obligation. `off` is the recorded claim that a cell _cannot_ exist (a division
   cannot appear in a file-scope initializer), which is why exemptions live in the ADR where
   they get reviewed. `npm run coverage:matrix:check` gates in the `lint` job and fails on an
   unoccupied `error` cell or a stale `docs/scope-context-matrix.md`
-- **Matrix limits, both tracked as #1241**: (1) only a fixture with an `.expected.error` can
-  occupy a cell — context comes from the diagnostic's position, so a codegen-only fixture
-  (ADR-006, ADR-049) lands in "context not derivable" and **cannot** satisfy an `error` cell
-  yet; declaring one gives a red gate with no path to green. (2) The relationship axis uses
-  the deepest include chain reachable from the fixture, not the hops to the declaration under
-  test — so **a helper feeding a matrix fixture cannot gain an include without silently
-  moving cells**, and the gate will blame the fixture for missing tests
+- **Matrix limits, and what #1241 already fixed**: #1241 landed 2026-08-29 (`6192279d`,
+  `bc3a2ad4`). A codegen-only fixture **can** now occupy a cell, so an ADR governing
+  generated-code shape can declare `error` — occupancy derives from diagnostic positions
+  **union** ADR provenance. What it costs is one line at the decision itself
+  (`AdrProvenance.record("NNN", line)`); an ADR with no recording site still occupies
+  nothing, and only ADR-016 and ADR-057 have one today. Do not read `warn` on an existing
+  matrix as "cannot be covered" — a `warn` declaration is an obligation, not a verdict on
+  reachability; `docs/scope-context-matrix.md` is what says whether a cell is occupied.
+  What remains is tracked as **#1402**: the relationship axis still measures the
+  deepest include chain reachable from the fixture rather than the hops to the declaration
+  under test, so **a helper feeding a matrix fixture cannot gain an include without silently
+  moving cells**; and the two provider-side relationships stay not-derivable. Both need the
+  provenance run to cover the include chain first: `IRecordedAdrSite.sourcePath` has a slot
+  for the file, but provenance transpiles the fixture alone, so every site carries the
+  fixture's own path and the field discriminates nothing yet
 - **Presence is not proof**: a cell showing `ok` means a fixture reaches it, not that the
   fixture would **fail** if the feature broke. #1222 is exactly that — regression fixtures
   that cannot fail if the fix is reverted. Mutation-check anything you add: break the thing
