@@ -63,10 +63,9 @@ v2 (so "Research (v2 Roadmap)" holds `1xx` ADRs).
 
 ## WIP (Implementation In Progress)
 
-| ADR                                                         | Title                       | Description                                                                                                                                   |
-| ----------------------------------------------------------- | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| [ADR-068](decisions/adr-068-forever-loops.md)               | Forever Loops               | `forever { }` divergent infinite loop (void-only); core landed (#1074), completes with ADR-069                                                |
-| [ADR-065](decisions/adr-065-codegenerator-decomposition.md) | CodeGenerator Decomposition | Classifier + handler + utils pattern landed (PR #447); `_generatePostfixExpr`, `trackVariableType`, `generateMemberAccess` not yet decomposed |
+| ADR                                           | Title         | Description                                                                                    |
+| --------------------------------------------- | ------------- | ---------------------------------------------------------------------------------------------- |
+| [ADR-068](decisions/adr-068-forever-loops.md) | Forever Loops | `forever { }` divergent infinite loop (void-only); core landed (#1074), completes with ADR-069 |
 
 ## Superseded
 

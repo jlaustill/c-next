@@ -22,7 +22,6 @@ const ADR_INDEPENDENCE_BASELINE: readonly string[] = [
   "adr-012-static-analysis.md",
   "adr-048-cli-executable.md",
   "adr-060-vscode-extension-separation.md",
-  "adr-065-codegenerator-decomposition.md",
 
   // Tier 2 -- language ADRs naming transpiler internals in the body or in
   // References. The decision stays; the passage is restated in terms of

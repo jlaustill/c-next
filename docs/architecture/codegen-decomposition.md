@@ -1,19 +1,32 @@
-# ADR-065: CodeGenerator Decomposition
+# CodeGenerator Decomposition
 
-> **Formerly ADR-109.** Renumbered 2026-08-23 into the `0xx` band — this is
-> v1-gating work. See [`README.md`](README.md) for the numbering rule and the full
-> mapping table.
+> **Formerly ADR-065, and ADR-109 before that.** Moved out of `docs/decisions/` on
+> 2026-08-31 under the rewrite test (#1403): it prescribes how one TypeScript class is
+> split up, which a rebuild in another stack would discard entirely. Numbers 065 and
+> 109 are both retired — see [`../decisions/README.md`](../decisions/README.md).
 
 ## Status
 
-**WIP** — the decision below is implemented and in active use; the decomposition it prescribes
-is incomplete.
+**WIP** — carried over verbatim from the ADR. Changing a status needs the owner's word,
+and the evidence below says this one is due a review rather than a silent edit (#1412).
 
 The classifier + handler + utils pattern landed in PR #447 and is the documented way to add new
-assignment kinds (see CLAUDE.md, "Assignment Classification"). `CodeGenerator.ts` is down from
-10,570 lines to roughly 5,000. But three methods named as targets below — `_generatePostfixExpr`,
-`trackVariableType` and `generateMemberAccess` — are still in `CodeGenerator.ts`. As an `0xx`
-ADR this is v1-gating work: see [`README.md`](README.md) for what the band commits to.
+assignment kinds (see CLAUDE.md, "Assignment Classification").
+
+The WIP justification no longer holds. It read: `CodeGenerator.ts` is down from 10,570 lines to
+roughly 5,000, "but three methods named as targets below — `_generatePostfixExpr`,
+`trackVariableType` and `generateMemberAccess` — are still in `CodeGenerator.ts`." Measured on
+2026-08-31, none of the three is:
+
+| Target                 | Where it is now                               |
+| ---------------------- | --------------------------------------------- |
+| `_generatePostfixExpr` | `PostfixExpressionGenerator`                  |
+| `trackVariableType`    | `TypeRegistrationEngine`                      |
+| `generateMemberAccess` | removed outright in the grammar consolidation |
+
+`CodeGenerator.ts` is 4,995 lines, which matches the "roughly 5,000" the status already
+claimed. So the file's size was kept current while the sentence explaining why the work was
+unfinished was not — the two halves of the same paragraph disagreed.
 
 ## Context
 
