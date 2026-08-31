@@ -186,7 +186,7 @@ ELSE_DIRECTIVE    : '#' [ \t]* 'else' [ \t]* ;
 ENDIF_DIRECTIVE   : '#' [ \t]* 'endif' [ \t]* ;
 ```
 
-### CodeGenerator
+### Directive Handling
 
 - Flag-only defines: Pass through unchanged
 - Conditional directives: Pass through unchanged
