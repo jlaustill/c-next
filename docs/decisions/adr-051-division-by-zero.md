@@ -481,7 +481,7 @@ This prevents silent corruption while allowing the developer to specify context-
 
 - **Compile-time detection** catches statically determinable violations
 - **safe_div()** provides runtime safety for critical paths
-- Combined with ADR-012 static analysis (cppcheck/clang-tidy), achieves full coverage
+- Combined with static analysis over the generated C, achieves full coverage
 
 **Directive 4.1:** "Run-time failures shall be minimized"
 
@@ -680,7 +680,7 @@ A second limit used to sit beside it -- that only a fixture with an
 `.expected.error` could occupy a cell -- and **#1241 removed it** on 2026-08-29.
 Occupancy now derives from diagnostic positions union ADR provenance, so an ADR
 covering codegen behavior rather than a diagnostic can satisfy an `error` cell,
-provided it records where its rule fired (`AdrProvenance.record`).
+provided it records where its rule fired.
 
 All twelve derivable cells are `error`, and all twelve are occupied -- see
 `docs/scope-context-matrix.md`.
@@ -713,11 +713,8 @@ renders them `n/a` rather than counting them empty.
 3. If constant evaluates to zero, emit error: `"Division by zero"`
 4. Test with all error test cases
 
-**Files to modify:**
-
-- `src/analysis/SemanticAnalyzer.ts` (or equivalent)
-- Add constant folding logic
-- Emit error for zero divisors
+The check is a compile-time one and applies only where the divisor is known at
+compile time; a runtime-valued divisor is Phase 2's problem, not this one.
 
 ### Phase 2: safe_div() and safe_mod() Built-ins
 
@@ -749,11 +746,9 @@ static inline bool cnx_safe_div_u32(uint32_t* output, uint32_t numerator,
 4. Transpile calls to appropriate `cnx_safe_div_*` function based on output type
 5. Test with all safe_div() test cases
 
-**Files to modify:**
-
-- `src/codegen/CodeGenerator.ts` (or equivalent)
-- Add built-in function recognition
-- Generate appropriate helper functions in C output
+`safe_div` and `safe_mod` are built-ins rather than library functions, so a program
+cannot shadow them and a reviewer of the generated C can rely on the helper meaning
+what this ADR says it means.
 
 ### Phase 3: Update Coverage Matrix
 
@@ -828,5 +823,5 @@ Add to `coverage.md`:
 
 ### Related ADRs
 
-- ADR-012: Static Analysis for Generated C Code
+- `docs/implementation/static-analysis.md` (formerly ADR-012): how the generated C is checked
 - ADR-044: Overflow Modifiers (clamp/wrap)

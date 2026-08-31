@@ -234,7 +234,7 @@ castExpression
 - Validate assignments: same enum type only
 - Allow explicit cast to unsigned integer types
 
-### CodeGenerator
+### Generated C
 
 - Generate typedef enum with prefixed member names
 - Handle explicit value assignments with `<-`

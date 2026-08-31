@@ -46,7 +46,7 @@ language should reject it at the source.
 
 ### The dual already exists
 
-The machinery is mostly present. `ReturnPathAnalyzer` (ADR-067) already computes the **dual**
+The reasoning is mostly present. ADR-067's all-paths-return rule already computes the **dual**
 of reachability: `blockDefinitelyReturns` is true if and only if any contained statement
 `definitelyReturns`, with the explicit note that _"statements after an unconditional return are
 unreachable."_ Reachability is the inverse question over the same structural walk:
@@ -55,7 +55,9 @@ unreachable."_ Reachability is the inverse question over the same structural wal
 > statement** (an unconditional `return`, a fully-returning `if`/`else` or `switch`, or — once
 > ADR-068 lands — a `forever` loop).
 
-So a reachability pass can reuse ~90% of `ReturnPathAnalyzer`'s logic rather than re-deriving it.
+So reachability is that same analysis read the other way, not a second one — which matters
+beyond convenience: two analyses that each decide what a statement does will eventually
+disagree, and the program they disagree about is the one that matters.
 
 ## Decision (Proposed — Research)
 
@@ -80,11 +82,9 @@ They ship as **two phases of one analyzer**, reachability first:
 | 1     | Reachability | E0706 | #849  |
 | 2     | Liveness     | E0709 | #1107 |
 
-**Why one analyzer, and why that order.** The ordering is a correctness contract, not a
-preference. Every step in `src/transpiler/logic/analysis/runAnalyzers.ts` has the form
-`if (collectErrors(analyzer.analyze(tree), errors)) return errors;` — a hard short-circuit on
-the first analyzer that reports anything. Because E0706 is a hard error (Resolved Question 5) and runs
-first, **liveness never sees a program that contains unreachable code.** That is precisely what
+**Why one rule, and why that order.** The ordering is a correctness contract, not a
+preference. Because E0706 is a hard error (Resolved Question 5) and is decided first,
+**liveness never sees a program that contains unreachable code.** That is precisely what
 lets Phase 2 stay a pure symbol-use walk with no control-flow logic of its own: without the
 guarantee, liveness would have to decide for itself whether a read sitting in dead code counts
 as a use, and would duplicate Phase 1's reasoning to do it.
@@ -131,8 +131,8 @@ widest view available — never against a guess:
 | Any object, pure C-Next project     | Always checked. With no `.c`/`.cpp` in the discovered set, nothing external can reference anything.                                    |
 
 A **project view** means the transpiler can enumerate the project's other translation units —
-from `compile_commands.json` (`CompileCommandsReader`) or from a C/C++ entry point
-(`CppEntryPointScanner`). When `cnext` is handed a single `.cnx` on the command line it has no
+from `compile_commands.json` — the build-system-agnostic database every build system emits —
+or from a C/C++ entry point. When `cnext` is handed a single `.cnx` on the command line it has no
 such view, and an exported global is therefore **not** flagged. Under-reporting in that case is
 deliberate: a false positive on a legitimately exported global would be a bug the developer
 cannot fix without disabling the rule.
@@ -152,11 +152,11 @@ _objects/variables_ first; the others can join the same analyzer once the primit
 
 ### Architecture (proposed)
 
-- New analyzer `ReachabilityAnalyzer` in `src/transpiler/logic/analysis/`, registered in
-  `runAnalyzers.ts` like the existing analyzers (listener + `analyze(tree)` returning
-  `IAnalyzerError[]`).
+- **One rule, decided over the parse tree** before any code is generated, reported as an
+  ordinary diagnostic. It is the same kind of check as ADR-067's all-paths-return and is
+  ordered ahead of liveness for the reason below.
 - **Single source of truth for divergence.** The "is this statement divergent?" decision is
-  owned by **one** primitive. ADR-068 landed `statementDefinitelyReturns` in `ReturnPathAnalyzer`,
+  owned by **one** primitive. ADR-068 landed that primitive in the all-paths-return rule,
   but research (see _Research Findings_ below) shows it is **not** directly reusable: it answers
   _"does this path return a **value**?"_ and deliberately reports `false` for a bare `return;`.
   Reachability needs _"does control fall through?"_, for which a bare `return;` **is** divergent.
@@ -171,21 +171,17 @@ _objects/variables_ first; the others can join the same analyzer once the primit
 **Phase 2 (liveness) — reuse the existing discovery machinery, do not rebuild it.** The pieces
 needed to decide "does any C/C++ translation unit read this global?" already exist:
 
-| Need                                | Existing component                                                    |
-| ----------------------------------- | --------------------------------------------------------------------- |
-| Classify `.c` / `.cpp` sources      | `data/FileDiscovery.ts` (`EFileType.CSource` / `EFileType.CppSource`) |
-| Identify C-Next-generated headers   | `data/CNextMarkerDetector.ts`                                         |
-| Enumerate the project's other TUs   | `logic/preprocessor/CompileCommandsReader.ts`                         |
-| Walk a C/C++ entry point's includes | `data/CppEntryPointScanner.ts`                                        |
+- classify a source as C or C++
+- tell a C-Next-generated header from a hand-written one
+- enumerate the project's other translation units
+- walk a C/C++ entry point's includes
 
-One gap is real and should be scoped as build work rather than assumed away:
-`CppEntryPointScanner` walks **from** a C/C++ entry point **into** `.cnx` sources, to decide what
-to transpile. Liveness needs the **inverse** index — given a C-Next global, which discovered
-translation units mention it. Nothing today builds that direction.
-
-Whether Phase 2's project scan lives in `logic/analysis/` or is threaded in from `data/` is an
-open implementation question; the layer constraint (`logic/` must not import `output/`) holds
-either way.
+One gap is real and should be scoped as build work rather than assumed away. What exists walks
+**from** a C/C++ entry point **into** `.cnx` sources, to decide what to transpile. Liveness needs
+the **inverse**: given a C-Next global, which translation units mention it. Nothing builds that
+direction today, and the difference is not a detail — the existing direction answers "what must
+I compile", the needed one answers "who reads this", and no amount of the first yields the
+second.
 
 ### Proposed error codes
 
@@ -217,7 +213,7 @@ trailing statement starts failing. The known instance is the dead `return 0;` in
 `examples/nucleo-f446re/blink.cnx` — which **ADR-068 already removes** by converting that
 function to `void main()` with a `forever` loop. Sequencing ADR-068 before ADR-069 means the one
 known offender is gone before the rule that would flag it turns on. A repo-wide `npm run unit`
-(which transpiles every example via `scripts/__tests__/examples-transpile.test.ts`) should gate
+(which transpiles every shipped example) should gate
 the rule's introduction.
 
 **Phase 2 (liveness) has its own offender, and it is not clean yet.**
@@ -242,37 +238,35 @@ stays **Research** — nothing below is approved or implemented.
    `forever` core) is **closed** (2026-06-27); `forever` is implemented (commit `80dc4123`,
    `feat: implement forever infinite-loop statement`). The dead `return 0;` offender in
    `examples/nucleo-f446re/blink.cnx` is gone — that function now ends `void main() { setup();
-forever { loop(); } }`, with no statement after the `forever`. `scripts/__tests__/examples-transpile.test.ts`
-   exists and transpiles every example under `npm run unit`, so it can gate the rule's rollout.
+forever { loop(); } }`, with no statement after the `forever`. Every shipped example is
+   transpiled in CI, so that corpus can gate the rule's rollout.
 
 2. **The divergence primitive landed, but is NOT verbatim-reusable (key finding).**
-   `statementDefinitelyReturns()` in `src/transpiler/logic/analysis/ReturnPathAnalyzer.ts` already
-   special-cases `forever` (lines 48–58) with an explicit _"This is the shared 'divergence'
-   primitive ADR-069 (#849) reuses"_ comment. **However**, the predicate answers _"does this path
-   return a value?"_ and returns `false` for a bare `return;` (lines 28–29: `returnStmt.expression() !== null`).
-   For reachability, a bare `return;` **is** divergent — `return; side();` leaves `side()`
-   unreachable even in a `void` function. The predicates therefore diverge at exactly one leaf.
-   Reusing `statementDefinitelyReturns` verbatim would **miss unreachable code after a bare
-   `return;`**. Resolution: extract `statementDiverges(stmt)` (control cannot fall through:
-   any `return`, `forever`, exhaustive `if`/`else`, `switch` with `default` where all cases
-   diverge) as the shared base; express `statementDefinitelyReturns = statementDiverges && terminalReturnsValue`.
-   This keeps a single decision site and satisfies "No Duplicate Code Paths."
+   ADR-068's divergence primitive answers _"does this path return a value?"_, and for a bare
+   `return;` it answers **no**. For reachability a bare `return;` **is** divergent: `return;
+side();` leaves `side()` unreachable even in a `void` function. The two predicates therefore
+   agree everywhere except one leaf, which is the most dangerous shape a shared primitive can
+   have — reusing it as-is looks correct and silently misses unreachable code after a bare
+   `return;`.
 
-3. **Analyzer wiring confirmed.** `ReachabilityAnalyzer` follows the `ReturnPathAnalyzer` pattern:
-   a `CNextListener` + `analyze(tree): IAnalyzerError[]`, registered in
-   `src/transpiler/logic/analysis/runAnalyzers.ts` (currently 11 steps; ReturnPath is step 10,
-   short-circuited via `collectErrors`). Layer constraint holds — `logic/analysis/` imports no
-   `output/`. Note: the related E0707 (disguised loops, #1075) was implemented in **`output/codegen`**
-   (`TypeValidator.ts` / `ControlFlowGenerator.ts`), a different layer. ADR-069 should follow the
-   **`ReturnPathAnalyzer` (logic/analysis)** pattern, not E0707's — reachability is structural CFG
-   analysis on the parse tree, not codegen.
+   Resolution: the shared base is _"control cannot fall through"_ — any `return`, `forever`, an
+   exhaustive `if`/`else`, a `switch` with `default` where all cases diverge. Returning a
+   **value** is that property plus one more condition, not a separate question. One decision
+   site, two rules reading it.
+
+3. **Where the rule belongs.** Reachability is a structural control-flow property of the parse
+   tree, decided before any code is generated — not a codegen concern. E0707 (disguised loops,
+   #1075) was implemented on the codegen side; this rule should follow ADR-067's placement
+   instead. The distinction is not filing: a codegen-side check cannot run on a program that
+   fails to generate, and unreachable code is exactly the kind of defect that coexists with
+   other errors.
 
 4. **Error code E0706 is free and already reserved** for this ADR (`docs/error-codes.md`:
    _"E0706 reserved for ADR-069 unreachable code"_). E0705 = `forever` in non-void; E0707 =
    disguised loop. Open question on the code number is **resolved: use E0706.**
 
-5. **Post-preprocessor concern is mild.** Analyzers run on the directly-parsed `.cnx` tree
-   (`CNextSourceParser.parse(source)` in `Transpiler._transpileFile`); C-Next conditional
+5. **Post-preprocessor concern is mild.** The check runs on the parsed `.cnx` tree as
+   written; C-Next conditional
    compilation is a header/include mechanism, not intra-body statement deletion. Structural
    reachability over the parsed function body is therefore well-defined. _(The outstanding
    confirmation — that no source-level construct removes statements from a function body — was
@@ -295,8 +289,8 @@ is no opt-out and no curated exception — exceptions to rules are where bugs co
 rewritten before Phase 2 lands, and it needs rewriting under _either_ answer. Its globals
 `counter` and `buffer` are read only through compile-time properties, but its locals `bit3`,
 `field`, `arrLen`, `flagBits` and `counterBits` are written and **never read at all** — those are
-flagged regardless of how this question is answered. `scripts/__tests__/examples-transpile.test.ts`
-transpiles every example under `npm run unit`, so this is CI-enforced, not optional.
+flagged regardless of how this question is answered. Every shipped example is transpiled in
+CI, so this is enforced rather than optional.
 
 ### 2. Cross-translation-unit globals — **exhaustive over what C-Next can see; C/C++ use counts**
 
@@ -364,4 +358,4 @@ ADR-067's _Related ADRs_ now lists ADR-069.
 - `docs/misra-compliance.md` (Rules 2.1 and 2.2, both "Not Enforced")
 - `docs/error-codes.md` (E0706 reserved for this ADR)
 - `grammar/CNext.g4` and `tests/preprocessor/nested-ifdef.expected.error` (evidence for Resolved Question 4)
-- `src/transpiler/logic/analysis/runAnalyzers.ts` (the short-circuit that makes the phase ordering a contract)
+- The phase ordering above (reachability before liveness) is a correctness contract, not a preference — see `### Architecture (proposed)`

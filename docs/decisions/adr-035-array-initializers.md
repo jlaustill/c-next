@@ -109,7 +109,7 @@ When `[]` used without size, count initializer elements:
 u8[] data <- [1, 2, 3];  // u8[3] data
 ```
 
-### CodeGenerator
+### Generated C
 
 ```c
 uint8_t data[5] = {1, 2, 3, 4, 5};

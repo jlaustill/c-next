@@ -140,11 +140,11 @@ void Api__doWork(uint32_t* value);
 
 This provides C compatibility without exposing forward declaration complexity to C-Next developers.
 
-**Top-level (non-scope) functions get a prototype.** They are emitted with external linkage and no `static`, and ADR-016 makes functions public by default; neither `public` nor `private` parses at top level, so scopes are how C-Next expresses privacy. They were collected as private and so never reached the header, which #1161 fixed by routing the top-level collection site through `ScopeUtils.getDefaultVisibility` instead of a hardcoded literal.
+**Top-level (non-scope) functions get a prototype.** They are emitted with external linkage and no `static`, and ADR-016 makes functions public by default; neither `public` nor `private` parses at top level, so scopes are how C-Next expresses privacy. They were previously treated as private and so never reached the header at all; #1161 fixed that, and the default a top-level function gets is now the same one ADR-016 defines rather than a second answer to the same question.
 
-**`main` is excluded.** It is called by the C runtime, never by another translation unit, so a prototype serves no consumer. MISRA C:2012 Rule 8.4 — which otherwise requires a compatible declaration wherever a function with external linkage is defined — exempts `main` for exactly this reason. This is now an implemented exclusion rather than rationale: `PublicInterface` filters top-level `main` out of the header symbols. A scoped `main` is not exempt, since `Scope__main` is an ordinary cross-file callee.
+**`main` is excluded.** It is called by the C runtime, never by another translation unit, so a prototype serves no consumer. MISRA C:2012 Rule 8.4 — which otherwise requires a compatible declaration wherever a function with external linkage is defined — exempts `main` for exactly this reason. This is now an implemented exclusion rather than rationale: a top-level `main` is kept out of the header. A scoped `main` is not exempt, since `Scope__main` is an ordinary cross-file callee.
 
-**The generated `.c` includes its own header.** One predicate (`PublicInterface`) decides both whether a header is written and whether the implementation includes it, so a declaration is always visible at its definition. Before #1164 those were two predicates that disagreed, and a file could get a header nothing included. Because the header is included, it — not the `.c` — owns each type definition; emitting both is a redefinition error.
+**The generated `.c` includes its own header.** One decision governs both whether a header is written and whether the implementation includes it, so a declaration is always visible at its definition. Before #1164 those were two predicates that disagreed, and a file could get a header nothing included. Because the header is included, it — not the `.c` — owns each type definition; emitting both is a redefinition error.
 
 Include guards follow ADR-063 (`CNX_`-prefixed and derived from the path relative to the project root), so same-basename files in different directories stay distinguishable.
 
@@ -240,7 +240,7 @@ Generate `.h` file with prototypes for every public scope member:
 
 ### 4. Parameter Name Enforcement
 
-Grammar already requires parameter names. Verify CodeGenerator preserves them in output.
+Grammar already requires parameter names, and the generated prototype keeps them -- a prototype whose parameters were unnamed would still compile, so this is a readability guarantee the language makes rather than something C enforces.
 
 ## Rejected Alternatives
 

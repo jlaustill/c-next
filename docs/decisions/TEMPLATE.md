@@ -4,6 +4,14 @@
 > comment as you fill it in. The band `NNN` sits in is a commitment about which
 > release the decision must ship in — see [`README.md`](README.md) before
 > choosing a number.
+>
+> **The rewrite test governs every section below.** If the transpiler were
+> rebuilt from scratch in a different language and stack, this document must
+> still be fully applicable. It decides something about the _C-Next language_;
+> it does not record how today's TypeScript/ANTLR/Node implementation satisfies
+> that decision. What that admits and excludes is listed once, in
+> [`README.md`](README.md#the-rewrite-test) — read it before you fill in
+> anything below.
 
 **Status:** Research
 **Date:** YYYY-MM-DD
@@ -20,7 +28,15 @@
 <!-- What is true today that makes this worth deciding, and what goes wrong if
      nothing changes. Show the current behavior rather than describing it —
      a transpiled snippet is worth a paragraph. If a rule is being added, this
-     is where the bug it prevents belongs. -->
+     is where the bug it prevents belongs.
+
+     "Show it" means the C-Next that triggers the behavior and the C or C++ it
+     currently generates. Both survive a rewrite: they are what the language
+     promises, observable from outside. The TypeScript that produces them does
+     not, and pasting it here is the single most common way an ADR rots —
+     ADR-013's const-checking method moved file and became static, and the ADR
+     still describes the old shape. If a passage is only true of the current
+     implementation, it belongs in `docs/implementation/`. -->
 
 ## Decision
 
@@ -32,13 +48,20 @@
 
 ## Diagnostics
 
-<!-- Every error code this ADR introduces, with the exact message and the module
-     that raises it. Allocate the code in `docs/error-codes.md` in the same
+<!-- Every error code this ADR introduces, with the exact message and the fixture
+     that asserts it. Allocate the code in `docs/error-codes.md` in the same
      change; a code reserved and never allocated reads as implemented when it is
-     not. Omit this section only if the ADR adds no diagnostic. -->
+     not. Omit this section only if the ADR adds no diagnostic.
 
-| Code | Meaning | Raised by |
-| ---- | ------- | --------- |
+     Name the FIXTURE, not the module that raises the diagnostic. A rewrite
+     keeps the conformance corpus and discards every module name, so a fixture
+     path is the citation that survives it — and it fails loudly when it stops
+     resolving, which a prose module name never does. ADR-063 is the worked
+     example; ADR-016 names `SymbolTable.detectCNextDuplicate` and is what this
+     guidance exists to prevent. -->
+
+| Code | Meaning | Asserted by |
+| ---- | ------- | ----------- |
 
 ## Scope-Context Matrix (#1219)
 
@@ -134,5 +157,14 @@
 
 ## References
 
-<!-- Issues, standards clauses, prior art, and the implementing modules. Cite
-     `file:line` or a command, not recollection. -->
+<!-- Issues, standards clauses, prior art, and the fixtures that hold the
+     decision to account. Cite a path or a command, not recollection.
+
+     NOT the implementing modules. That requirement used to live here and it
+     mandated exactly what the rewrite test forbids — see CLAUDE.md. A pointer
+     into `src/` belongs in `docs/implementation/`, where going stale is
+     expected and harmless.
+
+     A fixture path is the strongest citation available to an ADR: it survives a
+     rewrite, and it is the one kind of reference that fails when the decision
+     it documents stops being true. -->

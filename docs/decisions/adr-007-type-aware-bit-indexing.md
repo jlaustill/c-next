@@ -151,31 +151,26 @@ Variable indices are supported but not compile-time validated. Future work may a
 
 ### Type Tracking
 
-The code generator maintains a type registry:
+A bit index is resolved against the operand's **declared type**, never against its
+value or its current contents. The widths are the ones in the `.length` table above;
+`u8[16] buffer` carries both an element count and, per element, a bit width.
 
-```typescript
-interface TypeInfo {
-  baseType: string; // 'u8', 'u32', 'i16', etc.
-  bitWidth: number; // 8, 16, 32, 64
-  isArray: boolean;
-  arrayLength?: number; // For arrays only
-}
+This is what makes the feature type-_aware_ rather than a bit-twiddling shorthand: the
+same index expression is in range or out of range depending only on what the operand
+was declared as.
 
-// Type widths
-const TYPE_WIDTH: Record<string, number> = {
-  u8: 8,
-  i8: 8,
-  u16: 16,
-  i16: 16,
-  u32: 32,
-  i32: 32,
-  u64: 64,
-  i64: 64,
-  f32: 32,
-  f64: 64,
-  bool: 1,
-};
+```cnx
+u8 small <- 0;
+u32 wide <- 0;
+
+wide[20] <- true;    // in range: u32 has 32 bits
+small[20] <- true;   // out of range: u8 has 8 bits
 ```
+
+Both spellings are identical as text. Nothing about `20`, and nothing about what
+either variable happens to hold, distinguishes them — only the declaration does. An
+untyped bit-index feature could not tell them apart at all, which is the alternative
+this ADR rejects.
 
 ### Register Bit Access
 

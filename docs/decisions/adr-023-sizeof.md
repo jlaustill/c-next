@@ -260,7 +260,7 @@ The compiler must:
 2. Detect side effects in sizeof operands (increment, decrement, assignment, function calls)
 3. Verify array sizes are compile-time constants (no VLAs)
 
-### CodeGenerator
+### Generated C
 
 Direct pass-through for valid cases:
 

@@ -11,7 +11,7 @@
 C-Next infers `const` on pass-by-reference parameters a function only reads
 ("auto-const", Issue #268). A parameter is const-qualified unless it is _modified_ —
 directly (`p[i] <- x`) or transitively (passed to a callee that modifies its
-corresponding parameter, via the `TransitiveModificationPropagator`, Issue #269).
+corresponding parameter, Issue #269).
 
 **#986 turned this off for arrays entirely.** The trigger was C-API passthrough:
 
@@ -92,12 +92,11 @@ it can never break a build that #986 compiled: any uncertainty resolves to "muta
 
 ## Rationale
 
-- **Reuses existing machinery.** The change is an extension of the
-  `TransitiveModificationPropagator`, not a new pass. External callees are absent from the
-  `modifiedParameters` map today; seeding each external callee's modified-set with the names
-  of its **non-`const` pointer parameters** makes `isParamModified(callee, …)` return `true`
-  for those, and the existing fixed-point iteration propagates the mutability requirement
-  backward through every forwarding chain unchanged.
+- **No new kind of analysis.** Transitive modification is already tracked: a parameter
+  passed to a callee that modifies its corresponding parameter is itself modified. An
+  external callee is the same relation with the callee's const-ness read from its
+  declaration instead of from C-Next source, so mutability propagates backward through a
+  forwarding chain of any length by the rule that already exists.
 - **Feasible because of C-Next's safety model.** No `&`, no pointer arithmetic, no casts to
   alias → sinks are exactly the argument positions. The analysis is sound without escape
   analysis that would be intractable in raw C.
@@ -106,15 +105,14 @@ it can never break a build that #986 compiled: any uncertainty resolves to "muta
 
 ## Implementation
 
-1. **Seed external sinks.** Where the call graph is built (`CallExprGenerator`, the
-   `ICallInfo` entries feeding `TransitiveModificationPropagator`), for each callee resolve
-   its parameter const-ness from its declaration (C-Next signature or parsed C/C++ header,
-   per ADR-061 interop). Pre-seed `modifiedParameters[callee]` with every parameter whose
-   type is a **non-`const` pointer/array**. The fixed-point `propagate()` then requires no
-   change.
-2. **Remove the blanket.** In `ParameterInputAdapter._buildArrayInputFromAST`, delete the
-   hard-coded `isAutoConst: false` (and its `_buildArrayInputFromSymbol` counterpart) so
-   array parameters use the same `isAutoConst = !isModified && !isConst` path as structs.
+1. **An external callee's parameter is a mutation sink unless its declaration says
+   otherwise.** Const-ness comes from the callee's declaration -- a C-Next signature, or a
+   parsed C/C++ header per ADR-061 interop. A non-`const` pointer or array parameter is
+   treated as modified, and that requirement propagates backward to every caller.
+2. **Arrays follow the same rule as structs.** An array parameter is const-qualified when
+   it is neither modified nor already explicitly `const` -- the condition structs are
+   already held to. #986's blanket exclusion for arrays is withdrawn, so there is one rule
+   rather than one rule and an exception.
 3. **Contradiction error.** When a parameter carries explicit source `const` but the
    analysis marks it modified via a sink, raise a diagnostic error naming the parameter and
    the sink.
@@ -167,7 +165,7 @@ it can never break a build that #986 compiled: any uncertainty resolves to "muta
 
 - ADR-006 — Simplified Reference Model (auto-const foundation)
 - ADR-061 — C Library Interop (external signature resolution)
-- Issue #268 — auto-const inference; Issue #269 — `TransitiveModificationPropagator`
+- Issue #268 — auto-const inference; Issue #269 — transitive modification propagation
 - #986 — the blanket array auto-const removal this supersedes
 - MISRA C:2012 Rule 8.13 (advisory) — const-qualify pointers to unmodified data
 
@@ -182,6 +180,6 @@ it can never break a build that #986 compiled: any uncertainty resolves to "muta
   collapsing back to #986's blanket for exactly the external-C-API case #986 was worried
   about. cnext now reads `compile_commands.json` — the build-system-agnostic database
   every build system emits and clangd/clang-tidy consume — for the exact include paths,
-  defines, and compiler the real build uses (Issue #985; `CompileCommandsReader` +
-  `Transpiler` auto-discovery). With external signatures resolving, Step 1 can seed
-  `modifiedParameters[callee]` from real const-ness rather than perpetually failing safe.
+  defines, and compiler the real build uses (Issue #985). With external signatures
+  resolving, rule 1 can read real const-ness from the callee's declaration rather than
+  perpetually failing safe.

@@ -261,23 +261,27 @@ This is distinct from zero initialization:
 
 No grammar changes needed. This is a code generation decision.
 
-### Code Generator Changes
+### Zero Initialization
 
-For every variable declaration without initializer:
+Every declaration without an initializer is zero-initialized. There is no form of
+C-Next declaration that yields an indeterminate value, so the C a reader is used to
+has no counterpart here:
 
-```typescript
-// Instead of:
-visitVariableDeclaration(ctx) {
-    return `${type} ${name};`;  // C: undefined value
-}
-
-// Generate:
-visitVariableDeclaration(ctx) {
-    if (isArray) return `${type} ${name}[${size}] = {0};`;
-    if (isStruct || isClass) return `${type} ${name} = {0};`;
-    return `${type} ${name} = 0;`;  // Primitives
-}
+```cnx
+u32 count;
+u8[4] buffer;
+Point origin;
 ```
+
+```c
+uint32_t count = 0;
+uint8_t buffer[4] = {0};
+Point origin = {0};
+```
+
+The rule is unconditional and applies per type category -- scalar, array, aggregate --
+as the table below sets out. That it takes no exception is the point: a language with
+one indeterminate case still requires every reader to know which case it is.
 
 ### Special Cases
 

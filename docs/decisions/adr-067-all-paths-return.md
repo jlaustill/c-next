@@ -106,11 +106,13 @@ u8 doReturns() {
 }
 ```
 
-## Implementation
+## Diagnostic
 
-- New `ReturnPathAnalyzer` (a `CNextListener`) in `src/transpiler/logic/analysis/`, registered in `runAnalyzers.ts`, following the existing analyzer pattern.
-- Function return types are read from the resolved symbol information already available to analyzers.
-- Error code **E0704** joins the control-flow family (E0701 boolean condition, E0702 function call in condition, E0703 break/continue).
+**E0704** joins the control-flow family: E0701 (boolean condition), E0702
+(function call in condition), E0703 (break/continue). The check is a compile-time
+one, decided from the function's declared return type and the shape of its body --
+never from a value observed at runtime, so a function that always returns in
+practice but not on every path is still rejected.
 
 ## Testing
 

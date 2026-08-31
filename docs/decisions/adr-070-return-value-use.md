@@ -108,8 +108,7 @@ that _exceptions to rules are where bugs come from._
 Under safe-by-default, `printf(...)` as a statement errors (it returns `int`). Options:
 
 - **(a) Curated `discardable` stdlib set**: treat the printf-family and similar
-  "result usually ignored" libc functions as silently discardable via a `DISCARDABLE` set in the
-  `StdlibFunctions` metadata module from #847. _Rejected_ — same reason as the `discardable`
+  "result usually ignored" libc functions as silently discardable via a curated set. _Rejected_ — same reason as the `discardable`
   opt-out above: a curated carve-out is a standing exception, and exceptions to rules are where
   bugs come from.
 - **(b) Require `(void) printf(...)`** everywhere the return is dropped (chosen). Maximally
@@ -117,7 +116,7 @@ Under safe-by-default, `printf(...)` as a statement errors (it returns `int`). O
   identically to a discarded C-Next return. The "noise" is the point — every intentional discard
   is visible at its call site.
 - **(c) Exempt all unparsed external C** (functions whose return type C-Next cannot see): C-Next
-  _does_ know many returns (C-Next funcs + parsed C headers via `CResolver` + the stdlib map), so
+  _does_ know many returns (C-Next functions, symbols from parsed C headers, and the stdlib map), so
   a blanket exemption under-enforces. The enforce-where-resolvable boundary in (b) is not an
   _exception_ to the rule — it is the rule's domain (you cannot check a return type you cannot
   see); see Open Questions for the unresolvable-return case.
@@ -127,16 +126,15 @@ including the stdlib. No curated exemption list.
 
 ## Architecture
 
-The rule lives in the **analysis layer** (`src/transpiler/logic/analysis/`) and is enforced by
-the existing analyzer-pass mechanism — a listener that walks the parse tree during
-`runAnalyzers.ts` and returns `IAnalyzerError[]`. `ReturnPathAnalyzer` (E0704) is the existing
-analyzer of the same shape and concern (a compile-time control-flow check over function bodies).
+The rule is a **compile-time check over function bodies**, decided before any code is
+generated. ADR-067's all-paths-return rule (E0704) is the nearest precedent: same shape, same
+concern, and rejecting rather than warning.
 
 Components and constraints:
 
-- **Enforcement component:** a new analyzer in the analysis layer, surfaced through the same
-  registration and error-reporting path (`IBaseAnalysisError`: `code`/`line`/`column`/`message`/
-  `helpText`) as the other analyzers.
+- **Enforcement:** a diagnostic carrying a code, a position, a message and help text — the
+  same shape every other compile-time check reports, so a discarded return is not a special
+  kind of failure to a reader or to a build log.
 - **Inputs:** the analyzer needs callee return types at analysis time. Those come from the
   return-type knowledge already available to analyzers — C-Next functions and scope methods,
   parsed C symbols (via the C resolver), and the stdlib metadata map. A callee whose return is
@@ -202,9 +200,8 @@ To be settled in the ADR, proposed for v1:
 Turning user discards into an error is a **breaking change**: every site that currently drops a
 non-void return starts failing. Scoping #847 surfaced **100+** such call sites across the test
 suite (printf-family, scope getters used as statements, etc.). Rollout strategy is an open
-question (below). A repo-wide `npm run unit` — which transpiles every example via
-`scripts/__tests__/examples-transpile.test.ts` — must gate the rule's introduction, and the
-examples + test suite must be migrated (wrap each intentional discard in `(void)`) before the
+question (below). Every shipped example is transpiled in CI, and that must gate the rule's introduction: the
+examples and the test suite must be migrated (wrap each intentional discard in `(void)`) before the
 rule turns on.
 
 Sequencing relative to #847: ship Case 1 (compiler-internal casts) first (non-breaking), then
@@ -227,10 +224,9 @@ The owner has set these (they are no longer open):
 The questions left open above were implementation details, and the build settled them:
 
 - **Unknown external C — resolve it where visible, exempt only where it is not.** Functions
-  declared in included C **and** C++ headers are resolvable: they reach the analyzer through
-  `SymbolTable.getCSymbol()` / `getCppSymbol()` rather than `CodeGenState.symbols`, which merges
-  only `.cnx` includes. `ReturnValueUseAnalyzer.externalReturnType()` consults both, so
-  `global.spi_device_init(...)` is enforced. A name that resolves through neither route is
+  declared in included C **and** C++ headers are resolvable, and both are consulted — not only
+  the C-Next include graph, which is a third and separate source. So
+  `global.spi_device_init(...)` declared in a `.h` is enforced. A name that resolves through neither route is
   outside the rule's domain — not exempted from it.
 
   > `.h` and `.hpp` symbols live in **separate indexes**. An earlier revision of this section
@@ -318,12 +314,11 @@ require them.
 
 ## Implementation Notes (#847)
 
-- **Case 1** lives at one emit site: `StringUtils` (`copyWithNull`, `copy`, `concat`,
-  `substring`) is the sole producer of the lowered `strncpy`/`strncat` calls, and the `(void)`
-  cast is part of what it produces. `StringDeclHelper` previously rebuilt two of those
-  sequences inline; it now delegates, so the cast cannot drift between them.
-- **Case 2** is `ReturnValueUseAnalyzer`, registered in `runAnalyzers.ts` alongside the other
-  analysis passes. It reports E0708 when a resolvable non-void call is the entire expression
+- **Case 1 has one producer.** Every lowered `strncpy`/`strncat` the string operations emit
+  carries the `(void)` cast as part of what is produced, from a single place. Two of those
+  sequences were previously rebuilt separately; they now come from the one producer, so the
+  cast cannot be present in one lowering and missing from another.
+- **Case 2 reports E0708** when a resolvable non-void call is the entire expression
   statement.
 - **ADR-016 qualifiers are separate tokens.** `this.member()` and `global.Scope.member()` do
   not present as `IDENTIFIER` primaries. An implementation that only handled identifiers would
@@ -333,22 +328,24 @@ require them.
   transpiled C name, so a bare `read()` inside `scope Timer` misses the lookup that
   `this.read()` hits. Without the fallback the rule would be enforced on the qualified spelling
   and silently skipped on the one CLAUDE.md makes house style — the same key-by-layer defect
-  `tests/bugs/issue-1210-bare-intra-scope-call/` records. The "when does an unqualified name
-  mean a scope member" decision is shared with `FunctionCallAnalyzer` through
-  `CalleeNameResolver.scopeQualifiedCandidate()` rather than re-derived.
-- **Scope names must come from the include-merged set.** `CodeGenState.isKnownScope()` reads
-  scopes merged across `.cnx` includes; a per-file collection alone leaves every cross-file
-  `Helper.compute()` unrecognized as a call at all, which is a _name_-resolution gap rather
-  than the documented "return type you cannot see" boundary.
-- **Stdlib metadata** moved to `StdlibFunctions`, shared with `FunctionCallAnalyzer`, so
-  "which header declares this name" and "does it return void" are answered from one list.
+  `tests/bugs/issue-1210-bare-intra-scope-call/` records. "When does an unqualified name mean a
+  scope member" is answered once and shared, not decided again per rule: two rules that agree
+  today only because they were written from the same understanding will diverge the first time
+  one is edited.
+- **Scope names must come from the include-merged set.** Scopes merged across `.cnx` includes,
+  not a per-file collection: with the latter every cross-file `Helper.compute()` is
+  unrecognized as a call at all, which is a _name_-resolution gap rather than the documented
+  "return type you cannot see" boundary.
+- **Stdlib metadata is one list.** "Which header declares this name" and "does it return void"
+  are answered from the same place, shared with the other rule that asks them.
 - **MISRA Rules 17.7 and 11.8 are both enforced, neither baselined.** Removing 17.7 unmasked a
   pre-existing Rule 11.8 const-discard (cppcheck reports one rule per line), filed as **#1259**.
-  It turned out to be the same defect from the other side: `PassByValueAnalyzer` walks
-  statements manually for modifications and did not descend through a cast, so making `(void)`
-  the sanctioned discard idiom would have hidden every discarded call from const inference —
-  silently flipping a mutating callee's argument to `const`. Teaching that walk to see through
-  a cast fixes #1259 and is what makes the `(void)` idiom safe to recommend at all.
+  It turned out to be the same defect from the other side: const inference walks statements
+  looking for modifications and did not descend through a cast, so making `(void)` the
+  sanctioned discard idiom would have hidden every discarded call from it — silently flipping a
+  mutating callee's argument to `const`. Seeing through the cast fixes #1259 and is what makes
+  the `(void)` idiom safe to recommend at all. A discard syntax is not inert: it changes what
+  every other analysis can see.
 
 ## Prior Art
 
@@ -369,7 +366,7 @@ C-Next is C.
 - Issue #1080 (this ADR's tracking issue, with the original design discussion)
 - Issue #847 (MISRA Rule 17.7 `(void)` casts — Case 1 codegen counterpart)
 - Issue #1081 (MISRA Rule 21.15 — unmasked by the slice-`memcpy` cast)
-- ADR-067 / ADR-069 (`ReturnPathAnalyzer` + analyzer-pass precedent: E0704)
+- ADR-067 / ADR-069 (all-paths-return and reachability: the E0704 precedent)
 - ADR-068 (Forever Loops — most recent compile-time control-flow rejection precedent)
 - ADR-066 (DO-178C Compliance — frames unchecked returns as a certification concern)
 - `docs/error-codes.md` (E07xx Control-Flow range; E0708 next free)

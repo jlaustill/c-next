@@ -598,8 +598,7 @@ cell's context could only come from a diagnostic's position, and ADR-016's
 conflict diagnostic reported `1:0` rather than the offending declaration, so
 nothing could be derived from it and the ratchet had no path forward. #1241
 (2026-08-29) removed that constraint — occupancy now also derives from where the
-rule fired, recorded at the decision itself (`ScopeGenerator.ts`,
-`AdrProvenance.record("016", ...)`), which reaches every cell here at once.
+rule fired, recorded at the decision itself, which reaches every cell here at once.
 
 **#1334 is fixed (`de137c9f`, 2026-08-29) and is no longer the blocker this ADR
 recorded it as.** The conflict diagnostic now reports a real position — but that
@@ -629,9 +628,9 @@ duplicate-definition error and belongs to whatever ADR governs that, not here.
 
 ## Diagnostics
 
-| Code  | Reported when                                                                                       | Reported by                                                      |
-| ----- | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| E0425 | Two definitions of the same member name in one scope, or a C-Next symbol colliding with a C/C++ one | `SymbolTable.detectCNextDuplicate`, `SymbolTable.detectConflict` |
+| Code  | Reported when                                                                                       | Asserted by                                                                                                                                                             |
+| ----- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| E0425 | Two definitions of the same member name in one scope, or a C-Next symbol colliding with a C/C++ one | `tests/bugs/issue-1333-scope-reopening/duplicate-member-reopened`, `tests/bugs/issue-1334-scope-declaration-sites/conflict-across-files`, `.../cross-language-conflict` |
 
 A scope **composes**: reopening it in another file adds members rather than
 redefining it (see Scope Composition above). Member names stay unique across every
@@ -639,9 +638,10 @@ block, so the check groups by scope identity, not by declaration block — two b
 different files that both define `Lib.useIt` are a conflict, and the diagnostic names
 each definition's own file and line plus every block the scope is declared in.
 
-The scope's declaration sites are kept on `IScopeSymbol.declarationSites`, one entry
-per block. Before #1334 a reopened scope recorded only one position, so a conflict
-spanning two files printed the same location twice.
+Every block that declares a scope is remembered, not just the first. Before #1334
+only one position was kept, so a conflict spanning two files printed the same
+location twice — the diagnostic named a file the reader had already looked at
+instead of the other definition.
 
 ## Implementation Status
 
@@ -663,18 +663,6 @@ The class implementation has been removed pending further research.
 ---
 
 ## References
-
-### Implementing Modules
-
-- `src/transpiler/logic/symbols/cnext/collectors/ScopeCollector.ts:76` — records every
-  block that declares a scope (`declarationSites`)
-- `src/transpiler/logic/symbols/SymbolTable.ts:874` — `detectCNextDuplicate`, member
-  uniqueness across a composed scope (E0425)
-- `src/transpiler/logic/symbols/SymbolTable.ts:718` — `scopeDeclarationNote`, the
-  declaring blocks named in the diagnostic
-- `src/transpiler/Transpiler.ts:958` — `_checkSymbolConflicts`, one coded error per
-  conflict at the offending definition
-- `src/utils/DeclarationSite.ts` — how a `file:line` is rendered and ordered
 
 ### Rejected ADRs
 

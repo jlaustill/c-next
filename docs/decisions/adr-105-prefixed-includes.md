@@ -228,6 +228,8 @@ void main() {
 
 Require a `.cnxlib` manifest describing the header:
 
+<!-- survives-rewrite: a proposed C-Next artifact format, not build config -- any implementation would read the same file -->
+
 ```yaml
 # compass.cnxlib
 header: compass.h
@@ -261,7 +263,7 @@ symbols:
    - Cosmetic is simpler but doesn't prevent C-level conflicts
 
 7. **Header parsing requirements**: To know `Serial` comes from `Arduino.h`, we must:
-   - Parse the C header to extract symbol names (already done via CResolver)
+   - Parse the C header to extract symbol names (already done)
    - Track symbol provenance (which file declared each symbol)
    - Build a mapping: `{Arduino.h: [Serial, Wire, ...], SomeLib.h: [Serial, ...]}`
 

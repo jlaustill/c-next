@@ -27,11 +27,11 @@ shape rather than a diagnostic has no way to occupy one until that tooling gap c
 declare `warn` and reference the gap. Requiring `error` of them would be a gate nothing could
 pass — which is why the obligation is to _declare honestly_, not to be green.
 
-| Band  | Work performed during | Release gate                          | Allocated so far |
-| ----- | --------------------- | ------------------------------------- | ---------------- |
-| `0xx` | v0.x                  | All must be implemented to cut **v1** | 001–058, 060–070 |
-| `1xx` | v1.x                  | All must be implemented to cut **v2** | 100–106, 111     |
-| `2xx` | v2.x                  | All must be implemented to cut **v3** | none yet         |
+| Band  | Work performed during | Release gate                          | Allocated so far                                        |
+| ----- | --------------------- | ------------------------------------- | ------------------------------------------------------- |
+| `0xx` | v0.x                  | All must be implemented to cut **v1** | 001–058, 060–070 (011, 012, 048, 055, 060, 065 retired) |
+| `1xx` | v1.x                  | All must be implemented to cut **v2** | 100–106, 111                                            |
+| `2xx` | v2.x                  | All must be implemented to cut **v3** | none yet                                                |
 
 ### Choosing a band for a new ADR
 
@@ -50,6 +50,22 @@ toward its band's gate.
 Gaps are intentional and permanent. `059` and `107` were never allocated; neither will be filled.
 `053` was withdrawn on 2026-08-28 -- it described the transpiler's pipeline rather than deciding
 anything about the language, so it did not meet the definition of an ADR. The number stays retired.
+
+The same judgement, applied by the rewrite test rather than by eye, retired six more on
+2026-08-31 (#1403). Each described how the transpiler or its toolchain is built rather than what
+C-Next decides, so none would survive a rebuild in another stack. They were moved, not deleted:
+
+| Retired | Moved to                                      | Was about                       |
+| ------- | --------------------------------------------- | ------------------------------- |
+| `011`   | `docs/implementation/vscode-extension.md`     | the editor extension            |
+| `012`   | `docs/implementation/static-analysis.md`      | running cppcheck over output    |
+| `048`   | `docs/implementation/cli-distribution.md`     | npm packaging                   |
+| `055`   | `docs/architecture/symbol-resolution.md`      | the symbol model's construction |
+| `060`   | `docs/implementation/extension-separation.md` | splitting the extension repo    |
+| `065`   | `docs/architecture/codegen-decomposition.md`  | splitting one generator class   |
+
+A reference to any of these numbers -- in a source comment, the changelog, or an old issue --
+resolves to the row above, and those references are deliberately **not** rewritten.
 A retired number stays retired, so that an old issue or commit referencing it can never resolve
 to a different decision than the one its author meant.
 
@@ -77,6 +93,41 @@ Precedent: commit `a2277b87` (2026-01-07) moved ADR-051 → ADR-104 and ADR-046 
 Start from [`TEMPLATE.md`](TEMPLATE.md). Copy it to `adr-NNN-short-stem.md`,
 pick the band per the rule above, and fill in the sections — the guidance
 comments explain what each one is for and delete as you go.
+
+### The rewrite test
+
+**If the transpiler were rebuilt from scratch in a different language and stack, every ADR must
+still be fully applicable.** An ADR decides something about the C-Next language; it does not
+record how today's TypeScript/ANTLR/Node implementation satisfies that decision.
+
+**This table is the single source of truth for what that admits.** CLAUDE.md, `TEMPLATE.md` and
+CONTRIBUTING.md state the test and link here; none of them repeats the list. That is deliberate:
+the test is an invariant and restating it is harmless, but the list is derived from it and is
+the part that will change, so it gets one home. The rule this replaces reached seven copies
+before anyone noticed.
+
+| In an ADR                                       | Not in an ADR                                  |
+| ----------------------------------------------- | ---------------------------------------------- |
+| C-Next snippets; generated C/C++ snippets       | TypeScript/JavaScript source                   |
+| EBNF grammar productions                        | ANTLR-only directives (`-> skip`, `channel()`) |
+| Prior art in any language, including TS and JS  | `src/**` paths; transpiler class/method names  |
+| Diagnostics, messages, the scope-context matrix | npm, `package.json`, CI config, tool commands  |
+| Rejected alternatives and why                   | Phasing, checklists, migration plans           |
+
+Implementation detail belongs in `docs/architecture/` (how the transpiler is structured) or
+`docs/implementation/` (how one decision is carried out).
+
+This is the rule that retired `053` above, generalized. That withdrawal judged a whole file;
+the test judges a passage, which is what was needed — **40 of 76** ADRs had drifted past the
+un-testable version of the rule, five of them filed after it was written down (#1403). A hand
+audit of the same corpus found 29; the gate found the rest.
+
+An ADR therefore **points at nothing in `src/`**. Its strongest citation is a fixture path: a
+rewrite keeps the conformance corpus and discards every module name, and a fixture is the one
+reference an ADR can hold that _fails_ when the decision it documents stops being true.
+[ADR-063](adr-063-identifier-syntax.md) is the worked example.
+
+### Sections
 
 `Context`, `Decision`, and `References` appear in nearly every existing ADR and
 the template treats them as required. Two sections are easy to skip and

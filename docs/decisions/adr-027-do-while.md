@@ -155,7 +155,7 @@ This is the same check used for:
 - `for` conditions
 - Ternary conditions (ADR-022)
 
-### CodeGenerator
+### Generated C
 
 Direct pass-through:
 

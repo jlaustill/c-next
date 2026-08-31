@@ -402,6 +402,8 @@ unsafe {
 
 **Behavior:** Returns `undefined` for reads, silently extends array for writes
 
+<!-- survives-rewrite: prior art -- how JavaScript indexes out of bounds -->
+
 ```javascript
 const arr = [1, 2, 3];
 console.log(arr[10]); // undefined (no error!)
@@ -411,6 +413,8 @@ arr[10] = 5; // arr is now [1, 2, 3, <7 empty>, 5]
 **This is the "no-op" behavior for reads!** JavaScript returns `undefined` instead of crashing.
 
 **TypeScript `noUncheckedIndexedAccess`:** TypeScript 4.1+ can flag this:
+
+<!-- survives-rewrite: prior art -- TypeScript's opt-in checked indexing -->
 
 ```typescript
 // tsconfig.json: "noUncheckedIndexedAccess": true

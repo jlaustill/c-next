@@ -143,9 +143,9 @@ literal
     ;
 ```
 
-### Analysis (NullCheckAnalyzer.ts)
+### Analysis
 
-New analyzer that:
+A new compile-time check that:
 
 1. Detects C stream function calls
 2. Verifies they're in NULL comparison context

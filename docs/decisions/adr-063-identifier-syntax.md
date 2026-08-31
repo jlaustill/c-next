@@ -45,13 +45,13 @@ The failure lands in the C compiler (or, in class 2, does not land at all), not 
 
 The transpiler emits names no user wrote: loop and slice temporaries, a `strlen` cache, overflow helpers, include guards. Historically each family invented its own spelling, and three of the four chose shapes a user is allowed to declare:
 
-| Family                  | Built at                     | Shape                   | Collides with user source |
-| ----------------------- | ---------------------------- | ----------------------- | ------------------------- |
-| `strlen` cache          | `CodeGenerator.ts`           | `_<var>_len`            | **yes** (#1131)           |
-| slice-assignment unroll | `CodeGenState.ts`            | `_tmp<N>`               | **yes** (#1131)           |
-| argument temporary      | `ArgumentGenerator.ts`       | `_cnx_tmp_<N>`          | **yes**                   |
-| overflow helper         | `OverflowHelperTemplates.ts` | `cnx_clamp_<op>_<type>` | no                        |
-| include guard           | `HeaderGeneratorUtils.ts`    | `<BASENAME>_H`          | **yes** (#1133 cause 3)   |
+| Family                  | Shape                   | Collides with user source |
+| ----------------------- | ----------------------- | ------------------------- |
+| `strlen` cache          | `_<var>_len`            | **yes** (#1131)           |
+| slice-assignment unroll | `_tmp<N>`               | **yes** (#1131)           |
+| argument temporary      | `_cnx_tmp_<N>`          | **yes**                   |
+| overflow helper         | `cnx_clamp_<op>_<type>` | no                        |
+| include guard           | `<BASENAME>_H`          | **yes** (#1133 cause 3)   |
 
 Verified in #1131: a user global `_msg_len` is shadowed by the generated `strlen` cache, and every subsequent read binds to the wrong storage — `gcc -std=c99 -Wall -Wextra` completely clean, transpiler exit 0, expected 47 and got 10.
 
@@ -214,9 +214,9 @@ The "Why a diagnostic is the wrong fix" argument above does **not** apply here. 
 
 ### Enforcement: semantic, not lexical
 
-The grammar above is **specification, not implementation**. The rule is enforced by a semantic analyzer (`IdentifierSyntaxAnalyzer`, diagnostic E0201), and the `IDENTIFIER` lexer rule in `grammar/CNext.g4` stays permissive. Three reasons:
+The grammar above is **specification, not implementation**. The rule is enforced semantically, as diagnostic E0201, while the `IDENTIFIER` lexer rule stays permissive. Three reasons:
 
-1. **Diagnostic quality.** `CNextSourceParser` forwards ANTLR messages verbatim, so a lexer rejection surfaces as `token recognition error at: '_'` followed by cascading parser errors — with no error code, no source-accurate location for the identifier, and no `help:` line. An ADR that defines an error code has already implicitly chosen semantic enforcement.
+1. **Diagnostic quality.** A lexical rejection surfaces as a token-recognition failure followed by cascading parse errors — no error code, no source-accurate location for the identifier, and no `help:` line. An ADR that defines an error code has already implicitly chosen semantic enforcement.
 2. **The C-interop carve-out.** The analyzer checks only _declaration_ contexts. A C-Next file that _calls_ an external symbol such as `__disable_irq()` or `_exit()` is untouched, which is exactly the scope this ADR specifies. A lexer rule cannot make that distinction.
 3. **Cost.** A grammar change forces `npm run antlr:all` and re-committing the generated parser sources, for no benefit here.
 
@@ -255,7 +255,7 @@ Every identifier token in `tests/` and `examples/` was extracted (comments and s
 
 **No existing C-Next source requires renaming.**
 
-The `cnx_` figure is worth stating precisely, because a grep for `cnx_` over the corpus does return hits — 7 distinct names, all of the form `cnx_clamp_<op>_<type>`. Every one of them appears only in generated `.c` output, emitted by `OverflowHelperTemplates.ts`. None is declared in `.cnx` source. Part 2 therefore does not introduce a convention; it reserves one the transpiler had already adopted for its overflow helpers and failed to apply to its temporaries and guards.
+The `cnx_` figure is worth stating precisely, because a grep for `cnx_` over the corpus does return hits — 7 distinct names, all of the form `cnx_clamp_<op>_<type>`. Every one of them appears only in generated `.c` output, as an overflow helper. None is declared in `.cnx` source. Part 2 therefore does not introduce a convention; it reserves one the transpiler had already adopted for its overflow helpers and failed to apply to its temporaries and guards.
 
 An earlier revision of this ADR also forbade leading underscores and claimed zero violations on that basis. That claim was incorrect — `_handler` appears in three callback tests, in `docs/language-guide.md`, and 21 times in ADR-029. Since the injectivity proof does not depend on the leading position (see above), the rule was relaxed rather than the corpus migrated.
 
@@ -302,7 +302,7 @@ error[E0201]: Identifier 'my__value' cannot contain consecutive underscores.
 Each error also carries a `helpText` suggesting a legal name, but that field is
 dropped before reaching the user (see Open Questions) so it does not appear above.
 
-Reported for a trailing underscore or two or more consecutive underscores. Emitted by `IdentifierSyntaxAnalyzer` over declaration contexts only; references to external C/C++ symbols are not checked.
+Reported for a trailing underscore or two or more consecutive underscores, over declaration contexts only; references to external C/C++ symbols are not checked.
 
 **E0202** — identifier uses the reserved transpiler prefix.
 
@@ -311,7 +311,7 @@ error[E0202]: Identifier 'cnx_buffer' cannot begin with 'cnx_'. That prefix is
 reserved for names the transpiler generates, compared case-insensitively.
 ```
 
-Reported when a declared identifier begins with `cnx_` in any case. Emitted by the same `IdentifierSyntaxAnalyzer` pass and the same `classifyIdentifier` predicate as E0201, so the two rules cannot drift apart — one walk, one classifier, two violation kinds.
+Reported when a declared identifier begins with `cnx_` in any case. Decided by the same classification as E0201, so the two rules cannot drift apart — one classifier, two violation kinds.
 
 **E0203** — two source files produce the same include guard.
 
@@ -364,7 +364,7 @@ A user identifier beginning with `cnx_` is newly rejected. Zero occur in the cor
 - If ADR-105 (Prefixed Includes) is adopted, a **filename becomes a qualified-name component** — `Arduino.Serial.begin()` → `Arduino__Serial__begin`. Part 1's constraints would then have to apply to filenames as well as identifiers, since nothing today stops a file being named `mod__a.cnx` or `mod_.cnx`. The include-guard rule above already takes a first step by keying on the path and diagnosing the residue; ADR-105 should decide whether to extend the full underscore rule to filenames rather than invent a parallel one.
 - Should a **file-scope** identifier be permitted to begin with `_`? C11 §7.1.3 reserves those, so a leading-underscore global emits a reserved C identifier. The motivating idiom (`_handler`) is a struct member and is unaffected, so this rule does not restrict it — but a narrower "leading `_` on globals only" check could be added later without affecting injectivity.
 
-Live diagnostics in the VS Code extension are tracked separately: every transpiler diagnostic should surface in the editor, not only E0201 — see [jlaustill/vscode-c-next#8](https://github.com/jlaustill/vscode-c-next/issues/8). That issue also captures a prerequisite in this repo: `collectErrors()` currently drops `code` and `helpText` when mapping to `ITranspileError`, so `helpText` never reaches users today.
+Live diagnostics in the VS Code extension are tracked separately: every transpiler diagnostic should surface in the editor, not only E0201 — see [jlaustill/vscode-c-next#8](https://github.com/jlaustill/vscode-c-next/issues/8). That issue also captures a prerequisite in this repo: a diagnostic's code and help text are currently dropped on the way to the editor, so `helpText` never reaches users today.
 
 ## References
 
@@ -375,9 +375,8 @@ Live diagnostics in the VS Code extension are tracked separately: every transpil
 - Issue #1132 — Reserve the `cnx_` prefix for the transpiler (E0202)
 - Issue #1307 — Injectivity holds for the whole string but not within the target's
   significant-character budget: C99 §5.2.4.1 guarantees 31 characters for an external
-  identifier, and `Scope__member` spends them on the encoding. Diagnosed as E0204 in
-  `Transpiler.ts:_checkExternalIdentifierSignificance` and
-  `logic/symbols/SymbolTable.ts:detectMISRA51Conflicts`; MISRA C:2012 Rule 5.1.
+  identifier, and `Scope__member` spends them on the encoding. Diagnosed as **E0204**;
+  MISRA C:2012 Rule 5.1.
 
   This is not the diagnostic "Why a diagnostic is the wrong fix" rejects, and the
   difference is what makes that section's argument hold. There, a diagnostic would
@@ -389,43 +388,34 @@ Live diagnostics in the VS Code extension are tracked separately: every transpil
   for one.
 
 - Issue #1338 — the same gap against the 63-character _internal_ budget (Rule 5.9), open
-- Issue #1357 — injectivity is a property of the _encoder_, and there were two. The
-  chain-walking `ScopeUtils.getTranspiledCName` (`src/utils/ScopeUtils.ts:193`) and a
-  one-level `QualifiedCName.join(scope.name, member)` agree at depth one and diverge at
-  depth two, where the latter drops every outer component and so is not injective at all.
-  Eleven codegen sites used the leaf form while their producer,
-  `QualifiedNameGenerator.forMember` (`output/codegen/utils/QualifiedNameGenerator.ts:92`),
-  had already been converted to walk the chain; converted to call it in
-  `EnumTypeResolver.ts:124,154`, `StringHandlers.ts:105`, `SpecialHandlers.ts:39`,
-  `AssignmentClassifier.ts:542,591,784,846`, `VariableDeclHelper.ts:760`,
-  `EnumAssignmentValidator.ts:158` and `TypeResolver.ts:542`.
+- Issue #1357 — injectivity is a property of the _encoder_, and there were two. One walked
+  the whole scope chain; the other joined a single level. They agree at depth one and
+  diverge at depth two, where the one-level form drops every outer component and so is not
+  injective at all. Eleven sites used the one-level form after their producer had already
+  been converted to walk the chain.
 
-  Measured, not assumed: the divergence is unreachable from `.cnx` source today because
-  `scopeMember` admits no `scopeDeclaration` (`grammar/CNext.g4:81-89`), so every scope
-  chain a program can build is depth one and the two encoders coincide. That is a
-  property of the grammar, not of the encoding — and ADR-016 defers nesting "for v1"
-  rather than forbidding it, so the coincidence has a scheduled expiry. It is reachable
-  through `SymbolRegistry.getOrCreateScope`, which takes a dotted path and builds the
-  chain, which is the level the guard for it is written at.
+  Measured, not assumed: the divergence is unreachable from `.cnx` source today because a
+  scope member cannot itself be a scope declaration, so every scope chain a program can
+  build is depth one and the two encoders coincide. That is a property of the grammar, not
+  of the encoding — and ADR-016 defers nesting "for v1" rather than forbidding it, so the
+  coincidence has a scheduled expiry. A deeper chain is constructible from a dotted path
+  even now, which is the level the guard is written at.
 
-  The second half removed the API that made the leaf form expressible.
-  `QualifiedCName.join(...strings)` became `fromParts(parts)` and `joinSource`
-  became `fromSourceParts`, so building a name states that a COMPLETE path is in
-  hand rather than reading as an act of joining two things. `resolveDimensionName`
-  moved to `ScopeUtils` (`src/utils/ScopeUtils.ts:300`) and now takes the scope
-  REFERENCE: three of its four branches qualify against the enclosing scope, so on
-  `QualifiedCName` it was the last route by which a caller holding only a scope name
-  could still build a one-level name. `QualifiedCName` now has no scope-aware API at
-  all, which makes threading the reference the only way to express the correct thing
-  and a compile error the consequence of not having it.
+  The second half removed the ability to express the one-level form at all. Building a
+  name now states that a COMPLETE path is in hand, rather than reading as an act of
+  joining two things, and the one remaining routine that qualified against an enclosing
+  scope was moved and made to take the scope REFERENCE rather than its name. Nothing that
+  builds an encoded name is scope-aware any more, which makes threading the reference the
+  only way to express the correct thing and a compile error the consequence of not having
+  it.
 
-  What remains is a call SHAPE — `fromParts([scopeName, member])` — which no
-  import-level rule can see, because `fromParts` has 38 legitimate whole-path
-  callers. Two gates split that: `.dependency-cruiser.cjs` widened
+  What remains is a call SHAPE — a whole-path builder handed exactly two parts — which no
+  import-level rule can see, because that builder has 38 legitimate whole-path callers. Two gates split that: `.dependency-cruiser.cjs` widened
   `collectors-build-names-from-scopes` from the collectors seam to every directory
-  measurably needing nothing from `QualifiedCName` (parser, preprocessor, data — 42
+  measurably needing nothing from the encoder (parser, preprocessor, data — 42
   files against the original 7), and `npm run scope-joins:check` holds the residual
-  population at `docs/architecture/scope-join-sites.md`, 22 sites across 13 files.
+  population at `docs/architecture/scope-join-sites.md`, which is generated and owns the
+  count — restating it here is how it drifts.
   That inventory counts an element as scope-denoting when its NAME says so or when
   the enclosing block guards it with `is(Known)Scope(<that element>)`; a name
   heuristic alone missed six sites spelled `parts[0]` or `identifierChain[0]`,

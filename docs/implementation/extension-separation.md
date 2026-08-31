@@ -1,4 +1,9 @@
-# ADR-060: VS Code Extension Repository Separation
+# VS Code Extension Repository Separation
+
+> **Formerly ADR-060.** Moved out of `docs/decisions/` on 2026-08-31 under the rewrite
+> test (#1403): where the extension's source lives, and how it is versioned and
+> published, is repository logistics rather than a property of C-Next. Number 060 is
+> retired — see [`../decisions/README.md`](../decisions/README.md).
 
 **Status:** Research
 **Date:** 2026-02-06

@@ -170,12 +170,13 @@ update step: an `--update` inside it could not fail on a mismatch. `npm run test
 regenerates every snapshot, `tests/bugs/` included (#1142); `npm run test:bugs:update` narrows
 it to the regression fixtures.
 
-**`test:all` is four checks of twenty-three — run `npm run test:gate` before pushing.**
-`test:all` is `build && unit && test:q && validate:c`. CI runs nineteen more with no local
+**`test:all` is four checks of twenty-four — run `npm run test:gate` before pushing.**
+`test:all` is `build && unit && test:q && validate:c`. CI runs twenty more with no local
 alias: the whole **`Static Analysis`** job (`prettier:check`, `plugin:test`, `cspell:check`,
 `oxlint:check`, `knip`, `depcruise`, `lint:test-location`, `analyze:duplication`,
 `docs:toolchain:check`, `coverage:matrix:check`, `diagnostics:manifest:check`,
-`docs:throw-citations:check`, `scope-joins:check`), plus `typecheck`, `test:cli`,
+`docs:throw-citations:check`, `scope-joins:check`, `adr:independence:check`), plus
+`typecheck`, `test:cli`,
 `coverage:grammar:check`, `format:fidelity`, and the working-tree check that `Verify Clean`
 performs. `scripts/gate.sh` runs all of them, reports each against the CI job that owns it,
 and does **not** stop at the first failure. A green `test:all` says nothing about any of
@@ -336,7 +337,9 @@ export default new Registry();
 
 ---
 
-## Symbol Resolution (ADR-055)
+## Symbol Resolution
+
+> Full model: [`docs/architecture/symbol-resolution.md`](docs/architecture/symbol-resolution.md) (formerly ADR-055).
 
 ### Symbol Types
 
@@ -349,7 +352,7 @@ export default new Registry();
 **Use**: `CNextResolver.resolve(tree, file)` → `TSymbol[]`
 **Avoid**: Deleted `SymbolCollector`, `CNextSymbolCollector`
 
-### C/C++ Resolvers (ADR-055 Phase 6)
+### C/C++ Resolvers (symbol-resolution Phase 6)
 
 | Resolver      | Location                     | Returns        |
 | ------------- | ---------------------------- | -------------- |
@@ -630,6 +633,39 @@ Update both when adding new statement types.
 - **DO NOT**: Change Status or Decision without explicit approval
 - **Sync order**: Update ADR file FIRST, then README.md
 
+### What belongs in an ADR — the rewrite test
+
+**If the transpiler were rewritten from scratch in a different language and stack, every ADR
+must still be fully applicable.** That is the whole test. An ADR records a decision about the
+_C-Next language_ — its syntax, its semantics, the promises it makes. It is not a record of
+how the current TypeScript/ANTLR/Node implementation happens to satisfy that decision today.
+
+Implementation detail belongs in `docs/architecture/` (how the transpiler is structured) or
+`docs/implementation/` (how one decision is carried out — see
+`docs/implementation/adr-045-string-implementation.md`). Those documents are free to name
+modules, and they go stale visibly.
+
+**The in/out list lives in [`docs/decisions/README.md`](docs/decisions/README.md), once.** The
+test above is the invariant and is safe to restate; the list is derived from it and is the part
+that will change, so it has exactly one home. Do not copy it here — this rule's own predecessor
+reached seven copies across CLAUDE.md and CONTRIBUTING.md before anyone noticed (#1403).
+
+**ADRs point at nothing.** A previous version of this file required "implementing modules
+cited as `file:line` in `## References`", which mandated the exact thing the rewrite test
+forbids. It was also unenforceable in the direction that mattered: the prose is what rots.
+ADR-013 described `private checkConstAssignment()` as a method on the codegen class long after
+it became `static TypeValidator.checkConstAssignment()` in another file. ADR-055 specified a
+13-field `interface ISymbol` whose flat model Phase 7 had removed — and the name survives in
+`SymbolLookupHelper` on an unrelated two-field structural type, so a reader who grepped for it
+found something that looked like confirmation and was not. Both are fixed; 055 is no longer an
+ADR at all.
+
+The prohibition is not new — it is why ADR-053 was withdrawn on 2026-08-28, "described the
+transpiler's pipeline rather than deciding anything about the language". What was missing was a
+_test_: "no implementation detail" gave no way to adjudicate a borderline passage, and 40 of 76
+ADRs drifted past it (#1403) — a hand audit found 29 and the gate found the rest, which is the
+argument for having a gate at all. The rewrite test adjudicates. Ask it of the passage, not the file.
+
 ### Numbering — an ADR's number band is the release it must ship in
 
 **Never pick "the next free number."** Ask which release the decision must ship in:
@@ -671,7 +707,7 @@ and [`docs/WORKFLOW.md`](docs/WORKFLOW.md) for how work moves on the project boa
 A task is NOT complete until:
 
 - [ ] `README.md` updated (if feature-visible)
-- [ ] ADR updated: decision, diagnostics, matrix — **implementation detail does not go in an ADR**. No `file:line` citations, no module lists: they are wrong the moment the next merge shifts a line, and an ADR is the decision record, not a map of the code that currently implements it
+- [ ] ADR updated: decision, diagnostics, matrix — and it still passes the **rewrite test** above. No `src/**` paths, no module lists, no `file:line` citations, no transpiler identifiers, no TypeScript: they are wrong the moment the next merge shifts a line, and an ADR is the decision record, not a map of the code that currently implements it. Implementation detail goes to `docs/architecture/` or `docs/implementation/`. Enforced by `npm run adr:independence:check`
 - [ ] `docs/learn-cnext-in-y-minutes.md` updated (if syntax changed)
 - [ ] Memory bank updated
 

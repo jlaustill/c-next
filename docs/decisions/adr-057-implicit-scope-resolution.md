@@ -3,7 +3,7 @@
 **Status:** Implemented
 **Date:** 2026-01-28 (amended 2026-08-08 — type positions, #1130; amended 2026-08-27 — implementation detail removed, matrix declared, #1285)
 **Decision Makers:** Language Design Team
-**Related ADRs:** ADR-016 (Scopes — this ADR amends its name-resolution decision), ADR-017 (Enums), ADR-029 (Function Pointers — a function definition also creates a type), ADR-055 (Symbol Resolution Architecture), ADR-063 (Identifier Syntax — makes the qualified name injective)
+**Related ADRs:** ADR-016 (Scopes — this ADR amends its name-resolution decision), ADR-017 (Enums), ADR-029 (Function Pointers — a function definition also creates a type), ADR-063 (Identifier Syntax — makes the qualified name injective)
 **Related Issues:** #1130, #1210, #1244, #1285
 **Amends:** ADR-016 — which required explicit `this.` and `global.` and stated that implicit resolution does not exist. That requirement is withdrawn by this ADR.
 
@@ -198,19 +198,22 @@ reason and a filed follow-up.
 rule throughout — so while a cell's context could only come from an
 `.expected.error` position, all twelve rows were unoccupiable and stood at `warn`
 recording an obligation nothing could meet. #1241 (2026-08-29) is that
-resolution: occupancy now also derives from where the rule fired, recorded at the
-decision (`TypeValidator.ts`, `TypeGenerationHelper.ts`, `FunctionCallAnalyzer.ts`,
-`AdrProvenance.record("057", ...)`).
+resolution: occupancy now also derives from where the rule fired, recorded at each
+of this ADR's four decision points.
 
 Nine cells are occupied and are now `error`. The three `global variable` rows stay
 `warn`, and **a fixture alone cannot green them** — worth stating, because that is
-the obvious next move and it does not work. `FixtureContext.at()` reaches
-`global-variable` only at a file-scope declaration (`inScope == false &&
-inFunction == false && inVariable == true`), and all four ADR-057 recording sites
-are gated on being inside a scope or on a local: `TypeValidator.ts:441`
-(`isLocalVariable`), `TypeValidator.ts:458` and `FunctionCallAnalyzer.ts:800`
-(`currentScope`), `TypeGenerationHelper.ts:228` (returns unchanged with no scope).
+the obvious next move and it does not work. The `global-variable`
+context is derived only at a file-scope declaration, and all four of this ADR's
+recording sites are gated on being inside a scope or on a local — one on the
+variable being local, two on there being a current scope, and one that returns
+unchanged when there is no scope at all. None can fire where the cell is derived.
 With no diagnostic either, there is no `.expected.error` route.
+
+The cells are therefore `warn` because the feature **cannot reach them**, not
+because a fixture is missing — which is exactly the distinction `off` versus `warn`
+is for, and the reason a fixture written against them would pass while proving
+nothing.
 
 So these three want a **fifth recording site** for file-scope resolution, not more
 fixtures. Tracked as #1407. `off` would be the wrong claim: a bare name resolving

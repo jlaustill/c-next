@@ -91,7 +91,7 @@ the conclusion to expressions, where it does not hold.
 
 This is exactly what **MISRA C:2012 Rule 10.8** prohibits: _"The value of a
 composite expression shall not be cast to a different essential type category or
-a wider essential type."_ ADR-012 already claims C-Next addresses Rule 10.8;
+a wider essential type."_ C-Next already claims to address Rule 10.8;
 `docs/misra-compliance.md` lists it as **Not Enforced**, and #846 reports 37
 violations in generated output. So the original decision is in conflict with a
 rule the project has already committed to, not merely with a preference.
@@ -298,7 +298,7 @@ Casts are primarily removed from the language. Bit indexing (ADR-007) handles na
 // Narrowing uses existing bit indexing: expr '[' start ',' width ']'
 ```
 
-### CodeGenerator
+### Conversion Handling
 
 1. Detect widening conversions → generate implicit C conversion
 2. Detect narrowing conversions → emit compiler error with suggestion

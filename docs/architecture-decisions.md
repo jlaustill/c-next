@@ -20,8 +20,6 @@ v2 (so "Research (v2 Roadmap)" holds `1xx` ADRs).
 | [ADR-006](decisions/adr-006-simplified-references.md)      | Simplified References      | Pass by reference, no pointer syntax                         |
 | [ADR-007](decisions/adr-007-type-aware-bit-indexing.md)    | Type-Aware Bit Indexing    | Integers as bit arrays, `.length` property                   |
 | [ADR-010](decisions/adr-010-c-interoperability.md)         | C Interoperability         | Unified ANTLR parser architecture                            |
-| [ADR-011](decisions/adr-011-vscode-extension.md)           | VS Code Extension          | Live C preview with syntax highlighting                      |
-| [ADR-012](decisions/adr-012-static-analysis.md)            | Static Analysis            | cppcheck integration for generated C                         |
 | [ADR-013](decisions/adr-013-const-qualifier.md)            | Const Qualifier            | Compile-time const enforcement                               |
 | [ADR-014](decisions/adr-014-structs.md)                    | Structs                    | Data containers without methods                              |
 | [ADR-015](decisions/adr-015-null-state.md)                 | Null State                 | Zero initialization for all variables                        |
@@ -43,13 +41,11 @@ v2 (so "Research (v2 Roadmap)" holds `1xx` ADRs).
 | [ADR-036](decisions/adr-036-multidimensional-arrays.md)    | Multi-dim Arrays           | `arr[i][j]` with compile-time bounds enforcement             |
 | [ADR-040](decisions/adr-040-isr-declaration.md)            | ISR Type                   | Built-in `ISR` type for `void(void)` function pointers       |
 | [ADR-034](decisions/adr-034-bit-fields.md)                 | Bitmap Types               | `bitmap8`/`bitmap16`/`bitmap32` for portable bit-packed data |
-| [ADR-048](decisions/adr-048-cli-executable.md)             | CLI Executable             | `cnext` command with smart defaults                          |
 | [ADR-049](decisions/adr-049-atomic-types.md)               | Atomic Types               | `atomic` keyword with LDREX/STREX or PRIMASK fallback        |
 | [ADR-050](decisions/adr-050-critical-sections.md)          | Critical Sections          | `critical { }` blocks with PRIMASK save/restore              |
 | [ADR-064](decisions/adr-064-volatile-keyword.md)           | Volatile Variables         | `volatile` keyword prevents compiler optimization            |
 | [ADR-046](decisions/adr-046-nullable-c-interop.md)         | Nullable C Interop         | `c_` prefix for nullable C pointer types                     |
 | [ADR-057](decisions/adr-057-implicit-scope-resolution.md)  | Implicit Scope Resolution  | Bare identifiers resolve local -> scope -> global            |
-| [ADR-055](decisions/adr-055-symbol-parser-architecture.md) | Symbol Parser Architecture | Unified symbol resolution with composable collectors         |
 | [ADR-058](decisions/adr-058-explicit-length-properties.md) | Explicit Length Properties | `.bit_length`/`.byte_length`/`.element_count`/`.char_count`  |
 | [ADR-067](decisions/adr-067-all-paths-return.md)           | All-Paths-Return           | Reject non-void functions that can fall off the end (E0704)  |
 
@@ -64,10 +60,9 @@ v2 (so "Research (v2 Roadmap)" holds `1xx` ADRs).
 
 ## WIP (Implementation In Progress)
 
-| ADR                                                         | Title                       | Description                                                                                                                                   |
-| ----------------------------------------------------------- | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| [ADR-068](decisions/adr-068-forever-loops.md)               | Forever Loops               | `forever { }` divergent infinite loop (void-only); core landed (#1074), completes with ADR-069                                                |
-| [ADR-065](decisions/adr-065-codegenerator-decomposition.md) | CodeGenerator Decomposition | Classifier + handler + utils pattern landed (PR #447); `_generatePostfixExpr`, `trackVariableType`, `generateMemberAccess` not yet decomposed |
+| ADR                                           | Title         | Description                                                                                    |
+| --------------------------------------------- | ------------- | ---------------------------------------------------------------------------------------------- |
+| [ADR-068](decisions/adr-068-forever-loops.md) | Forever Loops | `forever { }` divergent infinite loop (void-only); core landed (#1074), completes with ADR-069 |
 
 ## Superseded
 
@@ -77,15 +72,14 @@ v2 (so "Research (v2 Roadmap)" holds `1xx` ADRs).
 
 ## Research (v1 Roadmap)
 
-| ADR                                                         | Title                         | Description                                      |
-| ----------------------------------------------------------- | ----------------------------- | ------------------------------------------------ |
-| [ADR-008](decisions/adr-008-language-bug-prevention.md)     | Language-Level Bug Prevention | Top 15 embedded bugs and prevention              |
-| [ADR-009](decisions/adr-009-isr-safety.md)                  | ISR Safety                    | Safe interrupts without `unsafe` blocks          |
-| [ADR-054](decisions/adr-054-array-index-overflow.md)        | Array Index Overflow          | Overflow semantics for array index expressions   |
-| [ADR-056](decisions/adr-056-cast-overflow-behavior.md)      | Cast Overflow Behavior        | Consistent overflow semantics for type casts     |
-| [ADR-060](decisions/adr-060-vscode-extension-separation.md) | VS Code Extension Separation  | Separate repository for VS Code extension        |
-| [ADR-066](decisions/adr-066-do178c-compliance.md)           | DO-178C Compliance            | Safety-critical software certification framework |
-| [ADR-069](decisions/adr-069-dead-code-reachability.md)      | Dead-Code / Reachability      | Reject unreachable code (MISRA 2.1/2.2, DO-178C) |
+| ADR                                                     | Title                         | Description                                      |
+| ------------------------------------------------------- | ----------------------------- | ------------------------------------------------ |
+| [ADR-008](decisions/adr-008-language-bug-prevention.md) | Language-Level Bug Prevention | Top 15 embedded bugs and prevention              |
+| [ADR-009](decisions/adr-009-isr-safety.md)              | ISR Safety                    | Safe interrupts without `unsafe` blocks          |
+| [ADR-054](decisions/adr-054-array-index-overflow.md)    | Array Index Overflow          | Overflow semantics for array index expressions   |
+| [ADR-056](decisions/adr-056-cast-overflow-behavior.md)  | Cast Overflow Behavior        | Consistent overflow semantics for type casts     |
+| [ADR-066](decisions/adr-066-do178c-compliance.md)       | DO-178C Compliance            | Safety-critical software certification framework |
+| [ADR-069](decisions/adr-069-dead-code-reachability.md)  | Dead-Code / Reachability      | Reject unreachable code (MISRA 2.1/2.2, DO-178C) |
 
 ## Research (v2 Roadmap)
 
