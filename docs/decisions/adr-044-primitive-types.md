@@ -622,6 +622,23 @@ const TYPE_WIDTH: Record<string, number> = {
 
 ## References
 
+### Implementing Modules
+
+- `src/utils/OverflowBehaviorUtils.ts:26` — `fromModifier`, the one decoder for
+  "absent means clamp". Reads the CLAMP/WRAP tokens rather than comparing text
+- `src/transpiler/logic/symbols/cnext/collectors/VariableCollector.ts:185` —
+  authors the behavior onto the symbol, beside `isConst`/`isAtomic`/`isVolatile`
+- `src/transpiler/types/symbols/IVariableSymbol.ts:43` — `overflowBehavior`, the
+  field that carries the declared fact across a file boundary (#1303)
+- `src/transpiler/state/CodeGenState.ts:1031` —
+  `convertTSymbolToTypeInfo`, repopulates the behavior for an imported symbol
+- `src/transpiler/output/codegen/TypeResolver.ts:292` —
+  `getCompositeOverflowBehavior`, "safety wins a mix": one clamping operand
+  makes the whole expression saturate
+- `src/transpiler/output/codegen/TypeResolver.ts:348` —
+  `scopeMemberOperandTypeInfo`, resolves `Counter.value` / `this.value` to the
+  same registry key a bare identifier uses, so a scope member is not exempt
+
 ### Type Systems
 
 - [C99 stdint.h specification](https://en.cppreference.com/w/c/types/integer)

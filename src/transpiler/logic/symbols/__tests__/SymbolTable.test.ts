@@ -46,6 +46,7 @@ describe("SymbolTable", () => {
         isConst: false,
         isAtomic: false,
         isVolatile: false,
+        overflowBehavior: "clamp",
       };
 
       symbolTable.addTSymbol(symbol);
@@ -77,6 +78,7 @@ describe("SymbolTable", () => {
         isConst: false,
         isAtomic: false,
         isVolatile: false,
+        overflowBehavior: "clamp",
       });
 
       symbolTable.addTSymbol({
@@ -94,6 +96,7 @@ describe("SymbolTable", () => {
         isConst: false,
         isAtomic: false,
         isVolatile: false,
+        overflowBehavior: "clamp",
       });
 
       const retrieved = symbolTable.getTSymbol("duplicate");
@@ -119,6 +122,7 @@ describe("SymbolTable", () => {
           isConst: false,
           isAtomic: false,
           isVolatile: false,
+          overflowBehavior: "clamp",
         },
         {
           ...TestSymbolUtils.base({
@@ -135,6 +139,7 @@ describe("SymbolTable", () => {
           isConst: false,
           isAtomic: false,
           isVolatile: false,
+          overflowBehavior: "clamp",
         },
       ];
 
@@ -220,6 +225,7 @@ describe("SymbolTable", () => {
         isConst: false,
         isAtomic: false,
         isVolatile: false,
+        overflowBehavior: "clamp",
       });
 
       symbolTable.addCSymbol({
@@ -429,6 +435,7 @@ describe("SymbolTable", () => {
           isConst: false,
           isAtomic: false,
           isVolatile: false,
+          overflowBehavior: "clamp",
         });
       }
 
@@ -458,6 +465,7 @@ describe("SymbolTable", () => {
         isConst: false,
         isAtomic: false,
         isVolatile: false,
+        overflowBehavior: "clamp",
       });
 
       // Add 'enabled' variable in scope Bar
@@ -476,6 +484,7 @@ describe("SymbolTable", () => {
         isConst: false,
         isAtomic: false,
         isVolatile: false,
+        overflowBehavior: "clamp",
       });
 
       // These are NOT conflicts - they generate Foo_enabled and Bar_enabled
@@ -547,6 +556,7 @@ describe("SymbolTable", () => {
         isConst: false,
         isAtomic: false,
         isVolatile: false,
+        overflowBehavior: "clamp",
       });
 
       symbolTable.addTSymbol({
@@ -564,6 +574,7 @@ describe("SymbolTable", () => {
         isConst: false,
         isAtomic: false,
         isVolatile: false,
+        overflowBehavior: "clamp",
       });
 
       // Same name in SAME scope IS a conflict
@@ -605,6 +616,7 @@ describe("SymbolTable", () => {
           isConst: false,
           isAtomic: false,
           isVolatile: false,
+          overflowBehavior: "clamp",
         });
       }
 
@@ -636,6 +648,7 @@ describe("SymbolTable", () => {
           isConst: false,
           isAtomic: false,
           isVolatile: false,
+          overflowBehavior: "clamp",
         });
       }
 
@@ -667,6 +680,7 @@ describe("SymbolTable", () => {
         isConst: false,
         isAtomic: false,
         isVolatile: false,
+        overflowBehavior: "clamp",
       });
 
       symbolTable.addTSymbol({
@@ -684,6 +698,7 @@ describe("SymbolTable", () => {
         isConst: false,
         isAtomic: false,
         isVolatile: false,
+        overflowBehavior: "clamp",
       });
 
       // Two globals with same name IS a conflict
@@ -807,6 +822,7 @@ describe("SymbolTable", () => {
         isConst: false,
         isAtomic: false,
         isVolatile: false,
+        overflowBehavior: "clamp",
       });
 
       const structs = symbolTable.getStructSymbols();
@@ -1214,6 +1230,7 @@ describe("SymbolTable", () => {
         isConst: false,
         isAtomic: false,
         isVolatile: false,
+        overflowBehavior: "clamp",
       });
 
       symbolTable.addStructField("Point", "x", "int");
@@ -1269,6 +1286,7 @@ describe("SymbolTable", () => {
         isConst: false,
         isAtomic: false,
         isVolatile: false,
+        overflowBehavior: "clamp",
       };
     }
 
@@ -1453,6 +1471,7 @@ describe("SymbolTable", () => {
         isConst: false,
         isAtomic: false,
         isVolatile: false,
+        overflowBehavior: "clamp",
       } as IVariableSymbol);
 
       expect(table.detectMISRA51Conflicts(targetCaps)).toHaveLength(1);

@@ -1,0 +1,72 @@
+// test-execution
+// Issue #1303: ADR-044's overflow behavior was dropped at a file boundary.
+//
+// `clamp` is the DEFAULT (adr-044-primitive-types.md:346, "(none) | Default to
+// clamp"), so the two halves of this fixture are the SAME statement on the SAME
+// type -- one against a local declaration, one against an imported one. Before
+// the fix they disagreed: the local saturated to 255 and the imported wrapped
+// to 4, with no diagnostic and exit 0.
+//
+// This is an execution test, not a snapshot, deliberately. A snapshot would pin
+// whatever codegen currently emits, and the defect IS what codegen emits -- so
+// a snapshot would have recorded the wrapping form as correct.
+//
+// The `wrap` cases are negative controls. They guard the opposite failure: a
+// fix that applied clamp to every imported symbol regardless of its declared
+// behavior would satisfy every assertion above them and still be wrong. Note
+// they do NOT demonstrate the bug -- the pre-fix path emitted plain arithmetic
+// unconditionally, which is what `wrap` wants, so they passed before the fix
+// too, for the wrong reason.
+
+#include "declarations.cnx"
+
+i32 main() {
+    u8 localDefaulted <- 250;
+    clamp u8 localExplicitClamp <- 250;
+    wrap u8 localExplicitWrap <- 250;
+
+    // --- Controls: the local path was always correct. ---
+    localDefaulted <- localDefaulted + 10;
+    if (localDefaulted != 255) {
+        return 1;
+    }
+
+    localExplicitClamp <- localExplicitClamp + 10;
+    if (localExplicitClamp != 255) {
+        return 2;
+    }
+
+    // --- The defect: identical statements against imported declarations. ---
+    defaultedCounter <- defaultedCounter + 10;
+    if (defaultedCounter != 255) {
+        return 3;
+    }
+
+    explicitClampCounter <- explicitClampCounter + 10;
+    if (explicitClampCounter != 255) {
+        return 4;
+    }
+
+    Counter.value <- Counter.value + 10;
+    if (Counter.value != 255) {
+        return 5;
+    }
+
+    // --- Negative controls: `wrap` must keep wrapping in every position. ---
+    localExplicitWrap <- localExplicitWrap + 10;
+    if (localExplicitWrap != 4) {
+        return 6;
+    }
+
+    explicitWrapCounter <- explicitWrapCounter + 10;
+    if (explicitWrapCounter != 4) {
+        return 7;
+    }
+
+    Counter.wrappingValue <- Counter.wrappingValue + 10;
+    if (Counter.wrappingValue != 4) {
+        return 8;
+    }
+
+    return 0;
+}

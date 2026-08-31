@@ -21,6 +21,16 @@ static inline uint16_t cnx_clamp_add_u16(uint16_t a, uint32_t b) {
     return (uint16_t)(a + (uint16_t)b);
 }
 
+static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
+    if (b > (uint32_t)(UINT8_MAX - a)) return UINT8_MAX;
+    return (uint8_t)(a + (uint8_t)b);
+}
+
+static inline uint8_t cnx_clamp_mul_u8(uint8_t a, uint32_t b) {
+    if (b != 0 && a > UINT8_MAX / b) return UINT8_MAX;
+    return (uint8_t)(a * (uint8_t)b);
+}
+
 // test-execution
 // Tests: Scope-level const values should be inlined, not created as local variables
 // Issue #282: Const declarations were incorrectly being generated as mutable locals
@@ -71,8 +81,8 @@ uint32_t ConstTest__getHexAddr(void) {
 
 uint16_t ConstTest__multipleRefs(void) {
     uint16_t a = 255;
-    uint16_t b = 255 + 1U;
-    uint16_t c = 255 * 2U;
+    uint16_t b = cnx_clamp_add_u8(255, 1U);
+    uint16_t c = cnx_clamp_mul_u8(255, 2U);
     return cnx_clamp_add_u16(cnx_clamp_add_u16(a, b), c);
 }
 
@@ -100,6 +110,6 @@ int main(void) {
     uint32_t hexAddr = ConstTest__getHexAddr();
     if (hexAddr != 1073745920) return 12;
     uint16_t multiResult = ConstTest__multipleRefs();
-    if (multiResult != 1021) return 13;
+    if (multiResult != 765) return 13;
     return 0;
 }

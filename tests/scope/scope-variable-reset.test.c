@@ -31,7 +31,7 @@ static uint32_t Calculator__operationCount = 0U;
 uint32_t Calculator__addAndCount(uint32_t value) {
     uint32_t accumulator = 0U;
     accumulator = cnx_clamp_add_u32(accumulator, value);
-    Calculator__operationCount = Calculator__operationCount + 1U;
+    Calculator__operationCount = cnx_clamp_add_u32(Calculator__operationCount, 1U);
     return accumulator;
 }
 

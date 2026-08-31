@@ -738,6 +738,11 @@ describe("TypeResolver", () => {
           expression: () => null,
           castExpression: () => null,
         }),
+        // #1303: a real PostfixExpressionContext always answers postfixOp().
+        // An unresolvable primary now consults the scope-member branch, which
+        // needs the chain; with no ops there is no member to name, so the answer
+        // stays null and this test keeps asserting exactly what it always did.
+        postfixOp: () => [],
         children: [{ getText: () => "unknownVar" }],
       } as unknown as Parameters<
         typeof TypeResolver.getPostfixExpressionType

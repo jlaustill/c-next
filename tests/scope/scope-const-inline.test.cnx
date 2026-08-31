@@ -67,11 +67,18 @@ scope ConstTest {
 
     // Edge case: multiple references to same const in one function
     // Each reference should be inlined independently
+    //
+    // Issue #1303: these used to read 255 + 256 + 510 = 1021, which was only
+    // reachable because ADR-044's clamp was dropped for scope members. MAX_VALUE
+    // is a `const u8`, so the arithmetic happens at u8 and SATURATES at 255 --
+    // exactly what the global-const equivalent already emitted on main before
+    // this fixture's path was fixed. The widened `u16` target does not promote
+    // the operands; ADR-044 clamps in the operand type.
     public u16 multipleRefs() {
         u16 a <- this.MAX_VALUE;
-        u16 b <- this.MAX_VALUE + 1;
-        u16 c <- this.MAX_VALUE * 2;
-        return a + b + c; // 255 + 256 + 510 = 1021
+        u16 b <- this.MAX_VALUE + 1; // clamp u8: 255 + 1 -> 255
+        u16 c <- this.MAX_VALUE * 2; // clamp u8: 255 * 2 -> 255
+        return a + b + c; // 255 + 255 + 255 = 765
     }
 }
 
@@ -118,7 +125,7 @@ u32 main() {
 
     // Test multiple references to same const in one function
     u16 multiResult <- ConstTest.multipleRefs();
-    if (multiResult != 1021) return 13;
+    if (multiResult != 765) return 13;
 
     return 0;
 }

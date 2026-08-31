@@ -1,0 +1,21 @@
+// Helper (not a test): the declarations the cross-file overflow fixtures
+// resolve against.
+//
+// Issue #1303 - ADR-044 makes `clamp` the DEFAULT overflow behavior, but no
+// symbol type carried `overflowBehavior`. The fact was authored where the
+// declaration was read and had nowhere to live, so it survived only as long as
+// codegen was still looking at the declaring file. Cross a file boundary and
+// the declared behavior was gone: codegen emitted plain C arithmetic.
+//
+// Each declaration below is 250, five short of UINT8_MAX, so a `+ 10` either
+// saturates to 255 (clamp) or wraps to 4 (wrap). The two are never equal, so
+// the consuming fixture can tell them apart at runtime.
+
+u8 defaultedCounter <- 250;
+clamp u8 explicitClampCounter <- 250;
+wrap u8 explicitWrapCounter <- 250;
+
+scope Counter {
+    public u8 value <- 250;
+    public wrap u8 wrappingValue <- 250;
+}

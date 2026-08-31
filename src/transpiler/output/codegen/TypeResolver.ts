@@ -15,6 +15,8 @@ import ExpressionUnwrapper from "../../../utils/ExpressionUnwrapper";
 import type TOverflowBehavior from "../../types/TOverflowBehavior";
 import type TTypeInfo from "../../types/TTypeInfo";
 import QualifiedNameGenerator from "./utils/QualifiedNameGenerator";
+import QualifiedCName from "../../../utils/QualifiedCName";
+import ScopeUtils from "../../../utils/ScopeUtils";
 
 /**
  * Internal type info tracked through postfix suffix chains.
@@ -309,10 +311,60 @@ class TypeResolver {
   private static operandTypeInfo(
     postfix: Parser.PostfixExpressionContext,
   ): TTypeInfo | undefined {
-    if (postfix.postfixOp().length > 0) return undefined;
-    const name = postfix.primaryExpression()?.getText();
-    if (!name) return undefined;
-    return CodeGenState.getVariableTypeInfo(name);
+    const primary = postfix.primaryExpression();
+    if (!primary) return undefined;
+
+    const ops = postfix.postfixOp();
+    if (ops.length === 0) {
+      const name = primary.getText();
+      return name ? CodeGenState.getVariableTypeInfo(name) : undefined;
+    }
+
+    return TypeResolver.scopeMemberOperandTypeInfo(primary, ops);
+  }
+
+  /**
+   * The declared type info for a SCOPE MEMBER operand (`Counter.value`,
+   * `this.value`).
+   *
+   * Issue #1303: this used to return undefined for anything with a postfix op,
+   * so ADR-044's overflow behavior was dropped for every scope member -- with
+   * no file boundary involved. `Local.value <- Local.value + 10` emitted plain
+   * C arithmetic in the very file that declared `Local`, while an identical
+   * statement on a plain global saturated correctly.
+   *
+   * A scope member is a plain global under a qualified C name, so the answer is
+   * the SAME lookup the bare-identifier branch makes -- only the key differs.
+   * Deriving the key here rather than giving member operands their own notion of
+   * overflow behavior is what keeps this one decision: fix the fact on the
+   * symbol (as #1303 does for the cross-file half) and both branches inherit it.
+   *
+   * Returns undefined for anything that is not a pure member chain -- a
+   * subscript or a call has no declared behavior of its own to consult -- and
+   * for a struct field, whose `p__x` key is absent from the registry. ADR-063
+   * forbids `__` inside an identifier, so that key can never collide with a real
+   * bare name.
+   */
+  private static scopeMemberOperandTypeInfo(
+    primary: Parser.PrimaryExpressionContext,
+    ops: Parser.PostfixOpContext[],
+  ): TTypeInfo | undefined {
+    const members: string[] = [];
+    for (const op of ops) {
+      const identifier = op.IDENTIFIER();
+      if (identifier === null || op.LBRACKET() !== null) return undefined;
+      members.push(identifier.getText());
+    }
+
+    // `this.value` names the CURRENT scope, which the syntax does not spell
+    // out; `Counter.value` spells its own path. Both go through the one
+    // encoder rather than joining with "__" by hand.
+    const key =
+      primary.THIS() === null
+        ? QualifiedCName.fromParts([primary.getText(), ...members])
+        : ScopeUtils.qualifyPathInScope(members, CodeGenState.currentScope);
+
+    return CodeGenState.getVariableTypeInfo(key);
   }
 
   private static resolveCompositeIntegerType(
@@ -485,7 +537,23 @@ class TypeResolver {
     if (!primary) return null;
 
     let current = TypeResolver.getPrimaryExpressionTypeInfo(primary);
-    if (!current) return null;
+    if (!current) {
+      // #1303: a scope member named through its scope (`Counter.value`) has no
+      // type at the primary -- `Counter` is a scope, not a variable, so the
+      // lookup above returns null and the whole operand used to type as
+      // nothing. That silently cost the operand BOTH its width and its ADR-044
+      // overflow behavior, which is why `Counter__value + 10` was emitted
+      // unclamped and without the `U` suffix every other operand carries.
+      //
+      // `this.value` reached the registry through the sentinel branch in
+      // processMemberSuffix and so was unaffected -- the two spellings of one
+      // member disagreed purely on which of them the resolver could name.
+      const ops = ctx.postfixOp();
+      if (ops.length === 0) return null;
+
+      const memberInfo = TypeResolver.scopeMemberOperandTypeInfo(primary, ops);
+      return memberInfo ? memberInfo.baseType : null;
+    }
 
     const suffixes = ctx.children?.slice(1) || [];
     for (const suffix of suffixes) {
