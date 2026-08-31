@@ -29,7 +29,6 @@ const ADR_INDEPENDENCE_BASELINE: readonly string[] = [
   // References. The decision stays; the passage is restated in terms of
   // observable behavior.
   "adr-013-const-qualifier.md",
-  "adr-016-scope.md",
   "adr-063-identifier-syntax.md",
   "adr-069-dead-code-reachability.md",
   "adr-070-return-value-use.md",
