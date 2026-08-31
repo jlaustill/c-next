@@ -1,0 +1,7 @@
+// Negative control for issue-1312, layer 2. Re-exports deep-enum.cnx to the
+// file that includes this one.
+#include <deep-enum.cnx>
+
+u32 midLayerFn() {
+    return 2;
+}

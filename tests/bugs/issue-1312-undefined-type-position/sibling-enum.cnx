@@ -1,0 +1,6 @@
+// Helper for issue-1312. Declares the type that the sibling consumer
+// references without including this file.
+enum Mode {
+    MODE_A <- 1,
+    MODE_B <- 2
+}

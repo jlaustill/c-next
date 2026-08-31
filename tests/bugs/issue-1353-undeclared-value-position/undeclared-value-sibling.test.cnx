@@ -1,0 +1,9 @@
+// test-error
+// Issue #1353, cross-file: value-consumer.cnx reads a const declared in
+// value-source.cnx without including it.
+#include <value-source.cnx>
+#include <value-consumer.cnx>
+
+u32 main() {
+    return 0;
+}
