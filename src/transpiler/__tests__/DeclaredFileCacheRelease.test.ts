@@ -84,7 +84,7 @@ describe("#1301: declared-file cache is released at end of run", () => {
     // the cache is empty regardless of the fix. E0800 is an analyzer diagnostic
     // raised in stage 5, by which point every file is cached. Mutation-checked --
     // removing the `finally` reddens this.
-    const entry = join(tempDir, "divzero.cnx");
+    const entry = join(tempDir, "division-by-zero.cnx");
     writeFileSync(
       entry,
       `u32 total <- 0;\n\nvoid main() {\n    total <- 10 / 0;\n}\n`,
