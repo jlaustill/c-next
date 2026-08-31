@@ -598,8 +598,7 @@ cell's context could only come from a diagnostic's position, and ADR-016's
 conflict diagnostic reported `1:0` rather than the offending declaration, so
 nothing could be derived from it and the ratchet had no path forward. #1241
 (2026-08-29) removed that constraint — occupancy now also derives from where the
-rule fired, recorded at the decision itself (`ScopeGenerator.ts`,
-`AdrProvenance.record("016", ...)`), which reaches every cell here at once.
+rule fired, recorded at the decision itself, which reaches every cell here at once.
 
 **#1334 is fixed (`de137c9f`, 2026-08-29) and is no longer the blocker this ADR
 recorded it as.** The conflict diagnostic now reports a real position — but that

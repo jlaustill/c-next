@@ -170,12 +170,13 @@ update step: an `--update` inside it could not fail on a mismatch. `npm run test
 regenerates every snapshot, `tests/bugs/` included (#1142); `npm run test:bugs:update` narrows
 it to the regression fixtures.
 
-**`test:all` is four checks of twenty-three — run `npm run test:gate` before pushing.**
-`test:all` is `build && unit && test:q && validate:c`. CI runs nineteen more with no local
+**`test:all` is four checks of twenty-four — run `npm run test:gate` before pushing.**
+`test:all` is `build && unit && test:q && validate:c`. CI runs twenty more with no local
 alias: the whole **`Static Analysis`** job (`prettier:check`, `plugin:test`, `cspell:check`,
 `oxlint:check`, `knip`, `depcruise`, `lint:test-location`, `analyze:duplication`,
 `docs:toolchain:check`, `coverage:matrix:check`, `diagnostics:manifest:check`,
-`docs:throw-citations:check`, `scope-joins:check`), plus `typecheck`, `test:cli`,
+`docs:throw-citations:check`, `scope-joins:check`, `adr:independence:check`), plus
+`typecheck`, `test:cli`,
 `coverage:grammar:check`, `format:fidelity`, and the working-tree check that `Verify Clean`
 performs. `scripts/gate.sh` runs all of them, reports each against the CI job that owns it,
 and does **not** stop at the first failure. A green `test:all` says nothing about any of
