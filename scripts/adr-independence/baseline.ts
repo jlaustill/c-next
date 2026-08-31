@@ -33,7 +33,6 @@ const ADR_INDEPENDENCE_BASELINE: readonly string[] = [
   "adr-013-const-qualifier.md",
   "adr-016-scope.md",
   "adr-022-conditional-expressions.md",
-  "adr-027-do-while.md",
   "adr-030-forward-declarations.md",
   "adr-032-nested-structs.md",
   "adr-035-array-initializers.md",
