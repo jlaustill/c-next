@@ -155,6 +155,17 @@ export default class CodeGenState {
   /** Track C-Next defined functions */
   static knownFunctions: Set<string> = new Set();
 
+  /**
+   * #1399 review: whether the file being analyzed can see a C/C++ header,
+   * directly or through any `.cnx` it includes. Set by `Transpiler` from the
+   * resolver's categorization before `runAnalyzers`.
+   *
+   * Defaults to `true` so an unset value declines rather than diagnoses: a
+   * false positive stops valid code compiling, a false negative is the status
+   * quo.
+   */
+  static currentFileReachesForeignHeader = true;
+
   /** ADR-013: Track function parameter const-ness for call-site validation */
   static functionSignatures: Map<string, IFunctionSignature> = new Map();
 
@@ -471,6 +482,10 @@ export default class CodeGenState {
 
     // Symbol data
     this.symbols = null;
+    // Back to the declining default: reset() runs at the start of
+    // CodeGenerator.generate(), and a stale `false` here would let the next
+    // file diagnose names a header it cannot see supplies.
+    this.currentFileReachesForeignHeader = true;
     // Note: symbolTable is NOT reset here — it persists across per-file generates.
     // It is cleared via symbolTable.clear() at the start of each Transpiler run.
 

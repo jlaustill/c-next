@@ -57,7 +57,7 @@ function renderCell(
   // The `occupied` arm is unreachable today: FixtureOccupancy only ever writes
   // keys built from MatrixCell.relationshipForDepth, which returns one of the
   // three derivable relationships, so no provider-side cell can carry an
-  // occupant until #1241 lands. Kept because it is the correct behavior then,
+  // occupant until #1402 lands. Kept because it is the correct behavior then,
   // not because anything currently exercises it.
   if (!MatrixCell.isDerivable(relationship)) return occupied ? "ok" : "n/a";
   if (occupied) return "ok";

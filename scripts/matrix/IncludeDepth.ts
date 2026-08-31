@@ -83,7 +83,7 @@ function directIncludes(
  * reaching one file) still measures the longer path instead of whichever
  * branch happened to be walked first.
  *
- * KNOWN LIMITATION (#1241). This measures the deepest chain reachable from the
+ * KNOWN LIMITATION (#1402). This measures the deepest chain reachable from the
  * fixture, NOT the hop distance to the declaration the diagnostic is about. The
  * two matrix axes are therefore derived at different levels of granularity: the context
  * axis resolves an exact diagnostic position through the parse tree, while this
@@ -95,8 +95,12 @@ function directIncludes(
  * cannot gain an include without silently moving cells**, and the gate will
  * report the fixture's own cells as missing tests.
  *
- * Fixing this properly needs to know which file a construct came from, which is
- * what extending the #1143 provenance recorder provides -- tracked as #1241.
+ * Fixing this properly needs to know which file a construct came from.
+ * `IRecordedAdrSite.sourcePath` has a slot for it (#1241), but the matrix cannot
+ * use it yet: `AdrProvenanceLines` transpiles with `kind: "source"`, so only the
+ * fixture is processed and every recorded site carries the fixture's own path --
+ * measured across every tagged fixture, zero foreign paths. The chain has to be
+ * transpiled before the field discriminates anything. Tracked as #1402.
  */
 function maxDepth(
   file: string,

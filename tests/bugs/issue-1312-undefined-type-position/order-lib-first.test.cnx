@@ -1,0 +1,13 @@
+// test-error
+// #1399 review: E0426 read CodeGenState.callbackTypes, which codegen fills
+// AFTER the analyzers run — so it held the PREVIOUS file's function names.
+// With the declaring file processed first, the stale set leaked `tickSource`
+// and this compiled at exit 0 to `tickSource borrowedCallback = {0};`.
+// Paired with order-consumer-first.test.cnx: same sources, opposite order,
+// and the two must agree.
+#include <order-lib.cnx>
+#include <order-consumer.cnx>
+
+u32 main() {
+    return 0;
+}

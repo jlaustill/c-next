@@ -140,7 +140,13 @@ describe("CodeGenerator requireInclude", () => {
       const result = (
         await transpiler.transpile({
           kind: "source",
-          source: "ISR handler <- null;",
+          // #1353: `null` lowercase is not C-Next (the grammar carries only
+          // `NULL`, for ADR-047 C interop). This read `ISR handler <- null;`
+          // and asserted success while emitting `ISR handler = null;`, which
+          // no C compiler accepts -- the test never compiled its output. An
+          // uninitialized ISR is the valid spelling and still exercises the
+          // typedef this test is about.
+          source: "ISR handler;",
         })
       ).files[0];
 

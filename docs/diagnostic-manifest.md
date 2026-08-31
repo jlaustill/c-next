@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-294 fixture(s) assert a diagnostic; 172 carry a code.
+300 fixture(s) assert a diagnostic; 178 carry a code.
 
 | Fixture                                                                                         | Codes        |
 | ----------------------------------------------------------------------------------------------- | ------------ |
@@ -122,9 +122,15 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1220-analyzer-cross-file-symbols/signed-shift-same-file.test.cnx               | E0805        |
 | tests/bugs/issue-1307-external-identifier-significance/colliding-scope-members.test.cnx         | E0204        |
 | tests/bugs/issue-1307-external-identifier-significance/cross-file-collision.test.cnx            | E0204        |
+| tests/bugs/issue-1312-undefined-type-position/cnext-extension.test.cnx                          | E0426        |
+| tests/bugs/issue-1312-undefined-type-position/order-consumer-first.test.cnx                     | E0426        |
+| tests/bugs/issue-1312-undefined-type-position/order-lib-first.test.cnx                          | E0426        |
+| tests/bugs/issue-1312-undefined-type-position/undefined-type-same-file.test.cnx                 | E0426        |
+| tests/bugs/issue-1312-undefined-type-position/undefined-type-sibling.test.cnx                   | E0426        |
 | tests/bugs/issue-1333-scope-reopening/duplicate-member-reopened.test.cnx                        | E0425        |
 | tests/bugs/issue-1334-scope-declaration-sites/conflict-across-files.test.cnx                    | E0425        |
 | tests/bugs/issue-1334-scope-declaration-sites/cross-language-conflict.test.cnx                  | E0425        |
+| tests/bugs/issue-1353-undeclared-value-position/undeclared-value-same-file.test.cnx             | E0427        |
 | tests/bugs/issue-1358-declare-idempotence/differing-signature-rejected.test.cnx                 | E0425        |
 | tests/bugs/issue-1360-read-path-bounds/cross-file-macro-dimension.test.cnx                      | (uncoded)    |
 | tests/bugs/issue-1360-read-path-bounds/read-path-array-param.test.cnx                           | (uncoded)    |

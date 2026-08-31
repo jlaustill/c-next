@@ -1,0 +1,5 @@
+// Helper for the #1399 review regression. ADR-029 makes this function a
+// callback type, which is the fact the order-dependent lookup got wrong.
+u32 tickSource() {
+    return 1;
+}
