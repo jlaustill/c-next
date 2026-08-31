@@ -19,11 +19,14 @@ constModifier: 'const';
 variableDeclaration: constModifier? type IDENTIFIER arrayDimension? ('<-' expression)? ';';
 ```
 
-The code generator extracts and emits `const` to generated C code:
+`const` is carried through to the generated C:
 
-```typescript
-// src/codegen/CodeGenerator.ts line 784, 811
-const constMod = ctx.constModifier() ? "const " : "";
+```cnx
+const u32 CONFIG <- 100;
+```
+
+```c
+const uint32_t CONFIG = 100;
 ```
 
 **However, there is no semantic enforcement.** This code compiles without error:
@@ -178,6 +181,8 @@ func modify(value *int) {
 ### JavaScript/TypeScript: const for Bindings
 
 Modern JavaScript uses `const` for immutable bindings:
+
+<!-- survives-rewrite: prior art -- JavaScript's binding-level const, contrasted with C's -->
 
 ```javascript
 const x = 5;
@@ -380,137 +385,39 @@ This aligns software semantics with hardware reality—you physically cannot wri
 
 ## Implementation
 
-### Phase 1: Track Const in Type System
+### What must be tracked
 
-**Add `isConst` to ParameterInfo** (`src/codegen/CodeGenerator.ts` line 49-53):
+Const-ness is a property of a **declaration**, and the check needs it for both kinds
+that can be assigned to: a variable and a parameter. Tracking one and not the other is
+the failure mode -- a rule that rejects `CONFIG <- 5` on a const global while accepting
+it on a const parameter is worse than no rule, because the accepted case teaches the
+reader the rule covers them.
 
-```typescript
-interface ParameterInfo {
-  name: string;
-  isArray: boolean;
-  isStruct: boolean;
-  isConst: boolean; // NEW
+### What must be rejected
+
+Assignment to a const binding, whichever form the assignment takes and whichever kind
+of target it names:
+
+```cnx
+const u32 CONFIG <- 100;
+
+void configure(const u32 limit, const u8[4] table) {
+    CONFIG <- 5;        // error: assignment to const variable
+    limit <- 5;         // error: assignment to const parameter
+    table[0] <- 1;      // error: assignment through a const array parameter
 }
 ```
 
-**Add `isConst` to TypeInfo** (`src/codegen/CodeGenerator.ts` line 58-63):
+The array case is the one an implementation is most likely to miss: the target is a
+subscript rather than a name, so a check written against identifiers alone passes it.
 
-```typescript
-interface TypeInfo {
-  baseType: string;
-  bitWidth: number;
-  isArray: boolean;
-  arrayLength?: number;
-  isConst: boolean; // NEW
-}
-```
+### Every assignment form, one decision
 
-**Update `setParameters()`** (`src/codegen/CodeGenerator.ts` lines 371-390):
-
-```typescript
-private setParameters(params: Parser.ParameterListContext | null): void {
-    this.context.currentParameters.clear();
-    if (!params) return;
-
-    for (const param of params.parameter()) {
-        const name = param.IDENTIFIER().getText();
-        const isArray = param.arrayDimension() !== null;
-        const isConst = param.constModifier() !== null;  // NEW
-        // ... existing struct detection ...
-
-        this.context.currentParameters.set(name, {
-            name, isArray, isStruct, isConst  // NEW
-        });
-    }
-}
-```
-
-**Update `trackVariableType()`** (`src/codegen/CodeGenerator.ts` lines 307-359):
-
-```typescript
-private trackVariableType(varDecl: Parser.VariableDeclarationContext): void {
-    const name = varDecl.IDENTIFIER().getText();
-    const isConst = varDecl.constModifier() !== null;  // NEW
-    // ... existing type detection ...
-
-    this.context.typeRegistry.set(name, {
-        baseType, bitWidth, isArray, arrayLength, isConst  // NEW
-    });
-}
-```
-
-### Phase 2: Validate Assignments
-
-**Add validation helper**:
-
-```typescript
-/**
- * Check if assigning to an identifier would violate const rules
- * Returns error message if const, null if mutable
- */
-private checkConstAssignment(identifier: string): string | null {
-    // Check if it's a const parameter
-    const paramInfo = this.context.currentParameters.get(identifier);
-    if (paramInfo?.isConst) {
-        return `cannot assign to const parameter '${identifier}'`;
-    }
-
-    // Check if it's a const variable
-    const typeInfo = this.context.typeRegistry.get(identifier);
-    if (typeInfo?.isConst) {
-        return `cannot assign to const variable '${identifier}'`;
-    }
-
-    // Check if it's a read-only register member
-    // (Implementation depends on how register members are tracked)
-
-    return null;  // Mutable, assignment OK
-}
-```
-
-**Update `generateAssignment()`** (`src/codegen/CodeGenerator.ts` lines 883-981):
-
-```typescript
-private generateAssignment(ctx: Parser.AssignmentStatementContext): string {
-    const targetCtx = ctx.assignmentTarget();
-
-    // Validate const before generating
-    if (targetCtx.IDENTIFIER()) {
-        const id = targetCtx.IDENTIFIER()!.getText();
-        const error = this.checkConstAssignment(id);
-        if (error) {
-            throw new Error(error);
-        }
-    }
-
-    // Check array element assignments
-    if (targetCtx.arrayAccess()) {
-        const arrayName = targetCtx.arrayAccess()!.IDENTIFIER().getText();
-        const error = this.checkConstAssignment(arrayName);
-        if (error) {
-            throw new Error(`${error} (array element)`);
-        }
-    }
-
-    // Check member access on const structs
-    if (targetCtx.memberAccess()) {
-        const parts = targetCtx.memberAccess()!.IDENTIFIER();
-        const rootName = parts[0].getText();
-        const error = this.checkConstAssignment(rootName);
-        if (error) {
-            throw new Error(`${error} (member access)`);
-        }
-    }
-
-    // ... existing assignment generation ...
-}
-```
-
-### Phase 3: Compound Assignment Operators
-
-Ensure all assignment forms are checked: `<-`, `+<-`, `-<-`, `*<-`, `/<-`, `%<-`, `&<-`, `|<-`, `^<-`, `<<<-`, `>><-`
-
-The grammar defines these in `compoundAssignment` rule. All should route through the same const validation.
+All of `<-`, `+<-`, `-<-`, `*<-`, `/<-`, `%<-`, `&<-`, `|<-`, `^<-`, `<<<-` and `>><-`
+are assignments and all are rejected against a const target. They must reach that
+answer through **one** decision rather than each form asking separately: eleven
+operators checked in eleven places is eleven chances for one to be forgotten, and the
+forgotten one is silent.
 
 ---
 
@@ -877,16 +784,13 @@ Auto-const is NOT applied to:
 - **ISR parameters** - function pointer type, not data pointer
 - **Explicitly `const` parameters** - already const, redundant
 
-### Implementation Details
+### Ordering Constraint
 
-Files modified:
-
-- `src/codegen/CodeGenerator.ts`: Tracks `modifiedParameters` Set during function body generation
-- `src/codegen/generators/declarationGenerators/FunctionGenerator.ts`: Generates body before parameters
-- `src/codegen/generators/expressions/CallExprGenerator.ts`: Tracks pass-through modifications
-- `src/codegen/HeaderGenerator.ts`: Uses `isAutoConst` for prototype generation
-- `src/pipeline/Pipeline.ts`: Syncs auto-const info to symbols before header generation
-- `src/types/ISymbol.ts`: Added `isAutoConst` field to parameter interface
+Inference has one ordering requirement worth stating, because getting it wrong is
+silent: a parameter's const-ness is not known until its function body has been
+examined, so the body must be analyzed before the signature is emitted. A header
+generated from an un-analyzed signature will disagree with the implementation it
+declares — and both still compile, because C permits a prototype to omit `const`.
 
 ---
 

@@ -28,7 +28,6 @@ const ADR_INDEPENDENCE_BASELINE: readonly string[] = [
   // Tier 2 -- language ADRs naming transpiler internals in the body or in
   // References. The decision stays; the passage is restated in terms of
   // observable behavior.
-  "adr-013-const-qualifier.md",
 
   // Tier 3 -- TypeScript sketching an algorithm the ADR decides. Replaced by
   // the C-Next or generated C that shows the same thing.
