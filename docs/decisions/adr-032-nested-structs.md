@@ -167,7 +167,7 @@ packet.header.sequence <- 1;
 
 Already supported - struct members can have user types.
 
-### CodeGenerator
+### Generated C
 
 ```c
 typedef struct { int32_t x; int32_t y; } Point;
