@@ -359,23 +359,30 @@ DMA.ERR.Chan0Err <- 0x1F;         // ERROR: literal exceeds 4 bits
 
 This follows C-Next's philosophy of explicit bit extraction (`value[start, width]`) rather than C's implicit truncating casts.
 
-#### Implementation
+#### Generated C
 
-In the register assignment codegen, check the access modifier and generate direct writes instead of RMW:
+A `w1c` / `wo` / `w1s` bit assignment emits a **direct write**, never the
+read-modify-write an `rw` field gets:
 
-```typescript
-// For w1c/wo/w1s bit-field assignments:
-if (RegisterUtils.isWriteOnlyRegister(accessMod)) {
-  if (value === false) {
-    throw new CodeGenerationError(
-      `writing 'false' to ${accessMod} register bit has no effect`,
-    );
-  }
-  // Generate direct write: REG = (1 << bit)
-  return `${regName} = (1 << ${bitPosition});`;
-}
-// For rw registers, use existing RMW codegen
+```cnx
+STATUS.OVERFLOW <- true;    // STATUS declared w1c
+CTRL.ENABLE <- true;        // CTRL declared rw
 ```
+
+```c
+STATUS = (1 << 3);
+CTRL = (CTRL & ~(1 << 0)) | (1 << 0);
+```
+
+The distinction is not an optimization. Reading a `w1c` register to modify it
+clears every bit that happens to be set, so the RMW form silently acknowledges
+interrupts the program never handled -- which is the class of defect this ADR
+exists to remove.
+
+Assigning `false` to a `w1c` / `wo` / `w1s` bit is a **compile error**. In those
+registers a zero write is defined to have no effect, so the statement cannot do
+what it appears to do, and rejecting it is better than emitting a write the
+hardware ignores.
 
 ---
 
@@ -392,6 +399,8 @@ Every Cortex-M microcontroller ships with an SVD (System View Description) file 
 ### Research: SVD Format
 
 SVD is an XML format standardized by ARM (CMSIS-SVD). Example:
+
+<!-- survives-rewrite: CMSIS-SVD, an ARM-standard part description read identically by any implementation -->
 
 ```xml
 <peripheral>
@@ -417,17 +426,23 @@ SVD is an XML format standardized by ARM (CMSIS-SVD). Example:
 
 ### Specification: svd2cnext Tool
 
-#### Usage
+#### Contract
 
-```bash
-# Generate C-Next register definitions from SVD
-npx svd2cnext MIMXRT1062.svd --output src/hal/imxrt1062/
+The importer takes one SVD file and an output directory, and writes C-Next register
+definitions. It selects which peripherals to emit -- an SVD for a full part
+describes hundreds, and a project uses a handful:
 
-# Options
---peripheral GPIO1,GPIO2,UART  # Only specific peripherals
---exclude USB,ENET             # Exclude peripherals
---split                        # One file per peripheral
-```
+| Input                     | Effect                                       |
+| ------------------------- | -------------------------------------------- |
+| an SVD file               | the source of record for the part            |
+| an output directory       | where the generated definitions are written  |
+| a peripheral include list | emit only those peripherals                  |
+| a peripheral exclude list | emit everything except those                 |
+| a split flag              | one file per peripheral rather than one file |
+
+Generation is offline and its output is committed: the definitions are read by
+every later build, so a part's register map must not depend on a tool being
+present at build time.
 
 #### Output Structure
 
@@ -459,6 +474,8 @@ src/hal/imxrt1062/
 The tool generates bitmap types for any register with `<field>` definitions. Field names are preserved from SVD:
 
 Input SVD:
+
+<!-- survives-rewrite: CMSIS-SVD, an ARM-standard part description read identically by any implementation -->
 
 ```xml
 <register>
@@ -510,6 +527,8 @@ The tool applies naming conventions:
 #### Example Output
 
 Input SVD:
+
+<!-- survives-rewrite: CMSIS-SVD, an ARM-standard part description read identically by any implementation -->
 
 ```xml
 <peripheral>
