@@ -814,7 +814,24 @@ export default class CodeGenState {
     name: string,
   ): IVariableSymbol | undefined {
     const symbol = this.symbolTable.getTSymbol(name);
-    return symbol?.kind === "variable" && symbol.type ? symbol : undefined;
+    if (symbol?.kind === "variable" && symbol.type) {
+      return symbol;
+    }
+
+    // #1303 / #1139: `tSymbols` is keyed by the BARE name, so a caller holding
+    // a transpiled C name (`Counter__value` -- which every scope-member call
+    // site does hold) misses every scoped symbol, and the miss reads as "no
+    // such variable" rather than "wrong question". The by-C-name index answers
+    // the identity question instead.
+    //
+    // Gated on the name actually being qualified so a bare name still resolves
+    // exactly as before: this adds an answer where there was none, and changes
+    // none that existed.
+    if (!QualifiedCName.isQualified(name)) {
+      return undefined;
+    }
+    const byCName = this.symbolTable.getTOverloadsByCName(name)[0];
+    return byCName?.kind === "variable" && byCName.type ? byCName : undefined;
   }
 
   /**
@@ -1024,6 +1041,9 @@ export default class CodeGenState {
       }),
       isConst: symbol.isConst || false,
       isAtomic: symbol.isAtomic || false,
+      // #1303: the declared ADR-044 behavior, carried on the symbol so an
+      // imported `u8` arrives saturating rather than silently wrapping.
+      overflowBehavior: symbol.overflowBehavior,
       isEnum,
       enumTypeName: isEnum ? baseType : undefined,
       isString,

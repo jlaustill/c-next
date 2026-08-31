@@ -23,8 +23,13 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
     return (uint8_t)(a + (uint8_t)b);
 }
 
+static inline uint8_t cnx_clamp_mul_u8(uint8_t a, uint32_t b) {
+    if (b != 0 && a > UINT8_MAX / b) return UINT8_MAX;
+    return (uint8_t)(a * (uint8_t)b);
+}
+
 int main(void) {
-    uint8_t doubled = COUNT * 2U;
+    uint8_t doubled = cnx_clamp_mul_u8(COUNT, 2U);
     if (doubled != 8) return 1;
     if (COUNT != 4) return 2;
     uint8_t sum = 0U;

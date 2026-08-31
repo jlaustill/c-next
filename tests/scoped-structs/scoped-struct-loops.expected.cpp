@@ -40,7 +40,7 @@ void Sensor__addReading(uint16_t val, uint8_t ch) {
     if (Sensor__count < 4) {
         Sensor__buffer[Sensor__count].value = val;
         Sensor__buffer[Sensor__count].channel = ch;
-        Sensor__count = Sensor__count + 1U;
+        Sensor__count = cnx_clamp_add_u8(Sensor__count, 1U);
     }
 }
 

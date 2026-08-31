@@ -29,6 +29,15 @@ cell is declared by the ADR that owns it.
 
 - `bugs/issue-1334-scope-declaration-sites/conflict-across-files.test.cnx`
 
+## ADR-044
+
+| Context            | same file | direct | transitive | from 1 away | thru chain |
+| ------------------ | --------- | ------ | ---------- | ----------- | ---------- |
+| global variable    | warn      | warn   | warn       | n/a         | n/a        |
+| top-level function | ok        | ok     | warn       | n/a         | n/a        |
+| scope member       | warn      | warn   | warn       | n/a         | n/a        |
+| scope method       | ok        | warn   | warn       | n/a         | n/a        |
+
 ## ADR-051
 
 | Context            | same file | direct | transitive | from 1 away | thru chain |

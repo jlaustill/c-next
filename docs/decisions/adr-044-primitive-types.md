@@ -620,6 +620,48 @@ const TYPE_WIDTH: Record<string, number> = {
 
 ---
 
+## Scope-Context Matrix
+
+<!-- MATRIX-SEVERITY -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | warn     |
+| top-level function | same file           | error    |
+| scope member       | same file           | warn     |
+| scope method       | same file           | error    |
+| global variable    | imported direct     | warn     |
+| top-level function | imported direct     | error    |
+| scope member       | imported direct     | warn     |
+| scope method       | imported direct     | warn     |
+| global variable    | imported transitive | warn     |
+| top-level function | imported transitive | warn     |
+| scope member       | imported transitive | warn     |
+| scope method       | imported transitive | warn     |
+
+Until #1303 this ADR declared no matrix at all, which per
+[`README.md`](README.md) reads as a claim that clamp and wrap cannot occur
+anywhere — and the defect #1303 fixed was precisely a cell nothing was watching:
+the declared behavior was dropped the moment a symbol crossed a file boundary.
+
+**No cell is `off`.** All four contexts are reachable: the lowering fires in a
+file-scope initializer (`u8 sum <- base + 10` emits `cnx_clamp_add_u8`) as
+readily as in a function body, so `global variable` is uncovered rather than
+impossible. Declaring `off` anywhere here would be the quiet-report claim this
+project treats as dishonest.
+
+Three cells are occupied and `error`. The other nine are **untested**, not
+unreachable, and #1410 tracks closing them. Two things are worth recording for
+whoever picks that up:
+
+- Occupancy needs the rule to _fire_, not merely to be declared. A fixture full
+  of `clamp u8` declarations with no arithmetic occupies nothing, which is why
+  `primitives/clamp-declaration.test.cnx` is deliberately not tagged.
+- The two forms reach different decisions and both record: `a <- a + b` through
+  `tryClampOperands`, `a +<- b` through the compound handler. A fixture written
+  in one form does not cover the other, and the axes cannot see the difference —
+  they derive the same cell.
+
 ## References
 
 ### Type Systems

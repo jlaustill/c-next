@@ -29,6 +29,31 @@ describe("VariableCollector", () => {
       expect(symbol.isExported).toBe(true);
     });
 
+    it("authors ADR-044 overflow behavior on the symbol (#1303)", () => {
+      // #1303: this fact used to be read ONLY in codegen's per-file type
+      // registry, so it existed for the declaring file and nowhere else. An
+      // imported `u8` reached codegen with nothing to say whether it saturated
+      // or wrapped, and plain C arithmetic was emitted -- turning ADR-044's safe
+      // default into two's-complement wrap across a file boundary.
+      const cases: ReadonlyArray<[string, string, string]> = [
+        ["u8 plain;", "plain", "clamp"],
+        ["clamp u8 explicitClamp;", "explicitClamp", "clamp"],
+        ["wrap u8 explicitWrap;", "explicitWrap", "wrap"],
+      ];
+
+      for (const [code, name, expected] of cases) {
+        const varCtx = parse(code).declaration(0)!.variableDeclaration()!;
+        const symbol = VariableCollector.collect(
+          varCtx,
+          "test.cnx",
+          TestScopeUtils.getGlobalScope(),
+        );
+
+        expect(symbol.name).toBe(name);
+        expect(symbol.overflowBehavior).toBe(expected);
+      }
+    });
+
     it("collects variables with various primitive types", () => {
       const code = `
         i64 timestamp;

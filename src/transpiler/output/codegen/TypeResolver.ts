@@ -15,6 +15,8 @@ import ExpressionUnwrapper from "../../../utils/ExpressionUnwrapper";
 import type TOverflowBehavior from "../../types/TOverflowBehavior";
 import type TTypeInfo from "../../types/TTypeInfo";
 import QualifiedNameGenerator from "./utils/QualifiedNameGenerator";
+import QualifiedCName from "../../../utils/QualifiedCName";
+import ScopeUtils from "../../../utils/ScopeUtils";
 
 /**
  * Internal type info tracked through postfix suffix chains.
@@ -309,10 +311,92 @@ class TypeResolver {
   private static operandTypeInfo(
     postfix: Parser.PostfixExpressionContext,
   ): TTypeInfo | undefined {
-    if (postfix.postfixOp().length > 0) return undefined;
-    const name = postfix.primaryExpression()?.getText();
-    if (!name) return undefined;
-    return CodeGenState.getVariableTypeInfo(name);
+    const primary = postfix.primaryExpression();
+    if (!primary) return undefined;
+
+    const ops = postfix.postfixOp();
+    if (ops.length === 0) {
+      const name = primary.getText();
+      return name ? CodeGenState.getVariableTypeInfo(name) : undefined;
+    }
+
+    return TypeResolver.scopeMemberOperandTypeInfo(primary, ops);
+  }
+
+  /**
+   * The declared type info for a SCOPE MEMBER operand (`Counter.value`,
+   * `this.value`).
+   *
+   * Issue #1303: this used to return undefined for anything with a postfix op,
+   * so ADR-044's overflow behavior was dropped for every scope member -- with
+   * no file boundary involved. `Local.value <- Local.value + 10` emitted plain
+   * C arithmetic in the very file that declared `Local`, while an identical
+   * statement on a plain global saturated correctly.
+   *
+   * A scope member is a plain global under a qualified C name, so the answer is
+   * the SAME lookup the bare-identifier branch makes -- only the key differs.
+   * Deriving the key here rather than giving member operands their own notion of
+   * overflow behavior is what keeps this one decision: fix the fact on the
+   * symbol (as #1303 does for the cross-file half) and both branches inherit it.
+   *
+   * Returns undefined for anything that is not a pure member chain -- a
+   * subscript or a call has no declared behavior of its own to consult.
+   *
+   * Also undefined for a struct field, but for a different reason worth keeping
+   * separate: `p.x` IS a declared integer and DOES have an ADR-044 behavior, it
+   * simply has no `p__x` entry here, because a struct field is a field of a
+   * value rather than a global under a qualified name. So it currently wraps --
+   * tracked as #1411, and not fixable by extending the key. ADR-063 forbids
+   * `__` inside an identifier, so the key this builds can never collide with a
+   * real bare name.
+   */
+  private static scopeMemberOperandTypeInfo(
+    primary: Parser.PrimaryExpressionContext,
+    ops: Parser.PostfixOpContext[],
+  ): TTypeInfo | undefined {
+    const members: string[] = [];
+    for (const op of ops) {
+      const identifier = op.IDENTIFIER();
+      if (identifier === null || op.LBRACKET() !== null) return undefined;
+      members.push(identifier.getText());
+    }
+
+    // `this.value` names the CURRENT scope, which the syntax does not spell
+    // out; `Counter.value` spells its own path. Both go through the one
+    // encoder rather than joining with "__" by hand.
+    return CodeGenState.getVariableTypeInfo(
+      TypeResolver.memberChainKey(primary, members),
+    );
+  }
+
+  /**
+   * The registry key for a member chain, for each of the three spellings
+   * ADR-016 gives one scope member.
+   *
+   * `this.value` names the CURRENT scope, which the syntax does not spell out.
+   * `global.Counter.value` names the path from global scope, so the qualifier
+   * contributes no component of its own. `Counter.value` spells its whole path.
+   * All three reach the same C lvalue and must reach the same key -- #1303
+   * originally answered only two of them, which left `global.` wrapping while
+   * the other two saturated, in one function.
+   *
+   * Every branch goes through the one encoder rather than joining with `__` by
+   * hand, per the rule that a qualified name has a single producer.
+   */
+  private static memberChainKey(
+    primary: Parser.PrimaryExpressionContext,
+    members: readonly string[],
+  ): string {
+    if (primary.THIS() !== null) {
+      return ScopeUtils.qualifyPathInScope(
+        [...members],
+        CodeGenState.currentScope,
+      );
+    }
+    if (primary.GLOBAL() !== null) {
+      return QualifiedCName.fromParts(members);
+    }
+    return QualifiedCName.fromParts([primary.getText(), ...members]);
   }
 
   private static resolveCompositeIntegerType(
@@ -485,7 +569,42 @@ class TypeResolver {
     if (!primary) return null;
 
     let current = TypeResolver.getPrimaryExpressionTypeInfo(primary);
-    if (!current) return null;
+    if (!current) {
+      // #1303: a scope member named through its scope (`Counter.value`) has no
+      // type at the primary -- `Counter` is a scope, not a variable, so the
+      // lookup above returns null and the whole operand used to type as
+      // nothing. That silently cost the operand BOTH its width and its ADR-044
+      // overflow behavior, which is why `Counter__value + 10` was emitted
+      // unclamped and without the `U` suffix every other operand carries.
+      //
+      // `this.value` reached the registry through the sentinel branch in
+      // processMemberSuffix and so was unaffected -- the two spellings of one
+      // member disagreed purely on which of them the resolver could name.
+      const ops = ctx.postfixOp();
+      if (ops.length === 0) return null;
+
+      const memberInfo = TypeResolver.scopeMemberOperandTypeInfo(primary, ops);
+      return memberInfo ? memberInfo.baseType : null;
+    }
+
+    // #1303: `global.Scope.member`. The sentinel walk below resolves `global.X`
+    // as a single variable NAME, so a scope-qualified member under `global.`
+    // stopped at the scope and typed as nothing -- leaving the third spelling
+    // wrapping while `this.value` and `Counter.value` saturated.
+    //
+    // Tried first, and only when it answers: `global.plainVar` resolves here
+    // too (a one-part path is its own key), while `global.someStruct.field`
+    // does not and falls through to the struct handling below, unchanged.
+    if (current.baseType === TypeResolver.GLOBAL_SENTINEL) {
+      const globalOps = ctx.postfixOp();
+      if (globalOps.length > 0) {
+        const memberInfo = TypeResolver.scopeMemberOperandTypeInfo(
+          primary,
+          globalOps,
+        );
+        if (memberInfo) return memberInfo.baseType;
+      }
+    }
 
     const suffixes = ctx.children?.slice(1) || [];
     for (const suffix of suffixes) {

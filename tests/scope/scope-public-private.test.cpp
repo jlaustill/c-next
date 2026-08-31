@@ -8,6 +8,19 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
+    if (b > (uint32_t)(UINT8_MAX - a)) return UINT8_MAX;
+    return (uint8_t)(a + (uint8_t)b);
+}
+
 // test-execution
 // Test: ADR-016 public and private visibility modifiers on scope members and methods
 // Verifies public members are accessible from outside scope and private are only internal
@@ -23,7 +36,7 @@ static uint8_t Visibility__getPrivateCounterInternal(void) {
 }
 
 static void Visibility__incrementPrivateCounter(void) {
-    Visibility__privateCounter = Visibility__privateCounter + 1U;
+    Visibility__privateCounter = cnx_clamp_add_u8(Visibility__privateCounter, 1U);
 }
 
 static bool Visibility__checkPrivateFlag(void) {
@@ -51,7 +64,7 @@ void Visibility__incrementPrivate(void) {
 }
 
 uint8_t Visibility__getSum(void) {
-    return Visibility__privateCounter + Visibility__publicCounter;
+    return cnx_clamp_add_u8(Visibility__privateCounter, Visibility__publicCounter);
 }
 
 bool Visibility__getBothFlags(void) {

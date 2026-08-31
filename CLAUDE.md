@@ -671,7 +671,7 @@ and [`docs/WORKFLOW.md`](docs/WORKFLOW.md) for how work moves on the project boa
 A task is NOT complete until:
 
 - [ ] `README.md` updated (if feature-visible)
-- [ ] ADR updated: decision, diagnostics, matrix; implementing modules cited as `file:line` in `## References` — **implementation detail does not go in an ADR**
+- [ ] ADR updated: decision, diagnostics, matrix — **implementation detail does not go in an ADR**. No `file:line` citations, no module lists: they are wrong the moment the next merge shifts a line, and an ADR is the decision record, not a map of the code that currently implements it
 - [ ] `docs/learn-cnext-in-y-minutes.md` updated (if syntax changed)
 - [ ] Memory bank updated
 

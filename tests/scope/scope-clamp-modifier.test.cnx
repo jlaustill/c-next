@@ -2,6 +2,7 @@
 // Test: ADR-016 + ADR-044 Clamp overflow modifier inside scopes
 // Verifies that clamp modifier works correctly with integer types inside scope methods
 // Tests: clamp variables accessed via this. accessor with compound assignment operators
+// test-adr: 044
 
 scope ClampTest {
     // Clamp scope variables - unsigned integers

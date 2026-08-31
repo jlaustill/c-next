@@ -40,6 +40,7 @@ describe("HeaderSymbolAdapter", () => {
         isConst: false,
         isAtomic: false,
         isVolatile: false,
+        overflowBehavior: "clamp",
         isArray: false,
       };
 
@@ -67,6 +68,7 @@ describe("HeaderSymbolAdapter", () => {
         isConst: false,
         isAtomic: true,
         isVolatile: false,
+        overflowBehavior: "clamp",
         isArray: false,
       };
 
@@ -93,6 +95,7 @@ describe("HeaderSymbolAdapter", () => {
         isConst: false,
         isAtomic: false,
         isVolatile: false,
+        overflowBehavior: "clamp",
         isArray: true,
         arrayDimensions: [256, 4],
       };
@@ -118,6 +121,7 @@ describe("HeaderSymbolAdapter", () => {
         isConst: true,
         isAtomic: false,
         isVolatile: false,
+        overflowBehavior: "clamp",
         isArray: false,
       };
 
@@ -243,6 +247,7 @@ describe("HeaderSymbolAdapter", () => {
               isConst: false,
               isAtomic: false,
               isVolatile: false,
+              overflowBehavior: "clamp",
               isArray: false,
             },
           ],
@@ -472,6 +477,7 @@ describe("HeaderSymbolAdapter", () => {
           isConst: false,
           isAtomic: false,
           isVolatile: false,
+          overflowBehavior: "clamp" as const,
           isArray: false,
         },
         {
@@ -519,6 +525,7 @@ describe("HeaderSymbolAdapter", () => {
         isConst: false,
         isAtomic: false,
         isVolatile: false,
+        overflowBehavior: "clamp",
         isArray: true,
         arrayDimensions: ["DEVICE_COUNT"],
       };
@@ -543,6 +550,7 @@ describe("HeaderSymbolAdapter", () => {
         isConst: true,
         isAtomic: false,
         isVolatile: false,
+        overflowBehavior: "clamp",
         isArray: true,
         arrayDimensions: ["EColor.COUNT"],
       };
@@ -574,6 +582,7 @@ describe("HeaderSymbolAdapter", () => {
         isConst: false,
         isAtomic: false,
         isVolatile: false,
+        overflowBehavior: "clamp",
         isArray: true,
         arrayDimensions: [dim],
       });
