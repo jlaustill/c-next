@@ -31,6 +31,14 @@ import TMatrixContext from "../types/TMatrixContext";
  * safe direction: the cost is an under-reported cell, whereas trusting the
  * placeholder invents occupancy for a cell nothing exercises. Once #1235 lands
  * the position is unambiguous and this exclusion should go.
+ *
+ * KNOWN GAP (#1408): the path prefix is discarded, so a position naming ANOTHER
+ * file is still resolved against this fixture's parse tree. Harmless today --
+ * the one fixture that reports a foreign path (#1334's cross-file conflict,
+ * which reports at the FIRST definition) lands on a comment and yields no
+ * context -- but there is no guard, and every diagnostic that gains a real
+ * cross-file position turns a skipped 1:0 into a real number aimed at the wrong
+ * tree.
  */
 function diagnosticLines(expectedErrorPath: string): number[] {
   if (!existsSync(expectedErrorPath)) return [];

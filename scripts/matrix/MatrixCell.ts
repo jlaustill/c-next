@@ -30,10 +30,11 @@ const RELATIONSHIPS: readonly TMatrixRelationship[] = [
  *
  * The consumer-side three come from the resolved include graph. The
  * provider-side two need to know which FILE a construct was emitted from.
- * `IRecordedAdrSite.sourcePath` now carries exactly that (#1241), but nothing
- * consumes it here yet, so they stay not-derivable rather than being silently
- * counted as empty -- an undetectable cell and an uncovered cell are different
- * claims and must not render the same. Wiring it up is #1402.
+ * `IRecordedAdrSite` has a `sourcePath` slot (#1241), but it does not yet
+ * discriminate: provenance is gathered by transpiling the fixture alone, so
+ * every site carries the fixture's own path. They therefore stay not-derivable
+ * rather than being silently counted as empty -- an undetectable cell and an
+ * uncovered cell are different claims and must not render the same. #1402.
  */
 const DERIVABLE_RELATIONSHIPS: readonly TMatrixRelationship[] = [
   "same-file",

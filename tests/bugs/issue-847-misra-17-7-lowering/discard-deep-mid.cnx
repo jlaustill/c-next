@@ -2,7 +2,7 @@
 // which is what the matrix calls "imported transitive".
 //
 // Deliberately a separate chain from discard-helper.cnx: giving that file an
-// include would silently move the cells its existing consumers occupy (#1241).
+// include would silently move the cells its existing consumers occupy (#1402).
 #include "discard-deep-inner.cnx"
 
 scope Mid {

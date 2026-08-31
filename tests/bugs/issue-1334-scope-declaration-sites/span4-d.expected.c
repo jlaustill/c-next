@@ -24,11 +24,12 @@
 // and used bare in blocks 3 and 4, so resolution has to cross two and three include
 // hops, where the existing cross-file-span fixture only reaches depth 1.
 //
-// It does NOT occupy ADR-016's `imported transitive` matrix cells, and reading it as
-// a claim to would overstate the corpus. Occupancy is derived from a diagnostic's
-// position; this fixture has no `.expected.error`, so no context is derivable and
-// docs/scope-context-matrix.md lists it under the linked fixtures with none. That is
-// the limit CLAUDE.md records as #1241.
+// It DOES occupy ADR-016's `scope-method / imported-transitive` cell. It did not
+// when this file was written: occupancy came only from a diagnostic's position and
+// this fixture has no `.expected.error`, so it was listed under "linked fixtures
+// with no derivable context". #1241 (2026-08-29) made occupancy also derive from
+// where the rule fired, and `ScopeGenerator`'s ADR-016 recording site places this
+// fixture's members directly.
 #include "span4-c.h"
 
 #include <stdint.h>

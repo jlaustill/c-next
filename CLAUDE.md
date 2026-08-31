@@ -432,12 +432,15 @@ foo.expected.error    # Expected error (if test-error)
   **union** ADR provenance. What it costs is one line at the decision itself
   (`AdrProvenance.record("NNN", line)`); an ADR with no recording site still occupies
   nothing, and only ADR-016 and ADR-057 have one today. Do not read `warn` on an existing
-  matrix as "cannot be covered" — ADR-016 and ADR-057 declare `warn` on cells that render
-  `ok`. What remains is tracked as **#1402**: the relationship axis still measures the
+  matrix as "cannot be covered" — a `warn` declaration is an obligation, not a verdict on
+  reachability; `docs/scope-context-matrix.md` is what says whether a cell is occupied.
+  What remains is tracked as **#1402**: the relationship axis still measures the
   deepest include chain reachable from the fixture rather than the hops to the declaration
   under test, so **a helper feeding a matrix fixture cannot gain an include without silently
-  moving cells**; and the two provider-side relationships stay not-derivable. Both want the
-  same wiring — consuming `IRecordedAdrSite.sourcePath`, which is already recorded
+  moving cells**; and the two provider-side relationships stay not-derivable. Both need the
+  provenance run to cover the include chain first: `IRecordedAdrSite.sourcePath` has a slot
+  for the file, but provenance transpiles the fixture alone, so every site carries the
+  fixture's own path and the field discriminates nothing yet
 - **Presence is not proof**: a cell showing `ok` means a fixture reaches it, not that the
   fixture would **fail** if the feature broke. #1222 is exactly that — regression fixtures
   that cannot fail if the fix is reverted. Mutation-check anything you add: break the thing

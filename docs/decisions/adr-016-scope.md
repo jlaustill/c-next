@@ -594,17 +594,21 @@ why #1333 survived: no obligation existed for "a scope member, in an imported
 file", so nothing could report that the cell was empty.
 
 **All six cells are occupied and are declared `error`.** They were `warn` while a
-cell's context could only come from a diagnostic's position: ADR-016's conflict
-diagnostic is reported at `1:0` rather than at the offending declaration, so
-nothing could be derived from it, and the ratchet had no path forward. #1241
+cell's context could only come from a diagnostic's position, and ADR-016's
+conflict diagnostic reported `1:0` rather than the offending declaration, so
+nothing could be derived from it and the ratchet had no path forward. #1241
 (2026-08-29) removed that constraint — occupancy now also derives from where the
 rule fired, recorded at the decision itself (`ScopeGenerator.ts`,
 `AdrProvenance.record("016", ...)`), which reaches every cell here at once.
 
-**#1334 is still real but is no longer the blocker for this matrix.** The
-conflict diagnostic's `1:0` position still yields no context, which is why
-`conflict-across-files.test.cnx` links to this ADR and lands in "no derivable
-context". That costs a fixture its cell, not the matrix its obligation.
+**#1334 is fixed (`de137c9f`, 2026-08-29) and is no longer the blocker this ADR
+recorded it as.** The conflict diagnostic now reports a real position — but that
+position belongs to the file holding the FIRST definition
+(`conflict-lib-a.cnx:3:0`), while the matrix resolves a diagnostic line against
+the FIXTURE's parse tree, where line 3 is a comment. So
+`conflict-across-files.test.cnx` still links to this ADR and lands in "no
+derivable context". That costs a fixture its cell, not the matrix its
+obligation.
 
 <!-- MATRIX-SEVERITY -->
 
