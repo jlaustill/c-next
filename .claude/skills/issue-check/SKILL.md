@@ -9,7 +9,7 @@ tools: Bash, Read, Grep, Glob, WebFetch, Task, AskUserQuestion
 
 Analyze the c-next repo's open GitHub issues, automatically detect what's already in-flight, and recommend the best issue to tackle next using a heuristic tuned to **this project's actual labels and workflow**. For bug issues, transition into the c-next TDD workflow; for features, into the ADR-first research workflow.
 
-> **Project-specialized skill.** The scoring rubric (Phase 3) and begin-work workflow (Phase 6) are tailored to c-next's labels, ADR process, and `.test.cnx` TDD conventions from `CLAUDE.md`.
+> **Project-specialized skill.** The scoring rubric (Phase 3) is tailored to c-next's labels, board fields and milestone-as-sprint convention. Phase 6 hands off to the `start-issue` skill, which owns the begin-work procedure and the ADR / `.test.cnx` TDD conventions from `CLAUDE.md`.
 >
 > This file previously claimed to override a personal `issue-check` of the same name. It did not: on a name collision the personal skill won, and everything below — the board query, the sprint filter, the c-next label taxonomy — never ran (#1415). Do not reintroduce a personal skill named `issue-check`; there is no override, only a shadow.
 
@@ -346,114 +346,24 @@ ASK the user:
 
 ---
 
-### Phase 6: Begin Work (after user confirms) — c-next workflow
+### Phase 6: Begin Work (after user confirms) — hand off to `start-issue`
 
-Once the user selects an issue, follow c-next's `CLAUDE.md` conventions.
+**Invoke the `start-issue` skill with the chosen issue number.** It owns the whole
+begin-work procedure: assign the issue, block until the board reaches `WIP`, derive
+blocked-ness, run the dedup gate, deep-read the issue, create the branch, and route
+into the TDD or ADR-first workflow.
 
-#### 6a: Dedup Gate (REQUIRED FIRST)
-
-```bash
-# Confirm the issue isn't already done before doing any work
-git log --oneline --grep="<issue_number>"
-```
-
-```
-IF commits reference this issue:
-  WARN the user it may already be done; show the commits and confirm before continuing.
-```
-
-#### 6b: Deep Read the Issue
-
-```bash
-# gh issue view may fail in this repo — use the API directly
-gh api repos/jlaustill/c-next/issues/<issue_number> \
-  --jq '{title, body, labels: [.labels[].name], milestone: .milestone.title, created_at, state}'
-
-gh api repos/jlaustill/c-next/issues/<issue_number>/comments \
-  --jq '.[] | {author: .user.login, created: .created_at, body}'
-```
-
-#### 6c: Create the Branch
+These steps used to live here in full. They moved so that the two ways of starting work
+— picking an issue through this skill, and naming one directly ("start on #1234") —
+run the same procedure instead of two copies that must be edited together (#1423).
 
 ```
-NEVER work on main. Create a feature branch first:
-  bug / validation-bug         → fix/<number>-short-description
-  enhancement / feature        → feature/<number>-short-description
-  documentation / ADR          → docs/<number>-short-description
-  test-coverage                → test/<number>-short-description
+INVOKE: start-issue, with <issue_number>
 ```
 
-#### 6d: Route by Issue Type
-
-```
-CLASSIFY the issue:
-  BUG → Phase 6e (TDD workflow)
-  ENHANCEMENT/FEATURE/OTHER → Phase 6f (ADR-first planning workflow)
-
-Classification rules:
-  - Has "bug", "validation-bug", or "MISRA Violations" label → BUG
-  - Title starts with "Fix", "Bug:", "Broken" → BUG
-  - Body contains "expected behavior" / "actual behavior" / "steps to reproduce" → BUG
-  - Otherwise → ENHANCEMENT/FEATURE/OTHER
-```
-
-#### 6e: Bug → c-next TDD Workflow
-
-```
-FOR bugs, follow Test-Driven Development with c-next test conventions:
-
-  1. ANALYZE the bug:
-     - What is the expected behavior? What is the actual behavior?
-     - What layer is affected? (data / logic / output / state — see CLAUDE.md architecture)
-
-  2. WRITE A FAILING TEST FIRST as a .test.cnx with the correct marker:
-     - Compile-error bug      → // test-error  + a .expected.error file
-     - Wrong runtime behavior → // test-execution (validate every result, unique return codes)
-     - Wrong generated code   → .expected.c / .expected.cpp / .expected.h snapshot
-     - Place reproduction under tests/ (or tests/bugs/issue-<name>/ for regression cases)
-     - Run it (npm test -- <path>) and confirm it FAILS with a useful message
-
-  3. PRESENT THE PLAN:
-     "Here's the failing test that proves the bug. Here's my plan to fix it: ..."
-
-  4. WAIT for user approval before implementing the fix.
-
-  5. After approval, implement the fix UPSTREAM (never work around c-next bugs) and verify:
-     - The previously failing test now passes
-     - npm run test:all is green (or npm run unit + npm test)
-     - Commit generated .test.c / .test.h files — they are part of the suite
-```
-
-#### 6f: Enhancement/Feature → ADR-First Planning Workflow
-
-```
-FOR non-bug issues, research first (CLAUDE.md "Workflow: Research First"):
-
-  1. ANALYZE the requirement and find the relevant ADR(s) in docs/decisions/.
-     Only reference Accepted/Implemented ADRs as working syntax.
-
-  2. EXPLORE the codebase for relevant files, patterns, and integration points.
-     Respect layer constraints (logic/ cannot import from output/).
-
-  3. UPDATE the ADR with research findings, links, and context as you go.
-     NEVER change an ADR's Status or Decision without explicit user approval.
-
-  4. PRESENT THE PLAN:
-     "Scope / files to modify / approach / testing strategy / ADR impact"
-
-  5. WAIT for user approval before implementing.
-```
-
-#### 6g: Update GitHub Issue & PR
-
-```
-THROUGHOUT the work:
-
-  WHEN starting:    gh issue comment <number> --body "Starting work. Approach: <brief plan>"
-  ON progress:      gh issue comment <number> --body "Progress: <done / next>"
-  WHEN opening PR:  reference the issue ("Fixes #<number>" / "Closes #<number>")
-                    All changes go through a PR. Merge with a merge commit — NEVER squash.
-```
+**Do not restate those steps here, and do not re-implement any of them.** In particular
+the assignment is not optional and not this skill's to perform: assigning is what moves
+the card to `WIP`, and duplicating it here would give the transition two owners.
 
 ---
 
@@ -520,11 +430,6 @@ IF no open issues exist:
 
 - **DO NOT** recommend issues that are clearly in-flight (have open PRs, are assigned, or have recent branch activity)
 - **DO NOT** start implementing without user confirmation of which issue to work on
-- **DO NOT** skip the dedup gate (`git log --grep`) — issues are sometimes already resolved
-- **DO NOT** skip the failing-test step for bugs — the test proves the bug exists
-- **DO NOT** work around a c-next bug downstream — fix it upstream in the transpiler
-- **DO NOT** change C-Next syntax/behavior or an ADR's Status without explicit ADR approval
-- **DO NOT** forget to update the GitHub issue as work progresses
 - **DO NOT** pick issues labeled "test-blocked", "wontfix", or "epic"
 - **DO NOT** recommend an issue that IS_BLOCKED (its `Blocked by` names something
   still open), or one sitting in `Grooming`
@@ -536,4 +441,7 @@ IF no open issues exist:
 - **DO NOT** widen past the active milestone without `--all` — the milestone is the sprint
 - **DO NOT** assume issue type from title alone — check labels and body content
 - **DO NOT** propose massive refactors as "quick fixes" — scope work to the issue
-- **DO NOT** squash-merge — always use a merge commit
+- **DO NOT** restate or re-implement `start-issue`'s begin-work phases here — the dedup
+  gate, the assignment, the branch rules and the TDD/ADR routing live there, and a copy
+  in this file is two procedures to keep in step (#1423)
+

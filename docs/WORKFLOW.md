@@ -83,6 +83,16 @@ This replaced the old `status: blocked` label.
 There is deliberately no row for a reopened issue. See
 [Closed is closed](#closed-is-closed).
 
+**Assigning yourself is the only thing that fills `WIP`,** and for the life of the board
+nothing did it: until #1423 there were zero assigned open issues and zero cards in that
+column — work ran `Grooming`/`Backlog` → `Done` while the automation above sat correct
+and unfired. Starting work therefore goes through the `start-issue` skill, which assigns
+the issue and then blocks until it has re-read the board and seen `WIP`. A
+`UserPromptSubmit` hook reminds anyone who types "start on #1234" without it.
+
+Nothing else may write the `Status` field. `project-sync.yml` owns that transition, and
+a second writer would both duplicate it and hide it failing.
+
 Automation never drags a card backwards. `project-sync.yml` writes a status only
 when the current one is unset or is the status it expects to advance from, so a
 card you have moved by hand survives a ready-for-review.

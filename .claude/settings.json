@@ -1,5 +1,19 @@
 {
   "enabledPlugins": {
     "claude-md-management@claude-plugins-official": true
+  },
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/start-issue-assign-reminder.sh\"",
+            "timeout": 10,
+            "statusMessage": "Checking for a start-work issue reference"
+          }
+        ]
+      }
+    ]
   }
 }
