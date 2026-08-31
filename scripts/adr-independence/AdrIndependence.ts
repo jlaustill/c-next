@@ -216,23 +216,17 @@ class AdrIndependence {
   }
 
   /**
-   * Scans every ADR and sorts the result against the baseline.
+   * Scans every ADR under `docs/decisions/`.
    *
-   * A baseline entry that is now clean is a FAILURE, not a courtesy. The
-   * baseline's only job is to shrink; one that silently keeps satisfied entries
-   * measures nothing, which is the shape of defect this whole issue is about.
+   * There is no exemption mechanism. This landed with a shrinking baseline of 40
+   * files (#1403); it reached zero on 2026-08-31 and was deleted along with the
+   * branch that read it. A gate that can be opted out of eventually is.
    */
-  static run(
-    rootDir: string,
-    baseline: readonly string[],
-  ): IAdrIndependenceOutcome {
+  static run(rootDir: string): IAdrIndependenceOutcome {
     const vocabulary = AdrIndependence.vocabulary(rootDir);
-    const exemptions = new Set(baseline);
     const decisionsDir = join(rootDir, "docs", "decisions");
 
     const failures: IAdrViolation[] = [];
-    const exempt: { file: string; count: number }[] = [];
-    const seen = new Set<string>();
     let scanned = 0;
 
     const adrs = FileScanner.findFiles(decisionsDir, ".md")
@@ -240,26 +234,17 @@ class AdrIndependence {
       .sort();
 
     for (const path of adrs) {
-      const file = basename(path);
       scanned += 1;
-      const found = AdrIndependence.scanDocument(
-        file,
-        readFileSync(path, "utf-8"),
-        vocabulary,
+      failures.push(
+        ...AdrIndependence.scanDocument(
+          basename(path),
+          readFileSync(path, "utf-8"),
+          vocabulary,
+        ),
       );
-      if (exemptions.has(file)) {
-        seen.add(file);
-        if (found.length > 0) exempt.push({ file, count: found.length });
-        continue;
-      }
-      failures.push(...found);
     }
 
-    const stale = baseline.filter(
-      (file) => !seen.has(file) || exempt.every((entry) => entry.file !== file),
-    );
-
-    return { failures, exempt, stale, scanned };
+    return { failures, scanned };
   }
 }
 
