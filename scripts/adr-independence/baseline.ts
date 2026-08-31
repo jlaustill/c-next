@@ -63,14 +63,6 @@ const ADR_INDEPENDENCE_BASELINE: readonly string[] = [
   "adr-043-comments.md",
   "adr-052-safe-numeric-literal-generation.md",
   "adr-064-volatile-keyword.md",
-
-  // Not violations -- these need a `survives-rewrite:` marker, not a rewrite.
-  // ADR-054 compares how JavaScript and TypeScript handle out-of-bounds
-  // indexing (prior art, which the in/out list admits in any language);
-  // ADR-105 proposes a `.cnxlib` manifest format, which any implementation
-  // would read identically.
-  "adr-054-array-index-overflow.md",
-  "adr-105-prefixed-includes.md",
 ];
 
 export default ADR_INDEPENDENCE_BASELINE;

@@ -228,6 +228,8 @@ void main() {
 
 Require a `.cnxlib` manifest describing the header:
 
+<!-- survives-rewrite: a proposed C-Next artifact format, not build config -- any implementation would read the same file -->
+
 ```yaml
 # compass.cnxlib
 header: compass.h
