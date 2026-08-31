@@ -577,6 +577,40 @@ Update both when adding new statement types.
 - **DO NOT**: Change Status or Decision without explicit approval
 - **Sync order**: Update ADR file FIRST, then README.md
 
+### What belongs in an ADR — the rewrite test
+
+**If the transpiler were rewritten from scratch in a different language and stack, every ADR
+must still be fully applicable.** That is the whole test. An ADR records a decision about the
+_C-Next language_ — its syntax, its semantics, the promises it makes. It is not a record of
+how the current TypeScript/ANTLR/Node implementation happens to satisfy that decision today.
+
+| In an ADR                                       | Not in an ADR                                  |
+| ----------------------------------------------- | ---------------------------------------------- |
+| C-Next snippets; generated C/C++ snippets       | TypeScript/JavaScript source                   |
+| EBNF grammar productions                        | ANTLR-only directives (`-> skip`, `channel()`) |
+| Prior art in any language, including TS and JS  | `src/**` paths; transpiler class/method names  |
+| Diagnostics, messages, the scope-context matrix | npm, `package.json`, CI config, tool commands  |
+| Rejected alternatives and why                   | Phasing, checklists, migration plans           |
+
+Implementation detail belongs in `docs/architecture/` (how the transpiler is structured) or
+`docs/implementation/` (how one decision is carried out — see
+`docs/implementation/adr-045-string-implementation.md`). Those documents are free to name
+modules, and they go stale visibly.
+
+**ADRs point at nothing.** A previous version of this file required "implementing modules
+cited as `file:line` in `## References`", which mandated the exact thing the rewrite test
+forbids. It was also unenforceable in the direction that mattered: the prose is what rots.
+ADR-013 describes `private checkConstAssignment()` as a method on the codegen class; it is
+`static TypeValidator.checkConstAssignment()` in another file. ADR-055 still specifies a
+13-field `interface ISymbol` whose flat model Phase 7 removed — the name survives in
+`SymbolLookupHelper` on an unrelated two-field structural type, so a reader who greps for it
+finds something that looks like confirmation and is not.
+
+The prohibition is not new — it is why ADR-053 was withdrawn on 2026-08-28, "described the
+transpiler's pipeline rather than deciding anything about the language". What was missing was a
+_test_: "no implementation detail" gave no way to adjudicate a borderline passage, and 29 of 76
+ADRs drifted past it (#1403). The rewrite test adjudicates. Ask it of the passage, not the file.
+
 ### Numbering — an ADR's number band is the release it must ship in
 
 **Never pick "the next free number."** Ask which release the decision must ship in:
@@ -618,7 +652,7 @@ and [`docs/WORKFLOW.md`](docs/WORKFLOW.md) for how work moves on the project boa
 A task is NOT complete until:
 
 - [ ] `README.md` updated (if feature-visible)
-- [ ] ADR updated: decision, diagnostics, matrix; implementing modules cited as `file:line` in `## References` — **implementation detail does not go in an ADR**
+- [ ] ADR updated: decision, diagnostics, matrix — and it still passes the **rewrite test** above. No `src/**` paths, no transpiler identifiers, no TypeScript. Implementation detail goes to `docs/architecture/` or `docs/implementation/`
 - [ ] `docs/learn-cnext-in-y-minutes.md` updated (if syntax changed)
 - [ ] Memory bank updated
 
