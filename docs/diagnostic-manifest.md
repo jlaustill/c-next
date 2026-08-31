@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-297 fixture(s) assert a diagnostic; 175 carry a code.
+300 fixture(s) assert a diagnostic; 178 carry a code.
 
 | Fixture                                                                                         | Codes        |
 | ----------------------------------------------------------------------------------------------- | ------------ |
@@ -122,6 +122,9 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1220-analyzer-cross-file-symbols/signed-shift-same-file.test.cnx               | E0805        |
 | tests/bugs/issue-1307-external-identifier-significance/colliding-scope-members.test.cnx         | E0204        |
 | tests/bugs/issue-1307-external-identifier-significance/cross-file-collision.test.cnx            | E0204        |
+| tests/bugs/issue-1312-undefined-type-position/cnext-extension.test.cnx                          | E0426        |
+| tests/bugs/issue-1312-undefined-type-position/order-consumer-first.test.cnx                     | E0426        |
+| tests/bugs/issue-1312-undefined-type-position/order-lib-first.test.cnx                          | E0426        |
 | tests/bugs/issue-1312-undefined-type-position/undefined-type-same-file.test.cnx                 | E0426        |
 | tests/bugs/issue-1312-undefined-type-position/undefined-type-sibling.test.cnx                   | E0426        |
 | tests/bugs/issue-1333-scope-reopening/duplicate-member-reopened.test.cnx                        | E0425        |

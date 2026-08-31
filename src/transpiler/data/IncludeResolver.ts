@@ -26,7 +26,7 @@ interface IResolvedIncludes {
 
   /**
    * Whether any include brings in names this transpiler cannot see -- a C/C++
-   * header, or an include that resolved to nothing (an unfound `<system.h>` is
+   * header, or an include that resolved to nothing (an unresolved `<system.h>` is
    * silently ignored, and its names still exist at compile time).
    *
    * #1399 review: consumed by the E0426/E0427 precondition. Recorded HERE

@@ -56,7 +56,7 @@ class NameExistence {
    * analysis time it is empty for the first file and holds file N-1's function
    * names for every file after. Reading it made E0426 order-dependent: the same
    * two files with their `#include` lines swapped either diagnosed the undefined
-   * type or emitted uncompilable C at exit 0. `_isKnownCNextType` already asks
+   * type or emitted C the compiler rejects at exit 0. `_isKnownCNextType` already asks
    * `symbols.functionReturnTypes`, which is the per-file view of the same
    * ADR-029 fact and is correct here.
    *
