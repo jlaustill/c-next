@@ -1,8 +1,0 @@
-// Helper for issue-1353. Deliberately does NOT include value-source.cnx,
-// so SHARED_LIMIT is genuinely undeclared here even though the entry pulls
-// both files into the same run.
-u32 borrowedLimit <- SHARED_LIMIT;
-
-u32 valueConsumerFn() {
-    return 1;
-}

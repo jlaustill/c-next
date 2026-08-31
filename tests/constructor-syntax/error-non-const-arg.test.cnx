@@ -1,4 +1,6 @@
 // Issue #375: Error - non-const variable argument
+#include "constructor-stubs.h"
+
 u8 mutablePin <- 10;
 Adafruit_MAX31856 thermocouple(mutablePin);
 

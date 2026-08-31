@@ -9,13 +9,13 @@ This document is the authoritative registry of all C-Next compiler error codes. 
 | E00xx     | Reserved/Test           | 1      |
 | E02xx     | Identifier/Param Naming | 5      |
 | E03xx     | Struct Fields           | 1      |
-| E04xx     | Symbol Resolution       | 4      |
+| E04xx     | Symbol Resolution       | 6      |
 | E05xx     | Include/Preprocessor    | 5      |
 | E06xx     | Sizeof Expressions      | 2      |
 | E07xx     | Control Flow            | 7      |
 | E08xx     | Arithmetic/Array Safety | 16     |
 | E09xx     | NULL Safety             | 8      |
-| **Total** |                         | **49** |
+| **Total** |                         | **51** |
 
 ---
 
@@ -91,16 +91,25 @@ second header and the program ran with a wrong value.
 
 ## E04xx — Symbol Resolution / Initialization
 
-| Code  | Message                                                 | Help                                    | Source                                                                             |
-| ----- | ------------------------------------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------- |
-| E0381 | Use of possibly/uninitialized variable                  | Variable must be initialized before use | `logic/analysis/InitializationAnalyzer.ts`                                         |
-| E0422 | Function called before definition                       | Define function before calling it       | `logic/analysis/FunctionCallAnalyzer.ts`                                           |
-| E0423 | Recursive function call (MISRA C:2012 Rule 17.2)        | Remove recursive call                   | `logic/analysis/FunctionCallAnalyzer.ts`                                           |
-| E0424 | Unqualified enum member — did you mean `Enum.member`?   | Use qualified enum member syntax        | `output/codegen/CodeGenerator.ts`, `SwitchGenerator.ts`, `ControlFlowGenerator.ts` |
-| E0425 | Symbol defined multiple times, or in multiple languages | Rename one definition                   | `logic/symbols/SymbolTable.ts`, `Transpiler.ts`                                    |
+| Code  | Message                                                 | Help                                             | Source                                                                             |
+| ----- | ------------------------------------------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| E0381 | Use of possibly/uninitialized variable                  | Variable must be initialized before use          | `logic/analysis/InitializationAnalyzer.ts`                                         |
+| E0422 | Function called before definition                       | Define function before calling it                | `logic/analysis/FunctionCallAnalyzer.ts`                                           |
+| E0423 | Recursive function call (MISRA C:2012 Rule 17.2)        | Remove recursive call                            | `logic/analysis/FunctionCallAnalyzer.ts`                                           |
+| E0424 | Unqualified enum member — did you mean `Enum.member`?   | Use qualified enum member syntax                 | `output/codegen/CodeGenerator.ts`, `SwitchGenerator.ts`, `ControlFlowGenerator.ts` |
+| E0425 | Symbol defined multiple times, or in multiple languages | Rename one definition                            | `logic/symbols/SymbolTable.ts`, `Transpiler.ts`                                    |
+| E0426 | Type is not defined                                     | Declare the type, or #include the file that does | `logic/analysis/UndeclaredTypeAnalyzer.ts`                                         |
+| E0427 | Identifier is not defined                               | Declare it, or #include the file that does       | `logic/analysis/UndeclaredValueAnalyzer.ts`                                        |
 
 **Related:** ADR-030 (E0422), ADR-016 (E0425 — a reopened scope composes, but its
 members stay unique)
+
+**E0426/E0427 (#1312, #1353)** complete the set: an undeclared name is diagnosed in a
+type position, a value position and a call position (E0422) rather than only the last.
+Both are reported only where the transpiler knows the file's whole name universe — a
+file including an unparsed C/C++ header keeps the previous permissive behavior, because
+rejecting a type the compiler will supply is a regression while failing to diagnose is
+the status quo (#1398 tracks the remaining cross-file value gap).
 
 ---
 

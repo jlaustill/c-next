@@ -13,6 +13,8 @@ import ParameterNamingAnalyzer from "./ParameterNamingAnalyzer";
 import StructFieldAnalyzer from "./StructFieldAnalyzer";
 import InitializationAnalyzer from "./InitializationAnalyzer";
 import FunctionCallAnalyzer from "./FunctionCallAnalyzer";
+import UndeclaredTypeAnalyzer from "./UndeclaredTypeAnalyzer";
+import UndeclaredValueAnalyzer from "./UndeclaredValueAnalyzer";
 import NullCheckAnalyzer from "./NullCheckAnalyzer";
 import DivisionByZeroAnalyzer from "./DivisionByZeroAnalyzer";
 import FloatModuloAnalyzer from "./FloatModuloAnalyzer";
@@ -125,6 +127,26 @@ function runAnalyzers(
       errors,
       formatWithCode,
     )
+  ) {
+    return errors;
+  }
+
+  // 4b. Undefined type references (#1312). Runs before the call and
+  // essential-type analyses: a type that denotes nothing feeds an unknown type
+  // into every later question, and the resulting diagnostics would name a
+  // consequence rather than the cause.
+  const undeclaredTypeAnalyzer = new UndeclaredTypeAnalyzer();
+  if (
+    collectErrors(undeclaredTypeAnalyzer.analyze(tree), errors, formatWithCode)
+  ) {
+    return errors;
+  }
+
+  // 4c. Undefined value references (#1353). After the type check so a file
+  // whose type is undefined reports the type, not every use of it.
+  const undeclaredValueAnalyzer = new UndeclaredValueAnalyzer();
+  if (
+    collectErrors(undeclaredValueAnalyzer.analyze(tree), errors, formatWithCode)
   ) {
     return errors;
   }
