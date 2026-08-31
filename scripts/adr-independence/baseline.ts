@@ -31,7 +31,6 @@ const ADR_INDEPENDENCE_BASELINE: readonly string[] = [
   "adr-013-const-qualifier.md",
   "adr-063-identifier-syntax.md",
   "adr-069-dead-code-reachability.md",
-  "adr-070-return-value-use.md",
 
   // Tier 3 -- TypeScript sketching an algorithm the ADR decides. Replaced by
   // the C-Next or generated C that shows the same thing.
