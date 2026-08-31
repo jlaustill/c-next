@@ -298,7 +298,7 @@ Casts are primarily removed from the language. Bit indexing (ADR-007) handles na
 // Narrowing uses existing bit indexing: expr '[' start ',' width ']'
 ```
 
-### CodeGenerator
+### Conversion Handling
 
 1. Detect widening conversions → generate implicit C conversion
 2. Detect narrowing conversions → emit compiler error with suggestion
