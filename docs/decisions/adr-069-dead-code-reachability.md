@@ -152,9 +152,9 @@ _objects/variables_ first; the others can join the same analyzer once the primit
 
 ### Architecture (proposed)
 
-- New analyzer `ReachabilityAnalyzer` in `src/transpiler/logic/analysis/`, registered in
-  `runAnalyzers.ts` like the existing analyzers (listener + `analyze(tree)` returning
-  `IAnalyzerError[]`).
+- **One rule, decided over the parse tree** before any code is generated, reported as an
+  ordinary diagnostic. It is the same kind of check as ADR-067's all-paths-return and is
+  ordered ahead of liveness for the reason below.
 - **Single source of truth for divergence.** The "is this statement divergent?" decision is
   owned by **one** primitive. ADR-068 landed that primitive in the all-paths-return rule,
   but research (see _Research Findings_ below) shows it is **not** directly reusable: it answers
@@ -265,8 +265,8 @@ side();` leaves `side()` unreachable even in a `void` function. The two predicat
    _"E0706 reserved for ADR-069 unreachable code"_). E0705 = `forever` in non-void; E0707 =
    disguised loop. Open question on the code number is **resolved: use E0706.**
 
-5. **Post-preprocessor concern is mild.** Analyzers run on the directly-parsed `.cnx` tree
-   (`CNextSourceParser.parse(source)` in `Transpiler._transpileFile`); C-Next conditional
+5. **Post-preprocessor concern is mild.** The check runs on the parsed `.cnx` tree as
+   written; C-Next conditional
    compilation is a header/include mechanism, not intra-body statement deletion. Structural
    reachability over the parsed function body is therefore well-defined. _(The outstanding
    confirmation — that no source-level construct removes statements from a function body — was

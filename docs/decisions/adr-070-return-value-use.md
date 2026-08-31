@@ -116,7 +116,7 @@ Under safe-by-default, `printf(...)` as a statement errors (it returns `int`). O
   identically to a discarded C-Next return. The "noise" is the point — every intentional discard
   is visible at its call site.
 - **(c) Exempt all unparsed external C** (functions whose return type C-Next cannot see): C-Next
-  _does_ know many returns (C-Next funcs + parsed C headers via `CResolver` + the stdlib map), so
+  _does_ know many returns (C-Next functions, symbols from parsed C headers, and the stdlib map), so
   a blanket exemption under-enforces. The enforce-where-resolvable boundary in (b) is not an
   _exception_ to the rule — it is the rule's domain (you cannot check a return type you cannot
   see); see Open Questions for the unresolvable-return case.

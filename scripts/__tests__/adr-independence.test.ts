@@ -112,6 +112,99 @@ describe("AdrIndependence.scanDocument", () => {
   });
 });
 
+describe("review findings on PR #1405", () => {
+  // Each of these failed against the implementation as first written.
+
+  it.each([["tsx"], ["mts"], ["cts"], ["mjs"], ["cjs"], ["jsonc"], ["toml"]])(
+    "flags a %s block, which the first fence list missed",
+    (language) => {
+      expect(scan("```" + language + "\nx\n```").map((v) => v.kind)).toEqual([
+        "fence",
+      ]);
+    },
+  );
+
+  it("flags a fence that is opened and never closed", () => {
+    // Previously returned [] -- the check only ran on the closing delimiter.
+    expect(
+      scan("intro\n\n```typescript\nconst a = 1;\nmore").map((v) => v.kind),
+    ).toEqual(["fence"]);
+  });
+
+  it("treats a four-backtick wrapper as one block, per CommonMark", () => {
+    // The wrapper used to capture "`markdown" as its language and consume the
+    // inner opener as its own closer. With run lengths honoured it is one
+    // `markdown` block whose body happens to contain backticks -- which is how a
+    // document demonstrating markdown is written, so its contents are prose and
+    // are deliberately NOT scanned as a fence.
+    const markdown = "````markdown\n```typescript\nconst a = 1;\n```\n````";
+    expect(scan(markdown)).toEqual([]);
+  });
+
+  it("does not treat a shorter run as closing a longer fence", () => {
+    expect(
+      scan("````typescript\nconst a = 1;\n````").map((v) => v.kind),
+    ).toEqual(["fence"]);
+  });
+
+  it("extends a survives-rewrite claim across the block body", () => {
+    // Previously the claim suppressed the fence and left scanLine running, so
+    // TypeScript prior art naming a real class still reported an identifier.
+    const markdown =
+      "<!-- survives-rewrite: prior art -->\n```typescript\nclass CodeGenerator {}\n```";
+    expect(scan(markdown)).toEqual([]);
+  });
+
+  it("resumes scanning after a claimed block ends", () => {
+    const markdown =
+      "<!-- survives-rewrite: prior art -->\n```typescript\nclass CodeGenerator {}\n```\n\nThe CodeGenerator emits it.";
+    expect(scan(markdown).map((v) => v.kind)).toEqual(["identifier"]);
+  });
+
+  it("flags a bare directory citation", () => {
+    // Previously skipped: SOURCE_PATH required a file extension.
+    const [violation] = scan("Lives under `src/transpiler/logic/analysis/`.");
+    expect(violation).toMatchObject({
+      kind: "path",
+      detail: "src/transpiler/logic/analysis/",
+    });
+  });
+
+  it("does not flag a user's project tree that merely starts with src/", () => {
+    // Negative control: `src/can/` is a prefix of a .cnx path, not a citation.
+    expect(scan("`src/can/config.cnx` -> `CNX_SRC_CAN_CONFIG_H`")).toEqual([]);
+  });
+
+  it.each([
+    ["TSymbol"],
+    ["ISymbol"],
+    ["IParameterSymbol"],
+    ["ESymbolKind"],
+    ["TCSymbol"],
+    ["IAnalyzerError"],
+  ])("collects the I/T/E-prefixed name %s", (name) => {
+    expect(AdrIndependence.IDENTIFIER_SHAPE.test(name)).toBe(true);
+  });
+
+  it.each([
+    ["Point"],
+    ["String"],
+    ["Register"],
+    ["Italian"],
+    ["ISR"],
+    ["MISRA"],
+  ])("still excludes %s", (word) => {
+    expect(AdrIndependence.IDENTIFIER_SHAPE.test(word)).toBe(false);
+  });
+
+  it("collects names from every declaration form", () => {
+    const names = AdrIndependence.vocabulary(process.cwd());
+    // `export interface I...` and bare `enum E...` were never collected before.
+    expect([...names].some((n) => n.startsWith("I"))).toBe(true);
+    expect([...names].some((n) => n.startsWith("T"))).toBe(true);
+  });
+});
+
 describe("AdrIndependence.vocabulary", () => {
   const names = AdrIndependence.vocabulary(process.cwd());
 

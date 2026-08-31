@@ -28,11 +28,19 @@ class AdrIndependence {
   static readonly STACK_LANGUAGES: ReadonlySet<string> = new Set([
     "typescript",
     "ts",
+    "tsx",
+    "mts",
+    "cts",
     "javascript",
     "js",
+    "jsx",
+    "mjs",
+    "cjs",
     "json",
+    "jsonc",
     "yaml",
     "yml",
+    "toml",
     "xml",
     "bash",
     "sh",
@@ -46,16 +54,33 @@ class AdrIndependence {
   static readonly ANTLR_DIRECTIVE =
     /->\s*(?:skip|channel|type|mode|pushMode|popMode)\b|^\s*@(?:header|members|lexer|parser)\b|^\s*options\s*\{/m;
 
-  /** A source path in the current implementation. */
+  /**
+   * A source path in the current implementation: a file, or a bare directory.
+   *
+   * The directory alternative ends at its slash and asserts nothing follows, so
+   * `src/can/config.cnx` -- a user's project tree, which survives a rewrite --
+   * does not match on its `src/can/` prefix. Only a citation that stops at the
+   * directory, like `src/transpiler/logic/analysis/`, does.
+   */
   static readonly SOURCE_PATH =
-    /\b(?:src|scripts)\/[A-Za-z0-9_/.-]+\.(?:ts|js|mjs)\b/g;
+    /\b(?:src|scripts)\/[A-Za-z0-9_/.-]+\.(?:ts|tsx|mts|cts|js|jsx|mjs|cjs)\b|\b(?:src|scripts)\/(?:[A-Za-z0-9_.-]+\/)+(?![A-Za-z0-9_.-])/g;
 
   /**
-   * Identifiers are only collected when they are long and multi-humped enough
-   * that a collision with ordinary prose or a prior-art snippet is implausible.
-   * `Point` or `String` in an example would otherwise be flagged.
+   * Identifiers are only collected when a collision with ordinary prose is
+   * implausible: at least two capitals, at least one lowercase, starting capital.
+   *
+   * The two-capital floor excludes `Point`, `String`, `Register` and `Italian`.
+   * The lowercase floor excludes acronyms a language ADR uses constantly -- `ISR`
+   * and `MISRA` would otherwise enter the vocabulary and flag their own ADRs.
+   *
+   * An earlier form required a lowercase run immediately after the leading
+   * capital, which structurally excluded this project's own `I*` / `T*` / `E*`
+   * prefixes -- the ones CONTRIBUTING.md mandates. It saw 232 of 525 declared
+   * names, so the gate could not see `TSymbol`, `IParameterSymbol` or
+   * `ESymbolKind` at all.
    */
-  static readonly IDENTIFIER_SHAPE = /^[A-Z][a-z]+[A-Z][A-Za-z0-9]*$/;
+  static readonly IDENTIFIER_SHAPE =
+    /^(?=.*[a-z])(?=(?:.*[A-Z]){2})[A-Z][A-Za-z0-9]*$/;
 
   static readonly MIN_IDENTIFIER_LENGTH = 7;
 
@@ -78,8 +103,11 @@ class AdrIndependence {
    */
   static vocabulary(rootDir: string): Set<string> {
     const names = new Set<string>();
+    // `export class Foo`, `export default abstract class Foo`, plain `enum EKind`
+    // -- the previous form admitted only `export default ` or `abstract `, so a
+    // plain `export interface IFoo` was never collected and no enum name ever was.
     const declaration =
-      /^(?:export\s+default\s+|abstract\s+)?(?:class|interface|type)\s+([A-Za-z0-9_]+)/gm;
+      /^(?:export\s+)?(?:default\s+)?(?:abstract\s+)?(?:class|interface|type|enum)\s+([A-Za-z0-9_]+)/gm;
 
     for (const file of FileScanner.findFiles(join(rootDir, "src"), ".ts")) {
       const source = readFileSync(file, "utf-8");
@@ -109,21 +137,29 @@ class AdrIndependence {
     const lines = markdown.split("\n");
 
     let fenceLanguage: string | null = null;
+    let fenceTicks = 0;
     let fenceStart = 0;
     let fenceBody: string[] = [];
     let claimed = false;
 
     for (let index = 0; index < lines.length; index += 1) {
       const line = lines[index];
-      const fence = /^\s*```(\S*)/.exec(line);
+      // CommonMark: the run length is captured, and a closer must be at least as
+      // long. Without this a ````markdown wrapper captured "`markdown" as its
+      // language and swallowed the nested ```typescript as its own closer.
+      const fence = /^\s*(`{3,})(\S*)/.exec(line);
 
       if (fence) {
+        const ticks = fence[1].length;
         if (fenceLanguage === null) {
-          fenceLanguage = (fence[1] || "").toLowerCase();
+          fenceLanguage = (fence[2] || "").toLowerCase();
+          fenceTicks = ticks;
           fenceStart = index + 1;
           fenceBody = [];
           claimed = AdrIndependence.isClaimed(lines, index);
-        } else {
+          continue;
+        }
+        if (ticks >= fenceTicks && fence[2] === "") {
           if (!claimed) {
             AdrIndependence.closeFence(
               violations,
@@ -135,14 +171,30 @@ class AdrIndependence {
           }
           fenceLanguage = null;
           claimed = false;
+          continue;
         }
-        continue;
       }
 
       if (fenceLanguage !== null) {
         fenceBody.push(line);
+        // A claim covers the whole block, not only its language tag. Prior art in
+        // TypeScript is exactly where a name colliding with `src/` appears, so
+        // scanning the body would defeat the claim.
+        if (claimed) continue;
       }
       AdrIndependence.scanLine(violations, file, index + 1, line, vocabulary);
+    }
+
+    // A fence opened and never closed used to report nothing at all, because only
+    // the closing delimiter ran the check.
+    if (fenceLanguage !== null && !claimed) {
+      AdrIndependence.closeFence(
+        violations,
+        file,
+        fenceLanguage,
+        fenceStart,
+        fenceBody,
+      );
     }
 
     return violations;

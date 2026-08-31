@@ -446,6 +446,8 @@ present at build time.
 
 #### Output Structure
 
+<!-- survives-rewrite: a user's generated project tree -- the layout any implementation emits, not this repo's source -->
+
 ```
 src/hal/imxrt1062/
 ├── gpio.cnx          # GPIO template + instances
@@ -590,21 +592,15 @@ GpioPort GPIO1(0x401B8000);
 GpioPort GPIO2(0x401BC000);
 ```
 
-#### Implementation Approach
+#### Stages
 
-The tool should be implemented in TypeScript as part of the C-Next toolchain:
+The importer has four stages, whatever it is written in: read the SVD, resolve it into
+the register model this ADR defines, emit `.cnx`, and carry the part's own type
+definitions through. Naming them is useful because the second is where the work is --
+an SVD describes memory, and a C-Next register declares intent, so the mapping is a
+decision rather than a transcription.
 
-```
-src/tools/svd2cnext/
-├── index.ts           # CLI entry point
-├── SvdParser.ts       # XML parsing
-├── SvdTransformer.ts  # SVD -> C-Next AST
-├── CnextEmitter.ts    # AST -> .cnx files
-└── types/
-    └── ISvdTypes.ts   # SVD type definitions
-```
-
-Key implementation considerations:
+Key considerations:
 
 1. **Peripheral derivation** — SVD uses `derivedFrom` for identical peripherals; emit as parameterized register + instances
 

@@ -1,7 +1,7 @@
 # VS Code Extension MVP Implementation Plan
 
 **Goal:** Syntax highlighting + live C preview for `.cnx` files
-**Reference:** [ADR-011](../decisions/adr-011-vscode-extension.md)
+**Reference:** [VS Code Extension](../implementation/vscode-extension.md) (formerly ADR-011)
 **Status:** Complete (v0.3.0)
 
 ---

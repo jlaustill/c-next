@@ -838,4 +838,4 @@ style: Parameter 'divisor' can be declared as pointer to const [constParameterPo
 - [ADR-004: Register Bindings](adr-004-register-bindings.md) — ro/wo/rw access modifiers
 - [ADR-006: Simplified References](adr-006-simplified-references.md) — Pass-by-reference model
 - [ADR-008: Language Bug Prevention](adr-008-language-bug-prevention.md) — Bug prevention strategies
-- [ADR-012: Static Analysis](adr-012-static-analysis.md) — MISRA compliance framework
+- [Static Analysis](../implementation/static-analysis.md) (formerly ADR-012) — how the generated C is checked
