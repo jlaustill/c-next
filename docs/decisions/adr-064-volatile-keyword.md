@@ -176,24 +176,41 @@ forVarDecl
     ;
 ```
 
-### Code Generator Changes
+### Generated Output
 
-In `CodeGenerator.ts`:
+Both modifiers reach C as the same qualifier:
 
-```typescript
-private generateVariableDecl(ctx: Parser.VariableDeclarationContext): string {
-    const constMod = ctx.constModifier() ? "const " : "";
-    const atomicMod = ctx.atomicModifier() ? "volatile " : "";
-    const volatileMod = ctx.volatileModifier() ? "volatile " : "";
-    // ...
-    let decl = `${constMod}${atomicMod}${volatileMod}${type} ${name}`;
-}
+```cnx
+volatile u32 statusReg <- 0;
+atomic u32 counter <- 0;
 ```
 
-Note: Both `atomic` and `volatile` can generate `"volatile "`, but this is safe because:
+```c
+volatile uint32_t statusReg = 0U;
+volatile uint32_t counter = 0U;
+```
 
-- Duplicate `volatile` keywords combine to a single one
-- Using both is redundant (atomic already implies volatile)
+They are distinct in C-Next and identical in C because `atomic` promises more than
+the qualifier can express -- `volatile` asks the compiler not to cache the value,
+while `atomic` additionally asserts the access is indivisible. C has one spelling for
+the first and nothing for the second, so the difference is enforced before the C
+exists rather than carried into it.
+
+Applying both is a **compile error**, not a redundancy that collapses:
+
+```cnx
+atomic volatile u32 shared <- 0;
+```
+
+```
+Error: Cannot use both 'atomic' and 'volatile' modifiers. Use 'atomic' for
+ISR-shared variables (includes volatile + atomicity), or 'volatile' for hardware
+registers and delay loops.
+```
+
+Rejecting it keeps the source honest about which guarantee was wanted. Accepting it
+would produce C indistinguishable from either modifier alone, so the reader of the
+generated artifact could no longer tell which one the author meant.
 
 ---
 
