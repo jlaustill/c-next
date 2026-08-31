@@ -384,80 +384,43 @@ This provides two layers of safety:
 3. **Non-boundary values** — silently fix without burdening the user
 4. **Portable output** — uses `<stdint.h>` constants that work everywhere
 
-### Implementation Sketch
+### Worked Examples
 
-```typescript
-// Boundary values for each signed type
-const SIGNED_BOUNDS: Record<string, { min: bigint; max: bigint }> = {
-  i8: { min: -128n, max: 127n },
-  i16: { min: -32768n, max: 32767n },
-  i32: { min: -2147483648n, max: 2147483647n },
-  i64: { min: -9223372036854775808n, max: 9223372036854775807n },
-};
+Each row of the table above, as it would appear in source and in output.
 
-// Boundary values for unsigned types (only MAX, MIN is always 0)
-const UNSIGNED_BOUNDS: Record<string, { max: bigint }> = {
-  u8: { max: 255n },
-  u16: { max: 65535n },
-  u32: { max: 4294967295n },
-  u64: { max: 18446744073709551615n },
-};
+**Boundary literal — rejected.** The programmer must name the constant, so intent is
+in the source rather than inferred from a bit pattern:
 
-function checkBoundaryLiteral(
-  value: bigint,
-  targetType: CNextType,
-  location: SourceLocation,
-): void {
-  const signed = SIGNED_BOUNDS[targetType];
-  if (signed) {
-    if (value === signed.min) {
-      throw new CompilerError(
-        `Literal ${value} equals ${targetType} minimum value. ` +
-          `Use '${targetType}_MIN' for portable, unambiguous code.`,
-        location,
-      );
-    }
-    if (value === signed.max) {
-      throw new CompilerError(
-        `Literal ${value} equals ${targetType} maximum value. ` +
-          `Use '${targetType}_MAX' for portable, unambiguous code.`,
-        location,
-      );
-    }
-  }
-
-  const unsigned = UNSIGNED_BOUNDS[targetType];
-  if (unsigned && value === unsigned.max) {
-    throw new CompilerError(
-      `Literal ${value} equals ${targetType} maximum value. ` +
-        `Use '${targetType}_MAX' for portable, unambiguous code.`,
-      location,
-    );
-  }
-}
-
-function generateNumericLiteral(
-  value: bigint,
-  isHex: boolean,
-  targetType: CNextType,
-): string {
-  // Boundary values should have been caught earlier — this handles non-boundary
-
-  // Determine if hex would be misinterpreted
-  const signedMax = getSignedMaxForType(targetType);
-  const isNegative = value < 0n;
-  const absValue = isNegative ? -value : value;
-  const wouldBeUnsigned = isHex && absValue > signedMax;
-
-  if (isNegative && wouldBeUnsigned) {
-    // Convert to decimal (safe for non-boundary values)
-    return value.toString();
-  }
-
-  // Safe to preserve original format
-  return isHex ? formatAsHex(value) : value.toString();
-}
+```cnx
+i32 limit <- -0x80000000;   // rejected: equals i32_MIN
+i32 limit <- i32_MIN;       // accepted
 ```
+
+**Problematic hex — silently converted.** A negative hex literal that C would read as
+unsigned is emitted in decimal, where it cannot be misread:
+
+```cnx
+i32 mask <- -0xFF;
+```
+
+```c
+int32_t mask = -255;
+```
+
+**Safe hex — preserved.** Nothing is rewritten when the original spelling carries no
+risk, because a transformation the reader did not ask for is itself a hazard in a
+certification artifact:
+
+```cnx
+u32 flags <- 0xDEADBEEF;
+```
+
+```c
+uint32_t flags = 0xDEADBEEF;
+```
+
+The boundary values themselves are the ranges of the primitive types; ADR-044 defines
+them and this decision does not restate them.
 
 ---
 
