@@ -344,6 +344,14 @@ class Transpiler {
     }
 
     // Stage 5: Analyze and transpile each C-Next file
+    //
+    // #1233: the .c of a file that succeeded is NOT written as we go. A later
+    // file can still fail the run, and Stage 6 gates headers on
+    // `result.success`, so writing eagerly produced a .c that #includes a
+    // header the same run refused to write -- output that cannot compile on a
+    // clean tree and silently compiles against a stale header on a dirty one.
+    // Deferring puts the .c under the same gate the .h already had.
+    const pendingWrites: { path: string; content: string }[] = [];
     for (const file of input.cnextFiles) {
       if (file.symbolOnly) {
         continue;
@@ -355,7 +363,14 @@ class Transpiler {
         fileResult,
         result,
         input.writeOutputToDisk,
+        pendingWrites,
       );
+    }
+
+    if (result.success && input.writeOutputToDisk) {
+      for (const write of pendingWrites) {
+        this.fs.writeFile(write.path, write.content);
+      }
     }
 
     // Stage 6: Write the Stage 5 headers (only to disk in files mode)
@@ -1055,6 +1070,7 @@ class Transpiler {
     fileResult: IFileResult,
     result: ITranspilerResult,
     writeOutputToDisk: boolean,
+    pendingWrites: { path: string; content: string }[],
   ): void {
     let outputPath: string | undefined;
     if (
@@ -1064,7 +1080,9 @@ class Transpiler {
       fileResult.code
     ) {
       outputPath = this.pathResolver.getOutputPath(file, this.cppDetected);
-      this.fs.writeFile(outputPath, fileResult.code);
+      // #1233: queued, not written -- the caller flushes only if the whole run
+      // succeeds, matching how Stage 6 already gates headers.
+      pendingWrites.push({ path: outputPath, content: fileResult.code });
     }
 
     result.files.push({ ...fileResult, outputPath });
