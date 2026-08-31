@@ -71,8 +71,11 @@ class ScopeCollector {
     // printed one location twice because there was only ever one position.
     //
     // Set membership is keyed on the rendered `file:line`, so re-collecting the
-    // same textual block (CNextResolver.resolve runs more than once per file on
-    // some paths) is a no-op rather than a duplicate entry.
+    // same textual block is a no-op rather than a duplicate entry. #1301 removed
+    // the pass that made that reachable -- `CNextResolver.resolve` ran twice per
+    // file while Transpiler stages 3 and 5 each declared every file, and now runs
+    // once. The dedup stays as a ratchet, and because a scope REOPENED across
+    // files still reaches this line once per declaring block by design (#1334).
     mutableScope.declarationSites.add(DeclarationSite.format(sourceFile, line));
 
     // The scalars keep the FIRST site. Lossless now that declarationSites holds
@@ -94,9 +97,11 @@ class ScopeCollector {
     const memberSymbols: TSymbol[] = [];
 
     // #1334: `scope.members` is a shared mutable array on the cached scope, and
-    // CNextResolver.resolve runs more than once per file on some paths, so every
-    // member was re-pushed on each pass -- measured, a four-block scope grew to
-    // [Point, Mode, fromC, runAll, Point, Mode, fromC].
+    // `CNextResolver.resolve` USED TO run more than once per file, so every member
+    // was re-pushed on each pass -- measured, a four-block scope grew to
+    // [Point, Mode, fromC, runAll, Point, Mode, fromC]. #1301 removed that second
+    // pass; the dedup stays as a ratchet, and remains load-bearing for a scope
+    // reopened across files, which reaches this line once per declaring block.
     //
     // Harmless today only by coincidence: the one real consumer wraps it in a Set
     // (TSymbolInfoAdapter.ts:395). That is a latent divergence, not a working

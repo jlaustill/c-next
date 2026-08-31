@@ -209,7 +209,7 @@ class SymbolTable {
   /**
    * Add multiple C-Next TSymbols at once
    */
-  addTSymbols(symbols: TSymbol[]): void {
+  addTSymbols(symbols: readonly TSymbol[]): void {
     for (const symbol of symbols) {
       this.addTSymbol(symbol);
     }

@@ -273,6 +273,20 @@ class Transpiler {
       return await this._finalizeResult(result);
     } catch (err) {
       return this._handleRunError(result, err);
+    } finally {
+      // #1301 review: release the parse trees when the run ends, not merely when
+      // the next one starts. `Transpiler` is not always per-process --
+      // `ServeCommand` holds ONE instance in a static field and reuses it for
+      // every request -- so clearing only on entry would leave the language
+      // server holding every ProgramContext and CommonTokenStream from the last
+      // request for as long as the editor sits idle. Before this cache both were
+      // locals that died with `_transpileFile`.
+      //
+      // Peak-RSS benchmarking cannot see this: it measures the in-run high water
+      // mark, and post-run residency is a different number. Stage 6 does not need
+      // trees -- `_generateAllHeadersFromPipeline` reads `result.files[].headerCode`
+      // -- so the run is genuinely done with them here.
+      this.declaredFiles.clear();
     }
   }
 
@@ -513,6 +527,14 @@ class Transpiler {
       // error before Stage 5 begins, so a miss means the pipeline ran out of
       // order and must say so rather than quietly reparse.
       const declared = this.declaredFiles.get(sourcePath);
+      // This branch is an ASSERTION, not a covered path, and is deliberately left
+      // uncovered: `_transpileFile` has one caller, downstream of a stage 3 that
+      // aborts the run on any error, so nothing reachable through the public API
+      // can miss. It cannot be mutation-checked either -- mis-keying the cache
+      // returns a WRONG entry, never `undefined`, so that mutation exercises the
+      // key rather than this guard. It surfaces as a user-facing
+      // `Code generation failed: ...` at line 1 via `buildCatchResult`, since the
+      // message carries no `N:M` prefix for `parseErrorLocation` to find.
       if (!declared) {
         throw new Error(
           `${sourcePath} reached code generation without being declared`,

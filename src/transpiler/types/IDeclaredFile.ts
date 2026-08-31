@@ -41,13 +41,33 @@ interface IDeclaredFile {
   /**
    * Symbols declared by this file (pass 1.3).
    *
-   * The array element type is mutable to match what `_declareFile` returns and
-   * what `TSymbolInfoAdapter.convert` accepts; the property is readonly, so the
-   * cached record cannot be reassigned. `TSymbol` itself is readonly in every
-   * field, which is why handing the SAME objects to both the symbol table and
-   * codegen cannot introduce cross-talk between them.
+   * Stage 3 and stage 5 now hand the SAME objects to the symbol table and to
+   * codegen. What makes that safe is NOT that the symbols are frozen. `readonly`
+   * blocks reassigning a property, not mutating what it points at, and three of
+   * `IScopeSymbol`'s fields are mutated in production by design:
+   * `SymbolRegistry.registerFunction` pushes onto `scope.functions`, and
+   * `ScopeCollector` casts the readonly view away to add a `declarationSites`
+   * entry and a `members` entry. The four spanned-scope files whose symbols
+   * differed between the two passes differed for exactly that reason -- so a
+   * reader who took "readonly, therefore frozen" at face value would be reasoning
+   * from a claim this file's own measurements disprove.
+   *
+   * Two measured properties make the sharing safe instead:
+   *
+   * 1. `SymbolRegistry.getOrCreateScope` caches by path and `reset()` runs once
+   *    per run, so BOTH passes already reached the same `IScopeSymbol` by object
+   *    identity -- 175/175 over the cross-file fixtures. Caching introduces no
+   *    aliasing the double pass did not already have.
+   * 2. Every mutation of that shared object is additive and idempotent: `Set.add`
+   *    for `declarationSites`, the `members` dedup from #1334, and
+   *    `registerFunction`'s `isAlreadyRegistered` guard. A later mutation can
+   *    therefore never invalidate what an earlier reader already saw.
+   *
+   * The element type is `readonly` because nothing downstream mutates the array --
+   * `TSymbolInfoAdapter.convert` and `SymbolTable.addTSymbols` both only iterate --
+   * so the guarantee is structural rather than a convention to be remembered.
    */
-  readonly symbols: TSymbol[];
+  readonly symbols: readonly TSymbol[];
 
   /**
    * Scope types visible to this file through its C-Next includes (pass 1.4).
