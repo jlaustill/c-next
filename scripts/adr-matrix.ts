@@ -70,10 +70,11 @@ function printViolations(
 /**
  * Explain an empty `error` cell when the ADR's fixtures cannot be placed.
  *
- * Only a fixture with an `.expected.error` can occupy a cell today, so an ADR
- * covering codegen behavior (ADR-006, ADR-049) can declare `error` cells and
- * have real fixtures that still cannot satisfy them. Without this the gate is
- * red with no path to green and no explanation.
+ * A cell is occupied from a source POSITION: a diagnostic's, or one recorded by
+ * `AdrProvenance` where the rule fired (#1241). A tagged fixture that supplies
+ * neither -- an ADR covering codegen behavior with no recording site -- has real
+ * fixtures that still cannot satisfy a declared `error` cell. Without this the
+ * gate is red with no path to green and no explanation.
  */
 function printContextNotDerivableHint(
   errors: ReturnType<typeof MatrixReport.violations>,
@@ -90,8 +91,10 @@ function printContextNotDerivableHint(
     chalk.yellow(
       `\nNote: ADR-${affected.join(", ADR-")} ` +
         `${affected.length === 1 ? "has" : "have"} linked fixtures whose context could not be derived.\n` +
-        `Only a fixture with an .expected.error can occupy a cell today -- context comes from the\n` +
-        `diagnostic's position. Codegen-only fixtures cannot satisfy a cell until #1241 lands.`,
+        `A cell is occupied from a source position: a diagnostic's, or one recorded by\n` +
+        `AdrProvenance.record("NNN", line) where the rule fired. These fixtures supply neither.\n` +
+        `If this ADR governs codegen shape, add a recording site at the decision -- see\n` +
+        `ScopeGenerator (ADR-016) and TypeValidator (ADR-057) for the one-line pattern.`,
     ),
   );
 }

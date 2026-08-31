@@ -593,32 +593,29 @@ indistinguishable from claiming the feature cannot occur anywhere. That silence 
 why #1333 survived: no obligation existed for "a scope member, in an imported
 file", so nothing could report that the cell was empty.
 
-**These cells are not occupiable yet, and the reason is worth recording.** Under
-#1241 a cell's context is derived from a diagnostic's position, so only a fixture
-with an `.expected.error` can occupy one. Scope composition _does_ raise a
-diagnostic — reopening composes a scope, but member uniqueness still holds, so
-two definitions of the same member are an error. I expected that to make these
-cells reachable and it does not: the conflict diagnostic is reported at position
-`1:0` rather than at the offending declaration, so no context can be derived from
-it. The three fixtures below link to this ADR and land in "no derivable context".
+**All six cells are occupied and are declared `error`.** They were `warn` while a
+cell's context could only come from a diagnostic's position: ADR-016's conflict
+diagnostic is reported at `1:0` rather than at the offending declaration, so
+nothing could be derived from it, and the ratchet had no path forward. #1241
+(2026-08-29) removed that constraint — occupancy now also derives from where the
+rule fired, recorded at the decision itself (`ScopeGenerator.ts`,
+`AdrProvenance.record("016", ...)`), which reaches every cell here at once.
 
-That makes **#1334 the blocker for this matrix**, not just a cosmetic diagnostic
-defect. Giving the conflict diagnostic a real position would make every cell here
-reachable at once. Recorded so the connection is not rediscovered.
-
-Declared `warn` first and ratcheted to `error` as fixtures reach them, the same
-way a new lint rule is introduced.
+**#1334 is still real but is no longer the blocker for this matrix.** The
+conflict diagnostic's `1:0` position still yields no context, which is why
+`conflict-across-files.test.cnx` links to this ADR and lands in "no derivable
+context". That costs a fixture its cell, not the matrix its obligation.
 
 <!-- MATRIX-SEVERITY -->
 
 | Context      | Relationship        | Severity |
 | ------------ | ------------------- | -------- |
-| scope member | same file           | warn     |
-| scope method | same file           | warn     |
-| scope member | imported direct     | warn     |
-| scope method | imported direct     | warn     |
-| scope member | imported transitive | warn     |
-| scope method | imported transitive | warn     |
+| scope member | same file           | error    |
+| scope method | same file           | error    |
+| scope member | imported direct     | error    |
+| scope method | imported direct     | error    |
+| scope member | imported transitive | error    |
+| scope method | imported transitive | error    |
 
 `global variable` and `top-level function` are left undeclared, which reads as
 `off`, and that is a claim being made deliberately rather than an omission: scope

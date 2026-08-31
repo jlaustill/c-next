@@ -181,24 +181,32 @@ reason and a filed follow-up.
 | Context            | Relationship        | Severity |
 | ------------------ | ------------------- | -------- |
 | global variable    | same file           | warn     |
-| top-level function | same file           | warn     |
-| scope member       | same file           | warn     |
-| scope method       | same file           | warn     |
+| top-level function | same file           | error    |
+| scope member       | same file           | error    |
+| scope method       | same file           | error    |
 | global variable    | imported direct     | warn     |
-| top-level function | imported direct     | warn     |
-| scope member       | imported direct     | warn     |
-| scope method       | imported direct     | warn     |
+| top-level function | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| scope method       | imported direct     | error    |
 | global variable    | imported transitive | warn     |
-| top-level function | imported transitive | warn     |
-| scope member       | imported transitive | warn     |
-| scope method       | imported transitive | warn     |
+| top-level function | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| scope method       | imported transitive | error    |
 
-Two limits apply and are tracked as #1241. Only a fixture with an
-`.expected.error` can occupy a cell, and **ADR-057 raises no diagnostic of its
-own** — it is a resolution and codegen-shape rule throughout. So every cell is
-currently unoccupiable, and the twelve `warn` rows record a real obligation that
-#1241 must be resolved before any of them can be met. That is the honest reading;
-declaring them `off` to get a quiet report would be the dishonest one. And the axes cannot see syntactic form: a bare `read()` and a
+**ADR-057 raises no diagnostic of its own** — it is a resolution and codegen-shape
+rule throughout — so while a cell's context could only come from an
+`.expected.error` position, all twelve rows were unoccupiable and stood at `warn`
+recording an obligation nothing could meet. #1241 (2026-08-29) is that
+resolution: occupancy now also derives from where the rule fired, recorded at the
+decision (`TypeValidator.ts`, `TypeGenerationHelper.ts`, `FunctionCallAnalyzer.ts`,
+`AdrProvenance.record("057", ...)`).
+
+Nine cells are occupied and are now `error`. The three `global variable` rows stay
+`warn`: a bare name resolving to a file-scope variable is squarely ADR-057's rule
+and nothing makes those cells unreachable — they are simply **untested**, and that
+is a coverage gap to close with fixtures rather than a tooling gap to wait on.
+
+The axes still cannot see syntactic form: a bare `read()` and a
 qualified `this.read()` inside the same scope method derive the same cell, which
 is exactly how #1210 and #1244 reached `main`. Both spellings need fixtures even
 though they share a cell.

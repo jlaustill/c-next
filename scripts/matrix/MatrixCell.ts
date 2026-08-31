@@ -29,10 +29,11 @@ const RELATIONSHIPS: readonly TMatrixRelationship[] = [
  * Relationships the tooling can currently establish.
  *
  * The consumer-side three come from the resolved include graph. The
- * provider-side two need to know which FILE a construct was emitted from;
- * `.expected.error` carries no path, so they are reported as not-derivable
- * rather than silently counted as empty -- an undetectable cell and an
- * uncovered cell are different claims and must not render the same.
+ * provider-side two need to know which FILE a construct was emitted from.
+ * `IRecordedAdrSite.sourcePath` now carries exactly that (#1241), but nothing
+ * consumes it here yet, so they stay not-derivable rather than being silently
+ * counted as empty -- an undetectable cell and an uncovered cell are different
+ * claims and must not render the same. Wiring it up is #1402.
  */
 const DERIVABLE_RELATIONSHIPS: readonly TMatrixRelationship[] = [
   "same-file",
