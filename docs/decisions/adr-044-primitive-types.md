@@ -459,8 +459,8 @@ static inline uint16_t cnx_clamp_add_u16(uint16_t a, uint32_t b) {
 ```
 
 With `--debug`, the same function name is generated with a panic body -- there
-is no separate `cnx_debug_*` symbol; both modes route through
-`ReservedCnxName.clampHelper()`:
+is no separate `cnx_debug_*` symbol, so switching modes changes what the helper
+does and never what a caller is linked against:
 
 ```c
 static inline uint16_t cnx_clamp_add_u16(uint16_t a, uint32_t b) {
@@ -586,23 +586,9 @@ The transpiler must emit:
 
 ### Type Width Tracking
 
-The code generator maintains a type registry for `.length` support:
-
-```typescript
-const TYPE_WIDTH: Record<string, number> = {
-  u8: 8,
-  i8: 8,
-  u16: 16,
-  i16: 16,
-  u32: 32,
-  i32: 32,
-  u64: 64,
-  i64: 64,
-  f32: 32,
-  f64: 64,
-  bool: 1,
-};
-```
+Bit widths come from the type table above; `.length` exposes them, and ADR-007
+defines what it means on each type. Nothing here restates either -- three copies
+of a width table is three chances for them to disagree.
 
 ---
 
