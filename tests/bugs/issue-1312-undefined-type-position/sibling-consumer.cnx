@@ -1,0 +1,9 @@
+// Helper for issue-1312. Deliberately does NOT include sibling-enum.cnx,
+// so `Mode` is genuinely undefined here. Both files are pulled into the
+// same run by the entry below, which is what used to make `Mode` look
+// resolvable when it is not.
+Mode borrowedFromSibling <- Mode.MODE_A;
+
+u32 siblingConsumerFn() {
+    return 1;
+}

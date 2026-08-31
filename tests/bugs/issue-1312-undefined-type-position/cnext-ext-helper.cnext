@@ -1,0 +1,2 @@
+// Helper for the #1399 review regression, deliberately spelled `.cnext`.
+u32 cnextExtHelperFn() { return 3; }

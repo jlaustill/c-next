@@ -1,0 +1,13 @@
+// test-error
+// #1399 review: the precondition re-derived "is this a C-Next include?" from
+// `#include` token text and accepted only `.cnx`, so a `.cnext` include looked
+// foreign and switched BOTH E0426 and E0427 off for the whole file. The
+// resolver's own categorization is now the answer, and it has always accepted
+// both extensions.
+#include <cnext-ext-helper.cnext>
+
+Mode neverDeclared;
+
+u32 main() {
+    return 0;
+}

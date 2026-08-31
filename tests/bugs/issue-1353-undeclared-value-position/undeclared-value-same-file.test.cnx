@@ -1,0 +1,9 @@
+// test-error
+// Issue #1353: a name that was never declared, used in a VALUE position.
+// No includes, so external-symbol recovery cannot explain it. Today this
+// transpiles at exit 0 and emits `uint32_t v = notDeclaredAnywhere;`.
+u32 v <- notDeclaredAnywhere;
+
+u32 main() {
+    return 0;
+}

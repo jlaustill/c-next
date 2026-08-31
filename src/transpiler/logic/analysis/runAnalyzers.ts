@@ -13,6 +13,8 @@ import ParameterNamingAnalyzer from "./ParameterNamingAnalyzer";
 import StructFieldAnalyzer from "./StructFieldAnalyzer";
 import InitializationAnalyzer from "./InitializationAnalyzer";
 import FunctionCallAnalyzer from "./FunctionCallAnalyzer";
+import UndeclaredTypeAnalyzer from "./UndeclaredTypeAnalyzer";
+import UndeclaredValueAnalyzer from "./UndeclaredValueAnalyzer";
 import NullCheckAnalyzer from "./NullCheckAnalyzer";
 import DivisionByZeroAnalyzer from "./DivisionByZeroAnalyzer";
 import FloatModuloAnalyzer from "./FloatModuloAnalyzer";
@@ -72,7 +74,27 @@ function collectErrors(
 }
 
 /**
- * Run all semantic analyzers on a parsed program
+ * One analysis step.
+ *
+ * #1399 review: the body was fifteen repetitions of
+ * `if (collectErrors(x.analyze(tree), errors, fmt)) return errors;`, which is a
+ * table written as control flow -- cognitive complexity 16, over the 15 limit,
+ * and growing by one with every analyzer added. The ordering constraints were
+ * real but survived only as prose between the blocks; as entries they are data
+ * that moves with the step.
+ */
+interface IAnalyzerStep {
+  /** Why this step sits here, when its position matters. */
+  readonly label: string;
+  readonly run: () => IAnalyzerError[];
+  /** Defaults to the `error[CODE]: message` form. */
+  readonly format?: (err: IAnalyzerError) => string;
+  /** When true, findings are reported and later steps still run. */
+  readonly advisory?: boolean;
+}
+
+/**
+ * Run all semantic analyzers on a parsed program.
  *
  * @param tree - The parsed program AST
  * @param tokenStream - Token stream for comment validation
@@ -88,135 +110,112 @@ function runAnalyzers(
   const formatWithCode = (e: IAnalyzerError) =>
     `error[${e.code}]: ${e.message}`;
 
-  // 1. Identifier syntax validation (ADR-063: no trailing or consecutive '_')
-  // Runs first: a malformed identifier feeds a bad name into every later analysis.
-  const identifierSyntaxAnalyzer = new IdentifierSyntaxAnalyzer();
-  if (
-    collectErrors(
-      identifierSyntaxAnalyzer.analyze(tree),
-      errors,
-      formatWithCode,
-    )
-  ) {
-    return errors;
-  }
-
-  // 2. Parameter naming validation (Issue #227: reserved naming patterns)
-  const paramNamingAnalyzer = new ParameterNamingAnalyzer();
-  if (collectErrors(paramNamingAnalyzer.analyze(tree), errors)) {
-    return errors;
-  }
-
-  // 3. Struct field validation (reserved field names like 'length')
-  const structFieldAnalyzer = new StructFieldAnalyzer();
-  if (
-    collectErrors(structFieldAnalyzer.analyze(tree), errors, formatWithCode)
-  ) {
-    return errors;
-  }
-
-  // 4. Initialization analysis (Rust-style use-before-init detection)
-  const initAnalyzer = new InitializationAnalyzer();
-  // External struct fields and symbolTable are read from CodeGenState directly
+  // External function definitions from C/C++ headers, for the two steps that
+  // need them. Read from CodeGenState unless the caller supplied one.
   const symbolTable = options?.symbolTable ?? CodeGenState.symbolTable;
-  if (
-    collectErrors(
-      initAnalyzer.analyze(tree, symbolTable),
+
+  const steps: readonly IAnalyzerStep[] = [
+    {
+      // First: a malformed identifier feeds a bad name into every later analysis.
+      label: "identifier syntax (ADR-063: no trailing or consecutive '_')",
+      run: () => new IdentifierSyntaxAnalyzer().analyze(tree),
+    },
+    {
+      label: "parameter naming (Issue #227: reserved naming patterns)",
+      run: () => new ParameterNamingAnalyzer().analyze(tree),
+      // Carries its own message text rather than a code.
+      format: (e) => e.message,
+    },
+    {
+      label: "struct fields (reserved field names like 'length')",
+      run: () => new StructFieldAnalyzer().analyze(tree),
+    },
+    {
+      label: "initialization (Rust-style use-before-init)",
+      run: () => new InitializationAnalyzer().analyze(tree, symbolTable),
+    },
+    {
+      // Before the call and essential-type analyses: a type that denotes
+      // nothing feeds an unknown type into every later question, so the
+      // diagnostics after it would name a consequence rather than the cause.
+      label: "undefined type references (#1312)",
+      run: () => new UndeclaredTypeAnalyzer().analyze(tree),
+    },
+    {
+      // After the type check, so a file whose type is undefined reports the
+      // type rather than every use of it.
+      label: "undefined value references (#1353)",
+      run: () => new UndeclaredValueAnalyzer().analyze(tree),
+    },
+    {
+      label: "call analysis (ADR-030: define-before-use)",
+      run: () => new FunctionCallAnalyzer().analyze(tree, symbolTable),
+    },
+    {
+      label: "NULL checks (ADR-047: C library interop)",
+      run: () => new NullCheckAnalyzer().analyze(tree),
+    },
+    {
+      label: "division by zero (ADR-051: compile-time detection)",
+      run: () => new DivisionByZeroAnalyzer().analyze(tree),
+    },
+    {
+      label: "float modulo (% with f32/f64)",
+      run: () => new FloatModuloAnalyzer().analyze(tree),
+    },
+    {
+      label: "array index type (ADR-054: unsigned indexes only)",
+      run: () => new ArrayIndexTypeAnalyzer().analyze(tree),
+    },
+    {
+      label: "signed shift (MISRA C:2012 Rule 10.1)",
+      run: () => new SignedShiftAnalyzer().analyze(tree),
+    },
+    {
+      // Before the Rule 10.4 check, so a bool in an arithmetic expression is
+      // reported as "not a number" rather than as a category mismatch with
+      // whatever it was combined with.
+      label: "boolean operands (MISRA C:2012 Rule 10.1, Issue #1183)",
+      run: () => new BooleanOperandAnalyzer().analyze(tree),
+    },
+    {
+      label:
+        "mixed essential type category (MISRA C:2012 Rule 10.4, ADR-024 / Issue #1091)",
+      run: () => new MixedTypeCategoryAnalyzer().analyze(tree),
+    },
+    {
+      label: "return paths (ADR-067: non-void must return on all paths)",
+      run: () => new ReturnPathAnalyzer().analyze(tree),
+    },
+    {
+      label:
+        "return-value use (ADR-070 / MISRA C:2012 Rule 17.7 at source level)",
+      run: () => ReturnValueUseAnalyzer.analyze(tree),
+    },
+    {
+      // Last, and does not halt: comment findings are reported alongside
+      // whatever else the file produced.
+      label: "comment validation (MISRA C:2012 Rules 3.1, 3.2 -- ADR-043)",
+      run: () => new CommentExtractor(tokenStream).validate(),
+      format: (e) => `error[MISRA-${e.rule}]: ${e.message}`,
+      advisory: true,
+    },
+  ];
+
+  for (const step of steps) {
+    const found = collectErrors(
+      step.run(),
       errors,
-      formatWithCode,
-    )
-  ) {
-    return errors;
+      step.format ?? formatWithCode,
+    );
+    // `break`, not an early `return`: both exits hand back the same `errors`
+    // array, so returning from inside the loop reads as two exits with one
+    // value (S3516) when it is really one exit and a stopping condition. What
+    // varies is what `errors` CONTAINS, which no return statement expresses.
+    if (found && !step.advisory) {
+      break;
+    }
   }
-
-  // 5. Call analysis (ADR-030: define-before-use)
-  const callAnalyzer = new FunctionCallAnalyzer();
-  if (
-    collectErrors(
-      callAnalyzer.analyze(tree, symbolTable),
-      errors,
-      formatWithCode,
-    )
-  ) {
-    return errors;
-  }
-
-  // 6. NULL check analysis (ADR-047: C library interop)
-  const nullAnalyzer = new NullCheckAnalyzer();
-  if (collectErrors(nullAnalyzer.analyze(tree), errors, formatWithCode)) {
-    return errors;
-  }
-
-  // 7. Division by zero analysis (ADR-051: compile-time detection)
-  const divZeroAnalyzer = new DivisionByZeroAnalyzer();
-  if (collectErrors(divZeroAnalyzer.analyze(tree), errors, formatWithCode)) {
-    return errors;
-  }
-
-  // 8. Float modulo analysis (catch % with f32/f64 early)
-  const floatModAnalyzer = new FloatModuloAnalyzer();
-  if (collectErrors(floatModAnalyzer.analyze(tree), errors, formatWithCode)) {
-    return errors;
-  }
-
-  // 9. Array index type validation (ADR-054: unsigned indexes only)
-  const indexTypeAnalyzer = new ArrayIndexTypeAnalyzer();
-  if (collectErrors(indexTypeAnalyzer.analyze(tree), errors, formatWithCode)) {
-    return errors;
-  }
-
-  // 10. Signed shift validation (MISRA C:2012 Rule 10.1: no signed shifts)
-  const signedShiftAnalyzer = new SignedShiftAnalyzer();
-  if (
-    collectErrors(signedShiftAnalyzer.analyze(tree), errors, formatWithCode)
-  ) {
-    return errors;
-  }
-
-  // 11. Boolean operands of arithmetic/bitwise/shift/relational operators
-  // (MISRA C:2012 Rule 10.1, Issue #1183). Runs before the Rule 10.4 check so a
-  // bool in an arithmetic expression is reported as "not a number" rather than
-  // as a category mismatch with whatever it was combined with.
-  const booleanOperandAnalyzer = new BooleanOperandAnalyzer();
-  if (
-    collectErrors(booleanOperandAnalyzer.analyze(tree), errors, formatWithCode)
-  ) {
-    return errors;
-  }
-
-  // 12. Mixed essential type category (MISRA C:2012 Rule 10.4, ADR-024 / Issue #1091)
-  const mixedTypeCategoryAnalyzer = new MixedTypeCategoryAnalyzer();
-  if (
-    collectErrors(
-      mixedTypeCategoryAnalyzer.analyze(tree),
-      errors,
-      formatWithCode,
-    )
-  ) {
-    return errors;
-  }
-
-  // 13. Return-path analysis (ADR-067: non-void functions must return on all paths)
-  const returnPathAnalyzer = new ReturnPathAnalyzer();
-  if (collectErrors(returnPathAnalyzer.analyze(tree), errors, formatWithCode)) {
-    return errors;
-  }
-
-  // 14. Return-value use (ADR-070: a non-void return must be used or explicitly
-  //     discarded with `(void)`). MISRA C:2012 Rule 17.7 at the source level.
-  if (
-    collectErrors(ReturnValueUseAnalyzer.analyze(tree), errors, formatWithCode)
-  ) {
-    return errors;
-  }
-
-  // 15. Comment validation (MISRA C:2012 Rules 3.1, 3.2) - ADR-043
-  const commentExtractor = new CommentExtractor(tokenStream);
-  collectErrors(
-    commentExtractor.validate(),
-    errors,
-    (e) => `error[MISRA-${e.rule}]: ${e.message}`,
-  );
 
   return errors;
 }

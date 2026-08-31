@@ -1,0 +1,2 @@
+// Negative control source for issue-1353.
+const u32 REACHABLE_LIMIT <- 99;

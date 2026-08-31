@@ -1,0 +1,6 @@
+// Negative control for issue-1312, layer 3. This type IS reachable by the
+// consumer through the include chain below, so it must keep resolving.
+enum Depth {
+    DEPTH_A <- 7,
+    DEPTH_B <- 8
+}
