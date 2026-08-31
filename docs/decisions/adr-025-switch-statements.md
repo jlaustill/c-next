@@ -342,7 +342,7 @@ defaultCase
 - `default` required (no count parameter)
 - `default(n)` syntax is an error for non-enum types
 
-### CodeGenerator
+### Generated C
 
 - Add `break;` after each case block
 - Expand `case A || B { }` to separate case labels in C
