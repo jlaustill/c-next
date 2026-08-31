@@ -12,7 +12,7 @@
 
 C-Next currently enforces MISRA C:2012 compliance through a combination of:
 
-- **15 actively enforced rules** via analyzers and TypeValidator
+- **15 actively enforced rules**, each rejected at compile time rather than reported
 - **43+ rules by design** - language features (no pointers, no malloc) make violations impossible
 - Documented in `docs/misra-compliance.md`
 
@@ -83,6 +83,5 @@ Aviation software requires DO-178C certification. This ADR captures initial rese
 
 - [DO-178C Overview](https://en.wikipedia.org/wiki/DO-178C)
 - [MISRA C:2012](https://www.misra.org.uk/misra-c/)
-- Current implementation: `docs/misra-compliance.md`
-- Comment validation: `src/transpiler/logic/analysis/CommentExtractor.ts`
-- Condition checks: `src/transpiler/output/codegen/TypeValidator.ts`
+- Current compliance status: `docs/misra-compliance.md`, which is generated from the
+  transpiler's own requirements registry and so cannot drift from what is enforced
