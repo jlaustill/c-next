@@ -127,8 +127,9 @@ The compiler determines nullability via:
 ## Consequences
 
 - ADR-047 is superseded
-- NullCheckAnalyzer.ts needs rewrite for prefix validation
-- TypeValidator.ts E0702 stream function exemption can be removed
+- E0702's exemption for stream functions is no longer needed and goes away: the
+  rule becomes one that applies everywhere rather than one with a carve-out, which
+  is the point of the change
 - Existing code using `if (fgets(...) != NULL)` still works
 - New code can store results: `cstring c_result <- fgets(...)`
 

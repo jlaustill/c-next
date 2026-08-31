@@ -33,7 +33,6 @@ const ADR_INDEPENDENCE_BASELINE: readonly string[] = [
   "adr-016-scope.md",
   "adr-030-forward-declarations.md",
   "adr-036-multidimensional-arrays.md",
-  "adr-046-nullable-c-interop.md",
   "adr-047-nullable-types.md",
   "adr-051-division-by-zero.md",
   "adr-062-sink-aware-array-auto-const.md",
