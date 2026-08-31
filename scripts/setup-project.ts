@@ -351,7 +351,7 @@ class SetupProject {
     );
   }
 
-  /** Adds the free-text field recording why an item cannot move. */
+  /** Adds the free-text field recording what an item has waited on. */
   private static ensureBlockedField(
     projectId: string,
     existingId: string | undefined,

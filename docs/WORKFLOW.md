@@ -42,11 +42,27 @@ shipped, that is a new issue with its own reproduction — not a resurrected one
 
 ### `Blocked by`
 
-A free-text project field. Empty means not blocked; anything else names what is
-in the way — an upstream fix, a pending decision, another issue. Blocked-ness is
-_orthogonal_ to position: a blocked issue stays in whatever column it is already
-in — Grooming or Backlog — it just says why it cannot leave. This replaced the old
-`status: blocked` label.
+A free-text project field naming what the work is waiting on — an upstream fix, a
+pending decision, another issue. **It is a record, not a state, and it is never
+cleared.** An issue is blocked while any issue named here is still open; once they
+have all closed it is no longer blocked, and the text _stays_ — permanently — as the
+record of what the work waited on.
+
+A new blocker is **appended**, never substituted. #1318 waited on
+`#1285 (PR5-PR7)`, and then on `#1357 (symbol model: sourceColumn)`; the record is
+both, in that order, not whichever arrived last. Overwriting honours "never cleared"
+to the letter and destroys the record just as completely — the field keeps no version
+history, so the replaced value is gone from the board (#1419). Appending is the only
+write this field takes.
+
+Blocked-ness is therefore **derived** ("are the issues named here still open?"), and
+is never read off the field's emptiness. Empty means nothing ever blocked this card,
+not that a blocker was resolved: keeping the record and the live state in one slot
+would mean writing either of them destroys the other.
+
+Blocked-ness is also _orthogonal_ to position: a blocked issue stays in whatever
+column it is already in — Grooming or Backlog — it just says why it cannot leave.
+This replaced the old `status: blocked` label.
 
 ---
 

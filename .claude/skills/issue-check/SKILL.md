@@ -9,7 +9,9 @@ tools: Bash, Read, Grep, Glob, WebFetch, Task, AskUserQuestion
 
 Analyze the c-next repo's open GitHub issues, automatically detect what's already in-flight, and recommend the best issue to tackle next using a heuristic tuned to **this project's actual labels and workflow**. For bug issues, transition into the c-next TDD workflow; for features, into the ADR-first research workflow.
 
-> **Project-specialized skill.** This overrides the generic personal `issue-check` while working in c-next. The scoring rubric (Phase 3) and begin-work workflow (Phase 6) are tailored to c-next's labels, ADR process, and `.test.cnx` TDD conventions from `CLAUDE.md`.
+> **Project-specialized skill.** The scoring rubric (Phase 3) and begin-work workflow (Phase 6) are tailored to c-next's labels, ADR process, and `.test.cnx` TDD conventions from `CLAUDE.md`.
+>
+> This file previously claimed to override a personal `issue-check` of the same name. It did not: on a name collision the personal skill won, and everything below — the board query, the sprint filter, the c-next label taxonomy — never ran (#1415). Do not reintroduce a personal skill named `issue-check`; there is no override, only a shadow.
 
 ## Execution Workflow
 
@@ -110,7 +112,35 @@ query($endCursor: String) { user(login: "jlaustill") { projectV2(number: 1) {
 ```
 
 ```
-STORE per issue: BOARD_STATUS, BLOCKED_BY
+STORE per issue: BOARD_STATUS, BLOCKED_BY (the raw field text)
+
+RESOLVE blocked-ness. It is DERIVED from what BLOCKED_BY names, never from whether
+the field is empty. `Blocked by` is a permanent record of what the work waited on
+and is NEVER cleared, so a populated field says nothing on its own about today.
+
+FOR each issue whose BLOCKED_BY is non-empty:
+  EXTRACT every issue number (#NNNN) named in the text, and resolve each:
+    gh api repos/jlaustill/c-next/issues/<n> --jq '.state'   # open | closed
+
+  THEN read what remains once the references are removed, and judge whether it
+  ANNOTATES a named issue — "(PR5-PR7)", "- only blockers",
+  "(symbol model: sourceColumn)" — or names a FURTHER blocker of its own,
+  "plus the naming decision". Both shapes are on the board today.
+
+    any named issue still open
+      → IS_BLOCKED. OPEN_BLOCKERS = those issues.
+    all named issues closed, and the remaining text only annotates them
+      → NOT blocked. Available. Leave the field alone.
+    the text names a further blocker in prose, with or without a reference
+      → IS_BLOCKED. OPEN_BLOCKERS = the raw field text — nothing can derive it,
+        so print it verbatim for a human to judge.
+    you cannot tell which of the previous two it is
+      → IS_BLOCKED, and SAY the prose is unresolved rather than guessing.
+
+  NEVER key this on "does the text contain a #NNNN". A field mixing a reference
+  with a prose blocker would then go available the moment the reference closed,
+  silently dropping a blocker no query can see. OPEN_BLOCKERS is assigned on
+  every blocked branch, because both consumers below print it.
 
 IF the query fails (needs `gh auth refresh -s project`):
   SAY SO EXPLICITLY and stop — do not fall back to label-only scoring and
@@ -123,12 +153,18 @@ IF the query fails (needs `gh auth refresh -s project`):
 ### Phase 2: Fetch Open Issues
 
 ```bash
-# Get all open issues (excluding PRs) with full metadata
-gh issue list --state open --limit 50 --json number,title,labels,milestone,createdAt,updatedAt,comments,body \
+# --limit must exceed the open-issue count or the tail is dropped in silence —
+# gh returns the most recently updated first, so the oldest simply vanish (#1416).
+# The ASSERT below is the part that survives backlog growth; the number alone rots.
+gh issue list --state open --limit 1000 --json number,title,labels,milestone,createdAt,updatedAt,comments,body \
   --jq '.[] | {number, title, labels: [.labels[].name], milestone: .milestone.title, created: .createdAt, updated: .updatedAt, comment_count: (.comments | length), body: .body[:300]}'
 ```
 
 ```
+ASSERT the returned issue count is strictly less than the --limit above. If it
+  equals the limit the list was truncated: SAY SO and stop, rather than ranking a
+  backlog you can only partly see.
+
 DETERMINE ACTIVE_MILESTONE = the open milestone with the most open issues
   (this repo uses a milestone as its sprint — see docs/WORKFLOW.md, "Releases are issues")
 
@@ -136,7 +172,7 @@ PARTITION issues into:
   IN_FLIGHT_DISPLAY = open issues that ARE in IN_FLIGHT_ISSUES (for the report)
 
   EXCLUDED = open issues, each with the reason, where any of:
-    - BLOCKED       BLOCKED_BY is non-empty       → name what blocks it
+    - BLOCKED       IS_BLOCKED (Phase 1d)         → name the OPEN_BLOCKERS
     - GROOMING      BOARD_STATUS == "Grooming"    → not triaged; scope is still open
     - EPIC          has the "epic" label          → a tracker, never picked up directly
     - OUT_OF_SPRINT milestone != ACTIVE_MILESTONE → unless --all was passed
@@ -252,12 +288,18 @@ does not exist, and the reason it was skipped is usually the useful part.
 
 | Issue | Reason | Detail |
 |-------|--------|--------|
-| #1322 | Blocked | #1316, #1321 |
-| #1318 | Blocked | #1285 (PR5-PR7) |
+| #1323 | Blocked | #1301, #1319 — both open |
+| #1324 | Blocked | #1313 open; #1357 closed, no longer a blocker |
 | #1313 | Epic    | tracker; closes when its children do |
-| #1330 | Grooming | not triaged — scope still open |
+| #1374 | Grooming | not triaged — scope still open |
 
 Ranking below covers <ACTIVE_MILESTONE> only. Run `/issue-check --all` for the full backlog.
+
+Detail names the OPEN blockers, not the field text — a closed one is history and
+does not belong in a "why this is skipped" column. An earlier version of this
+sample read `| #1322 | Blocked | #1316, #1321 |` and
+`| #1318 | Blocked | #1285 (PR5-PR7) |`; those values are what #1419 recovered the
+two cleared fields from, and `git show 21823602` still carries them.
 ```
 
 #### Top Recommendations
@@ -430,18 +472,32 @@ IF a recommended issue shares a DOMAIN label (parser, code-generator, types, sco
 
 ```
 `Blocked by` is free text, not a link — it may name a whole issue ("#1285"), a
-specific slice of one ("#1285 PR5 - do PR5 first"), or a pending decision.
+specific slice of one ("#1285 PR5 - do PR5 first"), or a pending decision. It is
+also a PERMANENT RECORD of what the work waited on. It is NEVER cleared, not even
+once every blocker has closed. Never clear it, never replace what it already names,
+and never propose either. A new blocker is appended beside the existing text — that
+is the only write this field takes.
 
-NEVER recommend an issue with a non-empty `Blocked by`. Report it under
-"Not Recommended Yet" with the blocker named, so the user can see the chain.
+A populated field is therefore not by itself a reason to skip an issue. Use
+IS_BLOCKED from Phase 1d, which asks whether what it names is still open.
+
+NEVER recommend an issue that IS_BLOCKED. Report it under "Not Recommended Yet"
+with the OPEN blockers named, so the user can see the chain.
 
 IF every issue in the active milestone is blocked:
   SAY SO, and name the root blockers — that set IS the recommendation.
   "Everything in <milestone> is blocked on #<a> and #<b>. Those are the work."
 
-IF a blocker is itself finished but the field was never cleared:
-  FLAG it rather than silently ignoring the field. A stale `Blocked by` is a bug
-  in the board, and clearing it is a one-line fix that unblocks real work.
+IF every issue a `Blocked by` names has closed:
+  The issue is AVAILABLE and the field is already correct — a resolved blocker is
+  history, not a stale value, and there is nothing to fix. Say so when recommending
+  it: "unblocked (was: #1316, #1321 — both closed)", so the reader can see the
+  field was read rather than ignored.
+
+IF the text qualifies the dependency ("#1285 PR5 - do PR5 first") and #1285 is
+still open:
+  Derivation cannot see inside it, so the issue stays BLOCKED. Print the qualifier
+  verbatim so the user can overrule it.
 ```
 
 ### Stale Issues
@@ -470,7 +526,11 @@ IF no open issues exist:
 - **DO NOT** change C-Next syntax/behavior or an ADR's Status without explicit ADR approval
 - **DO NOT** forget to update the GitHub issue as work progresses
 - **DO NOT** pick issues labeled "test-blocked", "wontfix", or "epic"
-- **DO NOT** recommend an issue with a non-empty `Blocked by`, or one sitting in `Grooming`
+- **DO NOT** recommend an issue that IS_BLOCKED (its `Blocked by` names something
+  still open), or one sitting in `Grooming`
+- **DO NOT** clear a `Blocked by`, replace what it names, or propose either — it is a
+  permanent record, and a blocker that has closed is history, not a stale value. A new
+  blocker is appended beside the old, never substituted for it
 - **DO NOT** fall back to label-only scoring when the board query fails — say it failed
   and stop; a ranking that ignores `Blocked by` looks authoritative and is not
 - **DO NOT** widen past the active milestone without `--all` — the milestone is the sprint
