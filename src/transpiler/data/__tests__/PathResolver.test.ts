@@ -127,7 +127,7 @@ describe("PathResolver", () => {
       writeFileSync(filePath, "");
       const file = createFile(filePath);
 
-      const result = resolver.getOutputPath(file, false);
+      const result = resolver.getOutputPath(file, ".c");
 
       expect(result).toBe(join(outDir, "main.c"));
     });
@@ -142,7 +142,7 @@ describe("PathResolver", () => {
       writeFileSync(filePath, "");
       const file = createFile(filePath);
 
-      const result = resolver.getOutputPath(file, true);
+      const result = resolver.getOutputPath(file, ".cpp");
 
       expect(result).toBe(join(outDir, "main.cpp"));
     });
@@ -157,7 +157,7 @@ describe("PathResolver", () => {
       writeFileSync(filePath, "");
       const file = createFile(filePath);
 
-      const result = resolver.getOutputPath(file, false);
+      const result = resolver.getOutputPath(file, ".c");
 
       expect(result).toBe(join(outDir, "subdir", "utils.c"));
     });
@@ -175,7 +175,7 @@ describe("PathResolver", () => {
       writeFileSync(filePath, "");
       const file = createFile(filePath);
 
-      const result = resolver.getOutputPath(file, false);
+      const result = resolver.getOutputPath(file, ".c");
 
       expect(result).toBe(join(otherDir, "external.c"));
     });
@@ -192,7 +192,7 @@ describe("PathResolver", () => {
       writeFileSync(filePath, "");
       const file = createFile(filePath);
 
-      const result = resolver.getHeaderOutputPath(file);
+      const result = resolver.getHeaderOutputPath(file, ".h");
 
       expect(result).toBe(join(outDir, "main.h"));
     });
@@ -208,7 +208,7 @@ describe("PathResolver", () => {
       writeFileSync(filePath, "");
       const file = createFile(filePath);
 
-      const result = resolver.getHeaderOutputPath(file);
+      const result = resolver.getHeaderOutputPath(file, ".h");
 
       expect(result).toBe(join(headerDir, "main.h"));
     });
@@ -228,7 +228,7 @@ describe("PathResolver", () => {
       });
 
       const file = createFile(filePath);
-      const result = resolver.getHeaderOutputPath(file);
+      const result = resolver.getHeaderOutputPath(file, ".h");
 
       expect(result).toBe(join(headerDir, "subdir", "utils.h"));
     });
@@ -244,7 +244,7 @@ describe("PathResolver", () => {
       writeFileSync(filePath, "");
       const file = createFile(filePath);
 
-      const result = resolver.getHeaderOutputPath(file);
+      const result = resolver.getHeaderOutputPath(file, ".h");
 
       expect(result).toBe(join(headerDir, "subdir", "utils.h"));
     });
@@ -263,7 +263,7 @@ describe("PathResolver", () => {
       writeFileSync(filePath, "");
       const file = createFile(filePath);
 
-      const result = resolver.getHeaderOutputPath(file);
+      const result = resolver.getHeaderOutputPath(file, ".h");
 
       expect(result).toBe(join(otherDir, "external.h"));
     });
@@ -282,7 +282,7 @@ describe("PathResolver", () => {
       writeFileSync(filePath, "");
       const file = createFile(filePath);
 
-      const result = resolver.getHeaderOutputPath(file);
+      const result = resolver.getHeaderOutputPath(file, ".h");
 
       // Should use basename since file is not under any input
       expect(result).toContain("standalone.h");
@@ -301,7 +301,7 @@ describe("PathResolver", () => {
       });
 
       const file = createFile(filePath);
-      const result = resolver.getHeaderOutputPath(file);
+      const result = resolver.getHeaderOutputPath(file, ".h");
 
       expect(result).toBe(join(headerDir, "subdir", "utils.h"));
     });
@@ -319,7 +319,7 @@ describe("PathResolver", () => {
       });
 
       const file = createFile(filePath);
-      const result = resolver.getHeaderOutputPath(file);
+      const result = resolver.getHeaderOutputPath(file, ".h");
 
       // src/main.cnx with basePath "src" -> main.h in headerDir
       expect(result).toBe(join(headerDir, "main.h"));
@@ -336,7 +336,7 @@ describe("PathResolver", () => {
       writeFileSync(filePath, "");
       const file = createFile(filePath);
 
-      const result = resolver.getHeaderOutputPath(file, true);
+      const result = resolver.getHeaderOutputPath(file, ".hpp");
 
       expect(result).toBe(join(outDir, "main.hpp"));
     });
@@ -352,7 +352,7 @@ describe("PathResolver", () => {
       writeFileSync(filePath, "");
       const file = createFile(filePath);
 
-      const result = resolver.getHeaderOutputPath(file, true);
+      const result = resolver.getHeaderOutputPath(file, ".hpp");
 
       expect(result).toBe(join(headerDir, "main.hpp"));
     });

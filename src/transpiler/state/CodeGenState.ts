@@ -40,6 +40,8 @@ import TYPE_WIDTH from "../constants/TYPE_WIDTH";
 import UNRESOLVED_DIMENSION from "../constants/UNRESOLVED_DIMENSION";
 import type ICodeGenApi from "../types/ICodeGenApi";
 import TypeResolver from "../../utils/TypeResolver";
+import OutputExtensions from "../../utils/OutputExtensions";
+import type IOutputExtensions from "../types/IOutputExtensions";
 import type IVariableSymbol from "../types/symbols/IVariableSymbol";
 import QualifiedCName from "../../utils/QualifiedCName";
 import IScopeSymbol from "../types/symbols/IScopeSymbol";
@@ -439,6 +441,20 @@ export default class CodeGenState {
 
   /** Use temp vars instead of compound literals */
   static cppMode: boolean = false;
+
+  /**
+   * Issue #1319: the extensions this run emits, derived from the mode rather
+   * than stored beside it. A stored copy would be a second holder of the same
+   * fact and could drift from `cppMode`; a getter cannot.
+   *
+   * Codegen sites that only need a filename ask for this. `cppMode` itself is
+   * still read directly for genuine mode decisions -- pointer vs reference,
+   * `.` vs `->`, `NULL` vs `nullptr` -- which are not filenames and are not
+   * this decision.
+   */
+  static get outputExtensions(): IOutputExtensions {
+    return OutputExtensions.forCppMode(this.cppMode);
+  }
 
   /** Debug mode generates panic-on-overflow helpers (ADR-044) */
   static debugMode: boolean = false;

@@ -15,19 +15,22 @@ class IncludeExtractor {
    * Extract user includes from a parsed C-Next program.
    *
    * Extracts #include directives for .cnx files and transforms them to .h or .hpp includes.
-   * Issue #941: Uses .hpp extension when cppMode is true.
+   * Issue #941: Uses .hpp extension when the run emits C++.
    * This enables cross-file type definitions in generated headers.
    *
+   * Issue #1319: takes the extension rather than the mode, and no longer
+   * defaults it. The default was `false`, so omitting the argument silently
+   * claimed a C run.
+   *
    * @param tree The parsed C-Next program
-   * @param cppMode Whether to use .hpp extension (C++ mode)
+   * @param ext The run's header extension (".h" or ".hpp")
    * @returns Array of transformed include strings (e.g., '#include "types.h"' or '#include "types.hpp"')
    */
   static collectUserIncludes(
     tree: Parser.ProgramContext,
-    cppMode: boolean = false,
+    ext: string,
   ): string[] {
     const userIncludes: string[] = [];
-    const ext = cppMode ? ".hpp" : ".h";
     for (const includeDir of tree.includeDirective()) {
       const includeText = includeDir.getText();
       // Include both quoted ("...") and angle-bracket (<...>) .cnx includes

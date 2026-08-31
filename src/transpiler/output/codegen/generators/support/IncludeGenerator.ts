@@ -13,7 +13,12 @@ interface IIncludeTransformOptions {
   sourcePath: string | null;
   includeDirs?: string[];
   inputs?: string[];
-  cppMode?: boolean;
+  /**
+   * Issue #1319: the run's header extension (".h" or ".hpp"), not its mode.
+   * Required -- it was `cppMode?: boolean` destructured with a `false` default
+   * at two sites, so an options object that omitted it silently emitted `.h`.
+   */
+  headerExtension: string;
 }
 
 /**
@@ -25,7 +30,7 @@ const resolveAngleIncludePath = (
   sourcePath: string,
   includeDirs: string[],
   inputs: string[],
-  cppMode: boolean,
+  ext: string,
 ): string | null => {
   if (inputs.length === 0) {
     return null;
@@ -44,7 +49,6 @@ const resolveAngleIncludePath = (
     inputs,
   );
 
-  const ext = cppMode ? ".hpp" : ".h";
   return relativePath ? relativePath.replace(/\.cnx$/, ext) : null;
 };
 
@@ -61,7 +65,7 @@ const transformAngleInclude = (
     sourcePath,
     includeDirs = [],
     inputs = [],
-    cppMode = false,
+    headerExtension,
   } = options;
 
   // Try to resolve the correct output path
@@ -71,7 +75,7 @@ const transformAngleInclude = (
       sourcePath,
       includeDirs,
       inputs,
-      cppMode,
+      headerExtension,
     );
     if (resolvedPath) {
       return includeText.replace(`<${filename}.cnx>`, `<${resolvedPath}>`);
@@ -79,8 +83,10 @@ const transformAngleInclude = (
   }
 
   // Fallback: simple replacement
-  const ext = cppMode ? ".hpp" : ".h";
-  return includeText.replace(`<${filename}.cnx>`, `<${filename}${ext}>`);
+  return includeText.replace(
+    `<${filename}.cnx>`,
+    `<${filename}${headerExtension}>`,
+  );
 };
 
 /**
@@ -92,7 +98,7 @@ const transformQuoteInclude = (
   filepath: string,
   options: IIncludeTransformOptions,
 ): string => {
-  const { sourcePath, cppMode = false } = options;
+  const { sourcePath, headerExtension } = options;
 
   // Validate .cnx file exists if we have source path
   if (sourcePath) {
@@ -109,13 +115,15 @@ const transformQuoteInclude = (
   }
 
   // Transform to .h or .hpp
-  const ext = cppMode ? ".hpp" : ".h";
-  return includeText.replace(`"${filepath}.cnx"`, `"${filepath}${ext}"`);
+  return includeText.replace(
+    `"${filepath}.cnx"`,
+    `"${filepath}${headerExtension}"`,
+  );
 };
 
 /**
  * ADR-010: Transform #include directives, converting .cnx to .h or .hpp
- * Issue #941: Uses .hpp extension when cppMode is true
+ * Issue #941: Uses .hpp extension when the run emits C++
  * Validates that .cnx files exist if sourcePath is available
  * Supports both <file.cnx> and "file.cnx" forms
  *

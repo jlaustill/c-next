@@ -81,13 +81,16 @@ class PathResolver {
   /**
    * Get output path for a transpiled file (.c or .cpp)
    *
+   * Issue #1319: takes the run's source extension rather than its mode. Naming
+   * an output file is a decision, and `data/` is the earliest layer -- it ran
+   * before the C++ latch had settled, so it could not have made that decision
+   * correctly even in principle.
+   *
    * @param file - The discovered file to get output path for
-   * @param cppMode - If true, output .cpp; otherwise .c
+   * @param ext - The run's source extension (".c" or ".cpp")
    * @returns The full output path
    */
-  getOutputPath(file: IDiscoveredFile, cppMode: boolean): string {
-    const ext = cppMode ? ".cpp" : ".c";
-
+  getOutputPath(file: IDiscoveredFile, ext: string): string {
     const relativePath = this.getRelativePathFromInputs(file.path);
     if (relativePath) {
       // File is under an input directory - preserve structure
@@ -112,14 +115,16 @@ class PathResolver {
    * Get output path for a header file (.h or .hpp)
    * Uses headerOutDir if specified, otherwise falls back to outDir
    *
+   * Issue #1319: takes the run's header extension rather than its mode. This
+   * parameter previously defaulted to `false`, so a caller that forgot it got
+   * `.h` in a C++ run with nothing reporting the mismatch -- while the sibling
+   * `getOutputPath` required the same fact.
+   *
    * @param file - The discovered file to get header path for
-   * @param cppMode - If true, output .hpp; otherwise .h (Issue #933)
+   * @param ext - The run's header extension (".h" or ".hpp", Issue #933)
    * @returns The full header output path
    */
-  getHeaderOutputPath(file: IDiscoveredFile, cppMode = false): string {
-    // Issue #933: Use .hpp extension in C++ mode so C and C++ headers don't overwrite
-    const ext = cppMode ? ".hpp" : ".h";
-
+  getHeaderOutputPath(file: IDiscoveredFile, ext: string): string {
     // Use headerOutDir if specified, otherwise fall back to outDir
     const headerDir = this.config.headerOutDir || this.config.outDir;
 

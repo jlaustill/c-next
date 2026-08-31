@@ -142,7 +142,10 @@ class IncludeTreeWalker {
       [...includeDirs],
       [],
     );
-    const resolver = new IncludeResolver(searchPaths);
+    // Issue #1319: null, not a mode -- this walker returns only cnextIncludes
+    // and never reads headerIncludeDirectives, so it has no extension to give.
+    // It previously defaulted the mode to false and silently claimed ".h".
+    const resolver = new IncludeResolver(searchPaths, null);
     const resolved = resolver.resolve(content, filePath);
 
     return resolved.cnextIncludes;

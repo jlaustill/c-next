@@ -55,6 +55,8 @@ import IncludeResolver from "./data/IncludeResolver";
 import IncludeTreeWalker from "./data/IncludeTreeWalker";
 import DependencyGraph from "./data/DependencyGraph";
 import PathResolver from "./data/PathResolver";
+import OutputExtensions from "../utils/OutputExtensions";
+import type IOutputExtensions from "./types/IOutputExtensions";
 import InputExpansion from "./data/InputExpansion";
 import CppEntryPointScanner from "./data/CppEntryPointScanner";
 
@@ -91,8 +93,47 @@ class Transpiler {
   private readonly headerGenerator: HeaderGenerator;
   private readonly warnings: string[];
   private readonly cacheManager: CacheManager | null;
-  /** Issue #211: Tracks if C++ output is needed (one-way flag, false → true only) */
-  private cppDetected: boolean;
+  /**
+   * Issue #211: Tracks if C++ output is needed.
+   *
+   * Issue #1319: a monotone latch -- seeded from `--cpp`, raised when an
+   * included header proves the run emits C++, and never lowered. Monotone means
+   * order-independent: one settled value per run whatever order the include
+   * graph is walked, which is what makes it a legitimate cross-file fact rather
+   * than a per-file one.
+   *
+   * Nothing may assign this outside `raiseCppDetected()`. There is no setter, so
+   * "one-way" is a property of the code rather than a comment asking for care --
+   * the previous version of this line stated the invariant and nothing checked
+   * it. `CppLatchMonotonicity.test.ts` gates it.
+   */
+  private cppDetectedLatch: boolean = false;
+
+  /** Read the latch. Callers outside this class use `isCppDetected()`. */
+  private get cppDetected(): boolean {
+    return this.cppDetectedLatch;
+  }
+
+  /**
+   * Raise the latch. Issue #1319: the only write to `cppDetectedLatch`. There is
+   * deliberately no way to lower it.
+   */
+  private raiseCppDetected(): void {
+    this.cppDetectedLatch = true;
+  }
+
+  /**
+   * Issue #1319: the run's output extensions -- the interim owner of a decision
+   * that belongs in pass 2.2 Plan, which does not exist yet.
+   *
+   * Nine sites across all four layers used to map the mode to an extension
+   * themselves. Handing out the extension instead of the mode is what lets
+   * `data/` stop naming output files: naming one is a decision, and `data/` is
+   * the earliest layer, so it ran before the latch had settled.
+   */
+  private get outputExtensions(): IOutputExtensions {
+    return OutputExtensions.forCppMode(this.cppDetected);
+  }
 
   /**
    * Set when any C header failed standalone preprocessing (fell back to raw
@@ -165,8 +206,12 @@ class Transpiler {
       noCache: config.noCache ?? false,
     };
 
-    // Issue #211: Initialize cppDetected from config (--cpp flag sets this)
-    this.cppDetected = this.config.cppRequired;
+    // Issue #211: Seed the latch from config (--cpp flag sets this)
+    // Issue #1319: seeding raises; it never lowers, so `--cpp` off is the
+    // absence of a raise rather than an assignment of false.
+    if (this.config.cppRequired) {
+      this.raiseCppDetected();
+    }
 
     // Adopt the compiler's own view from the project's compile_commands.json, if
     // present. Every build system (CMake, PlatformIO, Meson, Zephyr, bear-wrapped
@@ -635,7 +680,7 @@ class Transpiler {
       // Collect user includes
       const userIncludes = IncludeExtractor.collectUserIncludes(
         tree,
-        this.cppDetected,
+        this.outputExtensions.header,
       );
       // Issue #424: kept separate — added to the header only when it names a
       // macro that one of these supplies (see _headerNeedsMacroIncludes).
@@ -729,8 +774,8 @@ class Transpiler {
     // Resolve includes from source content
     const resolver = new IncludeResolver(
       searchPaths,
+      this.outputExtensions.header,
       this.fs,
-      this.cppDetected,
     );
     const resolved = resolver.resolve(source, sourcePath);
     this.warnings.push(...resolved.warnings);
@@ -1188,7 +1233,10 @@ class Transpiler {
       fileResult.success &&
       fileResult.code
     ) {
-      outputPath = this.pathResolver.getOutputPath(file, this.cppDetected);
+      outputPath = this.pathResolver.getOutputPath(
+        file,
+        this.outputExtensions.source,
+      );
       // #1233: queued, not written -- the caller flushes only if the whole run
       // succeeds, matching how Stage 6 already gates headers.
       pendingWrites.push({ path: outputPath, content: fileResult.code });
@@ -1242,10 +1290,10 @@ class Transpiler {
       }
       const headerContent = headersBySourcePath.get(file.path);
       if (headerContent) {
-        // Issue #933: Pass cppDetected to generate .hpp in C++ mode
+        // Issue #933: .hpp in C++ mode, so C and C++ headers cannot overwrite
         const headerPath = this.pathResolver.getHeaderOutputPath(
           file.discoveredFile,
-          this.cppDetected,
+          this.outputExtensions.header,
         );
         this.fs.writeFile(headerPath, headerContent);
         result.outputFiles.push(headerPath);
@@ -1413,8 +1461,8 @@ class Transpiler {
     // Resolve includes
     const resolver = new IncludeResolver(
       searchPaths,
+      this.outputExtensions.header,
       this.fs,
-      this.cppDetected,
     );
     const resolved = resolver.resolve(content, cnxFile.path);
 
@@ -1838,14 +1886,14 @@ class Transpiler {
   private detectCppFromFileType(file: IDiscoveredFile): void {
     if (file.type === EFileType.CppHeader) {
       // .hpp files are always C++
-      this.cppDetected = true;
+      this.raiseCppDetected();
       return;
     }
 
     if (file.type === EFileType.CHeader) {
       const content = this.fs.readFile(file.path);
       if (detectCppSyntax(content)) {
-        this.cppDetected = true;
+        this.raiseCppDetected();
       }
     }
   }
@@ -1865,7 +1913,7 @@ class Transpiler {
 
     if (file.type === EFileType.CppHeader) {
       // Issue #211: .hpp files are always C++
-      this.cppDetected = true;
+      this.raiseCppDetected();
       if (this.config.debugMode) {
         console.log(`[DEBUG]   Parsing C++ header: ${file.path}`);
       }
@@ -1891,7 +1939,7 @@ class Transpiler {
 
     if (detectCppSyntax(content)) {
       // Issue #211: C++ detected, set flag for .cpp output
-      this.cppDetected = true;
+      this.raiseCppDetected();
       // Use C++14 parser for headers with C++ syntax (typed enums, classes, etc.)
       this.parseCppHeader(content, filePath);
     } else {
@@ -2069,7 +2117,8 @@ class Transpiler {
     }
 
     // Issue #933: Use .hpp extension for include guard in C++ mode
-    const ext = this.cppDetected ? ".hpp" : ".h";
+    // Issue #1319: read the run's extension; do not re-derive it from the mode
+    const ext = this.outputExtensions.header;
     const headerName = this._guardIdentity(sourcePath).replace(
       /\.cnx$|\.cnext$/,
       ext,
