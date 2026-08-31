@@ -37,7 +37,6 @@ const ADR_INDEPENDENCE_BASELINE: readonly string[] = [
   "adr-062-sink-aware-array-auto-const.md",
   "adr-063-identifier-syntax.md",
   "adr-066-do178c-compliance.md",
-  "adr-067-all-paths-return.md",
   "adr-068-forever-loops.md",
   "adr-069-dead-code-reachability.md",
   "adr-070-return-value-use.md",
