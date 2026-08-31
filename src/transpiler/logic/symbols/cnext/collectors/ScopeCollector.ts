@@ -71,11 +71,15 @@ class ScopeCollector {
     // printed one location twice because there was only ever one position.
     //
     // Set membership is keyed on the rendered `file:line`, so re-collecting the
-    // same textual block is a no-op rather than a duplicate entry. #1301 removed
-    // the pass that made that reachable -- `CNextResolver.resolve` ran twice per
-    // file while Transpiler stages 3 and 5 each declared every file, and now runs
-    // once. The dedup stays as a ratchet, and because a scope REOPENED across
-    // files still reaches this line once per declaring block by design (#1334).
+    // same textual block is a no-op rather than a duplicate entry.
+    //
+    // #1301 removed the only thing that presented a duplicate: `CNextResolver.resolve`
+    // ran twice per file while Transpiler stages 3 and 5 each declared every file,
+    // and now runs once. A scope REOPENED across files does NOT present one either --
+    // each declaring block contributes a DISTINCT `file:line`. So this dedup is now
+    // a ratchet with nothing exercising it, kept so that a reintroduced second pass
+    // is absorbed rather than silently duplicating. Stated plainly because the
+    // alternative is a comment claiming coverage the code no longer has.
     mutableScope.declarationSites.add(DeclarationSite.format(sourceFile, line));
 
     // The scalars keep the FIRST site. Lossless now that declarationSites holds
@@ -99,9 +103,12 @@ class ScopeCollector {
     // #1334: `scope.members` is a shared mutable array on the cached scope, and
     // `CNextResolver.resolve` USED TO run more than once per file, so every member
     // was re-pushed on each pass -- measured, a four-block scope grew to
-    // [Point, Mode, fromC, runAll, Point, Mode, fromC]. #1301 removed that second
-    // pass; the dedup stays as a ratchet, and remains load-bearing for a scope
-    // reopened across files, which reaches this line once per declaring block.
+    // [Point, Mode, fromC, runAll, Point, Mode, fromC]. #1301 removed that pass.
+    //
+    // Like the `declarationSites` dedup above, this one is now UNEXERCISED: a
+    // reopened scope contributes distinct names, and two members sharing a name in
+    // one scope are rejected as E0425 before this list is read. Kept as a ratchet
+    // against a reintroduced second pass, not because anything reaches it today.
     //
     // Harmless today only by coincidence: the one real consumer wraps it in a Set
     // (TSymbolInfoAdapter.ts:395). That is a latent divergence, not a working

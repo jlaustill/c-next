@@ -1,0 +1,18 @@
+// Helper for issue #1301 -- the other half of the include cycle.
+//
+// It includes the file that includes it, and names a scope type from that file
+// (`Sensor.EUnit`), so the transitive-enum seed has to be complete in BOTH
+// directions for this pair to resolve.
+#include "cyclic-include.test.cnx"
+
+scope Logger {
+    private Sensor.EUnit unit <- Sensor.EUnit.CELSIUS;
+
+    public u32 count() {
+        return 7;
+    }
+
+    public u32 reportedUnit() {
+        return unit;
+    }
+}

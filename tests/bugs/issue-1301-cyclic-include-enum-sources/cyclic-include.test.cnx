@@ -1,0 +1,45 @@
+// test-execution
+// Issue #1301 review: two .cnx files that #include each other.
+//
+// #1301 shares one parse and one declare between transpiler stages 3 and 5.
+// `externalEnumSources` was cached alongside them, and unlike the tree it is not
+// a pure function of one file's text -- it reads a map stage 3 fills
+// incrementally. Under a cycle the toposort fails, `getSortedFiles()` falls back
+// to insertion order with only a warning, and a file can be declared before the
+// file defining the scope types it names. Stage 5 runs once stage 3 has finished,
+// so the pass #1301 removed was repairing that, not merely recomputing it.
+//
+// Caching the field regressed this shape from compiling to
+// `error[E0427]: 'Logger' is not defined`. No fixture had a cyclic .cnx include
+// graph, so neither the 1142-file equivalence measurement nor test:gate could
+// see it -- which is why this one exists.
+#include "cycle-partner.cnx"
+
+scope Sensor {
+    public enum EUnit {
+        CELSIUS,
+        FAHRENHEIT
+    }
+
+    // Names a scope declared in the file that includes THIS one. Resolving it
+    // needs the partner already in the symbol-info map.
+    public u32 read() {
+        return Logger.count();
+    }
+}
+
+i32 main() {
+    // MISRA C:2012 Rule 13.5 -- results are stored before comparison, since a
+    // function call may not appear in an `if` condition.
+    u32 reading <- Sensor.read();
+    if (reading != 7) {
+        return 1;
+    }
+
+    u32 unit <- Logger.reportedUnit();
+    if (unit != 0) {
+        return 2;
+    }
+
+    return 0;
+}

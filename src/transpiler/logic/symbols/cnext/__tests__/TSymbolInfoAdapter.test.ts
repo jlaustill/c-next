@@ -909,4 +909,66 @@ describe("TSymbolInfoAdapter", () => {
       expect(TSymbolInfoAdapter.mergeExternalSymbols(base, [])).toBe(base);
     });
   });
+
+  describe("#1301: convert() must not read arrayDimensions", () => {
+    /**
+     * #1301 shares one declare between transpiler stages 3 and 5, so `convert()`
+     * now receives symbols that Stage 3b has already mutated:
+     * `SymbolTable.resolveVariableArrayDimensions` casts the readonly view away and
+     * REPLACES `arrayDimensions` wholesale, between the cache write and the cache
+     * read. Unlike the other mutations of a shared symbol, that one is destructive
+     * rather than additive.
+     *
+     * It is benign only because `convert()` never reads the field. That is a
+     * property, not a coincidence to be remembered, so it is asserted here: two
+     * symbols differing ONLY in `arrayDimensions` must convert identically. If
+     * `convert()` ever starts reading it, this fails and whoever made that change
+     * learns that the sharing in #1301 is what their change interacts with.
+     */
+    it("produces identical output for symbols differing only in arrayDimensions", () => {
+      const makeVariable = (
+        dimensions: (number | string)[],
+      ): IVariableSymbol => ({
+        ...TestSymbolUtils.base({
+          kind: "variable",
+          name: "BUFFER",
+          scope: TestScopeUtils.createMockScope("Motor"),
+          sourceFile: "test.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
+        type: TypeResolver.resolve("u8"),
+        isConst: false,
+        isAtomic: false,
+        isVolatile: false,
+        overflowBehavior: "clamp",
+        isArray: true,
+        arrayDimensions: dimensions,
+        initialValue: undefined,
+      });
+
+      // "BUF_LEN" is the unresolved macro form; [16] is what Stage 3b replaces it
+      // with. Both must convert to the same ICodeGenSymbols.
+      const unresolved = TSymbolInfoAdapter.convert([
+        makeVariable(["BUF_LEN"]),
+      ]);
+      const resolved = TSymbolInfoAdapter.convert([makeVariable([16])]);
+
+      expect(JSON.stringify(resolved, jsonReplacer)).toBe(
+        JSON.stringify(unresolved, jsonReplacer),
+      );
+    });
+  });
 });
+
+/** Maps and Sets do not survive JSON.stringify on their own. */
+function jsonReplacer(_key: string, value: unknown): unknown {
+  if (value instanceof Map) {
+    return { __map: [...value.entries()] };
+  }
+  if (value instanceof Set) {
+    return { __set: [...value] };
+  }
+  return value;
+}

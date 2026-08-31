@@ -1,7 +1,6 @@
 import type { CommonTokenStream } from "antlr4ng";
 
 import type { ProgramContext } from "../logic/parser/grammar/CNextParser";
-import type ICodeGenSymbols from "./ICodeGenSymbols";
 import type TSymbol from "./symbols/TSymbol";
 
 /**
@@ -63,21 +62,37 @@ interface IDeclaredFile {
    *    `registerFunction`'s `isAlreadyRegistered` guard. A later mutation can
    *    therefore never invalidate what an earlier reader already saw.
    *
+   * There is a FOURTH mutation site, and it is neither additive nor idempotent:
+   * `SymbolTable.resolveVariableArrayDimensions` (reached from
+   * `resolveExternalArrayDimensions()` in stage 3b) casts the readonly view away and
+   * REPLACES `IVariableSymbol.arrayDimensions` wholesale. It fires BETWEEN the cache
+   * write and the cache read, so stage 5 converts post-mutation symbols where it
+   * previously converted freshly resolved ones -- the sharing described here is what
+   * makes that reachable.
+   *
+   * It is benign because `TSymbolInfoAdapter.convert` never reads that field, which
+   * is asserted rather than remembered: "#1301: convert() must not read
+   * arrayDimensions" in `TSymbolInfoAdapter.test.ts` converts two symbols differing
+   * only in `arrayDimensions` and requires identical output. Without that assertion
+   * this would be exactly the "harmless today only by coincidence" shape the
+   * `ScopeCollector` comments condemn.
+   *
    * The element type is `readonly` because nothing downstream mutates the array --
    * `TSymbolInfoAdapter.convert` and `SymbolTable.addTSymbols` both only iterate --
    * so the guarantee is structural rather than a convention to be remembered.
    */
   readonly symbols: readonly TSymbol[];
-
-  /**
-   * Scope types visible to this file through its C-Next includes (pass 1.4).
-   *
-   * Derived once, at the orchestrator, because it needs orchestrator state.
-   * Stage 5 merges these into the file's `ICodeGenSymbols`; stage 3 deliberately
-   * stores the UNMERGED form via `setFileSymbolInfo`, which is what later files
-   * read as their own seed.
-   */
-  readonly externalEnumSources: ICodeGenSymbols[];
 }
+
+/*
+ * Deliberately NOT cached here: `externalEnumSources` (pass 1.4). The tree and the
+ * declare are pure functions of one file's text, but that field is a function of
+ * how much of the RUN has happened -- it reads a map stage 3 fills incrementally.
+ * Under a cyclic include graph the toposort fails, files are visited in insertion
+ * order, and a stage 3 answer is therefore partial where the stage 5 one is whole.
+ * Caching it regressed a mutually-including pair from compiling to E0427; it is
+ * recomputed in `_transpileFile` instead. See
+ * tests/bugs/issue-1301-cyclic-include-enum-sources/.
+ */
 
 export default IDeclaredFile;

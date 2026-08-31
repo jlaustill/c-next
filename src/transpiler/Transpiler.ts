@@ -286,6 +286,12 @@ class Transpiler {
       // mark, and post-run residency is a different number. Stage 6 does not need
       // trees -- `_generateAllHeadersFromPipeline` reads `result.files[].headerCode`
       // -- so the run is genuinely done with them here.
+      //
+      // This is the ONLY clear site. `_initializeRun` used to clear on entry too,
+      // but with this `finally` covering every exit -- success, `_handleRunError`,
+      // and a throw -- that one could never observe a non-empty map, so deleting it
+      // reddened nothing. Two sites for one invariant is the duplication CLAUDE.md
+      // calls the worst anti-pattern, and the unreachable half is the #1143 shape.
       this.declaredFiles.clear();
     }
   }
@@ -382,7 +388,7 @@ class Transpiler {
     // Deferring puts the .c under the same gate the .h already had.
     const pendingWrites: { path: string; content: string }[] = [];
     for (const file of input.cnextFiles) {
-      if (file.symbolOnly) {
+      if (!Transpiler._producesOutput(file)) {
         continue;
       }
 
@@ -461,13 +467,19 @@ class Transpiler {
       // #1301: Stage 5 consumes this parse and this declare instead of repeating
       // both. Recorded after _declareFile returns, so a file that throws while
       // declaring leaves no half-built entry for Stage 5 to find.
-      this.declaredFiles.set(file.path, {
-        tree,
-        tokenStream,
-        declarationCount,
-        symbols: tSymbols,
-        externalEnumSources: declared.externalEnumSources,
-      });
+      //
+      // Only for files that will read it back. A symbol-only file is still DECLARED
+      // above -- that is the entire reason it was discovered -- but nothing reads
+      // its tree, so retaining one would be pure cost. Retention is this design's
+      // one real expense, so it is not paid for a consumer that does not exist.
+      if (Transpiler._producesOutput(file)) {
+        this.declaredFiles.set(file.path, {
+          tree,
+          tokenStream,
+          declarationCount,
+          symbols: tSymbols,
+        });
+      }
 
       // ADR-055 Phase 7: Store TSymbol directly in SymbolTable (no ISymbol conversion)
       CodeGenState.symbolTable.addTSymbols(tSymbols);
@@ -548,7 +560,22 @@ class Transpiler {
       }
 
       // Build symbolInfo for code generation (before analyzers so they can read it)
-      const externalEnumSources = declared.externalEnumSources;
+      //
+      // #1301 review: recomputed here rather than cached with the tree, because
+      // unlike the tree it is ORDER-SENSITIVE. `_collectExternalEnumSources` reads
+      // `state.getSymbolInfoByFileMap()`, which stage 3 fills incrementally, and
+      // `TransitiveEnumCollector` silently skips a file not yet in it. Under a
+      // cyclic include graph `DependencyGraph.getSortedFiles()` catches the
+      // toposort failure and returns insertion order with only a warning, so a
+      // file can be declared before the file defining the scope types it uses.
+      // Stage 5 runs after stage 3 has finished and the map is complete, so
+      // computing it here is what makes the answer whole -- the pass this issue
+      // removed was not only recomputing, it was repairing.
+      // Regression: tests/bugs/issue-1301-cyclic-include-enum-sources/.
+      const externalEnumSources = this._collectExternalEnumSources(
+        sourcePath,
+        file.cnextIncludes,
+      );
       let symbolInfo = TSymbolInfoAdapter.convert(declared.symbols);
 
       if (externalEnumSources.length > 0) {
@@ -809,6 +836,23 @@ class Transpiler {
   /**
    * Initialize run state: cache, analyzers, symbol table
    */
+  /**
+   * Does this file produce output in this run?
+   *
+   * ONE decision with three consumers: stage 3 caches a parse only for files that
+   * will read it back, stage 5 generates the code, stage 6 writes the header. A
+   * `symbolOnly` file is discovered purely to contribute symbols, so it is declared
+   * like any other but never emitted.
+   *
+   * #1301 review: stages 5 and 6 already asked this question with their own inline
+   * `file.symbolOnly` checks, and gating the stage 3 cache write would have made it
+   * a three-place decision -- CLAUDE.md's worst anti-pattern, and pre-existing here
+   * rather than introduced. Changing what "produces output" means is now one edit.
+   */
+  private static _producesOutput(file: IPipelineFile): boolean {
+    return !file.symbolOnly;
+  }
+
   private async _initializeRun(): Promise<void> {
     if (this.cacheManager) {
       await this.cacheManager.initialize();
@@ -819,8 +863,6 @@ class Transpiler {
     this.state.reset();
     // ADR-049: the previous run's targets must not decide this run's budget
     this.pragmaTargets = [];
-    // #1301: a tree cached by the previous run is not this run's source
-    this.declaredFiles.clear();
     // Issue #634: Reset symbol table for new run
     CodeGenState.symbolTable.clear();
     // Reset SymbolRegistry for new run (new IFunctionSymbol type system)
@@ -1195,7 +1237,7 @@ class Transpiler {
     }
 
     for (const file of cnextFiles) {
-      if (file.symbolOnly) {
+      if (!Transpiler._producesOutput(file)) {
         continue;
       }
       const headerContent = headersBySourcePath.get(file.path);
