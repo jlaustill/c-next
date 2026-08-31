@@ -269,10 +269,15 @@ Direct pass-through to C:
 `do-while`, and the ternary condition — must be an **explicit comparison**.
 After decomposing the expression by `||` and `&&`, **every leaf operand must
 itself be an equality (`=`, `!=`) or relational (`<`, `>`, `<=`, `>=`)
-comparison.** This is enforced uniformly through a single shared validator
-(`TypeValidator.validateConditionIsBoolean` / `validateTernaryCondition` both
-delegate to one recursive check), so a local, a parameter, and a `this.`/
-`global.` scope member are all treated identically — error **E0701**.
+comparison.** The rule is uniform across every spelling of the operand and every
+controlling position: a local, a parameter, and a `this.`/`global.` scope member
+are all held to it, and a ternary condition is held to exactly the same rule as an
+`if` condition — error **E0701**.
+
+Uniformity is stated here because it is the part most easily lost. A check applied
+to one spelling and not another passes the corpus while leaving the rule with a
+hole, and the scope-context matrix cannot see the difference: a bare `read()` and
+a qualified `this.read()` derive the same cell (#1210, #1260).
 
 This is intentionally **stricter than MISRA C:2012 Rule 14.4**. Rule 14.4 only
 requires the controlling expression to have _essentially Boolean type_, which
