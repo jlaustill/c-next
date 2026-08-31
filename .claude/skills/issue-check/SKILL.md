@@ -9,7 +9,9 @@ tools: Bash, Read, Grep, Glob, WebFetch, Task, AskUserQuestion
 
 Analyze the c-next repo's open GitHub issues, automatically detect what's already in-flight, and recommend the best issue to tackle next using a heuristic tuned to **this project's actual labels and workflow**. For bug issues, transition into the c-next TDD workflow; for features, into the ADR-first research workflow.
 
-> **Project-specialized skill.** This overrides the generic personal `issue-check` while working in c-next. The scoring rubric (Phase 3) and begin-work workflow (Phase 6) are tailored to c-next's labels, ADR process, and `.test.cnx` TDD conventions from `CLAUDE.md`.
+> **Project-specialized skill.** The scoring rubric (Phase 3) and begin-work workflow (Phase 6) are tailored to c-next's labels, ADR process, and `.test.cnx` TDD conventions from `CLAUDE.md`.
+>
+> This file previously claimed to override a personal `issue-check` of the same name. It did not: on a name collision the personal skill won, and everything below — the board query, the sprint filter, the c-next label taxonomy — never ran (#1415). Do not reintroduce a personal skill named `issue-check`; there is no override, only a shadow.
 
 ## Execution Workflow
 
