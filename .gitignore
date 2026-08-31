@@ -112,4 +112,10 @@ temp.cnx
 # cppcheck MISRA addon writes <file>.dump beside each analysed C file and
 # never cleans it up, so `npm run validate:c` leaves the tree dirty (#1285).
 *.dump
+
+# The same addon writes the list of those .ctu-info files into the fixture
+# directory it is analysing, with the pid appended. `*.ctu-info` above catches
+# the outputs but not the index naming them, so a `validate:c` running during a
+# `git add -A` commits one (caught in #1399).
+cppcheck-addon-ctu-file-list*
 .cspellcache

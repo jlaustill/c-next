@@ -74,14 +74,6 @@ function collectErrors(
 }
 
 /**
- * Run all semantic analyzers on a parsed program
- *
- * @param tree - The parsed program AST
- * @param tokenStream - Token stream for comment validation
- * @param options - Optional configuration including external struct info
- * @returns Array of errors (empty if all pass)
- */
-/**
  * One analysis step.
  *
  * #1399 review: the body was fifteen repetitions of
@@ -101,6 +93,14 @@ interface IAnalyzerStep {
   readonly advisory?: boolean;
 }
 
+/**
+ * Run all semantic analyzers on a parsed program.
+ *
+ * @param tree - The parsed program AST
+ * @param tokenStream - Token stream for comment validation
+ * @param options - Optional configuration including external struct info
+ * @returns Array of errors (empty if all pass)
+ */
 function runAnalyzers(
   tree: ProgramContext,
   tokenStream: CommonTokenStream,
