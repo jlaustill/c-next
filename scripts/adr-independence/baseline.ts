@@ -58,7 +58,6 @@ const ADR_INDEPENDENCE_BASELINE: readonly string[] = [
 
   // Tier 3 -- TypeScript sketching an algorithm the ADR decides. Replaced by
   // the C-Next or generated C that shows the same thing.
-  "adr-043-comments.md",
   "adr-052-safe-numeric-literal-generation.md",
   "adr-064-volatile-keyword.md",
 ];

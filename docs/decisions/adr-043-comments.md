@@ -16,29 +16,25 @@ For embedded systems development, comments serve critical purposes:
 - License headers and copyright notices
 - TODO/FIXME markers for development
 
-## Current Implementation
+## Behavior Before This Decision
 
-The grammar (`CNext.g4`) defines three comment types:
+C-Next accepted all three comment forms and discarded two of them, so a commented
+source file transpiled to uncommented C:
 
-```antlr
-LINE_COMMENT
-    : '//' ~[\r\n]* -> skip
-    ;
-
-BLOCK_COMMENT
-    : '/*' .*? '*/' -> skip
-    ;
-
-DOC_COMMENT
-    : '///' ~[\r\n]* -> channel(HIDDEN)
-    ;
+```cnx
+// Set the prescaler before enabling the clock.
+u8 prescaler <- 4;
 ```
 
-**Current behavior:**
+```c
+uint8_t prescaler = 4;
+```
+
+**Behavior before this decision:**
 
 - `// comment` — Skipped, not in output
 - `/* comment */` — Skipped, not in output
-- `/// doc comment` — Preserved in HIDDEN channel (available to tooling)
+- `/// doc comment` — Retained and reachable by tooling, but still absent from the generated C
 
 ## Decision
 
@@ -179,30 +175,23 @@ File-level comments at the top of `.cnx` files pass through:
 
 ## Implementation
 
-### Grammar Changes
+### All Three Forms Are Retained
 
-Update lexer rules to preserve comments:
+No syntax changes. What changes is that `//` and `/* */` join `///` in surviving
+transpilation rather than being discarded, so all three reach the generated C.
 
-```antlr
-LINE_COMMENT
-    : '//' ~[\r\n]* -> channel(HIDDEN)
-    ;
+### Output Form
 
-BLOCK_COMMENT
-    : '/*' .*? '*/' -> channel(HIDDEN)
-    ;
+| Written in C-Next | Emitted in C                              |
+| ----------------- | ----------------------------------------- |
+| `// text`         | `/* text */` where C89 output is required |
+| `/* text */`      | unchanged                                 |
+| `/// text`        | `/** text */` (Doxygen)                   |
 
-DOC_COMMENT
-    : '///' ~[\r\n]* -> channel(HIDDEN)
-    ;
-```
-
-### CodeGenerator Changes
-
-1. Access HIDDEN channel tokens during generation
-2. Associate comments with adjacent declarations/statements
-3. Convert `///` to `/** */` Doxygen format
-4. Optionally convert `//` to `/* */` for C89 compatibility
+A comment keeps its position relative to the construct it documents, per the
+association rules below. The generated C is a certification artifact and a reviewer
+reads it against the C-Next it came from; a comment that moved, or that survived
+while its neighbor did not, would break that correspondence.
 
 ### Comment Association Rules
 
