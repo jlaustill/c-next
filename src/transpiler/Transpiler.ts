@@ -62,6 +62,7 @@ import ParserUtils from "../utils/ParserUtils";
 import ITranspilerConfig from "./types/ITranspilerConfig";
 import ITranspilerResult from "./types/ITranspilerResult";
 import IFileResult from "./types/IFileResult";
+import IDeclaredFile from "./types/IDeclaredFile";
 import IPipelineFile from "./types/IPipelineFile";
 import IPipelineInput from "./types/IPipelineInput";
 import TTranspileInput from "./types/TTranspileInput";
@@ -110,6 +111,20 @@ class Transpiler {
   private pragmaTargets: string[] = [];
   /** Issue #587: Encapsulated state for accumulated Maps/Sets */
   private readonly state = new TranspilerState();
+  /**
+   * #1301: each file's parse and declare, keyed by source path.
+   *
+   * Stage 3 populates this; Stage 5 consumes it. It is the ONLY path by which
+   * Stage 5 obtains a tree -- there is deliberately no parse-if-absent fallback,
+   * because that fallback would be the duplicate code path this removes. Every
+   * file Stage 5 visits is a member of the same `input.cnextFiles` Stage 3 walked,
+   * and Stage 3 aborts the run on a parse error before Stage 5 begins, so a miss
+   * is a pipeline-ordering bug rather than a case to recover from.
+   *
+   * Lives on the orchestrator rather than on `TranspilerState` so that `state/`
+   * stays free of ANTLR contexts (#1317).
+   */
+  private readonly declaredFiles = new Map<string, IDeclaredFile>();
   /**
    * Issue #593: Centralized analyzer for cross-file const inference in C++ mode.
    * Accumulates parameter modifications and param lists across all processed files.
@@ -409,7 +424,8 @@ class Transpiler {
     file: IPipelineFile,
   ): ITranspileError[] | null {
     const content = file.source ?? this.fs.readFile(file.path);
-    const { tree, errors } = CNextSourceParser.parse(content);
+    const { tree, tokenStream, errors, declarationCount } =
+      CNextSourceParser.parse(content);
 
     // Parse errors — return them with original line/column and sourcePath
     if (errors.length > 0) {
@@ -425,11 +441,19 @@ class Transpiler {
 
     try {
       // ADR-055 Phase 7: Use composable collectors via CNextResolver
-      const tSymbols = this._declareFile(
+      const declared = this._declareFile(tree, file.path, file.cnextIncludes);
+      const tSymbols = declared.symbols;
+
+      // #1301: Stage 5 consumes this parse and this declare instead of repeating
+      // both. Recorded after _declareFile returns, so a file that throws while
+      // declaring leaves no half-built entry for Stage 5 to find.
+      this.declaredFiles.set(file.path, {
         tree,
-        file.path,
-        file.cnextIncludes,
-      ).symbols;
+        tokenStream,
+        declarationCount,
+        symbols: tSymbols,
+        externalEnumSources: declared.externalEnumSources,
+      });
 
       // ADR-055 Phase 7: Store TSymbol directly in SymbolTable (no ISymbol conversion)
       CodeGenState.symbolTable.addTSymbols(tSymbols);
@@ -474,7 +498,6 @@ class Transpiler {
    */
   private _transpileFile(file: IPipelineFile): IFileResult {
     const sourcePath = file.path;
-    const source = file.source ?? this.fs.readFile(file.path);
 
     // #1241: attribute ADR provenance from here, not from codegen. Analyzers run
     // before the generator is initialized, so a rule firing in `runAnalyzers`
@@ -483,13 +506,19 @@ class Transpiler {
     AdrProvenance.beginFile(sourcePath);
 
     try {
-      // Parse source
-      const { tree, tokenStream, errors, declarationCount } =
-        CNextSourceParser.parse(source);
-
-      if (errors.length > 0) {
-        return this.buildErrorResult(sourcePath, errors, declarationCount);
+      // #1301: the parse and the declare Stage 3 already performed for this file.
+      // There is no parse-if-absent fallback on purpose -- that fallback is the
+      // duplicate path this removes. Stage 5 walks a subset of the same
+      // `input.cnextFiles` Stage 3 walked, and Stage 3 aborts the run on a parse
+      // error before Stage 5 begins, so a miss means the pipeline ran out of
+      // order and must say so rather than quietly reparse.
+      const declared = this.declaredFiles.get(sourcePath);
+      if (!declared) {
+        throw new Error(
+          `${sourcePath} reached code generation without being declared`,
+        );
       }
+      const { tree, tokenStream, declarationCount } = declared;
 
       // Parse only mode
       if (this.config.parseOnly) {
@@ -497,7 +526,6 @@ class Transpiler {
       }
 
       // Build symbolInfo for code generation (before analyzers so they can read it)
-      const declared = this._declareFile(tree, sourcePath, file.cnextIncludes);
       const externalEnumSources = declared.externalEnumSources;
       let symbolInfo = TSymbolInfoAdapter.convert(declared.symbols);
 
@@ -769,6 +797,8 @@ class Transpiler {
     this.state.reset();
     // ADR-049: the previous run's targets must not decide this run's budget
     this.pragmaTargets = [];
+    // #1301: a tree cached by the previous run is not this run's source
+    this.declaredFiles.clear();
     // Issue #634: Reset symbol table for new run
     CodeGenState.symbolTable.clear();
     // Reset SymbolRegistry for new run (new IFunctionSymbol type system)

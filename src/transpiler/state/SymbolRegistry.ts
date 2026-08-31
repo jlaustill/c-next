@@ -80,10 +80,20 @@ class SymbolRegistry {
   /**
    * Register a function in its scope.
    *
-   * #1358: this must be idempotent. Declare (pass 1.3) runs over the same tree
-   * more than once per run -- Transpiler stages 3 and 5 both resolve every file,
-   * and `reset()` runs once per run, not between them (#1301) -- so an
-   * unconditional push appended a second copy of every function in the program.
+   * This is idempotent, and that is the CONTRACT of a declare pass rather than a
+   * workaround for one caller. #1313 states the target as "a pass is a pure
+   * function of its input", so registering the same declaration twice must leave
+   * the registry as one registration left it, however many times it is called.
+   *
+   * #1358 introduced the guard for a concrete reason: Transpiler stages 3 and 5
+   * each resolved every file while `reset()` ran once per run, so an unconditional
+   * push appended a second copy of every function in the program. #1301 has since
+   * removed that double pass -- stage 5 consumes the declare stage 3 performed --
+   * so nothing in the pipeline calls this twice today. The guard is kept
+   * deliberately, as a ratchet: a second unconditional pass, if one is ever
+   * reintroduced, is absorbed here rather than silently duplicating. Its live
+   * callers are the idempotence test and negative control in
+   * `__tests__/SymbolRegistry.test.ts`.
    *
    * Idempotence here must key on the SYMBOL, never on the scope. `getOrCreateScope`
    * is deliberately repeat-safe because that is the mechanism by which a scope
