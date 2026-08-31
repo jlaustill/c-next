@@ -498,7 +498,7 @@ Generate runtime checks for const violations.
 1. **Eliminates accidental mutation bugs**: Const violations become compile-time errors
 2. **MISRA Rule 8.13 alignment**: C-Next enforces what MISRA recommends
 3. **Clear intent documentation**: `const` signals to readers that value won't change
-4. **Better static analysis**: ADR-012 cppcheck `constParameterPointer` warnings are resolved
+4. **Better static analysis**: the `constParameterPointer` warning class over generated C is resolved
 5. **ADR-006 integration**: Read-only references are now truly read-only
 6. **No learning curve**: Uses familiar C `const` keyword
 7. **Hardware alignment**: ro registers can't be written (matches reality)
@@ -794,7 +794,7 @@ declares — and both still compile, because C permits a prototype to omit `cons
 
 ---
 
-## Impact on Static Analysis (ADR-012)
+## Impact on Static Analysis
 
 With const enforcement, the following cppcheck warnings should be resolved:
 

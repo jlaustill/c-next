@@ -1,4 +1,15 @@
-# ADR-012: Static Analysis for Generated C Code
+# Static Analysis for Generated C Code
+
+> **Formerly ADR-012.** Moved out of `docs/decisions/` on 2026-08-31 under the rewrite
+> test (#1403). The document is mostly tool selection and invocation — cppcheck,
+> clang-tidy, flawfinder, the npm scripts that drive them — which a transpiler rebuilt
+> in another stack would replace wholesale. Number 012 is retired — see
+> [`../decisions/README.md`](../decisions/README.md).
+>
+> **The policy did not move with it, because it already had a home.** That the generated
+> C must satisfy MISRA C:2012 is a promise C-Next makes, and it is stated by ADR-066 and
+> recorded in `docs/misra-compliance.md`, which is generated from the requirements
+> registry and gated in CI. This document covers only how that promise is checked.
 
 **Status:** Implemented
 **Date:** 2025-12-28
@@ -232,6 +243,14 @@ For each warning from static analyzers:
 This section documents intentional deviations from MISRA C 2012 rules.
 
 ### Rule 11.3 - Pointer Type Casts
+
+> **This entry is filed under the wrong rule, and the rule it belongs to is recorded as
+> not applicable — tracked as #1413.** The construct and the rationale below are sound,
+> but 11.3 governs casts between pointers to different object types; an integer-to-pointer
+> conversion is **Rule 11.4**. `docs/misra-compliance.md` lists 11.4 as "By Design — No
+> raw pointers", while `scripts/misra-baseline.mjs` allowlists 25 real violations of it
+> against the open #867. Left in place rather than silently renumbered: which of the two
+> records is correct is a compliance decision, not an editorial one.
 
 **Rule:** "A cast shall not be performed between a pointer to object type and a pointer to a different object type."
 

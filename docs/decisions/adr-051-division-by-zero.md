@@ -481,7 +481,7 @@ This prevents silent corruption while allowing the developer to specify context-
 
 - **Compile-time detection** catches statically determinable violations
 - **safe_div()** provides runtime safety for critical paths
-- Combined with ADR-012 static analysis (cppcheck/clang-tidy), achieves full coverage
+- Combined with static analysis over the generated C, achieves full coverage
 
 **Directive 4.1:** "Run-time failures shall be minimized"
 
@@ -819,5 +819,5 @@ Add to `coverage.md`:
 
 ### Related ADRs
 
-- ADR-012: Static Analysis for Generated C Code
+- `docs/implementation/static-analysis.md` (formerly ADR-012): how the generated C is checked
 - ADR-044: Overflow Modifiers (clamp/wrap)
