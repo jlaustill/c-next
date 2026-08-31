@@ -386,7 +386,7 @@ Update if your changes affect:
 **Documentation Sync Order:**
 When implementing a feature, update in this order:
 
-1. **ADR file** (`docs/decisions/adr-NNN.md`) — Record the decision, its diagnostics and its scope-context matrix. It must pass the **rewrite test**: still fully applicable if the transpiler were rebuilt in another language and stack. So `## References` cites fixtures, issues and standards — never `src/` paths or transpiler identifiers (see `docs/decisions/TEMPLATE.md` and CLAUDE.md). Implementation detail goes to `docs/implementation/`. Mark Implemented
+1. **ADR file** (`docs/decisions/adr-NNN.md`) — Record the decision, its diagnostics and its scope-context matrix. It must pass the **rewrite test**: still fully applicable if the transpiler were rebuilt in another language and stack. So `## References` cites fixtures, issues and standards — never `src/` paths or transpiler identifiers. What the test admits is listed once, in `docs/decisions/README.md`; implementation detail goes to `docs/architecture/` or `docs/implementation/`. Mark Implemented
 2. **README.md** — Update feature list to reflect ADR is Implemented
 3. **learn-cnext-in-y-minutes.md** — Add syntax examples
 

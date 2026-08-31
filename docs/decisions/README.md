@@ -82,11 +82,24 @@ comments explain what each one is for and delete as you go.
 
 **If the transpiler were rebuilt from scratch in a different language and stack, every ADR must
 still be fully applicable.** An ADR decides something about the C-Next language; it does not
-record how today's TypeScript/ANTLR/Node implementation satisfies that decision. C-Next and
-generated C/C++ snippets, EBNF productions, prior art in any language, diagnostics and rejected
-alternatives all pass. TypeScript, `src/**` paths, transpiler class and method names,
-ANTLR-only directives and npm config do not — those belong in `docs/architecture/` or
-`docs/implementation/`.
+record how today's TypeScript/ANTLR/Node implementation satisfies that decision.
+
+**This table is the single source of truth for what that admits.** CLAUDE.md, `TEMPLATE.md` and
+CONTRIBUTING.md state the test and link here; none of them repeats the list. That is deliberate:
+the test is an invariant and restating it is harmless, but the list is derived from it and is
+the part that will change, so it gets one home. The rule this replaces reached seven copies
+before anyone noticed.
+
+| In an ADR                                       | Not in an ADR                                  |
+| ----------------------------------------------- | ---------------------------------------------- |
+| C-Next snippets; generated C/C++ snippets       | TypeScript/JavaScript source                   |
+| EBNF grammar productions                        | ANTLR-only directives (`-> skip`, `channel()`) |
+| Prior art in any language, including TS and JS  | `src/**` paths; transpiler class/method names  |
+| Diagnostics, messages, the scope-context matrix | npm, `package.json`, CI config, tool commands  |
+| Rejected alternatives and why                   | Phasing, checklists, migration plans           |
+
+Implementation detail belongs in `docs/architecture/` (how the transpiler is structured) or
+`docs/implementation/` (how one decision is carried out).
 
 This is the rule that retired `053` above, generalized. That withdrawal judged a whole file;
 the test judges a passage, which is what was needed — 29 of 76 ADRs had drifted past the

@@ -9,11 +9,9 @@
 > rebuilt from scratch in a different language and stack, this document must
 > still be fully applicable. It decides something about the _C-Next language_;
 > it does not record how today's TypeScript/ANTLR/Node implementation satisfies
-> that decision. So: C-Next and generated C/C++ snippets, EBNF productions,
-> prior art in any language, diagnostics, and rejected alternatives — yes.
-> TypeScript, `src/**` paths, transpiler class and method names, ANTLR-only
-> directives, npm and CI config — no, those belong in `docs/architecture/` or
-> `docs/implementation/`.
+> that decision. What that admits and excludes is listed once, in
+> [`README.md`](README.md#the-rewrite-test) — read it before you fill in
+> anything below.
 
 **Status:** Research
 **Date:** YYYY-MM-DD

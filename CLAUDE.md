@@ -584,18 +584,15 @@ must still be fully applicable.** That is the whole test. An ADR records a decis
 _C-Next language_ — its syntax, its semantics, the promises it makes. It is not a record of
 how the current TypeScript/ANTLR/Node implementation happens to satisfy that decision today.
 
-| In an ADR                                       | Not in an ADR                                  |
-| ----------------------------------------------- | ---------------------------------------------- |
-| C-Next snippets; generated C/C++ snippets       | TypeScript/JavaScript source                   |
-| EBNF grammar productions                        | ANTLR-only directives (`-> skip`, `channel()`) |
-| Prior art in any language, including TS and JS  | `src/**` paths; transpiler class/method names  |
-| Diagnostics, messages, the scope-context matrix | npm, `package.json`, CI config, tool commands  |
-| Rejected alternatives and why                   | Phasing, checklists, migration plans           |
-
 Implementation detail belongs in `docs/architecture/` (how the transpiler is structured) or
 `docs/implementation/` (how one decision is carried out — see
 `docs/implementation/adr-045-string-implementation.md`). Those documents are free to name
 modules, and they go stale visibly.
+
+**The in/out list lives in [`docs/decisions/README.md`](docs/decisions/README.md), once.** The
+test above is the invariant and is safe to restate; the list is derived from it and is the part
+that will change, so it has exactly one home. Do not copy it here — this rule's own predecessor
+reached seven copies across CLAUDE.md and CONTRIBUTING.md before anyone noticed (#1403).
 
 **ADRs point at nothing.** A previous version of this file required "implementing modules
 cited as `file:line` in `## References`", which mandated the exact thing the rewrite test
