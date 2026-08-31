@@ -12,6 +12,7 @@ import TAssignmentHandler from "./TAssignmentHandler";
 import CodeGenState from "../../../../state/CodeGenState";
 import TTypeInfo from "../../../../types/TTypeInfo";
 import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
+import AdrProvenance from "../../../../state/AdrProvenance";
 
 /** Maps C operators to clamp helper operation names */
 const CLAMP_OP_MAP: Record<string, string> = {
@@ -92,6 +93,12 @@ function handleOverflowClamp(ctx: IAssignmentContext): string {
   const helperOp = CLAMP_OP_MAP[ctx.cOp];
 
   if (helperOp) {
+    // #1241: ADR-044's rule firing on the COMPOUND form. The expression form
+    // (`a <- a + b`) records in BinaryExprGenerator; this is the `a +<- b` path,
+    // which reaches a different decision and would otherwise leave every
+    // compound-only fixture without a derivable context. Recorded past the float and
+    // helper-lookup gates, so only an actually-lowered clamp claims a cell.
+    AdrProvenance.record("044", ctx.targetCtx.start?.line);
     CodeGenState.markClampOpUsed(helperOp, typeInfo!.baseType);
     return `${target} = cnx_clamp_${helperOp}_${typeInfo!.baseType}(${target}, ${ctx.generatedValue});`;
   }

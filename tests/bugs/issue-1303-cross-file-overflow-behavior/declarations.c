@@ -7,6 +7,19 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
+    if (b > (uint32_t)(UINT8_MAX - a)) return UINT8_MAX;
+    return (uint8_t)(a + (uint8_t)b);
+}
+
 // Helper (not a test): the declarations the cross-file overflow fixtures
 // resolve against.
 //
@@ -28,3 +41,10 @@ uint8_t explicitWrapCounter = 250U;
 /* Scope: Counter */
 uint8_t Counter__value = 250U;
 uint8_t Counter__wrappingValue = 250U;
+uint8_t Counter__viaThis = 250U;
+uint8_t Counter__viaGlobal = 250U;
+uint8_t Counter__wrappingViaGlobal = 250U;
+
+void Counter__bumpViaThis(void) {
+    Counter__viaThis = cnx_clamp_add_u8(Counter__viaThis, 10U);
+}

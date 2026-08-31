@@ -620,24 +620,49 @@ const TYPE_WIDTH: Record<string, number> = {
 
 ---
 
+## Scope-Context Matrix
+
+<!-- MATRIX-SEVERITY -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | warn     |
+| top-level function | same file           | error    |
+| scope member       | same file           | warn     |
+| scope method       | same file           | error    |
+| global variable    | imported direct     | warn     |
+| top-level function | imported direct     | error    |
+| scope member       | imported direct     | warn     |
+| scope method       | imported direct     | warn     |
+| global variable    | imported transitive | warn     |
+| top-level function | imported transitive | warn     |
+| scope member       | imported transitive | warn     |
+| scope method       | imported transitive | warn     |
+
+Until #1303 this ADR declared no matrix at all, which per
+[`README.md`](README.md) reads as a claim that clamp and wrap cannot occur
+anywhere — and the defect #1303 fixed was precisely a cell nothing was watching:
+the declared behavior was dropped the moment a symbol crossed a file boundary.
+
+**No cell is `off`.** All four contexts are reachable: the lowering fires in a
+file-scope initializer (`u8 sum <- base + 10` emits `cnx_clamp_add_u8`) as
+readily as in a function body, so `global variable` is uncovered rather than
+impossible. Declaring `off` anywhere here would be the quiet-report claim this
+project treats as dishonest.
+
+Three cells are occupied and `error`. The other nine are **untested**, not
+unreachable, and #1410 tracks closing them. Two things are worth recording for
+whoever picks that up:
+
+- Occupancy needs the rule to _fire_, not merely to be declared. A fixture full
+  of `clamp u8` declarations with no arithmetic occupies nothing, which is why
+  `primitives/clamp-declaration.test.cnx` is deliberately not tagged.
+- The two forms reach different decisions and both record: `a <- a + b` through
+  `tryClampOperands`, `a +<- b` through the compound handler. A fixture written
+  in one form does not cover the other, and the axes cannot see the difference —
+  they derive the same cell.
+
 ## References
-
-### Implementing Modules
-
-- `src/utils/OverflowBehaviorUtils.ts:26` — `fromModifier`, the one decoder for
-  "absent means clamp". Reads the CLAMP/WRAP tokens rather than comparing text
-- `src/transpiler/logic/symbols/cnext/collectors/VariableCollector.ts:185` —
-  authors the behavior onto the symbol, beside `isConst`/`isAtomic`/`isVolatile`
-- `src/transpiler/types/symbols/IVariableSymbol.ts:43` — `overflowBehavior`, the
-  field that carries the declared fact across a file boundary (#1303)
-- `src/transpiler/state/CodeGenState.ts:1031` —
-  `convertTSymbolToTypeInfo`, repopulates the behavior for an imported symbol
-- `src/transpiler/output/codegen/TypeResolver.ts:292` —
-  `getCompositeOverflowBehavior`, "safety wins a mix": one clamping operand
-  makes the whole expression saturate
-- `src/transpiler/output/codegen/TypeResolver.ts:348` —
-  `scopeMemberOperandTypeInfo`, resolves `Counter.value` / `this.value` to the
-  same registry key a bare identifier uses, so a scope member is not exempt
 
 ### Type Systems
 

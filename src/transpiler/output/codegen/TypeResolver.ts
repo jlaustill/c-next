@@ -340,10 +340,15 @@ class TypeResolver {
    * symbol (as #1303 does for the cross-file half) and both branches inherit it.
    *
    * Returns undefined for anything that is not a pure member chain -- a
-   * subscript or a call has no declared behavior of its own to consult -- and
-   * for a struct field, whose `p__x` key is absent from the registry. ADR-063
-   * forbids `__` inside an identifier, so that key can never collide with a real
-   * bare name.
+   * subscript or a call has no declared behavior of its own to consult.
+   *
+   * Also undefined for a struct field, but for a different reason worth keeping
+   * separate: `p.x` IS a declared integer and DOES have an ADR-044 behavior, it
+   * simply has no `p__x` entry here, because a struct field is a field of a
+   * value rather than a global under a qualified name. So it currently wraps --
+   * tracked as #1411, and not fixable by extending the key. ADR-063 forbids
+   * `__` inside an identifier, so the key this builds can never collide with a
+   * real bare name.
    */
   private static scopeMemberOperandTypeInfo(
     primary: Parser.PrimaryExpressionContext,
@@ -359,12 +364,39 @@ class TypeResolver {
     // `this.value` names the CURRENT scope, which the syntax does not spell
     // out; `Counter.value` spells its own path. Both go through the one
     // encoder rather than joining with "__" by hand.
-    const key =
-      primary.THIS() === null
-        ? QualifiedCName.fromParts([primary.getText(), ...members])
-        : ScopeUtils.qualifyPathInScope(members, CodeGenState.currentScope);
+    return CodeGenState.getVariableTypeInfo(
+      TypeResolver.memberChainKey(primary, members),
+    );
+  }
 
-    return CodeGenState.getVariableTypeInfo(key);
+  /**
+   * The registry key for a member chain, for each of the three spellings
+   * ADR-016 gives one scope member.
+   *
+   * `this.value` names the CURRENT scope, which the syntax does not spell out.
+   * `global.Counter.value` names the path from global scope, so the qualifier
+   * contributes no component of its own. `Counter.value` spells its whole path.
+   * All three reach the same C lvalue and must reach the same key -- #1303
+   * originally answered only two of them, which left `global.` wrapping while
+   * the other two saturated, in one function.
+   *
+   * Every branch goes through the one encoder rather than joining with `__` by
+   * hand, per the rule that a qualified name has a single producer.
+   */
+  private static memberChainKey(
+    primary: Parser.PrimaryExpressionContext,
+    members: readonly string[],
+  ): string {
+    if (primary.THIS() !== null) {
+      return ScopeUtils.qualifyPathInScope(
+        [...members],
+        CodeGenState.currentScope,
+      );
+    }
+    if (primary.GLOBAL() !== null) {
+      return QualifiedCName.fromParts(members);
+    }
+    return QualifiedCName.fromParts([primary.getText(), ...members]);
   }
 
   private static resolveCompositeIntegerType(
@@ -553,6 +585,25 @@ class TypeResolver {
 
       const memberInfo = TypeResolver.scopeMemberOperandTypeInfo(primary, ops);
       return memberInfo ? memberInfo.baseType : null;
+    }
+
+    // #1303: `global.Scope.member`. The sentinel walk below resolves `global.X`
+    // as a single variable NAME, so a scope-qualified member under `global.`
+    // stopped at the scope and typed as nothing -- leaving the third spelling
+    // wrapping while `this.value` and `Counter.value` saturated.
+    //
+    // Tried first, and only when it answers: `global.plainVar` resolves here
+    // too (a one-part path is its own key), while `global.someStruct.field`
+    // does not and falls through to the struct handling below, unchanged.
+    if (current.baseType === TypeResolver.GLOBAL_SENTINEL) {
+      const globalOps = ctx.postfixOp();
+      if (globalOps.length > 0) {
+        const memberInfo = TypeResolver.scopeMemberOperandTypeInfo(
+          primary,
+          globalOps,
+        );
+        if (memberInfo) return memberInfo.baseType;
+      }
     }
 
     const suffixes = ctx.children?.slice(1) || [];

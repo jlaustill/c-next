@@ -18,6 +18,25 @@ function parseExpression(source: string) {
   return parser.expression();
 }
 
+/**
+ * #1303: a real `PostfixExpressionContext` answers `postfixOp()` as well as
+ * `children`, and `getPostfixExpressionType` now consults it for the
+ * `global.Scope.member` spelling. Derived from the same suffix texts the mock
+ * already declares so the two views cannot disagree -- a hand-written second
+ * list is how a mock starts describing a context the grammar never produces.
+ */
+const postfixOpsFrom = (
+  suffixes: readonly string[],
+): ReadonlyArray<{
+  IDENTIFIER: () => { getText: () => string } | null;
+  LBRACKET: () => object | null;
+}> =>
+  suffixes.map((text) => ({
+    IDENTIFIER: () =>
+      text.startsWith(".") ? { getText: () => text.slice(1) } : null,
+    LBRACKET: () => (text.startsWith("[") ? {} : null),
+  }));
+
 describe("TypeResolver", () => {
   let symbolTable: SymbolTable;
 
@@ -866,6 +885,7 @@ describe("TypeResolver", () => {
           { getText: () => ".values" },
           { getText: () => "[0]" },
         ],
+        postfixOp: () => postfixOpsFrom([".values", "[0]"]),
       } as unknown as Parameters<
         typeof TypeResolver.getPostfixExpressionType
       >[0];
@@ -951,6 +971,7 @@ describe("TypeResolver", () => {
           { getText: () => ".config" },
           { getText: () => ".value" },
         ],
+        postfixOp: () => postfixOpsFrom([".config", ".value"]),
       } as unknown as Parameters<
         typeof TypeResolver.getPostfixExpressionType
       >[0];
@@ -980,6 +1001,7 @@ describe("TypeResolver", () => {
           { getText: () => ".inputs" },
           { getText: () => "[0]" },
         ],
+        postfixOp: () => postfixOpsFrom([".inputs", "[0]"]),
       } as unknown as Parameters<
         typeof TypeResolver.getPostfixExpressionType
       >[0];
@@ -1024,6 +1046,7 @@ describe("TypeResolver", () => {
           castExpression: () => null,
         }),
         children: [{ getText: () => "global" }, { getText: () => ".unknown" }],
+        postfixOp: () => postfixOpsFrom([".unknown"]),
       } as unknown as Parameters<
         typeof TypeResolver.getPostfixExpressionType
       >[0];
@@ -1074,6 +1097,7 @@ describe("TypeResolver", () => {
           { getText: () => ".input" },
           { getText: () => ".assignedValue" },
         ],
+        postfixOp: () => postfixOpsFrom([".input", ".assignedValue"]),
       } as unknown as Parameters<
         typeof TypeResolver.getPostfixExpressionType
       >[0];

@@ -4,6 +4,7 @@
  */
 
 // test-execution
+// test-adr: 044
 // Issue #1303: ADR-044's overflow behavior was dropped at a file boundary.
 //
 // `clamp` is the DEFAULT (adr-044-primitive-types.md:346, "(none) | Default to
@@ -74,6 +75,18 @@ int main(void) {
     Counter__wrappingValue = Counter__wrappingValue + 10;
     if (Counter__wrappingValue != 4) {
         return 8;
+    }
+    Counter__bumpViaThis();
+    if (Counter__viaThis != 255) {
+        return 9;
+    }
+    Counter__viaGlobal = cnx_clamp_add_u8(Counter__viaGlobal, 10);
+    if (Counter__viaGlobal != 255) {
+        return 10;
+    }
+    Counter__wrappingViaGlobal = Counter__wrappingViaGlobal + 10;
+    if (Counter__wrappingViaGlobal != 4) {
+        return 11;
     }
     return 0;
 }

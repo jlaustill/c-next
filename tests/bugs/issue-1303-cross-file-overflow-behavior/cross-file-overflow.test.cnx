@@ -1,4 +1,5 @@
 // test-execution
+// test-adr: 044
 // Issue #1303: ADR-044's overflow behavior was dropped at a file boundary.
 //
 // `clamp` is the DEFAULT (adr-044-primitive-types.md:346, "(none) | Default to
@@ -66,6 +67,30 @@ i32 main() {
     Counter.wrappingValue <- Counter.wrappingValue + 10;
     if (Counter.wrappingValue != 4) {
         return 8;
+    }
+
+    // --- All three spellings of one member must agree. ---
+    //
+    // `this.` resolved through the THIS sentinel and always worked; `Counter.`
+    // and `global.Counter.` did not. Fixing only the first two would leave the
+    // same member saturating or wrapping depending on which spelling the author
+    // used, inside one function -- a divergence that did NOT exist before this
+    // work, since all three were equally wrong.
+    Counter.bumpViaThis();
+    if (Counter.viaThis != 255) {
+        return 9;
+    }
+
+    global.Counter.viaGlobal <- global.Counter.viaGlobal + 10;
+    if (global.Counter.viaGlobal != 255) {
+        return 10;
+    }
+
+    // Negative control on the `global.` spelling specifically: the fix must not
+    // clamp its way past a declared `wrap` just because it now resolves.
+    global.Counter.wrappingViaGlobal <- global.Counter.wrappingViaGlobal + 10;
+    if (global.Counter.wrappingViaGlobal != 4) {
+        return 11;
     }
 
     return 0;
