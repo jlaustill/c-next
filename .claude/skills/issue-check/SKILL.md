@@ -119,13 +119,28 @@ the field is empty. `Blocked by` is a permanent record of what the work waited o
 and is NEVER cleared, so a populated field says nothing on its own about today.
 
 FOR each issue whose BLOCKED_BY is non-empty:
-  EXTRACT every issue number (#NNNN) named in the text.
-  IF none is named (the text is prose — "waiting on a naming decision"):
-    → IS_BLOCKED. Nothing can derive this one; report it for a human to judge.
-  ELSE resolve each named issue's state:
+  EXTRACT every issue number (#NNNN) named in the text, and resolve each:
     gh api repos/jlaustill/c-next/issues/<n> --jq '.state'   # open | closed
-    → IS_BLOCKED if any is open. OPEN_BLOCKERS = those; name them, not the field.
-    → NOT blocked if all are closed. The issue is available. Leave the field alone.
+
+  THEN read what remains once the references are removed, and judge whether it
+  ANNOTATES a named issue — "(PR5-PR7)", "- only blockers",
+  "(symbol model: sourceColumn)" — or names a FURTHER blocker of its own,
+  "plus the naming decision". Both shapes are on the board today.
+
+    any named issue still open
+      → IS_BLOCKED. OPEN_BLOCKERS = those issues.
+    all named issues closed, and the remaining text only annotates them
+      → NOT blocked. Available. Leave the field alone.
+    the text names a further blocker in prose, with or without a reference
+      → IS_BLOCKED. OPEN_BLOCKERS = the raw field text — nothing can derive it,
+        so print it verbatim for a human to judge.
+    you cannot tell which of the previous two it is
+      → IS_BLOCKED, and SAY the prose is unresolved rather than guessing.
+
+  NEVER key this on "does the text contain a #NNNN". A field mixing a reference
+  with a prose blocker would then go available the moment the reference closed,
+  silently dropping a blocker no query can see. OPEN_BLOCKERS is assigned on
+  every blocked branch, because both consumers below print it.
 
 IF the query fails (needs `gh auth refresh -s project`):
   SAY SO EXPLICITLY and stop — do not fall back to label-only scoring and
@@ -138,12 +153,18 @@ IF the query fails (needs `gh auth refresh -s project`):
 ### Phase 2: Fetch Open Issues
 
 ```bash
-# Get all open issues (excluding PRs) with full metadata
-gh issue list --state open --limit 50 --json number,title,labels,milestone,createdAt,updatedAt,comments,body \
+# --limit must exceed the open-issue count or the tail is dropped in silence —
+# gh returns the most recently updated first, so the oldest simply vanish (#1416).
+# The ASSERT below is the part that survives backlog growth; the number alone rots.
+gh issue list --state open --limit 1000 --json number,title,labels,milestone,createdAt,updatedAt,comments,body \
   --jq '.[] | {number, title, labels: [.labels[].name], milestone: .milestone.title, created: .createdAt, updated: .updatedAt, comment_count: (.comments | length), body: .body[:300]}'
 ```
 
 ```
+ASSERT the returned issue count is strictly less than the --limit above. If it
+  equals the limit the list was truncated: SAY SO and stop, rather than ranking a
+  backlog you can only partly see.
+
 DETERMINE ACTIVE_MILESTONE = the open milestone with the most open issues
   (this repo uses a milestone as its sprint — see docs/WORKFLOW.md, "Releases are issues")
 
@@ -267,12 +288,18 @@ does not exist, and the reason it was skipped is usually the useful part.
 
 | Issue | Reason | Detail |
 |-------|--------|--------|
-| #1322 | Blocked | #1316, #1321 |
-| #1318 | Blocked | #1285 (PR5-PR7) |
+| #1323 | Blocked | #1301, #1319 — both open |
+| #1324 | Blocked | #1313 open; #1357 closed, no longer a blocker |
 | #1313 | Epic    | tracker; closes when its children do |
-| #1330 | Grooming | not triaged — scope still open |
+| #1374 | Grooming | not triaged — scope still open |
 
 Ranking below covers <ACTIVE_MILESTONE> only. Run `/issue-check --all` for the full backlog.
+
+Detail names the OPEN blockers, not the field text — a closed one is history and
+does not belong in a "why this is skipped" column. An earlier version of this
+sample read `| #1322 | Blocked | #1316, #1321 |` and
+`| #1318 | Blocked | #1285 (PR5-PR7) |`; those values are what #1419 recovered the
+two cleared fields from, and `git show 21823602` still carries them.
 ```
 
 #### Top Recommendations
