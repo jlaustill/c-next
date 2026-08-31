@@ -28,7 +28,6 @@ const ADR_INDEPENDENCE_BASELINE: readonly string[] = [
   // Tier 2 -- language ADRs naming transpiler internals in the body or in
   // References. The decision stays; the passage is restated in terms of
   // observable behavior.
-  "adr-004-register-bindings.md",
   "adr-010-c-interoperability.md",
   "adr-013-const-qualifier.md",
   "adr-016-scope.md",

@@ -7,8 +7,8 @@
 
 > **What is implemented, and what is not.** The register syntax this ADR defines —
 > `NAME: type access @ offset` — and its `rw` / `ro` / `wo` access modifiers are
-> implemented and enforced (`MemberAccessValidator` rejects a read of a write-only
-> member). ADR-016 `### Scoped Registers` shows the same syntax inside a scope; it
+> implemented and enforced: reading a `wo` member is a compile error, as is writing
+> an `ro` one. ADR-016 `### Scoped Registers` shows the same syntax inside a scope; it
 > applies this ADR rather than competing with it.
 >
 > The `typedef struct { … } GPIOA_Registers;` shape in `## Initial Design Direction`
