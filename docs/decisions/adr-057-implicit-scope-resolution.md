@@ -162,12 +162,13 @@ Severity follows the eslint model: `off` records that a cell **cannot exist** fo
 this feature, `warn` that it should be covered and is not, `error` that it must
 be. Undeclared cells are `off`.
 
-Every cell is declared `warn`, deliberately and as a first step. This ADR has had
-no matrix since it was written in January, which per
-[`README.md`](README.md) is indistinguishable from claiming the feature cannot
-occur anywhere — a claim that is plainly false for a rule governing every bare
-identifier in the language. Declaring twelve `warn` cells converts that silence
-into a visible, non-blocking backlog.
+Nine cells are `error` and three are `warn`. All twelve began as `warn`,
+deliberately and as a first step: this ADR had no matrix since it was written in
+January, which per [`README.md`](README.md) is indistinguishable from claiming
+the feature cannot occur anywhere — a claim that is plainly false for a rule
+governing every bare identifier in the language. Declaring twelve `warn` cells
+converted that silence into a visible, non-blocking backlog, and #1241 then made
+nine of them occupiable, so they were promoted.
 
 `warn` is a statement about coverage, not about possibility. The `off` claims
 have not been made here because `off` is a claim about the grammar and must be
@@ -181,24 +182,41 @@ reason and a filed follow-up.
 | Context            | Relationship        | Severity |
 | ------------------ | ------------------- | -------- |
 | global variable    | same file           | warn     |
-| top-level function | same file           | warn     |
-| scope member       | same file           | warn     |
-| scope method       | same file           | warn     |
+| top-level function | same file           | error    |
+| scope member       | same file           | error    |
+| scope method       | same file           | error    |
 | global variable    | imported direct     | warn     |
-| top-level function | imported direct     | warn     |
-| scope member       | imported direct     | warn     |
-| scope method       | imported direct     | warn     |
+| top-level function | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| scope method       | imported direct     | error    |
 | global variable    | imported transitive | warn     |
-| top-level function | imported transitive | warn     |
-| scope member       | imported transitive | warn     |
-| scope method       | imported transitive | warn     |
+| top-level function | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| scope method       | imported transitive | error    |
 
-Two limits apply and are tracked as #1241. Only a fixture with an
-`.expected.error` can occupy a cell, and **ADR-057 raises no diagnostic of its
-own** — it is a resolution and codegen-shape rule throughout. So every cell is
-currently unoccupiable, and the twelve `warn` rows record a real obligation that
-#1241 must be resolved before any of them can be met. That is the honest reading;
-declaring them `off` to get a quiet report would be the dishonest one. And the axes cannot see syntactic form: a bare `read()` and a
+**ADR-057 raises no diagnostic of its own** — it is a resolution and codegen-shape
+rule throughout — so while a cell's context could only come from an
+`.expected.error` position, all twelve rows were unoccupiable and stood at `warn`
+recording an obligation nothing could meet. #1241 (2026-08-29) is that
+resolution: occupancy now also derives from where the rule fired, recorded at the
+decision (`TypeValidator.ts`, `TypeGenerationHelper.ts`, `FunctionCallAnalyzer.ts`,
+`AdrProvenance.record("057", ...)`).
+
+Nine cells are occupied and are now `error`. The three `global variable` rows stay
+`warn`, and **a fixture alone cannot green them** — worth stating, because that is
+the obvious next move and it does not work. `FixtureContext.at()` reaches
+`global-variable` only at a file-scope declaration (`inScope == false &&
+inFunction == false && inVariable == true`), and all four ADR-057 recording sites
+are gated on being inside a scope or on a local: `TypeValidator.ts:441`
+(`isLocalVariable`), `TypeValidator.ts:458` and `FunctionCallAnalyzer.ts:800`
+(`currentScope`), `TypeGenerationHelper.ts:228` (returns unchanged with no scope).
+With no diagnostic either, there is no `.expected.error` route.
+
+So these three want a **fifth recording site** for file-scope resolution, not more
+fixtures. Tracked as #1407. `off` would be the wrong claim: a bare name resolving
+to a file-scope variable is squarely this ADR's rule, so the cell can exist.
+
+The axes still cannot see syntactic form: a bare `read()` and a
 qualified `this.read()` inside the same scope method derive the same cell, which
 is exactly how #1210 and #1244 reached `main`. Both spellings need fixtures even
 though they share a cell.

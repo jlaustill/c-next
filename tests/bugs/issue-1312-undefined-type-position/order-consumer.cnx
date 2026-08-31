@@ -1,0 +1,7 @@
+// Helper for the #1399 review regression. Does NOT include order-lib.cnx, so
+// `tickSource` is undefined here whichever order the entry lists them in.
+tickSource borrowedCallback;
+
+u32 orderConsumerFn() {
+    return 2;
+}

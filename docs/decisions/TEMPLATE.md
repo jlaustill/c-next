@@ -112,18 +112,20 @@
 | scope member       | imported transitive |          |
 | scope method       | imported transitive |          |
 
-<!-- Two tooling limits apply to every matrix, both tracked as #1241:
+<!-- One tooling limit applies to every matrix, tracked as #1402:
 
-     1. Only a fixture with an `.expected.error` can occupy a cell, because
-        context is derived from the diagnostic's position. An ADR governing
-        codegen shape rather than a diagnostic cannot satisfy an `error` cell
-        yet — declare `warn` and reference #1241 rather than pretending.
+     The relationship axis measures the DEEPEST include chain reachable from
+     the fixture, not the hops to the declaration under test. So a helper
+     that gains an unrelated include silently moves the cells its consumers
+     occupy. When you need a transitive fixture, build it a NEW chain rather
+     than adding an include to a helper other fixtures already use. The two
+     provider-side relationships are not derivable for the same reason.
 
-     2. The relationship axis measures the DEEPEST include chain reachable from
-        the fixture, not the hops to the declaration under test. So a helper
-        that gains an unrelated include silently moves the cells its consumers
-        occupy. When you need a transitive fixture, build it a NEW chain rather
-        than adding an include to a helper other fixtures already use.
+     A codegen-only ADR CAN occupy a cell — #1241 (2026-08-29) made occupancy
+     derive from diagnostic positions union ADR provenance. It costs one line
+     at the decision itself, `AdrProvenance.record("NNN", line)`. An ADR with
+     no recording site occupies nothing, so declare `error` and add the
+     recording site rather than declaring `warn` and calling it a tooling gap.
 
      Two things the axes cannot see at all, worth knowing before you trust a
      green row:

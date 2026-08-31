@@ -67,6 +67,7 @@
     "unit:coverage:html": "vitest run --coverage && echo 'Coverage report: coverage/index.html'",
     "build": "node scripts/build.mjs",
     "test:all": "npm run build && npm run unit && npm run test:q && npm run validate:c",
+    "test:gate": "./scripts/gate.sh",
     "validate:c": "node scripts/batch-validate.mjs",
     "duplication": "npx jscpd src/ scripts/ --reporters console",
     "duplication:json": "npx jscpd src/ scripts/ --reporters json --output .jscpd",

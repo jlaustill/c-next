@@ -157,6 +157,7 @@ import type IRecordedRequirement from "../../types/IRecordedRequirement";
 import ToolchainRequirementUtils from "../../../utils/ToolchainRequirementUtils";
 import ScopeUtils from "../../../utils/ScopeUtils";
 import TypeBinding from "../../logic/symbols/TypeBinding";
+import REJECTED_KEYWORDS from "../../constants/REJECTED_KEYWORDS";
 import type ITargetCapabilities from "../../types/ITargetCapabilities";
 import DEFAULT_TARGET from "../../constants/DEFAULT_TARGET";
 import TargetResolver from "../../../utils/TargetResolver";
@@ -1920,7 +1921,7 @@ export default class CodeGenerator implements IOrchestrator {
       const id = ctx.IDENTIFIER()!.getText();
       // Issue #1011: break/continue are not part of C-Next - use structured conditions
       // ADR-026 (Status: Rejected) explicitly excludes break/continue from the language
-      if (id === "break" || id === "continue") {
+      if (REJECTED_KEYWORDS.has(id)) {
         const line = ctx.start?.line ?? 0;
         const col = ctx.start?.column ?? 0;
         throw new Error(

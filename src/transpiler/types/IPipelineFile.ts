@@ -23,6 +23,20 @@ interface IPipelineFile {
   /** C-Next includes for transitive enum resolution */
   readonly cnextIncludes?: ReadonlyArray<{ path: string }>;
 
+  /**
+   * Whether this file can see a C/C++ header, directly or through any `.cnx`
+   * it includes.
+   *
+   * #1399 review: E0426/E0427 may only fire where the transpiler knows the
+   * file's whole name universe. A header is not parsed into the symbol table
+   * and a `#define` never reaches it at all, so a file that can see one must
+   * decline to answer. Computed from the resolver's own categorization during
+   * discovery, which is the authoritative answer -- deriving it from `#include`
+   * token text in the analyzer made a third spelling of "is this a C-Next
+   * include?" and that spelling missed `.cnext`.
+   */
+  readonly reachesForeignHeader?: boolean;
+
   /** Override for source-relative path (used in source mode) */
   readonly sourceRelativePath?: string;
 }

@@ -1,0 +1,10 @@
+// test-error
+// Issue #1312: a name that was never declared, used in a TYPE position.
+// No includes anywhere in this run, so external-symbol recovery cannot
+// explain it. Today this transpiles at exit 0 and emits `Mode x = ...`,
+// which references a type that is never defined.
+Mode borrowedFromNowhere <- Mode.MODE_A;
+
+u32 main() {
+    return 0;
+}

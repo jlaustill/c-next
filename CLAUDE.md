@@ -106,21 +106,28 @@ When in doubt: **ASK.** Syntax changes require ADR discussion and user approval.
 
 ## Quick Reference
 
-| Task               | Command                                 |
-| ------------------ | --------------------------------------- |
-| Build transpiler   | `npm run build`                         |
-| Integration tests  | `npm test` or `npm run test:q` (quiet)  |
-| Single test        | `npm test -- tests/dir/file.test.cnx`   |
-| Unit tests         | `npm run unit`                          |
-| Coverage           | `npm run unit:coverage`                 |
-| C static analysis  | `npm run validate:c`                    |
-| All tests + checks | `npm run test:all`                      |
-| Local transpiler   | `npx tsx src/index.ts <file.cnx>`       |
-| C++ mode           | `npx tsx src/index.ts <file.cnx> --cpp` |
-| Generate snapshots | `npm test -- <path> --update`           |
-| ANTLR regenerate   | `npm run antlr`                         |
+| Task                   | Command                                 |
+| ---------------------- | --------------------------------------- |
+| Build transpiler       | `npm run build`                         |
+| Integration tests      | `npm test` or `npm run test:q` (quiet)  |
+| Single test            | `npm test -- tests/dir/file.test.cnx`   |
+| Unit tests             | `npm run unit`                          |
+| Coverage               | `npm run unit:coverage`                 |
+| C static analysis      | `npm run validate:c`                    |
+| All tests + checks     | `npm run test:all`                      |
+| **Everything CI runs** | **`npm run test:gate`**                 |
+| Local transpiler       | `npx tsx src/index.ts <file.cnx>`       |
+| C++ mode               | `npx tsx src/index.ts <file.cnx> --cpp` |
+| Generate snapshots     | `npm test -- <path> --update`           |
+| ANTLR regenerate       | `npm run antlr`                         |
 
-**GitHub CLI**: `gh issue view` may fail — use `gh api repos/jlaustill/c-next/issues/<number>` instead.
+**GitHub CLI**: `gh issue view` may fail — use `gh api repos/jlaustill/c-next/issues/<number>` instead. The project board (`/issue-check`
+Phase 1d) needs `gh auth refresh -s read:project`; **writing** a board field needs
+`-s project` — `read:project` is not enough and the mutation fails with
+`INSUFFICIENT_SCOPES`, not a permission message. Both are interactive, so the user runs
+them. The board query also needs `--paginate`: the board is past 200 items and a bare
+`items(first: 100)` truncates silently, so every card past page one reads as "not on the
+board" — no status, no blocker.
 
 **ts-morph MCP tools (PREFER FOR REFACTORING)**: Use ts-morph MCP tools as the **first choice** for TypeScript refactoring operations:
 
@@ -162,6 +169,21 @@ snapshots — it never edits them. That is why `test:all` is a gate and must nev
 update step: an `--update` inside it could not fail on a mismatch. `npm run test:update`
 regenerates every snapshot, `tests/bugs/` included (#1142); `npm run test:bugs:update` narrows
 it to the regression fixtures.
+
+**`test:all` is four checks of twenty-three — run `npm run test:gate` before pushing.**
+`test:all` is `build && unit && test:q && validate:c`. CI runs nineteen more with no local
+alias: the whole **`Static Analysis`** job (`prettier:check`, `plugin:test`, `cspell:check`,
+`oxlint:check`, `knip`, `depcruise`, `lint:test-location`, `analyze:duplication`,
+`docs:toolchain:check`, `coverage:matrix:check`, `diagnostics:manifest:check`,
+`docs:throw-citations:check`, `scope-joins:check`), plus `typecheck`, `test:cli`,
+`coverage:grammar:check`, `format:fidelity`, and the working-tree check that `Verify Clean`
+performs. `scripts/gate.sh` runs all of them, reports each against the CI job that owns it,
+and does **not** stop at the first failure. A green `test:all` says nothing about any of
+them: #1399 pushed on one and turned CI red on `docs:throw-citations:check`, because
+**adding a single import to a file under `output/` shifts every later `throw new` down one
+line** and all 20 citations in `docs/architecture/output-throw-classification.md` missed by
+exactly one. That document is authored, not generated — there is no write mode, so the line
+numbers are hand-edited.
 
 **A lost diagnostic used to erase its own evidence (#1316)**: under `--update`, a
 `test-error` fixture that stopped erroring had its `.expected.error` unlinked and rewritten
@@ -364,10 +386,27 @@ export default new Registry();
 - **SymbolTable ownership**: `CodeGenState.symbolTable` is single owner
 - **TSymbols use bare names**: `name: "init"` with `scope: IScopeSymbol` reference
 - **Lookup key by layer**: `getOverloads(bareName)` answers "what does `init` mean _here_?" and needs ADR-057 scope context; `getOverloadsByCName("Motor__init")` answers "which symbol _is_ this?" and is an exact canonical identity. Codegen and anything downstream of it holds the latter — asking the bare-name index with a transpiled C name returns empty for every scoped symbol, which reads as "no such symbol" rather than "wrong question" (#1139). Build the key with `ScopeUtils.getTranspiledCName()`, the single encoder; never re-derive a qualified name by hand
+- **Per-file vs run-wide symbol views**: `ICodeGenSymbols.known*` is built by
+  `_declareFile(tree, path, file.cnextIncludes)` and holds what **this file** can see;
+  `SymbolTable.getOverloadsByCName` accumulates the **whole run** and is cleared once. A
+  sibling that was never included is absent from the first and present in the second — that
+  disagreement _is_ #1312. `CodeGenState.isScopeType()` answers neither visibility question:
+  it reads the run-wide table **and** filters to `ESourceLanguage.CNext`, so it reports
+  "exists" in the file that cannot see it and "missing" for every C/C++ header type. Ask the
+  per-file sets about a C-Next name and the run-wide table about a foreign one
 - **Test isolation**: Call `SymbolRegistry.reset()` in `beforeEach` for CNextResolver tests
 - **Array dimensions**: `IVariableSymbol.arrayDimensions` is `(number | string)[]` — numbers for resolved constants, strings for C macros
 - **Analyzer state**: `CodeGenState.buildExternalStructFields()` in Stage 2b; analyzers read via `getExternalStructFields()`
 - **Analyzer symbols**: `CodeGenState.symbols` is set before `runAnalyzers()` in `_transpileFile()` — analyzers can use `isKnownEnum()`, `getStructFieldType()`, `getFunctionReturnType()`, `getVariableTypeInfo()`
+- **Analyzer-time vs codegen-time state**: `symbols` is the _only_ `CodeGenState` type view
+  populated before `runAnalyzers()`. `callbackTypes`, `typeRegistry` and `constValues` are
+  filled by `CodeGenerator` and cleared by `reset()` at the start of `generate()` — **both
+  after the analyzers run**. An analyzer reading one sees an empty map for the first file and
+  **file N-1's** data for every file after, so the diagnostic becomes order-dependent: #1399
+  shipped an E0426 that fired or not depending on which order the entry listed its two
+  `#include` lines, and the doc comment fifteen lines above the call already said the set was
+  filled later. Use `symbols.functionReturnTypes` for the ADR-029 function-as-type fact — it
+  is the per-file view of the same thing
 - **Analyzer test isolation**: Use `CodeGenState.reset()` in `afterEach` when tests set `CodeGenState.symbols`
 - **Analyzer type tracking**: Use `trackType(typeCtx, identifier)` helper pattern (see `FloatModuloAnalyzer.trackIfFloat()`, `ArrayIndexTypeAnalyzer.trackType()`) to avoid jscpd duplication across `enterVariableDeclaration`/`enterParameter`/`enterForVarDecl`
 - **Ternary grammar**: `ternaryExpression` has 3 `orExpression` children: `[0]` = condition, `[1]` = true value, `[2]` = false value. When validating value types, skip index 0 — and address them via `orExpression()`, **never `getChild(i)`**: the condition is parenthesized, so `getChild(0)` is `(` and an index-based skip silently does nothing
@@ -421,19 +460,28 @@ foo.expected.error    # Expected error (if test-error)
   fixtures and none has a 2+hop one. An ADR owns its matrix: declare per-cell severity in a
   `<!-- MATRIX-SEVERITY -->` table (`off` / `warn` / `error`, undeclared → `off`), mark
   fixtures with `// test-adr: 051`, and run `npm run coverage:matrix`. Occupancy is
-  **derived** — the context from the diagnostic's position through the parse tree, the file
-  relationship from the include graph — so never declare a cell a fixture occupies; declare
+  **derived** — the context from a source position through the parse tree (a diagnostic's
+  position, or one recorded by `AdrProvenance` where the rule fired), the file relationship
+  from the include graph — so never declare a cell a fixture occupies; declare
   only the obligation. `off` is the recorded claim that a cell _cannot_ exist (a division
   cannot appear in a file-scope initializer), which is why exemptions live in the ADR where
   they get reviewed. `npm run coverage:matrix:check` gates in the `lint` job and fails on an
   unoccupied `error` cell or a stale `docs/scope-context-matrix.md`
-- **Matrix limits, both tracked as #1241**: (1) only a fixture with an `.expected.error` can
-  occupy a cell — context comes from the diagnostic's position, so a codegen-only fixture
-  (ADR-006, ADR-049) lands in "context not derivable" and **cannot** satisfy an `error` cell
-  yet; declaring one gives a red gate with no path to green. (2) The relationship axis uses
-  the deepest include chain reachable from the fixture, not the hops to the declaration under
-  test — so **a helper feeding a matrix fixture cannot gain an include without silently
-  moving cells**, and the gate will blame the fixture for missing tests
+- **Matrix limits, and what #1241 already fixed**: #1241 landed 2026-08-29 (`6192279d`,
+  `bc3a2ad4`). A codegen-only fixture **can** now occupy a cell, so an ADR governing
+  generated-code shape can declare `error` — occupancy derives from diagnostic positions
+  **union** ADR provenance. What it costs is one line at the decision itself
+  (`AdrProvenance.record("NNN", line)`); an ADR with no recording site still occupies
+  nothing, and only ADR-016 and ADR-057 have one today. Do not read `warn` on an existing
+  matrix as "cannot be covered" — a `warn` declaration is an obligation, not a verdict on
+  reachability; `docs/scope-context-matrix.md` is what says whether a cell is occupied.
+  What remains is tracked as **#1402**: the relationship axis still measures the
+  deepest include chain reachable from the fixture rather than the hops to the declaration
+  under test, so **a helper feeding a matrix fixture cannot gain an include without silently
+  moving cells**; and the two provider-side relationships stay not-derivable. Both need the
+  provenance run to cover the include chain first: `IRecordedAdrSite.sourcePath` has a slot
+  for the file, but provenance transpiles the fixture alone, so every site carries the
+  fixture's own path and the field discriminates nothing yet
 - **Presence is not proof**: a cell showing `ok` means a fixture reaches it, not that the
   fixture would **fail** if the feature broke. #1222 is exactly that — regression fixtures
   that cannot fail if the fix is reverted. Mutation-check anything you add: break the thing
@@ -445,7 +493,12 @@ foo.expected.error    # Expected error (if test-error)
 - **Struct tests**: Need `.expected.h` alongside `.expected.c`
 - **Bug reproduction**: `tests/bugs/issue-<name>/` directories — commit with fixes for regression prevention. They live under `tests/` so every fixture-walking script picks them up (#1142); a top-level `bugs/` tree was invisible to `npm test`, `test:all` and `validate:c`
 - **test-error stale artifacts**: a test that compiled before becoming `test-error` leaves `.test.c/.test.h` behind — `rm` them or the guard fails with "stale generated artifacts". **This also contaminates mutation-checking**: a mutation that lets a `test-error` fixture compile leaves those artifacts behind, and they fail the guard on every later run even after the source is restored — so one mutation appears to redden fixtures it never touched. Delete them between runs or the attribution is wrong (found while mutation-checking #847's E0708 fixtures; the first table read as a stronger result than the truth)
-- **Mutation-checking a fixture directory**: apply the mutation → `npm run build` → `rm` that directory's generated `.test.c/.test.h/.test.cpp/.test.hpp` → `npm test -- <dir>` → restore the source and clean again. **Assert the edit actually applied**: a scripted replacement matches on source text and prettier moves source text, so a stale anchor silently mutates nothing and reports the same green as a guard that cannot fail (three times in #1260 — an en-dash in `scripts/misra-baseline.mjs`, a prettier-rewritten emphasis marker in `docs/decisions/adr-070-return-value-use.md`, and a joined line in `ReturnValueUseAnalyzer.ts`). A correct table reddens exactly one fixture per mutation
+- **Mutation-checking a fixture directory**: apply the mutation → `npm run build` → `rm` that directory's generated `.test.c/.test.h/.test.cpp/.test.hpp` → `npm test -- <dir>` → restore the source and clean again. **Assert the edit actually applied**: a scripted replacement matches on source text and prettier moves source text, so a stale anchor silently mutates nothing and reports the same green as a guard that cannot fail (three times in #1260 — an en-dash in `scripts/misra-baseline.mjs`, a prettier-rewritten emphasis marker in `docs/decisions/adr-070-return-value-use.md`, and a joined line in `ReturnValueUseAnalyzer.ts`). A correct table reddens exactly one fixture per mutation. **Assert the restore too, and never `git checkout --` a file
+  carrying uncommitted work** — that reverts the fix along with the mutation. It happened
+  twice in #1399, and the second time was noticed only when a fixture failed for an
+  unrelated-looking reason, because the mutation _and_ the change under test had both
+  vanished. Commit before mutating, or `cp` the file aside and copy it back, then grep for
+  the mutation marker to confirm it is gone
 - **Negative controls in error fixtures**: an `.expected.error` proves the diagnostic fires, not that it fires _only_ where it should. Put a case that must stay silent beside the flagged one — `tests/bugs/issue-847-misra-17-7-lowering/external-c-discard.test.cnx` calls a `void` C function directly above the non-void call and names only the latter in its `.expected.error`, so an analyzer that flagged every call regardless of return type would fail it. The assertion catches under-enforcement; the control catches over-enforcement
 - **Examples are CI-guarded**: `scripts/__tests__/examples-transpile.test.ts` transpiles every `examples/**/*.cnx` during `npm run unit`
 - **Orphaned snapshots**: `.expected.cpp/.hpp` beside a `// test-c-only` fixture (or `.c/.h` beside `test-cpp-only`) is never regenerated _or_ compared — 30 exist, preserving dead codegen shapes (#1149). Exclude them from any corpus-wide analysis

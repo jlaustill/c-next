@@ -1,4 +1,6 @@
 // Issue #375: Error - undeclared variable argument
+#include "constructor-stubs.h"
+
 Adafruit_MAX31856 thermocouple(nonExistentPin);
 
 void main() {}

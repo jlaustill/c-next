@@ -1,0 +1,10 @@
+// test-error
+// Issue #1312: the entry pulls in two siblings. sibling-consumer.cnx uses a
+// type declared in sibling-enum.cnx without including it, so the type is
+// undefined *there* even though it is present somewhere in the run.
+#include <sibling-enum.cnx>
+#include <sibling-consumer.cnx>
+
+u32 main() {
+    return 0;
+}
