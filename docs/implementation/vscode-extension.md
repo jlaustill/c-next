@@ -1,4 +1,9 @@
-# ADR-011: VS Code Extension with Live C Preview
+# VS Code Extension with Live C Preview
+
+> **Formerly ADR-011.** Moved out of `docs/decisions/` on 2026-08-31 under the rewrite
+> test (#1403): an editor extension is tooling around the language, not a decision about
+> it, and a rebuild of the transpiler in another stack would not inherit this document.
+> Number 011 is retired — see [`../decisions/README.md`](../decisions/README.md).
 
 **Status:** Implemented
 **Date:** 2025-12-27

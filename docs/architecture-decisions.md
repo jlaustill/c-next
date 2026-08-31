@@ -20,7 +20,6 @@ v2 (so "Research (v2 Roadmap)" holds `1xx` ADRs).
 | [ADR-006](decisions/adr-006-simplified-references.md)      | Simplified References      | Pass by reference, no pointer syntax                         |
 | [ADR-007](decisions/adr-007-type-aware-bit-indexing.md)    | Type-Aware Bit Indexing    | Integers as bit arrays, `.length` property                   |
 | [ADR-010](decisions/adr-010-c-interoperability.md)         | C Interoperability         | Unified ANTLR parser architecture                            |
-| [ADR-011](decisions/adr-011-vscode-extension.md)           | VS Code Extension          | Live C preview with syntax highlighting                      |
 | [ADR-012](decisions/adr-012-static-analysis.md)            | Static Analysis            | cppcheck integration for generated C                         |
 | [ADR-013](decisions/adr-013-const-qualifier.md)            | Const Qualifier            | Compile-time const enforcement                               |
 | [ADR-014](decisions/adr-014-structs.md)                    | Structs                    | Data containers without methods                              |
@@ -75,15 +74,14 @@ v2 (so "Research (v2 Roadmap)" holds `1xx` ADRs).
 
 ## Research (v1 Roadmap)
 
-| ADR                                                         | Title                         | Description                                      |
-| ----------------------------------------------------------- | ----------------------------- | ------------------------------------------------ |
-| [ADR-008](decisions/adr-008-language-bug-prevention.md)     | Language-Level Bug Prevention | Top 15 embedded bugs and prevention              |
-| [ADR-009](decisions/adr-009-isr-safety.md)                  | ISR Safety                    | Safe interrupts without `unsafe` blocks          |
-| [ADR-054](decisions/adr-054-array-index-overflow.md)        | Array Index Overflow          | Overflow semantics for array index expressions   |
-| [ADR-056](decisions/adr-056-cast-overflow-behavior.md)      | Cast Overflow Behavior        | Consistent overflow semantics for type casts     |
-| [ADR-060](decisions/adr-060-vscode-extension-separation.md) | VS Code Extension Separation  | Separate repository for VS Code extension        |
-| [ADR-066](decisions/adr-066-do178c-compliance.md)           | DO-178C Compliance            | Safety-critical software certification framework |
-| [ADR-069](decisions/adr-069-dead-code-reachability.md)      | Dead-Code / Reachability      | Reject unreachable code (MISRA 2.1/2.2, DO-178C) |
+| ADR                                                     | Title                         | Description                                      |
+| ------------------------------------------------------- | ----------------------------- | ------------------------------------------------ |
+| [ADR-008](decisions/adr-008-language-bug-prevention.md) | Language-Level Bug Prevention | Top 15 embedded bugs and prevention              |
+| [ADR-009](decisions/adr-009-isr-safety.md)              | ISR Safety                    | Safe interrupts without `unsafe` blocks          |
+| [ADR-054](decisions/adr-054-array-index-overflow.md)    | Array Index Overflow          | Overflow semantics for array index expressions   |
+| [ADR-056](decisions/adr-056-cast-overflow-behavior.md)  | Cast Overflow Behavior        | Consistent overflow semantics for type casts     |
+| [ADR-066](decisions/adr-066-do178c-compliance.md)       | DO-178C Compliance            | Safety-critical software certification framework |
+| [ADR-069](decisions/adr-069-dead-code-reachability.md)  | Dead-Code / Reachability      | Reject unreachable code (MISRA 2.1/2.2, DO-178C) |
 
 ## Research (v2 Roadmap)
 

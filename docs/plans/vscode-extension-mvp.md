@@ -335,6 +335,6 @@ c-next/
 
 - MVP complete as of 2025-12-27
 - IntelliSense features (v0.3.0) complete as of 2025-12-28
-- Assembly view documented as future enhancement in ADR-011
+- Assembly view documented as future enhancement in `docs/implementation/vscode-extension.md` (formerly ADR-011)
 - PlatformIO integration for architecture selection is future scope
 - Full LSP server is a separate future project (current features use VS Code providers directly)
