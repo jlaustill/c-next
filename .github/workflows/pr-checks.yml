@@ -124,6 +124,16 @@ jobs:
         run: npm run coverage:matrix:check
         continue-on-error: true
 
+      # Issue #1403: an ADR must stay applicable if the transpiler were rebuilt
+      # in another language and stack. The prohibition lived in CLAUDE.md with
+      # no gate and 40 of 76 ADRs drifted past it -- five written after it was
+      # recorded. The identifier vocabulary is derived from src/ on each run, so
+      # there is no denylist to keep in sync.
+      - name: Check ADRs survive a rewrite
+        id: adrindependence
+        run: npm run adr:independence:check
+        continue-on-error: true
+
       # Issue #1316: a `.expected.error` is the only assertion that a diagnostic
       # fires, and losing one was silent -- `--update` unlinked it and reported
       # the run green. docs/diagnostic-manifest.md is the committed record, so
@@ -173,6 +183,7 @@ jobs:
           [ "${{ steps.jscpd.outcome }}" != "success" ] && echo "❌ Code duplication (jscpd)" && FAILED=1 || echo "✅ Code duplication (jscpd)"
           [ "${{ steps.toolchaindocs.outcome }}" != "success" ] && echo "❌ Toolchain docs" && FAILED=1 || echo "✅ Toolchain docs"
           [ "${{ steps.scopematrix.outcome }}" != "success" ] && echo "❌ Scope-context matrix" && FAILED=1 || echo "✅ Scope-context matrix"
+          [ "${{ steps.adrindependence.outcome }}" != "success" ] && echo "❌ ADR rewrite test" && FAILED=1 || echo "✅ ADR rewrite test"
           [ "${{ steps.diagnosticmanifest.outcome }}" != "success" ] && echo "❌ Diagnostic manifest" && FAILED=1 || echo "✅ Diagnostic manifest"
           [ "${{ steps.throwcitations.outcome }}" != "success" ] && echo "❌ Throw citations" && FAILED=1 || echo "✅ Throw citations"
           [ "${{ steps.scopejoins.outcome }}" != "success" ] && echo "❌ Scope-join sites" && FAILED=1 || echo "✅ Scope-join sites"

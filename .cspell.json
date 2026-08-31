@@ -69,6 +69,7 @@
     "cnx",
     "cnxlib",
     "codegen",
+    "codegenerator",
     "comptime",
     "conditionless",
     "configloader",
