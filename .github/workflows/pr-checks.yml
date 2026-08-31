@@ -32,6 +32,22 @@ on:
 
 # Self-hosted runner for trusted code (your branches, pushes to main)
 # GitHub runners for untrusted code (fork PRs)
+#
+# Issue #1421: that split decides whether caching ~/.npm is a win or a tax, so
+# every `Cache npm dependencies` step below is gated on `runner.environment`.
+#
+# A GitHub-hosted runner is a fresh VM with an empty ~/.npm, so restoring the
+# cache is a clear win. A self-hosted runner is not ephemeral: all 8 runners
+# share one persistent ~/.npm (2.9 GB and warm), which is why `npm ci` there
+# takes 5-9s with no remote cache at all. Restoring anyway cost 138-324s per
+# job to save ~4s of install time.
+#
+# It scaled badly rather than merely wastefully. The step runs in 11 of the 15
+# jobs (7 single jobs + the 4-way c-validation matrix), so each run pulled
+# ~9.2 GB. At 1-3 concurrent runs that hid inside an 80s step; at 9-15
+# concurrent runs it saturated the uplink and stretched to ~500s per job,
+# taking runs from ~8 minutes to 30-160 while the 32 cores sat idle. No commit
+# caused it -- concurrency rose and a fixed cost stopped fitting.
 
 jobs:
   # ============================================================================
@@ -49,6 +65,8 @@ jobs:
         uses: volta-cli/action@v4
 
       - name: Cache npm dependencies
+        # Issue #1421: self-hosted keeps ~/.npm between jobs; see top of file.
+        if: runner.environment == 'github-hosted'
         uses: actions/cache@v4
         with:
           path: ~/.npm
@@ -201,6 +219,8 @@ jobs:
         uses: volta-cli/action@v4
 
       - name: Cache npm dependencies
+        # Issue #1421: self-hosted keeps ~/.npm between jobs; see top of file.
+        if: runner.environment == 'github-hosted'
         uses: actions/cache@v4
         with:
           path: ~/.npm
@@ -256,6 +276,8 @@ jobs:
         uses: volta-cli/action@v4
 
       - name: Cache npm dependencies
+        # Issue #1421: self-hosted keeps ~/.npm between jobs; see top of file.
+        if: runner.environment == 'github-hosted'
         uses: actions/cache@v4
         with:
           path: ~/.npm
@@ -312,6 +334,8 @@ jobs:
         uses: volta-cli/action@v4
 
       - name: Cache npm dependencies
+        # Issue #1421: self-hosted keeps ~/.npm between jobs; see top of file.
+        if: runner.environment == 'github-hosted'
         uses: actions/cache@v4
         with:
           path: ~/.npm
@@ -348,6 +372,8 @@ jobs:
         uses: volta-cli/action@v4
 
       - name: Cache npm dependencies
+        # Issue #1421: self-hosted keeps ~/.npm between jobs; see top of file.
+        if: runner.environment == 'github-hosted'
         uses: actions/cache@v4
         with:
           path: ~/.npm
@@ -383,6 +409,8 @@ jobs:
         uses: volta-cli/action@v4
 
       - name: Cache npm dependencies
+        # Issue #1421: self-hosted keeps ~/.npm between jobs; see top of file.
+        if: runner.environment == 'github-hosted'
         uses: actions/cache@v4
         with:
           path: ~/.npm
@@ -421,6 +449,8 @@ jobs:
         uses: volta-cli/action@v4
 
       - name: Cache npm dependencies
+        # Issue #1421: self-hosted keeps ~/.npm between jobs; see top of file.
+        if: runner.environment == 'github-hosted'
         uses: actions/cache@v4
         with:
           path: ~/.npm
@@ -494,6 +524,8 @@ jobs:
         uses: volta-cli/action@v4
 
       - name: Cache npm dependencies
+        # Issue #1421: self-hosted keeps ~/.npm between jobs; see top of file.
+        if: runner.environment == 'github-hosted'
         uses: actions/cache@v4
         with:
           path: ~/.npm
