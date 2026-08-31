@@ -31,7 +31,6 @@ const ADR_INDEPENDENCE_BASELINE: readonly string[] = [
   "adr-010-c-interoperability.md",
   "adr-013-const-qualifier.md",
   "adr-016-scope.md",
-  "adr-036-multidimensional-arrays.md",
   "adr-063-identifier-syntax.md",
   "adr-069-dead-code-reachability.md",
   "adr-070-return-value-use.md",

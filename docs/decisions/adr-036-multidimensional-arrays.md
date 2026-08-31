@@ -180,7 +180,7 @@ C-Next uses **row-major** order (same as C):
 
 This is the only sensible choice for C compatibility.
 
-### CodeGenerator
+### Generated C
 
 Direct mapping to C with size enforcement:
 
@@ -446,22 +446,18 @@ Compiler flags:
 - [CWE-787: Out-of-bounds Write](https://cwe.mitre.org/data/definitions/787.html)
 - [CWE-119: Improper Restriction of Operations within Bounds](https://cwe.mitre.org/data/definitions/119.html)
 
-### Implementation
+### Bounds Checking
 
-Compile-time bounds checking for a constant subscript:
+A constant subscript is checked at compile time, and the rule is one decision applied at
+every position a subscript can appear — not a check repeated per position. That
+distinction is the whole content of #1360: while only the assignment positions asked the
+question, `arr[9] <- 1` was rejected and `u8 x <- arr[9]` compiled and exited 0, which
+contradicted this ADR's own CWE-125 mitigation claim. A rule enforced in one position and
+not another is more dangerous than no rule, because the passing case teaches the reader it
+is covered.
 
-- `src/transpiler/output/codegen/TypeValidator.ts:213` — `checkArrayBounds`, the single
-  decision: whether a variable has a bound to check against, and whether the index clears it.
-  Callers supply the name and the subscript depth; they do not re-derive the guard.
-- `src/transpiler/output/codegen/helpers/AssignmentValidator.ts:177` — assignment target.
-- `src/transpiler/output/codegen/assignment/handlers/ArrayHandlers.ts:61` — multi-dimensional
-  assignment target.
-- `src/transpiler/output/codegen/generators/expressions/PostfixExpressionGenerator.ts:1718` —
-  value position (#1360). Until then only the assignment paths asked, so `arr[9] <- 1` was
-  rejected while `u8 x <- arr[9]` compiled at exit 0 — contradicting this ADR's CWE-125
-  mitigation claim below.
-- `src/transpiler/constants/UNRESOLVED_DIMENSION.ts` — why a dimension that cannot be folded
-  keeps its slot rather than being omitted.
+A dimension that cannot be folded to a constant keeps its slot rather than being dropped,
+so an unresolvable bound cannot be mistaken for an absent one.
 
 Not yet covered: a subscript on a **struct field** (`s.arr[9]`) is unchecked in both
 positions — tracked as #1168.
