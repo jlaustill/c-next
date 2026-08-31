@@ -78,6 +78,27 @@ Start from [`TEMPLATE.md`](TEMPLATE.md). Copy it to `adr-NNN-short-stem.md`,
 pick the band per the rule above, and fill in the sections — the guidance
 comments explain what each one is for and delete as you go.
 
+### The rewrite test
+
+**If the transpiler were rebuilt from scratch in a different language and stack, every ADR must
+still be fully applicable.** An ADR decides something about the C-Next language; it does not
+record how today's TypeScript/ANTLR/Node implementation satisfies that decision. C-Next and
+generated C/C++ snippets, EBNF productions, prior art in any language, diagnostics and rejected
+alternatives all pass. TypeScript, `src/**` paths, transpiler class and method names,
+ANTLR-only directives and npm config do not — those belong in `docs/architecture/` or
+`docs/implementation/`.
+
+This is the rule that retired `053` above, generalized. That withdrawal judged a whole file;
+the test judges a passage, which is what was needed — 29 of 76 ADRs had drifted past the
+un-testable version of the rule, five of them filed after it was written down (#1403).
+
+An ADR therefore **points at nothing in `src/`**. Its strongest citation is a fixture path: a
+rewrite keeps the conformance corpus and discards every module name, and a fixture is the one
+reference an ADR can hold that _fails_ when the decision it documents stops being true.
+[ADR-063](adr-063-identifier-syntax.md) is the worked example.
+
+### Sections
+
 `Context`, `Decision`, and `References` appear in nearly every existing ADR and
 the template treats them as required. Two sections are easy to skip and
 expensive to skip:
