@@ -3,7 +3,7 @@
 **Status:** Implemented
 **Date:** 2026-01-28 (amended 2026-08-08 — type positions, #1130; amended 2026-08-27 — implementation detail removed, matrix declared, #1285)
 **Decision Makers:** Language Design Team
-**Related ADRs:** ADR-016 (Scopes — this ADR amends its name-resolution decision), ADR-017 (Enums), ADR-029 (Function Pointers — a function definition also creates a type), ADR-055 (Symbol Resolution Architecture), ADR-063 (Identifier Syntax — makes the qualified name injective)
+**Related ADRs:** ADR-016 (Scopes — this ADR amends its name-resolution decision), ADR-017 (Enums), ADR-029 (Function Pointers — a function definition also creates a type), ADR-063 (Identifier Syntax — makes the qualified name injective)
 **Related Issues:** #1130, #1210, #1244, #1285
 **Amends:** ADR-016 — which required explicit `this.` and `global.` and stated that implicit resolution does not exist. That requirement is withdrawn by this ADR.
 

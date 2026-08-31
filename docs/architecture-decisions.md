@@ -49,7 +49,6 @@ v2 (so "Research (v2 Roadmap)" holds `1xx` ADRs).
 | [ADR-064](decisions/adr-064-volatile-keyword.md)           | Volatile Variables         | `volatile` keyword prevents compiler optimization            |
 | [ADR-046](decisions/adr-046-nullable-c-interop.md)         | Nullable C Interop         | `c_` prefix for nullable C pointer types                     |
 | [ADR-057](decisions/adr-057-implicit-scope-resolution.md)  | Implicit Scope Resolution  | Bare identifiers resolve local -> scope -> global            |
-| [ADR-055](decisions/adr-055-symbol-parser-architecture.md) | Symbol Parser Architecture | Unified symbol resolution with composable collectors         |
 | [ADR-058](decisions/adr-058-explicit-length-properties.md) | Explicit Length Properties | `.bit_length`/`.byte_length`/`.element_count`/`.char_count`  |
 | [ADR-067](decisions/adr-067-all-paths-return.md)           | All-Paths-Return           | Reject non-void functions that can fall off the end (E0704)  |
 

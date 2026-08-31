@@ -314,7 +314,9 @@ export default new Registry();
 
 ---
 
-## Symbol Resolution (ADR-055)
+## Symbol Resolution
+
+> Full model: [`docs/architecture/symbol-resolution.md`](docs/architecture/symbol-resolution.md) (formerly ADR-055).
 
 ### Symbol Types
 
@@ -327,7 +329,7 @@ export default new Registry();
 **Use**: `CNextResolver.resolve(tree, file)` → `TSymbol[]`
 **Avoid**: Deleted `SymbolCollector`, `CNextSymbolCollector`
 
-### C/C++ Resolvers (ADR-055 Phase 6)
+### C/C++ Resolvers (symbol-resolution Phase 6)
 
 | Resolver      | Location                     | Returns        |
 | ------------- | ---------------------------- | -------------- |
@@ -597,16 +599,18 @@ reached seven copies across CLAUDE.md and CONTRIBUTING.md before anyone noticed 
 **ADRs point at nothing.** A previous version of this file required "implementing modules
 cited as `file:line` in `## References`", which mandated the exact thing the rewrite test
 forbids. It was also unenforceable in the direction that mattered: the prose is what rots.
-ADR-013 describes `private checkConstAssignment()` as a method on the codegen class; it is
-`static TypeValidator.checkConstAssignment()` in another file. ADR-055 still specifies a
-13-field `interface ISymbol` whose flat model Phase 7 removed — the name survives in
-`SymbolLookupHelper` on an unrelated two-field structural type, so a reader who greps for it
-finds something that looks like confirmation and is not.
+ADR-013 described `private checkConstAssignment()` as a method on the codegen class long after
+it became `static TypeValidator.checkConstAssignment()` in another file. ADR-055 specified a
+13-field `interface ISymbol` whose flat model Phase 7 had removed — and the name survives in
+`SymbolLookupHelper` on an unrelated two-field structural type, so a reader who grepped for it
+found something that looked like confirmation and was not. Both are fixed; 055 is no longer an
+ADR at all.
 
 The prohibition is not new — it is why ADR-053 was withdrawn on 2026-08-28, "described the
 transpiler's pipeline rather than deciding anything about the language". What was missing was a
-_test_: "no implementation detail" gave no way to adjudicate a borderline passage, and 29 of 76
-ADRs drifted past it (#1403). The rewrite test adjudicates. Ask it of the passage, not the file.
+_test_: "no implementation detail" gave no way to adjudicate a borderline passage, and 40 of 76
+ADRs drifted past it (#1403) — a hand audit found 29 and the gate found the rest, which is the
+argument for having a gate at all. The rewrite test adjudicates. Ask it of the passage, not the file.
 
 ### Numbering — an ADR's number band is the release it must ship in
 

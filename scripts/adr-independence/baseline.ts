@@ -21,7 +21,6 @@ const ADR_INDEPENDENCE_BASELINE: readonly string[] = [
   "adr-011-vscode-extension.md",
   "adr-012-static-analysis.md",
   "adr-048-cli-executable.md",
-  "adr-055-symbol-parser-architecture.md",
   "adr-060-vscode-extension-separation.md",
   "adr-065-codegenerator-decomposition.md",
 

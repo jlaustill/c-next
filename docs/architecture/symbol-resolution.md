@@ -1,4 +1,14 @@
-# ADR-055: Symbol Resolution Architecture
+# Symbol Resolution Architecture
+
+> **Formerly ADR-055.** Moved out of `docs/decisions/` on 2026-08-31 under the rewrite
+> test (#1403): this document describes how the transpiler is built, not what C-Next
+> decides, and would not survive a rebuild in another language and stack. ADR number
+> 055 is retired and will not be reused — see
+> [`../decisions/README.md`](../decisions/README.md). References to ADR-055 in source
+> comments, the changelog and older issues resolve here.
+>
+> It keeps its implementation detail deliberately: that is what this directory is for,
+> and going stale visibly is the point.
 
 ## Status
 
