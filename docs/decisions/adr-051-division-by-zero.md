@@ -709,11 +709,8 @@ renders them `n/a` rather than counting them empty.
 3. If constant evaluates to zero, emit error: `"Division by zero"`
 4. Test with all error test cases
 
-**Files to modify:**
-
-- `src/analysis/SemanticAnalyzer.ts` (or equivalent)
-- Add constant folding logic
-- Emit error for zero divisors
+The check is a compile-time one and applies only where the divisor is known at
+compile time; a runtime-valued divisor is Phase 2's problem, not this one.
 
 ### Phase 2: safe_div() and safe_mod() Built-ins
 
@@ -745,11 +742,9 @@ static inline bool cnx_safe_div_u32(uint32_t* output, uint32_t numerator,
 4. Transpile calls to appropriate `cnx_safe_div_*` function based on output type
 5. Test with all safe_div() test cases
 
-**Files to modify:**
-
-- `src/codegen/CodeGenerator.ts` (or equivalent)
-- Add built-in function recognition
-- Generate appropriate helper functions in C output
+`safe_div` and `safe_mod` are built-ins rather than library functions, so a program
+cannot shadow them and a reviewer of the generated C can rely on the helper meaning
+what this ADR says it means.
 
 ### Phase 3: Update Coverage Matrix
 
