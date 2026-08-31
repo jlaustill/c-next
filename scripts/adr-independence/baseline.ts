@@ -34,7 +34,6 @@ const ADR_INDEPENDENCE_BASELINE: readonly string[] = [
   "adr-016-scope.md",
   "adr-022-conditional-expressions.md",
   "adr-030-forward-declarations.md",
-  "adr-035-array-initializers.md",
   "adr-036-multidimensional-arrays.md",
   "adr-037-preprocessor.md",
   "adr-044-primitive-types.md",
