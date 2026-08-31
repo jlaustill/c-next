@@ -447,7 +447,9 @@ IF a recommended issue shares a DOMAIN label (parser, code-generator, types, sco
 `Blocked by` is free text, not a link — it may name a whole issue ("#1285"), a
 specific slice of one ("#1285 PR5 - do PR5 first"), or a pending decision. It is
 also a PERMANENT RECORD of what the work waited on. It is NEVER cleared, not even
-once every blocker has closed. Never clear it, edit it, or propose clearing it.
+once every blocker has closed. Never clear it, never replace what it already names,
+and never propose either. A new blocker is appended beside the existing text — that
+is the only write this field takes.
 
 A populated field is therefore not by itself a reason to skip an issue. Use
 IS_BLOCKED from Phase 1d, which asks whether what it names is still open.
@@ -499,8 +501,9 @@ IF no open issues exist:
 - **DO NOT** pick issues labeled "test-blocked", "wontfix", or "epic"
 - **DO NOT** recommend an issue that IS_BLOCKED (its `Blocked by` names something
   still open), or one sitting in `Grooming`
-- **DO NOT** clear, edit, or propose clearing a `Blocked by` — it is a permanent
-  record, and a blocker that has closed is history, not a stale value
+- **DO NOT** clear a `Blocked by`, replace what it names, or propose either — it is a
+  permanent record, and a blocker that has closed is history, not a stale value. A new
+  blocker is appended beside the old, never substituted for it
 - **DO NOT** fall back to label-only scoring when the board query fails — say it failed
   and stop; a ranking that ignores `Blocked by` looks authoritative and is not
 - **DO NOT** widen past the active milestone without `--all` — the milestone is the sprint

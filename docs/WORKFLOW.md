@@ -48,6 +48,13 @@ cleared.** An issue is blocked while any issue named here is still open; once th
 have all closed it is no longer blocked, and the text _stays_ — permanently — as the
 record of what the work waited on.
 
+A new blocker is **appended**, never substituted. #1318 waited on
+`#1285 (PR5-PR7)`, and then on `#1357 (symbol model: sourceColumn)`; the record is
+both, in that order, not whichever arrived last. Overwriting honours "never cleared"
+to the letter and destroys the record just as completely — the field keeps no version
+history, so the replaced value is gone from the board (#1419). Appending is the only
+write this field takes.
+
 Blocked-ness is therefore **derived** ("are the issues named here still open?"), and
 is never read off the field's emptiness. Empty means nothing ever blocked this card,
 not that a blocker was resolved: keeping the record and the live state in one slot
