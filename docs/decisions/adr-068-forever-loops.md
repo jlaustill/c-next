@@ -49,7 +49,7 @@ This is unsatisfying for a "safer C": the intent (_this loop never ends_) is bur
 an arithmetic identity that the transpiler cannot recognize as deliberate. Two concrete
 problems follow from the transpiler not understanding the loop is infinite:
 
-1. **It forces dead code.** `ReturnPathAnalyzer` (ADR-067) treats a `while` body as
+1. **It forces dead code.** ADR-067's all-paths-return rule treats a `while` body as
    _possibly skipped_, so a non-void function whose only terminal path is `while (1 = 1)`
    fails with **E0704** unless an unreachable trailing `return` is added. The project's own
    flagship example ships exactly this dead code:
@@ -192,8 +192,9 @@ the steer-to-`forever` help text instead of a generic parse error.
 other) but **share one primitive**. The decision (recorded in the design discussion) is **two
 ADRs sharing a single divergence primitive**:
 
-- **This ADR (113)** introduces the **"divergent statement"** concept into `ReturnPathAnalyzer`
-  (a `forever` loop is divergent) and the minimal rule "no code after `forever`." Small,
+- **This ADR (113)** introduces the **"divergent statement"** concept into the
+  all-paths-return rule (a `forever` loop is divergent) and the minimal rule "no code after
+  `forever`." Small,
   self-contained, **non-breaking** (it only accepts more programs — those that previously
   needed a dead trailing return).
 - **ADR-069** _generalizes the consumption_ of that same primitive into a full reachability
@@ -322,14 +323,14 @@ post-`forever` the form has no legitimate use.
 
 The `forever` core shipped: grammar (`FOREVER` token + `foreverStatement : FOREVER block`),
 lowering to `for (;;)` with a MISRA 14.3 comment, the divergence primitive in
-`ReturnPathAnalyzer`, **E0705** (confirmed allocated), and the `blink.cnx` migration to
+ADR-067's all-paths-return rule, **E0705** (confirmed allocated), and the `blink.cnx` migration to
 `void main()` + `forever`. **Status is _WIP_, not _Implemented_: ADR-068 completes only when
 ADR-069 (which consumes the divergence primitive) also lands.**
 
 Key finding for ADR-069 / #849 — **the divergence primitive is not inert in ADR-068**, contrary
-to the naive reading that "`forever` is void-only and `ReturnPathAnalyzer` only checks non-void
+to the naive reading that "`forever` is void-only and all-paths-return only checks non-void
 functions, so it never sees a `forever`." A non-void function _can_ contain a `forever` loop in
-source; the analyzer runs **before** codegen, so without the primitive it emits the **misleading
+source, and the check happens **before** any code is generated, so without the primitive it emits the **misleading
 E0704** ("must return a value on all paths") instead of the precise **E0705**. Marking `forever`
 as a terminal/divergent path in `statementDefinitelyReturns` suppresses the wrong E0704 so E0705
 surfaces. This is exactly the shared decision ADR-069 must reuse rather than re-derive.
@@ -344,7 +345,7 @@ The v0.2.18 **disguised-loop slice** shipped as **E0707** (E0706 stays reserved 
 - **`for (;;)`** — a for-loop with no controlling expression is rejected in `generateFor`.
 - **Always-true literal conditions** — `while`/`for`/`do-while` conditions that are a single
   comparison of integer/bool literals evaluating to true (`1 = 1`, `5 > 3`, `true = true`,
-  `1 != 2`) are rejected via `TypeValidator.validateLoopConditionNotAlwaysTrue`.
+  `1 != 2`) are rejected.
 
 Strictly the **literal** slice (no symbol resolution): named constants, non-literal/compound
 operands, floats, and always-**false** conditions are deliberately _not_ flagged — deferred to the
