@@ -22,6 +22,13 @@ import IAdrViolation from "../types/IAdrViolation";
  * rather than maintained as a denylist. A hand-kept list would go stale in the
  * one direction that matters: a class renamed after an ADR cited it would stop
  * being detected precisely because the ADR is now wrong.
+ *
+ * KNOWN LIMIT, and the mirror image of that choice: a module that does not exist
+ * yet is invisible. An ADR proposing `ReachabilityAnalyzer` names something the
+ * vocabulary cannot contain, and an "Architecture (proposed)" section is exactly
+ * where an ADR is most tempted to name modules. The path and fence rules still
+ * catch most of those, but a bare proposed class name in prose is not detectable
+ * here and needs a reader. Raised in review on #1405.
  */
 class AdrIndependence {
   /** Fenced languages that only exist because of today's stack. */
