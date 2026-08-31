@@ -208,8 +208,12 @@ function runAnalyzers(
       errors,
       step.format ?? formatWithCode,
     );
+    // `break`, not an early `return`: both exits hand back the same `errors`
+    // array, so returning from inside the loop reads as two exits with one
+    // value (S3516) when it is really one exit and a stopping condition. What
+    // varies is what `errors` CONTAINS, which no return statement expresses.
     if (found && !step.advisory) {
-      return errors;
+      break;
     }
   }
 
