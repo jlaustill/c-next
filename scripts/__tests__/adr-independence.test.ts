@@ -1,4 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import { afterAll, describe, expect, it } from "vitest";
 
 import AdrIndependence from "../adr-independence/AdrIndependence";
 
@@ -202,6 +206,57 @@ describe("review findings on PR #1405", () => {
     // `export interface I...` and bare `enum E...` were never collected before.
     expect([...names].some((n) => n.startsWith("I"))).toBe(true);
     expect([...names].some((n) => n.startsWith("T"))).toBe(true);
+  });
+});
+
+describe("AdrIndependence.run", () => {
+  // A throwaway tree, so the assertions do not move when the real corpus does.
+  const root = mkdtempSync(join(tmpdir(), "adr-gate-"));
+  const decisions = join(root, "docs", "decisions");
+  mkdirSync(decisions, { recursive: true });
+  mkdirSync(join(root, "src"), { recursive: true });
+  writeFileSync(
+    join(root, "src", "Thing.ts"),
+    "export default class CodeGenerator {}\n",
+  );
+  writeFileSync(
+    join(decisions, "adr-001-clean.md"),
+    "# Clean\n\n```cnx\nu8 x <- 1;\n```\n",
+  );
+  writeFileSync(
+    join(decisions, "adr-002-dirty.md"),
+    "# Dirty\n\nThe CodeGenerator emits it.\n",
+  );
+  // Neither of these is an ADR, and neither may be scanned.
+  writeFileSync(join(decisions, "README.md"), "The CodeGenerator emits it.\n");
+  writeFileSync(
+    join(decisions, "TEMPLATE.md"),
+    "The CodeGenerator emits it.\n",
+  );
+
+  afterAll(() => rmSync(root, { recursive: true, force: true }));
+
+  const outcome = AdrIndependence.run(root);
+
+  it("counts only files named adr-<digits>", () => {
+    expect(outcome.scanned).toBe(2);
+  });
+
+  it("reports violations from the ADR that has one", () => {
+    expect(outcome.failures).toMatchObject([
+      { file: "adr-002-dirty.md", kind: "identifier", detail: "CodeGenerator" },
+    ]);
+  });
+
+  it("does not scan README.md or TEMPLATE.md, which are not ADRs", () => {
+    // Both contain the same violating sentence; neither may be reported.
+    expect(outcome.failures.map((v) => v.file)).not.toContain("README.md");
+    expect(outcome.failures.map((v) => v.file)).not.toContain("TEMPLATE.md");
+  });
+
+  it("builds its vocabulary from the tree it is given, not this repo", () => {
+    expect(AdrIndependence.vocabulary(root).has("CodeGenerator")).toBe(true);
+    expect(AdrIndependence.vocabulary(root).size).toBe(1);
   });
 });
 

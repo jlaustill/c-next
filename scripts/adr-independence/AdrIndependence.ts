@@ -159,7 +159,9 @@ class AdrIndependence {
       if (fence) {
         const ticks = fence[1].length;
         if (fenceLanguage === null) {
-          fenceLanguage = (fence[2] || "").toLowerCase();
+          // `(\S*)` always matches, so the tag is a string -- empty for a
+          // bare fence. The former `|| ""` was an unreachable fallback.
+          fenceLanguage = fence[2].toLowerCase();
           fenceTicks = ticks;
           fenceStart = index + 1;
           fenceBody = [];
