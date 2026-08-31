@@ -110,7 +110,20 @@ query($endCursor: String) { user(login: "jlaustill") { projectV2(number: 1) {
 ```
 
 ```
-STORE per issue: BOARD_STATUS, BLOCKED_BY
+STORE per issue: BOARD_STATUS, BLOCKED_BY (the raw field text)
+
+RESOLVE blocked-ness. It is DERIVED from what BLOCKED_BY names, never from whether
+the field is empty. `Blocked by` is a permanent record of what the work waited on
+and is NEVER cleared, so a populated field says nothing on its own about today.
+
+FOR each issue whose BLOCKED_BY is non-empty:
+  EXTRACT every issue number (#NNNN) named in the text.
+  IF none is named (the text is prose — "waiting on a naming decision"):
+    → IS_BLOCKED. Nothing can derive this one; report it for a human to judge.
+  ELSE resolve each named issue's state:
+    gh api repos/jlaustill/c-next/issues/<n> --jq '.state'   # open | closed
+    → IS_BLOCKED if any is open. OPEN_BLOCKERS = those; name them, not the field.
+    → NOT blocked if all are closed. The issue is available. Leave the field alone.
 
 IF the query fails (needs `gh auth refresh -s project`):
   SAY SO EXPLICITLY and stop — do not fall back to label-only scoring and
@@ -136,7 +149,7 @@ PARTITION issues into:
   IN_FLIGHT_DISPLAY = open issues that ARE in IN_FLIGHT_ISSUES (for the report)
 
   EXCLUDED = open issues, each with the reason, where any of:
-    - BLOCKED       BLOCKED_BY is non-empty       → name what blocks it
+    - BLOCKED       IS_BLOCKED (Phase 1d)         → name the OPEN_BLOCKERS
     - GROOMING      BOARD_STATUS == "Grooming"    → not triaged; scope is still open
     - EPIC          has the "epic" label          → a tracker, never picked up directly
     - OUT_OF_SPRINT milestone != ACTIVE_MILESTONE → unless --all was passed
@@ -430,18 +443,30 @@ IF a recommended issue shares a DOMAIN label (parser, code-generator, types, sco
 
 ```
 `Blocked by` is free text, not a link — it may name a whole issue ("#1285"), a
-specific slice of one ("#1285 PR5 - do PR5 first"), or a pending decision.
+specific slice of one ("#1285 PR5 - do PR5 first"), or a pending decision. It is
+also a PERMANENT RECORD of what the work waited on. It is NEVER cleared, not even
+once every blocker has closed. Never clear it, edit it, or propose clearing it.
 
-NEVER recommend an issue with a non-empty `Blocked by`. Report it under
-"Not Recommended Yet" with the blocker named, so the user can see the chain.
+A populated field is therefore not by itself a reason to skip an issue. Use
+IS_BLOCKED from Phase 1d, which asks whether what it names is still open.
+
+NEVER recommend an issue that IS_BLOCKED. Report it under "Not Recommended Yet"
+with the OPEN blockers named, so the user can see the chain.
 
 IF every issue in the active milestone is blocked:
   SAY SO, and name the root blockers — that set IS the recommendation.
   "Everything in <milestone> is blocked on #<a> and #<b>. Those are the work."
 
-IF a blocker is itself finished but the field was never cleared:
-  FLAG it rather than silently ignoring the field. A stale `Blocked by` is a bug
-  in the board, and clearing it is a one-line fix that unblocks real work.
+IF every issue a `Blocked by` names has closed:
+  The issue is AVAILABLE and the field is already correct — a resolved blocker is
+  history, not a stale value, and there is nothing to fix. Say so when recommending
+  it: "unblocked (was: #1316, #1321 — both closed)", so the reader can see the
+  field was read rather than ignored.
+
+IF the text qualifies the dependency ("#1285 PR5 - do PR5 first") and #1285 is
+still open:
+  Derivation cannot see inside it, so the issue stays BLOCKED. Print the qualifier
+  verbatim so the user can overrule it.
 ```
 
 ### Stale Issues
@@ -470,7 +495,10 @@ IF no open issues exist:
 - **DO NOT** change C-Next syntax/behavior or an ADR's Status without explicit ADR approval
 - **DO NOT** forget to update the GitHub issue as work progresses
 - **DO NOT** pick issues labeled "test-blocked", "wontfix", or "epic"
-- **DO NOT** recommend an issue with a non-empty `Blocked by`, or one sitting in `Grooming`
+- **DO NOT** recommend an issue that IS_BLOCKED (its `Blocked by` names something
+  still open), or one sitting in `Grooming`
+- **DO NOT** clear, edit, or propose clearing a `Blocked by` — it is a permanent
+  record, and a blocker that has closed is history, not a stale value
 - **DO NOT** fall back to label-only scoring when the board query fails — say it failed
   and stop; a ranking that ignores `Blocked by` looks authoritative and is not
 - **DO NOT** widen past the active milestone without `--all` — the milestone is the sprint
