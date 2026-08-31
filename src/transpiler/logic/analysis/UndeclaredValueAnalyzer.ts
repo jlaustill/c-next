@@ -43,7 +43,6 @@ import ParserUtils from "../../../utils/ParserUtils";
 import REJECTED_KEYWORDS from "../../constants/REJECTED_KEYWORDS";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 import ScopeUtils from "../../../utils/ScopeUtils";
-import UndeclaredTypeAnalyzer from "./UndeclaredTypeAnalyzer";
 
 class UndeclaredValueListener extends CNextListener {
   private readonly analyzer: UndeclaredValueAnalyzer;
@@ -119,11 +118,10 @@ class UndeclaredValueAnalyzer {
   analyze(tree: Parser.ProgramContext): IUndeclaredValueError[] {
     this.errors.length = 0;
 
-    // Same precondition as E0426: only diagnose where the whole name universe
-    // of the file is known. An unparsed C header supplies globals and macro
-    // constants this pass cannot see, and rejecting one is a regression while
-    // missing it is the status quo.
-    if (UndeclaredTypeAnalyzer.hasUnparsedInclude(tree)) {
+    // Same precondition as E0426, and the value axis needs it MORE: a `#define`
+    // never reaches the symbol table at all, so `_isKnownForeignName` -- which
+    // does catch a header typedef -- has nothing to fall back on for a macro.
+    if (CodeGenState.currentFileReachesForeignHeader) {
       return this.errors;
     }
 
@@ -157,9 +155,8 @@ class UndeclaredValueAnalyzer {
     // A function referenced as a value (ADR-029 function-as-type), and a type
     // used as the base of `Type.MEMBER`.
     const symbolTable = CodeGenState.symbolTable;
-    const callbackTypes = new Set(CodeGenState.callbackTypes.keys());
     if (
-      NameExistence.isKnownType(name, symbols, symbolTable, callbackTypes) ||
+      NameExistence.isKnownType(name, symbols, symbolTable) ||
       NameExistence.isKnownEnumMember(name, symbols) ||
       CodeGenState.knownFunctions.has(name)
     ) {
@@ -169,12 +166,7 @@ class UndeclaredValueAnalyzer {
     if (scope) {
       const qualified = ScopeUtils.qualifyInScope(name, scope);
       if (
-        NameExistence.isKnownType(
-          qualified,
-          symbols,
-          symbolTable,
-          callbackTypes,
-        ) ||
+        NameExistence.isKnownType(qualified, symbols, symbolTable) ||
         CodeGenState.knownFunctions.has(qualified) ||
         (symbols.scopeMembers.get(scope.name)?.has(name) ?? false)
       ) {

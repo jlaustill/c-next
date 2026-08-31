@@ -25,6 +25,21 @@ interface IResolvedIncludes {
   warnings: string[];
 
   /**
+   * Whether any include brings in names this transpiler cannot see -- a C/C++
+   * header, or an include that resolved to nothing (an unfound `<system.h>` is
+   * silently ignored, and its names still exist at compile time).
+   *
+   * #1399 review: consumed by the E0426/E0427 precondition. Recorded HERE
+   * because this class already decides what each directive IS; the analyzer's
+   * own attempt re-derived it from `#include` token text, became a third
+   * spelling of "is this a C-Next include?", and was the one that missed
+   * `.cnext`. `headers` alone cannot answer it -- `<stdio.h>` resolves to
+   * nothing on most systems and so appears in no list at all, which is exactly
+   * how `FILE` slipped through.
+   */
+  hasForeignInclude: boolean;
+
+  /**
    * Issue #497: Map from resolved header path to original include directive.
    * Used to include C headers (instead of forward declarations) when their
    * types are used in public interfaces.
@@ -90,6 +105,7 @@ class IncludeResolver {
       cnextIncludes: [],
       warnings: [],
       headerIncludeDirectives: new Map<string, string>(),
+      hasForeignInclude: false,
     };
 
     const includes = IncludeDiscovery.extractIncludesWithInfo(content);
@@ -116,11 +132,7 @@ class IncludeResolver {
     );
 
     if (!resolved) {
-      this._handleUnresolvedInclude(
-        includeInfo,
-        sourceFilePath,
-        result.warnings,
-      );
+      this._handleUnresolvedInclude(includeInfo, sourceFilePath, result);
       return;
     }
 
@@ -160,6 +172,7 @@ class IncludeResolver {
   ): void {
     if (file.type === EFileType.CHeader || file.type === EFileType.CppHeader) {
       result.headers.push(file);
+      result.hasForeignInclude = true;
       // Issue #497: Track the original include directive for this header
       const directive = includeInfo.isLocal
         ? `#include "${includeInfo.path}"`
@@ -188,8 +201,13 @@ class IncludeResolver {
   private _handleUnresolvedInclude(
     includeInfo: { path: string; isLocal: boolean },
     sourceFilePath: string | undefined,
-    warnings: string[],
+    result: IResolvedIncludes,
   ): void {
+    // An include that resolved to nothing still supplies names at compile time.
+    result.hasForeignInclude = true;
+
+    const warnings = result.warnings;
+
     // System includes (<...>) that aren't found are silently ignored
     if (!includeInfo.isLocal) return;
 

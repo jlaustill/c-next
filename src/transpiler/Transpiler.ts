@@ -523,6 +523,11 @@ class Transpiler {
       // Make symbols available to analyzers (CodeGenerator.generate() sets this too)
       CodeGenState.symbols = symbolInfo;
 
+      // #1399 review: computed during discovery from the resolver's own
+      // categorization, not re-derived from `#include` token text here.
+      CodeGenState.currentFileReachesForeignHeader =
+        file.reachesForeignHeader ?? true;
+
       // Run analyzers (reads symbols, externalStructFields, and symbolTable from CodeGenState)
       const analyzerErrors = runAnalyzers(tree, tokenStream);
       if (analyzerErrors.length > 0) {
@@ -711,12 +716,22 @@ class Transpiler {
       },
       cnextIncludes: resolved.cnextIncludes,
       sourceRelativePath: basename(sourcePath),
+      // Source mode has a single entry and `allHeaders` is already the
+      // transitive header set for the run, so one answer covers every file in
+      // it. No graph walk is needed or available here.
+      reachesForeignHeader: resolved.hasForeignInclude,
     };
 
     // Includes first (symbols must be collected before main file code gen),
     // then main file
     return {
-      cnextFiles: [...cnextIncludeFiles, mainFile],
+      cnextFiles: [
+        ...cnextIncludeFiles.map((f) => ({
+          ...f,
+          reachesForeignHeader: resolved.hasForeignInclude,
+        })),
+        mainFile,
+      ],
       headerFiles: allHeaders,
       writeOutputToDisk: false,
     };
@@ -1280,6 +1295,7 @@ class Transpiler {
     cnextBaseNames: Set<string>,
     headerSet: Map<string, IDiscoveredFile>,
     fileByPath: Map<string, IDiscoveredFile>,
+    directForeignHeaderFiles: Set<string>,
   ): void {
     const cnxPath = resolve(cnxFile.path);
     depGraph.addFile(cnxPath);
@@ -1307,6 +1323,10 @@ class Transpiler {
       this.cppDetected,
     );
     const resolved = resolver.resolve(content, cnxFile.path);
+
+    if (resolved.hasForeignInclude) {
+      directForeignHeaderFiles.add(cnxPath);
+    }
 
     this._collectHeaders(resolved, cnextBaseNames, headerSet);
     this._processCnextIncludes(
@@ -1439,6 +1459,7 @@ class Transpiler {
       cnextFiles.map((f) => basename(f.path).replace(/\.cnx$|\.cnext$/, "")),
     );
 
+    const directForeignHeaderFiles = new Set<string>();
     for (const cnxFile of cnextFiles) {
       this._processFileIncludes(
         cnxFile,
@@ -1447,8 +1468,15 @@ class Transpiler {
         cnextBaseNames,
         headerSet,
         fileByPath,
+        directForeignHeaderFiles,
       );
     }
+
+    // Include visibility is transitive, so the precondition for E0426/E0427
+    // must be too.
+    const reachesForeign = depGraph.collectDependentsOf(
+      directForeignHeaderFiles,
+    );
 
     // Issue #580: Sort files topologically for correct cross-file const inference
     const sortedCnextFiles = this._sortFilesByDependency(depGraph, fileByPath);
@@ -1472,6 +1500,7 @@ class Transpiler {
     const pipelineFiles: IPipelineFile[] = sortedCnextFiles.map((f) => ({
       path: f.path,
       discoveredFile: f,
+      reachesForeignHeader: reachesForeign.has(resolve(f.path)),
     }));
 
     return {

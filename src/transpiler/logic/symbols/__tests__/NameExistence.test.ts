@@ -20,7 +20,6 @@ function tableWith(
   } as unknown as SymbolTable;
 }
 
-const NO_CALLBACKS: ReadonlySet<string> = new Set();
 const EMPTY_TABLE = tableWith([]);
 
 describe("NameExistence.isKnownType", () => {
@@ -33,44 +32,21 @@ describe("NameExistence.isKnownType", () => {
     ["opaqueTypes", "widget_t"],
   ] as const)("accepts a name present in %s", (field, name) => {
     const symbols = createMockSymbols({ [field]: new Set([name]) });
-    expect(
-      NameExistence.isKnownType(name, symbols, EMPTY_TABLE, NO_CALLBACKS),
-    ).toBe(true);
+    expect(NameExistence.isKnownType(name, symbols, EMPTY_TABLE)).toBe(true);
   });
 
   it("accepts a function name, because ADR-029 makes it a callback type", () => {
     const symbols = createMockSymbols({
       functionReturnTypes: new Map([["onReceive", "void"]]),
     });
-    expect(
-      NameExistence.isKnownType(
-        "onReceive",
-        symbols,
-        EMPTY_TABLE,
-        NO_CALLBACKS,
-      ),
-    ).toBe(true);
-  });
-
-  it("accepts a name in the callback registry", () => {
-    expect(
-      NameExistence.isKnownType(
-        "tickSource",
-        createMockSymbols(),
-        EMPTY_TABLE,
-        new Set(["tickSource"]),
-      ),
-    ).toBe(true);
+    expect(NameExistence.isKnownType("onReceive", symbols, EMPTY_TABLE)).toBe(
+      true,
+    );
   });
 
   it("rejects a name that is nowhere", () => {
     expect(
-      NameExistence.isKnownType(
-        "Mode",
-        createMockSymbols(),
-        EMPTY_TABLE,
-        NO_CALLBACKS,
-      ),
+      NameExistence.isKnownType("Mode", createMockSymbols(), EMPTY_TABLE),
     ).toBe(false);
   });
 
@@ -78,12 +54,7 @@ describe("NameExistence.isKnownType", () => {
     it("accepts a C symbol from the run-wide table", () => {
       const table = tableWith([{ name: "FILE", language: ESourceLanguage.C }]);
       expect(
-        NameExistence.isKnownType(
-          "FILE",
-          createMockSymbols(),
-          table,
-          NO_CALLBACKS,
-        ),
+        NameExistence.isKnownType("FILE", createMockSymbols(), table),
       ).toBe(true);
     });
 
@@ -96,7 +67,6 @@ describe("NameExistence.isKnownType", () => {
           "Adafruit_MAX31856",
           createMockSymbols(),
           table,
-          NO_CALLBACKS,
         ),
       ).toBe(true);
     });
@@ -109,12 +79,7 @@ describe("NameExistence.isKnownType", () => {
         { name: "Mode", language: ESourceLanguage.CNext },
       ]);
       expect(
-        NameExistence.isKnownType(
-          "Mode",
-          createMockSymbols(),
-          table,
-          NO_CALLBACKS,
-        ),
+        NameExistence.isKnownType("Mode", createMockSymbols(), table),
       ).toBe(false);
     });
   });

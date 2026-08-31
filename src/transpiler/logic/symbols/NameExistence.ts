@@ -50,6 +50,16 @@ class NameExistence {
   /**
    * Whether a bare type name denotes a type this file can see.
    *
+   * `CodeGenState.callbackTypes` is deliberately NOT consulted. It is codegen
+   * state -- filled by `CodeGenerator.registerCallbackType` and cleared at the
+   * start of `generate()`, both of which run after the analyzers -- so at
+   * analysis time it is empty for the first file and holds file N-1's function
+   * names for every file after. Reading it made E0426 order-dependent: the same
+   * two files with their `#include` lines swapped either diagnosed the undefined
+   * type or emitted uncompilable C at exit 0. `_isKnownCNextType` already asks
+   * `symbols.functionReturnTypes`, which is the per-file view of the same
+   * ADR-029 fact and is correct here.
+   *
    * Only the bare `userType()` branch belongs here. `this.T`, `global.T` and
    * `Scope.T` state their scope in the syntax and are resolved by their own
    * branches; once a name is a string those answers are indistinguishable from
@@ -59,11 +69,9 @@ class NameExistence {
     typeName: string,
     symbols: ICodeGenSymbols,
     symbolTable: SymbolTable,
-    callbackTypes: ReadonlySet<string>,
   ): boolean {
     return (
       NameExistence._isKnownCNextType(typeName, symbols) ||
-      callbackTypes.has(typeName) ||
       NameExistence._isKnownForeignName(typeName, symbolTable)
     );
   }

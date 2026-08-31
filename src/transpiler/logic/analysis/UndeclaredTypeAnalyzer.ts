@@ -111,48 +111,28 @@ class UndeclaredTypeAnalyzer {
   analyze(tree: Parser.ProgramContext): IUndeclaredTypeError[] {
     this.errors.length = 0;
 
-    // Only diagnose where the transpiler actually knows the whole type
-    // universe of the file. A C or C++ header is not parsed into the symbol
-    // table -- `FILE` from <stdio.h> is the standing example -- so an
-    // unresolved name in a file that includes one is indistinguishable from a
-    // type the compiler will supply later, and emitting it verbatim is the
-    // CORRECT behavior for C interop (#985 external-symbol recovery).
+    // Only diagnose where the transpiler actually knows the whole name
+    // universe of the file. A C/C++ header is not parsed into the symbol table
+    // -- `FILE` from <stdio.h> is the standing example -- so an unresolved name
+    // in a file that can see one is indistinguishable from a type the compiler
+    // will supply, and emitting it verbatim is the CORRECT behavior for C
+    // interop (#985 external-symbol recovery).
     //
     // Rejecting valid interop code is a regression; failing to diagnose is the
-    // status quo. So the check declines to answer rather than guess, and the
-    // precondition is stated here instead of being spread over an allow-list
-    // of type names that would need a new entry per header. Narrowing this is
-    // tracked separately.
-    if (UndeclaredTypeAnalyzer.hasUnparsedInclude(tree)) {
+    // status quo, so this declines rather than guesses.
+    //
+    // #1399 review: the answer is computed during discovery from the
+    // resolver's own categorization and is TRANSITIVE. An earlier version
+    // walked this file's own `#include` token text, which made a third
+    // spelling of "is this a C-Next include?" (it missed `.cnext`) and stopped
+    // at one hop -- so a macro reached through a `.cnx` include was REJECTED,
+    // code that main compiles.
+    if (CodeGenState.currentFileReachesForeignHeader) {
       return this.errors;
     }
 
     ParseTreeWalker.DEFAULT.walk(new UndeclaredTypeListener(this), tree);
     return this.errors;
-  }
-
-  /**
-   * Whether the file includes a header whose contents the transpiler has not
-   * parsed. A `.cnx` include IS parsed and its symbols reach the per-file view,
-   * so it does not disable the check -- which is what keeps #1312's cross-file
-   * sibling case diagnosable.
-   */
-  static hasUnparsedInclude(tree: Parser.ProgramContext): boolean {
-    let found = false;
-    const scanner = new (class extends CNextListener {
-      override enterIncludeDirective = (
-        ctx: Parser.IncludeDirectiveContext,
-      ): void => {
-        if (
-          !ctx.INCLUDE_DIRECTIVE().getText().trimEnd().endsWith(".cnx>") &&
-          !ctx.INCLUDE_DIRECTIVE().getText().trimEnd().endsWith('.cnx"')
-        ) {
-          found = true;
-        }
-      };
-    })();
-    ParseTreeWalker.DEFAULT.walk(scanner, tree);
-    return found;
   }
 
   /**
@@ -171,28 +151,15 @@ class UndeclaredTypeAnalyzer {
     }
 
     const symbolTable = CodeGenState.symbolTable;
-    const callbackTypes = new Set(CodeGenState.callbackTypes.keys());
 
     if (scope) {
       const qualified = ScopeUtils.qualifyInScope(typeName, scope);
-      if (
-        NameExistence.isKnownType(
-          qualified,
-          symbols,
-          symbolTable,
-          callbackTypes,
-        )
-      ) {
+      if (NameExistence.isKnownType(qualified, symbols, symbolTable)) {
         return true;
       }
     }
 
-    return NameExistence.isKnownType(
-      typeName,
-      symbols,
-      symbolTable,
-      callbackTypes,
-    );
+    return NameExistence.isKnownType(typeName, symbols, symbolTable);
   }
 
   addError(typeName: string, line: number, column: number): void {
