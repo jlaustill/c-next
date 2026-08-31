@@ -197,7 +197,17 @@ describe("EnumTypeResolver", () => {
         { getText: () => primaryText },
         ...suffixes.map((s) => ({ getText: () => s })),
       ];
-      const postfix = { primaryExpression: () => primary, children };
+      // #1303: a real PostfixExpressionContext answers postfixOp() as well as
+      // children, and getPostfixExpressionType consults it for the
+      // `global.Scope.member` spelling. Derived from the same `suffixes` the
+      // children come from, so the two views cannot drift apart.
+      const postfixOp = () =>
+        suffixes.map((suffix) => ({
+          IDENTIFIER: () =>
+            suffix.startsWith(".") ? { getText: () => suffix.slice(1) } : null,
+          LBRACKET: () => (suffix.startsWith("[") ? {} : null),
+        }));
+      const postfix = { primaryExpression: () => primary, children, postfixOp };
 
       // Build the full expression tree wrapping the postfix
       const unary = {

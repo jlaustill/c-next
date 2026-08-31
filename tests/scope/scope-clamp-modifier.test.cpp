@@ -65,6 +65,7 @@ static inline uint8_t cnx_clamp_sub_u8(uint8_t a, uint32_t b) {
 // Test: ADR-016 + ADR-044 Clamp overflow modifier inside scopes
 // Verifies that clamp modifier works correctly with integer types inside scope methods
 // Tests: clamp variables accessed via this. accessor with compound assignment operators
+// test-adr: 044
 /* Scope: ClampTest */
 static uint8_t ClampTest__brightness = 200U;
 static uint16_t ClampTest__sensorValue = 60000U;

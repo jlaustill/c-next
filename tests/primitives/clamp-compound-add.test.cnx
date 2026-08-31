@@ -1,5 +1,6 @@
 // ADR-044: Clamp with compound assignment
 // Tests: clamp modifier with compound addition
+// test-adr: 044
 clamp u8 brightness <- 200;
 
 void main() {

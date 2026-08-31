@@ -8,6 +8,31 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
+    int64_t result = (int64_t)a + b;
+    if (result > INT32_MAX) return INT32_MAX;
+    if (result < INT32_MIN) return INT32_MIN;
+    return (int32_t)result;
+}
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    return (uint32_t)(a + (uint32_t)b);
+}
+
+static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
+    if (b > (uint32_t)(UINT8_MAX - a)) return UINT8_MAX;
+    return (uint8_t)(a + (uint8_t)b);
+}
+
 // test-execution
 // Test: ADR-016 Private method validation
 // Verifies that private methods work correctly within scopes
@@ -42,7 +67,7 @@ int32_t PrivateMethods__getPrivateAccumulator(void) {
 }
 
 void PrivateMethods__incrementCallCount(void) {
-    PrivateMethods__callCount = PrivateMethods__callCount + 1U;
+    PrivateMethods__callCount = cnx_clamp_add_u8(PrivateMethods__callCount, 1U);
 }
 
 uint8_t PrivateMethods__getCallCount(void) {
@@ -62,7 +87,7 @@ int32_t PrivateMethods__readGlobalOffset(void) {
 }
 
 uint32_t PrivateMethods__combineStateAndGlobal(void) {
-    return PrivateMethods__privateState + globalCounter;
+    return cnx_clamp_add_u32(PrivateMethods__privateState, globalCounter);
 }
 
 bool PrivateMethods__checkBothFlags(void) {
@@ -75,12 +100,12 @@ uint32_t PrivateMethods__getStateViaHelper(void) {
 
 void PrivateMethods__performPrivateChain(void) {
     PrivateMethods__incrementCallCount();
-    PrivateMethods__privateState = PrivateMethods__privateState + 10U;
+    PrivateMethods__privateState = cnx_clamp_add_u32(PrivateMethods__privateState, 10U);
     PrivateMethods__privateFlag = !PrivateMethods__privateFlag;
 }
 
 void PrivateMethods__addValue(int32_t amount) {
-    PrivateMethods__privateAccumulator = PrivateMethods__privateAccumulator + amount;
+    PrivateMethods__privateAccumulator = cnx_clamp_add_i32(PrivateMethods__privateAccumulator, amount);
     PrivateMethods__incrementCallCount();
 }
 

@@ -16,6 +16,20 @@
    the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
    uint8_t parameter would return 0 -- the opposite of saturation. */
 
+static inline int16_t cnx_clamp_add_i16(int16_t a, int32_t b) {
+    int32_t result = (int32_t)a + b;
+    if (result > INT16_MAX) return INT16_MAX;
+    if (result < INT16_MIN) return INT16_MIN;
+    return (int16_t)result;
+}
+
+static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
+    int64_t result = (int64_t)a + b;
+    if (result > INT32_MAX) return INT32_MAX;
+    if (result < INT32_MIN) return INT32_MIN;
+    return (int32_t)result;
+}
+
 static inline uint16_t cnx_clamp_add_u16(uint16_t a, uint32_t b) {
     if (b > (uint32_t)(UINT16_MAX - a)) return UINT16_MAX;
     return (uint16_t)(a + (uint16_t)b);
@@ -24,6 +38,20 @@ static inline uint16_t cnx_clamp_add_u16(uint16_t a, uint32_t b) {
 static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
     if (b > (uint32_t)(UINT8_MAX - a)) return UINT8_MAX;
     return (uint8_t)(a + (uint8_t)b);
+}
+
+static inline int16_t cnx_clamp_sub_i16(int16_t a, int32_t b) {
+    int32_t result = (int32_t)a - b;
+    if (result > INT16_MAX) return INT16_MAX;
+    if (result < INT16_MIN) return INT16_MIN;
+    return (int16_t)result;
+}
+
+static inline int32_t cnx_clamp_sub_i32(int32_t a, int64_t b) {
+    int64_t result = (int64_t)a - b;
+    if (result > INT32_MAX) return INT32_MAX;
+    if (result < INT32_MIN) return INT32_MIN;
+    return (int32_t)result;
 }
 
 // test-execution
@@ -108,7 +136,7 @@ float Contexts__getGlobalScaleInternal(void) {
 }
 
 uint8_t Contexts__computePrivateSum(void) {
-    return Contexts__privateValue + globalCounter;
+    return cnx_clamp_add_u8(Contexts__privateValue, globalCounter);
 }
 
 bool Contexts__privateValueBelowMax(void) {
@@ -116,7 +144,7 @@ bool Contexts__privateValueBelowMax(void) {
 }
 
 int16_t Contexts__computePrivateWithOffset(void) {
-    return Contexts__privateOffset + globalOffset;
+    return cnx_clamp_add_i16(Contexts__privateOffset, globalOffset);
 }
 
 uint8_t Contexts__getPrivateValueExternal(void) {
@@ -192,7 +220,7 @@ float Contexts__getGlobalScale(void) {
 }
 
 uint8_t Contexts__computePublicSum(void) {
-    return Contexts__publicValue + globalCounter;
+    return cnx_clamp_add_u8(Contexts__publicValue, globalCounter);
 }
 
 bool Contexts__publicValueBelowMax(void) {
@@ -200,7 +228,7 @@ bool Contexts__publicValueBelowMax(void) {
 }
 
 int32_t Contexts__computePublicWithOffset(void) {
-    return Contexts__publicOffset + globalOffset;
+    return cnx_clamp_add_i32(Contexts__publicOffset, globalOffset);
 }
 
 uint8_t Contexts__getPrivateSumViaInternal(void) {
@@ -216,19 +244,19 @@ uint8_t Contexts__getPrivateClampViaInternal(void) {
 }
 
 void Contexts__modifyAllPrivate(void) {
-    Contexts__privateValue = Contexts__privateValue + 1U;
+    Contexts__privateValue = cnx_clamp_add_u8(Contexts__privateValue, 1U);
     Contexts__privateClampValue = cnx_clamp_add_u8(Contexts__privateClampValue, 10U);
     Contexts__privateWrapValue += 5U;
     Contexts__privateFlag = !Contexts__privateFlag;
-    Contexts__privateOffset = Contexts__privateOffset - 10;
+    Contexts__privateOffset = cnx_clamp_sub_i16(Contexts__privateOffset, 10);
 }
 
 void Contexts__modifyAllPublic(void) {
-    Contexts__publicValue = Contexts__publicValue + 1U;
+    Contexts__publicValue = cnx_clamp_add_u8(Contexts__publicValue, 1U);
     Contexts__publicClampValue = cnx_clamp_add_u16(Contexts__publicClampValue, 100U);
     Contexts__publicWrapValue += 5U;
     Contexts__publicFlag = !Contexts__publicFlag;
-    Contexts__publicOffset = Contexts__publicOffset - 100;
+    Contexts__publicOffset = cnx_clamp_sub_i32(Contexts__publicOffset, 100);
 }
 
 bool Contexts__checkThresholds(void) {

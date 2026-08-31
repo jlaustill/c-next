@@ -7,6 +7,19 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
+    if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
+    return (uint32_t)(a + (uint32_t)b);
+}
+
 // test-execution
 // test-adr: 057
 // ADR-057: a scope VARIABLE must not capture a global type name at a type
@@ -30,7 +43,7 @@ uint32_t Motor__run(void) {
     Config settings = {0};
     settings.speed = 7U;
     Motor__Config = 2;
-    return settings.speed + Motor__Config;
+    return cnx_clamp_add_u32(settings.speed, Motor__Config);
 }
 
 int main(void) {

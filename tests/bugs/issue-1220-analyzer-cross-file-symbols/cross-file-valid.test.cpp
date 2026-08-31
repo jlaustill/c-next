@@ -20,6 +20,21 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
+    int64_t result = (int64_t)a + b;
+    if (result > INT32_MAX) return INT32_MAX;
+    if (result < INT32_MIN) return INT32_MIN;
+    return (int32_t)result;
+}
+
 uint32_t checkedDivision(void) {
     return 100 / NONZERO;
 }
@@ -33,7 +48,7 @@ float floatDivision(void) {
 }
 
 int32_t sameCategoryAddition(void) {
-    return signedValue + otherSignedValue;
+    return cnx_clamp_add_i32(signedValue, otherSignedValue);
 }
 
 uint32_t booleanCondition(void) {

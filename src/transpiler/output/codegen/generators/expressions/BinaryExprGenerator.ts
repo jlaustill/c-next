@@ -21,6 +21,7 @@ import BinaryExprUtils from "./BinaryExprUtils";
 import { ParserRuleContext } from "antlr4ng";
 import TypeResolver from "../../TypeResolver";
 import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
+import AdrProvenance from "../../../../state/AdrProvenance";
 import CodeGenState from "../../../../state/CodeGenState";
 
 /**
@@ -414,6 +415,14 @@ const tryClampOperands = (
   if (chain.includes(undefined)) {
     return null;
   }
+
+  // #1241: ADR-044's rule -- a `clamp` integer expression is lowered to
+  // saturating helper calls rather than plain C arithmetic -- has fired by this
+  // point: the type resolved, it is not natively handled, the operands are
+  // clamping, and every operator in the chain has a helper. Recorded here, at
+  // the last gate, so a chain that bails out above does not claim a cell it
+  // never reached.
+  AdrProvenance.record("044", node.start?.line);
 
   let code = operandCodes[0];
   chain.forEach((helperOperation, index) => {

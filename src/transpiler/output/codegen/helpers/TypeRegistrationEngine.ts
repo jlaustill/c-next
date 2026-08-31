@@ -16,6 +16,7 @@ import TypeRegistrationUtils from "../TypeRegistrationUtils";
 import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
 import ArrayDimensionParser from "../../../../utils/ArrayDimensionParser";
 import LiteralUtils from "../../../../utils/LiteralUtils";
+import OverflowBehaviorUtils from "../../../../utils/OverflowBehaviorUtils";
 import UNRESOLVED_DIMENSION from "../../../constants/UNRESOLVED_DIMENSION";
 import dimensionEvalOptions from "./dimensionEvalOptions";
 import IScopeSymbol from "../../../types/symbols/IScopeSymbol";
@@ -208,9 +209,11 @@ class TypeRegistrationEngine {
     const arrayDim = varDecl.arrayDimension();
     const isConst = varDecl.constModifier() !== null;
 
-    const overflowMod = varDecl.overflowModifier();
+    // #1303: one decoder for "absent means clamp" (ADR-044), shared with the
+    // symbols layer. Restating the ternary here is what let the two paths
+    // disagree once a symbol crossed a file boundary.
     const overflowBehavior: TOverflowBehavior =
-      overflowMod?.getText() === "wrap" ? "wrap" : "clamp";
+      OverflowBehaviorUtils.fromModifier(varDecl.overflowModifier());
 
     const isAtomic = varDecl.atomicModifier() !== null;
 

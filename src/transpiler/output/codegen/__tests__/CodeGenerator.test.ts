@@ -2540,7 +2540,14 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      expect(code).toContain("globalCounter = globalCounter + 1");
+      // #1303: what this test is about is the NAME -- `global.globalCounter`
+      // must reach the bare `globalCounter` and not `Motor__globalCounter`.
+      // The arithmetic form changed underneath it: `global.X` now resolves for
+      // ADR-044 as well, so a default-clamp `u32` correctly lowers to the
+      // saturating helper where it previously wrapped. Asserting the qualified
+      // name is ABSENT keeps the original intent testable independently of that.
+      expect(code).toContain("cnx_clamp_add_u32(globalCounter, 1U)");
+      expect(code).not.toContain("Motor__globalCounter");
     });
   });
 

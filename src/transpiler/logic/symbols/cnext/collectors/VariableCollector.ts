@@ -17,6 +17,7 @@ import StringUtils from "../../../../../utils/StringUtils";
 import TTypeUtils from "../../../../../utils/TTypeUtils";
 import type TType from "../../../../types/TType";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
+import OverflowBehaviorUtils from "../../../../../utils/OverflowBehaviorUtils";
 
 class VariableCollector {
   /**
@@ -178,6 +179,13 @@ class VariableCollector {
     const isAtomic = ctx.atomicModifier() !== null;
     const isVolatile = ctx.volatileModifier() !== null;
 
+    // Issue #1303: ADR-044's clamp/wrap is a declared fact like const and
+    // volatile above, so it is read HERE and carried on the symbol. Reading it
+    // only in codegen meant it existed for the declaring file and nowhere else.
+    const overflowBehavior = OverflowBehaviorUtils.fromModifier(
+      ctx.overflowModifier(),
+    );
+
     // Check for array dimensions - both C-style (arrayDimension) and C-Next style (arrayType)
     const arrayDims = ctx.arrayDimension();
     const arrayTypeCtx = typeCtx.arrayType();
@@ -227,6 +235,7 @@ class VariableCollector {
       isConst,
       isAtomic,
       isVolatile,
+      overflowBehavior,
       isArray,
       arrayDimensions: arrayDimensions.length > 0 ? arrayDimensions : undefined,
       initialValue,

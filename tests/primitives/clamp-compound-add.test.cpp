@@ -22,6 +22,7 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 
 // ADR-044: Clamp with compound assignment
 // Tests: clamp modifier with compound addition
+// test-adr: 044
 uint8_t brightness = 200U;
 
 int main(void) {

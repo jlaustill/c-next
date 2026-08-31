@@ -36,6 +36,7 @@ function createCNextVariableSymbol(
     type: overrides.type ?? TTypeUtils.createPrimitive("u32"),
     isConst: overrides.isConst ?? false,
     isVolatile: overrides.isVolatile ?? false,
+    overflowBehavior: "clamp",
     isAtomic: overrides.isAtomic ?? false,
     isArray: overrides.isArray ?? false,
     arrayDimensions: overrides.arrayDimensions,
@@ -797,6 +798,7 @@ describe("CodeGenState", () => {
           isConst: true,
           isAtomic: true,
           isVolatile: false,
+          overflowBehavior: "clamp",
         }),
       );
 

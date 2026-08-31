@@ -707,7 +707,7 @@ and [`docs/WORKFLOW.md`](docs/WORKFLOW.md) for how work moves on the project boa
 A task is NOT complete until:
 
 - [ ] `README.md` updated (if feature-visible)
-- [ ] ADR updated: decision, diagnostics, matrix — and it still passes the **rewrite test** above. No `src/**` paths, no transpiler identifiers, no TypeScript. Implementation detail goes to `docs/architecture/` or `docs/implementation/`
+- [ ] ADR updated: decision, diagnostics, matrix — and it still passes the **rewrite test** above. No `src/**` paths, no module lists, no `file:line` citations, no transpiler identifiers, no TypeScript: they are wrong the moment the next merge shifts a line, and an ADR is the decision record, not a map of the code that currently implements it. Implementation detail goes to `docs/architecture/` or `docs/implementation/`. Enforced by `npm run adr:independence:check`
 - [ ] `docs/learn-cnext-in-y-minutes.md` updated (if syntax changed)
 - [ ] Memory bank updated
 
