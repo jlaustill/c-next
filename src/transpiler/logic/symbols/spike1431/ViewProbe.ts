@@ -55,6 +55,7 @@ class ViewProbe {
     live: string,
     asSpecified: string,
     asPrincipled: string,
+    derivable = true,
   ): void {
     if (!ViewProbe.armed) {
       return;
@@ -71,6 +72,7 @@ class ViewProbe {
       live,
       asSpecified,
       asPrincipled,
+      derivable,
     });
   }
 

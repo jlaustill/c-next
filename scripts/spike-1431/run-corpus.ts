@@ -25,12 +25,27 @@ import FileScanner from "../utils/FileScanner";
 const rootDir = resolve(dirname(new URL(import.meta.url).pathname), "../..");
 const outDir = process.env.SPIKE_OUT ?? join(rootDir, ".spike-1431");
 
+/**
+ * Every view the probe hooks. Declared, not inferred from what fired: a question the
+ * corpus never asks would otherwise be indistinguishable from one that agrees, which
+ * is the difference between "verified" and "unreachable".
+ */
+const HOOKED_VIEWS = [
+  "CodeGenState.isKnownStruct",
+  "CodeGenState.isKnownScope",
+  "CodeGenState.isScopeType",
+  "CodeGenState.isOpaqueType",
+];
+
 interface IRunSummary {
   fixtures: number;
   observations: number;
   askedCounts: Record<string, number>;
   identityMismatches: number;
   divergences: Record<string, number>;
+  /** Observations whose principled answer is not derivable from retained facts. */
+  notDerivable: Record<string, number>;
+  /** Views the probe hooked but the corpus never asked. Not the same as agreement. */
   neverAsked: string[];
 }
 
@@ -61,6 +76,7 @@ async function main(): Promise<void> {
 
   const asked = new Map<string, number>();
   const divergences = new Map<string, number>();
+  const notDerivable = new Map<string, number>();
   let observations = 0;
   let identityMismatches = 0;
 
@@ -85,7 +101,9 @@ async function main(): Promise<void> {
       if (o.live !== o.asSpecified) {
         identityMismatches++;
       }
-      if (o.asSpecified !== o.asPrincipled) {
+      if (!o.derivable) {
+        notDerivable.set(o.question, (notDerivable.get(o.question) ?? 0) + 1);
+      } else if (o.asSpecified !== o.asPrincipled) {
         divergences.set(o.question, (divergences.get(o.question) ?? 0) + 1);
       }
       lines.push(JSON.stringify({ fixture, ...o }));
@@ -101,7 +119,8 @@ async function main(): Promise<void> {
     askedCounts: Object.fromEntries(asked),
     identityMismatches,
     divergences: Object.fromEntries(divergences),
-    neverAsked: [],
+    notDerivable: Object.fromEntries(notDerivable),
+    neverAsked: HOOKED_VIEWS.filter((v) => !asked.has(v)),
   };
   writeFileSync(
     join(outDir, "summary.json"),
@@ -118,6 +137,15 @@ async function main(): Promise<void> {
   console.log("divergences (asSpecified != asPrincipled):");
   for (const [q, n] of divergences) {
     console.log(`  ${q.padEnd(34)} ${n}`);
+  }
+  console.log("NOT DERIVABLE from retained facts:");
+  for (const [q, n] of notDerivable) {
+    console.log(`  ${q.padEnd(34)} ${n}`);
+  }
+  if (summary.neverAsked.length > 0) {
+    console.log(
+      `NEVER ASKED (not agreement): ${summary.neverAsked.join(", ")}`,
+    );
   }
 
   // A question never asked is not a question that agrees. This is the check

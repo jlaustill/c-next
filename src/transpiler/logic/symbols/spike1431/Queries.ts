@@ -84,6 +84,31 @@ class Queries {
     );
   }
 
+  /**
+   * Whether `path` participates in the include-edge graph at all.
+   *
+   * Only `.cnx` files do. A header is in NEITHER dependency graph the run builds --
+   * `Transpiler._buildPipelineInput`'s holds `.cnx -> .cnx` and
+   * `IncludeResolver.resolveHeadersTransitively:309`'s holds header -> header, and
+   * neither spans the two. So "can this file see that header type?" has no derivation,
+   * and an observation whose answer depends on one must be reported NOT DERIVABLE
+   * rather than as a divergence.
+   *
+   * This is not a nicety. Without it, 530 of 2843 `isKnownStruct` observations read as
+   * divergences; every one of them is a header-declared type (`CanMessage` is a C++
+   * `class` in a `.h`, `Rectangle` a C `struct` in `structs.h`) whose principled
+   * answer was false only because the edge that would make it true does not exist.
+   * That would have been the headline number, and it would have been an artifact.
+   */
+  static fileIsInGraph(store: IFactStore, path: string): boolean {
+    for (const edge of store.includeEdges) {
+      if (edge.dependent === path || edge.dependency === path) {
+        return true;
+      }
+    }
+    return store.files.some((f) => f.path === path);
+  }
+
   /** No predicate. What `SymbolTable` answers, having accumulated the whole run. */
   static runWide(store: IFactStore): readonly ISymbolRow[] {
     return store.symbols;

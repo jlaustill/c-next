@@ -52,7 +52,7 @@ class Views {
     store: IFactStore,
     file: string,
     name: string,
-  ): { asSpecified: boolean; asPrincipled: boolean } {
+  ): { asSpecified: boolean; asPrincipled: boolean; derivable: boolean } {
     const visible = Queries.visibleFrom(store, file);
     const includeVisible = Views.has(visible, name, Views.STRUCT_LIKE);
     // The run-wide half is INDEX MEMBERSHIP, not a kind test. Deriving it from kinds
@@ -60,9 +60,18 @@ class Views {
     // `{struct, typedef}` and `CopyConstructible` is a C++ `class`, so 262
     // observations reported my kind filter as if it were a transpiler divergence.
     const runWide = store.structFieldOwners.includes(name);
+    // Derivable only when every row that could justify the answer was declared in a
+    // file the include graph knows about. A header is in neither graph the run
+    // builds, so a header-declared struct has no include-visible answer to compare
+    // against -- see Queries.fileIsInGraph.
+    const rows = store.symbols.filter((r) => r.fullyQualifiedCName === name);
+    const graphBacked =
+      rows.length > 0 &&
+      rows.some((r) => Queries.fileIsInGraph(store, r.sourceFile));
     return {
       asSpecified: includeVisible || runWide,
       asPrincipled: includeVisible,
+      derivable: includeVisible || !runWide || graphBacked,
     };
   }
 
@@ -134,7 +143,7 @@ class Views {
     store: IFactStore,
     file: string,
     typeName: string,
-  ): { asSpecified: boolean; asPrincipled: boolean } {
+  ): { asSpecified: boolean; asPrincipled: boolean; derivable: boolean } {
     // `opaqueTypeNames` already carries the `isOpaqueType` filter the seeding applies
     // at Transpiler.ts:632-640, so this reproduces the per-file set rather than the
     // unfiltered run-wide one -- the difference that produced three identity
@@ -147,7 +156,15 @@ class Views {
       (r) =>
         r.fullyQualifiedCName === typeName && visibleFiles.has(r.sourceFile),
     );
-    return { asSpecified, asPrincipled: asSpecified && declaredVisibly };
+    // derivable:false -- see IViewObservation.derivable. No edge connects a `.cnx`
+    // to a header, so `declaredVisibly` is false for EVERY header type regardless of
+    // visibility, and 10 of 10 true cases "diverged". That is the derivation failing,
+    // not the transpiler.
+    return {
+      asSpecified,
+      asPrincipled: asSpecified && declaredVisibly,
+      derivable: false,
+    };
   }
 }
 

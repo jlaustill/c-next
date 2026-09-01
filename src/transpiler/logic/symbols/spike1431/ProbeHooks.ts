@@ -49,6 +49,7 @@ class ProbeHooks {
       String(live),
       String(derived.asSpecified),
       String(derived.asPrincipled),
+      derived.derivable,
     );
   }
 
@@ -108,6 +109,7 @@ class ProbeHooks {
       String(live),
       String(derived.asSpecified),
       String(derived.asPrincipled),
+      derived.derivable,
     );
   }
 }
