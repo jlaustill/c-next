@@ -129,6 +129,17 @@ them. The board query also needs `--paginate`: the board is past 200 items and a
 `items(first: 100)` truncates silently, so every card past page one reads as "not on the
 board" — no status, no blocker.
 
+**And `--paginate` only advances a cursor variable named `$endCursor`.** Any other name —
+`query($c: String) { … after: $c }` — compiles, runs, and re-fetches page one forever:
+`after` is always null, nothing errors, nothing terminates. It reads as a slow query, so the
+instinct is to raise the timeout, which makes it worse. Measured on this board: 37,248 output
+lines holding 97 distinct issues, with the cards being verified absent entirely, because the
+loop never reached their page. The first attempt then died on a rate limit _caused by_ the
+loop — and `gh` printed that error while **exiting 0**, so the failure was invisible to the
+exit code too. To check a paginated result rather than trust it, compare
+`cut -f1 out | sort -u | wc -l` against `wc -l`; equal means no page repeated. For a handful
+of known items, N separate `node(id:)` queries are faster and cannot loop at all.
+
 **ts-morph MCP tools (PREFER FOR REFACTORING)**: Use ts-morph MCP tools as the **first choice** for TypeScript refactoring operations:
 
 - `rename_symbol_by_tsmorph` — rename functions/variables/classes across project
