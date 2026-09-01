@@ -30,6 +30,8 @@ import type IIncludeEdgeRow from "./types/IIncludeEdgeRow";
 import type IMemberRow from "./types/IMemberRow";
 import type IPipelineFile from "../../../types/IPipelineFile";
 import type TSymbol from "../../../types/symbols/TSymbol";
+import type TCSymbol from "../../../types/symbols/c/TCSymbol";
+import type TCppSymbol from "../../../types/symbols/cpp/TCppSymbol";
 import type IScopeSymbol from "../../../types/symbols/IScopeSymbol";
 import ScopeUtils from "../../../../utils/ScopeUtils";
 
@@ -150,9 +152,36 @@ class FactStoreBuilder {
     return symbol.isExported ? "public(derived)" : "private(derived)";
   }
 
+  /**
+   * Foreign symbols carry SIX fields where a C-Next symbol carries nine, and the
+   * three missing ones are `fullyQualifiedCName`, `cnxScopedName` and `scope` --
+   * the primary key and the scope foreign key.
+   *
+   * That is not an oversight to paper over, it is the reason `NameExistence` has to
+   * route at all: a C-Next name is checked against the per-file sets and a foreign
+   * name against the run-wide table, because the two halves of the "one fact set" do
+   * not share an identity model. C has no scoping, so a foreign symbol's name IS its
+   * C name and ADR-063 injectivity holds trivially -- which is what makes the two
+   * shapes reconcilable into one table at all.
+   */
+  private static foreignRow(symbol: TCSymbol | TCppSymbol): ISymbolRow {
+    return {
+      fullyQualifiedCName: symbol.name,
+      name: symbol.name,
+      cnxScopedName: symbol.name,
+      kind: symbol.kind,
+      scopeId: "",
+      sourceFile: symbol.sourceFile,
+      sourceLine: symbol.sourceLine,
+      sourceLanguage: String(symbol.sourceLanguage),
+      visibility: symbol.isExported ? "public(derived)" : "private(derived)",
+    };
+  }
+
   static build(
     symbols: readonly TSymbol[],
     files: readonly IPipelineFile[],
+    foreign: ReadonlyArray<TCSymbol | TCppSymbol> = [],
   ): IFactStore {
     const symbolRows: ISymbolRow[] = symbols.map((symbol) => ({
       fullyQualifiedCName: symbol.fullyQualifiedCName,
@@ -187,6 +216,10 @@ class FactStoreBuilder {
     const members = symbols.flatMap((symbol) =>
       FactStoreBuilder.membersOf(symbol),
     );
+
+    for (const symbol of foreign) {
+      symbolRows.push(FactStoreBuilder.foreignRow(symbol));
+    }
 
     return {
       symbols: symbolRows,

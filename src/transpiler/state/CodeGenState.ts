@@ -24,6 +24,8 @@
 import SymbolTable from "../logic/symbols/SymbolTable";
 import TYPE_FORMING_KINDS from "../logic/symbols/TYPE_FORMING_KINDS";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
+// SPIKE #1431 -- THROWAWAY, removed before the findings doc lands.
+import ProbeHooks from "../logic/symbols/spike1431/ProbeHooks";
 import type TSymbolKindCNext from "../types/symbol-kinds/TSymbolKindCNext";
 import ReservedCnxName from "../../utils/ReservedCnxName";
 import ICodeGenSymbols from "../types/ICodeGenSymbols";
@@ -694,17 +696,21 @@ export default class CodeGenState {
    * Also includes bitmaps since they're struct-like (Issue #551).
    */
   static isKnownStruct(name: string): boolean {
-    if (this.symbols?.knownStructs.has(name)) return true;
-    if (this.symbols?.knownBitmaps.has(name)) return true;
-    if (this.symbolTable.getStructFields(name)) return true;
-    return false;
+    const live =
+      (this.symbols?.knownStructs.has(name) ?? false) ||
+      (this.symbols?.knownBitmaps.has(name) ?? false) ||
+      this.symbolTable.getStructFields(name) !== undefined;
+    ProbeHooks.observeIsKnownStruct(name, live); // SPIKE #1431 -- THROWAWAY
+    return live;
   }
 
   /**
    * Check if a type name is a known scope.
    */
   static isKnownScope(name: string): boolean {
-    return this.symbols?.knownScopes.has(name) ?? false;
+    const live = this.symbols?.knownScopes.has(name) ?? false;
+    ProbeHooks.observeIsKnownScope(name, live); // SPIKE #1431 -- THROWAWAY
+    return live;
   }
 
   /**
@@ -751,11 +757,18 @@ export default class CodeGenState {
     // swap: 1119 integration and 124 bug fixtures, zero disagreements, with a
     // control confirming the probe fired (breaking the candidate produced 51).
     const found = this.symbolTable.getOverloadsByCName(qualifiedName);
-    return found.some(
+    const live = found.some(
       (symbol) =>
         symbol.sourceLanguage === ESourceLanguage.CNext &&
         TYPE_FORMING_KINDS.has(symbol.kind as TSymbolKindCNext),
     );
+    // SPIKE #1431 -- THROWAWAY
+    ProbeHooks.observeIsScopeType(
+      qualifiedName,
+      live,
+      TYPE_FORMING_KINDS as ReadonlySet<string>,
+    );
+    return live;
   }
 
   /**
@@ -789,7 +802,15 @@ export default class CodeGenState {
    * Example: `typedef struct _widget_t widget_t;` without a body makes `widget_t` opaque.
    */
   static isOpaqueType(typeName: string): boolean {
-    return this.symbols?.opaqueTypes.has(typeName) ?? false;
+    const live = this.symbols?.opaqueTypes.has(typeName) ?? false;
+    // SPIKE #1431 -- THROWAWAY. The run-wide set is passed IN: nothing under
+    // spike1431/ may import state/, or state -> logic -> state closes a cycle.
+    ProbeHooks.observeIsOpaqueType(
+      typeName,
+      live,
+      new Set(this.symbolTable.getAllOpaqueTypes()),
+    );
+    return live;
   }
 
   /**
