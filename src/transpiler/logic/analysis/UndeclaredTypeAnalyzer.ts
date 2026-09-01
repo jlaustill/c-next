@@ -1,6 +1,7 @@
 /**
- * UndeclaredTypeAnalyzer — rejects a type name that denotes nothing this file
- * can see (E0426).
+ * UndeclaredTypeAnalyzer — rejects a name in a type position that does not name
+ * a type: one that denotes nothing this file can see (E0426), or one that
+ * denotes a register, which is not a type (E0429, #1336).
  *
  * Issue #1312. `CodeGenerator.getTypeName` ends in `resolved ?? ctx.getText()`,
  * so a name that resolves to no type was emitted as the raw C-Next source text
@@ -40,8 +41,10 @@ import * as Parser from "../parser/grammar/CNextParser";
 import BUILTIN_TYPE_NAMES from "../../constants/BUILTIN_TYPE_NAMES";
 import CodeGenState from "../../state/CodeGenState";
 import EnclosingScope from "./helpers/EnclosingScope";
+import ICodeGenSymbols from "../../types/ICodeGenSymbols";
 import IUndeclaredTypeError from "./types/IUndeclaredTypeError";
 import NameExistence from "../symbols/NameExistence";
+import SymbolTable from "../symbols/SymbolTable";
 import ParserUtils from "../../../utils/ParserUtils";
 import ScopeUtils from "../../../utils/ScopeUtils";
 
@@ -96,11 +99,21 @@ class UndeclaredTypeListener extends CNextListener {
       return;
     }
 
-    if (this.analyzer.isVisibleType(typeName, this.enclosing.current())) {
+    const scope = this.enclosing.current();
+    if (this.analyzer.isVisibleType(typeName, scope)) {
       return;
     }
 
     const { line, column } = ParserUtils.getPosition(ctx);
+
+    // A register IS declared -- just not as a type. Reporting "not defined" of
+    // a name declared a few lines up reads as a transpiler fault rather than a
+    // mistake in the source, so name what it actually is (#1336).
+    if (this.analyzer.isRegister(typeName, scope)) {
+      this.analyzer.addRegisterInTypePositionError(typeName, line, column);
+      return;
+    }
+
     this.analyzer.addError(typeName, line, column);
   };
 }
@@ -147,29 +160,124 @@ class UndeclaredTypeAnalyzer {
     const symbols = CodeGenState.symbols;
     if (!symbols) {
       // Nothing to check against; stay silent rather than reject on no evidence.
+      // This is the ONLY answer to "no symbol view" in this class: `isRegister`
+      // runs only after this returned false, which cannot happen when `symbols`
+      // is null, so a second guard there would be unreachable AND would answer
+      // the opposite way.
       return true;
     }
 
+    return UndeclaredTypeAnalyzer._eitherSpelling(
+      typeName,
+      scope,
+      symbols,
+      (name, fileSymbols, symbolTable) =>
+        NameExistence.isTypeName(name, fileSymbols, symbolTable),
+    );
+  }
+
+  /**
+   * Whether the name denotes a register (ADR-004). Asked only after
+   * `isVisibleType` has already answered no, to tell E0429 from E0426.
+   *
+   * Cross-file this answers no, and the name falls through to E0426. That is
+   * currently TRUE rather than a gap: a register declared in an included file is
+   * not visible in the consumer at all (#1453 -- its `#define` is written to the
+   * implementation file and the header exports nothing), so "not defined" is the
+   * accurate report. When #1453 makes such a register visible it lands in the
+   * same `knownRegisters` set this reads, and E0429 begins firing there with no
+   * change here.
+   *
+   * ADR-111: retire this with E0429 when a register becomes a type -- at which
+   * point `isVisibleType` answers yes and this is never reached.
+   */
+  isRegister(
+    typeName: string,
+    scope: ReturnType<EnclosingScope["current"]>,
+  ): boolean {
+    return UndeclaredTypeAnalyzer._eitherSpelling(
+      typeName,
+      scope,
+      // Reached only after `isVisibleType` returned false, which requires a
+      // symbol view -- see its guard.
+      CodeGenState.symbols!,
+      (name, fileSymbols) => NameExistence.isRegisterName(name, fileSymbols),
+    );
+  }
+
+  /**
+   * ADR-057: inside a scope a bare `T` may name a scope-declared type, recorded
+   * under its qualified name. The bare spelling stays acceptable because a
+   * scope may also reference a global type.
+   *
+   * Both questions must accept the SAME pair of spellings. A scoped register
+   * that only the qualified spelling finds would otherwise fail the type test
+   * and then fail the register test too, and be reported as undefined rather
+   * than as a register -- so the walk lives here once and is asked twice.
+   */
+  private static _eitherSpelling(
+    typeName: string,
+    scope: ReturnType<EnclosingScope["current"]>,
+    symbols: ICodeGenSymbols,
+    test: (
+      name: string,
+      symbols: ICodeGenSymbols,
+      symbolTable: SymbolTable,
+    ) => boolean,
+  ): boolean {
     const symbolTable = CodeGenState.symbolTable;
 
     if (scope) {
       const qualified = ScopeUtils.qualifyInScope(typeName, scope);
-      if (NameExistence.isKnownType(qualified, symbols, symbolTable)) {
+      if (test(qualified, symbols, symbolTable)) {
         return true;
       }
     }
 
-    return NameExistence.isKnownType(typeName, symbols, symbolTable);
+    return test(typeName, symbols, symbolTable);
   }
 
   addError(typeName: string, line: number, column: number): void {
-    this.errors.push({
-      code: "E0426",
+    this._push(
+      "E0426",
       typeName,
       line,
       column,
-      message: `type '${typeName}' is not defined`,
-    });
+      `type '${typeName}' is not defined`,
+    );
+  }
+
+  /**
+   * E0429: the name is declared, but as a register, and a register is not a
+   * type (ADR-004).
+   *
+   * ADR-111: this code exists only for as long as that is true. When ADR-111 is
+   * IMPLEMENTED, `Control c;` becomes the instantiation form it designs and
+   * this diagnostic is retired outright -- delete the method, its call site,
+   * `NameExistence.isRegisterName`, the fixture, and the E0429 registry row.
+   */
+  addRegisterInTypePositionError(
+    typeName: string,
+    line: number,
+    column: number,
+  ): void {
+    this._push(
+      "E0429",
+      typeName,
+      line,
+      column,
+      `'${typeName}' is a register, not a type`,
+    );
+  }
+
+  private _push(
+    code: string,
+    typeName: string,
+    line: number,
+    column: number,
+    message: string,
+  ): void {
+    this.errors.push({ code, typeName, line, column, message });
   }
 }
 

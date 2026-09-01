@@ -152,11 +152,14 @@ class UndeclaredValueAnalyzer {
       return true;
     }
 
-    // A function referenced as a value (ADR-029 function-as-type), and a type
-    // used as the base of `Type.MEMBER`.
+    // A function referenced as a value (ADR-029 function-as-type), a type used
+    // as the base of `Type.MEMBER`, and a register, which is a value at an
+    // address (ADR-004) and so answers here but NOT in the type position
+    // (#1336). ADR-111: when a register becomes a type, `isValueName` collapses
+    // into `isTypeName` and both call sites below revert to it.
     const symbolTable = CodeGenState.symbolTable;
     if (
-      NameExistence.isKnownType(name, symbols, symbolTable) ||
+      NameExistence.isValueName(name, symbols, symbolTable) ||
       NameExistence.isKnownEnumMember(name, symbols) ||
       CodeGenState.knownFunctions.has(name)
     ) {
@@ -166,7 +169,7 @@ class UndeclaredValueAnalyzer {
     if (scope) {
       const qualified = ScopeUtils.qualifyInScope(name, scope);
       if (
-        NameExistence.isKnownType(qualified, symbols, symbolTable) ||
+        NameExistence.isValueName(qualified, symbols, symbolTable) ||
         CodeGenState.knownFunctions.has(qualified) ||
         (symbols.scopeMembers.get(scope.name)?.has(name) ?? false)
       ) {

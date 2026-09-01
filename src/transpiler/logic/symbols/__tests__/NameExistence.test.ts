@@ -22,40 +22,39 @@ function tableWith(
 
 const EMPTY_TABLE = tableWith([]);
 
-describe("NameExistence.isKnownType", () => {
+describe("NameExistence.isTypeName", () => {
   it.each([
     ["knownEnums", "EColor"],
     ["knownStructs", "Point"],
     ["knownBitmaps", "Flags"],
-    ["knownRegisters", "GPIO"],
     ["knownScopes", "Motor"],
     ["opaqueTypes", "widget_t"],
   ] as const)("accepts a name present in %s", (field, name) => {
     const symbols = createMockSymbols({ [field]: new Set([name]) });
-    expect(NameExistence.isKnownType(name, symbols, EMPTY_TABLE)).toBe(true);
+    expect(NameExistence.isTypeName(name, symbols, EMPTY_TABLE)).toBe(true);
   });
 
   it("accepts a function name, because ADR-029 makes it a callback type", () => {
     const symbols = createMockSymbols({
       functionReturnTypes: new Map([["onReceive", "void"]]),
     });
-    expect(NameExistence.isKnownType("onReceive", symbols, EMPTY_TABLE)).toBe(
+    expect(NameExistence.isTypeName("onReceive", symbols, EMPTY_TABLE)).toBe(
       true,
     );
   });
 
   it("rejects a name that is nowhere", () => {
     expect(
-      NameExistence.isKnownType("Mode", createMockSymbols(), EMPTY_TABLE),
+      NameExistence.isTypeName("Mode", createMockSymbols(), EMPTY_TABLE),
     ).toBe(false);
   });
 
   describe("the C-Next / foreign split (#1312)", () => {
     it("accepts a C symbol from the run-wide table", () => {
       const table = tableWith([{ name: "FILE", language: ESourceLanguage.C }]);
-      expect(
-        NameExistence.isKnownType("FILE", createMockSymbols(), table),
-      ).toBe(true);
+      expect(NameExistence.isTypeName("FILE", createMockSymbols(), table)).toBe(
+        true,
+      );
     });
 
     it("accepts a C++ symbol from the run-wide table", () => {
@@ -63,7 +62,7 @@ describe("NameExistence.isKnownType", () => {
         { name: "Adafruit_MAX31856", language: ESourceLanguage.Cpp },
       ]);
       expect(
-        NameExistence.isKnownType(
+        NameExistence.isTypeName(
           "Adafruit_MAX31856",
           createMockSymbols(),
           table,
@@ -78,10 +77,66 @@ describe("NameExistence.isKnownType", () => {
       const table = tableWith([
         { name: "Mode", language: ESourceLanguage.CNext },
       ]);
-      expect(
-        NameExistence.isKnownType("Mode", createMockSymbols(), table),
-      ).toBe(false);
+      expect(NameExistence.isTypeName("Mode", createMockSymbols(), table)).toBe(
+        false,
+      );
     });
+  });
+});
+
+describe("the type / value position split (#1336)", () => {
+  const withRegister = () =>
+    createMockSymbols({ knownRegisters: new Set(["GPIO"]) });
+
+  /**
+   * The tripwire for ADR-111. While that ADR is `Research`, ADR-004 governs and
+   * a register is not a type: `TYPE_FORMING_KINDS` excludes the `register` kind
+   * for this reason, and `isTypeName` is the per-file view of the same
+   * decision. It once disagreed, which is exactly how `Control c;` reached
+   * codegen with no typedef behind it and the C compiler rejected the output at
+   * exit 0.
+   *
+   * If ADR-111 is IMPLEMENTED this expectation inverts -- deliberately, in that
+   * ADR's own work, together with E0429's retirement. It failing for any other
+   * reason means the two answers have drifted apart again.
+   */
+  it("does NOT accept a register in a type position", () => {
+    expect(NameExistence.isTypeName("GPIO", withRegister(), EMPTY_TABLE)).toBe(
+      false,
+    );
+  });
+
+  it("DOES accept a register in a value position", () => {
+    // `GPIO.DR` reads a value at an address (ADR-004). The single predicate
+    // that served both positions had to say yes here, and so wrongly said yes
+    // above; removing registers outright instead broke ten register fixtures
+    // with E0427.
+    expect(NameExistence.isValueName("GPIO", withRegister(), EMPTY_TABLE)).toBe(
+      true,
+    );
+  });
+
+  it("accepts a type in a value position, as the base of Type.MEMBER", () => {
+    const symbols = createMockSymbols({ knownEnums: new Set(["EColor"]) });
+    expect(NameExistence.isValueName("EColor", symbols, EMPTY_TABLE)).toBe(
+      true,
+    );
+  });
+
+  it("rejects a name that is neither, in either position", () => {
+    expect(
+      NameExistence.isTypeName("Nowhere", createMockSymbols(), EMPTY_TABLE),
+    ).toBe(false);
+    expect(
+      NameExistence.isValueName("Nowhere", createMockSymbols(), EMPTY_TABLE),
+    ).toBe(false);
+  });
+
+  it("identifies a register by name", () => {
+    expect(NameExistence.isRegisterName("GPIO", withRegister())).toBe(true);
+    expect(NameExistence.isRegisterName("GPIO", createMockSymbols())).toBe(
+      false,
+    );
   });
 });
 
