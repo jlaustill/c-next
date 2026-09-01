@@ -187,11 +187,29 @@ naive derive is slow for the _same reason the transpiler is_: it recomputes the 
 instead of retaining it, and the transpiler does that three times per file per run, from disk.
 One fix serves both.
 
+## Defects found on the way
+
+Nine, all reproduced and none fixed — a measurement that also changes behavior measures
+nothing. Three were more serious than the reading that prompted them, which is the argument for
+requiring a reproduction rather than a confident note.
+
+| issue                                                    | what                                                                                                                                |
+| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| [#1432](https://github.com/jlaustill/c-next/issues/1432) | an analyzer reads the previous file's `typeRegistry`; E0850 is order-dependent and a signed subscript reaches generated C at exit 0 |
+| [#1433](https://github.com/jlaustill/c-next/issues/1433) | `collectDependentsOf` memoizes a cycle-cut `false`, so E0427 falsely rejects                                                        |
+| [#1434](https://github.com/jlaustill/c-next/issues/1434) | no `.cnx → header` edge exists, so E0426 is wrong in both directions                                                                |
+| [#1435](https://github.com/jlaustill/c-next/issues/1435) | three derivations answer "what can this file see?", with different search paths and opposite cycle rules                            |
+| [#1436](https://github.com/jlaustill/c-next/issues/1436) | cross-file struct fields never reach `structFields`; E0805/E0806/E0850 go silent                                                    |
+| [#1437](https://github.com/jlaustill/c-next/issues/1437) | init-completeness is off for every qualified type form and every cross-file struct                                                  |
+| [#1438](https://github.com/jlaustill/c-next/issues/1438) | `scopeVariableUsage` never written; #232's optimization has never fired                                                             |
+| [#1439](https://github.com/jlaustill/c-next/issues/1439) | `collectGrammarCoverage` stored and never read                                                                                      |
+| [#1440](https://github.com/jlaustill/c-next/issues/1440) | dead accessors `knip` cannot see; two stale ignore globs                                                                            |
+
 ## Recommendation
 
 **Normalization as discipline, in plain TypeScript.** Specifically:
 
-1. **Retain the include graph and memoise the closure.** It is currently built twice and thrown
+1. **Retain the include graph and memoize the closure.** It is currently built twice and thrown
    away twice, then rebuilt from disk twice more per file. This is the single change that
    brings the derive under the cost ceiling _and_ removes two redundant rebuilds, and it is a
    precondition for everything else.
