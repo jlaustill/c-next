@@ -35,6 +35,8 @@ const HOOKED_VIEWS = [
   "CodeGenState.isKnownScope",
   "CodeGenState.isScopeType",
   "CodeGenState.isOpaqueType",
+  "CodeGenState.getStructFieldType",
+  "CodeGenState.getStructFieldInfo",
 ];
 
 interface IRunSummary {

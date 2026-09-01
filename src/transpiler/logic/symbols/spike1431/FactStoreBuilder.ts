@@ -184,6 +184,7 @@ class FactStoreBuilder {
     foreign: ReadonlyArray<TCSymbol | TCppSymbol> = [],
     edges: ReadonlyArray<{ dependent: string; dependency: string }> = [],
     structFieldOwners: readonly string[] = [],
+    runWideStructFields: ReadonlyArray<{ owner: string; field: string }> = [],
     opaqueTypeNames: readonly string[] = [],
   ): IFactStore {
     const symbolRows: ISymbolRow[] = symbols.map((symbol) => ({
@@ -253,6 +254,7 @@ class FactStoreBuilder {
       includeEdges,
       members,
       structFieldOwners,
+      runWideStructFields,
       opaqueTypeNames,
     };
   }

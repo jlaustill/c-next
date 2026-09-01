@@ -131,6 +131,128 @@ class Views {
   }
 
   /**
+   * The two D4 siblings, which resolve the same question with OPPOSITE precedence:
+   *
+   *   getStructFieldType  reads `symbols.structFields` and stops. No run-wide branch
+   *                       at all -- so "opposite directions" in #1431 understates it.
+   *   getStructFieldInfo  asks the run-wide SymbolTable FIRST, then falls back local.
+   *
+   * And `structFields` is one of the 13 `ICodeGenSymbols` collections that never
+   * crosses an include boundary, while `knownStructs` does. So a struct declared in an
+   * INCLUDED file is "known" and its fields are not -- which is the #1333 asymmetry
+   * ("A type's NAME is not enough; its detail travels with it") one kind over.
+   *
+   * Presence is compared, not the type string: the member table holds the structured
+   * `TType` and the live accessor returns a flattened string, and comparing those
+   * would measure the flattening rather than the scope.
+   */
+  private static fieldVisible(
+    store: IFactStore,
+    file: string,
+    ownerCName: string,
+    fieldName: string,
+    scope: "declaredIn" | "visibleFrom" | "runWide",
+  ): boolean {
+    const owners = new Set(
+      (scope === "declaredIn"
+        ? Queries.declaredIn(store, file)
+        : scope === "visibleFrom"
+          ? Queries.visibleFrom(store, file)
+          : Queries.runWide(store)
+      ).map((r) => r.fullyQualifiedCName),
+    );
+    // kind === "struct_field" ONLY. The member table also holds bitmap_field rows,
+    // and `symbols.structFields` does not -- 48 observations reported `MotorFlags.Mode`
+    // as present when the live accessor said absent, purely because a bitmap field
+    // matched. Bitmaps being struct-LIKE for pass-by-reference (#551) does not make
+    // their fields struct fields.
+    const inMembers = store.members.some(
+      (m) =>
+        m.ownerCName === ownerCName &&
+        m.name === fieldName &&
+        m.kind === "struct_field" &&
+        owners.has(m.ownerCName),
+    );
+    if (inMembers) {
+      return true;
+    }
+    // Foreign struct fields have no `members` rows; they live only in the run-wide
+    // index. Only the run-wide scope may see them.
+    return (
+      scope === "runWide" &&
+      store.runWideStructFields.some(
+        (f) => f.owner === ownerCName && f.field === fieldName,
+      )
+    );
+  }
+
+  static getStructFieldType(
+    store: IFactStore,
+    file: string,
+    ownerCName: string,
+    fieldName: string,
+  ): { asSpecified: boolean; asPrincipled: boolean; derivable: boolean } {
+    const declared = Views.fieldVisible(
+      store,
+      file,
+      ownerCName,
+      fieldName,
+      "declaredIn",
+    );
+    const visible = Views.fieldVisible(
+      store,
+      file,
+      ownerCName,
+      fieldName,
+      "visibleFrom",
+    );
+    const rows = store.symbols.filter(
+      (r) => r.fullyQualifiedCName === ownerCName,
+    );
+    const graphBacked =
+      rows.length > 0 &&
+      rows.some((r) => Queries.fileIsInGraph(store, r.sourceFile));
+    return {
+      asSpecified: declared,
+      asPrincipled: visible,
+      derivable: graphBacked || rows.length === 0,
+    };
+  }
+
+  static getStructFieldInfo(
+    store: IFactStore,
+    file: string,
+    ownerCName: string,
+    fieldName: string,
+  ): { asSpecified: boolean; asPrincipled: boolean; derivable: boolean } {
+    const runWide = Views.fieldVisible(
+      store,
+      file,
+      ownerCName,
+      fieldName,
+      "runWide",
+    );
+    const visible = Views.fieldVisible(
+      store,
+      file,
+      ownerCName,
+      fieldName,
+      "visibleFrom",
+    );
+    const rows = store.symbols.filter(
+      (r) => r.fullyQualifiedCName === ownerCName,
+    );
+    const graphBacked =
+      rows.length > 0 &&
+      rows.some((r) => Queries.fileIsInGraph(store, r.sourceFile));
+    return {
+      asSpecified: runWide,
+      asPrincipled: visible,
+      derivable: graphBacked || rows.length === 0,
+    };
+  }
+
+  /**
    * `CodeGenState.isOpaqueType`: reads `symbols.opaqueTypes`, which LOOKS per-file but
    * is seeded entirely from the run-wide `SymbolTable.getAllOpaqueTypes()`. D5.
    *

@@ -45,6 +45,20 @@ interface IFactStore {
   readonly structFieldOwners: readonly string[];
 
   /**
+   * The run-wide `SymbolTable.structFields` index as (owner, field) pairs.
+   *
+   * C and C++ struct fields are registered here and have NO rows in `members`, which
+   * is built from `TSymbol` variants -- so a query over `members` alone answers
+   * `false` for `Rectangle.origin` while the live accessor answers `true`. Two tables
+   * for one relation, C-Next fields in one and foreign fields in the other, is D4's
+   * substrate stated as a schema fact.
+   */
+  readonly runWideStructFields: ReadonlyArray<{
+    readonly owner: string;
+    readonly field: string;
+  }>;
+
+  /**
    * Names the run-wide opaque-type index holds.
    *
    * The per-file `ICodeGenSymbols.opaqueTypes` is seeded from this at

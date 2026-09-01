@@ -1232,13 +1232,38 @@ export default class CodeGenState {
     structName: string,
     fieldName: string,
   ): string | undefined {
-    return this.symbols?.structFields.get(structName)?.get(fieldName);
+    const live = this.symbols?.structFields.get(structName)?.get(fieldName);
+    // SPIKE #1431 -- THROWAWAY
+    ProbeHooks.observeStructField(
+      "getStructFieldType",
+      structName,
+      fieldName,
+      live !== undefined,
+    );
+    return live;
   }
 
   /**
    * Get struct field info including dimensions (checks SymbolTable then local symbols).
    */
   static getStructFieldInfo(
+    structType: string,
+    fieldName: string,
+  ): { type: string; dimensions?: (number | string)[] } | null {
+    const live = CodeGenState._getStructFieldInfoImpl(structType, fieldName);
+    // SPIKE #1431 -- THROWAWAY. A wrapper rather than an inline edit: this method
+    // has four return points and threading an observation through each would change
+    // its control flow, which is the one thing a measurement must not do.
+    ProbeHooks.observeStructField(
+      "getStructFieldInfo",
+      structType,
+      fieldName,
+      live !== null,
+    );
+    return live;
+  }
+
+  private static _getStructFieldInfoImpl(
     structType: string,
     fieldName: string,
   ): { type: string; dimensions?: (number | string)[] } | null {

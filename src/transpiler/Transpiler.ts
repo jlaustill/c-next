@@ -363,6 +363,10 @@ class Transpiler {
       ],
       input.spikeIncludeEdges,
       [...CodeGenState.symbolTable.getAllStructFields().keys()],
+      [...CodeGenState.symbolTable.getAllStructFields()].flatMap(
+        ([owner, fields]) =>
+          [...fields.keys()].map((field) => ({ owner, field })),
+      ),
       CodeGenState.symbolTable
         .getAllOpaqueTypes()
         .filter((t) => CodeGenState.symbolTable.isOpaqueType(t)),

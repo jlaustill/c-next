@@ -94,6 +94,39 @@ class ProbeHooks {
     );
   }
 
+  static observeStructField(
+    accessor: "getStructFieldType" | "getStructFieldInfo",
+    ownerCName: string,
+    fieldName: string,
+    live: boolean,
+  ): void {
+    if (!ProbeHooks.ready()) {
+      return;
+    }
+    const derived =
+      accessor === "getStructFieldType"
+        ? Views.getStructFieldType(
+            ProbeHooks.store!,
+            ProbeHooks.currentFile!,
+            ownerCName,
+            fieldName,
+          )
+        : Views.getStructFieldInfo(
+            ProbeHooks.store!,
+            ProbeHooks.currentFile!,
+            ownerCName,
+            fieldName,
+          );
+    ViewProbe.record(
+      `CodeGenState.${accessor}`,
+      `${ownerCName}.${fieldName}`,
+      String(live),
+      String(derived.asSpecified),
+      String(derived.asPrincipled),
+      derived.derivable,
+    );
+  }
+
   static observeIsOpaqueType(typeName: string, live: boolean): void {
     if (!ProbeHooks.ready()) {
       return;
