@@ -53,10 +53,14 @@ containing templates, classes, namespaces or access specifiers (`FlexCAN_T4.h`,
 Arduino classes) — the transpile **fails with E0507** naming the header:
 
 ```
-E0507: C++ header in 'lib/FlexCAN_T4/FlexCAN_T4.h', but this run does not target C++.
+Error: 1:0 Pipeline failed: E0507: C++ header in 'lib/FlexCAN_T4/FlexCAN_T4.h', but this run does not target C++.
   C-Next emits C unless told otherwise. To compile as C++, set
   'cppRequired: true' in your config, or pass --cpp.
 ```
+
+The `1:0` is the whole run, not a line in your source: the header is rejected while the
+include graph is being collected, before any `#include` site is attributed to it. Grep for
+`E0507` rather than for a position.
 
 > **Previously** C-Next guessed: it read your includes and switched output languages
 > on its own. That guess was only as good as the search path. If `Arduino.h` was not

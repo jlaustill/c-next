@@ -2,6 +2,12 @@
 
 This document is the authoritative registry of all C-Next compiler error codes. When adding new error codes, assign the next available code in the appropriate range and update this document.
 
+A row marked _(reserved)_ names a code that is spoken for but not yet implemented. It is
+listed because "next available" is read from this table: a code reserved elsewhere and
+recorded nowhere gets assigned a second time, and the collision is silent — the registry
+is hand-maintained and has no gate, while `npm run diagnostics:manifest:check` only sees
+codes that already have a fixture.
+
 ## Error Code Ranges
 
 | Range     | Category                | Count  |
@@ -10,12 +16,12 @@ This document is the authoritative registry of all C-Next compiler error codes. 
 | E02xx     | Identifier/Param Naming | 5      |
 | E03xx     | Struct Fields           | 1      |
 | E04xx     | Symbol Resolution       | 6      |
-| E05xx     | Include/Preprocessor    | 5      |
+| E05xx     | Include/Preprocessor    | 7      |
 | E06xx     | Sizeof Expressions      | 2      |
 | E07xx     | Control Flow            | 7      |
 | E08xx     | Arithmetic/Array Safety | 16     |
 | E09xx     | NULL Safety             | 8      |
-| **Total** |                         | **51** |
+| **Total** |                         | **53** |
 
 ---
 
@@ -115,13 +121,15 @@ the status quo (#1398 tracks the remaining cross-file value gap).
 
 ## E05xx — Include/Preprocessor
 
-| Code  | Message                                          | Help                                                                                             | Source                                                  |
-| ----- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
-| E0501 | Function-like macro not allowed                  | Use inline functions instead                                                                     | `output/codegen/generators/support/IncludeGenerator.ts` |
-| E0502 | `#define` with value not allowed                 | Use `const u32 NAME <- value;` instead                                                           | `output/codegen/generators/support/IncludeGenerator.ts` |
-| E0503 | Cannot `#include` implementation file            | Only `.h` and `.hpp` files are allowed                                                           | `output/codegen/TypeValidator.ts`                       |
-| E0504 | `.cnx` alternative exists for included header    | Use `#include "file.cnx"` for the C-Next version                                                 | `output/codegen/TypeValidator.ts`                       |
-| E0505 | Header names a pointer typedef it cannot declare | Include the header that defines the type; a forward declaration cannot express a pointer typedef | `output/headers/BaseHeaderGenerator.ts`                 |
+| Code  | Message                                          | Help                                                                                                                                    | Source                                                  |
+| ----- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| E0501 | Function-like macro not allowed                  | Use inline functions instead                                                                                                            | `output/codegen/generators/support/IncludeGenerator.ts` |
+| E0502 | `#define` with value not allowed                 | Use `const u32 NAME <- value;` instead                                                                                                  | `output/codegen/generators/support/IncludeGenerator.ts` |
+| E0503 | Cannot `#include` implementation file            | Only `.h` and `.hpp` files are allowed                                                                                                  | `output/codegen/TypeValidator.ts`                       |
+| E0504 | `.cnx` alternative exists for included header    | Use `#include "file.cnx"` for the C-Next version                                                                                        | `output/codegen/TypeValidator.ts`                       |
+| E0505 | Header names a pointer typedef it cannot declare | Include the header that defines the type; a forward declaration cannot express a pointer typedef                                        | `output/headers/BaseHeaderGenerator.ts`                 |
+| E0506 | _(reserved)_ — included C-Next file not found    | Not yet implemented. Reserved by the #1321 throw audit (`docs/architecture/output-throw-classification.md`) so it is not assigned twice | `output/codegen/generators/support/IncludeGenerator.ts` |
+| E0507 | C++ header in a run that does not target C++     | Set `cppRequired: true` in the config, or pass `--cpp`                                                                                  | `Transpiler.ts`                                         |
 
 ---
 

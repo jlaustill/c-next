@@ -66,15 +66,23 @@ WRITE       3.1 Write     --> disk
 
 A fact has two independent properties, and conflating them mis-files the AST:
 
-|                                             | **short lifetime** -- dies by 2.2              | **long lifetime** -- travels to 3.1                        |
-| ------------------------------------------- | ---------------------------------------------- | ---------------------------------------------------------- |
-| **Tier 1** -- computable with one file open | AST structure                                  | identity, kind, position, declared type, qualifiers        |
-| **Tier 2** -- needs more than one file      | symbol conflicts (consumed into `Diagnostics`) | `isConst`, opaque-vs-defined, `cppDetected`, pass-by-value |
+|                                             | **short lifetime** -- dies by 2.2              | **long lifetime** -- travels to 3.1                 |
+| ------------------------------------------- | ---------------------------------------------- | --------------------------------------------------- |
+| **Tier 1** -- computable with one file open | AST structure                                  | identity, kind, position, declared type, qualifiers |
+| **Tier 2** -- needs more than one file      | symbol conflicts (consumed into `Diagnostics`) | `isConst`, opaque-vs-defined, pass-by-value         |
 
 - **Tier** decides which pass authors a fact, and whether it can be cached.
 - **Lifetime** decides whether it may cross into the artifact the next layer holds.
 
 The test for tier is mechanical: **could you compute it with only this file open?**
+
+> `cppDetected` used to be listed here as a Tier 2 fact authored in 1.4 Resolve, because it
+> was raised by reading an included header. #1319 made it **declared** -- it comes from
+> `cppRequired` in the config or `--cpp`, and a C++ header met in a run that did not declare
+> C++ is E0507 rather than a silent switch. It is therefore not a tier fact in either
+> direction: the test above asks whether one file is enough, and the answer is now that
+> **no** file is needed. It is a configuration input, known before pass 1.1 opens anything,
+> which is why nothing downstream can read it too early.
 
 The AST is Tier 1 with a short lifetime. That resolves the problem of a parse tree that
 cannot be serialized, rather than relocating it: pull a serializable `SourceSpan` out and
@@ -116,7 +124,7 @@ pass holds, so a dependency rule is a backstop rather than the primary guard.
 #### Tier 2 -- authored in 1.4 Resolve
 
 Auto-const; parameter-modified, direct and transitive; pass-by-value eligibility; the call
-graph; opaque-vs-defined; symbol conflicts; `cppDetected`; callback promotion; which C
+graph; opaque-vs-defined; symbol conflicts; callback promotion; which C
 header declares a type; transitively visible enums from includes; external const values;
 external struct fields; resolved array dimensions.
 

@@ -3,7 +3,7 @@
  * JSON-RPC server for VS Code extension communication
  *
  * Phase 2b (ADR-060): Uses the full Transpiler for transpilation and symbol
- * extraction, enabling include resolution, C++ auto-detection, and cross-file
+ * extraction, enabling include resolution and cross-file
  * symbol support.
  */
 
@@ -267,7 +267,7 @@ class ServeCommand {
 
   /**
    * Handle transpile method (called via _withSourceValidation wrapper)
-   * Uses full Transpiler for include resolution and C++ auto-detection
+   * Uses full Transpiler for include resolution and symbol collection
    */
   private static async _handleTranspile(
     params: ISourceParams,
@@ -304,6 +304,10 @@ class ServeCommand {
           success: false,
           code: "",
           errors: transpileResult.errors,
+          // #1319: the wire name stays `cppDetected` -- it is the JSON-RPC
+          // contract the VS Code extension consumes, and renaming it is a
+          // protocol break. The value is now the DECLARED mode, not a
+          // discovered one; nothing is detected any more.
           cppDetected: ServeCommand.transpiler.isCppMode(),
         },
       };
@@ -315,6 +319,7 @@ class ServeCommand {
         success: fileResult.success,
         code: fileResult.code,
         errors: fileResult.errors,
+        // #1319: wire name kept for extension compatibility (see above).
         cppDetected: ServeCommand.transpiler.isCppMode(),
       },
     };
@@ -322,7 +327,7 @@ class ServeCommand {
 
   /**
    * Handle parseSymbols method (called via _withSourceValidation wrapper)
-   * Runs full transpilation for include/C++ detection, then extracts symbols
+   * Runs full transpilation for include resolution, then extracts symbols
    * from the parse tree (preserving "extract symbols even with parse errors" behavior)
    */
   private static async _handleParseSymbols(
@@ -331,7 +336,7 @@ class ServeCommand {
     const { source, filePath } = params;
 
     // If transpiler is initialized, run transpile to trigger header
-    // resolution and C++ detection (results are discarded, we just want
+    // resolution (results are discarded, we just want
     // the side effects on the symbol table)
     if (ServeCommand.transpiler && filePath) {
       try {

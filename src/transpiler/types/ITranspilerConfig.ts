@@ -26,7 +26,11 @@ interface ITranspilerConfig {
   /** Whether to preprocess C/C++ headers (default: true) */
   preprocess?: boolean;
 
-  /** Issue #211: Force C++ output (--cpp flag). Auto-detection may also enable this. */
+  /**
+   * Issue #211, #1319: emit C++ (`.cpp`/`.hpp`) instead of C. This is THE
+   * declaration of the run's output language, not an override of a guess --
+   * nothing infers it. A C++ header met in a run that left this false is E0507.
+   */
   cppRequired?: boolean;
 
   /** Parse only mode - no code generation */

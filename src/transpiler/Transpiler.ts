@@ -919,21 +919,21 @@ class Transpiler {
   }
 
   /**
-   * Stage 2: Collect symbols from all C/C++ headers
-   * Issue #945: Made async for preprocessing support.
-   */
-  /**
    * True for a deliberate C-Next diagnostic rather than an incidental failure.
    *
-   * Keyed on the `E0000: ` prefix because that is already this codebase's
-   * identity for a diagnostic -- `.expected.error` fixtures assert it and
-   * `docs/diagnostic-manifest.md` is generated from it -- so this reads the
-   * existing identity rather than inventing a second one to keep in step.
+   * Keyed on the `E<NNNN>: ` prefix -- the SHAPE, not any one code -- because
+   * that is already this codebase's identity for a diagnostic: `.expected.error`
+   * fixtures assert it and `docs/diagnostic-manifest.md` is generated from it.
+   * Reading the existing identity avoids inventing a second one to keep in step.
    */
   private static isDiagnostic(err: unknown): boolean {
     return err instanceof Error && /^E\d{4}: /.test(err.message);
   }
 
+  /**
+   * Stage 2: Collect symbols from all C/C++ headers
+   * Issue #945: Made async for preprocessing support.
+   */
   private async _collectAllHeaderSymbols(
     headerFiles: IDiscoveredFile[],
     result: ITranspilerResult,
@@ -1026,9 +1026,10 @@ class Transpiler {
    *
    * A second, isolated table is parsed in parallel and returned: it is clean of
    * the normal pass's degraded-blob data, so it holds the AUTHORITATIVE
-   * opaque/struct-body truth. parseCHeader (main table) auto-detects C vs C++ and
-   * skips assembler; the isolated table uses the C parser directly (opaque struct
-   * typedefs are a C concern) and tolerates slices it cannot parse.
+   * opaque/struct-body truth. parseCHeader (main table) picks the C or C++ parser
+   * by content and skips assembler; the isolated table uses the C parser directly
+   * (opaque struct typedefs are a C concern) and tolerates slices it cannot
+   * parse -- except a deliberate diagnostic, which propagates.
    */
   private _parseRecoveredSlices(
     perFileContent: Map<string, string>,
@@ -1037,7 +1038,19 @@ class Transpiler {
     for (const [path, content] of perFileContent) {
       try {
         this.parseCHeader(content, path);
-      } catch {
+      } catch (err) {
+        // #1319: same decision as the sibling catch in _collectAllHeaderSymbols.
+        // `parseCHeader` now raises E0507, and swallowing it here would produce
+        // the `Compiled N files` / exit 0 shape that diagnostic exists to
+        // remove -- so "is this a deliberate diagnostic?" is answered in both
+        // places or in neither.
+        //
+        // Reachable by construction rather than by fixture: recovery runs on the
+        // PREPROCESSED translation unit where stage 2 saw RAW content, and those
+        // differ exactly for headers hiding C++ behind `#ifdef __cplusplus`.
+        if (Transpiler.isDiagnostic(err)) {
+          throw err;
+        }
         // A slice that won't parse leaves the (already-collected) symbols as they
         // were — skip it rather than fail the build.
       }

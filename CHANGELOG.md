@@ -13,6 +13,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- C++ output mode is now **declared**, never auto-detected (Issue #1319). Set
+  `cppRequired: true` in `cnext.config.json` or pass `--cpp`. A run that does not declare
+  C++ and encounters a C++ header — a `.hpp`, or a `.h` containing classes, namespaces,
+  templates or access specifiers — now fails with new error **E0507** naming the header.
+  This is a **breaking change**, and unusually it breaks projects that did not change: a
+  configuration that transpiled yesterday fails until `cppRequired: true` is added. The
+  error message carries the fix, so the migration is one config line.
+  Previously the transpiler read your includes and switched output languages on its own.
+  That guess was only as good as the search path — a C++ header the transpiler could not
+  find produced C output and a compiler error in generated code instead. `cnext <file>.cpp`
+  (README "Step 3") does not infer the mode from the entry point either, so a tree whose
+  `.cnx` files include C++ headers needs the flag there too.
 - MISRA C:2012 Rule 17.7 is now **enforced** rather than baselined. Calls the transpiler emits while lowering string operations carry an automatic `(void)` cast; author-written discards are a compile error.
 - Stdlib function metadata moved to `StdlibFunctions`, shared by `FunctionCallAnalyzer` and `ReturnValueUseAnalyzer`.
 
