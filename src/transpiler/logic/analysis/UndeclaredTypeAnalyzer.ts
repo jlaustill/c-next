@@ -157,16 +157,22 @@ class UndeclaredTypeAnalyzer {
     typeName: string,
     scope: ReturnType<EnclosingScope["current"]>,
   ): boolean {
-    if (!CodeGenState.symbols) {
+    const symbols = CodeGenState.symbols;
+    if (!symbols) {
       // Nothing to check against; stay silent rather than reject on no evidence.
+      // This is the ONLY answer to "no symbol view" in this class: `isRegister`
+      // runs only after this returned false, which cannot happen when `symbols`
+      // is null, so a second guard there would be unreachable AND would answer
+      // the opposite way.
       return true;
     }
 
     return UndeclaredTypeAnalyzer._eitherSpelling(
       typeName,
       scope,
-      (name, symbols, symbolTable) =>
-        NameExistence.isTypeName(name, symbols, symbolTable),
+      symbols,
+      (name, fileSymbols, symbolTable) =>
+        NameExistence.isTypeName(name, fileSymbols, symbolTable),
     );
   }
 
@@ -192,7 +198,10 @@ class UndeclaredTypeAnalyzer {
     return UndeclaredTypeAnalyzer._eitherSpelling(
       typeName,
       scope,
-      (name, symbols) => NameExistence.isRegisterName(name, symbols),
+      // Reached only after `isVisibleType` returned false, which requires a
+      // symbol view -- see its guard.
+      CodeGenState.symbols!,
+      (name, fileSymbols) => NameExistence.isRegisterName(name, fileSymbols),
     );
   }
 
@@ -209,17 +218,13 @@ class UndeclaredTypeAnalyzer {
   private static _eitherSpelling(
     typeName: string,
     scope: ReturnType<EnclosingScope["current"]>,
+    symbols: ICodeGenSymbols,
     test: (
       name: string,
       symbols: ICodeGenSymbols,
       symbolTable: SymbolTable,
     ) => boolean,
   ): boolean {
-    const symbols = CodeGenState.symbols;
-    if (!symbols) {
-      return false;
-    }
-
     const symbolTable = CodeGenState.symbolTable;
 
     if (scope) {

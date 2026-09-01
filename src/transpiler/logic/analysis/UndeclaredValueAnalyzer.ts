@@ -155,7 +155,8 @@ class UndeclaredValueAnalyzer {
     // A function referenced as a value (ADR-029 function-as-type), a type used
     // as the base of `Type.MEMBER`, and a register, which is a value at an
     // address (ADR-004) and so answers here but NOT in the type position
-    // (#1336).
+    // (#1336). ADR-111: when a register becomes a type, `isValueName` collapses
+    // into `isTypeName` and both call sites below revert to it.
     const symbolTable = CodeGenState.symbolTable;
     if (
       NameExistence.isValueName(name, symbols, symbolTable) ||

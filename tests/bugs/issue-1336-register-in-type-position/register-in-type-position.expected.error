@@ -1,1 +1,1 @@
-29:4 error[E0429]: 'Control' is a register, not a type
+30:4 error[E0429]: 'Control' is a register, not a type

@@ -15,13 +15,13 @@ codes that already have a fixture.
 | E00xx     | Reserved/Test           | 1      |
 | E02xx     | Identifier/Param Naming | 5      |
 | E03xx     | Struct Fields           | 1      |
-| E04xx     | Symbol Resolution       | 6      |
+| E04xx     | Symbol Resolution       | 8      |
 | E05xx     | Include/Preprocessor    | 7      |
 | E06xx     | Sizeof Expressions      | 2      |
 | E07xx     | Control Flow            | 7      |
 | E08xx     | Arithmetic/Array Safety | 16     |
 | E09xx     | NULL Safety             | 8      |
-| **Total** |                         | **53** |
+| **Total** |                         | **55** |
 
 ---
 
@@ -97,17 +97,17 @@ second header and the program ran with a wrong value.
 
 ## E04xx — Symbol Resolution / Initialization
 
-| Code  | Message                                                 | Help                                                                                                                                    | Source                                                                             |
-| ----- | ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| E0381 | Use of possibly/uninitialized variable                  | Variable must be initialized before use                                                                                                 | `logic/analysis/InitializationAnalyzer.ts`                                         |
-| E0422 | Function called before definition                       | Define function before calling it                                                                                                       | `logic/analysis/FunctionCallAnalyzer.ts`                                           |
-| E0423 | Recursive function call (MISRA C:2012 Rule 17.2)        | Remove recursive call                                                                                                                   | `logic/analysis/FunctionCallAnalyzer.ts`                                           |
-| E0424 | Unqualified enum member — did you mean `Enum.member`?   | Use qualified enum member syntax                                                                                                        | `output/codegen/CodeGenerator.ts`, `SwitchGenerator.ts`, `ControlFlowGenerator.ts` |
-| E0425 | Symbol defined multiple times, or in multiple languages | Rename one definition                                                                                                                   | `logic/symbols/SymbolTable.ts`, `Transpiler.ts`                                    |
-| E0426 | Type is not defined                                     | Declare the type, or #include the file that does                                                                                        | `logic/analysis/UndeclaredTypeAnalyzer.ts`                                         |
-| E0427 | Identifier is not defined                               | Declare it, or #include the file that does                                                                                              | `logic/analysis/UndeclaredValueAnalyzer.ts`                                        |
-| E0428 | _(reserved)_ — cannot assign integer to enum            | Not yet implemented. Reserved by the #1321 throw audit (`docs/architecture/output-throw-classification.md`) so it is not assigned twice | `output/codegen/helpers/EnumAssignmentValidator.ts`                                |
-| E0429 | Name is a register, not a type                          | Access the register's members instead, e.g. `GPIO.DR`                                                                                   | `logic/analysis/UndeclaredTypeAnalyzer.ts`                                         |
+| Code  | Message                                                 | Help                                                                                                                                                             | Source                                                                             |
+| ----- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| E0381 | Use of possibly/uninitialized variable                  | Variable must be initialized before use                                                                                                                          | `logic/analysis/InitializationAnalyzer.ts`                                         |
+| E0422 | Function called before definition                       | Define function before calling it                                                                                                                                | `logic/analysis/FunctionCallAnalyzer.ts`                                           |
+| E0423 | Recursive function call (MISRA C:2012 Rule 17.2)        | Remove recursive call                                                                                                                                            | `logic/analysis/FunctionCallAnalyzer.ts`                                           |
+| E0424 | Unqualified enum member — did you mean `Enum.member`?   | Use qualified enum member syntax                                                                                                                                 | `output/codegen/CodeGenerator.ts`, `SwitchGenerator.ts`, `ControlFlowGenerator.ts` |
+| E0425 | Symbol defined multiple times, or in multiple languages | Rename one definition                                                                                                                                            | `logic/symbols/SymbolTable.ts`, `Transpiler.ts`                                    |
+| E0426 | Type is not defined                                     | Declare the type, or #include the file that does                                                                                                                 | `logic/analysis/UndeclaredTypeAnalyzer.ts`                                         |
+| E0427 | Identifier is not defined                               | Declare it, or #include the file that does                                                                                                                       | `logic/analysis/UndeclaredValueAnalyzer.ts`                                        |
+| E0428 | _(reserved)_ — cannot assign integer to enum            | Not yet implemented. Reserved by the #1321 throw audit (`docs/architecture/output-throw-classification.md`) so it is not assigned twice; #1380 tracks this drift | `output/codegen/helpers/EnumAssignmentValidator.ts`                                |
+| E0429 | Name is a register, not a type                          | Access the register's members instead, e.g. `GPIO.DR`                                                                                                            | `logic/analysis/UndeclaredTypeAnalyzer.ts`                                         |
 
 **Related:** ADR-030 (E0422), ADR-016 (E0425 — a reopened scope composes, but its
 members stay unique)
