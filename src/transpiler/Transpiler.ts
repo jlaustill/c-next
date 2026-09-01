@@ -362,6 +362,10 @@ class Transpiler {
         ...CodeGenState.symbolTable.getAllCppSymbols(),
       ],
       input.spikeIncludeEdges,
+      [...CodeGenState.symbolTable.getAllStructFields().keys()],
+      CodeGenState.symbolTable
+        .getAllOpaqueTypes()
+        .filter((t) => CodeGenState.symbolTable.isOpaqueType(t)),
     );
     ProbeHooks.install(store, null);
     this.spikeStore = store;

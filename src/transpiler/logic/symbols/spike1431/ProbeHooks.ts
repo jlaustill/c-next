@@ -93,11 +93,7 @@ class ProbeHooks {
     );
   }
 
-  static observeIsOpaqueType(
-    typeName: string,
-    live: boolean,
-    runWideOpaque: ReadonlySet<string>,
-  ): void {
+  static observeIsOpaqueType(typeName: string, live: boolean): void {
     if (!ProbeHooks.ready()) {
       return;
     }
@@ -105,7 +101,6 @@ class ProbeHooks {
       ProbeHooks.store!,
       ProbeHooks.currentFile!,
       typeName,
-      runWideOpaque,
     );
     ViewProbe.record(
       "CodeGenState.isOpaqueType",

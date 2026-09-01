@@ -803,13 +803,7 @@ export default class CodeGenState {
    */
   static isOpaqueType(typeName: string): boolean {
     const live = this.symbols?.opaqueTypes.has(typeName) ?? false;
-    // SPIKE #1431 -- THROWAWAY. The run-wide set is passed IN: nothing under
-    // spike1431/ may import state/, or state -> logic -> state closes a cycle.
-    ProbeHooks.observeIsOpaqueType(
-      typeName,
-      live,
-      new Set(this.symbolTable.getAllOpaqueTypes()),
-    );
+    ProbeHooks.observeIsOpaqueType(typeName, live); // SPIKE #1431 -- THROWAWAY
     return live;
   }
 

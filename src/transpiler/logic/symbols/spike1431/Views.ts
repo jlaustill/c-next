@@ -55,11 +55,11 @@ class Views {
   ): { asSpecified: boolean; asPrincipled: boolean } {
     const visible = Queries.visibleFrom(store, file);
     const includeVisible = Views.has(visible, name, Views.STRUCT_LIKE);
-    const runWide = Views.has(
-      Queries.runWide(store),
-      name,
-      new Set(["struct", "typedef"]),
-    );
+    // The run-wide half is INDEX MEMBERSHIP, not a kind test. Deriving it from kinds
+    // is what broke the identity control at corpus scale: the filter was
+    // `{struct, typedef}` and `CopyConstructible` is a C++ `class`, so 262
+    // observations reported my kind filter as if it were a transpiler divergence.
+    const runWide = store.structFieldOwners.includes(name);
     return {
       asSpecified: includeVisible || runWide,
       asPrincipled: includeVisible,
@@ -134,9 +134,12 @@ class Views {
     store: IFactStore,
     file: string,
     typeName: string,
-    runWideOpaque: ReadonlySet<string>,
   ): { asSpecified: boolean; asPrincipled: boolean } {
-    const asSpecified = runWideOpaque.has(typeName);
+    // `opaqueTypeNames` already carries the `isOpaqueType` filter the seeding applies
+    // at Transpiler.ts:632-640, so this reproduces the per-file set rather than the
+    // unfiltered run-wide one -- the difference that produced three identity
+    // mismatches, and a refinement of D5 rather than a divergence.
+    const asSpecified = store.opaqueTypeNames.includes(typeName);
     const visibleFiles = new Set(
       Queries.visibleFrom(store, file).map((r) => r.sourceFile),
     );

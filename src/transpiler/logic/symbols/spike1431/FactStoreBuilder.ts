@@ -183,6 +183,8 @@ class FactStoreBuilder {
     files: readonly IPipelineFile[],
     foreign: ReadonlyArray<TCSymbol | TCppSymbol> = [],
     edges: ReadonlyArray<{ dependent: string; dependency: string }> = [],
+    structFieldOwners: readonly string[] = [],
+    opaqueTypeNames: readonly string[] = [],
   ): IFactStore {
     const symbolRows: ISymbolRow[] = symbols.map((symbol) => ({
       fullyQualifiedCName: symbol.fullyQualifiedCName,
@@ -250,6 +252,8 @@ class FactStoreBuilder {
       files: fileRows,
       includeEdges,
       members,
+      structFieldOwners,
+      opaqueTypeNames,
     };
   }
 }
