@@ -18,6 +18,7 @@ import { join } from "node:path";
 import Transpiler from "../Transpiler";
 import CodeGenState from "../state/CodeGenState";
 import Preprocessor from "../logic/preprocessor/Preprocessor";
+import detectCppSyntax from "../logic/detectCppSyntax";
 
 const GUARD_H = `#define WIDGET_GUARD 1
 #define WIDGET_FEATURE 1
@@ -219,5 +220,109 @@ describe("external-symbol recovery (integration)", () => {
     } finally {
       rmSync(cleanDir, { recursive: true, force: true });
     }
+  });
+});
+
+/**
+ * Issue #1319: a diagnostic raised on a RECOVERY slice must propagate.
+ *
+ * `_parseRecoveredSlices` catches broadly so a slice it cannot parse does not
+ * fail the build. It calls the same `parseCHeader` that now raises E0507, so
+ * without a guard the diagnostic is swallowed and the run reaches
+ * `Compiled N files` at exit 0 -- the silent failure E0507 exists to remove.
+ *
+ * Review argued this was reachable "by construction" but could not build a
+ * fixture, because stage 2 tests the header's RAW text while recovery sees the
+ * PREPROCESSED translation unit. This constructs that divergence rather than
+ * assuming it: `OPEN_SCOPE` pastes `name##space`, so no header contains the
+ * token `namespace` in its raw text -- stage 2 reads every one of them as C --
+ * while the preprocessed union contains `namespace Rec { ... }`. Verified in
+ * both directions before this test was written.
+ */
+const PASTE_GUARD_H = `#define REC_GUARD 1
+#define USE_BROKEN 0
+#define PASTE(a, b) a##b
+#define OPEN_SCOPE PASTE(name, space) Rec {
+`;
+
+// Discovered by cnext (its include walk is unconditional) but excluded from the
+// recovery union by USE_BROKEN, exactly as pthread_impl.h is above. Its
+// standalone preprocessing failure is what arms the recovery pass at all.
+const PASTE_BROKEN_H = `#include <cnext_no_such_header_zzz.h>\n`;
+
+const PASTE_WIDGET_H = `#ifndef REC_GUARD
+#error "include guard.h before widget.h"
+#endif
+#if USE_BROKEN
+#include "broken.h"
+#endif
+OPEN_SCOPE
+  int recValue;
+}
+`;
+
+const PASTE_MAIN_CNX = `#include "paste_guard.h"
+#include "paste_widget.h"
+
+void main() { }
+`;
+
+describe("diagnostics on a recovery slice (#1319, integration)", () => {
+  let dir: string;
+  const available = new Preprocessor().isAvailable();
+
+  beforeAll(() => {
+    dir = mkdtempSync(join(tmpdir(), "cnext-recovery-e0507-"));
+    writeFileSync(join(dir, "paste_guard.h"), PASTE_GUARD_H);
+    writeFileSync(join(dir, "paste_widget.h"), PASTE_WIDGET_H);
+    writeFileSync(join(dir, "broken.h"), PASTE_BROKEN_H);
+    writeFileSync(join(dir, "main.cnx"), PASTE_MAIN_CNX);
+  });
+
+  afterAll(() => {
+    if (dir) rmSync(dir, { recursive: true, force: true });
+  });
+
+  const run = async (cppRequired: boolean) =>
+    new Transpiler({
+      input: join(dir, "main.cnx"),
+      includeDirs: [dir],
+      outDir: join(dir, "out"),
+      cppRequired,
+      noCache: true,
+    }).transpile({ kind: "files" });
+
+  it("no header looks like C++ before preprocessing", async (ctx) => {
+    if (!available) ctx.skip();
+
+    // The premise, asserted rather than assumed: if any raw header tripped the
+    // check, stage 2 would raise E0507 first and the test below would pass
+    // without ever reaching the recovery path it exists to cover.
+    for (const header of ["paste_guard.h", "paste_widget.h", "broken.h"]) {
+      expect(detectCppSyntax(readFileSync(join(dir, header), "utf-8"))).toBe(
+        false,
+      );
+    }
+  });
+
+  it("propagates E0507 raised while parsing a recovered slice", async (ctx) => {
+    if (!available) ctx.skip();
+
+    const result = await run(false);
+
+    expect(result.success).toBe(false);
+    expect(result.errors.map((e) => e.message).join("\n")).toContain("E0507");
+  });
+
+  it("stays silent when C++ is declared", async (ctx) => {
+    if (!available) ctx.skip();
+
+    // Negative control: the guard must fire on the DECLARATION being absent,
+    // not on the recovery pass having run.
+    const result = await run(true);
+
+    expect(result.errors.map((e) => e.message).join("\n")).not.toContain(
+      "E0507",
+    );
   });
 });
