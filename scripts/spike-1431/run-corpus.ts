@@ -84,7 +84,10 @@ async function main(): Promise<void> {
 
   for (const fixture of selected) {
     ViewProbe.reset();
-    ViewProbe.arm(true);
+    // SPIKE_DISARM=1 runs the identical corpus walk with the probe off, so the
+    // difference is the cost of deriving every view -- criterion 4's measurement,
+    // taken against the same driver rather than against a remembered baseline.
+    ViewProbe.arm(process.env.SPIKE_DISARM !== "1");
     try {
       await transpileFixture(fixture);
     } catch {

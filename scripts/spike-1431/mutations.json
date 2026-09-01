@@ -1,0 +1,50 @@
+[
+  {
+    "view": "CodeGenState.isKnownStruct",
+    "file": "src/transpiler/logic/symbols/spike1431/Views.ts",
+    "anchor": "    const runWide = store.structFieldOwners.includes(name);",
+    "replacement": "    const runWide = false;",
+    "marker": "SPIKE-CTRL-isKnownStruct",
+    "breaks": "drops the run-wide structFields branch from the derivation"
+  },
+  {
+    "view": "CodeGenState.isScopeType",
+    "file": "src/transpiler/logic/symbols/spike1431/Views.ts",
+    "anchor": "      asSpecified: Queries.runWide(store).some(matches),",
+    "replacement": "      asSpecified: Queries.declaredIn(store, file).some(matches),",
+    "marker": "SPIKE-CTRL-isScopeType",
+    "breaks": "narrows the run-wide predicate to this-file-only"
+  },
+  {
+    "view": "CodeGenState.isKnownScope",
+    "file": "src/transpiler/logic/symbols/spike1431/Views.ts",
+    "anchor": "      asSpecified: Queries.visibleFrom(store, file).some(isScopeNamed),",
+    "replacement": "      asSpecified: Queries.declaredIn(store, file).some(isScopeNamed),",
+    "marker": "SPIKE-CTRL-isKnownScope",
+    "breaks": "narrows the include-visible predicate to this-file-only"
+  },
+  {
+    "view": "CodeGenState.getStructFieldType",
+    "file": "src/transpiler/logic/symbols/spike1431/Views.ts",
+    "anchor": "      asSpecified: declared,\n      asPrincipled: visible,",
+    "replacement": "      asSpecified: visible,\n      asPrincipled: visible,",
+    "marker": "SPIKE-CTRL-getStructFieldType",
+    "breaks": "widens the this-file predicate to include-visible"
+  },
+  {
+    "view": "CodeGenState.getStructFieldInfo",
+    "file": "src/transpiler/logic/symbols/spike1431/Views.ts",
+    "anchor": "      asSpecified: runWide,\n      asPrincipled: visible,",
+    "replacement": "      asSpecified: visible,\n      asPrincipled: visible,",
+    "marker": "SPIKE-CTRL-getStructFieldInfo",
+    "breaks": "narrows the run-wide-first predicate to include-visible"
+  },
+  {
+    "view": "CodeGenState.isOpaqueType",
+    "file": "src/transpiler/logic/symbols/spike1431/Views.ts",
+    "anchor": "    const asSpecified = store.opaqueTypeNames.includes(typeName);",
+    "replacement": "    const asSpecified = false;",
+    "marker": "SPIKE-CTRL-isOpaqueType",
+    "breaks": "empties the opaque-type table"
+  }
+]
