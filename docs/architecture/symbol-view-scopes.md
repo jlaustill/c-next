@@ -166,12 +166,31 @@ types **the edge does not exist in either graph**, so the join has nothing to jo
 | #   | criterion                     | result                                                 |
 | --- | ----------------------------- | ------------------------------------------------------ |
 | 1   | disagreements, control firing | one real divergence; the rest agree or are underivable |
-| 2   | does the boundary typecheck   | typed **4/4**, as a string **0/4**                     |
+| 2   | does the boundary typecheck   | typed **4/4**, as a string **0/4** [^ql]               |
 | 3   | do the gates survive          | **engine rejected**                                    |
 | 4   | cost                          | naive derive **+23.8%** against a 10% ceiling          |
 | 5   | unreachable except by query   | a gate catches the realistic bypass                    |
 
-**Criterion 3 is decisive.** The same `logic/ → output/` coupling produces **130 errors** as a
+**Criterion 3 is decisive — but the rule is not "no query strings".** That was this spike's
+first phrasing and it is too narrow. Expressing the same coupling eight ways against the
+project's own four layer rules gives the real boundary:
+
+| how the coupling is written                            | depcruise                          |
+| ------------------------------------------------------ | ---------------------------------- |
+| direct typed import                                    | **error**                          |
+| free-function query imported from `output/`            | **error** (direct and transitive)  |
+| provider table, layer-neutral result type              | silent                             |
+| provider table, vocabulary laundered through `unknown` | silent — and `tsc --strict` exit 0 |
+| SQL string                                             | silent                             |
+| phase slice map naming the generate slice              | **error** (transitive)             |
+| dynamic `import()` with a non-literal specifier        | silent — `tsc` exit 0              |
+
+A provider table is fully typed, string-free and compiles clean, and the gate sees nothing. So
+the rule is **the coupling must be a TypeScript import edge**. Phrased that way it rejects
+provider tables, dynamic imports and query strings alike, and it accepts the free-function form
+— which is why the recommendation below is queries as ordinary functions, never a registry.
+
+Concretely, the same `logic/ → output/` coupling produces **130 errors** as a
 typed import and **`✔ no dependency violations found`** as a SQL string, in a module that is
 imported so `no-orphans` cannot account for it. #1297 fixed a gate that matched direct edges
 only; under an engine, CI would print the same reassuring sentence for the same reason one layer
@@ -242,6 +261,14 @@ requiring a reproduction rather than a confident note.
 | [#1439](https://github.com/jlaustill/c-next/issues/1439) | `collectGrammarCoverage` stored and never read                                                                                      |
 | [#1440](https://github.com/jlaustill/c-next/issues/1440) | dead accessors `knip` cannot see; two stale ignore globs                                                                            |
 
+[^ql]:
+    The 0/4 is about **SQL specifically**, not query languages generally. CodeQL's QL, Glean's
+    Angle and Soufflé all typecheck queries against a declared schema, and Glean additionally
+    generates typed host bindings. They are rejected here on criterion 3, not criterion 2 — a
+    query in a second language is not a TypeScript import edge, so enforcing the layer model
+    under one of them means building and mutation-checking a second gate suite over a second
+    toolchain.
+
 ## Recommendation
 
 **Normalization as discipline, in plain TypeScript.** Specifically:
@@ -254,8 +281,12 @@ requiring a reproduction rather than a confident note.
    questions asked of the symbol layer have no principled answer, and no schema can supply one.
 3. **Make `structFields` cross the include boundary** on the same terms as `enumMembers` and
    `bitmapFields`, and give `getStructFieldType` and `getStructFieldInfo` one answer.
-4. **Gate the store** — this is load-bearing, not optional polish, because bypass is already
-   118 of 163 sites — and mutation-check the gate in CI the way `layer-rules.test.ts` already
+4. **Hide the raw collections from the exported type**, which is how TypeScript prevents the
+   same bypass at zero runtime cost: `SourceFile.locals` exists at runtime and is simply not
+   declared, and the public `Symbol` exposes seven of fourteen runtime slots. Four attempted
+   bypasses fail under `--strict` with TS2339. This is cheaper and earlier than a gate, and it
+   is the answer to 118 of 163 sites.
+5. **Gate the store** as a backstop — mutation-check the gate in CI the way `layer-rules.test.ts` already
    checks that transitive rules carry `reachable: true`. An unchecked rule is how #1297
    happened.
 
@@ -268,7 +299,30 @@ Because the engine is rejected, #1431's flag for #1313 resolves: an engine will 
 [#1323](https://github.com/jlaustill/c-next/issues/1323), and the Cause 1 taxonomy cards are not
 blocked on that question.
 
-### What this does not say
+#### Two techniques worth naming, and one card available today
+
+**Derive lazily and memoize on the entity, not the pass.** TypeScript keeps derived facts in
+`symbolLinks` / `nodeLinks` — arrays inside the checker closure, keyed by a lazily stamped id —
+and measured on this repo's own 1107 files it produces 523,596 symbols but only **148,496
+types**. About 72% of symbols never have the expensive fact derived at all. The +23.8% above is
+a _pass_ cost because the probe derived everything; lazy per-question memoization converts it
+into a per-question cost most questions never pay.
+
+**Never memoize a value computed inside an unresolved cycle.** TypeScript threads an explicit
+resolution stack and, on a real cycle, emits a circularity error rather than caching garbage.
+That is exactly [#1433](https://github.com/jlaustill/c-next/issues/1433), where
+`collectDependentsOf` memoizes a cycle-cut `false` and E0427 then falsely rejects. The fix is
+the general property, not a patch to one walk.
+
+**And one gate is shippable now, independent of any of this.** A rule forbidding
+`logic/analysis/` from reaching `state/CodeGenState.ts`, with `reachable: true`, reports **26
+violations across 15 non-test source modules** on the current tree — several only transitively,
+so the reachability flag is doing real work. It fails on exactly the #1430 / #1432 case, needs
+no dependency and no type work, and is the precondition for phase-typing that boundary later:
+phase types over a codebase that still reaches a module-global are decorative, because the
+analyzer never held the value the type describes.
+
+## What this does not say
 
 The probe covers the views it hooked, not all 74. The divergence count is a floor. The
 recommendation rests on criteria 2 through 5, which are properties of the _options_ and do not
