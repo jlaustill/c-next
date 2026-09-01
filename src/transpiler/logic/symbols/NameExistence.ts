@@ -64,8 +64,26 @@ class NameExistence {
    * `Scope.T` state their scope in the syntax and are resolved by their own
    * branches; once a name is a string those answers are indistinguishable from
    * a bare one, which is the same reason `TypeBinding` keeps them separate.
+   *
+   * ## A register is not a type (#1336)
+   *
+   * `symbols.knownRegisters` is deliberately NOT consulted. `TYPE_FORMING_KINDS`
+   * already owns "does this kind introduce a type name" and already excludes
+   * `register` for this reason; this predicate answers the same question from
+   * the per-file name sets, and used to disagree with that owner. The
+   * disagreement WAS the bug: E0426 asks whether a name is a type, the register
+   * set answered "yes", and `Control c;` reached codegen with no typedef behind
+   * it -- exit 0, then `unknown type name 'Control'` from the C compiler.
+   *
+   * ADR-004 is what makes the exclusion correct today: a register declares a
+   * variable at an address, not a type. ADR-111 would make a register name a
+   * type, but it is `Research`, and its own header states that while it is
+   * Research "a register is still not a type".
+   *
+   * ADR-111: when it is IMPLEMENTED (not merely Accepted), add `knownRegisters`
+   * back here, drop `isValueName` and `isRegisterName`, and retire E0429.
    */
-  static isKnownType(
+  static isTypeName(
     typeName: string,
     symbols: ICodeGenSymbols,
     symbolTable: SymbolTable,
@@ -74,6 +92,49 @@ class NameExistence {
       NameExistence._isKnownCNextType(typeName, symbols) ||
       NameExistence._isKnownForeignName(typeName, symbolTable)
     );
+  }
+
+  /**
+   * Whether a bare name denotes anything usable in a VALUE position.
+   *
+   * This is `isTypeName` plus registers, and the difference is the whole point
+   * of the split (#1336). A type answers here because it is the base of
+   * `Type.MEMBER`; a register answers here because `GPIO.DR` reads a value at
+   * an address. One predicate served both positions and so had to say "yes" to
+   * a register, which suppressed the type-position diagnostic and let
+   * `Control c;` reach codegen with no type behind it.
+   *
+   * Registers are named in exactly one place -- `isRegisterName` -- so the two
+   * positions differ by one term rather than by two lists that must be kept in
+   * step.
+   *
+   * ADR-111: if a register becomes a type, this stops differing from
+   * `isTypeName` and collapses back into it. Retire it there, not here.
+   */
+  static isValueName(
+    name: string,
+    symbols: ICodeGenSymbols,
+    symbolTable: SymbolTable,
+  ): boolean {
+    return (
+      NameExistence.isTypeName(name, symbols, symbolTable) ||
+      NameExistence.isRegisterName(name, symbols)
+    );
+  }
+
+  /**
+   * Whether a bare name denotes a register (ADR-004).
+   *
+   * Separate from the two position predicates because the type position needs
+   * to tell "this name is a register" apart from "this name is nothing at all"
+   * -- E0429 against E0426. Answering "not a type" is enough to reject; naming
+   * *why* is what makes the diagnostic worth reading, since the register is
+   * declared right there in the file.
+   *
+   * ADR-111: retire this along with E0429 when a register becomes a type.
+   */
+  static isRegisterName(name: string, symbols: ICodeGenSymbols): boolean {
+    return symbols.knownRegisters.has(name);
   }
 
   /**
@@ -99,7 +160,6 @@ class NameExistence {
       symbols.knownEnums.has(typeName) ||
       symbols.knownStructs.has(typeName) ||
       symbols.knownBitmaps.has(typeName) ||
-      symbols.knownRegisters.has(typeName) ||
       symbols.knownScopes.has(typeName) ||
       symbols.opaqueTypes.has(typeName) ||
       // ADR-029: a function definition creates a callback type, so every

@@ -97,18 +97,33 @@ second header and the program ran with a wrong value.
 
 ## E04xx — Symbol Resolution / Initialization
 
-| Code  | Message                                                 | Help                                             | Source                                                                             |
-| ----- | ------------------------------------------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------- |
-| E0381 | Use of possibly/uninitialized variable                  | Variable must be initialized before use          | `logic/analysis/InitializationAnalyzer.ts`                                         |
-| E0422 | Function called before definition                       | Define function before calling it                | `logic/analysis/FunctionCallAnalyzer.ts`                                           |
-| E0423 | Recursive function call (MISRA C:2012 Rule 17.2)        | Remove recursive call                            | `logic/analysis/FunctionCallAnalyzer.ts`                                           |
-| E0424 | Unqualified enum member — did you mean `Enum.member`?   | Use qualified enum member syntax                 | `output/codegen/CodeGenerator.ts`, `SwitchGenerator.ts`, `ControlFlowGenerator.ts` |
-| E0425 | Symbol defined multiple times, or in multiple languages | Rename one definition                            | `logic/symbols/SymbolTable.ts`, `Transpiler.ts`                                    |
-| E0426 | Type is not defined                                     | Declare the type, or #include the file that does | `logic/analysis/UndeclaredTypeAnalyzer.ts`                                         |
-| E0427 | Identifier is not defined                               | Declare it, or #include the file that does       | `logic/analysis/UndeclaredValueAnalyzer.ts`                                        |
+| Code  | Message                                                 | Help                                                                                                                                    | Source                                                                             |
+| ----- | ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| E0381 | Use of possibly/uninitialized variable                  | Variable must be initialized before use                                                                                                 | `logic/analysis/InitializationAnalyzer.ts`                                         |
+| E0422 | Function called before definition                       | Define function before calling it                                                                                                       | `logic/analysis/FunctionCallAnalyzer.ts`                                           |
+| E0423 | Recursive function call (MISRA C:2012 Rule 17.2)        | Remove recursive call                                                                                                                   | `logic/analysis/FunctionCallAnalyzer.ts`                                           |
+| E0424 | Unqualified enum member — did you mean `Enum.member`?   | Use qualified enum member syntax                                                                                                        | `output/codegen/CodeGenerator.ts`, `SwitchGenerator.ts`, `ControlFlowGenerator.ts` |
+| E0425 | Symbol defined multiple times, or in multiple languages | Rename one definition                                                                                                                   | `logic/symbols/SymbolTable.ts`, `Transpiler.ts`                                    |
+| E0426 | Type is not defined                                     | Declare the type, or #include the file that does                                                                                        | `logic/analysis/UndeclaredTypeAnalyzer.ts`                                         |
+| E0427 | Identifier is not defined                               | Declare it, or #include the file that does                                                                                              | `logic/analysis/UndeclaredValueAnalyzer.ts`                                        |
+| E0428 | _(reserved)_ — cannot assign integer to enum            | Not yet implemented. Reserved by the #1321 throw audit (`docs/architecture/output-throw-classification.md`) so it is not assigned twice | `output/codegen/helpers/EnumAssignmentValidator.ts`                                |
+| E0429 | Name is a register, not a type                          | Access the register's members instead, e.g. `GPIO.DR`                                                                                   | `logic/analysis/UndeclaredTypeAnalyzer.ts`                                         |
 
 **Related:** ADR-030 (E0422), ADR-016 (E0425 — a reopened scope composes, but its
 members stay unique)
+
+**E0429 (#1336)** is the type position's other answer: the name IS declared, as a
+register, and a register is not a type. ADR-004 makes a register a binding to memory,
+not a type name, so `Control c;` had no type behind it and the transpiler emitted C the
+compiler rejects at exit 0. Reporting E0426 ("not defined") for a register declared a
+few lines up would describe the transpiler rather than the source, which is why this is
+its own code rather than a second message on E0426.
+
+ADR-111 would make a register name a type. It is `Research`, and its own header states
+that while it is Research "a register is still not a type", so ADR-004 governs and this
+diagnostic is correct today. **When ADR-111 is implemented, E0429 is retired outright** —
+`Control c(0x40000000)` becomes the instantiation form that ADR designs. Grep `ADR-111`
+to find every site that has to change together.
 
 **E0426/E0427 (#1312, #1353)** complete the set: an undeclared name is diagnosed in a
 type position, a value position and a call position (E0422) rather than only the last.

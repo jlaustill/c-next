@@ -1,0 +1,31 @@
+// test-error
+// Issue #1336: a register name used in a TYPE position.
+//
+// ADR-004 (Implemented) defines a register as a memory-mapped binding, not a type.
+// ADR-111 would make a register name a type, but is Status: Research, and its own
+// header states that while it is Research "a register is still not a type".
+//
+// Today this transpiles at exit 0 and emits `Control c = {0};`, referencing a type
+// that is never emitted -- gcc reports: unknown type name 'Control'.
+//
+// The three statements above the flagged one are NEGATIVE CONTROLS that must stay
+// silent. A register name is a legal VALUE, so a fix that simply stopped counting
+// registers as known names would reject them here instead. The READ is the load
+// bearing one: a register write is classified on the assignment path, so only a
+// read reaches the undeclared-value check, and a control that wrote but never read
+// stayed green under a change that broke ten register fixtures.
+register Control @ 0x40000000 {
+    DR: u32 rw @ 0x00,
+}
+
+struct Point {
+    u32 x;
+}
+
+u32 main() {
+    Control.DR <- 0x01;
+    u32 seen <- Control.DR;
+    Point p <- { x: 1 };
+    Control c;
+    return p.x + seen;
+}

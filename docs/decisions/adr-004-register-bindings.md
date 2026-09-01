@@ -19,9 +19,14 @@
 > #define Teensy4__GPIO7__DR (*(volatile uint32_t*)(0x42004000 + 0x00))
 > ```
 >
-> So **a register is not a type** in the language as shipped. It becomes one under
-> ADR-111, where a register definition is a parameterized type and the base address is
-> supplied at instantiation (`SystemControl SCB(0xE000ED00);`).
+> So **a register is not a type** in the language as shipped, and that is enforced:
+> a register name in a type position is rejected with **E0429**. It was accepted
+> silently until then, emitting a declaration of a type that is never defined, so the
+> generated C failed to compile while the transpiler reported success. E0429 is retired
+> when ADR-111 is implemented, not when it is merely Accepted.
+>
+> It becomes a type under ADR-111, where a register definition is a parameterized type
+> and the base address is supplied at instantiation (`SystemControl SCB(0xE000ED00);`).
 
 ## Context
 
