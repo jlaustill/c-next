@@ -187,9 +187,46 @@ naive derive is slow for the _same reason the transpiler is_: it recomputes the 
 instead of retaining it, and the transpiler does that three times per file per run, from disk.
 One fix serves both.
 
+### Bypass is already the majority, and that reframes criterion 5
+
+The probe hooks accessors. Two of them — `isKnownBitmap` and `isKnownRegister` — were **never
+asked** across 1143 fixtures. `isKnownBitmap` is dead. `isKnownRegister` is not: its concept is
+used constantly, and the canonical accessor is simply bypassed.
+
+Measured across the symbol surface:
+
+| collection            | direct reads, bypassing any accessor | canonical accessor calls |
+| --------------------- | ------------------------------------ | ------------------------ |
+| `knownEnums`          | 23                                   | 14                       |
+| `knownRegisters`      | 18                                   | **0**                    |
+| `structFields`        | 16                                   | 4                        |
+| `enumMembers`         | 15                                   | —                        |
+| `knownScopes`         | 12                                   | 10                       |
+| `knownBitmaps`        | 11                                   | **0**                    |
+| `knownStructs`        | 9                                    | 9                        |
+| `opaqueTypes`         | 8                                    | 3                        |
+| `functionReturnTypes` | 6                                    | 5                        |
+| **total**             | **118**                              | **45**                   |
+
+Criterion 5 asked whether anything stops call site N+1 from bypassing a single store module.
+Nothing does, and nothing has: **bypass is already 72% of the sites.** So routing through one
+module is not the status quo being preserved, it is the change being proposed, and the gate is
+what makes it hold rather than a nicety on top.
+
+This also explains D1 without appealing to carelessness. "Five implementations of _is this a
+struct?_" is what a codebase looks like when the canonical answer is one option among several
+and no rule prefers it.
+
+**It is also the main limitation of this measurement.** Hooking accessors observes roughly a
+quarter of the sites where these questions are actually asked. Every divergence reported is
+real — the identity control holds at 0 across 15852 observations — but the divergence count is
+a floor, and a low one: `getStructFieldType`'s 32 cases come from 4 of the 20 `structFields`
+question sites. Anyone continuing this should hook the **collections** behind a `Proxy` rather
+than the accessors, so a read is observed regardless of who makes it.
+
 ## Defects found on the way
 
-Nine, all reproduced and none fixed — a measurement that also changes behavior measures
+Ten, all reproduced and none fixed — a measurement that also changes behavior measures
 nothing. Three were more serious than the reading that prompted them, which is the argument for
 requiring a reproduction rather than a confident note.
 
@@ -217,7 +254,8 @@ requiring a reproduction rather than a confident note.
    questions asked of the symbol layer have no principled answer, and no schema can supply one.
 3. **Make `structFields` cross the include boundary** on the same terms as `enumMembers` and
    `bitmapFields`, and give `getStructFieldType` and `getStructFieldInfo` one answer.
-4. **Gate the store**, and mutation-check the gate in CI the way `layer-rules.test.ts` already
+4. **Gate the store** — this is load-bearing, not optional polish, because bypass is already
+   118 of 163 sites — and mutation-check the gate in CI the way `layer-rules.test.ts` already
    checks that transitive rules carry `reachable: true`. An unchecked rule is how #1297
    happened.
 

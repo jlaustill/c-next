@@ -21,11 +21,6 @@ import HeaderParser from "./logic/parser/HeaderParser";
 
 import CodeGenerator from "./output/codegen/CodeGenerator";
 import CodeGenState from "./state/CodeGenState";
-// SPIKE #1431 -- THROWAWAY, all three removed before the findings doc lands.
-import ViewProbe from "./logic/symbols/spike1431/ViewProbe";
-import ProbeHooks from "./logic/symbols/spike1431/ProbeHooks";
-import FactStoreBuilder from "./logic/symbols/spike1431/FactStoreBuilder";
-import type IFactStore from "./logic/symbols/spike1431/types/IFactStore";
 import AdrProvenance from "./state/AdrProvenance";
 import CachedSymbolReader from "../utils/cache/CachedSymbolReader";
 import TJsonValue from "../utils/types/TJsonValue";
@@ -116,9 +111,6 @@ class Transpiler {
   private pragmaTargets: string[] = [];
   /** Issue #587: Encapsulated state for accumulated Maps/Sets */
   private readonly state = new TranspilerState();
-
-  /** SPIKE #1431 -- THROWAWAY. The normalized store, once Stage 3 has completed. */
-  private spikeStore: IFactStore | null = null;
   /**
    * #1301: each file's parse and declare, keyed by source path.
    *
@@ -344,37 +336,6 @@ class Transpiler {
    * Stage 5: Generate code and its header (per-file, while that file's state is warm)
    * Stage 6: Write the Stage 5 headers to disk (per-file)
    */
-  /**
-   * SPIKE #1431 -- THROWAWAY, removed before the findings doc lands.
-   *
-   * Builds the normalized store from the run's own facts and installs it for the
-   * probe. Foreign symbols are included because the identity control depends on
-   * them: `isKnownStruct` falls back to the run-wide `getStructFields`, which holds
-   * C header structs, so a store of C-Next symbols alone would report a disagreement
-   * on every foreign type -- a defect in the probe wearing the costume of a finding.
-   */
-  private _installSpikeFactStore(input: IPipelineInput): void {
-    const store = FactStoreBuilder.build(
-      CodeGenState.symbolTable.getAllTSymbols(),
-      input.cnextFiles,
-      [
-        ...CodeGenState.symbolTable.getAllCSymbols(),
-        ...CodeGenState.symbolTable.getAllCppSymbols(),
-      ],
-      input.spikeIncludeEdges,
-      [...CodeGenState.symbolTable.getAllStructFields().keys()],
-      [...CodeGenState.symbolTable.getAllStructFields()].flatMap(
-        ([owner, fields]) =>
-          [...fields.keys()].map((field) => ({ owner, field })),
-      ),
-      CodeGenState.symbolTable
-        .getAllOpaqueTypes()
-        .filter((t) => CodeGenState.symbolTable.isOpaqueType(t)),
-    );
-    ProbeHooks.install(store, null);
-    this.spikeStore = store;
-  }
-
   private async _executePipeline(
     input: IPipelineInput,
     result: ITranspilerResult,
@@ -401,17 +362,6 @@ class Transpiler {
 
     // Stage 3b: Resolve external const array dimensions
     CodeGenState.symbolTable.resolveExternalArrayDimensions();
-
-    // SPIKE #1431 -- THROWAWAY, removed before the findings doc lands.
-    //
-    // The store is built HERE, after Stage 3, because that is the first moment the
-    // whole-program fact set exists: every .cnx has been declared into the symbol
-    // table, and Stage 5 has not started emitting. Building it earlier would give the
-    // derived views a run-so-far snapshot and they would reproduce D9 rather than
-    // measure it.
-    if (ViewProbe.isArmed()) {
-      this._installSpikeFactStore(input);
-    }
 
     // Stage 4: Check for symbol conflicts
     if (!this._checkSymbolConflicts(result)) {
@@ -655,14 +605,6 @@ class Transpiler {
       CodeGenState.currentFileReachesForeignHeader =
         file.reachesForeignHeader ?? true;
 
-      // SPIKE #1431 -- THROWAWAY. Tag observations with the file and the PASS.
-      // A question whose answer differs between "analyze" and "generate" is a phase
-      // defect (#1430), not a scope one, and the two must not be summed.
-      if (ViewProbe.isArmed()) {
-        ProbeHooks.install(this.spikeStore, sourcePath);
-        ViewProbe.beginFile(sourcePath, "analyze");
-      }
-
       // Run analyzers (reads symbols, externalStructFields, and symbolTable from CodeGenState)
       const analyzerErrors = runAnalyzers(tree, tokenStream);
       if (analyzerErrors.length > 0) {
@@ -681,10 +623,6 @@ class Transpiler {
       const sourceRelativePath =
         file.sourceRelativePath ??
         this.pathResolver.getSourceRelativePath(sourcePath);
-      if (ViewProbe.isArmed()) {
-        ViewProbe.setPhase("generate"); // SPIKE #1431 -- THROWAWAY
-      }
-
       const code = this.codeGenerator.generate(tree, tokenStream, {
         debugMode: this.config.debugMode,
         target: this.config.target,
@@ -1663,9 +1601,6 @@ class Transpiler {
       cnextFiles: pipelineFiles,
       headerFiles: allHeaders,
       writeOutputToDisk: true,
-      // SPIKE #1431 -- THROWAWAY. Carry the edges forward instead of dropping them
-      // with `depGraph` at the end of this method.
-      spikeIncludeEdges: depGraph.spikeEdges(),
     };
   }
 
