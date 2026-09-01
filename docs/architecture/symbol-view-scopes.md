@@ -3,6 +3,10 @@
 How C-Next's symbol and type facts are stored today, which of those stores are views of one
 fact set, whether they agree, and what to do about it.
 
+Its companion, [`symbol-store-prior-art.md`](symbol-store-prior-art.md), records how other
+compilers solve the same problem — read that one before proposing a database, a query engine or
+a state-management library for the symbol layer.
+
 This is the write-up of the [#1431](https://github.com/jlaustill/c-next/issues/1431) spike. The
 probe that produced the numbers was throwaway and is not in the tree; it is recoverable from
 that branch's history, and the method below is described in enough detail to rebuild it. Where
