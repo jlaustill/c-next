@@ -9,6 +9,8 @@
 import { join, basename, relative, dirname, resolve } from "node:path";
 
 import IDiscoveredFile from "./types/IDiscoveredFile";
+import type TSourceExtension from "../types/TSourceExtension";
+import type THeaderExtension from "../types/THeaderExtension";
 import IFileSystem from "../types/IFileSystem";
 import NodeFileSystem from "../NodeFileSystem";
 
@@ -90,7 +92,7 @@ class PathResolver {
    * @param ext - The run's source extension (".c" or ".cpp")
    * @returns The full output path
    */
-  getOutputPath(file: IDiscoveredFile, ext: string): string {
+  getOutputPath(file: IDiscoveredFile, ext: TSourceExtension): string {
     const relativePath = this.getRelativePathFromInputs(file.path);
     if (relativePath) {
       // File is under an input directory - preserve structure
@@ -124,7 +126,7 @@ class PathResolver {
    * @param ext - The run's header extension (".h" or ".hpp", Issue #933)
    * @returns The full header output path
    */
-  getHeaderOutputPath(file: IDiscoveredFile, ext: string): string {
+  getHeaderOutputPath(file: IDiscoveredFile, ext: THeaderExtension): string {
     // Use headerOutDir if specified, otherwise fall back to outDir
     const headerDir = this.config.headerOutDir || this.config.outDir;
 

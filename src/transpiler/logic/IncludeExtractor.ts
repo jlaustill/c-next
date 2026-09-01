@@ -6,6 +6,7 @@
  */
 
 import * as Parser from "./parser/grammar/CNextParser.js";
+import type THeaderExtension from "../types/THeaderExtension";
 
 /**
  * Extracts include directives from C-Next parse trees
@@ -28,7 +29,7 @@ class IncludeExtractor {
    */
   static collectUserIncludes(
     tree: Parser.ProgramContext,
-    ext: string,
+    ext: THeaderExtension,
   ): string[] {
     const userIncludes: string[] = [];
     for (const includeDir of tree.includeDirective()) {

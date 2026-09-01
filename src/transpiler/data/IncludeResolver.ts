@@ -2,6 +2,7 @@ import { dirname, join, resolve } from "node:path";
 
 import IncludeDiscovery from "./IncludeDiscovery";
 import FileDiscovery from "./FileDiscovery";
+import type THeaderExtension from "../types/THeaderExtension";
 import IDiscoveredFile from "./types/IDiscoveredFile";
 import EFileType from "./types/EFileType";
 import DependencyGraph from "./DependencyGraph";
@@ -75,7 +76,7 @@ class IncludeResolver {
 
   private readonly resolvedPaths: Set<string> = new Set();
   private readonly fs: IFileSystem;
-  private readonly headerExtension: string | null;
+  private readonly headerExtension: THeaderExtension | null;
 
   /**
    * @param headerExtension The extension generated headers get in this run
@@ -99,7 +100,7 @@ class IncludeResolver {
    */
   constructor(
     private readonly searchPaths: string[],
-    headerExtension: string | null,
+    headerExtension: THeaderExtension | null,
     fs: IFileSystem = defaultFs,
   ) {
     this.fs = fs;

@@ -5,6 +5,7 @@
 import * as path from "node:path";
 import * as Parser from "../../../../logic/parser/grammar/CNextParser";
 import CnxFileResolver from "../../../../data/CnxFileResolver";
+import type THeaderExtension from "../../../../types/THeaderExtension";
 
 /**
  * Issue #349: Options for include transformation
@@ -18,7 +19,7 @@ interface IIncludeTransformOptions {
    * Required -- it was `cppMode?: boolean` destructured with a `false` default
    * at two sites, so an options object that omitted it silently emitted `.h`.
    */
-  headerExtension: string;
+  headerExtension: THeaderExtension;
 }
 
 /**
@@ -30,7 +31,7 @@ const resolveAngleIncludePath = (
   sourcePath: string,
   includeDirs: string[],
   inputs: string[],
-  ext: string,
+  ext: THeaderExtension,
 ): string | null => {
   if (inputs.length === 0) {
     return null;

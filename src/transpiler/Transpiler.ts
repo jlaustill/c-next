@@ -106,6 +106,19 @@ class Transpiler {
    * "one-way" is a property of the code rather than a comment asking for care --
    * the previous version of this line stated the invariant and nothing checked
    * it. `CppLatchMonotonicity.test.ts` gates it.
+   *
+   * That reasoning is per-RUN, and serve mode is many runs on one instance:
+   * `ServeCommand` builds a single Transpiler for the editor session and reuses
+   * it for every request, so one `.hpp` anywhere pins every later request and
+   * every `cppDetected` reported back to the client. That is the behavior on
+   * `main` too -- sealing the latch did not introduce it -- but the seal turns
+   * it from an accident into a property, so it is recorded here rather than
+   * left for the next reader to rediscover.
+   *
+   * #1429 removes the need for all of it: the fact becomes declared in config
+   * rather than discovered from headers, at which point there is no latch to
+   * raise, session scoping is correct by construction, and this field,
+   * `raiseCppDetected()` and `CppLatchMonotonicity.test.ts` all go away.
    */
   private cppDetectedLatch: boolean = false;
 

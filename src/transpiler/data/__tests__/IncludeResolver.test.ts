@@ -546,4 +546,48 @@ describe("IncludeResolver", () => {
       expect(result.headers).toHaveLength(0);
     });
   });
+
+  // ========================================================================
+  // Issue #1319 review: the `null` header-extension contract
+  //
+  // `null` means "this caller does not read headerIncludeDirectives", which is
+  // what lets IncludeTreeWalker stop claiming `.h` for every C++ run. Reverting
+  // the guard to `this.headerExtension ?? ".h"` left all 6954 unit tests green,
+  // so the invariant this PR introduced was held by a comment -- the same state
+  // `Transpiler.cppDetected` was in before it was sealed.
+  // ========================================================================
+
+  describe("null header extension (#1319)", () => {
+    const source = '#include "shared.cnx"';
+    const sourcePath = join(srcDir, "main.cnx");
+
+    it("records no header directive when the caller consumes none", () => {
+      const resolver = new IncludeResolver([includeDir], null);
+
+      const result = resolver.resolve(source, sourcePath);
+
+      // The negative control, and the reason it is in the same test: an empty
+      // map is also what an UNRESOLVED include produces, so without proving the
+      // include resolved this assertion would pass while measuring nothing.
+      expect(result.cnextIncludes).toHaveLength(1);
+      expect([...result.headerIncludeDirectives.values()]).toEqual([]);
+    });
+
+    it("records one when the caller supplies an extension", () => {
+      for (const [ext, expected] of [
+        [".h", '#include "shared.h"'],
+        [".hpp", '#include "shared.hpp"'],
+      ] as const) {
+        const result = new IncludeResolver([includeDir], ext).resolve(
+          source,
+          sourcePath,
+        );
+
+        expect(result.cnextIncludes).toHaveLength(1);
+        expect([...result.headerIncludeDirectives.values()]).toEqual([
+          expected,
+        ]);
+      }
+    });
+  });
 });

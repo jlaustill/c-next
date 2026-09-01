@@ -1,3 +1,6 @@
+import type TSourceExtension from "./TSourceExtension";
+import type THeaderExtension from "./THeaderExtension";
+
 /**
  * The generated-file extensions for one transpiler run.
  *
@@ -15,10 +18,10 @@
  * Tier 2 fact settled in 1.4 Resolve and consumed from 2.2 Plan.
  */
 interface IOutputExtensions {
-  /** Extension for a generated translation unit: ".c" or ".cpp" */
-  readonly source: string;
-  /** Extension for a generated header: ".h" or ".hpp" */
-  readonly header: string;
+  /** Extension for a generated translation unit. */
+  readonly source: TSourceExtension;
+  /** Extension for a generated header. */
+  readonly header: THeaderExtension;
 }
 
 export default IOutputExtensions;

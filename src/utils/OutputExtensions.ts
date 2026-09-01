@@ -5,9 +5,15 @@ import IOutputExtensions from "../transpiler/types/IOutputExtensions";
  *
  * Before this existed the mapping was written out at nine sites in `data/`,
  * `logic/`, `output/` and the orchestrator. They agreed only because each had
- * been written the same way by hand; nothing made them agree, and five of them
+ * been written the same way by hand; nothing made them agree, and six of them
  * defaulted the mode to `false`, so a site that was simply never passed the
  * value emitted `.h` in a C++ run without any diagnostic.
+ *
+ * Five of those six are gone. The sixth is `options?.cppMode ?? false` in
+ * CodeGenerator, which reaches an extension through `CodeGenState.cppMode`;
+ * making it required is 621 mechanical test edits, so it is tracked as #1428
+ * rather than folded in here. `OutputExtensions.test.ts` pins it, so a seventh
+ * cannot appear quietly.
  *
  * Consumers take the extension string they need. Only the run's owner asks this
  * class, so changing how a mode maps to an extension is one edit.
