@@ -31,7 +31,7 @@ describe("Transpiler coverage tests", () => {
   // C++ mode tests
   // ==========================================================================
 
-  describe("C++ mode (cppRequired: true)", () => {
+  describe("declared C++ mode (cppRequired: true)", () => {
     it("generates .cpp output when cppRequired is set", async () => {
       mockFs.addFile(
         "/project/src/main.cnx",
@@ -74,7 +74,7 @@ describe("Transpiler coverage tests", () => {
       expect(result.code).toBeDefined();
     });
 
-    it("detects C++ from header with typed enum", async () => {
+    it("emits .cpp for a typed-enum header in declared C++ mode", async () => {
       // Create a C header with C++ syntax (typed enum)
       mockFs.addFile(
         "/project/include/types.h",
@@ -94,6 +94,8 @@ describe("Transpiler coverage tests", () => {
           includeDirs: ["/project/include"],
           outDir: "/project/build",
           noCache: true,
+          // #1319: C++ is declared, not discovered from the header below.
+          cppRequired: true,
         },
         mockFs,
       );
@@ -106,7 +108,7 @@ describe("Transpiler coverage tests", () => {
       expect(writeCalls.some((w) => w.path.endsWith(".cpp"))).toBe(true);
     });
 
-    it("detects C++ from .hpp header file", async () => {
+    it("emits .cpp for a .hpp include in declared C++ mode", async () => {
       mockFs.addFile("/project/include/utils.hpp", "int helper();");
       mockFs.addFile(
         "/project/src/main.cnx",
@@ -122,6 +124,8 @@ describe("Transpiler coverage tests", () => {
           includeDirs: ["/project/include"],
           outDir: "/project/build",
           noCache: true,
+          // #1319: C++ is declared, not discovered from the header below.
+          cppRequired: true,
         },
         mockFs,
       );
@@ -132,6 +136,91 @@ describe("Transpiler coverage tests", () => {
       // .hpp triggers C++ mode
       const writeCalls = mockFs.getWriteLog();
       expect(writeCalls.some((w) => w.path.endsWith(".cpp"))).toBe(true);
+    });
+  });
+
+  // ==========================================================================
+  // Issue #1319: E0507 -- C++ met in a run that did not declare C++.
+  //
+  // The transpiler used to switch output languages on its own when an included
+  // header turned out to be C++. That made the fact discovered, global and
+  // settled mid-run all at once, which is what produced #250, #941, #1139,
+  // #1425 and -- worst -- #1171, where auto-const inference was gated on it, so
+  // an include added to one file changed what was inferred about another.
+  // ==========================================================================
+
+  describe("undeclared C++ is rejected (#1319, E0507)", () => {
+    const cnx = `
+        #include "dep.h"
+        void main() { }
+      `;
+
+    const runWith = async (
+      header: string,
+      name: string,
+      cppRequired: boolean,
+    ) => {
+      mockFs.addFile(`/project/include/${name}`, header);
+      mockFs.addFile("/project/src/main.cnx", cnx.replace("dep.h", name));
+      return new Transpiler(
+        {
+          input: "/project/src/main.cnx",
+          includeDirs: ["/project/include"],
+          outDir: "/project/build",
+          noCache: true,
+          cppRequired,
+        },
+        mockFs,
+      ).transpile({ kind: "files" });
+    };
+
+    it("rejects a .hpp include", async () => {
+      const result = await runWith("int helper();", "utils.hpp", false);
+
+      expect(result.success).toBe(false);
+      expect(result.errors.map((e) => e.message).join("\n")).toContain("E0507");
+    });
+
+    it("rejects a .h whose content is C++", async () => {
+      const result = await runWith(
+        "enum Status : uint8_t { OK, ERR };",
+        "types.h",
+        false,
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.errors.map((e) => e.message).join("\n")).toContain("E0507");
+    });
+
+    it("names the file and the fix", async () => {
+      const result = await runWith("int helper();", "utils.hpp", false);
+
+      // A diagnostic that says only "C++ found" leaves the reader to guess
+      // which include did it and what to do, which is most of the work.
+      const text = result.errors.map((e) => e.message).join("\n");
+      expect(text).toContain("utils.hpp");
+      expect(text).toContain("cppRequired");
+    });
+
+    it("stays silent on a pure C header", async () => {
+      // Negative control for over-enforcement: without it, a check that
+      // rejected EVERY header would pass all three assertions above.
+      const result = await runWith("typedef int MyInt;", "plain.h", false);
+
+      expect(result.errors.map((e) => e.message).join("\n")).not.toContain(
+        "E0507",
+      );
+    });
+
+    it("stays silent when C++ is declared", async () => {
+      // The other direction: the diagnostic must fire on the DECLARATION being
+      // absent, not on the C++ being present.
+      const result = await runWith("int helper();", "utils.hpp", true);
+
+      expect(result.errors.map((e) => e.message).join("\n")).not.toContain(
+        "E0507",
+      );
+      expect(result.success).toBe(true);
     });
   });
 
@@ -263,6 +352,8 @@ describe("Transpiler coverage tests", () => {
           includeDirs: ["/project/include"],
           outDir: "/project/build",
           noCache: true,
+          // #1319: a namespace header is C++; the run must declare it.
+          cppRequired: true,
         },
         mockFs,
       );
@@ -794,7 +885,7 @@ describe("Transpiler coverage tests", () => {
   // ==========================================================================
 
   describe("Cache hit with C++ detection", () => {
-    it("detects C++ syntax from cached CHeader", async () => {
+    it("parses a cached C++-syntax .h with the C++ parser in declared C++ mode", async () => {
       // Create a project marker for caching
       mockFs.addFile("/project/cnext.config.json", "{}");
       // Create a C header with C++ syntax
@@ -816,6 +907,8 @@ describe("Transpiler coverage tests", () => {
         includeDirs: ["/project/include"],
         outDir: "/project/build",
         noCache: false,
+        // #1319: C++ is declared, not discovered from the header below.
+        cppRequired: true,
       };
 
       const transpiler1 = new Transpiler(config, mockFs);
@@ -831,7 +924,7 @@ describe("Transpiler coverage tests", () => {
       expect(writeCalls.some((w) => w.path.endsWith(".cpp"))).toBe(true);
     });
 
-    it("detects C++ from cached hpp header", async () => {
+    it("parses a cached .hpp in declared C++ mode", async () => {
       mockFs.addFile("/project/cnext.config.json", "{}");
       mockFs.addFile("/project/include/utils.hpp", "void helper();");
       mockFs.addFile(
@@ -847,6 +940,8 @@ describe("Transpiler coverage tests", () => {
         includeDirs: ["/project/include"],
         outDir: "/project/build",
         noCache: false,
+        // #1319: C++ is declared, not discovered from the header below.
+        cppRequired: true,
       };
 
       // First run
@@ -888,6 +983,8 @@ describe("Transpiler coverage tests", () => {
           outDir: "/project/build",
           debugMode: true,
           noCache: true,
+          // #1319: C++ is declared, not discovered from the header below.
+          cppRequired: true,
         },
         mockFs,
       );
@@ -912,7 +1009,7 @@ describe("Transpiler coverage tests", () => {
   // ==========================================================================
 
   describe("Cache hit C++ detection paths", () => {
-    it("sets cppDetected on cache hit for C header with C++ syntax", async () => {
+    it("keeps declared C++ mode across a cache hit for a C++-syntax .h", async () => {
       // Create files with C++ syntax in a C header (typed enum C++14)
       mockFs.addFile("/project/cnext.config.json", "{}");
       mockFs.addFile(
@@ -932,6 +1029,8 @@ describe("Transpiler coverage tests", () => {
         includeDirs: ["/project/include"],
         outDir: "/project/build",
         noCache: false, // Enable cache
+        // #1319: C++ is declared, not discovered from the header below.
+        cppRequired: true,
       };
 
       // First run - populates cache and detects C++
@@ -957,7 +1056,7 @@ describe("Transpiler coverage tests", () => {
       expect(writeCalls.some((w) => w.path.endsWith(".cpp"))).toBe(true);
     });
 
-    it("sets cppDetected on cache hit for hpp header", async () => {
+    it("keeps declared C++ mode across a cache hit for a .hpp", async () => {
       // Create hpp header
       mockFs.addFile("/project/cnext.config.json", "{}");
       mockFs.addFile("/project/include/utils.hpp", "void helper();");
@@ -974,6 +1073,8 @@ describe("Transpiler coverage tests", () => {
         includeDirs: ["/project/include"],
         outDir: "/project/build",
         noCache: false, // Enable cache
+        // #1319: C++ is declared, not discovered from the header below.
+        cppRequired: true,
       };
 
       // First run - populates cache
@@ -1244,7 +1345,7 @@ describe("Transpiler coverage integration tests", () => {
   // Cache hit C++ detection tests (covers lines 546-550)
   // ==========================================================================
 
-  it("detects C++ from cached C header on second run", async () => {
+  it("emits .cpp on both runs for a cached C++-syntax .h in declared C++ mode", async () => {
     // Create project structure with C++ syntax in .h file
     writeFileSync(join(testDir, "cnext.config.json"), "{}");
 
@@ -1272,6 +1373,8 @@ describe("Transpiler coverage integration tests", () => {
       // Without this the generated header lands in process.cwd().
       headerOutDir: testDir,
       noCache: false, // Enable caching
+      // #1319: C++ is declared, not discovered from the header below.
+      cppRequired: true,
     };
 
     // First run - populates cache
@@ -1289,7 +1392,7 @@ describe("Transpiler coverage integration tests", () => {
     expect(result2.outputFiles.some((f) => f.endsWith(".cpp"))).toBe(true);
   });
 
-  it("detects C++ from cached hpp header on second run", async () => {
+  it("emits .cpp on both runs for a cached .hpp in declared C++ mode", async () => {
     // Create project structure with .hpp file
     writeFileSync(join(testDir, "cnext.config.json"), "{}");
 
@@ -1314,6 +1417,8 @@ describe("Transpiler coverage integration tests", () => {
       // Without this the generated header lands in process.cwd().
       headerOutDir: testDir,
       noCache: false, // Enable caching
+      // #1319: C++ is declared, not discovered from the header below.
+      cppRequired: true,
     };
 
     // First run - populates cache
@@ -1327,6 +1432,68 @@ describe("Transpiler coverage integration tests", () => {
     const result2 = await transpiler2.transpile({ kind: "files" });
     expect(result2.success).toBe(true);
     expect(result2.outputFiles.some((f) => f.endsWith(".cpp"))).toBe(true);
+  });
+
+  // #1319: the cache-hit guard. On a warm cache the header is never parsed, so
+  // the rejections inside parseHeaderFile/parseCHeader never run -- which is
+  // why `tryRestoreFromCache` carries its own check ("Issue #211: Still check
+  // for C++ syntax even on cache hit"). Every other E0507 test uses
+  // `noCache: true` and therefore cannot reach it: the guard was real,
+  // reachable and completely untested, which is a guard you cannot fail.
+  const warmThenUndeclared = async (header: string, name: string) => {
+    writeFileSync(join(testDir, "cnext.config.json"), "{}");
+    const includeDir = join(testDir, "include");
+    mkdirSync(includeDir, { recursive: true });
+    writeFileSync(join(includeDir, name), header);
+    writeFileSync(
+      join(testDir, "main.cnx"),
+      `\n      #include "${name}"\n      void main() { }\n    `,
+    );
+    const base = {
+      input: join(testDir, "main.cnx"),
+      includeDirs: [includeDir],
+      outDir: testDir,
+      headerOutDir: testDir,
+      noCache: false,
+    };
+
+    // Warm the cache with C++ declared, so the header parses and is cached.
+    const warm = await new Transpiler({
+      ...base,
+      cppRequired: true,
+    }).transpile({ kind: "files" });
+    expect(warm.success).toBe(true);
+
+    // Now run again WITHOUT declaring C++. The header is served from cache and
+    // never re-parsed, so only the cache-hit guard can catch it.
+    return new Transpiler(base).transpile({ kind: "files" });
+  };
+
+  it("rejects a cached .hpp when C++ is no longer declared (#1319)", async () => {
+    const result = await warmThenUndeclared("void cppHelper();", "utils.hpp");
+
+    expect(result.success).toBe(false);
+    expect(result.errors.map((e) => e.message).join("\n")).toContain("E0507");
+  });
+
+  it("rejects a cached C++-syntax .h when C++ is no longer declared (#1319)", async () => {
+    const result = await warmThenUndeclared(
+      "enum Status : uint8_t { OK, ERR };",
+      "types.h",
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.errors.map((e) => e.message).join("\n")).toContain("E0507");
+  });
+
+  it("serves a cached pure C header without complaint (#1319)", async () => {
+    // Negative control: the cache-hit path must reject only what is actually
+    // C++, not everything it finds warm.
+    const result = await warmThenUndeclared("typedef int MyInt;", "plain.h");
+
+    expect(result.errors.map((e) => e.message).join("\n")).not.toContain(
+      "E0507",
+    );
   });
 
   it("handles multiple C-Next files with dependencies", async () => {

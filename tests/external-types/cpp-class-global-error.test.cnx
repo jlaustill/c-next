@@ -1,6 +1,7 @@
 // test-error
 // Issue #517: C++ class with constructor at global scope should error
 // Cannot use struct initializer syntax for non-aggregate types at global scope
+// test-cpp-only
 
 #include "CppTestClass.hpp"
 

@@ -55,6 +55,9 @@ import IncludeResolver from "./data/IncludeResolver";
 import IncludeTreeWalker from "./data/IncludeTreeWalker";
 import DependencyGraph from "./data/DependencyGraph";
 import PathResolver from "./data/PathResolver";
+import OutputExtensions from "../utils/OutputExtensions";
+import DeclarationSite from "../utils/DeclarationSite";
+import type IOutputExtensions from "./types/IOutputExtensions";
 import InputExpansion from "./data/InputExpansion";
 import CppEntryPointScanner from "./data/CppEntryPointScanner";
 
@@ -91,8 +94,36 @@ class Transpiler {
   private readonly headerGenerator: HeaderGenerator;
   private readonly warnings: string[];
   private readonly cacheManager: CacheManager | null;
-  /** Issue #211: Tracks if C++ output is needed (one-way flag, false → true only) */
-  private cppDetected: boolean;
+  /**
+   * Issue #211, #1319: does this run emit C++?
+   *
+   * DECLARED, not discovered. It comes from config (`cppRequired`) or `--cpp`,
+   * is known before any file is read, and never changes. A C++ header met in a
+   * run that did not declare C++ is E0507, not a silent switch to C++ output.
+   *
+   * It used to be a monotone latch raised by reading an included header, which
+   * made it discovered, global and settled *mid-run* at the same time. Any one
+   * of those alone is harmless; together they produced #250, #941, #1139, #1425
+   * and #1171 -- the last of which gated auto-const inference, so adding an
+   * include to one file could change what the transpiler inferred about
+   * another. Declaring it removes the class: there is no ordering to get wrong,
+   * nothing to read before it settles, and serve mode -- one Transpiler reused
+   * for an editor session -- is correct by construction rather than by luck.
+   */
+  private readonly cppMode: boolean;
+
+  /**
+   * Issue #1319: the run's output extensions -- the interim owner of a decision
+   * that belongs in pass 2.2 Plan, which does not exist yet.
+   *
+   * Nine sites across all four layers used to map the mode to an extension
+   * themselves. Handing out the extension instead of the mode is what lets
+   * `data/` stop naming output files: naming one is a decision, and `data/` is
+   * the earliest layer, so it ran before the latch had settled.
+   */
+  private get outputExtensions(): IOutputExtensions {
+    return OutputExtensions.forCppMode(this.cppMode);
+  }
 
   /**
    * Set when any C header failed standalone preprocessing (fell back to raw
@@ -165,8 +196,9 @@ class Transpiler {
       noCache: config.noCache ?? false,
     };
 
-    // Issue #211: Initialize cppDetected from config (--cpp flag sets this)
-    this.cppDetected = this.config.cppRequired;
+    // Issue #211, #1319: the single source of the fact. Absent means C, which
+    // is the default target, not a guess about what the includes might contain.
+    this.cppMode = this.config.cppRequired ?? false;
 
     // Adopt the compiler's own view from the project's compile_commands.json, if
     // present. Every build system (CMake, PlatformIO, Meson, Zephyr, bear-wrapped
@@ -627,7 +659,7 @@ class Transpiler {
         debugMode: this.config.debugMode,
         target: this.config.target,
         sourcePath,
-        cppMode: this.cppDetected,
+        cppMode: this.cppMode,
         symbolInfo,
         sourceRelativePath,
       });
@@ -635,7 +667,7 @@ class Transpiler {
       // Collect user includes
       const userIncludes = IncludeExtractor.collectUserIncludes(
         tree,
-        this.cppDetected,
+        this.outputExtensions.header,
       );
       // Issue #424: kept separate — added to the header only when it names a
       // macro that one of these supplies (see _headerNeedsMacroIncludes).
@@ -729,8 +761,8 @@ class Transpiler {
     // Resolve includes from source content
     const resolver = new IncludeResolver(
       searchPaths,
+      this.outputExtensions.header,
       this.fs,
-      this.cppDetected,
     );
     const resolved = resolver.resolve(source, sourcePath);
     this.warnings.push(...resolved.warnings);
@@ -887,6 +919,18 @@ class Transpiler {
   }
 
   /**
+   * True for a deliberate C-Next diagnostic rather than an incidental failure.
+   *
+   * Keyed on the `E<NNNN>: ` prefix -- the SHAPE, not any one code -- because
+   * that is already this codebase's identity for a diagnostic: `.expected.error`
+   * fixtures assert it and `docs/diagnostic-manifest.md` is generated from it.
+   * Reading the existing identity avoids inventing a second one to keep in step.
+   */
+  private static isDiagnostic(err: unknown): boolean {
+    return err instanceof Error && /^E\d{4}: /.test(err.message);
+  }
+
+  /**
    * Stage 2: Collect symbols from all C/C++ headers
    * Issue #945: Made async for preprocessing support.
    */
@@ -901,6 +945,16 @@ class Transpiler {
         usable = await this.doCollectHeaderSymbols(file, precedingHeaders);
         result.filesProcessed++;
       } catch (err) {
+        // Issue #1319: this catch exists to tolerate third-party headers that
+        // will not parse -- a real need, and why it is broad. A C-Next
+        // diagnostic is not that: it is a rejection this transpiler made on
+        // purpose. Swallowing one turned E0507 into `Warning: ...` followed by
+        // `Compiled 1 files` and exit 0, which is the silent-failure shape the
+        // diagnostic exists to remove. Diagnostics propagate; parse failures
+        // still degrade.
+        if (Transpiler.isDiagnostic(err)) {
+          throw err;
+        }
         this.warnings.push(`Failed to process header ${file.path}: ${err}`);
       }
       // Offer this header as macro context to headers processed after it, but
@@ -972,9 +1026,10 @@ class Transpiler {
    *
    * A second, isolated table is parsed in parallel and returned: it is clean of
    * the normal pass's degraded-blob data, so it holds the AUTHORITATIVE
-   * opaque/struct-body truth. parseCHeader (main table) auto-detects C vs C++ and
-   * skips assembler; the isolated table uses the C parser directly (opaque struct
-   * typedefs are a C concern) and tolerates slices it cannot parse.
+   * opaque/struct-body truth. parseCHeader (main table) picks the C or C++ parser
+   * by content and skips assembler; the isolated table uses the C parser directly
+   * (opaque struct typedefs are a C concern) and tolerates slices it cannot
+   * parse -- except a deliberate diagnostic, which propagates.
    */
   private _parseRecoveredSlices(
     perFileContent: Map<string, string>,
@@ -983,7 +1038,19 @@ class Transpiler {
     for (const [path, content] of perFileContent) {
       try {
         this.parseCHeader(content, path);
-      } catch {
+      } catch (err) {
+        // #1319: same decision as the sibling catch in _collectAllHeaderSymbols.
+        // `parseCHeader` now raises E0507, and swallowing it here would produce
+        // the `Compiled N files` / exit 0 shape that diagnostic exists to
+        // remove -- so "is this a deliberate diagnostic?" is answered in both
+        // places or in neither.
+        //
+        // Reachable by construction rather than by fixture: recovery runs on the
+        // PREPROCESSED translation unit where stage 2 saw RAW content, and those
+        // differ exactly for headers hiding C++ behind `#ifdef __cplusplus`.
+        if (Transpiler.isDiagnostic(err)) {
+          throw err;
+        }
         // A slice that won't parse leaves the (already-collected) symbols as they
         // were — skip it rather than fail the build.
       }
@@ -1188,7 +1255,10 @@ class Transpiler {
       fileResult.success &&
       fileResult.code
     ) {
-      outputPath = this.pathResolver.getOutputPath(file, this.cppDetected);
+      outputPath = this.pathResolver.getOutputPath(
+        file,
+        this.outputExtensions.source,
+      );
       // #1233: queued, not written -- the caller flushes only if the whole run
       // succeeds, matching how Stage 6 already gates headers.
       pendingWrites.push({ path: outputPath, content: fileResult.code });
@@ -1242,10 +1312,10 @@ class Transpiler {
       }
       const headerContent = headersBySourcePath.get(file.path);
       if (headerContent) {
-        // Issue #933: Pass cppDetected to generate .hpp in C++ mode
+        // Issue #933: .hpp in C++ mode, so C and C++ headers cannot overwrite
         const headerPath = this.pathResolver.getHeaderOutputPath(
           file.discoveredFile,
-          this.cppDetected,
+          this.outputExtensions.header,
         );
         this.fs.writeFile(headerPath, headerContent);
         result.outputFiles.push(headerPath);
@@ -1286,7 +1356,11 @@ class Transpiler {
     result.errors.push({
       line: 1,
       column: 0,
-      message: `Pipeline failed: ${err}`,
+      // Issue #1319: the message, not the Error. `${err}` stringifies to
+      // "Error: <message>", so a diagnostic surfaced here read
+      // "Pipeline failed: Error: E0507: ..." with a doubled prefix the sibling
+      // "Code generation failed" wrapper does not have.
+      message: `Pipeline failed: ${err instanceof Error ? err.message : String(err)}`,
       severity: "error",
     });
     result.success = false;
@@ -1413,8 +1487,8 @@ class Transpiler {
     // Resolve includes
     const resolver = new IncludeResolver(
       searchPaths,
+      this.outputExtensions.header,
       this.fs,
-      this.cppDetected,
     );
     const resolved = resolver.resolve(content, cnxFile.path);
 
@@ -1689,7 +1763,7 @@ class Transpiler {
     CodeGenState.symbolTable.restoreStructState(cached.structState);
 
     // Issue #211: Still check for C++ syntax even on cache hit
-    this.detectCppFromFileType(file);
+    this.rejectUndeclaredCppFromFileType(file);
 
     // Issue #985: The cached symbols of a header that fell back to raw content
     // are degraded. Re-arm the recovery gate so a warm-cache build still runs
@@ -1832,20 +1906,52 @@ class Transpiler {
   }
 
   /**
-   * Detect C++ mode based on file type and content.
-   * SonarCloud S3776: Extracted from doCollectHeaderSymbols().
+   * Issue #1319: E0507 -- C++ met in a run that did not declare C++.
+   *
+   * This is the whole of what "detection" is for now. It used to raise a latch
+   * and silently change the output language; a transpiler that guesses which
+   * language it emits, from a file the user did not write, is guessing about
+   * the thing it is least able to guess about. Naming the file and the fix is
+   * strictly more useful than being quietly right most of the time.
    */
-  private detectCppFromFileType(file: IDiscoveredFile): void {
+  private rejectUndeclaredCpp(reason: string, filePath: string): void {
+    if (this.cppMode) {
+      return;
+    }
+
+    throw new Error(
+      // #1319: cwd-relative, via the one helper that renders a path for a
+      // human. An absolute path here would be the first in any .expected.error
+      // and would differ on every machine; a basename would be ambiguous
+      // (can/config.h vs uart/config.h). DeclarationSite already settled this.
+      `E0507: ${reason} in '${DeclarationSite.displayPath(filePath)}', but ` +
+        `this run does not target C++.\n` +
+        `  C-Next emits C unless told otherwise. To compile as C++, set\n` +
+        `  'cppRequired: true' in your config, or pass --cpp.`,
+    );
+  }
+
+  /**
+   * Reject undeclared C++ reached through a header's type or content.
+   * SonarCloud S3776: Extracted from doCollectHeaderSymbols().
+   *
+   * Issue #1319: when C++ IS declared there is nothing to check, so the file
+   * read below is skipped entirely rather than performed and discarded.
+   */
+  private rejectUndeclaredCppFromFileType(file: IDiscoveredFile): void {
+    if (this.cppMode) {
+      return;
+    }
+
     if (file.type === EFileType.CppHeader) {
-      // .hpp files are always C++
-      this.cppDetected = true;
+      this.rejectUndeclaredCpp("C++ header", file.path);
       return;
     }
 
     if (file.type === EFileType.CHeader) {
       const content = this.fs.readFile(file.path);
       if (detectCppSyntax(content)) {
-        this.cppDetected = true;
+        this.rejectUndeclaredCpp("C++ syntax", file.path);
       }
     }
   }
@@ -1865,7 +1971,7 @@ class Transpiler {
 
     if (file.type === EFileType.CppHeader) {
       // Issue #211: .hpp files are always C++
-      this.cppDetected = true;
+      this.rejectUndeclaredCpp("C++ header", file.path);
       if (this.config.debugMode) {
         console.log(`[DEBUG]   Parsing C++ header: ${file.path}`);
       }
@@ -1890,8 +1996,11 @@ class Transpiler {
     }
 
     if (detectCppSyntax(content)) {
-      // Issue #211: C++ detected, set flag for .cpp output
-      this.cppDetected = true;
+      // Issue #1319: this predicate answers two questions. Which PARSER the
+      // header needs is a parsing fact and still decided here. Whether the RUN
+      // emits C++ is not, and is now declared -- so this rejects rather than
+      // switches.
+      this.rejectUndeclaredCpp("C++ syntax", filePath);
       // Use C++14 parser for headers with C++ syntax (typed enums, classes, etc.)
       this.parseCppHeader(content, filePath);
     } else {
@@ -2069,7 +2178,8 @@ class Transpiler {
     }
 
     // Issue #933: Use .hpp extension for include guard in C++ mode
-    const ext = this.cppDetected ? ".hpp" : ".h";
+    // Issue #1319: read the run's extension; do not re-derive it from the mode
+    const ext = this.outputExtensions.header;
     const headerName = this._guardIdentity(sourcePath).replace(
       /\.cnx$|\.cnext$/,
       ext,
@@ -2128,7 +2238,7 @@ class Transpiler {
         // ADR-040: same flag the .c consults, so exactly one file emits it.
         needsIsrTypedef: CodeGenState.needsISR,
         externalTypeHeaders,
-        cppMode: this.cppDetected,
+        cppMode: this.cppMode,
       },
       typeInputWithSymbolTable,
       passByValueParams,
@@ -2471,8 +2581,8 @@ class Transpiler {
    * Check if C++ output was detected during transpilation.
    * This is set when C++ syntax is found in included headers (e.g., Arduino.h).
    */
-  isCppDetected(): boolean {
-    return this.cppDetected;
+  isCppMode(): boolean {
+    return this.cppMode;
   }
 
   /**

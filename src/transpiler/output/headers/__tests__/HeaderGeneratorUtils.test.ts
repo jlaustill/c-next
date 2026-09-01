@@ -595,9 +595,11 @@ describe("HeaderGeneratorUtils", () => {
       expect(configIncludes).toEqual(["#include <AppConfig.hpp>"]);
     });
 
-    it("deduplicates .h vs .hpp extension mismatch from timing difference", () => {
-      // IncludeExtractor produces .hpp (after cppDetected), IncludeResolver
-      // produces .h (before cppDetected) — stem-based dedup handles this
+    it("deduplicates a .h vs .hpp extension mismatch", () => {
+      // #1319: the timing difference that produced this mismatch is gone --
+      // the mode is declared, so both producers read the same value. Kept as a
+      // direct test of the dedup itself, which still guards path-style
+      // differences and would be the only thing standing if they diverged again.
       const result = HeaderGeneratorUtils.generateIncludes(
         {
           userIncludes: ["#include <Display/AppData.hpp>"],

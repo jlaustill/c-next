@@ -16,7 +16,7 @@ describe("IncludeExtractor", () => {
         void main() {}
       `;
       const { tree } = CNextSourceParser.parse(source);
-      const includes = IncludeExtractor.collectUserIncludes(tree);
+      const includes = IncludeExtractor.collectUserIncludes(tree, ".h");
 
       expect(includes).toHaveLength(2);
       // Verify the includes contain the transformed .h extension
@@ -31,7 +31,7 @@ describe("IncludeExtractor", () => {
         void main() {}
       `;
       const { tree } = CNextSourceParser.parse(source);
-      const includes = IncludeExtractor.collectUserIncludes(tree);
+      const includes = IncludeExtractor.collectUserIncludes(tree, ".h");
 
       expect(includes).toHaveLength(1);
       expect(includes[0]).toContain("system.h");
@@ -47,7 +47,7 @@ describe("IncludeExtractor", () => {
         void main() {}
       `;
       const { tree } = CNextSourceParser.parse(source);
-      const includes = IncludeExtractor.collectUserIncludes(tree);
+      const includes = IncludeExtractor.collectUserIncludes(tree, ".h");
 
       expect(includes).toHaveLength(1);
       expect(includes[0]).toContain("utils.h");
@@ -61,7 +61,7 @@ describe("IncludeExtractor", () => {
         void main() {}
       `;
       const { tree } = CNextSourceParser.parse(source);
-      const includes = IncludeExtractor.collectUserIncludes(tree);
+      const includes = IncludeExtractor.collectUserIncludes(tree, ".h");
 
       expect(includes).toHaveLength(0);
     });
@@ -71,7 +71,7 @@ describe("IncludeExtractor", () => {
         void main() {}
       `;
       const { tree } = CNextSourceParser.parse(source);
-      const includes = IncludeExtractor.collectUserIncludes(tree);
+      const includes = IncludeExtractor.collectUserIncludes(tree, ".h");
 
       expect(includes).toHaveLength(0);
     });
@@ -86,7 +86,7 @@ describe("IncludeExtractor", () => {
         void main() {}
       `;
       const { tree } = CNextSourceParser.parse(source);
-      const includes = IncludeExtractor.collectUserIncludes(tree);
+      const includes = IncludeExtractor.collectUserIncludes(tree, ".h");
 
       expect(includes).toHaveLength(3);
       // Verify each transformed include is present
@@ -103,7 +103,7 @@ describe("IncludeExtractor", () => {
         void main() {}
       `;
       const { tree } = CNextSourceParser.parse(source);
-      const includes = IncludeExtractor.collectUserIncludes(tree);
+      const includes = IncludeExtractor.collectUserIncludes(tree, ".h");
 
       expect(includes).toHaveLength(1);
       expect(includes[0]).not.toContain(".cnx");
@@ -114,7 +114,7 @@ describe("IncludeExtractor", () => {
       const tree = CNextSourceParser.parse(
         '#include "types.cnx"\nvoid foo() { }',
       ).tree;
-      const includes = IncludeExtractor.collectUserIncludes(tree, true);
+      const includes = IncludeExtractor.collectUserIncludes(tree, ".hpp");
       expect(includes).toEqual(['#include "types.hpp"']);
     });
 
@@ -122,7 +122,7 @@ describe("IncludeExtractor", () => {
       const tree = CNextSourceParser.parse(
         "#include <lib.cnx>\nvoid foo() { }",
       ).tree;
-      const includes = IncludeExtractor.collectUserIncludes(tree, true);
+      const includes = IncludeExtractor.collectUserIncludes(tree, ".hpp");
       expect(includes).toEqual(["#include <lib.hpp>"]);
     });
 
@@ -130,7 +130,7 @@ describe("IncludeExtractor", () => {
       const tree = CNextSourceParser.parse(
         '#include "types.cnx"\nvoid foo() { }',
       ).tree;
-      const includes = IncludeExtractor.collectUserIncludes(tree);
+      const includes = IncludeExtractor.collectUserIncludes(tree, ".h");
       expect(includes).toEqual(['#include "types.h"']);
     });
   });

@@ -1,0 +1,3 @@
+1:0 Pipeline failed: E0507: C++ header in 'tests/include/external-cpp-type.hpp', but this run does not target C++.
+  C-Next emits C unless told otherwise. To compile as C++, set
+  'cppRequired: true' in your config, or pass --cpp.

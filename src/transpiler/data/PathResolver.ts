@@ -9,6 +9,8 @@
 import { join, basename, relative, dirname, resolve } from "node:path";
 
 import IDiscoveredFile from "./types/IDiscoveredFile";
+import type TSourceExtension from "../types/TSourceExtension";
+import type THeaderExtension from "../types/THeaderExtension";
 import IFileSystem from "../types/IFileSystem";
 import NodeFileSystem from "../NodeFileSystem";
 
@@ -81,13 +83,16 @@ class PathResolver {
   /**
    * Get output path for a transpiled file (.c or .cpp)
    *
+   * Issue #1319: takes the run's source extension rather than its mode. Naming
+   * an output file is a decision, and `data/` is the earliest layer -- it is
+   * told the answer rather than deriving one, which is what let the mode-to-
+   * extension decision collapse to a single owner.
+   *
    * @param file - The discovered file to get output path for
-   * @param cppMode - If true, output .cpp; otherwise .c
+   * @param ext - The run's source extension (".c" or ".cpp")
    * @returns The full output path
    */
-  getOutputPath(file: IDiscoveredFile, cppMode: boolean): string {
-    const ext = cppMode ? ".cpp" : ".c";
-
+  getOutputPath(file: IDiscoveredFile, ext: TSourceExtension): string {
     const relativePath = this.getRelativePathFromInputs(file.path);
     if (relativePath) {
       // File is under an input directory - preserve structure
@@ -112,14 +117,16 @@ class PathResolver {
    * Get output path for a header file (.h or .hpp)
    * Uses headerOutDir if specified, otherwise falls back to outDir
    *
+   * Issue #1319: takes the run's header extension rather than its mode. This
+   * parameter previously defaulted to `false`, so a caller that forgot it got
+   * `.h` in a C++ run with nothing reporting the mismatch -- while the sibling
+   * `getOutputPath` required the same fact.
+   *
    * @param file - The discovered file to get header path for
-   * @param cppMode - If true, output .hpp; otherwise .h (Issue #933)
+   * @param ext - The run's header extension (".h" or ".hpp", Issue #933)
    * @returns The full header output path
    */
-  getHeaderOutputPath(file: IDiscoveredFile, cppMode = false): string {
-    // Issue #933: Use .hpp extension in C++ mode so C and C++ headers don't overwrite
-    const ext = cppMode ? ".hpp" : ".h";
-
+  getHeaderOutputPath(file: IDiscoveredFile, ext: THeaderExtension): string {
     // Use headerOutDir if specified, otherwise fall back to outDir
     const headerDir = this.config.headerOutDir || this.config.outDir;
 

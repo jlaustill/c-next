@@ -2,6 +2,7 @@ import { dirname, join, resolve } from "node:path";
 
 import IncludeDiscovery from "./IncludeDiscovery";
 import FileDiscovery from "./FileDiscovery";
+import type THeaderExtension from "../types/THeaderExtension";
 import IDiscoveredFile from "./types/IDiscoveredFile";
 import EFileType from "./types/EFileType";
 import DependencyGraph from "./DependencyGraph";
@@ -62,7 +63,7 @@ interface IResolvedIncludes {
  * - Deduplicate resolved files by path
  *
  * @example
- * const resolver = new IncludeResolver(['/path/to/includes']);
+ * const resolver = new IncludeResolver(['/path/to/includes'], '.h');
  * const result = resolver.resolve('#include "header.h"');
  * // result.headers contains resolved header files
  */
@@ -75,21 +76,34 @@ class IncludeResolver {
 
   private readonly resolvedPaths: Set<string> = new Set();
   private readonly fs: IFileSystem;
-  private readonly cppMode: boolean;
+  private readonly headerExtension: THeaderExtension | null;
 
   /**
-   * @param cppMode Controls .h vs .hpp extension for .cnx include directives.
-   *   Note: In the Transpiler, cppDetected may change after IncludeResolver runs
-   *   (e.g., when a .hpp header is discovered during Stage 2). HeaderGeneratorUtils
-   *   uses stem-based dedup to handle any resulting .h/.hpp mismatch.
+   * @param headerExtension The extension generated headers get in this run
+   *   (".h" or ".hpp"), or `null` for a caller that does not read
+   *   `headerIncludeDirectives` from the result.
+   *
+   *   Issue #1319: this parameter was a mode with a `false` default, and the
+   *   default was load-bearing in the wrong direction -- `IncludeTreeWalker`
+   *   never passed it, so that instance answered ".h" for every C++ run. It
+   *   went unnoticed because the walker returns only `cnextIncludes` and drops
+   *   the one field the extension feeds. `null` states that intent, so the
+   *   mistake it used to make is no longer expressible.
+   *
+   *   This used to be readable before the fact settled: cppDetected was raised
+   *   by discovering a header, which could happen after IncludeResolver ran, so
+   *   the extension here could be stale and HeaderGeneratorUtils absorbed the
+   *   resulting .h/.hpp mismatch with stem-based dedup. #1319 made the mode
+   *   declared, so it is known before any file is opened and there is no longer
+   *   an early read to get wrong.
    */
   constructor(
     private readonly searchPaths: string[],
+    headerExtension: THeaderExtension | null,
     fs: IFileSystem = defaultFs,
-    cppMode: boolean = false,
   ) {
     this.fs = fs;
-    this.cppMode = cppMode;
+    this.headerExtension = headerExtension;
   }
 
   /**
@@ -186,12 +200,18 @@ class IncludeResolver {
       // Issue #854: Track header directive for cnext includes so their types
       // can be mapped by ExternalTypeHeaderBuilder, preventing duplicate
       // forward declarations (MISRA Rule 5.6)
-      const ext = this.cppMode ? ".hpp" : ".h";
-      const headerPath = includeInfo.path.replace(/\.cnx$|\.cnext$/, ext);
-      const directive = includeInfo.isLocal
-        ? `#include "${headerPath}"`
-        : `#include <${headerPath}>`;
-      result.headerIncludeDirectives.set(absolutePath, directive);
+      // Issue #1319: a caller that never reads headerIncludeDirectives passes
+      // null, so it cannot contribute a wrong extension to a map it ignores.
+      if (this.headerExtension !== null) {
+        const headerPath = includeInfo.path.replace(
+          /\.cnx$|\.cnext$/,
+          this.headerExtension,
+        );
+        const directive = includeInfo.isLocal
+          ? `#include "${headerPath}"`
+          : `#include <${headerPath}>`;
+        result.headerIncludeDirectives.set(absolutePath, directive);
+      }
     }
   }
 

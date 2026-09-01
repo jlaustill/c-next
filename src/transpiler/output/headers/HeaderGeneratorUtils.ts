@@ -371,10 +371,14 @@ class HeaderGeneratorUtils {
     HeaderGeneratorUtils.addUserIncludes(lines, options.userIncludes);
 
     // External type header includes (skip duplicates of user includes)
-    // Dedup by basename stem to handle:
-    // - Different path styles (e.g., <AppConfig.hpp> vs "../AppConfig.hpp")
-    // - Extension mismatch from timing (.h from IncludeResolver before cppDetected,
-    //   .hpp from IncludeExtractor after cppDetected)
+    // Dedup by basename stem to handle different path styles
+    // (e.g. <AppConfig.hpp> vs "../AppConfig.hpp").
+    //
+    // It also used to absorb a .h/.hpp mismatch: IncludeResolver ran before
+    // cppDetected was raised and IncludeExtractor after, so the two disagreed
+    // about the extension. #1319 made the mode declared, so both read the same
+    // value and that cause is gone. The path-style case is not, so the dedup
+    // stays -- but it is no longer covering for a timing bug.
     HeaderGeneratorUtils.addExternalTypeHeaders(
       lines,
       headersToInclude,

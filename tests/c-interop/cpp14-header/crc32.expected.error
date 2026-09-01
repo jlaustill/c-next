@@ -1,1 +1,1 @@
-21:0 Code generation failed: Error: Slice assignment offset must be a compile-time constant. Runtime offsets are not allowed to ensure bounds safety.
+22:0 Code generation failed: Error: Slice assignment offset must be a compile-time constant. Runtime offsets are not allowed to ensure bounds safety.

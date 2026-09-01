@@ -546,7 +546,7 @@ the rule cannot apply, because there is nothing to check against.
 
 ## Further Reading
 
-- [Project setup & PlatformIO integration](platformio-integration.md) — `cnext.config.json`, C/C++ auto-detection, build hook
+- [Project setup & PlatformIO integration](platformio-integration.md) — `cnext.config.json`, C/C++ output mode, build hook
 - [AI codegen reference](cnext-ai-reference.md) — comprehensive cheat sheet
 - [GitHub Repository](https://github.com/jlaustill/c-next)
 - [Architecture Decision Records](https://github.com/jlaustill/c-next/tree/main/docs/decisions)

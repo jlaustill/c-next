@@ -49,7 +49,7 @@ describe("IncludeResolver", () => {
 
   describe("resolve()", () => {
     it("should resolve local includes with quotes", () => {
-      const resolver = new IncludeResolver([includeDir]);
+      const resolver = new IncludeResolver([includeDir], ".h");
       const content = '#include "types.h"\nvoid test() {}';
 
       const result = resolver.resolve(content);
@@ -60,7 +60,7 @@ describe("IncludeResolver", () => {
     });
 
     it("should resolve system includes with angle brackets", () => {
-      const resolver = new IncludeResolver([includeDir]);
+      const resolver = new IncludeResolver([includeDir], ".h");
       const content = "#include <utils.h>\nvoid test() {}";
 
       const result = resolver.resolve(content);
@@ -71,7 +71,7 @@ describe("IncludeResolver", () => {
     });
 
     it("should resolve nested paths", () => {
-      const resolver = new IncludeResolver([includeDir]);
+      const resolver = new IncludeResolver([includeDir], ".h");
       const content = '#include "nested/deep.h"';
 
       const result = resolver.resolve(content);
@@ -81,7 +81,7 @@ describe("IncludeResolver", () => {
     });
 
     it("should resolve multiple includes", () => {
-      const resolver = new IncludeResolver([includeDir]);
+      const resolver = new IncludeResolver([includeDir], ".h");
       const content = '#include "types.h"\n#include "utils.h"';
 
       const result = resolver.resolve(content);
@@ -99,7 +99,7 @@ describe("IncludeResolver", () => {
       // Create same-named file in srcDir (should be found first)
       writeFileSync(join(srcDir, "types.h"), "// from srcDir");
 
-      const resolver = new IncludeResolver([srcDir, includeDir]);
+      const resolver = new IncludeResolver([srcDir, includeDir], ".h");
       const content = '#include "types.h"';
 
       const result = resolver.resolve(content);
@@ -110,7 +110,7 @@ describe("IncludeResolver", () => {
 
     it("should fall back to later paths when not found in earlier ones", () => {
       // utils.h only exists in includeDir, not srcDir
-      const resolver = new IncludeResolver([srcDir, includeDir]);
+      const resolver = new IncludeResolver([srcDir, includeDir], ".h");
       const content = '#include "utils.h"';
 
       const result = resolver.resolve(content);
@@ -126,7 +126,7 @@ describe("IncludeResolver", () => {
 
   describe("warnings", () => {
     it("should warn for unresolved local includes", () => {
-      const resolver = new IncludeResolver([includeDir]);
+      const resolver = new IncludeResolver([includeDir], ".h");
       const content = '#include "nonexistent.h"';
 
       const result = resolver.resolve(content, "test.cnx");
@@ -138,7 +138,7 @@ describe("IncludeResolver", () => {
     });
 
     it("should NOT warn for unresolved system includes", () => {
-      const resolver = new IncludeResolver([includeDir]);
+      const resolver = new IncludeResolver([includeDir], ".h");
       const content = "#include <stdio.h>"; // System header, won't be found
 
       const result = resolver.resolve(content);
@@ -148,7 +148,7 @@ describe("IncludeResolver", () => {
     });
 
     it("should include source file path in warning when provided", () => {
-      const resolver = new IncludeResolver([includeDir]);
+      const resolver = new IncludeResolver([includeDir], ".h");
       const content = '#include "missing.h"';
 
       const result = resolver.resolve(content, "/path/to/source.cnx");
@@ -163,7 +163,7 @@ describe("IncludeResolver", () => {
 
   describe("deduplication", () => {
     it("should deduplicate headers included multiple times", () => {
-      const resolver = new IncludeResolver([includeDir]);
+      const resolver = new IncludeResolver([includeDir], ".h");
       const content = '#include "types.h"\n#include "types.h"';
 
       const result = resolver.resolve(content);
@@ -172,7 +172,7 @@ describe("IncludeResolver", () => {
     });
 
     it("should track resolved paths across multiple resolve calls", () => {
-      const resolver = new IncludeResolver([includeDir]);
+      const resolver = new IncludeResolver([includeDir], ".h");
 
       // First file includes types.h
       const result1 = resolver.resolve('#include "types.h"');
@@ -184,7 +184,7 @@ describe("IncludeResolver", () => {
     });
 
     it("should reset deduplication state with reset()", () => {
-      const resolver = new IncludeResolver([includeDir]);
+      const resolver = new IncludeResolver([includeDir], ".h");
 
       resolver.resolve('#include "types.h"');
       resolver.reset();
@@ -194,7 +194,7 @@ describe("IncludeResolver", () => {
     });
 
     it("should allow adding already-resolved paths", () => {
-      const resolver = new IncludeResolver([includeDir]);
+      const resolver = new IncludeResolver([includeDir], ".h");
       const alreadyResolved = join(includeDir, "types.h");
 
       resolver.addResolvedPaths([alreadyResolved]);
@@ -210,7 +210,7 @@ describe("IncludeResolver", () => {
 
   describe("file type categorization", () => {
     it("should categorize .h files as headers", () => {
-      const resolver = new IncludeResolver([includeDir]);
+      const resolver = new IncludeResolver([includeDir], ".h");
       const content = '#include "types.h"';
 
       const result = resolver.resolve(content);
@@ -220,7 +220,7 @@ describe("IncludeResolver", () => {
     });
 
     it("should categorize .cnx files as C-Next includes", () => {
-      const resolver = new IncludeResolver([includeDir]);
+      const resolver = new IncludeResolver([includeDir], ".h");
       const content = '#include "shared.cnx"';
 
       const result = resolver.resolve(content);
@@ -231,7 +231,7 @@ describe("IncludeResolver", () => {
     });
 
     it("should handle mixed header and C-Next includes", () => {
-      const resolver = new IncludeResolver([includeDir]);
+      const resolver = new IncludeResolver([includeDir], ".h");
       const content = '#include "types.h"\n#include "shared.cnx"';
 
       const result = resolver.resolve(content);
@@ -321,7 +321,7 @@ describe("IncludeResolver", () => {
 
   describe("cppMode header directive extension", () => {
     it("should use .h extension for cnx includes in C mode (default)", () => {
-      const resolver = new IncludeResolver([includeDir]);
+      const resolver = new IncludeResolver([includeDir], ".h");
       const content = '#include "shared.cnx"';
 
       const result = resolver.resolve(content);
@@ -348,7 +348,7 @@ describe("IncludeResolver", () => {
         '#include "types.h"',
       ],
     ])("%s", (_label, source, source2) => {
-      const resolver = new IncludeResolver([includeDir], undefined, true);
+      const resolver = new IncludeResolver([includeDir], ".hpp");
       const content = source;
 
       const result = resolver.resolve(content);
@@ -365,7 +365,7 @@ describe("IncludeResolver", () => {
 
   describe("edge cases", () => {
     it("should handle empty content", () => {
-      const resolver = new IncludeResolver([includeDir]);
+      const resolver = new IncludeResolver([includeDir], ".h");
 
       const result = resolver.resolve("");
 
@@ -375,7 +375,7 @@ describe("IncludeResolver", () => {
     });
 
     it("should handle content with no includes", () => {
-      const resolver = new IncludeResolver([includeDir]);
+      const resolver = new IncludeResolver([includeDir], ".h");
 
       const result = resolver.resolve("void main() { }");
 
@@ -385,7 +385,7 @@ describe("IncludeResolver", () => {
     });
 
     it("should handle empty search paths", () => {
-      const resolver = new IncludeResolver([]);
+      const resolver = new IncludeResolver([], ".h");
 
       const result = resolver.resolve('#include "types.h"');
 
@@ -544,6 +544,50 @@ describe("IncludeResolver", () => {
 
       // Should skip the already-processed header
       expect(result.headers).toHaveLength(0);
+    });
+  });
+
+  // ========================================================================
+  // Issue #1319 review: the `null` header-extension contract
+  //
+  // `null` means "this caller does not read headerIncludeDirectives", which is
+  // what lets IncludeTreeWalker stop claiming `.h` for every C++ run. Reverting
+  // the guard to `this.headerExtension ?? ".h"` left all 6954 unit tests green,
+  // so the invariant this PR introduced was held by a comment -- the same state
+  // `Transpiler.cppDetected` was in before it was sealed.
+  // ========================================================================
+
+  describe("null header extension (#1319)", () => {
+    const source = '#include "shared.cnx"';
+    const sourcePath = join(srcDir, "main.cnx");
+
+    it("records no header directive when the caller consumes none", () => {
+      const resolver = new IncludeResolver([includeDir], null);
+
+      const result = resolver.resolve(source, sourcePath);
+
+      // The negative control, and the reason it is in the same test: an empty
+      // map is also what an UNRESOLVED include produces, so without proving the
+      // include resolved this assertion would pass while measuring nothing.
+      expect(result.cnextIncludes).toHaveLength(1);
+      expect([...result.headerIncludeDirectives.values()]).toEqual([]);
+    });
+
+    it("records one when the caller supplies an extension", () => {
+      for (const [ext, expected] of [
+        [".h", '#include "shared.h"'],
+        [".hpp", '#include "shared.hpp"'],
+      ] as const) {
+        const result = new IncludeResolver([includeDir], ext).resolve(
+          source,
+          sourcePath,
+        );
+
+        expect(result.cnextIncludes).toHaveLength(1);
+        expect([...result.headerIncludeDirectives.values()]).toEqual([
+          expected,
+        ]);
+      }
     });
   });
 });

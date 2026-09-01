@@ -21,15 +21,15 @@ This command:
 C-Next reads `cnext.config.json` (or `.cnext.json` / `.cnextrc`) from the project
 root. `--pio-install` writes a working default; the fields you'll touch most:
 
-| Field         | Purpose                                                                                                                                                                                             |
-| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `include`     | Extra directories searched for C/C++ headers. **Must cover every C/C++ header you `#include`** (e.g. `.pio/libdeps` for PlatformIO libraries, `include/`). Critical for C++ auto-detection (below). |
-| `headerOut`   | Directory for generated headers (e.g. `include`).                                                                                                                                                   |
-| `basePath`    | Base path stripped from header output paths (only used with `headerOut`; e.g. `src`).                                                                                                               |
-| `target`      | Target platform for ISR/atomic codegen (e.g. `teensy41`, `cortex-m0`).                                                                                                                              |
-| `debugMode`   | Generate panic-on-overflow helpers.                                                                                                                                                                 |
-| `noCache`     | Disable the `.cnx/` symbol cache.                                                                                                                                                                   |
-| `cppRequired` | **Force** C++ output. Normally unnecessary — see auto-detection below.                                                                                                                              |
+| Field         | Purpose                                                                                                                                                                                                      |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `include`     | Extra directories searched for C/C++ headers. **Must cover every C/C++ header you `#include`** (e.g. `.pio/libdeps` for PlatformIO libraries, `include/`). Also how E0507 sees that a header is C++ (below). |
+| `headerOut`   | Directory for generated headers (e.g. `include`).                                                                                                                                                            |
+| `basePath`    | Base path stripped from header output paths (only used with `headerOut`; e.g. `src`).                                                                                                                        |
+| `target`      | Target platform for ISR/atomic codegen (e.g. `teensy41`, `cortex-m0`).                                                                                                                                       |
+| `debugMode`   | Generate panic-on-overflow helpers.                                                                                                                                                                          |
+| `noCache`     | Disable the `.cnx/` symbol cache.                                                                                                                                                                            |
+| `cppRequired` | Emit C++ (`.cpp`/`.hpp`) instead of C. Required for any project that includes C++ headers — see below.                                                                                                       |
 
 Example (Teensy + a C++ library such as FlexCAN_T4):
 
@@ -43,18 +43,35 @@ Example (Teensy + a C++ library such as FlexCAN_T4):
 }
 ```
 
-## C vs C++ Output (auto-detection)
+## C vs C++ Output
 
-C-Next emits **C++** (`.cpp` + `.hpp`) when it parses a C++ header that your `.cnx`
-`#include`s — templates, classes, namespaces (e.g. `FlexCAN_T4.h`, Arduino classes).
-Otherwise it emits **C** (`.c` + `.h`). You do **not** normally need `cppRequired`.
+C-Next emits **C** (`.c` + `.h`) unless you tell it otherwise. To emit **C++**
+(`.cpp` + `.hpp`), set `cppRequired: true` in `cnext.config.json` or pass `--cpp`.
 
-> **Gotcha:** auto-detection only works on headers cnext can actually **find**. If
-> you `#include <Arduino.h>` but it isn't on an `include` path, cnext can't see that
-> it's C++ and falls back to C mode — and your C++ calls won't compile. Keep your
-> C++ headers reachable via `include` (this is why `--pio-install` adds
-> `.pio/libdeps`). Use `cppRequired: true` only as a manual override for when a
-> needed C++ header genuinely can't be placed on the search path.
+If a run that did not declare C++ `#include`s a C++ header — a `.hpp`, or a `.h`
+containing templates, classes, namespaces or access specifiers (`FlexCAN_T4.h`,
+Arduino classes) — the transpile **fails with E0507** naming the header:
+
+```
+Error: 1:0 Pipeline failed: E0507: C++ header in 'lib/FlexCAN_T4/FlexCAN_T4.h', but this run does not target C++.
+  C-Next emits C unless told otherwise. To compile as C++, set
+  'cppRequired: true' in your config, or pass --cpp.
+```
+
+The `1:0` is the whole run, not a line in your source: the header is rejected while the
+include graph is being collected, before any `#include` site is attributed to it. Grep for
+`E0507` rather than for a position.
+
+> **Previously** C-Next guessed: it read your includes and switched output languages
+> on its own. That guess was only as good as the search path. If `Arduino.h` was not
+> on an `include` path, C-Next could not see it was C++, quietly emitted C, and your
+> C++ calls failed at the _compiler_ instead — with an error that pointed at
+> generated code rather than at the missing path. Declaring the mode moves that
+> failure to the transpiler, names the file, and names the fix.
+
+Your `include` paths still matter for everything else — symbol resolution, macro
+expansion, type checking — so keep C/C++ headers reachable (this is why
+`--pio-install` adds `.pio/libdeps`).
 
 ## Usage
 

@@ -5,7 +5,10 @@
  * .cnext.json, or .cnextrc files.
  */
 interface IFileConfig {
-  /** Issue #211: Force C++ output. Auto-detection may also enable this. */
+  /**
+   * Issue #211, #1319: emit C++ (`.cpp`/`.hpp`) instead of C. The declaration
+   * of the run's output language; nothing infers it. See E0507.
+   */
   cppRequired?: boolean;
   /** Generate panic-on-overflow helpers */
   debugMode?: boolean;

@@ -2380,7 +2380,8 @@ export default class CodeGenerator implements IOrchestrator {
         options?.sourceRelativePath ||
         CodeGenState.sourcePath.replace(/^.*[\\/]/, "");
       // Issue #933: Use .hpp extension in C++ mode to match header file
-      const ext = CodeGenState.cppMode ? ".hpp" : ".h";
+      // Issue #1319: read the run's extension; do not re-derive it from the mode
+      const ext = CodeGenState.outputExtensions.header;
       const headerName = pathToUse.replace(/\.cnx$|\.cnext$/, ext);
       output.push(`#include "${headerName}"`, "");
       CodeGenState.selfIncludeAdded = true;
@@ -2680,7 +2681,7 @@ export default class CodeGenerator implements IOrchestrator {
       sourcePath: CodeGenState.sourcePath,
       includeDirs: CodeGenState.includeDirs,
       inputs: CodeGenState.inputs,
-      cppMode: CodeGenState.cppMode,
+      headerExtension: CodeGenState.outputExtensions.header,
     });
   }
 
