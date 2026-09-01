@@ -1434,6 +1434,68 @@ describe("Transpiler coverage integration tests", () => {
     expect(result2.outputFiles.some((f) => f.endsWith(".cpp"))).toBe(true);
   });
 
+  // #1319: the cache-hit guard. On a warm cache the header is never parsed, so
+  // the rejections inside parseHeaderFile/parseCHeader never run -- which is
+  // why `tryRestoreFromCache` carries its own check ("Issue #211: Still check
+  // for C++ syntax even on cache hit"). Every other E0507 test uses
+  // `noCache: true` and therefore cannot reach it: the guard was real,
+  // reachable and completely untested, which is a guard you cannot fail.
+  const warmThenUndeclared = async (header: string, name: string) => {
+    writeFileSync(join(testDir, "cnext.config.json"), "{}");
+    const includeDir = join(testDir, "include");
+    mkdirSync(includeDir, { recursive: true });
+    writeFileSync(join(includeDir, name), header);
+    writeFileSync(
+      join(testDir, "main.cnx"),
+      `\n      #include "${name}"\n      void main() { }\n    `,
+    );
+    const base = {
+      input: join(testDir, "main.cnx"),
+      includeDirs: [includeDir],
+      outDir: testDir,
+      headerOutDir: testDir,
+      noCache: false,
+    };
+
+    // Warm the cache with C++ declared, so the header parses and is cached.
+    const warm = await new Transpiler({
+      ...base,
+      cppRequired: true,
+    }).transpile({ kind: "files" });
+    expect(warm.success).toBe(true);
+
+    // Now run again WITHOUT declaring C++. The header is served from cache and
+    // never re-parsed, so only the cache-hit guard can catch it.
+    return new Transpiler(base).transpile({ kind: "files" });
+  };
+
+  it("rejects a cached .hpp when C++ is no longer declared (#1319)", async () => {
+    const result = await warmThenUndeclared("void cppHelper();", "utils.hpp");
+
+    expect(result.success).toBe(false);
+    expect(result.errors.map((e) => e.message).join("\n")).toContain("E0507");
+  });
+
+  it("rejects a cached C++-syntax .h when C++ is no longer declared (#1319)", async () => {
+    const result = await warmThenUndeclared(
+      "enum Status : uint8_t { OK, ERR };",
+      "types.h",
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.errors.map((e) => e.message).join("\n")).toContain("E0507");
+  });
+
+  it("serves a cached pure C header without complaint (#1319)", async () => {
+    // Negative control: the cache-hit path must reject only what is actually
+    // C++, not everything it finds warm.
+    const result = await warmThenUndeclared("typedef int MyInt;", "plain.h");
+
+    expect(result.errors.map((e) => e.message).join("\n")).not.toContain(
+      "E0507",
+    );
+  });
+
   it("handles multiple C-Next files with dependencies", async () => {
     // Create files with cross-file dependencies
     writeFileSync(
