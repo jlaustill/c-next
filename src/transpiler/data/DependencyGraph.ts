@@ -194,6 +194,24 @@ class DependencyGraph {
   }
 
   /**
+   * SPIKE #1431 -- THROWAWAY, removed before the findings doc lands.
+   *
+   * The edge table, which nothing else can reach: `dependencies` is private and the
+   * class exposes only two hard-coded queries (`getSortedFiles`,
+   * `collectDependentsOf`) and no general join. #1398 says the two halves "exist and
+   * are not connected"; this is the accessor that would connect them.
+   */
+  spikeEdges(): ReadonlyArray<{ dependent: string; dependency: string }> {
+    const edges: { dependent: string; dependency: string }[] = [];
+    for (const [dependent, deps] of this.dependencies) {
+      for (const dependency of deps) {
+        edges.push({ dependent, dependency });
+      }
+    }
+    return edges;
+  }
+
+  /**
    * Clear the graph
    */
   clear(): void {

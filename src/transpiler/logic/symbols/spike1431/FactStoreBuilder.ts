@@ -182,6 +182,7 @@ class FactStoreBuilder {
     symbols: readonly TSymbol[],
     files: readonly IPipelineFile[],
     foreign: ReadonlyArray<TCSymbol | TCppSymbol> = [],
+    edges: ReadonlyArray<{ dependent: string; dependency: string }> = [],
   ): IFactStore {
     const symbolRows: ISymbolRow[] = symbols.map((symbol) => ({
       fullyQualifiedCName: symbol.fullyQualifiedCName,
@@ -202,14 +203,36 @@ class FactStoreBuilder {
       reachesForeignHeader: file.reachesForeignHeader ?? true,
     }));
 
-    const includeEdges: IIncludeEdgeRow[] = [];
+    // Edges come from discovery's own DependencyGraph when it is carried forward,
+    // and from `cnextIncludes` otherwise.
+    //
+    // BOTH sources are needed, and that is the finding rather than a convenience:
+    // `IPipelineFile.cnextIncludes` is populated in SOURCE mode (`Transpiler.ts:847`)
+    // and NOT in files mode (`:1647-1651`), so on the normal CLI path this table came
+    // back EMPTY and the identity control failed. The reason it is empty is that
+    // `_collectExternalEnumSources` has two implementations of "what can this file
+    // see?" selected by which mode you are in -- `collectForStandalone(cnextIncludes)`
+    // when the list was carried, and `collect(sourcePath)` re-reading the file from
+    // disk when it was not.
+    const includeEdges: IIncludeEdgeRow[] = edges.map((edge) => ({
+      dependent: edge.dependent,
+      dependency: edge.dependency,
+      kind: "cnx",
+    }));
+    const seen = new Set(
+      includeEdges.map((e) => `${e.dependent}\u0000${e.dependency}`),
+    );
     for (const file of files) {
       for (const include of file.cnextIncludes ?? []) {
-        includeEdges.push({
-          dependent: file.path,
-          dependency: include.path,
-          kind: "cnx",
-        });
+        const key = `${file.path}\u0000${include.path}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          includeEdges.push({
+            dependent: file.path,
+            dependency: include.path,
+            kind: "cnx",
+          });
+        }
       }
     }
 
