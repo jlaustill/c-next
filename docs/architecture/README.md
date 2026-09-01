@@ -60,6 +60,41 @@ WRITE       3.1 Write     --> disk
 - **2.2 decides, 2.3 formats.** "Does this file need `<stdint.h>`?" is decided once, in the
   plan. Render reads the plan and produces text from it.
 
+### The layout is the pass table
+
+The eight passes are eight directories. `src/` holds one directory per layer, each holding
+one per pass, numbered in the order they run:
+
+```
+src/
+  PARSE/
+    1-Discover/
+    2-Parse/
+    3-Declare/
+    4-Resolve/
+  TRANSPILE/
+    1-Analyze/
+    2-Plan/
+    3-Render/
+  WRITE/
+    1-Write/
+```
+
+The digit is not decoration. A pass may read the artifact of a lower-numbered pass in its
+own layer, or of any earlier layer, and nothing else. So "which pass owns this module?"
+and "may it read that?" are both answerable from the path -- by a reader, and by a gate --
+without opening the file.
+
+**There is no directory for state.** A fact lives in the artifact of the pass that authored
+it. A container that outlives a pass is how facts come to be stashed instead of carried,
+and it is reachable from every pass at once, which is the shape a layer model exists to
+forbid.
+
+A separation that holds in every respect except the filesystem is a separation nobody can
+check by looking, and one that a reviewer must take on the word of whoever performed it.
+The tree is the part of this document that cannot be satisfied by argument. Its gate is
+`npm run layout:check`.
+
 ## 2. The symbol model
 
 ### Two axes, not one
