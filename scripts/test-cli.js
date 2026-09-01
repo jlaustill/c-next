@@ -863,7 +863,7 @@ scope Handler {
 }
 `;
 
-test("Issue #580: C++ detected from headers triggers correct const inference", () => {
+test("Issue #580: C++ mode gives correct transitive const inference", () => {
   const tempDir = mkdtempSync(join(tmpdir(), "cnext-issue580-"));
 
   try {
@@ -873,14 +873,16 @@ test("Issue #580: C++ detected from headers triggers correct const inference", (
     writeFileSync(join(tempDir, "Modifier.cnx"), issue580Modifier, "utf-8");
     writeFileSync(join(tempDir, "Handler.cnx"), issue580Handler, "utf-8");
 
-    // Transpile WITHOUT --cpp flag - C++ mode should be auto-detected from header
-    const result = runCliInDir(tempDir, ["Handler.cnx"]);
+    // #1319: declare C++. This test is about transitive const inference, not
+    // about how the mode is arrived at -- it used to omit --cpp and rely on the
+    // header being sniffed, which now reports E0507 instead.
+    const result = runCliInDir(tempDir, ["Handler.cnx", "--cpp"]);
     assert(result.success, `Compile should succeed: ${result.output}`);
 
     // Should generate .cpp file (C++ mode detected from header)
     assert(
       existsSync(join(tempDir, "Handler.cpp")),
-      "Should generate .cpp when C++ detected from header",
+      "Should generate .cpp in declared C++ mode",
     );
 
     // Key assertion: Handler__passThrough should have NON-const Config&

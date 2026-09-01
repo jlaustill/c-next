@@ -32,11 +32,11 @@ const C_EXTENSIONS: IOutputExtensions = Object.freeze({
 
 class OutputExtensions {
   /**
-   * Map the settled C++ latch to the extensions the run emits.
+   * Map the run's declared mode to the extensions it emits.
    *
-   * @param cppMode - The run's settled mode. Callers pass the latch itself, not
-   *   a re-derived copy; there is no default, because a caller that does not
-   *   know the mode cannot pick a correct extension and must not guess one.
+   * @param cppMode - The run's declared mode. There is no default: a caller
+   *   that does not know the mode cannot pick a correct extension, and must not
+   *   guess one. Guessing is precisely what #1319 removed.
    */
   static forCppMode(cppMode: boolean): IOutputExtensions {
     return cppMode ? CPP_EXTENSIONS : C_EXTENSIONS;

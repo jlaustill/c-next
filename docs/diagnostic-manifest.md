@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-300 fixture(s) assert a diagnostic; 178 carry a code.
+301 fixture(s) assert a diagnostic; 179 carry a code.
 
 | Fixture                                                                                         | Codes        |
 | ----------------------------------------------------------------------------------------------- | ------------ |
@@ -239,6 +239,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/include/cnx-alternative-error-angle.test.cnx                                              | E0504        |
 | tests/include/cnx-alternative-error-hpp.test.cnx                                                | E0504        |
 | tests/include/cnx-alternative-error-quoted.test.cnx                                             | E0504        |
+| tests/include/cpp-undeclared.test.cnx                                                           | E0507        |
 | tests/initialization/compound-assign-all-ops.test.cnx                                           | E0381        |
 | tests/initialization/compound-assign-struct-field.test.cnx                                      | E0381        |
 | tests/initialization/compound-assign-use-before-init.test.cnx                                   | E0381        |

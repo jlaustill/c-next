@@ -8,6 +8,7 @@
 // 1. Using fixed compile-time offsets when layout is known (see ADR-007)
 // 2. Using explicit memcpy with manual bounds checking
 // 3. Using a serialization helper/library
+// test-cpp-only
 
 #include "AppConfig.h"
 

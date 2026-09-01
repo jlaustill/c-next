@@ -90,13 +90,12 @@ class IncludeResolver {
    *   the one field the extension feeds. `null` states that intent, so the
    *   mistake it used to make is no longer expressible.
    *
-   *   Note: in the Transpiler, cppDetected may change AFTER IncludeResolver
-   *   runs (e.g. when a .hpp header is discovered during Stage 2), so this
-   *   extension can be read before the latch settles. HeaderGeneratorUtils
-   *   papers over the resulting .h/.hpp mismatch with stem-based dedup.
-   *   Threading the extension does not fix that -- the read is simply too
-   *   early -- and it cannot be fixed until the decision moves into pass 2.2.
-   *   Tracked as #1425.
+   *   This used to be readable before the fact settled: cppDetected was raised
+   *   by discovering a header, which could happen after IncludeResolver ran, so
+   *   the extension here could be stale and HeaderGeneratorUtils absorbed the
+   *   resulting .h/.hpp mismatch with stem-based dedup. #1319 made the mode
+   *   declared, so it is known before any file is opened and there is no longer
+   *   an early read to get wrong.
    */
   constructor(
     private readonly searchPaths: string[],

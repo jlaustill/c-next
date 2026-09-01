@@ -1,4 +1,5 @@
 // Issue #375: Error - non-const variable argument
+// test-cpp-only
 #include "constructor-stubs.h"
 
 u8 mutablePin <- 10;

@@ -1,0 +1,15 @@
+// E0507: a C++ header in a run that did not declare C++ mode.
+// This file should FAIL to transpile with E0507.
+//
+// Issue #1319: C++ mode is declared (config `cppRequired` / --cpp), never
+// discovered. Reading someone else's header used to switch the output language
+// silently; it now says so and stops.
+//
+// `external-status.h` is the negative control: a pure C header included right
+// beside the C++ one. A check that rejected every include would name it, and
+// the .expected.error names only the .hpp -- so this fixture fails on
+// over-enforcement as well as on under-enforcement.
+#include "external-status.h"
+#include "external-cpp-type.hpp"
+
+void main() {}

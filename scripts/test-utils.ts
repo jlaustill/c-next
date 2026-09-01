@@ -216,7 +216,8 @@ function transpileViaCli(
         continue;
       }
 
-      // Fallback: simple "line:column message"
+      // Fallback: simple "line:column message", i.e. a diagnostic with no
+      // source path in front of it.
       const simpleMatch = line.match(/^(?:Error:\s*)?(\d+):(\d+)\s+(.+)$/);
       if (simpleMatch) {
         if (currentError) {
@@ -225,13 +226,20 @@ function transpileViaCli(
             column: currentError.column,
             message: currentError.messageParts.join("\n"),
           });
-          currentError = null;
         }
-        errors.push({
+        // #1319: become the current error rather than pushing immediately. This
+        // branch used to push and null `currentError`, so the continuation
+        // branch above could never fire for a pathless diagnostic and every
+        // line after the first was dropped -- silently, since a fixture
+        // regenerated under that behavior simply never recorded the guidance.
+        // The path-carrying branch has always accumulated; only this one did
+        // not, so the same diagnostic asserted more or less of itself depending
+        // on whether it happened to know its file.
+        currentError = {
           line: parseInt(simpleMatch[1], 10),
           column: parseInt(simpleMatch[2], 10),
-          message: simpleMatch[3],
-        });
+          messageParts: [simpleMatch[3]],
+        };
       }
     }
 
@@ -1140,7 +1148,11 @@ class TestUtils {
     const modes = TestUtils.getTestModes(source);
     const helperCnxFiles = TestUtils.findHelperCnxFiles(cnxFile, source);
 
-    // Error tests: single-mode (transpilation error is mode-independent)
+    // Error tests: single-mode, but NOT mode-independent any more. #1319 made
+    // "does this run emit C++?" a declared fact with its own diagnostic
+    // (E0507), so a fixture whose error needs a C++ context must be run in C++
+    // mode or it reports E0507 instead of the error it asserts. The mode marker
+    // is what says which, so it is honoured here rather than assumed to be C.
     if (existsSync(expectedErrorFile)) {
       // Guard: test-error cases must not have committed .test.* artifacts
       const staleArtifactCheck =
@@ -1155,6 +1167,8 @@ class TestUtils {
         expectedErrorFile,
         updateMode,
         rootDir,
+        (modes as TTestMode[]).includes("cpp") &&
+          !(modes as TTestMode[]).includes("c"),
       );
     }
 
@@ -1269,6 +1283,7 @@ class TestUtils {
     expectedErrorFile: string,
     updateMode: boolean,
     rootDir: string,
+    cppMode: boolean,
   ): Promise<ITestResult> {
     const expectedCFile = basePath + ".expected.c";
     const expectedHFile = basePath + ".expected.h";
@@ -1287,8 +1302,10 @@ class TestUtils {
       }
     }
 
-    // Transpile via CLI to check for errors
-    const result = transpileViaCli(cnxFile, rootDir, false);
+    // Transpile via CLI to check for errors. #1319: in the fixture's declared
+    // mode -- a `// test-cpp-only` error fixture asserts an error that only
+    // exists in C++, and running it as C now reports E0507 instead.
+    const result = transpileViaCli(cnxFile, rootDir, cppMode);
 
     if (result.success) {
       // Issue #1316: --update must not resolve "a diagnostic was dropped" in

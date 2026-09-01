@@ -490,10 +490,12 @@ extern uint32_t WRONG_VAR_NAME;
   });
 
   it("fails a C-mode run whose .hpp include forces C++ output (#1314)", async () => {
-    // The guard runs before the snapshot comparison, so no .expected.* is needed.
-    // Without it the run falls back to the guessed `.c` and reads whatever is on
-    // disk -- which is how 44 fixtures stayed green against files the transpiler
-    // never wrote. Delete the guard and this test is what goes red.
+    // #1319 removed the CAUSE this guard was written for. A .hpp include used to
+    // silently switch the run to C++, leaving a c-only fixture comparing against
+    // a `.c` the transpiler never wrote -- 44 fixtures stayed green that way.
+    // The transpiler now rejects undeclared C++ outright (E0507), so the run
+    // fails before any snapshot is read. The guard itself is kept: it still
+    // covers a C-mode run producing no `.c` for any other reason.
     writeFileSync(
       join(tempDir, "thing.hpp"),
       "#pragma once\nnamespace Thing { struct Config { int v; }; }\n",
@@ -508,7 +510,7 @@ extern uint32_t WRONG_VAR_NAME;
     const result = await TestUtils.runTest(cnxFile, false, tools, tempDir);
 
     expect(result.passed).toBe(false);
-    expect(result.message).toContain("C mode produced no .c file");
+    expect(result.message).toContain("E0507");
   });
 
   it("should pass when .expected.h matches for c-only tests", async () => {

@@ -60,7 +60,7 @@ const tsFilesUnder = (dir: string): string[] => {
 };
 
 describe("OutputExtensions (#1319)", () => {
-  it("maps the C++ latch to the extensions the run emits", () => {
+  it("maps the declared mode to the extensions the run emits", () => {
     expect(OutputExtensions.forCppMode(true)).toEqual({
       source: ".cpp",
       header: ".hpp",

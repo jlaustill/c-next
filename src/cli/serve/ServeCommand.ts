@@ -304,7 +304,7 @@ class ServeCommand {
           success: false,
           code: "",
           errors: transpileResult.errors,
-          cppDetected: ServeCommand.transpiler.isCppDetected(),
+          cppDetected: ServeCommand.transpiler.isCppMode(),
         },
       };
     }
@@ -315,7 +315,7 @@ class ServeCommand {
         success: fileResult.success,
         code: fileResult.code,
         errors: fileResult.errors,
-        cppDetected: ServeCommand.transpiler.isCppDetected(),
+        cppDetected: ServeCommand.transpiler.isCppMode(),
       },
     };
   }

@@ -56,6 +56,7 @@ import IncludeTreeWalker from "./data/IncludeTreeWalker";
 import DependencyGraph from "./data/DependencyGraph";
 import PathResolver from "./data/PathResolver";
 import OutputExtensions from "../utils/OutputExtensions";
+import DeclarationSite from "../utils/DeclarationSite";
 import type IOutputExtensions from "./types/IOutputExtensions";
 import InputExpansion from "./data/InputExpansion";
 import CppEntryPointScanner from "./data/CppEntryPointScanner";
@@ -94,46 +95,22 @@ class Transpiler {
   private readonly warnings: string[];
   private readonly cacheManager: CacheManager | null;
   /**
-   * Issue #211: Tracks if C++ output is needed.
+   * Issue #211, #1319: does this run emit C++?
    *
-   * Issue #1319: a monotone latch -- seeded from `--cpp`, raised when an
-   * included header proves the run emits C++, and never lowered. Monotone means
-   * order-independent: one settled value per run whatever order the include
-   * graph is walked, which is what makes it a legitimate cross-file fact rather
-   * than a per-file one.
+   * DECLARED, not discovered. It comes from config (`cppRequired`) or `--cpp`,
+   * is known before any file is read, and never changes. A C++ header met in a
+   * run that did not declare C++ is E0507, not a silent switch to C++ output.
    *
-   * Nothing may assign this outside `raiseCppDetected()`. There is no setter, so
-   * "one-way" is a property of the code rather than a comment asking for care --
-   * the previous version of this line stated the invariant and nothing checked
-   * it. `CppLatchMonotonicity.test.ts` gates it.
-   *
-   * That reasoning is per-RUN, and serve mode is many runs on one instance:
-   * `ServeCommand` builds a single Transpiler for the editor session and reuses
-   * it for every request, so one `.hpp` anywhere pins every later request and
-   * every `cppDetected` reported back to the client. That is the behavior on
-   * `main` too -- sealing the latch did not introduce it -- but the seal turns
-   * it from an accident into a property, so it is recorded here rather than
-   * left for the next reader to rediscover.
-   *
-   * #1429 removes the need for all of it: the fact becomes declared in config
-   * rather than discovered from headers, at which point there is no latch to
-   * raise, session scoping is correct by construction, and this field,
-   * `raiseCppDetected()` and `CppLatchMonotonicity.test.ts` all go away.
+   * It used to be a monotone latch raised by reading an included header, which
+   * made it discovered, global and settled *mid-run* at the same time. Any one
+   * of those alone is harmless; together they produced #250, #941, #1139, #1425
+   * and #1171 -- the last of which gated auto-const inference, so adding an
+   * include to one file could change what the transpiler inferred about
+   * another. Declaring it removes the class: there is no ordering to get wrong,
+   * nothing to read before it settles, and serve mode -- one Transpiler reused
+   * for an editor session -- is correct by construction rather than by luck.
    */
-  private cppDetectedLatch: boolean = false;
-
-  /** Read the latch. Callers outside this class use `isCppDetected()`. */
-  private get cppDetected(): boolean {
-    return this.cppDetectedLatch;
-  }
-
-  /**
-   * Raise the latch. Issue #1319: the only write to `cppDetectedLatch`. There is
-   * deliberately no way to lower it.
-   */
-  private raiseCppDetected(): void {
-    this.cppDetectedLatch = true;
-  }
+  private readonly cppMode: boolean;
 
   /**
    * Issue #1319: the run's output extensions -- the interim owner of a decision
@@ -145,7 +122,7 @@ class Transpiler {
    * the earliest layer, so it ran before the latch had settled.
    */
   private get outputExtensions(): IOutputExtensions {
-    return OutputExtensions.forCppMode(this.cppDetected);
+    return OutputExtensions.forCppMode(this.cppMode);
   }
 
   /**
@@ -219,12 +196,9 @@ class Transpiler {
       noCache: config.noCache ?? false,
     };
 
-    // Issue #211: Seed the latch from config (--cpp flag sets this)
-    // Issue #1319: seeding raises; it never lowers, so `--cpp` off is the
-    // absence of a raise rather than an assignment of false.
-    if (this.config.cppRequired) {
-      this.raiseCppDetected();
-    }
+    // Issue #211, #1319: the single source of the fact. Absent means C, which
+    // is the default target, not a guess about what the includes might contain.
+    this.cppMode = this.config.cppRequired ?? false;
 
     // Adopt the compiler's own view from the project's compile_commands.json, if
     // present. Every build system (CMake, PlatformIO, Meson, Zephyr, bear-wrapped
@@ -685,7 +659,7 @@ class Transpiler {
         debugMode: this.config.debugMode,
         target: this.config.target,
         sourcePath,
-        cppMode: this.cppDetected,
+        cppMode: this.cppMode,
         symbolInfo,
         sourceRelativePath,
       });
@@ -948,6 +922,18 @@ class Transpiler {
    * Stage 2: Collect symbols from all C/C++ headers
    * Issue #945: Made async for preprocessing support.
    */
+  /**
+   * True for a deliberate C-Next diagnostic rather than an incidental failure.
+   *
+   * Keyed on the `E0000: ` prefix because that is already this codebase's
+   * identity for a diagnostic -- `.expected.error` fixtures assert it and
+   * `docs/diagnostic-manifest.md` is generated from it -- so this reads the
+   * existing identity rather than inventing a second one to keep in step.
+   */
+  private static isDiagnostic(err: unknown): boolean {
+    return err instanceof Error && /^E\d{4}: /.test(err.message);
+  }
+
   private async _collectAllHeaderSymbols(
     headerFiles: IDiscoveredFile[],
     result: ITranspilerResult,
@@ -959,6 +945,16 @@ class Transpiler {
         usable = await this.doCollectHeaderSymbols(file, precedingHeaders);
         result.filesProcessed++;
       } catch (err) {
+        // Issue #1319: this catch exists to tolerate third-party headers that
+        // will not parse -- a real need, and why it is broad. A C-Next
+        // diagnostic is not that: it is a rejection this transpiler made on
+        // purpose. Swallowing one turned E0507 into `Warning: ...` followed by
+        // `Compiled 1 files` and exit 0, which is the silent-failure shape the
+        // diagnostic exists to remove. Diagnostics propagate; parse failures
+        // still degrade.
+        if (Transpiler.isDiagnostic(err)) {
+          throw err;
+        }
         this.warnings.push(`Failed to process header ${file.path}: ${err}`);
       }
       // Offer this header as macro context to headers processed after it, but
@@ -1347,7 +1343,11 @@ class Transpiler {
     result.errors.push({
       line: 1,
       column: 0,
-      message: `Pipeline failed: ${err}`,
+      // Issue #1319: the message, not the Error. `${err}` stringifies to
+      // "Error: <message>", so a diagnostic surfaced here read
+      // "Pipeline failed: Error: E0507: ..." with a doubled prefix the sibling
+      // "Code generation failed" wrapper does not have.
+      message: `Pipeline failed: ${err instanceof Error ? err.message : String(err)}`,
       severity: "error",
     });
     result.success = false;
@@ -1750,7 +1750,7 @@ class Transpiler {
     CodeGenState.symbolTable.restoreStructState(cached.structState);
 
     // Issue #211: Still check for C++ syntax even on cache hit
-    this.detectCppFromFileType(file);
+    this.rejectUndeclaredCppFromFileType(file);
 
     // Issue #985: The cached symbols of a header that fell back to raw content
     // are degraded. Re-arm the recovery gate so a warm-cache build still runs
@@ -1893,20 +1893,52 @@ class Transpiler {
   }
 
   /**
-   * Detect C++ mode based on file type and content.
-   * SonarCloud S3776: Extracted from doCollectHeaderSymbols().
+   * Issue #1319: E0507 -- C++ met in a run that did not declare C++.
+   *
+   * This is the whole of what "detection" is for now. It used to raise a latch
+   * and silently change the output language; a transpiler that guesses which
+   * language it emits, from a file the user did not write, is guessing about
+   * the thing it is least able to guess about. Naming the file and the fix is
+   * strictly more useful than being quietly right most of the time.
    */
-  private detectCppFromFileType(file: IDiscoveredFile): void {
+  private rejectUndeclaredCpp(reason: string, filePath: string): void {
+    if (this.cppMode) {
+      return;
+    }
+
+    throw new Error(
+      // #1319: cwd-relative, via the one helper that renders a path for a
+      // human. An absolute path here would be the first in any .expected.error
+      // and would differ on every machine; a basename would be ambiguous
+      // (can/config.h vs uart/config.h). DeclarationSite already settled this.
+      `E0507: ${reason} in '${DeclarationSite.displayPath(filePath)}', but ` +
+        `this run does not target C++.\n` +
+        `  C-Next emits C unless told otherwise. To compile as C++, set\n` +
+        `  'cppRequired: true' in your config, or pass --cpp.`,
+    );
+  }
+
+  /**
+   * Reject undeclared C++ reached through a header's type or content.
+   * SonarCloud S3776: Extracted from doCollectHeaderSymbols().
+   *
+   * Issue #1319: when C++ IS declared there is nothing to check, so the file
+   * read below is skipped entirely rather than performed and discarded.
+   */
+  private rejectUndeclaredCppFromFileType(file: IDiscoveredFile): void {
+    if (this.cppMode) {
+      return;
+    }
+
     if (file.type === EFileType.CppHeader) {
-      // .hpp files are always C++
-      this.raiseCppDetected();
+      this.rejectUndeclaredCpp("C++ header", file.path);
       return;
     }
 
     if (file.type === EFileType.CHeader) {
       const content = this.fs.readFile(file.path);
       if (detectCppSyntax(content)) {
-        this.raiseCppDetected();
+        this.rejectUndeclaredCpp("C++ syntax", file.path);
       }
     }
   }
@@ -1926,7 +1958,7 @@ class Transpiler {
 
     if (file.type === EFileType.CppHeader) {
       // Issue #211: .hpp files are always C++
-      this.raiseCppDetected();
+      this.rejectUndeclaredCpp("C++ header", file.path);
       if (this.config.debugMode) {
         console.log(`[DEBUG]   Parsing C++ header: ${file.path}`);
       }
@@ -1951,8 +1983,11 @@ class Transpiler {
     }
 
     if (detectCppSyntax(content)) {
-      // Issue #211: C++ detected, set flag for .cpp output
-      this.raiseCppDetected();
+      // Issue #1319: this predicate answers two questions. Which PARSER the
+      // header needs is a parsing fact and still decided here. Whether the RUN
+      // emits C++ is not, and is now declared -- so this rejects rather than
+      // switches.
+      this.rejectUndeclaredCpp("C++ syntax", filePath);
       // Use C++14 parser for headers with C++ syntax (typed enums, classes, etc.)
       this.parseCppHeader(content, filePath);
     } else {
@@ -2190,7 +2225,7 @@ class Transpiler {
         // ADR-040: same flag the .c consults, so exactly one file emits it.
         needsIsrTypedef: CodeGenState.needsISR,
         externalTypeHeaders,
-        cppMode: this.cppDetected,
+        cppMode: this.cppMode,
       },
       typeInputWithSymbolTable,
       passByValueParams,
@@ -2533,8 +2568,8 @@ class Transpiler {
    * Check if C++ output was detected during transpilation.
    * This is set when C++ syntax is found in included headers (e.g., Arduino.h).
    */
-  isCppDetected(): boolean {
-    return this.cppDetected;
+  isCppMode(): boolean {
+    return this.cppMode;
   }
 
   /**

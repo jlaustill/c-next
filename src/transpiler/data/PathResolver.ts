@@ -84,9 +84,9 @@ class PathResolver {
    * Get output path for a transpiled file (.c or .cpp)
    *
    * Issue #1319: takes the run's source extension rather than its mode. Naming
-   * an output file is a decision, and `data/` is the earliest layer -- it ran
-   * before the C++ latch had settled, so it could not have made that decision
-   * correctly even in principle.
+   * an output file is a decision, and `data/` is the earliest layer -- it is
+   * told the answer rather than deriving one, which is what let the mode-to-
+   * extension decision collapse to a single owner.
    *
    * @param file - The discovered file to get output path for
    * @param ext - The run's source extension (".c" or ".cpp")
