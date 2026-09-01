@@ -4,9 +4,9 @@ How C-Next's symbol and type facts are stored today, which of those stores are v
 fact set, whether they agree, and what to do about it.
 
 This is the write-up of the [#1431](https://github.com/jlaustill/c-next/issues/1431) spike. The
-probe that produced the numbers was throwaway and is not in the tree; every figure below is
-reproducible from the method described here, and the commands that produced each are given
-beside it.
+probe that produced the numbers was throwaway and is not in the tree; it is recoverable from
+that branch's history, and the method below is described in enough detail to rebuild it. Where
+a figure came from a command rather than from the probe, the command is given.
 
 ## The question
 
