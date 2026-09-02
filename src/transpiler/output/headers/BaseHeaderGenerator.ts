@@ -278,8 +278,7 @@ abstract class BaseHeaderGenerator {
         lines.push(proto);
       }
     }
-    lines.push(...initPrototypes);
-    lines.push("");
+    lines.push(...initPrototypes, "");
     return lines;
   }
 
