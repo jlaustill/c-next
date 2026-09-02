@@ -1,5 +1,5 @@
 /**
- * One callback field of a struct, as the ADR-029 init function initialises it.
+ * One callback field of a struct, as the ADR-029 init function initializes it.
  *
  * Shared by the generator that discovers the field and the module that spells
  * the init function, so the two cannot describe the same field differently.
