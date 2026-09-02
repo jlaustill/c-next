@@ -34,13 +34,10 @@ typedef enum {
     S__Mode__ALPHA = 5,
     S__Mode__BETA = 6
 } S__Mode;
-
-
 typedef enum {
-    S__Zeroed__HIGH = 9,
-    S__Zeroed__ZERO = 0
+    S__Zeroed__ZERO = 0,
+    S__Zeroed__HIGH = 9
 } S__Zeroed;
-
 static S__Mode S__firstMemberWins = S__Mode__ALPHA;
 static S__Zeroed S__zeroMemberWins = S__Zeroed__ZERO;
 

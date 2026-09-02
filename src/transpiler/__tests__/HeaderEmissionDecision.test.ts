@@ -123,6 +123,34 @@ scope S {
       expect(code).not.toContain("typedef struct S__Hidden");
     });
 
+    // The worklist re-push is the only reason the closure is transitive. A
+    // 1-hop promotion passes even if the loop is a single pass, so this walks
+    // TWO hops: public signature -> private Outer -> Outer's field names
+    // private Inner. A missing hop emits a header defining Outer with an
+    // undeclared member type, which is the exact failure this closure exists
+    // to prevent.
+    it("promotes a private type reached only through ANOTHER private type (2 hops)", async () => {
+      const { code, headerCode } = await transpileSource(`
+scope S {
+    private struct Inner { u32 deep; }
+    private struct Outer { Inner i; u32 v; }
+    public Outer make() {
+        Outer o <- {i: {deep: 1}, v: 2};
+        return o;
+    }
+}
+`);
+      expect(headerCode).toContain("typedef struct S__Outer");
+      expect(headerCode).toContain("typedef struct S__Inner");
+      // Inner must precede Outer, or the header does not compile.
+      expect(headerCode!.indexOf("} S__Inner;")).toBeLessThan(
+        headerCode!.indexOf("} S__Outer;"),
+      );
+      // And neither is defined twice.
+      expect(code).not.toContain("typedef struct S__Inner");
+      expect(code).not.toContain("typedef struct S__Outer");
+    });
+
     // An array dimension crosses the header boundary as a VALUE, not a type:
     // `extern u8 v[S__State__COUNT]` needs the enum even though no declaration
     // names `S__State`. Walking types alone left four corpus headers

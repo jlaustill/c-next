@@ -153,42 +153,6 @@ describe("IFunctionSymbol", () => {
     });
   });
 
-  describe("FunctionUtils.isPublic", () => {
-    it("returns true for public function", () => {
-      const global = ScopeUtils.createGlobalScope();
-
-      const func = FunctionUtils.create({
-        name: "publicFunc",
-        scope: global,
-        parameters: [],
-        returnType: TTypeUtils.createPrimitive("void"),
-        visibility: "public",
-        body: null,
-        sourceFile: "test.cnx",
-        sourceLine: 1,
-      });
-
-      expect(FunctionUtils.isPublic(func)).toBe(true);
-    });
-
-    it("returns false for private function", () => {
-      const global = ScopeUtils.createGlobalScope();
-
-      const func = FunctionUtils.create({
-        name: "privateFunc",
-        scope: global,
-        parameters: [],
-        returnType: TTypeUtils.createPrimitive("void"),
-        visibility: "private",
-        body: null,
-        sourceFile: "test.cnx",
-        sourceLine: 1,
-      });
-
-      expect(FunctionUtils.isPublic(func)).toBe(false);
-    });
-  });
-
   describe("FunctionUtils.isInGlobalScope", () => {
     it("returns true for function in global scope", () => {
       const global = ScopeUtils.createGlobalScope();

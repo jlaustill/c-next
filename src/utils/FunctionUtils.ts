@@ -61,13 +61,6 @@ class FunctionUtils {
   // ============================================================================
 
   /**
-   * Check if function has public visibility.
-   */
-  static isPublic(func: IFunctionSymbol): boolean {
-    return func.visibility === "public";
-  }
-
-  /**
    * Check if function is in the global scope.
    */
   static isInGlobalScope(func: IFunctionSymbol): boolean {

@@ -38,27 +38,6 @@ class PublicInterface {
   }
 
   /**
-   * #1300: the private types a header-visible declaration forces into the
-   * header, transitively.
-   *
-   * Not a privacy exception. C requires a COMPLETE type wherever a value of it
-   * is declared, returned or passed, so a private type named by a public
-   * signature has to be defined in the header or no caller can compile:
-   *
-   *     public Secret expose()      ->  Internal__Secret Internal__expose(void);
-   *     public struct W { Secret s; }
-   *     public Secret shared <- ...
-   *
-   * The type stays unnameable from outside -- C-Next rejects `Internal.Secret`
-   * in another scope either way -- so what reaches the header is completeness,
-   * not access. Putting a type in a public signature opts it into the ABI, and
-   * that is the author's decision to make.
-   *
-   * Without this the transpiler exits 0 and emits a header carrying only the
-   * incomplete `typedef struct Internal__Secret Internal__Secret;`, which any
-   * caller that touches the value fails to compile -- cnext green, cc red.
-   */
-  /**
    * Whether this file's generated header DEFINES the given type, named by its
    * transpiled C name.
    *
@@ -101,12 +80,22 @@ class PublicInterface {
       return false;
     }
 
-    // A scope is a container, not a declaration. Its members are collected as
-    // symbols in their own right, and no header path emits anything for kind
-    // "scope". Counting it would produce a header holding only include guards
-    // for a scope whose members are all private — and, once the `.c` includes
-    // whatever header exists, a self-include of that empty file.
-    if (symbol.kind === "scope") {
+    // Kinds no header path emits a declaration for. Counting one produces a
+    // header holding only include guards — and, once the `.c` includes whatever
+    // header exists, a self-include of that empty file.
+    //
+    // "scope" because a scope is a container, not a declaration: its members
+    // are collected as symbols in their own right.
+    //
+    // "register" because `HeaderGeneratorUtils.groupSymbolsByKind` has no
+    // register bucket, so a register is emitted as `#define`s in the `.c`
+    // whether it is public or private. This predicate used to answer "yes, if
+    // public" while the emitter answered "never" -- one question, two answers,
+    // agreeing on outcome only because the symbol was dropped downstream. That
+    // is what made a register-only file emit an empty header. #1453 is the
+    // issue that makes a register reachable across an include boundary; when it
+    // lands, this is the line it changes.
+    if (symbol.kind === "scope" || symbol.kind === "register") {
       return false;
     }
 
@@ -130,6 +119,27 @@ class PublicInterface {
     );
   }
 
+  /**
+   * #1300: the private types a header-visible declaration forces into the
+   * header, transitively.
+   *
+   * Not a privacy exception. C requires a COMPLETE type wherever a value of it
+   * is declared, returned or passed, so a private type named by a public
+   * signature has to be defined in the header or no caller can compile:
+   *
+   *     public Secret expose()      ->  Internal__Secret Internal__expose(void);
+   *     public struct W { Secret s; }
+   *     public Secret shared <- ...
+   *
+   * The type stays unnameable from outside -- C-Next rejects `Internal.Secret`
+   * in another scope either way -- so what reaches the header is completeness,
+   * not access. Putting a type in a public signature opts it into the ABI, and
+   * that is the author's decision to make.
+   *
+   * Without this the transpiler exits 0 and emits a header carrying only the
+   * incomplete `typedef struct Internal__Secret Internal__Secret;`, which any
+   * caller that touches the value fails to compile -- cnext green, cc red.
+   */
   private static typeClosure(symbols: readonly TSymbol[]): Set<string> {
     // What a name can resolve to. Only type-forming kinds can be pulled in --
     // a header defines types, and a private function or variable is `static`
@@ -229,6 +239,13 @@ class PublicInterface {
     } else if (symbol.kind === "struct") {
       for (const field of symbol.fields.values()) {
         collect(field.type);
+        // `field.type` is the ELEMENT type; a field's dimensions live in their
+        // own slot, spelled `dimensions` here and `arrayDimensions` on
+        // parameters and variables. Walking only the type missed an enum that
+        // a public struct field names as its bound, so the header declared
+        // `uint8_t data[Internal__Size__COUNT]` with the enum defined in the
+        // `.c` -- transpiler exit 0, header does not compile.
+        collectDims(field.dimensions);
       }
     }
 

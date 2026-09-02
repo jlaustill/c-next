@@ -20,24 +20,18 @@
 // leaves the header and is then defined nowhere.
 /* Scope: Internal */
 
-typedef struct Internal__Hidden {
-    uint32_t a;
-} Internal__Hidden;
-
-
 typedef enum {
     Internal__HiddenMode__OFF = 0,
     Internal__HiddenMode__ON = 1
 } Internal__HiddenMode;
-
-
-/* Bitmap: Internal__HiddenFlags */
-/* Fields:
- *   Alpha: bit 0 (1 bit)
+/* Bitmap: Internal__HiddenFlags
+ *   Alpha: bit 0
  *   Rest: bits 1-7 (7 bits)
  */
 typedef uint8_t Internal__HiddenFlags;
-
+typedef struct Internal__Hidden {
+    uint32_t a;
+} Internal__Hidden;
 
 uint32_t Internal__useHidden(void) {
     Internal__Hidden h = { .a = 1U };

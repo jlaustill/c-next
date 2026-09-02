@@ -7,7 +7,6 @@
  * Header generation needs a subset of symbol information:
  * - Name and kind for categorization
  * - Type information for declarations
- * - Export status for filtering
  * - Array/const/atomic modifiers for variable declarations
  * - Parameters for function signatures
  */

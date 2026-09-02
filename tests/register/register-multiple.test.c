@@ -3,8 +3,6 @@
  * A safer C for embedded systems
  */
 
-#include "register-multiple.test.h"
-
 #include <stdint.h>
 
 // ADR-004: Multiple registers in same file

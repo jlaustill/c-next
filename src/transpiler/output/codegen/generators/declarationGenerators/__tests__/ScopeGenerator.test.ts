@@ -1118,7 +1118,7 @@ describe("ScopeGenerator", () => {
           ...createMockInput().symbols!,
           enumMembers: new Map([
             [
-              "Machine_Status",
+              "Machine__Status",
               new Map([
                 ["IDLE", 0],
                 ["RUNNING", 1],
@@ -1136,25 +1136,6 @@ describe("ScopeGenerator", () => {
       expect(result.code).toContain("Machine__Status__IDLE = 0,");
       expect(result.code).toContain("Machine__Status__RUNNING = 1");
       expect(result.code).toContain("} Machine__Status;");
-    });
-
-    it("generates scoped enum with AST fallback", () => {
-      const enumDecl = createMockEnumDecl("Level", [
-        { name: "LOW" },
-        { name: "MEDIUM" },
-        { name: "HIGH" },
-      ]);
-      const member = createMockScopeMember({ enumDecl: enumDecl });
-      const ctx = createMockScopeContext("Audio", [member]);
-      const input = createMockInput(); // No symbol info
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator();
-
-      const result = generateScope(ctx, input, state, orchestrator);
-
-      expect(result.code).toContain("Audio__Level__LOW = 0,");
-      expect(result.code).toContain("Audio__Level__MEDIUM = 1,");
-      expect(result.code).toContain("Audio__Level__HIGH = 2");
     });
 
     it("skips enum when the header defines it (#369, #1300)", () => {
@@ -1198,42 +1179,18 @@ describe("ScopeGenerator", () => {
       const member = createMockScopeMember({ enumDecl: enumDecl });
       const ctx = createMockScopeContext("Test", [member]);
       const state = createMockState({ selfIncludeAdded: true });
+      const input = createMockInput({
+        symbols: {
+          ...createMockInput().symbols!,
+          enumMembers: new Map([["Test__State", new Map([["A", 0]])]]),
+        },
+      } as Partial<IGeneratorInput>);
 
-      const result = generateScope(
-        ctx,
-        createMockInput(),
-        state,
-        createMockOrchestrator(),
-      );
+      const result = generateScope(ctx, input, state, createMockOrchestrator());
 
       expect(result.code).toContain("typedef enum");
       definesInHeader.mockRestore();
       CodeGenState.sourcePath = null;
-    });
-
-    it("generates enum with explicit values using AST fallback", () => {
-      const enumDecl = createMockEnumDecl("ErrorCode", [
-        { name: "OK", value: "0" },
-        { name: "WARNING", value: "100" },
-        { name: "ERROR", value: "200" },
-      ]);
-      const member = createMockScopeMember({ enumDecl: enumDecl });
-      const ctx = createMockScopeContext("System", [member]);
-      const input = createMockInput(); // No symbol info - uses AST fallback
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({
-        ...createMockOrchestrator(),
-        tryEvaluateConstant: vi.fn((expr) => {
-          const value = expr.__mockValue;
-          return value ? Number.parseInt(value, 10) : undefined;
-        }),
-      });
-
-      const result = generateScope(ctx, input, state, orchestrator);
-
-      expect(result.code).toContain("System__ErrorCode__OK = 0,");
-      expect(result.code).toContain("System__ErrorCode__WARNING = 100,");
-      expect(result.code).toContain("System__ErrorCode__ERROR = 200");
     });
   });
 
@@ -1252,10 +1209,10 @@ describe("ScopeGenerator", () => {
       const input = createMockInput({
         symbols: {
           ...createMockInput().symbols!,
-          bitmapBackingType: new Map([["Config_Flags", "uint8_t"]]),
+          bitmapBackingType: new Map([["Config__Flags", "uint8_t"]]),
           bitmapFields: new Map([
             [
-              "Config_Flags",
+              "Config__Flags",
               new Map([
                 ["enabled", { offset: 0, width: 1 }],
                 ["mode", { offset: 1, width: 3 }],
@@ -1269,48 +1226,12 @@ describe("ScopeGenerator", () => {
 
       const result = generateScope(ctx, input, state, orchestrator);
 
-      expect(result.code).toContain("/* Bitmap: Config__Flags */");
-      expect(result.code).toContain("enabled: bit 0 (1 bit)");
+      // #1300: one emitter, so the .c carries the HEADER's comment block --
+      // codegen's own `/* Bitmap: X */` + `/* Fields: */` form is gone.
+      expect(result.code).toContain("/* Bitmap: Config__Flags");
+      expect(result.code).toContain("enabled: bit 0");
       expect(result.code).toContain("mode: bits 1-3 (3 bits)");
       expect(result.code).toContain("typedef uint8_t Config__Flags;");
-    });
-
-    it("generates scoped bitmap with AST fallback", () => {
-      const bitmapDecl = createMockBitmapDecl("Status", "bitmap16", [
-        { name: "ready", width: 1 },
-        { name: "error", width: 1 },
-      ]);
-      const member = createMockScopeMember({ bitmapDecl: bitmapDecl });
-      const ctx = createMockScopeContext("Device", [member]);
-      const input = createMockInput(); // No symbol info
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator();
-
-      const result = generateScope(ctx, input, state, orchestrator);
-
-      expect(result.code).toContain("typedef uint16_t Device__Status;");
-    });
-
-    it("generates bitmap8/16/32/64 with correct backing type", () => {
-      const testCases = [
-        { keyword: "bitmap8", expected: "uint8_t" },
-        { keyword: "bitmap16", expected: "uint16_t" },
-        { keyword: "bitmap32", expected: "uint32_t" },
-        { keyword: "bitmap64", expected: "uint64_t" },
-      ];
-
-      for (const { keyword, expected } of testCases) {
-        const bitmapDecl = createMockBitmapDecl("Test", keyword, []);
-        const member = createMockScopeMember({ bitmapDecl: bitmapDecl });
-        const ctx = createMockScopeContext("Scope", [member]);
-        const input = createMockInput();
-        const state = createMockState();
-        const orchestrator = createMockOrchestrator();
-
-        const result = generateScope(ctx, input, state, orchestrator);
-
-        expect(result.code).toContain(`typedef ${expected} Scope__Test;`);
-      }
     });
 
     it("skips bitmap when the header defines it (#369, #1300)", () => {
@@ -1380,7 +1301,22 @@ describe("ScopeGenerator", () => {
       ]);
       const member = createMockScopeMember({ structDecl: structDecl });
       const ctx = createMockScopeContext("Graphics", [member]);
-      const input = createMockInput();
+      // #1300: the .c reads fields from symbols, the same map the header reads.
+      // Field FORMATTING is generateStructHeader's own test file's job now.
+      const input = createMockInput({
+        symbols: {
+          ...createMockInput().symbols!,
+          structFields: new Map([
+            [
+              "Graphics__Point",
+              new Map([
+                ["x", "i32"],
+                ["y", "i32"],
+              ]),
+            ],
+          ]),
+        },
+      } as Partial<IGeneratorInput>);
       const state = createMockState();
       const orchestrator = createMockOrchestrator();
 
@@ -1390,89 +1326,6 @@ describe("ScopeGenerator", () => {
       expect(result.code).toContain("int32_t x;");
       expect(result.code).toContain("int32_t y;");
       expect(result.code).toContain("} Graphics__Point;");
-    });
-
-    it("generates struct field with array dimensions", () => {
-      const structDecl = createMockStructDecl("Buffer", [
-        { name: "data", type: "u8", arrayDims: ["256"] },
-      ]);
-      const member = createMockScopeMember({ structDecl: structDecl });
-      const ctx = createMockScopeContext("IO", [member]);
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator();
-
-      const result = generateScope(ctx, input, state, orchestrator);
-
-      expect(result.code).toContain("uint8_t data[256];");
-    });
-
-    it("generates struct field with C-Next array type constant size", () => {
-      const structDecl = createMockStructDecl("Container", [
-        { name: "items", type: "u16[4]", arrayTypeSize: "4" },
-      ]);
-      const member = createMockScopeMember({ structDecl: structDecl });
-      const ctx = createMockScopeContext("Data", [member]);
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({
-        ...createMockOrchestrator(),
-        tryEvaluateConstant: vi.fn(() => 4),
-      });
-
-      const result = generateScope(ctx, input, state, orchestrator);
-
-      expect(result.code).toContain("u16[4] items[4];");
-    });
-
-    it("generates struct field with C-Next array type non-constant (fallback)", () => {
-      const structDecl = createMockStructDecl("FlexContainer", [
-        { name: "buffer", type: "u8[MAX_SIZE]", arrayTypeSize: "MAX_SIZE" },
-      ]);
-      const member = createMockScopeMember({ structDecl: structDecl });
-      const ctx = createMockScopeContext("Flex", [member]);
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({
-        ...createMockOrchestrator(),
-        tryEvaluateConstant: vi.fn(() => undefined), // Can't resolve macro
-        generateExpression: vi.fn(() => "MAX_SIZE"),
-      });
-
-      const result = generateScope(ctx, input, state, orchestrator);
-
-      expect(result.code).toContain("u8[MAX_SIZE] buffer[MAX_SIZE];");
-    });
-
-    it("generates struct field with C-Next array type no size (empty brackets)", () => {
-      const structDecl = createMockStructDecl("DynamicContainer", [
-        { name: "data", type: "u8[]", arrayTypeSize: null },
-      ]);
-      const member = createMockScopeMember({ structDecl: structDecl });
-      const ctx = createMockScopeContext("Dyn", [member]);
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator();
-
-      const result = generateScope(ctx, input, state, orchestrator);
-
-      expect(result.code).toContain("u8[] data[];");
-    });
-
-    it("generates struct field with string capacity", () => {
-      const structDecl = createMockStructDecl("Message", [
-        { name: "text", type: "string<64>", hasStringType: true },
-      ]);
-      const member = createMockScopeMember({ structDecl: structDecl });
-      const ctx = createMockScopeContext("Log", [member]);
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator();
-
-      const result = generateScope(ctx, input, state, orchestrator);
-
-      // Capacity + 1 for null terminator
-      expect(result.code).toContain("string<64> text[33];");
     });
 
     it("skips struct when the header defines it (#369, #1300)", () => {

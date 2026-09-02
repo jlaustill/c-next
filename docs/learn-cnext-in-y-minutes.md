@@ -409,11 +409,15 @@ scope LED {
 //   Functions:              public by default, use 'private' to hide
 //   Variables AND TYPES:    private by default, use 'public' to expose
 //
-// "Types" means struct, enum, bitmap and register declared inside a scope. An
-// unmarked one is PRIVATE, which is easy to miss because nothing in the source
-// says so. A private type is defined in the generated .c, never in the .h, so
-// it is not part of the library's C interface -- write 'public' on any type a
-// caller in another file is meant to name.
+// "Types" means struct, enum and bitmap declared inside a scope. An unmarked
+// one is PRIVATE, which is easy to miss because nothing in the source says so.
+// A private type is defined in the generated .c, never in the .h, so it is not
+// part of the library's C interface -- write 'public' on any type a caller in
+// another file is meant to name.
+//
+// A scope `register` takes the same keywords, but nothing puts one in the .h
+// yet: a register is emitted as #defines in the .c whether it is public or
+// private, so it is not reachable across an include boundary. Tracked as #1453.
 //
 // Privacy is about NAMING, not about values. A public function may take or
 // return a private type; what a caller cannot do is name that type itself. This

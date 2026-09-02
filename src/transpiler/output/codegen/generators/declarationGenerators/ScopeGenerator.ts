@@ -21,7 +21,6 @@ import IGeneratorOutput from "../IGeneratorOutput";
 import IOrchestrator from "../IOrchestrator";
 import TGeneratorFn from "../TGeneratorFn";
 import generateScopedRegister from "./ScopedRegisterGenerator";
-import BitmapCommentUtils from "./BitmapCommentUtils";
 import ArrayDimensionUtils from "./ArrayDimensionUtils";
 import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
 import type IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
@@ -30,7 +29,10 @@ import AdrProvenance from "../../../../state/AdrProvenance";
 import SymbolRegistry from "../../../../state/SymbolRegistry";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
 import PublicInterface from "../../../../logic/symbols/PublicInterface";
-import QualifiedCName from "../../../../../utils/QualifiedCName";
+import generateEnumHeader from "../../../headers/generators/generateEnumHeader";
+import generateBitmapHeader from "../../../headers/generators/generateBitmapHeader";
+import generateStructHeader from "../../../headers/generators/generateStructHeader";
+import type IHeaderTypeInput from "../../../headers/generators/IHeaderTypeInput";
 import VariableModifierBuilder from "../../helpers/VariableModifierBuilder";
 
 /**
@@ -326,37 +328,85 @@ function generateScopeFunction(
 }
 
 /**
- * Generate enum members from AST when symbol info is not available.
- * Returns array of formatted enum member lines.
+ * #1300: the type definitions this scope contributes to the `.c`.
+ *
+ * A type is defined in exactly ONE file -- the header when it reaches the
+ * public interface, this file otherwise -- so the set here is the complement of
+ * what `PublicInterface` decided, asked per symbol rather than re-derived.
+ *
+ * The TEXT comes from the header's own per-type emitters. Codegen used to have
+ * its own inline emitters, reached only when a file had no header at all; when
+ * private types started routing through them they were found to disagree with
+ * the header in two ways, each an exit-0 miscompile:
+ *
+ *   - they emitted in `scopeMember()` SOURCE order, so a struct naming an enum
+ *     declared below it forward-referenced. Marking both `public` compiled,
+ *     because the header groups by kind -- the asymmetry was the bug.
+ *   - they had no ADR-029 callback resolution, so a function-typed field was
+ *     emitted as the bare function name rather than its typedef.
+ *
+ * Ordering by kind here is not this function agreeing with the header; it is
+ * the same grouping the header applies, for the same reason C needs it.
  */
-function generateEnumMembersFromAST(
-  members: Parser.EnumMemberContext[],
-  fullName: string,
-  orchestrator: IOrchestrator,
+function generateScopeTypeDefinitions(
+  node: Parser.ScopeDeclarationContext,
+  declaringScope: IScopeSymbol | null,
+  input: IGeneratorInput,
 ): string[] {
-  const lines: string[] = [];
-  let currentValue = 0;
-
-  for (let i = 0; i < members.length; i++) {
-    const member = members[i];
-    const memberName = member.IDENTIFIER().getText();
-    // #1285: qualified by the ENUM, not a scope -- see the note in
-    // generateScopedEnumInline. `fullName` is already fully qualified.
-    const fullMemberName = QualifiedCName.fromParts([fullName, memberName]);
-
-    if (member.expression()) {
-      const constValue = orchestrator.tryEvaluateConstant(member.expression()!);
-      if (constValue !== undefined) {
-        currentValue = constValue;
-      }
-    }
-
-    const comma = i < members.length - 1 ? "," : "";
-    lines.push(`    ${fullMemberName} = ${currentValue}${comma}`);
-    currentValue++;
+  const symbols = input.symbols;
+  if (!symbols) {
+    return [];
   }
 
-  return lines;
+  const typeInput: IHeaderTypeInput = {
+    ...symbols,
+    symbolTable: CodeGenState.symbolTable,
+    callbackTypes: CodeGenState.callbackTypes,
+  };
+
+  const definedHere = (nameNode: {
+    IDENTIFIER(): { getText(): string };
+  }): string | null => {
+    const { fullName } = getScopedName(nameNode, declaringScope);
+    if (
+      CodeGenState.sourcePath !== null &&
+      PublicInterface.definesTypeInHeader(
+        CodeGenState.symbolTable,
+        CodeGenState.sourcePath,
+        fullName,
+      )
+    ) {
+      return null;
+    }
+    return fullName;
+  };
+
+  const enums: string[] = [];
+  const bitmaps: string[] = [];
+  const structs: string[] = [];
+
+  for (const member of node.scopeMember()) {
+    const enumDecl = member.enumDeclaration();
+    if (enumDecl) {
+      const name = definedHere(enumDecl);
+      if (name !== null) enums.push(generateEnumHeader(name, typeInput));
+      continue;
+    }
+    const bitmapDecl = member.bitmapDeclaration();
+    if (bitmapDecl) {
+      const name = definedHere(bitmapDecl);
+      if (name !== null) bitmaps.push(generateBitmapHeader(name, typeInput));
+      continue;
+    }
+    const structDecl = member.structDeclaration();
+    if (structDecl) {
+      const name = definedHere(structDecl);
+      if (name !== null) structs.push(generateStructHeader(name, typeInput));
+    }
+  }
+
+  const all = [...enums, ...bitmaps, ...structs];
+  return all.length === 0 ? [] : ["", ...all];
 }
 
 /**
@@ -383,27 +433,6 @@ function processScopeMember(
   const visibility = ScopeUtils.getMemberVisibility(member);
   const isPrivate = visibility === "private";
 
-  // #1300: a scope type is defined in exactly ONE place -- the header, or the
-  // `.c`, never both and never neither. So ask the header what it defines
-  // rather than re-deriving it from visibility here.
-  //
-  // The gate used to be `!state.selfIncludeAdded` -- a FILE-level fact ("does
-  // this file have a header?") answering a PER-SYMBOL question ("where does
-  // this type go?"). Those coincide only while every scope type is public,
-  // which is what let the leak survive. Substituting `!isPrivate` for it is the
-  // same mistake one level down: a private type named by a public signature
-  // MUST be in the header (C needs it complete), and would then be defined
-  // twice.
-  const definedInHeader = (node: {
-    IDENTIFIER(): { getText(): string };
-  }): boolean =>
-    CodeGenState.sourcePath !== null &&
-    PublicInterface.definesTypeInHeader(
-      CodeGenState.symbolTable,
-      CodeGenState.sourcePath,
-      getScopedName(node, declaringScope).fullName,
-    );
-
   // Handle variable declarations
   if (member.variableDeclaration()) {
     const varDecl = member.variableDeclaration()!;
@@ -427,26 +456,6 @@ function processScopeMember(
     );
   }
 
-  // ADR-017: Handle enum declarations inside scopes
-  // Issue #369 / #1300: skip only when the header already defines it.
-  if (member.enumDeclaration() && !definedInHeader(member.enumDeclaration()!)) {
-    const enumDecl = member.enumDeclaration()!;
-    return [
-      "",
-      generateScopedEnumInline(enumDecl, declaringScope, input, orchestrator),
-    ];
-  }
-
-  // ADR-034: Handle bitmap declarations inside scopes
-  // Issue #369 / #1300: skip only when the header already defines it.
-  if (
-    member.bitmapDeclaration() &&
-    !definedInHeader(member.bitmapDeclaration()!)
-  ) {
-    const bitmapDecl = member.bitmapDeclaration()!;
-    return ["", generateScopedBitmapInline(bitmapDecl, declaringScope, input)];
-  }
-
   // Handle register declarations inside scopes
   if (member.registerDeclaration()) {
     const regDecl = member.registerDeclaration()!;
@@ -458,24 +467,6 @@ function processScopeMember(
       orchestrator,
     );
     return ["", result.code];
-  }
-
-  // Handle struct declarations inside scopes
-  // Issue #369 / #1300: skip only when the header already defines it.
-  if (
-    member.structDeclaration() &&
-    !definedInHeader(member.structDeclaration()!)
-  ) {
-    const structDecl = member.structDeclaration()!;
-    return [
-      "",
-      generateScopedStructInline(
-        structDecl,
-        declaringScope,
-        input,
-        orchestrator,
-      ),
-    ];
   }
 
   return [];
@@ -517,6 +508,9 @@ const generateScope: TGeneratorFn<Parser.ScopeDeclarationContext> = (
   const lines: string[] = [];
   lines.push(`/* Scope: ${name} */`);
 
+  // #1300: types first, grouped by kind, before anything that can name them.
+  lines.push(...generateScopeTypeDefinitions(node, declaringScope, input));
+
   for (const member of node.scopeMember()) {
     lines.push(
       ...processScopeMember(member, declaringScope, input, state, orchestrator),
@@ -533,45 +527,6 @@ const generateScope: TGeneratorFn<Parser.ScopeDeclarationContext> = (
     effects: [],
   };
 };
-
-/**
- * Generate enum inside a scope with proper prefixing.
- * Uses symbol info for enum members if available.
- */
-function generateScopedEnumInline(
-  node: Parser.EnumDeclarationContext,
-  declaringScope: IScopeSymbol | null,
-  input: IGeneratorInput,
-  orchestrator: IOrchestrator,
-): string {
-  const { fullName } = getScopedName(node, declaringScope);
-  const lines: string[] = [`typedef enum {`];
-
-  // Try to get members from symbol info first
-  const symbolMembers = input.symbols?.enumMembers.get(fullName);
-  if (symbolMembers) {
-    const memberEntries = Array.from(symbolMembers.entries());
-    for (let i = 0; i < memberEntries.length; i++) {
-      const [memberName, value] = memberEntries[i];
-      // #1285: an enum member is qualified by its ENUM, not by a scope, and
-      // `fullName` is already fully qualified. Joining two qualified names is
-      // `QualifiedCName.fromParts`; routing it through `forMember` was what forced
-      // helper to keep taking plain strings, hiding a scope encoder behind an enum one.
-      const fullMemberName = QualifiedCName.fromParts([fullName, memberName]);
-      const comma = i < memberEntries.length - 1 ? "," : "";
-      lines.push(`    ${fullMemberName} = ${value}${comma}`);
-    }
-  } else {
-    // Fall back to AST parsing
-    lines.push(
-      ...generateEnumMembersFromAST(node.enumMember(), fullName, orchestrator),
-    );
-  }
-
-  lines.push(`} ${fullName};`, "");
-
-  return lines.join("\n");
-}
 
 /**
  * Resolve bitmap backing type from symbols or keyword
@@ -624,87 +579,6 @@ function _generateBitmapFieldCommentsFromAST(
 
   lines.push(" */");
   return lines;
-}
-
-/**
- * Generate bitmap inside a scope with proper prefixing.
- * Uses symbol info for backing type if available.
- */
-function generateScopedBitmapInline(
-  node: Parser.BitmapDeclarationContext,
-  declaringScope: IScopeSymbol | null,
-  input: IGeneratorInput,
-): string {
-  const name = node.IDENTIFIER().getText();
-  const fullName = QualifiedNameGenerator.forMember(declaringScope, name);
-  const backingType = _getBitmapBackingType(fullName, node, input);
-
-  const lines: string[] = [];
-  lines.push(`/* Bitmap: ${fullName} */`);
-
-  // Issue #707: Use shared utility for bitmap field comments
-  const symbolFields = input.symbols?.bitmapFields.get(fullName);
-  if (symbolFields) {
-    lines.push(...BitmapCommentUtils.generateBitmapFieldComments(symbolFields));
-  } else {
-    lines.push(..._generateBitmapFieldCommentsFromAST(node.bitmapMember()));
-  }
-
-  lines.push(`typedef ${backingType} ${fullName};`, "");
-
-  return lines.join("\n");
-}
-
-/**
- * Generate a single struct field declaration for scoped struct.
- */
-function generateScopedStructField(
-  member: Parser.StructMemberContext,
-  orchestrator: IOrchestrator,
-): string {
-  const fieldName = member.IDENTIFIER().getText();
-  const fieldType = orchestrator.generateType(member.type());
-
-  // Handle C-Next style arrayType syntax (u16[8] arr)
-  const arrayTypeCtx = member.type().arrayType?.() ?? null;
-  let dimStr = ArrayDimensionUtils.generateArrayTypeDimension(
-    arrayTypeCtx,
-    orchestrator,
-  );
-
-  // Handle C-style array dimensions if present
-  const arrayDims = member.arrayDimension();
-  if (arrayDims.length > 0) {
-    dimStr += orchestrator.generateArrayDimensions(arrayDims);
-  }
-
-  // Handle string capacity for string fields
-  dimStr += ArrayDimensionUtils.generateStringCapacityDim(member.type());
-
-  return `    ${fieldType} ${fieldName}${dimStr};`;
-}
-
-/**
- * Generate struct inside a scope with proper prefixing.
- * Struct fields maintain their original types.
- */
-function generateScopedStructInline(
-  node: Parser.StructDeclarationContext,
-  declaringScope: IScopeSymbol | null,
-  _input: IGeneratorInput,
-  orchestrator: IOrchestrator,
-): string {
-  const { fullName } = getScopedName(node, declaringScope);
-  const lines: string[] = [`typedef struct ${fullName} {`];
-
-  // Process struct members
-  for (const member of node.structMember()) {
-    lines.push(generateScopedStructField(member, orchestrator));
-  }
-
-  lines.push(`} ${fullName};`, "");
-
-  return lines.join("\n");
 }
 
 export default generateScope;

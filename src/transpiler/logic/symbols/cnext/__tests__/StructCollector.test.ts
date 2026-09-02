@@ -400,4 +400,25 @@ describe("StructCollector", () => {
       expect(symbol.sourceLine).toBe(3);
     });
   });
+
+  // #1300 review: every other test in this file passes "public", so the defect
+  // class this parameter exists for -- a collector reporting a private
+  // declaration as public -- was invisible at the unit level.
+  describe("visibility (#1300)", () => {
+    it("records a private declaration as private", () => {
+      const tree = parse(`
+        struct Hidden {
+          u32 a;
+        }
+      `);
+      const symbol = StructCollector.collect(
+        tree.declaration(0)!.structDeclaration()!,
+        "test.cnx",
+        TestScopeUtils.getGlobalScope(),
+        "private",
+      );
+
+      expect(symbol.visibility).toBe("private");
+    });
+  });
 });
