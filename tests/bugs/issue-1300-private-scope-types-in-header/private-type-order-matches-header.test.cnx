@@ -1,0 +1,36 @@
+// Issue #1300 review: a private struct naming a private enum declared BELOW it.
+//
+// The .c used to emit scope types in scopeMember() source order while the
+// header grouped them by kind, so this forward-referenced and gcc rejected
+// `unknown type name 'Ord__Mode'`. Marking both `public` compiled the identical
+// declarations, because that routed them through the header's emitter -- the
+// asymmetry was the bug, and it only became reachable once private types
+// started being defined in the .c at all.
+//
+// Both files now take their type-definition text from one emitter, so the
+// order cannot diverge again.
+
+scope Ord {
+    private struct Holder {
+        Mode m;
+        u32 v;
+    }
+
+    private enum Mode {
+        OFF,
+        ON
+    }
+
+    public u32 use() {
+        Holder h <- { m: Mode.ON, v: 3 };
+        return h.v;
+    }
+}
+
+i32 main() {
+    u32 got <- Ord.use();
+    if (got != 3) {
+        return 1;
+    }
+    return 0;
+}

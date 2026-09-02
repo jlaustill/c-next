@@ -13,6 +13,7 @@ import TypeResolver from "../../../../../utils/TypeResolver";
 import TypeUtils from "../utils/TypeUtils";
 import DimensionResolver from "../utils/DimensionResolver";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
+import TVisibility from "../../../../types/TVisibility";
 
 /**
  * Result of processing an arrayType syntax context.
@@ -142,6 +143,7 @@ class StructCollector {
     ctx: Parser.StructDeclarationContext,
     sourceFile: string,
     scopePath: string,
+    visibility: TVisibility,
     constValues?: Map<string, number>,
     isScopeType?: (qualifiedName: string) => boolean,
   ): IStructSymbol {
@@ -175,7 +177,7 @@ class StructCollector {
       sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.CNext,
-      isExported: true,
+      visibility,
       fields,
     };
   }

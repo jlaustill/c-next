@@ -52,20 +52,12 @@ class FunctionUtils {
       sourceFile: options.sourceFile,
       sourceLine: options.sourceLine,
       sourceLanguage: ESourceLanguage.CNext,
-      isExported: options.visibility === "public",
     };
   }
 
   // ============================================================================
   // Type Guards and Queries
   // ============================================================================
-
-  /**
-   * Check if function has public visibility.
-   */
-  static isPublic(func: IFunctionSymbol): boolean {
-    return func.visibility === "public";
-  }
 
   /**
    * Check if function is in the global scope.

@@ -2232,7 +2232,6 @@ class Transpiler {
       headerSymbols,
       headerName,
       {
-        exportedOnly: true,
         userIncludes,
         cHeadersIncluded,
         // ADR-040: same flag the .c consults, so exactly one file emits it.

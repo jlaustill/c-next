@@ -452,7 +452,7 @@ class TSymbolInfoAdapter {
     }
 
     // Issue #282: Track private const values for inlining
-    const isPrivate = !variable.isExported;
+    const isPrivate = variable.visibility === "private";
 
     // Issue #500: Only inline SCALAR consts, not arrays - arrays must be emitted
     if (

@@ -32,7 +32,7 @@ describe("TSymbolInfoAdapter", () => {
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         fields: new Map([
           [
@@ -76,7 +76,7 @@ describe("TSymbolInfoAdapter", () => {
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         fields: new Map([
           [
@@ -121,7 +121,7 @@ describe("TSymbolInfoAdapter", () => {
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         fields: new Map([
           [
@@ -167,7 +167,7 @@ describe("TSymbolInfoAdapter", () => {
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         fields: new Map([
           [
@@ -204,7 +204,7 @@ describe("TSymbolInfoAdapter", () => {
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         members: new Map([
           ["Red", 0],
@@ -227,7 +227,7 @@ describe("TSymbolInfoAdapter", () => {
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         members: new Map([
           ["LOW", 0],
@@ -254,7 +254,7 @@ describe("TSymbolInfoAdapter", () => {
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         backingType: "uint8_t",
         bitWidth: 8,
@@ -275,7 +275,7 @@ describe("TSymbolInfoAdapter", () => {
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         backingType: "uint16_t",
         bitWidth: 16,
@@ -301,7 +301,7 @@ describe("TSymbolInfoAdapter", () => {
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         backingType: "uint8_t",
         bitWidth: 8,
@@ -392,7 +392,7 @@ describe("TSymbolInfoAdapter", () => {
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         baseAddress: "0x40000000",
         members: new Map([
@@ -414,7 +414,7 @@ describe("TSymbolInfoAdapter", () => {
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         baseAddress: "0x40001000",
         members: new Map([
@@ -436,7 +436,7 @@ describe("TSymbolInfoAdapter", () => {
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         baseAddress: "0x40002000",
         members: new Map([
@@ -464,7 +464,7 @@ describe("TSymbolInfoAdapter", () => {
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         backingType: "uint8_t",
         bitWidth: 8,
@@ -479,7 +479,7 @@ describe("TSymbolInfoAdapter", () => {
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         baseAddress: "0x40003000",
         members: new Map([
@@ -513,7 +513,7 @@ describe("TSymbolInfoAdapter", () => {
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: false, // private,
+          visibility: "private",
         }),
         type: TypeResolver.resolve("u32"),
         isConst: true,
@@ -539,7 +539,7 @@ describe("TSymbolInfoAdapter", () => {
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true, // public,
+          visibility: "public",
         }),
         type: TypeResolver.resolve("u32"),
         isConst: true,
@@ -566,7 +566,7 @@ describe("TSymbolInfoAdapter", () => {
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: false,
+          visibility: "private",
         }),
         type: TypeResolver.resolve("u32"),
         isConst: false, // not const
@@ -591,7 +591,7 @@ describe("TSymbolInfoAdapter", () => {
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: false,
+          visibility: "private",
         }),
         type: TypeResolver.resolve("u16"),
         isConst: true,
@@ -621,7 +621,7 @@ describe("TSymbolInfoAdapter", () => {
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: false,
+          visibility: "private",
         }),
         type: TypeResolver.resolve("u8"),
         isConst: true,
@@ -726,7 +726,7 @@ describe("TSymbolInfoAdapter", () => {
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         fields: new Map([
           [
@@ -774,7 +774,7 @@ describe("TSymbolInfoAdapter", () => {
             sourceFile: "test.cnx",
             sourceLine: 1,
             sourceLanguage: ESourceLanguage.CNext,
-            isExported: true,
+            visibility: "public",
           }),
           fields: new Map([
             [
@@ -799,7 +799,7 @@ describe("TSymbolInfoAdapter", () => {
             sourceFile: "test.cnx",
             sourceLine: 5,
             sourceLanguage: ESourceLanguage.CNext,
-            isExported: true,
+            visibility: "public",
           }),
           members: new Map([
             ["Red", 0],
@@ -815,7 +815,7 @@ describe("TSymbolInfoAdapter", () => {
             sourceFile: "test.cnx",
             sourceLine: 15,
             sourceLanguage: ESourceLanguage.CNext,
-            isExported: true,
+            visibility: "public",
           }),
           body: null,
           returnType: TypeResolver.resolve("void"),
@@ -855,7 +855,7 @@ describe("TSymbolInfoAdapter", () => {
         sourceFile: "lib.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        visibility: "public",
       }),
       backingType: "uint8_t",
       bitWidth: 8,
@@ -930,7 +930,7 @@ describe("TSymbolInfoAdapter", () => {
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         type: TypeResolver.resolve("u8"),
         isConst: false,

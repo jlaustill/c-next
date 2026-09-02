@@ -1,0 +1,37 @@
+// Issue #1300 review: ADR-029 callback field in a PRIVATE scope struct.
+//
+// The .c's own struct emitter had no callback-typedef resolution, so a
+// function-typed field came out as the bare function name -- `onTick cb;`,
+// which gcc rejects with "expected specifier-qualifier-list". The header
+// emitted `onTick_fp cb;` correctly, so the defect was reachable only once
+// private structs started being defined in the .c.
+//
+// Negative control: the public twin below it must still reach the header with
+// the same typedef, so this fails if the two files diverge in either direction.
+
+void onTick(u32 v) {}
+
+scope Sched {
+    private struct PrivHolder {
+        onTick cb;
+        u32 n;
+    }
+
+    public struct PubHolder {
+        onTick cb;
+        u32 n;
+    }
+
+    public u32 countPrivate() {
+        PrivHolder p <- { cb: onTick, n: 2 };
+        return p.n;
+    }
+}
+
+i32 main() {
+    u32 got <- Sched.countPrivate();
+    if (got != 2) {
+        return 1;
+    }
+    return 0;
+}

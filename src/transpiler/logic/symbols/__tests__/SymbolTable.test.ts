@@ -16,6 +16,7 @@ import TTypeUtils from "../../../../utils/TTypeUtils";
 import TCSymbol from "../../../types/symbols/c/TCSymbol";
 import TCppSymbol from "../../../types/symbols/cpp/TCppSymbol";
 import TestSymbolUtils from "../cnext/__tests__/testSymbolUtils";
+import TVisibility from "../../../types/TVisibility";
 
 describe("SymbolTable", () => {
   let symbolTable: SymbolTable;
@@ -38,7 +39,7 @@ describe("SymbolTable", () => {
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         type: TTypeUtils.createPrimitive("u32"),
         isArray: false,
@@ -70,7 +71,7 @@ describe("SymbolTable", () => {
           sourceFile: "first.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         type: TTypeUtils.createPrimitive("u32"),
         isArray: false,
@@ -88,7 +89,7 @@ describe("SymbolTable", () => {
           sourceFile: "second.cnx",
           sourceLine: 5,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         type: TTypeUtils.createPrimitive("u32"),
         isArray: false,
@@ -114,7 +115,7 @@ describe("SymbolTable", () => {
             sourceFile: "test.cnx",
             sourceLine: 1,
             sourceLanguage: ESourceLanguage.CNext,
-            isExported: true,
+            visibility: "public",
           }),
           type: TTypeUtils.createPrimitive("u32"),
           isArray: false,
@@ -131,7 +132,7 @@ describe("SymbolTable", () => {
             sourceFile: "test.cnx",
             sourceLine: 2,
             sourceLanguage: ESourceLanguage.CNext,
-            isExported: true,
+            visibility: "public",
           }),
           type: TTypeUtils.createPrimitive("i32"),
           isArray: false,
@@ -217,7 +218,7 @@ describe("SymbolTable", () => {
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         type: TTypeUtils.createPrimitive("u32"),
         isArray: false,
@@ -262,7 +263,7 @@ describe("SymbolTable", () => {
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         returnType: TTypeUtils.createPrimitive("void"),
         parameters: [],
@@ -302,7 +303,7 @@ describe("SymbolTable", () => {
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         returnType: TTypeUtils.createPrimitive("void"),
         parameters: [],
@@ -399,7 +400,7 @@ describe("SymbolTable", () => {
             sourceFile: "test.cnx",
             sourceLine: line,
             sourceLanguage: ESourceLanguage.CNext,
-            isExported: true,
+            visibility: "public",
           }),
           members: [],
         } as unknown as TSymbol);
@@ -421,7 +422,7 @@ describe("SymbolTable", () => {
             sourceFile: "test.cnx",
             sourceLine: line,
             sourceLanguage: ESourceLanguage.CNext,
-            isExported: true,
+            visibility: "public",
           }),
           type: TTypeUtils.createPrimitive("u32"),
           isArray: false,
@@ -448,7 +449,7 @@ describe("SymbolTable", () => {
           sourceFile: "test.cnx",
           sourceLine: 2,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: false,
+          visibility: "private",
         }),
         type: TTypeUtils.createPrimitive("bool"),
         isArray: false,
@@ -467,7 +468,7 @@ describe("SymbolTable", () => {
           sourceFile: "test.cnx",
           sourceLine: 10,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: false,
+          visibility: "private",
         }),
         type: TTypeUtils.createPrimitive("bool"),
         isArray: false,
@@ -492,7 +493,7 @@ describe("SymbolTable", () => {
           sourceFile: "test.cnx",
           sourceLine: 4,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         returnType: TTypeUtils.createPrimitive("void"),
         parameters: [],
@@ -509,7 +510,7 @@ describe("SymbolTable", () => {
           sourceFile: "test.cnx",
           sourceLine: 12,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         returnType: TTypeUtils.createPrimitive("void"),
         parameters: [],
@@ -532,7 +533,7 @@ describe("SymbolTable", () => {
           sourceFile: "test.cnx",
           sourceLine: 2,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: false,
+          visibility: "private",
         }),
         type: TTypeUtils.createPrimitive("bool"),
         isArray: false,
@@ -550,7 +551,7 @@ describe("SymbolTable", () => {
           sourceFile: "test.cnx",
           sourceLine: 5,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: false,
+          visibility: "private",
         }),
         type: TTypeUtils.createPrimitive("bool"),
         isArray: false,
@@ -586,7 +587,7 @@ describe("SymbolTable", () => {
             scopePath,
             sourceFile: "test.cnx",
             sourceLine: line,
-            isExported: false,
+            visibility: "private",
           }),
           type: TTypeUtils.createPrimitive("u32"),
           isArray: false,
@@ -614,7 +615,7 @@ describe("SymbolTable", () => {
             scopePath: "Outer.Inner",
             sourceFile: "test.cnx",
             sourceLine: line,
-            isExported: false,
+            visibility: "private",
           }),
           type: TTypeUtils.createPrimitive("u32"),
           isArray: false,
@@ -644,7 +645,7 @@ describe("SymbolTable", () => {
           sourceFile: "first.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         type: TTypeUtils.createPrimitive("u32"),
         isArray: false,
@@ -662,7 +663,7 @@ describe("SymbolTable", () => {
           sourceFile: "second.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         type: TTypeUtils.createPrimitive("u32"),
         isArray: false,
@@ -689,7 +690,7 @@ describe("SymbolTable", () => {
           sourceFile: "touch.cnx",
           sourceLine: 28,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         returnType: TTypeUtils.createPrimitive("u8"),
         parameters: [],
@@ -729,7 +730,7 @@ describe("SymbolTable", () => {
           sourceFile: "utils.cnx",
           sourceLine: 5,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         returnType: TTypeUtils.createPrimitive("u8"),
         parameters: [],
@@ -768,7 +769,7 @@ describe("SymbolTable", () => {
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         fields: new Map(),
       } as IStructSymbol);
@@ -781,7 +782,7 @@ describe("SymbolTable", () => {
           sourceFile: "test.cnx",
           sourceLine: 2,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         type: TTypeUtils.createPrimitive("u32"),
         isArray: false,
@@ -805,7 +806,7 @@ describe("SymbolTable", () => {
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         members: new Map([["VALUE1", 0]]),
       } as IEnumSymbol);
@@ -824,7 +825,7 @@ describe("SymbolTable", () => {
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         returnType: TTypeUtils.createPrimitive("void"),
         parameters: [],
@@ -1189,7 +1190,7 @@ describe("SymbolTable", () => {
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         type: TTypeUtils.createPrimitive("u32"),
         isArray: false,
@@ -1235,7 +1236,7 @@ describe("SymbolTable", () => {
     function scopeVariable(
       name: string,
       line: number,
-      isExported = true,
+      visibility: TVisibility = "public",
       scopeName = LONG_SCOPE,
     ): IVariableSymbol {
       return {
@@ -1245,7 +1246,7 @@ describe("SymbolTable", () => {
           scopePath: scopeName,
           sourceFile: "sensor.cnx",
           sourceLine: line,
-          isExported,
+          visibility,
         }),
         type: TTypeUtils.createPrimitive("u8"),
         isArray: false,
@@ -1361,8 +1362,12 @@ describe("SymbolTable", () => {
       // ADR-016 emits `private` as `static`. Internal linkage gets 63
       // significant characters under a different rule, not 31 under 5.1.
       const table = new SymbolTable();
-      table.addTSymbol(scopeVariable("shadowRegisterMirrorAlpha", 2, false));
-      table.addTSymbol(scopeVariable("shadowRegisterMirrorOmega", 3, false));
+      table.addTSymbol(
+        scopeVariable("shadowRegisterMirrorAlpha", 2, "private"),
+      );
+      table.addTSymbol(
+        scopeVariable("shadowRegisterMirrorOmega", 3, "private"),
+      );
 
       expect(table.detectMISRA51Conflicts(targetCaps)).toHaveLength(0);
     });

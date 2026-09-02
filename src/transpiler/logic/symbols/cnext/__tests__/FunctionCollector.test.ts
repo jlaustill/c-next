@@ -36,7 +36,7 @@ describe("FunctionCollector", () => {
       expect(symbol.sourceFile).toBe("test.cnx");
       expect(symbol.sourceLanguage).toBe(ESourceLanguage.CNext);
       expect(symbol.visibility).toBe("private");
-      expect(symbol.isExported).toBe(false);
+      expect(symbol.visibility).toBe("private");
       expect(symbol.scopePath).toBe("");
     });
 
@@ -207,7 +207,6 @@ describe("FunctionCollector", () => {
       );
 
       expect(symbol.visibility).toBe("public");
-      expect(symbol.isExported).toBe(true);
     });
 
     it("marks private functions as not exported", () => {
@@ -227,7 +226,6 @@ describe("FunctionCollector", () => {
       );
 
       expect(symbol.visibility).toBe("private");
-      expect(symbol.isExported).toBe(false);
     });
   });
 

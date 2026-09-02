@@ -183,7 +183,7 @@ function convertFunction(
     id: func.cnxScopedName,
     parentId: getParentId(func.scopePath),
     signature,
-    accessModifier: func.isExported ? "public" : "private",
+    accessModifier: func.visibility,
     line: func.sourceLine,
   });
 

@@ -5,9 +5,6 @@ interface IHeaderOptions {
   /** Include system headers in the output */
   includeSystemHeaders?: boolean;
 
-  /** Only generate declarations for exported symbols */
-  exportedOnly?: boolean;
-
   /**
    * Issue #424: User-provided includes from the source file.
    * These will be added to the generated header if any extern declarations

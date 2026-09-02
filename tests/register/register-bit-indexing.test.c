@@ -3,8 +3,6 @@
  * A safer C for embedded systems
  */
 
-#include "register-bit-indexing.test.h"
-
 #include <stdint.h>
 #include <stdbool.h>
 

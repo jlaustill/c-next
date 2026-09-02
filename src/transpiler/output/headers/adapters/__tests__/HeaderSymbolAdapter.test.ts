@@ -30,7 +30,7 @@ describe("HeaderSymbolAdapter", () => {
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         type: TTypeUtils.createPrimitive("u32"),
         isConst: false,
@@ -45,7 +45,6 @@ describe("HeaderSymbolAdapter", () => {
       expect(result.name).toBe("counter");
       expect(result.kind).toBe("variable");
       expect(result.type).toBe("u32");
-      expect(result.isExported).toBe(true);
       expect(result.parent).toBeUndefined();
     });
 
@@ -58,7 +57,7 @@ describe("HeaderSymbolAdapter", () => {
           sourceFile: "motor.cnx",
           sourceLine: 5,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         type: TTypeUtils.createPrimitive("f32"),
         isConst: false,
@@ -85,7 +84,7 @@ describe("HeaderSymbolAdapter", () => {
           sourceFile: "data.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         type: TTypeUtils.createPrimitive("u8"),
         isConst: false,
@@ -111,7 +110,7 @@ describe("HeaderSymbolAdapter", () => {
           sourceFile: "config.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         type: TTypeUtils.createPrimitive("u32"),
         isConst: true,
@@ -137,7 +136,7 @@ describe("HeaderSymbolAdapter", () => {
           sourceFile: "main.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         parameters: [],
         returnType: TTypeUtils.createPrimitive("void"),
@@ -163,7 +162,7 @@ describe("HeaderSymbolAdapter", () => {
           sourceFile: "motor.cnx",
           sourceLine: 10,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         parameters: [
           {
@@ -198,7 +197,7 @@ describe("HeaderSymbolAdapter", () => {
           sourceFile: "process.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         parameters: [
           {
@@ -232,7 +231,7 @@ describe("HeaderSymbolAdapter", () => {
           sourceFile: "geometry.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         fields: new Map([
           [
@@ -254,7 +253,6 @@ describe("HeaderSymbolAdapter", () => {
 
       expect(result.name).toBe("Point");
       expect(result.kind).toBe("struct");
-      expect(result.isExported).toBe(true);
       expect(result.parent).toBeUndefined();
     });
 
@@ -267,7 +265,7 @@ describe("HeaderSymbolAdapter", () => {
           sourceFile: "geometry.cnx",
           sourceLine: 10,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         fields: new Map(),
       };
@@ -289,7 +287,7 @@ describe("HeaderSymbolAdapter", () => {
           sourceFile: "colors.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         members: new Map([
           ["RED", 0],
@@ -302,7 +300,6 @@ describe("HeaderSymbolAdapter", () => {
 
       expect(result.name).toBe("EColor");
       expect(result.kind).toBe("enum");
-      expect(result.isExported).toBe(true);
     });
 
     it("should convert scoped enum with transpiled C name", () => {
@@ -314,7 +311,7 @@ describe("HeaderSymbolAdapter", () => {
           sourceFile: "motor.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         members: new Map([
           ["OFF", 0],
@@ -339,7 +336,7 @@ describe("HeaderSymbolAdapter", () => {
           sourceFile: "flags.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         backingType: "u8",
         bitWidth: 8,
@@ -354,7 +351,6 @@ describe("HeaderSymbolAdapter", () => {
       expect(result.name).toBe("Flags");
       expect(result.kind).toBe("bitmap");
       expect(result.type).toBe("u8");
-      expect(result.isExported).toBe(true);
     });
 
     it("should convert scoped bitmap with transpiled C name", () => {
@@ -366,7 +362,7 @@ describe("HeaderSymbolAdapter", () => {
           sourceFile: "motor.cnx",
           sourceLine: 5,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         backingType: "u16",
         bitWidth: 16,
@@ -391,7 +387,7 @@ describe("HeaderSymbolAdapter", () => {
           sourceFile: "gpio.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         baseAddress: "0x40000000",
         members: new Map([
@@ -404,7 +400,6 @@ describe("HeaderSymbolAdapter", () => {
 
       expect(result.name).toBe("GPIO");
       expect(result.kind).toBe("register");
-      expect(result.isExported).toBe(true);
     });
 
     it("should convert scoped register with transpiled C name", () => {
@@ -416,7 +411,7 @@ describe("HeaderSymbolAdapter", () => {
           sourceFile: "motor.cnx",
           sourceLine: 20,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         baseAddress: "0x50000000",
         members: new Map(),
@@ -439,7 +434,7 @@ describe("HeaderSymbolAdapter", () => {
           sourceFile: "motor.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         members: ["init", "setSpeed"],
         functions: [],
@@ -452,7 +447,6 @@ describe("HeaderSymbolAdapter", () => {
 
       expect(result.name).toBe("Motor");
       expect(result.kind).toBe("scope");
-      expect(result.isExported).toBe(true);
       // #1298 DoD: a top-level scope has no container, so `parent` is absent --
       // as opposed to being omitted whatever the scope's position, which is what
       // this converter used to do for every scope alike.
@@ -471,7 +465,7 @@ describe("HeaderSymbolAdapter", () => {
           sourceFile: "motor.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         members: [],
         functions: [],
@@ -544,7 +538,7 @@ describe("HeaderSymbolAdapter", () => {
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         type: TTypeUtils.createPrimitive("u8"),
         isConst: false,
@@ -569,7 +563,7 @@ describe("HeaderSymbolAdapter", () => {
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         type: TTypeUtils.createPrimitive("u8"),
         isConst: true,
@@ -602,7 +596,7 @@ describe("HeaderSymbolAdapter", () => {
         }),
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
-        isExported: true,
+        visibility: "public",
         type: TTypeUtils.createPrimitive("u8"),
         isConst: false,
         isAtomic: false,
@@ -657,7 +651,7 @@ describe("HeaderSymbolAdapter", () => {
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         parameters: [
           {

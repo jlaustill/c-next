@@ -56,6 +56,133 @@ describe("Header emission decision (#1161, #1164)", () => {
     };
   }
 
+  describe("#1300: visibility decides WHERE a type is defined, not whether", () => {
+    // ADR-016 makes a scope-declared type private by default. Four collectors
+    // hardcoded an exported flag, so every private struct, enum and bitmap was
+    // emitted into the public header -- an ABI leak: downstream C could
+    // construct a type the author declared internal.
+    it("keeps private struct/enum/bitmap out of the header, keeps the public twins in", async () => {
+      const { headerCode } = await transpileSource(`
+scope S {
+    private struct Hidden { u32 a; }
+    public struct Shown { u32 b; }
+    private enum HiddenMode { OFF, ON }
+    public enum ShownMode { LOW, HIGH }
+    public u32 use() {
+        Hidden h <- {a: 1};
+        HiddenMode m <- HiddenMode.ON;
+        if (m = HiddenMode.ON) { return h.a; }
+        return 0;
+    }
+}
+`);
+      expect(headerCode).not.toContain("S__Hidden ");
+      expect(headerCode).not.toContain("S__HiddenMode");
+      // Negative control: over-suppression is as wrong as under-suppression.
+      expect(headerCode).toContain("S__Shown");
+      expect(headerCode).toContain("S__ShownMode");
+    });
+
+    // The other half of the same decision. A private type that leaves the
+    // header must be defined in the `.c`, or the `.c` no longer compiles --
+    // the definition lived ONLY in the header before this fix.
+    it("defines the private type in the .c, exactly once, and not the public one", async () => {
+      const { code, headerCode } = await transpileSource(`
+scope S {
+    private struct Hidden { u32 a; }
+    public struct Shown { u32 b; }
+    public u32 use() {
+        Hidden h <- {a: 1};
+        return h.a;
+    }
+}
+`);
+      expect(code.match(/typedef struct S__Hidden/g)).toHaveLength(1);
+      // A public type is defined by the header the .c includes. Defining it
+      // here too is a C redefinition error, which is what happens if the two
+      // placements are decided independently instead of as complements.
+      expect(code).not.toContain("typedef struct S__Shown");
+      expect(headerCode).toContain("typedef struct S__Shown");
+    });
+
+    // Not a privacy exception: C needs a COMPLETE type wherever a value of it
+    // is returned, so a private type named by a public signature has to be in
+    // the header or no caller compiles. C-Next still rejects `S.Hidden` from
+    // outside, so the type remains unnameable -- only complete.
+    it("promotes a private type named by a public signature, and then does NOT define it in the .c", async () => {
+      const { code, headerCode } = await transpileSource(`
+scope S {
+    private struct Hidden { u32 a; }
+    public Hidden expose() {
+        Hidden h <- {a: 1};
+        return h;
+    }
+}
+`);
+      expect(headerCode).toContain("typedef struct S__Hidden");
+      expect(code).not.toContain("typedef struct S__Hidden");
+    });
+
+    // The worklist re-push is the only reason the closure is transitive. A
+    // 1-hop promotion passes even if the loop is a single pass, so this walks
+    // TWO hops: public signature -> private Outer -> Outer's field names
+    // private Inner. A missing hop emits a header defining Outer with an
+    // undeclared member type, which is the exact failure this closure exists
+    // to prevent.
+    it("promotes a private type reached only through ANOTHER private type (2 hops)", async () => {
+      const { code, headerCode } = await transpileSource(`
+scope S {
+    private struct Inner { u32 deep; }
+    private struct Outer { Inner i; u32 v; }
+    public Outer make() {
+        Outer o <- {i: {deep: 1}, v: 2};
+        return o;
+    }
+}
+`);
+      expect(headerCode).toContain("typedef struct S__Outer");
+      expect(headerCode).toContain("typedef struct S__Inner");
+      // Inner must precede Outer, or the header does not compile.
+      expect(headerCode!.indexOf("} S__Inner;")).toBeLessThan(
+        headerCode!.indexOf("} S__Outer;"),
+      );
+      // And neither is defined twice.
+      expect(code).not.toContain("typedef struct S__Inner");
+      expect(code).not.toContain("typedef struct S__Outer");
+    });
+
+    // An array dimension crosses the header boundary as a VALUE, not a type:
+    // `extern u8 v[S__State__COUNT]` needs the enum even though no declaration
+    // names `S__State`. Walking types alone left four corpus headers
+    // referencing an undeclared constant.
+    it("promotes a private enum that a public variable names only as an array dimension", async () => {
+      const { headerCode } = await transpileSource(`
+scope S {
+    enum State { IDLE, RUN, COUNT }
+    public u8[State.COUNT] table;
+}
+`);
+      expect(headerCode).toContain("S__State__COUNT");
+      expect(headerCode).toContain("} S__State;");
+    });
+
+    // A register never reaches the header in either case, so its visibility is
+    // observable only here: it decides whether the file has a public interface
+    // at all. Before the fix this wrote a header holding nothing but include
+    // guards, which the .c then included.
+    it("writes no header for a file whose only scope member is a private register", async () => {
+      const { code, headerCode } = await transpileSource(`
+scope S {
+    private register R @ 0x40000000 {
+        DR: u32 rw @ 0x00,
+    }
+}
+`);
+      expect(headerCode).toBeUndefined();
+      expect(code).not.toContain('#include "sample.h"');
+    });
+  });
+
   describe("#1161: top-level functions are public (ADR-016)", () => {
     it("emits a prototype for a top-level function taking a struct", async () => {
       const { headerCode } = await transpileSource(`

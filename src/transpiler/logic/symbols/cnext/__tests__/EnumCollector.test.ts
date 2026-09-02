@@ -20,13 +20,13 @@ describe("EnumCollector", () => {
       `;
       const tree = parse(code);
       const enumCtx = tree.declaration(0)!.enumDeclaration()!;
-      const symbol = EnumCollector.collect(enumCtx, "test.cnx", "");
+      const symbol = EnumCollector.collect(enumCtx, "test.cnx", "", "public");
 
       expect(symbol.kind).toBe("enum");
       expect(symbol.name).toBe("Color");
       expect(symbol.sourceFile).toBe("test.cnx");
       expect(symbol.sourceLanguage).toBe(ESourceLanguage.CNext);
-      expect(symbol.isExported).toBe(true);
+      expect(symbol.visibility).toBe("public");
       expect(symbol.scopePath).toBe("");
 
       // Check members
@@ -46,7 +46,7 @@ describe("EnumCollector", () => {
       `;
       const tree = parse(code);
       const enumCtx = tree.declaration(0)!.enumDeclaration()!;
-      const symbol = EnumCollector.collect(enumCtx, "test.cnx", "");
+      const symbol = EnumCollector.collect(enumCtx, "test.cnx", "", "public");
 
       expect(symbol.members.get("Low")).toBe(10);
       expect(symbol.members.get("Medium")).toBe(20);
@@ -65,7 +65,7 @@ describe("EnumCollector", () => {
       `;
       const tree = parse(code);
       const enumCtx = tree.declaration(0)!.enumDeclaration()!;
-      const symbol = EnumCollector.collect(enumCtx, "test.cnx", "");
+      const symbol = EnumCollector.collect(enumCtx, "test.cnx", "", "public");
 
       expect(symbol.members.get("Idle")).toBe(0);
       expect(symbol.members.get("Running")).toBe(5);
@@ -86,7 +86,7 @@ describe("EnumCollector", () => {
       `;
       const tree = parse(code);
       const enumCtx = tree.declaration(0)!.enumDeclaration()!;
-      const symbol = EnumCollector.collect(enumCtx, "test.cnx", "");
+      const symbol = EnumCollector.collect(enumCtx, "test.cnx", "", "public");
 
       expect(symbol.members.get("A")).toBe(1);
       expect(symbol.members.get("B")).toBe(2);
@@ -104,7 +104,7 @@ describe("EnumCollector", () => {
       `;
       const tree = parse(code);
       const enumCtx = tree.declaration(0)!.enumDeclaration()!;
-      const symbol = EnumCollector.collect(enumCtx, "test.cnx", "");
+      const symbol = EnumCollector.collect(enumCtx, "test.cnx", "", "public");
 
       expect(symbol.members.get("Bit0")).toBe(1);
       expect(symbol.members.get("Bit1")).toBe(2);
@@ -123,7 +123,12 @@ describe("EnumCollector", () => {
       `;
       const tree = parse(code);
       const enumCtx = tree.declaration(0)!.enumDeclaration()!;
-      const symbol = EnumCollector.collect(enumCtx, "motor.cnx", "Motor");
+      const symbol = EnumCollector.collect(
+        enumCtx,
+        "motor.cnx",
+        "Motor",
+        "public",
+      );
 
       expect(symbol.name).toBe("State");
       expect(symbol.scopePath).toBe("Motor");
@@ -141,7 +146,9 @@ describe("EnumCollector", () => {
       const tree = parse(code);
       const enumCtx = tree.declaration(0)!.enumDeclaration()!;
 
-      expect(() => EnumCollector.collect(enumCtx, "test.cnx", "")).toThrow(
+      expect(() =>
+        EnumCollector.collect(enumCtx, "test.cnx", "", "public"),
+      ).toThrow(
         "Error: Negative values not allowed in enum (found -1 in Invalid.Bad)",
       );
     });
@@ -157,9 +164,31 @@ describe("EnumCollector", () => {
       `;
       const tree = parse(code);
       const enumCtx = tree.declaration(0)!.enumDeclaration()!;
-      const symbol = EnumCollector.collect(enumCtx, "test.cnx", "");
+      const symbol = EnumCollector.collect(enumCtx, "test.cnx", "", "public");
 
       expect(symbol.sourceLine).toBe(3);
+    });
+  });
+
+  // #1300 review: every other test in this file passes "public", so the defect
+  // class this parameter exists for -- a collector reporting a private
+  // declaration as public -- was invisible at the unit level.
+  describe("visibility (#1300)", () => {
+    it("records a private declaration as private", () => {
+      const tree = parse(`
+        enum Hidden {
+          A,
+          B
+        }
+      `);
+      const symbol = EnumCollector.collect(
+        tree.declaration(0)!.enumDeclaration()!,
+        "test.cnx",
+        "",
+        "private",
+      );
+
+      expect(symbol.visibility).toBe("private");
     });
   });
 });

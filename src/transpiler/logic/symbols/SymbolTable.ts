@@ -978,7 +978,7 @@ class SymbolTable {
     if (symbol.kind !== "variable" && symbol.kind !== "function") {
       return false;
     }
-    return symbol.isExported;
+    return symbol.visibility === "public";
   }
 
   /**

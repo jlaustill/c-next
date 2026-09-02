@@ -64,7 +64,7 @@ class ScopeCollector {
       sourceFile: string;
       sourceLine: number;
       sourceLanguage: ESourceLanguage;
-      isExported: boolean;
+      visibility: TVisibility;
       declarationSites: Set<string>;
     };
 
@@ -94,7 +94,9 @@ class ScopeCollector {
       mutableScope.sourceLine = line;
     }
     mutableScope.sourceLanguage = ESourceLanguage.CNext;
-    mutableScope.isExported = true;
+    // A scope is a container, not a declaration -- it is never marked private,
+    // and `PublicInterface` excludes kind "scope" from the header regardless.
+    mutableScope.visibility = "public";
 
     // Cast readonly collections to mutable (scope is being populated)
     const memberVisibility = scope.memberVisibility as unknown as Map<
@@ -126,15 +128,7 @@ class ScopeCollector {
     };
 
     for (const member of ctx.scopeMember()) {
-      // ADR-016: Extract visibility with member-type-aware defaults
-      const visibilityMod = member.visibilityModifier();
-      const explicitVisibility = visibilityMod?.getText() as
-        | TVisibility
-        | undefined;
-      const isFunction = member.functionDeclaration() !== null;
-      const visibility: TVisibility =
-        explicitVisibility ?? ScopeUtils.getDefaultVisibility(isFunction);
-      const isPublic = visibility === "public";
+      const visibility = ScopeUtils.getMemberVisibility(member);
 
       // Handle variable declarations
       if (member.variableDeclaration()) {
@@ -147,7 +141,7 @@ class ScopeCollector {
           varDecl,
           sourceFile,
           scopePath,
-          isPublic,
+          visibility,
           constValues,
           isScopeType,
         );
@@ -185,6 +179,7 @@ class ScopeCollector {
           enumDecl,
           sourceFile,
           scopePath,
+          visibility,
         );
         memberSymbols.push(enumSymbol);
       }
@@ -200,6 +195,7 @@ class ScopeCollector {
           bitmapDecl,
           sourceFile,
           scopePath,
+          visibility,
         );
         memberSymbols.push(bitmapSymbol);
       }
@@ -215,6 +211,7 @@ class ScopeCollector {
           structDecl,
           sourceFile,
           scopePath,
+          visibility,
           constValues,
           isScopeType,
         );
@@ -233,6 +230,7 @@ class ScopeCollector {
           sourceFile,
           knownBitmaps,
           scopePath,
+          visibility,
           isScopeType,
         );
         memberSymbols.push(regSymbol);

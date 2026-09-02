@@ -18,14 +18,6 @@ typedef enum {
     GlobalMode__GLOBAL_FIRST = 7,
     GlobalMode__GLOBAL_SECOND = 8
 } GlobalMode;
-typedef enum {
-    S__Mode__ALPHA = 5,
-    S__Mode__BETA = 6
-} S__Mode;
-typedef enum {
-    S__Zeroed__ZERO = 0,
-    S__Zeroed__HIGH = 9
-} S__Zeroed;
 
 /* External variables */
 extern GlobalMode globalControl;
