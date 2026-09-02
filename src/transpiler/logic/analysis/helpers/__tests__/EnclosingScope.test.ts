@@ -17,23 +17,23 @@ describe("EnclosingScope", () => {
   });
 
   describe("current", () => {
-    it("is null at file scope", () => {
-      expect(new EnclosingScope().current()).toBeNull();
+    it("is the empty path at file scope", () => {
+      expect(new EnclosingScope().current()).toBe("");
     });
 
     it("reports the open scope at depth one", () => {
       const enclosing = new EnclosingScope();
       enclosing.enter("Motor");
 
-      expect(enclosing.current()?.name).toBe("Motor");
+      expect(enclosing.current()).toBe("Motor");
     });
 
-    it("returns to null after the scope closes", () => {
+    it("returns to the empty path after the scope closes", () => {
       const enclosing = new EnclosingScope();
       enclosing.enter("Motor");
       enclosing.exit();
 
-      expect(enclosing.current()).toBeNull();
+      expect(enclosing.current()).toBe("");
     });
 
     it("keeps the outer component at depth two", () => {
@@ -41,9 +41,7 @@ describe("EnclosingScope", () => {
       enclosing.enter("Outer");
       enclosing.enter("Inner");
 
-      const scope = enclosing.current()!;
-      expect(scope.name).toBe("Inner");
-      expect(ScopeUtils.getScopePath(scope)).toEqual(["Outer", "Inner"]);
+      expect(enclosing.current()).toBe("Outer.Inner");
     });
 
     it("qualifies a member with every enclosing component", () => {
@@ -83,35 +81,26 @@ describe("EnclosingScope", () => {
   });
 
   describe("child", () => {
-    it("treats a null parent as file scope", () => {
-      expect(
-        ScopeUtils.getScopePath(EnclosingScope.child(null, "Motor")),
-      ).toEqual(["Motor"]);
-    });
-
-    it("treats the global scope as no prefix", () => {
-      const child = EnclosingScope.child(
-        SymbolRegistry.getGlobalScope(),
-        "Motor",
-      );
-
-      expect(ScopeUtils.getScopePath(child)).toEqual(["Motor"]);
+    it("treats the empty parent path as file scope", () => {
+      expect(EnclosingScope.child("", "Motor")).toBe("Motor");
     });
 
     it("prefixes the parent's whole chain, not its leaf", () => {
-      const outer = EnclosingScope.child(null, "Outer");
+      const outer = EnclosingScope.child("", "Outer");
       const inner = EnclosingScope.child(outer, "Inner");
 
-      expect(
-        ScopeUtils.getScopePath(EnclosingScope.child(inner, "Deep")),
-      ).toEqual(["Outer", "Inner", "Deep"]);
+      expect(EnclosingScope.child(inner, "Deep")).toBe("Outer.Inner.Deep");
     });
 
-    it("returns the same scope object for the same path", () => {
-      const first = EnclosingScope.child(null, "Motor");
-      const second = EnclosingScope.child(null, "Motor");
+    it("returns the same path for the same nesting", () => {
+      const first = EnclosingScope.child("", "Motor");
+      const second = EnclosingScope.child("", "Motor");
 
-      // Repeat-safe: this is how a scope spanned across two files merges (#1333).
+      // #1298: this used to assert the same scope OBJECT came back, which was a
+      // property of `getOrCreateScope` caching rather than of this function.
+      // Descending is now a pure string operation, so equality is the whole
+      // claim -- and scope merging across files (#1333) stays a registry
+      // property, tested where the registry is.
       expect(second).toBe(first);
     });
 
@@ -121,7 +110,7 @@ describe("EnclosingScope", () => {
       enclosing.enter("Inner");
 
       const viaChild = EnclosingScope.child(
-        EnclosingScope.child(null, "Outer"),
+        EnclosingScope.child("", "Outer"),
         "Inner",
       );
 

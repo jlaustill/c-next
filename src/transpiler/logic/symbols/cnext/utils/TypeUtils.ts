@@ -4,7 +4,6 @@
 
 import * as Parser from "../../../parser/grammar/CNextParser";
 import CNEXT_TO_C_TYPE_MAP from "../../../../../utils/constants/TypeMappings";
-import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 import TypeBinding from "../../TypeBinding";
 
 /**
@@ -17,7 +16,8 @@ class TypeUtils {
    * and simple types.
    *
    * @param ctx The type context (may be null)
-   * @param scope Optional current scope for this.Type resolution
+   * @param scopePath Enclosing scope path for this.Type resolution ("" at file
+   *                  scope)
    * @param isScopeType ADR-057: predicate answering whether a *qualified* name
    *                    is a type declared in the current scope. Omit at call
    *                    sites that have no scope context.
@@ -25,7 +25,7 @@ class TypeUtils {
    */
   static getTypeName(
     ctx: Parser.TypeContext | null,
-    scope?: IScopeSymbol,
+    scopePath = "",
     isScopeType?: (qualifiedName: string) => boolean,
   ): string {
     if (!ctx) return "void";
@@ -35,7 +35,7 @@ class TypeUtils {
     // DIFFERENT fallback (bracket-stripped text) from this one (raw text),
     // reachable only if a seventh element alternative ever appeared. One call,
     // one fallback.
-    const result = TypeBinding.resolveName(ctx, scope ?? null, { isScopeType });
+    const result = TypeBinding.resolveName(ctx, scopePath, { isScopeType });
     if (result !== null) {
       return result;
     }

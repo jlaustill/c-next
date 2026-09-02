@@ -12,6 +12,7 @@
  */
 
 import CodeGenState from "../../../state/CodeGenState";
+import ScopeUtils from "../../../../utils/ScopeUtils";
 
 /**
  * Resolves scope visibility and validates cross-scope access.
@@ -33,7 +34,10 @@ export default class ScopeResolver {
   ): void {
     // Error if referencing own scope by name (must use this. prefix)
     // Exception: global.Scope.member is allowed for explicit qualification
-    if (!isGlobalAccess && CodeGenState.currentScope?.name === scopeName) {
+    if (
+      !isGlobalAccess &&
+      ScopeUtils.leafOf(CodeGenState.currentScopePath) === scopeName
+    ) {
       throw new Error(
         `Error: Cannot reference own scope '${scopeName}' by name. ` +
           `Use 'this.${memberName}' instead of '${scopeName}.${memberName}'`,
@@ -41,14 +45,15 @@ export default class ScopeResolver {
     }
 
     // Check private member access (skip for own scope - we can access our own privates)
-    const isOwnScope = CodeGenState.currentScope?.name === scopeName;
+    const isOwnScope =
+      ScopeUtils.leafOf(CodeGenState.currentScopePath) === scopeName;
     if (!isOwnScope) {
       const visibility = CodeGenState.symbols?.scopeMemberVisibility
         .get(scopeName)
         ?.get(memberName);
       if (visibility === "private") {
-        const context = CodeGenState.currentScope
-          ? `from scope '${CodeGenState.currentScope.cnxScopedName}'`
+        const context = CodeGenState.currentScopePath
+          ? `from scope '${CodeGenState.currentScopePath}'`
           : "from outside the scope";
         throw new Error(
           `Cannot access private member '${memberName}' of scope '${scopeName}' ${context}. ` +

@@ -15,13 +15,12 @@
 
 import ScopeUtils from "../../../../../utils/ScopeUtils";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
-import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 import TSymbolKindCNext from "../../../../types/symbol-kinds/TSymbolKindCNext";
 
 interface IBaseOverrides<K extends TSymbolKindCNext> {
   readonly kind: K;
   readonly name: string;
-  readonly scope?: IScopeSymbol;
+  readonly scopePath?: string;
   readonly sourceFile?: string;
   readonly sourceLine?: number;
   readonly sourceLanguage?: ESourceLanguage;
@@ -36,17 +35,17 @@ class TestSymbolUtils {
    * Every IBaseSymbol field, with the identity pair computed the same way the
    * collectors compute it.
    *
-   * Defaults to the global scope, which is what most tests want: a global
+   * Defaults to file scope (`""`), which is what most tests want: a global
    * symbol's qualified name is its bare name, so `base({kind, name}).name` and
    * `.fullyQualifiedCName` agree, and a test that cares about scoping passes a
-   * scope and gets the qualified form for free.
+   * scope path and gets the qualified form for free.
    */
   static base<K extends TSymbolKindCNext>(
     overrides: IBaseOverrides<K>,
   ): {
     kind: K;
     name: string;
-    scope: IScopeSymbol;
+    scopePath: string;
     sourceFile: string;
     sourceLine: number;
     sourceLanguage: ESourceLanguage;
@@ -54,17 +53,17 @@ class TestSymbolUtils {
     fullyQualifiedCName: string;
     cnxScopedName: string;
   } {
-    const scope = overrides.scope ?? ScopeUtils.createGlobalScope();
+    const scopePath = overrides.scopePath ?? "";
     const name = overrides.name;
     return {
       kind: overrides.kind,
       name,
-      scope,
+      scopePath,
       sourceFile: overrides.sourceFile ?? "test.cnx",
       sourceLine: overrides.sourceLine ?? 1,
       sourceLanguage: overrides.sourceLanguage ?? ESourceLanguage.CNext,
       isExported: overrides.isExported ?? true,
-      ...ScopeUtils.identityOf({ name, scope }),
+      ...ScopeUtils.identityOf({ name, scopePath }),
     };
   }
 }

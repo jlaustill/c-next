@@ -19,7 +19,6 @@ import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 class TestScopeUtils {
   /**
    * Create the global scope singleton for tests.
-   * The global scope has a self-reference for parent.
    */
   static createMockGlobalScope(): IScopeSymbol {
     return ScopeUtils.createGlobalScope();
@@ -28,9 +27,8 @@ class TestScopeUtils {
   /**
    * Create a named scope for tests.
    */
-  static createMockScope(name: string, parent?: IScopeSymbol): IScopeSymbol {
-    const actualParent = parent ?? ScopeUtils.createGlobalScope();
-    return ScopeUtils.createScope(name, actualParent);
+  static createMockScope(name: string, parentPath = ""): IScopeSymbol {
+    return ScopeUtils.createScope(name, parentPath);
   }
 
   /**

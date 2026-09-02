@@ -8,17 +8,16 @@
 import IRegisterNameResult from "./IRegisterNameResult";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
-import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 
 /**
  * Validate that 'this' is being used within a scope context.
- * Throws if currentScope is not set.
+ * Throws if currentScopePath is not set.
  *
- * @param currentScope - The current scope name or null
+ * @param currentScopePath - The current scope name or null
  * @throws Error if 'this' is used outside a scope
  */
-function validateScopeContext(currentScope: IScopeSymbol | null): void {
-  if (!currentScope) {
+function validateScopeContext(currentScopePath: string): void {
+  if (!currentScopePath) {
     throw new Error("Error: 'this' can only be used inside a scope");
   }
 }
@@ -79,7 +78,7 @@ function validateWriteOnlyValue(
  * @returns The full scoped register name (e.g., "Scope_Register_Member")
  */
 function buildScopedRegisterName(
-  declaringScope: IScopeSymbol | null,
+  declaringScopePath: string,
   parts: readonly string[],
 ): string {
   // #1285: the accumulator loop was a hand-rolled join -- each turn fed the
@@ -87,7 +86,7 @@ function buildScopedRegisterName(
   // accept an arbitrary string. The scope qualifies the head; the remaining parts
   // are register/member components joined textually.
   return QualifiedCName.fromParts([
-    ScopeUtils.qualifyInScope(parts[0], declaringScope),
+    ScopeUtils.qualifyInScope(parts[0], declaringScopePath),
     ...parts.slice(1),
   ]);
 }

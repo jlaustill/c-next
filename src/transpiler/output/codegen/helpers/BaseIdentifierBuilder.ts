@@ -9,7 +9,6 @@
  */
 
 import IBaseIdentifierResult from "../types/IBaseIdentifierResult";
-import IScopeSymbol from "../../../types/symbols/IScopeSymbol";
 import ScopeUtils from "../../../../utils/ScopeUtils";
 
 /**
@@ -22,7 +21,7 @@ class BaseIdentifierBuilder {
    * @param identifier The raw identifier
    * @param hasGlobal Whether global. prefix is present
    * @param hasThis Whether this. prefix is present
-   * @param currentScope The current scope name (required if hasThis)
+   * @param currentScopePath The current scope name (required if hasThis)
    * @returns The built identifier and first ID
    * @throws Error if this. is used outside a scope
    */
@@ -30,7 +29,7 @@ class BaseIdentifierBuilder {
     identifier: string,
     hasGlobal: boolean,
     hasThis: boolean,
-    currentScope: IScopeSymbol | null,
+    currentScopePath: string,
   ): IBaseIdentifierResult {
     const firstId = identifier;
 
@@ -40,12 +39,12 @@ class BaseIdentifierBuilder {
     }
 
     if (hasThis) {
-      if (!currentScope) {
+      if (!currentScopePath) {
         throw new Error("Error: 'this' can only be used inside a scope");
       }
       // this.x - prefix with current scope
       return {
-        result: ScopeUtils.qualifyInScope(firstId, currentScope),
+        result: ScopeUtils.qualifyInScope(firstId, currentScopePath),
         firstId,
       };
     }

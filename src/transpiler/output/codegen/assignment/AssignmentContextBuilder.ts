@@ -8,7 +8,6 @@ import * as Parser from "../../../logic/parser/grammar/CNextParser";
 import IAssignmentContext from "./IAssignmentContext";
 import TTypeInfo from "../../../types/TTypeInfo";
 import ASSIGNMENT_OPERATOR_MAP from "../../../../utils/constants/OperatorMappings";
-import IScopeSymbol from "../../../types/symbols/IScopeSymbol";
 
 /**
  * Dependencies for building context.
@@ -27,7 +26,7 @@ interface IContextBuilderDeps {
   isKnownRegister(name: string): boolean;
 
   /** Current scope name (for scoped register detection) */
-  currentScope: IScopeSymbol | null;
+  currentScopePath: string;
 }
 
 /**

@@ -84,8 +84,7 @@ describe("CppNamespaceUtils", () => {
   // name is empty. Walking that chain never reaches global, so it hung any
   // caller that resolves a scope path.
   function makeCNextScope(name: string, sourceFile: string): IScopeSymbol {
-    const global = ScopeUtils.createGlobalScope();
-    return { ...ScopeUtils.createScope(name, global), sourceFile };
+    return { ...ScopeUtils.createScope(name, ""), sourceFile };
   }
 
   beforeEach(() => {

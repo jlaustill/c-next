@@ -9,7 +9,6 @@ import * as Parser from "../../../parser/grammar/CNextParser";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import IRegisterSymbol from "../../../../types/symbols/IRegisterSymbol";
 import IRegisterMemberInfo from "../../../../types/symbols/IRegisterMemberInfo";
-import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 import TypeUtils from "../utils/TypeUtils";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
 
@@ -23,7 +22,7 @@ class RegisterCollector {
    * @param ctx The register declaration context
    * @param sourceFile Source file path
    * @param knownBitmaps Set of known bitmap type names for reference resolution
-   * @param scope The scope this register belongs to (IScopeSymbol)
+   * @param scopePath The path of the scope this register belongs to (dotted path, "" at file scope)
    * @param isScopeType ADR-057 predicate: is this *qualified* name a scope type?
    * @returns The register symbol with proper scope reference
    */
@@ -31,7 +30,7 @@ class RegisterCollector {
     ctx: Parser.RegisterDeclarationContext,
     sourceFile: string,
     knownBitmaps: Set<string>,
-    scope: IScopeSymbol,
+    scopePath: string,
     isScopeType?: (qualifiedName: string) => boolean,
   ): IRegisterSymbol {
     const name = ctx.IDENTIFIER().getText();
@@ -52,12 +51,16 @@ class RegisterCollector {
       const accessMod = member.accessModifier().getText() as TAccessMode;
 
       // Get member type and convert to C type
-      const typeName = TypeUtils.getTypeName(member.type(), scope, isScopeType);
+      const typeName = TypeUtils.getTypeName(
+        member.type(),
+        scopePath,
+        isScopeType,
+      );
       const cType = TypeUtils.cnextTypeToCType(typeName);
 
       // Check if member type is a bitmap
       // Try both scoped name and plain name for bitmap lookup
-      const scopedTypeName = ScopeUtils.qualifyInScope(typeName, scope);
+      const scopedTypeName = ScopeUtils.qualifyInScope(typeName, scopePath);
       let bitmapType: string | undefined;
       if (knownBitmaps.has(scopedTypeName)) {
         bitmapType = scopedTypeName;
@@ -78,10 +81,10 @@ class RegisterCollector {
     return {
       kind: "register",
       name,
-      scope,
+      scopePath,
       // #1285: identity computed once, from the scope chain, not
       // re-derived by every consumer.
-      ...ScopeUtils.identityOf({ name, scope }),
+      ...ScopeUtils.identityOf({ name, scopePath }),
       sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.CNext,

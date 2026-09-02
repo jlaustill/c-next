@@ -35,7 +35,7 @@ describe("SymbolTable", () => {
         ...TestSymbolUtils.base({
           kind: "variable",
           name: "myVar",
-          scope: TestScopeUtils.createMockGlobalScope(),
+          scopePath: "",
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -67,7 +67,7 @@ describe("SymbolTable", () => {
         ...TestSymbolUtils.base({
           kind: "variable",
           name: "duplicate",
-          scope: TestScopeUtils.createMockGlobalScope(),
+          scopePath: "",
           sourceFile: "first.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -85,7 +85,7 @@ describe("SymbolTable", () => {
         ...TestSymbolUtils.base({
           kind: "variable",
           name: "duplicate",
-          scope: TestScopeUtils.createMockGlobalScope(),
+          scopePath: "",
           sourceFile: "second.cnx",
           sourceLine: 5,
           sourceLanguage: ESourceLanguage.CNext,
@@ -111,7 +111,7 @@ describe("SymbolTable", () => {
           ...TestSymbolUtils.base({
             kind: "variable",
             name: "var1",
-            scope: TestScopeUtils.createMockGlobalScope(),
+            scopePath: "",
             sourceFile: "test.cnx",
             sourceLine: 1,
             sourceLanguage: ESourceLanguage.CNext,
@@ -128,7 +128,7 @@ describe("SymbolTable", () => {
           ...TestSymbolUtils.base({
             kind: "variable",
             name: "var2",
-            scope: TestScopeUtils.createMockGlobalScope(),
+            scopePath: "",
             sourceFile: "test.cnx",
             sourceLine: 2,
             sourceLanguage: ESourceLanguage.CNext,
@@ -214,7 +214,7 @@ describe("SymbolTable", () => {
         ...TestSymbolUtils.base({
           kind: "variable",
           name: "cnextVar",
-          scope: TestScopeUtils.createMockGlobalScope(),
+          scopePath: "",
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -259,7 +259,7 @@ describe("SymbolTable", () => {
         ...TestSymbolUtils.base({
           kind: "function",
           name: "process",
-          scope: TestScopeUtils.createMockGlobalScope(),
+          scopePath: "",
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -299,7 +299,7 @@ describe("SymbolTable", () => {
         ...TestSymbolUtils.base({
           kind: "function",
           name: "conflictFunc",
-          scope: TestScopeUtils.createMockGlobalScope(),
+          scopePath: "",
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -398,7 +398,7 @@ describe("SymbolTable", () => {
           ...TestSymbolUtils.base({
             kind: "scope",
             name: "Lib",
-            scope: globalScope,
+            scopePath: "",
             sourceFile: "test.cnx",
             sourceLine: line,
             sourceLanguage: ESourceLanguage.CNext,
@@ -416,15 +416,12 @@ describe("SymbolTable", () => {
     // uniqueness. Two definitions of the same member collide whichever block they
     // were written in, because members group by the scope's own identity.
     it("should STILL detect conflict for a duplicated member of a reopened scope", () => {
-      const globalScope = TestScopeUtils.createMockGlobalScope();
-      const libScope = TestScopeUtils.createMockScope("Lib", globalScope);
-
       for (const line of [2, 11]) {
         symbolTable.addTSymbol({
           ...TestSymbolUtils.base({
             kind: "variable",
             name: "count",
-            scope: libScope,
+            scopePath: "Lib",
             sourceFile: "test.cnx",
             sourceLine: line,
             sourceLanguage: ESourceLanguage.CNext,
@@ -445,16 +442,13 @@ describe("SymbolTable", () => {
     // Issue #817: Scope-private members should NOT conflict across scopes
     it("should NOT detect conflict for same-named members in different scopes", () => {
       // Create two different named scopes
-      const globalScope = TestScopeUtils.createMockGlobalScope();
-      const fooScope = TestScopeUtils.createMockScope("Foo", globalScope);
-      const barScope = TestScopeUtils.createMockScope("Bar", globalScope);
 
       // Add 'enabled' variable in scope Foo
       symbolTable.addTSymbol({
         ...TestSymbolUtils.base({
           kind: "variable",
           name: "enabled",
-          scope: fooScope,
+          scopePath: "Foo",
           sourceFile: "test.cnx",
           sourceLine: 2,
           sourceLanguage: ESourceLanguage.CNext,
@@ -473,7 +467,7 @@ describe("SymbolTable", () => {
         ...TestSymbolUtils.base({
           kind: "variable",
           name: "enabled",
-          scope: barScope,
+          scopePath: "Bar",
           sourceFile: "test.cnx",
           sourceLine: 10,
           sourceLanguage: ESourceLanguage.CNext,
@@ -493,16 +487,12 @@ describe("SymbolTable", () => {
 
     // Issue #817: Same-named functions in different scopes are not conflicts
     it("should NOT detect conflict for same-named functions in different scopes", () => {
-      const globalScope = TestScopeUtils.createMockGlobalScope();
-      const fooScope = TestScopeUtils.createMockScope("Foo", globalScope);
-      const barScope = TestScopeUtils.createMockScope("Bar", globalScope);
-
       // Add 'initialize' function in scope Foo
       symbolTable.addTSymbol({
         ...TestSymbolUtils.base({
           kind: "function",
           name: "initialize",
-          scope: fooScope,
+          scopePath: "Foo",
           sourceFile: "test.cnx",
           sourceLine: 4,
           sourceLanguage: ESourceLanguage.CNext,
@@ -519,7 +509,7 @@ describe("SymbolTable", () => {
         ...TestSymbolUtils.base({
           kind: "function",
           name: "initialize",
-          scope: barScope,
+          scopePath: "Bar",
           sourceFile: "test.cnx",
           sourceLine: 12,
           sourceLanguage: ESourceLanguage.CNext,
@@ -537,15 +527,12 @@ describe("SymbolTable", () => {
 
     // True conflicts: same name in same scope should still be detected
     it("should detect conflict for same-named symbols in same scope", () => {
-      const globalScope = TestScopeUtils.createMockGlobalScope();
-      const fooScope = TestScopeUtils.createMockScope("Foo", globalScope);
-
       // Add 'duplicate' variable in scope Foo twice
       symbolTable.addTSymbol({
         ...TestSymbolUtils.base({
           kind: "variable",
           name: "duplicate",
-          scope: fooScope,
+          scopePath: "Foo",
           sourceFile: "test.cnx",
           sourceLine: 2,
           sourceLanguage: ESourceLanguage.CNext,
@@ -563,7 +550,7 @@ describe("SymbolTable", () => {
         ...TestSymbolUtils.base({
           kind: "variable",
           name: "duplicate",
-          scope: fooScope,
+          scopePath: "Foo",
           sourceFile: "test.cnx",
           sourceLine: 5,
           sourceLanguage: ESourceLanguage.CNext,
@@ -590,23 +577,17 @@ describe("SymbolTable", () => {
     // so this has to be built through the scope factory. That is the point: the
     // property is real in the symbol model before the grammar admits it.
     it("should NOT detect conflict for members of distinct scopes sharing a leaf name", () => {
-      const globalScope = TestScopeUtils.createMockGlobalScope();
-      const outer = TestScopeUtils.createMockScope("Outer", globalScope);
-      const other = TestScopeUtils.createMockScope("Other", globalScope);
-      const outerInner = TestScopeUtils.createMockScope("Inner", outer);
-      const otherInner = TestScopeUtils.createMockScope("Inner", other);
-
       // Outer.Inner.tick and Other.Inner.tick -- different symbols, and they
       // generate different C names, so they do not compete.
-      for (const [scope, line] of [
-        [outerInner, 2],
-        [otherInner, 20],
+      for (const [scopePath, line] of [
+        ["Outer.Inner", 2],
+        ["Other.Inner", 20],
       ] as const) {
         symbolTable.addTSymbol({
           ...TestSymbolUtils.base({
             kind: "variable",
             name: "tick",
-            scope,
+            scopePath,
             sourceFile: "test.cnx",
             sourceLine: line,
             isExported: false,
@@ -629,16 +610,12 @@ describe("SymbolTable", () => {
     // it. Nothing asserted this, so dropping the scope from the message entirely
     // left the whole suite green.
     it("names a conflicting symbol by its full source path", () => {
-      const globalScope = TestScopeUtils.createMockGlobalScope();
-      const outer = TestScopeUtils.createMockScope("Outer", globalScope);
-      const inner = TestScopeUtils.createMockScope("Inner", outer);
-
       for (const line of [2, 5]) {
         symbolTable.addTSymbol({
           ...TestSymbolUtils.base({
             kind: "variable",
             name: "tick",
-            scope: inner,
+            scopePath: "Outer.Inner",
             sourceFile: "test.cnx",
             sourceLine: line,
             isExported: false,
@@ -662,14 +639,12 @@ describe("SymbolTable", () => {
 
     // Global scope conflicts should still be detected
     it("should detect conflict for same-named globals", () => {
-      const globalScope = TestScopeUtils.createMockGlobalScope();
-
       // Add two global variables with same name
       symbolTable.addTSymbol({
         ...TestSymbolUtils.base({
           kind: "variable",
           name: "globalVar",
-          scope: globalScope,
+          scopePath: "",
           sourceFile: "first.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -687,7 +662,7 @@ describe("SymbolTable", () => {
         ...TestSymbolUtils.base({
           kind: "variable",
           name: "globalVar",
-          scope: globalScope,
+          scopePath: "",
           sourceFile: "second.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -708,16 +683,13 @@ describe("SymbolTable", () => {
     // Issue #967: Scoped C-Next symbols live in a namespace and don't conflict
     // with C's global symbols. Only global-scope C-Next symbols can conflict.
     it("should NOT detect conflict for scoped C-Next method vs C function with same bare name", () => {
-      const globalScope = TestScopeUtils.createMockGlobalScope();
-      const touchScope = TestScopeUtils.createMockScope("Touch", globalScope);
-
       // Add C-Next scoped function 'read' in scope 'Touch'
       // This transpiles to Touch_read()
       symbolTable.addTSymbol({
         ...TestSymbolUtils.base({
           kind: "function",
           name: "read",
-          scope: touchScope,
+          scopePath: "Touch",
           sourceFile: "touch.cnx",
           sourceLine: 28,
           sourceLanguage: ESourceLanguage.CNext,
@@ -752,14 +724,12 @@ describe("SymbolTable", () => {
 
     // Issue #967: Global C-Next functions SHOULD still conflict with C functions
     it("should detect conflict for global C-Next function vs C function", () => {
-      const globalScope = TestScopeUtils.createMockGlobalScope();
-
       // Add global C-Next function 'read'
       symbolTable.addTSymbol({
         ...TestSymbolUtils.base({
           kind: "function",
           name: "read",
-          scope: globalScope,
+          scopePath: "",
           sourceFile: "utils.cnx",
           sourceLine: 5,
           sourceLanguage: ESourceLanguage.CNext,
@@ -798,7 +768,7 @@ describe("SymbolTable", () => {
         ...TestSymbolUtils.base({
           kind: "struct",
           name: "MyStruct",
-          scope: TestScopeUtils.createMockGlobalScope(),
+          scopePath: "",
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -811,7 +781,7 @@ describe("SymbolTable", () => {
         ...TestSymbolUtils.base({
           kind: "variable",
           name: "myVar",
-          scope: TestScopeUtils.createMockGlobalScope(),
+          scopePath: "",
           sourceFile: "test.cnx",
           sourceLine: 2,
           sourceLanguage: ESourceLanguage.CNext,
@@ -835,7 +805,7 @@ describe("SymbolTable", () => {
         ...TestSymbolUtils.base({
           kind: "enum",
           name: "MyEnum",
-          scope: TestScopeUtils.createMockGlobalScope(),
+          scopePath: "",
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -854,7 +824,7 @@ describe("SymbolTable", () => {
         ...TestSymbolUtils.base({
           kind: "function",
           name: "myFunc",
-          scope: TestScopeUtils.createMockGlobalScope(),
+          scopePath: "",
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -1219,7 +1189,7 @@ describe("SymbolTable", () => {
         ...TestSymbolUtils.base({
           kind: "variable",
           name: "test",
-          scope: TestScopeUtils.createMockGlobalScope(),
+          scopePath: "",
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -1276,7 +1246,7 @@ describe("SymbolTable", () => {
         ...TestSymbolUtils.base({
           kind: "variable",
           name,
-          scope: TestScopeUtils.createMockScope(scopeName),
+          scopePath: scopeName,
           sourceFile: "sensor.cnx",
           sourceLine: line,
           isExported,
@@ -1403,7 +1373,7 @@ describe("SymbolTable", () => {
 
     it("ignores types, which name nothing the linker resolves", () => {
       const table = new SymbolTable();
-      const scope = TestScopeUtils.createMockScope(LONG_SCOPE);
+      const scopePath = LONG_SCOPE;
       for (const [name, line] of [
         ["calibrationProfileAlpha", 2],
         ["calibrationProfileOmega", 3],
@@ -1412,7 +1382,7 @@ describe("SymbolTable", () => {
           ...TestSymbolUtils.base({
             kind: "enum",
             name,
-            scope,
+            scopePath,
             sourceFile: "sensor.cnx",
             sourceLine: line,
           }),

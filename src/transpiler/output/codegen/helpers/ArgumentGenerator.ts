@@ -53,14 +53,14 @@ class ArgumentGenerator {
     }
 
     // Scope member - may need prefixing
-    if (CodeGenState.currentScope) {
+    if (CodeGenState.currentScopePath) {
       const members = CodeGenState.getScopeMembers(
-        CodeGenState.currentScope.name,
+        ScopeUtils.leafOf(CodeGenState.currentScopePath),
       );
       if (members?.has(id)) {
         const scopedName = ScopeUtils.qualifyInScope(
           id,
-          CodeGenState.currentScope,
+          CodeGenState.currentScopePath,
         );
         return CppModeHelper.maybeAddressOf(scopedName);
       }

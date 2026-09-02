@@ -13,13 +13,9 @@ import IRegisterSymbol from "../../../../types/symbols/IRegisterSymbol";
 import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import TTypeUtils from "../../../../../utils/TTypeUtils";
-import ScopeUtils from "../../../../../utils/ScopeUtils";
 import TestSymbolUtils from "../../../../logic/symbols/cnext/__tests__/testSymbolUtils";
 
 describe("HeaderSymbolAdapter", () => {
-  const globalScope = ScopeUtils.createGlobalScope();
-  const motorScope = ScopeUtils.createScope("Motor", globalScope);
-
   // ========================================================================
   // fromTSymbol - TSymbol to IHeaderSymbol Conversion
   // ========================================================================
@@ -30,7 +26,7 @@ describe("HeaderSymbolAdapter", () => {
         ...TestSymbolUtils.base({
           kind: "variable",
           name: "counter",
-          scope: globalScope,
+          scopePath: "",
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -58,7 +54,7 @@ describe("HeaderSymbolAdapter", () => {
         ...TestSymbolUtils.base({
           kind: "variable",
           name: "speed",
-          scope: motorScope,
+          scopePath: "Motor",
           sourceFile: "motor.cnx",
           sourceLine: 5,
           sourceLanguage: ESourceLanguage.CNext,
@@ -85,7 +81,7 @@ describe("HeaderSymbolAdapter", () => {
         ...TestSymbolUtils.base({
           kind: "variable",
           name: "buffer",
-          scope: globalScope,
+          scopePath: "",
           sourceFile: "data.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -111,7 +107,7 @@ describe("HeaderSymbolAdapter", () => {
         ...TestSymbolUtils.base({
           kind: "variable",
           name: "MAX_SIZE",
-          scope: globalScope,
+          scopePath: "",
           sourceFile: "config.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -137,7 +133,7 @@ describe("HeaderSymbolAdapter", () => {
         ...TestSymbolUtils.base({
           kind: "function",
           name: "init",
-          scope: globalScope,
+          scopePath: "",
           sourceFile: "main.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -163,7 +159,7 @@ describe("HeaderSymbolAdapter", () => {
         ...TestSymbolUtils.base({
           kind: "function",
           name: "setSpeed",
-          scope: motorScope,
+          scopePath: "Motor",
           sourceFile: "motor.cnx",
           sourceLine: 10,
           sourceLanguage: ESourceLanguage.CNext,
@@ -198,7 +194,7 @@ describe("HeaderSymbolAdapter", () => {
         ...TestSymbolUtils.base({
           kind: "function",
           name: "process",
-          scope: globalScope,
+          scopePath: "",
           sourceFile: "process.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -232,7 +228,7 @@ describe("HeaderSymbolAdapter", () => {
         ...TestSymbolUtils.base({
           kind: "struct",
           name: "Point",
-          scope: globalScope,
+          scopePath: "",
           sourceFile: "geometry.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -263,12 +259,11 @@ describe("HeaderSymbolAdapter", () => {
     });
 
     it("should convert scoped struct with transpiled C name", () => {
-      const geometryScope = ScopeUtils.createScope("Geometry", globalScope);
       const tSymbol: IStructSymbol = {
         ...TestSymbolUtils.base({
           kind: "struct",
           name: "Vector",
-          scope: geometryScope,
+          scopePath: "Geometry",
           sourceFile: "geometry.cnx",
           sourceLine: 10,
           sourceLanguage: ESourceLanguage.CNext,
@@ -290,7 +285,7 @@ describe("HeaderSymbolAdapter", () => {
         ...TestSymbolUtils.base({
           kind: "enum",
           name: "EColor",
-          scope: globalScope,
+          scopePath: "",
           sourceFile: "colors.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -315,7 +310,7 @@ describe("HeaderSymbolAdapter", () => {
         ...TestSymbolUtils.base({
           kind: "enum",
           name: "EMode",
-          scope: motorScope,
+          scopePath: "Motor",
           sourceFile: "motor.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -340,7 +335,7 @@ describe("HeaderSymbolAdapter", () => {
         ...TestSymbolUtils.base({
           kind: "bitmap",
           name: "Flags",
-          scope: globalScope,
+          scopePath: "",
           sourceFile: "flags.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -367,7 +362,7 @@ describe("HeaderSymbolAdapter", () => {
         ...TestSymbolUtils.base({
           kind: "bitmap",
           name: "Status",
-          scope: motorScope,
+          scopePath: "Motor",
           sourceFile: "motor.cnx",
           sourceLine: 5,
           sourceLanguage: ESourceLanguage.CNext,
@@ -392,7 +387,7 @@ describe("HeaderSymbolAdapter", () => {
         ...TestSymbolUtils.base({
           kind: "register",
           name: "GPIO",
-          scope: globalScope,
+          scopePath: "",
           sourceFile: "gpio.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -417,7 +412,7 @@ describe("HeaderSymbolAdapter", () => {
         ...TestSymbolUtils.base({
           kind: "register",
           name: "CTRL",
-          scope: motorScope,
+          scopePath: "Motor",
           sourceFile: "motor.cnx",
           sourceLine: 20,
           sourceLanguage: ESourceLanguage.CNext,
@@ -440,13 +435,12 @@ describe("HeaderSymbolAdapter", () => {
         ...TestSymbolUtils.base({
           kind: "scope",
           name: "Motor",
-          scope: globalScope,
+          scopePath: "",
           sourceFile: "motor.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
           isExported: true,
         }),
-        parent: globalScope,
         members: ["init", "setSpeed"],
         functions: [],
         variables: [],
@@ -469,7 +463,7 @@ describe("HeaderSymbolAdapter", () => {
           ...TestSymbolUtils.base({
             kind: "variable" as const,
             name: "var1",
-            scope: globalScope,
+            scopePath: "",
             sourceFile: "test.cnx",
             sourceLine: 1,
           }),
@@ -484,7 +478,7 @@ describe("HeaderSymbolAdapter", () => {
           ...TestSymbolUtils.base({
             kind: "function" as const,
             name: "func1",
-            scope: globalScope,
+            scopePath: "",
             sourceFile: "test.cnx",
             sourceLine: 5,
           }),
@@ -515,7 +509,7 @@ describe("HeaderSymbolAdapter", () => {
         ...TestSymbolUtils.base({
           kind: "variable",
           name: "macroArray",
-          scope: globalScope,
+          scopePath: "",
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -540,7 +534,7 @@ describe("HeaderSymbolAdapter", () => {
         ...TestSymbolUtils.base({
           kind: "variable",
           name: "DATA",
-          scope: globalScope,
+          scopePath: "",
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -566,13 +560,13 @@ describe("HeaderSymbolAdapter", () => {
     // symbol than the implementation and does not compile (#1117 review).
     describe("scope-aware array dimensions", () => {
       const makeArrayVar = (
-        scope: typeof globalScope,
+        scopePath: string,
         dim: string,
       ): IVariableSymbol => ({
         ...TestSymbolUtils.base({
           kind: "variable",
           name: "counters",
-          scope,
+          scopePath,
           sourceFile: "test.cnx",
         }),
         sourceLine: 1,
@@ -589,7 +583,7 @@ describe("HeaderSymbolAdapter", () => {
 
       it("strips global. and adds no scope prefix", () => {
         const result = HeaderSymbolAdapter.fromTSymbol(
-          makeArrayVar(motorScope, "global.EColor.COUNT"),
+          makeArrayVar("Motor", "global.EColor.COUNT"),
         );
 
         expect(result.arrayDimensions).toEqual(["EColor__COUNT"]);
@@ -597,7 +591,7 @@ describe("HeaderSymbolAdapter", () => {
 
       it("strips this. and prefixes the declaring scope", () => {
         const result = HeaderSymbolAdapter.fromTSymbol(
-          makeArrayVar(motorScope, "this.State.COUNT"),
+          makeArrayVar("Motor", "this.State.COUNT"),
         );
 
         // `this` must not survive as a name component
@@ -608,7 +602,7 @@ describe("HeaderSymbolAdapter", () => {
         // CodeGenState has no registered enums here, so the bare path resolves
         // global-first — matching the .c path for a top-level enum.
         const result = HeaderSymbolAdapter.fromTSymbol(
-          makeArrayVar(motorScope, "Global.COUNT"),
+          makeArrayVar("Motor", "Global.COUNT"),
         );
 
         expect(result.arrayDimensions).toEqual(["Global__COUNT"]);
@@ -616,7 +610,7 @@ describe("HeaderSymbolAdapter", () => {
 
       it("leaves a non-qualified dimension untouched", () => {
         const result = HeaderSymbolAdapter.fromTSymbol(
-          makeArrayVar(motorScope, "DEVICE_COUNT"),
+          makeArrayVar("Motor", "DEVICE_COUNT"),
         );
 
         expect(result.arrayDimensions).toEqual(["DEVICE_COUNT"]);
@@ -628,7 +622,7 @@ describe("HeaderSymbolAdapter", () => {
         ...TestSymbolUtils.base({
           kind: "function",
           name: "processData",
-          scope: globalScope,
+          scopePath: "",
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,

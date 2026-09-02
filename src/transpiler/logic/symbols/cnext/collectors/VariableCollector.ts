@@ -9,7 +9,6 @@ import * as Parser from "../../../parser/grammar/CNextParser";
 import DimensionResolver from "../utils/DimensionResolver";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import IVariableSymbol from "../../../../types/symbols/IVariableSymbol";
-import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 import TypeResolver from "../../../../../utils/TypeResolver";
 import ArrayInitializerUtils from "../utils/ArrayInitializerUtils";
 import TypeUtils from "../utils/TypeUtils";
@@ -147,7 +146,7 @@ class VariableCollector {
    *
    * @param ctx The variable declaration context
    * @param sourceFile Source file path
-   * @param scope The scope this variable belongs to (IScopeSymbol)
+   * @param scopePath The path of the scope this variable belongs to (dotted path, "" at file scope)
    * @param isPublic Whether this variable is public (default true for top-level)
    * @param constValues Map of constant names to their numeric values (for resolving array dimensions)
    * @param isScopeType ADR-057 predicate: is this *qualified* name a scope type?
@@ -156,7 +155,7 @@ class VariableCollector {
   static collect(
     ctx: Parser.VariableDeclarationContext,
     sourceFile: string,
-    scope: IScopeSymbol,
+    scopePath: string,
     isPublic: boolean = true,
     constValues?: Map<string, number>,
     isScopeType?: (qualifiedName: string) => boolean,
@@ -169,7 +168,7 @@ class VariableCollector {
     // #1285: the scope REFERENCE flows on from here. Flattening it to its
     // leaf name was the choke point that made every downstream qualification
     // one level deep, whatever the chain actually was.
-    const typeStr = TypeUtils.getTypeName(typeCtx, scope, isScopeType);
+    const typeStr = TypeUtils.getTypeName(typeCtx, scopePath, isScopeType);
     const type = VariableCollector.resolveDeclaredType(typeStr, ctx);
 
     // Check for const modifier
@@ -223,10 +222,10 @@ class VariableCollector {
     const symbol: IVariableSymbol = {
       kind: "variable",
       name,
-      scope,
+      scopePath,
       // #1285: identity computed once, from the scope chain, not
       // re-derived by every consumer.
-      ...ScopeUtils.identityOf({ name, scope }),
+      ...ScopeUtils.identityOf({ name, scopePath }),
       sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.CNext,

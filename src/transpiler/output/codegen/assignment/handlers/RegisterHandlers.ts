@@ -116,7 +116,7 @@ function handleRegisterBitRange(ctx: IAssignmentContext): string {
  */
 function handleScopedRegisterBit(ctx: IAssignmentContext): string {
   // Issue #707: Use shared validation utilities
-  AssignmentHandlerUtils.validateScopeContext(CodeGenState.currentScope);
+  AssignmentHandlerUtils.validateScopeContext(CodeGenState.currentScopePath);
   AssignmentHandlerUtils.validateNoCompoundForBitAccess(
     ctx.isCompound,
     ctx.cnextOp,
@@ -124,7 +124,7 @@ function handleScopedRegisterBit(ctx: IAssignmentContext): string {
 
   // Build scoped name: Scope_Register_Member
   const regName = AssignmentHandlerUtils.buildScopedRegisterName(
-    CodeGenState.currentScope,
+    CodeGenState.currentScopePath,
     ctx.identifiers,
   );
 
@@ -153,23 +153,23 @@ function handleScopedRegisterBit(ctx: IAssignmentContext): string {
  */
 function handleScopedRegisterBitRange(ctx: IAssignmentContext): string {
   // Issue #707: Use shared validation utilities
-  AssignmentHandlerUtils.validateScopeContext(CodeGenState.currentScope);
+  AssignmentHandlerUtils.validateScopeContext(CodeGenState.currentScopePath);
   AssignmentHandlerUtils.validateNoCompoundForBitAccess(
     ctx.isCompound,
     ctx.cnextOp,
   );
 
-  // #1285: `currentScope` IS the symbol, carrying the parent chain. Reading
+  // #1285: `currentScopePath` IS the symbol, carrying the parent chain. Reading
   // `.name` off it took the leaf and discarded every outer scope -- the exact
   // leaf-only encoder this issue removes. Pass the symbol.
-  const declaringScope = CodeGenState.currentScope;
+  const declaringScopePath = CodeGenState.currentScopePath;
   const parts = ctx.identifiers;
   const regName = AssignmentHandlerUtils.buildScopedRegisterName(
-    declaringScope,
+    declaringScopePath,
     parts,
   );
   const scopedRegName = QualifiedNameGenerator.forMember(
-    declaringScope,
+    declaringScopePath,
     parts[0],
   );
 

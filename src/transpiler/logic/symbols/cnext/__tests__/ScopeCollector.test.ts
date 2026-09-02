@@ -117,7 +117,7 @@ describe("ScopeCollector", () => {
       if (SymbolGuards.isFunction(initFunc!)) {
         expect(initFunc.visibility).toBe("public");
         expect(initFunc.isExported).toBe(true);
-        expect(initFunc.scope.name).toBe("Motor");
+        expect(initFunc.scopePath).toBe("Motor");
       }
 
       const updateFunc = result.memberSymbols.find((s) => s.name === "update");
@@ -126,7 +126,7 @@ describe("ScopeCollector", () => {
       if (SymbolGuards.isFunction(updateFunc!)) {
         expect(updateFunc.visibility).toBe("private");
         expect(updateFunc.isExported).toBe(false);
-        expect(updateFunc.scope.name).toBe("Motor");
+        expect(updateFunc.scopePath).toBe("Motor");
       }
     });
 
@@ -156,7 +156,7 @@ describe("ScopeCollector", () => {
       if (SymbolGuards.isVariable(posVar!)) {
         expect(TypeResolver.getTypeName(posVar.type)).toBe("u32");
         expect(posVar.isExported).toBe(false);
-        expect(posVar.scope.name).toBe("Motor");
+        expect(posVar.scopePath).toBe("Motor");
       }
     });
   });
@@ -186,7 +186,7 @@ describe("ScopeCollector", () => {
         expect(enumSymbol.members.get("Off")).toBe(0);
         expect(enumSymbol.members.get("Running")).toBe(1);
         expect(enumSymbol.members.get("Error")).toBe(2);
-        expect(enumSymbol.scope.name).toBe("Motor");
+        expect(enumSymbol.scopePath).toBe("Motor");
       }
     });
 
@@ -212,7 +212,7 @@ describe("ScopeCollector", () => {
       if (SymbolGuards.isStruct(structSymbol!)) {
         expect(structSymbol.fields.get("maxSpeed")).toBeDefined();
         expect(structSymbol.fields.get("acceleration")).toBeDefined();
-        expect(structSymbol.scope.name).toBe("Motor");
+        expect(structSymbol.scopePath).toBe("Motor");
       }
     });
 
@@ -244,7 +244,7 @@ describe("ScopeCollector", () => {
           offset: 0,
           width: 1,
         });
-        expect(bitmapSymbol.scope.name).toBe("Motor");
+        expect(bitmapSymbol.scopePath).toBe("Motor");
       }
     });
 
@@ -269,7 +269,7 @@ describe("ScopeCollector", () => {
         expect(regSymbol.baseAddress).toBe("0x40001000");
         expect(regSymbol.members.get("STATUS")?.access).toBe("rw");
         expect(regSymbol.members.get("COMMAND")?.access).toBe("wo");
-        expect(regSymbol.scope.name).toBe("Motor");
+        expect(regSymbol.scopePath).toBe("Motor");
       }
     });
   });
@@ -299,15 +299,15 @@ describe("ScopeCollector", () => {
       // Verify each type was collected correctly with bare names
       const varSymbol = result.memberSymbols.find((s) => s.name === "position");
       expect(SymbolGuards.isVariable(varSymbol!)).toBe(true);
-      expect(varSymbol!.scope.name).toBe("Motor");
+      expect(varSymbol!.scopePath).toBe("Motor");
 
       const funcSymbol = result.memberSymbols.find((s) => s.name === "init");
       expect(SymbolGuards.isFunction(funcSymbol!)).toBe(true);
-      expect(funcSymbol!.scope.name).toBe("Motor");
+      expect(funcSymbol!.scopePath).toBe("Motor");
 
       const enumSymbol = result.memberSymbols.find((s) => s.name === "State");
       expect(SymbolGuards.isEnum(enumSymbol!)).toBe(true);
-      expect(enumSymbol!.scope.name).toBe("Motor");
+      expect(enumSymbol!.scopePath).toBe("Motor");
     });
   });
 

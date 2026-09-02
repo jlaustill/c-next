@@ -4,11 +4,10 @@
  * Generators read this but return effects to modify it.
  */
 import TParameterInfo from "../../../types/TParameterInfo";
-import IScopeSymbol from "../../../types/symbols/IScopeSymbol";
 
 interface IGeneratorState {
   /** Current scope name (null if at file level) */
-  readonly currentScope: IScopeSymbol | null;
+  readonly currentScopePath: string;
 
   /** Current indentation level */
   readonly indentLevel: number;

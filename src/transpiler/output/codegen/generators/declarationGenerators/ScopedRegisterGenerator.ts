@@ -8,7 +8,6 @@
  *   ->
  *   #define Teensy4_GPIO7_DR (*(volatile uint32_t*)(0x42004000 + 0x00))
  */
-import type IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 import * as Parser from "../../../../logic/parser/grammar/CNextParser";
 import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
@@ -22,19 +21,19 @@ import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
  */
 const generateScopedRegister = (
   node: Parser.RegisterDeclarationContext,
-  declaringScope: IScopeSymbol | null,
+  declaringScopePath: string,
   input: IGeneratorInput,
   _state: IGeneratorState,
   orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
   const name = node.IDENTIFIER().getText();
-  const fullName = QualifiedNameGenerator.forMember(declaringScope, name); // Teensy4_GPIO7
+  const fullName = QualifiedNameGenerator.forMember(declaringScopePath, name); // Teensy4_GPIO7
   const baseAddress = orchestrator.generateExpression(node.expression());
 
   // Type resolver for scoped bitmaps (e.g., GPIO7Pins -> Teensy4_GPIO7Pins)
   const resolveType = (regType: string): string | undefined => {
     const scopedTypeName = QualifiedNameGenerator.forMember(
-      declaringScope,
+      declaringScopePath,
       regType,
     );
     return input.symbols?.knownBitmaps.has(scopedTypeName)

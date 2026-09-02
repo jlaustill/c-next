@@ -8,7 +8,6 @@
 import * as Parser from "../../../parser/grammar/CNextParser";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import IEnumSymbol from "../../../../types/symbols/IEnumSymbol";
-import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 import ExpressionEvaluator from "../utils/ExpressionEvaluator";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
 
@@ -18,14 +17,14 @@ class EnumCollector {
    *
    * @param ctx The enum declaration context
    * @param sourceFile Source file path
-   * @param scope The scope this enum belongs to (IScopeSymbol)
+   * @param scopePath The path of the scope this enum belongs to (dotted path, "" at file scope)
    * @returns The enum symbol with proper scope reference
    * @throws Error if any member has a negative value
    */
   static collect(
     ctx: Parser.EnumDeclarationContext,
     sourceFile: string,
-    scope: IScopeSymbol,
+    scopePath: string,
   ): IEnumSymbol {
     const name = ctx.IDENTIFIER().getText();
     const line = ctx.start?.line ?? 0;
@@ -58,10 +57,10 @@ class EnumCollector {
     return {
       kind: "enum",
       name,
-      scope,
+      scopePath,
       // #1285: identity computed once, from the scope chain, not
       // re-derived by every consumer.
-      ...ScopeUtils.identityOf({ name, scope }),
+      ...ScopeUtils.identityOf({ name, scopePath }),
       sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.CNext,

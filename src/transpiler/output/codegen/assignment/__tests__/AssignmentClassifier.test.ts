@@ -1078,9 +1078,9 @@ describe("AssignmentClassifier - Bare Scope-Qualified Subscripts", () => {
 
   it.each(adr057ShadowCases)(
     "keeps %s named like a scope as a struct chain (ADR-057)",
-    (_label, currentScope, typeInfoKey) => {
+    (_label, currentScopePath, typeInfoKey) => {
       setupSymbols({ knownScopes: new Set(["Other"]) });
-      CodeGenState.setCurrentScopeByPath(currentScope);
+      CodeGenState.setCurrentScopeByPath(currentScopePath);
       CodeGenState.setVariableTypeInfo(
         typeInfoKey,
         createTypeInfo({ baseType: "Point", bitWidth: 0 }),

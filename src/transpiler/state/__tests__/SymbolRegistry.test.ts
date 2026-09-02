@@ -16,7 +16,9 @@ describe("SymbolRegistry", () => {
       const global = SymbolRegistry.getGlobalScope();
       expect(global.kind).toBe("scope");
       expect(global.name).toBe("");
-      expect(global.parent).toBe(global);
+      // #1298: no self-reference. The global scope states where it sits with an
+      // empty path, which is what makes the symbol graph acyclic.
+      expect(global.scopePath).toBe("");
     });
 
     it("returns same instance on multiple calls", () => {
@@ -35,7 +37,7 @@ describe("SymbolRegistry", () => {
     it("creates scope with global parent for simple name", () => {
       const scope = SymbolRegistry.getOrCreateScope("Test");
       expect(scope.name).toBe("Test");
-      expect(scope.parent).toBe(SymbolRegistry.getGlobalScope());
+      expect(scope.scopePath).toBe("");
     });
 
     it("returns same scope for same path", () => {
@@ -47,8 +49,10 @@ describe("SymbolRegistry", () => {
     it("creates nested scopes for dotted path", () => {
       const inner = SymbolRegistry.getOrCreateScope("Outer.Inner");
       expect(inner.name).toBe("Inner");
-      expect(inner.parent.name).toBe("Outer");
-      expect(inner.parent.parent).toBe(SymbolRegistry.getGlobalScope());
+      expect(inner.scopePath).toBe("Outer");
+      // The intermediate scope is still created eagerly, so members can be
+      // registered into it -- a child names it by path rather than pointing at it.
+      expect(SymbolRegistry.getScope("Outer")?.scopePath).toBe("");
     });
   });
 
@@ -57,7 +61,7 @@ describe("SymbolRegistry", () => {
       const scope = SymbolRegistry.getOrCreateScope("Test");
       const func = FunctionUtils.create({
         name: "fillData",
-        scope,
+        scopePath: "Test",
         parameters: [],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "private",
@@ -82,7 +86,7 @@ describe("SymbolRegistry", () => {
       const make = () =>
         FunctionUtils.create({
           name: "fillData",
-          scope,
+          scopePath: "Test",
           parameters: [],
           returnType: TTypeUtils.createPrimitive("void"),
           visibility: "private",
@@ -111,7 +115,7 @@ describe("SymbolRegistry", () => {
       const scope = SymbolRegistry.getOrCreateScope("Motor");
       const start = FunctionUtils.create({
         name: "start",
-        scope,
+        scopePath: "Motor",
         parameters: [],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "public",
@@ -121,7 +125,7 @@ describe("SymbolRegistry", () => {
       });
       const stop = FunctionUtils.create({
         name: "stop",
-        scope,
+        scopePath: "Motor",
         parameters: [],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "public",
@@ -142,7 +146,7 @@ describe("SymbolRegistry", () => {
       const scope = SymbolRegistry.getOrCreateScope("Test");
       const func = FunctionUtils.create({
         name: "fillData",
-        scope,
+        scopePath: "Test",
         parameters: [],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "private",
@@ -157,10 +161,9 @@ describe("SymbolRegistry", () => {
     });
 
     it("finds function in parent scope", () => {
-      const global = SymbolRegistry.getGlobalScope();
       const func = FunctionUtils.create({
         name: "helper",
-        scope: global,
+        scopePath: "",
         parameters: [],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "public",
@@ -184,10 +187,10 @@ describe("SymbolRegistry", () => {
 
   describe("reset", () => {
     it("clears all registered symbols", () => {
-      const scope = SymbolRegistry.getOrCreateScope("Test");
+      SymbolRegistry.getOrCreateScope("Test");
       const func = FunctionUtils.create({
         name: "foo",
-        scope,
+        scopePath: "Test",
         parameters: [],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "private",
@@ -209,10 +212,9 @@ describe("SymbolRegistry", () => {
 
   describe("findByCName", () => {
     it("finds global function by bare name", () => {
-      const global = SymbolRegistry.getGlobalScope();
       const func = FunctionUtils.create({
         name: "main",
-        scope: global,
+        scopePath: "",
         parameters: [],
         returnType: TTypeUtils.createPrimitive("i32"),
         visibility: "public",
@@ -227,10 +229,10 @@ describe("SymbolRegistry", () => {
     });
 
     it("finds scoped function by transpiled C name", () => {
-      const scope = SymbolRegistry.getOrCreateScope("Test");
+      SymbolRegistry.getOrCreateScope("Test");
       const func = FunctionUtils.create({
         name: "fillData",
-        scope,
+        scopePath: "Test",
         parameters: [],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "private",
@@ -245,10 +247,10 @@ describe("SymbolRegistry", () => {
     });
 
     it("finds nested scope function by transpiled C name", () => {
-      const scope = SymbolRegistry.getOrCreateScope("Outer.Inner");
+      SymbolRegistry.getOrCreateScope("Outer.Inner");
       const func = FunctionUtils.create({
         name: "deepFunc",
-        scope,
+        scopePath: "Outer.Inner",
         parameters: [],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "private",
@@ -273,7 +275,7 @@ describe("SymbolRegistry", () => {
       const scope = SymbolRegistry.getOrCreateScope("Motor");
       const func = FunctionUtils.create({
         name: "init",
-        scope,
+        scopePath: "Motor",
         parameters: [],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "public",
@@ -291,7 +293,7 @@ describe("SymbolRegistry", () => {
       const global = SymbolRegistry.getGlobalScope();
       const func = FunctionUtils.create({
         name: "helper",
-        scope: global,
+        scopePath: "",
         parameters: [],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "public",

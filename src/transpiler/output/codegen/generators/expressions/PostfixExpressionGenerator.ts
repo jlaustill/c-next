@@ -176,7 +176,7 @@ const resolveSubscriptBase = (
   // `this.x` is the scope-qualified variable `Scope_x`; `global.x` is plain `x`.
   const name =
     prefix === "this"
-      ? ScopeUtils.qualifyInScope(memberName, CodeGenState.currentScope)
+      ? ScopeUtils.qualifyInScope(memberName, CodeGenState.currentScopePath)
       : memberName;
   return { name, displayName: `${prefix}.${memberName}`, opOffset: 1 };
 };
@@ -467,15 +467,20 @@ const handleThisScopeLength = (
   if (tracking.result !== "__THIS_SCOPE__" || memberName !== "length") {
     return false;
   }
-  if (!state.currentScope) {
+  if (!state.currentScopePath) {
     throw new Error("Error: 'this' can only be used inside a scope");
   }
-  const members = state.scopeMembers.get(state.currentScope.name);
+  const members = state.scopeMembers.get(
+    ScopeUtils.leafOf(state.currentScopePath),
+  );
   if (!members?.has("length")) {
     return false;
   }
 
-  tracking.result = ScopeUtils.qualifyInScope(memberName, state.currentScope);
+  tracking.result = ScopeUtils.qualifyInScope(
+    memberName,
+    state.currentScopePath,
+  );
   tracking.resolvedIdentifier = tracking.result;
   const resolvedTypeInfo = CodeGenState.getVariableTypeInfo(tracking.result);
   if (
@@ -1275,7 +1280,7 @@ const generateMemberAccess = (
     ctx.result,
     ctx.memberName,
     "enum",
-    state.currentScope,
+    state.currentScopePath,
     ctx.isGlobalAccess,
     {
       rootIdentifier: ctx.rootIdentifier,
@@ -1341,14 +1346,14 @@ const tryScopeMemberAccess = (
   if (ctx.result !== "__THIS_SCOPE__") {
     return null;
   }
-  if (!state.currentScope) {
+  if (!state.currentScopePath) {
     throw new Error("Error: 'this' can only be used inside a scope");
   }
 
   const output = initializeMemberOutput(ctx);
   const fullName = ScopeUtils.qualifyInScope(
     ctx.memberName,
-    state.currentScope,
+    state.currentScopePath,
   );
   const constValue = input.symbols!.scopePrivateConstValues.get(fullName);
   if (constValue === undefined) {
@@ -1387,7 +1392,7 @@ const tryKnownScopeAccess = (
     MemberAccessValidator.validateNotSelfScopeReference(
       ctx.result,
       ctx.memberName,
-      state.currentScope,
+      state.currentScopePath,
     );
   }
   orchestrator.validateCrossScopeVisibility(
@@ -1428,7 +1433,7 @@ const tryEnumMemberAccess = (
     ctx.result,
     ctx.memberName,
     "enum",
-    state.currentScope,
+    state.currentScopePath,
     ctx.isGlobalAccess,
     { scopeMembers: state.scopeMembers },
   );
@@ -1454,7 +1459,7 @@ const tryRegisterMemberAccess = (
     ctx.result,
     ctx.memberName,
     "register",
-    state.currentScope,
+    state.currentScopePath,
     ctx.isGlobalAccess,
     { scopeMembers: state.scopeMembers },
   );

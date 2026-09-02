@@ -19,7 +19,6 @@ import LiteralUtils from "../../../../utils/LiteralUtils";
 import OverflowBehaviorUtils from "../../../../utils/OverflowBehaviorUtils";
 import UNRESOLVED_DIMENSION from "../../../constants/UNRESOLVED_DIMENSION";
 import dimensionEvalOptions from "./dimensionEvalOptions";
-import IScopeSymbol from "../../../types/symbols/IScopeSymbol";
 import TypeBinding from "../../../logic/symbols/TypeBinding";
 
 /**
@@ -92,7 +91,7 @@ class TypeRegistrationEngine {
     callbacks: ITypeRegistrationCallbacks,
   ): void {
     const scopeName = scopeDecl.IDENTIFIER().getText();
-    const savedScope = CodeGenState.currentScope;
+    const savedScope = CodeGenState.currentScopePath;
     CodeGenState.setCurrentScopeByPath(scopeName);
 
     for (const member of scopeDecl.scopeMember()) {
@@ -103,7 +102,7 @@ class TypeRegistrationEngine {
         // carrying its parent chain; qualify through that rather than re-joining
         // one level from the leaf name it was resolved FROM.
         const fullName = QualifiedNameGenerator.forMember(
-          CodeGenState.currentScope,
+          CodeGenState.currentScopePath,
           varName,
         );
         TypeRegistrationEngine._trackVariableTypeWithName(
@@ -114,7 +113,7 @@ class TypeRegistrationEngine {
       }
     }
 
-    CodeGenState.currentScope = savedScope;
+    CodeGenState.currentScopePath = savedScope;
   }
 
   // ============================================================================
@@ -146,11 +145,11 @@ class TypeRegistrationEngine {
    */
   static resolveBaseType(
     typeCtx: Parser.TypeContext,
-    currentScope: IScopeSymbol | null,
+    currentScopePath: string,
   ): string | null {
     return TypeRegistrationEngine._resolveBaseTypeWithCallbacks(
       typeCtx,
-      currentScope,
+      currentScopePath,
     );
   }
 
@@ -160,7 +159,7 @@ class TypeRegistrationEngine {
    */
   private static _resolveBaseTypeWithCallbacks(
     typeCtx: Parser.TypeContext,
-    currentScope: IScopeSymbol | null,
+    currentScopePath: string,
     callbacks?: ITypeRegistrationCallbacks,
   ): string | null {
     // #1285: ask for the two alternatives this path accepts -- a named type or
@@ -171,7 +170,7 @@ class TypeRegistrationEngine {
     // through; the caller at _registerVariableType treats a falsy base type as
     // "not registerable", so anything wrong here silently unregisters types
     // rather than failing.
-    return TypeBinding.resolveNamedOrPrimitiveType(typeCtx, currentScope, {
+    return TypeBinding.resolveNamedOrPrimitiveType(typeCtx, currentScopePath, {
       isScopeType: (qualifiedName) => CodeGenState.isScopeType(qualifiedName),
       resolveQualifiedType: callbacks?.resolveQualifiedType,
     });
@@ -246,7 +245,7 @@ class TypeRegistrationEngine {
 
     const baseType = TypeRegistrationEngine._resolveBaseTypeWithCallbacks(
       typeCtx,
-      CodeGenState.currentScope,
+      CodeGenState.currentScopePath,
       callbacks,
     );
     if (!baseType) {
@@ -501,7 +500,7 @@ class TypeRegistrationEngine {
     // declaration in C++ mode: byte-identical. It is threaded because the two
     // adjacent calls must not differ by accident, not because a fixture moves.
     const baseType =
-      TypeBinding.resolveName(arrayTypeCtx, CodeGenState.currentScope, {
+      TypeBinding.resolveName(arrayTypeCtx, CodeGenState.currentScopePath, {
         isScopeType: (qualifiedName) => CodeGenState.isScopeType(qualifiedName),
         resolveQualifiedType: callbacks?.resolveQualifiedType,
       }) ?? "";

@@ -339,7 +339,7 @@ class TSymbolInfoAdapter {
             typeof dimension === "string"
               ? ScopeUtils.resolveDimensionName(
                   dimension,
-                  symbol.scope,
+                  symbol.scopePath,
                   isKnownEnum,
                 )
               : dimension,
@@ -408,7 +408,7 @@ class TSymbolInfoAdapter {
     maps.registerBaseAddresses.set(cName, register.baseAddress);
 
     // Check if this is a scoped register (has non-global scope)
-    const isScoped = register.scope.name !== "";
+    const isScoped = !ScopeUtils.isGlobalScopePath(register.scopePath);
     if (isScoped) {
       maps.scopedRegisters.set(cName, register.baseAddress);
     }
@@ -436,8 +436,10 @@ class TSymbolInfoAdapter {
     scopePrivateConstValues: Map<string, string>,
   ): void {
     const cName = TSymbolInfoAdapter.getTranspiledCName(variable);
-    const scopeName = variable.scope.name;
-    const isScoped = scopeName !== "";
+    // `scopeMembers` is keyed by the scope's LEAF name -- itself a leaf-only
+    // encoder that collides at depth two, tracked as #1295 and unchanged here.
+    const scopeName = ScopeUtils.leafOf(variable.scopePath);
+    const isScoped = !ScopeUtils.isGlobalScopePath(variable.scopePath);
 
     // Track scoped variables as scope members (needed for name resolution)
     if (isScoped) {

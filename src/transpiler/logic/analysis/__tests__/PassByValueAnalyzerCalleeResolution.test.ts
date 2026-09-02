@@ -15,7 +15,6 @@ import PassByValueAnalyzer from "../PassByValueAnalyzer.js";
 import CodeGenState from "../../../state/CodeGenState.js";
 import SymbolTable from "../../symbols/SymbolTable.js";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage.js";
-import ScopeUtils from "../../../../utils/ScopeUtils.js";
 import type TCSymbol from "../../../types/symbols/c/TCSymbol.js";
 
 interface IParameterShape {
@@ -308,7 +307,7 @@ describe("PassByValueAnalyzer callee resolution (#1178)", () => {
     const cnextFunction = {
       kind: "function",
       name: "emit",
-      scope: ScopeUtils.createGlobalScope(),
+      scopePath: "",
       sourceFile: "a.cnx",
       sourceLine: 1,
       sourceLanguage: ESourceLanguage.CNext,

@@ -24,7 +24,7 @@ interface IScope<T> {
  * @typeParam T - The type of data stored for each variable
  */
 class ScopeStack<T> {
-  private currentScope: IScope<T> | null = null;
+  private currentScopePath: IScope<T> | null = null;
 
   /**
    * Enter a new scope (e.g., function body, block)
@@ -33,9 +33,9 @@ class ScopeStack<T> {
   enterScope(): void {
     const newScope: IScope<T> = {
       variables: new Map(),
-      parent: this.currentScope,
+      parent: this.currentScopePath,
     };
-    this.currentScope = newScope;
+    this.currentScopePath = newScope;
   }
 
   /**
@@ -43,9 +43,9 @@ class ScopeStack<T> {
    * @returns The exited scope, or null if already at root
    */
   exitScope(): IScope<T> | null {
-    const exited = this.currentScope;
-    if (this.currentScope) {
-      this.currentScope = this.currentScope.parent;
+    const exited = this.currentScopePath;
+    if (this.currentScopePath) {
+      this.currentScopePath = this.currentScopePath.parent;
     }
     return exited;
   }
@@ -57,10 +57,10 @@ class ScopeStack<T> {
    * @throws Error if no scope exists (call enterScope first)
    */
   declare(name: string, state: T): void {
-    if (!this.currentScope) {
+    if (!this.currentScopePath) {
       throw new Error("Cannot declare variable: no active scope");
     }
-    this.currentScope.variables.set(name, state);
+    this.currentScopePath.variables.set(name, state);
   }
 
   /**
@@ -69,7 +69,7 @@ class ScopeStack<T> {
    * @returns The variable state, or null if not found in any scope
    */
   lookup(name: string): T | null {
-    let scope = this.currentScope;
+    let scope = this.currentScopePath;
     while (scope) {
       const state = scope.variables.get(name);
       if (state !== undefined) {
@@ -94,7 +94,7 @@ class ScopeStack<T> {
    * @param name - Variable name to check
    */
   hasInCurrentScope(name: string): boolean {
-    return this.currentScope?.variables.has(name) ?? false;
+    return this.currentScopePath?.variables.has(name) ?? false;
   }
 
   /**
@@ -104,7 +104,7 @@ class ScopeStack<T> {
    * @returns true if variable was found and updated, false otherwise
    */
   update(name: string, updater: (state: T) => T): boolean {
-    let scope = this.currentScope;
+    let scope = this.currentScopePath;
     while (scope) {
       if (scope.variables.has(name)) {
         const current = scope.variables.get(name)!;
@@ -123,7 +123,7 @@ class ScopeStack<T> {
    */
   getAllVisible(): Map<string, T> {
     const result = new Map<string, T>();
-    let scope = this.currentScope;
+    let scope = this.currentScopePath;
     while (scope) {
       for (const [name, state] of scope.variables) {
         // Only add if not already shadowed by inner scope
@@ -144,7 +144,7 @@ class ScopeStack<T> {
    */
   cloneState(cloner: (state: T) => T): Map<string, T> {
     const result = new Map<string, T>();
-    let scope = this.currentScope;
+    let scope = this.currentScopePath;
     while (scope) {
       for (const [name, state] of scope.variables) {
         if (!result.has(name)) {
@@ -177,7 +177,7 @@ class ScopeStack<T> {
    */
   getDepth(): number {
     let depth = 0;
-    let scope = this.currentScope;
+    let scope = this.currentScopePath;
     while (scope) {
       depth++;
       scope = scope.parent;
@@ -189,7 +189,7 @@ class ScopeStack<T> {
    * Check if we're currently inside any scope
    */
   hasActiveScope(): boolean {
-    return this.currentScope !== null;
+    return this.currentScopePath !== null;
   }
 
   /**
@@ -197,8 +197,8 @@ class ScopeStack<T> {
    * @returns Iterator of [name, state] pairs
    */
   *currentScopeVariables(): IterableIterator<[string, T]> {
-    if (this.currentScope) {
-      yield* this.currentScope.variables;
+    if (this.currentScopePath) {
+      yield* this.currentScopePath.variables;
     }
   }
 }

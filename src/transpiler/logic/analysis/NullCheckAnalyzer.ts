@@ -223,7 +223,7 @@ class NullCheckListener extends CNextListener {
   // ========================================================================
 
   /** Current scope for tracking nullable variable states */
-  private currentScope: INullCheckScope | null = null;
+  private currentScopePath: INullCheckScope | null = null;
 
   /** Stack of if-statement info for tracking nested conditions */
   private readonly ifStack: Array<{
@@ -262,21 +262,21 @@ class NullCheckListener extends CNextListener {
   private pushScope(): void {
     const newScope: INullCheckScope = {
       variables: new Map(),
-      parent: this.currentScope,
+      parent: this.currentScopePath,
       isGuardClause: false,
       guardVariable: null,
       isNullEqualityCheck: false,
     };
-    this.currentScope = newScope;
+    this.currentScopePath = newScope;
   }
 
   /**
    * Exit the current scope and return to parent
    */
   private popScope(): INullCheckScope | null {
-    const oldScope = this.currentScope;
-    if (this.currentScope) {
-      this.currentScope = this.currentScope.parent;
+    const oldScope = this.currentScopePath;
+    if (this.currentScopePath) {
+      this.currentScopePath = this.currentScopePath.parent;
     }
     return oldScope;
   }
@@ -285,7 +285,7 @@ class NullCheckListener extends CNextListener {
    * Look up a variable's state in the current scope chain
    */
   private lookupVariable(name: string): INullableVariableState | null {
-    let scope = this.currentScope;
+    let scope = this.currentScopePath;
     while (scope) {
       const state = scope.variables.get(name);
       if (state) return state;
@@ -298,7 +298,7 @@ class NullCheckListener extends CNextListener {
    * Update a variable's state in the scope where it's defined
    */
   private updateVariableState(name: string, newState: NullCheckState): void {
-    let scope = this.currentScope;
+    let scope = this.currentScopePath;
     while (scope) {
       if (scope.variables.has(name)) {
         const varState = scope.variables.get(name)!;
@@ -317,8 +317,8 @@ class NullCheckListener extends CNextListener {
     typeName: string,
     line: number,
   ): void {
-    if (!this.currentScope) return;
-    this.currentScope.variables.set(name, {
+    if (!this.currentScopePath) return;
+    this.currentScopePath.variables.set(name, {
       name,
       declarationLine: line,
       typeName,

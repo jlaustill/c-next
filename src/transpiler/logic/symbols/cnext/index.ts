@@ -240,14 +240,17 @@ class CNextResolver {
       // parse-tree identifier. The set this fills is queried with chain-built
       // names, so a leaf-built key here never matched at depth two and the
       // lookup fell silently through to the bare name.
-      const scope = SymbolRegistry.getOrCreateScope(
-        scopeDecl.IDENTIFIER().getText(),
+      const scopePath = ScopeUtils.pathOf(
+        SymbolRegistry.getOrCreateScope(scopeDecl.IDENTIFIER().getText()),
       );
       for (const member of scopeDecl.scopeMember()) {
         const typeDecl = CNextResolver.typeFormingDeclaration(member);
         if (typeDecl) {
           scopeTypes.add(
-            ScopeUtils.qualifyInScope(typeDecl.IDENTIFIER().getText(), scope),
+            ScopeUtils.qualifyInScope(
+              typeDecl.IDENTIFIER().getText(),
+              scopePath,
+            ),
           );
         }
       }
@@ -267,7 +270,9 @@ class CNextResolver {
     constValues: Map<string, number>,
     isScopeType: (qualifiedName: string) => boolean,
   ): void {
-    const globalScope = SymbolRegistry.getGlobalScope();
+    // #1298: file scope is the empty path; the global scope object itself is
+    // only needed where a mutable member list is.
+    const globalScopePath = "";
 
     for (const decl of tree.declaration()) {
       // Top-level bitmaps
@@ -276,7 +281,7 @@ class CNextResolver {
         const symbol = BitmapCollector.collect(
           bitmapCtx,
           sourceFile,
-          globalScope,
+          globalScopePath,
         );
         symbols.push(symbol);
         // Use transpiled C name (global bitmaps have no scope prefix)
@@ -310,12 +315,18 @@ class CNextResolver {
     isScopeType: (qualifiedName: string) => boolean,
   ): void {
     const scopeName = scopeDecl.IDENTIFIER().getText();
-    const scope = SymbolRegistry.getOrCreateScope(scopeName);
+    const scopePath = ScopeUtils.pathOf(
+      SymbolRegistry.getOrCreateScope(scopeName),
+    );
 
     for (const member of scopeDecl.scopeMember()) {
       if (member.bitmapDeclaration()) {
         const bitmapCtx = member.bitmapDeclaration()!;
-        const symbol = BitmapCollector.collect(bitmapCtx, sourceFile, scope);
+        const symbol = BitmapCollector.collect(
+          bitmapCtx,
+          sourceFile,
+          scopePath,
+        );
         symbols.push(symbol);
         // #1285: the symbol was just built and carries its own identity, so
         // read it rather than re-deriving one. The re-derivation here joined a
@@ -330,7 +341,7 @@ class CNextResolver {
         const symbol = StructCollector.collect(
           structCtx,
           sourceFile,
-          scope,
+          scopePath,
           constValues,
           isScopeType,
         );
@@ -382,7 +393,8 @@ class CNextResolver {
     constValues: Map<string, number>,
     isScopeType: (qualifiedName: string) => boolean,
   ): void {
-    const globalScope = SymbolRegistry.getGlobalScope();
+    // #1298: file scope is the empty path.
+    const globalScopePath = "";
 
     // Scopes (ScopeCollector handles nested members)
     if (decl.scopeDeclaration()) {
@@ -402,7 +414,7 @@ class CNextResolver {
       const symbol = StructCollector.collect(
         decl.structDeclaration()!,
         sourceFile,
-        globalScope,
+        globalScopePath,
         constValues,
       );
       symbols.push(symbol);
@@ -414,7 +426,7 @@ class CNextResolver {
       const symbol = EnumCollector.collect(
         decl.enumDeclaration()!,
         sourceFile,
-        globalScope,
+        globalScopePath,
       );
       symbols.push(symbol);
       return;
@@ -426,7 +438,7 @@ class CNextResolver {
         decl.registerDeclaration()!,
         sourceFile,
         knownBitmaps,
-        globalScope,
+        globalScopePath,
       );
       symbols.push(symbol);
       return;
@@ -440,7 +452,7 @@ class CNextResolver {
       const symbol = FunctionCollector.collectAndRegister(
         funcDecl,
         sourceFile,
-        SymbolRegistry.getGlobalScope(),
+        "",
         body,
         // ADR-016: functions are public by default (API surface). Scopes are
         // how C-Next expresses privacy — neither `public` nor `private` parses
@@ -457,7 +469,7 @@ class CNextResolver {
       const symbol = VariableCollector.collect(
         decl.variableDeclaration()!,
         sourceFile,
-        globalScope,
+        globalScopePath,
         true,
         constValues,
       );

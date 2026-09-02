@@ -133,7 +133,6 @@ import CastValidator from "./helpers/CastValidator";
 import FunctionContextManager from "./helpers/FunctionContextManager";
 import IFunctionContextCallbacks from "./types/IFunctionContextCallbacks";
 // Global state for code generation (simplifies debugging, eliminates DI complexity)
-import type IScopeSymbol from "../../types/symbols/IScopeSymbol";
 import CodeGenState from "../../state/CodeGenState";
 import AdrProvenance from "../../state/AdrProvenance";
 import SymbolRegistry from "../../state/SymbolRegistry";
@@ -410,7 +409,7 @@ export default class CodeGenerator implements IOrchestrator {
    */
   getState(): IGeneratorState {
     return {
-      currentScope: CodeGenState.currentScope,
+      currentScopePath: CodeGenState.currentScopePath,
       indentLevel: CodeGenState.indentLevel,
       inFunctionBody: CodeGenState.inFunctionBody,
       currentParameters: CodeGenState.currentParameters,
@@ -639,7 +638,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Generate the C type using the helper with dependencies
     return TypeGenerationHelper.generate(ctx, {
-      currentScope: CodeGenState.currentScope,
+      currentScopePath: CodeGenState.currentScopePath,
       isCppScopeSymbol: (name) => this.isCppScopeSymbol(name),
       checkNeedsStructKeyword: (name) =>
         CodeGenState.symbolTable.checkNeedsStructKeyword(name),
@@ -1250,7 +1249,7 @@ export default class CodeGenerator implements IOrchestrator {
       hasGlobal || hasThis ? safeIdentifier : resolvedIdentifier,
       hasGlobal,
       hasThis,
-      CodeGenState.currentScope,
+      CodeGenState.currentScopePath,
     );
 
     // No postfix operations - return base
@@ -1379,11 +1378,15 @@ export default class CodeGenerator implements IOrchestrator {
     // #1285: one ladder. This was the largest of seven copies, and the only one
     // that handled `arrayType` by peeking at two of its six element
     // alternatives -- TypeBinding recurses into all of them.
-    const resolved = TypeBinding.resolveName(ctx, CodeGenState.currentScope, {
-      isScopeType: (qualifiedName) => CodeGenState.isScopeType(qualifiedName),
-      resolveQualifiedType: (identifiers) =>
-        this.resolveQualifiedType(identifiers),
-    });
+    const resolved = TypeBinding.resolveName(
+      ctx,
+      CodeGenState.currentScopePath,
+      {
+        isScopeType: (qualifiedName) => CodeGenState.isScopeType(qualifiedName),
+        resolveQualifiedType: (identifiers) =>
+          this.resolveQualifiedType(identifiers),
+      },
+    );
     return resolved ?? ctx.getText();
   }
 
@@ -2166,12 +2169,15 @@ export default class CodeGenerator implements IOrchestrator {
     hasGlobal: boolean,
   ): void {
     // Only validate when inside a scope and accessing without global. prefix
-    if (CodeGenState.currentScope && !hasGlobal) {
+    if (CodeGenState.currentScopePath && !hasGlobal) {
       // Check if this is a scoped register (defined within the current scope)
       // The registerName may already be the fully qualified name (e.g., "GPIO_PORTA")
       // if accessed as PORTA from inside scope GPIO
       if (
-        QualifiedCName.isInScope(registerName, CodeGenState.currentScope.name)
+        QualifiedCName.isInScope(
+          registerName,
+          ScopeUtils.leafOf(CodeGenState.currentScopePath),
+        )
       ) {
         // This is a scoped register - allow bare access
         return;
@@ -2191,7 +2197,7 @@ export default class CodeGenerator implements IOrchestrator {
 
       throw new Error(
         `Error: Use 'global.${registerName}.${memberName}' to access register '${registerName}' ` +
-          `from inside scope '${CodeGenState.currentScope!.cnxScopedName}'`,
+          `from inside scope '${CodeGenState.currentScopePath}'`,
       );
     }
   }
@@ -2722,7 +2728,7 @@ export default class CodeGenerator implements IOrchestrator {
     const scopeName = scopeDecl.IDENTIFIER().getText();
 
     // Set scope context for scoped type resolution (this.Type)
-    const savedScope = CodeGenState.currentScope;
+    const savedScope = CodeGenState.currentScopePath;
     CodeGenState.setCurrentScopeByPath(scopeName);
 
     // #1281/#1285: functions first, THEN everything that can reference one.
@@ -2741,7 +2747,7 @@ export default class CodeGenerator implements IOrchestrator {
         // #1285: resolve the scope SYMBOL rather than reading back mutable
         // state, so the generated name does not depend on when it is asked.
         this._registerScopeFunction(
-          SymbolRegistry.getOrCreateScope(scopeName),
+          ScopeUtils.pathOf(SymbolRegistry.getOrCreateScope(scopeName)),
           funcDecl,
         );
       }
@@ -2762,7 +2768,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Restore previous scope context
-    CodeGenState.currentScope = savedScope;
+    CodeGenState.currentScopePath = savedScope;
   }
 
   /**
@@ -2772,13 +2778,13 @@ export default class CodeGenerator implements IOrchestrator {
    * reference to one is resolved.
    */
   private _registerScopeFunction(
-    declaringScope: IScopeSymbol | null,
+    declaringScopePath: string,
     funcDecl: Parser.FunctionDeclarationContext,
   ): void {
     const funcName = funcDecl.IDENTIFIER().getText();
     // Track fully qualified function name: Scope_function
     const fullName = QualifiedNameGenerator.forFunctionInScope(
-      declaringScope,
+      declaringScopePath,
       funcName,
     );
     CodeGenState.knownFunctions.add(fullName);
@@ -3822,8 +3828,8 @@ export default class CodeGenerator implements IOrchestrator {
       isKnownStruct: (t) => {
         if (this.isKnownStruct(t)) return true;
         // ADR-057: check qualified name for scope-local struct types only
-        const qualified = CodeGenState.currentScope
-          ? ScopeUtils.qualifyInScope(t, CodeGenState.currentScope)
+        const qualified = CodeGenState.currentScopePath
+          ? ScopeUtils.qualifyInScope(t, CodeGenState.currentScopePath)
           : t;
         return CodeGenState.symbols?.knownStructs.has(qualified) ?? false;
       },
@@ -4220,7 +4226,7 @@ export default class CodeGenerator implements IOrchestrator {
     // grammar from ~3000 lines away, and getting it wrong fails open.
     const name = TypeBinding.resolveNamedType(
       typeCtx,
-      CodeGenState.currentScope,
+      CodeGenState.currentScopePath,
       {
         isScopeType: (qualifiedName) => CodeGenState.isScopeType(qualifiedName),
         resolveQualifiedType: (parts) => this.resolveQualifiedType(parts),
@@ -4346,7 +4352,7 @@ export default class CodeGenerator implements IOrchestrator {
       generateAssignmentTarget: (targetCtx) =>
         this.generateAssignmentTarget(targetCtx),
       isKnownRegister: (name) => CodeGenState.symbols!.knownRegisters.has(name),
-      currentScope: CodeGenState.currentScope,
+      currentScopePath: CodeGenState.currentScopePath,
     });
     // ADR-065: Handlers access CodeGenState directly, no deps needed
     const assignmentKind = AssignmentClassifier.classify(assignCtx);
@@ -4433,7 +4439,7 @@ export default class CodeGenerator implements IOrchestrator {
           firstId,
           hasGlobal,
           hasThis,
-          currentScope: CodeGenState.currentScope,
+          currentScopePath: CodeGenState.currentScopePath,
           isStructParam,
           isCppAccess,
           forcePointerSemantics,
@@ -4549,7 +4555,7 @@ export default class CodeGenerator implements IOrchestrator {
    * ADR-016: 'this' returns a marker that postfixOps will transform to Scope_member
    */
   private _resolveThisKeyword(): string {
-    if (!CodeGenState.currentScope) {
+    if (!CodeGenState.currentScopePath) {
       throw new Error("Error: 'this' can only be used inside a scope");
     }
     return "__THIS_SCOPE__";
