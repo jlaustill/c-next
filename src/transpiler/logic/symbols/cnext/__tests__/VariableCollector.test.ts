@@ -17,6 +17,7 @@ describe("VariableCollector", () => {
         varCtx,
         "test.cnx",
         TestScopeUtils.getGlobalScope(),
+        "public",
       );
 
       expect(symbol.kind).toBe("variable");
@@ -26,7 +27,7 @@ describe("VariableCollector", () => {
       expect(symbol.isArray).toBe(false);
       expect(symbol.sourceFile).toBe("test.cnx");
       expect(symbol.sourceLanguage).toBe(ESourceLanguage.CNext);
-      expect(symbol.isExported).toBe(true);
+      expect(symbol.visibility).toBe("public");
     });
 
     it("authors ADR-044 overflow behavior on the symbol (#1303)", () => {
@@ -47,6 +48,7 @@ describe("VariableCollector", () => {
           varCtx,
           "test.cnx",
           TestScopeUtils.getGlobalScope(),
+          "public",
         );
 
         expect(symbol.name).toBe(name);
@@ -64,6 +66,7 @@ describe("VariableCollector", () => {
         varCtx,
         "test.cnx",
         TestScopeUtils.getGlobalScope(),
+        "public",
       );
 
       expect(TypeResolver.getTypeName(symbol.type)).toBe("i64");
@@ -79,6 +82,7 @@ describe("VariableCollector", () => {
         varCtx,
         "test.cnx",
         TestScopeUtils.getGlobalScope(),
+        "public",
       );
 
       expect(symbol.initialValue).toBe("0");
@@ -96,6 +100,7 @@ describe("VariableCollector", () => {
         varCtx,
         "test.cnx",
         TestScopeUtils.getGlobalScope(),
+        "public",
       );
 
       expect(symbol.isConst).toBe(true);
@@ -112,6 +117,7 @@ describe("VariableCollector", () => {
         varCtx,
         "test.cnx",
         TestScopeUtils.getGlobalScope(),
+        "public",
       );
 
       expect(symbol.initialValue).toBe("0xDEADBEEF");
@@ -129,6 +135,7 @@ describe("VariableCollector", () => {
         varCtx,
         "test.cnx",
         TestScopeUtils.getGlobalScope(),
+        "public",
       );
 
       expect(symbol.isArray).toBe(true);
@@ -145,6 +152,7 @@ describe("VariableCollector", () => {
         varCtx,
         "test.cnx",
         TestScopeUtils.getGlobalScope(),
+        "public",
       );
 
       expect(symbol.isArray).toBe(true);
@@ -162,7 +170,7 @@ describe("VariableCollector", () => {
         varCtx,
         "test.cnx",
         TestScopeUtils.getGlobalScope(),
-        true,
+        "public",
         constValues,
       );
 
@@ -181,7 +189,7 @@ describe("VariableCollector", () => {
         varCtx,
         "test.cnx",
         TestScopeUtils.getGlobalScope(),
-        true,
+        "public",
         constValues,
       );
 
@@ -203,7 +211,7 @@ describe("VariableCollector", () => {
         varCtx,
         "test.cnx",
         TestScopeUtils.getGlobalScope(),
-        true,
+        "public",
         constValues,
       );
 
@@ -221,6 +229,7 @@ describe("VariableCollector", () => {
         varCtx,
         "test.cnx",
         TestScopeUtils.getGlobalScope(),
+        "public",
       );
 
       expect(symbol.isArray).toBe(true);
@@ -237,6 +246,7 @@ describe("VariableCollector", () => {
         varCtx,
         "test.cnx",
         TestScopeUtils.getGlobalScope(),
+        "public",
       );
 
       expect(symbol.isArray).toBe(true);
@@ -254,7 +264,7 @@ describe("VariableCollector", () => {
         varCtx,
         "test.cnx",
         TestScopeUtils.getGlobalScope(),
-        true,
+        "public",
         constValues,
       );
 
@@ -272,6 +282,7 @@ describe("VariableCollector", () => {
         varCtx,
         "test.cnx",
         TestScopeUtils.getGlobalScope(),
+        "public",
       );
 
       expect(symbol.isArray).toBe(true);
@@ -287,7 +298,12 @@ describe("VariableCollector", () => {
       const tree = parse(code);
       const varCtx = tree.declaration(0)!.variableDeclaration()!;
       const motorScope = TestScopeUtils.createMockScope("Motor");
-      const symbol = VariableCollector.collect(varCtx, "motor.cnx", motorScope);
+      const symbol = VariableCollector.collect(
+        varCtx,
+        "motor.cnx",
+        motorScope,
+        "public",
+      );
 
       // With new IScopeSymbol-based design, name is just "position" (not prefixed)
       // The prefixing happens in TSymbolAdapter for backwards compatibility
@@ -306,10 +322,10 @@ describe("VariableCollector", () => {
         varCtx,
         "motor.cnx",
         motorScope,
-        false,
+        "private",
       );
 
-      expect(symbol.isExported).toBe(false);
+      expect(symbol.visibility).toBe("private");
     });
   });
 
@@ -324,6 +340,7 @@ describe("VariableCollector", () => {
         varCtx,
         "test.cnx",
         TestScopeUtils.getGlobalScope(),
+        "public",
       );
 
       expect(TypeResolver.getTypeName(symbol.type)).toBe("Point");
@@ -342,6 +359,7 @@ describe("VariableCollector", () => {
         varCtx,
         "test.cnx",
         TestScopeUtils.getGlobalScope(),
+        "public",
       );
 
       expect(symbol.sourceLine).toBe(3);

@@ -22,6 +22,7 @@ describe("BitmapCollector", () => {
         bitmapCtx,
         "test.cnx",
         TestScopeUtils.getGlobalScope(),
+        "public",
       );
 
       expect(symbol.kind).toBe("bitmap");
@@ -30,7 +31,7 @@ describe("BitmapCollector", () => {
       expect(symbol.bitWidth).toBe(8);
       expect(symbol.sourceFile).toBe("test.cnx");
       expect(symbol.sourceLanguage).toBe(ESourceLanguage.CNext);
-      expect(symbol.isExported).toBe(true);
+      expect(symbol.visibility).toBe("public");
 
       // Check fields
       expect(symbol.fields.size).toBe(5);
@@ -55,6 +56,7 @@ describe("BitmapCollector", () => {
         bitmapCtx,
         "control.cnx",
         TestScopeUtils.getGlobalScope(),
+        "public",
       );
 
       expect(symbol.name).toBe("Control");
@@ -80,6 +82,7 @@ describe("BitmapCollector", () => {
         bitmapCtx,
         "config.cnx",
         TestScopeUtils.getGlobalScope(),
+        "public",
       );
 
       expect(symbol.name).toBe("Config");
@@ -101,6 +104,7 @@ describe("BitmapCollector", () => {
         bitmapCtx,
         "rgb.cnx",
         TestScopeUtils.getGlobalScope(),
+        "public",
       );
 
       expect(symbol.name).toBe("RGB");
@@ -127,6 +131,7 @@ describe("BitmapCollector", () => {
         bitmapCtx,
         "motor.cnx",
         motorScope,
+        "public",
       );
 
       // With the new IScopeSymbol-based design, name is just "Flags" (not prefixed)
@@ -151,6 +156,7 @@ describe("BitmapCollector", () => {
           bitmapCtx,
           "test.cnx",
           TestScopeUtils.getGlobalScope(),
+          "public",
         ),
       ).toThrow(
         "Error: Bitmap 'TooMany' has 10 bits but bitmap8 requires exactly 8 bits",
@@ -172,6 +178,7 @@ describe("BitmapCollector", () => {
           bitmapCtx,
           "test.cnx",
           TestScopeUtils.getGlobalScope(),
+          "public",
         ),
       ).toThrow(
         "Error: Bitmap 'TooFew' has 4 bits but bitmap8 requires exactly 8 bits",
@@ -193,6 +200,7 @@ describe("BitmapCollector", () => {
         bitmapCtx,
         "test.cnx",
         TestScopeUtils.getGlobalScope(),
+        "public",
       );
 
       expect(symbol.sourceLine).toBe(3);

@@ -132,13 +132,12 @@ abstract class BaseHeaderGenerator {
   ): string {
     const guard = HeaderGeneratorUtils.makeGuard(filename);
 
-    // Filter to exported symbols if requested
-    const exportedSymbols = options.exportedOnly
-      ? symbols.filter((s) => s.isExported)
-      : symbols;
-
-    // Group symbols by kind
-    const groups = HeaderGeneratorUtils.groupSymbolsByKind(exportedSymbols);
+    // #1300: NO filter here. `PublicInterface` already decided which symbols
+    // form this file's header, including the private types a public signature
+    // makes reachable -- a second predicate over the same set could only
+    // disagree with the first, and did: it dropped every closure type, because
+    // it re-read the declared visibility instead of carrying the decision.
+    const groups = HeaderGeneratorUtils.groupSymbolsByKind(symbols);
 
     // Get local type names for external type detection
     const localTypes = HeaderGeneratorUtils.getLocalTypeNames(groups);

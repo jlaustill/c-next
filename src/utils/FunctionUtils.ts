@@ -53,7 +53,6 @@ class FunctionUtils {
       sourceFile: options.sourceFile,
       sourceLine: options.sourceLine,
       sourceLanguage: ESourceLanguage.CNext,
-      isExported: options.visibility === "public",
     };
   }
 

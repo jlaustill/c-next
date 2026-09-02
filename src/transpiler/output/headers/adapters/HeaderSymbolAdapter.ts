@@ -83,7 +83,6 @@ class HeaderSymbolAdapter {
       name: cName,
       kind: "function",
       type: qualifiedReturn,
-      isExported: func.isExported,
       parameters,
       signature,
       parent: isGlobal ? undefined : func.scope.name,
@@ -113,7 +112,6 @@ class HeaderSymbolAdapter {
       name: cName,
       kind: "variable",
       type: typeStr,
-      isExported: variable.isExported,
       isConst: variable.isConst,
       isAtomic: variable.isAtomic,
       isVolatile: variable.isVolatile,
@@ -189,7 +187,6 @@ class HeaderSymbolAdapter {
     return {
       name: cName,
       kind: "struct",
-      isExported: struct.isExported,
       parent: isGlobal ? undefined : struct.scope.name,
       sourceFile: struct.sourceFile,
       sourceLine: struct.sourceLine,
@@ -206,7 +203,6 @@ class HeaderSymbolAdapter {
     return {
       name: cName,
       kind: "enum",
-      isExported: enumSym.isExported,
       parent: isGlobal ? undefined : enumSym.scope.name,
       sourceFile: enumSym.sourceFile,
       sourceLine: enumSym.sourceLine,
@@ -224,7 +220,6 @@ class HeaderSymbolAdapter {
       name: cName,
       kind: "bitmap",
       type: bitmap.backingType,
-      isExported: bitmap.isExported,
       parent: isGlobal ? undefined : bitmap.scope.name,
       sourceFile: bitmap.sourceFile,
       sourceLine: bitmap.sourceLine,
@@ -241,7 +236,6 @@ class HeaderSymbolAdapter {
     return {
       name: cName,
       kind: "register",
-      isExported: register.isExported,
       parent: isGlobal ? undefined : register.scope.name,
       sourceFile: register.sourceFile,
       sourceLine: register.sourceLine,
@@ -254,7 +248,6 @@ class HeaderSymbolAdapter {
     return {
       name: scope.name,
       kind: "scope",
-      isExported: scope.isExported,
       sourceFile: scope.sourceFile,
       sourceLine: scope.sourceLine,
     };

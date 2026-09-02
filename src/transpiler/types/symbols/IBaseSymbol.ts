@@ -1,6 +1,7 @@
 import type TSymbolKindCNext from "../symbol-kinds/TSymbolKindCNext";
 import type IScopeSymbol from "./IScopeSymbol";
 import type ESourceLanguage from "../../../utils/types/ESourceLanguage";
+import type TVisibility from "../TVisibility";
 
 /**
  * Base interface for all symbol types.
@@ -57,8 +58,23 @@ interface IBaseSymbol {
   /** Source language (CNext, C, Cpp) */
   readonly sourceLanguage: ESourceLanguage;
 
-  /** Whether this symbol is exported/public */
-  readonly isExported: boolean;
+  /**
+   * Visibility as the source declares it (ADR-016), on every symbol kind.
+   *
+   * This is a fact about the declaration, not a decision about the output.
+   * Whether a symbol reaches the generated header is a separate question --
+   * `visibility`, minus ADR-030's `main` exemption, minus "a scope is a
+   * container, not a declaration", plus the private types a public declaration
+   * makes reachable. `PublicInterface` owns that computation; nothing else may
+   * re-derive it.
+   *
+   * Four kinds used to carry no visibility at all, so their collectors hardcoded
+   * an exported flag while `ScopeCollector` recorded the real answer beside them.
+   * Two places held one fact, they disagreed, and the header believed the wrong
+   * one -- every `private` struct, enum and bitmap was emitted into the public
+   * interface (#1300).
+   */
+  readonly visibility: TVisibility;
 }
 
 export default IBaseSymbol;

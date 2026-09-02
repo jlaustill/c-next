@@ -12,6 +12,7 @@ import IRegisterMemberInfo from "../../../../types/symbols/IRegisterMemberInfo";
 import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 import TypeUtils from "../utils/TypeUtils";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
+import TVisibility from "../../../../types/TVisibility";
 
 /** Access mode type for register members */
 type TAccessMode = "rw" | "ro" | "wo" | "w1c" | "w1s";
@@ -32,6 +33,7 @@ class RegisterCollector {
     sourceFile: string,
     knownBitmaps: Set<string>,
     scope: IScopeSymbol,
+    visibility: TVisibility,
     isScopeType?: (qualifiedName: string) => boolean,
   ): IRegisterSymbol {
     const name = ctx.IDENTIFIER().getText();
@@ -85,7 +87,7 @@ class RegisterCollector {
       sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.CNext,
-      isExported: true,
+      visibility,
       baseAddress,
       members,
     };

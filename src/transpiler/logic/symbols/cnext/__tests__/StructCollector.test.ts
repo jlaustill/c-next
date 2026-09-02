@@ -25,13 +25,14 @@ describe("StructCollector", () => {
         structCtx,
         "test.cnx",
         globalScope,
+        "public",
       );
 
       expect(symbol.kind).toBe("struct");
       expect(symbol.name).toBe("Point");
       expect(symbol.sourceFile).toBe("test.cnx");
       expect(symbol.sourceLanguage).toBe(ESourceLanguage.CNext);
-      expect(symbol.isExported).toBe(true);
+      expect(symbol.visibility).toBe("public");
       expect(symbol.scope).toBe(globalScope);
 
       expect(symbol.fields.size).toBe(2);
@@ -67,6 +68,7 @@ describe("StructCollector", () => {
         structCtx,
         "test.cnx",
         globalScope,
+        "public",
       );
 
       expect(TypeResolver.getTypeName(symbol.fields.get("version")!.type)).toBe(
@@ -104,6 +106,7 @@ describe("StructCollector", () => {
         structCtx,
         "test.cnx",
         globalScope,
+        "public",
       );
 
       const field = symbol.fields.get("data");
@@ -125,6 +128,7 @@ describe("StructCollector", () => {
         structCtx,
         "test.cnx",
         globalScope,
+        "public",
       );
 
       const field = symbol.fields.get("values");
@@ -147,6 +151,7 @@ describe("StructCollector", () => {
         structCtx,
         "test.cnx",
         globalScope,
+        "public",
         constValues,
       );
 
@@ -172,6 +177,7 @@ describe("StructCollector", () => {
         structCtx,
         "test.cnx",
         globalScope,
+        "public",
         constValues,
       );
 
@@ -194,6 +200,7 @@ describe("StructCollector", () => {
         structCtx,
         "test.cnx",
         globalScope,
+        "public",
         constValues,
       );
 
@@ -217,6 +224,7 @@ describe("StructCollector", () => {
         structCtx,
         "test.cnx",
         globalScope,
+        "public",
       );
 
       const field = symbol.fields.get("name");
@@ -239,6 +247,7 @@ describe("StructCollector", () => {
         structCtx,
         "test.cnx",
         globalScope,
+        "public",
       );
 
       const field = symbol.fields.get("items");
@@ -262,6 +271,7 @@ describe("StructCollector", () => {
         structCtx,
         "test.cnx",
         globalScope,
+        "public",
         constValues,
       );
 
@@ -289,6 +299,7 @@ describe("StructCollector", () => {
         structCtx,
         "test.cnx",
         globalScope,
+        "public",
       );
 
       expect(symbol.fields.get("maxSize")?.isConst).toBe(false);
@@ -311,6 +322,7 @@ describe("StructCollector", () => {
         structCtx,
         "test.cnx",
         globalScope,
+        "public",
       );
 
       expect(TypeResolver.getTypeName(symbol.fields.get("start")!.type)).toBe(
@@ -336,6 +348,7 @@ describe("StructCollector", () => {
         structCtx,
         "motor.cnx",
         motorScope,
+        "public",
       );
 
       expect(symbol.name).toBe("Config");
@@ -358,6 +371,7 @@ describe("StructCollector", () => {
         structCtx,
         "motor.cnx",
         motorScope,
+        "public",
       );
 
       expect(symbol.name).toBe("Container");
@@ -380,6 +394,7 @@ describe("StructCollector", () => {
         structCtx,
         "test.cnx",
         globalScope,
+        "public",
       );
 
       expect(symbol.sourceLine).toBe(3);

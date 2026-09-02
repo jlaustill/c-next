@@ -31,7 +31,7 @@ function createCNextVariableSymbol(
       sourceFile: overrides.sourceFile ?? "test.cnx",
       sourceLine: overrides.sourceLine ?? 1,
       sourceLanguage: ESourceLanguage.CNext,
-      isExported: overrides.isExported ?? false,
+      visibility: overrides.visibility ?? "private",
     }),
     type: overrides.type ?? TTypeUtils.createPrimitive("u32"),
     isConst: overrides.isConst ?? false,

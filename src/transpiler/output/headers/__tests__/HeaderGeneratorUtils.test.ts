@@ -18,7 +18,6 @@ function makeSymbol(
   return {
     sourceFile: "test.cnx",
     sourceLine: 1,
-    isExported: true,
     ...partial,
   };
 }

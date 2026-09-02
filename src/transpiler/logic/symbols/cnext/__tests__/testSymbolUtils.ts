@@ -17,6 +17,7 @@ import ScopeUtils from "../../../../../utils/ScopeUtils";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 import TSymbolKindCNext from "../../../../types/symbol-kinds/TSymbolKindCNext";
+import TVisibility from "../../../../types/TVisibility";
 
 interface IBaseOverrides<K extends TSymbolKindCNext> {
   readonly kind: K;
@@ -25,7 +26,7 @@ interface IBaseOverrides<K extends TSymbolKindCNext> {
   readonly sourceFile?: string;
   readonly sourceLine?: number;
   readonly sourceLanguage?: ESourceLanguage;
-  readonly isExported?: boolean;
+  readonly visibility?: TVisibility;
 }
 
 /**
@@ -50,7 +51,7 @@ class TestSymbolUtils {
     sourceFile: string;
     sourceLine: number;
     sourceLanguage: ESourceLanguage;
-    isExported: boolean;
+    visibility: TVisibility;
     fullyQualifiedCName: string;
     cnxScopedName: string;
   } {
@@ -63,7 +64,7 @@ class TestSymbolUtils {
       sourceFile: overrides.sourceFile ?? "test.cnx",
       sourceLine: overrides.sourceLine ?? 1,
       sourceLanguage: overrides.sourceLanguage ?? ESourceLanguage.CNext,
-      isExported: overrides.isExported ?? true,
+      visibility: overrides.visibility ?? "public",
       ...ScopeUtils.identityOf({ name, scope }),
     };
   }

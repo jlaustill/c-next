@@ -11,6 +11,7 @@ import IEnumSymbol from "../../../../types/symbols/IEnumSymbol";
 import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 import ExpressionEvaluator from "../utils/ExpressionEvaluator";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
+import TVisibility from "../../../../types/TVisibility";
 
 class EnumCollector {
   /**
@@ -19,6 +20,7 @@ class EnumCollector {
    * @param ctx The enum declaration context
    * @param sourceFile Source file path
    * @param scope The scope this enum belongs to (IScopeSymbol)
+   * @param visibility ADR-016 visibility as declared (#1300)
    * @returns The enum symbol with proper scope reference
    * @throws Error if any member has a negative value
    */
@@ -26,6 +28,7 @@ class EnumCollector {
     ctx: Parser.EnumDeclarationContext,
     sourceFile: string,
     scope: IScopeSymbol,
+    visibility: TVisibility,
   ): IEnumSymbol {
     const name = ctx.IDENTIFIER().getText();
     const line = ctx.start?.line ?? 0;
@@ -65,7 +68,7 @@ class EnumCollector {
       sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.CNext,
-      isExported: true,
+      visibility,
       members,
     };
   }

@@ -1,0 +1,69 @@
+// Issue #1300: a private scope-declared type must not reach the public header.
+// ADR-016 makes types private by default and gives private members file-local
+// visibility, so a private type in the header is an ABI leak: downstream C can
+// construct and depend on a type the author declared internal.
+//
+// Negative control: the `public` twin of each kind sits beside it and MUST still
+// be emitted, so this fails on over-suppression as well as under-suppression.
+//
+// The fixture compiles on purpose. The risk of the fix is that a private type
+// leaves the header and is then defined nowhere.
+
+scope Internal {
+    private struct Hidden {
+        u32 a;
+    }
+
+    public struct Shown {
+        u32 b;
+    }
+
+    private enum HiddenMode {
+        OFF,
+        ON
+    }
+
+    public enum ShownMode {
+        LOW,
+        HIGH
+    }
+
+    private bitmap8 HiddenFlags {
+        Alpha,
+        Rest[7]
+    }
+
+    public bitmap8 ShownFlags {
+        Gamma,
+        Spare[7]
+    }
+
+    public u32 useHidden() {
+        Hidden h <- { a: 1 };
+        HiddenMode m <- HiddenMode.ON;
+        HiddenFlags f <- 0;
+        f.Alpha <- true;
+
+        if (m = HiddenMode.ON) {
+            return h.a;
+        }
+        return 0;
+    }
+
+    public u32 useShown() {
+        Shown s <- { b: 2 };
+        return s.b;
+    }
+}
+
+i32 main() {
+    u32 h <- Internal.useHidden();
+    u32 s <- Internal.useShown();
+    if (h != 1) {
+        return 1;
+    }
+    if (s != 2) {
+        return 2;
+    }
+    return 0;
+}

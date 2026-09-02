@@ -25,9 +25,6 @@ interface IHeaderSymbol {
   /** Type of the symbol (e.g., "void", "u32", "Point") */
   readonly type?: string;
 
-  /** Whether this symbol is exported/public */
-  readonly isExported: boolean;
-
   /** Whether this variable is const */
   readonly isConst?: boolean;
 

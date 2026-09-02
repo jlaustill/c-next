@@ -30,7 +30,6 @@ function createFunctionSymbol(
     type,
     sourceFile: "test.cnx",
     sourceLine: 1,
-    isExported: true,
     parameters: parameters.map((p) => ({
       name: p.name,
       type: p.type,

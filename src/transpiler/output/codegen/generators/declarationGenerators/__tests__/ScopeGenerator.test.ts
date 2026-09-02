@@ -17,6 +17,8 @@ import IGeneratorState from "../../IGeneratorState";
 import IOrchestrator from "../../IOrchestrator";
 import * as Parser from "../../../../../logic/parser/grammar/CNextParser";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
+import PublicInterface from "../../../../../logic/symbols/PublicInterface";
+import CodeGenState from "../../../../../state/CodeGenState";
 
 // ========================================================================
 // Test Helpers
@@ -1155,17 +1157,58 @@ describe("ScopeGenerator", () => {
       expect(result.code).toContain("Audio__Level__HIGH = 2");
     });
 
-    it("skips enum when selfIncludeAdded (Issue #369)", () => {
+    it("skips enum when the header defines it (#369, #1300)", () => {
+      CodeGenState.sourcePath = "test.cnx";
+      const definesInHeader = vi
+        .spyOn(PublicInterface, "definesTypeInHeader")
+        .mockReturnValue(true);
       const enumDecl = createMockEnumDecl("State", [{ name: "A" }]);
       const member = createMockScopeMember({ enumDecl: enumDecl });
       const ctx = createMockScopeContext("Test", [member]);
-      const input = createMockInput();
       const state = createMockState({ selfIncludeAdded: true });
-      const orchestrator = createMockOrchestrator();
 
-      const result = generateScope(ctx, input, state, orchestrator);
+      const result = generateScope(
+        ctx,
+        createMockInput(),
+        state,
+        createMockOrchestrator(),
+      );
 
       expect(result.code).not.toContain("typedef enum");
+      expect(definesInHeader).toHaveBeenCalledWith(
+        expect.anything(),
+        "test.cnx",
+        "Test__State",
+      );
+      definesInHeader.mockRestore();
+      CodeGenState.sourcePath = null;
+    });
+
+    it("emits enum into the .c when the header does NOT define it (#1300)", () => {
+      // A PRIVATE scope type leaves the header but must still be defined
+      // somewhere, or the `.c` that uses it does not compile. The two
+      // placements are complements of one decision, so this is the other half
+      // of the test above -- and the half that was missing while the gate read
+      // the file-level `selfIncludeAdded` instead of asking the header.
+      CodeGenState.sourcePath = "test.cnx";
+      const definesInHeader = vi
+        .spyOn(PublicInterface, "definesTypeInHeader")
+        .mockReturnValue(false);
+      const enumDecl = createMockEnumDecl("State", [{ name: "A" }]);
+      const member = createMockScopeMember({ enumDecl: enumDecl });
+      const ctx = createMockScopeContext("Test", [member]);
+      const state = createMockState({ selfIncludeAdded: true });
+
+      const result = generateScope(
+        ctx,
+        createMockInput(),
+        state,
+        createMockOrchestrator(),
+      );
+
+      expect(result.code).toContain("typedef enum");
+      definesInHeader.mockRestore();
+      CodeGenState.sourcePath = null;
     });
 
     it("generates enum with explicit values using AST fallback", () => {
@@ -1270,17 +1313,58 @@ describe("ScopeGenerator", () => {
       }
     });
 
-    it("skips bitmap when selfIncludeAdded (Issue #369)", () => {
+    it("skips bitmap when the header defines it (#369, #1300)", () => {
+      CodeGenState.sourcePath = "test.cnx";
+      const definesInHeader = vi
+        .spyOn(PublicInterface, "definesTypeInHeader")
+        .mockReturnValue(true);
       const bitmapDecl = createMockBitmapDecl("Flags", "bitmap8", []);
       const member = createMockScopeMember({ bitmapDecl: bitmapDecl });
       const ctx = createMockScopeContext("Test", [member]);
-      const input = createMockInput();
       const state = createMockState({ selfIncludeAdded: true });
-      const orchestrator = createMockOrchestrator();
 
-      const result = generateScope(ctx, input, state, orchestrator);
+      const result = generateScope(
+        ctx,
+        createMockInput(),
+        state,
+        createMockOrchestrator(),
+      );
 
       expect(result.code).not.toContain("Bitmap:");
+      expect(definesInHeader).toHaveBeenCalledWith(
+        expect.anything(),
+        "test.cnx",
+        "Test__Flags",
+      );
+      definesInHeader.mockRestore();
+      CodeGenState.sourcePath = null;
+    });
+
+    it("emits bitmap into the .c when the header does NOT define it (#1300)", () => {
+      // A PRIVATE scope type leaves the header but must still be defined
+      // somewhere, or the `.c` that uses it does not compile. The two
+      // placements are complements of one decision, so this is the other half
+      // of the test above -- and the half that was missing while the gate read
+      // the file-level `selfIncludeAdded` instead of asking the header.
+      CodeGenState.sourcePath = "test.cnx";
+      const definesInHeader = vi
+        .spyOn(PublicInterface, "definesTypeInHeader")
+        .mockReturnValue(false);
+      const bitmapDecl = createMockBitmapDecl("Flags", "bitmap8", []);
+      const member = createMockScopeMember({ bitmapDecl: bitmapDecl });
+      const ctx = createMockScopeContext("Test", [member]);
+      const state = createMockState({ selfIncludeAdded: true });
+
+      const result = generateScope(
+        ctx,
+        createMockInput(),
+        state,
+        createMockOrchestrator(),
+      );
+
+      expect(result.code).toContain("Bitmap:");
+      definesInHeader.mockRestore();
+      CodeGenState.sourcePath = null;
     });
   });
 
@@ -1391,19 +1475,62 @@ describe("ScopeGenerator", () => {
       expect(result.code).toContain("string<64> text[33];");
     });
 
-    it("skips struct when selfIncludeAdded (Issue #369)", () => {
+    it("skips struct when the header defines it (#369, #1300)", () => {
+      CodeGenState.sourcePath = "test.cnx";
+      const definesInHeader = vi
+        .spyOn(PublicInterface, "definesTypeInHeader")
+        .mockReturnValue(true);
       const structDecl = createMockStructDecl("Data", [
         { name: "value", type: "u32" },
       ]);
       const member = createMockScopeMember({ structDecl: structDecl });
       const ctx = createMockScopeContext("Test", [member]);
-      const input = createMockInput();
       const state = createMockState({ selfIncludeAdded: true });
-      const orchestrator = createMockOrchestrator();
 
-      const result = generateScope(ctx, input, state, orchestrator);
+      const result = generateScope(
+        ctx,
+        createMockInput(),
+        state,
+        createMockOrchestrator(),
+      );
 
       expect(result.code).not.toContain("typedef struct");
+      expect(definesInHeader).toHaveBeenCalledWith(
+        expect.anything(),
+        "test.cnx",
+        "Test__Data",
+      );
+      definesInHeader.mockRestore();
+      CodeGenState.sourcePath = null;
+    });
+
+    it("emits struct into the .c when the header does NOT define it (#1300)", () => {
+      // A PRIVATE scope type leaves the header but must still be defined
+      // somewhere, or the `.c` that uses it does not compile. The two
+      // placements are complements of one decision, so this is the other half
+      // of the test above -- and the half that was missing while the gate read
+      // the file-level `selfIncludeAdded` instead of asking the header.
+      CodeGenState.sourcePath = "test.cnx";
+      const definesInHeader = vi
+        .spyOn(PublicInterface, "definesTypeInHeader")
+        .mockReturnValue(false);
+      const structDecl = createMockStructDecl("Data", [
+        { name: "value", type: "u32" },
+      ]);
+      const member = createMockScopeMember({ structDecl: structDecl });
+      const ctx = createMockScopeContext("Test", [member]);
+      const state = createMockState({ selfIncludeAdded: true });
+
+      const result = generateScope(
+        ctx,
+        createMockInput(),
+        state,
+        createMockOrchestrator(),
+      );
+
+      expect(result.code).toContain("typedef struct");
+      definesInHeader.mockRestore();
+      CodeGenState.sourcePath = null;
     });
   });
 

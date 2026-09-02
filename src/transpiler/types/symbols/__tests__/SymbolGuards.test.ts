@@ -18,7 +18,7 @@ describe("SymbolGuards", () => {
       sourceFile: "test.cnx",
       sourceLine: 1,
       sourceLanguage: ESourceLanguage.CNext,
-      isExported: true,
+      visibility: "public",
     } as TSymbol;
   };
 

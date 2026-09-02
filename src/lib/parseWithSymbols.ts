@@ -185,7 +185,7 @@ function convertFunction(
     id: getDotPathId(func),
     parentId: getParentId(func.scope),
     signature,
-    accessModifier: func.isExported ? "public" : "private",
+    accessModifier: func.visibility,
     line: func.sourceLine,
   });
 

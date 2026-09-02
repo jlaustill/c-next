@@ -13,6 +13,20 @@
 
 /* Scope: Timer */
 
+/* Bitmap: Timer__ControlBits */
+/* Fields:
+ *   ENABLE: bit 0 (1 bit)
+ *   TICKINT: bit 1 (1 bit)
+ *   CLKSOURCE: bit 2 (1 bit)
+ *   Reserved_3: bit 3 (1 bit)
+ *   Reserved_4: bit 4 (1 bit)
+ *   Reserved_5: bit 5 (1 bit)
+ *   Reserved_6: bit 6 (1 bit)
+ *   Reserved_7: bit 7 (1 bit)
+ */
+typedef uint8_t Timer__ControlBits;
+
+
 /* Register: Timer__SysTick @ 0xE000E010 */
 #define Timer__SysTick__CTRL (*(volatile Timer__ControlBits*)(0xE000E010 + 0x00))
 #define Timer__SysTick__LOAD (*(volatile uint32_t*)(0xE000E010 + 0x04))

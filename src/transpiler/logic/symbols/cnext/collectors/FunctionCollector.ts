@@ -14,6 +14,7 @@ import TypeResolver from "../../../../../utils/TypeResolver";
 import TypeUtils from "../utils/TypeUtils";
 import SymbolRegistry from "../../../../state/SymbolRegistry";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
+import TVisibility from "../../../../types/TVisibility";
 
 class FunctionCollector {
   /**
@@ -34,7 +35,7 @@ class FunctionCollector {
     sourceFile: string,
     scope: IScopeSymbol,
     body: Parser.BlockContext | null,
-    visibility: "public" | "private",
+    visibility: TVisibility,
     isScopeType?: (qualifiedName: string) => boolean,
   ): IFunctionSymbol {
     const name = ctx.IDENTIFIER().getText();
@@ -74,7 +75,6 @@ class FunctionCollector {
       sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.CNext,
-      isExported: visibility === "public",
     };
   }
 
@@ -101,7 +101,7 @@ class FunctionCollector {
     sourceFile: string,
     scope: IScopeSymbol,
     body: Parser.BlockContext,
-    visibility: "public" | "private",
+    visibility: TVisibility,
     isScopeType?: (qualifiedName: string) => boolean,
   ): IFunctionSymbol {
     // 1. Get or create the scope in SymbolRegistry

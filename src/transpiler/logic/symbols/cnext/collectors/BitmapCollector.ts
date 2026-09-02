@@ -13,6 +13,7 @@ import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 import BITMAP_SIZE from "../../../../constants/BITMAP_SIZE";
 import BITMAP_BACKING_TYPE from "../../../../constants/BITMAP_BACKING_TYPE";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
+import TVisibility from "../../../../types/TVisibility";
 
 class BitmapCollector {
   /**
@@ -21,6 +22,7 @@ class BitmapCollector {
    * @param ctx The bitmap declaration context
    * @param sourceFile Source file path
    * @param scope The scope this bitmap belongs to (IScopeSymbol)
+   * @param visibility ADR-016 visibility as declared (#1300)
    * @returns The bitmap symbol with proper scope reference
    * @throws Error if total bits don't match bitmap size
    */
@@ -28,6 +30,7 @@ class BitmapCollector {
     ctx: Parser.BitmapDeclarationContext,
     sourceFile: string,
     scope: IScopeSymbol,
+    visibility: TVisibility,
   ): IBitmapSymbol {
     const name = ctx.IDENTIFIER().getText();
     const bitmapType = ctx.bitmapType().getText();
@@ -67,7 +70,7 @@ class BitmapCollector {
       sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.CNext,
-      isExported: true,
+      visibility,
       backingType,
       bitWidth: expectedBits,
       fields,

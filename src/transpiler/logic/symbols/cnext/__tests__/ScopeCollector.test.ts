@@ -83,7 +83,7 @@ describe("ScopeCollector", () => {
       expect(result.scopeSymbol.members).toEqual([]);
       expect(result.scopeSymbol.sourceFile).toBe("test.cnx");
       expect(result.scopeSymbol.sourceLanguage).toBe(ESourceLanguage.CNext);
-      expect(result.scopeSymbol.isExported).toBe(true);
+      expect(result.scopeSymbol.visibility).toBe("public");
 
       expect(result.memberSymbols).toEqual([]);
     });
@@ -116,7 +116,6 @@ describe("ScopeCollector", () => {
       expect(SymbolGuards.isFunction(initFunc!)).toBe(true);
       if (SymbolGuards.isFunction(initFunc!)) {
         expect(initFunc.visibility).toBe("public");
-        expect(initFunc.isExported).toBe(true);
         expect(initFunc.scope.name).toBe("Motor");
       }
 
@@ -125,7 +124,6 @@ describe("ScopeCollector", () => {
       expect(SymbolGuards.isFunction(updateFunc!)).toBe(true);
       if (SymbolGuards.isFunction(updateFunc!)) {
         expect(updateFunc.visibility).toBe("private");
-        expect(updateFunc.isExported).toBe(false);
         expect(updateFunc.scope.name).toBe("Motor");
       }
     });
@@ -155,7 +153,7 @@ describe("ScopeCollector", () => {
       expect(SymbolGuards.isVariable(posVar!)).toBe(true);
       if (SymbolGuards.isVariable(posVar!)) {
         expect(TypeResolver.getTypeName(posVar.type)).toBe("u32");
-        expect(posVar.isExported).toBe(false);
+        expect(posVar.visibility).toBe("private");
         expect(posVar.scope.name).toBe("Motor");
       }
     });

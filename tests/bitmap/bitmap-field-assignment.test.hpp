@@ -13,19 +13,6 @@
 extern "C" {
 #endif
 
-/* Bitmaps */
-/* Bitmap: Timer__ControlBits
- *   ENABLE: bit 0
- *   TICKINT: bit 1
- *   CLKSOURCE: bit 2
- *   Reserved_3: bit 3
- *   Reserved_4: bit 4
- *   Reserved_5: bit 5
- *   Reserved_6: bit 6
- *   Reserved_7: bit 7
- */
-typedef uint8_t Timer__ControlBits;
-
 /* Function prototypes */
 void Timer__init(void);
 

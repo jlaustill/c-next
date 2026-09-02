@@ -29,6 +29,7 @@ import CodeGenState from "../../../../state/CodeGenState";
 import AdrProvenance from "../../../../state/AdrProvenance";
 import SymbolRegistry from "../../../../state/SymbolRegistry";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
+import PublicInterface from "../../../../logic/symbols/PublicInterface";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
 import VariableModifierBuilder from "../../helpers/VariableModifierBuilder";
 
@@ -376,12 +377,32 @@ function processScopeMember(
   // declaration the scope keyword happens to sit in.
   AdrProvenance.record("016", member.start?.line);
 
-  // ADR-016: Member-type-aware visibility defaults via ScopeUtils
-  const explicitVisibility = member.visibilityModifier()?.getText();
-  const isFunction = member.functionDeclaration() !== null;
-  const visibility =
-    explicitVisibility ?? ScopeUtils.getDefaultVisibility(isFunction);
+  // ADR-016, via the one helper the symbols layer also asks (#1300). Codegen
+  // used to recompute this, so the header and the body decided visibility
+  // independently -- which is the divergence this issue is made of.
+  const visibility = ScopeUtils.getMemberVisibility(member);
   const isPrivate = visibility === "private";
+
+  // #1300: a scope type is defined in exactly ONE place -- the header, or the
+  // `.c`, never both and never neither. So ask the header what it defines
+  // rather than re-deriving it from visibility here.
+  //
+  // The gate used to be `!state.selfIncludeAdded` -- a FILE-level fact ("does
+  // this file have a header?") answering a PER-SYMBOL question ("where does
+  // this type go?"). Those coincide only while every scope type is public,
+  // which is what let the leak survive. Substituting `!isPrivate` for it is the
+  // same mistake one level down: a private type named by a public signature
+  // MUST be in the header (C needs it complete), and would then be defined
+  // twice.
+  const definedInHeader = (node: {
+    IDENTIFIER(): { getText(): string };
+  }): boolean =>
+    CodeGenState.sourcePath !== null &&
+    PublicInterface.definesTypeInHeader(
+      CodeGenState.symbolTable,
+      CodeGenState.sourcePath,
+      getScopedName(node, declaringScope).fullName,
+    );
 
   // Handle variable declarations
   if (member.variableDeclaration()) {
@@ -407,8 +428,8 @@ function processScopeMember(
   }
 
   // ADR-017: Handle enum declarations inside scopes
-  // Issue #369: Skip enum definition if self-include was added (it will be in the header)
-  if (member.enumDeclaration() && !state.selfIncludeAdded) {
+  // Issue #369 / #1300: skip only when the header already defines it.
+  if (member.enumDeclaration() && !definedInHeader(member.enumDeclaration()!)) {
     const enumDecl = member.enumDeclaration()!;
     return [
       "",
@@ -417,8 +438,11 @@ function processScopeMember(
   }
 
   // ADR-034: Handle bitmap declarations inside scopes
-  // Issue #369: Skip bitmap definition if self-include was added (it will be in the header)
-  if (member.bitmapDeclaration() && !state.selfIncludeAdded) {
+  // Issue #369 / #1300: skip only when the header already defines it.
+  if (
+    member.bitmapDeclaration() &&
+    !definedInHeader(member.bitmapDeclaration()!)
+  ) {
     const bitmapDecl = member.bitmapDeclaration()!;
     return ["", generateScopedBitmapInline(bitmapDecl, declaringScope, input)];
   }
@@ -437,8 +461,11 @@ function processScopeMember(
   }
 
   // Handle struct declarations inside scopes
-  // Issue #369: Skip struct definition if self-include was added (it will be in the header)
-  if (member.structDeclaration() && !state.selfIncludeAdded) {
+  // Issue #369 / #1300: skip only when the header already defines it.
+  if (
+    member.structDeclaration() &&
+    !definedInHeader(member.structDeclaration()!)
+  ) {
     const structDecl = member.structDeclaration()!;
     return [
       "",

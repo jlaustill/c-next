@@ -25,6 +25,7 @@ describe("RegisterCollector", () => {
         "test.cnx",
         new Set(),
         globalScope,
+        "public",
       );
 
       expect(symbol.kind).toBe("register");
@@ -32,7 +33,7 @@ describe("RegisterCollector", () => {
       expect(symbol.baseAddress).toBe("0x40000000");
       expect(symbol.sourceFile).toBe("test.cnx");
       expect(symbol.sourceLanguage).toBe(ESourceLanguage.CNext);
-      expect(symbol.isExported).toBe(true);
+      expect(symbol.visibility).toBe("public");
       expect(symbol.scope).toBe(globalScope);
 
       expect(symbol.members.size).toBe(2);
@@ -66,6 +67,7 @@ describe("RegisterCollector", () => {
         "test.cnx",
         new Set(),
         globalScope,
+        "public",
       );
 
       expect(symbol.members.get("RX")?.access).toBe("ro");
@@ -93,6 +95,7 @@ describe("RegisterCollector", () => {
         "test.cnx",
         new Set(),
         globalScope,
+        "public",
       );
 
       expect(symbol.members.get("COUNT8")?.cType).toBe("uint8_t");
@@ -119,6 +122,7 @@ describe("RegisterCollector", () => {
         "test.cnx",
         knownBitmaps,
         globalScope,
+        "public",
       );
 
       const member = symbol.members.get("FLAGS");
@@ -140,6 +144,7 @@ describe("RegisterCollector", () => {
         "test.cnx",
         new Set(),
         globalScope,
+        "public",
       );
 
       expect(symbol.members.get("VALUE")?.bitmapType).toBeUndefined();
@@ -161,6 +166,7 @@ describe("RegisterCollector", () => {
         "motor.cnx",
         new Set(),
         motorScope,
+        "public",
       );
 
       expect(symbol.name).toBe("CTRL");
@@ -184,6 +190,7 @@ describe("RegisterCollector", () => {
         "motor.cnx",
         knownBitmaps,
         motorScope,
+        "public",
       );
 
       // The collector checks both scoped and unscoped names
@@ -206,6 +213,7 @@ describe("RegisterCollector", () => {
         "test.cnx",
         new Set(),
         globalScope,
+        "public",
       );
 
       expect(symbol.baseAddress).toBe("BASE_ADDR");
@@ -228,6 +236,7 @@ describe("RegisterCollector", () => {
         "test.cnx",
         new Set(),
         globalScope,
+        "public",
       );
 
       expect(symbol.sourceLine).toBe(3);
