@@ -11,7 +11,6 @@ import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
 import TYPE_MAP from "../types/TYPE_MAP.js";
 import TIncludeHeader from "../generators/TIncludeHeader.js";
 import QualifiedCName from "../../../../utils/QualifiedCName";
-import IScopeSymbol from "../../../types/symbols/IScopeSymbol";
 import ScopeUtils from "../../../../utils/ScopeUtils";
 import ITypeAccessors from "../../../types/ITypeAccessors";
 import AdrProvenance from "../../../state/AdrProvenance";
@@ -28,7 +27,7 @@ interface IPrimitiveTypeResult {
  * Dependencies required for type generation that involve external state.
  */
 interface ITypeGenerationDeps {
-  currentScope: IScopeSymbol | null;
+  currentScopePath: string;
   isCppScopeSymbol: (name: string) => boolean;
   checkNeedsStructKeyword: (name: string) => boolean;
   validateCrossScopeVisibility: (scope: string, member: string) => void;
@@ -66,12 +65,12 @@ class TypeGenerationHelper {
    */
   static generateScopedType(
     typeName: string,
-    currentScope: IScopeSymbol | null,
+    currentScopePath: string,
   ): string {
-    if (!currentScope) {
+    if (!currentScopePath) {
       throw new Error("Cannot use 'this.Type' outside of a scope");
     }
-    return ScopeUtils.qualifyInScope(typeName, currentScope);
+    return ScopeUtils.qualifyInScope(typeName, currentScopePath);
   }
 
   /**
@@ -183,7 +182,7 @@ class TypeGenerationHelper {
       const typeName = accessors.scopedType()!.IDENTIFIER().getText();
       return TypeGenerationHelper.generateScopedType(
         typeName,
-        deps.currentScope,
+        deps.currentScopePath,
       );
     }
 
@@ -217,7 +216,7 @@ class TypeGenerationHelper {
       // ADR-057: bare type name inside a scope — qualify if it's a scope type
       const qualified = ScopeUtils.qualifyScopeType(
         typeName,
-        deps.currentScope,
+        deps.currentScopePath,
         deps.isScopeType,
       );
       if (qualified !== typeName) {

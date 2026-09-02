@@ -6,15 +6,19 @@ import type TVisibility from "../TVisibility";
  * Symbol representing a scope (namespace) definition.
  * Scopes group related functions and variables.
  *
- * Note: IScopeSymbol has circular references with IFunctionSymbol.
- * Functions have a scope, scopes contain functions.
+ * A scope owns its members; its members do NOT point back at it. `IBaseSymbol`
+ * gives every symbol -- this one included -- a `scopePath` string rather than a
+ * scope reference (#1298), so the graph is a tree and no cycle is representable.
+ *
+ * There is deliberately no `parent` field. There used to be one, and it could
+ * never disagree with the inherited `scope`: `createScope` assigned the same
+ * object to both on every construction and `createGlobalScope` self-referenced
+ * both, so the two were one edge written twice. This scope's enclosing scope is
+ * `scopePath`, and its own path is `cnxScopedName`.
  */
 interface IScopeSymbol extends IBaseSymbol {
   /** Discriminator narrowed to "scope" */
   readonly kind: "scope";
-
-  /** Parent scope (global scope's parent is itself) */
-  readonly parent: IScopeSymbol;
 
   /** List of member names (local names, not transpiled C names) */
   readonly members: string[];

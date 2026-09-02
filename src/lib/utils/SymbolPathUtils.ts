@@ -3,65 +3,20 @@
  * Used by parseWithSymbols and parseCHeader to generate unique symbol IDs.
  */
 
-import IScopeSymbol from "../../transpiler/types/symbols/IScopeSymbol";
-
 /**
- * Build the dot-path for a scope by walking up the parent chain.
- * Returns empty string for global scope.
- *
- * @example
- * // For scope "GPIO7" with parent "Teensy4":
- * buildScopePath(gpio7Scope) // => "Teensy4.GPIO7"
- */
-function buildScopePath(scope: { name: string; parent?: unknown }): string {
-  if (scope.name === "") {
-    return "";
-  }
-
-  const parts: string[] = [scope.name];
-  let current = scope.parent as IScopeSymbol | undefined;
-
-  // Walk up the parent chain, stopping at global scope or circular reference
-  while (current && current.name !== "" && current !== current.parent) {
-    parts.unshift(current.name);
-    current = current.parent as IScopeSymbol | undefined;
-  }
-
-  return parts.join(".");
-}
-
-/**
- * Get the dot-path ID for a symbol (e.g., "LED.toggle", "Color.Red").
- * For top-level symbols, returns just the name.
- *
- * @example
- * getDotPathId({ name: "toggle", scope: { name: "LED" } }) // => "LED.toggle"
- * getDotPathId({ name: "setup", scope: { name: "" } })     // => "setup"
- */
-function getDotPathId(symbol: {
-  name: string;
-  scope: { name: string; parent?: unknown };
-}): string {
-  const scopePath = buildScopePath(symbol.scope);
-  if (scopePath === "") {
-    return symbol.name;
-  }
-  return `${scopePath}.${symbol.name}`;
-}
-
-/**
- * Get the parentId for a symbol (the dot-path of its parent scope).
+ * Get the parentId for a symbol or scope, given the path of its enclosing scope.
  * Returns undefined for top-level symbols.
  *
+ * The one place the symbol model's `""` (no enclosing scope) is translated into
+ * the `ISymbolInfo` API's `undefined`. The two spellings mean the same thing and
+ * neither side should learn the other's.
+ *
  * @example
- * getParentId({ name: "LED" })  // => "LED"
- * getParentId({ name: "" })     // => undefined (global scope)
+ * getParentId("LED")          // => "LED"
+ * getParentId("Teensy4.GPIO7") // => "Teensy4.GPIO7"
+ * getParentId("")             // => undefined (global scope)
  */
-function getParentId(scope: {
-  name: string;
-  parent?: unknown;
-}): string | undefined {
-  const scopePath = buildScopePath(scope);
+function getParentId(scopePath: string): string | undefined {
   return scopePath === "" ? undefined : scopePath;
 }
 
@@ -77,9 +32,17 @@ function buildSimpleDotPath(parent: string | undefined, name: string): string {
   return parent ? `${parent}.${name}` : name;
 }
 
+/**
+ * #1298 removed `buildScopePath` and `getDotPathId` from this file. Both walked
+ * a scope's parent chain to rebuild a dotted path -- a third encoder for it,
+ * beside `ScopeUtils.getTranspiledCName` and the one on `QualifiedCName`, and
+ * the only one that carried its own ad-hoc cycle guard (`current !== current.parent`).
+ *
+ * Neither has anything left to compute. A symbol's dotted path IS
+ * `cnxScopedName`, computed once at construction; a scope's own path is the same
+ * field, reachable as `ScopeUtils.pathOf(scope)`.
+ */
 class SymbolPathUtils {
-  static readonly buildScopePath = buildScopePath;
-  static readonly getDotPathId = getDotPathId;
   static readonly getParentId = getParentId;
   static readonly buildSimpleDotPath = buildSimpleDotPath;
 }

@@ -44,7 +44,6 @@ import OutputExtensions from "../../utils/OutputExtensions";
 import type IOutputExtensions from "../types/IOutputExtensions";
 import type IVariableSymbol from "../types/symbols/IVariableSymbol";
 import QualifiedCName from "../../utils/QualifiedCName";
-import IScopeSymbol from "../types/symbols/IScopeSymbol";
 import ScopeUtils from "../../utils/ScopeUtils";
 import SymbolRegistry from "./SymbolRegistry";
 import DEFAULT_TARGET from "../constants/DEFAULT_TARGET";
@@ -302,8 +301,15 @@ export default class CodeGenState {
   // CURRENT CONTEXT (changes during AST traversal)
   // ===========================================================================
 
-  /** ADR-016: Current scope for name resolution */
-  static currentScope: IScopeSymbol | null = null;
+  /**
+   * ADR-016: path of the scope currently being generated, `""` at file scope.
+   *
+   * #1298: a PATH, not a scope object. Every consumer passed this straight into
+   * the qualifier helpers, which used it for exactly one thing -- the chain of
+   * names a path already spells out -- so holding the object meant ~45 sites
+   * would each have had to re-derive the path from it.
+   */
+  static currentScopePath = "";
 
   /** Issue #269: Current function for modification tracking */
   static currentFunctionName: string | null = null;
@@ -538,7 +544,7 @@ export default class CodeGenState {
     this.deferredRequirementSites = new Map();
 
     // Current context
-    this.currentScope = null;
+    this.currentScopePath = "";
     this.currentFunctionName = null;
     this.currentFunctionReturnType = null;
     this.currentParameters = new Map();
@@ -779,7 +785,7 @@ export default class CodeGenState {
    *
    * Binds `QualifiedCName.qualifyScopeType()` to this state's current scope and
    * type sets, so every codegen site asks the question one way. Call this rather
-   * than re-pairing `currentScope` with `isScopeType()` at each site.
+   * than re-pairing `currentScopePath` with `isScopeType()` at each site.
    *
    * Only bare names belong here — `this.T`, `global.T` and `Scope.T` carry an
    * explicit answer in the syntax and must keep their own branches.
@@ -787,7 +793,7 @@ export default class CodeGenState {
   static qualifyScopeType(typeName: string): string {
     return ScopeUtils.qualifyScopeType(
       typeName,
-      this.currentScope,
+      this.currentScopePath,
       (qualifiedName) => CodeGenState.isScopeType(qualifiedName),
     );
   }
@@ -1197,13 +1203,15 @@ export default class CodeGenState {
    * Check if an identifier is a member of the current scope.
    */
   static isCurrentScopeMember(identifier: string): boolean {
-    if (!this.currentScope) return false;
+    if (this.currentScopePath === "") return false;
     // `scopeMembers` is keyed by the scope's LEAF name, so this passes `.name`
     // deliberately rather than the scope's identity. That key is itself a
     // leaf-only encoder and collides at depth two -- tracked as #1295, not
     // changed here, because its producer and every other reader move with it.
     return (
-      this.scopeMembers.get(this.currentScope.name)?.has(identifier) ?? false
+      this.scopeMembers
+        .get(ScopeUtils.leafOf(this.currentScopePath))
+        ?.has(identifier) ?? false
     );
   }
 
@@ -1212,14 +1220,16 @@ export default class CodeGenState {
    * Inside a scope, checks if the identifier is a scope member first.
    */
   static resolveIdentifier(identifier: string): string {
-    if (this.currentScope) {
-      const members = this.scopeMembers.get(this.currentScope.name);
+    if (this.currentScopePath !== "") {
+      const members = this.scopeMembers.get(
+        ScopeUtils.leafOf(this.currentScopePath),
+      );
       if (members?.has(identifier)) {
-        // Built from the scope CHAIN, so a member of a nested scope gets every
+        // Built from the whole PATH, so a member of a nested scope gets every
         // component rather than just the innermost one.
         return ScopeUtils.getTranspiledCName({
           name: identifier,
-          scope: this.currentScope,
+          scopePath: this.currentScopePath,
         });
       }
     }
@@ -1432,14 +1442,13 @@ export default class CodeGenState {
   }
 
   /**
-   * Enter a scope by its DOTTED PATH, resolving it to the scope symbol that
-   * carries the parent chain.
+   * Enter a scope by its DOTTED PATH.
    *
    * The parameter is a path (`Outer.Inner`), not a leaf, because that is what
    * `SymbolRegistry.getOrCreateScope` takes. Pass a leaf for a nested scope and
    * it does not fail -- it CREATES a fresh scope parented to global and
    * registers it under the leaf, after which every qualification through
-   * `currentScope` silently returns a one-level name.
+   * `currentScopePath` silently returns a one-level name.
    *
    * Every codegen caller currently passes a leaf, and that is correct for every
    * program C-Next can express: `scopeMember` admits no `scopeDeclaration`
@@ -1448,8 +1457,17 @@ export default class CodeGenState {
    * as #1304 rather than left to be rediscovered.
    */
   static setCurrentScopeByPath(name: string | null): void {
-    this.currentScope =
-      name === null ? null : SymbolRegistry.getOrCreateScope(name);
+    if (name === null) {
+      this.currentScopePath = "";
+      return;
+    }
+    // Still routed through the registry: entering a scope has always created it
+    // when absent, and #1298 changes what is HELD, not when a scope comes into
+    // existence. Reading the path back off the registered scope also keeps a
+    // malformed argument from being stored verbatim.
+    this.currentScopePath = ScopeUtils.pathOf(
+      SymbolRegistry.getOrCreateScope(name),
+    );
   }
 
   /**

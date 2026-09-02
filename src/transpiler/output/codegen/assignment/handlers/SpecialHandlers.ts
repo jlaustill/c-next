@@ -36,9 +36,9 @@ function getTargetTypeInfo(ctx: IAssignmentContext): {
   }
 
   // this.member: lookup using scoped name
-  if (ctx.isSimpleThisAccess && CodeGenState.currentScope) {
+  if (ctx.isSimpleThisAccess && CodeGenState.currentScopePath) {
     const scopedName = QualifiedNameGenerator.forMember(
-      CodeGenState.currentScope,
+      CodeGenState.currentScopePath,
       id,
     );
     return { typeInfo: CodeGenState.getVariableTypeInfo(scopedName) };

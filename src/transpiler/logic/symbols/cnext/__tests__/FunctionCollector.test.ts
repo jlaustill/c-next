@@ -20,12 +20,11 @@ describe("FunctionCollector", () => {
       `;
       const tree = parse(code);
       const funcCtx = tree.declaration(0)!.functionDeclaration()!;
-      const globalScope = TestScopeUtils.getGlobalScope();
       const body = funcCtx.block();
       const symbol = FunctionCollector.collect(
         funcCtx,
         "test.cnx",
-        globalScope,
+        "",
         body,
         "private",
       );
@@ -38,7 +37,7 @@ describe("FunctionCollector", () => {
       expect(symbol.sourceLanguage).toBe(ESourceLanguage.CNext);
       expect(symbol.visibility).toBe("private");
       expect(symbol.isExported).toBe(false);
-      expect(symbol.scope).toBe(globalScope);
+      expect(symbol.scopePath).toBe("");
     });
 
     it("collects a function with return type", () => {
@@ -49,12 +48,11 @@ describe("FunctionCollector", () => {
       `;
       const tree = parse(code);
       const funcCtx = tree.declaration(0)!.functionDeclaration()!;
-      const globalScope = TestScopeUtils.getGlobalScope();
       const body = funcCtx.block();
       const symbol = FunctionCollector.collect(
         funcCtx,
         "test.cnx",
-        globalScope,
+        "",
         body,
         "private",
       );
@@ -70,12 +68,11 @@ describe("FunctionCollector", () => {
       `;
       const tree = parse(code);
       const funcCtx = tree.declaration(0)!.functionDeclaration()!;
-      const globalScope = TestScopeUtils.getGlobalScope();
       const body = funcCtx.block();
       const symbol = FunctionCollector.collect(
         funcCtx,
         "test.cnx",
-        globalScope,
+        "",
         body,
         "private",
       );
@@ -98,12 +95,11 @@ describe("FunctionCollector", () => {
       `;
       const tree = parse(code);
       const funcCtx = tree.declaration(0)!.functionDeclaration()!;
-      const globalScope = TestScopeUtils.getGlobalScope();
       const body = funcCtx.block();
       const symbol = FunctionCollector.collect(
         funcCtx,
         "test.cnx",
-        globalScope,
+        "",
         body,
         "private",
       );
@@ -118,12 +114,11 @@ describe("FunctionCollector", () => {
       `;
       const tree = parse(code);
       const funcCtx = tree.declaration(0)!.functionDeclaration()!;
-      const globalScope = TestScopeUtils.getGlobalScope();
       const body = funcCtx.block();
       const symbol = FunctionCollector.collect(
         funcCtx,
         "test.cnx",
-        globalScope,
+        "",
         body,
         "private",
       );
@@ -139,12 +134,11 @@ describe("FunctionCollector", () => {
       `;
       const tree = parse(code);
       const funcCtx = tree.declaration(0)!.functionDeclaration()!;
-      const globalScope = TestScopeUtils.getGlobalScope();
       const body = funcCtx.block();
       const symbol = FunctionCollector.collect(
         funcCtx,
         "test.cnx",
-        globalScope,
+        "",
         body,
         "private",
       );
@@ -160,12 +154,11 @@ describe("FunctionCollector", () => {
       `;
       const tree = parse(code);
       const funcCtx = tree.declaration(0)!.functionDeclaration()!;
-      const globalScope = TestScopeUtils.getGlobalScope();
       const body = funcCtx.block();
       const symbol = FunctionCollector.collect(
         funcCtx,
         "test.cnx",
-        globalScope,
+        "",
         body,
         "private",
       );
@@ -183,19 +176,18 @@ describe("FunctionCollector", () => {
       `;
       const tree = parse(code);
       const funcCtx = tree.declaration(0)!.functionDeclaration()!;
-      const motorScope = TestScopeUtils.createMockScope("Motor");
       const body = funcCtx.block();
       const symbol = FunctionCollector.collect(
         funcCtx,
         "motor.cnx",
-        motorScope,
+        "Motor",
         body,
         "private",
       );
 
       expect(symbol.name).toBe("update");
-      expect(symbol.scope).toBe(motorScope);
-      expect(symbol.scope.name).toBe("Motor");
+      expect(symbol.scopePath).toBe("Motor");
+      expect(symbol.scopePath).toBe("Motor");
     });
 
     it("respects visibility parameter", () => {
@@ -205,12 +197,11 @@ describe("FunctionCollector", () => {
       `;
       const tree = parse(code);
       const funcCtx = tree.declaration(0)!.functionDeclaration()!;
-      const motorScope = TestScopeUtils.createMockScope("Motor");
       const body = funcCtx.block();
       const symbol = FunctionCollector.collect(
         funcCtx,
         "motor.cnx",
-        motorScope,
+        "Motor",
         body,
         "public",
       );
@@ -226,12 +217,11 @@ describe("FunctionCollector", () => {
       `;
       const tree = parse(code);
       const funcCtx = tree.declaration(0)!.functionDeclaration()!;
-      const motorScope = TestScopeUtils.createMockScope("Motor");
       const body = funcCtx.block();
       const symbol = FunctionCollector.collect(
         funcCtx,
         "motor.cnx",
-        motorScope,
+        "Motor",
         body,
         "private",
       );
@@ -251,12 +241,11 @@ describe("FunctionCollector", () => {
       `;
       const tree = parse(code);
       const funcCtx = tree.declaration(0)!.functionDeclaration()!;
-      const globalScope = TestScopeUtils.getGlobalScope();
       const body = funcCtx.block();
       const symbol = FunctionCollector.collect(
         funcCtx,
         "test.cnx",
-        globalScope,
+        "",
         body,
         "private",
       );
@@ -272,12 +261,11 @@ describe("FunctionCollector", () => {
       `;
       const tree = parse(code);
       const funcCtx = tree.declaration(0)!.functionDeclaration()!;
-      const globalScope = TestScopeUtils.getGlobalScope();
       const body = funcCtx.block();
       const symbol = FunctionCollector.collect(
         funcCtx,
         "test.cnx",
-        globalScope,
+        "",
         body,
         "private",
       );
@@ -296,12 +284,11 @@ describe("FunctionCollector", () => {
       `;
       const tree = parse(code);
       const funcCtx = tree.declaration(0)!.functionDeclaration()!;
-      const globalScope = TestScopeUtils.getGlobalScope();
       const body = funcCtx.block();
       const symbol = FunctionCollector.collect(
         funcCtx,
         "test.cnx",
-        globalScope,
+        "",
         body,
         "private",
       );
@@ -323,7 +310,7 @@ describe("FunctionCollector", () => {
       const symbol = FunctionCollector.collectAndRegister(
         funcCtx,
         "test.cnx",
-        SymbolRegistry.getGlobalScope(),
+        "",
         body,
         "private",
       );
@@ -346,7 +333,7 @@ describe("FunctionCollector", () => {
       FunctionCollector.collectAndRegister(
         funcCtx,
         "test.cnx",
-        SymbolRegistry.getGlobalScope(),
+        "",
         body,
         "private",
       );
@@ -368,7 +355,7 @@ describe("FunctionCollector", () => {
       FunctionCollector.collectAndRegister(
         funcCtx,
         "motor.cnx",
-        SymbolRegistry.getOrCreateScope("Motor"),
+        "Motor",
         body,
         "public",
       );
@@ -393,14 +380,14 @@ describe("FunctionCollector", () => {
       FunctionCollector.collectAndRegister(
         funcACtx,
         "test.cnx",
-        SymbolRegistry.getOrCreateScope("Test"),
+        "Test",
         funcACtx.block(),
         "public",
       );
       FunctionCollector.collectAndRegister(
         funcBCtx,
         "test.cnx",
-        SymbolRegistry.getOrCreateScope("Test"),
+        "Test",
         funcBCtx.block(),
         "private",
       );
@@ -424,7 +411,7 @@ describe("FunctionCollector", () => {
       FunctionCollector.collectAndRegister(
         funcCtx,
         "test.cnx",
-        SymbolRegistry.getGlobalScope(),
+        "",
         body,
         "private",
       );
@@ -446,7 +433,7 @@ describe("FunctionCollector", () => {
       FunctionCollector.collectAndRegister(
         funcCtx,
         "test.cnx",
-        SymbolRegistry.getGlobalScope(),
+        "",
         funcCtx.block(),
         "private",
       );

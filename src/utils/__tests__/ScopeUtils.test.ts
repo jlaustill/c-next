@@ -1,39 +1,51 @@
 import { describe, it, expect } from "vitest";
 import ScopeUtils from "../ScopeUtils";
-import type IScopeSymbol from "../../transpiler/types/symbols/IScopeSymbol";
 
 describe("IScopeSymbol", () => {
   describe("createGlobalScope", () => {
-    it("creates global scope with self-reference parent", () => {
+    it("creates the global scope with an empty name and empty path", () => {
       const global = ScopeUtils.createGlobalScope();
       expect(global.kind).toBe("scope");
       expect(global.name).toBe("");
-      expect(global.parent).toBe(global); // Self-reference
+      expect(global.scopePath).toBe("");
       expect(global.functions).toEqual([]);
       expect(global.variables).toEqual([]);
+    });
+
+    it("does not reference itself (#1298)", () => {
+      // The self-reference is what made the symbol graph cyclic. Asserted as an
+      // absence rather than as "the guard catches it": a guard that catches a
+      // cycle is evidence the shape still admits one.
+      const global = ScopeUtils.createGlobalScope();
+      expect(Object.values(global)).not.toContain(global);
+    });
+
+    it("computes its identity through the same encoder as every other symbol", () => {
+      const global = ScopeUtils.createGlobalScope();
+      expect(global.fullyQualifiedCName).toBe("");
+      expect(global.cnxScopedName).toBe("");
     });
   });
 
   describe("createScope", () => {
-    it("creates named scope with parent reference", () => {
-      const global = ScopeUtils.createGlobalScope();
-      const test = ScopeUtils.createScope("Test", global);
+    it("creates a named scope carrying its enclosing path", () => {
+      const test = ScopeUtils.createScope("Test", "");
       expect(test.kind).toBe("scope");
       expect(test.name).toBe("Test");
-      expect(test.parent).toBe(global);
+      expect(test.scopePath).toBe("");
+      expect(ScopeUtils.pathOf(test)).toBe("Test");
     });
 
     it("supports nested scopes", () => {
-      const global = ScopeUtils.createGlobalScope();
-      const outer = ScopeUtils.createScope("Outer", global);
-      const inner = ScopeUtils.createScope("Inner", outer);
-      expect(inner.parent).toBe(outer);
-      expect(outer.parent).toBe(global);
+      const outer = ScopeUtils.createScope("Outer", "");
+      const inner = ScopeUtils.createScope("Inner", ScopeUtils.pathOf(outer));
+      expect(inner.scopePath).toBe("Outer");
+      expect(ScopeUtils.pathOf(inner)).toBe("Outer.Inner");
+      expect(inner.fullyQualifiedCName).toBe("Outer__Inner");
     });
 
     it("initializes empty functions and variables arrays", () => {
-      const global = ScopeUtils.createGlobalScope();
-      const scope = ScopeUtils.createScope("Test", global);
+      const scope = ScopeUtils.createScope("Test", "");
       expect(scope.functions).toEqual([]);
       expect(scope.variables).toEqual([]);
     });
@@ -41,14 +53,75 @@ describe("IScopeSymbol", () => {
 
   describe("isGlobalScope", () => {
     it("returns true for global scope", () => {
-      const global = ScopeUtils.createGlobalScope();
-      expect(ScopeUtils.isGlobalScope(global)).toBe(true);
+      expect(ScopeUtils.isGlobalScope(ScopeUtils.createGlobalScope())).toBe(
+        true,
+      );
     });
 
     it("returns false for named scope", () => {
-      const global = ScopeUtils.createGlobalScope();
-      const scope = ScopeUtils.createScope("Test", global);
-      expect(ScopeUtils.isGlobalScope(scope)).toBe(false);
+      expect(ScopeUtils.isGlobalScope(ScopeUtils.createScope("Test", ""))).toBe(
+        false,
+      );
+    });
+  });
+
+  describe("isGlobalScopePath", () => {
+    it("reads the empty path as file scope", () => {
+      expect(ScopeUtils.isGlobalScopePath("")).toBe(true);
+      expect(ScopeUtils.isGlobalScopePath("Test")).toBe(false);
+      expect(ScopeUtils.isGlobalScopePath("Outer.Inner")).toBe(false);
+    });
+  });
+
+  describe("leafOf / parentOf", () => {
+    it("splits a path into its leaf and its enclosing path", () => {
+      expect(ScopeUtils.leafOf("Outer.Inner")).toBe("Inner");
+      expect(ScopeUtils.parentOf("Outer.Inner")).toBe("Outer");
+      expect(ScopeUtils.leafOf("Motor")).toBe("Motor");
+      expect(ScopeUtils.parentOf("Motor")).toBe("");
+      expect(ScopeUtils.leafOf("")).toBe("");
+      expect(ScopeUtils.parentOf("")).toBe("");
+    });
+  });
+
+  describe("no scope cycle is representable (#1298)", () => {
+    // These replace the "getScopePath cycle detection" suite. That suite proved
+    // a guard fired on a hand-built cycle; the guard was identity-based, so it
+    // could not fire on a proxy chain -- and the hang it existed to prevent was
+    // reachable with the suite green. There is now nothing to guard: a scope
+    // names its container with a string, and a string cannot point back.
+
+    it("a scope reaches its whole path without walking anything", () => {
+      const leaf = ScopeUtils.createScope("Leaf", "Outer.Inner");
+      expect(ScopeUtils.pathOf(leaf)).toBe("Outer.Inner.Leaf");
+      expect(leaf.fullyQualifiedCName).toBe("Outer__Inner__Leaf");
+    });
+
+    it("carries no field that could hold another scope", () => {
+      // The structural claim the two deleted tests were approximating. A scope
+      // whose every value is a string, number, boolean or empty collection
+      // cannot participate in a cycle, whatever a caller does to it.
+      const scope = ScopeUtils.createScope("Motor", "");
+      for (const value of Object.values(scope)) {
+        if (Array.isArray(value)) {
+          expect(value).toEqual([]);
+          continue;
+        }
+        if (value instanceof Map || value instanceof Set) {
+          expect(value.size).toBe(0);
+          continue;
+        }
+        expect(["string", "number", "boolean"]).toContain(typeof value);
+      }
+    });
+
+    it("a self-named path is inert rather than non-terminating", () => {
+      // The shape the old suite hand-built as `cyclic.parent = cyclic`. Naming
+      // yourself as your own container is now just an odd string: it produces an
+      // odd name and terminates, instead of hanging the transpile.
+      const odd = ScopeUtils.createScope("Loop", "Loop");
+      expect(ScopeUtils.pathOf(odd)).toBe("Loop.Loop");
+      expect(odd.fullyQualifiedCName).toBe("Loop__Loop");
     });
   });
 
@@ -62,81 +135,35 @@ describe("IScopeSymbol", () => {
     });
   });
 
-  describe("getScopePath cycle detection", () => {
-    it("throws instead of looping when a scope is its own ancestor", () => {
-      // A named scope that is its own parent never satisfies isGlobalScope, so
-      // the walk cannot terminate. This shape is unreachable through the
-      // factories but writable by hand, and it silently hung the whole test
-      // suite for 30+ minutes once getScopePath started running for every
-      // symbol added to the SymbolTable.
-      const cyclic = ScopeUtils.createScope(
-        "Loop",
-        ScopeUtils.createGlobalScope(),
-      );
-      (cyclic as { parent: unknown }).parent = cyclic;
-
-      expect(() => ScopeUtils.getScopePath(cyclic)).toThrow(
-        /is its own ancestor/,
-      );
-    });
-
-    it("throws a named error when the chain ends instead of reaching global", () => {
-      // The other non-terminating shape. Hand-built mocks reach it via
-      // `as unknown as IScopeSymbol`, and the walk runs for every symbol added
-      // to the SymbolTable, so a raw TypeError here is very hard to trace back.
-      const orphan = { name: "Motor" } as unknown as IScopeSymbol;
-
-      expect(() => ScopeUtils.getScopePath(orphan)).toThrow(/has no parent/);
-      // Specifically not a TypeError from dereferencing undefined.
-      expect(() => ScopeUtils.getScopePath(orphan)).not.toThrow(TypeError);
-    });
-
-    it("throws on a longer parent cycle", () => {
-      const global = ScopeUtils.createGlobalScope();
-      const outer = ScopeUtils.createScope("Outer", global);
-      const inner = ScopeUtils.createScope("Inner", outer);
-      (outer as { parent: unknown }).parent = inner;
-
-      expect(() => ScopeUtils.getScopePath(inner)).toThrow(
-        /never reaches the global scope/,
-      );
-    });
-  });
-
   describe("getTranspiledCName", () => {
     it("returns the bare name for a global symbol", () => {
-      const global = ScopeUtils.createGlobalScope();
       expect(
-        ScopeUtils.getTranspiledCName({ name: "main", scope: global }),
+        ScopeUtils.getTranspiledCName({ name: "main", scopePath: "" }),
       ).toBe("main");
     });
 
     it("returns a scope-prefixed name for a scoped symbol", () => {
-      const global = ScopeUtils.createGlobalScope();
-      const test = ScopeUtils.createScope("Test", global);
       expect(
-        ScopeUtils.getTranspiledCName({ name: "fillData", scope: test }),
+        ScopeUtils.getTranspiledCName({ name: "fillData", scopePath: "Test" }),
       ).toBe("Test__fillData");
     });
 
-    it("walks the whole parent chain for a nested scope", () => {
+    it("keeps every outer component for a nested scope", () => {
       // Regression guard: reading scope.name alone yields "Inner__process" and
       // drops the outer scope. Two encoders disagreed exactly here, and agreed
       // elsewhere only because the grammar admits no nested scopes today.
-      const global = ScopeUtils.createGlobalScope();
-      const outer = ScopeUtils.createScope("Outer", global);
-      const inner = ScopeUtils.createScope("Inner", outer);
       expect(
-        ScopeUtils.getTranspiledCName({ name: "process", scope: inner }),
+        ScopeUtils.getTranspiledCName({
+          name: "process",
+          scopePath: "Outer.Inner",
+        }),
       ).toBe("Outer__Inner__process");
     });
   });
 
   describe("identityOf (#1285)", () => {
     it("gives a global symbol its bare name in both namespaces", () => {
-      const global = ScopeUtils.createGlobalScope();
-
-      expect(ScopeUtils.identityOf({ name: "counter", scope: global })).toEqual(
+      expect(ScopeUtils.identityOf({ name: "counter", scopePath: "" })).toEqual(
         {
           fullyQualifiedCName: "counter",
           cnxScopedName: "counter",
@@ -145,16 +172,15 @@ describe("IScopeSymbol", () => {
     });
 
     it("qualifies a scope member in both namespaces", () => {
-      const global = ScopeUtils.createGlobalScope();
-      const motor = ScopeUtils.createScope("Motor", global);
-
-      expect(ScopeUtils.identityOf({ name: "init", scope: motor })).toEqual({
+      expect(
+        ScopeUtils.identityOf({ name: "init", scopePath: "Motor" }),
+      ).toEqual({
         fullyQualifiedCName: "Motor__init",
         cnxScopedName: "Motor.init",
       });
     });
 
-    it("walks the whole parent chain at depth 2", () => {
+    it("keeps every outer component at depth 2", () => {
       // The property this whole change exists to establish. Reading `scope.name`
       // alone yields "Inner__tick"/"Inner.tick" and drops the outer scope --
       // which is what the leaf-only encoders did, agreeing with the chain-walking
@@ -163,73 +189,69 @@ describe("IScopeSymbol", () => {
       // Nested scopes are unreachable from .cnx source (grammar/CNext.g4:81-89),
       // so this unit test is the ONLY thing that can hold the property. It must
       // not be deleted as "testing an impossible case".
-      const global = ScopeUtils.createGlobalScope();
-      const outer = ScopeUtils.createScope("Outer", global);
-      const inner = ScopeUtils.createScope("Inner", outer);
 
-      expect(ScopeUtils.identityOf({ name: "tick", scope: inner })).toEqual({
+      expect(
+        ScopeUtils.identityOf({ name: "tick", scopePath: "Outer.Inner" }),
+      ).toEqual({
         fullyQualifiedCName: "Outer__Inner__tick",
         cnxScopedName: "Outer.Inner.tick",
       });
     });
 
-    it("gives a nested scope its own identity from its parent chain", () => {
-      const global = ScopeUtils.createGlobalScope();
-      const outer = ScopeUtils.createScope("Outer", global);
-      const inner = ScopeUtils.createScope("Inner", outer);
-      const leaf = ScopeUtils.createScope("Leaf", inner);
+    it("gives a nested scope its own identity from its enclosing path", () => {
+      const outer = ScopeUtils.createScope("Outer", "");
+      const leaf = ScopeUtils.createScope("Leaf", "Outer.Inner");
 
-      // Depth THREE on purpose. At depth two a scope's parent name happens to
-      // be the whole chain, so a leaf-only encoder is accidentally right and a
+      // Depth THREE on purpose. At depth two a scope's leaf name happens to be
+      // its whole path, so a leaf-only encoder is accidentally right and a
       // depth-two assertion here cannot fail. Verified: mutating the encoder to
-      // read `scope.name` alone leaves `inner` correct and breaks only `leaf`.
+      // join only the leaf leaves `outer` correct and breaks only `leaf`.
       expect(leaf.fullyQualifiedCName).toBe("Outer__Inner__Leaf");
       expect(leaf.cnxScopedName).toBe("Outer.Inner.Leaf");
       expect(outer.fullyQualifiedCName).toBe("Outer");
     });
 
     it("gives the global scope an empty identity", () => {
-      // Computed through the encoder after the self-references are patched, not
+      // Computed through the same encoder as every other symbol rather than
       // hardcoded -- the global scope must not become the one symbol whose
-      // identity was derived a second way.
+      // identity was derived a second way. #1298 removed the self-references it
+      // used to need patching in first.
       const global = ScopeUtils.createGlobalScope();
 
       expect(global.fullyQualifiedCName).toBe("");
       expect(global.cnxScopedName).toBe("");
     });
 
-    it("qualifyInScope walks the whole chain at depth 2", () => {
+    it("qualifyInScope keeps every outer component at depth 2", () => {
       // The drop-in for `QualifiedCName.fromParts([currentScopeName, name])`. The
       // string version produced "Inner__tick" here, dropping `Outer`.
-      const global = ScopeUtils.createGlobalScope();
-      const outer = ScopeUtils.createScope("Outer", global);
-      const inner = ScopeUtils.createScope("Inner", outer);
 
-      expect(ScopeUtils.qualifyInScope("tick", inner)).toBe(
+      expect(ScopeUtils.qualifyInScope("tick", "Outer.Inner")).toBe(
         "Outer__Inner__tick",
       );
     });
 
     it("qualifyInScope leaves a name alone at file scope", () => {
-      const global = ScopeUtils.createGlobalScope();
-
-      // Both spellings of "no scope" -- a global symbol keeps its bare name,
-      // which is what makes `global.x` reachable at all.
-      expect(ScopeUtils.qualifyInScope("tick", null)).toBe("tick");
-      expect(ScopeUtils.qualifyInScope("tick", global)).toBe("tick");
+      // A global symbol keeps its bare name, which is what makes `global.x`
+      // reachable at all. #1298 collapsed the two former spellings of "no scope"
+      // (`null` and the global scope object) into the empty path, so the second
+      // case is now a real one rather than a repeat of the first.
+      expect(ScopeUtils.qualifyInScope("tick", "")).toBe("tick");
+      expect(ScopeUtils.qualifyInScope("tick", "Motor")).toBe("Motor__tick");
     });
 
     it("qualifyScopeType asks about the CHAIN-qualified name", () => {
-      const global = ScopeUtils.createGlobalScope();
-      const outer = ScopeUtils.createScope("Outer", global);
-      const inner = ScopeUtils.createScope("Inner", outer);
       const asked: string[] = [];
       const known = new Set(["Outer__Inner__Config"]);
 
-      const result = ScopeUtils.qualifyScopeType("Config", inner, (q) => {
-        asked.push(q);
-        return known.has(q);
-      });
+      const result = ScopeUtils.qualifyScopeType(
+        "Config",
+        "Outer.Inner",
+        (q) => {
+          asked.push(q);
+          return known.has(q);
+        },
+      );
 
       // The leaf-only version asked about "Inner__Config", got no, and fell
       // through to the bare name -- the #1200 failure shape.
@@ -238,12 +260,9 @@ describe("IScopeSymbol", () => {
     });
 
     it("qualifyScopeType falls through to the bare name when unknown", () => {
-      const global = ScopeUtils.createGlobalScope();
-      const motor = ScopeUtils.createScope("Motor", global);
-
       // Negative control: a scope member that is NOT a type must not capture
       // the name, so a global type of the same name stays reachable.
-      expect(ScopeUtils.qualifyScopeType("Config", motor, () => false)).toBe(
+      expect(ScopeUtils.qualifyScopeType("Config", "Motor", () => false)).toBe(
         "Config",
       );
     });
@@ -251,11 +270,9 @@ describe("IScopeSymbol", () => {
     it("qualifyScopeType does not qualify when a DIFFERENT scope declares the type", () => {
       // Ported from the deleted QualifiedCName.qualifyScopeType suite. Being
       // inside scope Z does not let you reach A's type by its bare name.
-      const global = ScopeUtils.createGlobalScope();
-      const other = ScopeUtils.createScope("Z", global);
       const known = new Set(["A__B"]);
 
-      expect(ScopeUtils.qualifyScopeType("B", other, (q) => known.has(q))).toBe(
+      expect(ScopeUtils.qualifyScopeType("B", "Z", (q) => known.has(q))).toBe(
         "B",
       );
     });
@@ -269,10 +286,10 @@ describe("IScopeSymbol", () => {
       // catches one namespace being computed a different way from the other:
       // under a leaf-only C encoder the names come back as `Inner__tick` and
       // `Outer.Inner.tick`, which disagree about how deep the symbol sits.
-      const global = ScopeUtils.createGlobalScope();
-      const outer = ScopeUtils.createScope("Outer", global);
-      const inner = ScopeUtils.createScope("Inner", outer);
-      const identity = ScopeUtils.identityOf({ name: "tick", scope: inner });
+      const identity = ScopeUtils.identityOf({
+        name: "tick",
+        scopePath: "Outer.Inner",
+      });
 
       expect(identity.fullyQualifiedCName).not.toBe(identity.cnxScopedName);
       expect(identity.fullyQualifiedCName.split("__")).toHaveLength(
@@ -294,9 +311,6 @@ describe("IScopeSymbol", () => {
     const declaresState = (qualifiedName: string): boolean =>
       qualifiedName === "Motor__State";
 
-    const global = ScopeUtils.createGlobalScope();
-    const motor = ScopeUtils.createScope("Motor", global);
-
     it.each([
       ["a plain numeric dimension", "10", "10"],
       ["a bare macro with no dot", "BUF_SIZE", "BUF_SIZE"],
@@ -308,7 +322,7 @@ describe("IScopeSymbol", () => {
       ],
       ["an explicit global. qualifier", "global.Top.COUNT", "Top__COUNT"],
     ])("resolves %s inside a scope", (_label, dim, expected) => {
-      expect(ScopeUtils.resolveDimensionName(dim, motor, declaresState)).toBe(
+      expect(ScopeUtils.resolveDimensionName(dim, "Motor", declaresState)).toBe(
         expected,
       );
     });
@@ -318,7 +332,7 @@ describe("IScopeSymbol", () => {
       ["the global. marker at global scope", "global.Top.COUNT", "Top__COUNT"],
       ["this. at global scope", "this.EColor.COUNT", "EColor__COUNT"],
     ])("resolves %s", (_label, dim, expected) => {
-      expect(ScopeUtils.resolveDimensionName(dim, global, declaresState)).toBe(
+      expect(ScopeUtils.resolveDimensionName(dim, "", declaresState)).toBe(
         expected,
       );
     });
@@ -328,13 +342,13 @@ describe("IScopeSymbol", () => {
       // when the scope really declares that enum. Prefixing unconditionally
       // would emit Motor__Other__COUNT for a global enum and not compile.
       expect(
-        ScopeUtils.resolveDimensionName("Other.COUNT", motor, declaresState),
+        ScopeUtils.resolveDimensionName("Other.COUNT", "Motor", declaresState),
       ).toBe("Other__COUNT");
     });
 
     it("consults the predicate with the scope-joined first segment", () => {
       const seen: string[] = [];
-      ScopeUtils.resolveDimensionName("State.COUNT", motor, (name) => {
+      ScopeUtils.resolveDimensionName("State.COUNT", "Motor", (name) => {
         seen.push(name);
         return false;
       });
@@ -350,8 +364,8 @@ describe("IScopeSymbol", () => {
         seen.push(name);
         return true;
       };
-      ScopeUtils.resolveDimensionName("this.State.COUNT", motor, spy);
-      ScopeUtils.resolveDimensionName("global.Top.COUNT", motor, spy);
+      ScopeUtils.resolveDimensionName("this.State.COUNT", "Motor", spy);
+      ScopeUtils.resolveDimensionName("global.Top.COUNT", "Motor", spy);
 
       expect(seen).toEqual([]);
     });
@@ -361,22 +375,20 @@ describe("IScopeSymbol", () => {
       // `scopeDeclaration` (grammar/CNext.g4:81-89) -- but reachable here,
       // and the name-taking signature this replaced could not express it:
       // it received "Inner" and emitted Inner__State__COUNT.
-      const outer = ScopeUtils.createScope("Outer", global);
-      const inner = ScopeUtils.createScope("Inner", outer);
       const declaresInnerState = (q: string): boolean =>
         q === "Outer__Inner__State";
 
       expect(
         ScopeUtils.resolveDimensionName(
           "State.COUNT",
-          inner,
+          "Outer.Inner",
           declaresInnerState,
         ),
       ).toBe("Outer__Inner__State__COUNT");
       expect(
         ScopeUtils.resolveDimensionName(
           "this.State.COUNT",
-          inner,
+          "Outer.Inner",
           declaresInnerState,
         ),
       ).toBe("Outer__Inner__State__COUNT");

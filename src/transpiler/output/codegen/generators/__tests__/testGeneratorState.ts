@@ -7,8 +7,9 @@
  * twelve edits, and PR #1281 paid the same tax on ICodeGenSymbols -- one new
  * field, ten mock literals.
  *
- * That matters beyond convenience here: #1285 changes `currentScope` from a
- * leaf-name string to a scope reference. With twelve copies that is twelve
+ * That matters beyond convenience here: #1285 changed `currentScope` from a
+ * leaf-name string to a scope reference, and #1298 to a whole PATH. With twelve
+ * copies each of those is twelve
  * places to get the migration right; with one it is one.
  */
 
@@ -27,7 +28,7 @@ class TestGeneratorState {
    */
   static create(overrides?: Partial<IGeneratorState>): IGeneratorState {
     return {
-      currentScope: null,
+      currentScopePath: "",
       indentLevel: 0,
       inFunctionBody: false,
       currentParameters: new Map(),

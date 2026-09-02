@@ -25,7 +25,7 @@ class DeclarationScopeCollector extends CNextListener {
   private readonly globalFrame: IScopeFrame = {
     vars: new Map(),
     parent: null,
-    scope: null,
+    scopePath: "",
   };
 
   // eslint-disable-next-line @typescript-eslint/lines-between-class-members
@@ -54,10 +54,10 @@ class DeclarationScopeCollector extends CNextListener {
       // Inherited so a nested block inside a scope still knows its scope.
       // #1357: descending from the PARENT scope keeps the outer components, so
       // a scope declared inside another is not flattened to its leaf.
-      scope:
+      scopePath:
         scopeLeaf === undefined
-          ? parent.scope
-          : EnclosingScope.child(parent.scope, scopeLeaf),
+          ? parent.scopePath
+          : EnclosingScope.child(parent.scopePath, scopeLeaf),
     };
     this.frameOf.set(node, frame);
     this.stack.push(frame);

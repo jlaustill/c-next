@@ -9,7 +9,6 @@ import QualifiedNameGenerator from "../QualifiedNameGenerator";
 import SymbolRegistry from "../../../../state/SymbolRegistry";
 import FunctionUtils from "../../../../../utils/FunctionUtils";
 import TTypeUtils from "../../../../../utils/TTypeUtils";
-import ScopeUtils from "../../../../../utils/ScopeUtils";
 
 describe("QualifiedNameGenerator", () => {
   beforeEach(() => {
@@ -18,10 +17,9 @@ describe("QualifiedNameGenerator", () => {
 
   describe("forFunction", () => {
     it("returns bare name for global scope function", () => {
-      const global = SymbolRegistry.getGlobalScope();
       const func = FunctionUtils.create({
         name: "main",
-        scope: global,
+        scopePath: "",
         parameters: [],
         returnType: TTypeUtils.createPrimitive("i32"),
         visibility: "public",
@@ -34,10 +32,10 @@ describe("QualifiedNameGenerator", () => {
     });
 
     it("returns Scope_name for scoped function", () => {
-      const scope = SymbolRegistry.getOrCreateScope("Test");
+      SymbolRegistry.getOrCreateScope("Test");
       const func = FunctionUtils.create({
         name: "fillData",
-        scope,
+        scopePath: "Test",
         parameters: [],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "private",
@@ -50,10 +48,10 @@ describe("QualifiedNameGenerator", () => {
     });
 
     it("returns Outer_Inner_name for nested scope function", () => {
-      const scope = SymbolRegistry.getOrCreateScope("Outer.Inner");
+      SymbolRegistry.getOrCreateScope("Outer.Inner");
       const func = FunctionUtils.create({
         name: "deepFunc",
-        scope,
+        scopePath: "Outer.Inner",
         parameters: [],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "private",
@@ -68,10 +66,10 @@ describe("QualifiedNameGenerator", () => {
     });
 
     it("returns deeply nested path for 3-level scope", () => {
-      const scope = SymbolRegistry.getOrCreateScope("A.B.C");
+      SymbolRegistry.getOrCreateScope("A.B.C");
       const func = FunctionUtils.create({
         name: "veryDeep",
-        scope,
+        scopePath: "A.B.C",
         parameters: [],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "public",
@@ -86,68 +84,41 @@ describe("QualifiedNameGenerator", () => {
     });
   });
 
-  describe("getScopePath", () => {
-    it("returns empty array for global scope", () => {
-      const global = SymbolRegistry.getGlobalScope();
-      expect(QualifiedNameGenerator.getScopePath(global)).toEqual([]);
-    });
-
-    it("returns single element for direct child of global", () => {
-      const scope = SymbolRegistry.getOrCreateScope("Test");
-      expect(QualifiedNameGenerator.getScopePath(scope)).toEqual(["Test"]);
-    });
-
-    it("returns full path for nested scope", () => {
-      const scope = SymbolRegistry.getOrCreateScope("A.B.C");
-      expect(QualifiedNameGenerator.getScopePath(scope)).toEqual([
-        "A",
-        "B",
-        "C",
-      ]);
-    });
-
-    it("returns path in correct order (outermost first)", () => {
-      const scope = SymbolRegistry.getOrCreateScope("Outer.Middle.Inner");
-      expect(QualifiedNameGenerator.getScopePath(scope)).toEqual([
-        "Outer",
-        "Middle",
-        "Inner",
-      ]);
-    });
-  });
+  // #1298 removed the `getScopePath` suite with the delegate it tested. It
+  // asserted that a chain walk recovered ["Outer","Middle","Inner"] from a scope
+  // object; a scope now carries that path as a field, so the property belongs to
+  // construction and is asserted in ScopeUtils.test.ts ("createScope" and
+  // "no scope cycle is representable").
 
   describe("forFunctionInScope", () => {
     it("returns bare name for a null scope", () => {
-      expect(QualifiedNameGenerator.forFunctionInScope(null, "main")).toBe(
+      expect(QualifiedNameGenerator.forFunctionInScope("", "main")).toBe(
         "main",
       );
     });
 
     it("returns transpiled C name for a simple scope", () => {
-      const scope = SymbolRegistry.getOrCreateScope("Test");
-      expect(QualifiedNameGenerator.forFunctionInScope(scope, "fillData")).toBe(
-        "Test__fillData",
-      );
+      SymbolRegistry.getOrCreateScope("Test");
+      expect(
+        QualifiedNameGenerator.forFunctionInScope("Test", "fillData"),
+      ).toBe("Test__fillData");
     });
 
-    it("walks the parent chain for a nested scope", () => {
-      // #1285: the string signature this replaced took a scope NAME, so a nested
-      // scope could only be expressed by pre-flattening it to "Outer.Inner" at the
-      // call site -- and any caller holding a symbol had to read `.name` off it,
-      // which is the leaf. That call site returned `Inner__func`. The symbol
-      // carries the chain, so the outer component cannot be dropped.
-      const outer = SymbolRegistry.getOrCreateScope("Outer");
-      const inner = ScopeUtils.createScope("Inner", outer);
-      expect(QualifiedNameGenerator.forFunctionInScope(inner, "func")).toBe(
-        "Outer__Inner__func",
-      );
+    it("keeps every outer component for a nested scope", () => {
+      // #1285: the leaf-name signature this replaced dropped the outer scope, so
+      // this returned `Inner__func`. #1298 makes the parameter a string again --
+      // but the whole PATH, which carries the chain the scope object used to.
+      SymbolRegistry.getOrCreateScope("Outer.Inner");
+
+      expect(
+        QualifiedNameGenerator.forFunctionInScope("Outer.Inner", "func"),
+      ).toBe("Outer__Inner__func");
     });
 
     it("uses SymbolRegistry when function is registered", () => {
-      const scope = SymbolRegistry.getOrCreateScope("Motor");
       const func = FunctionUtils.create({
         name: "init",
-        scope,
+        scopePath: "Motor",
         parameters: [],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "public",
@@ -157,14 +128,15 @@ describe("QualifiedNameGenerator", () => {
       });
       SymbolRegistry.registerFunction(func);
 
-      expect(QualifiedNameGenerator.forFunctionInScope(scope, "init")).toBe(
+      expect(QualifiedNameGenerator.forFunctionInScope("Motor", "init")).toBe(
         "Motor__init",
       );
     });
 
     it("falls back to qualifying the bare name when not in the registry", () => {
-      const scope = SymbolRegistry.getOrCreateScope("Unknown");
-      expect(QualifiedNameGenerator.forFunctionInScope(scope, "func")).toBe(
+      SymbolRegistry.getOrCreateScope("Unknown");
+
+      expect(QualifiedNameGenerator.forFunctionInScope("Unknown", "func")).toBe(
         "Unknown__func",
       );
     });
@@ -172,23 +144,22 @@ describe("QualifiedNameGenerator", () => {
 
   describe("forMember", () => {
     it("returns bare name for a null scope", () => {
-      expect(QualifiedNameGenerator.forMember(null, "value")).toBe("value");
+      expect(QualifiedNameGenerator.forMember("", "value")).toBe("value");
     });
 
     it("returns transpiled C name for a simple scope", () => {
-      const scope = SymbolRegistry.getOrCreateScope("Test");
-      expect(QualifiedNameGenerator.forMember(scope, "counter")).toBe(
+      SymbolRegistry.getOrCreateScope("Test");
+      expect(QualifiedNameGenerator.forMember("Test", "counter")).toBe(
         "Test__counter",
       );
     });
 
-    it("walks the parent chain for a nested scope", () => {
+    it("keeps every outer component for a nested scope", () => {
       // The member counterpart of the guard above.
-      const outer = SymbolRegistry.getOrCreateScope("OuterData");
-      const inner = ScopeUtils.createScope("InnerData", outer);
-      expect(QualifiedNameGenerator.forMember(inner, "data")).toBe(
-        "OuterData__InnerData__data",
-      );
+      SymbolRegistry.getOrCreateScope("OuterData");
+      expect(
+        QualifiedNameGenerator.forMember("OuterData.InnerData", "data"),
+      ).toBe("OuterData__InnerData__data");
     });
   });
 });

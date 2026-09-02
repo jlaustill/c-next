@@ -14,8 +14,6 @@ import SymbolPathUtils from "./utils/SymbolPathUtils";
 import QualifiedCName from "../utils/QualifiedCName";
 
 // Re-export helpers for use in this module
-const buildScopePath = SymbolPathUtils.buildScopePath;
-const getDotPathId = SymbolPathUtils.getDotPathId;
 const getParentId = SymbolPathUtils.getParentId;
 
 /**
@@ -59,9 +57,9 @@ function convertBitmap(
 ): ISymbolInfo[] {
   const result: ISymbolInfo[] = [];
   const cName = ScopeUtils.getTranspiledCName(bitmap);
-  const parent = bitmap.scope.name || undefined;
-  const bitmapId = getDotPathId(bitmap);
-  const bitmapParentId = getParentId(bitmap.scope);
+  const parent = ScopeUtils.leafOf(bitmap.scopePath) || undefined;
+  const bitmapId = bitmap.cnxScopedName;
+  const bitmapParentId = getParentId(bitmap.scopePath);
 
   result.push({
     name: bitmap.name,
@@ -96,9 +94,9 @@ function convertEnum(
 ): ISymbolInfo[] {
   const result: ISymbolInfo[] = [];
   const cName = ScopeUtils.getTranspiledCName(enumSym);
-  const parent = enumSym.scope.name || undefined;
-  const enumId = getDotPathId(enumSym);
-  const enumParentId = getParentId(enumSym.scope);
+  const parent = ScopeUtils.leafOf(enumSym.scopePath) || undefined;
+  const enumId = enumSym.cnxScopedName;
+  const enumParentId = getParentId(enumSym.scopePath);
 
   result.push({
     name: enumSym.name,
@@ -131,9 +129,9 @@ function convertStruct(
 ): ISymbolInfo[] {
   const result: ISymbolInfo[] = [];
   const cName = ScopeUtils.getTranspiledCName(struct);
-  const parent = struct.scope.name || undefined;
-  const structId = getDotPathId(struct);
-  const structParentId = getParentId(struct.scope);
+  const parent = ScopeUtils.leafOf(struct.scopePath) || undefined;
+  const structId = struct.cnxScopedName;
+  const structParentId = getParentId(struct.scopePath);
 
   result.push({
     name: struct.name,
@@ -167,7 +165,7 @@ function convertFunction(
 ): ISymbolInfo[] {
   const result: ISymbolInfo[] = [];
   const cName = ScopeUtils.getTranspiledCName(func);
-  const parent = func.scope.name || undefined;
+  const parent = ScopeUtils.leafOf(func.scopePath) || undefined;
   const returnType = TypeResolver.getTypeName(func.returnType);
 
   // Build signature
@@ -182,8 +180,8 @@ function convertFunction(
     kind: "function",
     type: returnType,
     parent,
-    id: getDotPathId(func),
-    parentId: getParentId(func.scope),
+    id: func.cnxScopedName,
+    parentId: getParentId(func.scopePath),
     signature,
     accessModifier: func.isExported ? "public" : "private",
     line: func.sourceLine,
@@ -196,7 +194,7 @@ function convertVariable(
   variable: import("../transpiler/types/symbols/IVariableSymbol").default,
 ): ISymbolInfo {
   const cName = ScopeUtils.getTranspiledCName(variable);
-  const parent = variable.scope.name || undefined;
+  const parent = ScopeUtils.leafOf(variable.scopePath) || undefined;
   const typeStr = TypeResolver.getTypeName(variable.type);
 
   return {
@@ -205,8 +203,8 @@ function convertVariable(
     kind: "variable",
     type: typeStr,
     parent,
-    id: getDotPathId(variable),
-    parentId: getParentId(variable.scope),
+    id: variable.cnxScopedName,
+    parentId: getParentId(variable.scopePath),
     line: variable.sourceLine,
   };
 }
@@ -216,9 +214,9 @@ function convertRegister(
 ): ISymbolInfo[] {
   const result: ISymbolInfo[] = [];
   const cName = ScopeUtils.getTranspiledCName(register);
-  const parent = register.scope.name || undefined;
-  const registerId = getDotPathId(register);
-  const registerParentId = getParentId(register.scope);
+  const parent = ScopeUtils.leafOf(register.scopePath) || undefined;
+  const registerId = register.cnxScopedName;
+  const registerParentId = getParentId(register.scopePath);
 
   result.push({
     name: register.name,
@@ -250,11 +248,8 @@ function convertRegister(
 function convertScope(
   scope: import("../transpiler/types/symbols/IScopeSymbol").default,
 ): ISymbolInfo {
-  const scopeId = buildScopePath(scope);
-  const scopeParentId =
-    scope.parent && scope.parent.name !== ""
-      ? buildScopePath(scope.parent)
-      : undefined;
+  const scopeId = ScopeUtils.pathOf(scope);
+  const scopeParentId = getParentId(scope.scopePath);
 
   return {
     name: scope.name,

@@ -8,7 +8,6 @@ import { describe, it, expect, vi } from "vitest";
 import MemberSeparatorResolver from "../MemberSeparatorResolver";
 import type IMemberSeparatorDeps from "../../types/IMemberSeparatorDeps";
 import type ISeparatorContext from "../../types/ISeparatorContext";
-import TestScopeUtils from "../../../../logic/symbols/cnext/__tests__/testUtils";
 
 describe("MemberSeparatorResolver", () => {
   // Helper to create mock dependencies
@@ -51,7 +50,7 @@ describe("MemberSeparatorResolver", () => {
           firstId: "Motor",
           hasGlobal: true,
           hasThis: false,
-          currentScope: null,
+          currentScopePath: "",
           isStructParam: false,
           isCppAccess: false,
         },
@@ -72,7 +71,7 @@ describe("MemberSeparatorResolver", () => {
           firstId: "GPIO7",
           hasGlobal: true,
           hasThis: false,
-          currentScope: null,
+          currentScopePath: "",
           isStructParam: false,
           isCppAccess: false,
         },
@@ -92,7 +91,7 @@ describe("MemberSeparatorResolver", () => {
           firstId: "CONTROL_REG",
           hasGlobal: false,
           hasThis: true,
-          currentScope: TestScopeUtils.createMockScope("Motor"),
+          currentScopePath: "Motor",
           isStructParam: false,
           isCppAccess: false,
         },
@@ -111,7 +110,7 @@ describe("MemberSeparatorResolver", () => {
           firstId: "CONTROL_REG",
           hasGlobal: false,
           hasThis: false,
-          currentScope: TestScopeUtils.createMockScope("Motor"),
+          currentScopePath: "Motor",
           isStructParam: false,
           isCppAccess: false,
         },
@@ -130,7 +129,7 @@ describe("MemberSeparatorResolver", () => {
           firstId: "point",
           hasGlobal: false,
           hasThis: false,
-          currentScope: null,
+          currentScopePath: "",
           isStructParam: true,
           isCppAccess: false,
         },
@@ -148,7 +147,7 @@ describe("MemberSeparatorResolver", () => {
           firstId: "SeaDash",
           hasGlobal: true,
           hasThis: false,
-          currentScope: null,
+          currentScopePath: "",
           isStructParam: false,
           isCppAccess: true,
         },

@@ -9,7 +9,6 @@ import * as Parser from "../../../parser/grammar/CNextParser";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import IBitmapSymbol from "../../../../types/symbols/IBitmapSymbol";
 import IBitmapFieldInfo from "../../../../types/symbols/IBitmapFieldInfo";
-import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 import BITMAP_SIZE from "../../../../constants/BITMAP_SIZE";
 import BITMAP_BACKING_TYPE from "../../../../constants/BITMAP_BACKING_TYPE";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
@@ -20,14 +19,14 @@ class BitmapCollector {
    *
    * @param ctx The bitmap declaration context
    * @param sourceFile Source file path
-   * @param scope The scope this bitmap belongs to (IScopeSymbol)
+   * @param scopePath The path of the scope this bitmap belongs to (dotted path, "" at file scope)
    * @returns The bitmap symbol with proper scope reference
    * @throws Error if total bits don't match bitmap size
    */
   static collect(
     ctx: Parser.BitmapDeclarationContext,
     sourceFile: string,
-    scope: IScopeSymbol,
+    scopePath: string,
   ): IBitmapSymbol {
     const name = ctx.IDENTIFIER().getText();
     const bitmapType = ctx.bitmapType().getText();
@@ -60,10 +59,10 @@ class BitmapCollector {
     return {
       kind: "bitmap",
       name,
-      scope,
+      scopePath,
       // #1285: identity computed once, from the scope chain, not
       // re-derived by every consumer.
-      ...ScopeUtils.identityOf({ name, scope }),
+      ...ScopeUtils.identityOf({ name, scopePath }),
       sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.CNext,

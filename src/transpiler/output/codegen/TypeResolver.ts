@@ -390,7 +390,7 @@ class TypeResolver {
     if (primary.THIS() !== null) {
       return ScopeUtils.qualifyPathInScope(
         [...members],
-        CodeGenState.currentScope,
+        CodeGenState.currentScopePath,
       );
     }
     if (primary.GLOBAL() !== null) {
@@ -656,10 +656,10 @@ class TypeResolver {
     // Handle this.X — resolve X as a scope member variable
     if (
       current.baseType === TypeResolver.THIS_SENTINEL &&
-      CodeGenState.currentScope
+      CodeGenState.currentScopePath
     ) {
       const scopedName = QualifiedNameGenerator.forMember(
-        CodeGenState.currentScope,
+        CodeGenState.currentScopePath,
         memberName,
       );
       return TypeResolver.resolveRegistryLookup(scopedName);

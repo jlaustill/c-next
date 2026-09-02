@@ -47,6 +47,38 @@ Phase 7 implemented typed symbol storage with backwards compatibility:
   is persisted.
 - **Public API**: `TSymbolAdapter` and `CTSymbolAdapter` retained for `parseWithSymbols` and `parseCHeader`
 
+### A symbol names its scope; it does not hold it (#1298)
+
+`IBaseSymbol` carries `scopePath`, the dotted source path of the enclosing scope
+(`""` at file scope, `"Outer.Inner"` nested) — never the scope object.
+
+Holding the object made the symbol graph **cyclic**: the global scope was its own
+parent, and a scope's `functions` pointed back at symbols that pointed at the
+scope. Two defects followed from that one shape.
+
+- The graph could not be serialized. The cache's field-blind encoder recursed
+  until the stack was exhausted, so no symbol graph could be cached, frozen, or
+  written out.
+- The chain walk that recovered a path had an identity-based cycle guard, which
+  could not fire when successive parent reads returned non-identical objects for
+  the same scope — an immutability-library draft. The non-termination the guard
+  existed to prevent was reachable with the guard silent.
+
+A path cannot express a cycle, so neither is representable rather than guarded
+against, and the walk was deleted rather than repaired: it only ever recovered a
+path from a chain that encoded nothing but a path. `IScopeSymbol` has no `parent`
+for the same reason — it could never disagree with the inherited scope reference,
+so it was one edge written twice.
+
+The scope OBJECT still exists and is owned by the registry, which keys it by that
+same path. Resolve through the registry at the few sites that genuinely need a
+scope's mutable member lists; everything that only needs to qualify a name takes
+the path.
+
+This is how ADR-063's decision is carried out, not a change to it: a qualified
+name is still built from every outer component. Where those components are read
+from is not a property of the encoding.
+
 ## Context
 
 C-Next currently has **two separate C-Next symbol collectors** that walk the same AST to extract similar information:

@@ -34,7 +34,6 @@ import StdlibFunctions from "./StdlibFunctions";
 import CalleeNameResolver from "./helpers/CalleeNameResolver";
 import EnclosingScope from "./helpers/EnclosingScope";
 import IReturnValueUseError from "./types/IReturnValueUseError";
-import type IScopeSymbol from "../../types/symbols/IScopeSymbol";
 
 class ReturnValueUseListener extends CNextListener {
   public readonly errors: IReturnValueUseError[] = [];
@@ -189,7 +188,7 @@ class ReturnValueUseAnalyzer {
    */
   static nonVoidCallee(
     resolved: { name: string; isGlobalCall: boolean },
-    currentScope: IScopeSymbol | null,
+    currentScopePath: string,
   ): string | null {
     if (ReturnValueUseAnalyzer.returnsAValue(resolved.name)) {
       return resolved.name;
@@ -197,7 +196,7 @@ class ReturnValueUseAnalyzer {
 
     const fallback = CalleeNameResolver.scopeQualifiedCandidate(
       resolved.name,
-      currentScope,
+      currentScopePath,
       resolved.isGlobalCall,
     );
     if (fallback && ReturnValueUseAnalyzer.returnsAValue(fallback)) {

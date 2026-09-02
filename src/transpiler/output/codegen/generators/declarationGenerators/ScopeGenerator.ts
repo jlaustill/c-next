@@ -24,7 +24,6 @@ import generateScopedRegister from "./ScopedRegisterGenerator";
 import BitmapCommentUtils from "./BitmapCommentUtils";
 import ArrayDimensionUtils from "./ArrayDimensionUtils";
 import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
-import type IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 import CodeGenState from "../../../../state/CodeGenState";
 import AdrProvenance from "../../../../state/AdrProvenance";
 import SymbolRegistry from "../../../../state/SymbolRegistry";
@@ -61,12 +60,12 @@ function generateInitializer(
  */
 function getScopedName(
   node: { IDENTIFIER(): { getText(): string } },
-  declaringScope: IScopeSymbol | null,
+  declaringScopePath: string,
 ): { name: string; fullName: string } {
   const name = node.IDENTIFIER().getText();
   return {
     name,
-    fullName: QualifiedNameGenerator.forMember(declaringScope, name),
+    fullName: QualifiedNameGenerator.forMember(declaringScopePath, name),
   };
 }
 
@@ -76,7 +75,7 @@ function getScopedName(
  */
 function resolveConstructorArgs(
   argIdentifiers: { getText(): string }[],
-  declaringScope: IScopeSymbol | null,
+  declaringScopePath: string,
   line: number,
   orchestrator: IOrchestrator,
 ): string[] {
@@ -86,7 +85,7 @@ function resolveConstructorArgs(
     const argName = argNode.getText();
     // Arguments must be resolved with scope prefix
     const scopedArgName = QualifiedNameGenerator.forMember(
-      declaringScope,
+      declaringScopePath,
       argName,
     );
 
@@ -110,7 +109,7 @@ function resolveConstructorArgs(
  */
 function generateScopeVariable(
   varDecl: Parser.VariableDeclarationContext,
-  declaringScope: IScopeSymbol | null,
+  declaringScopePath: string,
   isPrivate: boolean,
   orchestrator: IOrchestrator,
 ): string | null {
@@ -122,7 +121,7 @@ function generateScopeVariable(
     return generateConstructorVariable(
       varDecl,
       varName,
-      declaringScope,
+      declaringScopePath,
       isPrivate,
       constructorArgList,
       orchestrator,
@@ -149,7 +148,7 @@ function generateScopeVariable(
   return generateRegularVariable(
     varDecl,
     varName,
-    declaringScope,
+    declaringScopePath,
     isPrivate,
     orchestrator,
   );
@@ -161,14 +160,17 @@ function generateScopeVariable(
 function generateConstructorVariable(
   varDecl: Parser.VariableDeclarationContext,
   varName: string,
-  declaringScope: IScopeSymbol | null,
+  declaringScopePath: string,
   isPrivate: boolean,
   constructorArgList: Parser.ConstructorArgumentListContext,
   orchestrator: IOrchestrator,
 ): string {
   // ADR-016: All scope variables are emitted at file scope
   const type = orchestrator.generateType(varDecl.type());
-  const fullName = QualifiedNameGenerator.forMember(declaringScope, varName);
+  const fullName = QualifiedNameGenerator.forMember(
+    declaringScopePath,
+    varName,
+  );
   const prefix = isPrivate ? "static " : "";
 
   // Validate and resolve constructor arguments
@@ -176,7 +178,7 @@ function generateConstructorVariable(
   const line = varDecl.start?.line ?? 0;
   const resolvedArgs = resolveConstructorArgs(
     argIdentifiers,
-    declaringScope,
+    declaringScopePath,
     line,
     orchestrator,
   );
@@ -190,7 +192,7 @@ function generateConstructorVariable(
 function generateRegularVariable(
   varDecl: Parser.VariableDeclarationContext,
   varName: string,
-  declaringScope: IScopeSymbol | null,
+  declaringScopePath: string,
   isPrivate: boolean,
   orchestrator: IOrchestrator,
 ): string {
@@ -209,7 +211,10 @@ function generateRegularVariable(
   if (callbackTypedef !== null) {
     type = callbackTypedef;
   }
-  const fullName = QualifiedNameGenerator.forMember(declaringScope, varName);
+  const fullName = QualifiedNameGenerator.forMember(
+    declaringScopePath,
+    varName,
+  );
 
   // Issue #948: Check if this is an opaque (forward-declared) struct type
   // Issue #958: Also check for external typedef struct types (complete definitions)
@@ -276,7 +281,7 @@ function generateRegularVariable(
  */
 function generateScopeFunction(
   funcDecl: Parser.FunctionDeclarationContext,
-  declaringScope: IScopeSymbol | null,
+  declaringScopePath: string,
   isPrivate: boolean,
   orchestrator: IOrchestrator,
 ): string[] {
@@ -284,7 +289,7 @@ function generateScopeFunction(
   const funcName = funcDecl.IDENTIFIER().getText();
   // Use QualifiedNameGenerator for consistent C-style name generation
   const fullName = QualifiedNameGenerator.forFunctionInScope(
-    declaringScope,
+    declaringScopePath,
     funcName,
   );
   const prefix = isPrivate ? "static " : "";
@@ -363,7 +368,7 @@ function generateEnumMembersFromAST(
  */
 function processScopeMember(
   member: Parser.ScopeMemberContext,
-  declaringScope: IScopeSymbol | null,
+  declaringScopePath: string,
   input: IGeneratorInput,
   state: IGeneratorState,
   orchestrator: IOrchestrator,
@@ -388,7 +393,7 @@ function processScopeMember(
     const varDecl = member.variableDeclaration()!;
     const result = generateScopeVariable(
       varDecl,
-      declaringScope,
+      declaringScopePath,
       isPrivate,
       orchestrator,
     );
@@ -400,7 +405,7 @@ function processScopeMember(
     const funcDecl = member.functionDeclaration()!;
     return generateScopeFunction(
       funcDecl,
-      declaringScope,
+      declaringScopePath,
       isPrivate,
       orchestrator,
     );
@@ -412,7 +417,12 @@ function processScopeMember(
     const enumDecl = member.enumDeclaration()!;
     return [
       "",
-      generateScopedEnumInline(enumDecl, declaringScope, input, orchestrator),
+      generateScopedEnumInline(
+        enumDecl,
+        declaringScopePath,
+        input,
+        orchestrator,
+      ),
     ];
   }
 
@@ -420,7 +430,10 @@ function processScopeMember(
   // Issue #369: Skip bitmap definition if self-include was added (it will be in the header)
   if (member.bitmapDeclaration() && !state.selfIncludeAdded) {
     const bitmapDecl = member.bitmapDeclaration()!;
-    return ["", generateScopedBitmapInline(bitmapDecl, declaringScope, input)];
+    return [
+      "",
+      generateScopedBitmapInline(bitmapDecl, declaringScopePath, input),
+    ];
   }
 
   // Handle register declarations inside scopes
@@ -428,7 +441,7 @@ function processScopeMember(
     const regDecl = member.registerDeclaration()!;
     const result = generateScopedRegister(
       regDecl,
-      declaringScope,
+      declaringScopePath,
       input,
       state,
       orchestrator,
@@ -444,7 +457,7 @@ function processScopeMember(
       "",
       generateScopedStructInline(
         structDecl,
-        declaringScope,
+        declaringScopePath,
         input,
         orchestrator,
       ),
@@ -473,10 +486,10 @@ const generateScope: TGeneratorFn<Parser.ScopeDeclarationContext> = (
   // Set current scope for nested generation (imperative, not effect-based)
   orchestrator.setCurrentScope(name);
 
-  // #1285: thread the scope SYMBOL, not its name, so every member below qualifies
-  // through the parent chain instead of re-joining one level from a leaf.
+  // #1298: thread the whole scope PATH, not a leaf name, so every member below
+  // qualifies against every outer component instead of re-joining one level.
   //
-  // Resolved here rather than read back from `CodeGenState.currentScope`: that
+  // Resolved here rather than read back from `CodeGenState.currentScopePath`: that
   // would make the generated NAMES depend on `orchestrator.setCurrentScope` having
   // reached global state, which is a side effect through an interface. A mock
   // orchestrator that does not forward it produced bare names with nothing failing
@@ -485,14 +498,22 @@ const generateScope: TGeneratorFn<Parser.ScopeDeclarationContext> = (
   //
   // Passing a leaf path is correct while `scopeMember` admits no `scopeDeclaration`;
   // that limit is tracked as #1304 and is unchanged by this.
-  const declaringScope = SymbolRegistry.getOrCreateScope(name);
+  const declaringScopePath = ScopeUtils.pathOf(
+    SymbolRegistry.getOrCreateScope(name),
+  );
 
   const lines: string[] = [];
   lines.push(`/* Scope: ${name} */`);
 
   for (const member of node.scopeMember()) {
     lines.push(
-      ...processScopeMember(member, declaringScope, input, state, orchestrator),
+      ...processScopeMember(
+        member,
+        declaringScopePath,
+        input,
+        state,
+        orchestrator,
+      ),
     );
   }
 
@@ -513,11 +534,11 @@ const generateScope: TGeneratorFn<Parser.ScopeDeclarationContext> = (
  */
 function generateScopedEnumInline(
   node: Parser.EnumDeclarationContext,
-  declaringScope: IScopeSymbol | null,
+  declaringScopePath: string,
   input: IGeneratorInput,
   orchestrator: IOrchestrator,
 ): string {
-  const { fullName } = getScopedName(node, declaringScope);
+  const { fullName } = getScopedName(node, declaringScopePath);
   const lines: string[] = [`typedef enum {`];
 
   // Try to get members from symbol info first
@@ -605,11 +626,11 @@ function _generateBitmapFieldCommentsFromAST(
  */
 function generateScopedBitmapInline(
   node: Parser.BitmapDeclarationContext,
-  declaringScope: IScopeSymbol | null,
+  declaringScopePath: string,
   input: IGeneratorInput,
 ): string {
   const name = node.IDENTIFIER().getText();
-  const fullName = QualifiedNameGenerator.forMember(declaringScope, name);
+  const fullName = QualifiedNameGenerator.forMember(declaringScopePath, name);
   const backingType = _getBitmapBackingType(fullName, node, input);
 
   const lines: string[] = [];
@@ -663,11 +684,11 @@ function generateScopedStructField(
  */
 function generateScopedStructInline(
   node: Parser.StructDeclarationContext,
-  declaringScope: IScopeSymbol | null,
+  declaringScopePath: string,
   _input: IGeneratorInput,
   orchestrator: IOrchestrator,
 ): string {
-  const { fullName } = getScopedName(node, declaringScope);
+  const { fullName } = getScopedName(node, declaringScopePath);
   const lines: string[] = [`typedef struct ${fullName} {`];
 
   // Process struct members

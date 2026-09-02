@@ -14,20 +14,24 @@ class ScopeUtils {
   // ============================================================================
 
   /**
-   * Create the global scope with self-reference parent.
+   * Create the global scope.
    *
-   * Global scope has:
-   * - name: "" (empty string)
-   * - parent: points to itself (self-reference)
-   * - scope: points to itself (self-reference)
+   * The global scope has an empty name and an empty `scopePath`, which together
+   * are what `isGlobalScope` identifies. It no longer points at itself: #1298
+   * replaced the scope REFERENCE with a path, so the self-reference that made the
+   * symbol graph cyclic -- and made `JsonCodec` recurse until the stack was
+   * exhausted -- has nothing to be written into.
+   *
+   * That also removes the two `null as unknown as IScopeSymbol` casts and the
+   * post-construction `Object.assign` this used to need: the identity could not
+   * be computed until the self-references were patched in, because the encoder
+   * walked the chain those references formed.
    */
   static createGlobalScope(): IScopeSymbol {
-    // Create a mutable object first to establish self-references
-    const global: IScopeSymbol = {
+    return {
       kind: "scope",
       name: "",
-      parent: null as unknown as IScopeSymbol, // Temporary, will be set below
-      scope: null as unknown as IScopeSymbol, // Temporary, will be set below
+      scopePath: "",
       members: [],
       functions: [],
       variables: [],
@@ -38,37 +42,32 @@ class ScopeUtils {
       sourceLine: 0,
       sourceLanguage: ESourceLanguage.CNext,
       isExported: true,
-      // Patched below: identityOf walks the scope chain, and the chain is not
-      // complete until the self-references are set.
-      fullyQualifiedCName: "",
-      cnxScopedName: "",
+      // #1285: computed through the same encoder as every other symbol rather
+      // than hardcoded, so the global scope cannot become the one symbol whose
+      // identity was derived a second way. Both resolve to "" -- it has no name
+      // and no enclosing scope -- which is what makes a global symbol keep its
+      // bare name.
+      ...ScopeUtils.identityOf({ name: "", scopePath: "" }),
     };
-    // Set self-references for global scope
-    (global as unknown as { parent: IScopeSymbol }).parent = global;
-    (global as unknown as { scope: IScopeSymbol }).scope = global;
-    // #1285: computed through the same encoder as every other symbol rather than
-    // hardcoded, so the global scope cannot become the one symbol whose identity
-    // was derived a second way. Both resolve to "" -- it has no name and no
-    // outer scope -- which is what makes a global symbol keep its bare name.
-    Object.assign(global, ScopeUtils.identityOf(global));
-    return global;
   }
 
   /**
-   * Create a named scope with the given parent.
+   * Create a named scope inside `parentPath`.
    *
-   * Named scopes can be nested (e.g., Outer.Inner).
+   * Takes the enclosing scope's PATH rather than the scope object (#1298). A
+   * scope is identified by where it sits, and a path is the whole answer: the
+   * object added nothing but a cycle, since the only thing every consumer ever
+   * read from it was the chain of names a path already spells out.
    */
-  static createScope(name: string, parent: IScopeSymbol): IScopeSymbol {
-    const scope: IScopeSymbol = {
+  static createScope(name: string, parentPath: string): IScopeSymbol {
+    return {
       kind: "scope",
       name,
-      parent,
-      scope: parent, // Scope's containing scope is its parent
-      // #1285: a nested scope's own identity comes from its parent chain, so
+      scopePath: parentPath,
+      // #1285: a nested scope's own identity comes from its enclosing path, so
       // `Inner` inside `Outer` is `Outer__Inner` without any site knowing how
       // deep it sits.
-      ...ScopeUtils.identityOf({ name, scope: parent }),
+      ...ScopeUtils.identityOf({ name, scopePath: parentPath }),
       members: [],
       functions: [],
       variables: [],
@@ -80,7 +79,6 @@ class ScopeUtils {
       sourceLanguage: ESourceLanguage.CNext,
       isExported: true,
     };
-    return scope;
   }
 
   // ============================================================================
@@ -88,14 +86,54 @@ class ScopeUtils {
   // ============================================================================
 
   /**
-   * Check if a scope is the global scope.
+   * Is this scope path the global (file) scope?
    *
-   * Global scope is identified by:
-   * - Empty name ("")
-   * - Self-referential parent (parent === scope)
+   * The one place `""` is read as "no enclosing scope", rather than the same
+   * comparison written at every call site. `null` used to be a second spelling of
+   * the same state -- every helper here guarded `if (!scope || isGlobalScope(scope))`
+   * -- and both now collapse into the empty path.
+   */
+  static isGlobalScopePath(scopePath: string): boolean {
+    return scopePath === "";
+  }
+
+  /**
+   * Is this scope the global scope?
+   *
+   * The global scope is the only scope with no name, so it is also the only one
+   * whose own path (`cnxScopedName`) is empty. This used to compare
+   * `parent === scope`, which is exactly the identity test that could not fire on
+   * a proxy chain (#1298).
    */
   static isGlobalScope(scope: IScopeSymbol): boolean {
-    return scope.name === "" && scope.parent === scope;
+    return scope.name === "" && ScopeUtils.isGlobalScopePath(scope.scopePath);
+  }
+
+  /**
+   * The dotted path of a scope's own position -- `""` for global, `"Outer.Inner"`
+   * for a scope named `Inner` declared inside `Outer`.
+   *
+   * This is what a member of the scope carries as its `scopePath`.
+   */
+  static pathOf(scope: IScopeSymbol): string {
+    return scope.cnxScopedName;
+  }
+
+  /**
+   * The leaf name of a scope path -- `"Inner"` for `"Outer.Inner"`, `""` for the
+   * global scope.
+   */
+  static leafOf(scopePath: string): string {
+    return scopePath.split(QualifiedCName.SOURCE_SEPARATOR).at(-1) ?? "";
+  }
+
+  /**
+   * The path of the scope enclosing `scopePath` -- `"Outer"` for `"Outer.Inner"`,
+   * `""` for a top-level scope.
+   */
+  static parentOf(scopePath: string): string {
+    const index = scopePath.lastIndexOf(QualifiedCName.SOURCE_SEPARATOR);
+    return index === -1 ? "" : scopePath.slice(0, index);
   }
 
   // ============================================================================
@@ -117,60 +155,6 @@ class ScopeUtils {
   }
 
   // ============================================================================
-  // Path Utilities
-  // ============================================================================
-
-  /**
-   * Get the scope path from outermost to innermost (excluding global scope).
-   *
-   * For scope "Outer.Inner", returns ["Outer", "Inner"].
-   * For global scope, returns [].
-   */
-  static getScopePath(scope: IScopeSymbol): string[] {
-    const path: string[] = [];
-    const seen = new Set<IScopeSymbol>();
-    let current = scope;
-
-    while (!ScopeUtils.isGlobalScope(current)) {
-      // A parent chain that revisits a scope never reaches the global scope.
-      // Only createGlobalScope() may be its own parent, and only with an empty
-      // name; anything else self-referential is malformed. Fail loudly: this
-      // walk runs for every symbol added to the SymbolTable, and looping here
-      // hangs the whole transpile with no output to diagnose.
-      if (seen.has(current)) {
-        throw new Error(
-          `Malformed scope chain: '${current.name}' is its own ancestor, so it ` +
-            `never reaches the global scope. Build scopes with ` +
-            `ScopeUtils.createGlobalScope()/createScope() — only the global ` +
-            `scope is self-parented, and its name must be empty.`,
-        );
-      }
-      seen.add(current);
-
-      path.unshift(current.name);
-
-      // A chain that simply ends is the other way this walk fails to terminate
-      // at the global scope, and it is the shape hand-built scopes actually
-      // have — the encoder this replaced took `{ name: string }` structurally,
-      // so an object with no parent was a complete scope to it. Without this the
-      // next line hands `undefined` to isGlobalScope and the whole transpile
-      // dies on a bare TypeError, now from inside SymbolTable.addTSymbol, which
-      // runs for every symbol.
-      if (!current.parent) {
-        throw new Error(
-          `Malformed scope chain: '${current.name}' has no parent, so it never ` +
-            `reaches the global scope. Build scopes with ` +
-            `ScopeUtils.createGlobalScope()/createScope().`,
-        );
-      }
-
-      current = current.parent;
-    }
-
-    return path;
-  }
-
-  // ============================================================================
   // Transpiled C Names
   // ============================================================================
 
@@ -182,22 +166,23 @@ class ScopeUtils {
    * name for a global symbol. ADR-063 makes the result injective, so it is also
    * the canonical identity a symbol can be looked up by.
    *
-   * Walks the parent chain rather than reading `scope.name` alone — the latter
-   * is the leaf name, so it silently drops outer scopes. The two agreed only
-   * because the grammar does not admit nested scopes today, which is a latent
-   * divergence rather than a shared decision.
+   * Takes the whole enclosing PATH rather than a scope's leaf name -- the latter
+   * silently drops outer scopes. The two agreed only because the grammar does not
+   * admit nested scopes today, which is a latent divergence rather than a shared
+   * decision.
    *
-   * @param symbol Any symbol carrying a bare name and its declaring scope
+   * `fromParts` expands a dotted component and drops empties, so the path goes in
+   * as one element and needs no splitting: `["Outer.Inner", "process"]` joins to
+   * `Outer__Inner__process`, and `["", "init"]` to `init`.
+   *
+   * @param symbol Any symbol carrying a bare name and its declaring scope path
    * @returns The C identifier, e.g. "Motor__init"
    */
   static getTranspiledCName(symbol: {
     name: string;
-    scope: IScopeSymbol;
+    scopePath: string;
   }): string {
-    return QualifiedCName.fromParts([
-      ...ScopeUtils.getScopePath(symbol.scope),
-      symbol.name,
-    ]);
+    return QualifiedCName.fromParts([symbol.scopePath, symbol.name]);
   }
 
   /**
@@ -207,17 +192,11 @@ class ScopeUtils {
    * the spelling a C-Next author would recognize. The counterpart to
    * getTranspiledCName, which builds the identifier the C compiler sees.
    *
-   * Walks the same parent chain, for the same reason: reading `scope.name` alone
+   * Takes the same whole enclosing path, for the same reason: a scope's leaf name
    * drops every outer scope.
    */
-  static getCnxScopedName(symbol: {
-    name: string;
-    scope: IScopeSymbol;
-  }): string {
-    return QualifiedCName.fromSourceParts([
-      ...ScopeUtils.getScopePath(symbol.scope),
-      symbol.name,
-    ]);
+  static getCnxScopedName(symbol: { name: string; scopePath: string }): string {
+    return QualifiedCName.fromSourceParts([symbol.scopePath, symbol.name]);
   }
 
   /**
@@ -229,11 +208,12 @@ class ScopeUtils {
    * top-level scope's leaf name IS its whole chain -- and correct beyond it,
    * where the string version dropped every outer component.
    *
-   * Null and the global scope both mean "no qualification": a global symbol
-   * keeps its bare name, which is what makes `global.x` reachable.
+   * The empty path means "no qualification": a global symbol keeps its bare name,
+   * which is what makes `global.x` reachable. `null` used to be a second spelling
+   * of that state and is now the empty string (#1298).
    */
-  static qualifyInScope(name: string, scope: IScopeSymbol | null): string {
-    return ScopeUtils.qualifyPathInScope([name], scope);
+  static qualifyInScope(name: string, scopePath: string): string {
+    return ScopeUtils.qualifyPathInScope([name], scopePath);
   }
 
   /**
@@ -244,8 +224,8 @@ class ScopeUtils {
    * declarations capture it -- a scope function or variable sharing a leaf name
    * with a global type must not shadow that type at a type position.
    *
-   * Takes the scope REFERENCE, not its name. The string version this replaces
-   * joined one level from a leaf, so at depth two it asked about
+   * Takes the whole enclosing PATH, not a scope's leaf name. The leaf version
+   * this replaces joined one level, so at depth two it asked about
    * `Inner__Config` for a type whose name is `Outer__Inner__Config` and got
    * "no" -- silently falling through to the bare name, which is the #1200
    * failure shape (#1285).
@@ -255,13 +235,16 @@ class ScopeUtils {
    */
   static qualifyScopeType(
     typeName: string,
-    scope: IScopeSymbol | null,
+    scopePath: string,
     isKnownType: (qualifiedName: string) => boolean,
   ): string {
-    if (!scope || ScopeUtils.isGlobalScope(scope)) {
+    if (ScopeUtils.isGlobalScopePath(scopePath)) {
       return typeName;
     }
-    const qualified = ScopeUtils.getTranspiledCName({ name: typeName, scope });
+    const qualified = ScopeUtils.getTranspiledCName({
+      name: typeName,
+      scopePath,
+    });
     return isKnownType(qualified) ? qualified : typeName;
   }
 
@@ -276,15 +259,15 @@ class ScopeUtils {
    * `isKnownEnum` is injected rather than read from CodeGenState so this stays
    * usable from any layer.
    *
-   * #1357: moved here from QualifiedCName, and takes the scope REFERENCE rather
-   * than its name. It is a scope-aware operation -- three of its four branches
-   * qualify against the enclosing scope -- so on QualifiedCName it was the last
-   * API through which a caller holding only a scope NAME could still build a
-   * one-level qualified name. Qualifying through `qualifyInScope` also walks the
-   * parent chain, which the name-taking version could not.
+   * #1357: moved here from QualifiedCName, and takes the whole enclosing PATH
+   * rather than a scope's leaf name. It is a scope-aware operation -- three of its
+   * four branches qualify against the enclosing scope -- so on QualifiedCName it
+   * was the last API through which a caller holding only a scope NAME could still
+   * build a one-level qualified name. A path carries every outer component, which
+   * the leaf-taking version could not.
    *
    * @param dim Dimension text as written in the source
-   * @param scope Enclosing scope, or null/global at file scope
+   * @param scopePath Enclosing scope path, or "" at file scope
    * @param isKnownEnum Does this *qualified* name name an enum?
    * @returns The C identifier, or `dim` unchanged when it names nothing
    *
@@ -296,7 +279,7 @@ class ScopeUtils {
    */
   static resolveDimensionName(
     dim: string,
-    scope: IScopeSymbol | null,
+    scopePath: string,
     isKnownEnum: (qualifiedName: string) => boolean,
   ): string {
     if (!dim.includes(QualifiedCName.SOURCE_SEPARATOR)) {
@@ -312,30 +295,29 @@ class ScopeUtils {
 
     // `this.X.Y` is explicitly scope-local - drop the marker, prefix the scope
     if (parts[0] === "this") {
-      return ScopeUtils.qualifyPathInScope(parts.slice(1), scope);
+      return ScopeUtils.qualifyPathInScope(parts.slice(1), scopePath);
     }
 
     // Bare `X.Y` inside a scope resolves scope-first, then global (ADR-057).
     // Prefix only when the scope really declares that enum.
     if (
-      scope &&
-      !ScopeUtils.isGlobalScope(scope) &&
-      isKnownEnum(ScopeUtils.qualifyInScope(parts[0], scope))
+      !ScopeUtils.isGlobalScopePath(scopePath) &&
+      isKnownEnum(ScopeUtils.qualifyInScope(parts[0], scopePath))
     ) {
-      return ScopeUtils.qualifyPathInScope(parts, scope);
+      return ScopeUtils.qualifyPathInScope(parts, scopePath);
     }
 
     return QualifiedCName.fromParts(parts);
   }
 
   /**
-   * The C name a multi-part member path takes inside `scope`, or the bare joined
-   * path at file scope. The one implementation; `qualifyInScope` is the
+   * The C name a multi-part member path takes inside `scopePath`, or the bare
+   * joined path at file scope. The one implementation; `qualifyInScope` is the
    * single-component spelling of it.
    *
    * #1385 review: the two used to branch on the same guard and then both build
-   * `fromParts([...getScopePath(scope), ...])`, which is one decision written
-   * twice -- in the file whose entire purpose is being the one encoder.
+   * `fromParts([scopePath, ...])`, which is one decision written twice -- in the
+   * file whose entire purpose is being the one encoder.
    *
    * Collapsing them settles a divergence rather than introducing one. The old
    * `qualifyInScope` returned a DOTTED name verbatim at file scope but expanded
@@ -350,15 +332,9 @@ class ScopeUtils {
    */
   static qualifyPathInScope(
     path: readonly string[],
-    scope: IScopeSymbol | null,
+    scopePath: string,
   ): string {
-    if (!scope || ScopeUtils.isGlobalScope(scope)) {
-      return QualifiedCName.fromParts(path);
-    }
-    return QualifiedCName.fromParts([
-      ...ScopeUtils.getScopePath(scope),
-      ...path,
-    ]);
+    return QualifiedCName.fromParts([scopePath, ...path]);
   }
 
   /**
@@ -373,7 +349,7 @@ class ScopeUtils {
    * symbol from the moment it exists rather than something each consumer
    * re-derives from `scope`.
    */
-  static identityOf(symbol: { name: string; scope: IScopeSymbol }): {
+  static identityOf(symbol: { name: string; scopePath: string }): {
     fullyQualifiedCName: string;
     cnxScopedName: string;
   } {

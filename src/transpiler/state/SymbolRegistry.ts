@@ -5,7 +5,7 @@
  *
  * Design decisions:
  * - Static class with global state (reset between transpilation runs)
- * - `getOrCreateScope` handles scope merging across files (same scope name = same object)
+ * - `getOrCreateScope` handles scope merging across files (same scope path = same object)
  * - `resolveFunction` walks scope chain (current -> parent -> global)
  * - String keys in Maps for lookup, but values are proper symbol objects
  */
@@ -29,7 +29,8 @@ class SymbolRegistry {
    *
    * The global scope has:
    * - name: "" (empty string)
-   * - parent: points to itself (self-reference)
+   * - scopePath: "" (it has no enclosing scope; #1298 removed the
+   *   self-reference that made the symbol graph cyclic)
    */
   static getGlobalScope(): IScopeSymbol {
     return this.globalScope;
@@ -59,16 +60,22 @@ class SymbolRegistry {
    * use getScope() instead to avoid creating orphaned scopes.
    */
   static getOrCreateScope(path: string): IScopeSymbol {
-    if (path === "") return this.globalScope;
+    if (ScopeUtils.isGlobalScopePath(path)) return this.globalScope;
     if (this.scopes.has(path)) return this.scopes.get(path)!;
 
-    const parts = path.split(".");
-    const name = parts.pop()!;
-    const parentPath = parts.join(".");
-    const parent =
-      parentPath === "" ? this.globalScope : this.getOrCreateScope(parentPath);
+    // Split through the shared helpers rather than re-implementing them: this
+    // method open-coded `split`/`pop`/`join`, which is `leafOf` and `parentOf`
+    // written a second time in the file that introduced both (#1298 review).
+    const name = ScopeUtils.leafOf(path);
+    const parentPath = ScopeUtils.parentOf(path);
+    // Still created eagerly: an intermediate scope must exist as an object so
+    // members can be registered into it, even though a child now names it by
+    // path rather than pointing at it.
+    if (!ScopeUtils.isGlobalScopePath(parentPath)) {
+      this.getOrCreateScope(parentPath);
+    }
 
-    const scope = ScopeUtils.createScope(name, parent);
+    const scope = ScopeUtils.createScope(name, parentPath);
     this.scopes.set(path, scope);
     return scope;
   }
@@ -102,14 +109,14 @@ class SymbolRegistry {
    */
   static registerFunction(func: IFunctionSymbol): void {
     if (this.isAlreadyRegistered(func)) return;
-    func.scope.functions.push(func);
+    this.getOrCreateScope(func.scopePath).functions.push(func);
   }
 
   /**
    * Is `func` a re-registration of a declaration already in its scope?
    *
    * Keyed on `fullyQualifiedCName`, but this does NOT rest on ADR-063's
-   * program-wide injectivity. The search is over `func.scope.functions` -- one
+   * program-wide injectivity. The search is over one scope's `functions` -- one
    * scope's array -- where the qualified prefix is constant, so the key reduces
    * to the bare name. The property actually required is the narrower "no two
    * functions in ONE scope share a name", which is the stronger result: it holds
@@ -129,21 +136,27 @@ class SymbolRegistry {
    * scopes. The negative control in the tests covers exactly that.
    */
   private static isAlreadyRegistered(func: IFunctionSymbol): boolean {
-    return func.scope.functions.some(
-      (existing) => existing.fullyQualifiedCName === func.fullyQualifiedCName,
+    return this.getOrCreateScope(func.scopePath).functions.some(
+      (existing: IFunctionSymbol) =>
+        existing.fullyQualifiedCName === func.fullyQualifiedCName,
     );
   }
 
   /**
-   * Resolve a function by name, walking the scope chain.
+   * Resolve a function by name, walking outward through enclosing scopes.
    *
    * Searches in order:
    * 1. Current scope
-   * 2. Parent scope
-   * 3. Parent's parent (recursively)
+   * 2. Enclosing scope
+   * 3. Its enclosing scope (recursively)
    * 4. Global scope
    *
    * Returns null if the function is not found.
+   *
+   * #1298: walks PATHS rather than parent references, so the walk is bounded by
+   * the number of separators in a string and cannot revisit a scope. The
+   * termination guard this replaces compared object identity, which is precisely
+   * the test that could not fire on a proxy chain.
    */
   static resolveFunction(
     name: string,
@@ -153,12 +166,12 @@ class SymbolRegistry {
     const found = fromScope.functions.find((f) => f.name === name);
     if (found) return found;
 
-    // Walk up the scope chain (stop when we reach global scope's self-reference)
-    if (fromScope !== this.globalScope && fromScope.parent !== fromScope) {
-      return this.resolveFunction(name, fromScope.parent);
-    }
+    if (ScopeUtils.isGlobalScope(fromScope)) return null;
 
-    return null;
+    // A scope's own `scopePath` IS its enclosing scope's path -- there is nothing
+    // to re-derive, and no second spelling of "one level out".
+    const enclosing = this.getScope(fromScope.scopePath);
+    return enclosing === null ? null : this.resolveFunction(name, enclosing);
   }
 
   // ============================================================================
@@ -219,7 +232,7 @@ class SymbolRegistry {
    */
   static getScopeByCFunctionName(cName: string): IScopeSymbol | null {
     const func = this.findByCName(cName);
-    return func?.scope ?? null;
+    return func === null ? null : this.getScope(func.scopePath);
   }
 }
 

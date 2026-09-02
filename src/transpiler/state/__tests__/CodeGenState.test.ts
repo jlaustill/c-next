@@ -9,7 +9,6 @@ import TTypeInfo from "../../types/TTypeInfo";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import IVariableSymbol from "../../types/symbols/IVariableSymbol";
 import ICVariableSymbol from "../../types/symbols/c/ICVariableSymbol";
-import TestScopeUtils from "../../logic/symbols/cnext/__tests__/testUtils";
 import TTypeUtils from "../../../utils/TTypeUtils";
 import TestSymbolUtils from "../../logic/symbols/cnext/__tests__/testSymbolUtils";
 import SymbolRegistry from "../SymbolRegistry";
@@ -27,7 +26,7 @@ function createCNextVariableSymbol(
     ...TestSymbolUtils.base({
       kind: "variable",
       name: overrides.name,
-      scope: overrides.scope ?? TestScopeUtils.createMockGlobalScope(),
+      scopePath: overrides.scopePath ?? "",
       sourceFile: overrides.sourceFile ?? "test.cnx",
       sourceLine: overrides.sourceLine ?? 1,
       sourceLanguage: ESourceLanguage.CNext,
@@ -81,7 +80,7 @@ describe("CodeGenState", () => {
       CodeGenState.reset();
 
       // Verify reset
-      expect(CodeGenState.currentScope).toBeNull();
+      expect(CodeGenState.currentScopePath).toBe("");
       expect(CodeGenState.currentFunctionName).toBeNull();
       expect(CodeGenState.needsStdint).toBe(false);
       expect(CodeGenState.indentLevel).toBe(0);
@@ -322,27 +321,29 @@ describe("CodeGenState", () => {
 
       CodeGenState.setCurrentScopeByPath("Outer.Inner");
 
-      expect(CodeGenState.currentScope).toBe(inner);
-      expect(CodeGenState.currentScope?.fullyQualifiedCName).toBe(
-        "Outer__Inner",
-      );
-      expect(ScopeUtils.qualifyInScope("tick", CodeGenState.currentScope)).toBe(
-        "Outer__Inner__tick",
-      );
+      expect(CodeGenState.currentScopePath).toBe("Outer.Inner");
+      expect(ScopeUtils.pathOf(inner)).toBe("Outer.Inner");
+      expect(
+        ScopeUtils.qualifyInScope("tick", CodeGenState.currentScopePath),
+      ).toBe("Outer__Inner__tick");
     });
 
     it("setCurrentScopeByPath with a LEAF cannot reach a nested scope (#1304)", () => {
       // Documents the gap rather than asserting it is fine. A leaf does not
       // fail -- it mints a fresh scope parented to global, and every
       // qualification through it silently loses the outer component.
-      const inner = SymbolRegistry.getOrCreateScope("Outer.Inner");
+      SymbolRegistry.getOrCreateScope("Outer.Inner");
 
       CodeGenState.setCurrentScopeByPath("Inner");
 
-      expect(CodeGenState.currentScope).not.toBe(inner);
-      expect(ScopeUtils.qualifyInScope("tick", CodeGenState.currentScope)).toBe(
-        "Inner__tick",
-      );
+      // The leaf minted a FRESH top-level scope; it did not reach `Outer.Inner`.
+      // Asserted by value: comparing the path against the scope OBJECT would be
+      // a `string` vs `IScopeSymbol` `Object.is` that holds for every possible
+      // implementation, including one storing the wrong path (#1298 review).
+      expect(CodeGenState.currentScopePath).toBe("Inner");
+      expect(
+        ScopeUtils.qualifyInScope("tick", CodeGenState.currentScopePath),
+      ).toBe("Inner__tick");
     });
 
     it("registerLocalVariable leaves a non-shadowing local under its own name", () => {

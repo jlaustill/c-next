@@ -36,7 +36,7 @@ const generateEnum: TGeneratorFn<Parser.EnumDeclarationContext> = (
   const name = node.IDENTIFIER().getText();
 
   // ADR-016: Apply scope prefix if inside a scope
-  const fullName = ScopeUtils.qualifyInScope(name, state.currentScope);
+  const fullName = ScopeUtils.qualifyInScope(name, state.currentScopePath);
 
   const lines: string[] = [];
   lines.push(`typedef enum {`);

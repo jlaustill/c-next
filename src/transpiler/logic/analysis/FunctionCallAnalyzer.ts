@@ -22,7 +22,6 @@ import CalleeNameResolver from "./helpers/CalleeNameResolver";
 import EnclosingScope from "./helpers/EnclosingScope";
 import ScopeUtils from "../../../utils/ScopeUtils";
 import SymbolRegistry from "../../state/SymbolRegistry";
-import type IScopeSymbol from "../../types/symbols/IScopeSymbol";
 
 /**
  * C-Next built-in functions
@@ -335,8 +334,8 @@ class FunctionCallAnalyzer {
       // Scope member functions
       if (decl.scopeDeclaration()) {
         const scopeDecl = decl.scopeDeclaration()!;
-        const scope = SymbolRegistry.getOrCreateScope(
-          scopeDecl.IDENTIFIER().getText(),
+        const scopePath = ScopeUtils.pathOf(
+          SymbolRegistry.getOrCreateScope(scopeDecl.IDENTIFIER().getText()),
         );
         for (const member of scopeDecl.scopeMember()) {
           if (member.functionDeclaration()) {
@@ -345,7 +344,7 @@ class FunctionCallAnalyzer {
               .IDENTIFIER()
               .getText();
             this.allLocalFunctions.add(
-              ScopeUtils.qualifyInScope(funcName, scope),
+              ScopeUtils.qualifyInScope(funcName, scopePath),
             );
           }
         }
@@ -738,14 +737,14 @@ class FunctionCallAnalyzer {
    * @param name The function name being called
    * @param line Source line number
    * @param column Source column number
-   * @param currentScope The scope enclosing the call, or null at file scope
+   * @param currentScopePath Path of the scope enclosing the call; `""` at file scope
    * @param isGlobalCall Whether the call used global. prefix
    */
   public checkFunctionCall(
     name: string,
     line: number,
     column: number,
-    currentScope: IScopeSymbol | null,
+    currentScopePath: string,
     isGlobalCall: boolean = false,
   ): void {
     // Check for self-recursion (MISRA C:2012 Rule 17.2)
@@ -789,8 +788,8 @@ class FunctionCallAnalyzer {
     // Check if this is an unqualified call to a scope function
     // e.g., calling helper() instead of this.helper() inside a scope
     // Skip for global. calls — global. explicitly means global scope
-    if (currentScope && !isGlobalCall) {
-      const qualifiedName = ScopeUtils.qualifyInScope(name, currentScope);
+    if (currentScopePath && !isGlobalCall) {
+      const qualifiedName = ScopeUtils.qualifyInScope(name, currentScopePath);
       if (this.definedFunctions.has(qualifiedName)) {
         // #1241: the enclosing scope resolved a bare call -- ADR-057's rule
         // firing at a position. Recorded HERE, where the candidate is

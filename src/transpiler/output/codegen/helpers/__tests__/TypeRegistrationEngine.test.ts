@@ -8,7 +8,6 @@ import TypeRegistrationEngine from "../TypeRegistrationEngine";
 import CNextSourceParser from "../../../../logic/parser/CNextSourceParser";
 import CodeGenState from "../../../../state/CodeGenState";
 import * as Parser from "../../../../logic/parser/grammar/CNextParser";
-import TestScopeUtils from "../../../../logic/symbols/cnext/__tests__/testUtils";
 import createMockSymbols from "../../../../__tests__/codeGenSymbolsHelpers";
 
 /**
@@ -55,27 +54,22 @@ describe("TypeRegistrationEngine", () => {
 
   describe("resolveBaseType", () => {
     it.each([
-      ["resolves primitive types", "u32 counter;", null, "u32"],
+      ["resolves primitive types", "u32 counter;", "", "u32"],
       [
-        "resolves scoped types with currentScope",
+        "resolves scoped types with currentScopePath",
         "this.State value;",
-        TestScopeUtils.createMockScope("Motor"),
+        "Motor",
         "Motor__State",
       ],
       [
-        "resolves scoped types without currentScope",
+        "resolves scoped types without currentScopePath",
         "this.State value;",
-        null,
+        "",
         "State",
       ],
-      ["resolves user types", "Point origin;", null, "Point"],
-      [
-        "resolves global types",
-        "global.Config cfg;",
-        TestScopeUtils.createMockScope("Motor"),
-        "Config",
-      ],
-      ["resolves qualified types", "Motor.State state;", null, "Motor__State"],
+      ["resolves user types", "Point origin;", "", "Point"],
+      ["resolves global types", "global.Config cfg;", "Motor", "Config"],
+      ["resolves qualified types", "Motor.State state;", "", "Motor__State"],
     ])("%s", (_label, source, argument2, expected) => {
       const ctx = parseTypeContext(source);
       expect(ctx).not.toBeNull();
@@ -86,7 +80,7 @@ describe("TypeRegistrationEngine", () => {
     it("returns null for string types", () => {
       const ctx = parseTypeContext("string<64> buffer;");
       expect(ctx).not.toBeNull();
-      const result = TypeRegistrationEngine.resolveBaseType(ctx!, null);
+      const result = TypeRegistrationEngine.resolveBaseType(ctx!, "");
       expect(result).toBeNull();
     });
   });

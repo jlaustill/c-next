@@ -7,16 +7,15 @@ import TestSymbolUtils from "../../../logic/symbols/cnext/__tests__/testSymbolUt
 
 describe("IBaseSymbol", () => {
   it("accepts valid symbol with TSymbolKindCNext kind", () => {
-    // `scope` is an IScopeSymbol, so use the real factory rather than a bare
-    // object literal — a symbol's scope always carries the parent chain that
-    // ScopeUtils.getTranspiledCName walks.
-    const scope = ScopeUtils.createGlobalScope();
+    // Built through the shared factory rather than a bare object literal, so
+    // the identity pair is computed by `ScopeUtils.identityOf` from `scopePath`
+    // exactly as a collector computes it -- never hand-written.
 
     const symbol: IBaseSymbol = {
       ...TestSymbolUtils.base({
         kind: "function" as TSymbolKindCNext,
         name: "testFunc",
-        scope,
+        scopePath: "",
         sourceFile: "test.cnx",
         sourceLine: 10,
       }),
@@ -25,7 +24,7 @@ describe("IBaseSymbol", () => {
     expect(symbol.kind).toBe("function");
     expect(symbol.name).toBe("testFunc");
     expect(symbol.sourceLanguage).toBe(ESourceLanguage.CNext);
-    expect(ScopeUtils.isGlobalScope(symbol.scope)).toBe(true);
+    expect(ScopeUtils.isGlobalScopePath(symbol.scopePath)).toBe(true);
   });
 
   it("kind field accepts all TSymbolKindCNext values", () => {

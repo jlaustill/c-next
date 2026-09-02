@@ -116,12 +116,16 @@ export default class EnumTypeResolver {
    * ADR-016: Check this.State.IDLE pattern (this.Enum.Member inside scope)
    */
   private static getEnumTypeFromThisEnum(parts: string[]): string | null {
-    if (parts[0] !== "this" || !CodeGenState.currentScope || parts.length < 3) {
+    if (
+      parts[0] !== "this" ||
+      !CodeGenState.currentScopePath ||
+      parts.length < 3
+    ) {
       return null;
     }
     const enumName = parts[1];
     const scopedEnumName = QualifiedNameGenerator.forMember(
-      CodeGenState.currentScope,
+      CodeGenState.currentScopePath,
       enumName,
     );
     return CodeGenState.isKnownEnum(scopedEnumName) ? scopedEnumName : null;
@@ -144,14 +148,14 @@ export default class EnumTypeResolver {
   private static getEnumTypeFromThisVariable(parts: string[]): string | null {
     if (
       parts[0] !== "this" ||
-      !CodeGenState.currentScope ||
+      !CodeGenState.currentScopePath ||
       parts.length !== 2
     ) {
       return null;
     }
     const varName = parts[1];
     const scopedVarName = QualifiedNameGenerator.forMember(
-      CodeGenState.currentScope,
+      CodeGenState.currentScopePath,
       varName,
     );
     const typeInfo = CodeGenState.getVariableTypeInfo(scopedVarName);
@@ -204,10 +208,10 @@ export default class EnumTypeResolver {
       // Simple function call: func()
       fullFuncName = parts[0];
     } else if (parts.length === 2) {
-      if (parts[0] === "this" && CodeGenState.currentScope) {
+      if (parts[0] === "this" && CodeGenState.currentScopePath) {
         // this.method() -> Scope_method
         fullFuncName = QualifiedNameGenerator.forMember(
-          CodeGenState.currentScope,
+          CodeGenState.currentScopePath,
           parts[1],
         );
       } else if (parts[0] === "global") {

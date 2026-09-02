@@ -150,13 +150,13 @@ class EnumAssignmentValidator {
     parts: string[],
     typeName: string,
   ): void {
-    if (!CodeGenState.currentScope) {
+    if (!CodeGenState.currentScopePath) {
       throw new Error(
         `Error: Cannot assign non-enum value to ${typeName} enum`,
       );
     }
     const scopedEnumName = QualifiedNameGenerator.forMember(
-      CodeGenState.currentScope,
+      CodeGenState.currentScopePath,
       parts[1],
     );
     if (scopedEnumName !== typeName) {

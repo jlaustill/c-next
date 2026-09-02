@@ -1,5 +1,4 @@
 import type TSymbolKindCNext from "../symbol-kinds/TSymbolKindCNext";
-import type IScopeSymbol from "./IScopeSymbol";
 import type ESourceLanguage from "../../../utils/types/ESourceLanguage";
 
 /**
@@ -39,14 +38,27 @@ interface IBaseSymbol {
   readonly cnxScopedName: string;
 
   /**
-   * Scope this symbol belongs to (circular reference resolved at runtime).
+   * The scope this symbol is declared in, as a dotted source path -- `""` at
+   * file scope, `"Motor"`, `"Outer.Inner"`.
    *
-   * Every symbol is declared in a scope — the global scope when unqualified —
-   * so this is an IScopeSymbol, not a bare IBaseSymbol. Typing it loosely hid
-   * the parent chain from name builders, which is what allowed a second,
-   * leaf-only encoder to exist alongside ScopeUtils.getTranspiledCName.
+   * A PATH, never the scope object (#1298). Holding the object gave every symbol
+   * a chain to walk and a cycle to represent: the global scope is its own parent,
+   * and a scope's `functions` point back at symbols that point at the scope. That
+   * made the symbol graph unserializable -- `JsonCodec` recursed until the stack
+   * was exhausted -- and it made `getScopePath`'s identity-based cycle guard
+   * unable to fire on a proxy chain, so the hang the guard existed to prevent was
+   * reachable with the guard silent.
+   *
+   * A path cannot express a cycle, so neither defect is representable rather than
+   * being guarded against. It is also the key `SymbolRegistry` already stores
+   * scopes under, so the object is one lookup away wherever the mutable member
+   * lists are genuinely needed.
+   *
+   * Feeds `QualifiedCName.fromParts([scopePath, name])` directly: that encoder
+   * expands a dotted component and drops empties, which is why replacing the
+   * chain walk needed no adapter.
    */
-  readonly scope: IScopeSymbol;
+  readonly scopePath: string;
 
   /** Source file where the symbol is defined */
   readonly sourceFile: string;

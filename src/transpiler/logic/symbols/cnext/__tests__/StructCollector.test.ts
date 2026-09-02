@@ -20,19 +20,14 @@ describe("StructCollector", () => {
       `;
       const tree = parse(code);
       const structCtx = tree.declaration(0)!.structDeclaration()!;
-      const globalScope = TestScopeUtils.getGlobalScope();
-      const symbol = StructCollector.collect(
-        structCtx,
-        "test.cnx",
-        globalScope,
-      );
+      const symbol = StructCollector.collect(structCtx, "test.cnx", "");
 
       expect(symbol.kind).toBe("struct");
       expect(symbol.name).toBe("Point");
       expect(symbol.sourceFile).toBe("test.cnx");
       expect(symbol.sourceLanguage).toBe(ESourceLanguage.CNext);
       expect(symbol.isExported).toBe(true);
-      expect(symbol.scope).toBe(globalScope);
+      expect(symbol.scopePath).toBe("");
 
       expect(symbol.fields.size).toBe(2);
 
@@ -62,12 +57,7 @@ describe("StructCollector", () => {
       `;
       const tree = parse(code);
       const structCtx = tree.declaration(0)!.structDeclaration()!;
-      const globalScope = TestScopeUtils.getGlobalScope();
-      const symbol = StructCollector.collect(
-        structCtx,
-        "test.cnx",
-        globalScope,
-      );
+      const symbol = StructCollector.collect(structCtx, "test.cnx", "");
 
       expect(TypeResolver.getTypeName(symbol.fields.get("version")!.type)).toBe(
         "u8",
@@ -99,12 +89,7 @@ describe("StructCollector", () => {
       `;
       const tree = parse(code);
       const structCtx = tree.declaration(0)!.structDeclaration()!;
-      const globalScope = TestScopeUtils.getGlobalScope();
-      const symbol = StructCollector.collect(
-        structCtx,
-        "test.cnx",
-        globalScope,
-      );
+      const symbol = StructCollector.collect(structCtx, "test.cnx", "");
 
       const field = symbol.fields.get("data");
       expect(TypeResolver.getTypeName(field!.type)).toBe("u8");
@@ -120,12 +105,7 @@ describe("StructCollector", () => {
       `;
       const tree = parse(code);
       const structCtx = tree.declaration(0)!.structDeclaration()!;
-      const globalScope = TestScopeUtils.getGlobalScope();
-      const symbol = StructCollector.collect(
-        structCtx,
-        "test.cnx",
-        globalScope,
-      );
+      const symbol = StructCollector.collect(structCtx, "test.cnx", "");
 
       const field = symbol.fields.get("values");
       expect(TypeResolver.getTypeName(field!.type)).toBe("f32");
@@ -142,11 +122,10 @@ describe("StructCollector", () => {
       const tree = parse(code);
       const structCtx = tree.declaration(0)!.structDeclaration()!;
       const constValues = new Map<string, number>([["BUFFER_SIZE", 256]]);
-      const globalScope = TestScopeUtils.getGlobalScope();
       const symbol = StructCollector.collect(
         structCtx,
         "test.cnx",
-        globalScope,
+        "",
         constValues,
       );
 
@@ -167,11 +146,10 @@ describe("StructCollector", () => {
         ["ROWS", 4],
         ["COLS", 3],
       ]);
-      const globalScope = TestScopeUtils.getGlobalScope();
       const symbol = StructCollector.collect(
         structCtx,
         "test.cnx",
-        globalScope,
+        "",
         constValues,
       );
 
@@ -189,11 +167,10 @@ describe("StructCollector", () => {
       const tree = parse(code);
       const structCtx = tree.declaration(0)!.structDeclaration()!;
       const constValues = new Map<string, number>([["HEX_SIZE", 16]]);
-      const globalScope = TestScopeUtils.getGlobalScope();
       const symbol = StructCollector.collect(
         structCtx,
         "test.cnx",
-        globalScope,
+        "",
         constValues,
       );
 
@@ -212,12 +189,7 @@ describe("StructCollector", () => {
       `;
       const tree = parse(code);
       const structCtx = tree.declaration(0)!.structDeclaration()!;
-      const globalScope = TestScopeUtils.getGlobalScope();
-      const symbol = StructCollector.collect(
-        structCtx,
-        "test.cnx",
-        globalScope,
-      );
+      const symbol = StructCollector.collect(structCtx, "test.cnx", "");
 
       const field = symbol.fields.get("name");
       // Issue #139: Type includes capacity for string validation in CodeGenerator
@@ -234,12 +206,7 @@ describe("StructCollector", () => {
       `;
       const tree = parse(code);
       const structCtx = tree.declaration(0)!.structDeclaration()!;
-      const globalScope = TestScopeUtils.getGlobalScope();
-      const symbol = StructCollector.collect(
-        structCtx,
-        "test.cnx",
-        globalScope,
-      );
+      const symbol = StructCollector.collect(structCtx, "test.cnx", "");
 
       const field = symbol.fields.get("items");
       // Issue #139: Type includes capacity for string validation in CodeGenerator
@@ -257,11 +224,10 @@ describe("StructCollector", () => {
       const tree = parse(code);
       const structCtx = tree.declaration(0)!.structDeclaration()!;
       const constValues = new Map<string, number>([["MAX_NAMES", 3]]);
-      const globalScope = TestScopeUtils.getGlobalScope();
       const symbol = StructCollector.collect(
         structCtx,
         "test.cnx",
-        globalScope,
+        "",
         constValues,
       );
 
@@ -284,12 +250,7 @@ describe("StructCollector", () => {
       `;
       const tree = parse(code);
       const structCtx = tree.declaration(0)!.structDeclaration()!;
-      const globalScope = TestScopeUtils.getGlobalScope();
-      const symbol = StructCollector.collect(
-        structCtx,
-        "test.cnx",
-        globalScope,
-      );
+      const symbol = StructCollector.collect(structCtx, "test.cnx", "");
 
       expect(symbol.fields.get("maxSize")?.isConst).toBe(false);
       expect(symbol.fields.get("currentSize")?.isConst).toBe(false);
@@ -306,12 +267,7 @@ describe("StructCollector", () => {
       `;
       const tree = parse(code);
       const structCtx = tree.declaration(0)!.structDeclaration()!;
-      const globalScope = TestScopeUtils.getGlobalScope();
-      const symbol = StructCollector.collect(
-        structCtx,
-        "test.cnx",
-        globalScope,
-      );
+      const symbol = StructCollector.collect(structCtx, "test.cnx", "");
 
       expect(TypeResolver.getTypeName(symbol.fields.get("start")!.type)).toBe(
         "Point",
@@ -331,16 +287,11 @@ describe("StructCollector", () => {
       `;
       const tree = parse(code);
       const structCtx = tree.declaration(0)!.structDeclaration()!;
-      const motorScope = TestScopeUtils.createMockScope("Motor");
-      const symbol = StructCollector.collect(
-        structCtx,
-        "motor.cnx",
-        motorScope,
-      );
+      const symbol = StructCollector.collect(structCtx, "motor.cnx", "Motor");
 
       expect(symbol.name).toBe("Config");
-      expect(symbol.scope).toBe(motorScope);
-      expect(symbol.scope.name).toBe("Motor");
+      expect(symbol.scopePath).toBe("Motor");
+      expect(symbol.scopePath).toBe("Motor");
     });
 
     it("resolves this.Type references within scope", () => {
@@ -353,15 +304,10 @@ describe("StructCollector", () => {
       `;
       const tree = parse(code);
       const structCtx = tree.declaration(0)!.structDeclaration()!;
-      const motorScope = TestScopeUtils.createMockScope("Motor");
-      const symbol = StructCollector.collect(
-        structCtx,
-        "motor.cnx",
-        motorScope,
-      );
+      const symbol = StructCollector.collect(structCtx, "motor.cnx", "Motor");
 
       expect(symbol.name).toBe("Container");
-      expect(symbol.scope.name).toBe("Motor");
+      expect(symbol.scopePath).toBe("Motor");
     });
   });
 
@@ -375,12 +321,7 @@ describe("StructCollector", () => {
       `;
       const tree = parse(code);
       const structCtx = tree.declaration(0)!.structDeclaration()!;
-      const globalScope = TestScopeUtils.getGlobalScope();
-      const symbol = StructCollector.collect(
-        structCtx,
-        "test.cnx",
-        globalScope,
-      );
+      const symbol = StructCollector.collect(structCtx, "test.cnx", "");
 
       expect(symbol.sourceLine).toBe(3);
     });

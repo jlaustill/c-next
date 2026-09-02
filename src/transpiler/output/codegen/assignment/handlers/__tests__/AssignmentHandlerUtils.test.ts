@@ -4,7 +4,6 @@
 
 import { describe, it, expect } from "vitest";
 import AssignmentHandlerUtils from "../AssignmentHandlerUtils";
-import TestScopeUtils from "../../../../../logic/symbols/cnext/__tests__/testUtils";
 import SymbolRegistry from "../../../../../state/SymbolRegistry";
 import ScopeUtils from "../../../../../../utils/ScopeUtils";
 
@@ -12,14 +11,12 @@ describe("AssignmentHandlerUtils", () => {
   describe("validateScopeContext", () => {
     it("should not throw for valid scope", () => {
       expect(() =>
-        AssignmentHandlerUtils.validateScopeContext(
-          TestScopeUtils.createMockScope("MyScope"),
-        ),
+        AssignmentHandlerUtils.validateScopeContext("MyScope"),
       ).not.toThrow();
     });
 
     it("should throw for null scope", () => {
-      expect(() => AssignmentHandlerUtils.validateScopeContext(null)).toThrow(
+      expect(() => AssignmentHandlerUtils.validateScopeContext("")).toThrow(
         "Error: 'this' can only be used inside a scope",
       );
     });
@@ -111,18 +108,17 @@ describe("AssignmentHandlerUtils", () => {
 
   describe("buildScopedRegisterName", () => {
     it("should join scope and parts with underscores", () => {
-      const result = AssignmentHandlerUtils.buildScopedRegisterName(
-        SymbolRegistry.getOrCreateScope("Motor"),
-        ["GPIO7", "DR_SET"],
-      );
+      const result = AssignmentHandlerUtils.buildScopedRegisterName("Motor", [
+        "GPIO7",
+        "DR_SET",
+      ]);
       expect(result).toBe("Motor__GPIO7__DR_SET");
     });
 
     it("should handle single part", () => {
-      const result = AssignmentHandlerUtils.buildScopedRegisterName(
-        SymbolRegistry.getOrCreateScope("Scope"),
-        ["REG"],
-      );
+      const result = AssignmentHandlerUtils.buildScopedRegisterName("Scope", [
+        "REG",
+      ]);
       expect(result).toBe("Scope__REG");
     });
 
@@ -130,12 +126,12 @@ describe("AssignmentHandlerUtils", () => {
       // #1285: the previous signature took a scope NAME, so the caller in
       // RegisterHandlers read `.name` off the scope symbol it already held and
       // dropped every outer component. Passing the symbol keeps the chain.
-      const outer = SymbolRegistry.getOrCreateScope("Board");
-      const inner = ScopeUtils.createScope("Teensy4", outer);
-      const result = AssignmentHandlerUtils.buildScopedRegisterName(inner, [
-        "GPIO7",
-        "DR_SET",
-      ]);
+      SymbolRegistry.getOrCreateScope("Board");
+      const inner = ScopeUtils.createScope("Teensy4", "Board");
+      const result = AssignmentHandlerUtils.buildScopedRegisterName(
+        ScopeUtils.pathOf(inner),
+        ["GPIO7", "DR_SET"],
+      );
       expect(result).toBe("Board__Teensy4__GPIO7__DR_SET");
     });
   });

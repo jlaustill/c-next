@@ -1,3 +1,4 @@
+import ScopeUtils from "../../../utils/ScopeUtils";
 import type SymbolTable from "./SymbolTable";
 import type TSymbol from "../../types/symbols/TSymbol";
 
@@ -72,7 +73,7 @@ class PublicInterface {
     return (
       symbol.kind === "function" &&
       symbol.name === "main" &&
-      symbol.scope.name === ""
+      ScopeUtils.isGlobalScopePath(symbol.scopePath)
     );
   }
 }

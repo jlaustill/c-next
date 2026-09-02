@@ -10,7 +10,6 @@ import IHeaderSymbol from "../types/IHeaderSymbol";
 import IParameterSymbol from "../../../../utils/types/IParameterSymbol";
 import TypeResolver from "../../../../utils/TypeResolver";
 import ScopeUtils from "../../../../utils/ScopeUtils";
-import type IScopeSymbol from "../../../types/symbols/IScopeSymbol";
 import CodeGenState from "../../../state/CodeGenState";
 import type TType from "../../../types/TType";
 
@@ -59,7 +58,7 @@ class HeaderSymbolAdapter {
 
     // Get transpiled C name (scope-prefixed)
     const cName = ScopeUtils.getTranspiledCName(func);
-    const isGlobal = ScopeUtils.isGlobalScope(func.scope);
+    const isGlobal = ScopeUtils.isGlobalScopePath(func.scopePath);
 
     // ADR-057: type names arrive already scope-qualified from the symbol
     // layer (CNextResolver pre-pass), so no qualification is needed here.
@@ -86,7 +85,7 @@ class HeaderSymbolAdapter {
       isExported: func.isExported,
       parameters,
       signature,
-      parent: isGlobal ? undefined : func.scope.name,
+      parent: isGlobal ? undefined : func.scopePath,
       sourceFile: func.sourceFile,
       sourceLine: func.sourceLine,
     };
@@ -97,7 +96,7 @@ class HeaderSymbolAdapter {
   ): IHeaderSymbol {
     // Get transpiled C name (scope-prefixed)
     const cName = ScopeUtils.getTranspiledCName(variable);
-    const isGlobal = ScopeUtils.isGlobalScope(variable.scope);
+    const isGlobal = ScopeUtils.isGlobalScopePath(variable.scopePath);
 
     // ADR-057: the symbol layer already qualified scope-local type names.
     const typeStr = TypeResolver.getTypeName(variable.type);
@@ -106,7 +105,7 @@ class HeaderSymbolAdapter {
     const arrayDimensions = variable.arrayDimensions?.map((d) =>
       typeof d === "number"
         ? String(d)
-        : HeaderSymbolAdapter.resolveArrayDimension(d, variable.scope),
+        : HeaderSymbolAdapter.resolveArrayDimension(d, variable.scopePath),
     );
 
     return {
@@ -119,7 +118,7 @@ class HeaderSymbolAdapter {
       isVolatile: variable.isVolatile,
       isArray: variable.isArray,
       arrayDimensions,
-      parent: isGlobal ? undefined : variable.scope.name,
+      parent: isGlobal ? undefined : variable.scopePath,
       sourceFile: variable.sourceFile,
       sourceLine: variable.sourceLine,
     };
@@ -184,13 +183,13 @@ class HeaderSymbolAdapter {
   ): IHeaderSymbol {
     // Get transpiled C name (scope-prefixed)
     const cName = ScopeUtils.getTranspiledCName(struct);
-    const isGlobal = ScopeUtils.isGlobalScope(struct.scope);
+    const isGlobal = ScopeUtils.isGlobalScopePath(struct.scopePath);
 
     return {
       name: cName,
       kind: "struct",
       isExported: struct.isExported,
-      parent: isGlobal ? undefined : struct.scope.name,
+      parent: isGlobal ? undefined : struct.scopePath,
       sourceFile: struct.sourceFile,
       sourceLine: struct.sourceLine,
     };
@@ -201,13 +200,13 @@ class HeaderSymbolAdapter {
   ): IHeaderSymbol {
     // Get transpiled C name (scope-prefixed)
     const cName = ScopeUtils.getTranspiledCName(enumSym);
-    const isGlobal = ScopeUtils.isGlobalScope(enumSym.scope);
+    const isGlobal = ScopeUtils.isGlobalScopePath(enumSym.scopePath);
 
     return {
       name: cName,
       kind: "enum",
       isExported: enumSym.isExported,
-      parent: isGlobal ? undefined : enumSym.scope.name,
+      parent: isGlobal ? undefined : enumSym.scopePath,
       sourceFile: enumSym.sourceFile,
       sourceLine: enumSym.sourceLine,
     };
@@ -218,14 +217,14 @@ class HeaderSymbolAdapter {
   ): IHeaderSymbol {
     // Get transpiled C name (scope-prefixed)
     const cName = ScopeUtils.getTranspiledCName(bitmap);
-    const isGlobal = ScopeUtils.isGlobalScope(bitmap.scope);
+    const isGlobal = ScopeUtils.isGlobalScopePath(bitmap.scopePath);
 
     return {
       name: cName,
       kind: "bitmap",
       type: bitmap.backingType,
       isExported: bitmap.isExported,
-      parent: isGlobal ? undefined : bitmap.scope.name,
+      parent: isGlobal ? undefined : bitmap.scopePath,
       sourceFile: bitmap.sourceFile,
       sourceLine: bitmap.sourceLine,
     };
@@ -236,13 +235,13 @@ class HeaderSymbolAdapter {
   ): IHeaderSymbol {
     // Get transpiled C name (scope-prefixed)
     const cName = ScopeUtils.getTranspiledCName(register);
-    const isGlobal = ScopeUtils.isGlobalScope(register.scope);
+    const isGlobal = ScopeUtils.isGlobalScopePath(register.scopePath);
 
     return {
       name: cName,
       kind: "register",
       isExported: register.isExported,
-      parent: isGlobal ? undefined : register.scope.name,
+      parent: isGlobal ? undefined : register.scopePath,
       sourceFile: register.sourceFile,
       sourceLine: register.sourceLine,
     };
@@ -255,6 +254,13 @@ class HeaderSymbolAdapter {
       name: scope.name,
       kind: "scope",
       isExported: scope.isExported,
+      // #1298: a scope states where it sits, like every other kind converted
+      // here. This literal used to omit `parent` entirely -- the shape with no
+      // parent that `getScopePath`'s guard existed to catch, built deliberately,
+      // and the one kind that could not say which scope contained it.
+      parent: ScopeUtils.isGlobalScopePath(scope.scopePath)
+        ? undefined
+        : scope.scopePath,
       sourceFile: scope.sourceFile,
       sourceLine: scope.sourceLine,
     };
@@ -275,22 +281,21 @@ class HeaderSymbolAdapter {
    * top-level `EColor.COUNT` must stay `EColor__COUNT`.
    *
    * @param dim - Dimension as written in source; may be a qualified enum access
-   * @param scope - Scope declaring the variable, or the global scope at file scope
+   * @param scopePath - Path of the scope declaring the variable, "" at file scope
    * @returns C-compatible dimension string
-   * @example resolveArrayDimension("EColor.COUNT", global) => "EColor__COUNT"
-   * @example resolveArrayDimension("State.COUNT", Motor) => "Motor__State__COUNT"
-   * @example resolveArrayDimension("this.State.COUNT", Motor) => "Motor__State__COUNT"
-   * @example resolveArrayDimension("global.EColor.COUNT", Motor) => "EColor__COUNT"
-   * @example resolveArrayDimension("10", Motor) => "10"
+   * @example resolveArrayDimension("EColor.COUNT", "") => "EColor__COUNT"
+   * @example resolveArrayDimension("State.COUNT", "Motor") => "Motor__State__COUNT"
+   * @example resolveArrayDimension("this.State.COUNT", "Motor") => "Motor__State__COUNT"
+   * @example resolveArrayDimension("global.EColor.COUNT", "Motor") => "EColor__COUNT"
+   * @example resolveArrayDimension("10", "Motor") => "10"
    */
-  private static resolveArrayDimension(
-    dim: string,
-    scope: IScopeSymbol | null,
-  ): string {
+  private static resolveArrayDimension(dim: string, scopePath: string): string {
     // Issue #1127: the rule itself lives on ScopeUtils so the struct-field path
     // applies the same one. This wrapper only binds the predicate.
-    return ScopeUtils.resolveDimensionName(dim, scope, (qualified: string) =>
-      CodeGenState.isKnownEnum(qualified),
+    return ScopeUtils.resolveDimensionName(
+      dim,
+      scopePath,
+      (qualified: string) => CodeGenState.isKnownEnum(qualified),
     );
   }
 }
