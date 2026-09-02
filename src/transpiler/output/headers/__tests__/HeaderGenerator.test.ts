@@ -34,7 +34,6 @@ describe("HeaderGenerator", () => {
       kind: "variable",
       sourceFile: "test.cnx",
       sourceLine: 1,
-      isExported: true,
       isArray: options.isArray,
       arrayDimensions: options.arrayDimensions,
       isConst: options.isConst,
@@ -115,7 +114,6 @@ describe("HeaderGenerator", () => {
         kind: "enum",
         sourceFile: "test.cnx",
         sourceLine: 1,
-        isExported: true,
       };
     }
 
@@ -126,7 +124,6 @@ describe("HeaderGenerator", () => {
         kind: "struct",
         sourceFile: "test.cnx",
         sourceLine: 1,
-        isExported: true,
       };
     }
 
@@ -274,7 +271,6 @@ describe("HeaderGenerator", () => {
           kind: "function",
           sourceFile: "test.cnx",
           sourceLine: 1,
-          isExported: true,
           parameters: [
             { name: "param", type: paramType, isConst: false, isArray: false },
           ],
@@ -365,7 +361,7 @@ describe("HeaderGenerator", () => {
           sourceFile: "module.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         returnType: TTypeUtils.createPrimitive("void"),
         parameters: [],
@@ -380,7 +376,7 @@ describe("HeaderGenerator", () => {
           sourceFile: "other.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         returnType: TTypeUtils.createPrimitive("void"),
         parameters: [],
@@ -409,7 +405,7 @@ describe("HeaderGenerator", () => {
           sourceFile: "src/utils/helper.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         returnType: TTypeUtils.createPrimitive("void"),
         parameters: [],
@@ -439,7 +435,7 @@ describe("HeaderGenerator", () => {
           sourceFile: "module.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         returnType: TTypeUtils.createPrimitive("void"),
         parameters: [],
@@ -482,7 +478,7 @@ describe("HeaderGenerator", () => {
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         returnType: TTypeUtils.createPrimitive("void"),
         parameters: [],
@@ -494,47 +490,6 @@ describe("HeaderGenerator", () => {
 
       expect(header).toContain("#ifndef CNX_CUSTOM_API_H");
       expect(header).toContain("#define CNX_CUSTOM_API_H");
-    });
-
-    it("should pass options through to underlying generate method", () => {
-      const symbolTable = new SymbolTable();
-      symbolTable.addTSymbol({
-        ...TestSymbolUtils.base({
-          kind: "function",
-          name: "exportedFunc",
-          scopePath: "",
-          sourceFile: "test.cnx",
-          sourceLine: 1,
-          sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
-        }),
-        returnType: TTypeUtils.createPrimitive("void"),
-        parameters: [],
-        visibility: "public",
-        body: null,
-      } as IFunctionSymbol);
-      symbolTable.addTSymbol({
-        ...TestSymbolUtils.base({
-          kind: "function",
-          name: "internalFunc",
-          scopePath: "",
-          sourceFile: "test.cnx",
-          sourceLine: 1,
-          sourceLanguage: ESourceLanguage.CNext,
-          isExported: false,
-        }),
-        returnType: TTypeUtils.createPrimitive("void"),
-        parameters: [],
-        visibility: "private",
-        body: null,
-      } as IFunctionSymbol);
-
-      const header = generator.generateCNextHeader(symbolTable, "api.h", {
-        exportedOnly: true,
-      });
-
-      expect(header).toContain("exportedFunc");
-      expect(header).not.toContain("internalFunc");
     });
   });
 });

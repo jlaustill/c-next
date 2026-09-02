@@ -14,7 +14,12 @@ scope Motor {
         COUNT
     }
 
-    struct Info {
+    // #1300: `public` so this struct stays in the .h. ADR-016 makes an unmarked
+    // scope type PRIVATE, and a private type is defined in the .c only -- which
+    // would silently delete the ".h, for struct fields" half of what this
+    // fixture exists to compare. It was in the header before only because
+    // visibility was ignored for scope types.
+    public struct Info {
         u8[State.COUNT] viaBare;
         u8[this.State.COUNT] viaThis;
         u8[global.Top.COUNT] viaGlobal;

@@ -1,0 +1,40 @@
+// Issue #1300 review: a public struct field's array dimension is the ONLY path
+// from the header to this private enum.
+//
+// The closure walks a symbol's types and its array dimensions, but a struct
+// field keeps dimensions in its own slot -- `IFieldInfo.dimensions`, spelled
+// `arrayDimensions` on parameters and variables. Walking only `field.type`
+// missed this edge, and the header then declared
+// `uint8_t data[Internal__Size__COUNT]` with the enum defined in the .c:
+// transpiler exit 0, header uncompilable.
+//
+// `scoped-enum-dimension` cannot catch this. Its enum also reaches the header
+// through three public VARIABLES whose own dimensions name it, and those take
+// a different closure edge -- so that fixture stays green with this edge
+// broken. Nothing else here names Size.
+
+scope Internal {
+    private enum Size {
+        A,
+        B,
+        COUNT
+    }
+
+    public struct Buffer {
+        u8[Size.COUNT] data;
+        u32 len;
+    }
+
+    public u32 measure(Buffer b) {
+        return b.len;
+    }
+}
+
+i32 main() {
+    Internal.Buffer b <- { len: 3 };
+    u32 got <- Internal.measure(b);
+    if (got != 3) {
+        return 1;
+    }
+    return 0;
+}

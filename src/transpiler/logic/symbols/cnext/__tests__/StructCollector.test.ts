@@ -20,13 +20,18 @@ describe("StructCollector", () => {
       `;
       const tree = parse(code);
       const structCtx = tree.declaration(0)!.structDeclaration()!;
-      const symbol = StructCollector.collect(structCtx, "test.cnx", "");
+      const symbol = StructCollector.collect(
+        structCtx,
+        "test.cnx",
+        "",
+        "public",
+      );
 
       expect(symbol.kind).toBe("struct");
       expect(symbol.name).toBe("Point");
       expect(symbol.sourceFile).toBe("test.cnx");
       expect(symbol.sourceLanguage).toBe(ESourceLanguage.CNext);
-      expect(symbol.isExported).toBe(true);
+      expect(symbol.visibility).toBe("public");
       expect(symbol.scopePath).toBe("");
 
       expect(symbol.fields.size).toBe(2);
@@ -57,7 +62,12 @@ describe("StructCollector", () => {
       `;
       const tree = parse(code);
       const structCtx = tree.declaration(0)!.structDeclaration()!;
-      const symbol = StructCollector.collect(structCtx, "test.cnx", "");
+      const symbol = StructCollector.collect(
+        structCtx,
+        "test.cnx",
+        "",
+        "public",
+      );
 
       expect(TypeResolver.getTypeName(symbol.fields.get("version")!.type)).toBe(
         "u8",
@@ -89,7 +99,12 @@ describe("StructCollector", () => {
       `;
       const tree = parse(code);
       const structCtx = tree.declaration(0)!.structDeclaration()!;
-      const symbol = StructCollector.collect(structCtx, "test.cnx", "");
+      const symbol = StructCollector.collect(
+        structCtx,
+        "test.cnx",
+        "",
+        "public",
+      );
 
       const field = symbol.fields.get("data");
       expect(TypeResolver.getTypeName(field!.type)).toBe("u8");
@@ -105,7 +120,12 @@ describe("StructCollector", () => {
       `;
       const tree = parse(code);
       const structCtx = tree.declaration(0)!.structDeclaration()!;
-      const symbol = StructCollector.collect(structCtx, "test.cnx", "");
+      const symbol = StructCollector.collect(
+        structCtx,
+        "test.cnx",
+        "",
+        "public",
+      );
 
       const field = symbol.fields.get("values");
       expect(TypeResolver.getTypeName(field!.type)).toBe("f32");
@@ -126,6 +146,7 @@ describe("StructCollector", () => {
         structCtx,
         "test.cnx",
         "",
+        "public",
         constValues,
       );
 
@@ -150,6 +171,7 @@ describe("StructCollector", () => {
         structCtx,
         "test.cnx",
         "",
+        "public",
         constValues,
       );
 
@@ -171,6 +193,7 @@ describe("StructCollector", () => {
         structCtx,
         "test.cnx",
         "",
+        "public",
         constValues,
       );
 
@@ -189,7 +212,12 @@ describe("StructCollector", () => {
       `;
       const tree = parse(code);
       const structCtx = tree.declaration(0)!.structDeclaration()!;
-      const symbol = StructCollector.collect(structCtx, "test.cnx", "");
+      const symbol = StructCollector.collect(
+        structCtx,
+        "test.cnx",
+        "",
+        "public",
+      );
 
       const field = symbol.fields.get("name");
       // Issue #139: Type includes capacity for string validation in CodeGenerator
@@ -206,7 +234,12 @@ describe("StructCollector", () => {
       `;
       const tree = parse(code);
       const structCtx = tree.declaration(0)!.structDeclaration()!;
-      const symbol = StructCollector.collect(structCtx, "test.cnx", "");
+      const symbol = StructCollector.collect(
+        structCtx,
+        "test.cnx",
+        "",
+        "public",
+      );
 
       const field = symbol.fields.get("items");
       // Issue #139: Type includes capacity for string validation in CodeGenerator
@@ -228,6 +261,7 @@ describe("StructCollector", () => {
         structCtx,
         "test.cnx",
         "",
+        "public",
         constValues,
       );
 
@@ -250,7 +284,12 @@ describe("StructCollector", () => {
       `;
       const tree = parse(code);
       const structCtx = tree.declaration(0)!.structDeclaration()!;
-      const symbol = StructCollector.collect(structCtx, "test.cnx", "");
+      const symbol = StructCollector.collect(
+        structCtx,
+        "test.cnx",
+        "",
+        "public",
+      );
 
       expect(symbol.fields.get("maxSize")?.isConst).toBe(false);
       expect(symbol.fields.get("currentSize")?.isConst).toBe(false);
@@ -267,7 +306,12 @@ describe("StructCollector", () => {
       `;
       const tree = parse(code);
       const structCtx = tree.declaration(0)!.structDeclaration()!;
-      const symbol = StructCollector.collect(structCtx, "test.cnx", "");
+      const symbol = StructCollector.collect(
+        structCtx,
+        "test.cnx",
+        "",
+        "public",
+      );
 
       expect(TypeResolver.getTypeName(symbol.fields.get("start")!.type)).toBe(
         "Point",
@@ -287,7 +331,12 @@ describe("StructCollector", () => {
       `;
       const tree = parse(code);
       const structCtx = tree.declaration(0)!.structDeclaration()!;
-      const symbol = StructCollector.collect(structCtx, "motor.cnx", "Motor");
+      const symbol = StructCollector.collect(
+        structCtx,
+        "motor.cnx",
+        "Motor",
+        "public",
+      );
 
       expect(symbol.name).toBe("Config");
       expect(symbol.scopePath).toBe("Motor");
@@ -304,7 +353,12 @@ describe("StructCollector", () => {
       `;
       const tree = parse(code);
       const structCtx = tree.declaration(0)!.structDeclaration()!;
-      const symbol = StructCollector.collect(structCtx, "motor.cnx", "Motor");
+      const symbol = StructCollector.collect(
+        structCtx,
+        "motor.cnx",
+        "Motor",
+        "public",
+      );
 
       expect(symbol.name).toBe("Container");
       expect(symbol.scopePath).toBe("Motor");
@@ -321,9 +375,35 @@ describe("StructCollector", () => {
       `;
       const tree = parse(code);
       const structCtx = tree.declaration(0)!.structDeclaration()!;
-      const symbol = StructCollector.collect(structCtx, "test.cnx", "");
+      const symbol = StructCollector.collect(
+        structCtx,
+        "test.cnx",
+        "",
+        "public",
+      );
 
       expect(symbol.sourceLine).toBe(3);
+    });
+  });
+
+  // #1300 review: every other test in this file passes "public", so the defect
+  // class this parameter exists for -- a collector reporting a private
+  // declaration as public -- was invisible at the unit level.
+  describe("visibility (#1300)", () => {
+    it("records a private declaration as private", () => {
+      const tree = parse(`
+        struct Hidden {
+          u32 a;
+        }
+      `);
+      const symbol = StructCollector.collect(
+        tree.declaration(0)!.structDeclaration()!,
+        "test.cnx",
+        "",
+        "private",
+      );
+
+      expect(symbol.visibility).toBe("private");
     });
   });
 });

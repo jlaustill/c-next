@@ -24,6 +24,7 @@ describe("RegisterCollector", () => {
         "test.cnx",
         new Set(),
         "",
+        "public",
       );
 
       expect(symbol.kind).toBe("register");
@@ -31,7 +32,7 @@ describe("RegisterCollector", () => {
       expect(symbol.baseAddress).toBe("0x40000000");
       expect(symbol.sourceFile).toBe("test.cnx");
       expect(symbol.sourceLanguage).toBe(ESourceLanguage.CNext);
-      expect(symbol.isExported).toBe(true);
+      expect(symbol.visibility).toBe("public");
       expect(symbol.scopePath).toBe("");
 
       expect(symbol.members.size).toBe(2);
@@ -64,6 +65,7 @@ describe("RegisterCollector", () => {
         "test.cnx",
         new Set(),
         "",
+        "public",
       );
 
       expect(symbol.members.get("RX")?.access).toBe("ro");
@@ -90,6 +92,7 @@ describe("RegisterCollector", () => {
         "test.cnx",
         new Set(),
         "",
+        "public",
       );
 
       expect(symbol.members.get("COUNT8")?.cType).toBe("uint8_t");
@@ -115,6 +118,7 @@ describe("RegisterCollector", () => {
         "test.cnx",
         knownBitmaps,
         "",
+        "public",
       );
 
       const member = symbol.members.get("FLAGS");
@@ -135,6 +139,7 @@ describe("RegisterCollector", () => {
         "test.cnx",
         new Set(),
         "",
+        "public",
       );
 
       expect(symbol.members.get("VALUE")?.bitmapType).toBeUndefined();
@@ -155,6 +160,7 @@ describe("RegisterCollector", () => {
         "motor.cnx",
         new Set(),
         "Motor",
+        "public",
       );
 
       expect(symbol.name).toBe("CTRL");
@@ -177,6 +183,7 @@ describe("RegisterCollector", () => {
         "motor.cnx",
         knownBitmaps,
         "Motor",
+        "public",
       );
 
       // The collector checks both scoped and unscoped names
@@ -198,6 +205,7 @@ describe("RegisterCollector", () => {
         "test.cnx",
         new Set(),
         "",
+        "public",
       );
 
       expect(symbol.baseAddress).toBe("BASE_ADDR");
@@ -219,9 +227,32 @@ describe("RegisterCollector", () => {
         "test.cnx",
         new Set(),
         "",
+        "public",
       );
 
       expect(symbol.sourceLine).toBe(3);
+    });
+  });
+
+  // #1300 review: every other test in this file passes "public", so the defect
+  // class this parameter exists for -- a collector reporting a private
+  // declaration as public -- was invisible at the unit level.
+  describe("visibility (#1300)", () => {
+    it("records a private declaration as private", () => {
+      const tree = parse(`
+        register Hidden @ 0x40000000 {
+          DR: u32 rw @ 0x00,
+        }
+      `);
+      const symbol = RegisterCollector.collect(
+        tree.declaration(0)!.registerDeclaration()!,
+        "test.cnx",
+        new Set(),
+        "",
+        "private",
+      );
+
+      expect(symbol.visibility).toBe("private");
     });
   });
 });

@@ -4,6 +4,7 @@ import ESourceLanguage from "../../utils/types/ESourceLanguage";
 import createMockSymbols from "./codeGenSymbolsHelpers";
 import type ICodeGenSymbols from "../types/ICodeGenSymbols";
 import type TSymbol from "../types/symbols/TSymbol";
+import type TVisibility from "../types/TVisibility";
 
 /**
  * Build a mock symbol world and install BOTH of its representations.
@@ -63,7 +64,7 @@ function register(
     sourceFile: string;
     sourceLine: number;
     sourceLanguage: ESourceLanguage;
-    isExported: boolean;
+    visibility: TVisibility;
   }) => TSymbol,
 ): void {
   for (const qualifiedName of names) {
@@ -80,7 +81,7 @@ function register(
       sourceFile: "mock.cnx",
       sourceLine: 1,
       sourceLanguage: ESourceLanguage.CNext,
-      isExported: true,
+      visibility: "public" as TVisibility,
     };
     CodeGenState.symbolTable.addTSymbol(build(base));
   }

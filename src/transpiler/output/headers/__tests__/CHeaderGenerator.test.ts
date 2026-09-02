@@ -32,51 +32,42 @@ function createFunctionSymbol(
   name: string,
   returnType: string,
   parameters: IParameterSymbol[] = [],
-  isExported = true,
 ): IHeaderSymbol {
   return {
     name,
     kind: "function",
     type: returnType,
     parameters,
-    isExported,
     sourceFile: "test.cnx",
     sourceLine: 1,
   };
 }
 
-function createStructSymbol(name: string, isExported = true): IHeaderSymbol {
+function createStructSymbol(name: string): IHeaderSymbol {
   return {
     name,
     kind: "struct",
     type: name,
-    isExported,
     sourceFile: "test.cnx",
     sourceLine: 1,
   };
 }
 
-function createEnumSymbol(name: string, isExported = true): IHeaderSymbol {
+function createEnumSymbol(name: string): IHeaderSymbol {
   return {
     name,
     kind: "enum",
     type: name,
-    isExported,
     sourceFile: "test.cnx",
     sourceLine: 1,
   };
 }
 
-function createVariableSymbol(
-  name: string,
-  type: string,
-  isExported = true,
-): IHeaderSymbol {
+function createVariableSymbol(name: string, type: string): IHeaderSymbol {
   return {
     name,
     kind: "variable",
     type,
-    isExported,
     sourceFile: "test.cnx",
     sourceLine: 1,
   };
@@ -150,36 +141,6 @@ describe("CHeaderGenerator", () => {
       const result = generator.generate(symbols, "test.h");
 
       expect(result).toContain("void doSomething(void);");
-    });
-
-    it("filters to exported symbols when exportedOnly is true", () => {
-      const generator = new CHeaderGenerator();
-      const symbols: IHeaderSymbol[] = [
-        createFunctionSymbol("publicFunc", "void", [], true),
-        createFunctionSymbol("privateFunc", "void", [], false),
-      ];
-
-      const result = generator.generate(symbols, "test.h", {
-        exportedOnly: true,
-      });
-
-      expect(result).toContain("publicFunc");
-      expect(result).not.toContain("privateFunc");
-    });
-
-    it("includes all symbols when exportedOnly is false", () => {
-      const generator = new CHeaderGenerator();
-      const symbols: IHeaderSymbol[] = [
-        createFunctionSymbol("publicFunc", "void", [], true),
-        createFunctionSymbol("privateFunc", "void", [], false),
-      ];
-
-      const result = generator.generate(symbols, "test.h", {
-        exportedOnly: false,
-      });
-
-      expect(result).toContain("publicFunc");
-      expect(result).toContain("privateFunc");
     });
   });
 
@@ -426,7 +387,6 @@ describe("CHeaderGenerator", () => {
           name: "noReturn",
           kind: "function",
           type: undefined,
-          isExported: true,
           sourceFile: "test.cnx",
           sourceLine: 1,
         },

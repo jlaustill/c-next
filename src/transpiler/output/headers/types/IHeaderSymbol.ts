@@ -7,7 +7,6 @@
  * Header generation needs a subset of symbol information:
  * - Name and kind for categorization
  * - Type information for declarations
- * - Export status for filtering
  * - Array/const/atomic modifiers for variable declarations
  * - Parameters for function signatures
  */
@@ -24,9 +23,6 @@ interface IHeaderSymbol {
 
   /** Type of the symbol (e.g., "void", "u32", "Point") */
   readonly type?: string;
-
-  /** Whether this symbol is exported/public */
-  readonly isExported: boolean;
 
   /** Whether this variable is const */
   readonly isConst?: boolean;

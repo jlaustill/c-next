@@ -17,7 +17,12 @@ describe("BitmapCollector", () => {
       `;
       const tree = parse(code);
       const bitmapCtx = tree.declaration(0)!.bitmapDeclaration()!;
-      const symbol = BitmapCollector.collect(bitmapCtx, "test.cnx", "");
+      const symbol = BitmapCollector.collect(
+        bitmapCtx,
+        "test.cnx",
+        "",
+        "public",
+      );
 
       expect(symbol.kind).toBe("bitmap");
       expect(symbol.name).toBe("Status");
@@ -25,7 +30,7 @@ describe("BitmapCollector", () => {
       expect(symbol.bitWidth).toBe(8);
       expect(symbol.sourceFile).toBe("test.cnx");
       expect(symbol.sourceLanguage).toBe(ESourceLanguage.CNext);
-      expect(symbol.isExported).toBe(true);
+      expect(symbol.visibility).toBe("public");
 
       // Check fields
       expect(symbol.fields.size).toBe(5);
@@ -46,7 +51,12 @@ describe("BitmapCollector", () => {
       `;
       const tree = parse(code);
       const bitmapCtx = tree.declaration(0)!.bitmapDeclaration()!;
-      const symbol = BitmapCollector.collect(bitmapCtx, "control.cnx", "");
+      const symbol = BitmapCollector.collect(
+        bitmapCtx,
+        "control.cnx",
+        "",
+        "public",
+      );
 
       expect(symbol.name).toBe("Control");
       expect(symbol.backingType).toBe("uint16_t");
@@ -67,7 +77,12 @@ describe("BitmapCollector", () => {
       `;
       const tree = parse(code);
       const bitmapCtx = tree.declaration(0)!.bitmapDeclaration()!;
-      const symbol = BitmapCollector.collect(bitmapCtx, "config.cnx", "");
+      const symbol = BitmapCollector.collect(
+        bitmapCtx,
+        "config.cnx",
+        "",
+        "public",
+      );
 
       expect(symbol.name).toBe("Config");
       expect(symbol.backingType).toBe("uint32_t");
@@ -84,7 +99,12 @@ describe("BitmapCollector", () => {
       `;
       const tree = parse(code);
       const bitmapCtx = tree.declaration(0)!.bitmapDeclaration()!;
-      const symbol = BitmapCollector.collect(bitmapCtx, "rgb.cnx", "");
+      const symbol = BitmapCollector.collect(
+        bitmapCtx,
+        "rgb.cnx",
+        "",
+        "public",
+      );
 
       expect(symbol.name).toBe("RGB");
       expect(symbol.backingType).toBe("uint32_t"); // 24-bit uses 32-bit backing
@@ -105,7 +125,12 @@ describe("BitmapCollector", () => {
       `;
       const tree = parse(code);
       const bitmapCtx = tree.declaration(0)!.bitmapDeclaration()!;
-      const symbol = BitmapCollector.collect(bitmapCtx, "motor.cnx", "Motor");
+      const symbol = BitmapCollector.collect(
+        bitmapCtx,
+        "motor.cnx",
+        "Motor",
+        "public",
+      );
 
       // With the new IScopeSymbol-based design, name is just "Flags" (not prefixed)
       // The prefixing happens in TSymbolAdapter for backwards compatibility
@@ -124,7 +149,9 @@ describe("BitmapCollector", () => {
       const tree = parse(code);
       const bitmapCtx = tree.declaration(0)!.bitmapDeclaration()!;
 
-      expect(() => BitmapCollector.collect(bitmapCtx, "test.cnx", "")).toThrow(
+      expect(() =>
+        BitmapCollector.collect(bitmapCtx, "test.cnx", "", "public"),
+      ).toThrow(
         "Error: Bitmap 'TooMany' has 10 bits but bitmap8 requires exactly 8 bits",
       );
     });
@@ -139,7 +166,9 @@ describe("BitmapCollector", () => {
       const tree = parse(code);
       const bitmapCtx = tree.declaration(0)!.bitmapDeclaration()!;
 
-      expect(() => BitmapCollector.collect(bitmapCtx, "test.cnx", "")).toThrow(
+      expect(() =>
+        BitmapCollector.collect(bitmapCtx, "test.cnx", "", "public"),
+      ).toThrow(
         "Error: Bitmap 'TooFew' has 4 bits but bitmap8 requires exactly 8 bits",
       );
     });
@@ -155,9 +184,36 @@ describe("BitmapCollector", () => {
       `;
       const tree = parse(code);
       const bitmapCtx = tree.declaration(0)!.bitmapDeclaration()!;
-      const symbol = BitmapCollector.collect(bitmapCtx, "test.cnx", "");
+      const symbol = BitmapCollector.collect(
+        bitmapCtx,
+        "test.cnx",
+        "",
+        "public",
+      );
 
       expect(symbol.sourceLine).toBe(3);
+    });
+  });
+
+  // #1300 review: every other test in this file passes "public", so the defect
+  // class this parameter exists for -- a collector reporting a private
+  // declaration as public -- was invisible at the unit level.
+  describe("visibility (#1300)", () => {
+    it("records a private declaration as private", () => {
+      const tree = parse(`
+        bitmap8 Hidden {
+          A,
+          Rest[7]
+        }
+      `);
+      const symbol = BitmapCollector.collect(
+        tree.declaration(0)!.bitmapDeclaration()!,
+        "test.cnx",
+        "",
+        "private",
+      );
+
+      expect(symbol.visibility).toBe("private");
     });
   });
 });

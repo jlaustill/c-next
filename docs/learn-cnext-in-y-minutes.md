@@ -387,6 +387,11 @@ scope LED {
     public u8 maxBrightness;   // public (explicit)
     const u32 BIT <- 3;        // private const (inlined)
 
+    enum Mode { OFF, ON }      // private by default (type)
+    public struct Reading {    // public (explicit) - part of the API
+        u8 level;
+    }
+
     void on() {                // public by default (function)
         GPIO.DR_SET[BIT] <- true;
     }
@@ -401,8 +406,23 @@ scope LED {
 }
 
 // Visibility defaults:
-//   Functions: public by default, use 'private' to hide
-//   Variables: private by default, use 'public' to expose
+//   Functions:              public by default, use 'private' to hide
+//   Variables AND TYPES:    private by default, use 'public' to expose
+//
+// "Types" means struct, enum and bitmap declared inside a scope. An unmarked
+// one is PRIVATE, which is easy to miss because nothing in the source says so.
+// A private type is defined in the generated .c, never in the .h, so it is not
+// part of the library's C interface -- write 'public' on any type a caller in
+// another file is meant to name.
+//
+// A scope `register` takes the same keywords, but nothing puts one in the .h
+// yet: a register is emitted as #defines in the .c whether it is public or
+// private, so it is not reachable across an include boundary. Tracked as #1453.
+//
+// Privacy is about NAMING, not about values. A public function may take or
+// return a private type; what a caller cannot do is name that type itself. This
+// is the getter/setter shape, and it is why the generated header still has to
+// define a private type that a public signature mentions.
 
 // Name resolution: bare names resolve local -> scope -> global automatically.
 // Use this. / global. ONLY to break a real naming conflict (e.g. a local
@@ -414,6 +434,8 @@ LED.off();                     // OK - public by default
 // LED.reset();                // ERROR - explicitly private
 
 // Generates: LED__on(), LED__off(), static void LED__reset()
+// The .h declares LED__maxBrightness, LED__Reading, LED__on and LED__off.
+// LED__Mode and LED__brightness stay in the .c -- they are private.
 
 // =============================================================================
 // 14. REGISTER BINDINGS

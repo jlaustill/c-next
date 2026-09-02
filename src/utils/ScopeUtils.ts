@@ -41,7 +41,7 @@ class ScopeUtils {
       sourceFile: "",
       sourceLine: 0,
       sourceLanguage: ESourceLanguage.CNext,
-      isExported: true,
+      visibility: "public",
       // #1285: computed through the same encoder as every other symbol rather
       // than hardcoded, so the global scope cannot become the one symbol whose
       // identity was derived a second way. Both resolve to "" -- it has no name
@@ -77,7 +77,7 @@ class ScopeUtils {
       sourceFile: "",
       sourceLine: 0,
       sourceLanguage: ESourceLanguage.CNext,
-      isExported: true,
+      visibility: "public",
     };
   }
 
@@ -152,6 +152,50 @@ class ScopeUtils {
    */
   static getDefaultVisibility(isFunction: boolean): TVisibility {
     return isFunction ? "public" : "private";
+  }
+
+  /**
+   * ADR-016: visibility of a declaration that has no enclosing scope.
+   *
+   * A top-level declaration is unconditionally part of the file's interface --
+   * scopes are how C-Next expresses privacy, and neither `public` nor `private`
+   * parses at top level.
+   *
+   * This is deliberately NOT `getDefaultVisibility(false)`. That answers a
+   * different question -- what an UNMARKED SCOPE MEMBER means -- and for every
+   * non-function kind it answers "private". Reusing it here would make every
+   * top-level struct and enum private and drop it from the header, which is
+   * #1300 inverted. Two rules, two names, so neither can be reached by the
+   * other's caller.
+   */
+  static getTopLevelVisibility(): TVisibility {
+    return "public";
+  }
+
+  /**
+   * ADR-016 visibility of one scope member, as the source declares it.
+   *
+   * THE single decision. Three places used to compute this independently --
+   * the symbol collector, the early bitmap/struct pass whose symbols are the
+   * ones that survive, and codegen -- so "is this member private" had three
+   * answers that happened to agree. #1300 is what that costs: the collectors
+   * for four kinds could not reach the answer at all and hardcoded `public`.
+   *
+   * Typed structurally rather than against `ScopeMemberContext` so the ANTLR
+   * parse tree stays out of the utility layer (#1317), while the real context
+   * satisfies it unchanged.
+   */
+  static getMemberVisibility(member: {
+    visibilityModifier(): { getText(): string } | null;
+    functionDeclaration(): unknown;
+  }): TVisibility {
+    const explicit = member.visibilityModifier()?.getText() as
+      | TVisibility
+      | undefined;
+    return (
+      explicit ??
+      ScopeUtils.getDefaultVisibility(member.functionDeclaration() !== null)
+    );
   }
 
   // ============================================================================

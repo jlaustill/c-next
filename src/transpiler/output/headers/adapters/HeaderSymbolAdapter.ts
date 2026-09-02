@@ -82,7 +82,6 @@ class HeaderSymbolAdapter {
       name: cName,
       kind: "function",
       type: qualifiedReturn,
-      isExported: func.isExported,
       parameters,
       signature,
       parent: isGlobal ? undefined : func.scopePath,
@@ -112,7 +111,6 @@ class HeaderSymbolAdapter {
       name: cName,
       kind: "variable",
       type: typeStr,
-      isExported: variable.isExported,
       isConst: variable.isConst,
       isAtomic: variable.isAtomic,
       isVolatile: variable.isVolatile,
@@ -188,7 +186,6 @@ class HeaderSymbolAdapter {
     return {
       name: cName,
       kind: "struct",
-      isExported: struct.isExported,
       parent: isGlobal ? undefined : struct.scopePath,
       sourceFile: struct.sourceFile,
       sourceLine: struct.sourceLine,
@@ -205,7 +202,6 @@ class HeaderSymbolAdapter {
     return {
       name: cName,
       kind: "enum",
-      isExported: enumSym.isExported,
       parent: isGlobal ? undefined : enumSym.scopePath,
       sourceFile: enumSym.sourceFile,
       sourceLine: enumSym.sourceLine,
@@ -223,7 +219,6 @@ class HeaderSymbolAdapter {
       name: cName,
       kind: "bitmap",
       type: bitmap.backingType,
-      isExported: bitmap.isExported,
       parent: isGlobal ? undefined : bitmap.scopePath,
       sourceFile: bitmap.sourceFile,
       sourceLine: bitmap.sourceLine,
@@ -240,7 +235,6 @@ class HeaderSymbolAdapter {
     return {
       name: cName,
       kind: "register",
-      isExported: register.isExported,
       parent: isGlobal ? undefined : register.scopePath,
       sourceFile: register.sourceFile,
       sourceLine: register.sourceLine,
@@ -253,7 +247,6 @@ class HeaderSymbolAdapter {
     return {
       name: scope.name,
       kind: "scope",
-      isExported: scope.isExported,
       // #1298: a scope states where it sits, like every other kind converted
       // here. This literal used to omit `parent` entirely -- the shape with no
       // parent that `getScopePath`'s guard existed to catch, built deliberately,

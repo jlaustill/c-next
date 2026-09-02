@@ -16,6 +16,7 @@ import StringUtils from "../../../../../utils/StringUtils";
 import TTypeUtils from "../../../../../utils/TTypeUtils";
 import type TType from "../../../../types/TType";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
+import TVisibility from "../../../../types/TVisibility";
 import OverflowBehaviorUtils from "../../../../../utils/OverflowBehaviorUtils";
 
 class VariableCollector {
@@ -147,7 +148,8 @@ class VariableCollector {
    * @param ctx The variable declaration context
    * @param sourceFile Source file path
    * @param scopePath The path of the scope this variable belongs to (dotted path, "" at file scope)
-   * @param isPublic Whether this variable is public (default true for top-level)
+   * @param visibility Required: #1161 -- a default here is a third source of
+   *   truth for one fact, which is how #1300 happened to the type kinds
    * @param constValues Map of constant names to their numeric values (for resolving array dimensions)
    * @param isScopeType ADR-057 predicate: is this *qualified* name a scope type?
    * @returns The variable symbol with TType-based types and scope reference
@@ -156,7 +158,7 @@ class VariableCollector {
     ctx: Parser.VariableDeclarationContext,
     sourceFile: string,
     scopePath: string,
-    isPublic: boolean = true,
+    visibility: TVisibility,
     constValues?: Map<string, number>,
     isScopeType?: (qualifiedName: string) => boolean,
   ): IVariableSymbol {
@@ -229,7 +231,7 @@ class VariableCollector {
       sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.CNext,
-      isExported: isPublic,
+      visibility,
       type,
       isConst,
       isAtomic,

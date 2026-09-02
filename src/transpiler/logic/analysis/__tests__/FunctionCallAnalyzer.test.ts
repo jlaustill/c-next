@@ -698,7 +698,7 @@ describe("FunctionCallAnalyzer", () => {
           sourceFile: "module.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
         returnType: TTypeUtils.createPrimitive("void"),
         parameters: [],

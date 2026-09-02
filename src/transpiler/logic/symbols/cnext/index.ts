@@ -282,6 +282,7 @@ class CNextResolver {
           bitmapCtx,
           sourceFile,
           globalScopePath,
+          ScopeUtils.getTopLevelVisibility(),
         );
         symbols.push(symbol);
         // Use transpiled C name (global bitmaps have no scope prefix)
@@ -320,12 +321,18 @@ class CNextResolver {
     );
 
     for (const member of scopeDecl.scopeMember()) {
+      // #1300: these are the scoped bitmap and struct symbols that SURVIVE --
+      // `collectScopeDeclaration` drops ScopeCollector's copies of both kinds.
+      // Ask the same helper that pass 2 asks, so one fact has one answer.
+      const visibility = ScopeUtils.getMemberVisibility(member);
+
       if (member.bitmapDeclaration()) {
         const bitmapCtx = member.bitmapDeclaration()!;
         const symbol = BitmapCollector.collect(
           bitmapCtx,
           sourceFile,
           scopePath,
+          visibility,
         );
         symbols.push(symbol);
         // #1285: the symbol was just built and carries its own identity, so
@@ -342,6 +349,7 @@ class CNextResolver {
           structCtx,
           sourceFile,
           scopePath,
+          visibility,
           constValues,
           isScopeType,
         );
@@ -415,6 +423,7 @@ class CNextResolver {
         decl.structDeclaration()!,
         sourceFile,
         globalScopePath,
+        ScopeUtils.getTopLevelVisibility(),
         constValues,
       );
       symbols.push(symbol);
@@ -427,6 +436,7 @@ class CNextResolver {
         decl.enumDeclaration()!,
         sourceFile,
         globalScopePath,
+        ScopeUtils.getTopLevelVisibility(),
       );
       symbols.push(symbol);
       return;
@@ -439,6 +449,7 @@ class CNextResolver {
         sourceFile,
         knownBitmaps,
         globalScopePath,
+        ScopeUtils.getTopLevelVisibility(),
       );
       symbols.push(symbol);
       return;
@@ -454,11 +465,10 @@ class CNextResolver {
         sourceFile,
         "",
         body,
-        // ADR-016: functions are public by default (API surface). Scopes are
-        // how C-Next expresses privacy — neither `public` nor `private` parses
-        // at top level — so this must not be a literal that can drift from the
-        // ADR, which is what issue #1161 was.
-        ScopeUtils.getDefaultVisibility(true),
+        // ADR-016 (#1161): not a literal that can drift from the ADR. #1300
+        // renamed the rule -- a top-level declaration is public because it has
+        // no enclosing scope, not because it is a function.
+        ScopeUtils.getTopLevelVisibility(),
       );
       symbols.push(symbol);
       return;
@@ -470,7 +480,7 @@ class CNextResolver {
         decl.variableDeclaration()!,
         sourceFile,
         globalScopePath,
-        true,
+        ScopeUtils.getTopLevelVisibility(),
         constValues,
       );
       symbols.push(symbol);
