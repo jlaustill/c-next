@@ -499,6 +499,9 @@ export default class CodeGenerator implements IOrchestrator {
         case "register-callback-field":
           CodeGenState.callbackFieldTypes.set(effect.key, effect.typeName);
           break;
+        case "register-struct-init":
+          CodeGenState.generatedStructInits.add(effect.structName);
+          break;
 
         // Array initializer effects
         case "set-array-init-count":

@@ -38,7 +38,10 @@ const BASELINE = new Map([
   ["misra-c2012-2.5", "#863"],
   ["misra-c2012-2.7", "#862"],
   ["misra-c2012-7.4", "#844"],
-  ["misra-c2012-8.4", "#841"],
+  // Rule 8.4 is deliberately absent: #1205 gave every ADR-029 generated
+  // init function a declaration in its header, taking the rule to zero
+  // generated violations. It is enforced, not baselined -- a new
+  // undeclared definition with external linkage fails the build.
   ["misra-c2012-8.7", "#864"],
   ["misra-c2012-8.9", "#866"],
   ["misra-c2012-10.4", "#858"],

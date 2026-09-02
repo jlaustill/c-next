@@ -83,6 +83,15 @@ describe("BASELINE integrity", () => {
     expect(MisraBaseline.BASELINE.has("misra-c2012-10.4")).toBe(true);
   });
 
+  it("does NOT baseline Rule 8.4, which #1205 took to zero", () => {
+    // Every generated <Struct>_init(void) now has a declaration in its header,
+    // so the rule has no generated violations left. It must stay OUT of the
+    // baseline: an un-baselined rule fails the build the moment a new
+    // undeclared external-linkage definition appears, which is the whole
+    // regression test for #1205.
+    expect(MisraBaseline.BASELINE.has("misra-c2012-8.4")).toBe(false);
+  });
+
   it("does NOT baseline a rule with zero current violations (10.3)", () => {
     // #845 tracks Rule 10.3 but it no longer fires; the check must still catch
     // it if it ever reappears, so it must stay out of the baseline.

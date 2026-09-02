@@ -1,0 +1,24 @@
+// #1205: an ADR-029 generated init function is a definition with external
+// linkage, so it needs a visible declaration (MISRA C:2012 Rule 8.4). The
+// header must declare it; the .c defines it and includes that header.
+struct Reading {
+    u32 value;
+}
+
+void onSample(const Reading r) {}
+
+// Sampler has a callback field, so it gets a generated Sampler_init().
+struct Sampler {
+    onSample handler;
+}
+
+// Negative controls: neither struct has a callback field, so neither gets an
+// init function -- and neither may gain a prototype. A change that declared
+// an init for every struct would compile but fail here.
+struct PlainCounter {
+    u32 count;
+}
+
+u32 readCount(const PlainCounter c) {
+    return c.count;
+}

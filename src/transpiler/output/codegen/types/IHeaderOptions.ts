@@ -52,6 +52,17 @@ interface IHeaderOptions {
    * same flag.
    */
   readonly needsIsrTypedef?: boolean;
+
+  /**
+   * Issue #1205: structs whose ADR-029 init function the `.c` emitted, so the
+   * header can declare each one (MISRA C:2012 Rule 8.4).
+   *
+   * Passed in rather than derived here for the same reason as the flag above:
+   * the header's own view of struct fields is a superset -- it includes
+   * scope-nested structs, which get no init function (#1283) -- so deciding
+   * locally would declare functions that are never defined.
+   */
+  readonly generatedStructInits?: ReadonlySet<string>;
 }
 
 export default IHeaderOptions;

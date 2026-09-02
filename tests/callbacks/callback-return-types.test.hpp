@@ -38,6 +38,11 @@ uint32_t getU32Value(uint32_t input);
 uint8_t getU8Value(uint32_t input);
 bool checkThreshold(uint32_t value);
 int32_t getSignedValue(uint32_t input);
+/* MISRA C:2012 Rule 8.4: declaration for the ADR-029 generated init function (the definition has external linkage and would otherwise be undeclared). */
+U32Returner U32Returner_init(void);
+U8Returner U8Returner_init(void);
+BoolReturner BoolReturner_init(void);
+I32Returner I32Returner_init(void);
 
 #ifdef __cplusplus
 }
