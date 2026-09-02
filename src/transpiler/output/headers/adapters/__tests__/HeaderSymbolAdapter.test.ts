@@ -453,6 +453,37 @@ describe("HeaderSymbolAdapter", () => {
       expect(result.name).toBe("Motor");
       expect(result.kind).toBe("scope");
       expect(result.isExported).toBe(true);
+      // #1298 DoD: a top-level scope has no container, so `parent` is absent --
+      // as opposed to being omitted whatever the scope's position, which is what
+      // this converter used to do for every scope alike.
+      expect(result.parent).toBeUndefined();
+    });
+
+    it("states the container of a NESTED scope", () => {
+      // The half the previous case cannot distinguish: before #1298 this
+      // converter omitted `parent` unconditionally, so a nested scope and a
+      // top-level one produced the same header symbol.
+      const tSymbol: IScopeSymbol = {
+        ...TestSymbolUtils.base({
+          kind: "scope",
+          name: "Inner",
+          scopePath: "Outer",
+          sourceFile: "motor.cnx",
+          sourceLine: 1,
+          sourceLanguage: ESourceLanguage.CNext,
+          isExported: true,
+        }),
+        members: [],
+        functions: [],
+        variables: [],
+        memberVisibility: new Map(),
+        declarationSites: new Set<string>(),
+      };
+
+      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);
+
+      expect(result.name).toBe("Inner");
+      expect(result.parent).toBe("Outer");
     });
   });
 

@@ -114,11 +114,23 @@ class ScopeJoinSites {
    *
    * Deliberately a name heuristic: the alternative is type-directed analysis of
    * every call site, and a name is what a reviewer reads anyway. A false
-   * positive costs one baseline row; a false negative is caught the next time
-   * the expression is renamed to say what it holds.
+   * positive costs one baseline row, which is the cheap direction.
+   *
+   * SHAPE-matched, not a list of exact names. It was a list, and #1298 renamed
+   * two of its six entries -- `currentScope` -> `currentScopePath`,
+   * `declaringScope` -> `declaringScopePath` -- across ~45 sites. `\b` does not
+   * match between `Scope` and `Path`, so both replacements became invisible to
+   * this scan in the same commit that created them: the gate's contract is "this
+   * list may shrink freely, it may not grow", and it could no longer see growth.
+   *
+   * The docblock here used to claim a false negative "is caught the next time the
+   * expression is renamed to say what it holds". A rename is precisely what hid
+   * them, so the claim was the opposite of true. Matching the shape removes the
+   * assumption instead of restating it -- any `<prefix>Scope`, with an optional
+   * `Path`/`Name` suffix, is counted however it is spelled.
    */
   private static readonly SCOPE_DENOTING =
-    /\b(scope|currentScope|scopeName|scopePath|callerScope|declaringScope)\b|scope\.name/i;
+    /\b\w*[Ss]cope(?:Path|Name)?\b|scope\.name/;
 
   /** Routing through here is the CORRECT form, whatever the argument is called. */
   private static readonly VIA_SCOPE_UTILS = "ScopeUtils.";

@@ -341,7 +341,8 @@ class PassByValueAnalyzer {
       // Handle scope-level functions
       if (decl.scopeDeclaration()) {
         const scopeDecl = decl.scopeDeclaration()!;
-        // #1357: the scope REFERENCE, so qualification walks the parent chain.
+        // #1298: the whole scope PATH, so qualification keeps every outer
+        // component.
         const scopePath = ScopeUtils.pathOf(
           SymbolRegistry.getOrCreateScope(scopeDecl.IDENTIFIER().getText()),
         );

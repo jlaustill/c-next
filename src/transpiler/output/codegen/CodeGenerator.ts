@@ -2744,7 +2744,7 @@ export default class CodeGenerator implements IOrchestrator {
     for (const member of scopeDecl.scopeMember()) {
       const funcDecl = member.functionDeclaration();
       if (funcDecl) {
-        // #1285: resolve the scope SYMBOL rather than reading back mutable
+        // #1298: resolve the scope PATH rather than reading back mutable
         // state, so the generated name does not depend on when it is asked.
         this._registerScopeFunction(
           ScopeUtils.pathOf(SymbolRegistry.getOrCreateScope(scopeName)),

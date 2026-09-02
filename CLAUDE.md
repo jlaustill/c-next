@@ -423,7 +423,7 @@ export default new Registry();
 - **Analyzer type tracking**: Use `trackType(typeCtx, identifier)` helper pattern (see `FloatModuloAnalyzer.trackIfFloat()`, `ArrayIndexTypeAnalyzer.trackType()`) to avoid jscpd duplication across `enterVariableDeclaration`/`enterParameter`/`enterForVarDecl`
 - **Ternary grammar**: `ternaryExpression` has 3 `orExpression` children: `[0]` = condition, `[1]` = true value, `[2]` = false value. When validating value types, skip index 0 — and address them via `orExpression()`, **never `getChild(i)`**: the condition is parenthesized, so `getChild(0)` is `(` and an index-based skip silently does nothing
 - **Callback header params**: `IParameterSymbol.isCallbackPointer`/`isCallbackConst` resolved in `Transpiler.convertToHeaderSymbols()` via `TypedefParamParser` — single source of truth for both `.c` and `.h` generation
-- **Scope type predicate**: `CodeGenState.isScopeType(qualifiedName)` checks if a qualified name is a known enum/struct/bitmap. Codegen sites should call `CodeGenState.qualifyScopeType(bareName)`, which binds that predicate to `currentScope` — don't re-pair the two at each site, and don't inline `knownEnums || knownStructs || knownBitmaps`.
+- **Scope type predicate**: `CodeGenState.isScopeType(qualifiedName)` checks if a qualified name is a known enum/struct/bitmap. Codegen sites should call `CodeGenState.qualifyScopeType(bareName)`, which binds that predicate to `currentScopePath` — don't re-pair the two at each site, and don't inline `knownEnums || knownStructs || knownBitmaps`.
 
 ---
 

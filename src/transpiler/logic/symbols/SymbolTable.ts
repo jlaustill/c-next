@@ -721,7 +721,17 @@ class SymbolTable {
     // #1298: the symbol names its scope by path; the object -- and the mutable
     // `declarationSites` on it -- is one registry lookup away.
     const scope = SymbolRegistry.getScope(symbol.scopePath);
-    if (scope === null || scope.declarationSites.size === 0) {
+    // The global-scope disjunct is stated, not merely implied. It never decides
+    // the result -- the only `declarationSites` writer targets a grammar-
+    // guaranteed non-empty identifier, so the global scope's set is always empty
+    // and the third disjunct would catch it -- but "a global symbol gets no
+    // declaration note" is the intent, and `getScope("")` returns the global
+    // scope object rather than null, so nothing else says it (#1298 review).
+    if (
+      scope === null ||
+      ScopeUtils.isGlobalScopePath(symbol.scopePath) ||
+      scope.declarationSites.size === 0
+    ) {
       return "";
     }
     // Sorted through DeclarationSite, not `.sort()`: these keys end in a line

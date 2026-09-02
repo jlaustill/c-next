@@ -35,11 +35,9 @@ class RegisterCollector {
   ): IRegisterSymbol {
     const name = ctx.IDENTIFIER().getText();
     const line = ctx.start?.line ?? 0;
-    // #1285: the scope REFERENCE flows on from here. Flattening it to its
-    // leaf name was the choke point that made every downstream qualification
-    // one level deep, whatever the chain actually was.
-
-    // Get base address
+    // #1298: members carry the scope's PATH, not the scope object. The path
+    // holds every outer component, so nothing downstream can flatten it to a
+    // leaf -- which is what the reference threaded here used to protect against.
     const baseAddress = ctx.expression().getText();
 
     // Collect register members

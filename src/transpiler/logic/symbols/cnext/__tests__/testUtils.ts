@@ -1,8 +1,9 @@
 /**
  * Test utilities for symbol collector tests.
  *
- * Provides mock IScopeSymbol instances for testing collectors
- * that now require proper scope references.
+ * Provides mock IScopeSymbol instances for tests that need a scope OBJECT --
+ * the registry's member lists. Collectors themselves take a `scopePath` string
+ * (#1298) and need nothing from here.
  *
  * Note: Delegates to ScopeUtils to avoid code duplication.
  */

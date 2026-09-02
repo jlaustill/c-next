@@ -154,7 +154,7 @@ describe("QualifiedNameGenerator", () => {
       );
     });
 
-    it("walks the parent chain for a nested scope", () => {
+    it("keeps every outer component for a nested scope", () => {
       // The member counterpart of the guard above.
       SymbolRegistry.getOrCreateScope("OuterData");
       expect(

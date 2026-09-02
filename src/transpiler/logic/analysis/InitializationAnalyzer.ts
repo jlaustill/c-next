@@ -554,8 +554,8 @@ class InitializationAnalyzer {
     const scopeDecl = decl.scopeDeclaration();
     if (!scopeDecl) return;
 
-    // #1357: the scope REFERENCE, not its leaf name -- qualification walks the
-    // parent chain, so a nested scope keeps its outer components.
+    // #1298: the whole scope PATH, not its leaf name, so a nested scope keeps
+    // its outer components when its members are qualified.
     const scopePath = ScopeUtils.pathOf(
       SymbolRegistry.getOrCreateScope(scopeDecl.IDENTIFIER().getText()),
     );

@@ -737,7 +737,7 @@ class FunctionCallAnalyzer {
    * @param name The function name being called
    * @param line Source line number
    * @param column Source column number
-   * @param currentScopePath The scope enclosing the call, or null at file scope
+   * @param currentScopePath Path of the scope enclosing the call; `""` at file scope
    * @param isGlobalCall Whether the call used global. prefix
    */
   public checkFunctionCall(

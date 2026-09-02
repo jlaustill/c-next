@@ -7,9 +7,9 @@ import TestSymbolUtils from "../../../logic/symbols/cnext/__tests__/testSymbolUt
 
 describe("IBaseSymbol", () => {
   it("accepts valid symbol with TSymbolKindCNext kind", () => {
-    // `scope` is an IScopeSymbol, so use the real factory rather than a bare
-    // object literal — a symbol's scope always carries the parent chain that
-    // ScopeUtils.getTranspiledCName walks.
+    // Built through the shared factory rather than a bare object literal, so
+    // the identity pair is computed by `ScopeUtils.identityOf` from `scopePath`
+    // exactly as a collector computes it -- never hand-written.
 
     const symbol: IBaseSymbol = {
       ...TestSymbolUtils.base({

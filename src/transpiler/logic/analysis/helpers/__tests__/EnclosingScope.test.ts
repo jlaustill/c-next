@@ -92,16 +92,13 @@ describe("EnclosingScope", () => {
       expect(EnclosingScope.child(inner, "Deep")).toBe("Outer.Inner.Deep");
     });
 
-    it("returns the same path for the same nesting", () => {
-      const first = EnclosingScope.child("", "Motor");
-      const second = EnclosingScope.child("", "Motor");
-
-      // #1298: this used to assert the same scope OBJECT came back, which was a
-      // property of `getOrCreateScope` caching rather than of this function.
-      // Descending is now a pure string operation, so equality is the whole
-      // claim -- and scope merging across files (#1333) stays a registry
-      // property, tested where the registry is.
-      expect(second).toBe(first);
+    it("names the scope it descended into", () => {
+      // #1298: this used to assert the same scope OBJECT came back twice, which
+      // was a real claim about `getOrCreateScope` caching. Asserting that two
+      // calls to a now-pure function agree would not be -- that holds for every
+      // possible body, `return ""` included (#1298 review). Assert the value.
+      expect(EnclosingScope.child("", "Motor")).toBe("Motor");
+      expect(EnclosingScope.child("Outer", "Inner")).toBe("Outer.Inner");
     });
 
     it("agrees with the stack for the same nesting", () => {

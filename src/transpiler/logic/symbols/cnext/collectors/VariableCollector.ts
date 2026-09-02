@@ -165,9 +165,9 @@ class VariableCollector {
 
     // Get type string and convert to TType
     const typeCtx = ctx.type();
-    // #1285: the scope REFERENCE flows on from here. Flattening it to its
-    // leaf name was the choke point that made every downstream qualification
-    // one level deep, whatever the chain actually was.
+    // #1298: members carry the scope's PATH, not the scope object. The path
+    // holds every outer component, so nothing downstream can flatten it to a
+    // leaf -- which is what the reference threaded here used to protect against.
     const typeStr = TypeUtils.getTypeName(typeCtx, scopePath, isScopeType);
     const type = VariableCollector.resolveDeclaredType(typeStr, ctx);
 

@@ -42,7 +42,7 @@ class MemberAccessValidator {
    * ADR-016/057: Validate not referencing own scope by name.
    * @param scopeName - scope being accessed
    * @param memberName - member after scope (for error message)
-   * @param currentScopePath - active scope context (null = not in a scope)
+   * @param currentScopePath - active scope path; `""` = not in a scope
    */
   static validateNotSelfScopeReference(
     scopeName: string,

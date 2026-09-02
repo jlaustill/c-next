@@ -5,7 +5,7 @@
  *
  * Design decisions:
  * - Static class with global state (reset between transpilation runs)
- * - `getOrCreateScope` handles scope merging across files (same scope name = same object)
+ * - `getOrCreateScope` handles scope merging across files (same scope path = same object)
  * - `resolveFunction` walks scope chain (current -> parent -> global)
  * - String keys in Maps for lookup, but values are proper symbol objects
  */
@@ -29,7 +29,8 @@ class SymbolRegistry {
    *
    * The global scope has:
    * - name: "" (empty string)
-   * - parent: points to itself (self-reference)
+   * - scopePath: "" (it has no enclosing scope; #1298 removed the
+   *   self-reference that made the symbol graph cyclic)
    */
   static getGlobalScope(): IScopeSymbol {
     return this.globalScope;
@@ -59,16 +60,20 @@ class SymbolRegistry {
    * use getScope() instead to avoid creating orphaned scopes.
    */
   static getOrCreateScope(path: string): IScopeSymbol {
-    if (path === "") return this.globalScope;
+    if (ScopeUtils.isGlobalScopePath(path)) return this.globalScope;
     if (this.scopes.has(path)) return this.scopes.get(path)!;
 
-    const parts = path.split(".");
-    const name = parts.pop()!;
-    const parentPath = parts.join(".");
+    // Split through the shared helpers rather than re-implementing them: this
+    // method open-coded `split`/`pop`/`join`, which is `leafOf` and `parentOf`
+    // written a second time in the file that introduced both (#1298 review).
+    const name = ScopeUtils.leafOf(path);
+    const parentPath = ScopeUtils.parentOf(path);
     // Still created eagerly: an intermediate scope must exist as an object so
     // members can be registered into it, even though a child now names it by
     // path rather than pointing at it.
-    if (parentPath !== "") this.getOrCreateScope(parentPath);
+    if (!ScopeUtils.isGlobalScopePath(parentPath)) {
+      this.getOrCreateScope(parentPath);
+    }
 
     const scope = ScopeUtils.createScope(name, parentPath);
     this.scopes.set(path, scope);

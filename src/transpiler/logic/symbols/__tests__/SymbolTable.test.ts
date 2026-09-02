@@ -12,7 +12,6 @@ import IFunctionSymbol from "../../../types/symbols/IFunctionSymbol";
 import IStructSymbol from "../../../types/symbols/IStructSymbol";
 import IEnumSymbol from "../../../types/symbols/IEnumSymbol";
 import ITargetCapabilities from "../../../types/ITargetCapabilities";
-import TestScopeUtils from "../cnext/__tests__/testUtils";
 import TTypeUtils from "../../../../utils/TTypeUtils";
 import TCSymbol from "../../../types/symbols/c/TCSymbol";
 import TCppSymbol from "../../../types/symbols/cpp/TCppSymbol";
@@ -391,8 +390,6 @@ describe("SymbolTable", () => {
     // `continue` implementing this rule measured 0 hits on new code. This is the
     // unit-level seam for it.
     it("should NOT detect conflict for a scope declared twice (reopened)", () => {
-      const globalScope = TestScopeUtils.createMockGlobalScope();
-
       for (const line of [1, 10]) {
         symbolTable.addTSymbol({
           ...TestSymbolUtils.base({
@@ -405,7 +402,6 @@ describe("SymbolTable", () => {
             isExported: true,
           }),
           members: [],
-          parent: globalScope,
         } as unknown as TSymbol);
       }
 

@@ -57,7 +57,7 @@ function convertBitmap(
 ): ISymbolInfo[] {
   const result: ISymbolInfo[] = [];
   const cName = ScopeUtils.getTranspiledCName(bitmap);
-  const parent = getParentId(bitmap.scopePath);
+  const parent = ScopeUtils.leafOf(bitmap.scopePath) || undefined;
   const bitmapId = bitmap.cnxScopedName;
   const bitmapParentId = getParentId(bitmap.scopePath);
 
@@ -94,7 +94,7 @@ function convertEnum(
 ): ISymbolInfo[] {
   const result: ISymbolInfo[] = [];
   const cName = ScopeUtils.getTranspiledCName(enumSym);
-  const parent = getParentId(enumSym.scopePath);
+  const parent = ScopeUtils.leafOf(enumSym.scopePath) || undefined;
   const enumId = enumSym.cnxScopedName;
   const enumParentId = getParentId(enumSym.scopePath);
 
@@ -129,7 +129,7 @@ function convertStruct(
 ): ISymbolInfo[] {
   const result: ISymbolInfo[] = [];
   const cName = ScopeUtils.getTranspiledCName(struct);
-  const parent = getParentId(struct.scopePath);
+  const parent = ScopeUtils.leafOf(struct.scopePath) || undefined;
   const structId = struct.cnxScopedName;
   const structParentId = getParentId(struct.scopePath);
 
@@ -165,7 +165,7 @@ function convertFunction(
 ): ISymbolInfo[] {
   const result: ISymbolInfo[] = [];
   const cName = ScopeUtils.getTranspiledCName(func);
-  const parent = getParentId(func.scopePath);
+  const parent = ScopeUtils.leafOf(func.scopePath) || undefined;
   const returnType = TypeResolver.getTypeName(func.returnType);
 
   // Build signature
@@ -194,7 +194,7 @@ function convertVariable(
   variable: import("../transpiler/types/symbols/IVariableSymbol").default,
 ): ISymbolInfo {
   const cName = ScopeUtils.getTranspiledCName(variable);
-  const parent = getParentId(variable.scopePath);
+  const parent = ScopeUtils.leafOf(variable.scopePath) || undefined;
   const typeStr = TypeResolver.getTypeName(variable.type);
 
   return {
@@ -214,7 +214,7 @@ function convertRegister(
 ): ISymbolInfo[] {
   const result: ISymbolInfo[] = [];
   const cName = ScopeUtils.getTranspiledCName(register);
-  const parent = getParentId(register.scopePath);
+  const parent = ScopeUtils.leafOf(register.scopePath) || undefined;
   const registerId = register.cnxScopedName;
   const registerParentId = getParentId(register.scopePath);
 

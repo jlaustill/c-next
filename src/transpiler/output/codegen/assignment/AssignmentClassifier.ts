@@ -15,6 +15,7 @@ import SubscriptDepthValidator from "../subscript/SubscriptDepthValidator";
 import TTypeInfo from "../../../types/TTypeInfo";
 import TypeCheckUtils from "../../../../utils/TypeCheckUtils";
 import QualifiedCName from "../../../../utils/QualifiedCName";
+import ScopeUtils from "../../../../utils/ScopeUtils";
 import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
 
 /**
@@ -532,14 +533,14 @@ class AssignmentClassifier {
       return true;
     }
 
-    const scope = CodeGenState.currentScopePath;
-    if (scope === null) {
+    const scopePath = CodeGenState.currentScopePath;
+    if (ScopeUtils.isGlobalScopePath(scopePath)) {
       return false;
     }
 
     return (
       CodeGenState.getVariableTypeInfo(
-        QualifiedNameGenerator.forMember(scope, name),
+        QualifiedNameGenerator.forMember(scopePath, name),
       ) !== undefined
     );
   }

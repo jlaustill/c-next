@@ -6,7 +6,7 @@
 import TParameterInfo from "../../../types/TParameterInfo";
 
 interface IGeneratorState {
-  /** Current scope name (null if at file level) */
+  /** Path of the scope currently being generated; `""` at file scope */
   readonly currentScopePath: string;
 
   /** Current indentation level */

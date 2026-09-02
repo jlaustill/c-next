@@ -159,9 +159,9 @@ function handleScopedRegisterBitRange(ctx: IAssignmentContext): string {
     ctx.cnextOp,
   );
 
-  // #1285: `currentScopePath` IS the symbol, carrying the parent chain. Reading
-  // `.name` off it took the leaf and discarded every outer scope -- the exact
-  // leaf-only encoder this issue removes. Pass the symbol.
+  // #1298: `currentScopePath` IS the whole enclosing path. A scope's leaf name
+  // discards every outer component -- the exact leaf-only encoder #1285 removed
+  // -- so pass the path on unmodified.
   const declaringScopePath = CodeGenState.currentScopePath;
   const parts = ctx.identifiers;
   const regName = AssignmentHandlerUtils.buildScopedRegisterName(

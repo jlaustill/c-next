@@ -785,7 +785,7 @@ export default class CodeGenState {
    *
    * Binds `QualifiedCName.qualifyScopeType()` to this state's current scope and
    * type sets, so every codegen site asks the question one way. Call this rather
-   * than re-pairing `currentScope` with `isScopeType()` at each site.
+   * than re-pairing `currentScopePath` with `isScopeType()` at each site.
    *
    * Only bare names belong here — `this.T`, `global.T` and `Scope.T` carry an
    * explicit answer in the syntax and must keep their own branches.
@@ -1442,14 +1442,13 @@ export default class CodeGenState {
   }
 
   /**
-   * Enter a scope by its DOTTED PATH, resolving it to the scope symbol that
-   * carries the parent chain.
+   * Enter a scope by its DOTTED PATH.
    *
    * The parameter is a path (`Outer.Inner`), not a leaf, because that is what
    * `SymbolRegistry.getOrCreateScope` takes. Pass a leaf for a nested scope and
    * it does not fail -- it CREATES a fresh scope parented to global and
    * registers it under the leaf, after which every qualification through
-   * `currentScope` silently returns a one-level name.
+   * `currentScopePath` silently returns a one-level name.
    *
    * Every codegen caller currently passes a leaf, and that is correct for every
    * program C-Next can express: `scopeMember` admits no `scopeDeclaration`

@@ -43,8 +43,8 @@ class QualifiedCName {
    * `join(scopeName, member)` the obvious call -- a scope LEAF joined to a leaf,
    * which drops every outer scope and is the divergence #1357 exists to remove. A
    * caller that holds a scope cannot build a correct path from its name, so it has
-   * no business here: `ScopeUtils.qualifyInScope` takes the scope REFERENCE and
-   * walks the chain. What is left for this method is the case where the caller
+   * no business here: `ScopeUtils.qualifyInScope` takes the whole enclosing
+   * PATH, which carries every outer component. What is left for this method is the case where the caller
    * genuinely already holds every component -- a parse-tree identifier chain, or an
    * already-qualified type name plus its member.
    *

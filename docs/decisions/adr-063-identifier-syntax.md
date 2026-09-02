@@ -409,12 +409,6 @@ Live diagnostics in the VS Code extension are tracked separately: every transpil
   path the only way to express the correct thing and a compile error the consequence of
   not having it.
 
-  Issue #1298 changed what carries the path -- a symbol names its enclosing scope
-  directly instead of holding it, so nothing walks a chain to recover it -- without
-  changing anything decided here. The property this section argues for is that a name is
-  built from every outer component; where those components are read from is not a
-  property of the encoding.
-
   What remains is a call SHAPE — a whole-path builder handed exactly two parts — which no
   import-level rule can see, because that builder has 38 legitimate whole-path callers. Two gates split that: `.dependency-cruiser.cjs` widened
   `collectors-build-names-from-scopes` from the collectors seam to every directory

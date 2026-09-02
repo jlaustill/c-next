@@ -185,7 +185,7 @@ function handleScopedRegisterMemberBitmapField(
   ctx: IAssignmentContext,
 ): string {
   // #1285: the two branches do not hold the same kind of thing. `this.` has the
-  // declaring scope SYMBOL; `Scope.` has a scope NAME written in the source. They
+  // declaring scope PATH; `Scope.` has a scope NAME written in the source. They
   // were both flattened to a string here, which is what let one leaf-only encoder
   // serve both. Each branch now builds the register name its own way.
   let fullRegName: string;

@@ -78,11 +78,12 @@ describe("CppNamespaceUtils", () => {
 
   // Helper to create a C-Next scope symbol.
   //
-  // Built through the real factories so the parent chain terminates. The
-  // previous version was self-parented under a non-empty name — a shape no
-  // factory produces, since only the global scope is its own parent and its
-  // name is empty. Walking that chain never reaches global, so it hung any
-  // caller that resolves a scope path.
+  // Built through the real factories. This once hand-built a self-parented
+  // scope under a non-empty name, which no factory produced and which hung any
+  // caller that walked the chain to reach global. #1298 removed the chain
+  // entirely -- a scope names its container with a string -- so that shape is
+  // no longer representable, and the factory is used here for the identity pair
+  // rather than to avoid the hang.
   function makeCNextScope(name: string, sourceFile: string): IScopeSymbol {
     return { ...ScopeUtils.createScope(name, ""), sourceFile };
   }

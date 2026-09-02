@@ -148,7 +148,7 @@ describe("IScopeSymbol", () => {
       ).toBe("Test__fillData");
     });
 
-    it("walks the whole parent chain for a nested scope", () => {
+    it("keeps every outer component for a nested scope", () => {
       // Regression guard: reading scope.name alone yields "Inner__process" and
       // drops the outer scope. Two encoders disagreed exactly here, and agreed
       // elsewhere only because the grammar admits no nested scopes today.
@@ -180,7 +180,7 @@ describe("IScopeSymbol", () => {
       });
     });
 
-    it("walks the whole parent chain at depth 2", () => {
+    it("keeps every outer component at depth 2", () => {
       // The property this whole change exists to establish. Reading `scope.name`
       // alone yields "Inner__tick"/"Inner.tick" and drops the outer scope --
       // which is what the leaf-only encoders did, agreeing with the chain-walking
@@ -198,30 +198,31 @@ describe("IScopeSymbol", () => {
       });
     });
 
-    it("gives a nested scope its own identity from its parent chain", () => {
+    it("gives a nested scope its own identity from its enclosing path", () => {
       const outer = ScopeUtils.createScope("Outer", "");
       const leaf = ScopeUtils.createScope("Leaf", "Outer.Inner");
 
-      // Depth THREE on purpose. At depth two a scope's parent name happens to
-      // be the whole chain, so a leaf-only encoder is accidentally right and a
+      // Depth THREE on purpose. At depth two a scope's leaf name happens to be
+      // its whole path, so a leaf-only encoder is accidentally right and a
       // depth-two assertion here cannot fail. Verified: mutating the encoder to
-      // read `scope.name` alone leaves `inner` correct and breaks only `leaf`.
+      // join only the leaf leaves `outer` correct and breaks only `leaf`.
       expect(leaf.fullyQualifiedCName).toBe("Outer__Inner__Leaf");
       expect(leaf.cnxScopedName).toBe("Outer.Inner.Leaf");
       expect(outer.fullyQualifiedCName).toBe("Outer");
     });
 
     it("gives the global scope an empty identity", () => {
-      // Computed through the encoder after the self-references are patched, not
+      // Computed through the same encoder as every other symbol rather than
       // hardcoded -- the global scope must not become the one symbol whose
-      // identity was derived a second way.
+      // identity was derived a second way. #1298 removed the self-references it
+      // used to need patching in first.
       const global = ScopeUtils.createGlobalScope();
 
       expect(global.fullyQualifiedCName).toBe("");
       expect(global.cnxScopedName).toBe("");
     });
 
-    it("qualifyInScope walks the whole chain at depth 2", () => {
+    it("qualifyInScope keeps every outer component at depth 2", () => {
       // The drop-in for `QualifiedCName.fromParts([currentScopeName, name])`. The
       // string version produced "Inner__tick" here, dropping `Outer`.
 
@@ -231,10 +232,12 @@ describe("IScopeSymbol", () => {
     });
 
     it("qualifyInScope leaves a name alone at file scope", () => {
-      // Both spellings of "no scope" -- a global symbol keeps its bare name,
-      // which is what makes `global.x` reachable at all.
+      // A global symbol keeps its bare name, which is what makes `global.x`
+      // reachable at all. #1298 collapsed the two former spellings of "no scope"
+      // (`null` and the global scope object) into the empty path, so the second
+      // case is now a real one rather than a repeat of the first.
       expect(ScopeUtils.qualifyInScope("tick", "")).toBe("tick");
-      expect(ScopeUtils.qualifyInScope("tick", "")).toBe("tick");
+      expect(ScopeUtils.qualifyInScope("tick", "Motor")).toBe("Motor__tick");
     });
 
     it("qualifyScopeType asks about the CHAIN-qualified name", () => {

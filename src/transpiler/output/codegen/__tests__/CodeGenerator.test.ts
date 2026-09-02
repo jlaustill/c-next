@@ -268,8 +268,8 @@ describe("CodeGenerator", () => {
         generator.applyEffects([{ type: "set-scope", name: "MyScope" }]);
 
         const state = generator.getState();
-        // #1285: state carries the scope SYMBOL now, so assert its identity
-        // rather than the leaf the caller happened to pass.
+        // #1298: state carries the scope PATH, so assert the path rather than
+        // whatever the caller happened to pass.
         expect(state.currentScopePath).toBe("MyScope");
       });
 

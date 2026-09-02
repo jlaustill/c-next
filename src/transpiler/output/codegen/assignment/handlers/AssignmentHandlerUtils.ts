@@ -13,7 +13,7 @@ import ScopeUtils from "../../../../../utils/ScopeUtils";
  * Validate that 'this' is being used within a scope context.
  * Throws if currentScopePath is not set.
  *
- * @param currentScopePath - The current scope name or null
+ * @param currentScopePath - Path of the enclosing scope; `""` at file scope
  * @throws Error if 'this' is used outside a scope
  */
 function validateScopeContext(currentScopePath: string): void {

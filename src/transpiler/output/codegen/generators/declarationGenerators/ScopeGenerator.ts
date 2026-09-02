@@ -486,8 +486,8 @@ const generateScope: TGeneratorFn<Parser.ScopeDeclarationContext> = (
   // Set current scope for nested generation (imperative, not effect-based)
   orchestrator.setCurrentScope(name);
 
-  // #1285: thread the scope SYMBOL, not its name, so every member below qualifies
-  // through the parent chain instead of re-joining one level from a leaf.
+  // #1298: thread the whole scope PATH, not a leaf name, so every member below
+  // qualifies against every outer component instead of re-joining one level.
   //
   // Resolved here rather than read back from `CodeGenState.currentScopePath`: that
   // would make the generated NAMES depend on `orchestrator.setCurrentScope` having

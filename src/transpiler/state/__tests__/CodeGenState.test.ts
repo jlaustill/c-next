@@ -332,11 +332,15 @@ describe("CodeGenState", () => {
       // Documents the gap rather than asserting it is fine. A leaf does not
       // fail -- it mints a fresh scope parented to global, and every
       // qualification through it silently loses the outer component.
-      const inner = SymbolRegistry.getOrCreateScope("Outer.Inner");
+      SymbolRegistry.getOrCreateScope("Outer.Inner");
 
       CodeGenState.setCurrentScopeByPath("Inner");
 
-      expect(CodeGenState.currentScopePath).not.toBe(inner);
+      // The leaf minted a FRESH top-level scope; it did not reach `Outer.Inner`.
+      // Asserted by value: comparing the path against the scope OBJECT would be
+      // a `string` vs `IScopeSymbol` `Object.is` that holds for every possible
+      // implementation, including one storing the wrong path (#1298 review).
+      expect(CodeGenState.currentScopePath).toBe("Inner");
       expect(
         ScopeUtils.qualifyInScope("tick", CodeGenState.currentScopePath),
       ).toBe("Inner__tick");

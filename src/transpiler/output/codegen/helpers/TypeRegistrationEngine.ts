@@ -98,9 +98,9 @@ class TypeRegistrationEngine {
       if (member.variableDeclaration()) {
         const varDecl = member.variableDeclaration()!;
         const varName = varDecl.IDENTIFIER().getText();
-        // #1285: `setCurrentScopeByPath` above resolved this scope into a symbol
-        // carrying its parent chain; qualify through that rather than re-joining
-        // one level from the leaf name it was resolved FROM.
+        // #1298: `setCurrentScopeByPath` above stored this scope's whole path;
+        // qualify through that rather than re-joining one level from the leaf
+        // name it was resolved FROM.
         const fullName = QualifiedNameGenerator.forMember(
           CodeGenState.currentScopePath,
           varName,
