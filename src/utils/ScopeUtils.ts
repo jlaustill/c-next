@@ -124,8 +124,7 @@ class ScopeUtils {
    * global scope.
    */
   static leafOf(scopePath: string): string {
-    const parts = scopePath.split(QualifiedCName.SOURCE_SEPARATOR);
-    return parts[parts.length - 1] ?? "";
+    return scopePath.split(QualifiedCName.SOURCE_SEPARATOR).at(-1) ?? "";
   }
 
   /**
