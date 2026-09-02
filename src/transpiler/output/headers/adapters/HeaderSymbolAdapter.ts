@@ -255,9 +255,9 @@ class HeaderSymbolAdapter {
       kind: "scope",
       isExported: scope.isExported,
       // #1298: a scope states where it sits, like every other kind converted
-      // here. This literal used to omit `parent` entirely -- the parentless
-      // shape `getScopePath`'s guard existed to catch, built deliberately, and
-      // the one kind that could not say which scope contained it.
+      // here. This literal used to omit `parent` entirely -- the shape with no
+      // parent that `getScopePath`'s guard existed to catch, built deliberately,
+      // and the one kind that could not say which scope contained it.
       parent: ScopeUtils.isGlobalScopePath(scope.scopePath)
         ? undefined
         : scope.scopePath,

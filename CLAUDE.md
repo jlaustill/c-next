@@ -396,7 +396,7 @@ export default new Registry();
 ### Key Patterns
 
 - **SymbolTable ownership**: `CodeGenState.symbolTable` is single owner
-- **TSymbols use bare names**: `name: "init"` with `scope: IScopeSymbol` reference
+- **TSymbols use bare names**: `name: "init"` with `scopePath: string` -- the dotted path of the enclosing scope (`""` at file scope), never the scope object. #1298: holding the object gave every symbol a chain to walk and a cycle to represent, which made the graph unserializable and left `getScopePath`'s identity-based guard unable to fire on a proxy chain. The scope object is one `SymbolRegistry.getScope(path)` away where a mutable member list is genuinely needed
 - **Lookup key by layer**: `getOverloads(bareName)` answers "what does `init` mean _here_?" and needs ADR-057 scope context; `getOverloadsByCName("Motor__init")` answers "which symbol _is_ this?" and is an exact canonical identity. Codegen and anything downstream of it holds the latter — asking the bare-name index with a transpiled C name returns empty for every scoped symbol, which reads as "no such symbol" rather than "wrong question" (#1139). Build the key with `ScopeUtils.getTranspiledCName()`, the single encoder; never re-derive a qualified name by hand
 - **Per-file vs run-wide symbol views**: `ICodeGenSymbols.known*` is built by
   `_declareFile(tree, path, file.cnextIncludes)` and holds what **this file** can see;
@@ -622,8 +622,8 @@ Update both when adding new statement types.
   - **Symbols layer** — `TypeUtils.dispatchTypeResolution()`, fed an `isScopeType` predicate threaded from `CNextResolver.resolve()`. Everything downstream (`TSymbol`, `HeaderSymbolAdapter`, the `.h`) inherits the qualified name from here and must NOT re-qualify.
   - **Codegen layer** — `CodeGenerator.getTypeName()` and friends, via `CodeGenState.qualifyScopeType()`.
 - **`CNextResolver` Pass 0b** collects the qualified names of scope-declared enums/structs/bitmaps _before_ any type is resolved, so qualification does not depend on whether a type is declared above or below its use. Do not swap this for `scope.members`: that list is kind-agnostic (a function named `B` would capture global type `B`) and is still being built while collectors read it.
-- **`ScopeUtils.qualifyScopeType()`**: Shared utility in `src/utils/ScopeUtils.ts`. Takes `typeName`, `currentScope`, and an `isKnownType(qualifiedName)` predicate. Call it via `CodeGenState.qualifyScopeType()` in codegen; `TypeGenerationHelper` injects the predicate through `ITypeGenerationDeps` instead, to stay unit-testable.
-- **`ParameterInputAdapter.fromAST` struct detection**: `isKnownStruct` must check both the bare name AND the qualified name (`ScopeUtils.qualifyInScope(typeName, currentScope)` -- the REFERENCE, not its name) for scope-local struct types. Without this, scope struct params get classified as pass-by-value while `mappedType` comes back qualified, causing `.c` body to use `->` on a non-pointer.
+- **`ScopeUtils.qualifyScopeType()`**: Shared utility in `src/utils/ScopeUtils.ts`. Takes `typeName`, the enclosing `scopePath`, and an `isKnownType(qualifiedName)` predicate. Call it via `CodeGenState.qualifyScopeType()` in codegen; `TypeGenerationHelper` injects the predicate through `ITypeGenerationDeps` instead, to stay unit-testable.
+- **`ParameterInputAdapter.fromAST` struct detection**: `isKnownStruct` must check both the bare name AND the qualified name (`ScopeUtils.qualifyInScope(typeName, currentScopePath)` -- the whole PATH, not a scope's leaf name) for scope-local struct types. Without this, scope struct params get classified as pass-by-value while `mappedType` comes back qualified, causing `.c` body to use `->` on a non-pointer.
 
 ---
 

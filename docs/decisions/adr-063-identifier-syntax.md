@@ -404,10 +404,16 @@ Live diagnostics in the VS Code extension are tracked separately: every transpil
   The second half removed the ability to express the one-level form at all. Building a
   name now states that a COMPLETE path is in hand, rather than reading as an act of
   joining two things, and the one remaining routine that qualified against an enclosing
-  scope was moved and made to take the scope REFERENCE rather than its name. Nothing that
-  builds an encoded name is scope-aware any more, which makes threading the reference the
-  only way to express the correct thing and a compile error the consequence of not having
-  it.
+  scope was moved and made to take that whole path rather than a scope's leaf name.
+  Nothing that builds an encoded name is scope-aware any more, which makes threading the
+  path the only way to express the correct thing and a compile error the consequence of
+  not having it.
+
+  Issue #1298 changed what carries the path -- a symbol names its enclosing scope
+  directly instead of holding it, so nothing walks a chain to recover it -- without
+  changing anything decided here. The property this section argues for is that a name is
+  built from every outer component; where those components are read from is not a
+  property of the encoding.
 
   What remains is a call SHAPE — a whole-path builder handed exactly two parts — which no
   import-level rule can see, because that builder has 38 legitimate whole-path callers. Two gates split that: `.dependency-cruiser.cjs` widened

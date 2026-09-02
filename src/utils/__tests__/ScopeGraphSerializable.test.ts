@@ -20,7 +20,7 @@ import SymbolRegistry from "../../transpiler/state/SymbolRegistry";
 import JsonCodec from "../cache/JsonCodec";
 import type TJsonValue from "../types/TJsonValue";
 
-describe("symbol graph serializability (#1298)", () => {
+describe("the symbol graph is serializable (#1298)", () => {
   beforeEach(() => {
     SymbolRegistry.reset();
   });

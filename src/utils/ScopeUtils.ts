@@ -17,7 +17,7 @@ class ScopeUtils {
    * Create the global scope.
    *
    * The global scope has an empty name and an empty `scopePath`, which together
-   * are what `isGlobalScope` recognises. It no longer points at itself: #1298
+   * are what `isGlobalScope` identifies. It no longer points at itself: #1298
    * replaced the scope REFERENCE with a path, so the self-reference that made the
    * symbol graph cyclic -- and made `JsonCodec` recurse until the stack was
    * exhausted -- has nothing to be written into.

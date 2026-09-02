@@ -8,10 +8,16 @@ reads as a scope, or a nearby `isScope` guard proves it is one.
 **A row is not by itself a defect.** The population that WAS one -- a
 scope's leaf name standing in for a complete path, correct only while
 `scopeMember` admits no `scopeDeclaration` (`grammar/CNext.g4`) -- has been
-converted to the scope REFERENCE via `ScopeUtils.qualifyInScope`, which
-walks the parent chain. Every row below carries the judgement that was made
+converted to `ScopeUtils.qualifyInScope`, which takes the whole
+enclosing PATH. Every row below carries the judgement that was made
 about it, so no reader has to re-derive which is which:
 
+- **encoder** -- inside `ScopeUtils` itself, where joining an enclosing path
+  to a leaf IS the definition of the operation every other row is judged
+  against. #1298 made these visible: the enclosing path used to arrive as a
+  spread of a chain walk, which the scan could not see, and is now a named
+  `scopePath`. The path is complete by construction rather than a leaf
+  standing in for one, so there is nothing here to convert.
 - **via-scope-utils** -- already routed correctly, and matched only because
   the enclosing block mentions a scope.
 - **leaf-keyed** -- paired with a collection filed under a leaf-built key.
@@ -52,9 +58,11 @@ lands.
 | `src/transpiler/output/codegen/resolution/EnumTypeResolver.ts`                | `parts[0]`           | 1      | path       | --         |
 | `src/transpiler/output/codegen/resolution/EnumTypeResolver.ts`                | `parts[1]`           | 1      | path       | --         |
 | `src/transpiler/output/codegen/resolution/EnumTypeResolver.ts`                | `scopeName`          | 1      | path       | --         |
-| **total**                                                                     |                      | **12** |            |            |
+| `src/utils/ScopeUtils.ts`                                                     | `scopePath`          | 1      | encoder    | --         |
+| `src/utils/ScopeUtils.ts`                                                     | `symbol.scopePath`   | 1      | encoder    | --         |
+| **total**                                                                     |                      | **14** |            |            |
 
-12 site(s) across 8 file(s).
+14 site(s) across 9 file(s).
 
 ## What must move, and with what
 
