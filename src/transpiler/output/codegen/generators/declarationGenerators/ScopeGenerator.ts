@@ -333,6 +333,46 @@ function generateScopeFunction(
 }
 
 /**
+ * The kinds a generated header can DEFINE, in the order it emits their
+ * sections. Iterating kind-outer is what gives the `.c` the header's ordering:
+ * a struct naming an enum declared below it must still come second, and the
+ * two files disagreeing on that was an exit-0 miscompile (#1300 review).
+ */
+const HEADER_TYPE_KINDS: ReadonlyArray<{
+  readonly declarationOf: (
+    member: Parser.ScopeMemberContext,
+  ) => { IDENTIFIER(): { getText(): string } } | null;
+  readonly emit: (name: string, input: IHeaderTypeInput) => string;
+}> = [
+  { declarationOf: (m) => m.enumDeclaration(), emit: generateEnumHeader },
+  { declarationOf: (m) => m.bitmapDeclaration(), emit: generateBitmapHeader },
+  { declarationOf: (m) => m.structDeclaration(), emit: generateStructHeader },
+];
+
+/**
+ * This type's transpiled C name, or null when the header already defines it.
+ *
+ * #1300: a type is defined in exactly ONE file, so the `.c` asks the header
+ * what it holds rather than re-deriving it from visibility -- those two answers
+ * agree only until a public signature drags a private type into the header, and
+ * then the type is defined twice and the C compiler rejects it.
+ */
+function cNameIfAbsentFromHeader(
+  nameNode: { IDENTIFIER(): { getText(): string } },
+  declaringScopePath: string,
+): string | null {
+  const { fullName } = getScopedName(nameNode, declaringScopePath);
+  const definedInHeader =
+    CodeGenState.sourcePath !== null &&
+    PublicInterface.definesTypeInHeader(
+      CodeGenState.symbolTable,
+      CodeGenState.sourcePath,
+      fullName,
+    );
+  return definedInHeader ? null : fullName;
+}
+
+/**
  * #1300: the type definitions this scope contributes to the `.c`.
  *
  * A type is defined in exactly ONE file -- the header when it reaches the
@@ -369,49 +409,17 @@ function generateScopeTypeDefinitions(
     callbackTypes: CodeGenState.callbackTypes,
   };
 
-  const definedHere = (nameNode: {
-    IDENTIFIER(): { getText(): string };
-  }): string | null => {
-    const { fullName } = getScopedName(nameNode, declaringScopePath);
-    if (
-      CodeGenState.sourcePath !== null &&
-      PublicInterface.definesTypeInHeader(
-        CodeGenState.symbolTable,
-        CodeGenState.sourcePath,
-        fullName,
-      )
-    ) {
-      return null;
-    }
-    return fullName;
-  };
+  const members = node.scopeMember();
+  const definitions = HEADER_TYPE_KINDS.flatMap(({ declarationOf, emit }) =>
+    members
+      .map(declarationOf)
+      .filter((decl) => decl !== null)
+      .map((decl) => cNameIfAbsentFromHeader(decl!, declaringScopePath))
+      .filter((cName): cName is string => cName !== null)
+      .map((cName) => emit(cName, typeInput)),
+  );
 
-  const enums: string[] = [];
-  const bitmaps: string[] = [];
-  const structs: string[] = [];
-
-  for (const member of node.scopeMember()) {
-    const enumDecl = member.enumDeclaration();
-    if (enumDecl) {
-      const name = definedHere(enumDecl);
-      if (name !== null) enums.push(generateEnumHeader(name, typeInput));
-      continue;
-    }
-    const bitmapDecl = member.bitmapDeclaration();
-    if (bitmapDecl) {
-      const name = definedHere(bitmapDecl);
-      if (name !== null) bitmaps.push(generateBitmapHeader(name, typeInput));
-      continue;
-    }
-    const structDecl = member.structDeclaration();
-    if (structDecl) {
-      const name = definedHere(structDecl);
-      if (name !== null) structs.push(generateStructHeader(name, typeInput));
-    }
-  }
-
-  const all = [...enums, ...bitmaps, ...structs];
-  return all.length === 0 ? [] : ["", ...all];
+  return definitions.length === 0 ? [] : ["", ...definitions];
 }
 
 /**
@@ -512,11 +520,11 @@ const generateScope: TGeneratorFn<Parser.ScopeDeclarationContext> = (
     SymbolRegistry.getOrCreateScope(name),
   );
 
-  const lines: string[] = [];
-  lines.push(`/* Scope: ${name} */`);
-
-  // #1300: types first, grouped by kind, before anything that can name them.
-  lines.push(...generateScopeTypeDefinitions(node, declaringScopePath, input));
+  const lines: string[] = [
+    `/* Scope: ${name} */`,
+    // #1300: types first, grouped by kind, before anything that can name them.
+    ...generateScopeTypeDefinitions(node, declaringScopePath, input),
+  ];
 
   for (const member of node.scopeMember()) {
     lines.push(
