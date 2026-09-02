@@ -20,20 +20,14 @@ describe("EnumCollector", () => {
       `;
       const tree = parse(code);
       const enumCtx = tree.declaration(0)!.enumDeclaration()!;
-      const globalScope = TestScopeUtils.getGlobalScope();
-      const symbol = EnumCollector.collect(
-        enumCtx,
-        "test.cnx",
-        globalScope,
-        "public",
-      );
+      const symbol = EnumCollector.collect(enumCtx, "test.cnx", "", "public");
 
       expect(symbol.kind).toBe("enum");
       expect(symbol.name).toBe("Color");
       expect(symbol.sourceFile).toBe("test.cnx");
       expect(symbol.sourceLanguage).toBe(ESourceLanguage.CNext);
       expect(symbol.visibility).toBe("public");
-      expect(symbol.scope).toBe(globalScope);
+      expect(symbol.scopePath).toBe("");
 
       // Check members
       expect(symbol.members.size).toBe(3);
@@ -52,13 +46,7 @@ describe("EnumCollector", () => {
       `;
       const tree = parse(code);
       const enumCtx = tree.declaration(0)!.enumDeclaration()!;
-      const globalScope = TestScopeUtils.getGlobalScope();
-      const symbol = EnumCollector.collect(
-        enumCtx,
-        "test.cnx",
-        globalScope,
-        "public",
-      );
+      const symbol = EnumCollector.collect(enumCtx, "test.cnx", "", "public");
 
       expect(symbol.members.get("Low")).toBe(10);
       expect(symbol.members.get("Medium")).toBe(20);
@@ -77,13 +65,7 @@ describe("EnumCollector", () => {
       `;
       const tree = parse(code);
       const enumCtx = tree.declaration(0)!.enumDeclaration()!;
-      const globalScope = TestScopeUtils.getGlobalScope();
-      const symbol = EnumCollector.collect(
-        enumCtx,
-        "test.cnx",
-        globalScope,
-        "public",
-      );
+      const symbol = EnumCollector.collect(enumCtx, "test.cnx", "", "public");
 
       expect(symbol.members.get("Idle")).toBe(0);
       expect(symbol.members.get("Running")).toBe(5);
@@ -104,13 +86,7 @@ describe("EnumCollector", () => {
       `;
       const tree = parse(code);
       const enumCtx = tree.declaration(0)!.enumDeclaration()!;
-      const globalScope = TestScopeUtils.getGlobalScope();
-      const symbol = EnumCollector.collect(
-        enumCtx,
-        "test.cnx",
-        globalScope,
-        "public",
-      );
+      const symbol = EnumCollector.collect(enumCtx, "test.cnx", "", "public");
 
       expect(symbol.members.get("A")).toBe(1);
       expect(symbol.members.get("B")).toBe(2);
@@ -128,13 +104,7 @@ describe("EnumCollector", () => {
       `;
       const tree = parse(code);
       const enumCtx = tree.declaration(0)!.enumDeclaration()!;
-      const globalScope = TestScopeUtils.getGlobalScope();
-      const symbol = EnumCollector.collect(
-        enumCtx,
-        "test.cnx",
-        globalScope,
-        "public",
-      );
+      const symbol = EnumCollector.collect(enumCtx, "test.cnx", "", "public");
 
       expect(symbol.members.get("Bit0")).toBe(1);
       expect(symbol.members.get("Bit1")).toBe(2);
@@ -153,17 +123,16 @@ describe("EnumCollector", () => {
       `;
       const tree = parse(code);
       const enumCtx = tree.declaration(0)!.enumDeclaration()!;
-      const motorScope = TestScopeUtils.createMockScope("Motor");
       const symbol = EnumCollector.collect(
         enumCtx,
         "motor.cnx",
-        motorScope,
+        "Motor",
         "public",
       );
 
       expect(symbol.name).toBe("State");
-      expect(symbol.scope).toBe(motorScope);
-      expect(symbol.scope.name).toBe("Motor");
+      expect(symbol.scopePath).toBe("Motor");
+      expect(symbol.scopePath).toBe("Motor");
     });
   });
 
@@ -176,10 +145,9 @@ describe("EnumCollector", () => {
       `;
       const tree = parse(code);
       const enumCtx = tree.declaration(0)!.enumDeclaration()!;
-      const globalScope = TestScopeUtils.getGlobalScope();
 
       expect(() =>
-        EnumCollector.collect(enumCtx, "test.cnx", globalScope, "public"),
+        EnumCollector.collect(enumCtx, "test.cnx", "", "public"),
       ).toThrow(
         "Error: Negative values not allowed in enum (found -1 in Invalid.Bad)",
       );
@@ -196,13 +164,7 @@ describe("EnumCollector", () => {
       `;
       const tree = parse(code);
       const enumCtx = tree.declaration(0)!.enumDeclaration()!;
-      const globalScope = TestScopeUtils.getGlobalScope();
-      const symbol = EnumCollector.collect(
-        enumCtx,
-        "test.cnx",
-        globalScope,
-        "public",
-      );
+      const symbol = EnumCollector.collect(enumCtx, "test.cnx", "", "public");
 
       expect(symbol.sourceLine).toBe(3);
     });
@@ -222,7 +184,7 @@ describe("EnumCollector", () => {
       const symbol = EnumCollector.collect(
         tree.declaration(0)!.enumDeclaration()!,
         "test.cnx",
-        TestScopeUtils.getGlobalScope(),
+        "",
         "private",
       );
 

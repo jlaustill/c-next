@@ -178,14 +178,14 @@ function handleRegisterMemberBitmapField(ctx: IAssignmentContext): string {
 /**
  * Handle scoped register member bitmap field.
  * Two patterns:
- * - this.REG.MEMBER.field (hasThis=true, 3 identifiers) - scope from currentScope
+ * - this.REG.MEMBER.field (hasThis=true, 3 identifiers) - scope from currentScopePath
  * - Scope.REG.MEMBER.field (hasThis=false, 4 identifiers) - scope from identifiers[0]
  */
 function handleScopedRegisterMemberBitmapField(
   ctx: IAssignmentContext,
 ): string {
   // #1285: the two branches do not hold the same kind of thing. `this.` has the
-  // declaring scope SYMBOL; `Scope.` has a scope NAME written in the source. They
+  // declaring scope PATH; `Scope.` has a scope NAME written in the source. They
   // were both flattened to a string here, which is what let one leaf-only encoder
   // serve both. Each branch now builds the register name its own way.
   let fullRegName: string;
@@ -195,13 +195,16 @@ function handleScopedRegisterMemberBitmapField(
 
   if (ctx.hasThis) {
     // this.REG.MEMBER.field - 3 identifiers
-    if (!CodeGenState.currentScope) {
+    if (!CodeGenState.currentScopePath) {
       throw new Error("Error: 'this' can only be used inside a scope");
     }
     regName = ctx.identifiers[0];
     memberName = ctx.identifiers[1];
     fieldName = ctx.identifiers[2];
-    fullRegName = ScopeUtils.qualifyInScope(regName, CodeGenState.currentScope);
+    fullRegName = ScopeUtils.qualifyInScope(
+      regName,
+      CodeGenState.currentScopePath,
+    );
   } else {
     // Scope.REG.MEMBER.field - 4 identifiers
     const scopeName = ctx.identifiers[0];

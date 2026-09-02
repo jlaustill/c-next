@@ -131,7 +131,7 @@ describe("SpecialHandlers", () => {
     // `setCurrentScopeByPath("Outer.Inner")` resolves a scope whose parent is
     // `Outer`, and the type registry is populated through the chain-walking
     // encoder (TypeRegistrationEngine -> QualifiedNameGenerator.forMember). A
-    // handler that joins `currentScope.name` asks for `Inner__count` and misses.
+    // handler that joins `currentScopePath.name` asks for `Inner__count` and misses.
     //
     // Not reachable from .cnx: `scopeMember` admits no `scopeDeclaration`
     // (grammar/CNext.g4:81-89), so no fixture can build depth two. It is

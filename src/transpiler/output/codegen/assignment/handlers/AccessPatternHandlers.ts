@@ -41,7 +41,7 @@ function handleGlobalAccess(ctx: IAssignmentContext): string {
  * Validates scope context and generates standard assignment.
  */
 function handleThisAccess(ctx: IAssignmentContext): string {
-  if (!CodeGenState.currentScope) {
+  if (!CodeGenState.currentScopePath) {
     throw new Error("Error: 'this' can only be used inside a scope");
   }
 

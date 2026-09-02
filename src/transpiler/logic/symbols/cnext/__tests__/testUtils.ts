@@ -1,8 +1,9 @@
 /**
  * Test utilities for symbol collector tests.
  *
- * Provides mock IScopeSymbol instances for testing collectors
- * that now require proper scope references.
+ * Provides mock IScopeSymbol instances for tests that need a scope OBJECT --
+ * the registry's member lists. Collectors themselves take a `scopePath` string
+ * (#1298) and need nothing from here.
  *
  * Note: Delegates to ScopeUtils to avoid code duplication.
  */
@@ -19,7 +20,6 @@ import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 class TestScopeUtils {
   /**
    * Create the global scope singleton for tests.
-   * The global scope has a self-reference for parent.
    */
   static createMockGlobalScope(): IScopeSymbol {
     return ScopeUtils.createGlobalScope();
@@ -28,9 +28,8 @@ class TestScopeUtils {
   /**
    * Create a named scope for tests.
    */
-  static createMockScope(name: string, parent?: IScopeSymbol): IScopeSymbol {
-    const actualParent = parent ?? ScopeUtils.createGlobalScope();
-    return ScopeUtils.createScope(name, actualParent);
+  static createMockScope(name: string, parentPath = ""): IScopeSymbol {
+    return ScopeUtils.createScope(name, parentPath);
   }
 
   /**

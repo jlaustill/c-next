@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import parse from "./testHelpers";
 import BitmapCollector from "../collectors/BitmapCollector";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
-import TestScopeUtils from "./testUtils";
 
 describe("BitmapCollector", () => {
   describe("basic bitmap extraction", () => {
@@ -21,7 +20,7 @@ describe("BitmapCollector", () => {
       const symbol = BitmapCollector.collect(
         bitmapCtx,
         "test.cnx",
-        TestScopeUtils.getGlobalScope(),
+        "",
         "public",
       );
 
@@ -55,7 +54,7 @@ describe("BitmapCollector", () => {
       const symbol = BitmapCollector.collect(
         bitmapCtx,
         "control.cnx",
-        TestScopeUtils.getGlobalScope(),
+        "",
         "public",
       );
 
@@ -81,7 +80,7 @@ describe("BitmapCollector", () => {
       const symbol = BitmapCollector.collect(
         bitmapCtx,
         "config.cnx",
-        TestScopeUtils.getGlobalScope(),
+        "",
         "public",
       );
 
@@ -103,7 +102,7 @@ describe("BitmapCollector", () => {
       const symbol = BitmapCollector.collect(
         bitmapCtx,
         "rgb.cnx",
-        TestScopeUtils.getGlobalScope(),
+        "",
         "public",
       );
 
@@ -126,11 +125,10 @@ describe("BitmapCollector", () => {
       `;
       const tree = parse(code);
       const bitmapCtx = tree.declaration(0)!.bitmapDeclaration()!;
-      const motorScope = TestScopeUtils.createMockScope("Motor");
       const symbol = BitmapCollector.collect(
         bitmapCtx,
         "motor.cnx",
-        motorScope,
+        "Motor",
         "public",
       );
 
@@ -152,12 +150,7 @@ describe("BitmapCollector", () => {
       const bitmapCtx = tree.declaration(0)!.bitmapDeclaration()!;
 
       expect(() =>
-        BitmapCollector.collect(
-          bitmapCtx,
-          "test.cnx",
-          TestScopeUtils.getGlobalScope(),
-          "public",
-        ),
+        BitmapCollector.collect(bitmapCtx, "test.cnx", "", "public"),
       ).toThrow(
         "Error: Bitmap 'TooMany' has 10 bits but bitmap8 requires exactly 8 bits",
       );
@@ -174,12 +167,7 @@ describe("BitmapCollector", () => {
       const bitmapCtx = tree.declaration(0)!.bitmapDeclaration()!;
 
       expect(() =>
-        BitmapCollector.collect(
-          bitmapCtx,
-          "test.cnx",
-          TestScopeUtils.getGlobalScope(),
-          "public",
-        ),
+        BitmapCollector.collect(bitmapCtx, "test.cnx", "", "public"),
       ).toThrow(
         "Error: Bitmap 'TooFew' has 4 bits but bitmap8 requires exactly 8 bits",
       );
@@ -199,7 +187,7 @@ describe("BitmapCollector", () => {
       const symbol = BitmapCollector.collect(
         bitmapCtx,
         "test.cnx",
-        TestScopeUtils.getGlobalScope(),
+        "",
         "public",
       );
 
@@ -221,7 +209,7 @@ describe("BitmapCollector", () => {
       const symbol = BitmapCollector.collect(
         tree.declaration(0)!.bitmapDeclaration()!,
         "test.cnx",
-        TestScopeUtils.getGlobalScope(),
+        "",
         "private",
       );
 

@@ -8,7 +8,6 @@
 import * as Parser from "../../../parser/grammar/CNextParser";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import IEnumSymbol from "../../../../types/symbols/IEnumSymbol";
-import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 import ExpressionEvaluator from "../utils/ExpressionEvaluator";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
 import TVisibility from "../../../../types/TVisibility";
@@ -19,7 +18,7 @@ class EnumCollector {
    *
    * @param ctx The enum declaration context
    * @param sourceFile Source file path
-   * @param scope The scope this enum belongs to (IScopeSymbol)
+   * @param scopePath The path of the scope this enum belongs to (dotted path, "" at file scope)
    * @param visibility ADR-016 visibility as declared (#1300)
    * @returns The enum symbol with proper scope reference
    * @throws Error if any member has a negative value
@@ -27,7 +26,7 @@ class EnumCollector {
   static collect(
     ctx: Parser.EnumDeclarationContext,
     sourceFile: string,
-    scope: IScopeSymbol,
+    scopePath: string,
     visibility: TVisibility,
   ): IEnumSymbol {
     const name = ctx.IDENTIFIER().getText();
@@ -61,10 +60,10 @@ class EnumCollector {
     return {
       kind: "enum",
       name,
-      scope,
+      scopePath,
       // #1285: identity computed once, from the scope chain, not
       // re-derived by every consumer.
-      ...ScopeUtils.identityOf({ name, scope }),
+      ...ScopeUtils.identityOf({ name, scopePath }),
       sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.CNext,

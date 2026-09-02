@@ -9,7 +9,6 @@ import { CNextParser } from "../../parser/grammar/CNextParser";
 import FunctionCallAnalyzer from "../FunctionCallAnalyzer";
 import SymbolTable from "../../symbols/SymbolTable";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
-import TestScopeUtils from "../../symbols/cnext/__tests__/testUtils";
 import TTypeUtils from "../../../../utils/TTypeUtils";
 import type IFunctionSymbol from "../../../types/symbols/IFunctionSymbol";
 import CodeGenState from "../../../state/CodeGenState";
@@ -695,7 +694,7 @@ describe("FunctionCallAnalyzer", () => {
         ...TestSymbolUtils.base({
           kind: "function",
           name: "cnextFunc",
-          scope: TestScopeUtils.createMockGlobalScope(),
+          scopePath: "",
           sourceFile: "module.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,

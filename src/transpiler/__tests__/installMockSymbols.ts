@@ -1,11 +1,10 @@
 import CodeGenState from "../state/CodeGenState";
-import ScopeUtils from "../../utils/ScopeUtils";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
 import createMockSymbols from "./codeGenSymbolsHelpers";
 import type ICodeGenSymbols from "../types/ICodeGenSymbols";
-import type IScopeSymbol from "../types/symbols/IScopeSymbol";
 import type TSymbol from "../types/symbols/TSymbol";
+import type TVisibility from "../types/TVisibility";
 
 /**
  * Build a mock symbol world and install BOTH of its representations.
@@ -26,18 +25,17 @@ function installMockSymbols(
   const symbols = createMockSymbols(overrides);
   CodeGenState.symbols = symbols;
 
-  const globalScope = ScopeUtils.createGlobalScope();
-  register(symbols.knownEnums, globalScope, (base) => ({
+  register(symbols.knownEnums, (base) => ({
     ...base,
     kind: "enum",
     members: new Map(),
   }));
-  register(symbols.knownStructs, globalScope, (base) => ({
+  register(symbols.knownStructs, (base) => ({
     ...base,
     kind: "struct",
     fields: new Map(),
   }));
-  register(symbols.knownBitmaps, globalScope, (base) => ({
+  register(symbols.knownBitmaps, (base) => ({
     ...base,
     kind: "bitmap",
     backingType: "uint8_t",
@@ -58,17 +56,16 @@ function installMockSymbols(
  */
 function register(
   names: ReadonlySet<string>,
-  scope: IScopeSymbol,
   build: (base: {
     name: string;
     fullyQualifiedCName: string;
     cnxScopedName: string;
-    scope: IScopeSymbol;
+    scopePath: string;
     sourceFile: string;
     sourceLine: number;
     sourceLanguage: ESourceLanguage;
-    isExported: boolean;
-  }) => unknown,
+    visibility: TVisibility;
+  }) => TSymbol,
 ): void {
   for (const qualifiedName of names) {
     const parts = QualifiedCName.split(qualifiedName);
@@ -76,13 +73,17 @@ function register(
       name: parts.at(-1)!,
       fullyQualifiedCName: qualifiedName,
       cnxScopedName: parts.join(QualifiedCName.SOURCE_SEPARATOR),
-      scope,
+      // #1298: the enclosing PATH, not a scope object. These mocks are all
+      // file-scope, and the deleted `scope` field made every symbol installed
+      // here carry a live scope object while `scopePath` was undefined -- which
+      // `build: => unknown` plus `as TSymbol` hid from tsc.
+      scopePath: "",
       sourceFile: "mock.cnx",
       sourceLine: 1,
       sourceLanguage: ESourceLanguage.CNext,
-      isExported: true,
+      visibility: "public" as TVisibility,
     };
-    CodeGenState.symbolTable.addTSymbol(build(base) as TSymbol);
+    CodeGenState.symbolTable.addTSymbol(build(base));
   }
 }
 

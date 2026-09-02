@@ -26,7 +26,7 @@ interface SetupStateOptions {
   typeRegistry?: Map<string, TTypeInfo>;
   callbackTypes?: Map<string, ICallbackTypeInfo>;
   knownFunctions?: Set<string>;
-  currentScope?: string | null;
+  currentScopePath?: string | null;
   scopeMembers?: Map<string, Set<string>>;
   currentParameters?: Map<string, TParameterInfo>;
   localVariables?: Set<string>;
@@ -52,8 +52,8 @@ function setupState(options: SetupStateOptions = {}): void {
   if (options.knownFunctions) {
     CodeGenState.knownFunctions = options.knownFunctions;
   }
-  if (options.currentScope !== undefined) {
-    CodeGenState.setCurrentScopeByPath(options.currentScope);
+  if (options.currentScopePath !== undefined) {
+    CodeGenState.setCurrentScopeByPath(options.currentScopePath);
   }
   if (options.scopeMembers) {
     for (const [scope, members] of options.scopeMembers) {
@@ -978,7 +978,7 @@ describe("TypeValidator", () => {
       ]);
       setupState({
         typeRegistry,
-        currentScope: "Scope",
+        currentScopePath: "Scope",
         scopeMembers: new Map([["Scope", new Set(["x"])]]),
       });
       expect(TypeValidator.checkConstAssignment("x")).toContain(
@@ -1038,7 +1038,7 @@ describe("TypeValidator", () => {
 
   describe("validateBareIdentifierInScope", () => {
     it("does nothing outside a scope", () => {
-      setupState({ currentScope: null });
+      setupState({ currentScopePath: "" });
       expect(() =>
         TypeValidator.validateBareIdentifierInScope(
           "anything",
@@ -1049,7 +1049,7 @@ describe("TypeValidator", () => {
     });
 
     it("allows local variables as bare identifiers", () => {
-      setupState({ currentScope: "Motor" });
+      setupState({ currentScopePath: "Motor" });
       expect(() =>
         TypeValidator.validateBareIdentifierInScope(
           "localVar",
@@ -1061,7 +1061,7 @@ describe("TypeValidator", () => {
 
     it("throws for bare scope member access", () => {
       const scopeMembers = new Map([["Motor", new Set(["speed"])]]);
-      setupState({ currentScope: "Motor", scopeMembers });
+      setupState({ currentScopePath: "Motor", scopeMembers });
       expect(() =>
         TypeValidator.validateBareIdentifierInScope(
           "speed",
@@ -1075,7 +1075,7 @@ describe("TypeValidator", () => {
 
     it("throws for bare register access", () => {
       const symbols = createMockSymbols({ knownRegisters: new Set(["GPIO"]) });
-      setupState({ symbols, currentScope: "Motor" });
+      setupState({ symbols, currentScopePath: "Motor" });
       expect(() =>
         TypeValidator.validateBareIdentifierInScope("GPIO", false, () => false),
       ).toThrow(
@@ -1085,7 +1085,7 @@ describe("TypeValidator", () => {
 
     it("throws for bare global function access", () => {
       setupState({
-        currentScope: "Motor",
+        currentScopePath: "Motor",
         knownFunctions: new Set(["globalFunc"]),
       });
       expect(() =>
@@ -1101,7 +1101,7 @@ describe("TypeValidator", () => {
 
     it("allows scope-prefixed functions", () => {
       setupState({
-        currentScope: "Motor",
+        currentScopePath: "Motor",
         knownFunctions: new Set(["Motor__helper"]),
       });
       expect(() =>
@@ -1115,7 +1115,7 @@ describe("TypeValidator", () => {
 
     it("throws for bare enum access", () => {
       const symbols = createMockSymbols({ knownEnums: new Set(["State"]) });
-      setupState({ symbols, currentScope: "Motor" });
+      setupState({ symbols, currentScopePath: "Motor" });
       expect(() =>
         TypeValidator.validateBareIdentifierInScope(
           "State",
@@ -1126,7 +1126,7 @@ describe("TypeValidator", () => {
     });
 
     it("throws for bare struct access", () => {
-      setupState({ currentScope: "Motor" });
+      setupState({ currentScopePath: "Motor" });
       expect(() =>
         TypeValidator.validateBareIdentifierInScope("Point", false, () => true),
       ).toThrow("Use 'global.Point' to access global struct 'Point'");
@@ -1139,7 +1139,7 @@ describe("TypeValidator", () => {
           { baseType: "u32", bitWidth: 32, isArray: false, isConst: false },
         ],
       ]);
-      setupState({ currentScope: "Motor", typeRegistry });
+      setupState({ currentScopePath: "Motor", typeRegistry });
       expect(() =>
         TypeValidator.validateBareIdentifierInScope(
           "counter",
@@ -1156,7 +1156,7 @@ describe("TypeValidator", () => {
           { baseType: "u32", bitWidth: 32, isArray: false, isConst: false },
         ],
       ]);
-      setupState({ currentScope: "Motor", typeRegistry });
+      setupState({ currentScopePath: "Motor", typeRegistry });
       expect(() =>
         TypeValidator.validateBareIdentifierInScope(
           "Motor__speed",
@@ -2795,7 +2795,7 @@ describe("TypeValidator", () => {
   describe("resolveBareIdentifier - outside scope coverage", () => {
     it("returns null for enum identifier when outside scope", () => {
       const symbols = createMockSymbols({ knownEnums: new Set(["State"]) });
-      setupState({ symbols, currentScope: null });
+      setupState({ symbols, currentScopePath: "" });
       const result = TypeValidator.resolveBareIdentifier(
         "State",
         false,
@@ -2805,7 +2805,7 @@ describe("TypeValidator", () => {
     });
 
     it("returns null for struct identifier when outside scope", () => {
-      setupState({ currentScope: null });
+      setupState({ currentScopePath: "" });
       const result = TypeValidator.resolveBareIdentifier(
         "Point",
         false,
@@ -2816,7 +2816,7 @@ describe("TypeValidator", () => {
 
     it("returns null for register identifier when outside scope", () => {
       const symbols = createMockSymbols({ knownRegisters: new Set(["GPIO"]) });
-      setupState({ symbols, currentScope: null });
+      setupState({ symbols, currentScopePath: "" });
       const result = TypeValidator.resolveBareIdentifier(
         "GPIO",
         false,

@@ -10,6 +10,7 @@
 
 import DeclarationSite from "../../../utils/DeclarationSite";
 import ScopeUtils from "../../../utils/ScopeUtils";
+import SymbolRegistry from "../../state/SymbolRegistry";
 import { produce, enableMapSet } from "immer";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import LiteralUtils from "../../../utils/LiteralUtils";
@@ -717,8 +718,20 @@ class SymbolTable {
    * member definitions leaves the reader to find those blocks themselves.
    */
   private static scopeDeclarationNote(symbol: TSymbol): string {
-    const scope = symbol.scope;
-    if (ScopeUtils.isGlobalScope(scope) || scope.declarationSites.size === 0) {
+    // #1298: the symbol names its scope by path; the object -- and the mutable
+    // `declarationSites` on it -- is one registry lookup away.
+    const scope = SymbolRegistry.getScope(symbol.scopePath);
+    // The global-scope disjunct is stated, not merely implied. It never decides
+    // the result -- the only `declarationSites` writer targets a grammar-
+    // guaranteed non-empty identifier, so the global scope's set is always empty
+    // and the third disjunct would catch it -- but "a global symbol gets no
+    // declaration note" is the intent, and `getScope("")` returns the global
+    // scope object rather than null, so nothing else says it (#1298 review).
+    if (
+      scope === null ||
+      ScopeUtils.isGlobalScopePath(symbol.scopePath) ||
+      scope.declarationSites.size === 0
+    ) {
       return "";
     }
     // Sorted through DeclarationSite, not `.sort()`: these keys end in a line
@@ -803,7 +816,7 @@ class SymbolTable {
     // with C's global symbols (e.g., POSIX read()).
     const conflictingCnextDefs = cnextDefs.filter((s) => {
       const tSymbol = s as TSymbol;
-      return tSymbol.scope.name === "";
+      return ScopeUtils.isGlobalScopePath(tSymbol.scopePath);
     });
 
     if (
@@ -1098,8 +1111,9 @@ class SymbolTable {
       // #1285: key on the scope's own identity, not its leaf name. Two distinct
       // scopes can share a leaf (`Outer.Inner` and `Other.Inner`), and keying on
       // the leaf grouped their members together -- reporting a conflict between
-      // symbols that never shared a scope.
-      const key = `${tSymbol.scope.fullyQualifiedCName}:${tSymbol.kind}`;
+      // symbols that never shared a scope. #1298: the path IS that identity, and
+      // is injective for the same reason the C name was.
+      const key = `${tSymbol.scopePath}:${tSymbol.kind}`;
       const existing = byScopeAndKind.get(key);
       if (existing) {
         existing.push(tSymbol);

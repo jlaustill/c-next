@@ -25,7 +25,6 @@ import CodeGenState from "../../state/CodeGenState";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import ScopeUtils from "../../../utils/ScopeUtils";
 import SymbolRegistry from "../../state/SymbolRegistry";
-import type IScopeSymbol from "../../types/symbols/IScopeSymbol";
 
 /**
  * Tracks the initialization state of a variable
@@ -555,10 +554,10 @@ class InitializationAnalyzer {
     const scopeDecl = decl.scopeDeclaration();
     if (!scopeDecl) return;
 
-    // #1357: the scope REFERENCE, not its leaf name -- qualification walks the
-    // parent chain, so a nested scope keeps its outer components.
-    const scope = SymbolRegistry.getOrCreateScope(
-      scopeDecl.IDENTIFIER().getText(),
+    // #1298: the whole scope PATH, not its leaf name, so a nested scope keeps
+    // its outer components when its members are qualified.
+    const scopePath = ScopeUtils.pathOf(
+      SymbolRegistry.getOrCreateScope(scopeDecl.IDENTIFIER().getText()),
     );
 
     // Phase 1: Find all members assigned in any scope function
@@ -566,7 +565,7 @@ class InitializationAnalyzer {
 
     // Phase 2: Process each member with assignment info
     for (const member of scopeDecl.scopeMember()) {
-      this._processScopeMemberVariable(member, scope, assignedMembers);
+      this._processScopeMemberVariable(member, scopePath, assignedMembers);
     }
   }
 
@@ -714,14 +713,14 @@ class InitializationAnalyzer {
    */
   private _processScopeMemberVariable(
     member: Parser.ScopeMemberContext,
-    scope: IScopeSymbol,
+    scopePath: string,
     assignedMembers: Set<string>,
   ): void {
     const memberVar = member.variableDeclaration();
     if (!memberVar) return;
 
     const varName = memberVar.IDENTIFIER().getText();
-    const fullName = ScopeUtils.qualifyInScope(varName, scope); // Transpiled C name
+    const fullName = ScopeUtils.qualifyInScope(varName, scopePath); // Transpiled C name
     const { line, column } = ParserUtils.getPosition(memberVar);
     const typeName = this._extractUserTypeName(memberVar.type());
 

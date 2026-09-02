@@ -55,6 +55,10 @@ class ScopeCollector {
     // Get or create the scope via SymbolRegistry
     const scope = SymbolRegistry.getOrCreateScope(scopeName);
 
+    // #1298: members carry the scope's PATH, not the scope object. Derived once
+    // here so the six member collectors below cannot disagree about it.
+    const scopePath = ScopeUtils.pathOf(scope);
+
     // Update scope metadata (cast to mutable for initialization)
     const mutableScope = scope as unknown as {
       sourceFile: string;
@@ -136,7 +140,7 @@ class ScopeCollector {
         const varSymbol = VariableCollector.collect(
           varDecl,
           sourceFile,
-          scope,
+          scopePath,
           visibility,
           constValues,
           isScopeType,
@@ -156,7 +160,7 @@ class ScopeCollector {
         const funcSymbol = FunctionCollector.collectAndRegister(
           funcDecl,
           sourceFile,
-          scope,
+          scopePath,
           body,
           visibility,
           isScopeType,
@@ -174,7 +178,7 @@ class ScopeCollector {
         const enumSymbol = EnumCollector.collect(
           enumDecl,
           sourceFile,
-          scope,
+          scopePath,
           visibility,
         );
         memberSymbols.push(enumSymbol);
@@ -190,7 +194,7 @@ class ScopeCollector {
         const bitmapSymbol = BitmapCollector.collect(
           bitmapDecl,
           sourceFile,
-          scope,
+          scopePath,
           visibility,
         );
         memberSymbols.push(bitmapSymbol);
@@ -206,7 +210,7 @@ class ScopeCollector {
         const structSymbol = StructCollector.collect(
           structDecl,
           sourceFile,
-          scope,
+          scopePath,
           visibility,
           constValues,
           isScopeType,
@@ -225,7 +229,7 @@ class ScopeCollector {
           regDecl,
           sourceFile,
           knownBitmaps,
-          scope,
+          scopePath,
           visibility,
           isScopeType,
         );

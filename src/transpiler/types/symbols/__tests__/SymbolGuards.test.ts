@@ -8,13 +8,12 @@ import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 describe("SymbolGuards", () => {
   // Helper to create a minimal mock symbol
   const createMockSymbol = (kind: string): TSymbol => {
-    const mockScope = { kind: "scope" } as unknown;
-    (mockScope as { scope: unknown }).scope = mockScope;
-
     return {
       kind,
       name: "test",
-      scope: mockScope,
+      // #1298: a path, so this mock no longer needs a self-referential scope
+      // object -- which is the point of the change it is following.
+      scopePath: "",
       sourceFile: "test.cnx",
       sourceLine: 1,
       sourceLanguage: ESourceLanguage.CNext,

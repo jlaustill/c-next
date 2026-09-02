@@ -15,7 +15,6 @@
 import ISeparatorContext from "../types/ISeparatorContext";
 import IMemberSeparatorDeps from "../types/IMemberSeparatorDeps";
 import QualifiedCName from "../../../../utils/QualifiedCName";
-import IScopeSymbol from "../../../types/symbols/IScopeSymbol";
 import ScopeUtils from "../../../../utils/ScopeUtils";
 
 /**
@@ -25,7 +24,7 @@ interface IBuildContextInput {
   firstId: string;
   hasGlobal: boolean;
   hasThis: boolean;
-  currentScope: IScopeSymbol | null;
+  currentScopePath: string;
   isStructParam: boolean;
   isCppAccess: boolean;
   forcePointerSemantics?: boolean;
@@ -46,7 +45,7 @@ class MemberSeparatorResolver {
       firstId,
       hasGlobal,
       hasThis,
-      currentScope,
+      currentScopePath,
       isStructParam,
       isCppAccess,
       forcePointerSemantics,
@@ -56,8 +55,8 @@ class MemberSeparatorResolver {
       (deps.isKnownScope(firstId) || deps.isKnownRegister(firstId));
 
     const scopedRegName =
-      hasThis && currentScope
-        ? ScopeUtils.qualifyInScope(firstId, currentScope)
+      hasThis && currentScopePath
+        ? ScopeUtils.qualifyInScope(firstId, currentScopePath)
         : null;
 
     const isScopedRegister =

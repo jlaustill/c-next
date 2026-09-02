@@ -24,7 +24,6 @@ import ESourceLanguage from "../../types/ESourceLanguage";
 import IStructFieldInfo from "../../../transpiler/types/symbols/IStructFieldInfo";
 import SymbolTable from "../../../transpiler/logic/symbols/SymbolTable";
 import MockFileSystem from "../../../transpiler/__tests__/MockFileSystem";
-import TestScopeUtils from "../../../transpiler/logic/symbols/cnext/__tests__/testUtils";
 import TTypeUtils from "../../TTypeUtils";
 import type IFunctionSymbol from "../../../transpiler/types/symbols/IFunctionSymbol";
 import TestSymbolUtils from "../../../transpiler/logic/symbols/cnext/__tests__/testSymbolUtils";
@@ -1018,7 +1017,7 @@ describe("CacheManager", () => {
         ...TestSymbolUtils.base({
           kind: "function",
           name: "cnextFunction",
-          scope: TestScopeUtils.createMockGlobalScope(),
+          scopePath: "",
           sourceFile: headerFile,
           sourceLine: 2,
         }),

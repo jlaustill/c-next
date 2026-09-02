@@ -9,7 +9,6 @@ import * as Parser from "../../../parser/grammar/CNextParser";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import IFunctionSymbol from "../../../../types/symbols/IFunctionSymbol";
 import IParameterInfo from "../../../../types/symbols/IParameterInfo";
-import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 import TypeResolver from "../../../../../utils/TypeResolver";
 import TypeUtils from "../utils/TypeUtils";
 import SymbolRegistry from "../../../../state/SymbolRegistry";
@@ -22,7 +21,7 @@ class FunctionCollector {
    *
    * @param ctx The function declaration context
    * @param sourceFile Source file path
-   * @param scope The scope this function belongs to (IScopeSymbol)
+   * @param scopePath The path of the scope this function belongs to (dotted path, "" at file scope)
    * @param body AST reference for the function body
    * @param visibility Required: #1161 — a default here is a third source
    *   of truth for ADR-016 and drifted from it. Callers pass
@@ -33,7 +32,7 @@ class FunctionCollector {
   static collect(
     ctx: Parser.FunctionDeclarationContext,
     sourceFile: string,
-    scope: IScopeSymbol,
+    scopePath: string,
     body: Parser.BlockContext | null,
     visibility: TVisibility,
     isScopeType?: (qualifiedName: string) => boolean,
@@ -43,12 +42,12 @@ class FunctionCollector {
 
     // Get return type string and convert to TType
     const returnTypeCtx = ctx.type();
-    // #1285: the scope REFERENCE flows on from here. Flattening it to its
-    // leaf name was the choke point that made every downstream qualification
-    // one level deep, whatever the chain actually was.
+    // #1298: members carry the scope's PATH, not the scope object. The path
+    // holds every outer component, so nothing downstream can flatten it to a
+    // leaf -- which is what the reference threaded here used to protect against.
     const returnTypeStr = TypeUtils.getTypeName(
       returnTypeCtx,
-      scope,
+      scopePath,
       isScopeType,
     );
     const returnType = TypeResolver.resolve(returnTypeStr);
@@ -57,17 +56,17 @@ class FunctionCollector {
     const params = ctx.parameterList()?.parameter() ?? [];
     const parameters = FunctionCollector.collectParameters(
       params,
-      scope,
+      scopePath,
       isScopeType,
     );
 
     return {
       kind: "function",
       name,
-      scope,
+      scopePath,
       // #1285: identity computed once, from the scope chain, not
       // re-derived by every consumer.
-      ...ScopeUtils.identityOf({ name, scope }),
+      ...ScopeUtils.identityOf({ name, scopePath }),
       parameters,
       returnType,
       visibility,
@@ -88,7 +87,7 @@ class FunctionCollector {
    *
    * @param ctx The function declaration context
    * @param sourceFile Source file path
-   * @param scope Declaring scope; carries the parent chain
+   * @param scopePath Declaring scope path; carries every outer component
    * @param body AST reference for the function body
    * @param visibility Required: #1161 — a default here is a third source
    *   of truth for ADR-016 and drifted from it. Callers pass
@@ -99,7 +98,7 @@ class FunctionCollector {
   static collectAndRegister(
     ctx: Parser.FunctionDeclarationContext,
     sourceFile: string,
-    scope: IScopeSymbol,
+    scopePath: string,
     body: Parser.BlockContext,
     visibility: TVisibility,
     isScopeType?: (qualifiedName: string) => boolean,
@@ -110,7 +109,7 @@ class FunctionCollector {
     const symbol = FunctionCollector.collect(
       ctx,
       sourceFile,
-      scope,
+      scopePath,
       body,
       visibility,
       isScopeType,
@@ -128,13 +127,13 @@ class FunctionCollector {
    */
   private static collectParameters(
     params: Parser.ParameterContext[],
-    scope?: IScopeSymbol,
+    scopePath = "",
     isScopeType?: (qualifiedName: string) => boolean,
   ): IParameterInfo[] {
     return params.map((p) => {
       const name = p.IDENTIFIER().getText();
       const typeCtx = p.type();
-      const typeStr = TypeUtils.getTypeName(typeCtx, scope, isScopeType);
+      const typeStr = TypeUtils.getTypeName(typeCtx, scopePath, isScopeType);
       const type = TypeResolver.resolve(typeStr);
       const isConst = p.constModifier() !== null;
 

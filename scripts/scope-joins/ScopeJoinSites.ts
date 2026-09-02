@@ -47,6 +47,17 @@ interface ISite {
  */
 const KIND_SECTIONS = [
   {
+    kind: "encoder",
+    lines: [
+      "- **encoder** -- inside `ScopeUtils` itself, where joining an enclosing path",
+      "  to a leaf IS the definition of the operation every other row is judged",
+      "  against. #1298 made these visible: the enclosing path used to arrive as a",
+      "  spread of a chain walk, which the scan could not see, and is now a named",
+      "  `scopePath`. The path is complete by construction rather than a leaf",
+      "  standing in for one, so there is nothing here to convert.",
+    ],
+  },
+  {
     kind: "via-scope-utils",
     lines: [
       "- **via-scope-utils** -- already routed correctly, and matched only because",
@@ -103,11 +114,23 @@ class ScopeJoinSites {
    *
    * Deliberately a name heuristic: the alternative is type-directed analysis of
    * every call site, and a name is what a reviewer reads anyway. A false
-   * positive costs one baseline row; a false negative is caught the next time
-   * the expression is renamed to say what it holds.
+   * positive costs one baseline row, which is the cheap direction.
+   *
+   * SHAPE-matched, not a list of exact names. It was a list, and #1298 renamed
+   * two of its six entries -- `currentScope` -> `currentScopePath`,
+   * `declaringScope` -> `declaringScopePath` -- across ~45 sites. `\b` does not
+   * match between `Scope` and `Path`, so both replacements became invisible to
+   * this scan in the same commit that created them: the gate's contract is "this
+   * list may shrink freely, it may not grow", and it could no longer see growth.
+   *
+   * The docblock here used to claim a false negative "is caught the next time the
+   * expression is renamed to say what it holds". A rename is precisely what hid
+   * them, so the claim was the opposite of true. Matching the shape removes the
+   * assumption instead of restating it -- any `<prefix>Scope`, with an optional
+   * `Path`/`Name` suffix, is counted however it is spelled.
    */
   private static readonly SCOPE_DENOTING =
-    /\b(scope|currentScope|scopeName|scopePath|callerScope|declaringScope)\b|scope\.name/i;
+    /\b\w*[Ss]cope(?:Path|Name)?\b|scope\.name/;
 
   /** Routing through here is the CORRECT form, whatever the argument is called. */
   private static readonly VIA_SCOPE_UTILS = "ScopeUtils.";
@@ -130,6 +153,22 @@ class ScopeJoinSites {
    * (#1394), the other reads `constValues`, which #1295 does not own.
    */
   private static readonly ADJUDICATIONS: readonly IAdjudication[] = [
+    {
+      file: "src/utils/ScopeUtils.ts",
+      element: "symbol.scopePath",
+      kind: "encoder",
+      pairedWith: null,
+      movesWith: null,
+      why: "`getTranspiledCName` -- the single encoder. The symbol carries its whole enclosing path (#1298), so this joins a complete path to a leaf rather than standing a leaf in for one",
+    },
+    {
+      file: "src/utils/ScopeUtils.ts",
+      element: "scopePath",
+      kind: "encoder",
+      pairedWith: null,
+      movesWith: null,
+      why: "`qualifyPathInScope` -- the one implementation the converted sites route to; its parameter IS the enclosing path",
+    },
     {
       file: "src/transpiler/logic/analysis/helpers/CalleeNameResolver.ts",
       element: "resolvedName",
@@ -443,8 +482,8 @@ class ScopeJoinSites {
       "**A row is not by itself a defect.** The population that WAS one -- a",
       "scope's leaf name standing in for a complete path, correct only while",
       "`scopeMember` admits no `scopeDeclaration` (`grammar/CNext.g4`) -- has been",
-      "converted to the scope REFERENCE via `ScopeUtils.qualifyInScope`, which",
-      "walks the parent chain. Every row below carries the judgement that was made",
+      "converted to `ScopeUtils.qualifyInScope`, which takes the whole",
+      "enclosing PATH. Every row below carries the judgement that was made",
       "about it, so no reader has to re-derive which is which:",
       "",
       ...KIND_SECTIONS.flatMap((section) => section.lines),

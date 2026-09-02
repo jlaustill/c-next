@@ -19,12 +19,11 @@ describe("RegisterCollector", () => {
       `;
       const tree = parse(code);
       const regCtx = tree.declaration(0)!.registerDeclaration()!;
-      const globalScope = TestScopeUtils.getGlobalScope();
       const symbol = RegisterCollector.collect(
         regCtx,
         "test.cnx",
         new Set(),
-        globalScope,
+        "",
         "public",
       );
 
@@ -34,7 +33,7 @@ describe("RegisterCollector", () => {
       expect(symbol.sourceFile).toBe("test.cnx");
       expect(symbol.sourceLanguage).toBe(ESourceLanguage.CNext);
       expect(symbol.visibility).toBe("public");
-      expect(symbol.scope).toBe(globalScope);
+      expect(symbol.scopePath).toBe("");
 
       expect(symbol.members.size).toBe(2);
       expect(symbol.members.get("DATA")).toEqual({
@@ -61,12 +60,11 @@ describe("RegisterCollector", () => {
       `;
       const tree = parse(code);
       const regCtx = tree.declaration(0)!.registerDeclaration()!;
-      const globalScope = TestScopeUtils.getGlobalScope();
       const symbol = RegisterCollector.collect(
         regCtx,
         "test.cnx",
         new Set(),
-        globalScope,
+        "",
         "public",
       );
 
@@ -89,12 +87,11 @@ describe("RegisterCollector", () => {
       `;
       const tree = parse(code);
       const regCtx = tree.declaration(0)!.registerDeclaration()!;
-      const globalScope = TestScopeUtils.getGlobalScope();
       const symbol = RegisterCollector.collect(
         regCtx,
         "test.cnx",
         new Set(),
-        globalScope,
+        "",
         "public",
       );
 
@@ -116,12 +113,11 @@ describe("RegisterCollector", () => {
       const tree = parse(code);
       const regCtx = tree.declaration(0)!.registerDeclaration()!;
       const knownBitmaps = new Set(["StatusFlags"]);
-      const globalScope = TestScopeUtils.getGlobalScope();
       const symbol = RegisterCollector.collect(
         regCtx,
         "test.cnx",
         knownBitmaps,
-        globalScope,
+        "",
         "public",
       );
 
@@ -138,12 +134,11 @@ describe("RegisterCollector", () => {
       `;
       const tree = parse(code);
       const regCtx = tree.declaration(0)!.registerDeclaration()!;
-      const globalScope = TestScopeUtils.getGlobalScope();
       const symbol = RegisterCollector.collect(
         regCtx,
         "test.cnx",
         new Set(),
-        globalScope,
+        "",
         "public",
       );
 
@@ -160,18 +155,17 @@ describe("RegisterCollector", () => {
       `;
       const tree = parse(code);
       const regCtx = tree.declaration(0)!.registerDeclaration()!;
-      const motorScope = TestScopeUtils.createMockScope("Motor");
       const symbol = RegisterCollector.collect(
         regCtx,
         "motor.cnx",
         new Set(),
-        motorScope,
+        "Motor",
         "public",
       );
 
       expect(symbol.name).toBe("CTRL");
-      expect(symbol.scope).toBe(motorScope);
-      expect(symbol.scope.name).toBe("Motor");
+      expect(symbol.scopePath).toBe("Motor");
+      expect(symbol.scopePath).toBe("Motor");
     });
 
     it("resolves scoped bitmap types", () => {
@@ -184,12 +178,11 @@ describe("RegisterCollector", () => {
       const regCtx = tree.declaration(0)!.registerDeclaration()!;
       // Bitmap would be collected as Motor_MotorFlags in a scope
       const knownBitmaps = new Set(["Motor__MotorFlags"]);
-      const motorScope = TestScopeUtils.createMockScope("Motor");
       const symbol = RegisterCollector.collect(
         regCtx,
         "motor.cnx",
         knownBitmaps,
-        motorScope,
+        "Motor",
         "public",
       );
 
@@ -207,12 +200,11 @@ describe("RegisterCollector", () => {
       `;
       const tree = parse(code);
       const regCtx = tree.declaration(0)!.registerDeclaration()!;
-      const globalScope = TestScopeUtils.getGlobalScope();
       const symbol = RegisterCollector.collect(
         regCtx,
         "test.cnx",
         new Set(),
-        globalScope,
+        "",
         "public",
       );
 
@@ -230,12 +222,11 @@ describe("RegisterCollector", () => {
       `;
       const tree = parse(code);
       const regCtx = tree.declaration(0)!.registerDeclaration()!;
-      const globalScope = TestScopeUtils.getGlobalScope();
       const symbol = RegisterCollector.collect(
         regCtx,
         "test.cnx",
         new Set(),
-        globalScope,
+        "",
         "public",
       );
 
@@ -257,7 +248,7 @@ describe("RegisterCollector", () => {
         tree.declaration(0)!.registerDeclaration()!,
         "test.cnx",
         new Set(),
-        TestScopeUtils.getGlobalScope(),
+        "",
         "private",
       );
 

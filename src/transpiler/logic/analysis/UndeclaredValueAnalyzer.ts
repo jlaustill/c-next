@@ -138,7 +138,7 @@ class UndeclaredValueAnalyzer {
   isVisible(
     name: string,
     frame: Parameters<ScopeFrameResolver["typeOfName"]>[1],
-    scope: ReturnType<EnclosingScope["current"]>,
+    scopePath: ReturnType<EnclosingScope["current"]>,
     scopes: ScopeFrameResolver,
   ): boolean {
     // A declared variable -- lexical frames first, then the symbol table for a
@@ -166,12 +166,13 @@ class UndeclaredValueAnalyzer {
       return true;
     }
 
-    if (scope) {
-      const qualified = ScopeUtils.qualifyInScope(name, scope);
+    if (scopePath !== "") {
+      const qualified = ScopeUtils.qualifyInScope(name, scopePath);
       if (
         NameExistence.isValueName(qualified, symbols, symbolTable) ||
         CodeGenState.knownFunctions.has(qualified) ||
-        (symbols.scopeMembers.get(scope.name)?.has(name) ?? false)
+        (symbols.scopeMembers.get(ScopeUtils.leafOf(scopePath))?.has(name) ??
+          false)
       ) {
         return true;
       }

@@ -57,8 +57,8 @@ class FunctionContextManager {
     callbacks: IFunctionContextCallbacks,
   ): void {
     // Issue #269: Set current function name for pass-by-value lookup
-    const fullFuncName = CodeGenState.currentScope
-      ? ScopeUtils.qualifyInScope(name, CodeGenState.currentScope)
+    const fullFuncName = CodeGenState.currentScopePath
+      ? ScopeUtils.qualifyInScope(name, CodeGenState.currentScopePath)
       : name;
     CodeGenState.currentFunctionName = fullFuncName;
 
@@ -262,11 +262,15 @@ class FunctionContextManager {
     };
     const arrayTypeCtx = typeCtx.arrayType();
     const typeName =
-      TypeBinding.resolveNamedType(typeCtx, CodeGenState.currentScope, deps) ??
+      TypeBinding.resolveNamedType(
+        typeCtx,
+        CodeGenState.currentScopePath,
+        deps,
+      ) ??
       (arrayTypeCtx
         ? TypeBinding.resolveNamedType(
             arrayTypeCtx,
-            CodeGenState.currentScope,
+            CodeGenState.currentScopePath,
             deps,
           )
         : null);

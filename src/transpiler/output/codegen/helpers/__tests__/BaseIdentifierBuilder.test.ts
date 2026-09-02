@@ -1,11 +1,10 @@
 import { describe, it, expect } from "vitest";
 import BaseIdentifierBuilder from "../BaseIdentifierBuilder";
-import TestScopeUtils from "../../../../logic/symbols/cnext/__tests__/testUtils";
 
 describe("BaseIdentifierBuilder", () => {
   describe("build", () => {
     it("should return identifier unchanged for global prefix", () => {
-      const result = BaseIdentifierBuilder.build("counter", true, false, null);
+      const result = BaseIdentifierBuilder.build("counter", true, false, "");
 
       expect(result).toEqual({
         result: "counter",
@@ -14,12 +13,7 @@ describe("BaseIdentifierBuilder", () => {
     });
 
     it("should prefix with scope for this prefix", () => {
-      const result = BaseIdentifierBuilder.build(
-        "speed",
-        false,
-        true,
-        TestScopeUtils.createMockScope("Motor"),
-      );
+      const result = BaseIdentifierBuilder.build("speed", false, true, "Motor");
 
       expect(result).toEqual({
         result: "Motor__speed",
@@ -29,12 +23,12 @@ describe("BaseIdentifierBuilder", () => {
 
     it("should throw error when this is used outside scope", () => {
       expect(() => {
-        BaseIdentifierBuilder.build("x", false, true, null);
+        BaseIdentifierBuilder.build("x", false, true, "");
       }).toThrow("Error: 'this' can only be used inside a scope");
     });
 
     it("should return identifier unchanged for bare identifier", () => {
-      const result = BaseIdentifierBuilder.build("myVar", false, false, null);
+      const result = BaseIdentifierBuilder.build("myVar", false, false, "");
 
       expect(result).toEqual({
         result: "myVar",
@@ -48,7 +42,7 @@ describe("BaseIdentifierBuilder", () => {
         "localVar",
         false,
         false,
-        TestScopeUtils.createMockScope("Motor"),
+        "Motor",
       );
 
       expect(result).toEqual({
@@ -62,7 +56,7 @@ describe("BaseIdentifierBuilder", () => {
         "value",
         false,
         true,
-        TestScopeUtils.createMockScope("GPIO_Controller"),
+        "GPIO_Controller",
       );
 
       expect(result).toEqual({

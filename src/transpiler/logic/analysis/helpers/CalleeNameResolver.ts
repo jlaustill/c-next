@@ -22,7 +22,6 @@ import * as Parser from "../../parser/grammar/CNextParser";
 import QualifiedCName from "../../../../utils/QualifiedCName";
 import ScopeUtils from "../../../../utils/ScopeUtils";
 import ICalleeResolution from "../types/ICalleeResolution";
-import type IScopeSymbol from "../../../types/symbols/IScopeSymbol";
 
 class CalleeNameResolver {
   /**
@@ -50,15 +49,15 @@ class CalleeNameResolver {
   static resolveMemberAccess(
     resolvedName: string,
     op: Parser.PostfixOpContext,
-    currentScope: IScopeSymbol | null,
+    currentScopePath: string,
     isScope: (name: string) => boolean,
   ): string | null {
     const memberName = op.IDENTIFIER()!.getText();
 
     // this.member -> CurrentScope__member (only meaningful inside a scope)
     if (resolvedName === "this") {
-      return currentScope
-        ? ScopeUtils.qualifyInScope(memberName, currentScope)
+      return currentScopePath
+        ? ScopeUtils.qualifyInScope(memberName, currentScopePath)
         : null;
     }
 
@@ -82,7 +81,7 @@ class CalleeNameResolver {
   static resolveCallTarget(
     ops: Parser.PostfixOpContext[],
     baseName: string,
-    currentScope: IScopeSymbol | null,
+    currentScopePath: string,
     isScope: (name: string) => boolean,
   ): ICalleeResolution {
     let resolvedName = baseName;
@@ -93,7 +92,7 @@ class CalleeNameResolver {
         const resolved = CalleeNameResolver.resolveMemberAccess(
           resolvedName,
           op,
-          currentScope,
+          currentScopePath,
           isScope,
         );
         if (resolved === null) {
@@ -128,7 +127,7 @@ class CalleeNameResolver {
    */
   static resolveDetailed(
     postfix: Parser.PostfixExpressionContext,
-    currentScope: IScopeSymbol | null,
+    currentScopePath: string,
     isScope: (name: string) => boolean,
   ): { name: string; isGlobalCall: boolean } | null {
     const base = CalleeNameResolver.baseName(postfix.primaryExpression());
@@ -137,7 +136,7 @@ class CalleeNameResolver {
     const result = CalleeNameResolver.resolveCallTarget(
       postfix.postfixOp(),
       base,
-      currentScope,
+      currentScopePath,
       isScope,
     );
     if (!result.foundCall) return null;
@@ -152,11 +151,11 @@ class CalleeNameResolver {
    */
   static resolve(
     postfix: Parser.PostfixExpressionContext,
-    currentScope: IScopeSymbol | null,
+    currentScopePath: string,
     isScope: (name: string) => boolean,
   ): string | null {
     return (
-      CalleeNameResolver.resolveDetailed(postfix, currentScope, isScope)
+      CalleeNameResolver.resolveDetailed(postfix, currentScopePath, isScope)
         ?.name ?? null
     );
   }
@@ -174,13 +173,13 @@ class CalleeNameResolver {
    */
   static scopeQualifiedCandidate(
     name: string,
-    currentScope: IScopeSymbol | null,
+    currentScopePath: string,
     isGlobalCall: boolean,
   ): string | null {
-    if (!currentScope || isGlobalCall) return null;
+    if (!currentScopePath || isGlobalCall) return null;
     // Already qualified -- there is nothing to fall back from.
     if (QualifiedCName.isQualified(name)) return null;
-    return ScopeUtils.qualifyInScope(name, currentScope);
+    return ScopeUtils.qualifyInScope(name, currentScopePath);
   }
 }
 

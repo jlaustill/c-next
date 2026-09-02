@@ -95,7 +95,7 @@ function getStructType(structName: string): string {
  * Handle this.member string: this.name <- "value"
  */
 function handleStringThisMember(ctx: IAssignmentContext): string {
-  if (!CodeGenState.currentScope) {
+  if (!CodeGenState.currentScopePath) {
     throw new Error("Error: 'this' can only be used inside a scope");
   }
 
@@ -109,7 +109,7 @@ function handleStringThisMember(ctx: IAssignmentContext): string {
   // claim that had gone false ("leaf key, matching forMember"); the false half
   // deserved deleting and this half did not.
   const scopedName = QualifiedNameGenerator.forMember(
-    CodeGenState.currentScope,
+    CodeGenState.currentScopePath,
     memberName,
   );
   const typeInfo = CodeGenState.getVariableTypeInfo(scopedName);

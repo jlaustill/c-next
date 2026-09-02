@@ -217,8 +217,8 @@ class OperandTypeResolver {
       // `this.member()` transpiles to a scope-qualified C name, so the callee
       // key needs the enclosing scope. `global.` is deliberately not qualified.
       baseName =
-        primary.THIS() !== null && frame.scope
-          ? ScopeUtils.qualifyInScope(firstMember, frame.scope)
+        primary.THIS() !== null && frame.scopePath !== ""
+          ? ScopeUtils.qualifyInScope(firstMember, frame.scopePath)
           : firstMember;
       base = this.scopes.typeOfName(firstMember, frame);
     } else {

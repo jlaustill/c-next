@@ -10,12 +10,9 @@ import TTypeUtils from "../TTypeUtils";
 describe("IFunctionSymbol", () => {
   describe("FunctionUtils.create", () => {
     it("creates function with bare name and scope reference", () => {
-      const global = ScopeUtils.createGlobalScope();
-      const testScope = ScopeUtils.createScope("Test", global);
-
       const func = FunctionUtils.create({
         name: "fillData", // Bare name, NOT "Test__fillData"
-        scope: testScope,
+        scopePath: "Test",
         parameters: [
           ParameterUtils.create({
             name: "d",
@@ -33,7 +30,7 @@ describe("IFunctionSymbol", () => {
 
       expect(func.kind).toBe("function");
       expect(func.name).toBe("fillData");
-      expect(func.scope).toBe(testScope);
+      expect(func.scopePath).toBe("Test");
       expect(func.parameters).toHaveLength(1);
       expect(func.parameters[0].name).toBe("d");
       expect(func.returnType.kind).toBe("primitive");
@@ -43,11 +40,9 @@ describe("IFunctionSymbol", () => {
     });
 
     it("creates public function in global scope", () => {
-      const global = ScopeUtils.createGlobalScope();
-
       const func = FunctionUtils.create({
         name: "main",
-        scope: global,
+        scopePath: "",
         parameters: [],
         returnType: TTypeUtils.createPrimitive("i32"),
         visibility: "public",
@@ -56,18 +51,16 @@ describe("IFunctionSymbol", () => {
         sourceLine: 1,
       });
 
-      expect(func.scope).toBe(global);
+      expect(func.scopePath).toBe("");
       expect(func.visibility).toBe("public");
       expect(func.name).toBe("main");
-      expect(ScopeUtils.isGlobalScope(func.scope)).toBe(true);
+      expect(ScopeUtils.isGlobalScopePath(func.scopePath)).toBe(true);
     });
 
     it("creates function with multiple parameters", () => {
-      const global = ScopeUtils.createGlobalScope();
-
       const func = FunctionUtils.create({
         name: "calculate",
-        scope: global,
+        scopePath: "",
         parameters: [
           ParameterUtils.create({
             name: "a",
@@ -102,11 +95,9 @@ describe("IFunctionSymbol", () => {
     });
 
     it("creates function with struct return type", () => {
-      const global = ScopeUtils.createGlobalScope();
-
       const func = FunctionUtils.create({
         name: "createPoint",
-        scope: global,
+        scopePath: "",
         parameters: [
           ParameterUtils.create({
             name: "x",
@@ -135,12 +126,11 @@ describe("IFunctionSymbol", () => {
     });
 
     it("creates function with body reference", () => {
-      const global = ScopeUtils.createGlobalScope();
       const mockBody = { type: "block", statements: [] };
 
       const func = FunctionUtils.create({
         name: "doSomething",
-        scope: global,
+        scopePath: "",
         parameters: [],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "public",
@@ -155,11 +145,9 @@ describe("IFunctionSymbol", () => {
 
   describe("FunctionUtils.isInGlobalScope", () => {
     it("returns true for function in global scope", () => {
-      const global = ScopeUtils.createGlobalScope();
-
       const func = FunctionUtils.create({
         name: "main",
-        scope: global,
+        scopePath: "",
         parameters: [],
         returnType: TTypeUtils.createPrimitive("i32"),
         visibility: "public",
@@ -172,12 +160,9 @@ describe("IFunctionSymbol", () => {
     });
 
     it("returns false for function in named scope", () => {
-      const global = ScopeUtils.createGlobalScope();
-      const testScope = ScopeUtils.createScope("Test", global);
-
       const func = FunctionUtils.create({
         name: "helper",
-        scope: testScope,
+        scopePath: "Test",
         parameters: [],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "private",

@@ -7,8 +7,6 @@ import { describe, it, expect, vi } from "vitest";
 import CNextSourceParser from "../../../../logic/parser/CNextSourceParser.js";
 import TypeGenerationHelper from "../TypeGenerationHelper.js";
 import * as Parser from "../../../../logic/parser/grammar/CNextParser.js";
-import TestScopeUtils from "../../../../logic/symbols/cnext/__tests__/testUtils";
-import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 
 describe("TypeGenerationHelper", () => {
   /**
@@ -71,16 +69,13 @@ describe("TypeGenerationHelper", () => {
 
   describe("generateScopedType", () => {
     it("generates prefixed type name within scope", () => {
-      const result = TypeGenerationHelper.generateScopedType(
-        "State",
-        TestScopeUtils.createMockScope("Motor"),
-      );
+      const result = TypeGenerationHelper.generateScopedType("State", "Motor");
       expect(result).toBe("Motor__State");
     });
 
     it("throws when called outside scope", () => {
       expect(() => {
-        TypeGenerationHelper.generateScopedType("State", null);
+        TypeGenerationHelper.generateScopedType("State", "");
       }).toThrow("Cannot use 'this.Type' outside of a scope");
     });
   });
@@ -211,7 +206,7 @@ describe("TypeGenerationHelper", () => {
 
   describe("generate (full context)", () => {
     const defaultDeps = {
-      currentScope: null as IScopeSymbol | null,
+      currentScopePath: "",
       isCppScopeSymbol: () => false,
       checkNeedsStructKeyword: () => false,
       validateCrossScopeVisibility: vi.fn(),
@@ -234,7 +229,7 @@ describe("TypeGenerationHelper", () => {
       expect(ctx).not.toBeNull();
       const result = TypeGenerationHelper.generate(ctx!, {
         ...defaultDeps,
-        currentScope: TestScopeUtils.createMockScope("Motor"),
+        currentScopePath: "Motor",
       });
       expect(result).toBe("Motor__State");
     });
@@ -254,7 +249,7 @@ describe("TypeGenerationHelper", () => {
     // (the project uses default exports only). Deriving from typeof defaultDeps
     // instead would narrow the mocks to their zero-argument shapes.
     type DepsOverride = {
-      currentScope?: IScopeSymbol | null;
+      currentScopePath?: string;
       isCppScopeSymbol?: (name: string) => boolean;
       checkNeedsStructKeyword?: (name: string) => boolean;
       isScopeType?: (qualifiedName: string) => boolean;

@@ -13,7 +13,6 @@ import ExpressionUtils from "../../../utils/ExpressionUtils";
 // SonarCloud S3776: Extracted literal parsing to reduce complexity
 import LiteralEvaluator from "./helpers/LiteralEvaluator";
 import QualifiedCName from "../../../utils/QualifiedCName";
-import IScopeSymbol from "../../types/symbols/IScopeSymbol";
 import ScopeUtils from "../../../utils/ScopeUtils";
 
 /**
@@ -368,9 +367,9 @@ class TypeValidator {
     isLocalVariable: boolean,
     isKnownStruct: (name: string) => boolean,
   ): void {
-    const currentScope = CodeGenState.currentScope;
+    const currentScopePath = CodeGenState.currentScopePath;
 
-    if (!currentScope) {
+    if (!currentScopePath) {
       return;
     }
 
@@ -378,44 +377,46 @@ class TypeValidator {
       return;
     }
 
-    const scopeMembers = CodeGenState.getScopeMembers(currentScope.name);
+    const scopeMembers = CodeGenState.getScopeMembers(
+      ScopeUtils.leafOf(currentScopePath),
+    );
     if (scopeMembers?.has(identifier)) {
       throw new Error(
-        `Error: Use 'this.${identifier}' to access scope member '${identifier}' inside scope '${currentScope.cnxScopedName}'`,
+        `Error: Use 'this.${identifier}' to access scope member '${identifier}' inside scope '${currentScopePath}'`,
       );
     }
 
     if (CodeGenState.symbols!.knownRegisters.has(identifier)) {
       throw new Error(
-        `Error: Use 'global.${identifier}' to access register '${identifier}' inside scope '${currentScope.cnxScopedName}'`,
+        `Error: Use 'global.${identifier}' to access register '${identifier}' inside scope '${currentScopePath}'`,
       );
     }
 
     if (
       CodeGenState.knownFunctions.has(identifier) &&
-      !QualifiedCName.isInScope(identifier, currentScope.name)
+      !QualifiedCName.isInScope(identifier, ScopeUtils.leafOf(currentScopePath))
     ) {
       throw new Error(
-        `Error: Use 'global.${identifier}' to access global function '${identifier}' inside scope '${currentScope.cnxScopedName}'`,
+        `Error: Use 'global.${identifier}' to access global function '${identifier}' inside scope '${currentScopePath}'`,
       );
     }
 
     if (CodeGenState.symbols!.knownEnums.has(identifier)) {
       throw new Error(
-        `Error: Use 'global.${identifier}' to access global enum '${identifier}' inside scope '${currentScope.cnxScopedName}'`,
+        `Error: Use 'global.${identifier}' to access global enum '${identifier}' inside scope '${currentScopePath}'`,
       );
     }
 
     if (isKnownStruct(identifier)) {
       throw new Error(
-        `Error: Use 'global.${identifier}' to access global struct '${identifier}' inside scope '${currentScope.cnxScopedName}'`,
+        `Error: Use 'global.${identifier}' to access global struct '${identifier}' inside scope '${currentScopePath}'`,
       );
     }
 
     const typeInfo = CodeGenState.getVariableTypeInfo(identifier);
     if (typeInfo && !QualifiedCName.isQualified(identifier)) {
       throw new Error(
-        `Error: Use 'global.${identifier}' to access global variable '${identifier}' inside scope '${currentScope.cnxScopedName}'`,
+        `Error: Use 'global.${identifier}' to access global variable '${identifier}' inside scope '${currentScopePath}'`,
       );
     }
   }
@@ -447,12 +448,12 @@ class TypeValidator {
       return emitted;
     }
 
-    const currentScope = CodeGenState.currentScope;
+    const currentScopePath = CodeGenState.currentScopePath;
 
-    if (currentScope) {
+    if (currentScopePath) {
       const scopeResolved = TypeValidator._resolveScopeMember(
         identifier,
-        currentScope,
+        currentScopePath,
       );
       if (scopeResolved) {
         AdrProvenance.record("057", line);
@@ -463,11 +464,11 @@ class TypeValidator {
     if (
       TypeValidator._isKnownGlobalIdentifier(
         identifier,
-        currentScope,
+        currentScopePath,
         isKnownStruct,
       )
     ) {
-      return currentScope ? identifier : null;
+      return currentScopePath ? identifier : null;
     }
 
     return null;
@@ -475,15 +476,20 @@ class TypeValidator {
 
   private static _resolveScopeMember(
     identifier: string,
-    currentScope: IScopeSymbol,
+    currentScopePath: string,
   ): string | null {
     // #1295: getScopeMembers is keyed by the scope LEAF name.
-    const scopeMembers = CodeGenState.getScopeMembers(currentScope.name);
+    const scopeMembers = CodeGenState.getScopeMembers(
+      ScopeUtils.leafOf(currentScopePath),
+    );
     if (scopeMembers?.has(identifier)) {
-      return ScopeUtils.qualifyInScope(identifier, currentScope);
+      return ScopeUtils.qualifyInScope(identifier, currentScopePath);
     }
 
-    const scopedFuncName = ScopeUtils.qualifyInScope(identifier, currentScope);
+    const scopedFuncName = ScopeUtils.qualifyInScope(
+      identifier,
+      currentScopePath,
+    );
     if (CodeGenState.knownFunctions.has(scopedFuncName)) {
       return scopedFuncName;
     }
@@ -493,7 +499,7 @@ class TypeValidator {
 
   private static _isKnownGlobalIdentifier(
     identifier: string,
-    currentScope: IScopeSymbol | null,
+    currentScopePath: string,
     isKnownStruct: (name: string) => boolean,
   ): boolean {
     const typeInfo = CodeGenState.getVariableTypeInfo(identifier);
@@ -503,7 +509,7 @@ class TypeValidator {
 
     if (
       CodeGenState.knownFunctions.has(identifier) &&
-      !QualifiedCName.isInScope(identifier, currentScope?.name)
+      !QualifiedCName.isInScope(identifier, ScopeUtils.leafOf(currentScopePath))
     ) {
       return true;
     }

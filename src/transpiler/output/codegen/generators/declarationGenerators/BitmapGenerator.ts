@@ -42,7 +42,7 @@ const generateBitmap: TGeneratorFn<Parser.BitmapDeclarationContext> = (
   const name = node.IDENTIFIER().getText();
 
   // ADR-016: Apply scope prefix if inside a scope
-  const fullName = ScopeUtils.qualifyInScope(name, state.currentScope);
+  const fullName = ScopeUtils.qualifyInScope(name, state.currentScopePath);
 
   // Look up backing type from symbols (collected by SymbolCollector)
   const backingType = input.symbols?.bitmapBackingType.get(fullName);

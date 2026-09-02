@@ -20,8 +20,6 @@ import type TParameterInfo from "../../../../../types/TParameterInfo";
 import * as Parser from "../../../../../logic/parser/grammar/CNextParser";
 import CodeGenState from "../../../../../state/CodeGenState";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
-import TestScopeUtils from "../../../../../logic/symbols/cnext/__tests__/testUtils";
-import IScopeSymbol from "../../../../../types/symbols/IScopeSymbol";
 import createMockSymbols from "../../../../../__tests__/codeGenSymbolsHelpers";
 
 // ========================================================================
@@ -69,7 +67,7 @@ function createMockInput(overrides?: {
 // ========================================================================
 
 function createMockState(overrides?: {
-  currentScope?: IScopeSymbol | null;
+  currentScopePath?: string;
   currentParameters?: Map<string, TParameterInfo>;
   localVariables?: Set<string>;
   scopeMembers?: Map<string, Set<string>>;
@@ -81,7 +79,7 @@ function createMockState(overrides?: {
   // default is true, and an override object carrying an explicit `undefined`
   // would otherwise silently reinstate the shared default of false.
   return TestGeneratorState.create({
-    currentScope: overrides?.currentScope ?? null,
+    currentScopePath: overrides?.currentScopePath ?? "",
     inFunctionBody: overrides?.inFunctionBody ?? true,
     currentParameters: overrides?.currentParameters ?? new Map(),
     localVariables: overrides?.localVariables ?? new Set(),
@@ -418,7 +416,7 @@ describe("PostfixExpressionGenerator", () => {
       ]);
       const input = createMockInput();
       const state = createMockState({
-        currentScope: TestScopeUtils.createMockScope("Motor"),
+        currentScopePath: "Motor",
         scopeMembers,
       });
       const orchestrator = createMockOrchestrator({
@@ -434,7 +432,7 @@ describe("PostfixExpressionGenerator", () => {
         createMockPostfixOp({ identifier: "speed" }),
       ]);
       const input = createMockInput();
-      const state = createMockState({ currentScope: null });
+      const state = createMockState({ currentScopePath: "" });
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "__THIS_SCOPE__",
       });
@@ -451,7 +449,7 @@ describe("PostfixExpressionGenerator", () => {
       const symbols = createMockSymbols();
       const input = createMockInput({ symbols });
       const state = createMockState({
-        currentScope: TestScopeUtils.createMockScope("Motor"),
+        currentScopePath: "Motor",
       });
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "__THIS_SCOPE__",
@@ -470,7 +468,7 @@ describe("PostfixExpressionGenerator", () => {
       ]);
       const input = createMockInput({ symbols });
       const state = createMockState({
-        currentScope: TestScopeUtils.createMockScope("Motor"),
+        currentScopePath: "Motor",
       });
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "__THIS_SCOPE__",
@@ -499,7 +497,7 @@ describe("PostfixExpressionGenerator", () => {
       ]);
       const input = createMockInput({ symbols, typeRegistry });
       const state = createMockState({
-        currentScope: TestScopeUtils.createMockScope("Motor"),
+        currentScopePath: "Motor",
       });
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "__THIS_SCOPE__",
@@ -534,7 +532,7 @@ describe("PostfixExpressionGenerator", () => {
       ]);
       const input = createMockInput({ symbols, typeRegistry });
       const state = createMockState({
-        currentScope: TestScopeUtils.createMockScope("Motor"),
+        currentScopePath: "Motor",
       });
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "__THIS_SCOPE__",
@@ -554,7 +552,7 @@ describe("PostfixExpressionGenerator", () => {
       ]);
       const input = createMockInput({ symbols });
       const state = createMockState({
-        currentScope: TestScopeUtils.createMockScope("Motor"),
+        currentScopePath: "Motor",
       });
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "__THIS_SCOPE__",
@@ -835,7 +833,7 @@ describe("PostfixExpressionGenerator", () => {
       ]);
       const input = createMockInput();
       const state = createMockState({
-        currentScope: TestScopeUtils.createMockScope("Motor"),
+        currentScopePath: "Motor",
       });
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "Motor",
@@ -894,7 +892,7 @@ describe("PostfixExpressionGenerator", () => {
       const input = createMockInput({ symbols });
       const scopeMembers = new Map([["Motor", new Set(["Color"])]]);
       const state = createMockState({
-        currentScope: TestScopeUtils.createMockScope("Motor"),
+        currentScopePath: "Motor",
         scopeMembers,
       });
       const orchestrator = createMockOrchestrator({
@@ -917,7 +915,7 @@ describe("PostfixExpressionGenerator", () => {
       const input = createMockInput({ symbols });
       const scopeMembers = new Map([["Motor", new Set(["speed"])]]);
       const state = createMockState({
-        currentScope: TestScopeUtils.createMockScope("Motor"),
+        currentScopePath: "Motor",
         scopeMembers,
       });
       const orchestrator = createMockOrchestrator({
@@ -939,7 +937,7 @@ describe("PostfixExpressionGenerator", () => {
       const input = createMockInput({ symbols });
       const scopeMembers = new Map([["Motor", new Set(["Color"])]]);
       const state = createMockState({
-        currentScope: TestScopeUtils.createMockScope("Motor"),
+        currentScopePath: "Motor",
         scopeMembers,
       });
       const orchestrator = createMockOrchestrator({
@@ -1003,7 +1001,7 @@ describe("PostfixExpressionGenerator", () => {
       const input = createMockInput({ symbols });
       const scopeMembers = new Map([["Motor", new Set(["GPIO"])]]);
       const state = createMockState({
-        currentScope: TestScopeUtils.createMockScope("Motor"),
+        currentScopePath: "Motor",
         scopeMembers,
       });
       const orchestrator = createMockOrchestrator({
@@ -1025,7 +1023,7 @@ describe("PostfixExpressionGenerator", () => {
       const input = createMockInput({ symbols });
       const scopeMembers = new Map([["Motor", new Set(["speed"])]]);
       const state = createMockState({
-        currentScope: TestScopeUtils.createMockScope("Motor"),
+        currentScopePath: "Motor",
         scopeMembers,
       });
       const orchestrator = createMockOrchestrator({
@@ -1643,7 +1641,7 @@ describe("PostfixExpressionGenerator", () => {
         createMockPostfixOp({ identifier: "length" }),
       ]);
       const input = createMockInput();
-      const state = createMockState({ currentScope: null });
+      const state = createMockState({ currentScopePath: "" });
       const orchestrator = createMockOrchestrator({
         generatePrimaryExpr: () => "__THIS_SCOPE__",
       });
@@ -1672,7 +1670,7 @@ describe("PostfixExpressionGenerator", () => {
       ]);
       const input = createMockInput({ typeRegistry });
       const state = createMockState({
-        currentScope: TestScopeUtils.createMockScope("Motor"),
+        currentScopePath: "Motor",
         scopeMembers,
       });
       const orchestrator = createMockOrchestrator({

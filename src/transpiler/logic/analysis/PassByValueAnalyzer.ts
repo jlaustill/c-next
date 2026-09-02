@@ -341,16 +341,17 @@ class PassByValueAnalyzer {
       // Handle scope-level functions
       if (decl.scopeDeclaration()) {
         const scopeDecl = decl.scopeDeclaration()!;
-        // #1357: the scope REFERENCE, so qualification walks the parent chain.
-        const scope = SymbolRegistry.getOrCreateScope(
-          scopeDecl.IDENTIFIER().getText(),
+        // #1298: the whole scope PATH, so qualification keeps every outer
+        // component.
+        const scopePath = ScopeUtils.pathOf(
+          SymbolRegistry.getOrCreateScope(scopeDecl.IDENTIFIER().getText()),
         );
 
         for (const member of scopeDecl.scopeMember()) {
           if (member.functionDeclaration()) {
             const funcDecl = member.functionDeclaration()!;
             const funcName = funcDecl.IDENTIFIER().getText();
-            const fullName = ScopeUtils.qualifyInScope(funcName, scope);
+            const fullName = ScopeUtils.qualifyInScope(funcName, scopePath);
             PassByValueAnalyzer.analyzeFunctionForModifications(
               fullName,
               funcDecl,

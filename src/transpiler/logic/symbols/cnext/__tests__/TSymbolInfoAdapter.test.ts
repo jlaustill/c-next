@@ -21,7 +21,6 @@ import TestSymbolUtils from "./testSymbolUtils";
 
 describe("TSymbolInfoAdapter", () => {
   // Reset global scope between tests to avoid state pollution
-  const globalScope = TestScopeUtils.getGlobalScope();
 
   describe("convert structs", () => {
     it("should populate knownStructs set", () => {
@@ -29,7 +28,7 @@ describe("TSymbolInfoAdapter", () => {
         ...TestSymbolUtils.base({
           kind: "struct",
           name: "Point",
-          scope: globalScope,
+          scopePath: "",
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -73,7 +72,7 @@ describe("TSymbolInfoAdapter", () => {
         ...TestSymbolUtils.base({
           kind: "struct",
           name: "Point",
-          scope: globalScope,
+          scopePath: "",
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -118,7 +117,7 @@ describe("TSymbolInfoAdapter", () => {
         ...TestSymbolUtils.base({
           kind: "struct",
           name: "Buffer",
-          scope: globalScope,
+          scopePath: "",
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -164,7 +163,7 @@ describe("TSymbolInfoAdapter", () => {
         ...TestSymbolUtils.base({
           kind: "struct",
           name: "Matrix",
-          scope: globalScope,
+          scopePath: "",
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -201,7 +200,7 @@ describe("TSymbolInfoAdapter", () => {
         ...TestSymbolUtils.base({
           kind: "enum",
           name: "Color",
-          scope: globalScope,
+          scopePath: "",
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -224,7 +223,7 @@ describe("TSymbolInfoAdapter", () => {
         ...TestSymbolUtils.base({
           kind: "enum",
           name: "Priority",
-          scope: globalScope,
+          scopePath: "",
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -251,7 +250,7 @@ describe("TSymbolInfoAdapter", () => {
         ...TestSymbolUtils.base({
           kind: "bitmap",
           name: "Status",
-          scope: globalScope,
+          scopePath: "",
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -272,7 +271,7 @@ describe("TSymbolInfoAdapter", () => {
         ...TestSymbolUtils.base({
           kind: "bitmap",
           name: "Control",
-          scope: globalScope,
+          scopePath: "",
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -298,7 +297,7 @@ describe("TSymbolInfoAdapter", () => {
         ...TestSymbolUtils.base({
           kind: "bitmap",
           name: "Flags",
-          scope: globalScope,
+          scopePath: "",
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -389,7 +388,7 @@ describe("TSymbolInfoAdapter", () => {
         ...TestSymbolUtils.base({
           kind: "register",
           name: "GPIO",
-          scope: globalScope,
+          scopePath: "",
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -411,7 +410,7 @@ describe("TSymbolInfoAdapter", () => {
         ...TestSymbolUtils.base({
           kind: "register",
           name: "UART",
-          scope: globalScope,
+          scopePath: "",
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -433,7 +432,7 @@ describe("TSymbolInfoAdapter", () => {
         ...TestSymbolUtils.base({
           kind: "register",
           name: "SPI",
-          scope: globalScope,
+          scopePath: "",
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -461,7 +460,7 @@ describe("TSymbolInfoAdapter", () => {
         ...TestSymbolUtils.base({
           kind: "bitmap",
           name: "StatusFlags",
-          scope: globalScope,
+          scopePath: "",
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -476,7 +475,7 @@ describe("TSymbolInfoAdapter", () => {
         ...TestSymbolUtils.base({
           kind: "register",
           name: "CTRL",
-          scope: globalScope,
+          scopePath: "",
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -506,12 +505,11 @@ describe("TSymbolInfoAdapter", () => {
   describe("convert variables", () => {
     it("should track private scope const values for inlining", () => {
       // Create a scoped variable with bare name and scope reference
-      const motorScope = TestScopeUtils.createMockScope("Motor");
       const variable: IVariableSymbol = {
         ...TestSymbolUtils.base({
           kind: "variable",
           name: "MAX_SPEED", // Bare name - adapter computes transpiled C name,
-          scope: motorScope,
+          scopePath: "Motor",
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -533,12 +531,11 @@ describe("TSymbolInfoAdapter", () => {
     });
 
     it("should not track public const values", () => {
-      const motorScope = TestScopeUtils.createMockScope("Motor");
       const variable: IVariableSymbol = {
         ...TestSymbolUtils.base({
           kind: "variable",
           name: "PUBLIC_CONST", // Bare name - adapter computes transpiled C name,
-          scope: motorScope,
+          scopePath: "Motor",
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -561,12 +558,11 @@ describe("TSymbolInfoAdapter", () => {
     });
 
     it("should not track non-const private values", () => {
-      const motorScope = TestScopeUtils.createMockScope("Motor");
       const variable: IVariableSymbol = {
         ...TestSymbolUtils.base({
           kind: "variable",
           name: "counter", // Bare name - adapter computes transpiled C name,
-          scope: motorScope,
+          scopePath: "Motor",
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -587,12 +583,11 @@ describe("TSymbolInfoAdapter", () => {
 
     it("should NOT track private const array values for inlining", () => {
       // Issue #500: Array consts must be emitted, not inlined
-      const motorScope = TestScopeUtils.createMockScope("Motor");
       const variable: IVariableSymbol = {
         ...TestSymbolUtils.base({
           kind: "variable",
           name: "LOOKUP_TABLE", // Bare name - adapter computes transpiled C name,
-          scope: motorScope,
+          scopePath: "Motor",
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -618,12 +613,11 @@ describe("TSymbolInfoAdapter", () => {
 
     it("should NOT track private const multi-dimensional array values", () => {
       // Issue #500: Multi-dimensional arrays must also be emitted
-      const motorScope = TestScopeUtils.createMockScope("Motor");
       const variable: IVariableSymbol = {
         ...TestSymbolUtils.base({
           kind: "variable",
           name: "MATRIX", // Bare name - adapter computes transpiled C name,
-          scope: motorScope,
+          scopePath: "Motor",
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -728,7 +722,7 @@ describe("TSymbolInfoAdapter", () => {
         ...TestSymbolUtils.base({
           kind: "struct",
           name: "Point",
-          scope: globalScope,
+          scopePath: "",
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -776,7 +770,7 @@ describe("TSymbolInfoAdapter", () => {
           ...TestSymbolUtils.base({
             kind: "struct",
             name: "Point",
-            scope: globalScope,
+            scopePath: "",
             sourceFile: "test.cnx",
             sourceLine: 1,
             sourceLanguage: ESourceLanguage.CNext,
@@ -801,7 +795,7 @@ describe("TSymbolInfoAdapter", () => {
           ...TestSymbolUtils.base({
             kind: "enum",
             name: "Color",
-            scope: globalScope,
+            scopePath: "",
             sourceFile: "test.cnx",
             sourceLine: 5,
             sourceLanguage: ESourceLanguage.CNext,
@@ -817,7 +811,7 @@ describe("TSymbolInfoAdapter", () => {
           ...TestSymbolUtils.base({
             kind: "function",
             name: "main",
-            scope: globalScope,
+            scopePath: "",
             sourceFile: "test.cnx",
             sourceLine: 15,
             sourceLanguage: ESourceLanguage.CNext,
@@ -857,7 +851,7 @@ describe("TSymbolInfoAdapter", () => {
       ...TestSymbolUtils.base({
         kind: "bitmap",
         name,
-        scope: globalScope,
+        scopePath: "",
         sourceFile: "lib.cnx",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.CNext,
@@ -932,7 +926,7 @@ describe("TSymbolInfoAdapter", () => {
         ...TestSymbolUtils.base({
           kind: "variable",
           name: "BUFFER",
-          scope: TestScopeUtils.createMockScope("Motor"),
+          scopePath: "Motor",
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,

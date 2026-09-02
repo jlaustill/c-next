@@ -10,7 +10,6 @@ import HeaderGenerator from "../HeaderGenerator";
 import IHeaderSymbol from "../types/IHeaderSymbol";
 import SymbolTable from "../../../logic/symbols/SymbolTable";
 import IHeaderTypeInput from "../generators/IHeaderTypeInput";
-import TestScopeUtils from "../../../logic/symbols/cnext/__tests__/testUtils";
 import TTypeUtils from "../../../../utils/TTypeUtils";
 import type IFunctionSymbol from "../../../types/symbols/IFunctionSymbol";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
@@ -358,7 +357,7 @@ describe("HeaderGenerator", () => {
         ...TestSymbolUtils.base({
           kind: "function",
           name: "myFunc",
-          scope: TestScopeUtils.createMockGlobalScope(),
+          scopePath: "",
           sourceFile: "module.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -373,7 +372,7 @@ describe("HeaderGenerator", () => {
         ...TestSymbolUtils.base({
           kind: "function",
           name: "otherFunc",
-          scope: TestScopeUtils.createMockGlobalScope(),
+          scopePath: "",
           sourceFile: "other.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -402,7 +401,7 @@ describe("HeaderGenerator", () => {
         ...TestSymbolUtils.base({
           kind: "function",
           name: "testFunc",
-          scope: TestScopeUtils.createMockGlobalScope(),
+          scopePath: "",
           sourceFile: "src/utils/helper.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -432,7 +431,7 @@ describe("HeaderGenerator", () => {
         ...TestSymbolUtils.base({
           kind: "function",
           name: "cnextFunc",
-          scope: TestScopeUtils.createMockGlobalScope(),
+          scopePath: "",
           sourceFile: "module.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
@@ -475,7 +474,7 @@ describe("HeaderGenerator", () => {
         ...TestSymbolUtils.base({
           kind: "function",
           name: "testFunc",
-          scope: TestScopeUtils.createMockGlobalScope(),
+          scopePath: "",
           sourceFile: "test.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,

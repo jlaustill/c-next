@@ -13,7 +13,6 @@
  * - Global scope functions keep their bare names
  */
 import type IFunctionSymbol from "../../../types/symbols/IFunctionSymbol";
-import type IScopeSymbol from "../../../types/symbols/IScopeSymbol";
 import SymbolRegistry from "../../../state/SymbolRegistry";
 import ScopeUtils from "../../../../utils/ScopeUtils";
 
@@ -35,18 +34,9 @@ class QualifiedNameGenerator {
     return ScopeUtils.getTranspiledCName(func);
   }
 
-  /**
-   * Get the scope path as an array of scope names (outermost first).
-   *
-   * Returns empty array for global scope.
-   * Returns ["Test"] for scope "Test".
-   * Returns ["Outer", "Inner"] for scope "Outer.Inner".
-   *
-   * Delegates to ScopeUtils.getScopePath() to avoid duplication.
-   */
-  static getScopePath(scope: IScopeSymbol): string[] {
-    return ScopeUtils.getScopePath(scope);
-  }
+  // #1298 removed `getScopePath`, a delegate to a `ScopeUtils` walk that no
+  // longer exists: a scope's path is now a field on every symbol, so there is
+  // nothing left to compute or to delegate.
 
   // ============================================================================
   // String-based methods (for transition - use symbol-based when possible)
@@ -55,23 +45,22 @@ class QualifiedNameGenerator {
   /**
    * Generate a qualified function name for a function named inside a scope.
    *
-   * Takes the scope SYMBOL. #1285: the previous signature took a `string` and
-   * immediately did `SymbolRegistry.getScope(scopeName)` to recover the symbol --
-   * so the caller had to flatten a symbol to its leaf name and this had to look it
-   * back up, losing any outer chain in between. Callers hold the symbol already.
+   * Takes the scope PATH. #1285 replaced a leaf `string` with the scope symbol,
+   * because the caller had to flatten a symbol to its leaf name and this had to
+   * look it back up, losing any outer chain in between. #1298 makes it a string
+   * again -- but the WHOLE path, which loses nothing, and which the caller already
+   * holds.
    *
    * Falls back to qualifying the bare name when the function is not registered.
    */
-  static forFunctionInScope(
-    scope: IScopeSymbol | null,
-    funcName: string,
-  ): string {
-    const lookupScope = scope ?? SymbolRegistry.getGlobalScope();
+  static forFunctionInScope(scopePath: string, funcName: string): string {
+    const lookupScope =
+      SymbolRegistry.getScope(scopePath) ?? SymbolRegistry.getGlobalScope();
     const func = SymbolRegistry.resolveFunction(funcName, lookupScope);
     if (func) {
       return this.forFunction(func);
     }
-    return ScopeUtils.qualifyInScope(funcName, scope);
+    return ScopeUtils.qualifyInScope(funcName, scopePath);
   }
 
   /**
@@ -81,8 +70,8 @@ class QualifiedNameGenerator {
    * A one-line delegate to `ScopeUtils.qualifyInScope`, so there is one
    * implementation and no divergence to fix. What it settles is which of the two
    * public NAMES a codegen call site uses, because the two take their arguments in
-   * opposite orders -- `forMember(scope, name)` against `qualifyInScope(name,
-   * scope)`. Two spellings of one decision sixty lines apart in a file is how a
+   * opposite orders -- `forMember(scopePath, name)` against `qualifyInScope(name,
+   * scopePath)`. Two spellings of one decision sixty lines apart in a file is how a
    * silently inverted call gets written by the next person editing nearby (#1357
    * review).
    *
@@ -90,8 +79,8 @@ class QualifiedNameGenerator {
    * so `ScopeUtils.qualifyInScope` remains that layer's door and this one is not a
    * replacement for it -- it is the door for the layer that CAN reach it.
    */
-  static forMember(scope: IScopeSymbol | null, memberName: string): string {
-    return ScopeUtils.qualifyInScope(memberName, scope);
+  static forMember(scopePath: string, memberName: string): string {
+    return ScopeUtils.qualifyInScope(memberName, scopePath);
   }
 }
 

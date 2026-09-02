@@ -33,7 +33,6 @@
  */
 
 import ITypeAccessors from "../../types/ITypeAccessors";
-import IScopeSymbol from "../../types/symbols/IScopeSymbol";
 import QualifiedCName from "../../../utils/QualifiedCName";
 import ScopeUtils from "../../../utils/ScopeUtils";
 import * as Parser from "../parser/grammar/CNextParser";
@@ -67,12 +66,12 @@ class TypeBinding {
    */
   static resolveName(
     accessors: ITypeAccessors,
-    scope: IScopeSymbol | null,
+    scopePath: string,
     deps?: ITypeBindingDeps,
   ): string | null {
     const direct = TypeBinding.resolveNamedOrPrimitiveType(
       accessors,
-      scope,
+      scopePath,
       deps,
     );
     if (direct !== null) {
@@ -82,7 +81,7 @@ class TypeBinding {
     // Arrays carry their element type; recurse rather than re-deriving it.
     const array = accessors.arrayType?.();
     if (array) {
-      return TypeBinding.resolveName(array, scope, deps);
+      return TypeBinding.resolveName(array, scopePath, deps);
     }
 
     const str = accessors.stringType();
@@ -109,10 +108,10 @@ class TypeBinding {
    */
   static resolveNamedOrPrimitiveType(
     accessors: ITypeAccessors,
-    scope: IScopeSymbol | null,
+    scopePath: string,
     deps?: ITypeBindingDeps,
   ): string | null {
-    const named = TypeBinding.resolveNamedType(accessors, scope, deps);
+    const named = TypeBinding.resolveNamedType(accessors, scopePath, deps);
     if (named !== null) {
       return named;
     }
@@ -138,13 +137,16 @@ class TypeBinding {
    */
   static resolveNamedType(
     accessors: ITypeAccessors,
-    scope: IScopeSymbol | null,
+    scopePath: string,
     deps?: ITypeBindingDeps,
   ): string | null {
     // this.T -- the scope is stated, so qualify against the chain unconditionally
     const scoped = accessors.scopedType();
     if (scoped) {
-      return ScopeUtils.qualifyInScope(scoped.IDENTIFIER().getText(), scope);
+      return ScopeUtils.qualifyInScope(
+        scoped.IDENTIFIER().getText(),
+        scopePath,
+      );
     }
 
     // global.T -- explicitly opts out of scope qualification
@@ -167,7 +169,7 @@ class TypeBinding {
     if (user) {
       const typeName = user.getText();
       return deps?.isScopeType
-        ? ScopeUtils.qualifyScopeType(typeName, scope, deps.isScopeType)
+        ? ScopeUtils.qualifyScopeType(typeName, scopePath, deps.isScopeType)
         : typeName;
     }
 

@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import parse from "./testHelpers";
-import TestScopeUtils from "./testUtils";
 import VariableCollector from "../collectors/VariableCollector";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import TypeResolver from "../../../../../utils/TypeResolver";
@@ -16,7 +15,7 @@ describe("VariableCollector", () => {
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
-        TestScopeUtils.getGlobalScope(),
+        "",
         "public",
       );
 
@@ -47,7 +46,7 @@ describe("VariableCollector", () => {
         const symbol = VariableCollector.collect(
           varCtx,
           "test.cnx",
-          TestScopeUtils.getGlobalScope(),
+          "",
           "public",
         );
 
@@ -65,7 +64,7 @@ describe("VariableCollector", () => {
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
-        TestScopeUtils.getGlobalScope(),
+        "",
         "public",
       );
 
@@ -81,7 +80,7 @@ describe("VariableCollector", () => {
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
-        TestScopeUtils.getGlobalScope(),
+        "",
         "public",
       );
 
@@ -99,7 +98,7 @@ describe("VariableCollector", () => {
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
-        TestScopeUtils.getGlobalScope(),
+        "",
         "public",
       );
 
@@ -116,7 +115,7 @@ describe("VariableCollector", () => {
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
-        TestScopeUtils.getGlobalScope(),
+        "",
         "public",
       );
 
@@ -134,7 +133,7 @@ describe("VariableCollector", () => {
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
-        TestScopeUtils.getGlobalScope(),
+        "",
         "public",
       );
 
@@ -151,7 +150,7 @@ describe("VariableCollector", () => {
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
-        TestScopeUtils.getGlobalScope(),
+        "",
         "public",
       );
 
@@ -169,7 +168,7 @@ describe("VariableCollector", () => {
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
-        TestScopeUtils.getGlobalScope(),
+        "",
         "public",
         constValues,
       );
@@ -188,7 +187,7 @@ describe("VariableCollector", () => {
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
-        TestScopeUtils.getGlobalScope(),
+        "",
         "public",
         constValues,
       );
@@ -210,7 +209,7 @@ describe("VariableCollector", () => {
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
-        TestScopeUtils.getGlobalScope(),
+        "",
         "public",
         constValues,
       );
@@ -228,7 +227,7 @@ describe("VariableCollector", () => {
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
-        TestScopeUtils.getGlobalScope(),
+        "",
         "public",
       );
 
@@ -245,7 +244,7 @@ describe("VariableCollector", () => {
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
-        TestScopeUtils.getGlobalScope(),
+        "",
         "public",
       );
 
@@ -263,7 +262,7 @@ describe("VariableCollector", () => {
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
-        TestScopeUtils.getGlobalScope(),
+        "",
         "public",
         constValues,
       );
@@ -281,7 +280,7 @@ describe("VariableCollector", () => {
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
-        TestScopeUtils.getGlobalScope(),
+        "",
         "public",
       );
 
@@ -297,18 +296,17 @@ describe("VariableCollector", () => {
       `;
       const tree = parse(code);
       const varCtx = tree.declaration(0)!.variableDeclaration()!;
-      const motorScope = TestScopeUtils.createMockScope("Motor");
       const symbol = VariableCollector.collect(
         varCtx,
         "motor.cnx",
-        motorScope,
+        "Motor",
         "public",
       );
 
       // With new IScopeSymbol-based design, name is just "position" (not prefixed)
       // The prefixing happens in TSymbolAdapter for backwards compatibility
       expect(symbol.name).toBe("position");
-      expect(symbol.scope.name).toBe("Motor");
+      expect(symbol.scopePath).toBe("Motor");
     });
 
     it("respects isPublic parameter", () => {
@@ -317,11 +315,10 @@ describe("VariableCollector", () => {
       `;
       const tree = parse(code);
       const varCtx = tree.declaration(0)!.variableDeclaration()!;
-      const motorScope = TestScopeUtils.createMockScope("Motor");
       const symbol = VariableCollector.collect(
         varCtx,
         "motor.cnx",
-        motorScope,
+        "Motor",
         "private",
       );
 
@@ -339,7 +336,7 @@ describe("VariableCollector", () => {
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
-        TestScopeUtils.getGlobalScope(),
+        "",
         "public",
       );
 
@@ -358,7 +355,7 @@ describe("VariableCollector", () => {
       const symbol = VariableCollector.collect(
         varCtx,
         "test.cnx",
-        TestScopeUtils.getGlobalScope(),
+        "",
         "public",
       );
 

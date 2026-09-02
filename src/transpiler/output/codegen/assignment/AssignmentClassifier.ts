@@ -15,6 +15,7 @@ import SubscriptDepthValidator from "../subscript/SubscriptDepthValidator";
 import TTypeInfo from "../../../types/TTypeInfo";
 import TypeCheckUtils from "../../../../utils/TypeCheckUtils";
 import QualifiedCName from "../../../../utils/QualifiedCName";
+import ScopeUtils from "../../../../utils/ScopeUtils";
 import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
 
 /**
@@ -532,14 +533,14 @@ class AssignmentClassifier {
       return true;
     }
 
-    const scope = CodeGenState.currentScope;
-    if (scope === null) {
+    const scopePath = CodeGenState.currentScopePath;
+    if (ScopeUtils.isGlobalScopePath(scopePath)) {
       return false;
     }
 
     return (
       CodeGenState.getVariableTypeInfo(
-        QualifiedNameGenerator.forMember(scope, name),
+        QualifiedNameGenerator.forMember(scopePath, name),
       ) !== undefined
     );
   }
@@ -583,13 +584,13 @@ class AssignmentClassifier {
    * Classify this.* patterns: this.reg[bit], this.member, this.REG.MEMBER.field
    */
   private static classifyThisPrefix(ctx: IAssignmentContext): AssignmentKind {
-    if (!CodeGenState.currentScope) {
+    if (!CodeGenState.currentScopePath) {
       return AssignmentKind.THIS_MEMBER;
     }
 
     const firstId = ctx.identifiers[0];
     const scopedRegName = QualifiedNameGenerator.forMember(
-      CodeGenState.currentScope,
+      CodeGenState.currentScopePath,
       firstId,
     );
 
@@ -778,11 +779,11 @@ class AssignmentClassifier {
     if (ctx.isSimpleIdentifier) {
       const id = ctx.identifiers[0];
       typeInfo = CodeGenState.getVariableTypeInfo(id);
-    } else if (ctx.isSimpleThisAccess && CodeGenState.currentScope) {
+    } else if (ctx.isSimpleThisAccess && CodeGenState.currentScopePath) {
       // this.member pattern: lookup using scoped name
       const memberName = ctx.identifiers[0];
       const scopedName = QualifiedNameGenerator.forMember(
-        CodeGenState.currentScope,
+        CodeGenState.currentScopePath,
         memberName,
       );
       typeInfo = CodeGenState.getVariableTypeInfo(scopedName);
@@ -841,10 +842,10 @@ class AssignmentClassifier {
   private static _classifyThisMemberString(
     ctx: IAssignmentContext,
   ): AssignmentKind | null {
-    if (!ctx.isSimpleThisAccess || !CodeGenState.currentScope) return null;
+    if (!ctx.isSimpleThisAccess || !CodeGenState.currentScopePath) return null;
     const memberName = ctx.identifiers[0];
     const scopedName = QualifiedNameGenerator.forMember(
-      CodeGenState.currentScope,
+      CodeGenState.currentScopePath,
       memberName,
     );
     const typeInfo = CodeGenState.getVariableTypeInfo(scopedName);

@@ -9,7 +9,6 @@ import * as Parser from "../../../parser/grammar/CNextParser";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import IStructSymbol from "../../../../types/symbols/IStructSymbol";
 import IFieldInfo from "../../../../types/symbols/IFieldInfo";
-import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 import TypeResolver from "../../../../../utils/TypeResolver";
 import TypeUtils from "../utils/TypeUtils";
 import DimensionResolver from "../utils/DimensionResolver";
@@ -135,7 +134,7 @@ class StructCollector {
    *
    * @param ctx The struct declaration context
    * @param sourceFile Source file path
-   * @param scope The scope this struct belongs to (IScopeSymbol)
+   * @param scopePath The path of the scope this struct belongs to (dotted path, "" at file scope)
    * @param constValues Map of constant names to their numeric values (for resolving array dimensions)
    * @param isScopeType ADR-057 predicate: is this *qualified* name a scope type?
    * @returns The struct symbol with TType-based types and scope reference
@@ -143,16 +142,16 @@ class StructCollector {
   static collect(
     ctx: Parser.StructDeclarationContext,
     sourceFile: string,
-    scope: IScopeSymbol,
+    scopePath: string,
     visibility: TVisibility,
     constValues?: Map<string, number>,
     isScopeType?: (qualifiedName: string) => boolean,
   ): IStructSymbol {
     const name = ctx.IDENTIFIER().getText();
     const line = ctx.start?.line ?? 0;
-    // #1285: the scope REFERENCE flows on from here. Flattening it to its
-    // leaf name was the choke point that made every downstream qualification
-    // one level deep, whatever the chain actually was.
+    // #1298: members carry the scope's PATH, not the scope object. The path
+    // holds every outer component, so nothing downstream can flatten it to a
+    // leaf -- which is what the reference threaded here used to protect against.
 
     const fields = new Map<string, IFieldInfo>();
 
@@ -161,7 +160,7 @@ class StructCollector {
       const fieldInfo = StructCollector.collectField(
         member,
         fieldName,
-        scope,
+        scopePath,
         constValues,
         isScopeType,
       );
@@ -171,10 +170,10 @@ class StructCollector {
     return {
       kind: "struct",
       name,
-      scope,
+      scopePath,
       // #1285: identity computed once, from the scope chain, not
       // re-derived by every consumer.
-      ...ScopeUtils.identityOf({ name, scope }),
+      ...ScopeUtils.identityOf({ name, scopePath }),
       sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.CNext,
@@ -190,12 +189,12 @@ class StructCollector {
   private static collectField(
     member: Parser.StructMemberContext,
     fieldName: string,
-    scope?: IScopeSymbol,
+    scopePath = "",
     constValues?: Map<string, number>,
     isScopeType?: (qualifiedName: string) => boolean,
   ): IFieldInfo {
     const typeCtx = member.type();
-    const fieldTypeStr = TypeUtils.getTypeName(typeCtx, scope, isScopeType);
+    const fieldTypeStr = TypeUtils.getTypeName(typeCtx, scopePath, isScopeType);
     const fieldType = TypeResolver.resolve(fieldTypeStr);
     // Note: C-Next struct members don't have const modifier in grammar
     const isConst = false;

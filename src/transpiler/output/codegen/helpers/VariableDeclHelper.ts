@@ -756,9 +756,9 @@ class VariableDeclHelper {
       // Also check scoped variables if inside a scope
       let scopedArgName = argName;
       let scopedTypeInfo = typeInfo;
-      if (!typeInfo && CodeGenState.currentScope) {
+      if (!typeInfo && CodeGenState.currentScopePath) {
         scopedArgName = QualifiedNameGenerator.forMember(
-          CodeGenState.currentScope,
+          CodeGenState.currentScopePath,
           argName,
         );
         scopedTypeInfo = CodeGenState.getVariableTypeInfo(scopedArgName);

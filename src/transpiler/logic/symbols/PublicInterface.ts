@@ -3,7 +3,6 @@ import type TSymbol from "../../types/symbols/TSymbol";
 import type TType from "../../types/TType";
 import QualifiedCName from "../../../utils/QualifiedCName";
 import ScopeUtils from "../../../utils/ScopeUtils";
-import type IScopeSymbol from "../../types/symbols/IScopeSymbol";
 
 /**
  * Issues #1161 and #1164 — the single answer to "which symbols form this
@@ -115,7 +114,7 @@ class PublicInterface {
     return (
       symbol.kind === "function" &&
       symbol.name === "main" &&
-      symbol.scope.name === ""
+      ScopeUtils.isGlobalScopePath(symbol.scopePath)
     );
   }
 
@@ -219,13 +218,18 @@ class PublicInterface {
     isKnownEnum: (qualifiedName: string) => boolean,
   ): string[] {
     const names: string[] = [];
-    const scope = symbol.scope;
+    const scopePath = symbol.scopePath;
     const collect = (type: TType): void =>
-      PublicInterface.collectTypeNames(type, scope, isKnownEnum, names);
+      PublicInterface.collectTypeNames(type, scopePath, isKnownEnum, names);
     const collectDims = (
       dimensions: ReadonlyArray<number | string> | undefined,
     ): void =>
-      PublicInterface.collectDimensions(dimensions, scope, isKnownEnum, names);
+      PublicInterface.collectDimensions(
+        dimensions,
+        scopePath,
+        isKnownEnum,
+        names,
+      );
 
     if (symbol.kind === "function") {
       collect(symbol.returnType);
@@ -261,20 +265,20 @@ class PublicInterface {
    */
   private static collectTypeNames(
     type: TType,
-    scope: IScopeSymbol,
+    scopePath: string,
     isKnownEnum: (qualifiedName: string) => boolean,
     into: string[],
   ): void {
     if (type.kind === "array") {
       PublicInterface.collectDimensions(
         type.dimensions,
-        scope,
+        scopePath,
         isKnownEnum,
         into,
       );
       PublicInterface.collectTypeNames(
         type.elementType,
-        scope,
+        scopePath,
         isKnownEnum,
         into,
       );
@@ -292,14 +296,14 @@ class PublicInterface {
    */
   private static collectDimensions(
     dimensions: ReadonlyArray<number | string> | undefined,
-    scope: IScopeSymbol,
+    scopePath: string,
     isKnownEnum: (qualifiedName: string) => boolean,
     into: string[],
   ): void {
     for (const dimension of dimensions ?? []) {
       if (typeof dimension === "string") {
         into.push(
-          ScopeUtils.resolveDimensionName(dimension, scope, isKnownEnum),
+          ScopeUtils.resolveDimensionName(dimension, scopePath, isKnownEnum),
         );
       }
     }

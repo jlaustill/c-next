@@ -216,7 +216,7 @@ describe("CodeGenerator", () => {
 
         const state = generator.getState();
 
-        expect(state.currentScope).toBeNull();
+        expect(state.currentScopePath).toBe("");
         expect(typeof state.indentLevel).toBe("number");
         expect(typeof state.inFunctionBody).toBe("boolean");
         expect(state.currentParameters).toBeInstanceOf(Map);
@@ -268,9 +268,9 @@ describe("CodeGenerator", () => {
         generator.applyEffects([{ type: "set-scope", name: "MyScope" }]);
 
         const state = generator.getState();
-        // #1285: state carries the scope SYMBOL now, so assert its identity
-        // rather than the leaf the caller happened to pass.
-        expect(state.currentScope?.fullyQualifiedCName).toBe("MyScope");
+        // #1298: state carries the scope PATH, so assert the path rather than
+        // whatever the caller happened to pass.
+        expect(state.currentScopePath).toBe("MyScope");
       });
 
       it("should process enter-function-body effects", () => {
@@ -512,9 +512,7 @@ describe("CodeGenerator", () => {
         generator.setCurrentScope("Motor");
 
         // Verify scope was set correctly
-        expect(generator.getState().currentScope?.fullyQualifiedCName).toBe(
-          "Motor",
-        );
+        expect(generator.getState().currentScopePath).toBe("Motor");
       });
     });
 
@@ -683,12 +681,10 @@ describe("CodeGenerator", () => {
         const generator = createMinimalGenerator(`void foo() { }`);
 
         generator.setCurrentScope("MyScope");
-        expect(generator.getState().currentScope?.fullyQualifiedCName).toBe(
-          "MyScope",
-        );
+        expect(generator.getState().currentScopePath).toBe("MyScope");
 
         generator.setCurrentScope(null);
-        expect(generator.getState().currentScope).toBeNull();
+        expect(generator.getState().currentScopePath).toBe("");
       });
 
       it("should set current function name", () => {
@@ -12740,7 +12736,7 @@ describe("CodeGenerator", () => {
         expect(code).toContain("void doNothing(void)");
       });
 
-      it("should generate type from scopedType without currentScope context", () => {
+      it("should generate type from scopedType without currentScopePath context", () => {
         // This tests _getTypeName returning just typeName when not in a scope
         const source = `
           scope Motor {
