@@ -772,6 +772,57 @@ class TestUtils {
   }
 
   /**
+   * The header a helper `.cnx` generates, in the mode under test.
+   */
+  private static helperHeaderPath(helperCnx: string, mode: TTestMode): string {
+    const ext = mode === "cpp" ? "hpp" : "h";
+    return join(dirname(helperCnx), `${basename(helperCnx, ".cnx")}.${ext}`);
+  }
+
+  /**
+   * Issue #1470: a helper's header is written twice per mode -- once by the
+   * entry file's multi-file pipeline run, and again by the single-file run this
+   * harness performs on the helper itself, which overwrites it. Only the second
+   * reaches the compiler and the working-tree check, so a header the multi-file
+   * pipeline gets WRONG is invisible: a single-file run cannot exhibit a
+   * cross-file ordering defect, because "the only file is also the last one"
+   * (issue #1139, whose regression fixture this silence had made unable to fail).
+   *
+   * The two must therefore agree. Compared byte-for-byte rather than through
+   * `normalize()`: both files are written by the same transpiler in the same
+   * pass, so any difference at all is a real divergence and not formatting.
+   */
+  private static findHelperHeaderDivergence(
+    captured: { path: string; content: string | null }[],
+    mode: TTestMode,
+    rootDir: string,
+  ): { error: string; expected: string; actual: string } | null {
+    for (const { path, content } of captured) {
+      const afterHelperRun = existsSync(path)
+        ? readFileSync(path, "utf-8")
+        : null;
+      if (afterHelperRun === content) {
+        continue;
+      }
+
+      const shown = path.startsWith(rootDir)
+        ? path.slice(rootDir.length + 1)
+        : path;
+      const absent = "<no header emitted>";
+      return {
+        error:
+          `${mode.toUpperCase()} helper header divergence: ${shown} differs ` +
+          `between the multi-file pipeline run and the single-file helper run, ` +
+          `so the header this fixture compiles is not the one the pipeline ` +
+          `produces. That is a cross-file ordering defect (issue #1470).`,
+        expected: content ?? absent,
+        actual: afterHelperRun ?? absent,
+      };
+    }
+    return null;
+  }
+
+  /**
    * Run a test in a single mode (C or C++)
    *
    * This handles transpilation, snapshot comparison, header validation,
@@ -863,6 +914,17 @@ class TestUtils {
       }
     }
 
+    // Issue #1470: capture each helper's header as the multi-file pipeline run
+    // above left it, BEFORE the single-file runs below overwrite it. See
+    // findHelperHeaderDivergence for why the two must agree.
+    const helperHeadersFromPipeline = helperCnxFiles.map((helperCnx) => {
+      const path = TestUtils.helperHeaderPath(helperCnx, mode);
+      return {
+        path,
+        content: existsSync(path) ? readFileSync(path, "utf-8") : null,
+      };
+    });
+
     // Transpile helper files via CLI
     // NOTE: Don't use -o flag here. The CLI's -o flag causes a rename operation
     // that would move tracked helper files to temp locations. Instead, let
@@ -894,6 +956,22 @@ class TestUtils {
     }
 
     // No cleanup needed - helper files are tracked in git and should persist
+
+    // Issue #1470: checked BEFORE the update branch below. A divergence is a
+    // transpiler defect, not a snapshot that needs refreshing, so `--update`
+    // must not be able to absorb it -- the same reason #1316 made `--update`
+    // fail on a fixture that stops erroring instead of rewriting its snapshot.
+    const helperHeaderDivergence = TestUtils.findHelperHeaderDivergence(
+      helperHeadersFromPipeline,
+      mode,
+      rootDir,
+    );
+    if (helperHeaderDivergence) {
+      result.error = helperHeaderDivergence.error;
+      result.expected = helperHeaderDivergence.expected;
+      result.actual = helperHeaderDivergence.actual;
+      return result;
+    }
 
     const hasExpectedImpl = existsSync(expectedImplPath);
     const hasExpectedHeader = existsSync(expectedHeaderPath);
