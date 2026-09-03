@@ -22,8 +22,9 @@ interface ICppBaseSymbol {
   /** Source language - always Cpp for C++ symbols */
   readonly sourceLanguage: ESourceLanguage.Cpp;
 
-  /** Visibility as declared. Interop symbols are always public — a header included by
-   * C-Next has no notion of a private declaration. */
+  /** Recorded "public" for every symbol, including class members declared under
+   * `private:` or `protected:` — the resolver walks `memberdeclaration` only and never
+   * reads an `accessSpecifier`, so this is not yet the declared visibility (#1475). */
   readonly visibility: TVisibility;
 
   /** Parent namespace or class name */

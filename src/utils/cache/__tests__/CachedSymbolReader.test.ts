@@ -68,6 +68,11 @@ describe("CachedSymbolReader", () => {
       ],
       ["a missing sourceFile", { ...C_FUNCTION, sourceFile: undefined }],
       ["a non-numeric sourceLine", { ...C_FUNCTION, sourceLine: "22" }],
+      ["a missing visibility", { ...C_FUNCTION, visibility: undefined }],
+      [
+        "a visibility TVisibility does not define",
+        { ...C_FUNCTION, visibility: "protected" },
+      ],
       ["a non-object entry", "not a symbol"],
     ])("rejects %s", (_label, symbol) => {
       expect(CachedSymbolReader.read([JsonCodec.encode(symbol)])).toBeNull();

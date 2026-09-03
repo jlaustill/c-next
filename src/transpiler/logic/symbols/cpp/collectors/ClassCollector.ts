@@ -153,6 +153,10 @@ class ClassCollector {
 
   /**
    * Collect class members (data fields and member functions).
+   *
+   * `memberSpecification` is `(memberdeclaration | accessSpecifier ':')+`, and this walks
+   * the first alternative only, so every member is recorded "public" whatever label
+   * precedes it. Tracking the access level starts here (#1475).
    */
   private static _collectClassMembers(
     ctx: IMemberCollectionContext,

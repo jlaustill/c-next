@@ -256,7 +256,7 @@ interface IBaseSymbol {
   sourceFile: string;
   sourceLine: number;
   sourceLanguage: ESourceLanguage;
-  isExported: boolean;
+  visibility: TVisibility;
 }
 
 interface IStructSymbol extends IBaseSymbol {

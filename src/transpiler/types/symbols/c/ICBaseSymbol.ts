@@ -22,8 +22,10 @@ interface ICBaseSymbol {
   /** Source language - always C for C symbols */
   readonly sourceLanguage: ESourceLanguage.C;
 
-  /** Visibility as declared. Interop symbols are always public — a header included by
-   * C-Next has no notion of a private declaration. */
+  /** Always "public": C has no declaration-site access control, and everything a header
+   * declares is reachable from the file that includes it — a `static inline` included,
+   * which is why `extern` is not the discriminator the old `isExported` treated it as.
+   * (C++ differs: it does have `private:`, and does not yet record it — #1475.) */
   readonly visibility: TVisibility;
 }
 
