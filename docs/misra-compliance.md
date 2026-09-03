@@ -45,7 +45,7 @@ assessment claimed N/A.
 | ---------------- | -------- | --------- | ------- | ------- | --- | ------------ | --------- |
 | Directives (1-4) | 1        | 9         | 1       | 0       | 1   | 0            | 1         |
 | Rules 1-5        | 4        | 3         | 5       | 0       | 3   | 7            | 1         |
-| Rules 6-10       | 2        | 15        | 7       | 0       | 0   | 9            | 0         |
+| Rules 6-10       | 3        | 14        | 7       | 0       | 0   | 9            | 0         |
 | Rules 11-15      | 3        | 15        | 6       | 0       | 1   | 6            | 0         |
 | Rules 16-22      | 5        | 29        | 4       | 0       | 11  | 7            | 1         |
 
@@ -242,22 +242,22 @@ struct tags that are 94 characters and byte-identical for 63 — transpiling exi
 
 ## Rule 8 - Declarations and Definitions
 
-| Rule | Description                                     | Status        | Reference                          |
-| ---- | ----------------------------------------------- | ------------- | ---------------------------------- |
-| 8.1  | Types explicitly stated                         | **By Design** | No implicit types                  |
-| 8.2  | Function types with prototypes                  | **By Design** | All functions have prototypes      |
-| 8.3  | Compatible declarations                         | **By Design** | Single definition rule             |
-| 8.4  | Compatible external declarations                | **By Design** | Module system                      |
-| 8.5  | External object/function one definition         | **By Design** | Issue #852: extern only in headers |
-| 8.6  | Identifier with external linkage one definition | **By Design** |                                    |
-| 8.7  | Functions/objects internal if possible          | Not Enforced  |                                    |
-| 8.8  | Static for internal linkage                     | Partial       | ADR-038: static/extern             |
-| 8.9  | Object at block scope if possible               | Not Enforced  |                                    |
-| 8.10 | Inline functions internal linkage               | **By Design** | ADR-031                            |
-| 8.11 | Array size explicit when extern                 | Partial       |                                    |
-| 8.12 | Enum implicit values only if all implicit       | Not Enforced  |                                    |
-| 8.13 | Pointer to const if not modified                | Not Enforced  |                                    |
-| 8.14 | No restrict qualifier                           | **By Design** | Not in C-Next                      |
+| Rule | Description                                     | Status        | Reference                                                                                                                               |
+| ---- | ----------------------------------------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| 8.1  | Types explicitly stated                         | **By Design** | No implicit types                                                                                                                       |
+| 8.2  | Function types with prototypes                  | **By Design** | All functions have prototypes                                                                                                           |
+| 8.3  | Compatible declarations                         | **By Design** | Single definition rule                                                                                                                  |
+| 8.4  | Compatible external declarations                | **Enforced**  | ADR-029 init functions are declared in the generating file's header (#1205); `validate:c` fails on a new undeclared external definition |
+| 8.5  | External object/function one definition         | **By Design** | Issue #852: extern only in headers                                                                                                      |
+| 8.6  | Identifier with external linkage one definition | **By Design** |                                                                                                                                         |
+| 8.7  | Functions/objects internal if possible          | Not Enforced  |                                                                                                                                         |
+| 8.8  | Static for internal linkage                     | Partial       | ADR-038: static/extern                                                                                                                  |
+| 8.9  | Object at block scope if possible               | Not Enforced  |                                                                                                                                         |
+| 8.10 | Inline functions internal linkage               | **By Design** | ADR-031                                                                                                                                 |
+| 8.11 | Array size explicit when extern                 | Partial       |                                                                                                                                         |
+| 8.12 | Enum implicit values only if all implicit       | Not Enforced  |                                                                                                                                         |
+| 8.13 | Pointer to const if not modified                | Not Enforced  |                                                                                                                                         |
+| 8.14 | No restrict qualifier                           | **By Design** | Not in C-Next                                                                                                                           |
 
 ---
 

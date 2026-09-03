@@ -28,6 +28,8 @@ typedef struct Controller {
 
 /* Function prototypes */
 void onReceive(const Message* msg);
+/* MISRA C:2012 Rule 8.4: declaration for the ADR-029 generated init function (the definition has external linkage and would otherwise be undeclared). */
+Controller Controller_init(void);
 
 #ifdef __cplusplus
 }

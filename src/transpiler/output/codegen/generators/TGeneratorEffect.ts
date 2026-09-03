@@ -47,6 +47,7 @@ type TGeneratorEffect =
 
   // === Callback Effects ===
   | { type: "register-callback-field"; key: string; typeName: string } // Register callback as struct field type
+  | { type: "register-struct-init"; structName: string } // #1205: struct got an ADR-029 init function
 
   // === Array Initializer Effects ===
   | { type: "set-array-init-count"; count: number } // Track array element count

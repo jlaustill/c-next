@@ -34,6 +34,10 @@ uint32_t addTwo(uint32_t a, uint32_t b);
 uint32_t multiplyTwo(uint32_t a, uint32_t b);
 uint32_t addThree(uint32_t a, uint32_t b, uint32_t c);
 uint32_t mixedParams(uint32_t val, bool flag);
+/* MISRA C:2012 Rule 8.4: declaration for the ADR-029 generated init function (the definition has external linkage and would otherwise be undeclared). */
+TwoParamHandler TwoParamHandler_init(void);
+ThreeParamHandler ThreeParamHandler_init(void);
+MixedHandler MixedHandler_init(void);
 
 #ifdef __cplusplus
 }

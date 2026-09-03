@@ -2236,6 +2236,9 @@ class Transpiler {
         cHeadersIncluded,
         // ADR-040: same flag the .c consults, so exactly one file emits it.
         needsIsrTypedef: CodeGenState.needsISR,
+        // #1205: same shape -- the .c records which init functions it
+        // emitted, the header declares exactly those.
+        generatedStructInits: CodeGenState.generatedStructInits,
         externalTypeHeaders,
         cppMode: this.cppMode,
       },

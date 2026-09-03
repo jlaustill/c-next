@@ -1,0 +1,12 @@
+// #1205: this file's own header owns the Controller_init declaration. It is
+// transpiled BEFORE the file that includes it, so the includer's header is
+// what shows whether the per-file init set is cleared between files.
+struct Message {
+    u32 id;
+}
+
+void onReceive(const Message m) {}
+
+struct Controller {
+    onReceive handler;
+}

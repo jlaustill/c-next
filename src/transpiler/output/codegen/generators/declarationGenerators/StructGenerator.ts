@@ -23,6 +23,8 @@ import TGeneratorFn from "../TGeneratorFn";
 import TGeneratorEffect from "../TGeneratorEffect";
 import ICodeGenSymbols from "../../../../types/ICodeGenSymbols";
 import ArrayDimensionUtils from "./ArrayDimensionUtils";
+import ICallbackFieldInit from "../../types/ICallbackFieldInit";
+import StructInitFunction from "../../helpers/StructInitFunction";
 
 /**
  * Generate a callback field declaration for a struct.
@@ -119,7 +121,7 @@ const generateStruct: TGeneratorFn<Parser.StructDeclarationContext> = (
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
   const name = node.IDENTIFIER().getText();
-  const callbackFields: Array<{ fieldName: string; callbackType: string }> = [];
+  const callbackFields: ICallbackFieldInit[] = [];
 
   const lines: string[] = [];
   // Issue #296: Use named struct for forward declaration compatibility
@@ -177,49 +179,19 @@ const generateStruct: TGeneratorFn<Parser.StructDeclarationContext> = (
   // the whole generator (rather than just the typedef) silently dropped it.
   const typeDefinition = state.selfIncludeAdded ? [] : lines;
 
-  const initFunction =
-    callbackFields.length > 0
-      ? [generateStructInitFunction(name, callbackFields)]
-      : [];
+  // #1205: the init function is emitted here and declared in the header. The
+  // header is told which structs got one rather than working it out again --
+  // see StructInitFunction for why re-deriving it there is wrong.
+  const initFunction: string[] = [];
+  if (callbackFields.length > 0) {
+    initFunction.push(StructInitFunction.definition(name, callbackFields));
+    effects.push({ type: "register-struct-init", structName: name });
+  }
 
   return {
     code: [...typeDefinition, ...initFunction].join("\n"),
     effects,
   };
 };
-
-/**
- * ADR-029: Generate init function for structs with callback fields.
- * Sets all callback fields to their default functions.
- *
- * Example:
- *   struct Handler { onEvent callback; }
- *   ->
- *   Handler Handler_init(void) {
- *       return (Handler){
- *           .onEvent = callback
- *       };
- *   }
- */
-function generateStructInitFunction(
-  structName: string,
-  callbackFields: Array<{ fieldName: string; callbackType: string }>,
-): string {
-  const lines: string[] = [];
-  lines.push(
-    `${structName} ${structName}_init(void) {`,
-    `    return (${structName}){`,
-  );
-
-  for (let i = 0; i < callbackFields.length; i++) {
-    const field = callbackFields[i];
-    const comma = i < callbackFields.length - 1 ? "," : "";
-    lines.push(`        .${field.fieldName} = ${field.callbackType}${comma}`);
-  }
-
-  lines.push(`    };`, `}`, "");
-
-  return lines.join("\n");
-}
 
 export default generateStruct;

@@ -177,6 +177,22 @@ export default class CodeGenState {
   static callbackFieldTypes: Map<string, string> = new Map();
 
   /**
+   * Issue #1205: structs whose ADR-029 init function this file's `.c` emitted.
+   *
+   * The generated `<Struct>_init(void)` is a definition with external linkage,
+   * so MISRA C:2012 Rule 8.4 needs a visible declaration -- and the header is
+   * the only place to put one. Recorded at the single site that decides to
+   * emit the definition, and read by header generation, which must not work
+   * the answer out again: its `structFields` view also holds scope-nested
+   * structs, which get no init function at all (#1283), so a header-side
+   * re-derivation would declare functions nobody defines.
+   *
+   * Same shape as `needsISR` (ADR-040) and `headerOwnsCallbackTypedef`
+   * (#1164): one fact, recorded by the `.c`, consulted by the `.h`.
+   */
+  static generatedStructInits: Set<string> = new Set();
+
+  /**
    * ADR-029 / Issues #1200, #1201: every type name referenced by a field or a
    * parameter, wherever it appears -- top-level struct, scope-nested struct,
    * scope member, or function parameter.
@@ -520,6 +536,7 @@ export default class CodeGenState {
     this.functionSignatures = new Map();
     this.callbackTypes = new Map();
     this.callbackFieldTypes = new Map();
+    this.generatedStructInits = new Set();
     this.callbackTypeReferences = new Set();
     this.pendingCallbackTypedefs = [];
     // Note: callbackCompatibleFunctions is NOT reset here — it's populated by

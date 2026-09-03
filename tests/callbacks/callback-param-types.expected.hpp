@@ -44,6 +44,11 @@ uint32_t processU8(uint8_t val);
 uint32_t processU32(uint32_t val);
 uint32_t processBool(bool val);
 uint32_t processPoint(const CallbackParamType__Point& p);
+/* MISRA C:2012 Rule 8.4: declaration for the ADR-029 generated init function (the definition has external linkage and would otherwise be undeclared). */
+U8Handler U8Handler_init(void);
+U32Handler U32Handler_init(void);
+BoolHandler BoolHandler_init(void);
+PointHandler PointHandler_init(void);
 
 #ifdef __cplusplus
 }

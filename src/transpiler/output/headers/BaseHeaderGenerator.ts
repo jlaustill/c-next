@@ -16,6 +16,7 @@ import SymbolTable from "../../logic/symbols/SymbolTable";
 // Unified parameter generation (Phase 1)
 import ParameterInputAdapter from "../codegen/helpers/ParameterInputAdapter";
 import ParameterSignatureBuilder from "../codegen/helpers/ParameterSignatureBuilder";
+import StructInitFunction from "../codegen/helpers/StructInitFunction";
 
 const { mapType } = typeUtils;
 
@@ -237,6 +238,7 @@ abstract class BaseHeaderGenerator {
         groups.functions,
         passByValueParams,
         allKnownEnums,
+        options.generatedStructInits,
       ),
       ...HeaderGeneratorUtils.generateHeaderEnd(guard),
     ];
@@ -251,8 +253,16 @@ abstract class BaseHeaderGenerator {
     functions: IHeaderSymbol[],
     passByValueParams?: TPassByValueParams,
     allKnownEnums?: ReadonlySet<string>,
+    generatedStructInits?: ReadonlySet<string>,
   ): string[] {
-    if (functions.length === 0) {
+    // #1205: the ADR-029 init functions are declarations too, so the section
+    // exists when there is either kind. Keying the early return on `functions`
+    // alone would drop the init prototypes for a file whose only external
+    // definitions are generated ones.
+    const initPrototypes = StructInitFunction.prototypeLines([
+      ...(generatedStructInits ?? []),
+    ]);
+    if (functions.length === 0 && initPrototypes.length === 0) {
       return [];
     }
 
@@ -267,7 +277,7 @@ abstract class BaseHeaderGenerator {
         lines.push(proto);
       }
     }
-    lines.push("");
+    lines.push(...initPrototypes, "");
     return lines;
   }
 
