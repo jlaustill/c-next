@@ -97,7 +97,7 @@ class StructCollector {
       sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.C,
-      isExported: true,
+      visibility: "public",
       isUnion,
       needsStructKeyword,
       fields: fields.size > 0 ? fields : undefined,

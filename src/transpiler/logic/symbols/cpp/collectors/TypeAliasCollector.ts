@@ -37,7 +37,7 @@ class TypeAliasCollector {
       sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.Cpp,
-      isExported: true,
+      visibility: "public",
       parent: currentNamespace,
     };
   }

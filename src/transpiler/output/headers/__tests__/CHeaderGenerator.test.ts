@@ -605,7 +605,7 @@ describe("CHeaderGenerator", () => {
       symbolTable.addCppSymbol({
         name: "MyLib",
         kind: "namespace",
-        isExported: true,
+        visibility: "public",
         sourceFile: "MyLib.hpp",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.Cpp,
@@ -637,7 +637,7 @@ describe("CHeaderGenerator", () => {
       symbolTable.addCppSymbol({
         name: "LibName",
         kind: "namespace",
-        isExported: true,
+        visibility: "public",
         sourceFile: "LibName.hpp",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.Cpp,

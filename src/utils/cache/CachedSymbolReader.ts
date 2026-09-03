@@ -152,7 +152,7 @@ class CachedSymbolReader {
       typeof candidate.name !== "string" ||
       typeof candidate.sourceFile !== "string" ||
       typeof candidate.sourceLine !== "number" ||
-      typeof candidate.isExported !== "boolean" ||
+      typeof candidate.visibility !== "string" ||
       typeof candidate.kind !== "string"
     ) {
       return false;

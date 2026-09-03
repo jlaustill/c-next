@@ -96,7 +96,7 @@ class ClassCollector {
       sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.Cpp,
-      isExported: true,
+      visibility: "public",
       parent: currentNamespace,
       fields: fields && fields.size > 0 ? fields : undefined,
     };
@@ -144,7 +144,7 @@ class ClassCollector {
       sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.Cpp,
-      isExported: true,
+      visibility: "public",
       fields: fields.size > 0 ? fields : undefined,
     };
 

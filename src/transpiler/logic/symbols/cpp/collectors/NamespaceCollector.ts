@@ -40,7 +40,7 @@ class NamespaceCollector {
       sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.Cpp,
-      isExported: true,
+      visibility: "public",
       parent: currentNamespace,
     };
   }

@@ -37,7 +37,7 @@ function addWidgetCallbackSymbols(symbolTable: SymbolTable): void {
     sourceLanguage: ESourceLanguage.C,
     sourceFile: "widget.h",
     sourceLine: 1,
-    isExported: true,
+    visibility: "public",
     type: "void",
     parameters: [
       { name: "w", type: "widget_t*", isConst: false, isArray: false },
@@ -52,7 +52,7 @@ function addWidgetCallbackSymbols(symbolTable: SymbolTable): void {
     sourceLanguage: ESourceLanguage.C,
     sourceFile: "widget.h",
     sourceLine: 2,
-    isExported: true,
+    visibility: "public",
     type: "void (*)(widget_t*, const rect_t*, uint8_t*)",
   });
 }
@@ -408,7 +408,7 @@ describe("FunctionCallAnalyzer", () => {
         sourceLanguage: ESourceLanguage.C,
         sourceFile: "external.h",
         sourceLine: 1,
-        isExported: true,
+        visibility: "public",
         type: "void",
       });
 
@@ -432,7 +432,7 @@ describe("FunctionCallAnalyzer", () => {
         sourceLanguage: ESourceLanguage.Cpp,
         sourceFile: "helper.hpp",
         sourceLine: 1,
-        isExported: true,
+        visibility: "public",
         type: "void",
       });
 
@@ -558,7 +558,7 @@ describe("FunctionCallAnalyzer", () => {
         sourceLanguage: ESourceLanguage.Cpp,
         sourceFile: "custom.hpp",
         sourceLine: 1,
-        isExported: true,
+        visibility: "public",
         type: "void",
       });
 
@@ -671,7 +671,7 @@ describe("FunctionCallAnalyzer", () => {
         sourceLanguage: ESourceLanguage.C,
         sourceFile: "callback_types.h",
         sourceLine: 1,
-        isExported: true,
+        visibility: "public",
         type: "void (*)(Point)",
       });
 
@@ -737,7 +737,7 @@ describe("FunctionCallAnalyzer", () => {
         sourceLanguage: ESourceLanguage.C,
         sourceFile: "callback_types.h",
         sourceLine: 1,
-        isExported: true,
+        visibility: "public",
         type: "void (*)(uint32_t)",
       });
 
@@ -767,7 +767,7 @@ describe("FunctionCallAnalyzer", () => {
         sourceLanguage: ESourceLanguage.C,
         sourceFile: "types.h",
         sourceLine: 1,
-        isExported: true,
+        visibility: "public",
         type: "uint32_t",
       });
 
@@ -813,7 +813,7 @@ describe("FunctionCallAnalyzer", () => {
         sourceLanguage: ESourceLanguage.C,
         sourceFile: "funcs.h",
         sourceLine: 1,
-        isExported: true,
+        visibility: "public",
         type: "void",
       });
 
@@ -833,7 +833,7 @@ describe("FunctionCallAnalyzer", () => {
         sourceLanguage: ESourceLanguage.C,
         sourceFile: "types.h",
         sourceLine: 1,
-        isExported: true,
+        visibility: "public",
         type: "void (*)(int)",
       });
 
@@ -864,7 +864,7 @@ describe("FunctionCallAnalyzer", () => {
         sourceLanguage: ESourceLanguage.C,
         sourceFile: "callback_types.h",
         sourceLine: 1,
-        isExported: true,
+        visibility: "public",
         type: "void (*)(uint32_t)",
       });
 
@@ -898,7 +898,7 @@ describe("FunctionCallAnalyzer", () => {
         sourceLanguage: ESourceLanguage.C,
         sourceFile: "callback_types.h",
         sourceLine: 1,
-        isExported: true,
+        visibility: "public",
         type: "void (*)(uint32_t)",
       });
 
@@ -930,7 +930,7 @@ describe("FunctionCallAnalyzer", () => {
         sourceLanguage: ESourceLanguage.C,
         sourceFile: "callback_types.h",
         sourceLine: 1,
-        isExported: true,
+        visibility: "public",
         type: "void (*)(uint32_t)",
       });
 
@@ -962,7 +962,7 @@ describe("FunctionCallAnalyzer", () => {
         sourceLanguage: ESourceLanguage.C,
         sourceFile: "callback_types.h",
         sourceLine: 1,
-        isExported: true,
+        visibility: "public",
         type: "void (*)(uint32_t)",
       });
 
@@ -998,7 +998,7 @@ describe("FunctionCallAnalyzer", () => {
         sourceLanguage: ESourceLanguage.C,
         sourceFile: "callback_types.h",
         sourceLine: 1,
-        isExported: true,
+        visibility: "public",
         type: "void (*)(uint32_t)",
       });
 
@@ -1031,7 +1031,7 @@ describe("FunctionCallAnalyzer", () => {
         sourceLanguage: ESourceLanguage.C,
         sourceFile: "widget.h",
         sourceLine: 1,
-        isExported: true,
+        visibility: "public",
         type: "void",
         parameters: [
           { name: "w", type: "widget_t*", isConst: false, isArray: false },
@@ -1046,7 +1046,7 @@ describe("FunctionCallAnalyzer", () => {
         sourceLanguage: ESourceLanguage.C,
         sourceFile: "widget.h",
         sourceLine: 2,
-        isExported: true,
+        visibility: "public",
         type: "void (*)(widget_t*, const rect_t*, uint8_t*)",
       });
 
@@ -1308,7 +1308,7 @@ describe("FunctionCallAnalyzer", () => {
         sourceLanguage: ESourceLanguage.C,
         sourceFile: "external.h",
         sourceLine: 1,
-        isExported: true,
+        visibility: "public",
         type: "void",
         parameters: [],
       });

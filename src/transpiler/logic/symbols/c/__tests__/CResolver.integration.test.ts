@@ -57,7 +57,7 @@ describe("CResolver - Function Definitions", () => {
       expect(symbol.type).toBe("void");
       expect(symbol.isDeclaration).toBe(false);
     }
-    expect(symbol.isExported).toBe(true);
+    expect(symbol.visibility).toBe("public");
   });
 
   it("collects function with return type", () => {
@@ -116,7 +116,7 @@ describe("CResolver - Function Prototypes", () => {
     if (symbol.kind === "function") {
       expect(symbol.isDeclaration).toBe(true);
     }
-    expect(symbol.isExported).toBe(true);
+    expect(symbol.visibility).toBe("public");
   });
 
   it("collects extern function prototype", () => {
@@ -124,7 +124,7 @@ describe("CResolver - Function Prototypes", () => {
     const result = CResolver.resolve(tree!, "test.h");
 
     expect(result.symbols[0].name).toBe("externalFunc");
-    expect(result.symbols[0].isExported).toBe(false);
+    expect(result.symbols[0].visibility).toBe("public");
     if (result.symbols[0].kind === "function") {
       expect(result.symbols[0].isDeclaration).toBe(true);
     }
@@ -153,7 +153,7 @@ describe("CResolver - Variable Declarations", () => {
     if (symbol.kind === "variable") {
       expect(symbol.type).toBe("int");
     }
-    expect(symbol.isExported).toBe(true);
+    expect(symbol.visibility).toBe("public");
   });
 
   it("collects extern variable", () => {
@@ -163,7 +163,7 @@ describe("CResolver - Variable Declarations", () => {
     const symbol = result.symbols[0];
     expect(symbol.name).toBe("globalValue");
     expect(symbol.kind).toBe("variable");
-    expect(symbol.isExported).toBe(false);
+    expect(symbol.visibility).toBe("public");
     if (symbol.kind === "variable") {
       expect(symbol.isExtern).toBe(true);
     }
@@ -224,7 +224,7 @@ describe("CResolver - Typedefs", () => {
     if (symbol.kind === "type") {
       expect(symbol.type).toBe("int");
     }
-    expect(symbol.isExported).toBe(true);
+    expect(symbol.visibility).toBe("public");
   });
 
   it("collects typedef with unsigned type", () => {
@@ -256,7 +256,7 @@ describe("CResolver - Structs", () => {
     const structSym = result.symbols.find((s) => s.name === "Point");
     expect(structSym).toBeDefined();
     expect(structSym?.kind).toBe("struct");
-    expect(structSym?.isExported).toBe(true);
+    expect(structSym?.visibility).toBe("public");
   });
 
   it("marks named struct as needing struct keyword", () => {
@@ -398,7 +398,7 @@ describe("CResolver - Enums", () => {
       (s) => s.name === "Color" && s.kind === "enum",
     );
     expect(enumSym).toBeDefined();
-    expect(enumSym?.isExported).toBe(true);
+    expect(enumSym?.visibility).toBe("public");
   });
 
   it("collects enum members", () => {
@@ -412,7 +412,7 @@ describe("CResolver - Enums", () => {
       if (m.kind === "enum_member") {
         expect(m.parent).toBe("Color");
       }
-      expect(m.isExported).toBe(true);
+      expect(m.visibility).toBe("public");
     });
   });
 

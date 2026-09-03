@@ -26,7 +26,7 @@ class TypedefCollector {
       sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.C,
-      isExported: true,
+      visibility: "public",
       type: baseType,
     };
   }

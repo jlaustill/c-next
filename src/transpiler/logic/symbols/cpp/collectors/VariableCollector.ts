@@ -43,7 +43,7 @@ class VariableCollector {
       sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.Cpp,
-      isExported: true,
+      visibility: "public",
       parent: currentNamespace,
       isArray: arrayDimensions.length > 0 ? true : undefined,
       arrayDimensions: arrayDimensions.length > 0 ? arrayDimensions : undefined,

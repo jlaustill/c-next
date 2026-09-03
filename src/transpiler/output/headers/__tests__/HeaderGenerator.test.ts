@@ -204,7 +204,7 @@ describe("HeaderGenerator", () => {
         kind: "namespace",
         sourceFile: `${namespaceName}.hpp`,
         sourceLine: 1,
-        isExported: false,
+        visibility: "public",
         sourceLanguage: ESourceLanguage.Cpp,
       });
       return {
@@ -448,7 +448,7 @@ describe("HeaderGenerator", () => {
         type: "void",
         sourceFile: "module.hpp",
         sourceLine: 1,
-        isExported: true,
+        visibility: "public",
         sourceLanguage: ESourceLanguage.Cpp,
       });
       symbolTable.addCSymbol({
@@ -457,7 +457,7 @@ describe("HeaderGenerator", () => {
         type: "void",
         sourceFile: "module.h",
         sourceLine: 1,
-        isExported: true,
+        visibility: "public",
         sourceLanguage: ESourceLanguage.C,
       });
 

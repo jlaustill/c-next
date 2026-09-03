@@ -1,5 +1,6 @@
 import type TSymbolKindC from "../../symbol-kinds/TSymbolKindC";
 import type ESourceLanguage from "../../../../utils/types/ESourceLanguage";
+import type TVisibility from "../../TVisibility";
 
 /**
  * Base interface for all C language symbol types.
@@ -21,8 +22,9 @@ interface ICBaseSymbol {
   /** Source language - always C for C symbols */
   readonly sourceLanguage: ESourceLanguage.C;
 
-  /** Whether this symbol is exported/public */
-  readonly isExported: boolean;
+  /** Visibility as declared. Interop symbols are always public — a header included by
+   * C-Next has no notion of a private declaration. */
+  readonly visibility: TVisibility;
 }
 
 export default ICBaseSymbol;

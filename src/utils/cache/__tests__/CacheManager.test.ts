@@ -46,7 +46,7 @@ describe("CacheManager", () => {
       sourceFile: "/test/file.h",
       sourceLine: 10,
       sourceLanguage: ESourceLanguage.C,
-      isExported: true,
+      visibility: "public",
       ...overrides,
     };
   }
@@ -291,7 +291,7 @@ describe("CacheManager", () => {
         sourceFile: testFile,
         sourceLine: 10,
         sourceLanguage: ESourceLanguage.C,
-        isExported: true,
+        visibility: "public",
       });
     });
 
@@ -331,7 +331,7 @@ describe("CacheManager", () => {
         sourceFile: testFile,
         sourceLine: 10,
         sourceLanguage: ESourceLanguage.C,
-        isExported: true,
+        visibility: "public",
         isDeclaration: true,
         parameters: [
           { name: "a", type: "int", isConst: false, isArray: false },
@@ -371,7 +371,7 @@ describe("CacheManager", () => {
         sourceFile: testFile,
         sourceLine: 10,
         sourceLanguage: ESourceLanguage.C as const,
-        isExported: true,
+        visibility: "public" as const,
       };
       const symbols: TCSymbol[] = [
         { ...base, kind: "function", name: "func1", type: "void" },
@@ -816,7 +816,7 @@ describe("CacheManager", () => {
         sourceFile: testFile,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.C as const,
-        isExported: true,
+        visibility: "public" as const,
       };
       const fields = new Map([["x", { name: "x", type: "int" }]]);
       const symbols: TCSymbol[] = [
@@ -865,7 +865,7 @@ describe("CacheManager", () => {
         sourceFile: testFile,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.Cpp as const,
-        isExported: true,
+        visibility: "public" as const,
       };
       const symbols: TCppSymbol[] = [
         { ...base, kind: "function", name: "func", type: "void" },
@@ -921,7 +921,7 @@ describe("CacheManager", () => {
           sourceFile: testFile,
           sourceLine: 10,
           sourceLanguage: ESourceLanguage.Cpp,
-          isExported: true,
+          visibility: "public",
         },
       ];
 
@@ -950,7 +950,7 @@ describe("CacheManager", () => {
           sourceFile: "/test/file.cnx",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.CNext,
-          isExported: true,
+          visibility: "public",
         }),
       ];
 
@@ -977,7 +977,7 @@ describe("CacheManager", () => {
         sourceFile: testFile,
         sourceLine: 5,
         sourceLanguage: ESourceLanguage.C,
-        isExported: true,
+        visibility: "public",
       });
 
       cacheManager.setSymbolsFromTable(testFile, symbolTable);
@@ -991,7 +991,7 @@ describe("CacheManager", () => {
         sourceFile: testFile,
         sourceLine: 5,
         sourceLanguage: ESourceLanguage.C,
-        isExported: true,
+        visibility: "public",
         type: "void",
       });
     });
@@ -1011,7 +1011,7 @@ describe("CacheManager", () => {
         sourceFile: headerFile,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.C,
-        isExported: true,
+        visibility: "public",
       });
       symbolTable.addTSymbol({
         ...TestSymbolUtils.base({
@@ -1046,7 +1046,7 @@ describe("CacheManager", () => {
         sourceFile: testFile,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.C,
-        isExported: true,
+        visibility: "public",
         isUnion: false,
       });
 
@@ -1085,7 +1085,7 @@ describe("CacheManager", () => {
         sourceFile: file1,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.C,
-        isExported: true,
+        visibility: "public",
         isUnion: false,
       });
       symbolTable.addStructField("PointA", "x", "int32_t");
@@ -1097,7 +1097,7 @@ describe("CacheManager", () => {
         sourceFile: file2,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.C,
-        isExported: true,
+        visibility: "public",
         isUnion: false,
       });
       symbolTable.addStructField("PointB", "y", "int32_t");
@@ -1123,7 +1123,7 @@ describe("CacheManager", () => {
         sourceFile: testFile,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.C,
-        isExported: true,
+        visibility: "public",
         isUnion: false,
       });
       symbolTable.addCSymbol({
@@ -1132,7 +1132,7 @@ describe("CacheManager", () => {
         sourceFile: testFile,
         sourceLine: 5,
         sourceLanguage: ESourceLanguage.C,
-        isExported: true,
+        visibility: "public",
         isUnion: false,
       });
 
@@ -1165,7 +1165,7 @@ describe("CacheManager", () => {
         sourceFile: file1,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.C,
-        isExported: true,
+        visibility: "public",
         isUnion: false,
       });
       symbolTable.addCSymbol({
@@ -1174,7 +1174,7 @@ describe("CacheManager", () => {
         sourceFile: file2,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.C,
-        isExported: true,
+        visibility: "public",
         isUnion: false,
       });
 
@@ -1207,7 +1207,7 @@ describe("CacheManager", () => {
         sourceFile: testFile,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.C,
-        isExported: true,
+        visibility: "public",
         members: [],
       });
       symbolTable.addCSymbol({
@@ -1216,7 +1216,7 @@ describe("CacheManager", () => {
         sourceFile: testFile,
         sourceLine: 5,
         sourceLanguage: ESourceLanguage.C,
-        isExported: true,
+        visibility: "public",
         members: [],
       });
 
@@ -1247,7 +1247,7 @@ describe("CacheManager", () => {
         sourceFile: file1,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.C,
-        isExported: true,
+        visibility: "public",
         members: [],
       });
       symbolTable.addCSymbol({
@@ -1256,7 +1256,7 @@ describe("CacheManager", () => {
         sourceFile: file2,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.C,
-        isExported: true,
+        visibility: "public",
         members: [],
       });
 
@@ -1286,7 +1286,7 @@ describe("CacheManager", () => {
         sourceFile: testFile,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.C,
-        isExported: true,
+        visibility: "public",
       });
 
       // Add struct symbol and fields
@@ -1296,7 +1296,7 @@ describe("CacheManager", () => {
         sourceFile: testFile,
         sourceLine: 10,
         sourceLanguage: ESourceLanguage.C,
-        isExported: true,
+        visibility: "public",
         isUnion: false,
       });
       symbolTable.addStructField("DataPacket", "id", "uint32_t");
@@ -1310,7 +1310,7 @@ describe("CacheManager", () => {
         sourceFile: testFile,
         sourceLine: 20,
         sourceLanguage: ESourceLanguage.C,
-        isExported: true,
+        visibility: "public",
         members: [],
       });
       symbolTable.addEnumBitWidth("DataType", 8);
@@ -1357,7 +1357,7 @@ describe("CacheManager", () => {
         sourceFile: testFile,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.C,
-        isExported: true,
+        visibility: "public",
         isUnion: false,
       });
       symbolTable.addStructField("MyStruct", "value", "int32_t");
@@ -1369,7 +1369,7 @@ describe("CacheManager", () => {
         sourceFile: testFile,
         sourceLine: 5,
         sourceLanguage: ESourceLanguage.C,
-        isExported: true,
+        visibility: "public",
         members: [],
       });
       symbolTable.addEnumBitWidth("MyEnum", 16);
@@ -1404,7 +1404,7 @@ describe("CacheManager", () => {
         sourceFile: nonExistent,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.C,
-        isExported: true,
+        visibility: "public",
       });
 
       // Should not throw, but should not cache
@@ -1440,7 +1440,7 @@ describe("CacheManager", () => {
         sourceFile: testFile,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.C,
-        isExported: true,
+        visibility: "public",
         isUnion: false,
       });
       // Note: not adding fields, so getStructNamesByFile won't include it
@@ -1466,7 +1466,7 @@ describe("CacheManager", () => {
         sourceFile: testFile,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.C,
-        isExported: true,
+        visibility: "public",
         members: [],
       });
 
@@ -1491,7 +1491,7 @@ describe("CacheManager", () => {
         sourceFile: testFile,
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.C,
-        isExported: true,
+        visibility: "public",
       });
       symbolTable.addCSymbol({
         name: "func2",
@@ -1500,7 +1500,7 @@ describe("CacheManager", () => {
         sourceFile: testFile,
         sourceLine: 5,
         sourceLanguage: ESourceLanguage.C,
-        isExported: true,
+        visibility: "public",
       });
       symbolTable.addCSymbol({
         name: "func3",
@@ -1509,7 +1509,7 @@ describe("CacheManager", () => {
         sourceFile: testFile,
         sourceLine: 10,
         sourceLanguage: ESourceLanguage.C,
-        isExported: false,
+        visibility: "public",
       });
 
       cacheManager.setSymbolsFromTable(testFile, symbolTable);
@@ -1595,7 +1595,7 @@ describe("CacheManager", () => {
         sourceFile: "/project/test.h",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.C,
-        isExported: true,
+        visibility: "public",
       };
 
       storeMockSymbols("/project/test.h", [symbol]);
@@ -1639,7 +1639,7 @@ describe("CacheManager", () => {
       const content = mockFs.getWrittenContent("/project/.cnx/config.json");
       expect(content).toBeDefined();
       const newConfig = JSON.parse(content!);
-      expect(newConfig.version).toBe(9); // Current CACHE_VERSION (Issue #1225)
+      expect(newConfig.version).toBe(10); // Current CACHE_VERSION (Issue #1446)
     });
 
     it("should not cache files that do not exist in IFileSystem", async () => {
@@ -1654,7 +1654,7 @@ describe("CacheManager", () => {
           sourceFile: "/project/nonexistent.h",
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.C,
-          isExported: true,
+          visibility: "public",
         },
       ]);
 

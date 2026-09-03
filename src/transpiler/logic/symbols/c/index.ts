@@ -282,7 +282,6 @@ class CResolver {
             declarator,
             ctx.sourceFile,
             ctx.line,
-            ctx.isExtern,
           ),
         );
       } else {

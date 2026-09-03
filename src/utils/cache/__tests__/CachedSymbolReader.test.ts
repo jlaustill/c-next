@@ -20,7 +20,7 @@ const C_FUNCTION = {
   sourceFile: "/lib/handles.h",
   sourceLine: 22,
   sourceLanguage: ESourceLanguage.C,
-  isExported: true,
+  visibility: "public",
 };
 
 /** Struct state as the serializer really produces it. */

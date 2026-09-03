@@ -281,7 +281,7 @@ describe("runAnalyzers", () => {
         sourceLanguage: ESourceLanguage.C,
         sourceFile: "external.h",
         sourceLine: 1,
-        isExported: true,
+        visibility: "public",
         type: "void",
       });
 
@@ -303,7 +303,7 @@ describe("runAnalyzers", () => {
         sourceLanguage: ESourceLanguage.Cpp,
         sourceFile: "CppMessage.hpp",
         sourceLine: 1,
-        isExported: true,
+        visibility: "public",
       });
       CodeGenState.symbolTable.addStructField("CppMessage", "pgn", "u16");
       CodeGenState.buildExternalStructFields();
