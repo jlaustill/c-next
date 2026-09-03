@@ -4,13 +4,19 @@
  * IHeaderEmissionFacts into header text, reading no CodeGenState.
  */
 
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import HeaderEmissionPlanner from "../HeaderEmissionPlanner";
 import HeaderGenerator from "../HeaderGenerator";
-import IHeaderEmissionFacts from "../../../types/IHeaderEmissionFacts";
+import IHeaderEmissionFacts from "../types/IHeaderEmissionFacts";
 import IHeaderSymbol from "../types/IHeaderSymbol";
+import IHeaderOptions from "../../codegen/types/IHeaderOptions";
+import CodeGenState from "../../../state/CodeGenState";
 
 describe("HeaderEmissionPlanner", () => {
+  afterEach(() => {
+    CodeGenState.reset();
+  });
+
   function makeVarSymbol(name: string, type: string): IHeaderSymbol {
     return {
       name,
@@ -24,11 +30,12 @@ describe("HeaderEmissionPlanner", () => {
   function makeFacts(
     filename: string,
     symbols: IHeaderSymbol[] = [makeVarSymbol("value", "u8")],
+    options: IHeaderOptions = {},
   ): IHeaderEmissionFacts {
     return {
       symbols,
       filename,
-      options: {},
+      options,
       typeInput: undefined,
       passByValueParams: new Map(),
       allKnownEnums: new Set(),
@@ -104,6 +111,33 @@ describe("HeaderEmissionPlanner", () => {
     expect(plan.errorsBySourcePath.get("/src/bad.cnx")).toBe("boom");
     expect(plan.headersBySourcePath.get("/src/good.cnx")).toContain(
       "extern uint32_t c;",
+    );
+  });
+
+  it("renders identically after CodeGenState has moved on to another file", () => {
+    // This is the invariant HeaderEmissionPlanner exists to provide (#1323):
+    // plan() reads no CodeGenState, only the facts it is handed. Captured
+    // while CodeGenState said "this file needs the ISR typedef" --
+    const facts = new Map([
+      [
+        "/src/foo.cnx",
+        makeFacts("foo.h", undefined, { needsIsrTypedef: true }),
+      ],
+    ]);
+
+    // -- then CodeGenState moves on to a later file that needs no such thing,
+    // the same way the real per-file loop leaves it before Stage 5.5 runs.
+    CodeGenState.needsISR = false;
+
+    const plan = HeaderEmissionPlanner.plan(facts, new HeaderGenerator());
+
+    // If plan() (or the generate() call path it uses) ever read live
+    // CodeGenState.needsISR instead of the captured facts.options value,
+    // this would render with no ISR typedef -- silently wrong, the same
+    // failure mode #1139 was, and undetectable by any test that does not
+    // deliberately make the live and captured values disagree.
+    expect(plan.headersBySourcePath.get("/src/foo.cnx")).toContain(
+      "typedef void (*ISR)(void);",
     );
   });
 

@@ -15,7 +15,7 @@
  * pass needs to build on.
  */
 import HeaderGenerator from "./HeaderGenerator";
-import IHeaderEmissionFacts from "../../types/IHeaderEmissionFacts";
+import IHeaderEmissionFacts from "./types/IHeaderEmissionFacts";
 import IEmissionPlan from "../../types/IEmissionPlan";
 
 class HeaderEmissionPlanner {

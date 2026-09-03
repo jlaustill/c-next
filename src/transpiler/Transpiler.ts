@@ -30,7 +30,8 @@ import HeaderGenerator from "./output/headers/HeaderGenerator";
 import HeaderEmissionPlanner from "./output/headers/HeaderEmissionPlanner";
 import ExternalTypeHeaderBuilder from "./output/headers/ExternalTypeHeaderBuilder";
 import HeaderGeneratorUtils from "./output/headers/HeaderGeneratorUtils";
-import IHeaderEmissionFacts from "./types/IHeaderEmissionFacts";
+import IHeaderEmissionFacts from "./output/headers/types/IHeaderEmissionFacts";
+import IHeaderCallbackType from "./types/IHeaderCallbackType";
 import ICodeGenSymbols from "./types/ICodeGenSymbols";
 import IncludeExtractor from "./logic/IncludeExtractor";
 import SymbolTable from "./logic/symbols/SymbolTable";
@@ -791,15 +792,22 @@ class Transpiler {
         this.headerEmissionFactsByPath.set(sourcePath, headerFacts);
       }
 
-      // Issue #1143: read after header-facts capture -- a header can carry
-      // requirements of its own -- and before the next file's
-      // CodeGenState.reset() clears the recording map.
+      // Issue #1143: read after header-facts CAPTURE, and before the next
+      // file's CodeGenState.reset() clears the recording map. This covers a
+      // requirement that capturing a header's facts triggers (e.g. through
+      // convertToHeaderSymbols) -- it does NOT cover one the RENDER might
+      // trigger, since #1323 moved rendering to Stage 5.5, after every file's
+      // requirements have already been read here and reset() has run N times.
+      // Currently unreachable rather than wrong: CodeGenState.requireToolchain
+      // has no caller under output/headers/, so no render path records one --
+      // but this read does not guarantee that stays true, and #1143 is
+      // precisely the bug class where an ordering assumption like that broke
+      // under a later refactor.
       const requirements = this.codeGenerator.getToolchainRequirements();
 
       return this.buildSuccessResult(
         sourcePath,
         code,
-        undefined,
         declarationCount,
         requirements,
       );
@@ -2359,8 +2367,13 @@ class Transpiler {
         // ADR-040: same flag the .c consults, so exactly one file emits it.
         needsIsrTypedef: CodeGenState.needsISR,
         // #1205: same shape -- the .c records which init functions it
-        // emitted, the header declares exactly those.
-        generatedStructInits: CodeGenState.generatedStructInits,
+        // emitted, the header declares exactly those. Copied, not aliased:
+        // this record must stay frozen once captured, and CodeGenState.reset()
+        // happens to rebind this field to a new Set rather than clearing it in
+        // place (CodeGenState.ts) -- true today, but not a contract anything
+        // enforces, so a live reference here would be correct only by
+        // coincidence with reset()'s current implementation.
+        generatedStructInits: new Set(CodeGenState.generatedStructInits),
         externalTypeHeaders,
         cppMode: this.cppMode,
       },
@@ -2378,20 +2391,9 @@ class Transpiler {
    */
   private _buildCallbackTypesForHeader(): ReadonlyMap<
     string,
-    {
-      typedefName: string;
-      returnType: string;
-      parameters: ReadonlyArray<{ type: string; isStruct: boolean }>;
-    }
+    IHeaderCallbackType
   > {
-    const result = new Map<
-      string,
-      {
-        typedefName: string;
-        returnType: string;
-        parameters: ReadonlyArray<{ type: string; isStruct: boolean }>;
-      }
-    >();
+    const result = new Map<string, IHeaderCallbackType>();
 
     // Issue #1164: same predicate the .c uses to decide it must NOT emit these.
     const usedCallbackTypes = new Set<string>();
@@ -2648,18 +2650,22 @@ class Transpiler {
 
   /**
    * Build a successful transpilation result.
+   *
+   * #1323: `headerCode` is filled in later, by `_renderHeaders` (Stage 5.5) --
+   * not here. This used to take a `headerCode` parameter, but this is its
+   * only caller and it always passed `undefined`, so the parameter was dead:
+   * a slot that read as someone's to fill in, which is the second-write-path
+   * shape #1139 was.
    */
   private buildSuccessResult(
     sourcePath: string,
     code: string,
-    headerCode: string | undefined,
     declarationCount: number,
     requirements: readonly IRecordedRequirement[] = [],
   ): IFileResult {
     return {
       sourcePath,
       code,
-      headerCode,
       success: true,
       errors: [],
       declarationCount,
