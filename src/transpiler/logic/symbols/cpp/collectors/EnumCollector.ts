@@ -61,7 +61,7 @@ class EnumCollector {
       sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.Cpp,
-      isExported: true,
+      visibility: "public",
       parent: currentNamespace,
       bitWidth,
     };

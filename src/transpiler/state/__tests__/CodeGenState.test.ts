@@ -54,7 +54,7 @@ function createCVariableSymbol(
     sourceFile: overrides.sourceFile ?? "test.h",
     sourceLine: overrides.sourceLine ?? 1,
     sourceLanguage: ESourceLanguage.C,
-    isExported: overrides.isExported ?? false,
+    visibility: overrides.visibility ?? "public",
     type: overrides.type,
     isConst: overrides.isConst,
     isArray: overrides.isArray,

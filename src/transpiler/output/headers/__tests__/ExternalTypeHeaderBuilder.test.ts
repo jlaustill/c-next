@@ -22,7 +22,7 @@ function createSymbol(
     kind,
     sourceFile,
     sourceLine: 1,
-    isExported: false,
+    visibility: "public",
   } as TCSymbol;
 }
 

@@ -22,7 +22,7 @@ describe("CppNamespaceUtils", () => {
       sourceFile,
       sourceLine: 1,
       sourceLanguage: ESourceLanguage.Cpp,
-      isExported: false,
+      visibility: "public",
     };
   }
 
@@ -34,7 +34,7 @@ describe("CppNamespaceUtils", () => {
       sourceFile,
       sourceLine: 1,
       sourceLanguage: ESourceLanguage.Cpp,
-      isExported: false,
+      visibility: "public",
     };
   }
 
@@ -46,7 +46,7 @@ describe("CppNamespaceUtils", () => {
       sourceFile,
       sourceLine: 1,
       sourceLanguage: ESourceLanguage.Cpp,
-      isExported: false,
+      visibility: "public",
     };
   }
 
@@ -58,7 +58,7 @@ describe("CppNamespaceUtils", () => {
       sourceFile,
       sourceLine: 1,
       sourceLanguage: ESourceLanguage.Cpp,
-      isExported: false,
+      visibility: "public",
       type: "void",
     };
   }
@@ -71,7 +71,7 @@ describe("CppNamespaceUtils", () => {
       sourceFile,
       sourceLine: 1,
       sourceLanguage: ESourceLanguage.C,
-      isExported: false,
+      visibility: "public",
       isUnion: false,
     };
   }

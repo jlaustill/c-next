@@ -79,7 +79,7 @@ class FunctionCollector {
       sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.C,
-      isExported: true,
+      visibility: "public",
       type: returnType,
       parameters: parameters.length > 0 ? parameters : undefined,
       isDeclaration: false,
@@ -94,7 +94,6 @@ class FunctionCollector {
    * @param declarator The declarator context
    * @param sourceFile Source file path
    * @param line Source line number
-   * @param isExtern Whether the function is extern
    */
   static collectFromDeclaration(
     name: string,
@@ -102,7 +101,6 @@ class FunctionCollector {
     declarator: DeclaratorContext,
     sourceFile: string,
     line: number,
-    isExtern: boolean,
   ): ICFunctionSymbol {
     const parameters = FunctionCollector._mapParameters(
       DeclaratorUtils.extractFunctionParameters(declarator),
@@ -119,7 +117,7 @@ class FunctionCollector {
       sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.C,
-      isExported: !isExtern,
+      visibility: "public",
       type: returnType,
       parameters: parameters.length > 0 ? parameters : undefined,
       isDeclaration: true,

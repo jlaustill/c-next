@@ -51,7 +51,7 @@ describe("InitializationAnalyzer", () => {
         sourceLanguage: ESourceLanguage.Cpp,
         sourceFile: "CppMessage.hpp",
         sourceLine: 1,
-        isExported: true,
+        visibility: "public",
       });
       // Add the field so the analyzer knows about it
       CodeGenState.symbolTable.addStructField("CppMessage", "pgn", "u16");
@@ -106,7 +106,7 @@ describe("InitializationAnalyzer", () => {
         sourceLanguage: ESourceLanguage.Cpp,
         sourceFile: "types.hpp",
         sourceLine: 1,
-        isExported: true,
+        visibility: "public",
       });
       CodeGenState.symbolTable.addStructField("CppStruct", "value", "u32");
 
@@ -136,7 +136,7 @@ describe("InitializationAnalyzer", () => {
         sourceLanguage: ESourceLanguage.C,
         sourceFile: "types.h",
         sourceLine: 1,
-        isExported: true,
+        visibility: "public",
         isUnion: false,
       });
       CodeGenState.symbolTable.addStructField("CStruct", "value", "u32");
@@ -994,7 +994,7 @@ describe("InitializationAnalyzer", () => {
         sourceLanguage: ESourceLanguage.Cpp,
         sourceFile: "types.hpp",
         sourceLine: 1,
-        isExported: true,
+        visibility: "public",
       });
 
       const analyzer = new InitializationAnalyzer();

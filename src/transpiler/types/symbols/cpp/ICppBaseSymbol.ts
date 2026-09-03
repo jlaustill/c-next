@@ -1,5 +1,6 @@
 import type TSymbolKindCpp from "../../symbol-kinds/TSymbolKindCpp";
 import type ESourceLanguage from "../../../../utils/types/ESourceLanguage";
+import type TVisibility from "../../TVisibility";
 
 /**
  * Base interface for all C++ language symbol types.
@@ -21,8 +22,10 @@ interface ICppBaseSymbol {
   /** Source language - always Cpp for C++ symbols */
   readonly sourceLanguage: ESourceLanguage.Cpp;
 
-  /** Whether this symbol is exported/public */
-  readonly isExported: boolean;
+  /** Recorded "public" for every symbol, including class members declared under
+   * `private:` or `protected:` — the resolver walks `memberdeclaration` only and never
+   * reads an `accessSpecifier`, so this is not yet the declared visibility (#1475). */
+  readonly visibility: TVisibility;
 
   /** Parent namespace or class name */
   readonly parent?: string;

@@ -34,7 +34,7 @@ const declareCFunction = (
     sourceFile: "sink.h",
     sourceLine: 1,
     sourceLanguage: ESourceLanguage.C,
-    isExported: true,
+    visibility: "public",
     type: "void",
     parameters,
   }) as TCSymbol;
@@ -46,7 +46,7 @@ const declareCTypedef = (name: string, aliased: string): TCSymbol =>
     sourceFile: "sink.h",
     sourceLine: 1,
     sourceLanguage: ESourceLanguage.C,
-    isExported: true,
+    visibility: "public",
     type: aliased,
   }) as TCSymbol;
 
@@ -263,7 +263,7 @@ describe("PassByValueAnalyzer callee resolution (#1178)", () => {
         sourceFile: "sink.h",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.C,
-        isExported: true,
+        visibility: "public",
         type: "void*",
       }) as TCSymbol;
 
@@ -311,7 +311,6 @@ describe("PassByValueAnalyzer callee resolution (#1178)", () => {
       sourceFile: "a.cnx",
       sourceLine: 1,
       sourceLanguage: ESourceLanguage.CNext,
-      isExported: true,
       visibility: "public",
       body: undefined,
       returnType: { kind: "primitive", primitive: "void" },

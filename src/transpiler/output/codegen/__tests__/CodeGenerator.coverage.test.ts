@@ -1221,7 +1221,7 @@ describe("CodeGenerator Coverage Tests", () => {
           sourceFile: cSym.sourceFile,
           sourceLine: 1,
           sourceLanguage: ESourceLanguage.C,
-          isExported: true,
+          visibility: "public",
           isDeclaration: true,
         });
       }
@@ -1410,7 +1410,7 @@ describe("CodeGenerator Coverage Tests", () => {
         sourceFile: "SeaDash.h",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.Cpp,
-        isExported: true,
+        visibility: "public",
       });
 
       // Register struct field type with underscore (simulates C++ imported struct)

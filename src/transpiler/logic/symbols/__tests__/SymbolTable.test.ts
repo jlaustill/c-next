@@ -162,7 +162,7 @@ describe("SymbolTable", () => {
         sourceFile: "test.h",
         sourceLine: 10,
         sourceLanguage: ESourceLanguage.C,
-        isExported: true,
+        visibility: "public",
         type: "int",
         parameters: [
           { name: "x", type: "int", isConst: false, isArray: false },
@@ -191,7 +191,7 @@ describe("SymbolTable", () => {
         sourceFile: "test.hpp",
         sourceLine: 5,
         sourceLanguage: ESourceLanguage.Cpp,
-        isExported: true,
+        visibility: "public",
       };
 
       symbolTable.addCppSymbol(symbol);
@@ -234,7 +234,7 @@ describe("SymbolTable", () => {
         sourceFile: "test.h",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.C,
-        isExported: true,
+        visibility: "public",
         type: "int",
       });
 
@@ -244,7 +244,7 @@ describe("SymbolTable", () => {
         sourceFile: "test.hpp",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.Cpp,
-        isExported: true,
+        visibility: "public",
         type: "int",
       });
 
@@ -277,7 +277,7 @@ describe("SymbolTable", () => {
         sourceFile: "test.hpp",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.Cpp,
-        isExported: true,
+        visibility: "public",
         type: "void",
         parameters: [
           { name: "x", type: "int", isConst: false, isArray: false },
@@ -317,7 +317,7 @@ describe("SymbolTable", () => {
         sourceFile: "test.h",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.C,
-        isExported: true,
+        visibility: "public",
         type: "void",
         parameters: [],
       });
@@ -332,7 +332,7 @@ describe("SymbolTable", () => {
         sourceFile: "test.hpp",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.Cpp,
-        isExported: true,
+        visibility: "public",
         type: "void",
         parameters: [],
       });
@@ -343,7 +343,7 @@ describe("SymbolTable", () => {
         sourceFile: "test.hpp",
         sourceLine: 5,
         sourceLanguage: ESourceLanguage.Cpp,
-        isExported: true,
+        visibility: "public",
         type: "void",
         parameters: [
           { name: "x", type: "int", isConst: false, isArray: false },
@@ -364,7 +364,7 @@ describe("SymbolTable", () => {
         sourceFile: "api.h",
         sourceLine: 3,
         sourceLanguage: ESourceLanguage.C,
-        isExported: true,
+        visibility: "public",
         type: "int",
         parameters: [],
       });
@@ -375,7 +375,7 @@ describe("SymbolTable", () => {
         sourceFile: "api.hpp",
         sourceLine: 4,
         sourceLanguage: ESourceLanguage.Cpp,
-        isExported: true,
+        visibility: "public",
         type: "int",
         parameters: [],
       } as unknown as TCppSymbol);
@@ -706,7 +706,7 @@ describe("SymbolTable", () => {
         sourceFile: "lv_pthread.h",
         sourceLine: 80,
         sourceLanguage: ESourceLanguage.C,
-        isExported: true,
+        visibility: "public",
         type: "ssize_t",
         parameters: [
           { name: "fd", type: "int", isConst: false, isArray: false },
@@ -745,7 +745,7 @@ describe("SymbolTable", () => {
         sourceFile: "unistd.h",
         sourceLine: 100,
         sourceLanguage: ESourceLanguage.C,
-        isExported: true,
+        visibility: "public",
         type: "ssize_t",
         parameters: [],
       });
@@ -875,7 +875,7 @@ describe("SymbolTable", () => {
         sourceFile: "fake_lib.h",
         sourceLine: 5,
         sourceLanguage: ESourceLanguage.C,
-        isExported: true,
+        visibility: "public",
         isUnion: false,
         fields: new Map([
           [
@@ -1409,7 +1409,7 @@ describe("SymbolTable", () => {
         sourceFile: "sensor.h",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.C,
-        isExported: true,
+        visibility: "public",
         type: "void",
         parameters: [],
       } as TCSymbol);
@@ -1419,7 +1419,7 @@ describe("SymbolTable", () => {
         sourceFile: "sensor.hpp",
         sourceLine: 1,
         sourceLanguage: ESourceLanguage.Cpp,
-        isExported: true,
+        visibility: "public",
         returnType: "void",
         parameters: [],
       } as unknown as TCppSymbol);

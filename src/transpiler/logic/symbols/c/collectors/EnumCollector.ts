@@ -54,7 +54,7 @@ class EnumCollector {
               sourceFile,
               sourceLine: enumeratorDef.start?.line ?? line,
               sourceLanguage: ESourceLanguage.C,
-              isExported: true,
+              visibility: "public",
               parent: name,
             });
           }
@@ -68,7 +68,7 @@ class EnumCollector {
       sourceFile,
       sourceLine: line,
       sourceLanguage: ESourceLanguage.C,
-      isExported: true,
+      visibility: "public",
       members: memberInfos,
     };
 
