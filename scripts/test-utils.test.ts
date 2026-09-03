@@ -484,9 +484,14 @@ extern uint32_t WRONG_VAR_NAME;
     const tools: ITools = { gcc: false }; // Skip GCC for speed
     const result = await TestUtils.runTest(cnxFile, false, tools, tempDir);
 
-    // The test MUST fail with header mismatch
+    // The test MUST fail with header mismatch. The message now also names the
+    // first differing line (issue #1471) rather than just "C header mismatch"
+    // -- exact guard-name formatting isn't this test's concern, so assert the
+    // substance and leave the precise wording to TestUtils.firstDifference's
+    // own tests.
     expect(result.passed).toBe(false);
-    expect(result.message).toBe("C header mismatch");
+    expect(result.message).toContain("C header mismatch");
+    expect(result.message).toContain("First difference at line 1");
   });
 
   it("fails a C-mode run whose .hpp include forces C++ output (#1314)", async () => {

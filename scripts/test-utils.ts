@@ -16,7 +16,7 @@ import {
   statSync,
   readdirSync,
 } from "node:fs";
-import { join, dirname, basename } from "node:path";
+import { join, dirname, basename, relative } from "node:path";
 import { execFileSync, spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { randomBytes } from "node:crypto";
@@ -106,6 +106,21 @@ interface ICliTranspileResult {
    * detection. Reading the CLI's own report removes the inference entirely.
    */
   generatedImplPaths: string[];
+  /**
+   * Header files the CLI reported writing, as absolute paths -- everything in
+   * the "Generated N output files:" block after the impl files. For a multi-file
+   * pipeline run this includes every dependency's header, direct or
+   * transitive, not just the ones a caller's own `.cnx` list happens to name.
+   * See TestUtils.findHelperHeaderDivergence.
+   */
+  generatedHeaderPaths: string[];
+  /**
+   * The header path this call's own file was written to (or would have been,
+   * had it emitted one) -- the same `actualHeaderPath` this function already
+   * derives from the corrected impl path, exposed so a caller can pick this
+   * file's own header out of another call's `generatedHeaderPaths`.
+   */
+  headerPath: string;
 }
 
 /**
@@ -266,6 +281,9 @@ function transpileViaCli(
   const generatedImplPaths = TestUtils.parseGeneratedImplPaths(
     result.stdout || "",
   );
+  const generatedHeaderPaths = TestUtils.parseGeneratedHeaderPaths(
+    result.stdout || "",
+  );
 
   if (result.status === 0) {
     // Only the CLI's answer for THIS path counts. `generatedImplPaths[0]` would be
@@ -297,6 +315,8 @@ function transpileViaCli(
     errors,
     stderr: result.stderr || "",
     generatedImplPaths,
+    generatedHeaderPaths,
+    headerPath: actualHeaderPath,
   };
 }
 
@@ -323,6 +343,49 @@ class TestUtils {
       .map((line) => line.trimEnd())
       .join("\n")
       .trim();
+  }
+
+  /**
+   * The first line at which two texts disagree, or null if every line
+   * matches. A byte-for-byte mismatch report otherwise shows the same
+   * leading lines for any divergence -- an include guard and a
+   * generated-by banner are identical whatever changed thirty lines
+   * further down -- which reads as "these differ" with no clue where.
+   */
+  static firstDifference(
+    expected: string,
+    actual: string,
+  ): { line: number; expected: string; actual: string } | null {
+    const expectedLines = expected.split("\n");
+    const actualLines = actual.split("\n");
+    const lineCount = Math.max(expectedLines.length, actualLines.length);
+    for (let i = 0; i < lineCount; i++) {
+      const expectedLine = i < expectedLines.length ? expectedLines[i] : "";
+      const actualLine = i < actualLines.length ? actualLines[i] : "";
+      if (expectedLine !== actualLine) {
+        return { line: i + 1, expected: expectedLine, actual: actualLine };
+      }
+    }
+    return null;
+  }
+
+  /**
+   * `firstDifference`, formatted as a message suffix (empty string when the
+   * texts agree). Shared by every snapshot-mismatch site so the console
+   * excerpt (test.ts's five-line preview) is backed by the same "where"
+   * everywhere instead of each site growing its own.
+   */
+  private static describeFirstDifference(
+    expected: string,
+    actual: string,
+  ): string {
+    const diff = TestUtils.firstDifference(expected, actual);
+    if (!diff) return "";
+    return (
+      ` First difference at line ${diff.line}:\n` +
+      `        expected: ${diff.expected}\n` +
+      `        actual:   ${diff.actual}`
+    );
   }
 
   /**
@@ -772,14 +835,6 @@ class TestUtils {
   }
 
   /**
-   * The header a helper `.cnx` generates, in the mode under test.
-   */
-  private static helperHeaderPath(helperCnx: string, mode: TTestMode): string {
-    const ext = mode === "cpp" ? "hpp" : "h";
-    return join(dirname(helperCnx), `${basename(helperCnx, ".cnx")}.${ext}`);
-  }
-
-  /**
    * Issue #1470: a helper's header is written twice per mode -- once by the
    * entry file's multi-file pipeline run, and again by the single-file run this
    * harness performs on the helper itself, which overwrites it. Only the second
@@ -788,11 +843,33 @@ class TestUtils {
    * cross-file ordering defect, because "the only file is also the last one"
    * (issue #1139, whose regression fixture this silence had made unable to fail).
    *
+   * `captured` is built from `generatedHeaderPaths` on the ENTRY's own CLI
+   * result -- every header that run reported writing -- not from a path
+   * guessed per direct helper. So a transitive dependency's header (included
+   * by a helper rather than by the fixture's own entry file) is covered the
+   * same way a direct helper's is: `findHelperCnxFiles` never lists it, but
+   * the entry's pipeline still writes its header and the helper that includes
+   * it still overwrites that header when the standalone loop re-transpiles it.
+   *
    * The two must therefore agree. Compared byte-for-byte rather than through
    * `normalize()`: both files are written by the same transpiler in the same
    * pass, so any difference at all is a real divergence and not formatting.
+   *
+   * Scope: headers only. The same overwrite also hides a helper's `.c`/`.cpp`,
+   * which diverges TODAY for a separate, live reason -- a dependency's
+   * self-include path depends on which file was its entry (issue #1473) --
+   * so comparing impl files here would fail immediately on that, unrelated to any
+   * pipeline-ordering defect. Left to whichever change resolves #1473; #1160
+   * is the general form of this harness defect across all four extensions.
+   *
+   * Race note: a helper shared by more than one fixture can have its header
+   * captured by one fixture's worker while another fixture's worker is
+   * re-transpiling that same file (the harness runs fixtures in parallel).
+   * Not new -- the compile step already races the same way -- but it means a
+   * mutation-check against a shared helper should run with `--jobs 1` so a
+   * result is attributable to one fixture.
    */
-  private static findHelperHeaderDivergence(
+  static findHelperHeaderDivergence(
     captured: { path: string; content: string | null }[],
     mode: TTestMode,
     rootDir: string,
@@ -805,18 +882,20 @@ class TestUtils {
         continue;
       }
 
-      const shown = path.startsWith(rootDir)
-        ? path.slice(rootDir.length + 1)
-        : path;
+      const shown = relative(rootDir, path);
       const absent = "<no header emitted>";
+      const expected = content ?? absent;
+      const actual = afterHelperRun ?? absent;
       return {
         error:
           `${mode.toUpperCase()} helper header divergence: ${shown} differs ` +
           `between the multi-file pipeline run and the single-file helper run, ` +
           `so the header this fixture compiles is not the one the pipeline ` +
-          `produces. That is a cross-file ordering defect (issue #1470).`,
-        expected: content ?? absent,
-        actual: afterHelperRun ?? absent,
+          `produces. The two runs disagree, which is a transpiler defect -- ` +
+          `see issue #1470 for why.` +
+          TestUtils.describeFirstDifference(expected, actual),
+        expected,
+        actual,
       };
     }
     return null;
@@ -914,16 +993,22 @@ class TestUtils {
       }
     }
 
-    // Issue #1470: capture each helper's header as the multi-file pipeline run
-    // above left it, BEFORE the single-file runs below overwrite it. See
-    // findHelperHeaderDivergence for why the two must agree.
-    const helperHeadersFromPipeline = helperCnxFiles.map((helperCnx) => {
-      const path = TestUtils.helperHeaderPath(helperCnx, mode);
-      return {
-        path,
-        content: existsSync(path) ? readFileSync(path, "utf-8") : null,
-      };
-    });
+    // Issue #1470: capture every header the entry's OWN multi-file pipeline
+    // run just reported writing, as it left them, BEFORE the single-file
+    // helper runs below overwrite them. This is the entry's own reported
+    // list (transpileResult.generatedHeaderPaths), not one derived from
+    // helperCnxFiles, so a transitive dependency's header is captured the
+    // same way a direct helper's is. The entry's own header is excluded --
+    // nothing in the loop below can overwrite it. See
+    // findHelperHeaderDivergence for why the rest must agree, and for what
+    // this deliberately does not cover.
+    const dependencyHeaderPaths = transpileResult.generatedHeaderPaths.filter(
+      (path) => path !== transpileResult.headerPath,
+    );
+    const dependencyHeadersFromPipeline = dependencyHeaderPaths.map((path) => ({
+      path,
+      content: existsSync(path) ? readFileSync(path, "utf-8") : null,
+    }));
 
     // Transpile helper files via CLI
     // NOTE: Don't use -o flag here. The CLI's -o flag causes a rename operation
@@ -962,7 +1047,7 @@ class TestUtils {
     // must not be able to absorb it -- the same reason #1316 made `--update`
     // fail on a fixture that stops erroring instead of rewriting its snapshot.
     const helperHeaderDivergence = TestUtils.findHelperHeaderDivergence(
-      helperHeadersFromPipeline,
+      dependencyHeadersFromPipeline,
       mode,
       rootDir,
     );
@@ -1001,7 +1086,12 @@ class TestUtils {
       TestUtils.normalize(transpileResult.code) !==
       TestUtils.normalize(expectedImpl)
     ) {
-      result.error = `${mode.toUpperCase()} output mismatch`;
+      result.error =
+        `${mode.toUpperCase()} output mismatch` +
+        TestUtils.describeFirstDifference(
+          TestUtils.normalize(expectedImpl),
+          TestUtils.normalize(transpileResult.code),
+        );
       result.expected = expectedImpl;
       result.actual = transpileResult.code;
       return result;
@@ -1019,7 +1109,12 @@ class TestUtils {
         TestUtils.normalize(transpileResult.headerCode) !==
         TestUtils.normalize(expectedHeader)
       ) {
-        result.error = `${mode.toUpperCase()} header mismatch`;
+        result.error =
+          `${mode.toUpperCase()} header mismatch` +
+          TestUtils.describeFirstDifference(
+            TestUtils.normalize(expectedHeader),
+            TestUtils.normalize(transpileResult.headerCode),
+          );
         result.expected = expectedHeader;
         result.actual = transpileResult.headerCode;
         return result;
@@ -1319,6 +1414,11 @@ class TestUtils {
     return null;
   }
 
+  // Marks the start of the CLI's "Generated N output files:" block. The one
+  // fact parseGeneratedImplPaths and parseGeneratedHeaderPaths must agree on;
+  // everything after it, each treats differently -- see both doc comments.
+  private static readonly OUTPUT_BLOCK_START = /^Generated \d+ output files?:/;
+
   /**
    * Implementation files (`.c` / `.cpp`) named in the CLI's "Generated N output
    * files:" block.
@@ -1339,7 +1439,7 @@ class TestUtils {
     const paths: string[] = [];
     let inBlock = false;
     for (const line of stdout.split("\n")) {
-      if (/^Generated \d+ output files?:/.test(line)) {
+      if (TestUtils.OUTPUT_BLOCK_START.test(line)) {
         inBlock = true;
         continue;
       }
@@ -1347,6 +1447,38 @@ class TestUtils {
       const match = /^\s+(\S.*\.(?:c|cpp))$/.exec(line);
       if (!match) break;
       paths.push(match[1]);
+    }
+    return paths;
+  }
+
+  /**
+   * Header files (`.h` / `.hpp`) named in the CLI's "Generated N output files:"
+   * block -- every header the run actually wrote, direct dependency or
+   * transitive, in the run's own words rather than a path guessed from a
+   * `.cnx` list the caller happens to have. See
+   * TestUtils.findHelperHeaderDivergence, the caller this exists for.
+   *
+   * Unlike parseGeneratedImplPaths, this does not stop at the first impl
+   * line: impl files lead the block and headers trail it, so a scan looking
+   * for headers has to tolerate the impl files in front of them. It still stops at
+   * the true end of the block (the first line that is neither), which is
+   * what keeps a trailing, unrelated line like "Toolchain requirements:"
+   * from being read as a path.
+   */
+  static parseGeneratedHeaderPaths(stdout: string): string[] {
+    const paths: string[] = [];
+    let inBlock = false;
+    for (const line of stdout.split("\n")) {
+      if (TestUtils.OUTPUT_BLOCK_START.test(line)) {
+        inBlock = true;
+        continue;
+      }
+      if (!inBlock) continue;
+      const match = /^\s+(\S.*\.(?:c|cpp|h|hpp))$/.exec(line);
+      if (!match) break;
+      if (/\.(?:h|hpp)$/.test(match[1])) {
+        paths.push(match[1]);
+      }
     }
     return paths;
   }
