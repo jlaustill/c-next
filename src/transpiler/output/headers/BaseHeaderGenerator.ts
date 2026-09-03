@@ -17,11 +17,9 @@ import SymbolTable from "../../logic/symbols/SymbolTable";
 import ParameterInputAdapter from "../codegen/helpers/ParameterInputAdapter";
 import ParameterSignatureBuilder from "../codegen/helpers/ParameterSignatureBuilder";
 import StructInitFunction from "../codegen/helpers/StructInitFunction";
+import TPassByValueParams from "../../types/TPassByValueParams";
 
 const { mapType } = typeUtils;
-
-/** Pass-by-value parameter info from CodeGenerator */
-type TPassByValueParams = ReadonlyMap<string, ReadonlySet<string>>;
 
 /**
  * Abstract base class for header file generation

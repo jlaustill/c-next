@@ -27,8 +27,11 @@ import TJsonValue from "../utils/types/TJsonValue";
 import TypeResolver from "../utils/TypeResolver";
 import PublicInterface from "./logic/symbols/PublicInterface";
 import HeaderGenerator from "./output/headers/HeaderGenerator";
+import HeaderEmissionPlanner from "./output/headers/HeaderEmissionPlanner";
 import ExternalTypeHeaderBuilder from "./output/headers/ExternalTypeHeaderBuilder";
 import HeaderGeneratorUtils from "./output/headers/HeaderGeneratorUtils";
+import IHeaderEmissionFacts from "./output/headers/types/IHeaderEmissionFacts";
+import IHeaderCallbackType from "./types/IHeaderCallbackType";
 import ICodeGenSymbols from "./types/ICodeGenSymbols";
 import IncludeExtractor from "./logic/IncludeExtractor";
 import SymbolTable from "./logic/symbols/SymbolTable";
@@ -142,6 +145,25 @@ class Transpiler {
   private pragmaTargets: string[] = [];
   /** Issue #587: Encapsulated state for accumulated Maps/Sets */
   private readonly state = new TranspilerState();
+  /**
+   * #1323: one file's fully-resolved header-render input, captured while its
+   * `CodeGenState` was warm. `_renderHeaders` (Stage 5.5) reads this map ONCE,
+   * after every file has been transpiled, to render every header -- see
+   * `IHeaderEmissionFacts` for why this is what makes issue #1139's failure
+   * mode structurally impossible rather than merely fixed.
+   *
+   * Lives here, on the orchestrator, rather than on `TranspilerState`:
+   * `IHeaderEmissionFacts` carries `output/`-layer shapes
+   * (`IHeaderSymbol`/`IHeaderOptions`/`IHeaderTypeInput`), and `state/` may
+   * never reach `output/`, even transitively (#1297) -- `Transpiler.ts` sits
+   * above the 4-layer structure and coordinates all of them, so it alone may
+   * hold both. Cleared per run by `_initializeRun()`, matching `pragmaTargets`
+   * just above.
+   */
+  private readonly headerEmissionFactsByPath = new Map<
+    string,
+    IHeaderEmissionFacts
+  >();
   /**
    * #1301: each file's parse and declare, keyed by source path.
    *
@@ -365,8 +387,10 @@ class Transpiler {
    * Stage 3: Collect symbols from C-Next files
    * Stage 3b: Resolve external const array dimensions
    * Stage 4: Check for symbol conflicts
-   * Stage 5: Generate code and its header (per-file, while that file's state is warm)
-   * Stage 6: Write the Stage 5 headers to disk (per-file)
+   * Stage 5: Generate code, and capture each file's header-render input
+   *          (per-file, while that file's state is warm)
+   * Stage 5.5: Render every captured header, once, whole-program (#1323)
+   * Stage 6: Write the Stage 5.5 headers to disk (per-file)
    */
   private async _executePipeline(
     input: IPipelineInput,
@@ -434,15 +458,86 @@ class Transpiler {
       );
     }
 
+    // Stage 5.5: render every file's captured header input into text, ONCE,
+    // now that the loop above is done. Unconditional -- result.files[].headerCode
+    // is part of the public ITranspilerResult contract for BOTH 'files' and
+    // 'source' input, not only when writeOutputToDisk. See _renderHeaders.
+    this._renderHeaders(result);
+
     if (result.success && input.writeOutputToDisk) {
       for (const write of pendingWrites) {
         this.fs.writeFile(write.path, write.content);
       }
     }
 
-    // Stage 6: Write the Stage 5 headers (only to disk in files mode)
+    // Stage 6: Write the Stage 5.5 headers (only to disk in files mode)
     if (result.success && input.writeOutputToDisk) {
       this._generateAllHeadersFromPipeline(input.cnextFiles, result);
+    }
+  }
+
+  /**
+   * Stage 5.5: render every file's captured `IHeaderEmissionFacts` into
+   * header text, in one batch, after the Stage 5 loop has finished.
+   *
+   * #1323: `HeaderEmissionPlanner.plan()` never reads `CodeGenState` -- it
+   * only reads the captured records -- so calling it here, once, after every
+   * file's state has already moved on, is exactly the timing issue #1139's
+   * fix forbade for `generateHeaderForFile`. That method no longer exists;
+   * only its decision does, frozen per file in `headerEmissionFactsByPath`.
+   *
+   * Mutates `result.files[]` in place: `_recordFileResult` already pushed one
+   * entry per file with `headerCode: undefined`, and this fills it in (or, on
+   * a render failure, downgrades that entry to failed -- mirroring
+   * `buildCatchResult`'s shape for the equivalent `.c`/`.cpp` generation
+   * failure, and `_recordFileResult`'s own promotion of a file's errors onto
+   * `result.errors` with `sourcePath` attached).
+   *
+   * A file whose `.c` generation already failed (`fileResult.success` is
+   * already `false`) has no captured record to render and is skipped --
+   * `_captureHeaderEmissionFacts` is only reached from inside the same try
+   * block that produced that failure.
+   */
+  private _renderHeaders(result: ITranspilerResult): void {
+    const plan = HeaderEmissionPlanner.plan(
+      this.headerEmissionFactsByPath,
+      this.headerGenerator,
+    );
+
+    for (const fileResult of result.files) {
+      if (!fileResult.success) {
+        continue;
+      }
+
+      const headerCode = plan.headersBySourcePath.get(fileResult.sourcePath);
+      if (headerCode !== undefined) {
+        fileResult.headerCode = headerCode;
+        continue;
+      }
+
+      const errorMessage = plan.errorsBySourcePath.get(fileResult.sourcePath);
+      if (errorMessage === undefined) {
+        continue;
+      }
+
+      // Mirrors buildCatchResult's shape for a .c/.cpp generation failure --
+      // this is the same kind of thing (a generator exception), for the
+      // header instead.
+      const parsed = ParserUtils.parseErrorLocation(errorMessage);
+      const error: ITranspileError = {
+        line: parsed.line,
+        column: parsed.column,
+        message: `Header generation failed: ${parsed.message}`,
+        severity: "error",
+      };
+
+      fileResult.success = false;
+      fileResult.errors.push(error);
+
+      // Promote to the run-level list with sourcePath, matching
+      // _recordFileResult's own promotion of a file's errors.
+      result.errors.push({ ...error, sourcePath: fileResult.sourcePath });
+      result.success = false;
     }
   }
 
@@ -688,18 +783,31 @@ class Transpiler {
       // Issue #1171: accumulate in both modes -- see the gate removed above.
       this._accumulateFileModifications();
 
-      // Generate header content (reads from state populated above)
-      const headerCode = this.generateHeaderForFile(file) ?? undefined;
+      // #1323: resolve this file's header-render input while its state is
+      // warm (reads from state populated above), but do not render it here.
+      // HeaderEmissionPlanner renders every file's header in one step, after
+      // this per-file loop finishes -- headerCode is filled in there.
+      const headerFacts = this._captureHeaderEmissionFacts(file);
+      if (headerFacts) {
+        this.headerEmissionFactsByPath.set(sourcePath, headerFacts);
+      }
 
-      // Issue #1143: read after header generation -- a header can carry
-      // requirements of its own -- and before the next file's
-      // CodeGenState.reset() clears the recording map.
+      // Issue #1143: read after header-facts CAPTURE, and before the next
+      // file's CodeGenState.reset() clears the recording map. This covers a
+      // requirement that capturing a header's facts triggers (e.g. through
+      // convertToHeaderSymbols) -- it does NOT cover one the RENDER might
+      // trigger, since #1323 moved rendering to Stage 5.5, after every file's
+      // requirements have already been read here and reset() has run N times.
+      // Currently unreachable rather than wrong: CodeGenState.requireToolchain
+      // has no caller under output/headers/, so no render path records one --
+      // but this read does not guarantee that stays true, and #1143 is
+      // precisely the bug class where an ordering assumption like that broke
+      // under a later refactor.
       const requirements = this.codeGenerator.getToolchainRequirements();
 
       return this.buildSuccessResult(
         sourcePath,
         code,
-        headerCode,
         declarationCount,
         requirements,
       );
@@ -895,6 +1003,9 @@ class Transpiler {
     this.state.reset();
     // ADR-049: the previous run's targets must not decide this run's budget
     this.pragmaTargets = [];
+    // #1323: a stale entry here would let one run's header content leak into
+    // the next, the same shape #1143's toolchain-requirements leak was.
+    this.headerEmissionFactsByPath.clear();
     // Issue #634: Reset symbol table for new run
     CodeGenState.symbolTable.clear();
     // Reset SymbolRegistry for new run (new IFunctionSymbol type system)
@@ -1281,19 +1392,25 @@ class Transpiler {
   }
 
   /**
-   * Stage 6: Write the headers Stage 5 generated for pipeline files.
+   * Stage 6: Write the headers Stage 5.5 rendered for pipeline files.
    *
-   * Issue #1139: this stage used to call generateHeaderForFile() a second time,
-   * once per file, after every file had been transpiled. That function reads
-   * live CodeGenState — which is per-file — so by then it saw only the
-   * last-transpiled file's data and rebuilt every other file's header from it.
-   * A dependency lost the ADR-006 auto-const its own .c definition carried,
-   * giving conflicting types. Single-file builds hid it because the only file
-   * is also the last one.
+   * Issue #1139, historically: this stage used to call generateHeaderForFile()
+   * a second time, once per file, after every file had been transpiled. That
+   * function read live CodeGenState — which is per-file — so by then it saw
+   * only the last-transpiled file's data and rebuilt every other file's
+   * header from it. A dependency lost the ADR-006 auto-const its own .c
+   * definition carried, giving conflicting types. Single-file builds hid it
+   * because the only file is also the last one.
    *
-   * The header each file needs was already produced in _transpileFile(), at the
-   * one moment its state was warm. Writing that result keeps the derivation in
-   * one place instead of performing it twice and shipping the wrong copy.
+   * #1323: that method no longer exists, and this stage was never the
+   * problem — it always just wrote `result.files[].headerCode`. What changed
+   * is who fills that field in: `_captureHeaderEmissionFacts` resolves each
+   * file's header content, at its own warm moment, into a frozen record;
+   * `_renderHeaders` (Stage 5.5) turns every record into text in one batch,
+   * reading no CodeGenState at all. Reintroducing #1139 today would mean
+   * making this stage call `CodeGenState`-reading logic directly again,
+   * instead of reading the already-rendered `headerCode` — there is no
+   * "second call" left to make by accident, only a wrong one to add back.
    */
   private _generateAllHeadersFromPipeline(
     cnextFiles: IPipelineFile[],
@@ -2071,28 +2188,39 @@ class Transpiler {
   }
 
   /**
-   * Stage 5: Generate header content for a single file's exported symbols.
+   * Stage 5: Resolve one file's header-render input from its exported symbols.
    * ADR-055 Phase 7: Uses TSymbol directly, converts to IHeaderSymbol for generation.
    *
-   * Unified method replacing both generateHeader() and generateHeaderContent().
+   * #1323: this decides a header's content -- it no longer renders it. It
+   * returns the resolved `IHeaderEmissionFacts` `HeaderEmissionPlanner` will
+   * later pass to `HeaderGenerator.generate()`, instead of calling that
+   * itself. That split is what makes issue #1139 structurally impossible
+   * rather than merely fixed: #1139 happened because a SECOND, LATER call
+   * re-read live `CodeGenState` after it had moved on to a different file.
+   * There is now only one caller, and nothing downstream of this method's
+   * return value ever reads `CodeGenState` again -- see `IHeaderEmissionFacts`.
    *
-   * Reads live CodeGenState, which holds only the file currently being
-   * transpiled. Call this exactly once per file, from _transpileFile(), while
-   * that file's state is warm — calling it later rebuilds the header from
-   * whichever file ran last (issue #1139).
+   * Still call this exactly once per file, from `_transpileFile()`, while
+   * that file's state is warm: `CodeGenState.needsISR`,
+   * `generatedStructInits`, `callbackTypes` and the auto-const/opaque
+   * resolution inside `convertToHeaderSymbols` are ALL per-file, cleared by
+   * `CodeGenState.reset()` before the next file transpiles. Capturing them
+   * into `IHeaderEmissionFacts` here, at the only moment they are correct for
+   * THIS file, is what lets the render move later.
    *
-   * **Depends on topological file order.** Two of the reads below are
-   * whole-project accumulators — `state.getAllSymbolInfo()` and
-   * `state.getAllHeaderDirectives()` — and from here they hold only the files
-   * transpiled *so far*, not the whole project as they did when this ran after
-   * every file. That is sufficient because `_sortFilesByDependency()` orders
-   * files by `depGraph.getSortedFiles()`, so every transitive dependency has
-   * already been transpiled by the time its dependent's header is built.
-   *
-   * Anything added here that needs to see the *entire* project would therefore
-   * be wrong, and a dependency cycle would break the ordering this relies on —
-   * `_sortFilesByDependency` currently drains `depGraph.getWarnings()` into
-   * warnings rather than failing, so cycle order is arbitrary (#1167).
+   * **`allKnownEnums`/`externalTypeHeaders` depend on topological file
+   * order** for the SAME reason they always have: `state.getAllSymbolInfo()`
+   * and `state.getAllHeaderDirectives()` are whole-project accumulators that,
+   * from here, hold only the files transpiled *so far* -- sufficient because
+   * `_sortFilesByDependency()` orders files by `depGraph.getSortedFiles()`,
+   * so every transitive dependency of THIS file has already been transpiled.
+   * A dependency cycle would break that ordering (`_sortFilesByDependency`
+   * drains `depGraph.getWarnings()` into warnings rather than failing, so
+   * cycle order is arbitrary, #1167) -- captured here rather than read by
+   * `HeaderEmissionPlanner` for exactly that reason: reading it once more,
+   * after every file, would make a cycle's header content correct regardless
+   * of order, but that is a genuine behavior change belonging to #1167, not
+   * a side effect of this refactor.
    */
   /**
    * Issue #424/#1164: does this header name something only the source's own C
@@ -2164,7 +2292,9 @@ class Transpiler {
     });
   }
 
-  private generateHeaderForFile(file: IPipelineFile): string | null {
+  private _captureHeaderEmissionFacts(
+    file: IPipelineFile,
+  ): IHeaderEmissionFacts | null {
     const sourcePath = file.path;
     // Issues #1161/#1164: the same predicate decides whether this header is
     // written and whether the generated .c includes it. Do not re-derive it.
@@ -2228,25 +2358,30 @@ class Transpiler {
       allKnownEnums,
     );
 
-    return this.headerGenerator.generate(
-      headerSymbols,
-      headerName,
-      {
+    return {
+      symbols: headerSymbols,
+      filename: headerName,
+      options: {
         userIncludes,
         cHeadersIncluded,
         // ADR-040: same flag the .c consults, so exactly one file emits it.
         needsIsrTypedef: CodeGenState.needsISR,
         // #1205: same shape -- the .c records which init functions it
-        // emitted, the header declares exactly those.
-        generatedStructInits: CodeGenState.generatedStructInits,
+        // emitted, the header declares exactly those. Copied, not aliased:
+        // this record must stay frozen once captured, and CodeGenState.reset()
+        // happens to rebind this field to a new Set rather than clearing it in
+        // place (CodeGenState.ts) -- true today, but not a contract anything
+        // enforces, so a live reference here would be correct only by
+        // coincidence with reset()'s current implementation.
+        generatedStructInits: new Set(CodeGenState.generatedStructInits),
         externalTypeHeaders,
         cppMode: this.cppMode,
       },
-      typeInputWithSymbolTable,
+      typeInput: typeInputWithSymbolTable,
       passByValueParams,
       allKnownEnums,
-      basename(sourcePath),
-    );
+      basename: basename(sourcePath),
+    };
   }
 
   /**
@@ -2256,20 +2391,9 @@ class Transpiler {
    */
   private _buildCallbackTypesForHeader(): ReadonlyMap<
     string,
-    {
-      typedefName: string;
-      returnType: string;
-      parameters: ReadonlyArray<{ type: string; isStruct: boolean }>;
-    }
+    IHeaderCallbackType
   > {
-    const result = new Map<
-      string,
-      {
-        typedefName: string;
-        returnType: string;
-        parameters: ReadonlyArray<{ type: string; isStruct: boolean }>;
-      }
-    >();
+    const result = new Map<string, IHeaderCallbackType>();
 
     // Issue #1164: same predicate the .c uses to decide it must NOT emit these.
     const usedCallbackTypes = new Set<string>();
@@ -2526,18 +2650,22 @@ class Transpiler {
 
   /**
    * Build a successful transpilation result.
+   *
+   * #1323: `headerCode` is filled in later, by `_renderHeaders` (Stage 5.5) --
+   * not here. This used to take a `headerCode` parameter, but this is its
+   * only caller and it always passed `undefined`, so the parameter was dead:
+   * a slot that read as someone's to fill in, which is the second-write-path
+   * shape #1139 was.
    */
   private buildSuccessResult(
     sourcePath: string,
     code: string,
-    headerCode: string | undefined,
     declarationCount: number,
     requirements: readonly IRecordedRequirement[] = [],
   ): IFileResult {
     return {
       sourcePath,
       code,
-      headerCode,
       success: true,
       errors: [],
       declarationCount,

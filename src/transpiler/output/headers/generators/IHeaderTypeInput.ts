@@ -1,4 +1,5 @@
 import SymbolTable from "../../../logic/symbols/SymbolTable";
+import IHeaderCallbackType from "../../../types/IHeaderCallbackType";
 
 /**
  * Input interface for header type generators.
@@ -33,21 +34,7 @@ interface IHeaderTypeInput {
   >;
 
   /** Callback types: functionName -> typedef info for header generation */
-  readonly callbackTypes?: ReadonlyMap<
-    string,
-    {
-      readonly typedefName: string;
-      readonly returnType: string;
-      readonly parameters: ReadonlyArray<{
-        readonly type: string;
-        readonly isStruct: boolean;
-        readonly isConst?: boolean;
-        readonly isArray?: boolean;
-        readonly arrayDims?: string;
-        readonly name?: string;
-      }>;
-    }
-  >;
+  readonly callbackTypes?: ReadonlyMap<string, IHeaderCallbackType>;
 }
 
 export default IHeaderTypeInput;

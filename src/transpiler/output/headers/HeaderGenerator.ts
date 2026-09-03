@@ -12,9 +12,7 @@ import IHeaderOptions from "../codegen/types/IHeaderOptions";
 import IHeaderTypeInput from "./generators/IHeaderTypeInput";
 import CHeaderGenerator from "./CHeaderGenerator";
 import CppHeaderGenerator from "./CppHeaderGenerator";
-
-/** Pass-by-value parameter info from CodeGenerator */
-type TPassByValueParams = ReadonlyMap<string, ReadonlySet<string>>;
+import TPassByValueParams from "../../types/TPassByValueParams";
 
 /**
  * Facade that delegates header generation to the appropriate generator

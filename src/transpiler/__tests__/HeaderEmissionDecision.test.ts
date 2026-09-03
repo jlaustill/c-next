@@ -2,7 +2,7 @@
  * Issues #1161 and #1164 — one decision: "does this file have a public C interface?"
  *
  * Two predicates used to answer it and disagreed:
- *   - whether a .h is written      (Transpiler.generateHeaderForFile, on isExported)
+ *   - whether a .h is written      (Transpiler._captureHeaderEmissionFacts, on isExported)
  *   - whether the .c includes it   (CodeGenerator, on scope-member visibility only)
  *
  * #1161: top-level functions were collected as private, so they never reached
