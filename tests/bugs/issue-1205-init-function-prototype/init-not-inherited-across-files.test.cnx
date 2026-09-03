@@ -1,0 +1,15 @@
+// #1205: the included file declares Controller_init in ITS header. This file
+// has no callback field, so its own header must declare no init function.
+//
+// Without `CodeGenState.generatedStructInits` being cleared in reset(), this
+// header inherits the previous file's entry and declares an init function for
+// a struct it does not define -- transpiler exit 0, suite green.
+#include "lib/callback-owner.cnx"
+
+struct Plain {
+    u32 count;
+}
+
+u32 readPlain(const Plain p) {
+    return p.count;
+}

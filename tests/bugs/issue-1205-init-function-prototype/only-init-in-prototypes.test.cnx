@@ -1,0 +1,20 @@
+// #1205: a `private` scope function used as a callback type leaves the header
+// with no function of its own, while the top-level struct still gets an
+// ADR-029 init function. The prototypes section must be emitted for that
+// declaration alone.
+//
+// Keying the section on the regular functions -- `if (functions.length === 0)`
+// -- drops the declaration here and puts the Rule 8.4 violation straight back,
+// with every other fixture still green, because no other fixture reaches a
+// header whose only external definition is a generated one.
+struct Message {
+    u32 id;
+}
+
+scope S {
+    private void onTick(const Message m) {}
+}
+
+struct Controller {
+    S.onTick handler;
+}
