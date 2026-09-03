@@ -16,6 +16,7 @@ import TTypeUtils from "../../../../../utils/TTypeUtils";
 import TestSymbolUtils from "../../../../logic/symbols/cnext/__tests__/testSymbolUtils";
 import TestSourceSpan from "../../../../types/__testUtils__/testSourceSpan";
 import TestEnumMembers from "../../../../types/__testUtils__/testEnumMembers";
+import TestMembers from "../../../../types/__testUtils__/testMembers";
 
 describe("HeaderSymbolAdapter", () => {
   // ========================================================================
@@ -235,20 +236,23 @@ describe("HeaderSymbolAdapter", () => {
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
-        fields: new Map([
-          [
-            "x",
-            {
-              name: "x",
-              type: TTypeUtils.createPrimitive("i32"),
-              isConst: false,
-              isAtomic: false,
-              isVolatile: false,
-              overflowBehavior: "clamp",
-              isArray: false,
-            },
-          ],
-        ]),
+        fields: TestMembers.asStructFields(
+          "Point",
+          new Map([
+            [
+              "x",
+              {
+                name: "x",
+                type: TTypeUtils.createPrimitive("i32"),
+                isConst: false,
+                isAtomic: false,
+                isVolatile: false,
+                overflowBehavior: "clamp",
+                isArray: false,
+              },
+            ],
+          ]),
+        ),
       };
 
       const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);
@@ -335,10 +339,13 @@ describe("HeaderSymbolAdapter", () => {
         }),
         backingType: "u8",
         bitWidth: 8,
-        fields: new Map([
-          ["enabled", { offset: 0, width: 1 }],
-          ["ready", { offset: 1, width: 1 }],
-        ]),
+        fields: TestMembers.asBitmapFields(
+          "Flags",
+          new Map([
+            ["enabled", { offset: 0, width: 1 }],
+            ["ready", { offset: 1, width: 1 }],
+          ]),
+        ),
       };
 
       const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);
@@ -385,10 +392,13 @@ describe("HeaderSymbolAdapter", () => {
           visibility: "public",
         }),
         baseAddress: "0x40000000",
-        members: new Map([
-          ["DATA", { cType: "u32", offset: "0x00", access: "rw" as const }],
-          ["DIR", { cType: "u32", offset: "0x04", access: "rw" as const }],
-        ]),
+        members: TestMembers.asRegisterMembers(
+          "GPIO",
+          new Map([
+            ["DATA", { cType: "u32", offset: "0x00", access: "rw" as const }],
+            ["DIR", { cType: "u32", offset: "0x04", access: "rw" as const }],
+          ]),
+        ),
       };
 
       const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);

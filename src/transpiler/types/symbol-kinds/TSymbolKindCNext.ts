@@ -5,6 +5,7 @@ type TSymbolKindCNext =
   | "function"
   | "variable"
   | "struct"
+  | "struct_field"
   | "enum"
   | "enum_member"
   | "bitmap"

@@ -36,12 +36,12 @@ describe("RegisterCollector", () => {
       expect(symbol.scopePath).toBe("");
 
       expect(symbol.members.size).toBe(2);
-      expect(symbol.members.get("DATA")).toEqual({
+      expect(symbol.members.get("DATA")).toMatchObject({
         offset: "0x00",
         cType: "uint32_t",
         access: "rw",
       });
-      expect(symbol.members.get("DIR")).toEqual({
+      expect(symbol.members.get("DIR")).toMatchObject({
         offset: "0x04",
         cType: "uint32_t",
         access: "rw",
@@ -253,6 +253,50 @@ describe("RegisterCollector", () => {
       );
 
       expect(symbol.visibility).toBe("private");
+    });
+  });
+
+  describe("members carry their own position and identity (#1318)", () => {
+    const collect = (code: string, scopePath = "", visibility = "public") =>
+      RegisterCollector.collect(
+        parse(code).declaration(0)!.registerDeclaration()!,
+        "test.cnx",
+        new Set<string>(),
+        scopePath,
+        visibility as "public" | "private",
+      );
+
+    it("gives each member a DISTINCT line, not the register's", () => {
+      const symbol = collect(`
+        register GPIO @ 0x40000000 {
+          DATA: u32 rw @ 0x00,
+          DIR:  u32 rw @ 0x04,
+          MASK: u32 rw @ 0x08,
+        }
+      `);
+      const lines = [...symbol.members.values()].map((m) => m.span.line);
+      expect(new Set(lines).size).toBe(3);
+      expect(lines).not.toContain(symbol.span.line);
+    });
+
+    it("keys a member by its owner, and inherits the owner's visibility", () => {
+      const global = collect(
+        `register GPIO @ 0x40000000 { DATA: u32 rw @ 0x00, }`,
+      );
+      expect(global.members.get("DATA")!.fullyQualifiedCName).toBe(
+        "GPIO__DATA",
+      );
+      expect(global.members.get("DATA")!.name).toBe("DATA");
+
+      const scoped = collect(
+        `register GPIO @ 0x40000000 { DATA: u32 rw @ 0x00, }`,
+        "Board",
+        "private",
+      );
+      expect(scoped.members.get("DATA")!.fullyQualifiedCName).toBe(
+        "Board__GPIO__DATA",
+      );
+      expect(scoped.members.get("DATA")!.visibility).toBe("private");
     });
   });
 });

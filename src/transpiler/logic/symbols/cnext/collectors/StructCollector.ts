@@ -8,13 +8,14 @@
 import * as Parser from "../../../parser/grammar/CNextParser";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import IStructSymbol from "../../../../types/symbols/IStructSymbol";
-import IFieldInfo from "../../../../types/symbols/IFieldInfo";
+import type IStructFieldSymbol from "../../../../types/symbols/IStructFieldSymbol";
 import TypeResolver from "../../../../../utils/TypeResolver";
 import TypeUtils from "../utils/TypeUtils";
 import DimensionResolver from "../utils/DimensionResolver";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
 import TVisibility from "../../../../types/TVisibility";
 import ParserUtils from "../../../../../utils/ParserUtils";
+import MemberSymbolBase from "../utils/MemberSymbolBase";
 
 /**
  * Result of processing an arrayType syntax context.
@@ -154,13 +155,21 @@ class StructCollector {
     // holds every outer component, so nothing downstream can flatten it to a
     // leaf -- which is what the reference threaded here used to protect against.
 
-    const fields = new Map<string, IFieldInfo>();
+    const fields = new Map<string, IStructFieldSymbol>();
+    // #1318: a field hangs off the STRUCT, not the enclosing scope.
+    const ownerScopedName = ScopeUtils.identityOf({
+      name,
+      scopePath,
+    }).cnxScopedName;
 
     for (const member of ctx.structMember()) {
       const fieldName = member.IDENTIFIER().getText();
       const fieldInfo = StructCollector.collectField(
         member,
         fieldName,
+        ownerScopedName,
+        sourceFile,
+        visibility,
         scopePath,
         constValues,
         isScopeType,
@@ -184,16 +193,22 @@ class StructCollector {
   }
 
   /**
-   * Collect a single struct field and return its IFieldInfo.
-   * Now includes name and TType-based type.
+   * Collect a single struct field and return its symbol.
+   *
+   * #1318: a field is a symbol, so it carries its OWN span -- a struct
+   * declared across twenty lines used to give every field the struct's
+   * position, or none at all.
    */
   private static collectField(
     member: Parser.StructMemberContext,
     fieldName: string,
+    ownerScopedName: string,
+    sourceFile: string,
+    visibility: TVisibility,
     scopePath = "",
     constValues?: Map<string, number>,
     isScopeType?: (qualifiedName: string) => boolean,
-  ): IFieldInfo {
+  ): IStructFieldSymbol {
     const typeCtx = member.type();
     const fieldTypeStr = TypeUtils.getTypeName(typeCtx, scopePath, isScopeType);
     const fieldType = TypeResolver.resolve(fieldTypeStr);
@@ -239,7 +254,14 @@ class StructCollector {
     }
 
     return {
-      name: fieldName,
+      ...MemberSymbolBase.of({
+        kind: "struct_field" as const,
+        name: fieldName,
+        parentScopedName: ownerScopedName,
+        memberCtx: member,
+        sourceFile,
+        visibility,
+      }),
       type: fieldType,
       isConst,
       isAtomic,

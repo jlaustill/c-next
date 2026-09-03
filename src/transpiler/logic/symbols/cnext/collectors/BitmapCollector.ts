@@ -8,12 +8,13 @@
 import * as Parser from "../../../parser/grammar/CNextParser";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import IBitmapSymbol from "../../../../types/symbols/IBitmapSymbol";
-import IBitmapFieldInfo from "../../../../types/symbols/IBitmapFieldInfo";
+import type IBitmapFieldSymbol from "../../../../types/symbols/IBitmapFieldSymbol";
 import BITMAP_SIZE from "../../../../constants/BITMAP_SIZE";
 import BITMAP_BACKING_TYPE from "../../../../constants/BITMAP_BACKING_TYPE";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
 import TVisibility from "../../../../types/TVisibility";
 import ParserUtils from "../../../../../utils/ParserUtils";
+import MemberSymbolBase from "../utils/MemberSymbolBase";
 
 class BitmapCollector {
   /**
@@ -39,7 +40,13 @@ class BitmapCollector {
     const span = ParserUtils.getSpan(ctx);
 
     // Collect fields with running bit offset
-    const fields = new Map<string, IBitmapFieldInfo>();
+    const fields = new Map<string, IBitmapFieldSymbol>();
+    // #1318: a field hangs off the BITMAP, so its identity is the bitmap's
+    // source-spelled name plus its own -- an index key, never emitted C.
+    const ownerScopedName = ScopeUtils.identityOf({
+      name,
+      scopePath,
+    }).cnxScopedName;
     let totalBits = 0;
 
     for (const member of ctx.bitmapMember()) {
@@ -49,7 +56,18 @@ class BitmapCollector {
         ? Number.parseInt(widthLiteral.getText(), 10)
         : 1;
 
-      fields.set(fieldName, { offset: totalBits, width });
+      fields.set(fieldName, {
+        ...MemberSymbolBase.of({
+          kind: "bitmap_field" as const,
+          name: fieldName,
+          parentScopedName: ownerScopedName,
+          memberCtx: member,
+          sourceFile,
+          visibility,
+        }),
+        offset: totalBits,
+        width,
+      });
       totalBits += width;
     }
 

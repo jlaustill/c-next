@@ -1,5 +1,5 @@
 import type IBaseSymbol from "./IBaseSymbol";
-import type IRegisterMemberInfo from "./IRegisterMemberInfo";
+import type IRegisterMemberSymbol from "./IRegisterMemberSymbol";
 
 /**
  * Symbol representing a register block definition.
@@ -12,7 +12,11 @@ interface IRegisterSymbol extends IBaseSymbol {
   readonly baseAddress: string;
 
   /** Map of member name to register member metadata */
-  readonly members: ReadonlyMap<string, IRegisterMemberInfo>;
+  /**
+   * Members, each a symbol carrying its own span and identity (#1318).
+   * Keyed by bare member name, which is how every consumer looks one up.
+   */
+  readonly members: ReadonlyMap<string, IRegisterMemberSymbol>;
 }
 
 export default IRegisterSymbol;

@@ -238,7 +238,7 @@ describe("ScopeCollector", () => {
       expect(SymbolGuards.isBitmap(bitmapSymbol!)).toBe(true);
       if (SymbolGuards.isBitmap(bitmapSymbol!)) {
         expect(bitmapSymbol.backingType).toBe("uint8_t");
-        expect(bitmapSymbol.fields.get("enabled")).toEqual({
+        expect(bitmapSymbol.fields.get("enabled")).toMatchObject({
           offset: 0,
           width: 1,
         });

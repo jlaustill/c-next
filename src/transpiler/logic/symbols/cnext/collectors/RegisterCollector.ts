@@ -8,11 +8,12 @@
 import * as Parser from "../../../parser/grammar/CNextParser";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import IRegisterSymbol from "../../../../types/symbols/IRegisterSymbol";
-import IRegisterMemberInfo from "../../../../types/symbols/IRegisterMemberInfo";
+import type IRegisterMemberSymbol from "../../../../types/symbols/IRegisterMemberSymbol";
 import TypeUtils from "../utils/TypeUtils";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
 import TVisibility from "../../../../types/TVisibility";
 import ParserUtils from "../../../../../utils/ParserUtils";
+import MemberSymbolBase from "../utils/MemberSymbolBase";
 
 /** Access mode type for register members */
 type TAccessMode = "rw" | "ro" | "wo" | "w1c" | "w1s";
@@ -44,7 +45,12 @@ class RegisterCollector {
     const baseAddress = ctx.expression().getText();
 
     // Collect register members
-    const members = new Map<string, IRegisterMemberInfo>();
+    const members = new Map<string, IRegisterMemberSymbol>();
+    // #1318: a member hangs off the REGISTER, not the enclosing scope.
+    const ownerScopedName = ScopeUtils.identityOf({
+      name,
+      scopePath,
+    }).cnxScopedName;
 
     for (const member of ctx.registerMember()) {
       const memberName = member.IDENTIFIER().getText();
@@ -69,7 +75,15 @@ class RegisterCollector {
         bitmapType = typeName;
       }
 
-      const memberInfo: IRegisterMemberInfo = {
+      const memberInfo: IRegisterMemberSymbol = {
+        ...MemberSymbolBase.of({
+          kind: "register_member" as const,
+          name: memberName,
+          parentScopedName: ownerScopedName,
+          memberCtx: member,
+          sourceFile,
+          visibility,
+        }),
         offset,
         cType,
         access: accessMod,

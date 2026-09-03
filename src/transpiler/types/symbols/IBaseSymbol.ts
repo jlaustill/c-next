@@ -27,6 +27,22 @@ interface IBaseSymbol {
    * ADR-063 makes the result injective, so it is also this symbol's canonical
    * identity -- what `SymbolTable` indexes it by, and what a lookup holding a
    * generated identifier should ask for.
+   *
+   * ## For member kinds, ONLY the second meaning holds (#1318)
+   *
+   * The two sentences above name two different things, and they coincide for
+   * every kind C emits as an identifier. They do not coincide for members.
+   * A struct field is emitted `p.x`, a bitmap field as a bit position, a
+   * register member as an offset -- none is ever spelled as a standalone C
+   * identifier, so for `struct_field`, `bitmap_field` and `register_member`
+   * this field is the INDEX KEY and nothing else. `SPoint__x` is what
+   * distinguishes that field from `SOther__x` in a table; it is not a name any
+   * generated file contains, and a consumer that emits one has misread this.
+   *
+   * `enum_member` is the exception among members: `EColor__RED` and
+   * `Motor__EMode__HIGH` are real, and appear in the committed `.expected.h`
+   * fixtures. Its identity is checkable against generated output; the other
+   * three kinds' identities are checkable only against each other.
    */
   readonly fullyQualifiedCName: string;
 

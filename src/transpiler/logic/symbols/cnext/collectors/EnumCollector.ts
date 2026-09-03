@@ -13,6 +13,7 @@ import ScopeUtils from "../../../../../utils/ScopeUtils";
 import TVisibility from "../../../../types/TVisibility";
 import ParserUtils from "../../../../../utils/ParserUtils";
 import type IEnumMemberSymbol from "../../../../types/symbols/IEnumMemberSymbol";
+import MemberSymbolBase from "../utils/MemberSymbolBase";
 
 class EnumCollector {
   /**
@@ -66,22 +67,14 @@ class EnumCollector {
       }
 
       members.set(memberName, {
-        kind: "enum_member",
-        name: memberName,
-        scopePath: enumScopedName,
-        ...ScopeUtils.identityOf({
+        ...MemberSymbolBase.of({
+          kind: "enum_member" as const,
           name: memberName,
-          scopePath: enumScopedName,
+          parentScopedName: enumScopedName,
+          memberCtx: member,
+          sourceFile,
+          visibility,
         }),
-        sourceFile,
-        // #1318: the MEMBER's span, not the enum's. This is the whole point --
-        // a diagnostic naming a member used to point at the enum's first line.
-        span: ParserUtils.getSpan(member),
-        sourceLanguage: ESourceLanguage.CNext,
-        // A member is exactly as visible as the enum declaring it; ADR-016 has
-        // no per-member access control, so inheriting is the fact, and a
-        // hardcoded "public" beside a private parent is the #1300 defect.
-        visibility,
         value: currentValue,
       });
       currentValue++;

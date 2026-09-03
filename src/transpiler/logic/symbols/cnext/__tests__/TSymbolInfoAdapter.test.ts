@@ -20,6 +20,7 @@ import TestScopeUtils from "./testUtils";
 import TestSymbolUtils from "./testSymbolUtils";
 import TestSourceSpan from "../../../../types/__testUtils__/testSourceSpan";
 import TestEnumMembers from "../../../../types/__testUtils__/testEnumMembers";
+import TestMembers from "../../../../types/__testUtils__/testMembers";
 
 describe("TSymbolInfoAdapter", () => {
   // Reset global scope between tests to avoid state pollution
@@ -36,32 +37,35 @@ describe("TSymbolInfoAdapter", () => {
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
-        fields: new Map([
-          [
-            "x",
-            {
-              name: "x",
-              type: TypeResolver.resolve("i32"),
-              isArray: false,
-              isConst: false,
-              isAtomic: false,
-              isVolatile: false,
-              overflowBehavior: "clamp",
-            },
-          ],
-          [
-            "y",
-            {
-              name: "y",
-              type: TypeResolver.resolve("i32"),
-              isArray: false,
-              isConst: false,
-              isAtomic: false,
-              isVolatile: false,
-              overflowBehavior: "clamp",
-            },
-          ],
-        ]),
+        fields: TestMembers.asStructFields(
+          "Point",
+          new Map([
+            [
+              "x",
+              {
+                name: "x",
+                type: TypeResolver.resolve("i32"),
+                isArray: false,
+                isConst: false,
+                isAtomic: false,
+                isVolatile: false,
+                overflowBehavior: "clamp",
+              },
+            ],
+            [
+              "y",
+              {
+                name: "y",
+                type: TypeResolver.resolve("i32"),
+                isArray: false,
+                isConst: false,
+                isAtomic: false,
+                isVolatile: false,
+                overflowBehavior: "clamp",
+              },
+            ],
+          ]),
+        ),
       };
 
       const info = TSymbolInfoAdapter.convert([struct]);
@@ -80,32 +84,35 @@ describe("TSymbolInfoAdapter", () => {
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
-        fields: new Map([
-          [
-            "x",
-            {
-              name: "x",
-              type: TypeResolver.resolve("i32"),
-              isArray: false,
-              isConst: false,
-              isAtomic: false,
-              isVolatile: false,
-              overflowBehavior: "clamp",
-            },
-          ],
-          [
-            "y",
-            {
-              name: "y",
-              type: TypeResolver.resolve("f32"),
-              isArray: false,
-              isConst: false,
-              isAtomic: false,
-              isVolatile: false,
-              overflowBehavior: "clamp",
-            },
-          ],
-        ]),
+        fields: TestMembers.asStructFields(
+          "Point",
+          new Map([
+            [
+              "x",
+              {
+                name: "x",
+                type: TypeResolver.resolve("i32"),
+                isArray: false,
+                isConst: false,
+                isAtomic: false,
+                isVolatile: false,
+                overflowBehavior: "clamp",
+              },
+            ],
+            [
+              "y",
+              {
+                name: "y",
+                type: TypeResolver.resolve("f32"),
+                isArray: false,
+                isConst: false,
+                isAtomic: false,
+                isVolatile: false,
+                overflowBehavior: "clamp",
+              },
+            ],
+          ]),
+        ),
       };
 
       const info = TSymbolInfoAdapter.convert([struct]);
@@ -125,33 +132,36 @@ describe("TSymbolInfoAdapter", () => {
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
-        fields: new Map([
-          [
-            "data",
-            {
-              name: "data",
-              type: TypeResolver.resolve("u8"),
-              isArray: true,
-              isConst: false,
-              isAtomic: false,
-              isVolatile: false,
-              overflowBehavior: "clamp",
-              dimensions: [256],
-            },
-          ],
-          [
-            "size",
-            {
-              name: "size",
-              type: TypeResolver.resolve("u32"),
-              isArray: false,
-              isConst: false,
-              isAtomic: false,
-              isVolatile: false,
-              overflowBehavior: "clamp",
-            },
-          ],
-        ]),
+        fields: TestMembers.asStructFields(
+          "Buffer",
+          new Map([
+            [
+              "data",
+              {
+                name: "data",
+                type: TypeResolver.resolve("u8"),
+                isArray: true,
+                isConst: false,
+                isAtomic: false,
+                isVolatile: false,
+                overflowBehavior: "clamp",
+                dimensions: [256],
+              },
+            ],
+            [
+              "size",
+              {
+                name: "size",
+                type: TypeResolver.resolve("u32"),
+                isArray: false,
+                isConst: false,
+                isAtomic: false,
+                isVolatile: false,
+                overflowBehavior: "clamp",
+              },
+            ],
+          ]),
+        ),
       };
 
       const info = TSymbolInfoAdapter.convert([struct]);
@@ -171,21 +181,24 @@ describe("TSymbolInfoAdapter", () => {
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
-        fields: new Map([
-          [
-            "values",
-            {
-              name: "values",
-              type: TypeResolver.resolve("f32"),
-              isArray: true,
-              isConst: false,
-              isAtomic: false,
-              isVolatile: false,
-              overflowBehavior: "clamp",
-              dimensions: [4, 4],
-            },
-          ],
-        ]),
+        fields: TestMembers.asStructFields(
+          "Matrix",
+          new Map([
+            [
+              "values",
+              {
+                name: "values",
+                type: TypeResolver.resolve("f32"),
+                isArray: true,
+                isConst: false,
+                isAtomic: false,
+                isVolatile: false,
+                overflowBehavior: "clamp",
+                dimensions: [4, 4],
+              },
+            ],
+          ]),
+        ),
       };
 
       const info = TSymbolInfoAdapter.convert([struct]);
@@ -252,7 +265,10 @@ describe("TSymbolInfoAdapter", () => {
         }),
         backingType: "uint8_t",
         bitWidth: 8,
-        fields: new Map([["enabled", { offset: 0, width: 1 }]]),
+        fields: TestMembers.asBitmapFields(
+          "Status",
+          new Map([["enabled", { offset: 0, width: 1 }]]),
+        ),
       };
 
       const info = TSymbolInfoAdapter.convert([bitmap]);
@@ -273,11 +289,14 @@ describe("TSymbolInfoAdapter", () => {
         }),
         backingType: "uint16_t",
         bitWidth: 16,
-        fields: new Map([
-          ["mode", { offset: 0, width: 4 }],
-          ["channel", { offset: 4, width: 4 }],
-          ["reserved", { offset: 8, width: 8 }],
-        ]),
+        fields: TestMembers.asBitmapFields(
+          "Control",
+          new Map([
+            ["mode", { offset: 0, width: 4 }],
+            ["channel", { offset: 4, width: 4 }],
+            ["reserved", { offset: 8, width: 8 }],
+          ]),
+        ),
       };
 
       const info = TSymbolInfoAdapter.convert([bitmap]);
@@ -299,11 +318,14 @@ describe("TSymbolInfoAdapter", () => {
         }),
         backingType: "uint8_t",
         bitWidth: 8,
-        fields: new Map([
-          ["enabled", { offset: 0, width: 1 }],
-          ["mode", { offset: 1, width: 3 }],
-          ["reserved", { offset: 4, width: 4 }],
-        ]),
+        fields: TestMembers.asBitmapFields(
+          "Flags",
+          new Map([
+            ["enabled", { offset: 0, width: 1 }],
+            ["mode", { offset: 1, width: 3 }],
+            ["reserved", { offset: 4, width: 4 }],
+          ]),
+        ),
       };
 
       const info = TSymbolInfoAdapter.convert([bitmap]);
@@ -389,9 +411,10 @@ describe("TSymbolInfoAdapter", () => {
           visibility: "public",
         }),
         baseAddress: "0x40000000",
-        members: new Map([
-          ["DATA", { offset: "0x00", cType: "u32", access: "rw" }],
-        ]),
+        members: TestMembers.asRegisterMembers(
+          "GPIO",
+          new Map([["DATA", { offset: "0x00", cType: "u32", access: "rw" }]]),
+        ),
       };
 
       const info = TSymbolInfoAdapter.convert([register]);
@@ -411,9 +434,10 @@ describe("TSymbolInfoAdapter", () => {
           visibility: "public",
         }),
         baseAddress: "0x40001000",
-        members: new Map([
-          ["TX", { offset: "0x00", cType: "u32", access: "wo" }],
-        ]),
+        members: TestMembers.asRegisterMembers(
+          "UART",
+          new Map([["TX", { offset: "0x00", cType: "u32", access: "wo" }]]),
+        ),
       };
 
       const info = TSymbolInfoAdapter.convert([register]);
@@ -433,10 +457,13 @@ describe("TSymbolInfoAdapter", () => {
           visibility: "public",
         }),
         baseAddress: "0x40002000",
-        members: new Map([
-          ["DATA", { offset: "0x00", cType: "u32", access: "rw" }],
-          ["STATUS", { offset: "0x04", cType: "u8", access: "ro" }],
-        ]),
+        members: TestMembers.asRegisterMembers(
+          "SPI",
+          new Map([
+            ["DATA", { offset: "0x00", cType: "u32", access: "rw" }],
+            ["STATUS", { offset: "0x04", cType: "u8", access: "ro" }],
+          ]),
+        ),
       };
 
       const info = TSymbolInfoAdapter.convert([register]);
@@ -462,7 +489,10 @@ describe("TSymbolInfoAdapter", () => {
         }),
         backingType: "uint8_t",
         bitWidth: 8,
-        fields: new Map([["ready", { offset: 0, width: 1 }]]),
+        fields: TestMembers.asBitmapFields(
+          "StatusFlags",
+          new Map([["ready", { offset: 0, width: 1 }]]),
+        ),
       };
 
       const register: IRegisterSymbol = {
@@ -476,17 +506,20 @@ describe("TSymbolInfoAdapter", () => {
           visibility: "public",
         }),
         baseAddress: "0x40003000",
-        members: new Map([
-          [
-            "FLAGS",
-            {
-              offset: "0x00",
-              cType: "StatusFlags",
-              access: "rw",
-              bitmapType: "StatusFlags",
-            },
-          ],
-        ]),
+        members: TestMembers.asRegisterMembers(
+          "CTRL",
+          new Map([
+            [
+              "FLAGS",
+              {
+                offset: "0x00",
+                cType: "StatusFlags",
+                access: "rw",
+                bitmapType: "StatusFlags",
+              },
+            ],
+          ]),
+        ),
       };
 
       // Include bitmap BEFORE register for knownBitmaps to be populated
@@ -722,20 +755,23 @@ describe("TSymbolInfoAdapter", () => {
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
-        fields: new Map([
-          [
-            "x",
-            {
-              name: "x",
-              type: TypeResolver.resolve("i32"),
-              isArray: false,
-              isConst: false,
-              isAtomic: false,
-              isVolatile: false,
-              overflowBehavior: "clamp",
-            },
-          ],
-        ]),
+        fields: TestMembers.asStructFields(
+          "Point",
+          new Map([
+            [
+              "x",
+              {
+                name: "x",
+                type: TypeResolver.resolve("i32"),
+                isArray: false,
+                isConst: false,
+                isAtomic: false,
+                isVolatile: false,
+                overflowBehavior: "clamp",
+              },
+            ],
+          ]),
+        ),
       };
 
       const base = TSymbolInfoAdapter.convert([struct]);
@@ -770,20 +806,23 @@ describe("TSymbolInfoAdapter", () => {
             sourceLanguage: ESourceLanguage.CNext,
             visibility: "public",
           }),
-          fields: new Map([
-            [
-              "x",
-              {
-                name: "x",
-                type: TypeResolver.resolve("i32"),
-                isArray: false,
-                isConst: false,
-                isAtomic: false,
-                isVolatile: false,
-                overflowBehavior: "clamp",
-              },
-            ],
-          ]),
+          fields: TestMembers.asStructFields(
+            "Point",
+            new Map([
+              [
+                "x",
+                {
+                  name: "x",
+                  type: TypeResolver.resolve("i32"),
+                  isArray: false,
+                  isConst: false,
+                  isAtomic: false,
+                  isVolatile: false,
+                  overflowBehavior: "clamp",
+                },
+              ],
+            ]),
+          ),
         } as IStructSymbol,
         {
           ...TestSymbolUtils.base({
@@ -850,7 +889,10 @@ describe("TSymbolInfoAdapter", () => {
       }),
       backingType: "uint8_t",
       bitWidth: 8,
-      fields,
+      // #1318: lift at the USE site -- the factory's parameter stays the plain
+      // offset/width record its callers pass, so only this line knows fields
+      // are symbols now.
+      fields: TestMembers.asBitmapFields(name, fields),
     });
 
     it("carries a bitmap's fields, backing type and bit width across the boundary", () => {
