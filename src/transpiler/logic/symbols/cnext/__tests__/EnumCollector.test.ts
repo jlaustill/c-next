@@ -31,9 +31,9 @@ describe("EnumCollector", () => {
 
       // Check members
       expect(symbol.members.size).toBe(3);
-      expect(symbol.members.get("Red")).toBe(0);
-      expect(symbol.members.get("Green")).toBe(1);
-      expect(symbol.members.get("Blue")).toBe(2);
+      expect(symbol.members.get("Red")?.value).toBe(0);
+      expect(symbol.members.get("Green")?.value).toBe(1);
+      expect(symbol.members.get("Blue")?.value).toBe(2);
     });
 
     it("collects an enum with explicit values", () => {
@@ -48,9 +48,9 @@ describe("EnumCollector", () => {
       const enumCtx = tree.declaration(0)!.enumDeclaration()!;
       const symbol = EnumCollector.collect(enumCtx, "test.cnx", "", "public");
 
-      expect(symbol.members.get("Low")).toBe(10);
-      expect(symbol.members.get("Medium")).toBe(20);
-      expect(symbol.members.get("High")).toBe(30);
+      expect(symbol.members.get("Low")?.value).toBe(10);
+      expect(symbol.members.get("Medium")?.value).toBe(20);
+      expect(symbol.members.get("High")?.value).toBe(30);
     });
 
     it("supports mixed explicit and auto-increment values", () => {
@@ -67,11 +67,11 @@ describe("EnumCollector", () => {
       const enumCtx = tree.declaration(0)!.enumDeclaration()!;
       const symbol = EnumCollector.collect(enumCtx, "test.cnx", "", "public");
 
-      expect(symbol.members.get("Idle")).toBe(0);
-      expect(symbol.members.get("Running")).toBe(5);
-      expect(symbol.members.get("Paused")).toBe(6); // Auto-increment from 5
-      expect(symbol.members.get("Stopped")).toBe(10);
-      expect(symbol.members.get("Error")).toBe(11); // Auto-increment from 10
+      expect(symbol.members.get("Idle")?.value).toBe(0);
+      expect(symbol.members.get("Running")?.value).toBe(5);
+      expect(symbol.members.get("Paused")?.value).toBe(6); // Auto-increment from 5
+      expect(symbol.members.get("Stopped")?.value).toBe(10);
+      expect(symbol.members.get("Error")?.value).toBe(11); // Auto-increment from 10
     });
   });
 
@@ -88,9 +88,9 @@ describe("EnumCollector", () => {
       const enumCtx = tree.declaration(0)!.enumDeclaration()!;
       const symbol = EnumCollector.collect(enumCtx, "test.cnx", "", "public");
 
-      expect(symbol.members.get("A")).toBe(1);
-      expect(symbol.members.get("B")).toBe(2);
-      expect(symbol.members.get("C")).toBe(16);
+      expect(symbol.members.get("A")?.value).toBe(1);
+      expect(symbol.members.get("B")?.value).toBe(2);
+      expect(symbol.members.get("C")?.value).toBe(16);
     });
 
     it("supports binary values", () => {
@@ -106,10 +106,10 @@ describe("EnumCollector", () => {
       const enumCtx = tree.declaration(0)!.enumDeclaration()!;
       const symbol = EnumCollector.collect(enumCtx, "test.cnx", "", "public");
 
-      expect(symbol.members.get("Bit0")).toBe(1);
-      expect(symbol.members.get("Bit1")).toBe(2);
-      expect(symbol.members.get("Bit2")).toBe(4);
-      expect(symbol.members.get("Bit3")).toBe(8);
+      expect(symbol.members.get("Bit0")?.value).toBe(1);
+      expect(symbol.members.get("Bit1")?.value).toBe(2);
+      expect(symbol.members.get("Bit2")?.value).toBe(4);
+      expect(symbol.members.get("Bit3")?.value).toBe(8);
     });
   });
 
@@ -189,6 +189,99 @@ describe("EnumCollector", () => {
       );
 
       expect(symbol.visibility).toBe("private");
+    });
+  });
+
+  describe("members carry their own position and identity (#1318)", () => {
+    it("gives each member a DISTINCT line, not the enum's", () => {
+      // The defect this card exists to remove. `parseWithSymbols` reported
+      // `enumSym.span.line` for every member, so an IDE jumping to
+      // `Color.Blue` landed on `enum Color`. Asserting DISTINCTNESS rather
+      // than three fixed numbers is what makes this fail on a revert: a
+      // collector that hands every member the enum's span produces three
+      // equal lines, whatever the fixture's indentation happens to be.
+      const code = `
+        enum Color {
+          Red,
+          Green,
+          Blue
+        }
+      `;
+      const tree = parse(code);
+      const symbol = EnumCollector.collect(
+        tree.declaration(0)!.enumDeclaration()!,
+        "test.cnx",
+        "",
+        "public",
+      );
+
+      const lines = [...symbol.members.values()].map((m) => m.span.line);
+      expect(new Set(lines).size).toBe(3);
+      expect(lines).toEqual([...lines].sort((a, b) => a - b));
+      // and none of them is the enum's own line
+      expect(lines).not.toContain(symbol.span.line);
+    });
+
+    it("points at the member's own column, not the start of the line", () => {
+      const code = `
+        enum Color {
+          Red
+        }
+      `;
+      const tree = parse(code);
+      const symbol = EnumCollector.collect(
+        tree.declaration(0)!.enumDeclaration()!,
+        "test.cnx",
+        "",
+        "public",
+      );
+
+      const red = symbol.members.get("Red")!;
+      expect(red.span.column).toBeGreaterThan(0);
+      // The span is a RANGE: `Red` is three characters wide.
+      expect(red.span.endColumn - red.span.column).toBe(3);
+      expect([red.span.line, red.span.column]).not.toEqual([1, 0]);
+    });
+
+    it("spells a member the way codegen already emits it", () => {
+      // `EColor__RED` and `Motor__EMode__HIGH` are what the committed
+      // .expected.h fixtures contain. Identity comes from ScopeUtils, so this
+      // cannot drift from the encoder -- it can only drift from the FIXTURES,
+      // which is the thing worth asserting.
+      const tree = parse(`enum EColor { RED }`);
+      const global = EnumCollector.collect(
+        tree.declaration(0)!.enumDeclaration()!,
+        "test.cnx",
+        "",
+        "public",
+      );
+      expect(global.members.get("RED")!.fullyQualifiedCName).toBe(
+        "EColor__RED",
+      );
+      expect(global.members.get("RED")!.cnxScopedName).toBe("EColor.RED");
+
+      const scoped = EnumCollector.collect(
+        parse(`enum EMode { HIGH }`).declaration(0)!.enumDeclaration()!,
+        "test.cnx",
+        "Motor",
+        "public",
+      );
+      expect(scoped.members.get("HIGH")!.fullyQualifiedCName).toBe(
+        "Motor__EMode__HIGH",
+      );
+    });
+
+    it("inherits the enum's visibility rather than hardcoding public", () => {
+      // #1300: four kinds hardcoded an exported flag beside a collector that
+      // recorded the real answer, and every private type reached the header.
+      const tree = parse(`enum EHidden { A }`);
+      const symbol = EnumCollector.collect(
+        tree.declaration(0)!.enumDeclaration()!,
+        "test.cnx",
+        "",
+        "private",
+      );
+      expect(symbol.members.get("A")!.visibility).toBe("private");
     });
   });
 });

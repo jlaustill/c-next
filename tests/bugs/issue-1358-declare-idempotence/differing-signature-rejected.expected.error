@@ -1,4 +1,4 @@
-32:0 error[E0425]: Symbol conflict: 'Motor.init' is defined multiple times in C-Next:
+32:11 error[E0425]: Symbol conflict: 'Motor.init' is defined multiple times in C-Next:
   tests/bugs/issue-1358-declare-idempotence/differing-signature-rejected.test.cnx:32
   tests/bugs/issue-1358-declare-idempotence/differing-signature-rejected.test.cnx:36
   scope 'Motor' is declared in:

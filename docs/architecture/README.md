@@ -129,6 +129,16 @@ lifetime: computable from one file, and needed everywhere a position is reported
 as far as 3.1. Position is the only thing later passes want from a tree, so once a span can
 travel on its own, nothing downstream has a reason to hold a node.
 
+The table below named `sourceLine` and `sourceColumn` as separate fields while this
+paragraph named the record, which are two different shapes for one fact. A symbol carries
+the **record**, and it REPLACED the bare line rather than joining it: keeping both would
+have left `span.line` and `sourceLine` as two places holding one position, the shape that
+put a private type in the public header when `visibility` and a hardcoded flag disagreed.
+A symbol's span is its DECLARATION's, so it starts where the declaration starts rather
+than at the identifier -- uniform across every kind, because every collector derives it
+from the declaration context through one function. For a member the two coincide, since a
+member's context is its name.
+
 **Pass 1.3 consumes `ParsedFile` and does not re-export it.** That single rule is what makes
 the lifetime axis enforceable -- the tree is not reachable from any artifact a downstream
 pass holds, so a dependency rule is a backstop rather than the primary guard.
@@ -144,7 +154,7 @@ pass holds, so a dependency rule is a backstop rather than the primary guard.
 | `fullyQualifiedCName`                            | the identifier C sees                                            |
 | `cnxScopedName`                                  | the name the author wrote; what a diagnostic quotes              |
 | scope reference                                  | a path or id, never a live object                                |
-| `sourceFile`, `sourceLine`, `sourceColumn`       | a symbol-level diagnostic can point as precisely as any other    |
+| `sourceFile`, `span`                             | a symbol-level diagnostic can point as precisely as any other    |
 | `sourceLanguage`                                 | C-Next, C or C++                                                 |
 | `visibility`                                     | public or private, as declared                                   |
 | declared type                                    | structured, never flattened to a string at a boundary            |

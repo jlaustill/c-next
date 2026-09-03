@@ -1,4 +1,4 @@
-4:0 error[E0204]: External identifiers are not distinct within the target's 31 significant characters (MISRA C:2012 Rule 5.1). All of these generate an identifier beginning 'TemperatureSensorControllerModu':
+4:11 error[E0204]: External identifiers are not distinct within the target's 31 significant characters (MISRA C:2012 Rule 5.1). All of these generate an identifier beginning 'TemperatureSensorControllerModu':
   TemperatureSensorControllerModuleAlpha.offset (tests/bugs/issue-1307-external-identifier-significance/collision-lib.cnx:4)
   TemperatureSensorControllerModuleOmega.offset (tests/bugs/issue-1307-external-identifier-significance/cross-file-collision.test.cnx:11)
   Shorten the scope name or the member names so the first 31 characters differ.

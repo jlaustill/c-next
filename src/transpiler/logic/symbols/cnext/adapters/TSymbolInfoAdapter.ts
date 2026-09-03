@@ -356,7 +356,16 @@ class TSymbolInfoAdapter {
   ): void {
     const cName = TSymbolInfoAdapter.getTranspiledCName(enumSym);
     knownEnums.add(cName);
-    enumMembers.set(cName, new Map(enumSym.members));
+    // #1318: members are symbols now. `ICodeGenSymbols.enumMembers` is the
+    // name-to-value view codegen wants, so project rather than widen it --
+    // handing codegen a symbol here would put a second symbol vocabulary in
+    // the per-file view for no consumer that asked for one.
+    enumMembers.set(
+      cName,
+      new Map(
+        [...enumSym.members].map(([name, member]) => [name, member.value]),
+      ),
+    );
   }
 
   private static processBitmap(

@@ -851,7 +851,10 @@ class SymbolTable {
         severity: "error",
         sourceFile: conflictingDefs[0].sourceFile,
         line: conflictingDefs[0].span.line,
-        column: 0,
+        // #1318: the symbol's own column. This was hardcoded 0 because no
+        // symbol carried one -- the Tier 1 table promised a symbol-level
+        // diagnostic could point as precisely as any other, and it could not.
+        column: conflictingDefs[0].span.column,
         // The remediation line is INDENTED like the locations. The CLI's error format
         // treats an unindented line as the start of a new diagnostic, so an
         // unindented sentence here is dropped by any consumer that parses stderr --
@@ -1011,7 +1014,8 @@ class SymbolTable {
       severity: "error",
       sourceFile: group[0].sourceFile,
       line: group[0].span.line,
-      column: 0,
+      // #1318: the symbol's own column, not a hardcoded 0.
+      column: group[0].span.column,
       message:
         `External identifiers are not distinct within the target's ` +
         `${limit} significant characters (MISRA C:2012 Rule 5.1). ` +
@@ -1083,7 +1087,8 @@ class SymbolTable {
         // files names the block it actually came from (#1334).
         sourceFile: symbols[0].sourceFile,
         line: symbols[0].span.line,
-        column: 0,
+        // #1318: the symbol's own column, not a hardcoded 0.
+        column: symbols[0].span.column,
         message: `Symbol conflict: '${displayName}' is defined multiple times in C-Next:\n  ${locations.join("\n  ")}${scopeSites}`,
       };
     }

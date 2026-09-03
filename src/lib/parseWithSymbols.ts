@@ -11,7 +11,6 @@ import ISymbolInfo from "./types/ISymbolInfo";
 import IParseWithSymbolsResult from "./types/IParseWithSymbolsResult";
 import TSymbol from "../transpiler/types/symbols/TSymbol";
 import SymbolPathUtils from "./utils/SymbolPathUtils";
-import QualifiedCName from "../utils/QualifiedCName";
 
 // Re-export helpers for use in this module
 const getParentId = SymbolPathUtils.getParentId;
@@ -109,15 +108,18 @@ function convertEnum(
   });
 
   // Add enum members
-  for (const [memberName] of enumSym.members) {
+  for (const [memberName, member] of enumSym.members) {
     result.push({
       name: memberName,
-      fullName: QualifiedCName.fromParts([cName, memberName]),
+      // #1318/#1285: read from the symbol that carries it. This rebuilt the
+      // qualified name by hand and reported `enumSym`'s line for EVERY member,
+      // so an IDE jumping to `EColor.BLUE` landed on `enum EColor`.
+      fullName: member.fullyQualifiedCName,
       kind: "enumMember",
       parent: cName,
       id: `${enumId}.${memberName}`,
       parentId: enumId,
-      line: enumSym.span.line,
+      line: member.span.line,
     });
   }
 

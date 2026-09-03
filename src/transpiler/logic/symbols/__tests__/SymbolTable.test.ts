@@ -18,6 +18,7 @@ import TCppSymbol from "../../../types/symbols/cpp/TCppSymbol";
 import TestSymbolUtils from "../cnext/__tests__/testSymbolUtils";
 import TVisibility from "../../../types/TVisibility";
 import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
+import TestEnumMembers from "../../../types/__testUtils__/testEnumMembers";
 
 describe("SymbolTable", () => {
   let symbolTable: SymbolTable;
@@ -809,7 +810,7 @@ describe("SymbolTable", () => {
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
-        members: new Map([["VALUE1", 0]]),
+        members: TestEnumMembers.of("MyEnum", { VALUE1: 0 }),
       } as IEnumSymbol);
 
       const enums = symbolTable.getEnumSymbols();

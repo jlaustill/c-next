@@ -15,6 +15,7 @@ import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import TTypeUtils from "../../../../../utils/TTypeUtils";
 import TestSymbolUtils from "../../../../logic/symbols/cnext/__tests__/testSymbolUtils";
 import TestSourceSpan from "../../../../types/__testUtils__/testSourceSpan";
+import TestEnumMembers from "../../../../types/__testUtils__/testEnumMembers";
 
 describe("HeaderSymbolAdapter", () => {
   // ========================================================================
@@ -290,11 +291,7 @@ describe("HeaderSymbolAdapter", () => {
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
-        members: new Map([
-          ["RED", 0],
-          ["GREEN", 1],
-          ["BLUE", 2],
-        ]),
+        members: TestEnumMembers.of("EColor", { RED: 0, GREEN: 1, BLUE: 2 }),
       };
 
       const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);
@@ -314,10 +311,7 @@ describe("HeaderSymbolAdapter", () => {
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
-        members: new Map([
-          ["OFF", 0],
-          ["ON", 1],
-        ]),
+        members: TestEnumMembers.of("EMode", { OFF: 0, ON: 1 }),
       };
 
       const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);

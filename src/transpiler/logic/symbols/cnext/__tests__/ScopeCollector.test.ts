@@ -181,9 +181,9 @@ describe("ScopeCollector", () => {
       expect(enumSymbol).toBeDefined();
       expect(SymbolGuards.isEnum(enumSymbol!)).toBe(true);
       if (SymbolGuards.isEnum(enumSymbol!)) {
-        expect(enumSymbol.members.get("Off")).toBe(0);
-        expect(enumSymbol.members.get("Running")).toBe(1);
-        expect(enumSymbol.members.get("Error")).toBe(2);
+        expect(enumSymbol.members.get("Off")?.value).toBe(0);
+        expect(enumSymbol.members.get("Running")?.value).toBe(1);
+        expect(enumSymbol.members.get("Error")?.value).toBe(2);
         expect(enumSymbol.scopePath).toBe("Motor");
       }
     });

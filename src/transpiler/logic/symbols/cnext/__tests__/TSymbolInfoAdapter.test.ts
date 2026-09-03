@@ -19,6 +19,7 @@ import TypeResolver from "../../../../../utils/TypeResolver";
 import TestScopeUtils from "./testUtils";
 import TestSymbolUtils from "./testSymbolUtils";
 import TestSourceSpan from "../../../../types/__testUtils__/testSourceSpan";
+import TestEnumMembers from "../../../../types/__testUtils__/testEnumMembers";
 
 describe("TSymbolInfoAdapter", () => {
   // Reset global scope between tests to avoid state pollution
@@ -207,11 +208,7 @@ describe("TSymbolInfoAdapter", () => {
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
-        members: new Map([
-          ["Red", 0],
-          ["Green", 1],
-          ["Blue", 2],
-        ]),
+        members: TestEnumMembers.of("Color", { Red: 0, Green: 1, Blue: 2 }),
       };
 
       const info = TSymbolInfoAdapter.convert([enumSym]);
@@ -230,11 +227,7 @@ describe("TSymbolInfoAdapter", () => {
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
-        members: new Map([
-          ["LOW", 0],
-          ["MEDIUM", 1],
-          ["HIGH", 2],
-        ]),
+        members: TestEnumMembers.of("Priority", { LOW: 0, MEDIUM: 1, HIGH: 2 }),
       };
 
       const info = TSymbolInfoAdapter.convert([enumSym]);
@@ -802,10 +795,7 @@ describe("TSymbolInfoAdapter", () => {
             sourceLanguage: ESourceLanguage.CNext,
             visibility: "public",
           }),
-          members: new Map([
-            ["Red", 0],
-            ["Green", 1],
-          ]),
+          members: TestEnumMembers.of("Color", { Red: 0, Green: 1 }),
         } as IEnumSymbol,
         motorScope,
         {

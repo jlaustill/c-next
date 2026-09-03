@@ -12,6 +12,7 @@ import ExpressionEvaluator from "../utils/ExpressionEvaluator";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
 import TVisibility from "../../../../types/TVisibility";
 import ParserUtils from "../../../../../utils/ParserUtils";
+import type IEnumMemberSymbol from "../../../../types/symbols/IEnumMemberSymbol";
 
 class EnumCollector {
   /**
@@ -34,8 +35,18 @@ class EnumCollector {
     const span = ParserUtils.getSpan(ctx);
 
     // Collect member values with auto-increment
-    const members = new Map<string, number>();
+    const members = new Map<string, IEnumMemberSymbol>();
     let currentValue = 0;
+
+    // #1318: a member's identity hangs off the ENUM's source-spelled name, not
+    // the enclosing scope's. `identityOf` then yields the identifier codegen
+    // already emits -- EColor__RED, and Motor__EMode__HIGH for a scope-declared
+    // enum, because fromParts expands the dotted component. Derived here once
+    // rather than at each consumer (#1285).
+    const enumScopedName = ScopeUtils.identityOf({
+      name,
+      scopePath,
+    }).cnxScopedName;
 
     for (const member of ctx.enumMember()) {
       const memberName = member.IDENTIFIER().getText();
@@ -54,7 +65,25 @@ class EnumCollector {
         currentValue = value;
       }
 
-      members.set(memberName, currentValue);
+      members.set(memberName, {
+        kind: "enum_member",
+        name: memberName,
+        scopePath: enumScopedName,
+        ...ScopeUtils.identityOf({
+          name: memberName,
+          scopePath: enumScopedName,
+        }),
+        sourceFile,
+        // #1318: the MEMBER's span, not the enum's. This is the whole point --
+        // a diagnostic naming a member used to point at the enum's first line.
+        span: ParserUtils.getSpan(member),
+        sourceLanguage: ESourceLanguage.CNext,
+        // A member is exactly as visible as the enum declaring it; ADR-016 has
+        // no per-member access control, so inheriting is the fact, and a
+        // hardcoded "public" beside a private parent is the #1300 defect.
+        visibility,
+        value: currentValue,
+      });
       currentValue++;
     }
 
