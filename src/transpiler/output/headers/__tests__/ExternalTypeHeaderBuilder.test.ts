@@ -8,6 +8,7 @@ import ExternalTypeHeaderBuilder from "../ExternalTypeHeaderBuilder";
 import TSymbolKind from "../../../types/symbol-kinds/TSymbolKind";
 import TAnySymbol from "../../../types/symbols/TAnySymbol";
 import TCSymbol from "../../../types/symbols/c/TCSymbol";
+import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
 
 /**
  * Create a minimal test symbol (using C symbol for simplicity)
@@ -21,7 +22,7 @@ function createSymbol(
     name,
     kind,
     sourceFile,
-    sourceLine: 1,
+    span: TestSourceSpan.at(1),
     visibility: "public",
   } as TCSymbol;
 }

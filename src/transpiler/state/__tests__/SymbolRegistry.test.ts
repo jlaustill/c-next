@@ -5,6 +5,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import SymbolRegistry from "../SymbolRegistry";
 import FunctionUtils from "../../../utils/FunctionUtils";
 import TTypeUtils from "../../../utils/TTypeUtils";
+import TestSourceSpan from "../../types/__testUtils__/testSourceSpan";
 
 describe("SymbolRegistry", () => {
   beforeEach(() => {
@@ -67,7 +68,7 @@ describe("SymbolRegistry", () => {
         visibility: "private",
         body: null,
         sourceFile: "test.cnx",
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
       });
       SymbolRegistry.registerFunction(func);
 
@@ -92,7 +93,7 @@ describe("SymbolRegistry", () => {
           visibility: "private",
           body: null,
           sourceFile: "test.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
         });
 
       // Two DISTINCT objects, as a second resolve of one tree produces.
@@ -121,7 +122,7 @@ describe("SymbolRegistry", () => {
         visibility: "public",
         body: null,
         sourceFile: "a.cnx",
-        sourceLine: 2,
+        span: TestSourceSpan.at(2),
       });
       const stop = FunctionUtils.create({
         name: "stop",
@@ -131,7 +132,7 @@ describe("SymbolRegistry", () => {
         visibility: "public",
         body: null,
         sourceFile: "b.cnx",
-        sourceLine: 2,
+        span: TestSourceSpan.at(2),
       });
 
       SymbolRegistry.registerFunction(start);
@@ -152,7 +153,7 @@ describe("SymbolRegistry", () => {
         visibility: "private",
         body: null,
         sourceFile: "test.cnx",
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
       });
       SymbolRegistry.registerFunction(func);
 
@@ -169,7 +170,7 @@ describe("SymbolRegistry", () => {
         visibility: "public",
         body: null,
         sourceFile: "test.cnx",
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
       });
       SymbolRegistry.registerFunction(func);
 
@@ -196,7 +197,7 @@ describe("SymbolRegistry", () => {
         visibility: "private",
         body: null,
         sourceFile: "test.cnx",
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
       });
       SymbolRegistry.registerFunction(func);
 
@@ -220,7 +221,7 @@ describe("SymbolRegistry", () => {
         visibility: "public",
         body: null,
         sourceFile: "main.cnx",
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
       });
       SymbolRegistry.registerFunction(func);
 
@@ -238,7 +239,7 @@ describe("SymbolRegistry", () => {
         visibility: "private",
         body: null,
         sourceFile: "test.cnx",
-        sourceLine: 10,
+        span: TestSourceSpan.at(10),
       });
       SymbolRegistry.registerFunction(func);
 
@@ -256,7 +257,7 @@ describe("SymbolRegistry", () => {
         visibility: "private",
         body: null,
         sourceFile: "test.cnx",
-        sourceLine: 20,
+        span: TestSourceSpan.at(20),
       });
       SymbolRegistry.registerFunction(func);
 
@@ -281,7 +282,7 @@ describe("SymbolRegistry", () => {
         visibility: "public",
         body: null,
         sourceFile: "motor.cnx",
-        sourceLine: 5,
+        span: TestSourceSpan.at(5),
       });
       SymbolRegistry.registerFunction(func);
 
@@ -299,7 +300,7 @@ describe("SymbolRegistry", () => {
         visibility: "public",
         body: null,
         sourceFile: "helpers.cnx",
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
       });
       SymbolRegistry.registerFunction(func);
 

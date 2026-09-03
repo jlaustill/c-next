@@ -10,6 +10,7 @@ import type IParameterInfo from "../transpiler/types/symbols/IParameterInfo";
 import type TType from "../transpiler/types/TType";
 import ESourceLanguage from "./types/ESourceLanguage";
 import ScopeUtils from "./ScopeUtils";
+import type ISourceSpan from "../transpiler/types/ISourceSpan";
 
 /**
  * Options for creating a function symbol
@@ -22,7 +23,7 @@ interface IFunctionCreateOptions {
   visibility: TVisibility;
   body: unknown;
   sourceFile: string;
-  sourceLine: number;
+  span: ISourceSpan;
 }
 
 class FunctionUtils {
@@ -50,7 +51,7 @@ class FunctionUtils {
       visibility: options.visibility,
       body: options.body,
       sourceFile: options.sourceFile,
-      sourceLine: options.sourceLine,
+      span: options.span,
       sourceLanguage: ESourceLanguage.CNext,
     };
   }

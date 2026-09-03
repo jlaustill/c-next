@@ -1,6 +1,7 @@
 import type TSymbolKindCNext from "../symbol-kinds/TSymbolKindCNext";
 import type ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import type TVisibility from "../TVisibility";
+import type ISourceSpan from "../ISourceSpan";
 
 /**
  * Base interface for all symbol types.
@@ -64,8 +65,19 @@ interface IBaseSymbol {
   /** Source file where the symbol is defined */
   readonly sourceFile: string;
 
-  /** Line number in the source file */
-  readonly sourceLine: number;
+  /**
+   * Where this symbol is declared, as a span rather than a bare line.
+   *
+   * Replaced `sourceLine` rather than joining it (#1318). Carrying both would
+   * put one fact in two places -- `span.line` and `sourceLine` -- which is the
+   * shape recorded in `visibility` below: two places held one fact, they
+   * disagreed, and the header believed the wrong one (#1300).
+   *
+   * A column is what a symbol-level diagnostic was missing: 136 of 302
+   * `.expected.error` fixtures began at `1:0` because a diagnostic about a
+   * symbol had no position and fell back to the start of the file (#1316).
+   */
+  readonly span: ISourceSpan;
 
   /** Source language (CNext, C, Cpp) */
   readonly sourceLanguage: ESourceLanguage;

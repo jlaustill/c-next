@@ -291,7 +291,7 @@ describe("FunctionCollector", () => {
         "private",
       );
 
-      expect(symbol.sourceLine).toBe(3);
+      expect(symbol.span.line).toBe(3);
     });
   });
 

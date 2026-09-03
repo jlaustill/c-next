@@ -86,7 +86,7 @@ class HeaderSymbolAdapter {
       signature,
       parent: isGlobal ? undefined : func.scopePath,
       sourceFile: func.sourceFile,
-      sourceLine: func.sourceLine,
+      sourceLine: func.span.line,
     };
   }
 
@@ -118,7 +118,7 @@ class HeaderSymbolAdapter {
       arrayDimensions,
       parent: isGlobal ? undefined : variable.scopePath,
       sourceFile: variable.sourceFile,
-      sourceLine: variable.sourceLine,
+      sourceLine: variable.span.line,
     };
   }
 
@@ -188,7 +188,7 @@ class HeaderSymbolAdapter {
       kind: "struct",
       parent: isGlobal ? undefined : struct.scopePath,
       sourceFile: struct.sourceFile,
-      sourceLine: struct.sourceLine,
+      sourceLine: struct.span.line,
     };
   }
 
@@ -204,7 +204,7 @@ class HeaderSymbolAdapter {
       kind: "enum",
       parent: isGlobal ? undefined : enumSym.scopePath,
       sourceFile: enumSym.sourceFile,
-      sourceLine: enumSym.sourceLine,
+      sourceLine: enumSym.span.line,
     };
   }
 
@@ -221,7 +221,7 @@ class HeaderSymbolAdapter {
       type: bitmap.backingType,
       parent: isGlobal ? undefined : bitmap.scopePath,
       sourceFile: bitmap.sourceFile,
-      sourceLine: bitmap.sourceLine,
+      sourceLine: bitmap.span.line,
     };
   }
 
@@ -237,7 +237,7 @@ class HeaderSymbolAdapter {
       kind: "register",
       parent: isGlobal ? undefined : register.scopePath,
       sourceFile: register.sourceFile,
-      sourceLine: register.sourceLine,
+      sourceLine: register.span.line,
     };
   }
 
@@ -255,7 +255,7 @@ class HeaderSymbolAdapter {
         ? undefined
         : scope.scopePath,
       sourceFile: scope.sourceFile,
-      sourceLine: scope.sourceLine,
+      sourceLine: scope.span.line,
     };
   }
 

@@ -13,6 +13,7 @@ import TTypeUtils from "../../../../utils/TTypeUtils";
 import type IFunctionSymbol from "../../../types/symbols/IFunctionSymbol";
 import CodeGenState from "../../../state/CodeGenState";
 import TestSymbolUtils from "../../symbols/cnext/__tests__/testSymbolUtils";
+import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
 
 /**
  * Helper to parse C-Next code and return the AST
@@ -36,7 +37,7 @@ function addWidgetCallbackSymbols(symbolTable: SymbolTable): void {
     kind: "function",
     sourceLanguage: ESourceLanguage.C,
     sourceFile: "widget.h",
-    sourceLine: 1,
+    span: TestSourceSpan.at(1),
     visibility: "public",
     type: "void",
     parameters: [
@@ -51,7 +52,7 @@ function addWidgetCallbackSymbols(symbolTable: SymbolTable): void {
     kind: "type",
     sourceLanguage: ESourceLanguage.C,
     sourceFile: "widget.h",
-    sourceLine: 2,
+    span: TestSourceSpan.at(2),
     visibility: "public",
     type: "void (*)(widget_t*, const rect_t*, uint8_t*)",
   });
@@ -407,7 +408,7 @@ describe("FunctionCallAnalyzer", () => {
         kind: "function",
         sourceLanguage: ESourceLanguage.C,
         sourceFile: "external.h",
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         visibility: "public",
         type: "void",
       });
@@ -431,7 +432,7 @@ describe("FunctionCallAnalyzer", () => {
         kind: "function",
         sourceLanguage: ESourceLanguage.Cpp,
         sourceFile: "helper.hpp",
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         visibility: "public",
         type: "void",
       });
@@ -557,7 +558,7 @@ describe("FunctionCallAnalyzer", () => {
         kind: "function",
         sourceLanguage: ESourceLanguage.Cpp,
         sourceFile: "custom.hpp",
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         visibility: "public",
         type: "void",
       });
@@ -670,7 +671,7 @@ describe("FunctionCallAnalyzer", () => {
         kind: "type",
         sourceLanguage: ESourceLanguage.C,
         sourceFile: "callback_types.h",
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         visibility: "public",
         type: "void (*)(Point)",
       });
@@ -696,7 +697,7 @@ describe("FunctionCallAnalyzer", () => {
           name: "cnextFunc",
           scopePath: "",
           sourceFile: "module.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
@@ -736,7 +737,7 @@ describe("FunctionCallAnalyzer", () => {
         kind: "type",
         sourceLanguage: ESourceLanguage.C,
         sourceFile: "callback_types.h",
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         visibility: "public",
         type: "void (*)(uint32_t)",
       });
@@ -766,7 +767,7 @@ describe("FunctionCallAnalyzer", () => {
         kind: "type",
         sourceLanguage: ESourceLanguage.C,
         sourceFile: "types.h",
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         visibility: "public",
         type: "uint32_t",
       });
@@ -812,7 +813,7 @@ describe("FunctionCallAnalyzer", () => {
         kind: "function",
         sourceLanguage: ESourceLanguage.C,
         sourceFile: "funcs.h",
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         visibility: "public",
         type: "void",
       });
@@ -832,7 +833,7 @@ describe("FunctionCallAnalyzer", () => {
         kind: "type",
         sourceLanguage: ESourceLanguage.C,
         sourceFile: "types.h",
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         visibility: "public",
         type: "void (*)(int)",
       });
@@ -863,7 +864,7 @@ describe("FunctionCallAnalyzer", () => {
         kind: "type",
         sourceLanguage: ESourceLanguage.C,
         sourceFile: "callback_types.h",
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         visibility: "public",
         type: "void (*)(uint32_t)",
       });
@@ -897,7 +898,7 @@ describe("FunctionCallAnalyzer", () => {
         kind: "type",
         sourceLanguage: ESourceLanguage.C,
         sourceFile: "callback_types.h",
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         visibility: "public",
         type: "void (*)(uint32_t)",
       });
@@ -929,7 +930,7 @@ describe("FunctionCallAnalyzer", () => {
         kind: "type",
         sourceLanguage: ESourceLanguage.C,
         sourceFile: "callback_types.h",
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         visibility: "public",
         type: "void (*)(uint32_t)",
       });
@@ -961,7 +962,7 @@ describe("FunctionCallAnalyzer", () => {
         kind: "type",
         sourceLanguage: ESourceLanguage.C,
         sourceFile: "callback_types.h",
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         visibility: "public",
         type: "void (*)(uint32_t)",
       });
@@ -997,7 +998,7 @@ describe("FunctionCallAnalyzer", () => {
         kind: "type",
         sourceLanguage: ESourceLanguage.C,
         sourceFile: "callback_types.h",
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         visibility: "public",
         type: "void (*)(uint32_t)",
       });
@@ -1030,7 +1031,7 @@ describe("FunctionCallAnalyzer", () => {
         kind: "function",
         sourceLanguage: ESourceLanguage.C,
         sourceFile: "widget.h",
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         visibility: "public",
         type: "void",
         parameters: [
@@ -1045,7 +1046,7 @@ describe("FunctionCallAnalyzer", () => {
         kind: "type",
         sourceLanguage: ESourceLanguage.C,
         sourceFile: "widget.h",
-        sourceLine: 2,
+        span: TestSourceSpan.at(2),
         visibility: "public",
         type: "void (*)(widget_t*, const rect_t*, uint8_t*)",
       });
@@ -1307,7 +1308,7 @@ describe("FunctionCallAnalyzer", () => {
         kind: "function",
         sourceLanguage: ESourceLanguage.C,
         sourceFile: "external.h",
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         visibility: "public",
         type: "void",
         parameters: [],

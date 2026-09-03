@@ -133,6 +133,29 @@ class CachedSymbolReader {
   }
 
   /**
+   * Is this value a well-formed `ISourceSpan`?
+   *
+   * #1318: `sourceLine` was one `typeof` check; a span is four, and they cannot
+   * be derived from the type, because `TCSymbol`/`TCppSymbol` are types and
+   * their keys are not enumerable at runtime -- the same reason CACHE_VERSION is
+   * bumped by hand. A cached entry written before the span existed carries
+   * `sourceLine` and no `span`, and is rejected here rather than deserialized
+   * into a symbol whose position is `undefined`.
+   */
+  private static isSpan(value: unknown): boolean {
+    if (typeof value !== "object" || value === null) {
+      return false;
+    }
+    const span = value as Record<string, unknown>;
+    return (
+      typeof span.line === "number" &&
+      typeof span.column === "number" &&
+      typeof span.endLine === "number" &&
+      typeof span.endColumn === "number"
+    );
+  }
+
+  /**
    * Does this decoded value carry the fields every C/C++ symbol has, with a
    * discriminant its language actually defines?
    *
@@ -151,7 +174,7 @@ class CachedSymbolReader {
     if (
       typeof candidate.name !== "string" ||
       typeof candidate.sourceFile !== "string" ||
-      typeof candidate.sourceLine !== "number" ||
+      !CachedSymbolReader.isSpan(candidate.span) ||
       (candidate.visibility !== "public" &&
         candidate.visibility !== "private") ||
       typeof candidate.kind !== "string"

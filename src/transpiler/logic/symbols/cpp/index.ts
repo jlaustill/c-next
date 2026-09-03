@@ -18,6 +18,8 @@ import FunctionCollector from "./collectors/FunctionCollector";
 import ClassCollector from "./collectors/ClassCollector";
 import VariableCollector from "./collectors/VariableCollector";
 import DeclaratorUtils from "./utils/DeclaratorUtils";
+import type ISourceSpan from "../../../types/ISourceSpan";
+import ParserUtils from "../../../../utils/ParserUtils";
 
 // Import context types
 type TranslationUnitContext = ReturnType<CPP14Parser["translationUnit"]>;
@@ -89,7 +91,7 @@ class CppResolver {
     decl: any,
     ctx: ICppDeclarationContext,
   ): void {
-    const line = decl.start?.line ?? 0;
+    const span = ParserUtils.getSpan(decl);
 
     // Function definition
     const funcDef = decl.functionDefinition?.();
@@ -97,7 +99,7 @@ class CppResolver {
       const symbol = FunctionCollector.collectDefinition(
         funcDef,
         ctx.sourceFile,
-        line,
+        span,
         ctx.currentNamespace,
       );
       if (symbol) {
@@ -109,7 +111,7 @@ class CppResolver {
     // Namespace definition
     const nsDef = decl.namespaceDefinition?.();
     if (nsDef) {
-      CppResolver._collectNamespaceDefinition(nsDef, line, ctx);
+      CppResolver._collectNamespaceDefinition(nsDef, span, ctx);
       return;
     }
 
@@ -122,7 +124,7 @@ class CppResolver {
     // Block declaration (simpleDeclaration, etc.)
     const blockDecl = decl.blockDeclaration?.();
     if (blockDecl) {
-      CppResolver._collectBlockDeclaration(blockDecl, line, ctx);
+      CppResolver._collectBlockDeclaration(blockDecl, span, ctx);
     }
   }
 
@@ -131,13 +133,13 @@ class CppResolver {
    */
   private static _collectNamespaceDefinition(
     nsDef: any,
-    line: number,
+    span: ISourceSpan,
     ctx: ICppDeclarationContext,
   ): void {
     const nsSymbol = NamespaceCollector.collect(
       nsDef,
       ctx.sourceFile,
-      line,
+      span,
       ctx.currentNamespace,
     );
     if (nsSymbol) {
@@ -167,13 +169,13 @@ class CppResolver {
    */
   private static _collectBlockDeclaration(
     blockDecl: any,
-    line: number,
+    span: ISourceSpan,
     ctx: ICppDeclarationContext,
   ): void {
     // Simple declaration (variables, typedefs, class declarations)
     const simpleDecl = blockDecl.simpleDeclaration?.();
     if (simpleDecl) {
-      CppResolver._collectSimpleDeclaration(simpleDecl, line, ctx);
+      CppResolver._collectSimpleDeclaration(simpleDecl, span, ctx);
     }
 
     // Alias declaration (using X = Y)
@@ -182,7 +184,7 @@ class CppResolver {
       const symbol = TypeAliasCollector.collect(
         aliasDecl,
         ctx.sourceFile,
-        line,
+        span,
         ctx.currentNamespace,
       );
       if (symbol) {
@@ -196,7 +198,7 @@ class CppResolver {
    */
   private static _collectSimpleDeclaration(
     simpleDecl: any,
-    line: number,
+    span: ISourceSpan,
     ctx: ICppDeclarationContext,
   ): void {
     const declSpecSeq = simpleDecl.declSpecifierSeq?.();
@@ -207,7 +209,7 @@ class CppResolver {
     // Process type specifiers (classes, enums)
     const anonymousClassSpec = CppResolver._processTypeSpecifiers(
       declSpecSeq,
-      line,
+      span,
       ctx,
     );
 
@@ -248,7 +250,7 @@ class CppResolver {
       CppResolver._collectDeclarator(
         declarator,
         baseType,
-        line,
+        span,
         ctx,
         anonymousClassSpec,
       );
@@ -275,7 +277,7 @@ class CppResolver {
    */
   private static _processTypeSpecifiers(
     declSpecSeq: any,
-    line: number,
+    span: ISourceSpan,
     ctx: ICppDeclarationContext,
   ): any {
     let anonymousClassSpec: any = null;
@@ -286,7 +288,7 @@ class CppResolver {
 
       const classSpec = typeSpec.classSpecifier?.();
       if (classSpec) {
-        const result = CppResolver._handleClassSpecInDecl(classSpec, line, ctx);
+        const result = CppResolver._handleClassSpecInDecl(classSpec, span, ctx);
         if (result) {
           anonymousClassSpec = result;
         }
@@ -297,7 +299,7 @@ class CppResolver {
         const enumSymbol = EnumCollector.collect(
           enumSpec,
           ctx.sourceFile,
-          line,
+          span,
           ctx.currentNamespace,
           ctx.symbolTable,
         );
@@ -316,7 +318,7 @@ class CppResolver {
    */
   private static _handleClassSpecInDecl(
     classSpec: any,
-    line: number,
+    span: ISourceSpan,
     ctx: ICppDeclarationContext,
   ): any {
     const classHead = classSpec.classHead?.();
@@ -329,7 +331,7 @@ class CppResolver {
       const result = ClassCollector.collect(
         classSpec,
         ctx.sourceFile,
-        line,
+        span,
         ctx.currentNamespace,
         ctx.symbolTable,
       );
@@ -350,7 +352,7 @@ class CppResolver {
   private static _collectDeclarator(
     declarator: any,
     baseType: string,
-    line: number,
+    span: ISourceSpan,
     ctx: ICppDeclarationContext,
     anonymousClassSpec: any,
   ): void {
@@ -368,7 +370,7 @@ class CppResolver {
         anonymousClassSpec,
         fullName,
         ctx.sourceFile,
-        line,
+        span,
         ctx.symbolTable,
       );
       if (result) {
@@ -383,7 +385,7 @@ class CppResolver {
         declarator,
         baseType,
         ctx.sourceFile,
-        line,
+        span,
         ctx.currentNamespace,
       );
       if (funcSymbol) {
@@ -394,7 +396,7 @@ class CppResolver {
         declarator,
         baseType,
         ctx.sourceFile,
-        line,
+        span,
         ctx.currentNamespace,
       );
       if (varSymbol) {

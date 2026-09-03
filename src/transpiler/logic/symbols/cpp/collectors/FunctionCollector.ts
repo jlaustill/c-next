@@ -11,6 +11,7 @@ import ICppFunctionSymbol from "../../../../types/symbols/cpp/ICppFunctionSymbol
 import ICppParameterInfo from "../../../../types/symbols/cpp/ICppParameterInfo";
 import DeclaratorUtils from "../utils/DeclaratorUtils";
 import IExtractedParameter from "../../shared/IExtractedParameter";
+import type ISourceSpan from "../../../../types/ISourceSpan";
 
 class FunctionCollector {
   /**
@@ -32,14 +33,14 @@ class FunctionCollector {
    *
    * @param funcDef The function definition context
    * @param sourceFile Source file path
-   * @param line Line number
+   * @param span Source span of the declaration
    * @param currentNamespace Optional current namespace
    * @returns The function symbol or null if no name
    */
   static collectDefinition(
     funcDef: any,
     sourceFile: string,
-    line: number,
+    span: ISourceSpan,
     currentNamespace?: string,
   ): ICppFunctionSymbol | null {
     const declarator = funcDef.declarator?.();
@@ -64,7 +65,7 @@ class FunctionCollector {
       name: fullName,
       type: returnType,
       sourceFile,
-      sourceLine: line,
+      span,
       sourceLanguage: ESourceLanguage.Cpp,
       visibility: "public",
       parent: currentNamespace,
@@ -79,7 +80,7 @@ class FunctionCollector {
    * @param declarator The function declarator context
    * @param baseType The return type string
    * @param sourceFile Source file path
-   * @param line Line number
+   * @param span Source span of the declaration
    * @param currentNamespace Optional current namespace
    * @returns The function symbol or null if no name
    */
@@ -87,7 +88,7 @@ class FunctionCollector {
     declarator: any,
     baseType: string,
     sourceFile: string,
-    line: number,
+    span: ISourceSpan,
     currentNamespace?: string,
   ): ICppFunctionSymbol | null {
     const name = DeclaratorUtils.extractDeclaratorName(declarator);
@@ -103,7 +104,7 @@ class FunctionCollector {
       name: fullName,
       type: baseType,
       sourceFile,
-      sourceLine: line,
+      span,
       sourceLanguage: ESourceLanguage.Cpp,
       visibility: "public",
       parent: currentNamespace,
@@ -120,7 +121,7 @@ class FunctionCollector {
    * @param declarator The function declarator context
    * @param returnType The return type string
    * @param sourceFile Source file path
-   * @param line Line number
+   * @param span Source span of the declaration
    * @param isDeclaration Whether this is a declaration (vs inline definition)
    * @returns The function symbol
    */
@@ -130,7 +131,7 @@ class FunctionCollector {
     declarator: any,
     returnType: string,
     sourceFile: string,
-    line: number,
+    span: ISourceSpan,
     isDeclaration: boolean,
   ): ICppFunctionSymbol {
     const params = FunctionCollector._mapParameters(
@@ -142,7 +143,7 @@ class FunctionCollector {
       name: `${className}::${funcName}`,
       type: returnType,
       sourceFile,
-      sourceLine: line,
+      span,
       sourceLanguage: ESourceLanguage.Cpp,
       visibility: "public",
       parent: className,

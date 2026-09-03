@@ -12,13 +12,14 @@ import JsonCodec from "../JsonCodec";
 import SymbolTable from "../../../transpiler/logic/symbols/SymbolTable";
 import ESourceLanguage from "../../types/ESourceLanguage";
 import TJsonValue from "../../types/TJsonValue";
+import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
 
 const C_FUNCTION = {
   name: "use_handle",
   kind: "function",
   type: "int",
   sourceFile: "/lib/handles.h",
-  sourceLine: 22,
+  span: TestSourceSpan.at(22),
   sourceLanguage: ESourceLanguage.C,
   visibility: "public",
 };
@@ -41,7 +42,7 @@ describe("CachedSymbolReader", () => {
       expect(symbols![0]).toMatchObject({
         name: "use_handle",
         kind: "function",
-        sourceLine: 22,
+        span: TestSourceSpan.at(22),
       });
     });
 
@@ -67,7 +68,28 @@ describe("CachedSymbolReader", () => {
         { ...C_FUNCTION, sourceLanguage: ESourceLanguage.CNext },
       ],
       ["a missing sourceFile", { ...C_FUNCTION, sourceFile: undefined }],
-      ["a non-numeric sourceLine", { ...C_FUNCTION, sourceLine: "22" }],
+      // #1318: `sourceLine` became a four-integer `span`, so one typeof check
+      // became four. Each branch of `isSpan` gets its own row -- a single
+      // "malformed span" case would pass with three of the four checks deleted.
+      ["a missing span", { ...C_FUNCTION, span: undefined }],
+      ["a non-object span", { ...C_FUNCTION, span: 22 }],
+      ["a null span", { ...C_FUNCTION, span: null }],
+      [
+        "a span whose line is not a number",
+        { ...C_FUNCTION, span: { ...C_FUNCTION.span, line: "22" } },
+      ],
+      [
+        "a span whose column is not a number",
+        { ...C_FUNCTION, span: { ...C_FUNCTION.span, column: "0" } },
+      ],
+      [
+        "a span whose endLine is missing",
+        { ...C_FUNCTION, span: { ...C_FUNCTION.span, endLine: undefined } },
+      ],
+      [
+        "a span whose endColumn is missing",
+        { ...C_FUNCTION, span: { ...C_FUNCTION.span, endColumn: undefined } },
+      ],
       ["a missing visibility", { ...C_FUNCTION, visibility: undefined }],
       [
         "a visibility TVisibility does not define",

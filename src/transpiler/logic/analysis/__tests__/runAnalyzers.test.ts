@@ -10,6 +10,7 @@ import runAnalyzers from "../runAnalyzers";
 import SymbolTable from "../../symbols/SymbolTable";
 import CodeGenState from "../../../state/CodeGenState";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
+import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
 
 /**
  * Helper to parse C-Next code and return AST + token stream
@@ -280,7 +281,7 @@ describe("runAnalyzers", () => {
         kind: "function",
         sourceLanguage: ESourceLanguage.C,
         sourceFile: "external.h",
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         visibility: "public",
         type: "void",
       });
@@ -302,7 +303,7 @@ describe("runAnalyzers", () => {
         kind: "class",
         sourceLanguage: ESourceLanguage.Cpp,
         sourceFile: "CppMessage.hpp",
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         visibility: "public",
       });
       CodeGenState.symbolTable.addStructField("CppMessage", "pgn", "u16");

@@ -7,6 +7,7 @@
 import type ICVariableSymbol from "../../../../types/symbols/c/ICVariableSymbol";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import DeclaratorUtils from "../utils/DeclaratorUtils";
+import type ISourceSpan from "../../../../types/ISourceSpan";
 
 class VariableCollector {
   /**
@@ -16,7 +17,7 @@ class VariableCollector {
    * @param baseType Variable type
    * @param declarator The declarator context (for array dimensions)
    * @param sourceFile Source file path
-   * @param line Source line number
+   * @param span Source span of the declaration
    * @param isExtern Whether the variable is extern
    */
   static collect(
@@ -24,7 +25,7 @@ class VariableCollector {
     baseType: string,
     declarator: any,
     sourceFile: string,
-    line: number,
+    span: ISourceSpan,
     isExtern: boolean,
   ): ICVariableSymbol {
     // Extract array dimensions if present
@@ -43,7 +44,7 @@ class VariableCollector {
       kind: "variable",
       name,
       sourceFile,
-      sourceLine: line,
+      span,
       sourceLanguage: ESourceLanguage.C,
       visibility: "public",
       type: resolvedType,
@@ -64,21 +65,21 @@ class VariableCollector {
    * @param name Variable name
    * @param baseType Variable type
    * @param sourceFile Source file path
-   * @param line Source line number
+   * @param span Source span of the declaration
    * @param isExtern Whether the variable is extern
    */
   static collectFromDeclSpecs(
     name: string,
     baseType: string,
     sourceFile: string,
-    line: number,
+    span: ISourceSpan,
     isExtern: boolean,
   ): ICVariableSymbol {
     return {
       kind: "variable",
       name,
       sourceFile,
-      sourceLine: line,
+      span,
       sourceLanguage: ESourceLanguage.C,
       visibility: "public",
       type: baseType,

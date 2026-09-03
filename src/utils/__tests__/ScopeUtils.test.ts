@@ -111,6 +111,18 @@ describe("IScopeSymbol", () => {
           expect(value.size).toBe(0);
           continue;
         }
+        if (typeof value === "object" && value !== null) {
+          // #1318: a span is the one object a scope carries, and it is admitted
+          // by SHAPE rather than by name -- every own value must be a number.
+          // Widening this to `typeof value === "object"` would have retired the
+          // guard instead of extending it: a parent-scope reference is an object
+          // too, and would have passed silently. A scope holds strings, arrays
+          // and Maps, so it still fails here.
+          expect(Object.values(value).every((v) => typeof v === "number")).toBe(
+            true,
+          );
+          continue;
+        }
         expect(["string", "number", "boolean"]).toContain(typeof value);
       }
     });

@@ -4,6 +4,7 @@ import type TSymbol from "../TSymbol";
 import type IFunctionSymbol from "../IFunctionSymbol";
 import type IStructSymbol from "../IStructSymbol";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
+import TestSourceSpan from "../../__testUtils__/testSourceSpan";
 
 describe("SymbolGuards", () => {
   // Helper to create a minimal mock symbol
@@ -15,7 +16,7 @@ describe("SymbolGuards", () => {
       // object -- which is the point of the change it is following.
       scopePath: "",
       sourceFile: "test.cnx",
-      sourceLine: 1,
+      span: TestSourceSpan.at(1),
       sourceLanguage: ESourceLanguage.CNext,
       visibility: "public",
     } as TSymbol;

@@ -11,6 +11,8 @@ import type ICParameterInfo from "../../../../types/symbols/c/ICParameterInfo";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import DeclaratorUtils from "../utils/DeclaratorUtils";
 import type IExtractedParameter from "../../shared/IExtractedParameter";
+import type ISourceSpan from "../../../../types/ISourceSpan";
+import ParserUtils from "../../../../../utils/ParserUtils";
 
 class FunctionCollector {
   /**
@@ -56,7 +58,7 @@ class FunctionCollector {
     const name = DeclaratorUtils.extractDeclaratorName(declarator);
     if (!name) return null;
 
-    const line = funcDef.start?.line ?? 0;
+    const span = ParserUtils.getSpan(funcDef);
 
     // Get return type from declaration specifiers
     const declSpecs = funcDef.declarationSpecifiers();
@@ -77,7 +79,7 @@ class FunctionCollector {
       kind: "function",
       name,
       sourceFile,
-      sourceLine: line,
+      span,
       sourceLanguage: ESourceLanguage.C,
       visibility: "public",
       type: returnType,
@@ -93,14 +95,14 @@ class FunctionCollector {
    * @param baseType Return type
    * @param declarator The declarator context
    * @param sourceFile Source file path
-   * @param line Source line number
+   * @param span Source span of the declaration
    */
   static collectFromDeclaration(
     name: string,
     baseType: string,
     declarator: DeclaratorContext,
     sourceFile: string,
-    line: number,
+    span: ISourceSpan,
   ): ICFunctionSymbol {
     const parameters = FunctionCollector._mapParameters(
       DeclaratorUtils.extractFunctionParameters(declarator),
@@ -115,7 +117,7 @@ class FunctionCollector {
       kind: "function",
       name,
       sourceFile,
-      sourceLine: line,
+      span,
       sourceLanguage: ESourceLanguage.C,
       visibility: "public",
       type: returnType,

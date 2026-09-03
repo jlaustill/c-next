@@ -28,7 +28,7 @@ describe("CResolver - Basic Functionality", () => {
 
 void foo();`);
     const result = CResolver.resolve(tree!, "test.h");
-    expect(result.symbols[0].sourceLine).toBe(3);
+    expect(result.symbols[0].span.line).toBe(3);
   });
 
   it("sets source language to C", () => {
@@ -425,9 +425,9 @@ describe("CResolver - Enums", () => {
     const result = CResolver.resolve(tree!, "test.h");
 
     const members = result.symbols.filter((s) => s.kind === "enum_member");
-    expect(members[0].sourceLine).toBe(2);
-    expect(members[1].sourceLine).toBe(3);
-    expect(members[2].sourceLine).toBe(4);
+    expect(members[0].span.line).toBe(2);
+    expect(members[1].span.line).toBe(3);
+    expect(members[2].span.line).toBe(4);
   });
 
   it("skips anonymous enum", () => {

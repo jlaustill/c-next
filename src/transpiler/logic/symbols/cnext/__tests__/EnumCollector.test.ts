@@ -166,7 +166,7 @@ describe("EnumCollector", () => {
       const enumCtx = tree.declaration(0)!.enumDeclaration()!;
       const symbol = EnumCollector.collect(enumCtx, "test.cnx", "", "public");
 
-      expect(symbol.sourceLine).toBe(3);
+      expect(symbol.span.line).toBe(3);
     });
   });
 

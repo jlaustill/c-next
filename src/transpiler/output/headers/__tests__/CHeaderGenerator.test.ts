@@ -11,6 +11,7 @@ import IHeaderSymbol from "../types/IHeaderSymbol";
 import IParameterSymbol from "../../../../utils/types/IParameterSymbol";
 import SymbolTable from "../../../logic/symbols/SymbolTable";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
+import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
 
 // ============================================================================
 // Test Helpers
@@ -607,7 +608,7 @@ describe("CHeaderGenerator", () => {
         kind: "namespace",
         visibility: "public",
         sourceFile: "MyLib.hpp",
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         sourceLanguage: ESourceLanguage.Cpp,
       });
 
@@ -639,7 +640,7 @@ describe("CHeaderGenerator", () => {
         kind: "namespace",
         visibility: "public",
         sourceFile: "LibName.hpp",
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         sourceLanguage: ESourceLanguage.Cpp,
       });
 

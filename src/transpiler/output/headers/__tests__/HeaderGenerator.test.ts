@@ -14,6 +14,7 @@ import TTypeUtils from "../../../../utils/TTypeUtils";
 import type IFunctionSymbol from "../../../types/symbols/IFunctionSymbol";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import TestSymbolUtils from "../../../logic/symbols/cnext/__tests__/testSymbolUtils";
+import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
 
 describe("HeaderGenerator", () => {
   const generator = new HeaderGenerator();
@@ -203,7 +204,7 @@ describe("HeaderGenerator", () => {
         name: namespaceName,
         kind: "namespace",
         sourceFile: `${namespaceName}.hpp`,
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         visibility: "public",
         sourceLanguage: ESourceLanguage.Cpp,
       });
@@ -359,7 +360,7 @@ describe("HeaderGenerator", () => {
           name: "myFunc",
           scopePath: "",
           sourceFile: "module.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
@@ -374,7 +375,7 @@ describe("HeaderGenerator", () => {
           name: "otherFunc",
           scopePath: "",
           sourceFile: "other.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
@@ -403,7 +404,7 @@ describe("HeaderGenerator", () => {
           name: "testFunc",
           scopePath: "",
           sourceFile: "src/utils/helper.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
@@ -433,7 +434,7 @@ describe("HeaderGenerator", () => {
           name: "cnextFunc",
           scopePath: "",
           sourceFile: "module.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
@@ -447,7 +448,7 @@ describe("HeaderGenerator", () => {
         name: "cppFunc",
         type: "void",
         sourceFile: "module.hpp",
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         visibility: "public",
         sourceLanguage: ESourceLanguage.Cpp,
       });
@@ -456,7 +457,7 @@ describe("HeaderGenerator", () => {
         name: "cFunc",
         type: "void",
         sourceFile: "module.h",
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         visibility: "public",
         sourceLanguage: ESourceLanguage.C,
       });
@@ -476,7 +477,7 @@ describe("HeaderGenerator", () => {
           name: "testFunc",
           scopePath: "",
           sourceFile: "test.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),

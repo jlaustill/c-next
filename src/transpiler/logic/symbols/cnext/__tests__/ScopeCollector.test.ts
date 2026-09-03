@@ -345,7 +345,7 @@ describe("ScopeCollector", () => {
       const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
       const result = ScopeCollector.collect(scopeCtx, "test.cnx", new Set());
 
-      expect(result.scopeSymbol.sourceLine).toBe(3);
+      expect(result.scopeSymbol.span.line).toBe(3);
     });
   });
 });

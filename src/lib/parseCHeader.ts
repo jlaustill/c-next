@@ -73,7 +73,7 @@ function convertTCSymbolsToISymbolInfo(
       parentId: parent,
       type,
       parent,
-      line: sym.sourceLine ?? 0,
+      line: sym.span.line,
       sourceFile: filePath,
       language: "c",
     };

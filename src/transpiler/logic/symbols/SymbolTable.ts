@@ -771,7 +771,7 @@ class SymbolTable {
   }
 
   private static locationOf(symbol: TAnySymbol): string {
-    return DeclarationSite.display(symbol.sourceFile, symbol.sourceLine);
+    return DeclarationSite.display(symbol.sourceFile, symbol.span.line);
   }
 
   /**
@@ -850,7 +850,7 @@ class SymbolTable {
         definitions: conflictingDefs,
         severity: "error",
         sourceFile: conflictingDefs[0].sourceFile,
-        line: conflictingDefs[0].sourceLine,
+        line: conflictingDefs[0].span.line,
         column: 0,
         // The remediation line is INDENTED like the locations. The CLI's error format
         // treats an unindented line as the start of a new diagnostic, so an
@@ -1000,7 +1000,7 @@ class SymbolTable {
     const locations = group
       .map(
         (symbol) =>
-          `  ${symbol.cnxScopedName} (${DeclarationSite.display(symbol.sourceFile, symbol.sourceLine)})`,
+          `  ${symbol.cnxScopedName} (${DeclarationSite.display(symbol.sourceFile, symbol.span.line)})`,
       )
       .join("\n");
 
@@ -1010,7 +1010,7 @@ class SymbolTable {
       definitions: [...group],
       severity: "error",
       sourceFile: group[0].sourceFile,
-      line: group[0].sourceLine,
+      line: group[0].span.line,
       column: 0,
       message:
         `External identifiers are not distinct within the target's ` +
@@ -1082,7 +1082,7 @@ class SymbolTable {
         // position, so a member declared in two blocks of a scope spanning four
         // files names the block it actually came from (#1334).
         sourceFile: symbols[0].sourceFile,
-        line: symbols[0].sourceLine,
+        line: symbols[0].span.line,
         column: 0,
         message: `Symbol conflict: '${displayName}' is defined multiple times in C-Next:\n  ${locations.join("\n  ")}${scopeSites}`,
       };

@@ -9,6 +9,7 @@
 
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import ICppTypeAliasSymbol from "../../../../types/symbols/cpp/ICppTypeAliasSymbol";
+import type ISourceSpan from "../../../../types/ISourceSpan";
 
 class TypeAliasCollector {
   /**
@@ -16,14 +17,14 @@ class TypeAliasCollector {
    *
    * @param aliasDecl The alias declaration context
    * @param sourceFile Source file path
-   * @param line Line number
+   * @param span Source span of the declaration
    * @param currentNamespace Optional current namespace
    * @returns The type alias symbol or null if no name
    */
   static collect(
     aliasDecl: any,
     sourceFile: string,
-    line: number,
+    span: ISourceSpan,
     currentNamespace?: string,
   ): ICppTypeAliasSymbol | null {
     const identifier = aliasDecl.Identifier?.();
@@ -35,7 +36,7 @@ class TypeAliasCollector {
       kind: "type",
       name,
       sourceFile,
-      sourceLine: line,
+      span,
       sourceLanguage: ESourceLanguage.Cpp,
       visibility: "public",
       parent: currentNamespace,

@@ -11,6 +11,7 @@ import IEnumSymbol from "../../../../types/symbols/IEnumSymbol";
 import ExpressionEvaluator from "../utils/ExpressionEvaluator";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
 import TVisibility from "../../../../types/TVisibility";
+import ParserUtils from "../../../../../utils/ParserUtils";
 
 class EnumCollector {
   /**
@@ -30,7 +31,7 @@ class EnumCollector {
     visibility: TVisibility,
   ): IEnumSymbol {
     const name = ctx.IDENTIFIER().getText();
-    const line = ctx.start?.line ?? 0;
+    const span = ParserUtils.getSpan(ctx);
 
     // Collect member values with auto-increment
     const members = new Map<string, number>();
@@ -65,7 +66,7 @@ class EnumCollector {
       // re-derived by every consumer.
       ...ScopeUtils.identityOf({ name, scopePath }),
       sourceFile,
-      sourceLine: line,
+      span,
       sourceLanguage: ESourceLanguage.CNext,
       visibility,
       members,

@@ -6,6 +6,8 @@ import type { EnumSpecifierContext } from "../../../parser/c/grammar/CParser";
 import type ICEnumSymbol from "../../../../types/symbols/c/ICEnumSymbol";
 import type ICEnumMemberSymbol from "../../../../types/symbols/c/ICEnumMemberSymbol";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
+import type ISourceSpan from "../../../../types/ISourceSpan";
+import ParserUtils from "../../../../../utils/ParserUtils";
 
 /**
  * Result of collecting an enum - includes both the enum symbol and its members.
@@ -21,12 +23,12 @@ class EnumCollector {
    *
    * @param enumSpec The enum specifier context
    * @param sourceFile Source file path
-   * @param line Source line number
+   * @param span Source span of the declaration
    */
   static collect(
     enumSpec: EnumSpecifierContext,
     sourceFile: string,
-    line: number,
+    span: ISourceSpan,
   ): IEnumCollectorResult | null {
     const identifier = enumSpec.Identifier();
     if (!identifier) return null;
@@ -52,7 +54,15 @@ class EnumCollector {
               kind: "enum_member",
               name: memberName,
               sourceFile,
-              sourceLine: enumeratorDef.start?.line ?? line,
+              // #1318: a member carries its OWN span, not its parent's.
+              // Falls back to the enum's span only when the enumerator has
+              // no start token, which is the same fallback the bare line
+              // carried -- ParserUtils.getSpan would report 0:0 there, and a
+              // diagnostic aimed at the top of the file is worse than one
+              // aimed at the enclosing enum.
+              span: enumeratorDef.start
+                ? ParserUtils.getSpan(enumeratorDef)
+                : span,
               sourceLanguage: ESourceLanguage.C,
               visibility: "public",
               parent: name,
@@ -66,7 +76,7 @@ class EnumCollector {
       kind: "enum",
       name,
       sourceFile,
-      sourceLine: line,
+      span,
       sourceLanguage: ESourceLanguage.C,
       visibility: "public",
       members: memberInfos,

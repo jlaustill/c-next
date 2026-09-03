@@ -18,6 +18,7 @@ import type TType from "../../../../types/TType";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
 import TVisibility from "../../../../types/TVisibility";
 import OverflowBehaviorUtils from "../../../../../utils/OverflowBehaviorUtils";
+import ParserUtils from "../../../../../utils/ParserUtils";
 
 class VariableCollector {
   /**
@@ -163,7 +164,7 @@ class VariableCollector {
     isScopeType?: (qualifiedName: string) => boolean,
   ): IVariableSymbol {
     const name = ctx.IDENTIFIER().getText();
-    const line = ctx.start?.line ?? 0;
+    const span = ParserUtils.getSpan(ctx);
 
     // Get type string and convert to TType
     const typeCtx = ctx.type();
@@ -229,7 +230,7 @@ class VariableCollector {
       // re-derived by every consumer.
       ...ScopeUtils.identityOf({ name, scopePath }),
       sourceFile,
-      sourceLine: line,
+      span,
       sourceLanguage: ESourceLanguage.CNext,
       visibility,
       type,

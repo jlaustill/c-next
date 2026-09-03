@@ -7,6 +7,7 @@ import type IScopeSymbol from "../transpiler/types/symbols/IScopeSymbol";
 import type TVisibility from "../transpiler/types/TVisibility";
 import ESourceLanguage from "./types/ESourceLanguage";
 import QualifiedCName from "./QualifiedCName";
+import UNSET_SOURCE_SPAN from "../transpiler/constants/UNSET_SOURCE_SPAN";
 
 class ScopeUtils {
   // ============================================================================
@@ -39,7 +40,7 @@ class ScopeUtils {
       // #1334: filled by ScopeCollector, one entry per declaring block.
       declarationSites: new Set<string>(),
       sourceFile: "",
-      sourceLine: 0,
+      span: UNSET_SOURCE_SPAN,
       sourceLanguage: ESourceLanguage.CNext,
       visibility: "public",
       // #1285: computed through the same encoder as every other symbol rather
@@ -75,7 +76,7 @@ class ScopeUtils {
       // #1334: filled by ScopeCollector, one entry per declaring block.
       declarationSites: new Set<string>(),
       sourceFile: "",
-      sourceLine: 0,
+      span: UNSET_SOURCE_SPAN,
       sourceLanguage: ESourceLanguage.CNext,
       visibility: "public",
     };

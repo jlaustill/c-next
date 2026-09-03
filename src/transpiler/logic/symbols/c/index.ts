@@ -22,6 +22,8 @@ import EnumCollector from "./collectors/EnumCollector";
 import FunctionCollector from "./collectors/FunctionCollector";
 import TypedefCollector from "./collectors/TypedefCollector";
 import VariableCollector from "./collectors/VariableCollector";
+import type ISourceSpan from "../../../types/ISourceSpan";
+import ParserUtils from "../../../../utils/ParserUtils";
 
 /**
  * Result of resolving C symbols.
@@ -39,7 +41,7 @@ interface ICResolverResult {
  */
 interface IDeclarationContext {
   readonly sourceFile: string;
-  readonly line: number;
+  readonly span: ISourceSpan;
   readonly isTypedef: boolean;
   readonly isExtern: boolean;
   readonly symbols: TCSymbol[];
@@ -109,7 +111,7 @@ class CResolver {
     const declSpecs = decl.declarationSpecifiers();
     if (!declSpecs) return;
 
-    const line = decl.start?.line ?? 0;
+    const span = ParserUtils.getSpan(decl);
 
     // Check for storage class specifiers
     const isTypedef = DeclaratorUtils.hasStorageClass(declSpecs, "typedef");
@@ -118,7 +120,7 @@ class CResolver {
     // Build context early for reuse across helper methods
     const ctx: IDeclarationContext = {
       sourceFile,
-      line,
+      span,
       isTypedef,
       isExtern,
       symbols,
@@ -143,7 +145,7 @@ class CResolver {
       CResolver.collectEnumSymbols(
         enumSpec,
         ctx.sourceFile,
-        ctx.line,
+        ctx.span,
         ctx.symbols,
       );
     }
@@ -190,7 +192,7 @@ class CResolver {
     const structSymbol = StructCollector.collect(
       structSpec,
       ctx.sourceFile,
-      ctx.line,
+      ctx.span,
       symbolTable,
       {
         typedefName,
@@ -239,10 +241,10 @@ class CResolver {
   private static collectEnumSymbols(
     enumSpec: any,
     sourceFile: string,
-    line: number,
+    span: ISourceSpan,
     symbols: TCSymbol[],
   ): void {
-    const enumResult = EnumCollector.collect(enumSpec, sourceFile, line);
+    const enumResult = EnumCollector.collect(enumSpec, sourceFile, span);
     if (!enumResult) return;
 
     symbols.push(enumResult.enum);
@@ -272,7 +274,7 @@ class CResolver {
       if (ctx.isTypedef) {
         const typedefType = CResolver.buildTypedefType(baseType, declarator);
         ctx.symbols.push(
-          TypedefCollector.collect(name, typedefType, ctx.sourceFile, ctx.line),
+          TypedefCollector.collect(name, typedefType, ctx.sourceFile, ctx.span),
         );
       } else if (isFunction) {
         ctx.symbols.push(
@@ -281,7 +283,7 @@ class CResolver {
             baseType,
             declarator,
             ctx.sourceFile,
-            ctx.line,
+            ctx.span,
           ),
         );
       } else {
@@ -291,7 +293,7 @@ class CResolver {
             baseType,
             declarator,
             ctx.sourceFile,
-            ctx.line,
+            ctx.span,
             ctx.isExtern,
           ),
         );
@@ -335,7 +337,7 @@ class CResolver {
           lastTypedefName,
           baseType,
           ctx.sourceFile,
-          ctx.line,
+          ctx.span,
         ),
       );
     } else {
@@ -344,7 +346,7 @@ class CResolver {
           lastTypedefName,
           baseType,
           ctx.sourceFile,
-          ctx.line,
+          ctx.span,
           ctx.isExtern,
         ),
       );

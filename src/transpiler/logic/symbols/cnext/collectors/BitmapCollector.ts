@@ -13,6 +13,7 @@ import BITMAP_SIZE from "../../../../constants/BITMAP_SIZE";
 import BITMAP_BACKING_TYPE from "../../../../constants/BITMAP_BACKING_TYPE";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
 import TVisibility from "../../../../types/TVisibility";
+import ParserUtils from "../../../../../utils/ParserUtils";
 
 class BitmapCollector {
   /**
@@ -35,7 +36,7 @@ class BitmapCollector {
     const bitmapType = ctx.bitmapType().getText();
     const expectedBits = BITMAP_SIZE[bitmapType];
     const backingType = BITMAP_BACKING_TYPE[bitmapType];
-    const line = ctx.start?.line ?? 0;
+    const span = ParserUtils.getSpan(ctx);
 
     // Collect fields with running bit offset
     const fields = new Map<string, IBitmapFieldInfo>();
@@ -67,7 +68,7 @@ class BitmapCollector {
       // re-derived by every consumer.
       ...ScopeUtils.identityOf({ name, scopePath }),
       sourceFile,
-      sourceLine: line,
+      span,
       sourceLanguage: ESourceLanguage.CNext,
       visibility,
       backingType,

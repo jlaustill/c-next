@@ -12,6 +12,7 @@ import IRegisterMemberInfo from "../../../../types/symbols/IRegisterMemberInfo";
 import TypeUtils from "../utils/TypeUtils";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
 import TVisibility from "../../../../types/TVisibility";
+import ParserUtils from "../../../../../utils/ParserUtils";
 
 /** Access mode type for register members */
 type TAccessMode = "rw" | "ro" | "wo" | "w1c" | "w1s";
@@ -36,7 +37,7 @@ class RegisterCollector {
     isScopeType?: (qualifiedName: string) => boolean,
   ): IRegisterSymbol {
     const name = ctx.IDENTIFIER().getText();
-    const line = ctx.start?.line ?? 0;
+    const span = ParserUtils.getSpan(ctx);
     // #1298: members carry the scope's PATH, not the scope object. The path
     // holds every outer component, so nothing downstream can flatten it to a
     // leaf -- which is what the reference threaded here used to protect against.
@@ -86,7 +87,7 @@ class RegisterCollector {
       // re-derived by every consumer.
       ...ScopeUtils.identityOf({ name, scopePath }),
       sourceFile,
-      sourceLine: line,
+      span,
       sourceLanguage: ESourceLanguage.CNext,
       visibility,
       baseAddress,
