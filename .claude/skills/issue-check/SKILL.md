@@ -142,6 +142,15 @@ FOR each issue whose BLOCKED_BY is non-empty:
   silently dropping a blocker no query can see. OPEN_BLOCKERS is assigned on
   every blocked branch, because both consumers below print it.
 
+BLOCKED_BY ANSWERS ONLY HALF THE QUESTION. It records whether a CARD WAS NAMED,
+not whether the work CAN BE FINISHED. A card whose definition of done requires an
+artifact that does not exist yet — a directory another card creates, a generated
+document another card gates — is unstartable with a permanently, correctly empty
+field. There is nothing to fix in the field and nothing a board query can see.
+Phase 3.5 asks the second question, and it is NOT OPTIONAL: skipping it is how
+#1444 got recommended as the top pick while carrying a 13-hour-old comment saying
+it could not close.
+
 IF the query fails (needs `gh auth refresh -s project`):
   SAY SO EXPLICITLY and stop — do not fall back to label-only scoring and
   present it as a recommendation. A ranking that silently ignores Blocked by
@@ -261,6 +270,73 @@ RANK available issues by SCORE descending.
 
 ---
 
+### Phase 3.5: Startability Gate (top candidates only) — REQUIRED
+
+Phase 1d asked *"was a card named?"*. This phase asks *"can this finish?"* — the question
+that actually decides whether to recommend. They are different questions, they disagree on
+real cards, and the answer to the first is not the answer to the second.
+
+**#1313 states the governing rule, and it is the authority for the whole board:**
+
+> An empty `Blocked by` means _no card was named_, not _this can be finished today_.
+> Where the two disagree, **the definition of done is the authority**.
+
+Run this on the **top 5 ranked candidates only**. You are burned only by a card you are
+about to recommend, so the gate is bounded — reading comments across the whole backlog is
+not affordable and is not the point.
+
+```
+FOR each of the top 5 ranked candidates:
+
+  1. COMMENTS — cheapest check, and the one that has actually fired.
+       gh api repos/jlaustill/c-next/issues/<n>/comments \
+         --jq '.[] | "\(.created_at) @\(.user.login)\n\(.body)"'
+
+     A comment that sets the card aside, defers it, assigns it a later wave, says it
+     "cannot close", or records a branch created and deleted unused → NOT STARTABLE.
+     Quote it WITH ITS TIMESTAMP, so the reader sees how long the signal sat there.
+
+  2. PARENT SEQUENCING — if the body says "Part of #NNNN", or a parent issue is set,
+     read that issue's BODY (not its comments — roadmaps live in the body):
+       gh api repos/jlaustill/c-next/issues/<parent> --jq '.body' \
+         | grep -nEi "wave|startable|sequencing|critical path"
+
+     Find THIS card in what comes back. A parent that places it in a later wave, or
+     names it in a "cannot finish" section, outranks the card's empty field.
+
+  3. DEFINITION OF DONE — read it, and ask of every checkbox: does this require
+     something that does not exist yet?
+       gh api repos/jlaustill/c-next/issues/<n> --jq '.body' \
+         | grep -A25 -i "definition of done"
+
+     A checkbox naming a directory, a generated document, or an artifact another card
+     owns is a dependency the field does not carry. VERIFY it with a command — `ls` the
+     directory, `test -f` the document, `grep` for the symbol — rather than assuming in
+     either direction.
+
+  A card failing ANY of the three is NOT STARTABLE: drop it from the recommendation,
+  report it under "Not Recommended Yet" with reason `Not startable` and the evidence,
+  and re-rank without it.
+
+  A card passing all three: SAY WHAT YOU CHECKED when recommending it. "startable: no
+  set-aside comment, parent places it in wave 1, DoD has no unbuilt-artifact item" is an
+  artifact a reader can check. "Unblocked" is not.
+```
+
+**A card's own claim about its readiness is not evidence.** #1444's body says _"which is
+why this card is first: it has no open blocker."_ That sentence is scoped to its track, and
+#1313's correction 1 is titled _"'This card is first' scopes to Track F, not to the epic"_ —
+reading it as first-overall "routes work to a card five waves early." Quoting a card's
+self-assessment back as justification is the failure, not the check: the body is written
+once, at filing, and the sequencing that invalidates it lands later and elsewhere.
+
+**When the gate fires and the field is silent, that is the append case.** The blocker you
+just derived is a NEW blocker — appended beside whatever the field already says, never
+substituted for it (see Anti-Patterns). Surface it and offer to record it; do not write the
+board unasked.
+
+---
+
 ### Phase 4: Present Report
 
 Output a clear, actionable report.
@@ -290,8 +366,15 @@ does not exist, and the reason it was skipped is usually the useful part.
 |-------|--------|--------|
 | #1323 | Blocked | #1301, #1319 — both open |
 | #1324 | Blocked | #1313 open; #1357 closed, no longer a blocker |
+| #1444 | Not startable | field empty; #1313 places it in wave 5 — DoD needs `src/PARSE/1-Discover/`, which needs #1443's map |
 | #1313 | Epic    | tracker; closes when its children do |
 | #1374 | Grooming | not triaged — scope still open |
+
+`Blocked` and `Not startable` are different findings and must not be merged into one
+reason. `Blocked` means a named card is still open, the field is doing its job, and the
+remedy is to wait. `Not startable` means the field is silent or satisfied and the work
+still cannot finish — the remedy is to append the derived blocker (Phase 3.5). Collapsing
+them hides the second, which is the one no query can see.
 
 Ranking below covers <ACTIVE_MILESTONE> only. Run `/issue-check --all` for the full backlog.
 
@@ -410,6 +493,33 @@ still open:
   verbatim so the user can overrule it.
 ```
 
+### Unblocked Is Not Startable
+
+```
+An empty `Blocked by` is not a green light. It says no card was named — nothing more.
+A card can be correctly, permanently unblocked in the field and still be unable to
+finish, because its definition of done requires an artifact that other cards produce.
+
+The two failures look identical from the board and are distinguished only by Phase 3.5:
+
+  BLOCKED        a named card is still open
+                 → the field is working; wait, and name the open blockers
+  NOT STARTABLE  the field is silent or satisfied, and the DoD still cannot be met
+                 → the field never knew; derive it, and offer to APPEND it
+
+The shape to watch for is a card that BUILDS SOMETHING OTHER CARDS PLACE. Migration
+and restructuring cards read as "first" — they create the destination — but the
+destination cannot be decided until the cards that move into it have decided what
+moves. Those cards are structurally LAST while reading as first. #1444 and #1451 are
+both this shape; each ends with "create the directory and move the modules", and the
+map authorizing the move is gated on the pass splits.
+
+WHEN THE WAVE TABLE AND A CARD'S DoD DISAGREE, SAY SO — do not silently pick one.
+#1313 places #1446 in wave 1, yet #1446 carries the same two DoD checkboxes that
+disqualify #1444 and #1451. That is a defect in the roadmap, not a judgement call for
+this skill to make quietly: report both readings and let the user adjudicate.
+```
+
 ### Stale Issues
 
 ```
@@ -433,6 +543,15 @@ IF no open issues exist:
 - **DO NOT** pick issues labeled "test-blocked", "wontfix", or "epic"
 - **DO NOT** recommend an issue that IS_BLOCKED (its `Blocked by` names something
   still open), or one sitting in `Grooming`
+- **DO NOT** treat an empty `Blocked by` as "startable" — it means no card was named.
+  Run Phase 3.5 on the top candidates before recommending any of them; a card can be
+  correctly unblocked and still unable to close
+- **DO NOT** quote a card's own claim that it is ready ("this card is first: it has no
+  open blocker") as evidence that it is. That sentence is written at filing; the
+  sequencing that invalidates it lands later, in the parent. Check the parent
+- **DO NOT** skip reading the top candidate's comments. #1444 carried an explicit
+  "Set aside — this card is wave 5, not wave 1" for 13 hours and was still recommended
+  as the top pick, because no phase read comments
 - **DO NOT** clear a `Blocked by`, replace what it names, or propose either — it is a
   permanent record, and a blocker that has closed is history, not a stale value. A new
   blocker is appended beside the old, never substituted for it
