@@ -130,6 +130,20 @@ function parseArrayDimensions(
   }
 }
 
+/**
+ * The declaring struct's facts, as one parameter.
+ *
+ * #1318 added three arguments to `collectField` -- the owner's scoped name,
+ * the source file and the inherited visibility -- taking it to 8 against a
+ * limit of 7. They are not three independent knobs: they are one answer to
+ * "which struct is this field part of", so they travel together.
+ */
+interface IFieldOwner {
+  readonly scopedName: string;
+  readonly sourceFile: string;
+  readonly visibility: TVisibility;
+}
+
 class StructCollector {
   /**
    * Collect a struct declaration and return an IStructSymbol.
@@ -167,9 +181,7 @@ class StructCollector {
       const fieldInfo = StructCollector.collectField(
         member,
         fieldName,
-        ownerScopedName,
-        sourceFile,
-        visibility,
+        { scopedName: ownerScopedName, sourceFile, visibility },
         scopePath,
         constValues,
         isScopeType,
@@ -202,9 +214,7 @@ class StructCollector {
   private static collectField(
     member: Parser.StructMemberContext,
     fieldName: string,
-    ownerScopedName: string,
-    sourceFile: string,
-    visibility: TVisibility,
+    owner: IFieldOwner,
     scopePath = "",
     constValues?: Map<string, number>,
     isScopeType?: (qualifiedName: string) => boolean,
@@ -257,10 +267,10 @@ class StructCollector {
       ...MemberSymbolBase.of({
         kind: "struct_field" as const,
         name: fieldName,
-        parentScopedName: ownerScopedName,
+        parentScopedName: owner.scopedName,
         memberCtx: member,
-        sourceFile,
-        visibility,
+        sourceFile: owner.sourceFile,
+        visibility: owner.visibility,
       }),
       type: fieldType,
       isConst,

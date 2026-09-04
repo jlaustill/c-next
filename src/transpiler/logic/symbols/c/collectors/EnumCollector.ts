@@ -43,33 +43,23 @@ class EnumCollector {
     }> = [];
     const enumList = enumSpec.enumeratorList();
 
-    if (enumList) {
-      for (const enumeratorDef of enumList.enumerator()) {
-        const enumConst = enumeratorDef.enumerationConstant();
-        if (enumConst) {
-          const memberName = enumConst.Identifier()?.getText();
-          if (memberName) {
-            memberInfos.push({ name: memberName });
-            memberSymbols.push({
-              kind: "enum_member",
-              name: memberName,
-              sourceFile,
-              // #1318: a member carries its OWN span, not its parent's.
-              // Falls back to the enum's span only when the enumerator has
-              // no start token, which is the same fallback the bare line
-              // carried -- ParserUtils.getSpan would report 0:0 there, and a
-              // diagnostic aimed at the top of the file is worse than one
-              // aimed at the enclosing enum.
-              span: enumeratorDef.start
-                ? ParserUtils.getSpan(enumeratorDef)
-                : span,
-              sourceLanguage: ESourceLanguage.C,
-              visibility: "public",
-              parent: name,
-            });
-          }
-        }
-      }
+    for (const enumeratorDef of enumList?.enumerator() ?? []) {
+      const memberName = enumeratorDef
+        .enumerationConstant()
+        ?.Identifier()
+        ?.getText();
+      if (!memberName) continue;
+
+      memberInfos.push({ name: memberName });
+      memberSymbols.push(
+        EnumCollector.memberSymbol(
+          memberName,
+          name,
+          sourceFile,
+          enumeratorDef,
+          span,
+        ),
+      );
     }
 
     const enumSymbol: ICEnumSymbol = {
@@ -85,6 +75,39 @@ class EnumCollector {
     return {
       enum: enumSymbol,
       members: memberSymbols,
+    };
+  }
+
+  /**
+   * One enum member as a symbol.
+   *
+   * Extracted from `collect` (#1318): adding the member span pushed that
+   * method's cognitive complexity to 16 against a limit of 15, and three levels
+   * of nesting around one push was the reason it was close to the limit at all.
+   */
+  private static memberSymbol(
+    memberName: string,
+    enumName: string,
+    sourceFile: string,
+    enumeratorDef: { start?: unknown },
+    enumSpan: ISourceSpan,
+  ): ICEnumMemberSymbol {
+    return {
+      kind: "enum_member",
+      name: memberName,
+      sourceFile,
+      // #1318: a member carries its OWN span, not its parent's. Falls back to
+      // the enum's span only when the enumerator has no start token --
+      // ParserUtils.getSpan would report 0:0 there, and a diagnostic aimed at
+      // the top of the file is worse than one aimed at the enclosing enum.
+      span: enumeratorDef.start
+        ? ParserUtils.getSpan(
+            enumeratorDef as Parameters<typeof ParserUtils.getSpan>[0],
+          )
+        : enumSpan,
+      sourceLanguage: ESourceLanguage.C,
+      visibility: "public",
+      parent: enumName,
     };
   }
 }
