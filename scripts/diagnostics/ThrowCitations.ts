@@ -15,19 +15,38 @@
  * does not identify one. `file:line` is the only unique key, which is why this
  * gate verifies it rather than the doc trading it for something softer.
  *
- * Two invariants, both mechanical:
+ * Three invariants, all mechanical:
  *
  *   1. every cited `file:line` is exactly a line containing `throw new`
  *   2. every `throw new` under `output/` is cited exactly once
+ *   3. every row's anchor is a substring of what the throw at its line says
  *
  * The second is the one that earns its keep beyond drift: it fails when a new
  * throw is added and nobody classifies it, which is how `output/` grows a
  * rejection the Plan/Render boundary has not accounted for.
+ *
+ * The third is #1374. Two rows can trade line numbers within a file and the
+ * first two invariants still hold -- each cited line is a throw, each throw
+ * is cited once -- while both rows now describe the other's site, which is
+ * exactly what #1322's delete-and-relocate work produces. So each row also
+ * carries an anchor: a verbatim substring of the throw's argument, at least
+ * `MIN_ANCHOR_LENGTH` characters, which the gate holds to the statement at
+ * the cited line. The line stays the key and the anchor corroborates it:
+ * identically-messaged sites keep identical anchors and stay interchangeable,
+ * because the source makes no distinction between them either.
  */
+
+/**
+ * Below this an anchor stops telling sites apart -- `Error` or `'` would
+ * corroborate every row in the document, the #1143 shape.
+ */
+const MIN_ANCHOR_LENGTH = 8;
 
 interface IThrowCitation {
   readonly path: string;
   readonly line: number;
+  /** The second cell, when it is a lone code span; null when it is not. */
+  readonly anchor: string | null;
 }
 
 interface IThrowCitationOutcome {
@@ -38,17 +57,27 @@ interface IThrowCitationOutcome {
 
 class ThrowCitations {
   /**
-   * A citation is the first cell of a table row: `| \`Path.ts:123\` |`.
+   * A citation is the first cell of a table row, `| \`Path.ts:123\` |`, and
+   * its anchor is the second cell when that cell is nothing but a code span,
+   * `| \`what the throw says\` |`.
    *
    * Anchored to the row start so prose mentioning a `file:line` elsewhere in
-   * the document is not treated as a claim this gate has to defend.
+   * the document is not treated as a claim this gate has to defend. The
+   * anchor cell must be the whole cell: prose that merely opens with a code
+   * span is not an anchor, so the pre-#1374 row shape reads as anchor-less
+   * rather than as a wrong anchor.
    */
   static parse(markdown: string): IThrowCitation[] {
-    const pattern = /^\| `([A-Za-z0-9_/….]+\.ts):(\d+)`/gm;
+    const pattern =
+      /^\| `([A-Za-z0-9_/….]+\.ts):(\d+)`\s*\|(?:\s*`([^`|]+)`\s*\|)?/gm;
     const found: IThrowCitation[] = [];
     let match = pattern.exec(markdown);
     while (match !== null) {
-      found.push({ path: match[1], line: Number.parseInt(match[2], 10) });
+      found.push({
+        path: match[1],
+        line: Number.parseInt(match[2], 10),
+        anchor: match[3] === undefined ? null : match[3].replace(/\s+/g, " "),
+      });
       match = pattern.exec(markdown);
     }
     return found;
@@ -74,6 +103,32 @@ class ThrowCitations {
       .map((text, index) => ({ text: text.trim(), line: index + 1 }))
       .filter((entry) => entry.text.startsWith("throw new"))
       .map((entry) => entry.line);
+  }
+
+  /**
+   * What the throw statement starting at `line` (1-based) says: its text from
+   * that line to the first line ending in `;`, whitespace collapsed, with the
+   * `throw new Ctor(` opener removed.
+   *
+   * The opener is scaffolding every site shares, so an anchor drawn from it
+   * would corroborate every row; removing it is what makes `Error(` an
+   * invalid anchor rather than a universally true one. 155 of the 181 sites
+   * span several lines, so the anchor is held to the statement, not the line.
+   */
+  static throwArgument(source: string, line: number): string {
+    const lines = source.split("\n");
+    const collected: string[] = [];
+    for (let index = line - 1; index < lines.length; index += 1) {
+      const text = lines[index].trim();
+      collected.push(text);
+      if (text.endsWith(";")) {
+        break;
+      }
+    }
+    return collected
+      .join(" ")
+      .replace(/\s+/g, " ")
+      .replace(/^throw new [\w$.]+\s*\(\s*/, "");
   }
 
   /**
@@ -177,21 +232,9 @@ class ThrowCitations {
         );
         continue;
       }
-      const lines = ThrowCitations.throwLines(sources.get(file)!);
-      if (!lines.includes(citation.line)) {
-        const nearest = lines.reduce<number | null>(
-          (best, line) =>
-            best === null ||
-            Math.abs(line - citation.line) < Math.abs(best - citation.line)
-              ? line
-              : best,
-          null,
-        );
-        errors.push(
-          `${citation.path}:${citation.line} -- no \`throw new\` on that line` +
-            (nearest === null ? "" : ` (nearest is :${nearest})`),
-        );
-      }
+      errors.push(
+        ...ThrowCitations.checkCitation(citation, sources.get(file)!),
+      );
       const seen = citedByFile.get(file) ?? [];
       seen.push(citation.line);
       citedByFile.set(file, seen);
@@ -224,6 +267,63 @@ class ThrowCitations {
         `${cited.length} citation(s) checked against ${total} \`throw new\` site(s) in output/.`,
       ],
     };
+  }
+
+  /**
+   * Invariants 1 and 3 for one citation whose file resolved: the cited line
+   * holds a `throw new`, and the row's anchor is what that throw says.
+   *
+   * A line holding no throw has nothing to anchor against, so the anchor is
+   * checked only where invariant 1 holds -- drift is reported once, naming
+   * the nearest throw, not once per invariant.
+   */
+  static checkCitation(citation: IThrowCitation, source: string): string[] {
+    const lines = ThrowCitations.throwLines(source);
+    if (lines.includes(citation.line)) {
+      return ThrowCitations.checkAnchor(citation, source);
+    }
+    const nearest = lines.reduce<number | null>(
+      (best, line) =>
+        best === null ||
+        Math.abs(line - citation.line) < Math.abs(best - citation.line)
+          ? line
+          : best,
+      null,
+    );
+    return [
+      `${citation.path}:${citation.line} -- no \`throw new\` on that line` +
+        (nearest === null ? "" : ` (nearest is :${nearest})`),
+    ];
+  }
+
+  /**
+   * Invariant 3: the row's anchor is a substring of what the throw at its
+   * line says. Returns the errors for one citation whose line is known to
+   * hold a throw.
+   *
+   * An anchor is required. Optional would leave every row #1322 adds without
+   * one outside the swap check -- a gate that can be skipped silently is the
+   * #1143 shape.
+   */
+  static checkAnchor(citation: IThrowCitation, source: string): string[] {
+    const where = `${citation.path}:${citation.line}`;
+    if (citation.anchor === null) {
+      return [
+        `${where} -- no anchor (the second cell must be a \`code span\` quoting the throw's argument)`,
+      ];
+    }
+    if (citation.anchor.length < MIN_ANCHOR_LENGTH) {
+      return [
+        `${where} -- anchor \`${citation.anchor}\` is shorter than ${MIN_ANCHOR_LENGTH} characters`,
+      ];
+    }
+    const argument = ThrowCitations.throwArgument(source, citation.line);
+    if (!argument.includes(citation.anchor)) {
+      return [
+        `${where} -- anchor \`${citation.anchor}\` not found in the throw at that line (it says: ${argument.slice(0, 80)})`,
+      ];
+    }
+    return [];
   }
 
   /**

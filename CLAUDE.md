@@ -195,7 +195,9 @@ them: #1399 pushed on one and turned CI red on `docs:throw-citations:check`, bec
 **adding a single import to a file under `output/` shifts every later `throw new` down one
 line** and all 20 citations in `docs/architecture/output-throw-classification.md` missed by
 exactly one. That document is authored, not generated — there is no write mode, so the line
-numbers are hand-edited.
+numbers are hand-edited. Each row also carries an `anchor`, a verbatim substring of what its
+throw says, which the gate holds to the cited line: two rows cannot trade sites and stay
+green, and a drifted row's anchor says which throw it meant (#1374).
 
 **A lost diagnostic used to erase its own evidence (#1316)**: under `--update`, a
 `test-error` fixture that stopped erroring had its `.expected.error` unlinked and rewritten
