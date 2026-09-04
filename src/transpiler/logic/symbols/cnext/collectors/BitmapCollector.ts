@@ -8,11 +8,13 @@
 import * as Parser from "../../../parser/grammar/CNextParser";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import IBitmapSymbol from "../../../../types/symbols/IBitmapSymbol";
-import IBitmapFieldInfo from "../../../../types/symbols/IBitmapFieldInfo";
+import type IBitmapFieldSymbol from "../../../../types/symbols/IBitmapFieldSymbol";
 import BITMAP_SIZE from "../../../../constants/BITMAP_SIZE";
 import BITMAP_BACKING_TYPE from "../../../../constants/BITMAP_BACKING_TYPE";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
 import TVisibility from "../../../../types/TVisibility";
+import ParserUtils from "../../../../../utils/ParserUtils";
+import MemberSymbolBase from "../utils/MemberSymbolBase";
 
 class BitmapCollector {
   /**
@@ -35,10 +37,14 @@ class BitmapCollector {
     const bitmapType = ctx.bitmapType().getText();
     const expectedBits = BITMAP_SIZE[bitmapType];
     const backingType = BITMAP_BACKING_TYPE[bitmapType];
-    const line = ctx.start?.line ?? 0;
+    const span = ParserUtils.getSpan(ctx);
 
     // Collect fields with running bit offset
-    const fields = new Map<string, IBitmapFieldInfo>();
+    const fields = new Map<string, IBitmapFieldSymbol>();
+    // #1318: a field hangs off the BITMAP, so its identity is the bitmap's
+    // source-spelled name plus its own -- an index key, never emitted C.
+    const identity = ScopeUtils.identityOf({ name, scopePath });
+    const ownerScopedName = identity.cnxScopedName;
     let totalBits = 0;
 
     for (const member of ctx.bitmapMember()) {
@@ -48,7 +54,19 @@ class BitmapCollector {
         ? Number.parseInt(widthLiteral.getText(), 10)
         : 1;
 
-      fields.set(fieldName, { offset: totalBits, width });
+      fields.set(fieldName, {
+        ...MemberSymbolBase.of({
+          kind: "bitmap_field" as const,
+          name: fieldName,
+          parentScopedName: ownerScopedName,
+          memberCtx: member,
+          parentSpan: span,
+          sourceFile,
+          visibility,
+        }),
+        offset: totalBits,
+        width,
+      });
       totalBits += width;
     }
 
@@ -65,9 +83,12 @@ class BitmapCollector {
       scopePath,
       // #1285: identity computed once, from the scope chain, not
       // re-derived by every consumer.
-      ...ScopeUtils.identityOf({ name, scopePath }),
+      // #1318 review: the same identity the members were keyed by, not a
+      // second call with the same arguments -- change one and the members
+      // would keep the old parent name while this reported the new one.
+      ...identity,
       sourceFile,
-      sourceLine: line,
+      span,
       sourceLanguage: ESourceLanguage.CNext,
       visibility,
       backingType,

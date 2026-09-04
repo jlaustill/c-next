@@ -8,12 +8,15 @@
 import * as Parser from "../../../parser/grammar/CNextParser";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import IStructSymbol from "../../../../types/symbols/IStructSymbol";
-import IFieldInfo from "../../../../types/symbols/IFieldInfo";
+import type IStructFieldSymbol from "../../../../types/symbols/IStructFieldSymbol";
 import TypeResolver from "../../../../../utils/TypeResolver";
 import TypeUtils from "../utils/TypeUtils";
 import DimensionResolver from "../utils/DimensionResolver";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
 import TVisibility from "../../../../types/TVisibility";
+import ParserUtils from "../../../../../utils/ParserUtils";
+import MemberSymbolBase from "../utils/MemberSymbolBase";
+import type ISourceSpan from "../../../../types/ISourceSpan";
 
 /**
  * Result of processing an arrayType syntax context.
@@ -128,6 +131,23 @@ function parseArrayDimensions(
   }
 }
 
+/**
+ * The declaring struct's facts, as one parameter.
+ *
+ * #1318 added three arguments to `collectField` -- the owner's scoped name,
+ * the source file and the inherited visibility -- taking it to 8 against a
+ * limit of 7. They are not three independent knobs: they are one answer to
+ * "which struct is this field part of", so they travel together.
+ */
+interface IFieldOwner {
+  readonly scopedName: string;
+  readonly sourceFile: string;
+  readonly visibility: TVisibility;
+
+  /** The struct's own span, inherited by a field that has no start token. */
+  readonly span: ISourceSpan;
+}
+
 class StructCollector {
   /**
    * Collect a struct declaration and return an IStructSymbol.
@@ -148,18 +168,22 @@ class StructCollector {
     isScopeType?: (qualifiedName: string) => boolean,
   ): IStructSymbol {
     const name = ctx.IDENTIFIER().getText();
-    const line = ctx.start?.line ?? 0;
+    const span = ParserUtils.getSpan(ctx);
     // #1298: members carry the scope's PATH, not the scope object. The path
     // holds every outer component, so nothing downstream can flatten it to a
     // leaf -- which is what the reference threaded here used to protect against.
 
-    const fields = new Map<string, IFieldInfo>();
+    const fields = new Map<string, IStructFieldSymbol>();
+    // #1318: a field hangs off the STRUCT, not the enclosing scope.
+    const identity = ScopeUtils.identityOf({ name, scopePath });
+    const ownerScopedName = identity.cnxScopedName;
 
     for (const member of ctx.structMember()) {
       const fieldName = member.IDENTIFIER().getText();
       const fieldInfo = StructCollector.collectField(
         member,
         fieldName,
+        { scopedName: ownerScopedName, sourceFile, visibility, span },
         scopePath,
         constValues,
         isScopeType,
@@ -173,9 +197,12 @@ class StructCollector {
       scopePath,
       // #1285: identity computed once, from the scope chain, not
       // re-derived by every consumer.
-      ...ScopeUtils.identityOf({ name, scopePath }),
+      // #1318 review: the same identity the members were keyed by, not a
+      // second call with the same arguments -- change one and the members
+      // would keep the old parent name while this reported the new one.
+      ...identity,
       sourceFile,
-      sourceLine: line,
+      span,
       sourceLanguage: ESourceLanguage.CNext,
       visibility,
       fields,
@@ -183,16 +210,20 @@ class StructCollector {
   }
 
   /**
-   * Collect a single struct field and return its IFieldInfo.
-   * Now includes name and TType-based type.
+   * Collect a single struct field and return its symbol.
+   *
+   * #1318: a field is a symbol, so it carries its OWN span -- a struct
+   * declared across twenty lines used to give every field the struct's
+   * position, or none at all.
    */
   private static collectField(
     member: Parser.StructMemberContext,
     fieldName: string,
+    owner: IFieldOwner,
     scopePath = "",
     constValues?: Map<string, number>,
     isScopeType?: (qualifiedName: string) => boolean,
-  ): IFieldInfo {
+  ): IStructFieldSymbol {
     const typeCtx = member.type();
     const fieldTypeStr = TypeUtils.getTypeName(typeCtx, scopePath, isScopeType);
     const fieldType = TypeResolver.resolve(fieldTypeStr);
@@ -238,7 +269,15 @@ class StructCollector {
     }
 
     return {
-      name: fieldName,
+      ...MemberSymbolBase.of({
+        kind: "struct_field" as const,
+        name: fieldName,
+        parentScopedName: owner.scopedName,
+        memberCtx: member,
+        parentSpan: owner.span,
+        sourceFile: owner.sourceFile,
+        visibility: owner.visibility,
+      }),
       type: fieldType,
       isConst,
       isAtomic,

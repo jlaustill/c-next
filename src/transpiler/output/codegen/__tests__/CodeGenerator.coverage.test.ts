@@ -19,6 +19,7 @@ import SymbolRegistry from "../../../state/SymbolRegistry";
 import TSymbolInfoAdapter from "../../../logic/symbols/cnext/adapters/TSymbolInfoAdapter";
 import CodeGenState from "../../../state/CodeGenState";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
+import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
 
 /**
  * Helper to parse C-Next source and return tree + generator ready for testing.
@@ -1219,7 +1220,7 @@ describe("CodeGenerator Coverage Tests", () => {
           name: cSym.name,
           type: cSym.type,
           sourceFile: cSym.sourceFile,
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.C,
           visibility: "public",
           isDeclaration: true,
@@ -1408,7 +1409,7 @@ describe("CodeGenerator Coverage Tests", () => {
         kind: "namespace",
         name: "SeaDash",
         sourceFile: "SeaDash.h",
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         sourceLanguage: ESourceLanguage.Cpp,
         visibility: "public",
       });

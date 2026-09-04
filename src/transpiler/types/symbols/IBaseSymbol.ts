@@ -1,6 +1,7 @@
 import type TSymbolKindCNext from "../symbol-kinds/TSymbolKindCNext";
 import type ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import type TVisibility from "../TVisibility";
+import type ISourceSpan from "../ISourceSpan";
 
 /**
  * Base interface for all symbol types.
@@ -26,6 +27,22 @@ interface IBaseSymbol {
    * ADR-063 makes the result injective, so it is also this symbol's canonical
    * identity -- what `SymbolTable` indexes it by, and what a lookup holding a
    * generated identifier should ask for.
+   *
+   * ## For member kinds, ONLY the second meaning holds (#1318)
+   *
+   * The two sentences above name two different things, and they coincide for
+   * every kind C emits as an identifier. They do not coincide for members.
+   * A struct field is emitted `p.x`, a bitmap field as a bit position, a
+   * register member as an offset -- none is ever spelled as a standalone C
+   * identifier, so for `struct_field`, `bitmap_field` and `register_member`
+   * this field is the INDEX KEY and nothing else. `SPoint__x` is what
+   * distinguishes that field from `SOther__x` in a table; it is not a name any
+   * generated file contains, and a consumer that emits one has misread this.
+   *
+   * `enum_member` is the exception among members: `EColor__RED` and
+   * `Motor__EMode__HIGH` are real, and appear in the committed `.expected.h`
+   * fixtures. Its identity is checkable against generated output; the other
+   * three kinds' identities are checkable only against each other.
    */
   readonly fullyQualifiedCName: string;
 
@@ -64,8 +81,19 @@ interface IBaseSymbol {
   /** Source file where the symbol is defined */
   readonly sourceFile: string;
 
-  /** Line number in the source file */
-  readonly sourceLine: number;
+  /**
+   * Where this symbol is declared, as a span rather than a bare line.
+   *
+   * Replaced `sourceLine` rather than joining it (#1318). Carrying both would
+   * put one fact in two places -- `span.line` and `sourceLine` -- which is the
+   * shape recorded in `visibility` below: two places held one fact, they
+   * disagreed, and the header believed the wrong one (#1300).
+   *
+   * A column is what a symbol-level diagnostic was missing: 136 of 302
+   * `.expected.error` fixtures began at `1:0` because a diagnostic about a
+   * symbol had no position and fell back to the start of the file (#1316).
+   */
+  readonly span: ISourceSpan;
 
   /** Source language (CNext, C, Cpp) */
   readonly sourceLanguage: ESourceLanguage;

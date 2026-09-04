@@ -19,6 +19,7 @@ vi.mock("../../transpiler/logic/symbols/c", () => {
 
 // Import after mock is set up
 import parseCHeader from "../parseCHeader";
+import TestSourceSpan from "../../transpiler/types/__testUtils__/testSourceSpan";
 
 describe("parseCHeader mocked scenarios", () => {
   beforeEach(() => {
@@ -37,7 +38,7 @@ describe("parseCHeader mocked scenarios", () => {
             name: "TestNamespace",
             kind: "namespace",
             sourceFile: "<header>",
-            sourceLine: 1,
+            span: TestSourceSpan.at(1),
             sourceLanguage: 0,
             isExported: true,
           },
@@ -60,7 +61,7 @@ describe("parseCHeader mocked scenarios", () => {
             name: "TestClass",
             kind: "class",
             sourceFile: "<header>",
-            sourceLine: 5,
+            span: TestSourceSpan.at(5),
             sourceLanguage: 0,
             isExported: true,
           },
@@ -81,7 +82,7 @@ describe("parseCHeader mocked scenarios", () => {
             name: "TestBitmap",
             kind: "bitmap",
             sourceFile: "<header>",
-            sourceLine: 1,
+            span: TestSourceSpan.at(1),
             sourceLanguage: 0,
             isExported: true,
           },
@@ -95,17 +96,23 @@ describe("parseCHeader mocked scenarios", () => {
       expect(result.symbols[0].kind).toBe("variable");
     });
 
-    it("defaults line to 0 when sourceLine is undefined", () => {
+    it("reports the symbol's own line from its span", () => {
+      // #1318 replaced this case. It used to assert that a symbol with
+      // `sourceLine: undefined` DEFAULTED to line 0 -- a fallback that could
+      // only ever produce the silent `1:0` position this card exists to
+      // eliminate, for an input `ICBaseSymbol` already forbade. `span` is
+      // required, so the reachable assertion is that the position SURVIVES the
+      // mapping rather than that a missing one is papered over.
       mockResolve.mockReturnValue({
         symbols: [
           {
-            name: "NoLineSymbol",
+            name: "PositionedSymbol",
             kind: "function",
             type: "void",
             sourceFile: "<header>",
-            sourceLine: undefined,
+            span: { line: 7, column: 4, endLine: 7, endColumn: 21 },
             sourceLanguage: 0,
-            isExported: true,
+            visibility: "public",
           },
         ],
         warnings: [],
@@ -114,7 +121,7 @@ describe("parseCHeader mocked scenarios", () => {
       const result = parseCHeader("// any valid C");
 
       expect(result.success).toBe(true);
-      expect(result.symbols[0].line).toBe(0);
+      expect(result.symbols[0].line).toBe(7);
     });
   });
 

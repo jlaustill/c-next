@@ -10,6 +10,7 @@ import ScopeUtils from "../ScopeUtils";
 import type TCppSymbol from "../../transpiler/types/symbols/cpp/TCppSymbol";
 import type TCSymbol from "../../transpiler/types/symbols/c/TCSymbol";
 import type IScopeSymbol from "../../transpiler/types/symbols/IScopeSymbol";
+import TestSourceSpan from "../../transpiler/types/__testUtils__/testSourceSpan";
 
 describe("CppNamespaceUtils", () => {
   let symbolTable: SymbolTable;
@@ -20,7 +21,7 @@ describe("CppNamespaceUtils", () => {
       kind: "namespace",
       name,
       sourceFile,
-      sourceLine: 1,
+      span: TestSourceSpan.at(1),
       sourceLanguage: ESourceLanguage.Cpp,
       visibility: "public",
     };
@@ -32,7 +33,7 @@ describe("CppNamespaceUtils", () => {
       kind: "class",
       name,
       sourceFile,
-      sourceLine: 1,
+      span: TestSourceSpan.at(1),
       sourceLanguage: ESourceLanguage.Cpp,
       visibility: "public",
     };
@@ -44,7 +45,7 @@ describe("CppNamespaceUtils", () => {
       kind: "enum",
       name,
       sourceFile,
-      sourceLine: 1,
+      span: TestSourceSpan.at(1),
       sourceLanguage: ESourceLanguage.Cpp,
       visibility: "public",
     };
@@ -56,7 +57,7 @@ describe("CppNamespaceUtils", () => {
       kind: "function",
       name,
       sourceFile,
-      sourceLine: 1,
+      span: TestSourceSpan.at(1),
       sourceLanguage: ESourceLanguage.Cpp,
       visibility: "public",
       type: "void",
@@ -69,7 +70,7 @@ describe("CppNamespaceUtils", () => {
       kind: "struct",
       name,
       sourceFile,
-      sourceLine: 1,
+      span: TestSourceSpan.at(1),
       sourceLanguage: ESourceLanguage.C,
       visibility: "public",
       isUnion: false,

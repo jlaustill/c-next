@@ -4,6 +4,7 @@
 
 import type ICTypedefSymbol from "../../../../types/symbols/c/ICTypedefSymbol";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
+import type ISourceSpan from "../../../../types/ISourceSpan";
 
 class TypedefCollector {
   /**
@@ -12,19 +13,19 @@ class TypedefCollector {
    * @param name Typedef name
    * @param baseType The underlying type
    * @param sourceFile Source file path
-   * @param line Source line number
+   * @param span Source span of the declaration
    */
   static collect(
     name: string,
     baseType: string,
     sourceFile: string,
-    line: number,
+    span: ISourceSpan,
   ): ICTypedefSymbol {
     return {
       kind: "type",
       name,
       sourceFile,
-      sourceLine: line,
+      span,
       sourceLanguage: ESourceLanguage.C,
       visibility: "public",
       type: baseType,

@@ -14,6 +14,9 @@ import IScopeSymbol from "../../../../types/symbols/IScopeSymbol";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import TTypeUtils from "../../../../../utils/TTypeUtils";
 import TestSymbolUtils from "../../../../logic/symbols/cnext/__tests__/testSymbolUtils";
+import TestSourceSpan from "../../../../types/__testUtils__/testSourceSpan";
+import TestEnumMembers from "../../../../types/__testUtils__/testEnumMembers";
+import TestMembers from "../../../../types/__testUtils__/testMembers";
 
 describe("HeaderSymbolAdapter", () => {
   // ========================================================================
@@ -28,7 +31,7 @@ describe("HeaderSymbolAdapter", () => {
           name: "counter",
           scopePath: "",
           sourceFile: "test.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
@@ -55,7 +58,7 @@ describe("HeaderSymbolAdapter", () => {
           name: "speed",
           scopePath: "Motor",
           sourceFile: "motor.cnx",
-          sourceLine: 5,
+          span: TestSourceSpan.at(5),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
@@ -82,7 +85,7 @@ describe("HeaderSymbolAdapter", () => {
           name: "buffer",
           scopePath: "",
           sourceFile: "data.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
@@ -108,7 +111,7 @@ describe("HeaderSymbolAdapter", () => {
           name: "MAX_SIZE",
           scopePath: "",
           sourceFile: "config.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
@@ -134,7 +137,7 @@ describe("HeaderSymbolAdapter", () => {
           name: "init",
           scopePath: "",
           sourceFile: "main.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
@@ -160,7 +163,7 @@ describe("HeaderSymbolAdapter", () => {
           name: "setSpeed",
           scopePath: "Motor",
           sourceFile: "motor.cnx",
-          sourceLine: 10,
+          span: TestSourceSpan.at(10),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
@@ -195,7 +198,7 @@ describe("HeaderSymbolAdapter", () => {
           name: "process",
           scopePath: "",
           sourceFile: "process.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
@@ -229,24 +232,27 @@ describe("HeaderSymbolAdapter", () => {
           name: "Point",
           scopePath: "",
           sourceFile: "geometry.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
-        fields: new Map([
-          [
-            "x",
-            {
-              name: "x",
-              type: TTypeUtils.createPrimitive("i32"),
-              isConst: false,
-              isAtomic: false,
-              isVolatile: false,
-              overflowBehavior: "clamp",
-              isArray: false,
-            },
-          ],
-        ]),
+        fields: TestMembers.asStructFields(
+          "Point",
+          new Map([
+            [
+              "x",
+              {
+                name: "x",
+                type: TTypeUtils.createPrimitive("i32"),
+                isConst: false,
+                isAtomic: false,
+                isVolatile: false,
+                overflowBehavior: "clamp",
+                isArray: false,
+              },
+            ],
+          ]),
+        ),
       };
 
       const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);
@@ -263,7 +269,7 @@ describe("HeaderSymbolAdapter", () => {
           name: "Vector",
           scopePath: "Geometry",
           sourceFile: "geometry.cnx",
-          sourceLine: 10,
+          span: TestSourceSpan.at(10),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
@@ -285,15 +291,11 @@ describe("HeaderSymbolAdapter", () => {
           name: "EColor",
           scopePath: "",
           sourceFile: "colors.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
-        members: new Map([
-          ["RED", 0],
-          ["GREEN", 1],
-          ["BLUE", 2],
-        ]),
+        members: TestEnumMembers.of("EColor", { RED: 0, GREEN: 1, BLUE: 2 }),
       };
 
       const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);
@@ -309,14 +311,11 @@ describe("HeaderSymbolAdapter", () => {
           name: "EMode",
           scopePath: "Motor",
           sourceFile: "motor.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
-        members: new Map([
-          ["OFF", 0],
-          ["ON", 1],
-        ]),
+        members: TestEnumMembers.of("EMode", { OFF: 0, ON: 1 }),
       };
 
       const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);
@@ -334,16 +333,19 @@ describe("HeaderSymbolAdapter", () => {
           name: "Flags",
           scopePath: "",
           sourceFile: "flags.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
         backingType: "u8",
         bitWidth: 8,
-        fields: new Map([
-          ["enabled", { offset: 0, width: 1 }],
-          ["ready", { offset: 1, width: 1 }],
-        ]),
+        fields: TestMembers.asBitmapFields(
+          "Flags",
+          new Map([
+            ["enabled", { offset: 0, width: 1 }],
+            ["ready", { offset: 1, width: 1 }],
+          ]),
+        ),
       };
 
       const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);
@@ -360,7 +362,7 @@ describe("HeaderSymbolAdapter", () => {
           name: "Status",
           scopePath: "Motor",
           sourceFile: "motor.cnx",
-          sourceLine: 5,
+          span: TestSourceSpan.at(5),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
@@ -385,15 +387,18 @@ describe("HeaderSymbolAdapter", () => {
           name: "GPIO",
           scopePath: "",
           sourceFile: "gpio.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
         baseAddress: "0x40000000",
-        members: new Map([
-          ["DATA", { cType: "u32", offset: "0x00", access: "rw" as const }],
-          ["DIR", { cType: "u32", offset: "0x04", access: "rw" as const }],
-        ]),
+        members: TestMembers.asRegisterMembers(
+          "GPIO",
+          new Map([
+            ["DATA", { cType: "u32", offset: "0x00", access: "rw" as const }],
+            ["DIR", { cType: "u32", offset: "0x04", access: "rw" as const }],
+          ]),
+        ),
       };
 
       const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);
@@ -409,7 +414,7 @@ describe("HeaderSymbolAdapter", () => {
           name: "CTRL",
           scopePath: "Motor",
           sourceFile: "motor.cnx",
-          sourceLine: 20,
+          span: TestSourceSpan.at(20),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
@@ -432,7 +437,7 @@ describe("HeaderSymbolAdapter", () => {
           name: "Motor",
           scopePath: "",
           sourceFile: "motor.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
@@ -463,7 +468,7 @@ describe("HeaderSymbolAdapter", () => {
           name: "Inner",
           scopePath: "Outer",
           sourceFile: "motor.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
@@ -490,7 +495,7 @@ describe("HeaderSymbolAdapter", () => {
             name: "var1",
             scopePath: "",
             sourceFile: "test.cnx",
-            sourceLine: 1,
+            span: TestSourceSpan.at(1),
           }),
           type: TTypeUtils.createPrimitive("u32"),
           isConst: false,
@@ -505,7 +510,7 @@ describe("HeaderSymbolAdapter", () => {
             name: "func1",
             scopePath: "",
             sourceFile: "test.cnx",
-            sourceLine: 5,
+            span: TestSourceSpan.at(5),
           }),
           parameters: [],
           returnType: TTypeUtils.createPrimitive("void"),
@@ -536,7 +541,7 @@ describe("HeaderSymbolAdapter", () => {
           name: "macroArray",
           scopePath: "",
           sourceFile: "test.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
@@ -561,7 +566,7 @@ describe("HeaderSymbolAdapter", () => {
           name: "DATA",
           scopePath: "",
           sourceFile: "test.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
@@ -594,7 +599,7 @@ describe("HeaderSymbolAdapter", () => {
           scopePath,
           sourceFile: "test.cnx",
         }),
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         sourceLanguage: ESourceLanguage.CNext,
         visibility: "public",
         type: TTypeUtils.createPrimitive("u8"),
@@ -649,7 +654,7 @@ describe("HeaderSymbolAdapter", () => {
           name: "processData",
           scopePath: "",
           sourceFile: "test.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),

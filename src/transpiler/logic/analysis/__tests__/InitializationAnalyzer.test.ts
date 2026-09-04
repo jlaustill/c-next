@@ -11,6 +11,7 @@ import InitializationAnalyzer from "../InitializationAnalyzer";
 import SymbolTable from "../../symbols/SymbolTable";
 import CodeGenState from "../../../state/CodeGenState";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
+import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
 
 /**
  * Parse C-Next source code into an AST
@@ -50,7 +51,7 @@ describe("InitializationAnalyzer", () => {
         kind: "class",
         sourceLanguage: ESourceLanguage.Cpp,
         sourceFile: "CppMessage.hpp",
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         visibility: "public",
       });
       // Add the field so the analyzer knows about it
@@ -105,7 +106,7 @@ describe("InitializationAnalyzer", () => {
         kind: "struct",
         sourceLanguage: ESourceLanguage.Cpp,
         sourceFile: "types.hpp",
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         visibility: "public",
       });
       CodeGenState.symbolTable.addStructField("CppStruct", "value", "u32");
@@ -135,7 +136,7 @@ describe("InitializationAnalyzer", () => {
         kind: "struct",
         sourceLanguage: ESourceLanguage.C,
         sourceFile: "types.h",
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         visibility: "public",
         isUnion: false,
       });
@@ -993,7 +994,7 @@ describe("InitializationAnalyzer", () => {
         kind: "enum",
         sourceLanguage: ESourceLanguage.Cpp,
         sourceFile: "types.hpp",
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         visibility: "public",
       });
 

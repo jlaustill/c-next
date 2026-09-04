@@ -8,10 +8,12 @@
 import * as Parser from "../../../parser/grammar/CNextParser";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import IRegisterSymbol from "../../../../types/symbols/IRegisterSymbol";
-import IRegisterMemberInfo from "../../../../types/symbols/IRegisterMemberInfo";
+import type IRegisterMemberSymbol from "../../../../types/symbols/IRegisterMemberSymbol";
 import TypeUtils from "../utils/TypeUtils";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
 import TVisibility from "../../../../types/TVisibility";
+import ParserUtils from "../../../../../utils/ParserUtils";
+import MemberSymbolBase from "../utils/MemberSymbolBase";
 
 /** Access mode type for register members */
 type TAccessMode = "rw" | "ro" | "wo" | "w1c" | "w1s";
@@ -36,14 +38,17 @@ class RegisterCollector {
     isScopeType?: (qualifiedName: string) => boolean,
   ): IRegisterSymbol {
     const name = ctx.IDENTIFIER().getText();
-    const line = ctx.start?.line ?? 0;
+    const span = ParserUtils.getSpan(ctx);
     // #1298: members carry the scope's PATH, not the scope object. The path
     // holds every outer component, so nothing downstream can flatten it to a
     // leaf -- which is what the reference threaded here used to protect against.
     const baseAddress = ctx.expression().getText();
 
     // Collect register members
-    const members = new Map<string, IRegisterMemberInfo>();
+    const members = new Map<string, IRegisterMemberSymbol>();
+    // #1318: a member hangs off the REGISTER, not the enclosing scope.
+    const identity = ScopeUtils.identityOf({ name, scopePath });
+    const ownerScopedName = identity.cnxScopedName;
 
     for (const member of ctx.registerMember()) {
       const memberName = member.IDENTIFIER().getText();
@@ -68,7 +73,16 @@ class RegisterCollector {
         bitmapType = typeName;
       }
 
-      const memberInfo: IRegisterMemberInfo = {
+      const memberInfo: IRegisterMemberSymbol = {
+        ...MemberSymbolBase.of({
+          kind: "register_member" as const,
+          name: memberName,
+          parentScopedName: ownerScopedName,
+          memberCtx: member,
+          parentSpan: span,
+          sourceFile,
+          visibility,
+        }),
         offset,
         cType,
         access: accessMod,
@@ -84,9 +98,12 @@ class RegisterCollector {
       scopePath,
       // #1285: identity computed once, from the scope chain, not
       // re-derived by every consumer.
-      ...ScopeUtils.identityOf({ name, scopePath }),
+      // #1318 review: the same identity the members were keyed by, not a
+      // second call with the same arguments -- change one and the members
+      // would keep the old parent name while this reported the new one.
+      ...identity,
       sourceFile,
-      sourceLine: line,
+      span,
       sourceLanguage: ESourceLanguage.CNext,
       visibility,
       baseAddress,

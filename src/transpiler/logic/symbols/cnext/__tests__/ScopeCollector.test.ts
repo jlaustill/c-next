@@ -181,9 +181,9 @@ describe("ScopeCollector", () => {
       expect(enumSymbol).toBeDefined();
       expect(SymbolGuards.isEnum(enumSymbol!)).toBe(true);
       if (SymbolGuards.isEnum(enumSymbol!)) {
-        expect(enumSymbol.members.get("Off")).toBe(0);
-        expect(enumSymbol.members.get("Running")).toBe(1);
-        expect(enumSymbol.members.get("Error")).toBe(2);
+        expect(enumSymbol.members.get("Off")?.value).toBe(0);
+        expect(enumSymbol.members.get("Running")?.value).toBe(1);
+        expect(enumSymbol.members.get("Error")?.value).toBe(2);
         expect(enumSymbol.scopePath).toBe("Motor");
       }
     });
@@ -238,7 +238,7 @@ describe("ScopeCollector", () => {
       expect(SymbolGuards.isBitmap(bitmapSymbol!)).toBe(true);
       if (SymbolGuards.isBitmap(bitmapSymbol!)) {
         expect(bitmapSymbol.backingType).toBe("uint8_t");
-        expect(bitmapSymbol.fields.get("enabled")).toEqual({
+        expect(bitmapSymbol.fields.get("enabled")).toMatchObject({
           offset: 0,
           width: 1,
         });
@@ -345,7 +345,7 @@ describe("ScopeCollector", () => {
       const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
       const result = ScopeCollector.collect(scopeCtx, "test.cnx", new Set());
 
-      expect(result.scopeSymbol.sourceLine).toBe(3);
+      expect(result.scopeSymbol.span.line).toBe(3);
     });
   });
 });

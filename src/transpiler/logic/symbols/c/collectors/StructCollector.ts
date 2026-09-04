@@ -11,6 +11,7 @@ import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import SymbolTable from "../../SymbolTable";
 import SymbolUtils from "../../SymbolUtils";
 import DeclaratorUtils from "../utils/DeclaratorUtils";
+import type ISourceSpan from "../../../../types/ISourceSpan";
 
 /**
  * Options for struct collection.
@@ -44,14 +45,14 @@ class StructCollector {
    *
    * @param structSpec The struct/union specifier context
    * @param sourceFile Source file path
-   * @param line Source line number
+   * @param span Source span of the declaration
    * @param symbolTable Optional symbol table for field tracking
    * @param options Optional collection options (typedef info, warnings)
    */
   static collect(
     structSpec: StructOrUnionSpecifierContext,
     sourceFile: string,
-    line: number,
+    span: ISourceSpan,
     symbolTable: SymbolTable | null,
     options: ICollectOptions = {},
   ): ICStructSymbol | null {
@@ -95,7 +96,7 @@ class StructCollector {
       kind: "struct",
       name,
       sourceFile,
-      sourceLine: line,
+      span,
       sourceLanguage: ESourceLanguage.C,
       visibility: "public",
       isUnion,

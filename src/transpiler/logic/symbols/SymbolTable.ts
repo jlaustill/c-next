@@ -747,15 +747,6 @@ class SymbolTable {
   }
 
   /**
-   * Where a definition is, as a symbol carries it.
-   *
-   * #1334: the two conflict producers formatted this differently, so the same fact
-   * printed two ways depending on which path found it. Symbols carry no column
-   * (IBaseSymbol has sourceFile/sourceLine only), so line is the finest granularity
-   * available. The rendering itself lives in DeclarationSite -- see there for why it
-   * is a basename and why the ordering needs a comparator.
-   */
-  /**
    * The language a definition came from, as a reader knows it.
    *
    * Private because SymbolTable is the only consumer today; promote it beside
@@ -770,8 +761,22 @@ class SymbolTable {
     return names[symbol.sourceLanguage];
   }
 
+  /**
+   * Where a definition is, as a symbol carries it.
+   *
+   * #1334: the two conflict producers formatted this differently, so the same fact
+   * printed two ways depending on which path found it. The rendering itself lives
+   * in DeclarationSite -- see there for why it is a basename and why the ordering
+   * needs a comparator.
+   *
+   * Line-granular ON PURPOSE, not for want of a column. #1318 gave every symbol a
+   * `span`, and the three diagnostics below report `span.column`; this renders the
+   * `file:line` form that `declarationSites` is keyed on, so adding a column here
+   * would stop the two matching. (This comment previously claimed symbols carried
+   * no column, and was stacked above `languageName` rather than this function.)
+   */
   private static locationOf(symbol: TAnySymbol): string {
-    return DeclarationSite.display(symbol.sourceFile, symbol.sourceLine);
+    return DeclarationSite.display(symbol.sourceFile, symbol.span.line);
   }
 
   /**
@@ -850,8 +855,11 @@ class SymbolTable {
         definitions: conflictingDefs,
         severity: "error",
         sourceFile: conflictingDefs[0].sourceFile,
-        line: conflictingDefs[0].sourceLine,
-        column: 0,
+        line: conflictingDefs[0].span.line,
+        // #1318: the symbol's own column. This was hardcoded 0 because no
+        // symbol carried one -- the Tier 1 table promised a symbol-level
+        // diagnostic could point as precisely as any other, and it could not.
+        column: conflictingDefs[0].span.column,
         // The remediation line is INDENTED like the locations. The CLI's error format
         // treats an unindented line as the start of a new diagnostic, so an
         // unindented sentence here is dropped by any consumer that parses stderr --
@@ -1000,7 +1008,7 @@ class SymbolTable {
     const locations = group
       .map(
         (symbol) =>
-          `  ${symbol.cnxScopedName} (${DeclarationSite.display(symbol.sourceFile, symbol.sourceLine)})`,
+          `  ${symbol.cnxScopedName} (${DeclarationSite.display(symbol.sourceFile, symbol.span.line)})`,
       )
       .join("\n");
 
@@ -1010,8 +1018,9 @@ class SymbolTable {
       definitions: [...group],
       severity: "error",
       sourceFile: group[0].sourceFile,
-      line: group[0].sourceLine,
-      column: 0,
+      line: group[0].span.line,
+      // #1318: the symbol's own column, not a hardcoded 0.
+      column: group[0].span.column,
       message:
         `External identifiers are not distinct within the target's ` +
         `${limit} significant characters (MISRA C:2012 Rule 5.1). ` +
@@ -1082,8 +1091,9 @@ class SymbolTable {
         // position, so a member declared in two blocks of a scope spanning four
         // files names the block it actually came from (#1334).
         sourceFile: symbols[0].sourceFile,
-        line: symbols[0].sourceLine,
-        column: 0,
+        line: symbols[0].span.line,
+        // #1318: the symbol's own column, not a hardcoded 0.
+        column: symbols[0].span.column,
         message: `Symbol conflict: '${displayName}' is defined multiple times in C-Next:\n  ${locations.join("\n  ")}${scopeSites}`,
       };
     }

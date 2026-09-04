@@ -11,7 +11,6 @@ import ISymbolInfo from "./types/ISymbolInfo";
 import IParseWithSymbolsResult from "./types/IParseWithSymbolsResult";
 import TSymbol from "../transpiler/types/symbols/TSymbol";
 import SymbolPathUtils from "./utils/SymbolPathUtils";
-import QualifiedCName from "../utils/QualifiedCName";
 
 // Re-export helpers for use in this module
 const getParentId = SymbolPathUtils.getParentId;
@@ -69,7 +68,7 @@ function convertBitmap(
     parent,
     id: bitmapId,
     parentId: bitmapParentId,
-    line: bitmap.sourceLine,
+    line: bitmap.span.line,
   });
 
   // Add bitmap fields
@@ -81,7 +80,10 @@ function convertBitmap(
       parent: cName,
       id: `${bitmapId}.${fieldName}`,
       parentId: bitmapId,
-      line: bitmap.sourceLine,
+      // #1318: the MEMBER's line, not its parent's. Members carry their own
+      // span now, so reporting the parent's was the consumer ignoring data
+      // it already had -- the same defect fixed for enum members above.
+      line: fieldInfo.span.line,
       size: fieldInfo.width,
     });
   }
@@ -105,19 +107,22 @@ function convertEnum(
     parent,
     id: enumId,
     parentId: enumParentId,
-    line: enumSym.sourceLine,
+    line: enumSym.span.line,
   });
 
   // Add enum members
-  for (const [memberName] of enumSym.members) {
+  for (const [memberName, member] of enumSym.members) {
     result.push({
       name: memberName,
-      fullName: QualifiedCName.fromParts([cName, memberName]),
+      // #1318/#1285: read from the symbol that carries it. This rebuilt the
+      // qualified name by hand and reported `enumSym`'s line for EVERY member,
+      // so an IDE jumping to `EColor.BLUE` landed on `enum EColor`.
+      fullName: member.fullyQualifiedCName,
       kind: "enumMember",
       parent: cName,
       id: `${enumId}.${memberName}`,
       parentId: enumId,
-      line: enumSym.sourceLine,
+      line: member.span.line,
     });
   }
 
@@ -140,7 +145,7 @@ function convertStruct(
     parent,
     id: structId,
     parentId: structParentId,
-    line: struct.sourceLine,
+    line: struct.span.line,
   });
 
   // Add struct fields
@@ -153,7 +158,10 @@ function convertStruct(
       parent: cName,
       id: `${structId}.${fieldName}`,
       parentId: structId,
-      line: struct.sourceLine,
+      // #1318: the MEMBER's line, not its parent's. Members carry their own
+      // span now, so reporting the parent's was the consumer ignoring data
+      // it already had -- the same defect fixed for enum members above.
+      line: fieldInfo.span.line,
     });
   }
 
@@ -184,7 +192,7 @@ function convertFunction(
     parentId: getParentId(func.scopePath),
     signature,
     accessModifier: func.visibility,
-    line: func.sourceLine,
+    line: func.span.line,
   });
 
   return result;
@@ -205,7 +213,7 @@ function convertVariable(
     parent,
     id: variable.cnxScopedName,
     parentId: getParentId(variable.scopePath),
-    line: variable.sourceLine,
+    line: variable.span.line,
   };
 }
 
@@ -225,7 +233,7 @@ function convertRegister(
     parent,
     id: registerId,
     parentId: registerParentId,
-    line: register.sourceLine,
+    line: register.span.line,
   });
 
   // Add register members
@@ -237,8 +245,11 @@ function convertRegister(
       parent: cName,
       id: `${registerId}.${memberName}`,
       parentId: registerId,
+      // #1318: the MEMBER's line, not its parent's. Members carry their own
+      // span now, so reporting the parent's was the consumer ignoring data
+      // it already had -- the same defect fixed for enum members above.
       accessModifier: memberInfo.access,
-      line: register.sourceLine,
+      line: memberInfo.span.line,
     });
   }
 
@@ -257,7 +268,7 @@ function convertScope(
     kind: "namespace",
     id: scopeId,
     parentId: scopeParentId,
-    line: scope.sourceLine,
+    line: scope.span.line,
   };
 }
 

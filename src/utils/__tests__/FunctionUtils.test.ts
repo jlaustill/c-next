@@ -6,6 +6,7 @@ import FunctionUtils from "../FunctionUtils";
 import ScopeUtils from "../ScopeUtils";
 import ParameterUtils from "../ParameterUtils";
 import TTypeUtils from "../TTypeUtils";
+import TestSourceSpan from "../../transpiler/types/__testUtils__/testSourceSpan";
 
 describe("IFunctionSymbol", () => {
   describe("FunctionUtils.create", () => {
@@ -25,7 +26,7 @@ describe("IFunctionSymbol", () => {
         visibility: "private",
         body: null,
         sourceFile: "test.cnx",
-        sourceLine: 10,
+        span: TestSourceSpan.at(10),
       });
 
       expect(func.kind).toBe("function");
@@ -36,7 +37,7 @@ describe("IFunctionSymbol", () => {
       expect(func.returnType.kind).toBe("primitive");
       expect(func.visibility).toBe("private");
       expect(func.sourceFile).toBe("test.cnx");
-      expect(func.sourceLine).toBe(10);
+      expect(func.span.line).toBe(10);
     });
 
     it("creates public function in global scope", () => {
@@ -48,7 +49,7 @@ describe("IFunctionSymbol", () => {
         visibility: "public",
         body: null,
         sourceFile: "main.cnx",
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
       });
 
       expect(func.scopePath).toBe("");
@@ -85,7 +86,7 @@ describe("IFunctionSymbol", () => {
         visibility: "public",
         body: null,
         sourceFile: "calc.cnx",
-        sourceLine: 5,
+        span: TestSourceSpan.at(5),
       });
 
       expect(func.parameters).toHaveLength(3);
@@ -116,7 +117,7 @@ describe("IFunctionSymbol", () => {
         visibility: "public",
         body: null,
         sourceFile: "point.cnx",
-        sourceLine: 10,
+        span: TestSourceSpan.at(10),
       });
 
       expect(func.returnType.kind).toBe("struct");
@@ -136,7 +137,7 @@ describe("IFunctionSymbol", () => {
         visibility: "public",
         body: mockBody,
         sourceFile: "example.cnx",
-        sourceLine: 15,
+        span: TestSourceSpan.at(15),
       });
 
       expect(func.body).toBe(mockBody);
@@ -153,7 +154,7 @@ describe("IFunctionSymbol", () => {
         visibility: "public",
         body: null,
         sourceFile: "main.cnx",
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
       });
 
       expect(FunctionUtils.isInGlobalScope(func)).toBe(true);
@@ -168,7 +169,7 @@ describe("IFunctionSymbol", () => {
         visibility: "private",
         body: null,
         sourceFile: "test.cnx",
-        sourceLine: 5,
+        span: TestSourceSpan.at(5),
       });
 
       expect(FunctionUtils.isInGlobalScope(func)).toBe(false);

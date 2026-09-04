@@ -206,7 +206,7 @@ Each language gets its own folder with small, focused, testable collectors:
 ```
 src/symbol_resolution/
 ├── SymbolTable.ts              # Central storage for all languages
-├── types/                      # Shared types (TSymbol, IFieldInfo, etc.)
+├── types/                      # Shared types (TSymbol, ISourceSpan, etc.)
 │
 ├── cnext/                      # C-Next language
 │   ├── index.ts                # CNextResolver (orchestrator)
@@ -254,21 +254,26 @@ type TSymbol =
 interface IBaseSymbol {
   name: string;
   sourceFile: string;
-  sourceLine: number;
+  // #1318: a four-integer span (line, column, endLine, endColumn), not a bare
+  // line. It replaced `sourceLine` rather than joining it -- carrying both
+  // would put one position in two places.
+  span: ISourceSpan;
   sourceLanguage: ESourceLanguage;
   visibility: TVisibility;
 }
 
 interface IStructSymbol extends IBaseSymbol {
   kind: ESymbolKind.Struct;
-  fields: Map<string, IFieldInfo>;
+  // #1318: fields are SYMBOLS, each carrying its own span and identity.
+  // `IFieldInfo` -- a plain record with neither -- was deleted.
+  fields: Map<string, IStructFieldSymbol>;
 }
 
-interface IFieldInfo {
+interface IStructFieldSymbol extends IBaseSymbol {
+  kind: ESymbolKind.StructField;
   type: string;
   isArray: boolean;
   dimensions?: number[];
-  isConst: boolean;
 }
 
 interface IEnumSymbol extends IBaseSymbol {
@@ -389,7 +394,7 @@ Each collector is small, focused, stateless, and independently testable:
 // symbol_resolution/cnext/collectors/StructCollector.ts
 
 import * as Parser from "../../antlr_parser/grammar/CNextParser";
-import { IStructSymbol, IFieldInfo } from "../types";
+import { IStructSymbol, IStructFieldSymbol } from "../types";
 
 class StructCollector {
   /**
@@ -408,7 +413,7 @@ class StructCollector {
       kind: ESymbolKind.Struct,
       name: fullName,
       sourceFile,
-      sourceLine: ctx.start?.line ?? 0,
+      span: ParserUtils.getSpan(ctx),
       sourceLanguage: ESourceLanguage.CNext,
       isExported: true,
       fields: this.collectFields(ctx),
@@ -417,8 +422,8 @@ class StructCollector {
 
   private collectFields(
     ctx: Parser.StructDeclarationContext,
-  ): Map<string, IFieldInfo> {
-    const fields = new Map<string, IFieldInfo>();
+  ): Map<string, IStructFieldSymbol> {
+    const fields = new Map<string, IStructFieldSymbol>();
 
     for (const member of ctx.structMember()) {
       const fieldName = member.IDENTIFIER().getText();
@@ -540,7 +545,7 @@ class CodeGenerator {
 
     // Use rich symbol data directly
     for (const struct of structs) {
-      // struct.fields is Map<string, IFieldInfo> - no separate lookup needed
+      // struct.fields is Map<string, IStructFieldSymbol> - no separate lookup needed
       this.generateStructCode(struct);
     }
   }

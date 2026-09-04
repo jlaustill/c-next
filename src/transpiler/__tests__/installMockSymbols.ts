@@ -5,6 +5,8 @@ import createMockSymbols from "./codeGenSymbolsHelpers";
 import type ICodeGenSymbols from "../types/ICodeGenSymbols";
 import type TSymbol from "../types/symbols/TSymbol";
 import type TVisibility from "../types/TVisibility";
+import TestSourceSpan from "../types/__testUtils__/testSourceSpan";
+import type ISourceSpan from "../types/ISourceSpan";
 
 /**
  * Build a mock symbol world and install BOTH of its representations.
@@ -62,7 +64,7 @@ function register(
     cnxScopedName: string;
     scopePath: string;
     sourceFile: string;
-    sourceLine: number;
+    span: ISourceSpan;
     sourceLanguage: ESourceLanguage;
     visibility: TVisibility;
   }) => TSymbol,
@@ -79,7 +81,7 @@ function register(
       // `build: => unknown` plus `as TSymbol` hid from tsc.
       scopePath: "",
       sourceFile: "mock.cnx",
-      sourceLine: 1,
+      span: TestSourceSpan.at(1),
       sourceLanguage: ESourceLanguage.CNext,
       visibility: "public" as TVisibility,
     };

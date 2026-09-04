@@ -1,4 +1,4 @@
-24:0 error[E0425]: Symbol conflict: 'Lib.useIt' is defined multiple times in C-Next:
+24:11 error[E0425]: Symbol conflict: 'Lib.useIt' is defined multiple times in C-Next:
   tests/bugs/issue-1333-scope-reopening/duplicate-member-reopened.test.cnx:24
   tests/bugs/issue-1333-scope-reopening/duplicate-member-reopened.test.cnx:30
   scope 'Lib' is declared in:

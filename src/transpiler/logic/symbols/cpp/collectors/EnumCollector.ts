@@ -10,6 +10,7 @@ import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import ICppEnumSymbol from "../../../../types/symbols/cpp/ICppEnumSymbol";
 import SymbolTable from "../../SymbolTable";
 import SymbolUtils from "../../SymbolUtils";
+import type ISourceSpan from "../../../../types/ISourceSpan";
 
 class EnumCollector {
   /**
@@ -17,7 +18,7 @@ class EnumCollector {
    *
    * @param enumSpec The enum specifier context
    * @param sourceFile Source file path
-   * @param line Line number
+   * @param span Source span of the declaration
    * @param currentNamespace Optional current namespace
    * @param symbolTable Optional symbol table for storing bit width
    * @returns The enum symbol or null if no name
@@ -25,7 +26,7 @@ class EnumCollector {
   static collect(
     enumSpec: any,
     sourceFile: string,
-    line: number,
+    span: ISourceSpan,
     currentNamespace?: string,
     symbolTable?: SymbolTable | null,
   ): ICppEnumSymbol | null {
@@ -59,7 +60,7 @@ class EnumCollector {
       kind: "enum",
       name: fullName,
       sourceFile,
-      sourceLine: line,
+      span,
       sourceLanguage: ESourceLanguage.Cpp,
       visibility: "public",
       parent: currentNamespace,

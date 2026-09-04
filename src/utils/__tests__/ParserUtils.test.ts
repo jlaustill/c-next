@@ -175,4 +175,137 @@ describe("ParserUtils", () => {
       expect(result.message).toBe(":4 some error");
     });
   });
+
+  describe("getSpan", () => {
+    // ========================================================================
+    // The exclusive end -- the part that is easy to get wrong
+    // ========================================================================
+
+    it("ends one past the last character, not at the last token's start", () => {
+      // ANTLR's `stop` is the LAST TOKEN, and its column is where that token
+      // BEGINS. `scope Motor {` stopping on `{` at column 12 ends at 13.
+      const span = ParserUtils.getSpan({
+        start: { line: 3, column: 0 },
+        stop: { line: 3, column: 12, text: "{" },
+      });
+      expect(span).toEqual({ line: 3, column: 0, endLine: 3, endColumn: 13 });
+    });
+
+    it("accounts for the full width of a multi-character final token", () => {
+      // The case that makes the naive `endColumn: stop.column` read as correct
+      // on single-character tokens and be wrong everywhere else.
+      const span = ParserUtils.getSpan({
+        start: { line: 1, column: 4 },
+        stop: { line: 1, column: 10, text: "identifier" },
+      });
+      expect(span.endColumn).toBe(20);
+    });
+
+    it("carries a distinct endLine for a multi-line construct", () => {
+      const span = ParserUtils.getSpan({
+        start: { line: 5, column: 2 },
+        stop: { line: 9, column: 0, text: "}" },
+      });
+      expect(span.line).toBe(5);
+      expect(span.endLine).toBe(9);
+    });
+
+    // ========================================================================
+    // Degenerate contexts -- a caller never sees a half-populated span
+    // ========================================================================
+
+    it("yields a zero-width span at start when there is no stop token", () => {
+      const span = ParserUtils.getSpan({ start: { line: 8, column: 3 } });
+      expect(span).toEqual({ line: 8, column: 3, endLine: 8, endColumn: 3 });
+    });
+
+    it("treats a null stop the same as a missing one", () => {
+      const span = ParserUtils.getSpan({
+        start: { line: 8, column: 3 },
+        stop: null,
+      });
+      expect(span).toEqual({ line: 8, column: 3, endLine: 8, endColumn: 3 });
+    });
+
+    it("defaults every field to 0 when there is no start token", () => {
+      expect(ParserUtils.getSpan({})).toEqual({
+        line: 0,
+        column: 0,
+        endLine: 0,
+        endColumn: 0,
+      });
+    });
+
+    it("falls back to the start line when stop carries no line", () => {
+      const span = ParserUtils.getSpan({
+        start: { line: 4, column: 1 },
+        stop: { text: "x" },
+      });
+      expect(span.endLine).toBe(4);
+    });
+
+    it("treats a stop with no text as zero-width at its own column", () => {
+      // An imaginary token inserted by ANTLR error recovery has no text.
+      const span = ParserUtils.getSpan({
+        start: { line: 2, column: 0 },
+        stop: { line: 2, column: 6, text: null },
+      });
+      expect(span.endColumn).toBe(6);
+    });
+
+    it("takes the stop token's width from its offsets, not its text", () => {
+      // #1318 review: ANTLR's EOF reports `text === "<EOF>"` -- five characters
+      // -- while occupying zero, with `stop === start - 1`. Measured on
+      // `enum EColor { RED }`: text.length gives 5, stop-start+1 gives 0, so a
+      // context ending at EOF reported an endColumn five past the end of file.
+      const atEof = ParserUtils.getSpan({
+        start: { line: 1, column: 0 },
+        stop: { line: 1, column: 19, text: "<EOF>", start: 19, stop: 18 },
+      });
+      expect(atEof.endColumn).toBe(19);
+
+      // A real token: offsets and text agree, and the offsets are used.
+      const real = ParserUtils.getSpan({
+        start: { line: 1, column: 0 },
+        stop: { line: 1, column: 18, text: "}", start: 18, stop: 18 },
+      });
+      expect(real.endColumn).toBe(19);
+    });
+  });
+
+  describe("getSpanOr", () => {
+    const FALLBACK = { line: 7, column: 2, endLine: 9, endColumn: 1 };
+
+    it("returns the context's own span when it has a start token", () => {
+      const span = ParserUtils.getSpanOr(
+        {
+          start: { line: 42, column: 8 },
+          stop: { line: 42, column: 8, text: "x" },
+        },
+        FALLBACK,
+      );
+      expect(span.line).toBe(42);
+      expect(span.column).toBe(8);
+    });
+
+    it("returns the fallback when the context has NO start token", () => {
+      // The whole reason this function exists: `getSpan` would return 0:0
+      // here, which is both the top of the file and byte-identical to
+      // UNSET_SOURCE_SPAN, so it reads as "position not yet collected".
+      expect(ParserUtils.getSpanOr({}, FALLBACK)).toEqual(FALLBACK);
+    });
+
+    it("treats a null start the same as a missing one", () => {
+      expect(ParserUtils.getSpanOr({ start: null }, FALLBACK)).toEqual(
+        FALLBACK,
+      );
+    });
+
+    it("never returns 0:0 for a context with no position", () => {
+      // The property, stated independently of the fallback values: a
+      // member with no start token must not land on the start of the file.
+      const span = ParserUtils.getSpanOr({}, FALLBACK);
+      expect([span.line, span.column]).not.toEqual([0, 0]);
+    });
+  });
 });

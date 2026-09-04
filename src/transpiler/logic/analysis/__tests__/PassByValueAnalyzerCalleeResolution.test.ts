@@ -16,6 +16,7 @@ import CodeGenState from "../../../state/CodeGenState.js";
 import SymbolTable from "../../symbols/SymbolTable.js";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage.js";
 import type TCSymbol from "../../../types/symbols/c/TCSymbol.js";
+import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
 
 interface IParameterShape {
   name: string;
@@ -32,7 +33,7 @@ const declareCFunction = (
     kind: "function",
     name,
     sourceFile: "sink.h",
-    sourceLine: 1,
+    span: TestSourceSpan.at(1),
     sourceLanguage: ESourceLanguage.C,
     visibility: "public",
     type: "void",
@@ -44,7 +45,7 @@ const declareCTypedef = (name: string, aliased: string): TCSymbol =>
     kind: "type",
     name,
     sourceFile: "sink.h",
-    sourceLine: 1,
+    span: TestSourceSpan.at(1),
     sourceLanguage: ESourceLanguage.C,
     visibility: "public",
     type: aliased,
@@ -261,7 +262,7 @@ describe("PassByValueAnalyzer callee resolution (#1178)", () => {
         kind: "variable",
         name,
         sourceFile: "sink.h",
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         sourceLanguage: ESourceLanguage.C,
         visibility: "public",
         type: "void*",
@@ -309,7 +310,7 @@ describe("PassByValueAnalyzer callee resolution (#1178)", () => {
       name: "emit",
       scopePath: "",
       sourceFile: "a.cnx",
-      sourceLine: 1,
+      span: TestSourceSpan.at(1),
       sourceLanguage: ESourceLanguage.CNext,
       visibility: "public",
       body: undefined,

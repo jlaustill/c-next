@@ -11,6 +11,9 @@ import IEnumSymbol from "../../../../types/symbols/IEnumSymbol";
 import ExpressionEvaluator from "../utils/ExpressionEvaluator";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
 import TVisibility from "../../../../types/TVisibility";
+import ParserUtils from "../../../../../utils/ParserUtils";
+import type IEnumMemberSymbol from "../../../../types/symbols/IEnumMemberSymbol";
+import MemberSymbolBase from "../utils/MemberSymbolBase";
 
 class EnumCollector {
   /**
@@ -30,11 +33,19 @@ class EnumCollector {
     visibility: TVisibility,
   ): IEnumSymbol {
     const name = ctx.IDENTIFIER().getText();
-    const line = ctx.start?.line ?? 0;
+    const span = ParserUtils.getSpan(ctx);
 
     // Collect member values with auto-increment
-    const members = new Map<string, number>();
+    const members = new Map<string, IEnumMemberSymbol>();
     let currentValue = 0;
+
+    // #1318: a member's identity hangs off the ENUM's source-spelled name, not
+    // the enclosing scope's. `identityOf` then yields the identifier codegen
+    // already emits -- EColor__RED, and Motor__EMode__HIGH for a scope-declared
+    // enum, because fromParts expands the dotted component. Derived here once
+    // rather than at each consumer (#1285).
+    const identity = ScopeUtils.identityOf({ name, scopePath });
+    const enumScopedName = identity.cnxScopedName;
 
     for (const member of ctx.enumMember()) {
       const memberName = member.IDENTIFIER().getText();
@@ -53,7 +64,18 @@ class EnumCollector {
         currentValue = value;
       }
 
-      members.set(memberName, currentValue);
+      members.set(memberName, {
+        ...MemberSymbolBase.of({
+          kind: "enum_member" as const,
+          name: memberName,
+          parentScopedName: enumScopedName,
+          memberCtx: member,
+          parentSpan: span,
+          sourceFile,
+          visibility,
+        }),
+        value: currentValue,
+      });
       currentValue++;
     }
 
@@ -63,9 +85,12 @@ class EnumCollector {
       scopePath,
       // #1285: identity computed once, from the scope chain, not
       // re-derived by every consumer.
-      ...ScopeUtils.identityOf({ name, scopePath }),
+      // #1318 review: the same identity the members were keyed by, not a
+      // second call with the same arguments -- change one and the members
+      // would keep the old parent name while this reported the new one.
+      ...identity,
       sourceFile,
-      sourceLine: line,
+      span,
       sourceLanguage: ESourceLanguage.CNext,
       visibility,
       members,

@@ -18,6 +18,9 @@ import IFunctionSymbol from "../../../../types/symbols/IFunctionSymbol";
 import TypeResolver from "../../../../../utils/TypeResolver";
 import TestScopeUtils from "./testUtils";
 import TestSymbolUtils from "./testSymbolUtils";
+import TestSourceSpan from "../../../../types/__testUtils__/testSourceSpan";
+import TestEnumMembers from "../../../../types/__testUtils__/testEnumMembers";
+import TestMembers from "../../../../types/__testUtils__/testMembers";
 
 describe("TSymbolInfoAdapter", () => {
   // Reset global scope between tests to avoid state pollution
@@ -30,36 +33,39 @@ describe("TSymbolInfoAdapter", () => {
           name: "Point",
           scopePath: "",
           sourceFile: "test.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
-        fields: new Map([
-          [
-            "x",
-            {
-              name: "x",
-              type: TypeResolver.resolve("i32"),
-              isArray: false,
-              isConst: false,
-              isAtomic: false,
-              isVolatile: false,
-              overflowBehavior: "clamp",
-            },
-          ],
-          [
-            "y",
-            {
-              name: "y",
-              type: TypeResolver.resolve("i32"),
-              isArray: false,
-              isConst: false,
-              isAtomic: false,
-              isVolatile: false,
-              overflowBehavior: "clamp",
-            },
-          ],
-        ]),
+        fields: TestMembers.asStructFields(
+          "Point",
+          new Map([
+            [
+              "x",
+              {
+                name: "x",
+                type: TypeResolver.resolve("i32"),
+                isArray: false,
+                isConst: false,
+                isAtomic: false,
+                isVolatile: false,
+                overflowBehavior: "clamp",
+              },
+            ],
+            [
+              "y",
+              {
+                name: "y",
+                type: TypeResolver.resolve("i32"),
+                isArray: false,
+                isConst: false,
+                isAtomic: false,
+                isVolatile: false,
+                overflowBehavior: "clamp",
+              },
+            ],
+          ]),
+        ),
       };
 
       const info = TSymbolInfoAdapter.convert([struct]);
@@ -74,36 +80,39 @@ describe("TSymbolInfoAdapter", () => {
           name: "Point",
           scopePath: "",
           sourceFile: "test.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
-        fields: new Map([
-          [
-            "x",
-            {
-              name: "x",
-              type: TypeResolver.resolve("i32"),
-              isArray: false,
-              isConst: false,
-              isAtomic: false,
-              isVolatile: false,
-              overflowBehavior: "clamp",
-            },
-          ],
-          [
-            "y",
-            {
-              name: "y",
-              type: TypeResolver.resolve("f32"),
-              isArray: false,
-              isConst: false,
-              isAtomic: false,
-              isVolatile: false,
-              overflowBehavior: "clamp",
-            },
-          ],
-        ]),
+        fields: TestMembers.asStructFields(
+          "Point",
+          new Map([
+            [
+              "x",
+              {
+                name: "x",
+                type: TypeResolver.resolve("i32"),
+                isArray: false,
+                isConst: false,
+                isAtomic: false,
+                isVolatile: false,
+                overflowBehavior: "clamp",
+              },
+            ],
+            [
+              "y",
+              {
+                name: "y",
+                type: TypeResolver.resolve("f32"),
+                isArray: false,
+                isConst: false,
+                isAtomic: false,
+                isVolatile: false,
+                overflowBehavior: "clamp",
+              },
+            ],
+          ]),
+        ),
       };
 
       const info = TSymbolInfoAdapter.convert([struct]);
@@ -119,37 +128,40 @@ describe("TSymbolInfoAdapter", () => {
           name: "Buffer",
           scopePath: "",
           sourceFile: "test.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
-        fields: new Map([
-          [
-            "data",
-            {
-              name: "data",
-              type: TypeResolver.resolve("u8"),
-              isArray: true,
-              isConst: false,
-              isAtomic: false,
-              isVolatile: false,
-              overflowBehavior: "clamp",
-              dimensions: [256],
-            },
-          ],
-          [
-            "size",
-            {
-              name: "size",
-              type: TypeResolver.resolve("u32"),
-              isArray: false,
-              isConst: false,
-              isAtomic: false,
-              isVolatile: false,
-              overflowBehavior: "clamp",
-            },
-          ],
-        ]),
+        fields: TestMembers.asStructFields(
+          "Buffer",
+          new Map([
+            [
+              "data",
+              {
+                name: "data",
+                type: TypeResolver.resolve("u8"),
+                isArray: true,
+                isConst: false,
+                isAtomic: false,
+                isVolatile: false,
+                overflowBehavior: "clamp",
+                dimensions: [256],
+              },
+            ],
+            [
+              "size",
+              {
+                name: "size",
+                type: TypeResolver.resolve("u32"),
+                isArray: false,
+                isConst: false,
+                isAtomic: false,
+                isVolatile: false,
+                overflowBehavior: "clamp",
+              },
+            ],
+          ]),
+        ),
       };
 
       const info = TSymbolInfoAdapter.convert([struct]);
@@ -165,25 +177,28 @@ describe("TSymbolInfoAdapter", () => {
           name: "Matrix",
           scopePath: "",
           sourceFile: "test.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
-        fields: new Map([
-          [
-            "values",
-            {
-              name: "values",
-              type: TypeResolver.resolve("f32"),
-              isArray: true,
-              isConst: false,
-              isAtomic: false,
-              isVolatile: false,
-              overflowBehavior: "clamp",
-              dimensions: [4, 4],
-            },
-          ],
-        ]),
+        fields: TestMembers.asStructFields(
+          "Matrix",
+          new Map([
+            [
+              "values",
+              {
+                name: "values",
+                type: TypeResolver.resolve("f32"),
+                isArray: true,
+                isConst: false,
+                isAtomic: false,
+                isVolatile: false,
+                overflowBehavior: "clamp",
+                dimensions: [4, 4],
+              },
+            ],
+          ]),
+        ),
       };
 
       const info = TSymbolInfoAdapter.convert([struct]);
@@ -202,15 +217,11 @@ describe("TSymbolInfoAdapter", () => {
           name: "Color",
           scopePath: "",
           sourceFile: "test.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
-        members: new Map([
-          ["Red", 0],
-          ["Green", 1],
-          ["Blue", 2],
-        ]),
+        members: TestEnumMembers.of("Color", { Red: 0, Green: 1, Blue: 2 }),
       };
 
       const info = TSymbolInfoAdapter.convert([enumSym]);
@@ -225,15 +236,11 @@ describe("TSymbolInfoAdapter", () => {
           name: "Priority",
           scopePath: "",
           sourceFile: "test.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
-        members: new Map([
-          ["LOW", 0],
-          ["MEDIUM", 1],
-          ["HIGH", 2],
-        ]),
+        members: TestEnumMembers.of("Priority", { LOW: 0, MEDIUM: 1, HIGH: 2 }),
       };
 
       const info = TSymbolInfoAdapter.convert([enumSym]);
@@ -252,13 +259,16 @@ describe("TSymbolInfoAdapter", () => {
           name: "Status",
           scopePath: "",
           sourceFile: "test.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
         backingType: "uint8_t",
         bitWidth: 8,
-        fields: new Map([["enabled", { offset: 0, width: 1 }]]),
+        fields: TestMembers.asBitmapFields(
+          "Status",
+          new Map([["enabled", { offset: 0, width: 1 }]]),
+        ),
       };
 
       const info = TSymbolInfoAdapter.convert([bitmap]);
@@ -273,17 +283,20 @@ describe("TSymbolInfoAdapter", () => {
           name: "Control",
           scopePath: "",
           sourceFile: "test.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
         backingType: "uint16_t",
         bitWidth: 16,
-        fields: new Map([
-          ["mode", { offset: 0, width: 4 }],
-          ["channel", { offset: 4, width: 4 }],
-          ["reserved", { offset: 8, width: 8 }],
-        ]),
+        fields: TestMembers.asBitmapFields(
+          "Control",
+          new Map([
+            ["mode", { offset: 0, width: 4 }],
+            ["channel", { offset: 4, width: 4 }],
+            ["reserved", { offset: 8, width: 8 }],
+          ]),
+        ),
       };
 
       const info = TSymbolInfoAdapter.convert([bitmap]);
@@ -299,17 +312,20 @@ describe("TSymbolInfoAdapter", () => {
           name: "Flags",
           scopePath: "",
           sourceFile: "test.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
         backingType: "uint8_t",
         bitWidth: 8,
-        fields: new Map([
-          ["enabled", { offset: 0, width: 1 }],
-          ["mode", { offset: 1, width: 3 }],
-          ["reserved", { offset: 4, width: 4 }],
-        ]),
+        fields: TestMembers.asBitmapFields(
+          "Flags",
+          new Map([
+            ["enabled", { offset: 0, width: 1 }],
+            ["mode", { offset: 1, width: 3 }],
+            ["reserved", { offset: 4, width: 4 }],
+          ]),
+        ),
       };
 
       const info = TSymbolInfoAdapter.convert([bitmap]);
@@ -390,14 +406,15 @@ describe("TSymbolInfoAdapter", () => {
           name: "GPIO",
           scopePath: "",
           sourceFile: "test.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
         baseAddress: "0x40000000",
-        members: new Map([
-          ["DATA", { offset: "0x00", cType: "u32", access: "rw" }],
-        ]),
+        members: TestMembers.asRegisterMembers(
+          "GPIO",
+          new Map([["DATA", { offset: "0x00", cType: "u32", access: "rw" }]]),
+        ),
       };
 
       const info = TSymbolInfoAdapter.convert([register]);
@@ -412,14 +429,15 @@ describe("TSymbolInfoAdapter", () => {
           name: "UART",
           scopePath: "",
           sourceFile: "test.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
         baseAddress: "0x40001000",
-        members: new Map([
-          ["TX", { offset: "0x00", cType: "u32", access: "wo" }],
-        ]),
+        members: TestMembers.asRegisterMembers(
+          "UART",
+          new Map([["TX", { offset: "0x00", cType: "u32", access: "wo" }]]),
+        ),
       };
 
       const info = TSymbolInfoAdapter.convert([register]);
@@ -434,15 +452,18 @@ describe("TSymbolInfoAdapter", () => {
           name: "SPI",
           scopePath: "",
           sourceFile: "test.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
         baseAddress: "0x40002000",
-        members: new Map([
-          ["DATA", { offset: "0x00", cType: "u32", access: "rw" }],
-          ["STATUS", { offset: "0x04", cType: "u8", access: "ro" }],
-        ]),
+        members: TestMembers.asRegisterMembers(
+          "SPI",
+          new Map([
+            ["DATA", { offset: "0x00", cType: "u32", access: "rw" }],
+            ["STATUS", { offset: "0x04", cType: "u8", access: "ro" }],
+          ]),
+        ),
       };
 
       const info = TSymbolInfoAdapter.convert([register]);
@@ -462,13 +483,16 @@ describe("TSymbolInfoAdapter", () => {
           name: "StatusFlags",
           scopePath: "",
           sourceFile: "test.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
         backingType: "uint8_t",
         bitWidth: 8,
-        fields: new Map([["ready", { offset: 0, width: 1 }]]),
+        fields: TestMembers.asBitmapFields(
+          "StatusFlags",
+          new Map([["ready", { offset: 0, width: 1 }]]),
+        ),
       };
 
       const register: IRegisterSymbol = {
@@ -477,22 +501,25 @@ describe("TSymbolInfoAdapter", () => {
           name: "CTRL",
           scopePath: "",
           sourceFile: "test.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
         baseAddress: "0x40003000",
-        members: new Map([
-          [
-            "FLAGS",
-            {
-              offset: "0x00",
-              cType: "StatusFlags",
-              access: "rw",
-              bitmapType: "StatusFlags",
-            },
-          ],
-        ]),
+        members: TestMembers.asRegisterMembers(
+          "CTRL",
+          new Map([
+            [
+              "FLAGS",
+              {
+                offset: "0x00",
+                cType: "StatusFlags",
+                access: "rw",
+                bitmapType: "StatusFlags",
+              },
+            ],
+          ]),
+        ),
       };
 
       // Include bitmap BEFORE register for knownBitmaps to be populated
@@ -511,7 +538,7 @@ describe("TSymbolInfoAdapter", () => {
           name: "MAX_SPEED", // Bare name - adapter computes transpiled C name,
           scopePath: "Motor",
           sourceFile: "test.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "private",
         }),
@@ -537,7 +564,7 @@ describe("TSymbolInfoAdapter", () => {
           name: "PUBLIC_CONST", // Bare name - adapter computes transpiled C name,
           scopePath: "Motor",
           sourceFile: "test.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
@@ -564,7 +591,7 @@ describe("TSymbolInfoAdapter", () => {
           name: "counter", // Bare name - adapter computes transpiled C name,
           scopePath: "Motor",
           sourceFile: "test.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "private",
         }),
@@ -589,7 +616,7 @@ describe("TSymbolInfoAdapter", () => {
           name: "LOOKUP_TABLE", // Bare name - adapter computes transpiled C name,
           scopePath: "Motor",
           sourceFile: "test.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "private",
         }),
@@ -619,7 +646,7 @@ describe("TSymbolInfoAdapter", () => {
           name: "MATRIX", // Bare name - adapter computes transpiled C name,
           scopePath: "Motor",
           sourceFile: "test.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "private",
         }),
@@ -724,24 +751,27 @@ describe("TSymbolInfoAdapter", () => {
           name: "Point",
           scopePath: "",
           sourceFile: "test.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
-        fields: new Map([
-          [
-            "x",
-            {
-              name: "x",
-              type: TypeResolver.resolve("i32"),
-              isArray: false,
-              isConst: false,
-              isAtomic: false,
-              isVolatile: false,
-              overflowBehavior: "clamp",
-            },
-          ],
-        ]),
+        fields: TestMembers.asStructFields(
+          "Point",
+          new Map([
+            [
+              "x",
+              {
+                name: "x",
+                type: TypeResolver.resolve("i32"),
+                isArray: false,
+                isConst: false,
+                isAtomic: false,
+                isVolatile: false,
+                overflowBehavior: "clamp",
+              },
+            ],
+          ]),
+        ),
       };
 
       const base = TSymbolInfoAdapter.convert([struct]);
@@ -772,24 +802,27 @@ describe("TSymbolInfoAdapter", () => {
             name: "Point",
             scopePath: "",
             sourceFile: "test.cnx",
-            sourceLine: 1,
+            span: TestSourceSpan.at(1),
             sourceLanguage: ESourceLanguage.CNext,
             visibility: "public",
           }),
-          fields: new Map([
-            [
-              "x",
-              {
-                name: "x",
-                type: TypeResolver.resolve("i32"),
-                isArray: false,
-                isConst: false,
-                isAtomic: false,
-                isVolatile: false,
-                overflowBehavior: "clamp",
-              },
-            ],
-          ]),
+          fields: TestMembers.asStructFields(
+            "Point",
+            new Map([
+              [
+                "x",
+                {
+                  name: "x",
+                  type: TypeResolver.resolve("i32"),
+                  isArray: false,
+                  isConst: false,
+                  isAtomic: false,
+                  isVolatile: false,
+                  overflowBehavior: "clamp",
+                },
+              ],
+            ]),
+          ),
         } as IStructSymbol,
         {
           ...TestSymbolUtils.base({
@@ -797,14 +830,11 @@ describe("TSymbolInfoAdapter", () => {
             name: "Color",
             scopePath: "",
             sourceFile: "test.cnx",
-            sourceLine: 5,
+            span: TestSourceSpan.at(5),
             sourceLanguage: ESourceLanguage.CNext,
             visibility: "public",
           }),
-          members: new Map([
-            ["Red", 0],
-            ["Green", 1],
-          ]),
+          members: TestEnumMembers.of("Color", { Red: 0, Green: 1 }),
         } as IEnumSymbol,
         motorScope,
         {
@@ -813,7 +843,7 @@ describe("TSymbolInfoAdapter", () => {
             name: "main",
             scopePath: "",
             sourceFile: "test.cnx",
-            sourceLine: 15,
+            span: TestSourceSpan.at(15),
             sourceLanguage: ESourceLanguage.CNext,
             visibility: "public",
           }),
@@ -853,13 +883,16 @@ describe("TSymbolInfoAdapter", () => {
         name,
         scopePath: "",
         sourceFile: "lib.cnx",
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         sourceLanguage: ESourceLanguage.CNext,
         visibility: "public",
       }),
       backingType: "uint8_t",
       bitWidth: 8,
-      fields,
+      // #1318: lift at the USE site -- the factory's parameter stays the plain
+      // offset/width record its callers pass, so only this line knows fields
+      // are symbols now.
+      fields: TestMembers.asBitmapFields(name, fields),
     });
 
     it("carries a bitmap's fields, backing type and bit width across the boundary", () => {
@@ -928,7 +961,7 @@ describe("TSymbolInfoAdapter", () => {
           name: "BUFFER",
           scopePath: "Motor",
           sourceFile: "test.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),

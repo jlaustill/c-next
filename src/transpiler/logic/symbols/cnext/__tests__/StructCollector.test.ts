@@ -382,7 +382,7 @@ describe("StructCollector", () => {
         "public",
       );
 
-      expect(symbol.sourceLine).toBe(3);
+      expect(symbol.span.line).toBe(3);
     });
   });
 
@@ -404,6 +404,50 @@ describe("StructCollector", () => {
       );
 
       expect(symbol.visibility).toBe("private");
+    });
+  });
+
+  describe("fields carry their own position and identity (#1318)", () => {
+    const collect = (code: string, scopePath = "", visibility = "public") =>
+      StructCollector.collect(
+        parse(code).declaration(0)!.structDeclaration()!,
+        "test.cnx",
+        scopePath,
+        visibility as "public" | "private",
+      );
+
+    it("gives each field a DISTINCT line, not the struct's", () => {
+      const symbol = collect(`
+        struct Point {
+          u32 x;
+          u32 y;
+          u32 z;
+        }
+      `);
+      const lines = [...symbol.fields.values()].map((f) => f.span.line);
+      expect(new Set(lines).size).toBe(3);
+      expect(lines).not.toContain(symbol.span.line);
+    });
+
+    it("keys a field by its owner, and inherits the owner's visibility", () => {
+      const global = collect(`struct Point { u32 x; u32 y; }`);
+      expect(global.fields.get("x")!.fullyQualifiedCName).toBe("Point__x");
+
+      const scoped = collect(`struct Point { u32 x; }`, "Motor", "private");
+      expect(scoped.fields.get("x")!.fullyQualifiedCName).toBe(
+        "Motor__Point__x",
+      );
+      expect(scoped.fields.get("x")!.visibility).toBe("private");
+    });
+
+    it("is an index key, not an identifier any generated file contains", () => {
+      // Two structs with a field of the same name must not collide in the
+      // table; `p.x` is what C actually sees. See IBaseSymbol.
+      const a = collect(`struct Point { u32 x; }`);
+      const b = collect(`struct Other { u32 x; }`);
+      expect(a.fields.get("x")!.fullyQualifiedCName).not.toBe(
+        b.fields.get("x")!.fullyQualifiedCName,
+      );
     });
   });
 });

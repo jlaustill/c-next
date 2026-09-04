@@ -6,6 +6,8 @@ import type { EnumSpecifierContext } from "../../../parser/c/grammar/CParser";
 import type ICEnumSymbol from "../../../../types/symbols/c/ICEnumSymbol";
 import type ICEnumMemberSymbol from "../../../../types/symbols/c/ICEnumMemberSymbol";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
+import type ISourceSpan from "../../../../types/ISourceSpan";
+import ParserUtils from "../../../../../utils/ParserUtils";
 
 /**
  * Result of collecting an enum - includes both the enum symbol and its members.
@@ -21,12 +23,12 @@ class EnumCollector {
    *
    * @param enumSpec The enum specifier context
    * @param sourceFile Source file path
-   * @param line Source line number
+   * @param span Source span of the declaration
    */
   static collect(
     enumSpec: EnumSpecifierContext,
     sourceFile: string,
-    line: number,
+    span: ISourceSpan,
   ): IEnumCollectorResult | null {
     const identifier = enumSpec.Identifier();
     if (!identifier) return null;
@@ -41,32 +43,30 @@ class EnumCollector {
     }> = [];
     const enumList = enumSpec.enumeratorList();
 
-    if (enumList) {
-      for (const enumeratorDef of enumList.enumerator()) {
-        const enumConst = enumeratorDef.enumerationConstant();
-        if (enumConst) {
-          const memberName = enumConst.Identifier()?.getText();
-          if (memberName) {
-            memberInfos.push({ name: memberName });
-            memberSymbols.push({
-              kind: "enum_member",
-              name: memberName,
-              sourceFile,
-              sourceLine: enumeratorDef.start?.line ?? line,
-              sourceLanguage: ESourceLanguage.C,
-              visibility: "public",
-              parent: name,
-            });
-          }
-        }
-      }
+    for (const enumeratorDef of enumList?.enumerator() ?? []) {
+      const memberName = enumeratorDef
+        .enumerationConstant()
+        ?.Identifier()
+        ?.getText();
+      if (!memberName) continue;
+
+      memberInfos.push({ name: memberName });
+      memberSymbols.push(
+        EnumCollector.memberSymbol(
+          memberName,
+          name,
+          sourceFile,
+          enumeratorDef,
+          span,
+        ),
+      );
     }
 
     const enumSymbol: ICEnumSymbol = {
       kind: "enum",
       name,
       sourceFile,
-      sourceLine: line,
+      span,
       sourceLanguage: ESourceLanguage.C,
       visibility: "public",
       members: memberInfos,
@@ -75,6 +75,47 @@ class EnumCollector {
     return {
       enum: enumSymbol,
       members: memberSymbols,
+    };
+  }
+
+  /**
+   * One enum member as a symbol.
+   *
+   * Extracted from `collect` (#1318): adding the member span pushed that
+   * method's cognitive complexity to 16 against a limit of 15, and three levels
+   * of nesting around one push was the reason it was close to the limit at all.
+   */
+  private static memberSymbol(
+    memberName: string,
+    enumName: string,
+    sourceFile: string,
+    // The real shape, not `{ start?: unknown }`: an `unknown` here threw away
+    // what the caller had and forced a cast, which would have waved
+    // `{ start: "yes" }` straight through into getSpan (#1318 review).
+    enumeratorDef: {
+      start?: { line?: number; column?: number } | null;
+      stop?: {
+        line?: number;
+        column?: number;
+        text?: string | null;
+        start?: number;
+        stop?: number;
+      } | null;
+    },
+    enumSpan: ISourceSpan,
+  ): ICEnumMemberSymbol {
+    return {
+      kind: "enum_member",
+      name: memberName,
+      sourceFile,
+      // #1318: a member carries its OWN span, not its parent's -- falling back
+      // to the enum's only when the enumerator has no start token. The fallback
+      // decision itself lives in `getSpanOr`, so the C-Next path cannot answer
+      // it differently, which it did until the #1318 review caught it.
+      span: ParserUtils.getSpanOr(enumeratorDef, enumSpan),
+      sourceLanguage: ESourceLanguage.C,
+      visibility: "public",
+      parent: enumName,
     };
   }
 }

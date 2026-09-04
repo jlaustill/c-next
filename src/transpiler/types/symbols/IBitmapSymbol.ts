@@ -1,5 +1,5 @@
 import type IBaseSymbol from "./IBaseSymbol";
-import type IBitmapFieldInfo from "./IBitmapFieldInfo";
+import type IBitmapFieldSymbol from "./IBitmapFieldSymbol";
 
 /**
  * Symbol representing a bitmap type definition.
@@ -14,8 +14,11 @@ interface IBitmapSymbol extends IBaseSymbol {
   /** Total bit width of the bitmap */
   readonly bitWidth: number;
 
-  /** Map of field name to bit offset/width metadata */
-  readonly fields: ReadonlyMap<string, IBitmapFieldInfo>;
+  /**
+   * Fields, each a symbol carrying its own span and identity (#1318).
+   * Keyed by bare field name, which is how every consumer looks one up.
+   */
+  readonly fields: ReadonlyMap<string, IBitmapFieldSymbol>;
 }
 
 export default IBitmapSymbol;

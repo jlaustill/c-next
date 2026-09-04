@@ -17,13 +17,15 @@ import ScopeUtils from "../../../../../utils/ScopeUtils";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import TSymbolKindCNext from "../../../../types/symbol-kinds/TSymbolKindCNext";
 import TVisibility from "../../../../types/TVisibility";
+import TestSourceSpan from "../../../../types/__testUtils__/testSourceSpan";
+import type ISourceSpan from "../../../../types/ISourceSpan";
 
 interface IBaseOverrides<K extends TSymbolKindCNext> {
   readonly kind: K;
   readonly name: string;
   readonly scopePath?: string;
   readonly sourceFile?: string;
-  readonly sourceLine?: number;
+  readonly span?: ISourceSpan;
   readonly sourceLanguage?: ESourceLanguage;
   readonly visibility?: TVisibility;
 }
@@ -48,7 +50,7 @@ class TestSymbolUtils {
     name: string;
     scopePath: string;
     sourceFile: string;
-    sourceLine: number;
+    span: ISourceSpan;
     sourceLanguage: ESourceLanguage;
     visibility: TVisibility;
     fullyQualifiedCName: string;
@@ -61,7 +63,7 @@ class TestSymbolUtils {
       name,
       scopePath,
       sourceFile: overrides.sourceFile ?? "test.cnx",
-      sourceLine: overrides.sourceLine ?? 1,
+      span: overrides.span ?? TestSourceSpan.at(1),
       sourceLanguage: overrides.sourceLanguage ?? ESourceLanguage.CNext,
       visibility: overrides.visibility ?? "public",
       ...ScopeUtils.identityOf({ name, scopePath }),

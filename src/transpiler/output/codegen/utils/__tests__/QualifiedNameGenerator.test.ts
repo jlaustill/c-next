@@ -9,6 +9,7 @@ import QualifiedNameGenerator from "../QualifiedNameGenerator";
 import SymbolRegistry from "../../../../state/SymbolRegistry";
 import FunctionUtils from "../../../../../utils/FunctionUtils";
 import TTypeUtils from "../../../../../utils/TTypeUtils";
+import TestSourceSpan from "../../../../types/__testUtils__/testSourceSpan";
 
 describe("QualifiedNameGenerator", () => {
   beforeEach(() => {
@@ -25,7 +26,7 @@ describe("QualifiedNameGenerator", () => {
         visibility: "public",
         body: null,
         sourceFile: "main.cnx",
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
       });
 
       expect(QualifiedNameGenerator.forFunction(func)).toBe("main");
@@ -41,7 +42,7 @@ describe("QualifiedNameGenerator", () => {
         visibility: "private",
         body: null,
         sourceFile: "test.cnx",
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
       });
 
       expect(QualifiedNameGenerator.forFunction(func)).toBe("Test__fillData");
@@ -57,7 +58,7 @@ describe("QualifiedNameGenerator", () => {
         visibility: "private",
         body: null,
         sourceFile: "test.cnx",
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
       });
 
       expect(QualifiedNameGenerator.forFunction(func)).toBe(
@@ -75,7 +76,7 @@ describe("QualifiedNameGenerator", () => {
         visibility: "public",
         body: null,
         sourceFile: "test.cnx",
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
       });
 
       expect(QualifiedNameGenerator.forFunction(func)).toBe(
@@ -124,7 +125,7 @@ describe("QualifiedNameGenerator", () => {
         visibility: "public",
         body: null,
         sourceFile: "motor.cnx",
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
       });
       SymbolRegistry.registerFunction(func);
 

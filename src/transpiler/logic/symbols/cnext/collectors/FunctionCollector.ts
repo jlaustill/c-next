@@ -14,6 +14,7 @@ import TypeUtils from "../utils/TypeUtils";
 import SymbolRegistry from "../../../../state/SymbolRegistry";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
 import TVisibility from "../../../../types/TVisibility";
+import ParserUtils from "../../../../../utils/ParserUtils";
 
 class FunctionCollector {
   /**
@@ -38,7 +39,7 @@ class FunctionCollector {
     isScopeType?: (qualifiedName: string) => boolean,
   ): IFunctionSymbol {
     const name = ctx.IDENTIFIER().getText();
-    const line = ctx.start?.line ?? 0;
+    const span = ParserUtils.getSpan(ctx);
 
     // Get return type string and convert to TType
     const returnTypeCtx = ctx.type();
@@ -72,7 +73,7 @@ class FunctionCollector {
       visibility,
       body,
       sourceFile,
-      sourceLine: line,
+      span,
       sourceLanguage: ESourceLanguage.CNext,
     };
   }

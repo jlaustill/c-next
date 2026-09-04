@@ -15,6 +15,7 @@ import SymbolRegistry from "../SymbolRegistry";
 import ScopeUtils from "../../../utils/ScopeUtils";
 import createMockSymbols from "../../__tests__/codeGenSymbolsHelpers";
 import UNRESOLVED_DIMENSION from "../../constants/UNRESOLVED_DIMENSION";
+import TestSourceSpan from "../../types/__testUtils__/testSourceSpan";
 
 /**
  * Create a minimal C-Next IVariableSymbol for testing.
@@ -28,7 +29,7 @@ function createCNextVariableSymbol(
       name: overrides.name,
       scopePath: overrides.scopePath ?? "",
       sourceFile: overrides.sourceFile ?? "test.cnx",
-      sourceLine: overrides.sourceLine ?? 1,
+      span: overrides.span ?? TestSourceSpan.at(1),
       sourceLanguage: ESourceLanguage.CNext,
       visibility: overrides.visibility ?? "private",
     }),
@@ -52,7 +53,7 @@ function createCVariableSymbol(
     kind: "variable",
     name: overrides.name,
     sourceFile: overrides.sourceFile ?? "test.h",
-    sourceLine: overrides.sourceLine ?? 1,
+    span: overrides.span ?? TestSourceSpan.at(1),
     sourceLanguage: ESourceLanguage.C,
     visibility: overrides.visibility ?? "public",
     type: overrides.type,

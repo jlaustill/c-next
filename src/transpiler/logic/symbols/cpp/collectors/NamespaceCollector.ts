@@ -8,6 +8,7 @@
 
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import ICppNamespaceSymbol from "../../../../types/symbols/cpp/ICppNamespaceSymbol";
+import type ISourceSpan from "../../../../types/ISourceSpan";
 
 class NamespaceCollector {
   /**
@@ -15,14 +16,14 @@ class NamespaceCollector {
    *
    * @param nsDef The namespace definition context
    * @param sourceFile Source file path
-   * @param line Line number
+   * @param span Source span of the declaration
    * @param currentNamespace Optional parent namespace name
    * @returns The namespace symbol
    */
   static collect(
     nsDef: any,
     sourceFile: string,
-    line: number,
+    span: ISourceSpan,
     currentNamespace?: string,
   ): ICppNamespaceSymbol | null {
     const identifier = nsDef.Identifier?.();
@@ -38,7 +39,7 @@ class NamespaceCollector {
       kind: "namespace",
       name: fullName,
       sourceFile,
-      sourceLine: line,
+      span,
       sourceLanguage: ESourceLanguage.Cpp,
       visibility: "public",
       parent: currentNamespace,

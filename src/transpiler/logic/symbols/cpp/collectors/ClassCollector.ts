@@ -15,6 +15,8 @@ import SymbolTable from "../../SymbolTable";
 import SymbolUtils from "../../SymbolUtils";
 import DeclaratorUtils from "../utils/DeclaratorUtils";
 import FunctionCollector from "./FunctionCollector";
+import type ISourceSpan from "../../../../types/ISourceSpan";
+import ParserUtils from "../../../../../utils/ParserUtils";
 
 /**
  * Result of collecting a class, including the class symbol and any member function symbols.
@@ -43,7 +45,7 @@ class ClassCollector {
    *
    * @param classSpec The class specifier context
    * @param sourceFile Source file path
-   * @param line Line number
+   * @param span Source span of the declaration
    * @param currentNamespace Optional current namespace
    * @param symbolTable Optional symbol table for storing field info
    * @returns The class symbol with member functions, or null if no name
@@ -51,7 +53,7 @@ class ClassCollector {
   static collect(
     classSpec: any,
     sourceFile: string,
-    line: number,
+    span: ISourceSpan,
     currentNamespace?: string,
     symbolTable?: SymbolTable | null,
   ): IClassCollectorResult | null {
@@ -94,7 +96,7 @@ class ClassCollector {
       kind: "class",
       name: fullName,
       sourceFile,
-      sourceLine: line,
+      span,
       sourceLanguage: ESourceLanguage.Cpp,
       visibility: "public",
       parent: currentNamespace,
@@ -110,7 +112,7 @@ class ClassCollector {
    * @param classSpec The class specifier context (anonymous)
    * @param typedefName The typedef name to use as the class name
    * @param sourceFile Source file path
-   * @param line Line number
+   * @param span Source span of the declaration
    * @param symbolTable Symbol table for storing field info
    * @returns The class symbol result, or null on error
    */
@@ -118,7 +120,7 @@ class ClassCollector {
     classSpec: any,
     typedefName: string,
     sourceFile: string,
-    line: number,
+    span: ISourceSpan,
     symbolTable: SymbolTable,
   ): IClassCollectorResult | null {
     const memberSpec = classSpec.memberSpecification?.();
@@ -142,7 +144,7 @@ class ClassCollector {
       kind: "class",
       name: typedefName,
       sourceFile,
-      sourceLine: line,
+      span,
       sourceLanguage: ESourceLanguage.Cpp,
       visibility: "public",
       fields: fields.size > 0 ? fields : undefined,
@@ -174,7 +176,7 @@ class ClassCollector {
     memberDecl: any,
     ctx: IMemberCollectionContext,
   ): void {
-    const line = memberDecl.start?.line ?? 0;
+    const span = ParserUtils.getSpan(memberDecl);
 
     // Check for inline function definition within the class
     const funcDef = memberDecl.functionDefinition?.();
@@ -183,7 +185,7 @@ class ClassCollector {
         ctx.className,
         funcDef,
         ctx.sourceFile,
-        line,
+        span,
         ctx.memberFunctions,
       );
       return;
@@ -203,7 +205,7 @@ class ClassCollector {
       ClassCollector._collectMemberDeclarator(
         memberDeclarator,
         fieldType,
-        line,
+        span,
         ctx,
       );
     }
@@ -216,7 +218,7 @@ class ClassCollector {
     className: string,
     funcDef: any,
     sourceFile: string,
-    line: number,
+    span: ISourceSpan,
     memberFunctions: ICppFunctionSymbol[],
   ): void {
     const declarator = funcDef.declarator?.();
@@ -236,7 +238,7 @@ class ClassCollector {
       declarator,
       returnType,
       sourceFile,
-      line,
+      span,
       false, // not a declaration, it's a definition
     );
     memberFunctions.push(symbol);
@@ -248,7 +250,7 @@ class ClassCollector {
   private static _collectMemberDeclarator(
     memberDeclarator: any,
     fieldType: string,
-    line: number,
+    span: ISourceSpan,
     ctx: IMemberCollectionContext,
   ): void {
     const declarator = memberDeclarator.declarator?.();
@@ -265,7 +267,7 @@ class ClassCollector {
         declarator,
         fieldType,
         ctx.sourceFile,
-        line,
+        span,
         true, // declaration
       );
       ctx.memberFunctions.push(symbol);

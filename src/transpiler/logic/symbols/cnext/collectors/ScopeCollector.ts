@@ -20,6 +20,9 @@ import StructCollector from "./StructCollector";
 import FunctionCollector from "./FunctionCollector";
 import VariableCollector from "./VariableCollector";
 import RegisterCollector from "./RegisterCollector";
+import type ISourceSpan from "../../../../types/ISourceSpan";
+import UNSET_SOURCE_SPAN from "../../../../constants/UNSET_SOURCE_SPAN";
+import ParserUtils from "../../../../../utils/ParserUtils";
 
 class ScopeCollector {
   /**
@@ -50,7 +53,7 @@ class ScopeCollector {
     isScopeType?: (qualifiedName: string) => boolean,
   ): IScopeCollectorResult {
     const scopeName = ctx.IDENTIFIER().getText();
-    const line = ctx.start?.line ?? 0;
+    const span = ParserUtils.getSpan(ctx);
 
     // Get or create the scope via SymbolRegistry
     const scope = SymbolRegistry.getOrCreateScope(scopeName);
@@ -62,7 +65,7 @@ class ScopeCollector {
     // Update scope metadata (cast to mutable for initialization)
     const mutableScope = scope as unknown as {
       sourceFile: string;
-      sourceLine: number;
+      span: ISourceSpan;
       sourceLanguage: ESourceLanguage;
       visibility: TVisibility;
       declarationSites: Set<string>;
@@ -84,14 +87,17 @@ class ScopeCollector {
     // a ratchet with nothing exercising it, kept so that a reintroduced second pass
     // is absorbed rather than silently duplicating. Stated plainly because the
     // alternative is a comment claiming coverage the code no longer has.
-    mutableScope.declarationSites.add(DeclarationSite.format(sourceFile, line));
+    mutableScope.declarationSites.add(
+      DeclarationSite.format(sourceFile, span.line),
+    );
 
     // The scalars keep the FIRST site. Lossless now that declarationSites holds
-    // the rest: `sourceLine === 0` is createScope's initial value, so an unset
-    // scalar is distinguishable from a real line.
-    if (mutableScope.sourceLine === 0) {
+    // the rest: UNSET_SOURCE_SPAN is createScope's initial value and its line is
+    // 0, which no real position can be because ANTLR lines are 1-based -- so an
+    // unset span is distinguishable from a real one.
+    if (mutableScope.span.line === UNSET_SOURCE_SPAN.line) {
       mutableScope.sourceFile = sourceFile;
-      mutableScope.sourceLine = line;
+      mutableScope.span = span;
     }
     mutableScope.sourceLanguage = ESourceLanguage.CNext;
     // A scope is a container, not a declaration -- it is never marked private,

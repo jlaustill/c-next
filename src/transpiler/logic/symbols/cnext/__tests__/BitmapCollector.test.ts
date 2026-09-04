@@ -34,11 +34,23 @@ describe("BitmapCollector", () => {
 
       // Check fields
       expect(symbol.fields.size).toBe(5);
-      expect(symbol.fields.get("enabled")).toEqual({ offset: 0, width: 1 });
-      expect(symbol.fields.get("running")).toEqual({ offset: 1, width: 1 });
-      expect(symbol.fields.get("error")).toEqual({ offset: 2, width: 1 });
-      expect(symbol.fields.get("warning")).toEqual({ offset: 3, width: 1 });
-      expect(symbol.fields.get("reserved")).toEqual({ offset: 4, width: 4 });
+      expect(symbol.fields.get("enabled")).toMatchObject({
+        offset: 0,
+        width: 1,
+      });
+      expect(symbol.fields.get("running")).toMatchObject({
+        offset: 1,
+        width: 1,
+      });
+      expect(symbol.fields.get("error")).toMatchObject({ offset: 2, width: 1 });
+      expect(symbol.fields.get("warning")).toMatchObject({
+        offset: 3,
+        width: 1,
+      });
+      expect(symbol.fields.get("reserved")).toMatchObject({
+        offset: 4,
+        width: 4,
+      });
     });
 
     it("collects a bitmap16 with mixed width fields", () => {
@@ -62,9 +74,15 @@ describe("BitmapCollector", () => {
       expect(symbol.backingType).toBe("uint16_t");
       expect(symbol.bitWidth).toBe(16);
 
-      expect(symbol.fields.get("mode")).toEqual({ offset: 0, width: 4 });
-      expect(symbol.fields.get("intensity")).toEqual({ offset: 4, width: 8 });
-      expect(symbol.fields.get("flags")).toEqual({ offset: 12, width: 4 });
+      expect(symbol.fields.get("mode")).toMatchObject({ offset: 0, width: 4 });
+      expect(symbol.fields.get("intensity")).toMatchObject({
+        offset: 4,
+        width: 8,
+      });
+      expect(symbol.fields.get("flags")).toMatchObject({
+        offset: 12,
+        width: 4,
+      });
     });
 
     it("collects a bitmap32", () => {
@@ -191,7 +209,7 @@ describe("BitmapCollector", () => {
         "public",
       );
 
-      expect(symbol.sourceLine).toBe(3);
+      expect(symbol.span.line).toBe(3);
     });
   });
 
@@ -214,6 +232,56 @@ describe("BitmapCollector", () => {
       );
 
       expect(symbol.visibility).toBe("private");
+    });
+  });
+
+  describe("fields carry their own position and identity (#1318)", () => {
+    const collect = (code: string, scopePath = "", visibility = "public") =>
+      BitmapCollector.collect(
+        parse(code).declaration(0)!.bitmapDeclaration()!,
+        "test.cnx",
+        scopePath,
+        visibility as "public" | "private",
+      );
+
+    it("gives each field a DISTINCT line, not the bitmap's", () => {
+      // Distinctness, not fixed numbers: a collector that hands every field the
+      // bitmap's span produces equal lines whatever the fixture's layout is,
+      // so this fails on a revert rather than on a change of indentation.
+      const symbol = collect(`
+        bitmap8 Status {
+          a,
+          b,
+          c,
+          d,
+          e,
+          f,
+          g,
+          h
+        }
+      `);
+      const lines = [...symbol.fields.values()].map((f) => f.span.line);
+      expect(new Set(lines).size).toBe(8);
+      expect(lines).not.toContain(symbol.span.line);
+    });
+
+    it("names the field, which the old record could not", () => {
+      // IBitmapFieldInfo had offset and width and NO name -- it lived only as
+      // the Map key, so a field passed to a helper arrived anonymous.
+      const symbol = collect(`bitmap8 Status { a, b[7] }`);
+      expect(symbol.fields.get("a")!.name).toBe("a");
+      expect(symbol.fields.get("b")!.name).toBe("b");
+    });
+
+    it("keys a field by its owner, and inherits the owner's visibility", () => {
+      const global = collect(`bitmap8 Status { a, b[7] }`);
+      expect(global.fields.get("a")!.fullyQualifiedCName).toBe("Status__a");
+
+      const scoped = collect(`bitmap8 Status { a, b[7] }`, "Motor", "private");
+      expect(scoped.fields.get("a")!.fullyQualifiedCName).toBe(
+        "Motor__Status__a",
+      );
+      expect(scoped.fields.get("a")!.visibility).toBe("private");
     });
   });
 });

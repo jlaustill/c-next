@@ -9,6 +9,7 @@
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import ICppVariableSymbol from "../../../../types/symbols/cpp/ICppVariableSymbol";
 import DeclaratorUtils from "../utils/DeclaratorUtils";
+import type ISourceSpan from "../../../../types/ISourceSpan";
 
 class VariableCollector {
   /**
@@ -17,7 +18,7 @@ class VariableCollector {
    * @param declarator The declarator context
    * @param baseType The variable type string
    * @param sourceFile Source file path
-   * @param line Line number
+   * @param span Source span of the declaration
    * @param currentNamespace Optional current namespace
    * @returns The variable symbol or null if no name
    */
@@ -25,7 +26,7 @@ class VariableCollector {
     declarator: any,
     baseType: string,
     sourceFile: string,
-    line: number,
+    span: ISourceSpan,
     currentNamespace?: string,
   ): ICppVariableSymbol | null {
     const name = DeclaratorUtils.extractDeclaratorName(declarator);
@@ -41,7 +42,7 @@ class VariableCollector {
       name: fullName,
       type: baseType,
       sourceFile,
-      sourceLine: line,
+      span,
       sourceLanguage: ESourceLanguage.Cpp,
       visibility: "public",
       parent: currentNamespace,

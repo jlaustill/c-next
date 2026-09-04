@@ -27,6 +27,7 @@ import MockFileSystem from "../../../transpiler/__tests__/MockFileSystem";
 import TTypeUtils from "../../TTypeUtils";
 import type IFunctionSymbol from "../../../transpiler/types/symbols/IFunctionSymbol";
 import TestSymbolUtils from "../../../transpiler/logic/symbols/cnext/__tests__/testSymbolUtils";
+import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
 
 describe("CacheManager", () => {
   let testDir: string;
@@ -44,7 +45,7 @@ describe("CacheManager", () => {
       kind: "function",
       type: "void",
       sourceFile: "/test/file.h",
-      sourceLine: 10,
+      span: TestSourceSpan.at(10),
       sourceLanguage: ESourceLanguage.C,
       visibility: "public",
       ...overrides,
@@ -289,7 +290,7 @@ describe("CacheManager", () => {
         name: "testFunc",
         kind: "function",
         sourceFile: testFile,
-        sourceLine: 10,
+        span: TestSourceSpan.at(10),
         sourceLanguage: ESourceLanguage.C,
         visibility: "public",
       });
@@ -329,7 +330,7 @@ describe("CacheManager", () => {
         kind: "function",
         type: "int",
         sourceFile: testFile,
-        sourceLine: 10,
+        span: TestSourceSpan.at(10),
         sourceLanguage: ESourceLanguage.C,
         visibility: "public",
         isDeclaration: true,
@@ -369,7 +370,7 @@ describe("CacheManager", () => {
 
       const base = {
         sourceFile: testFile,
-        sourceLine: 10,
+        span: TestSourceSpan.at(10),
         sourceLanguage: ESourceLanguage.C as const,
         visibility: "public" as const,
       };
@@ -814,7 +815,7 @@ describe("CacheManager", () => {
 
       const base = {
         sourceFile: testFile,
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         sourceLanguage: ESourceLanguage.C as const,
         visibility: "public" as const,
       };
@@ -863,7 +864,7 @@ describe("CacheManager", () => {
 
       const base = {
         sourceFile: testFile,
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         sourceLanguage: ESourceLanguage.Cpp as const,
         visibility: "public" as const,
       };
@@ -919,7 +920,7 @@ describe("CacheManager", () => {
           kind: "function",
           type: "void",
           sourceFile: testFile,
-          sourceLine: 10,
+          span: TestSourceSpan.at(10),
           sourceLanguage: ESourceLanguage.Cpp,
           visibility: "public",
         },
@@ -948,7 +949,7 @@ describe("CacheManager", () => {
           name: "cnextFunc",
           kind: "function",
           sourceFile: "/test/file.cnx",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.CNext,
           visibility: "public",
         }),
@@ -975,7 +976,7 @@ describe("CacheManager", () => {
         kind: "function",
         type: "void",
         sourceFile: testFile,
-        sourceLine: 5,
+        span: TestSourceSpan.at(5),
         sourceLanguage: ESourceLanguage.C,
         visibility: "public",
       });
@@ -989,7 +990,7 @@ describe("CacheManager", () => {
         name: "myFunction",
         kind: "function",
         sourceFile: testFile,
-        sourceLine: 5,
+        span: TestSourceSpan.at(5),
         sourceLanguage: ESourceLanguage.C,
         visibility: "public",
         type: "void",
@@ -1009,7 +1010,7 @@ describe("CacheManager", () => {
         kind: "function",
         type: "void",
         sourceFile: headerFile,
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         sourceLanguage: ESourceLanguage.C,
         visibility: "public",
       });
@@ -1019,7 +1020,7 @@ describe("CacheManager", () => {
           name: "cnextFunction",
           scopePath: "",
           sourceFile: headerFile,
-          sourceLine: 2,
+          span: TestSourceSpan.at(2),
         }),
         returnType: TTypeUtils.createPrimitive("void"),
         parameters: [],
@@ -1044,7 +1045,7 @@ describe("CacheManager", () => {
         name: "Point",
         kind: "struct",
         sourceFile: testFile,
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         sourceLanguage: ESourceLanguage.C,
         visibility: "public",
         isUnion: false,
@@ -1083,7 +1084,7 @@ describe("CacheManager", () => {
         name: "PointA",
         kind: "struct",
         sourceFile: file1,
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         sourceLanguage: ESourceLanguage.C,
         visibility: "public",
         isUnion: false,
@@ -1095,7 +1096,7 @@ describe("CacheManager", () => {
         name: "PointB",
         kind: "struct",
         sourceFile: file2,
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         sourceLanguage: ESourceLanguage.C,
         visibility: "public",
         isUnion: false,
@@ -1121,7 +1122,7 @@ describe("CacheManager", () => {
         name: "TypedefStruct",
         kind: "struct",
         sourceFile: testFile,
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         sourceLanguage: ESourceLanguage.C,
         visibility: "public",
         isUnion: false,
@@ -1130,7 +1131,7 @@ describe("CacheManager", () => {
         name: "NamedStruct",
         kind: "struct",
         sourceFile: testFile,
-        sourceLine: 5,
+        span: TestSourceSpan.at(5),
         sourceLanguage: ESourceLanguage.C,
         visibility: "public",
         isUnion: false,
@@ -1163,7 +1164,7 @@ describe("CacheManager", () => {
         name: "StructA",
         kind: "struct",
         sourceFile: file1,
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         sourceLanguage: ESourceLanguage.C,
         visibility: "public",
         isUnion: false,
@@ -1172,7 +1173,7 @@ describe("CacheManager", () => {
         name: "StructB",
         kind: "struct",
         sourceFile: file2,
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         sourceLanguage: ESourceLanguage.C,
         visibility: "public",
         isUnion: false,
@@ -1205,7 +1206,7 @@ describe("CacheManager", () => {
         name: "Status",
         kind: "enum",
         sourceFile: testFile,
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         sourceLanguage: ESourceLanguage.C,
         visibility: "public",
         members: [],
@@ -1214,7 +1215,7 @@ describe("CacheManager", () => {
         name: "Priority",
         kind: "enum",
         sourceFile: testFile,
-        sourceLine: 5,
+        span: TestSourceSpan.at(5),
         sourceLanguage: ESourceLanguage.C,
         visibility: "public",
         members: [],
@@ -1245,7 +1246,7 @@ describe("CacheManager", () => {
         name: "EnumA",
         kind: "enum",
         sourceFile: file1,
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         sourceLanguage: ESourceLanguage.C,
         visibility: "public",
         members: [],
@@ -1254,7 +1255,7 @@ describe("CacheManager", () => {
         name: "EnumB",
         kind: "enum",
         sourceFile: file2,
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         sourceLanguage: ESourceLanguage.C,
         visibility: "public",
         members: [],
@@ -1284,7 +1285,7 @@ describe("CacheManager", () => {
         kind: "function",
         type: "void",
         sourceFile: testFile,
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         sourceLanguage: ESourceLanguage.C,
         visibility: "public",
       });
@@ -1294,7 +1295,7 @@ describe("CacheManager", () => {
         name: "DataPacket",
         kind: "struct",
         sourceFile: testFile,
-        sourceLine: 10,
+        span: TestSourceSpan.at(10),
         sourceLanguage: ESourceLanguage.C,
         visibility: "public",
         isUnion: false,
@@ -1308,7 +1309,7 @@ describe("CacheManager", () => {
         name: "DataType",
         kind: "enum",
         sourceFile: testFile,
-        sourceLine: 20,
+        span: TestSourceSpan.at(20),
         sourceLanguage: ESourceLanguage.C,
         visibility: "public",
         members: [],
@@ -1355,7 +1356,7 @@ describe("CacheManager", () => {
         name: "MyStruct",
         kind: "struct",
         sourceFile: testFile,
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         sourceLanguage: ESourceLanguage.C,
         visibility: "public",
         isUnion: false,
@@ -1367,7 +1368,7 @@ describe("CacheManager", () => {
         name: "MyEnum",
         kind: "enum",
         sourceFile: testFile,
-        sourceLine: 5,
+        span: TestSourceSpan.at(5),
         sourceLanguage: ESourceLanguage.C,
         visibility: "public",
         members: [],
@@ -1402,7 +1403,7 @@ describe("CacheManager", () => {
         kind: "function",
         type: "void",
         sourceFile: nonExistent,
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         sourceLanguage: ESourceLanguage.C,
         visibility: "public",
       });
@@ -1438,7 +1439,7 @@ describe("CacheManager", () => {
         name: "EmptyStruct",
         kind: "struct",
         sourceFile: testFile,
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         sourceLanguage: ESourceLanguage.C,
         visibility: "public",
         isUnion: false,
@@ -1464,7 +1465,7 @@ describe("CacheManager", () => {
         name: "SimpleEnum",
         kind: "enum",
         sourceFile: testFile,
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         sourceLanguage: ESourceLanguage.C,
         visibility: "public",
         members: [],
@@ -1489,7 +1490,7 @@ describe("CacheManager", () => {
         kind: "function",
         type: "void",
         sourceFile: testFile,
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         sourceLanguage: ESourceLanguage.C,
         visibility: "public",
       });
@@ -1498,7 +1499,7 @@ describe("CacheManager", () => {
         kind: "function",
         type: "void",
         sourceFile: testFile,
-        sourceLine: 5,
+        span: TestSourceSpan.at(5),
         sourceLanguage: ESourceLanguage.C,
         visibility: "public",
       });
@@ -1507,7 +1508,7 @@ describe("CacheManager", () => {
         kind: "function",
         type: "void",
         sourceFile: testFile,
-        sourceLine: 10,
+        span: TestSourceSpan.at(10),
         sourceLanguage: ESourceLanguage.C,
         visibility: "public",
       });
@@ -1593,7 +1594,7 @@ describe("CacheManager", () => {
         kind: "function",
         type: "void",
         sourceFile: "/project/test.h",
-        sourceLine: 1,
+        span: TestSourceSpan.at(1),
         sourceLanguage: ESourceLanguage.C,
         visibility: "public",
       };
@@ -1639,7 +1640,7 @@ describe("CacheManager", () => {
       const content = mockFs.getWrittenContent("/project/.cnx/config.json");
       expect(content).toBeDefined();
       const newConfig = JSON.parse(content!);
-      expect(newConfig.version).toBe(10); // Current CACHE_VERSION (Issue #1446)
+      expect(newConfig.version).toBe(11); // Current CACHE_VERSION (Issue #1318)
     });
 
     it("should not cache files that do not exist in IFileSystem", async () => {
@@ -1652,7 +1653,7 @@ describe("CacheManager", () => {
           kind: "function",
           type: "void",
           sourceFile: "/project/nonexistent.h",
-          sourceLine: 1,
+          span: TestSourceSpan.at(1),
           sourceLanguage: ESourceLanguage.C,
           visibility: "public",
         },
