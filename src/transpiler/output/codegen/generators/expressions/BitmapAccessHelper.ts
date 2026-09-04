@@ -7,6 +7,7 @@
  * - Register member bitmap type field access
  * - Struct member bitmap type field access
  */
+import type IBitmapFieldLayout from "../../../../types/IBitmapFieldLayout";
 import accessGenerators from "./AccessExprGenerator";
 import TGeneratorEffect from "../TGeneratorEffect";
 
@@ -34,10 +35,7 @@ class BitmapAccessHelper {
     result: string,
     memberName: string,
     bitmapType: string,
-    bitmapFields: ReadonlyMap<
-      string,
-      ReadonlyMap<string, { readonly offset: number; readonly width: number }>
-    >,
+    bitmapFields: ReadonlyMap<string, ReadonlyMap<string, IBitmapFieldLayout>>,
     errorDescriptor: string,
   ): BitmapAccessResult {
     const fieldInfo = bitmapFields.get(bitmapType)?.get(memberName);
