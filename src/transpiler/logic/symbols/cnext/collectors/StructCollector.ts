@@ -16,6 +16,7 @@ import ScopeUtils from "../../../../../utils/ScopeUtils";
 import TVisibility from "../../../../types/TVisibility";
 import ParserUtils from "../../../../../utils/ParserUtils";
 import MemberSymbolBase from "../utils/MemberSymbolBase";
+import type ISourceSpan from "../../../../types/ISourceSpan";
 
 /**
  * Result of processing an arrayType syntax context.
@@ -142,6 +143,9 @@ interface IFieldOwner {
   readonly scopedName: string;
   readonly sourceFile: string;
   readonly visibility: TVisibility;
+
+  /** The struct's own span, inherited by a field that has no start token. */
+  readonly span: ISourceSpan;
 }
 
 class StructCollector {
@@ -171,17 +175,15 @@ class StructCollector {
 
     const fields = new Map<string, IStructFieldSymbol>();
     // #1318: a field hangs off the STRUCT, not the enclosing scope.
-    const ownerScopedName = ScopeUtils.identityOf({
-      name,
-      scopePath,
-    }).cnxScopedName;
+    const identity = ScopeUtils.identityOf({ name, scopePath });
+    const ownerScopedName = identity.cnxScopedName;
 
     for (const member of ctx.structMember()) {
       const fieldName = member.IDENTIFIER().getText();
       const fieldInfo = StructCollector.collectField(
         member,
         fieldName,
-        { scopedName: ownerScopedName, sourceFile, visibility },
+        { scopedName: ownerScopedName, sourceFile, visibility, span },
         scopePath,
         constValues,
         isScopeType,
@@ -195,7 +197,10 @@ class StructCollector {
       scopePath,
       // #1285: identity computed once, from the scope chain, not
       // re-derived by every consumer.
-      ...ScopeUtils.identityOf({ name, scopePath }),
+      // #1318 review: the same identity the members were keyed by, not a
+      // second call with the same arguments -- change one and the members
+      // would keep the old parent name while this reported the new one.
+      ...identity,
       sourceFile,
       span,
       sourceLanguage: ESourceLanguage.CNext,
@@ -269,6 +274,7 @@ class StructCollector {
         name: fieldName,
         parentScopedName: owner.scopedName,
         memberCtx: member,
+        parentSpan: owner.span,
         sourceFile: owner.sourceFile,
         visibility: owner.visibility,
       }),

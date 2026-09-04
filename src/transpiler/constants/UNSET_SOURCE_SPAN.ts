@@ -24,11 +24,24 @@ import type ISourceSpan from "../types/ISourceSpan";
  * which value means "unset" -- the shape #1300 records, where two places held
  * one fact and the header believed the wrong one.
  */
-const UNSET_SOURCE_SPAN: ISourceSpan = {
+/*
+ * Frozen because every scope created before its declaring block is collected
+ * shares this ONE object. `readonly` on `ISourceSpan` is compile-time only, and
+ * `ScopeCollector` deliberately casts around it (`scope as unknown as {...}`),
+ * so a single `mutableScope.span.line = n` written in place of
+ * `mutableScope.span = span` would rewrite the sentinel for every unset scope
+ * in the run -- and the `span.line === UNSET_SOURCE_SPAN.line` check would then
+ * read "already set" for all of them. The old sentinel was the primitive `0`,
+ * where that was not representable. Freezing restores that property.
+ *
+ * The comparison stays a VALUE comparison (`span.line === ...`), never
+ * `span === UNSET_SOURCE_SPAN`: identity does not survive a cache round-trip.
+ */
+const UNSET_SOURCE_SPAN: ISourceSpan = Object.freeze({
   line: 0,
   column: 0,
   endLine: 0,
   endColumn: 0,
-};
+});
 
 export default UNSET_SOURCE_SPAN;

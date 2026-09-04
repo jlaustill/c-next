@@ -47,10 +47,8 @@ class RegisterCollector {
     // Collect register members
     const members = new Map<string, IRegisterMemberSymbol>();
     // #1318: a member hangs off the REGISTER, not the enclosing scope.
-    const ownerScopedName = ScopeUtils.identityOf({
-      name,
-      scopePath,
-    }).cnxScopedName;
+    const identity = ScopeUtils.identityOf({ name, scopePath });
+    const ownerScopedName = identity.cnxScopedName;
 
     for (const member of ctx.registerMember()) {
       const memberName = member.IDENTIFIER().getText();
@@ -81,6 +79,7 @@ class RegisterCollector {
           name: memberName,
           parentScopedName: ownerScopedName,
           memberCtx: member,
+          parentSpan: span,
           sourceFile,
           visibility,
         }),
@@ -99,7 +98,10 @@ class RegisterCollector {
       scopePath,
       // #1285: identity computed once, from the scope chain, not
       // re-derived by every consumer.
-      ...ScopeUtils.identityOf({ name, scopePath }),
+      // #1318 review: the same identity the members were keyed by, not a
+      // second call with the same arguments -- change one and the members
+      // would keep the old parent name while this reported the new one.
+      ...identity,
       sourceFile,
       span,
       sourceLanguage: ESourceLanguage.CNext,

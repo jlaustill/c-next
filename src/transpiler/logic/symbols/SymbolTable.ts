@@ -747,15 +747,6 @@ class SymbolTable {
   }
 
   /**
-   * Where a definition is, as a symbol carries it.
-   *
-   * #1334: the two conflict producers formatted this differently, so the same fact
-   * printed two ways depending on which path found it. Symbols carry no column
-   * (IBaseSymbol has sourceFile/sourceLine only), so line is the finest granularity
-   * available. The rendering itself lives in DeclarationSite -- see there for why it
-   * is a basename and why the ordering needs a comparator.
-   */
-  /**
    * The language a definition came from, as a reader knows it.
    *
    * Private because SymbolTable is the only consumer today; promote it beside
@@ -770,6 +761,20 @@ class SymbolTable {
     return names[symbol.sourceLanguage];
   }
 
+  /**
+   * Where a definition is, as a symbol carries it.
+   *
+   * #1334: the two conflict producers formatted this differently, so the same fact
+   * printed two ways depending on which path found it. The rendering itself lives
+   * in DeclarationSite -- see there for why it is a basename and why the ordering
+   * needs a comparator.
+   *
+   * Line-granular ON PURPOSE, not for want of a column. #1318 gave every symbol a
+   * `span`, and the three diagnostics below report `span.column`; this renders the
+   * `file:line` form that `declarationSites` is keyed on, so adding a column here
+   * would stop the two matching. (This comment previously claimed symbols carried
+   * no column, and was stacked above `languageName` rather than this function.)
+   */
   private static locationOf(symbol: TAnySymbol): string {
     return DeclarationSite.display(symbol.sourceFile, symbol.span.line);
   }

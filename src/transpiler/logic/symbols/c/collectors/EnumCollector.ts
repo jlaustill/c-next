@@ -89,22 +89,30 @@ class EnumCollector {
     memberName: string,
     enumName: string,
     sourceFile: string,
-    enumeratorDef: { start?: unknown },
+    // The real shape, not `{ start?: unknown }`: an `unknown` here threw away
+    // what the caller had and forced a cast, which would have waved
+    // `{ start: "yes" }` straight through into getSpan (#1318 review).
+    enumeratorDef: {
+      start?: { line?: number; column?: number } | null;
+      stop?: {
+        line?: number;
+        column?: number;
+        text?: string | null;
+        start?: number;
+        stop?: number;
+      } | null;
+    },
     enumSpan: ISourceSpan,
   ): ICEnumMemberSymbol {
     return {
       kind: "enum_member",
       name: memberName,
       sourceFile,
-      // #1318: a member carries its OWN span, not its parent's. Falls back to
-      // the enum's span only when the enumerator has no start token --
-      // ParserUtils.getSpan would report 0:0 there, and a diagnostic aimed at
-      // the top of the file is worse than one aimed at the enclosing enum.
-      span: enumeratorDef.start
-        ? ParserUtils.getSpan(
-            enumeratorDef as Parameters<typeof ParserUtils.getSpan>[0],
-          )
-        : enumSpan,
+      // #1318: a member carries its OWN span, not its parent's -- falling back
+      // to the enum's only when the enumerator has no start token. The fallback
+      // decision itself lives in `getSpanOr`, so the C-Next path cannot answer
+      // it differently, which it did until the #1318 review caught it.
+      span: ParserUtils.getSpanOr(enumeratorDef, enumSpan),
       sourceLanguage: ESourceLanguage.C,
       visibility: "public",
       parent: enumName,

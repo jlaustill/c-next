@@ -21,8 +21,20 @@ interface IMemberSymbolInput<K extends TSymbolKindCNext> {
   /** The member's own parse context, so it gets its own span. */
   readonly memberCtx: {
     start?: { line?: number; column?: number } | null;
-    stop?: { line?: number; column?: number; text?: string | null } | null;
+    stop?: {
+      line?: number;
+      column?: number;
+      text?: string | null;
+      start?: number;
+      stop?: number;
+    } | null;
   };
+
+  /**
+   * The declaring type's span, used only when the member context has no start
+   * token. See `ParserUtils.getSpanOr` for why inheriting beats `0:0`.
+   */
+  readonly parentSpan: ISourceSpan;
 
   readonly sourceFile: string;
 
@@ -76,7 +88,11 @@ class MemberSymbolBase {
         scopePath: input.parentScopedName,
       }),
       sourceFile: input.sourceFile,
-      span: ParserUtils.getSpan(input.memberCtx),
+      // Same fallback the C path uses, through the same function: a member
+      // with no start token inherits its parent's span rather than
+      // reporting 0:0, which is both the top of the file and
+      // indistinguishable from UNSET_SOURCE_SPAN (#1318 review).
+      span: ParserUtils.getSpanOr(input.memberCtx, input.parentSpan),
       sourceLanguage: ESourceLanguage.CNext,
       visibility: input.visibility,
     };

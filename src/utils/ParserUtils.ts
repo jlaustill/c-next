@@ -55,7 +55,13 @@ class ParserUtils {
    */
   static getSpan(ctx: {
     start?: { line?: number; column?: number } | null;
-    stop?: { line?: number; column?: number; text?: string | null } | null;
+    stop?: {
+      line?: number;
+      column?: number;
+      text?: string | null;
+      start?: number;
+      stop?: number;
+    } | null;
   }): ISourceSpan {
     const line = ctx.start?.line ?? 0;
     const column = ctx.start?.column ?? 0;
@@ -70,8 +76,67 @@ class ParserUtils {
       line,
       column,
       endLine,
-      endColumn: stopColumn + (ctx.stop.text?.length ?? 0),
+      endColumn: stopColumn + ParserUtils.tokenWidth(ctx.stop),
     };
+  }
+
+  /**
+   * A context's span, or `fallback` when the context has no position at all.
+   *
+   * The single owner of one question: *what span does a member with no start
+   * token get?* #1318 answered it twice and differently -- the C enum collector
+   * inherited the enclosing enum's span, `MemberSymbolBase` called `getSpan`
+   * unconditionally and produced `0:0` -- in the same change that existed to
+   * stop members carrying four different construction paths.
+   *
+   * Inheriting is the right answer, and the C collector's reason is the one
+   * that generalizes: a diagnostic aimed at the top of the file is worse than
+   * one aimed at the enclosing declaration. `0:0` is also indistinguishable
+   * from `UNSET_SOURCE_SPAN`, so it would read as "position not yet collected"
+   * to anything checking that sentinel.
+   *
+   * Reachable only through error recovery, where a context can hold an error
+   * node with no start token -- which is exactly when a diagnostic is being
+   * produced and its position matters most.
+   */
+  static getSpanOr(
+    ctx: {
+      start?: { line?: number; column?: number } | null;
+      stop?: {
+        line?: number;
+        column?: number;
+        text?: string | null;
+        start?: number;
+        stop?: number;
+      } | null;
+    },
+    fallback: ISourceSpan,
+  ): ISourceSpan {
+    return ctx.start ? ParserUtils.getSpan(ctx) : fallback;
+  }
+
+  /**
+   * How many characters the stop token actually occupies.
+   *
+   * Prefers the token's character offsets over `text.length`, because the two
+   * disagree on the one token every file ends with: ANTLR's EOF reports
+   * `text === "<EOF>"` -- five characters -- while occupying zero, with
+   * `stop === start - 1`. Measured on `enum EColor { RED }`: `text.length` gives
+   * 5 and `stop - start + 1` gives 0, so a context ending at EOF was reporting an
+   * `endColumn` five past the end of the file. Reachable under error recovery.
+   *
+   * Falls back to `text.length` when offsets are absent, which is the case for
+   * the structural literals unit tests construct.
+   */
+  private static tokenWidth(stop: {
+    text?: string | null;
+    start?: number;
+    stop?: number;
+  }): number {
+    if (typeof stop.start === "number" && typeof stop.stop === "number") {
+      return Math.max(0, stop.stop - stop.start + 1);
+    }
+    return stop.text?.length ?? 0;
   }
 
   /**

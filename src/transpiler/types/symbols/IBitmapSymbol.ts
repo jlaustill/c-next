@@ -14,7 +14,6 @@ interface IBitmapSymbol extends IBaseSymbol {
   /** Total bit width of the bitmap */
   readonly bitWidth: number;
 
-  /** Map of field name to bit offset/width metadata */
   /**
    * Fields, each a symbol carrying its own span and identity (#1318).
    * Keyed by bare field name, which is how every consumer looks one up.

@@ -29,21 +29,28 @@ describe("IBaseSymbol", () => {
   });
 
   it("kind field accepts all TSymbolKindCNext values", () => {
-    const validKinds: TSymbolKindCNext[] = [
-      "function",
-      "variable",
-      "struct",
-      "enum",
-      "enum_member",
-      "bitmap",
-      "bitmap_field",
-      "register",
-      "register_member",
-      "scope",
-    ];
+    // #1318 review: this was a `TSymbolKindCNext[]`, which accepts any SUBSET
+    // of the union -- so it held 10 of 11 kinds and the compiler was equally
+    // happy. It drifted in the very PR that added `struct_field`, which is the
+    // #1143 shape: a guard that cannot fail on the case it exists to catch.
+    // A Record keyed on the union requires EVERY key, so adding a kind without
+    // adding it here is a build failure rather than a silent gap.
+    const validKinds: Record<TSymbolKindCNext, true> = {
+      function: true,
+      variable: true,
+      struct: true,
+      struct_field: true,
+      enum: true,
+      enum_member: true,
+      bitmap: true,
+      bitmap_field: true,
+      register: true,
+      register_member: true,
+      scope: true,
+    };
 
     // Type check - if this compiles, the types are correct
-    validKinds.forEach((kind) => {
+    (Object.keys(validKinds) as TSymbolKindCNext[]).forEach((kind) => {
       const partial: Pick<IBaseSymbol, "kind"> = { kind };
       expect(partial.kind).toBe(kind);
     });

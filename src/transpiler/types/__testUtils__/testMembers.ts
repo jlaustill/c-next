@@ -1,5 +1,6 @@
 import type IBitmapFieldSymbol from "../symbols/IBitmapFieldSymbol";
 import type IRegisterMemberSymbol from "../symbols/IRegisterMemberSymbol";
+import type IEnumMemberSymbol from "../symbols/IEnumMemberSymbol";
 import type IStructFieldSymbol from "../symbols/IStructFieldSymbol";
 import type TSymbolKindCNext from "../symbol-kinds/TSymbolKindCNext";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
@@ -21,7 +22,16 @@ import TestSourceSpan from "./testSourceSpan";
  * claiming a member reports its OWN position cannot pass by coincidence.
  */
 class TestMembers {
-  private static base(
+  /**
+   * The nine `IBaseSymbol` fields a member mock needs.
+   *
+   * Public because `testEnumMembers` builds the same nine and used to hand-copy
+   * them (#1318 review) -- the duplication `MemberSymbolBase` exists to prevent
+   * on the production side, reintroduced on the mock side, where a tenth field
+   * on `IBaseSymbol` would have meant editing both and the two would have
+   * drifted silently because different tests exercise each.
+   */
+  static base(
     kind: TSymbolKindCNext,
     name: string,
     ownerScopedName: string,
@@ -37,6 +47,25 @@ class TestMembers {
       sourceLanguage: ESourceLanguage.CNext,
       visibility: "public" as const,
     };
+  }
+
+  static asEnumMembers(
+    enumScopedName: string,
+    values: Readonly<Record<string, number>>,
+    sourceFile = "test.cnx",
+  ): Map<string, IEnumMemberSymbol> {
+    const members = new Map<string, IEnumMemberSymbol>();
+    let line = 1;
+    for (const [name, value] of Object.entries(values)) {
+      line += 1;
+      members.set(name, {
+        ...TestMembers.base("enum_member", name, enumScopedName, line),
+        sourceFile,
+        kind: "enum_member",
+        value,
+      });
+    }
+    return members;
   }
 
   static asStructFields(

@@ -44,10 +44,8 @@ class EnumCollector {
     // already emits -- EColor__RED, and Motor__EMode__HIGH for a scope-declared
     // enum, because fromParts expands the dotted component. Derived here once
     // rather than at each consumer (#1285).
-    const enumScopedName = ScopeUtils.identityOf({
-      name,
-      scopePath,
-    }).cnxScopedName;
+    const identity = ScopeUtils.identityOf({ name, scopePath });
+    const enumScopedName = identity.cnxScopedName;
 
     for (const member of ctx.enumMember()) {
       const memberName = member.IDENTIFIER().getText();
@@ -72,6 +70,7 @@ class EnumCollector {
           name: memberName,
           parentScopedName: enumScopedName,
           memberCtx: member,
+          parentSpan: span,
           sourceFile,
           visibility,
         }),
@@ -86,7 +85,10 @@ class EnumCollector {
       scopePath,
       // #1285: identity computed once, from the scope chain, not
       // re-derived by every consumer.
-      ...ScopeUtils.identityOf({ name, scopePath }),
+      // #1318 review: the same identity the members were keyed by, not a
+      // second call with the same arguments -- change one and the members
+      // would keep the old parent name while this reported the new one.
+      ...identity,
       sourceFile,
       span,
       sourceLanguage: ESourceLanguage.CNext,

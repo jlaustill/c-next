@@ -43,10 +43,8 @@ class BitmapCollector {
     const fields = new Map<string, IBitmapFieldSymbol>();
     // #1318: a field hangs off the BITMAP, so its identity is the bitmap's
     // source-spelled name plus its own -- an index key, never emitted C.
-    const ownerScopedName = ScopeUtils.identityOf({
-      name,
-      scopePath,
-    }).cnxScopedName;
+    const identity = ScopeUtils.identityOf({ name, scopePath });
+    const ownerScopedName = identity.cnxScopedName;
     let totalBits = 0;
 
     for (const member of ctx.bitmapMember()) {
@@ -62,6 +60,7 @@ class BitmapCollector {
           name: fieldName,
           parentScopedName: ownerScopedName,
           memberCtx: member,
+          parentSpan: span,
           sourceFile,
           visibility,
         }),
@@ -84,7 +83,10 @@ class BitmapCollector {
       scopePath,
       // #1285: identity computed once, from the scope chain, not
       // re-derived by every consumer.
-      ...ScopeUtils.identityOf({ name, scopePath }),
+      // #1318 review: the same identity the members were keyed by, not a
+      // second call with the same arguments -- change one and the members
+      // would keep the old parent name while this reported the new one.
+      ...identity,
       sourceFile,
       span,
       sourceLanguage: ESourceLanguage.CNext,

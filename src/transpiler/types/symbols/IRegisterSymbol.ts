@@ -11,7 +11,6 @@ interface IRegisterSymbol extends IBaseSymbol {
   /** Base address expression (as string, e.g., "0x40000000") */
   readonly baseAddress: string;
 
-  /** Map of member name to register member metadata */
   /**
    * Members, each a symbol carrying its own span and identity (#1318).
    * Keyed by bare member name, which is how every consumer looks one up.

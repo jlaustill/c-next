@@ -1,21 +1,18 @@
 import type IEnumMemberSymbol from "../symbols/IEnumMemberSymbol";
-import ScopeUtils from "../../../utils/ScopeUtils";
-import ESourceLanguage from "../../../utils/types/ESourceLanguage";
-import TestSourceSpan from "./testSourceSpan";
+import TestMembers from "./testMembers";
 
 /**
- * Builds the member map an `IEnumSymbol` carries, from a plain name-to-value
- * object.
+ * Builds the member map an `IEnumSymbol` carries, from a name-to-value object.
  *
- * Members became symbols in #1318, so the one-line `new Map([["RED", 0]])` a
- * mock used to write is now nine fields per member. Spelling those at each site
- * would make a test about header emission read as a test about symbol identity,
- * and hand-written literals are how mocks drift from the interface they stand
- * in for -- the reason `testTypeAccessors` exists.
+ * Delegates to `TestMembers`, which owns what a member symbol's base half looks
+ * like. This file used to hand-copy those nine fields (#1318 review), which is
+ * the duplication `MemberSymbolBase` prevents on the production side leaking
+ * back in on the mock side: a tenth field on `IBaseSymbol` meant editing two
+ * places, and they would have drifted silently because a different set of tests
+ * exercises each.
  *
- * Identity comes from `ScopeUtils.identityOf`, the same encoder the collector
- * uses, so a mock cannot assert an identifier the real collector would never
- * produce.
+ * Kept as a named entry point because `enum_member` is the one member kind with
+ * a payload of its own (`value`), and call sites read better for it.
  */
 class TestEnumMembers {
   static of(
@@ -23,25 +20,7 @@ class TestEnumMembers {
     values: Readonly<Record<string, number>>,
     sourceFile = "test.cnx",
   ): Map<string, IEnumMemberSymbol> {
-    const members = new Map<string, IEnumMemberSymbol>();
-    let line = 1;
-    for (const [name, value] of Object.entries(values)) {
-      line += 1;
-      members.set(name, {
-        kind: "enum_member",
-        name,
-        scopePath: enumScopedName,
-        ...ScopeUtils.identityOf({ name, scopePath: enumScopedName }),
-        sourceFile,
-        // Distinct per member, so a test asserting that a member reports its
-        // OWN position cannot pass by accident on a shared value.
-        span: TestSourceSpan.at(line),
-        sourceLanguage: ESourceLanguage.CNext,
-        visibility: "public",
-        value,
-      });
-    }
-    return members;
+    return TestMembers.asEnumMembers(enumScopedName, values, sourceFile);
   }
 }
 

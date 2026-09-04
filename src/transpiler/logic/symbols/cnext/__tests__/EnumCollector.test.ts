@@ -240,7 +240,6 @@ describe("EnumCollector", () => {
       expect(red.span.column).toBeGreaterThan(0);
       // The span is a RANGE: `Red` is three characters wide.
       expect(red.span.endColumn - red.span.column).toBe(3);
-      expect([red.span.line, red.span.column]).not.toEqual([1, 0]);
     });
 
     it("spells a member the way codegen already emits it", () => {

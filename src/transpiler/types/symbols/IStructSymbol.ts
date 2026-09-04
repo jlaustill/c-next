@@ -8,7 +8,6 @@ interface IStructSymbol extends IBaseSymbol {
   /** Discriminator narrowed to "struct" */
   readonly kind: "struct";
 
-  /** Map of field name to field metadata */
   /**
    * Fields, each a symbol carrying its own span and identity (#1318).
    * Keyed by bare field name, which is how every consumer looks one up.
