@@ -136,7 +136,6 @@ describe("ConfigLoader", () => {
         include: ["lib/", "vendor/"],
         output: "build/",
         headerOut: "include/",
-        basePath: "src/",
       };
       writeFileSync(
         join(tempDir, "cnext.config.json"),
@@ -152,7 +151,6 @@ describe("ConfigLoader", () => {
       expect(config.include).toEqual(["lib/", "vendor/"]);
       expect(config.output).toBe("build/");
       expect(config.headerOut).toBe("include/");
-      expect(config.basePath).toBe("src/");
     });
   });
 });

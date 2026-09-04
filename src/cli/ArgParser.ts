@@ -16,7 +16,6 @@ interface IYargsResult {
   o?: string;
   output?: string;
   "header-out"?: string;
-  "base-path"?: string;
   cpp: boolean;
   include: string[];
   target?: string;
@@ -58,12 +57,6 @@ A safer C for embedded systems development.`,
       .option("header-out", {
         type: "string",
         describe: "Output directory for header files",
-        requiresArg: true,
-      })
-      .option("base-path", {
-        type: "string",
-        describe:
-          "Strip path prefix from header output (use with --header-out)",
         requiresArg: true,
       })
 
@@ -254,7 +247,6 @@ class ArgParser {
       noCache: !parsed.cache,
       parseOnly: parsed.parse,
       headerOutDir: parsed["header-out"],
-      basePath: parsed["base-path"],
       cleanMode: parsed.clean,
       showConfig: parsed.config,
       pioInstall: parsed["pio-install"],

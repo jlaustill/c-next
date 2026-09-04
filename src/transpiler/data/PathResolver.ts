@@ -3,7 +3,7 @@
  * Handles path calculations for output files.
  *
  * Consolidates path resolution logic used by Transpiler and CleanCommand,
- * including directory structure preservation and basePath stripping.
+ * including directory structure preservation.
  */
 
 import { join, basename, relative, dirname, resolve } from "node:path";
@@ -27,8 +27,6 @@ interface IPathResolverConfig {
   outDir: string;
   /** Optional separate output directory for headers */
   headerOutDir?: string;
-  /** Optional base path to strip from header output paths */
-  basePath?: string;
 }
 
 /**
@@ -132,9 +130,8 @@ class PathResolver {
 
     const relativePath = this.getRelativePathFromInputs(file.path);
     if (relativePath) {
-      // File is under an input directory - preserve structure (minus basePath)
-      const strippedPath = this.stripBasePath(relativePath);
-      const outputRelative = strippedPath.replace(/\.cnx$|\.cnext$/, ext);
+      // File is under an input directory - preserve structure
+      const outputRelative = relativePath.replace(/\.cnx$|\.cnext$/, ext);
       const outputPath = join(headerDir, outputRelative);
 
       const outputDir = dirname(outputPath);
@@ -152,8 +149,7 @@ class PathResolver {
       const relativeFromCwd = relative(cwd, file.path);
       // Only use CWD-relative path if file is under CWD (not starting with ..)
       if (relativeFromCwd && !relativeFromCwd.startsWith("..")) {
-        const strippedPath = this.stripBasePath(relativeFromCwd);
-        const outputRelative = strippedPath.replace(/\.cnx$|\.cnext$/, ext);
+        const outputRelative = relativeFromCwd.replace(/\.cnx$|\.cnext$/, ext);
         const outputPath = join(this.config.headerOutDir, outputRelative);
 
         const outputDir = dirname(outputPath);
@@ -179,29 +175,6 @@ class PathResolver {
     // This handles included files that aren't under any input directory
     const headerName = basename(file.path).replace(/\.cnx$|\.cnext$/, ext);
     return join(dirname(file.path), headerName);
-  }
-
-  /**
-   * Strip basePath prefix from a relative path
-   * e.g., "src/AppConfig.cnx" with basePath "src" -> "AppConfig.cnx"
-   */
-  private stripBasePath(relPath: string): string {
-    if (!this.config.basePath || !this.config.headerOutDir) {
-      return relPath;
-    }
-    // Normalize basePath (remove trailing slashes) using string methods
-    let base = this.config.basePath;
-    while (base.endsWith("/") || base.endsWith("\\")) {
-      base = base.slice(0, -1);
-    }
-    // Check if relPath starts with basePath (+ separator or exact match)
-    if (relPath === base) {
-      return "";
-    }
-    if (relPath.startsWith(base + "/") || relPath.startsWith(base + "\\")) {
-      return relPath.slice(base.length + 1);
-    }
-    return relPath;
   }
 }
 

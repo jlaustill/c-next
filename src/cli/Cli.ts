@@ -128,7 +128,6 @@ class Cli {
       noCache: args.noCache || fileConfig.noCache === true,
       parseOnly: args.parseOnly,
       headerOutDir: args.headerOutDir ?? fileConfig.headerOut,
-      basePath: args.basePath ?? fileConfig.basePath,
       target: args.target ?? fileConfig.target,
       debugMode: args.debugMode || fileConfig.debugMode,
     };

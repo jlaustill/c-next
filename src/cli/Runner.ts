@@ -32,15 +32,11 @@ class Runner {
       resolvedInput,
     );
 
-    // Infer basePath from entry file's parent directory if not set
-    const basePath = config.basePath || dirname(resolvedInput);
-
     const pipeline = new Transpiler({
       input: resolvedInput,
       includeDirs: config.includeDirs,
       outDir,
       headerOutDir: config.headerOutDir,
-      basePath,
       preprocess: config.preprocess,
       defines: config.defines,
       cppRequired: config.cppRequired,

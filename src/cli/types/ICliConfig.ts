@@ -25,8 +25,6 @@ interface ICliConfig {
   parseOnly: boolean;
   /** Separate output directory for headers */
   headerOutDir?: string;
-  /** Base path to strip from header output paths */
-  basePath?: string;
   /** Target platform for atomic code generation */
   target?: string;
   /** Generate panic-on-overflow helpers */

@@ -331,14 +331,12 @@ describe("PathNormalizer", () => {
         noCache: false,
         parseOnly: false,
         headerOutDir: "~/include",
-        basePath: "~/src",
       };
 
       const result = PathNormalizer.normalizeConfig(config, mockFs);
 
       expect(result.outputPath).toBe("/home/testuser/build");
       expect(result.headerOutDir).toBe("/home/testuser/include");
-      expect(result.basePath).toBe("/home/testuser/src");
       expect(result.includeDirs).toEqual(["/home/testuser/sdk/include"]);
     });
 
@@ -358,7 +356,6 @@ describe("PathNormalizer", () => {
       const result = PathNormalizer.normalizeConfig(config);
 
       expect(result.headerOutDir).toBeUndefined();
-      expect(result.basePath).toBeUndefined();
     });
 
     it("expands ** in include paths", () => {

@@ -72,14 +72,6 @@ describe("ArgParser", () => {
 
         expect(result.headerOutDir).toBe("include/");
       });
-
-      it("parses --base-path flag", () => {
-        const result = ArgParser.parse(
-          argv("input.cnx", "--base-path", "src/"),
-        );
-
-        expect(result.basePath).toBe("src/");
-      });
     });
 
     describe("compilation options", () => {
@@ -255,7 +247,6 @@ describe("ArgParser", () => {
         expect(result.noCache).toBe(false);
         expect(result.parseOnly).toBe(false);
         expect(result.headerOutDir).toBeUndefined();
-        expect(result.basePath).toBeUndefined();
         expect(result.cleanMode).toBe(false);
         expect(result.showConfig).toBe(false);
         expect(result.pioInstall).toBe(false);

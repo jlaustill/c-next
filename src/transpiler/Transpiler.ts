@@ -207,7 +207,6 @@ class Transpiler {
       includeDirs: config.includeDirs ?? [],
       outDir: config.outDir ?? "",
       headerOutDir: config.headerOutDir ?? "",
-      basePath: config.basePath ?? "",
       defines: config.defines ?? {},
       preprocess: config.preprocess ?? true,
       cppRequired: config.cppRequired ?? false,
@@ -251,7 +250,6 @@ class Transpiler {
         inputs: [dirname(resolve(this.config.input))],
         outDir: this.config.outDir,
         headerOutDir: this.config.headerOutDir,
-        basePath: this.config.basePath,
       },
       this.fs,
     );

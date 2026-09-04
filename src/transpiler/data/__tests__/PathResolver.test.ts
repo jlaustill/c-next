@@ -213,26 +213,6 @@ describe("PathResolver", () => {
       expect(result).toBe(join(headerDir, "main.h"));
     });
 
-    it("strips basePath from header output", () => {
-      // File at src/subdir/utils.cnx with basePath "src"
-      // Should output to include/subdir/utils.h (not include/src/subdir/utils.h)
-      const filePath = join(srcDir, "subdir", "utils.cnx");
-      writeFileSync(filePath, "");
-
-      // Create resolver with srcDir parent as input
-      const resolver = new PathResolver({
-        inputs: [testDir],
-        outDir,
-        headerOutDir: headerDir,
-        basePath: "src",
-      });
-
-      const file = createFile(filePath);
-      const result = resolver.getHeaderOutputPath(file, ".h");
-
-      expect(result).toBe(join(headerDir, "subdir", "utils.h"));
-    });
-
     it("preserves directory structure in header output", () => {
       const resolver = new PathResolver({
         inputs: [srcDir],
@@ -286,43 +266,6 @@ describe("PathResolver", () => {
 
       // Should use basename since file is not under any input
       expect(result).toContain("standalone.h");
-    });
-
-    it("strips trailing slashes from basePath", () => {
-      const filePath = join(srcDir, "subdir", "utils.cnx");
-      writeFileSync(filePath, "");
-
-      // basePath with trailing slashes
-      const resolver = new PathResolver({
-        inputs: [testDir],
-        outDir,
-        headerOutDir: headerDir,
-        basePath: "src///",
-      });
-
-      const file = createFile(filePath);
-      const result = resolver.getHeaderOutputPath(file, ".h");
-
-      expect(result).toBe(join(headerDir, "subdir", "utils.h"));
-    });
-
-    it("handles basePath that exactly matches relative path", () => {
-      // When relPath equals basePath exactly, should return empty string for that part
-      const filePath = join(srcDir, "main.cnx");
-      writeFileSync(filePath, "");
-
-      const resolver = new PathResolver({
-        inputs: [testDir],
-        outDir,
-        headerOutDir: headerDir,
-        basePath: "src",
-      });
-
-      const file = createFile(filePath);
-      const result = resolver.getHeaderOutputPath(file, ".h");
-
-      // src/main.cnx with basePath "src" -> main.h in headerDir
-      expect(result).toBe(join(headerDir, "main.h"));
     });
 
     // Issue #933: Test C++ mode header extension

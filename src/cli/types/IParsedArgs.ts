@@ -24,8 +24,6 @@ interface IParsedArgs {
   parseOnly: boolean;
   /** --header-out flag */
   headerOutDir?: string;
-  /** --base-path flag */
-  basePath?: string;
   /** --clean flag */
   cleanMode: boolean;
   /** --config flag */
