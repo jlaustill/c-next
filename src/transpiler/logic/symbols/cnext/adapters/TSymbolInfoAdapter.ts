@@ -8,6 +8,7 @@
  * into the flat map format that CodeGenerator expects via ISymbolInfo.
  */
 
+import type IBitmapFieldLayout from "../../../../types/IBitmapFieldLayout";
 import ICodeGenSymbols from "../../../../types/ICodeGenSymbols";
 import CNEXT_TO_C_TYPE_MAP from "../../../../../utils/constants/TypeMappings";
 import TSymbol from "../../../../types/symbols/TSymbol";
@@ -103,10 +104,7 @@ class TSymbolInfoAdapter {
     const enumMembers = new Map<string, Map<string, number>>();
 
     // === Bitmap Information ===
-    const bitmapFields = new Map<
-      string,
-      Map<string, { offset: number; width: number }>
-    >();
+    const bitmapFields = new Map<string, Map<string, IBitmapFieldLayout>>();
     const bitmapBackingType = new Map<string, string>();
     const bitmapBitWidth = new Map<string, number>();
 
@@ -371,7 +369,7 @@ class TSymbolInfoAdapter {
   private static processBitmap(
     bitmap: IBitmapSymbol,
     knownBitmaps: Set<string>,
-    bitmapFields: Map<string, Map<string, { offset: number; width: number }>>,
+    bitmapFields: Map<string, Map<string, IBitmapFieldLayout>>,
     bitmapBackingType: Map<string, string>,
     bitmapBitWidth: Map<string, number>,
   ): void {
@@ -380,7 +378,7 @@ class TSymbolInfoAdapter {
     bitmapBackingType.set(cName, bitmap.backingType);
     bitmapBitWidth.set(cName, bitmap.bitWidth);
 
-    const fields = new Map<string, { offset: number; width: number }>();
+    const fields = new Map<string, IBitmapFieldLayout>();
     for (const [fieldName, fieldInfo] of bitmap.fields) {
       fields.set(fieldName, {
         offset: fieldInfo.offset,

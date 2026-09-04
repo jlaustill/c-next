@@ -346,6 +346,10 @@ function createMockOrchestrator(options?: {
     generateStatement: vi.fn(() => options?.statementCode ?? "{}"),
     generateBlock: vi.fn(() => options?.blockCode ?? "{ }"),
     generateType: vi.fn(() => options?.typeCode ?? "int"),
+    // #1484: `generateDeclaredType` is what a declaration site asks -- the `_fp`
+    // typedef for an ADR-029 function-as-type, the type itself otherwise. The
+    // mock mirrors the non-callback answer, which is what these cases exercise.
+    generateDeclaredType: vi.fn(() => options?.typeCode ?? "int"),
     generateAssignmentTarget: vi.fn((ctx) => ctx.getText?.() ?? "target"),
     generateArrayDimensions: vi.fn(() => "[10]"),
     // ADR-057: registration hands back the emitted name; identity here means

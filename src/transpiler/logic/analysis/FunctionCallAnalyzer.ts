@@ -106,6 +106,20 @@ class FunctionCallListener extends CNextListener {
     }
   };
 
+  /**
+   * A `for` init declares a variable too, and `forVarDecl` is its own grammar
+   * rule -- `enterVariableDeclaration` above never fires for one (#1484). Left
+   * out, `for (onTick f <- onTick; ...) { f(1); }` was rejected with
+   * `E0422: function 'f' called before definition`, while the identical
+   * declaration one line earlier was accepted.
+   */
+  override enterForVarDecl = (ctx: Parser.ForVarDeclContext): void => {
+    const typeName = ctx.type().getText();
+    if (this.isCallableType(typeName)) {
+      this.analyzer.defineCallableVariable(ctx.IDENTIFIER().getText());
+    }
+  };
+
   // ========================================================================
   // Function Definitions
   // ========================================================================
@@ -369,6 +383,14 @@ class FunctionCallAnalyzer {
    * this replaced walked `tree.declaration()` alone, so it silently omitted
    * every scope member, while the collector it sat beside walked them
    * correctly.
+   *
+   * KNOWN LIMITATION (#1491): `allLocalFunctions` exists to EXCLUDE cross-file
+   * functions, because define-before-use (#786) needs that distinction. This
+   * predicate wants "callable here", for which an included function-as-type
+   * qualifies under ADR-029 — so a variable typed by one is still rejected with
+   * E0422. Pre-existing: the set this replaced walked the entry file alone and
+   * omitted included functions too. Do not fix it by adding included functions
+   * to `allLocalFunctions`; that set is load-bearing for ADR-030 ordering.
    *
    * @param name The lookup key, already qualified by the caller -- see
    *             `FunctionCallListener.isCallbackTypeHere`.

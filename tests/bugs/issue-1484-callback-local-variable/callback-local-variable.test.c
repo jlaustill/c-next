@@ -60,5 +60,9 @@ int main(void) {
     if (total != 8) return 2;
     Motor__runLocal();
     if (Motor__ticks != 7) return 3;
+    for (onTick_fp f = onTick; total < 20; total = cnx_clamp_add_u32(total, 1)) {
+        f(2);
+    }
+    if (total != 20) return 4;
     return 0;
 }

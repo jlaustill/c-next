@@ -1107,8 +1107,10 @@ describe("CodeGenerator Coverage Tests", () => {
       expect(code).toContain("handler_fp callback");
       expect(code).toContain("callback = handler");
       // Guard the specific regression: the bare function name must not appear
-      // as a type. Written as a word boundary so `handler_fp` does not match.
-      expect(code).not.toMatch(/\bhandler callback\b/);
+      // as a type. The literal whitespace is what excludes `handler_fp` -- the
+      // leading \b matches at the start of `handler_fp` too, since `_` is a word
+      // character, so the boundary alone would not distinguish them.
+      expect(code).not.toMatch(/\bhandler\s+callback\b/);
     });
 
     it("should handle function with local variables", () => {

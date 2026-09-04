@@ -41,6 +41,7 @@ import ITestResult from "./types/ITestResult";
 
 // Import shared test utilities
 import TestUtils from "./test-utils";
+import FixtureScheduler from "./utils/FixtureScheduler";
 import FileScanner from "./utils/FileScanner";
 import chalk from "chalk";
 
@@ -231,7 +232,6 @@ async function runTestsParallel(
     let updated = 0;
     let noSnapshot = 0;
 
-    const pendingTests = [...cnxFiles];
     const activeWorkers = new Map<ChildProcess, string>();
     let completedCount = 0;
 
@@ -242,20 +242,11 @@ async function runTestsParallel(
     // a lock: it starts only when no in-flight fixture holds a file in it.
     // Fixtures that share nothing -- the overwhelming majority -- are
     // unconstrained and still run fully parallel.
-    const helpersByFixture = new Map<string, string[]>(
-      cnxFiles.map((file) => [file, TestUtils.helperClosure(file)]),
+    const scheduler = new FixtureScheduler(cnxFiles, (file) =>
+      TestUtils.helperClosure(file),
     );
-    const activeHelpers = new Set<string>();
-    const helpersOf = (cnxFile: string): string[] =>
-      helpersByFixture.get(cnxFile) ?? [];
-    const releaseHelpers = (cnxFile: string | undefined): void => {
-      if (!cnxFile) {
-        return;
-      }
-      for (const helper of helpersOf(cnxFile)) {
-        activeHelpers.delete(helper);
-      }
-    };
+    const releaseHelpers = (cnxFile: string | undefined): void =>
+      scheduler.release(cnxFile);
 
     // Results are stored and printed in order for consistent output
     const results = new Map<string, ITestResult>();
@@ -320,7 +311,7 @@ async function runTestsParallel(
             resolve({ passed, failed, updated, noSnapshot });
           } else {
             // Assign more work. Every idle worker is offered, not just this
-            // one: the directory just released may be what another worker was
+            // one: a helper just released may be what another worker was
             // waiting on, and nothing else would wake it (#1488).
             assignWorkToIdleWorkers();
           }
@@ -339,12 +330,18 @@ async function runTestsParallel(
         }
         releaseHelpers(activeWorkers.get(worker));
         activeWorkers.delete(worker);
+        removeWorker(worker);
 
         // Replace crashed worker if there's more work
-        if (pendingTests.length > 0) {
+        if (scheduler.pendingCount > 0) {
           const newWorker = createWorker();
           workers.push(newWorker);
         }
+
+        // The helpers this worker held are free now, and a live worker may have
+        // been idling on exactly them. Nothing else would wake it: work is
+        // re-offered on a `result` message, and a dead worker sends none.
+        assignWorkToIdleWorkers();
 
         if (completedCount === cnxFiles.length) {
           workers.forEach((w) => {
@@ -371,31 +368,45 @@ async function runTestsParallel(
         }
         releaseHelpers(activeWorkers.get(worker));
         activeWorkers.delete(worker);
+        removeWorker(worker);
 
         if (completedCount === cnxFiles.length) {
           resolve({ passed, failed, updated, noSnapshot });
+          return;
         }
+
+        // Same reason as the error path: without this, a worker dying while
+        // every remaining fixture is blocked on the helpers it held leaves all
+        // workers idle, work still pending, and no message left to arrive.
+        assignWorkToIdleWorkers();
       });
 
       return worker;
     }
 
+    // A crashed worker must leave the pool. `assignWork` used to be called only
+    // on a worker that had just proved it was alive -- its own `ready` or its own
+    // `result` -- so a dead entry lingering in `workers` was harmless. Offering
+    // work to every idle worker removed that guarantee: a dead entry would take
+    // a fixture, lock its helpers, and `send()` into a closed channel, turning
+    // one crash into a spurious failure per remaining fixture.
+    function removeWorker(worker: ChildProcess): void {
+      const at = workers.indexOf(worker);
+      if (at !== -1) {
+        workers.splice(at, 1);
+      }
+    }
+
     function assignWork(worker: ChildProcess): void {
-      if (activeWorkers.has(worker)) {
+      if (activeWorkers.has(worker) || !worker.connected) {
         return;
       }
-      // Take the first pending fixture whose directory no other worker holds.
-      // When everything left is blocked the worker simply idles; the completion
-      // that frees a directory re-offers work to every idle worker.
-      const index = pendingTests.findIndex((file) =>
-        helpersOf(file).every((helper) => !activeHelpers.has(helper)),
-      );
-      if (index === -1) {
+      // Take the first pending fixture none of whose helpers another worker
+      // holds. When everything left is blocked the worker simply idles; the
+      // completion that frees a helper re-offers work to every idle worker.
+      const cnxFile = scheduler.claim();
+      if (cnxFile === null) {
         return;
-      }
-      const [cnxFile] = pendingTests.splice(index, 1);
-      for (const helper of helpersOf(cnxFile)) {
-        activeHelpers.add(helper);
       }
       activeWorkers.set(worker, cnxFile);
       worker.send({ type: "test", cnxFile, updateMode });

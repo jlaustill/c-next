@@ -4,6 +4,7 @@
  * Tests for the shared bitmap field access generation utility.
  */
 
+import type IBitmapFieldLayout from "../../../../../types/IBitmapFieldLayout";
 import { describe, it, expect } from "vitest";
 import BitmapAccessHelper from "../BitmapAccessHelper.js";
 
@@ -96,10 +97,7 @@ describe("BitmapAccessHelper", () => {
     });
 
     it("handles bitmap type not in field map", () => {
-      const bitmapFields = new Map<
-        string,
-        Map<string, { offset: number; width: number }>
-      >();
+      const bitmapFields = new Map<string, Map<string, IBitmapFieldLayout>>();
 
       expect(() =>
         BitmapAccessHelper.generate(

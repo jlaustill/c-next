@@ -9,6 +9,7 @@
  * - REGISTER_MEMBER_BITMAP_FIELD: MOTOR.CTRL.Running <- true
  * - SCOPED_REGISTER_MEMBER_BITMAP_FIELD: Scope.GPIO7.ICR1.LED <- value
  */
+import type IBitmapFieldLayout from "../../../../types/IBitmapFieldLayout";
 import AssignmentKind from "../AssignmentKind";
 import IAssignmentContext from "../IAssignmentContext";
 import BitUtils from "../../../../../utils/BitUtils";
@@ -34,7 +35,7 @@ function getBitmapFieldInfo(
   bitmapType: string,
   fieldName: string,
   ctx: IAssignmentContext,
-): { offset: number; width: number } {
+): IBitmapFieldLayout {
   const fields = CodeGenState.symbols!.bitmapFields.get(bitmapType);
   if (!fields?.has(fieldName)) {
     throw new Error(
@@ -68,7 +69,7 @@ function getBitmapFieldInfo(
  */
 function generateBitmapWrite(
   target: string,
-  fieldInfo: { offset: number; width: number },
+  fieldInfo: IBitmapFieldLayout,
   value: string,
 ): string {
   const { maskHex } = calculateMask(fieldInfo.width);
@@ -87,7 +88,7 @@ function generateBitmapWrite(
  */
 function generateWriteOnlyBitmapWrite(
   target: string,
-  fieldInfo: { offset: number; width: number },
+  fieldInfo: IBitmapFieldLayout,
   value: string,
 ): string {
   const { maskHex } = calculateMask(fieldInfo.width);

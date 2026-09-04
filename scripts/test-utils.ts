@@ -835,41 +835,6 @@ class TestUtils {
   }
 
   /**
-   * Issue #1470: a helper's header is written twice per mode -- once by the
-   * entry file's multi-file pipeline run, and again by the single-file run this
-   * harness performs on the helper itself, which overwrites it. Only the second
-   * reaches the compiler and the working-tree check, so a header the multi-file
-   * pipeline gets WRONG is invisible: a single-file run cannot exhibit a
-   * cross-file ordering defect, because "the only file is also the last one"
-   * (issue #1139, whose regression fixture this silence had made unable to fail).
-   *
-   * `captured` is built from `generatedHeaderPaths` on the ENTRY's own CLI
-   * result -- every header that run reported writing -- not from a path
-   * guessed per direct helper. So a transitive dependency's header (included
-   * by a helper rather than by the fixture's own entry file) is covered the
-   * same way a direct helper's is: `findHelperCnxFiles` never lists it, but
-   * the entry's pipeline still writes its header and the helper that includes
-   * it still overwrites that header when the standalone loop re-transpiles it.
-   *
-   * The two must therefore agree. Compared byte-for-byte rather than through
-   * `normalize()`: both files are written by the same transpiler in the same
-   * pass, so any difference at all is a real divergence and not formatting.
-   *
-   * Scope: headers only. The same overwrite also hides a helper's `.c`/`.cpp`,
-   * which diverges TODAY for a separate, live reason -- a dependency's
-   * self-include path depends on which file was its entry (issue #1473) --
-   * so comparing impl files here would fail immediately on that, unrelated to any
-   * pipeline-ordering defect. Left to whichever change resolves #1473; #1160
-   * is the general form of this harness defect across all four extensions.
-   *
-   * Race note: a helper shared by more than one fixture can have its header
-   * captured by one fixture's worker while another fixture's worker is
-   * re-transpiling that same file (the harness runs fixtures in parallel).
-   * Not new -- the compile step already races the same way -- but it means a
-   * mutation-check against a shared helper should run with `--jobs 1` so a
-   * result is attributable to one fixture.
-   */
-  /**
    * Issue #1488: every `.cnx` this fixture's run will read or rewrite --
    * its helpers, and their helpers, transitively.
    *
@@ -916,6 +881,43 @@ class TestUtils {
     return [...seen];
   }
 
+  /**
+   * Issue #1470: a helper's header is written twice per mode -- once by the
+   * entry file's multi-file pipeline run, and again by the single-file run this
+   * harness performs on the helper itself, which overwrites it. Only the second
+   * reaches the compiler and the working-tree check, so a header the multi-file
+   * pipeline gets WRONG is invisible: a single-file run cannot exhibit a
+   * cross-file ordering defect, because "the only file is also the last one"
+   * (issue #1139, whose regression fixture this silence had made unable to fail).
+   *
+   * `captured` is built from `generatedHeaderPaths` on the ENTRY's own CLI
+   * result -- every header that run reported writing -- not from a path
+   * guessed per direct helper. So a transitive dependency's header (included
+   * by a helper rather than by the fixture's own entry file) is covered the
+   * same way a direct helper's is: `findHelperCnxFiles` never lists it, but
+   * the entry's pipeline still writes its header and the helper that includes
+   * it still overwrites that header when the standalone loop re-transpiles it.
+   *
+   * The two must therefore agree. Compared byte-for-byte rather than through
+   * `normalize()`: both files are written by the same transpiler in the same
+   * pass, so any difference at all is a real divergence and not formatting.
+   *
+   * Scope: headers only. The same overwrite also hides a helper's `.c`/`.cpp`,
+   * which diverges TODAY for a separate, live reason -- a dependency's
+   * self-include path depends on which file was its entry (issue #1473) --
+   * so comparing impl files here would fail immediately on that, unrelated to any
+   * pipeline-ordering defect. Left to whichever change resolves #1473; #1160
+   * is the general form of this harness defect across all four extensions.
+   *
+   * Race note, resolved: a helper shared by more than one fixture used to have
+   * its header captured by one fixture's worker while another was re-transpiling
+   * that same file, so this comparison read a file mid-rewrite and reported a
+   * divergence that did not exist -- the same commit failing on CI and passing on
+   * re-run (#1488). The scheduler now locks a fixture's include closure
+   * (`helperClosure`) for the duration of its run, so no two fixtures sharing a
+   * helper are in flight at once and a difference seen here is a real one. The
+   * compile step no longer races either, for the same reason.
+   */
   static findHelperHeaderDivergence(
     captured: { path: string; content: string | null }[],
     mode: TTestMode,

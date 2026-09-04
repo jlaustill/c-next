@@ -47,5 +47,16 @@ u32 main() {
     Motor.runLocal();
     if (Motor.ticks != 7) return 3;
 
+    // A `for` init is a FOURTH declaration site: `forVarDecl` is its own
+    // grammar rule, so it is not a `variableDeclaration` and was missed by the
+    // first fix -- leaving `for (onTick f <- onTick; ...)` emitting the bare
+    // function name one line below a corrected declaration, which is the
+    // divergent-path shape rather than a leftover. Calling through `f` also
+    // exercises the analyzer half, which tracked the other two forms only.
+    for (onTick f <- onTick; total < 20; total <- total + 1) {
+        f(2);
+    }
+    if (total != 20) return 4;
+
     return 0;
 }

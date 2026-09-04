@@ -176,6 +176,19 @@ describe("TestUtils.helperClosure", () => {
     expect(TestUtils.helperClosure(entry)).toEqual([]);
   });
 
+  it("does not include the entry file itself, which is what stops it locking itself", () => {
+    // Self-inclusion is not the point -- a fixture appearing in its own closure
+    // would take a lock nothing ever releases it against, and every OTHER
+    // fixture would still be free to rewrite the helpers it holds.
+    const helper = write("types.cnx", "enum E { A <- 0 }\n");
+    const entry = write("a.test.cnx", '#include "types.cnx"\n');
+
+    const closure = TestUtils.helperClosure(entry);
+
+    expect(closure).toEqual([helper]);
+    expect(closure).not.toContain(entry);
+  });
+
   it("ignores an include with no file on disk", () => {
     const entry = write("a.test.cnx", '#include "absent.cnx"\n');
 

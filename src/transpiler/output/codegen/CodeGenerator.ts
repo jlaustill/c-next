@@ -1511,6 +1511,24 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
+   * ADR-029: the C type that a DECLARATION of this type emits.
+   *
+   * A function-as-type is declared by its `_fp` typedef; everything else is
+   * itself. This is the single owner of that consequence, because #1484 showed
+   * what happens when each declaration site decides it independently: a
+   * parameter and a scope member mapped, a local variable did not, and a `for`
+   * init declaration -- a separate grammar rule, `forVarDecl`, that
+   * `VariableDeclarationContext` never matches -- did not either. Fixing one
+   * site made it disagree with the declaration beside it in the same source.
+   *
+   * A fifth declaration site should call this rather than repeat the pairing.
+   */
+  generateDeclaredType(typeCtx: Parser.TypeContext): string {
+    const declared = this.generateType(typeCtx);
+    return this.getCallbackTypedefName(declared) ?? declared;
+  }
+
+  /**
    * Issues #1200, #1201: does this callback type need its `_fp` typedef emitted?
    *
    * True when the type is referenced by any field or parameter, not only by a
@@ -2970,7 +2988,14 @@ export default class CodeGenerator implements IOrchestrator {
       return;
     }
     const visit = (node: ParserRuleContext): void => {
-      if (node instanceof Parser.VariableDeclarationContext) {
+      // Both declaration forms a body can hold. `forVarDecl` is its own
+      // grammar rule, so a `for` init is NOT a VariableDeclarationContext --
+      // missing it left `for (onTick f <- onTick; ...)` referencing a typedef
+      // nothing emitted.
+      if (
+        node instanceof Parser.VariableDeclarationContext ||
+        node instanceof Parser.ForVarDeclContext
+      ) {
         CodeGenState.callbackTypeReferences.add(this.getTypeName(node.type()));
       }
       for (let i = 0; i < node.getChildCount(); i++) {
@@ -4010,19 +4035,10 @@ export default class CodeGenerator implements IOrchestrator {
     ctx: Parser.VariableDeclarationContext,
     name: string,
   ): string {
-    const declared = this.generateType(ctx.type());
-
-    // ADR-029 / #1484: a LOCAL variable whose declared type names a
-    // function-as-type emits that function's `_fp` typedef, exactly as a scope
-    // member (ScopeGenerator) and a parameter (ParameterInputAdapter) already
-    // do. Only this path never asked, so `onTick handler <- onTick;` emitted
-    // `onTick handler = onTick;` -- the function's own name in type position,
-    // which no typedef declares. gcc rejects it, and the transpiler exited 0.
-    //
-    // `getCallbackTypedefName` is the single owner of the `${name}_fp`
-    // convention that registerCallbackType establishes, so this asks it rather
-    // than rebuilding the name.
-    const type = this.getCallbackTypedefName(declared) ?? declared;
+    // ADR-029 / #1484: a local variable declared with a function-as-type emits
+    // that function's `_fp` typedef. Asked of `generateDeclaredType`, which owns
+    // that consequence for every declaration site.
+    const type = this.generateDeclaredType(ctx.type());
 
     // Issue #958: C-header typedef struct types always need pointer semantics
     if (CodeGenState.symbolTable?.isTypedefStructType(type)) {
