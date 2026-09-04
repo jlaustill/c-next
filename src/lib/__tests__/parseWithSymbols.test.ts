@@ -464,4 +464,80 @@ describe("parseWithSymbols", () => {
       expect(fieldX?.type).toBe("f32");
     });
   });
+
+  describe("a member reports its OWN line, not its parent's (#1318)", () => {
+    // The defect this card exists to remove, at the consumer end: an IDE
+    // jumping to `Flags.d` must land on `d`, not on `bitmap8 Flags`. Members
+    // carry their own span now, so reporting the parent's line is no longer a
+    // missing-data problem -- it is the consumer ignoring data it has.
+    //
+    // Each case asserts DISTINCTNESS across members rather than fixed numbers,
+    // so it fails when every member collapses onto the parent whatever the
+    // fixture's indentation is.
+
+    it("enum members", () => {
+      const result = parseWithSymbols(`
+enum EColor {
+  RED,
+  GREEN,
+  BLUE
+}
+`);
+      const parent = result.symbols.find((s) => s.kind === "enum")!;
+      const members = result.symbols.filter((s) => s.kind === "enumMember");
+      expect(members).toHaveLength(3);
+      expect(new Set(members.map((m) => m.line)).size).toBe(3);
+      expect(members.map((m) => m.line)).not.toContain(parent.line);
+    });
+
+    it("bitmap fields", () => {
+      const result = parseWithSymbols(`
+bitmap8 Flags {
+  a,
+  b,
+  c,
+  d,
+  e,
+  f,
+  g,
+  h
+}
+`);
+      const parent = result.symbols.find((s) => s.kind === "bitmap")!;
+      const fields = result.symbols.filter((s) => s.kind === "bitmapField");
+      expect(fields).toHaveLength(8);
+      expect(new Set(fields.map((f) => f.line)).size).toBe(8);
+      expect(fields.map((f) => f.line)).not.toContain(parent.line);
+    });
+
+    it("struct fields", () => {
+      const result = parseWithSymbols(`
+struct Point {
+  u32 x;
+  u32 y;
+  u32 z;
+}
+`);
+      const parent = result.symbols.find((s) => s.kind === "struct")!;
+      const fields = result.symbols.filter((s) => s.kind === "field");
+      expect(fields).toHaveLength(3);
+      expect(new Set(fields.map((f) => f.line)).size).toBe(3);
+      expect(fields.map((f) => f.line)).not.toContain(parent.line);
+    });
+
+    it("register members", () => {
+      const result = parseWithSymbols(`
+register GPIO @ 0x40000000 {
+  DR: u32 rw @ 0x00,
+  DIR: u32 rw @ 0x04,
+  MASK: u32 rw @ 0x08,
+}
+`);
+      const parent = result.symbols.find((s) => s.kind === "register")!;
+      const members = result.symbols.filter((s) => s.kind === "registerMember");
+      expect(members).toHaveLength(3);
+      expect(new Set(members.map((m) => m.line)).size).toBe(3);
+      expect(members.map((m) => m.line)).not.toContain(parent.line);
+    });
+  });
 });

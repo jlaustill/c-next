@@ -80,7 +80,10 @@ function convertBitmap(
       parent: cName,
       id: `${bitmapId}.${fieldName}`,
       parentId: bitmapId,
-      line: bitmap.span.line,
+      // #1318: the MEMBER's line, not its parent's. Members carry their own
+      // span now, so reporting the parent's was the consumer ignoring data
+      // it already had -- the same defect fixed for enum members above.
+      line: fieldInfo.span.line,
       size: fieldInfo.width,
     });
   }
@@ -155,7 +158,10 @@ function convertStruct(
       parent: cName,
       id: `${structId}.${fieldName}`,
       parentId: structId,
-      line: struct.span.line,
+      // #1318: the MEMBER's line, not its parent's. Members carry their own
+      // span now, so reporting the parent's was the consumer ignoring data
+      // it already had -- the same defect fixed for enum members above.
+      line: fieldInfo.span.line,
     });
   }
 
@@ -239,8 +245,11 @@ function convertRegister(
       parent: cName,
       id: `${registerId}.${memberName}`,
       parentId: registerId,
+      // #1318: the MEMBER's line, not its parent's. Members carry their own
+      // span now, so reporting the parent's was the consumer ignoring data
+      // it already had -- the same defect fixed for enum members above.
       accessModifier: memberInfo.access,
-      line: register.span.line,
+      line: memberInfo.span.line,
     });
   }
 
