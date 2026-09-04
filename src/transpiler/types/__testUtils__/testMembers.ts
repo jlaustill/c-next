@@ -1,3 +1,4 @@
+import type IBitmapFieldLayout from "../IBitmapFieldLayout";
 import type IBitmapFieldSymbol from "../symbols/IBitmapFieldSymbol";
 import type IRegisterMemberSymbol from "../symbols/IRegisterMemberSymbol";
 import type IEnumMemberSymbol from "../symbols/IEnumMemberSymbol";
@@ -90,7 +91,7 @@ class TestMembers {
 
   static asBitmapFields(
     ownerScopedName: string,
-    fields: ReadonlyMap<string, { offset: number; width: number }>,
+    fields: ReadonlyMap<string, IBitmapFieldLayout>,
   ): Map<string, IBitmapFieldSymbol> {
     const out = new Map<string, IBitmapFieldSymbol>();
     let line = 1;

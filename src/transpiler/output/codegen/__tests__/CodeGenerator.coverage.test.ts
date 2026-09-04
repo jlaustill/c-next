@@ -1098,9 +1098,19 @@ describe("CodeGenerator Coverage Tests", () => {
         }
       `;
       const { code } = setupGenerator(source);
-      // Function used as type - variable declaration uses function name
-      expect(code).toContain("handler callback");
+      // #1484: this asserted the bug. `handler` is a FUNCTION, and emitting it
+      // in type position produces C no compiler accepts -- there is no typedef
+      // by that name, and it collides with the function's own prototype
+      // ("redeclared as different kind of symbol"). ADR-029's type for a
+      // function-as-type is its `_fp` typedef, which is what a parameter
+      // (#1164) and a scope member (#1200) already emit.
+      expect(code).toContain("handler_fp callback");
       expect(code).toContain("callback = handler");
+      // Guard the specific regression: the bare function name must not appear
+      // as a type. The literal whitespace is what excludes `handler_fp` -- the
+      // leading \b matches at the start of `handler_fp` too, since `_` is a word
+      // character, so the boundary alone would not distinguish them.
+      expect(code).not.toMatch(/\bhandler\s+callback\b/);
     });
 
     it("should handle function with local variables", () => {

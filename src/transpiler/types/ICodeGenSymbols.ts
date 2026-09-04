@@ -1,3 +1,4 @@
+import type IBitmapFieldLayout from "./IBitmapFieldLayout";
 /**
  * Read-only symbol collections for code generation.
  * Provides generators with access to type declarations without mutation.
@@ -66,7 +67,7 @@ interface ICodeGenSymbols {
   /** Bitmap field info: bitmapName -> (fieldName -> {offset, width}) */
   readonly bitmapFields: ReadonlyMap<
     string,
-    ReadonlyMap<string, { readonly offset: number; readonly width: number }>
+    ReadonlyMap<string, IBitmapFieldLayout>
   >;
 
   /** Backing type for each bitmap: bitmapName -> typeName (e.g., "uint8_t") */

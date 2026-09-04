@@ -1,0 +1,1 @@
+24:8 error[E0422]: function 'notAFunction' called before definition

@@ -304,6 +304,14 @@ interface IOrchestrator {
   getCallbackTypedefName(typeName: string): string | null;
 
   /**
+   * ADR-029: the C type a DECLARATION of this type emits -- the `_fp` typedef
+   * for a function-as-type, the type itself otherwise. Every declaration site
+   * asks this rather than pairing generateType with getCallbackTypedefName
+   * itself (#1484).
+   */
+  generateDeclaredType(typeCtx: Parser.TypeContext): string;
+
+  /**
    * ADR-029 / Issues #1201, #1212: record that this function needs a callback
    * `_fp` typedef, if it does. Callers state that a function was emitted; where
    * the typedef goes and whether it is needed belong to the implementation.

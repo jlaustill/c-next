@@ -573,33 +573,4 @@ function _getBitmapBackingType(
   }
 }
 
-/**
- * Generate bitmap field comments from AST (fallback when symbols unavailable)
- */
-function _generateBitmapFieldCommentsFromAST(
-  fields: Parser.BitmapMemberContext[],
-): string[] {
-  if (fields.length === 0) return [];
-
-  const lines: string[] = ["/* Fields:"];
-  let bitOffset = 0;
-
-  for (const field of fields) {
-    const fieldName = field.IDENTIFIER().getText();
-    const width = field.INTEGER_LITERAL()
-      ? Number.parseInt(field.INTEGER_LITERAL()!.getText(), 10)
-      : 1;
-    const endBit = bitOffset + width - 1;
-    const bitRange =
-      width === 1 ? `bit ${bitOffset}` : `bits ${bitOffset}-${endBit}`;
-    lines.push(
-      ` *   ${fieldName}: ${bitRange} (${width} bit${width > 1 ? "s" : ""})`,
-    );
-    bitOffset += width;
-  }
-
-  lines.push(" */");
-  return lines;
-}
-
 export default generateScope;
