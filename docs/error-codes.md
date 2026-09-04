@@ -125,12 +125,21 @@ diagnostic is correct today. **When ADR-111 is implemented, E0429 is retired out
 `Control c(0x40000000)` becomes the instantiation form that ADR designs. Grep `ADR-111`
 to find every site that has to change together.
 
-**E0426/E0427 (#1312, #1353)** complete the set: an undeclared name is diagnosed in a
-type position, a value position and a call position (E0422) rather than only the last.
-Both are reported only where the transpiler knows the file's whole name universe — a
-file including an unparsed C/C++ header keeps the previous permissive behavior, because
+**E0426/E0427 (#1312, #1353, #1398)** complete the set: an undeclared name is diagnosed
+in a type position, a value position and a call position (E0422) rather than only the
+last. Both are reported only where the transpiler knows the file's whole name universe —
+a file including an unparsed C/C++ header keeps the previous permissive behavior, because
 rejecting a type the compiler will supply is a regression while failing to diagnose is
-the status quo (#1398 tracks the remaining cross-file value gap).
+the status quo.
+
+Both also answer per FILE, not per run (#1398). A value declared in a sibling this file
+never included is undefined here, exactly as a type is — the value check reads the
+include-filtered name set rather than the run-wide symbol table, which answers "declared
+anywhere in this run" and so could never reject a sibling reference. E0426 had a per-file
+view from the start and E0427 did not, which is why the type case was diagnosed and the
+identical value case compiled to C that gcc rejects. What remains permissive is the
+foreign-header case above: no edge connects a `.cnx` to the headers it includes, so
+include-visibility is not derivable for a C or C++ name.
 
 ---
 

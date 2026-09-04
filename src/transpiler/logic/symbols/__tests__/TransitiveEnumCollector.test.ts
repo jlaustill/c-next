@@ -24,6 +24,7 @@ describe("TransitiveEnumCollector", () => {
       knownRegisters: new Set<string>(),
       knownEnums: new Set(knownEnums),
       knownBitmaps: new Set<string>(),
+      knownVariables: new Set<string>(),
       scopeMembers: new Map(),
       scopeMemberVisibility: new Map(),
       structFields: new Map(),

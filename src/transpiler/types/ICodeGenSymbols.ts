@@ -24,6 +24,24 @@ interface ICodeGenSymbols {
   /** Set of known bitmap type names (ADR-034) */
   readonly knownBitmaps: ReadonlySet<string>;
 
+  /**
+   * File-scope variable and const names this file can SEE -- its own
+   * declarations plus those of every `.cnx` file it includes.
+   *
+   * Issue #1398: the type sets above are per-file, so they answer "is this name
+   * declared somewhere I can reach?" correctly. Variables had no equivalent, so
+   * the value-position check fell back to the run-wide `SymbolTable`, which
+   * answers "wherever it was declared in this run". A sibling that was never
+   * included still resolved, and E0427 could not fire across a file boundary
+   * while E0426 fired for the identical type case.
+   *
+   * Scope members are deliberately NOT here. They live in `scopeMembers`, keyed
+   * by scope, and are reachable only through a scope path. This set holds bare
+   * file-scope names, matching the key `SymbolTable.getTSymbol` is indexed by --
+   * so it narrows exactly the lookup it replaces rather than adding a second one.
+   */
+  readonly knownVariables: ReadonlySet<string>;
+
   // === Scope Information ===
 
   /** Members of each scope: scopeName -> Set of member names */

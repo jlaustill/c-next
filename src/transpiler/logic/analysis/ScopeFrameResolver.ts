@@ -62,13 +62,32 @@ class ScopeFrameResolver {
    * shadows an imported one of the same name, exactly as it did before.
    */
   public typeOfName(name: string, frame: IScopeFrame): string | null {
+    return (
+      this.typeOfNameLexical(name, frame) ??
+      CodeGenState.getCNextVariableTypeName(name)
+    );
+  }
+
+  /**
+   * The lexical half of `typeOfName`: this file's frames only, with no
+   * run-wide fallback. Null when the name is declared in no enclosing frame.
+   *
+   * Issue #1398: the fallback answers "declared ANYWHERE in this run", which is
+   * right for the essential-type analyzers (#1220) and wrong for a visibility
+   * decision -- a sibling that was never included still resolves through it. The
+   * walk is exposed rather than copied so both questions read the same frames:
+   * a caller that needs "is this name visible HERE" takes this half and pairs it
+   * with a per-file set, instead of re-implementing the outward search and
+   * drifting from it. `typeOfName` itself is unchanged for its other callers.
+   */
+  public typeOfNameLexical(name: string, frame: IScopeFrame): string | null {
     let current: IScopeFrame | null = frame;
     while (current) {
       const typeName = current.vars.get(name);
       if (typeName) return typeName;
       current = current.parent;
     }
-    return CodeGenState.getCNextVariableTypeName(name);
+    return null;
   }
 }
 

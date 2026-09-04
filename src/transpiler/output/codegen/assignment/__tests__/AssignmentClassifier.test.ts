@@ -102,6 +102,7 @@ function setupSymbols(
     knownRegisters: overrides.knownRegisters ?? new Set(),
     knownEnums: new Set<string>(),
     knownBitmaps: new Set<string>(),
+    knownVariables: new Set<string>(),
     scopeMembers: new Map<string, Set<string>>(),
     scopeMemberVisibility: new Map(),
     structFields: overrides.structFields ?? new Map(),

@@ -141,14 +141,30 @@ class UndeclaredValueAnalyzer {
     scopePath: ReturnType<EnclosingScope["current"]>,
     scopes: ScopeFrameResolver,
   ): boolean {
-    // A declared variable -- lexical frames first, then the symbol table for a
-    // declaration that arrived through a .cnx include (#1220).
-    if (scopes.typeOfName(name, frame) !== null) {
+    // A declared variable in an enclosing lexical frame of THIS file.
+    //
+    // #1398: deliberately the lexical half alone. The full `typeOfName` falls
+    // back to the run-wide symbol table, which answers "declared anywhere in
+    // this run" -- so a const declared in a sibling that this file never
+    // included resolved here and returned visible, and E0427 could not fire
+    // across a file boundary at all. The cross-file half of the question is
+    // answered below by `knownVariables`, which is include-filtered. The
+    // fallback itself stays for #1220's essential-type analyzers, which want
+    // exactly the run-wide answer.
+    if (scopes.typeOfNameLexical(name, frame) !== null) {
       return true;
     }
 
     const symbols = CodeGenState.symbols;
     if (!symbols) {
+      return true;
+    }
+
+    // #1398: a file-scope variable or const declared in this file or in a .cnx
+    // file it includes -- the value-position counterpart of the per-file type
+    // sets, and the reason this check can now cross an include boundary without
+    // also crossing to a file that was never included.
+    if (symbols.knownVariables.has(name)) {
       return true;
     }
 

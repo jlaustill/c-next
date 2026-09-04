@@ -16,6 +16,7 @@ function createMockSymbolInfo(enumName?: string): ICodeGenSymbols {
     knownRegisters: new Set(),
     knownEnums,
     knownBitmaps: new Set(),
+    knownVariables: new Set(),
     scopeMembers: new Map(),
     scopeMemberVisibility: new Map(),
     structFields: new Map(),

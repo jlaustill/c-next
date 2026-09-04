@@ -61,6 +61,7 @@ interface IMergeAccumulator {
   >;
   readonly knownStructs: Set<string>;
   readonly knownBitmaps: Set<string>;
+  readonly knownVariables: Set<string>;
   readonly bitmapFields: Map<
     string,
     Map<string, { readonly offset: number; readonly width: number }>
@@ -83,6 +84,9 @@ class TSymbolInfoAdapter {
     const knownEnums = new Set<string>();
     const knownBitmaps = new Set<string>();
     const knownRegisters = new Set<string>();
+
+    // === Issue #1398: File-Scope Value Names ===
+    const knownVariables = new Set<string>();
 
     // === Scope Information ===
     const scopeMembers = new Map<string, Set<string>>();
@@ -176,11 +180,12 @@ class TSymbolInfoAdapter {
           break;
 
         case "variable":
-          // Track scope membership and private const values
+          // Track scope membership, private const values, and file-scope names
           TSymbolInfoAdapter.processVariable(
             symbol,
             scopeMembers,
             scopePrivateConstValues,
+            knownVariables,
           );
           break;
 
@@ -211,6 +216,7 @@ class TSymbolInfoAdapter {
       knownEnums,
       knownBitmaps,
       knownRegisters,
+      knownVariables,
 
       // Scope info
       scopeMembers,
@@ -441,6 +447,7 @@ class TSymbolInfoAdapter {
     variable: IVariableSymbol,
     scopeMembers: Map<string, Set<string>>,
     scopePrivateConstValues: Map<string, string>,
+    knownVariables: Set<string>,
   ): void {
     const cName = TSymbolInfoAdapter.getTranspiledCName(variable);
     // `scopeMembers` is keyed by the scope's LEAF name -- itself a leaf-only
@@ -456,6 +463,14 @@ class TSymbolInfoAdapter {
         scopeMembers.set(scopeName, members);
       }
       members.add(variable.name); // Add local name (e.g., "value"), not transpiled C name
+    } else {
+      // Issue #1398: a file-scope variable is reachable by its bare name, which
+      // is the key the run-wide table is indexed by -- so recording it here is
+      // what lets the value check ask a per-file question instead of a run-wide
+      // one. Scoped variables are excluded because they are NOT reachable bare;
+      // they are reached through `scopeMembers` above, which the value check
+      // already consults under a scope path.
+      knownVariables.add(variable.name);
     }
 
     // Issue #282: Track private const values for inlining
@@ -597,6 +612,16 @@ class TSymbolInfoAdapter {
     // only rejects an explicit "private".
     TSymbolInfoAdapter._mergeNames(external.knownScopes, into.knownScopes);
 
+    // Issue #1398: file-scope VALUE names cross on the same terms as the
+    // type-forming kinds above. The #1333 asymmetry this function was written to
+    // fix was between two kinds of type; this is the same asymmetry one axis
+    // over -- a type declared in an included file resolved and a const declared
+    // beside it did not, so E0426 fired cross-file and E0427 could not.
+    TSymbolInfoAdapter._mergeNames(
+      external.knownVariables,
+      into.knownVariables,
+    );
+
     // A type's NAME is not enough; its detail travels with it. enumMembers already
     // moved with knownEnums, which is exactly why enums were the only kind that
     // ever worked -- carrying knownBitmaps alone let a cross-file bitmap type
@@ -688,6 +713,7 @@ class TSymbolInfoAdapter {
     const mergedKnownScopes = new Set(base.knownScopes);
     const mergedKnownStructs = new Set(base.knownStructs);
     const mergedKnownBitmaps = new Set(base.knownBitmaps);
+    const mergedKnownVariables = new Set(base.knownVariables);
     const mergedBitmapFields = new Map(
       [...base.bitmapFields].map(([name, fields]) => [name, new Map(fields)]),
     );
@@ -712,6 +738,7 @@ class TSymbolInfoAdapter {
         bitmapFields: mergedBitmapFields,
         bitmapBackingType: mergedBitmapBackingType,
         bitmapBitWidth: mergedBitmapBitWidth,
+        knownVariables: mergedKnownVariables,
       });
     }
 
@@ -728,6 +755,7 @@ class TSymbolInfoAdapter {
       enumMembers: mergedEnumMembers,
       functionReturnTypes: mergedFunctionReturnTypes,
       scopeMemberVisibility: mergedScopeMemberVisibility,
+      knownVariables: mergedKnownVariables,
     };
   }
 

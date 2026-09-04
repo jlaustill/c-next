@@ -27,6 +27,7 @@ function setupSymbols(
     knownRegisters: new Set(),
     knownEnums: overrides.knownEnums ?? new Set(),
     knownBitmaps: overrides.knownBitmaps ?? new Set(),
+    knownVariables: new Set(),
     scopeMembers: new Map(),
     scopeMemberVisibility: new Map(),
     structFields: new Map(),
