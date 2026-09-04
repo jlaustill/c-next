@@ -1,0 +1,51 @@
+// test-execution
+// #1484 / ADR-029: a LOCAL variable whose declared type names a function-as-type
+// emits that function's `_fp` typedef, exactly as a parameter and a scope member
+// already did. Only the local path never asked, so this emitted
+// `onTick handler = onTick;` -- the function's own name in type position, which
+// no typedef declares. gcc rejected it and the transpiler exited 0.
+//
+// Two defects, and the second was hidden behind the first: the type was not
+// mapped, AND nothing recorded that a local names a callback type, so even the
+// corrected `onTick_fp` referenced a typedef nothing emitted. Both are exercised
+// here -- the header must contain the typedef and the body must use it.
+//
+// The scope case additionally depends on #1472: before that fix the analyzer
+// refused the call through `handler` with E0422.
+u32 total <- 0;
+
+void onTick(u32 ms) {
+    total <- total + ms;
+}
+
+scope Motor {
+    public u32 ticks <- 0;
+
+    public void onBeat(u32 n) {
+        this.ticks <- this.ticks + n;
+    }
+
+    // Local variable typed by a scope-declared function-as-type, named bare.
+    public void runLocal() {
+        onBeat beat <- onBeat;
+        beat(7);
+    }
+}
+
+u32 main() {
+    // Top-level: the reported case.
+    onTick handler <- onTick;
+    handler(5);
+    if (total != 5) return 1;
+
+    // Calling through the variable a second time must accumulate, proving the
+    // pointer is real and not a no-op.
+    handler(3);
+    if (total != 8) return 2;
+
+    // Scope-declared function-as-type, reached from a local inside its scope.
+    Motor.runLocal();
+    if (Motor.ticks != 7) return 3;
+
+    return 0;
+}

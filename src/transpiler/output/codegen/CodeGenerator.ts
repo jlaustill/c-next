@@ -2799,6 +2799,8 @@ export default class CodeGenerator implements IOrchestrator {
     CodeGenState.functionSignatures.set(fullName, sig);
     // ADR-029: Register scoped function as callback type
     this.registerCallbackType(fullName, funcDecl);
+    // #1484: locals in the body name callback types too.
+    this._collectLocalCallbackTypeReferences(funcDecl.block());
   }
 
   /**
@@ -2840,6 +2842,8 @@ export default class CodeGenerator implements IOrchestrator {
     CodeGenState.functionSignatures.set(name, sig);
     // ADR-029: Register function as callback type
     this.registerCallbackType(name, funcDecl);
+    // #1484: locals in the body name callback types too.
+    this._collectLocalCallbackTypeReferences(funcDecl.block());
   }
 
   /**
@@ -2941,6 +2945,42 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     return { name, parameters };
+  }
+
+  /**
+   * ADR-029 / #1484: record the callback types named by LOCAL variable
+   * declarations in a function body.
+   *
+   * The three sites that already record a reference -- struct fields, scope
+   * member variables, and parameters via `extractFunctionSignature` -- all walk
+   * DECLARATIONS. A local variable lives inside a statement, so none of them
+   * reach it, and a callback type named only by a local had its `_fp` typedef
+   * omitted from the very output that used it: correct type name, no typedef,
+   * `unknown type name 'onTick_fp'`.
+   *
+   * Runs in the pre-pass rather than during generation because
+   * `recordCallbackTypedef` consumes this set as each function is emitted; a
+   * reference discovered while generating a later body would arrive after the
+   * decision it exists to inform.
+   */
+  private _collectLocalCallbackTypeReferences(
+    body: Parser.BlockContext | null,
+  ): void {
+    if (!body) {
+      return;
+    }
+    const visit = (node: ParserRuleContext): void => {
+      if (node instanceof Parser.VariableDeclarationContext) {
+        CodeGenState.callbackTypeReferences.add(this.getTypeName(node.type()));
+      }
+      for (let i = 0; i < node.getChildCount(); i++) {
+        const child = node.getChild(i);
+        if (child instanceof ParserRuleContext) {
+          visit(child);
+        }
+      }
+    };
+    visit(body);
   }
 
   /**
@@ -3970,7 +4010,19 @@ export default class CodeGenerator implements IOrchestrator {
     ctx: Parser.VariableDeclarationContext,
     name: string,
   ): string {
-    const type = this.generateType(ctx.type());
+    const declared = this.generateType(ctx.type());
+
+    // ADR-029 / #1484: a LOCAL variable whose declared type names a
+    // function-as-type emits that function's `_fp` typedef, exactly as a scope
+    // member (ScopeGenerator) and a parameter (ParameterInputAdapter) already
+    // do. Only this path never asked, so `onTick handler <- onTick;` emitted
+    // `onTick handler = onTick;` -- the function's own name in type position,
+    // which no typedef declares. gcc rejects it, and the transpiler exited 0.
+    //
+    // `getCallbackTypedefName` is the single owner of the `${name}_fp`
+    // convention that registerCallbackType establishes, so this asks it rather
+    // than rebuilding the name.
+    const type = this.getCallbackTypedefName(declared) ?? declared;
 
     // Issue #958: C-header typedef struct types always need pointer semantics
     if (CodeGenState.symbolTable?.isTypedefStructType(type)) {

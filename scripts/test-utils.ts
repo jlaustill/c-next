@@ -869,6 +869,53 @@ class TestUtils {
    * mutation-check against a shared helper should run with `--jobs 1` so a
    * result is attributable to one fixture.
    */
+  /**
+   * Issue #1488: every `.cnx` this fixture's run will read or rewrite --
+   * its helpers, and their helpers, transitively.
+   *
+   * The harness re-transpiles each direct helper IN PLACE after the entry's
+   * pipeline run, so two fixtures sharing any of these files write the same
+   * generated `.h` at once. `findHelperHeaderDivergence` then reads a file
+   * mid-rewrite and reports a divergence that does not exist -- the same commit
+   * failing on CI and passing on re-run, with the blame landing on whichever
+   * pull request happened to be running.
+   *
+   * The scheduler treats this set as a lock: a fixture starts only when no
+   * in-flight fixture holds a file in it. Answering too narrowly lets the race
+   * back in; answering too broadly costs parallelism, which is why this is the
+   * fixture's actual include closure rather than its directory. Serialising by
+   * directory instead was measured at 40.5s -> 51.3s on 1156 fixtures, because
+   * one helper used by one fixture serialised all 30 in `tests/switch`.
+   *
+   * The closure is transitive because the entry's pipeline writes headers for
+   * transitive dependencies too, and any of those may be some OTHER fixture's
+   * direct helper -- comparing direct helpers alone would miss exactly that
+   * pairing.
+   *
+   * Built on findHelperCnxFiles so the scheduler and the guard cannot disagree
+   * about what a helper is.
+   */
+  static helperClosure(testFile: string): string[] {
+    const seen = new Set<string>();
+    const visit = (file: string): void => {
+      let source: string;
+      try {
+        source = readFileSync(file, "utf-8");
+      } catch {
+        return;
+      }
+      for (const helper of TestUtils.findHelperCnxFiles(file, source)) {
+        if (seen.has(helper)) {
+          continue;
+        }
+        seen.add(helper);
+        visit(helper);
+      }
+    };
+    visit(testFile);
+    return [...seen];
+  }
+
   static findHelperHeaderDivergence(
     captured: { path: string; content: string | null }[],
     mode: TTestMode,
@@ -1058,21 +1105,33 @@ class TestUtils {
       return result;
     }
 
-    const hasExpectedImpl = existsSync(expectedImplPath);
-    const hasExpectedHeader = existsSync(expectedHeaderPath);
-
-    // Update mode: create/update snapshots
+    // Update mode: create/update snapshots, then validate them like any other run.
+    //
+    // Issue #1485: this branch used to set `compileSuccess`/`execSuccess` to true
+    // and return, which recorded two successes nothing was ever asked about. The
+    // compiler was not invoked and no `test-execution` binary was run, so
+    // `--update` reported `Passed` for generated C that gcc rejects -- on the one
+    // command an author runs immediately after changing codegen, which is exactly
+    // when uncompilable output is most likely. A guard that cannot fail on the
+    // case it exists to catch is the `/* test-no-warnings */` shape (#1143).
+    //
+    // Falling through costs nothing: compilation below already runs against
+    // `expectedImplPath`, which is the file just written here. The two snapshot
+    // comparisons in between are no-ops in this mode -- they read back the bytes
+    // this branch wrote -- so they need no special case, and the snapshot is on
+    // disk for inspection even when compilation then fails, the same principle as
+    // the #1316 branch for `test-error` fixtures.
     if (updateMode) {
       writeFileSync(paths.expectedImpl, transpileResult.code);
       if (transpileResult.headerCode) {
         writeFileSync(paths.expectedHeader, transpileResult.headerCode);
       }
-      result.snapshotMatch = true;
-      result.headerMatch = true;
-      result.compileSuccess = true;
-      result.execSuccess = true;
-      return result;
     }
+
+    // Computed AFTER the update write, so a fixture whose snapshot this run just
+    // created is not reported missing by the check below.
+    const hasExpectedImpl = existsSync(expectedImplPath);
+    const hasExpectedHeader = existsSync(expectedHeaderPath);
 
     // No expected file - skip this mode
     if (!hasExpectedImpl) {

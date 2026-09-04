@@ -235,6 +235,28 @@ async function runTestsParallel(
     const activeWorkers = new Map<ChildProcess, string>();
     let completedCount = 0;
 
+    // Issue #1488: the harness re-transpiles every helper `.cnx` IN PLACE, so
+    // two fixtures sharing one write the same generated `.h` at once and
+    // findHelperHeaderDivergence reads a file mid-rewrite -- the same commit
+    // failing on CI and passing on re-run. A fixture's include closure acts as
+    // a lock: it starts only when no in-flight fixture holds a file in it.
+    // Fixtures that share nothing -- the overwhelming majority -- are
+    // unconstrained and still run fully parallel.
+    const helpersByFixture = new Map<string, string[]>(
+      cnxFiles.map((file) => [file, TestUtils.helperClosure(file)]),
+    );
+    const activeHelpers = new Set<string>();
+    const helpersOf = (cnxFile: string): string[] =>
+      helpersByFixture.get(cnxFile) ?? [];
+    const releaseHelpers = (cnxFile: string | undefined): void => {
+      if (!cnxFile) {
+        return;
+      }
+      for (const helper of helpersOf(cnxFile)) {
+        activeHelpers.delete(helper);
+      }
+    };
+
     // Results are stored and printed in order for consistent output
     const results = new Map<string, ITestResult>();
     let nextToPrint = 0;
@@ -284,6 +306,7 @@ async function runTestsParallel(
         ) {
           // Store result
           results.set(message.cnxFile, message.result);
+          releaseHelpers(activeWorkers.get(worker));
           activeWorkers.delete(worker);
           completedCount++;
 
@@ -296,8 +319,10 @@ async function runTestsParallel(
             workers.forEach((w) => w.send({ type: "exit" }));
             resolve({ passed, failed, updated, noSnapshot });
           } else {
-            // Assign more work
-            assignWork(worker);
+            // Assign more work. Every idle worker is offered, not just this
+            // one: the directory just released may be what another worker was
+            // waiting on, and nothing else would wake it (#1488).
+            assignWorkToIdleWorkers();
           }
         }
       });
@@ -312,6 +337,7 @@ async function runTestsParallel(
           completedCount++;
           tryPrintResults();
         }
+        releaseHelpers(activeWorkers.get(worker));
         activeWorkers.delete(worker);
 
         // Replace crashed worker if there's more work
@@ -343,6 +369,7 @@ async function runTestsParallel(
           completedCount++;
           tryPrintResults();
         }
+        releaseHelpers(activeWorkers.get(worker));
         activeWorkers.delete(worker);
 
         if (completedCount === cnxFiles.length) {
@@ -354,10 +381,29 @@ async function runTestsParallel(
     }
 
     function assignWork(worker: ChildProcess): void {
-      if (pendingTests.length > 0) {
-        const cnxFile = pendingTests.shift()!;
-        activeWorkers.set(worker, cnxFile);
-        worker.send({ type: "test", cnxFile, updateMode });
+      if (activeWorkers.has(worker)) {
+        return;
+      }
+      // Take the first pending fixture whose directory no other worker holds.
+      // When everything left is blocked the worker simply idles; the completion
+      // that frees a directory re-offers work to every idle worker.
+      const index = pendingTests.findIndex((file) =>
+        helpersOf(file).every((helper) => !activeHelpers.has(helper)),
+      );
+      if (index === -1) {
+        return;
+      }
+      const [cnxFile] = pendingTests.splice(index, 1);
+      for (const helper of helpersOf(cnxFile)) {
+        activeHelpers.add(helper);
+      }
+      activeWorkers.set(worker, cnxFile);
+      worker.send({ type: "test", cnxFile, updateMode });
+    }
+
+    function assignWorkToIdleWorkers(): void {
+      for (const idle of workers) {
+        assignWork(idle);
       }
     }
 
