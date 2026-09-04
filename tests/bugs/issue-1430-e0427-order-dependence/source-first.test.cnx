@@ -10,5 +10,12 @@
 #include <value-consumer.cnx>
 
 u32 main() {
+    // Cross-file control, must stay SILENT in both orders: this entry DOES
+    // include func-source.cnx, so `sharedHelper` is legitimately visible here.
+    // This is the legitimate use the deleted knownFunctions read also served;
+    // a deletion that broke it would fire E0427 on this line. Deliberately
+    // not called: `viaInclude()` trips #1491 (E0422 for a local whose callback
+    // type comes from an included file), which would pin that bug here.
+    sharedHelper viaInclude <- sharedHelper;
     return 0;
 }

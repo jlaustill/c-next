@@ -167,7 +167,10 @@ class UndeclaredValueAnalyzer {
     // its `#include` lines swapped either diagnosed the undefined name or
     // emitted C the compiler rejects at exit 0. It was redundant as well as
     // wrong -- `isValueName` reaches `symbols.functionReturnTypes`, the
-    // per-file view of the same ADR-029 fact, on the identical key.
+    // per-file view of the same ADR-029 fact, on the identical key. The
+    // qualified read below goes for the same reason, but on the key-shape
+    // argument alone: reinstating it reddens no fixture, because the
+    // `scopeMembers` term beside it already answers cross-file (#1494).
     const symbolTable = CodeGenState.symbolTable;
     if (
       NameExistence.isValueName(name, symbols, symbolTable) ||

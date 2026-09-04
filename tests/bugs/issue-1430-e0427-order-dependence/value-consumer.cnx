@@ -5,10 +5,19 @@ u32 localHelper() {
     return 7;
 }
 
-// Control, must stay SILENT: localHelper is declared in this very file, so
-// referencing it as a value is legal (ADR-029). Without this line, a fix that
-// rejected every function-as-value would still pass the assertions below.
-u32 ownLimit <- localHelper;
+// Control, must stay SILENT: localHelper is declared in this very file, so a
+// value reference to it is defined, which is all E0427 asks. Without this, a
+// fix that rejected every function-as-value would still pass the assertions
+// below. It takes the function-body form because that is the spelling that
+// also compiles: ADR-029 licenses a function name as a callback TYPE whose
+// value is the function, not as an initializer for a u32 -- and the file-scope
+// form of even the typed spelling emits a .h/.c pair that disagree about what
+// `localHelper` is (#1497, #1498). A test-error fixture never compiles, so a
+// control that only transpiles would pin a broken construct unnoticed.
+u32 useLocal() {
+    localHelper ownLimit <- localHelper;
+    return ownLimit();
+}
 
 // The defect: declared only in func-source.cnx, which this file does not
 // include. Must be rejected under BOTH include orders.

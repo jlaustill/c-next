@@ -1,2 +1,2 @@
-15:21 error[E0427]: 'sharedHelper' is not defined
-20:18 error[E0427]: 'neverDeclaredAnywhere' is not defined
+24:21 error[E0427]: 'sharedHelper' is not defined
+29:18 error[E0427]: 'neverDeclaredAnywhere' is not defined
