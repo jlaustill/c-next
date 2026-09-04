@@ -1600,17 +1600,6 @@ export default class CodeGenState {
   }
 
   /**
-   * Register a function signature.
-   */
-  static registerFunctionSignature(
-    name: string,
-    sig: IFunctionSignature,
-  ): void {
-    this.functionSignatures.set(name, sig);
-    this.knownFunctions.add(name);
-  }
-
-  /**
    * Register a callback type.
    */
   static registerCallbackType(name: string, info: ICallbackTypeInfo): void {

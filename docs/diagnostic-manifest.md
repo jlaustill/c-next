@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-302 fixture(s) assert a diagnostic; 180 carry a code.
+303 fixture(s) assert a diagnostic; 181 carry a code.
 
 | Fixture                                                                                         | Codes        |
 | ----------------------------------------------------------------------------------------------- | ------------ |
@@ -139,6 +139,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1360-read-path-bounds/read-path-multidim.test.cnx                              | (uncoded)    |
 | tests/bugs/issue-1360-read-path-bounds/read-path-negative-index.test.cnx                        | (uncoded)    |
 | tests/bugs/issue-1360-read-path-bounds/read-path-scope-member.test.cnx                          | (uncoded)    |
+| tests/bugs/issue-1472-scope-function-as-type/undefined-still-rejected.test.cnx                  | E0422        |
 | tests/bugs/issue-847-misra-17-7-lowering/bare-intra-scope-discard.test.cnx                      | E0708        |
 | tests/bugs/issue-847-misra-17-7-lowering/cross-file-scope-discard.test.cnx                      | E0708        |
 | tests/bugs/issue-847-misra-17-7-lowering/external-c-discard.test.cnx                            | E0708        |

@@ -6,6 +6,7 @@
  * discriminated union symbols into the flat map format expected by CodeGenerator.
  */
 
+import type IBitmapFieldLayout from "../../../../types/IBitmapFieldLayout";
 import { describe, expect, it } from "vitest";
 import TSymbolInfoAdapter from "../adapters/TSymbolInfoAdapter";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
@@ -873,7 +874,7 @@ describe("TSymbolInfoAdapter", () => {
   describe("mergeExternalSymbols — bitmap detail maps", () => {
     const makeBitmap = (
       name: string,
-      fields: Map<string, { offset: number; width: number }> = new Map([
+      fields: Map<string, IBitmapFieldLayout> = new Map([
         ["Ready", { offset: 0, width: 1 }],
         ["Mode", { offset: 1, width: 3 }],
       ]),

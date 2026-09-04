@@ -407,20 +407,6 @@ describe("CodeGenState", () => {
       expect(CodeGenState.localArrays.size).toBe(0);
     });
 
-    it("registerFunctionSignature adds to functionSignatures and knownFunctions", () => {
-      const sig = {
-        name: "myFunc",
-        returnType: "void",
-        parameters: [],
-        isPublic: true,
-      };
-
-      CodeGenState.registerFunctionSignature("myFunc", sig);
-
-      expect(CodeGenState.functionSignatures.get("myFunc")).toBe(sig);
-      expect(CodeGenState.knownFunctions.has("myFunc")).toBe(true);
-    });
-
     it("registerCallbackType adds to callbackTypes", () => {
       const info = {
         functionName: "onClick",

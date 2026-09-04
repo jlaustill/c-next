@@ -11,6 +11,7 @@
  * .char_count) are handled in PostfixExpressionGenerator.ts, not here.
  * The deprecated .length property was removed per ADR-058.
  */
+import type IBitmapFieldLayout from "../../../../types/IBitmapFieldLayout";
 import IGeneratorOutput from "../IGeneratorOutput";
 import TTypeInfo from "../../../../types/TTypeInfo";
 import CodeGenState from "../../../../state/CodeGenState.js";
@@ -46,14 +47,6 @@ const generateSizeProperty = (
 };
 
 /**
- * Bitmap field info for generating bit access code.
- */
-interface BitmapFieldInfo {
-  offset: number;
-  width: number;
-}
-
-/**
  * Generate code for bitmap field read access.
  *
  * Single bit fields generate: ((value >> offset) & 1)
@@ -64,7 +57,7 @@ interface BitmapFieldInfo {
  */
 const generateBitmapFieldAccess = (
   result: string,
-  fieldInfo: BitmapFieldInfo,
+  fieldInfo: IBitmapFieldLayout,
 ): IGeneratorOutput => {
   let expr: string;
   if (fieldInfo.width === 1) {

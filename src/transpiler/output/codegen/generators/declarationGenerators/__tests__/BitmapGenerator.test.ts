@@ -1,3 +1,4 @@
+import type IBitmapFieldLayout from "../../../../../types/IBitmapFieldLayout";
 import { describe, it, expect } from "vitest";
 import generateBitmap from "../BitmapGenerator";
 import IGeneratorInput from "../../IGeneratorInput";
@@ -25,20 +26,12 @@ function createMockBitmapContext(
 }
 
 /**
- * Bitmap field info structure.
- */
-interface IBitmapFieldInfo {
-  offset: number;
-  width: number;
-}
-
-/**
  * Create minimal mock input with bitmap info.
  */
 function createMockInput(
   bitmapName: string,
   backingType: string,
-  fields?: Map<string, IBitmapFieldInfo>,
+  fields?: Map<string, IBitmapFieldLayout>,
 ): IGeneratorInput {
   return {
     symbols: {
@@ -133,7 +126,7 @@ describe("BitmapGenerator", () => {
 
   describe("field documentation", () => {
     it("generates field comments for single-bit fields", () => {
-      const fields = new Map<string, IBitmapFieldInfo>([
+      const fields = new Map<string, IBitmapFieldLayout>([
         ["Running", { offset: 0, width: 1 }],
         ["Direction", { offset: 1, width: 1 }],
       ]);
@@ -151,7 +144,7 @@ describe("BitmapGenerator", () => {
     });
 
     it("generates field comments for multi-bit fields", () => {
-      const fields = new Map<string, IBitmapFieldInfo>([
+      const fields = new Map<string, IBitmapFieldLayout>([
         ["Mode", { offset: 0, width: 3 }],
         ["Reserved", { offset: 3, width: 5 }],
       ]);
@@ -182,7 +175,7 @@ describe("BitmapGenerator", () => {
 
   describe("scoped bitmap generation (ADR-016)", () => {
     it("applies scope prefix when inside a scope", () => {
-      const fields = new Map<string, IBitmapFieldInfo>([
+      const fields = new Map<string, IBitmapFieldLayout>([
         ["Active", { offset: 0, width: 1 }],
       ]);
       const ctx = createMockBitmapContext("Status");
@@ -229,7 +222,7 @@ describe("BitmapGenerator", () => {
 
   describe("complete output format", () => {
     it("generates complete bitmap with all sections", () => {
-      const fields = new Map<string, IBitmapFieldInfo>([
+      const fields = new Map<string, IBitmapFieldLayout>([
         ["Enabled", { offset: 0, width: 1 }],
         ["Priority", { offset: 1, width: 3 }],
         ["Channel", { offset: 4, width: 4 }],

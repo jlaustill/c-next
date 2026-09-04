@@ -1,0 +1,26 @@
+// test-error
+// Negative control for the #1472 fix.
+//
+// The fix widened what counts as a callback type, so the risk it carries is
+// OVER-enforcement: a version that treated every identifier as callable would
+// make the sibling fixture pass while silently retiring E0422. `runBare` below
+// is the case #1472 fixed and MUST stay silent; `broken` calls a name declared
+// nowhere and MUST still be flagged. Only the second appears in
+// `.expected.error`, so losing the diagnostic fails this fixture.
+scope Motor {
+    public u32 ticks <- 0;
+
+    public void onTick(u32 ms) {
+        this.ticks <- this.ticks + ms;
+    }
+
+    // MUST STAY SILENT.
+    public void runBare(onTick handler) {
+        handler(3);
+    }
+
+    // MUST BE FLAGGED.
+    public void broken() {
+        notAFunction(1);
+    }
+}

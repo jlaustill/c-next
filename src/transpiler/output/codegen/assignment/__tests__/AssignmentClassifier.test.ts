@@ -1,3 +1,4 @@
+import type IBitmapFieldLayout from "../../../../types/IBitmapFieldLayout";
 import { describe, it, expect, beforeEach } from "vitest";
 import AssignmentClassifier from "../AssignmentClassifier";
 import AssignmentKind from "../AssignmentKind";
@@ -72,7 +73,7 @@ function setupSymbols(
     knownRegisters?: Set<string>;
     knownScopes?: Set<string>;
     knownStructs?: Set<string>;
-    bitmapFields?: Map<string, Map<string, { offset: number; width: number }>>;
+    bitmapFields?: Map<string, Map<string, IBitmapFieldLayout>>;
     registerMemberTypes?: Map<string, string>;
     structFields?: Map<string, Map<string, string>>;
     structFieldArrays?: Map<string, Set<string>>;

@@ -236,7 +236,9 @@ const generateForVarDecl = (
   const effects: TGeneratorEffect[] = [];
   // Issue #696: Use shared modifier builder
   const modifiers = VariableModifierBuilder.buildSimple(node);
-  const typeName = orchestrator.generateType(node.type());
+  // #1484: a `for` init declares a variable like any other, including one
+  // typed by an ADR-029 function-as-type.
+  const typeName = orchestrator.generateDeclaredType(node.type());
   const declaredName = node.IDENTIFIER().getText();
 
   // ADR-016: Track local variables (allowed as bare identifiers inside scopes).

@@ -2,13 +2,14 @@
  * Unit tests for BitmapCommentUtils
  */
 
+import type IBitmapFieldLayout from "../../../../../types/IBitmapFieldLayout";
 import { describe, it, expect } from "vitest";
 import BitmapCommentUtils from "../BitmapCommentUtils";
 
 describe("BitmapCommentUtils", () => {
   describe("generateBitmapFieldComments", () => {
     it("should return empty array for empty field map", () => {
-      const fields = new Map<string, { offset: number; width: number }>();
+      const fields = new Map<string, IBitmapFieldLayout>();
       const result = BitmapCommentUtils.generateBitmapFieldComments(fields);
       expect(result).toEqual([]);
     });

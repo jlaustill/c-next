@@ -6,7 +6,7 @@
 
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
 import TestUtils from "../test-utils";
 
 describe("TestUtils.findHelperHeaderDivergence", () => {
@@ -119,6 +119,80 @@ describe("TestUtils.findHelperHeaderDivergence", () => {
 
     expect(result?.error).toContain("changed.h");
     expect(result?.error).toContain("CPP");
+  });
+});
+
+describe("TestUtils.helperClosure", () => {
+  let tempDir: string;
+
+  beforeEach(() => {
+    tempDir = mkdtempSync(join(tmpdir(), "helper-closure-test-"));
+  });
+
+  afterEach(() => {
+    rmSync(tempDir, { recursive: true, force: true });
+  });
+
+  const write = (name: string, body: string): string => {
+    const full = join(tempDir, name);
+    mkdirSync(dirname(full), { recursive: true });
+    writeFileSync(full, body);
+    return full;
+  };
+
+  it("is empty for a fixture that includes nothing", () => {
+    const entry = write("a.test.cnx", "u32 main() { return 0; }\n");
+
+    expect(TestUtils.helperClosure(entry)).toEqual([]);
+  });
+
+  it("finds the direct helper", () => {
+    const helper = write("types.cnx", "enum E { A <- 0 }\n");
+    const entry = write("a.test.cnx", '#include "types.cnx"\n');
+
+    expect(TestUtils.helperClosure(entry)).toEqual([helper]);
+  });
+
+  it("follows helpers of helpers -- the pipeline writes their headers too", () => {
+    const deep = write("lib/deep.cnx", "u32 deep() { return 1; }\n");
+    const mid = write("lib/mid.cnx", '#include "deep.cnx"\n');
+    const entry = write("a.test.cnx", '#include "lib/mid.cnx"\n');
+
+    expect(TestUtils.helperClosure(entry).sort()).toEqual([deep, mid].sort());
+  });
+
+  it("terminates on a cycle instead of recursing forever", () => {
+    const one = write("one.cnx", '#include "two.cnx"\n');
+    const two = write("two.cnx", '#include "one.cnx"\n');
+    const entry = write("a.test.cnx", '#include "one.cnx"\n');
+
+    expect(TestUtils.helperClosure(entry).sort()).toEqual([one, two].sort());
+  });
+
+  it("ignores an include naming another fixture, which is not a helper", () => {
+    write("other.test.cnx", "u32 main() { return 0; }\n");
+    const entry = write("a.test.cnx", '#include "other.test.cnx"\n');
+
+    expect(TestUtils.helperClosure(entry)).toEqual([]);
+  });
+
+  it("does not include the entry file itself, which is what stops it locking itself", () => {
+    // Self-inclusion is not the point -- a fixture appearing in its own closure
+    // would take a lock nothing ever releases it against, and every OTHER
+    // fixture would still be free to rewrite the helpers it holds.
+    const helper = write("types.cnx", "enum E { A <- 0 }\n");
+    const entry = write("a.test.cnx", '#include "types.cnx"\n');
+
+    const closure = TestUtils.helperClosure(entry);
+
+    expect(closure).toEqual([helper]);
+    expect(closure).not.toContain(entry);
+  });
+
+  it("ignores an include with no file on disk", () => {
+    const entry = write("a.test.cnx", '#include "absent.cnx"\n');
+
+    expect(TestUtils.helperClosure(entry)).toEqual([]);
   });
 });
 

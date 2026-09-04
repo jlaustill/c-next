@@ -1,3 +1,4 @@
+import type IBitmapFieldLayout from "../../../types/IBitmapFieldLayout";
 import SymbolTable from "../../../logic/symbols/SymbolTable";
 import IHeaderCallbackType from "../../../types/IHeaderCallbackType";
 
@@ -30,7 +31,7 @@ interface IHeaderTypeInput {
   /** Bitmap field info: bitmapName -> (fieldName -> {offset, width}) */
   readonly bitmapFields: ReadonlyMap<
     string,
-    ReadonlyMap<string, { readonly offset: number; readonly width: number }>
+    ReadonlyMap<string, IBitmapFieldLayout>
   >;
 
   /** Callback types: functionName -> typedef info for header generation */

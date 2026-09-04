@@ -6,13 +6,7 @@
  * to reduce code duplication.
  */
 
-/**
- * Bitmap field information
- */
-interface IBitmapFieldInfo {
-  offset: number;
-  width: number;
-}
+import type IBitmapFieldLayout from "../../../../types/IBitmapFieldLayout";
 
 /**
  * Generate comment lines describing bitmap field layout.
@@ -28,7 +22,7 @@ interface IBitmapFieldInfo {
  * //  * /
  */
 function generateBitmapFieldComments(
-  fields: ReadonlyMap<string, IBitmapFieldInfo>,
+  fields: ReadonlyMap<string, IBitmapFieldLayout>,
 ): string[] {
   // Return empty array for empty field maps
   if (fields.size === 0) {
