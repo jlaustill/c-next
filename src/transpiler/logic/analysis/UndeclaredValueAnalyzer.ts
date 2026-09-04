@@ -157,11 +157,21 @@ class UndeclaredValueAnalyzer {
     // address (ADR-004) and so answers here but NOT in the type position
     // (#1336). ADR-111: when a register becomes a type, `isValueName` collapses
     // into `isTypeName` and both call sites below revert to it.
+    //
+    // #1430: `CodeGenState.knownFunctions` is deliberately NOT consulted, for
+    // the reason `NameExistence`'s class comment already gives for
+    // `callbackTypes`. Codegen fills it and `reset()` clears it, both after the
+    // analyzers run, so at analysis time it is empty for the first file and
+    // holds file N-1's function names for every file after. Because it is OR'd
+    // toward "visible", a stale entry SUPPRESSED E0427: the same program with
+    // its `#include` lines swapped either diagnosed the undefined name or
+    // emitted C the compiler rejects at exit 0. It was redundant as well as
+    // wrong -- `isValueName` reaches `symbols.functionReturnTypes`, the
+    // per-file view of the same ADR-029 fact, on the identical key.
     const symbolTable = CodeGenState.symbolTable;
     if (
       NameExistence.isValueName(name, symbols, symbolTable) ||
-      NameExistence.isKnownEnumMember(name, symbols) ||
-      CodeGenState.knownFunctions.has(name)
+      NameExistence.isKnownEnumMember(name, symbols)
     ) {
       return true;
     }
@@ -170,7 +180,6 @@ class UndeclaredValueAnalyzer {
       const qualified = ScopeUtils.qualifyInScope(name, scopePath);
       if (
         NameExistence.isValueName(qualified, symbols, symbolTable) ||
-        CodeGenState.knownFunctions.has(qualified) ||
         (symbols.scopeMembers.get(ScopeUtils.leafOf(scopePath))?.has(name) ??
           false)
       ) {

@@ -1,0 +1,20 @@
+// Helper for #1430. Does NOT include func-source.cnx, so `sharedHelper` is
+// undefined HERE whichever order the entry lists the includes in.
+
+u32 localHelper() {
+    return 7;
+}
+
+// Control, must stay SILENT: localHelper is declared in this very file, so
+// referencing it as a value is legal (ADR-029). Without this line, a fix that
+// rejected every function-as-value would still pass the assertions below.
+u32 ownLimit <- localHelper;
+
+// The defect: declared only in func-source.cnx, which this file does not
+// include. Must be rejected under BOTH include orders.
+u32 borrowedLimit <- sharedHelper;
+
+// Control, must ALWAYS fire: declared in no file at all. An analyzer that
+// stopped firing entirely would silence the line above and still look green
+// without this one.
+u32 neverLimit <- neverDeclaredAnywhere;

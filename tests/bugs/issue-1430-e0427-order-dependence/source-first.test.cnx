@@ -1,0 +1,14 @@
+// test-error
+// #1430: UndeclaredValueAnalyzer read CodeGenState.knownFunctions, which
+// codegen fills AFTER the analyzers run — so during analysis it held the
+// PREVIOUS file's function names. With the declaring file processed first,
+// the stale set leaked `sharedHelper` into value-consumer.cnx and this
+// compiled at exit 0 to `uint32_t borrowedLimit = sharedHelper;`, which gcc
+// rejects. Paired with consumer-first.test.cnx: same sources, opposite order,
+// and the two must produce the IDENTICAL diagnostic set.
+#include <func-source.cnx>
+#include <value-consumer.cnx>
+
+u32 main() {
+    return 0;
+}

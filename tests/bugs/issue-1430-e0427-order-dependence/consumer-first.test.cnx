@@ -1,0 +1,10 @@
+// test-error
+// #1430: the other order. This one always reported the error, so on its own it
+// could not detect the leak — it is the half that made the pair disagree, and
+// only the pair is the assertion.
+#include <value-consumer.cnx>
+#include <func-source.cnx>
+
+u32 main() {
+    return 0;
+}

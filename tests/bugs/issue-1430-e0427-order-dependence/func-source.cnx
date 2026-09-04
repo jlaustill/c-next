@@ -1,0 +1,6 @@
+// Helper for #1430. Declares the function whose name leaked across files
+// through CodeGenState.knownFunctions, which codegen fills after the
+// analyzers run.
+u32 sharedHelper() {
+    return 1;
+}
