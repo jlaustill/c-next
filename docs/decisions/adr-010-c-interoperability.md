@@ -131,9 +131,40 @@ uint32_t main(void) {
 - Supports both `<file.cnx>` and `"file.cnx"` syntax
 - Validates that quoted (local) `.cnx` files exist at transpile time
 - Angle bracket includes (system/library) are transformed without validation
-- Works with relative paths: `"../../common/types.cnx"` → `"../../common/types.h"`
 
 This enables modular C-Next code while ensuring the generated C code includes the correct header files.
+
+### What the emitted include names
+
+The examples above are flat: source and header sit at the same relative
+position, so swapping the extension gives the right answer. That is not the
+general case, and the general rule is not "swap the extension".
+
+**A generated include names its target relative to the header output root, so
+that root alone is sufficient on the C compiler's search path.** Nothing else
+need be added to build the generated C.
+
+This follows from C-Next generating _both_ sides of the contract. In C one
+author writes the `#include` and places the header, and keeps them consistent
+by hand. C-Next decides where the header is written — mirroring the source
+tree, or flattening it for a file outside that tree — and separately emits the
+include text. Only the first fact knows where the header went, so the include
+text is derived from it and never from the spelling the author used.
+
+Two consequences, both of which are the point rather than side effects:
+
+- A bare `#include <utils.cnx>` naming a file in a subdirectory emits the
+  subdirectory. The author writes what is convenient to write; the include
+  path is not the author's to choose, because the output layout is not theirs
+  to choose either.
+- Where the header is genuinely flat — an included file outside the entry's
+  tree — the bare name _is_ the answer, and the emitted include stays bare.
+  The rule is "name where it went", never "add a prefix".
+
+Findings recorded 2026-09-04 under [issue #1467](https://github.com/jlaustill/c-next/issues/1467),
+which fixed generated C that named a header C-Next had written elsewhere. This
+records the guarantee the fix restored; it does not revise the decision above.
+Whether the guarantee belongs in the Decision itself is open.
 
 ---
 

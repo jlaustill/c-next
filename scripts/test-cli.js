@@ -1108,7 +1108,12 @@ const includePathCases = [
     expected: "shared/utils.h",
   },
   {
-    name: "Issue #1467: a type crossing into the header gets the same path (ExternalTypeHeaderBuilder)",
+    // NOT a guard for ExternalTypeHeaderBuilder: its directive is deduplicated
+    // by stem before it reaches the output, so poisoning it reddens nothing
+    // here. That path is guarded at its producer, in IncludeResolver's unit
+    // tests. This case covers the layout where a type crosses the boundary,
+    // which reaches more header-generation code than a bare call does.
+    name: "Issue #1467: a type crossing into the header gets the same path",
     includeSpec: "utils.cnx",
     utilsAt: "src/Display/utils.cnx",
     includeArg: "src/Display",
