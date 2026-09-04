@@ -883,9 +883,9 @@ class TestUtils {
    * The scheduler treats this set as a lock: a fixture starts only when no
    * in-flight fixture holds a file in it. Answering too narrowly lets the race
    * back in; answering too broadly costs parallelism, which is why this is the
-   * fixture's actual include closure rather than its directory. Serialising by
+   * fixture's actual include closure rather than its directory. Locking by
    * directory instead was measured at 40.5s -> 51.3s on 1156 fixtures, because
-   * one helper used by one fixture serialised all 30 in `tests/switch`.
+   * one helper used by one fixture then locked all 30 in `tests/switch`.
    *
    * The closure is transitive because the entry's pipeline writes headers for
    * transitive dependencies too, and any of those may be some OTHER fixture's
@@ -1112,7 +1112,7 @@ class TestUtils {
     // compiler was not invoked and no `test-execution` binary was run, so
     // `--update` reported `Passed` for generated C that gcc rejects -- on the one
     // command an author runs immediately after changing codegen, which is exactly
-    // when uncompilable output is most likely. A guard that cannot fail on the
+    // when output that does not compile is most likely. A guard that cannot fail on the
     // case it exists to catch is the `/* test-no-warnings */` shape (#1143).
     //
     // Falling through costs nothing: compilation below already runs against
