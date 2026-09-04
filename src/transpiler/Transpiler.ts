@@ -185,6 +185,18 @@ class Transpiler {
   private readonly modificationAnalyzer = new ModificationAnalyzer();
   /** Issue #586: Centralized path resolution for output files */
   private readonly pathResolver: PathResolver;
+
+  /**
+   * Issue #1467: PathResolver's answer to "where is this .cnx's header
+   * reachable from?", bound to the run's header extension. Handed to
+   * IncludeResolver so the include text and the header's location are the
+   * same derivation rather than two that happen to agree.
+   */
+  private readonly _headerIncludePathFor = (cnxPath: string): string | null =>
+    this.pathResolver.getHeaderIncludePath(
+      cnxPath,
+      this.outputExtensions.header,
+    );
   /** File system abstraction for testability */
   private readonly fs: IFileSystem;
   /**
@@ -755,12 +767,14 @@ class Transpiler {
         cppMode: this.cppMode,
         symbolInfo,
         sourceRelativePath,
+        cnxIncludeRewrites: this.state.getCnxIncludeRewrites(sourcePath),
       });
 
       // Collect user includes
       const userIncludes = IncludeExtractor.collectUserIncludes(
         tree,
         this.outputExtensions.header,
+        this.state.getCnxIncludeRewrites(sourcePath),
       );
       // Issue #424: kept separate — added to the header only when it names a
       // macro that one of these supplies (see _headerNeedsMacroIncludes).
@@ -869,9 +883,12 @@ class Transpiler {
       searchPaths,
       this.outputExtensions.header,
       this.fs,
+      this._headerIncludePathFor,
     );
     const resolved = resolver.resolve(source, sourcePath);
     this.warnings.push(...resolved.warnings);
+    // Issue #1467: one resolution, read later by both the .c and the .h
+    this.state.setCnxIncludeRewrites(sourcePath, resolved.cnextIncludeRewrites);
 
     // Resolve C/C++ headers transitively
     const { headers: allHeaders, warnings: headerWarnings } =
@@ -1604,8 +1621,14 @@ class Transpiler {
       searchPaths,
       this.outputExtensions.header,
       this.fs,
+      this._headerIncludePathFor,
     );
     const resolved = resolver.resolve(content, cnxFile.path);
+    // Issue #1467: one resolution, read later by both the .c and the .h
+    this.state.setCnxIncludeRewrites(
+      cnxFile.path,
+      resolved.cnextIncludeRewrites,
+    );
 
     if (resolved.hasForeignInclude) {
       directForeignHeaderFiles.add(cnxPath);

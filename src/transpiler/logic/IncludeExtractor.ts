@@ -7,6 +7,7 @@
 
 import * as Parser from "./parser/grammar/CNextParser.js";
 import type THeaderExtension from "../types/THeaderExtension";
+import IncludeRewriter from "../data/IncludeRewriter";
 
 /**
  * Extracts include directives from C-Next parse trees
@@ -23,25 +24,29 @@ class IncludeExtractor {
    * defaults it. The default was `false`, so omitting the argument silently
    * claimed a C run.
    *
+   * Issue #1467: takes the resolved include paths rather than deriving them.
+   * This used to swap the extension on whatever the author typed, which is
+   * wrong whenever the generated header is not written beside its source --
+   * and it was one of three places doing that independently.
+   *
    * @param tree The parsed C-Next program
-   * @param ext The run's header extension (".h" or ".hpp")
+   * @param ext The run's header extension (".h" or ".hpp"), for includes the
+   *   resolver could not place
+   * @param rewrites Author spelling -> resolved header path (Issue #1467)
    * @returns Array of transformed include strings (e.g., '#include "types.h"' or '#include "types.hpp"')
    */
   static collectUserIncludes(
     tree: Parser.ProgramContext,
     ext: THeaderExtension,
+    rewrites: ReadonlyMap<string, string>,
   ): string[] {
     const userIncludes: string[] = [];
     for (const includeDir of tree.includeDirective()) {
       const includeText = includeDir.getText();
       // Include both quoted ("...") and angle-bracket (<...>) .cnx includes
       // These define types used in function signatures that need to be in the header
-      if (includeText.includes(".cnx")) {
-        // Transform .cnx includes to .h or .hpp (the generated header for the included .cnx file)
-        const transformedInclude = includeText
-          .replace(/\.cnx"/, `${ext}"`)
-          .replace(/\.cnx>/, `${ext}>`);
-        userIncludes.push(transformedInclude);
+      if (IncludeRewriter.cnxSpecOf(includeText) !== null) {
+        userIncludes.push(IncludeRewriter.rewrite(includeText, rewrites, ext));
       }
     }
     return userIncludes;

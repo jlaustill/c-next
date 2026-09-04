@@ -2310,8 +2310,8 @@ export default class CodeGenerator implements IOrchestrator {
     // analyzers run; re-assert it here for API callers that drive the
     // generator directly and never go through that path.
     AdrProvenance.beginFile(CodeGenState.sourcePath);
-    CodeGenState.includeDirs = options?.includeDirs ?? [];
-    CodeGenState.inputs = options?.inputs ?? [];
+    CodeGenState.cnxIncludeRewrites =
+      options?.cnxIncludeRewrites ?? new Map<string, string>();
     CodeGenState.cppMode = options?.cppMode ?? false;
     CodeGenState.pendingTempDeclarations = [];
     CodeGenState.tempVarCounter = 0;
@@ -2682,14 +2682,14 @@ export default class CodeGenerator implements IOrchestrator {
   /**
    * ADR-010: Transform #include directives, converting .cnx to .h or .hpp
    * Delegates to IncludeGenerator
-   * Issue #349: Now passes includeDirs and inputs for angle-bracket resolution
    * Issue #941: Now passes cppMode for .hpp extension in C++ mode
+   * Issue #1467: passes the resolved include paths. Codegen does not decide
+   * which header an include names -- PathResolver did, during discovery.
    */
   private transformIncludeDirective(includeText: string): string {
     return includeTransformIncludeDirective(includeText, {
       sourcePath: CodeGenState.sourcePath,
-      includeDirs: CodeGenState.includeDirs,
-      inputs: CodeGenState.inputs,
+      rewrites: CodeGenState.cnxIncludeRewrites,
       headerExtension: CodeGenState.outputExtensions.header,
     });
   }

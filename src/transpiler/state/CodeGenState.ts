@@ -500,11 +500,16 @@ export default class CodeGenState {
   /** Source file path for validating includes */
   static sourcePath: string | null = null;
 
-  /** Include directories for resolving angle-bracket .cnx includes */
-  static includeDirs: string[] = [];
-
-  /** Input directories for calculating relative paths */
-  static inputs: string[] = [];
+  /**
+   * Issue #1467: author spelling -> resolved header path for this file's `.cnx`
+   * includes. Decided by PathResolver during discovery and handed here; codegen
+   * reads it and derives nothing. Replaces `inputs`/`includeDirs`, which
+   * described a resolution codegen was never given the data to perform.
+   */
+  static cnxIncludeRewrites: ReadonlyMap<string, string> = new Map<
+    string,
+    string
+  >();
 
   // ===========================================================================
   // LIFECYCLE METHODS
@@ -612,8 +617,7 @@ export default class CodeGenState {
 
     // Source paths
     this.sourcePath = null;
-    this.includeDirs = [];
-    this.inputs = [];
+    this.cnxIncludeRewrites = new Map<string, string>();
   }
 
   /**
