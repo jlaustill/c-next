@@ -973,14 +973,10 @@ function utilsIncludesIn(source) {
  * `utilsAt` is relative to the temp dir, so a case can put the included file
  * under the entry's tree (header nests) or outside it (header goes flat).
  */
-function runIncludePathCase({
-  includeSpec,
-  utilsAt,
-  includeArg,
-  useStruct,
-  projectDir = ".",
-}) {
-  const tempDir = mkdtempSync(join(tmpdir(), "cnext-1467-"));
+function runIncludePathCase(
+  { includeSpec, utilsAt, includeArg, useStruct, projectDir = "." },
+  tempDir,
+) {
   // `utilsAt` is relative to tempDir; the project (and the cwd the CLI runs in)
   // is `projectDir` under it. A case that puts the included file OUTSIDE the
   // project exercises the flat-header path -- see PathResolver's #489 branch.
@@ -994,15 +990,35 @@ function runIncludePathCase({
     "utf-8",
   );
 
-  const result = runCliInDir(projectRoot, [
-    "src/main.cnx",
-    "-o",
-    "build",
-    "--header-out",
-    "include",
-    "--include",
-    includeArg,
-  ]);
+  // Issue #1467 review: `expectError: true` makes a non-zero exit DATA. Without
+  // it runCliInDir rethrows, so `transpileSucceeded` below could only ever be
+  // true -- an assertion that cannot fail, in a PR about assertions that cannot
+  // fail (#1143).
+  const result = runCliInDir(
+    projectRoot,
+    [
+      "src/main.cnx",
+      "-o",
+      "build",
+      "--header-out",
+      "include",
+      "--include",
+      includeArg,
+    ],
+    true,
+  );
+
+  if (!result.success) {
+    return {
+      transpileSucceeded: false,
+      transpileOutput: `${result.output}${result.stderr ?? ""}`,
+      cIncludes: [],
+      hIncludes: [],
+      headerWrittenAt: "<not written>",
+      gccExitCode: 1,
+      gccOutput: "",
+    };
+  }
 
   let gccExitCode = 0;
   let gccOutput = "";
@@ -1024,8 +1040,8 @@ function runIncludePathCase({
     candidates.find((c) => existsSync(join(headerRoot, c))) ?? "<not written>";
 
   return {
-    tempDir,
     transpileSucceeded: result.success,
+    transpileOutput: "",
     cIncludes: utilsIncludesIn(
       readFileSync(join(projectRoot, "build", "main.c"), "utf-8"),
     ),
@@ -1046,7 +1062,10 @@ function runIncludePathCase({
  * that, which is the property that makes `-I <header-out>` sufficient.
  */
 function assertIncludeAgreesWithHeader(label, actual, expected) {
-  assert(actual.transpileSucceeded, `${label}: transpiler should exit 0`);
+  assert(
+    actual.transpileSucceeded,
+    `${label}: transpiler should exit 0\n${actual.transpileOutput}`,
+  );
   assert(
     actual.headerWrittenAt === expected,
     `${label}: header should be at ${expected}, was ${actual.headerWrittenAt}`,
@@ -1097,6 +1116,18 @@ const includePathCases = [
     expected: "utils.h",
   },
   {
+    // Issue #1467 review: `.cnext` is a C-Next source extension too, and the
+    // patterns that reach the owner used to match `.cnx` alone -- so a
+    // `.cnext` include was emitted verbatim into the `.c`, which gcc rejects,
+    // and dropped from the `.h` entirely.
+    name: "Issue #1467: a .cnext include reaches the owner like a .cnx one",
+    includeSpec: "utils.cnext",
+    utilsAt: "src/Display/utils.cnext",
+    includeArg: "src/Display",
+    useStruct: false,
+    expected: "Display/utils.h",
+  },
+  {
     // Found while building the control above: when the shared tree is INSIDE
     // the cwd, PathResolver's #489 branch nests the header instead, and the
     // emitted include is bare either way. Same defect, third layout.
@@ -1124,15 +1155,19 @@ const includePathCases = [
 
 for (const includeCase of includePathCases) {
   test(includeCase.name, () => {
-    const actual = runIncludePathCase(includeCase);
+    // Issue #1467 review: the temp dir is created HERE so `finally` always has
+    // the path. Creating it inside the helper meant any throw -- a failing
+    // transpile, or reading a build/main.c that was never written -- escaped
+    // before cleanup and leaked a directory per run.
+    const tempDir = mkdtempSync(join(tmpdir(), "cnext-1467-"));
     try {
       assertIncludeAgreesWithHeader(
         includeCase.name,
-        actual,
+        runIncludePathCase(includeCase, tempDir),
         includeCase.expected,
       );
     } finally {
-      cleanupTempDir(actual.tempDir);
+      cleanupTempDir(tempDir);
     }
   });
 }

@@ -69,7 +69,11 @@ class IncludeExtractor {
     const includes: string[] = [];
     for (const includeDir of tree.includeDirective()) {
       const includeText = includeDir.getText();
-      if (!includeText.includes(".cnx")) {
+      // Issue #1467 review: one predicate for "is this a C-Next include?".
+      // The substring test this replaced answered NO for `<utils.cnext>` --
+      // ".cnext" does not contain ".cnx" -- so a `.cnext` include was
+      // collected here as a foreign C header.
+      if (IncludeRewriter.cnxSpecOf(includeText) === null) {
         includes.push(includeText);
       }
     }

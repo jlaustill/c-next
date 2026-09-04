@@ -17,11 +17,24 @@
 
 import type THeaderExtension from "../types/THeaderExtension";
 
-/** `#include <path.cnx>` -- captures the path without its extension. */
-const ANGLE_CNX = /#\s*include\s*<([^>]+)\.cnx>/;
+/**
+ * The C-Next source extensions, as `FileDiscovery` maps them. `.cnext` is one
+ * of them, and leaving it out is how the previous copies of this pattern
+ * diverged: `IncludeResolver` swapped `/\.cnx$|\.cnext$/` while the `.c` and
+ * `.h` matched `.cnx` alone, so a `.cnext` include reached no owner at all --
+ * emitted verbatim into the `.c` and dropped from the `.h`.
+ *
+ * The #1399 review already named this shape once, as "a third spelling of
+ * 'is this a C-Next include?' (it missed `.cnext`)". This file is where the
+ * spelling now lives, so there is one to keep right.
+ */
+const CNX_EXTENSION = /\.cnx$|\.cnext$/;
 
-/** `#include "path.cnx"` -- captures the path without its extension. */
-const QUOTE_CNX = /#\s*include\s*"([^"]+)\.cnx"/;
+/** `#include <path.cnx>` / `<path.cnext>` -- captures the path WITH its extension. */
+const ANGLE_CNX = /#\s*include\s*<([^>]+\.(?:cnext|cnx))>/;
+
+/** `#include "path.cnx"` / `"path.cnext"` -- captures the path WITH its extension. */
+const QUOTE_CNX = /#\s*include\s*"([^"]+\.(?:cnext|cnx))"/;
 
 class IncludeRewriter {
   /**
@@ -34,7 +47,20 @@ class IncludeRewriter {
    */
   static cnxSpecOf(includeText: string): string | null {
     const match = ANGLE_CNX.exec(includeText) ?? QUOTE_CNX.exec(includeText);
-    return match ? `${match[1]}.cnx` : null;
+    return match ? match[1] : null;
+  }
+
+  /**
+   * The `.cnx` path a QUOTED include names, or null for any other directive.
+   *
+   * Quote-specific because only quoted includes are resolved relative to the
+   * including file and so can be validated at transpile time. Kept here rather
+   * than re-spelled at the call site: a second copy of this pattern is exactly
+   * what let `.cnext` fall through three producers at once.
+   */
+  static quotedCnxSpecOf(includeText: string): string | null {
+    const match = QUOTE_CNX.exec(includeText);
+    return match ? match[1] : null;
   }
 
   /**
@@ -54,19 +80,36 @@ class IncludeRewriter {
   ): string {
     const angleMatch = ANGLE_CNX.exec(includeText);
     if (angleMatch) {
-      const spec = `${angleMatch[1]}.cnx`;
-      const headerPath = rewrites.get(spec) ?? `${angleMatch[1]}${ext}`;
-      return includeText.replace(`<${spec}>`, `<${headerPath}>`);
+      const spec = angleMatch[1];
+      return includeText.replace(
+        `<${spec}>`,
+        `<${IncludeRewriter._headerFor(spec, rewrites, ext)}>`,
+      );
     }
 
     const quoteMatch = QUOTE_CNX.exec(includeText);
     if (quoteMatch) {
-      const spec = `${quoteMatch[1]}.cnx`;
-      const headerPath = rewrites.get(spec) ?? `${quoteMatch[1]}${ext}`;
-      return includeText.replace(`"${spec}"`, `"${headerPath}"`);
+      const spec = quoteMatch[1];
+      return includeText.replace(
+        `"${spec}"`,
+        `"${IncludeRewriter._headerFor(spec, rewrites, ext)}"`,
+      );
     }
 
     return includeText;
+  }
+
+  /**
+   * The owner's answer for `spec`, or the extension swap when it has none.
+   * The swap keeps the author's spelling, which is right only for a header
+   * written beside its source -- it is the fallback, never a second answer.
+   */
+  private static _headerFor(
+    spec: string,
+    rewrites: ReadonlyMap<string, string>,
+    ext: THeaderExtension,
+  ): string {
+    return rewrites.get(spec) ?? spec.replace(CNX_EXTENSION, ext);
   }
 }
 

@@ -124,6 +124,19 @@ class TranspilerState {
   /**
    * Store user includes for a file.
    */
+  setUserIncludes(filePath: string, includes: string[]): void {
+    this.userIncludes.set(filePath, includes);
+  }
+
+  /**
+   * Get user includes for a file.
+   */
+  getUserIncludes(filePath: string): string[] {
+    return this.userIncludes.get(filePath) ?? [];
+  }
+
+  // === Resolved Include Paths (Issue #1467) ===
+
   /**
    * Issue #1467: record where each `.cnx` include of `filePath` resolves to.
    * Merged rather than replaced -- a file reached through more than one
@@ -147,17 +160,6 @@ class TranspilerState {
    */
   getCnxIncludeRewrites(filePath: string): ReadonlyMap<string, string> {
     return this.cnxIncludeRewrites.get(filePath) ?? new Map<string, string>();
-  }
-
-  setUserIncludes(filePath: string, includes: string[]): void {
-    this.userIncludes.set(filePath, includes);
-  }
-
-  /**
-   * Get user includes for a file.
-   */
-  getUserIncludes(filePath: string): string[] {
-    return this.userIncludes.get(filePath) ?? [];
   }
 
   // === Symbol Info By File (Group 2) ===

@@ -92,6 +92,19 @@ class IncludeResolver {
   private readonly headerExtension: THeaderExtension | null;
 
   /**
+   * Issue #1467: asked where the generated header for a `.cnx` is reachable,
+   * relative to the header output root. Null when the caller does not know
+   * (no PathResolver yet) or the header lands outside that root; the author's
+   * spelling is kept in that case, which is what every caller did before.
+   */
+  private readonly headerIncludePathFor:
+    | ((cnxPath: string) => string | null)
+    | null;
+
+  /**
+   * @param headerIncludePathFor Issue #1467: where the generated header for a
+   *   `.cnx` is reachable, relative to the header output root. See the field
+   *   above for why it may be null.
    * @param headerExtension The extension generated headers get in this run
    *   (".h" or ".hpp"), or `null` for a caller that does not read
    *   `headerIncludeDirectives` from the result.
@@ -110,16 +123,6 @@ class IncludeResolver {
    *   declared, so it is known before any file is opened and there is no longer
    *   an early read to get wrong.
    */
-  /**
-   * Issue #1467: asked where the generated header for a `.cnx` is reachable,
-   * relative to the header output root. Null when the caller does not know
-   * (no PathResolver yet) or the header lands outside that root; the author's
-   * spelling is kept in that case, which is what every caller did before.
-   */
-  private readonly headerIncludePathFor:
-    | ((cnxPath: string) => string | null)
-    | null;
-
   constructor(
     private readonly searchPaths: string[],
     headerExtension: THeaderExtension | null,

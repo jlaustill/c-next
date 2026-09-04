@@ -34,9 +34,13 @@ interface IIncludeTransformOptions {
  * Quote includes are resolved relative to the including file, so this can be
  * checked here; angle includes are searched along include directories and are
  * transformed without validation.
+ *
+ * `spec` carries its extension (`.cnx` or `.cnext`) -- Issue #1467 review: the
+ * pattern that produces it lives in IncludeRewriter, so this module cannot
+ * drift from the other producers on which extensions count.
  */
 const validateQuoteInclude = (
-  filepath: string,
+  spec: string,
   sourcePath: string | null,
 ): void => {
   if (!sourcePath) {
@@ -44,11 +48,11 @@ const validateQuoteInclude = (
   }
 
   const sourceDir = path.dirname(sourcePath);
-  const cnxPath = path.resolve(sourceDir, `${filepath}.cnx`);
+  const cnxPath = path.resolve(sourceDir, spec);
 
   if (!CnxFileResolver.cnxFileExists(cnxPath)) {
     throw new Error(
-      `Error: Included C-Next file not found: ${filepath}.cnx\n` +
+      `Error: Included C-Next file not found: ${spec}\n` +
         `  Searched at: ${cnxPath}\n` +
         `  Referenced in: ${sourcePath}`,
     );
@@ -71,9 +75,9 @@ const transformIncludeDirective = (
   includeText: string,
   options: IIncludeTransformOptions,
 ): string => {
-  const quoteMatch = /#\s*include\s*"([^"]+)\.cnx"/.exec(includeText);
-  if (quoteMatch) {
-    validateQuoteInclude(quoteMatch[1], options.sourcePath);
+  const quotedSpec = IncludeRewriter.quotedCnxSpecOf(includeText);
+  if (quotedSpec) {
+    validateQuoteInclude(quotedSpec, options.sourcePath);
   }
 
   return IncludeRewriter.rewrite(
