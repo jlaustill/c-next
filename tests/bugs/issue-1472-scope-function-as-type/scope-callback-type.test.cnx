@@ -1,0 +1,41 @@
+// test-execution
+// #1472 / ADR-029: a scope-declared function is a callback type, exactly as a
+// top-level one is. The analyzer derived that fact by walking only
+// `tree.declaration()`, so it saw no scope member: a parameter typed by a scope
+// function was never registered as callable, and the call through it was
+// reported as E0422 "called before definition". Valid C-Next, rejected.
+//
+// Codegen registered scope functions as callback types all along, so the two
+// derivations of one ADR-029 fact disagreed rather than both being wrong. The
+// fix reads the single set of functions the file declares.
+//
+// Both spellings are exercised because they take different lookup keys and only
+// the second was ever reachable at file scope: `onTick` written inside `Motor`,
+// and `Motor.onTick` written outside it. Both must resolve to `Motor__onTick`.
+scope Motor {
+    public u32 ticks <- 0;
+
+    public void onTick(u32 ms) {
+        this.ticks <- this.ticks + ms;
+    }
+
+    // BARE, from inside the declaring scope -- the spelling that regressed.
+    public void runBare(onTick handler) {
+        handler(3);
+    }
+}
+
+// QUALIFIED, from outside the scope.
+void runQualified(Motor.onTick handler) {
+    handler(5);
+}
+
+u32 main() {
+    Motor.runBare(Motor.onTick);
+    if (Motor.ticks != 3) return 1;
+
+    runQualified(Motor.onTick);
+    if (Motor.ticks != 8) return 2;
+
+    return 0;
+}

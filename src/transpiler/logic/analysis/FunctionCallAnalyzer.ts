@@ -53,8 +53,32 @@ class FunctionCallListener extends CNextListener {
   private isCallableType(typeName: string): boolean {
     return (
       typeName === "ISR" ||
-      this.analyzer.isCallbackType(typeName) ||
+      this.isCallbackTypeHere(typeName) ||
       this.analyzer.isCFunctionPointerTypedef(typeName)
+    );
+  }
+
+  /**
+   * ADR-029 + ADR-057: is `typeName`, written HERE, a function-as-type?
+   *
+   * The scope-qualified reading is asked first and the bare one second, which is
+   * ADR-057's local -> scope -> global order. Asking only the bare name is what
+   * #1472 fixed: inside `scope Motor`, a field or variable typed `onTick` names
+   * `Motor.onTick`, and the analyzer -- which walked only top-level declarations
+   * -- concluded it was not callable and reported the call through it as E0422
+   * "called before definition". Codegen registered scope functions as callback
+   * types all along, so the two derivations of one ADR-029 fact disagreed.
+   *
+   * `qualifyInScope` handles all three spellings without a branch, because
+   * `QualifiedCName.fromParts` expands a dotted part: bare-in-scope `onTick`
+   * becomes `Motor__onTick`, qualified `Motor.onTick` at file scope becomes the
+   * same key, and a top-level `onTick` stays itself.
+   */
+  private isCallbackTypeHere(typeName: string): boolean {
+    return (
+      this.analyzer.isCallbackType(
+        ScopeUtils.qualifyInScope(typeName, this.enclosing.current()),
+      ) || this.analyzer.isCallbackType(typeName)
     );
   }
 
@@ -226,9 +250,6 @@ class FunctionCallAnalyzer {
   /** ADR-040: Variables of type ISR or callback types that can be invoked */
   private callableVariables: Set<string> = new Set();
 
-  /** ADR-029: Callback types (function-as-type pattern) */
-  private callbackTypes: Set<string> = new Set();
-
   /**
    * Analyze a parsed program for function call errors
    * @param tree The parsed program AST
@@ -247,12 +268,11 @@ class FunctionCallAnalyzer {
     this.symbolTable = symbolTable ?? null;
     this.currentFunctionName = null;
     this.callableVariables = new Set();
-    this.callbackTypes = new Set();
 
-    // First pass: collect scope names, includes, callback types, and all local functions
+    // First pass: collect scope names, includes, and all local functions --
+    // which ADR-029 also makes the set of callback types (see isCallbackType).
     this.collectScopes(tree);
     this.collectIncludes(tree);
-    this.collectCallbackTypes(tree);
     this.collectAllLocalFunctions(tree);
     this.collectCallbackCompatibleFunctions(tree);
 
@@ -307,19 +327,6 @@ class FunctionCallAnalyzer {
   }
 
   /**
-   * ADR-029: Collect callback types (function-as-type pattern)
-   * Any function definition creates a type that can be used for callback fields/parameters
-   */
-  private collectCallbackTypes(tree: Parser.ProgramContext): void {
-    for (const decl of tree.declaration()) {
-      if (decl.functionDeclaration()) {
-        const name = decl.functionDeclaration()!.IDENTIFIER().getText();
-        this.callbackTypes.add(name);
-      }
-    }
-  }
-
-  /**
    * Issue #786: Pre-collect all function names defined in this file.
    * Used to distinguish between local functions (subject to define-before-use)
    * and cross-file functions from includes (allowed without local definition).
@@ -353,10 +360,21 @@ class FunctionCallAnalyzer {
   }
 
   /**
-   * ADR-029: Check if a type name is a callback type (function-as-type)
+   * ADR-029: Check if a type name is a callback type (function-as-type).
+   *
+   * Reads `allLocalFunctions` rather than a set of its own. ADR-029 makes EVERY
+   * function declaration a type, so "the callback types this file declares" and
+   * "the functions this file declares" are one fact, and a second derivation of
+   * it could only ever agree by coincidence -- which it did not (#1472). The set
+   * this replaced walked `tree.declaration()` alone, so it silently omitted
+   * every scope member, while the collector it sat beside walked them
+   * correctly.
+   *
+   * @param name The lookup key, already qualified by the caller -- see
+   *             `FunctionCallListener.isCallbackTypeHere`.
    */
   public isCallbackType(name: string): boolean {
-    return this.callbackTypes.has(name);
+    return this.allLocalFunctions.has(name);
   }
 
   /**
