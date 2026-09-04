@@ -32,6 +32,15 @@ class TranspilerState {
   /** Issue #424: Store user includes per file for header generation */
   private readonly userIncludes = new Map<string, string[]>();
 
+  /**
+   * Issue #1467: per source file, the author's `.cnx` include spelling mapped
+   * to the path its generated header is reachable at. Resolved ONCE during
+   * discovery by IncludeResolver, because that is the only point where a
+   * spelling and its resolved file are both in hand, and read later by both
+   * the `.c` and the `.h` path so neither re-derives it.
+   */
+  private readonly cnxIncludeRewrites = new Map<string, Map<string, string>>();
+
   // === Group 2: Symbol Resolution State ===
 
   /** Issue #465: Store ICodeGenSymbols per file during stage 3 for external enum resolution */
@@ -60,6 +69,7 @@ class TranspilerState {
     this.symbolCollectors.clear();
     this.passByValueParams.clear();
     this.userIncludes.clear();
+    this.cnxIncludeRewrites.clear();
     this.symbolInfoByFile.clear();
     this.headerIncludeDirectives.clear();
     this.processedHeaders.clear();
@@ -123,6 +133,33 @@ class TranspilerState {
    */
   getUserIncludes(filePath: string): string[] {
     return this.userIncludes.get(filePath) ?? [];
+  }
+
+  // === Resolved Include Paths (Issue #1467) ===
+
+  /**
+   * Issue #1467: record where each `.cnx` include of `filePath` resolves to.
+   * Merged rather than replaced -- a file reached through more than one
+   * discovery pass contributes the same answers, and dropping the earlier map
+   * would lose the includes of whichever pass ran first.
+   */
+  setCnxIncludeRewrites(filePath: string, rewrites: Map<string, string>): void {
+    const existing = this.cnxIncludeRewrites.get(filePath);
+    if (!existing) {
+      this.cnxIncludeRewrites.set(filePath, new Map(rewrites));
+      return;
+    }
+    for (const [spec, headerPath] of rewrites) {
+      existing.set(spec, headerPath);
+    }
+  }
+
+  /**
+   * Issue #1467: the resolved include paths for `filePath`, empty when the file
+   * was never discovered through IncludeResolver.
+   */
+  getCnxIncludeRewrites(filePath: string): ReadonlyMap<string, string> {
+    return this.cnxIncludeRewrites.get(filePath) ?? new Map<string, string>();
   }
 
   // === Symbol Info By File (Group 2) ===

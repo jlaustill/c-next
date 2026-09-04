@@ -356,7 +356,6 @@ describe("Cli", () => {
         noCache: true,
         parseOnly: true,
         headerOutDir: "headers/",
-        basePath: "src/",
         target: "avr",
         debugMode: true,
         cleanMode: false,
@@ -380,7 +379,6 @@ describe("Cli", () => {
         noCache: true,
         parseOnly: true,
         headerOutDir: "headers/",
-        basePath: "src/",
         target: "avr",
         debugMode: true,
       });

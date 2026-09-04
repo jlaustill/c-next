@@ -13,6 +13,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- A generated `#include` now names its target **relative to the header output
+  directory**, so that directory alone is sufficient on the C compiler's search
+  path (Issue #1467). Previously the transpiler swapped the extension on whatever
+  you typed, so a bare `#include <utils.cnx>` resolving to a subdirectory emitted
+  `#include <utils.h>` while the header was written to `<headerOut>/Display/utils.h`
+  — the transpiler exited 0 and the generated C did not compile.
+
+  This is a **breaking change**, and like E0507 above it breaks projects that did
+  not change: a build that passes `-I include/Display` today, to reach a header the
+  transpiler named without its prefix, needs `-I include` after this. The migration
+  is one line of build configuration — point the include path at the header output
+  directory and remove the per-subdirectory entries it needed to compensate.
+
+- **Removed `--base-path`** and the corresponding `basePath` key in
+  `cnext.config.json` (Issue #1467). It stripped a leading prefix from header
+  output paths, for a time when the whole project directory was the input; once
+  the entry point became a single file, the prefix it removed no longer appeared,
+  and passing it became a no-op for the case it was written for. Its only
+  remaining effect was to move a header without moving the `#include` naming it,
+  producing output no `-I` could reconcile.
+
+  `--base-path` now exits 1 with `Unknown arguments`. A `basePath` key left in
+  `cnext.config.json` is currently discarded **silently** — unknown config keys
+  produce no diagnostic (Issue #1490) — so remove it by hand.
+
 - C++ output mode is now **declared**, never auto-detected (Issue #1319). Set
   `cppRequired: true` in `cnext.config.json` or pass `--cpp`. A run that does not declare
   C++ and encounters a C++ header — a `.hpp`, or a `.h` containing classes, namespaces,

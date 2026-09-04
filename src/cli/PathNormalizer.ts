@@ -103,7 +103,7 @@ class PathNormalizer {
 
   /**
    * Normalize a single path (tilde expansion only).
-   * Used for output, headerOut, basePath.
+   * Used for output and headerOut.
    * @param path - Path to normalize
    * @returns Normalized path
    */
@@ -158,9 +158,6 @@ class PathNormalizer {
       outputPath: this.normalizePath(config.outputPath),
       headerOutDir: config.headerOutDir
         ? this.normalizePath(config.headerOutDir)
-        : undefined,
-      basePath: config.basePath
-        ? this.normalizePath(config.basePath)
         : undefined,
       includeDirs: this.normalizeIncludePaths(config.includeDirs, fs),
     };

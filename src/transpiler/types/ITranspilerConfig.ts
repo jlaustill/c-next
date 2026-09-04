@@ -17,9 +17,6 @@ interface ITranspilerConfig {
   /** Separate output directory for header files (defaults to outDir) */
   headerOutDir?: string;
 
-  /** Base path to strip from header output paths (only used with headerOutDir) */
-  basePath?: string;
-
   /** Preprocessor defines for C/C++ headers */
   defines?: Record<string, string | boolean>;
 

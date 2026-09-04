@@ -75,10 +75,17 @@ describe("IncludeGenerator", () => {
   // ==========================================================================
 
   describe("transformIncludeDirective - angle brackets", () => {
+    // Issue #1467: `rewrites` is PathResolver's answer, arriving already
+    // resolved. These tests assert that it is USED and that the fallback is
+    // reached only when it has nothing to say -- not that this module can
+    // resolve a path, which it no longer does and never could in production.
+    const noRewrites = new Map<string, string>();
+
     it("transforms angle bracket .cnx include to .h", () => {
       const result = transformIncludeDirective("#include <utils.cnx>", {
         headerExtension: ".h",
         sourcePath: null,
+        rewrites: noRewrites,
       });
       expect(result).toBe("#include <utils.h>");
     });
@@ -87,6 +94,7 @@ describe("IncludeGenerator", () => {
       const result = transformIncludeDirective("#include <lib/utils.cnx>", {
         headerExtension: ".h",
         sourcePath: null,
+        rewrites: noRewrites,
       });
       expect(result).toBe("#include <lib/utils.h>");
     });
@@ -95,108 +103,65 @@ describe("IncludeGenerator", () => {
       const result = transformIncludeDirective("#  include  <file.cnx>", {
         headerExtension: ".h",
         sourcePath: null,
+        rewrites: noRewrites,
       });
       expect(result).toBe("#  include  <file.h>");
     });
 
-    it("resolves path from inputs when available", () => {
-      vi.mocked(CnxFileResolver.findCnxFile).mockReturnValue(
-        "/project/src/Display/utils.cnx",
-      );
-      vi.mocked(CnxFileResolver.getRelativePathFromInputs).mockReturnValue(
-        "Display/utils.cnx",
-      );
-
+    it("names the resolved header, not the author's spelling", () => {
       const result = transformIncludeDirective("#include <utils.cnx>", {
         headerExtension: ".h",
         sourcePath: "/project/src/main.cnx",
-        includeDirs: ["/project/src/Display"],
-        inputs: ["/project/src"],
+        rewrites: new Map([["utils.cnx", "Display/utils.h"]]),
       });
 
       expect(result).toBe("#include <Display/utils.h>");
-      expect(CnxFileResolver.findCnxFile).toHaveBeenCalledWith("utils", [
-        "/project/src",
-        "/project/src/Display",
-      ]);
     });
 
-    it("falls back to simple replacement when file not found", () => {
-      vi.mocked(CnxFileResolver.findCnxFile).mockReturnValue(null);
+    it("keeps a resolved path that is already what the author wrote", () => {
+      const result = transformIncludeDirective("#include <Display/utils.cnx>", {
+        headerExtension: ".h",
+        sourcePath: "/project/src/main.cnx",
+        rewrites: new Map([["Display/utils.cnx", "Display/utils.h"]]),
+      });
 
+      expect(result).toBe("#include <Display/utils.h>");
+    });
+
+    it("falls back to the extension swap when the resolver has no answer", () => {
       const result = transformIncludeDirective("#include <missing.cnx>", {
         headerExtension: ".h",
         sourcePath: "/project/src/main.cnx",
-        inputs: ["/project/src"],
+        rewrites: new Map([["other.cnx", "Elsewhere/other.h"]]),
       });
 
       expect(result).toBe("#include <missing.h>");
-    });
-
-    it("falls back when relative path cannot be calculated", () => {
-      vi.mocked(CnxFileResolver.findCnxFile).mockReturnValue(
-        "/external/lib.cnx",
-      );
-      vi.mocked(CnxFileResolver.getRelativePathFromInputs).mockReturnValue(
-        null,
-      );
-
-      const result = transformIncludeDirective("#include <lib.cnx>", {
-        headerExtension: ".h",
-        sourcePath: "/project/src/main.cnx",
-        inputs: ["/project/src"],
-      });
-
-      expect(result).toBe("#include <lib.h>");
-    });
-
-    it("falls back when no inputs provided", () => {
-      vi.mocked(CnxFileResolver.findCnxFile).mockReturnValue(
-        "/project/lib.cnx",
-      );
-
-      const result = transformIncludeDirective("#include <lib.cnx>", {
-        headerExtension: ".h",
-        sourcePath: "/project/src/main.cnx",
-        inputs: [],
-      });
-
-      expect(result).toBe("#include <lib.h>");
     });
 
     it("transforms angle bracket .cnx include to .hpp in C++ mode", () => {
       const result = transformIncludeDirective("#include <utils.cnx>", {
         sourcePath: null,
         headerExtension: ".hpp",
+        rewrites: noRewrites,
       });
       expect(result).toBe("#include <utils.hpp>");
     });
 
-    it("resolves path from inputs with .hpp in C++ mode", () => {
-      vi.mocked(CnxFileResolver.findCnxFile).mockReturnValue(
-        "/project/src/Display/utils.cnx",
-      );
-      vi.mocked(CnxFileResolver.getRelativePathFromInputs).mockReturnValue(
-        "Display/utils.cnx",
-      );
-
+    it("names the resolved .hpp header in C++ mode", () => {
       const result = transformIncludeDirective("#include <utils.cnx>", {
         sourcePath: "/project/src/main.cnx",
-        includeDirs: ["/project/src/Display"],
-        inputs: ["/project/src"],
         headerExtension: ".hpp",
+        rewrites: new Map([["utils.cnx", "Display/utils.hpp"]]),
       });
 
       expect(result).toBe("#include <Display/utils.hpp>");
     });
 
-    it("falls back to .hpp in C++ mode when file not found", () => {
-      vi.mocked(CnxFileResolver.findCnxFile).mockReturnValue(null);
-
+    it("falls back to .hpp in C++ mode when the resolver has no answer", () => {
       const result = transformIncludeDirective("#include <missing.cnx>", {
         sourcePath: "/project/src/main.cnx",
-        inputs: ["/project/src"],
         headerExtension: ".hpp",
+        rewrites: noRewrites,
       });
 
       expect(result).toBe("#include <missing.hpp>");
@@ -214,6 +179,7 @@ describe("IncludeGenerator", () => {
       const result = transformIncludeDirective('#include "helper.cnx"', {
         headerExtension: ".h",
         sourcePath: "/project/src/main.cnx",
+        rewrites: new Map(),
       });
 
       expect(result).toBe('#include "helper.h"');
@@ -225,6 +191,7 @@ describe("IncludeGenerator", () => {
       const result = transformIncludeDirective('#include "../lib/utils.cnx"', {
         headerExtension: ".h",
         sourcePath: "/project/src/main.cnx",
+        rewrites: new Map(),
       });
 
       expect(result).toBe('#include "../lib/utils.h"');
@@ -234,6 +201,7 @@ describe("IncludeGenerator", () => {
       const result = transformIncludeDirective('#include "file.cnx"', {
         headerExtension: ".h",
         sourcePath: null,
+        rewrites: new Map(),
       });
 
       expect(result).toBe('#include "file.h"');
@@ -247,6 +215,7 @@ describe("IncludeGenerator", () => {
         transformIncludeDirective('#include "missing.cnx"', {
           headerExtension: ".h",
           sourcePath: "/project/src/main.cnx",
+          rewrites: new Map(),
         }),
       ).toThrow(/Included C-Next file not found: missing.cnx/);
     });
@@ -258,6 +227,7 @@ describe("IncludeGenerator", () => {
         transformIncludeDirective('#include "missing.cnx"', {
           headerExtension: ".h",
           sourcePath: "/project/src/main.cnx",
+          rewrites: new Map(),
         }),
       ).toThrow(/Searched at:/);
     });
@@ -269,6 +239,7 @@ describe("IncludeGenerator", () => {
         transformIncludeDirective('#include "missing.cnx"', {
           headerExtension: ".h",
           sourcePath: "/project/src/main.cnx",
+          rewrites: new Map(),
         }),
       ).toThrow(/Referenced in:.*main\.cnx/);
     });
@@ -279,6 +250,7 @@ describe("IncludeGenerator", () => {
       const result = transformIncludeDirective('#include "helper.cnx"', {
         sourcePath: "/project/src/main.cnx",
         headerExtension: ".hpp",
+        rewrites: new Map(),
       });
 
       expect(result).toBe('#include "helper.hpp"');
@@ -290,6 +262,7 @@ describe("IncludeGenerator", () => {
       const result = transformIncludeDirective('#include "../lib/utils.cnx"', {
         sourcePath: "/project/src/main.cnx",
         headerExtension: ".hpp",
+        rewrites: new Map(),
       });
 
       expect(result).toBe('#include "../lib/utils.hpp"');
@@ -305,6 +278,7 @@ describe("IncludeGenerator", () => {
       const result = transformIncludeDirective("#include <stdio.h>", {
         headerExtension: ".h",
         sourcePath: "/project/main.cnx",
+        rewrites: new Map(),
       });
       expect(result).toBe("#include <stdio.h>");
     });
@@ -313,6 +287,7 @@ describe("IncludeGenerator", () => {
       const result = transformIncludeDirective('#include "myheader.h"', {
         headerExtension: ".h",
         sourcePath: "/project/main.cnx",
+        rewrites: new Map(),
       });
       expect(result).toBe('#include "myheader.h"');
     });
@@ -321,6 +296,7 @@ describe("IncludeGenerator", () => {
       const result = transformIncludeDirective("#include <stdint.h>", {
         headerExtension: ".h",
         sourcePath: null,
+        rewrites: new Map(),
       });
       expect(result).toBe("#include <stdint.h>");
     });
@@ -329,6 +305,7 @@ describe("IncludeGenerator", () => {
       const result = transformIncludeDirective("#include <vector>", {
         headerExtension: ".h",
         sourcePath: null,
+        rewrites: new Map(),
       });
       expect(result).toBe("#include <vector>");
     });
@@ -337,6 +314,7 @@ describe("IncludeGenerator", () => {
       const result = transformIncludeDirective("int x = 5;", {
         headerExtension: ".h",
         sourcePath: null,
+        rewrites: new Map(),
       });
       expect(result).toBe("int x = 5;");
     });
@@ -345,6 +323,7 @@ describe("IncludeGenerator", () => {
       const result = transformIncludeDirective('#include "myheader.h"', {
         sourcePath: "/project/main.cnx",
         headerExtension: ".hpp",
+        rewrites: new Map(),
       });
       expect(result).toBe('#include "myheader.h"');
     });
@@ -580,6 +559,7 @@ describe("IncludeGenerator", () => {
       const result1 = transformIncludeDirective("#include <file.cnx>", {
         headerExtension: ".h",
         sourcePath: null,
+        rewrites: new Map(),
       });
       expect(result1).toBe("#include <file.h>");
 
@@ -587,6 +567,7 @@ describe("IncludeGenerator", () => {
       const result2 = transformIncludeDirective("#include <file.txt>", {
         headerExtension: ".h",
         sourcePath: null,
+        rewrites: new Map(),
       });
       expect(result2).toBe("#include <file.txt>");
     });
@@ -597,6 +578,7 @@ describe("IncludeGenerator", () => {
       const result = transformIncludeDirective('#include "file.cnx"', {
         headerExtension: ".h",
         sourcePath: "/project/main.cnx",
+        rewrites: new Map(),
       });
       expect(result).toBe('#include "file.h"');
 
@@ -604,6 +586,7 @@ describe("IncludeGenerator", () => {
       const result2 = transformIncludeDirective('#include "file.txt"', {
         headerExtension: ".h",
         sourcePath: "/project/main.cnx",
+        rewrites: new Map(),
       });
       expect(result2).toBe('#include "file.txt"');
     });
@@ -612,6 +595,7 @@ describe("IncludeGenerator", () => {
       const result = transformIncludeDirective("#include <a/b/c/d/file.cnx>", {
         headerExtension: ".h",
         sourcePath: null,
+        rewrites: new Map(),
       });
       expect(result).toBe("#include <a/b/c/d/file.h>");
     });
@@ -622,6 +606,7 @@ describe("IncludeGenerator", () => {
       const result = transformIncludeDirective('#include "file-name_v2.cnx"', {
         headerExtension: ".h",
         sourcePath: "/project/main.cnx",
+        rewrites: new Map(),
       });
       expect(result).toBe('#include "file-name_v2.h"');
     });

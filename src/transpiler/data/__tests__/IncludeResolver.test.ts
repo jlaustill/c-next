@@ -363,6 +363,77 @@ describe("IncludeResolver", () => {
   // Edge Cases
   // ========================================================================
 
+  // ==========================================================================
+  // Issue #1467: the injected owner decides which header a `.cnx` include names
+  //
+  // These sit at the PRODUCER on purpose. End to end, a wrong directive here is
+  // invisible: `HeaderGeneratorUtils` deduplicates includes by STEM, so a naive
+  // `<utils.h>` and a resolved `<Display/utils.h>` collapse to one line and the
+  // first one wins. That dedup exists for `.h`/`.hpp` mismatches, not for this,
+  // and it masks the defect rather than preventing it -- so a regression in the
+  // ExternalTypeHeaderBuilder directive can only be caught right here.
+  // ==========================================================================
+
+  describe("resolved header path (#1467)", () => {
+    it("names the resolved header, not the author's spelling", () => {
+      const resolver = new IncludeResolver(
+        [includeDir],
+        ".h",
+        undefined,
+        () => "Display/shared.h",
+      );
+
+      const result = resolver.resolve("#include <shared.cnx>");
+
+      expect([...result.headerIncludeDirectives.values()]).toEqual([
+        "#include <Display/shared.h>",
+      ]);
+      expect([...result.cnextIncludeRewrites.entries()]).toEqual([
+        ["shared.cnx", "Display/shared.h"],
+      ]);
+    });
+
+    it("keeps a quoted include quoted", () => {
+      const resolver = new IncludeResolver(
+        [includeDir],
+        ".h",
+        undefined,
+        () => "Display/shared.h",
+      );
+
+      const result = resolver.resolve('#include "shared.cnx"');
+
+      expect([...result.headerIncludeDirectives.values()]).toEqual([
+        '#include "Display/shared.h"',
+      ]);
+    });
+
+    it("falls back to the extension swap when the owner has no answer", () => {
+      const resolver = new IncludeResolver(
+        [includeDir],
+        ".h",
+        undefined,
+        () => null,
+      );
+
+      const result = resolver.resolve("#include <shared.cnx>");
+
+      expect([...result.headerIncludeDirectives.values()]).toEqual([
+        "#include <shared.h>",
+      ]);
+    });
+
+    it("falls back when no owner is injected at all", () => {
+      const resolver = new IncludeResolver([includeDir], ".h");
+
+      const result = resolver.resolve("#include <shared.cnx>");
+
+      expect([...result.headerIncludeDirectives.values()]).toEqual([
+        "#include <shared.h>",
+      ]);
+    });
+  });
+
   describe("edge cases", () => {
     it("should handle empty content", () => {
       const resolver = new IncludeResolver([includeDir], ".h");

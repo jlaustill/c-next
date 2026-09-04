@@ -27,15 +27,15 @@ interface ICodeGeneratorOptions {
    */
   sourceRelativePath?: string;
   /**
-   * Issue #349: Include directories for resolving angle-bracket .cnx includes.
-   * Used to search for .cnx files referenced in #include <file.cnx> directives.
+   * Issue #1467: author spelling -> resolved header path, decided once by
+   * PathResolver during discovery.
+   *
+   * Replaces the `includeDirs`/`inputs` pair added for #349. Those declared a
+   * path resolution inside codegen that the only production caller never
+   * supplied, so the resolution was dead for the whole pipeline while the
+   * options advertised it.
    */
-  includeDirs?: string[];
-  /**
-   * Issue #349: Input directories for calculating relative paths.
-   * Used to determine the correct output path prefix for headers.
-   */
-  inputs?: string[];
+  cnxIncludeRewrites?: ReadonlyMap<string, string>;
 }
 
 export default ICodeGeneratorOptions;

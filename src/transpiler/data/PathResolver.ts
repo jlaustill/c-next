@@ -3,10 +3,10 @@
  * Handles path calculations for output files.
  *
  * Consolidates path resolution logic used by Transpiler and CleanCommand,
- * including directory structure preservation and basePath stripping.
+ * including directory structure preservation.
  */
 
-import { join, basename, relative, dirname, resolve } from "node:path";
+import { join, basename, relative, dirname, resolve, sep } from "node:path";
 
 import IDiscoveredFile from "./types/IDiscoveredFile";
 import type TSourceExtension from "../types/TSourceExtension";
@@ -27,8 +27,6 @@ interface IPathResolverConfig {
   outDir: string;
   /** Optional separate output directory for headers */
   headerOutDir?: string;
-  /** Optional base path to strip from header output paths */
-  basePath?: string;
 }
 
 /**
@@ -127,81 +125,88 @@ class PathResolver {
    * @returns The full header output path
    */
   getHeaderOutputPath(file: IDiscoveredFile, ext: THeaderExtension): string {
+    const outputPath = this.headerPathFor(file.path, ext);
+
+    const outputDir = dirname(outputPath);
+    if (!this.fs.exists(outputDir)) {
+      this.fs.mkdir(outputDir, { recursive: true });
+    }
+
+    return outputPath;
+  }
+
+  /**
+   * Issue #1467: the path an `#include` must name to reach the header this
+   * resolver will write for `cnxPath`, relative to the header output root.
+   *
+   * This is the single answer to "which header does this include resolve to?".
+   * It is DERIVED from `headerPathFor` -- the same calculation that decides
+   * where the header is written -- because those two facts were computed
+   * independently before, and a derivation that merely agrees is a latent
+   * divergence. Nothing downstream may re-derive it from the author's
+   * spelling: a bare `<utils.cnx>` and a nested header are both legal, and
+   * only this method knows they go together.
+   *
+   * Returns null when the header lands outside the header output root, where
+   * no path relative to that root can name it and `-I <header-out>` cannot
+   * work regardless. The caller keeps the author's spelling there.
+   */
+  getHeaderIncludePath(cnxPath: string, ext: THeaderExtension): string | null {
+    const headerDir = this.config.headerOutDir || this.config.outDir;
+    const includePath = relative(
+      resolve(headerDir),
+      resolve(this.headerPathFor(cnxPath, ext)),
+    );
+
+    if (!includePath || includePath.startsWith("..")) {
+      return null;
+    }
+
+    // POSIX separators: this becomes the text inside `#include <...>`, which
+    // is not a filesystem path in the generated C.
+    return includePath.split(sep).join("/");
+  }
+
+  /**
+   * Issue #1467: where the header for `cnxPath` goes. Pure -- it creates no
+   * directories, so `getHeaderIncludePath` can ask the question without the
+   * side effect that answering it used to carry.
+   */
+  private headerPathFor(cnxPath: string, ext: THeaderExtension): string {
     // Use headerOutDir if specified, otherwise fall back to outDir
     const headerDir = this.config.headerOutDir || this.config.outDir;
 
-    const relativePath = this.getRelativePathFromInputs(file.path);
+    const relativePath = this.getRelativePathFromInputs(cnxPath);
     if (relativePath) {
-      // File is under an input directory - preserve structure (minus basePath)
-      const strippedPath = this.stripBasePath(relativePath);
-      const outputRelative = strippedPath.replace(/\.cnx$|\.cnext$/, ext);
-      const outputPath = join(headerDir, outputRelative);
-
-      const outputDir = dirname(outputPath);
-      if (!this.fs.exists(outputDir)) {
-        this.fs.mkdir(outputDir, { recursive: true });
-      }
-
-      return outputPath;
+      // File is under an input directory - preserve structure
+      return join(headerDir, relativePath.replace(/\.cnx$|\.cnext$/, ext));
     }
 
     // Issue #489: If headerOutDir is explicitly set, use it with relative path from CWD
     // This handles single-file inputs like "cnext src/AppConfig.cnx" with headerOut config
     if (this.config.headerOutDir) {
-      const cwd = process.cwd();
-      const relativeFromCwd = relative(cwd, file.path);
+      const relativeFromCwd = relative(process.cwd(), cnxPath);
       // Only use CWD-relative path if file is under CWD (not starting with ..)
       if (relativeFromCwd && !relativeFromCwd.startsWith("..")) {
-        const strippedPath = this.stripBasePath(relativeFromCwd);
-        const outputRelative = strippedPath.replace(/\.cnx$|\.cnext$/, ext);
-        const outputPath = join(this.config.headerOutDir, outputRelative);
-
-        const outputDir = dirname(outputPath);
-        if (!this.fs.exists(outputDir)) {
-          this.fs.mkdir(outputDir, { recursive: true });
-        }
-
-        return outputPath;
+        return join(
+          this.config.headerOutDir,
+          relativeFromCwd.replace(/\.cnx$|\.cnext$/, ext),
+        );
       }
 
       // File outside CWD: put in headerOutDir with just basename
-      const headerName = basename(file.path).replace(/\.cnx$|\.cnext$/, ext);
-      const outputPath = join(this.config.headerOutDir, headerName);
-
-      if (!this.fs.exists(this.config.headerOutDir)) {
-        this.fs.mkdir(this.config.headerOutDir, { recursive: true });
-      }
-
-      return outputPath;
+      return join(
+        this.config.headerOutDir,
+        basename(cnxPath).replace(/\.cnx$|\.cnext$/, ext),
+      );
     }
 
     // Fallback: output next to the source file (no headerDir specified)
     // This handles included files that aren't under any input directory
-    const headerName = basename(file.path).replace(/\.cnx$|\.cnext$/, ext);
-    return join(dirname(file.path), headerName);
-  }
-
-  /**
-   * Strip basePath prefix from a relative path
-   * e.g., "src/AppConfig.cnx" with basePath "src" -> "AppConfig.cnx"
-   */
-  private stripBasePath(relPath: string): string {
-    if (!this.config.basePath || !this.config.headerOutDir) {
-      return relPath;
-    }
-    // Normalize basePath (remove trailing slashes) using string methods
-    let base = this.config.basePath;
-    while (base.endsWith("/") || base.endsWith("\\")) {
-      base = base.slice(0, -1);
-    }
-    // Check if relPath starts with basePath (+ separator or exact match)
-    if (relPath === base) {
-      return "";
-    }
-    if (relPath.startsWith(base + "/") || relPath.startsWith(base + "\\")) {
-      return relPath.slice(base.length + 1);
-    }
-    return relPath;
+    return join(
+      dirname(cnxPath),
+      basename(cnxPath).replace(/\.cnx$|\.cnext$/, ext),
+    );
   }
 }
 

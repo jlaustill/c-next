@@ -47,6 +47,19 @@ interface IResolvedIncludes {
    * Example: "/abs/path/data-types.h" => '#include "data-types.h"'
    */
   headerIncludeDirectives: Map<string, string>;
+
+  /**
+   * Issue #1467: for each `.cnx` include, the author's spelling mapped to the
+   * path the generated header is actually reachable at, relative to the header
+   * output root -- e.g. `"utils.cnx"` => `"Display/utils.h"`.
+   *
+   * Recorded here because this class is where an include's spelling and its
+   * RESOLVED file are both in hand; every consumer downstream has one or the
+   * other. The value comes from the owner injected as `headerIncludePathFor`,
+   * never from the spelling: those were derived independently in three places,
+   * and agreed only because all three copied what the author typed.
+   */
+  cnextIncludeRewrites: Map<string, string>;
 }
 
 /**
@@ -79,6 +92,19 @@ class IncludeResolver {
   private readonly headerExtension: THeaderExtension | null;
 
   /**
+   * Issue #1467: asked where the generated header for a `.cnx` is reachable,
+   * relative to the header output root. Null when the caller does not know
+   * (no PathResolver yet) or the header lands outside that root; the author's
+   * spelling is kept in that case, which is what every caller did before.
+   */
+  private readonly headerIncludePathFor:
+    | ((cnxPath: string) => string | null)
+    | null;
+
+  /**
+   * @param headerIncludePathFor Issue #1467: where the generated header for a
+   *   `.cnx` is reachable, relative to the header output root. See the field
+   *   above for why it may be null.
    * @param headerExtension The extension generated headers get in this run
    *   (".h" or ".hpp"), or `null` for a caller that does not read
    *   `headerIncludeDirectives` from the result.
@@ -101,9 +127,11 @@ class IncludeResolver {
     private readonly searchPaths: string[],
     headerExtension: THeaderExtension | null,
     fs: IFileSystem = defaultFs,
+    headerIncludePathFor: ((cnxPath: string) => string | null) | null = null,
   ) {
     this.fs = fs;
     this.headerExtension = headerExtension;
+    this.headerIncludePathFor = headerIncludePathFor;
   }
 
   /**
@@ -119,6 +147,7 @@ class IncludeResolver {
       cnextIncludes: [],
       warnings: [],
       headerIncludeDirectives: new Map<string, string>(),
+      cnextIncludeRewrites: new Map<string, string>(),
       hasForeignInclude: false,
     };
 
@@ -203,14 +232,17 @@ class IncludeResolver {
       // Issue #1319: a caller that never reads headerIncludeDirectives passes
       // null, so it cannot contribute a wrong extension to a map it ignores.
       if (this.headerExtension !== null) {
-        const headerPath = includeInfo.path.replace(
-          /\.cnx$|\.cnext$/,
-          this.headerExtension,
-        );
+        // Issue #1467: ask the owner where the header is reachable. The
+        // extension swap below is the fallback for a caller with no resolver
+        // and for a header outside the output root -- not a second answer.
+        const headerPath =
+          this.headerIncludePathFor?.(absolutePath) ??
+          includeInfo.path.replace(/\.cnx$|\.cnext$/, this.headerExtension);
         const directive = includeInfo.isLocal
           ? `#include "${headerPath}"`
           : `#include <${headerPath}>`;
         result.headerIncludeDirectives.set(absolutePath, directive);
+        result.cnextIncludeRewrites.set(includeInfo.path, headerPath);
       }
     }
   }

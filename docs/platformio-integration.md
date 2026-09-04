@@ -25,7 +25,6 @@ root. `--pio-install` writes a working default; the fields you'll touch most:
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `include`     | Extra directories searched for C/C++ headers. **Must cover every C/C++ header you `#include`** (e.g. `.pio/libdeps` for PlatformIO libraries, `include/`). Also how E0507 sees that a header is C++ (below). |
 | `headerOut`   | Directory for generated headers (e.g. `include`).                                                                                                                                                            |
-| `basePath`    | Base path stripped from header output paths (only used with `headerOut`; e.g. `src`).                                                                                                                        |
 | `target`      | Target platform for ISR/atomic codegen (e.g. `teensy41`, `cortex-m0`).                                                                                                                                       |
 | `debugMode`   | Generate panic-on-overflow helpers.                                                                                                                                                                          |
 | `noCache`     | Disable the `.cnx/` symbol cache.                                                                                                                                                                            |
@@ -38,7 +37,6 @@ Example (Teensy + a C++ library such as FlexCAN_T4):
   "target": "teensy41",
   "include": ["include/", ".pio/libdeps/"],
   "headerOut": "include",
-  "basePath": "src",
   "noCache": true
 }
 ```

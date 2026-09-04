@@ -22,8 +22,6 @@ interface IFileConfig {
   output?: string;
   /** Separate output directory for header files */
   headerOut?: string;
-  /** Base path to strip from header output paths (only used with headerOut) */
-  basePath?: string;
   /** Internal: path to config file that was loaded (set by ConfigLoader) */
   _path?: string;
 }

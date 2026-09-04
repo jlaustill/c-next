@@ -5,15 +5,21 @@
 import * as path from "node:path";
 import * as Parser from "../../../../logic/parser/grammar/CNextParser";
 import CnxFileResolver from "../../../../data/CnxFileResolver";
+import IncludeRewriter from "../../../../data/IncludeRewriter";
 import type THeaderExtension from "../../../../types/THeaderExtension";
 
 /**
- * Issue #349: Options for include transformation
+ * Issue #349, #1467: Options for include transformation
  */
 interface IIncludeTransformOptions {
   sourcePath: string | null;
-  includeDirs?: string[];
-  inputs?: string[];
+  /**
+   * Issue #1467: author spelling -> resolved header path, decided once by
+   * PathResolver during discovery. This replaces the `includeDirs`/`inputs`
+   * pair, which declared a full path resolution here that no production caller
+   * ever fed -- so the `.c` silently used the fallback while claiming not to.
+   */
+  rewrites: ReadonlyMap<string, string>;
   /**
    * Issue #1319: the run's header extension (".h" or ".hpp"), not its mode.
    * Required -- it was `cppMode?: boolean` destructured with a `false` default
@@ -23,132 +29,62 @@ interface IIncludeTransformOptions {
 }
 
 /**
- * Resolve angle-bracket include path from inputs.
- * SonarCloud S3776: Extracted from transformIncludeDirective().
+ * ADR-010: Validate that a quote-style include names a real `.cnx` file.
+ *
+ * Quote includes are resolved relative to the including file, so this can be
+ * checked here; angle includes are searched along include directories and are
+ * transformed without validation.
+ *
+ * `spec` carries its extension (`.cnx` or `.cnext`) -- Issue #1467 review: the
+ * pattern that produces it lives in IncludeRewriter, so this module cannot
+ * drift from the other producers on which extensions count.
  */
-const resolveAngleIncludePath = (
-  filename: string,
-  sourcePath: string,
-  includeDirs: string[],
-  inputs: string[],
-  ext: THeaderExtension,
-): string | null => {
-  if (inputs.length === 0) {
-    return null;
+const validateQuoteInclude = (
+  spec: string,
+  sourcePath: string | null,
+): void => {
+  if (!sourcePath) {
+    return;
   }
 
   const sourceDir = path.dirname(sourcePath);
-  const searchPaths = [sourceDir, ...includeDirs];
-  const foundPath = CnxFileResolver.findCnxFile(filename, searchPaths);
+  const cnxPath = path.resolve(sourceDir, spec);
 
-  if (!foundPath) {
-    return null;
-  }
-
-  const relativePath = CnxFileResolver.getRelativePathFromInputs(
-    foundPath,
-    inputs,
-  );
-
-  return relativePath ? relativePath.replace(/\.cnx$/, ext) : null;
-};
-
-/**
- * Process angle-bracket includes: #include <file.cnx>
- * SonarCloud S3776: Extracted from transformIncludeDirective().
- */
-const transformAngleInclude = (
-  includeText: string,
-  filename: string,
-  options: IIncludeTransformOptions,
-): string => {
-  const {
-    sourcePath,
-    includeDirs = [],
-    inputs = [],
-    headerExtension,
-  } = options;
-
-  // Try to resolve the correct output path
-  if (sourcePath) {
-    const resolvedPath = resolveAngleIncludePath(
-      filename,
-      sourcePath,
-      includeDirs,
-      inputs,
-      headerExtension,
+  if (!CnxFileResolver.cnxFileExists(cnxPath)) {
+    throw new Error(
+      `Error: Included C-Next file not found: ${spec}\n` +
+        `  Searched at: ${cnxPath}\n` +
+        `  Referenced in: ${sourcePath}`,
     );
-    if (resolvedPath) {
-      return includeText.replace(`<${filename}.cnx>`, `<${resolvedPath}>`);
-    }
   }
-
-  // Fallback: simple replacement
-  return includeText.replace(
-    `<${filename}.cnx>`,
-    `<${filename}${headerExtension}>`,
-  );
-};
-
-/**
- * Process quote includes: #include "file.cnx"
- * SonarCloud S3776: Extracted from transformIncludeDirective().
- */
-const transformQuoteInclude = (
-  includeText: string,
-  filepath: string,
-  options: IIncludeTransformOptions,
-): string => {
-  const { sourcePath, headerExtension } = options;
-
-  // Validate .cnx file exists if we have source path
-  if (sourcePath) {
-    const sourceDir = path.dirname(sourcePath);
-    const cnxPath = path.resolve(sourceDir, `${filepath}.cnx`);
-
-    if (!CnxFileResolver.cnxFileExists(cnxPath)) {
-      throw new Error(
-        `Error: Included C-Next file not found: ${filepath}.cnx\n` +
-          `  Searched at: ${cnxPath}\n` +
-          `  Referenced in: ${sourcePath}`,
-      );
-    }
-  }
-
-  // Transform to .h or .hpp
-  return includeText.replace(
-    `"${filepath}.cnx"`,
-    `"${filepath}${headerExtension}"`,
-  );
 };
 
 /**
  * ADR-010: Transform #include directives, converting .cnx to .h or .hpp
  * Issue #941: Uses .hpp extension when the run emits C++
- * Validates that .cnx files exist if sourcePath is available
+ * Validates that quoted .cnx files exist if sourcePath is available
  * Supports both <file.cnx> and "file.cnx" forms
  *
- * Issue #349: For angle-bracket includes, resolves the correct output path
- * by finding the .cnx file and calculating its relative path from inputs.
- * SonarCloud S3776: Refactored to use helper functions.
+ * Issue #1467: which header an include names is decided by
+ * `PathResolver.getHeaderIncludePath` and arrives in `rewrites`. This function
+ * used to resolve angle includes itself, from options no caller supplied, while
+ * the `.h` did a bare extension swap -- two derivations of one fact that agreed
+ * only because both copied the author's spelling.
  */
 const transformIncludeDirective = (
   includeText: string,
   options: IIncludeTransformOptions,
 ): string => {
-  // Match: #include <file.cnx> or #include "file.cnx"
-  const angleMatch = /#\s*include\s*<([^>]+)\.cnx>/.exec(includeText);
-  if (angleMatch) {
-    return transformAngleInclude(includeText, angleMatch[1], options);
+  const quotedSpec = IncludeRewriter.quotedCnxSpecOf(includeText);
+  if (quotedSpec) {
+    validateQuoteInclude(quotedSpec, options.sourcePath);
   }
 
-  const quoteMatch = /#\s*include\s*"([^"]+)\.cnx"/.exec(includeText);
-  if (quoteMatch) {
-    return transformQuoteInclude(includeText, quoteMatch[1], options);
-  }
-
-  // Not a .cnx include - pass through unchanged
-  return includeText;
+  return IncludeRewriter.rewrite(
+    includeText,
+    options.rewrites,
+    options.headerExtension,
+  );
 };
 
 /**

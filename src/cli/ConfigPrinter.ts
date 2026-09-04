@@ -43,7 +43,6 @@ class ConfigPrinter {
     console.log(
       "  headerOut:      " + (config.headerOutDir ?? "(same as output)"),
     );
-    console.log("  basePath:       " + (config.basePath ?? "(none)"));
     console.log(
       "  include:        " + (config.includeDirs.length > 0 ? "" : "(none)"),
     );

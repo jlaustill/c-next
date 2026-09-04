@@ -161,7 +161,6 @@ describe("Runner", () => {
         noCache: true,
         parseOnly: true,
         headerOutDir: "include/",
-        basePath: "src/",
         target: "teensy41",
         debugMode: true,
       };
@@ -182,7 +181,6 @@ describe("Runner", () => {
       expect(transpilerCall.noCache).toBe(true);
       expect(transpilerCall.parseOnly).toBe(true);
       expect(transpilerCall.headerOutDir).toBe("include/");
-      expect(transpilerCall.basePath).toBe("src/");
       expect(transpilerCall.target).toBe("teensy41");
       expect(transpilerCall.debugMode).toBe(true);
     });

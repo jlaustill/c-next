@@ -163,8 +163,7 @@ describe("CodeGenerator", () => {
       const code = generator.generate(tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
-        includeDirs: ["/usr/include"],
-        inputs: ["."],
+        cnxIncludeRewrites: new Map([["utils.cnx", "Display/utils.h"]]),
       });
 
       expect(code).toContain("void foo");

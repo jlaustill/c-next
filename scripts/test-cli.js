@@ -20,6 +20,7 @@ import {
   readFileSync,
   rmSync,
   mkdtempSync,
+  mkdirSync,
 } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -911,6 +912,265 @@ test("Issue #580: C++ mode gives correct transitive const inference", () => {
     cleanupTempDir(tempDir);
   }
 });
+
+// ============================================================================
+// Issue #1467: one owner answers "which header does this include name?"
+// ============================================================================
+
+const includePathUtils = `struct Point {
+    u8 x;
+    u8 y;
+}
+
+scope Utils {
+    public u8 add(u8 v) {
+        return v + 1;
+    }
+}
+`;
+
+/**
+ * Issue #1467: `useStruct` decides whether the included type crosses into the
+ * generated HEADER. It must, for at least one case: a header that names an
+ * external type gets its include from ExternalTypeHeaderBuilder, which is a
+ * THIRD derivation of this path, and a fixture that only calls a function
+ * never reaches it.
+ */
+const includePathMain = (includeSpec, useStruct) => `#include <${includeSpec}>
+
+${
+  useStruct
+    ? `scope App {
+    public u8 useIt(Point p) {
+        return global.Utils.add(p.x);
+    }
+}`
+    : `u8 result;`
+}
+
+i32 main() {
+${useStruct ? "    return 0;" : "    result <- global.Utils.add(5);\n    return 0;"}
+}
+`;
+
+/**
+ * Issue #1467: the include naming `utils`, as each generated file spells it.
+ * Narrowed to that one header so the run's own `main.h`/`stdint.h` lines
+ * cannot mask a disagreement.
+ */
+function utilsIncludesIn(source) {
+  return source
+    .split("\n")
+    .filter((line) => /^#include\s*[<"].*utils\.h/.test(line))
+    .map((line) => line.trim());
+}
+
+/**
+ * Issue #1467: build a project, transpile it with a separate `-o` and
+ * `--header-out`, and report what each output emitted alongside where the
+ * header was actually written.
+ *
+ * `utilsAt` is relative to the temp dir, so a case can put the included file
+ * under the entry's tree (header nests) or outside it (header goes flat).
+ */
+function runIncludePathCase(
+  { includeSpec, utilsAt, includeArg, useStruct, projectDir = "." },
+  tempDir,
+) {
+  // `utilsAt` is relative to tempDir; the project (and the cwd the CLI runs in)
+  // is `projectDir` under it. A case that puts the included file OUTSIDE the
+  // project exercises the flat-header path -- see PathResolver's #489 branch.
+  const projectRoot = join(tempDir, projectDir);
+  mkdirSync(join(tempDir, dirname(utilsAt)), { recursive: true });
+  mkdirSync(join(projectRoot, "src"), { recursive: true });
+  writeFileSync(join(tempDir, utilsAt), includePathUtils, "utf-8");
+  writeFileSync(
+    join(projectRoot, "src", "main.cnx"),
+    includePathMain(includeSpec, useStruct),
+    "utf-8",
+  );
+
+  // Issue #1467 review: `expectError: true` makes a non-zero exit DATA. Without
+  // it runCliInDir rethrows, so `transpileSucceeded` below could only ever be
+  // true -- an assertion that cannot fail, in a PR about assertions that cannot
+  // fail (#1143).
+  const result = runCliInDir(
+    projectRoot,
+    [
+      "src/main.cnx",
+      "-o",
+      "build",
+      "--header-out",
+      "include",
+      "--include",
+      includeArg,
+    ],
+    true,
+  );
+
+  if (!result.success) {
+    return {
+      transpileSucceeded: false,
+      transpileOutput: `${result.output}${result.stderr ?? ""}`,
+      cIncludes: [],
+      hIncludes: [],
+      headerWrittenAt: "<not written>",
+      gccExitCode: 1,
+      gccOutput: "",
+    };
+  }
+
+  let gccExitCode = 0;
+  let gccOutput = "";
+  try {
+    execFileSync(
+      "gcc",
+      ["-c", "build/main.c", "-I", "include", "-o", "/dev/null"],
+      { cwd: projectRoot, encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] },
+    );
+  } catch (error) {
+    gccExitCode = error.status ?? 1;
+    gccOutput = error.stderr || error.stdout || "";
+  }
+
+  // Where the header actually landed, relative to --header-out.
+  const headerRoot = join(projectRoot, "include");
+  const candidates = ["Display/utils.h", "shared/utils.h", "utils.h"];
+  const headerWrittenAt =
+    candidates.find((c) => existsSync(join(headerRoot, c))) ?? "<not written>";
+
+  return {
+    transpileSucceeded: result.success,
+    transpileOutput: "",
+    cIncludes: utilsIncludesIn(
+      readFileSync(join(projectRoot, "build", "main.c"), "utf-8"),
+    ),
+    hIncludes: utilsIncludesIn(
+      readFileSync(join(projectRoot, "include", "main.h"), "utf-8"),
+    ),
+    headerWrittenAt,
+    gccExitCode,
+    gccOutput,
+  };
+}
+
+/**
+ * Issue #1467: the whole assertion, in one place, for every case below.
+ *
+ * `expected` is the single right answer -- where the header was actually
+ * written, relative to `--header-out`. Every generated file must name exactly
+ * that, which is the property that makes `-I <header-out>` sufficient.
+ */
+function assertIncludeAgreesWithHeader(label, actual, expected) {
+  assert(
+    actual.transpileSucceeded,
+    `${label}: transpiler should exit 0\n${actual.transpileOutput}`,
+  );
+  assert(
+    actual.headerWrittenAt === expected,
+    `${label}: header should be at ${expected}, was ${actual.headerWrittenAt}`,
+  );
+  for (const [where, lines] of [
+    ["main.c", actual.cIncludes],
+    ["main.h", actual.hIncludes],
+  ]) {
+    assert(
+      lines.length === 1 && lines[0] === `#include <${expected}>`,
+      `${label}: ${where} should include <${expected}>, had ${JSON.stringify(lines)}`,
+    );
+  }
+  assert(
+    actual.gccExitCode === 0,
+    `${label}: generated C should compile with -I include alone, gcc exited ` +
+      `${actual.gccExitCode}\n${actual.gccOutput}`,
+  );
+}
+
+// The contract: `-I <header-out>` alone is sufficient, so every emitted include
+// names its header relative to that root. Cases 2-4 hold on the unfixed tree and
+// are the negative controls -- a fix that prepends unconditionally breaks them.
+const includePathCases = [
+  {
+    name: "Issue #1467: a bare angle include of a nested .cnx names the header's real path",
+    includeSpec: "utils.cnx",
+    utilsAt: "src/Display/utils.cnx",
+    includeArg: "src/Display",
+    useStruct: false,
+    expected: "Display/utils.h",
+  },
+  {
+    name: "Issue #1467 control: an already-qualified angle include stays correct",
+    includeSpec: "Display/utils.cnx",
+    utilsAt: "src/Display/utils.cnx",
+    includeArg: "src/Display",
+    useStruct: false,
+    expected: "Display/utils.h",
+  },
+  {
+    name: "Issue #1467 control: an include dir outside the project stays flat",
+    includeSpec: "utils.cnx",
+    utilsAt: "shared/utils.cnx",
+    includeArg: "../shared",
+    projectDir: "proj",
+    useStruct: false,
+    expected: "utils.h",
+  },
+  {
+    // Issue #1467 review: `.cnext` is a C-Next source extension too, and the
+    // patterns that reach the owner used to match `.cnx` alone -- so a
+    // `.cnext` include was emitted verbatim into the `.c`, which gcc rejects,
+    // and dropped from the `.h` entirely.
+    name: "Issue #1467: a .cnext include reaches the owner like a .cnx one",
+    includeSpec: "utils.cnext",
+    utilsAt: "src/Display/utils.cnext",
+    includeArg: "src/Display",
+    useStruct: false,
+    expected: "Display/utils.h",
+  },
+  {
+    // Found while building the control above: when the shared tree is INSIDE
+    // the cwd, PathResolver's #489 branch nests the header instead, and the
+    // emitted include is bare either way. Same defect, third layout.
+    name: "Issue #1467: a shared tree inside the cwd nests the header, and the include must follow",
+    includeSpec: "utils.cnx",
+    utilsAt: "shared/utils.cnx",
+    includeArg: "shared",
+    useStruct: false,
+    expected: "shared/utils.h",
+  },
+  {
+    // NOT a guard for ExternalTypeHeaderBuilder: its directive is deduplicated
+    // by stem before it reaches the output, so poisoning it reddens nothing
+    // here. That path is guarded at its producer, in IncludeResolver's unit
+    // tests. This case covers the layout where a type crosses the boundary,
+    // which reaches more header-generation code than a bare call does.
+    name: "Issue #1467: a type crossing into the header gets the same path",
+    includeSpec: "utils.cnx",
+    utilsAt: "src/Display/utils.cnx",
+    includeArg: "src/Display",
+    useStruct: true,
+    expected: "Display/utils.h",
+  },
+];
+
+for (const includeCase of includePathCases) {
+  test(includeCase.name, () => {
+    // Issue #1467 review: the temp dir is created HERE so `finally` always has
+    // the path. Creating it inside the helper meant any throw -- a failing
+    // transpile, or reading a build/main.c that was never written -- escaped
+    // before cleanup and leaked a directory per run.
+    const tempDir = mkdtempSync(join(tmpdir(), "cnext-1467-"));
+    try {
+      assertIncludeAgreesWithHeader(
+        includeCase.name,
+        runIncludePathCase(includeCase, tempDir),
+        includeCase.expected,
+      );
+    } finally {
+      cleanupTempDir(tempDir);
+    }
+  });
+}
 
 // ============================================================================
 // Summary
