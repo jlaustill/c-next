@@ -17,3 +17,10 @@ uint32_t sharedHelper(void) {
 void sharedNotify(void) {
     return;
 }
+
+// ADR-029 + #1491: a function-as-type that takes a PARAMETER. Every other
+// function here takes none, so `symbol.parameters.map(...)` ran zero times and
+// the parameter half of the symbol path was never reached at all.
+uint32_t sharedWithCount(uint32_t n) {
+    return n + 1;
+}

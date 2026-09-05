@@ -13,15 +13,21 @@
  * qualifying a resolved name later cannot work, because by then `global.Mode`
  * and a bare `Mode` are the same string.
  *
- * This is a REBUILD, not a mutation. Every type-bearing field on a symbol is
- * `readonly`, and the ones that are not -- `IScopeSymbol`'s member arrays --
- * are not type-bearing, so nothing here needs to reach them.
+ * This is a REBUILD everywhere it can be. Every type-bearing field on a symbol
+ * is `readonly`, so settling one means constructing a new symbol.
+ *
+ * `IScopeSymbol.functions` is the one exception, and it is a real one rather
+ * than an oversight: it IS type-bearing, and `SymbolRegistry` caches the scope
+ * object by path, so a rebuilt scope would leave the registry holding the
+ * unsettled functions. That array is written in place, from the same memo the
+ * rebuild uses, so both readers end up on one object.
  */
 
 import type TSymbol from "../../transpiler/types/symbols/TSymbol";
 import type TType from "../../transpiler/types/TType";
 import type IParameterInfo from "../../transpiler/types/symbols/IParameterInfo";
 import type IStructFieldSymbol from "../../transpiler/types/symbols/IStructFieldSymbol";
+import type IFunctionSymbol from "../../transpiler/types/symbols/IFunctionSymbol";
 import ScopeUtils from "../../utils/ScopeUtils";
 import TypeResolver from "../../utils/TypeResolver";
 
@@ -38,9 +44,49 @@ class DeferredTypes {
     symbols: ReadonlyArray<TSymbol>,
     isScopeType: (qualifiedName: string) => boolean,
   ): TSymbol[] {
-    return symbols.map((symbol) =>
-      DeferredTypes.settleSymbol(symbol, isScopeType),
-    );
+    // Memoized on the ORIGINAL object, so a symbol reached twice yields one
+    // settled object rather than two equal ones. A scope's member function is
+    // reached twice by construction: `ScopeCollector` pushes it into the file's
+    // member symbols AND `SymbolRegistry.registerFunction` pushes the same
+    // object onto `scope.functions`.
+    const settled = new Map<TSymbol, TSymbol>();
+    const settleOnce = (symbol: TSymbol): TSymbol => {
+      const existing = settled.get(symbol);
+      if (existing) {
+        return existing;
+      }
+      const result = DeferredTypes.settleSymbol(symbol, isScopeType);
+      settled.set(symbol, result);
+      return result;
+    };
+
+    const resolved = symbols.map(settleOnce);
+
+    // `IScopeSymbol.functions` is type-bearing, and unlike every other container
+    // here it cannot be REBUILT into agreement: `SymbolRegistry.getOrCreateScope`
+    // caches scopes by path, so the registry holds this very object and a fresh
+    // copy would leave it pointing at the unsettled one. The array is written in
+    // place instead -- the single mutation in a pass that is otherwise a rebuild,
+    // and the justification is the alias, not convenience.
+    //
+    // Only entries THIS file declared are replaced, which is what consulting the
+    // memo (rather than settling afresh) buys: a scope spanned across files
+    // (#1333) holds its siblings' functions too, and settling those here would
+    // overwrite the object their own file already settled -- reintroducing the
+    // divergence one file over.
+    for (const symbol of resolved) {
+      if (symbol.kind !== "scope") {
+        continue;
+      }
+      symbol.functions.forEach((func, index) => {
+        const already = settled.get(func);
+        if (already && already !== func) {
+          symbol.functions[index] = already as IFunctionSymbol;
+        }
+      });
+    }
+
+    return resolved;
   }
 
   /**
@@ -104,10 +150,16 @@ class DeferredTypes {
       return fieldsChanged ? { ...symbol, fields } : symbol;
     }
 
-    // enum, bitmap, register and scope carry no TType: an enum member holds a
-    // value, a bitmap's backing type is a constant, and a register member's C
-    // type is a plain string resolved at declaration. Returned unchanged rather
-    // than rebuilt, so identity is preserved for everything with nothing to do.
+    // enum, bitmap and register carry no TType: an enum member holds a value, a
+    // bitmap's backing type is a constant, and a register member's C type is a
+    // plain string resolved at declaration. Returned unchanged rather than
+    // rebuilt, so identity is preserved for everything with nothing to do.
+    //
+    // `scope` is NOT in that list, though it was until 37 fixtures proved
+    // otherwise: `IScopeSymbol.functions` holds `IFunctionSymbol`s, each with a
+    // `returnType` and parameter types. Its members are settled by `settle`
+    // above, which is the only place that can see both the scope and the memo
+    // of what this file already settled.
     return symbol;
   }
 
@@ -149,12 +201,24 @@ class DeferredTypes {
   private static typesOf(symbol: TSymbol): TType[] {
     if (symbol.kind === "variable") return [symbol.type];
     if (symbol.kind === "function") {
-      return [symbol.returnType, ...symbol.parameters.map((p) => p.type)];
+      return DeferredTypes.functionTypes(symbol);
     }
     if (symbol.kind === "struct") {
       return [...symbol.fields.values()].map((field) => field.type);
     }
+    // A scope reaches TType only through its member functions -- and that is
+    // exactly where an unsettled type survived, because the registry aliases
+    // this array. A control that cannot look here cannot fail on the case it
+    // exists to catch.
+    if (symbol.kind === "scope") {
+      return symbol.functions.flatMap(DeferredTypes.functionTypes);
+    }
     return [];
+  }
+
+  /** A function's own types: its return type and each parameter's. */
+  private static functionTypes(func: IFunctionSymbol): TType[] {
+    return [func.returnType, ...func.parameters.map((p) => p.type)];
   }
 
   private static containsDeferred(type: TType): boolean {

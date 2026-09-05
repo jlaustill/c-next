@@ -30,9 +30,23 @@
 // `sharedNotify` covers the void case deliberately: the visible-here set the
 // fix reads is `functionReturnTypes`, and a reader could reasonably assume a
 // map named for return types skips functions that return none. It does not.
+//
+// The PARAMETER axis is covered here too, and it is the axis that matters: a
+// callback typedef's parameter list is the only place the symbol path and the
+// parse-tree path can disagree, because it is the only place either consults a
+// type renderer. Every function here took zero parameters until `sharedWithCount`
+// and `localWithText` were added, so `(void)` was the only typedef shape this
+// fixture ever produced and the two renderers were never asked the same question.
+//
+// `localWithText` takes `string<8>` because that is the type whose C rendering is
+// neither the written name nor the element type -- the parse-tree path used to
+// answer `char`, losing the pointer. It is SAME-FILE on purpose: the cross-file
+// `string<N>` case is one `const` away from correct and lives in
+// cross-file-string-param.test.cnx, which records what is still missing.
 #include "func-lib.hpp"
 
 #include <stdint.h>
+#include <string.h>
 
 // ADR-044: Overflow helper functions
 #include <limits.h>
@@ -49,11 +63,21 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 
 
 typedef uint32_t (*localHelper_fp)(void);
+typedef uint32_t (*localWithText_fp)(const char*);
 typedef uint32_t (*sharedHelper_fp)(void);
 typedef void (*sharedNotify_fp)(void);
+typedef uint32_t (*sharedWithCount_fp)(uint32_t);
 
 uint32_t localHelper(void) {
     return 5;
+}
+
+// The same-file half of the parameter axis. `string<8>` renders as `const char*`
+// in the prototype, so the typedef must say `const char*` too or the two are
+// incompatible pointer types and assigning the function to a variable of its own
+// type warns.
+uint32_t localWithText(const char* label) {
+    return strlen(label);
 }
 
 int main(void) {
@@ -67,5 +91,12 @@ int main(void) {
     if (combined != 12) return 3;
     sharedNotify_fp viaVoid = sharedNotify;
     viaVoid();
+    char text[9] = "abcd";
+    localWithText_fp ownText = localWithText;
+    uint32_t ownLength = ownText(text);
+    if (ownLength != 4) return 4;
+    sharedWithCount_fp viaCount = sharedWithCount;
+    uint32_t counted = viaCount(41U);
+    if (counted != 42) return 5;
     return 0;
 }

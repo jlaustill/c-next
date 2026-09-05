@@ -111,14 +111,27 @@ class Program {
   ): Map<string, ReadonlyArray<TSymbol>> {
     const settledByFile = new Map<string, ReadonlyArray<TSymbol>>();
     for (const file of files) {
-      const settled = DeferredTypes.settle(file.symbols, isScopeType);
+      settledByFile.set(
+        file.sourceFile,
+        DeferredTypes.settle(file.symbols, isScopeType),
+      );
+    }
+
+    // Checked only once EVERY file is settled, not inside the loop above.
+    // A scope spanned across files (#1333, #1334) is a single object holding
+    // every contributing file's member functions, so a mid-loop check reports a
+    // sibling's not-yet-settled function as this file's escapee -- which is what
+    // it did: the two spanned fixtures failed here naming the file that was
+    // already correct. Per-file granularity survives in the message, which is
+    // all it was ever for.
+    for (const [sourceFile, settled] of settledByFile) {
       if (DeferredTypes.hasUnsettled(settled)) {
         throw new Error(
-          `Internal error: 1.4 Resolve left a deferred type in ${file.sourceFile}`,
+          `Internal error: 1.4 Resolve left a deferred type in ${sourceFile}`,
         );
       }
-      settledByFile.set(file.sourceFile, settled);
     }
+
     return settledByFile;
   }
 

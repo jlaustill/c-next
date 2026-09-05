@@ -29,6 +29,88 @@ describe("Program", () => {
     return found!;
   };
 
+  describe("the copy a scope holds", () => {
+    it("settles a scope member's parameter type, not just the file's own list", () => {
+      // `IScopeSymbol.functions` is type-bearing, and it was excluded from the
+      // settle on the stated grounds that "scope carries no TType". It does:
+      // each entry is an `IFunctionSymbol` with a return type and parameter
+      // types. 37 corpus fixtures carried an unsettled type here.
+      const lib = declare(
+        `scope Chip { public struct Point { u32 x; } }`,
+        "lib.cnx",
+      );
+      const use = declare(
+        `scope Chip { public u32 area(Point p) { return p.x; } }`,
+        "use.cnx",
+      );
+
+      Program.build([lib, use]);
+
+      const scope = SymbolRegistry.getScope("Chip");
+      expect(scope).toBeDefined();
+      const area = scope!.functions.find((f) => f.name === "area");
+      expect(area).toBeDefined();
+      expect(TypeResolver.getTypeName(area!.parameters[0].type)).toBe(
+        "Chip__Point",
+      );
+    });
+
+    it("is the SAME object the file's symbol list holds, not an equal copy", () => {
+      // The property a corpus fixture cannot assert. Settling the registry's
+      // copy separately would make both readers correct and still leave two
+      // objects, so the next writer to either one reintroduces the divergence
+      // silently. One original settles to one object.
+      const lib = declare(
+        `scope Chip { public struct Point { u32 x; } }`,
+        "lib.cnx",
+      );
+      const use = declare(
+        `scope Chip { public u32 area(Point p) { return p.x; } }`,
+        "use.cnx",
+      );
+
+      const program = Program.build([lib, use]);
+
+      const fromProgram = find(program.symbolsInFile("use.cnx"), "area");
+      const fromRegistry = SymbolRegistry.getScope("Chip")!.functions.find(
+        (f) => f.name === "area",
+      );
+
+      expect(fromRegistry).toBe(fromProgram);
+    });
+
+    it("leaves a sibling file's scope member for that file's own settle", () => {
+      // A scope spanned across files (#1333) is ONE object holding every
+      // contributing file's functions. Settling all of them while processing
+      // the first would overwrite what the second file settles, so the settle
+      // consults its memo of what THIS file declared. Both end up settled;
+      // neither clobbers the other.
+      const lib = declare(
+        `scope Chip { public struct Point { u32 x; } }`,
+        "lib.cnx",
+      );
+      const a = declare(
+        `scope Chip { public u32 areaA(Point p) { return p.x; } }`,
+        "a.cnx",
+      );
+      const b = declare(
+        `scope Chip { public u32 areaB(Point p) { return p.x; } }`,
+        "b.cnx",
+      );
+
+      Program.build([lib, a, b]);
+
+      const functions = SymbolRegistry.getScope("Chip")!.functions;
+      for (const name of ["areaA", "areaB"]) {
+        const fn = functions.find((f) => f.name === name);
+        expect(fn, name).toBeDefined();
+        expect(TypeResolver.getTypeName(fn!.parameters[0].type), name).toBe(
+          "Chip__Point",
+        );
+      }
+    });
+  });
+
   describe("the scope-type index", () => {
     it("combines what every file declares, so one file settles another's bare name", () => {
       // The whole point of the pass. `lib.cnx` declares `Lib.Point`; `use.cnx`

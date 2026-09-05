@@ -23,11 +23,32 @@
 // `sharedNotify` covers the void case deliberately: the visible-here set the
 // fix reads is `functionReturnTypes`, and a reader could reasonably assume a
 // map named for return types skips functions that return none. It does not.
+//
+// The PARAMETER axis is covered here too, and it is the axis that matters: a
+// callback typedef's parameter list is the only place the symbol path and the
+// parse-tree path can disagree, because it is the only place either consults a
+// type renderer. Every function here took zero parameters until `sharedWithCount`
+// and `localWithText` were added, so `(void)` was the only typedef shape this
+// fixture ever produced and the two renderers were never asked the same question.
+//
+// `localWithText` takes `string<8>` because that is the type whose C rendering is
+// neither the written name nor the element type -- the parse-tree path used to
+// answer `char`, losing the pointer. It is SAME-FILE on purpose: the cross-file
+// `string<N>` case is one `const` away from correct and lives in
+// cross-file-string-param.test.cnx, which records what is still missing.
 
 #include "func-lib.cnx"
 
 u32 localHelper() {
     return 5;
+}
+
+// The same-file half of the parameter axis. `string<8>` renders as `const char*`
+// in the prototype, so the typedef must say `const char*` too or the two are
+// incompatible pointer types and assigning the function to a variable of its own
+// type warns.
+u32 localWithText(string<8> label) {
+    return label.char_count;
 }
 
 u32 main() {
@@ -52,6 +73,19 @@ u32 main() {
     // A void function is a type too, and is callable through a variable.
     sharedNotify viaVoid <- sharedNotify;
     viaVoid();
+
+    // The parameter axis, same-file: `string<8>` must reach `const char*`.
+    string<8> text <- "abcd";
+    localWithText ownText <- localWithText;
+    u32 ownLength <- ownText(text);
+    if (ownLength != 4) return 4;
+
+    // The parameter axis across the include boundary. `u32` is a type both
+    // renderers agree on, so this pins that parameters SURVIVE the symbol path
+    // at all -- which they did not have to, since nothing exercised them.
+    sharedWithCount viaCount <- sharedWithCount;
+    u32 counted <- viaCount(41);
+    if (counted != 42) return 5;
 
     return 0;
 }

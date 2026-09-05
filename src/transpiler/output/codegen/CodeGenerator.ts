@@ -3095,7 +3095,12 @@ export default class CodeGenerator implements IOrchestrator {
     typeName: string,
     isArray: boolean,
     renderType: () => string,
-  ): { type: string; isPointer: boolean; isStruct: boolean } {
+  ): {
+    type: string;
+    isPointer: boolean;
+    isStruct: boolean;
+    isString: boolean;
+  } {
     // ADR-006: struct-ness drives reference semantics.
     const isStruct = this.isStructType(typeName);
 
@@ -3103,11 +3108,37 @@ export default class CodeGenerator implements IOrchestrator {
     const cbInfo = CodeGenState.callbackTypes.get(typeName);
     if (cbInfo) {
       // Function pointers are already pointers.
-      return { type: cbInfo.typedefName, isPointer: false, isStruct };
+      return {
+        type: cbInfo.typedefName,
+        isPointer: false,
+        isStruct,
+        isString: false,
+      };
+    }
+
+    // ADR-045: a `string<N>` parameter is `char*` in C. Decided HERE, not in
+    // either caller's renderer, because that is where the two disagreed: the
+    // parse-tree renderer answered `char` (the ELEMENT type) and the symbol
+    // renderer answered `string<8>` (C-Next surface syntax, not C at all, and
+    // rejected by cc while the transpiler exited 0). Both are now wrong in one
+    // place instead of differently wrong in two -- which is the property this
+    // method exists to hold, and the one its comment already claimed.
+    if (!isArray && TypeCheckUtils.isString(typeName)) {
+      return {
+        type: "char*",
+        isPointer: false,
+        isStruct: false,
+        isString: true,
+      };
     }
 
     // ADR-006: non-array struct parameters become pointers in C mode.
-    return { type: renderType(), isPointer: !isArray && isStruct, isStruct };
+    return {
+      type: renderType(),
+      isPointer: !isArray && isStruct,
+      isStruct,
+      isString: false,
+    };
   }
 
   /**
@@ -3186,7 +3217,7 @@ export default class CodeGenerator implements IOrchestrator {
       returnType: toCType(SymbolTypeResolver.getTypeName(symbol.returnType)),
       parameters: symbol.parameters.map((param) => {
         const typeName = SymbolTypeResolver.getTypeName(param.type);
-        const { type, isPointer, isStruct } = this.callbackParamShape(
+        const { type, isPointer, isStruct, isString } = this.callbackParamShape(
           typeName,
           param.isArray,
           () => toCType(typeName),
@@ -3194,9 +3225,10 @@ export default class CodeGenerator implements IOrchestrator {
         return {
           name: param.name,
           type,
-          isConst: param.isConst,
+          isConst: param.isConst || (param.isAutoConst ?? false),
           isPointer,
           isStruct,
+          isString,
           isArray: param.isArray,
           // Already folded to literals by the symbols layer, which is exactly
           // what MISRA Rule 18.8 needs -- a dimension that is still an
@@ -3225,6 +3257,7 @@ export default class CodeGenerator implements IOrchestrator {
       isConst: boolean;
       isPointer: boolean;
       isStruct: boolean;
+      isString: boolean;
       isArray: boolean;
       arrayDims: string;
     }> = [];
@@ -3242,9 +3275,21 @@ export default class CodeGenerator implements IOrchestrator {
           type: paramType,
           isPointer,
           isStruct,
+          isString,
         } = this.callbackParamShape(typeName, isArray, () =>
           this.generateType(param.type()),
         );
+
+        // The typedef must carry the SAME const the prototype carries, or the
+        // two are incompatible pointer types and every assignment of the
+        // function to a variable of its own type warns. The prototype's const
+        // on a string or struct parameter comes from auto-const (#268), so the
+        // typedef reads that same fact rather than explicit `const` alone.
+        const isEffectivelyConst =
+          isConst ||
+          ((isString || isStruct) &&
+            CodeGenState.getUnmodifiedParameters().get(name)?.has(paramName) ===
+              true);
 
         let arrayDims: string;
         if (dims.length > 0) {
@@ -3278,9 +3323,10 @@ export default class CodeGenerator implements IOrchestrator {
         parameters.push({
           name: paramName,
           type: paramType,
-          isConst,
+          isConst: isEffectivelyConst,
           isPointer,
           isStruct,
+          isString,
           isArray,
           arrayDims,
         });

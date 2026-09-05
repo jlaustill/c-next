@@ -16,6 +16,7 @@ extern "C" {
 
 /* Function prototypes */
 uint32_t localHelper(void);
+uint32_t localWithText(const char* label);
 
 #ifdef __cplusplus
 }

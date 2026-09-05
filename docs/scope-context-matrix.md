@@ -40,9 +40,10 @@ cell is declared by the ADR that owns it.
 | scope member       | -         | -      | -          | n/a         | n/a        |
 | scope method       | -         | -      | -          | n/a         | n/a        |
 
-2 linked fixtures with no derivable context:
+3 linked fixtures with no derivable context:
 
 - `bugs/issue-1491-cross-file-function-as-type/cross-file-callback.test.cnx`
+- `bugs/issue-1491-cross-file-function-as-type/cross-file-string-param.test.cnx`
 - `bugs/issue-1491-duplicate-typedef/two-consumers.test.cnx`
 
 ## ADR-044

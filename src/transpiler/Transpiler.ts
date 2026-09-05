@@ -408,8 +408,9 @@ class Transpiler {
    * transpile() delegates here after file discovery via discoverIncludes().
    *
    * Stage 2: Collect symbols from C/C++ headers (includes building analyzer context)
-   * Stage 3: Collect symbols from C-Next files
-   * Stage 3b: Resolve external const array dimensions
+   * Stage 3: 1.3 Declare each C-Next file, then 1.4 Resolve the whole program --
+   *          the stage spans both passes because a bare type reference cannot be
+   *          settled until every file has been declared
    * Stage 4: Check for symbol conflicts
    * Stage 5: Generate code, and capture each file's header-render input
    *          (per-file, while that file's state is warm)
@@ -428,12 +429,8 @@ class Transpiler {
     // symbols, recover their declared names via translation-unit preprocessing.
     await this._collectExternalDeclarations(input);
 
-    // Snapshot external struct fields for InitializationAnalyzer AFTER recovery so
-    // structs that only become known through #985 recovery (their fields are added
-    // to symbolTable by _collectExternalDeclarations) are folded in and remain
-    // subject to init-completeness checking. Nothing consumes externalStructFields
-
-    // Stage 3: Collect symbols from C-Next files
+    // Stage 3: Collect symbols from C-Next files -- 1.3 Declare for every file,
+    // then 1.4 Resolve once over all of them.
     if (!this._collectAllCNextSymbolsFromPipeline(input.cnextFiles, result)) {
       return;
     }
@@ -606,6 +603,13 @@ class Transpiler {
       // The symbol table holds only C/C++ header symbols at this point --
       // this run's C-Next symbols are added below, per file -- so this IS
       // the external set, which is what the fact is about.
+      //
+      // It is also read AFTER `_collectExternalDeclarations`, and that ordering
+      // is load-bearing rather than incidental: a struct that becomes known only
+      // through #985 recovery has its fields added to the symbol table there, and
+      // reading the set any earlier would drop it from `externalStructFields` --
+      // silently exempting it from ADR-016 init-completeness checking, which is
+      // the one consumer of the fact.
       this.program = Program.build(
         declared.map((entry) => entry.fileSymbols),
         CodeGenState.symbolTable.getAllStructFields(),

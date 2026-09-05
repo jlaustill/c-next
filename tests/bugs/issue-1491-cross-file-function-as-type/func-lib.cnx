@@ -8,3 +8,10 @@ u32 sharedHelper() {
 void sharedNotify() {
     return;
 }
+
+// ADR-029 + #1491: a function-as-type that takes a PARAMETER. Every other
+// function here takes none, so `symbol.parameters.map(...)` ran zero times and
+// the parameter half of the symbol path was never reached at all.
+u32 sharedWithCount(u32 n) {
+    return n + 1;
+}
