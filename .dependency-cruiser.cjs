@@ -136,6 +136,27 @@ module.exports = {
       to: { path: "^src/PARSE/4-Resolve/", reachable: true },
     },
     {
+      name: "nothing-after-resolve-derives-cross-file-facts",
+      comment:
+        "#1447's definition of done. `docs/architecture/README.md`: \"After 1.4, " +
+        "nothing may compute a cross-file fact. A pass that needs one reads it " +
+        'from Program, which is complete before 2.1 begins." ' +
+        "Stated as an import rule, that is: a pass after 1.4 may depend on the " +
+        "TYPE `IProgram` -- which lives in `transpiler/types/`, reachable by " +
+        "every layer -- and never on `4-Resolve/` itself. Importing the builder " +
+        "or a deriver is how a later pass recomputes what 1.4 authored, which " +
+        "is the failure the ownership rule exists to prevent, and it is exactly " +
+        "the shape the `externalScopeTypes` seed had before #1472. " +
+        "`reachable` because re-derivation arrives through a helper as easily " +
+        "as directly (#1297).",
+      severity: "error",
+      from: {
+        path: ["^src/transpiler/output/", "^src/transpiler/logic/analysis/"],
+        pathNot: "__tests__",
+      },
+      to: { path: "^src/PARSE/4-Resolve/", reachable: true },
+    },
+    {
       name: "no-circular",
       comment: "No circular dependencies allowed",
       severity: "error",
