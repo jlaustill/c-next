@@ -35,6 +35,14 @@ import IGhPaginationViolation from "../types/IGhPaginationViolation";
  * arrays and hand-roll correct `hasNextPage` loops, and would stay silent if
  * they did not.
  *
+ * KNOWN LIMIT, deliberate: a command inside a heredoc body is reported like any
+ * other. No heredoc exists in this repository carrying a bounded-read command,
+ * and the one that carries a `gh issue edit` is a write, so nothing is affected
+ * today. It is left reported rather than parsed away because prompt text telling
+ * someone to run an unbounded command is worth reporting on its own terms. If a
+ * legitimate case ever appears, that is the moment to add heredoc tracking --
+ * not before, when there would be no way to tell whether it worked.
+ *
  * KNOWN LIMIT: nested connection caps are out of reach in principle, not just in
  * practice. `--paginate` cannot advance an inner connection, so there is no flag
  * whose absence would prove anything, and requiring a token like `totalCount`
@@ -134,23 +142,32 @@ class GhPagination {
   ]);
 
   /**
-   * Whether a line is prose rather than something anyone runs. Covers a shell or
-   * YAML `#`, a TypeScript `//`, and a doc-comment `*` -- this file's own header
-   * writes `gh api` in prose, and so do three comments in the skills that exist
-   * precisely to describe the trap.
+   * Whether a line is prose rather than something anyone runs.
    *
-   * The third case is markdown INLINE CODE, decided by backtick parity: an odd
-   * number of backticks earlier on the line means the invocation is being named,
-   * not issued. Found the hard way -- documenting this very rule in CLAUDE.md
-   * ("`gh issue list` and `gh pr list` default to 30") made the gate fail on the
+   * Every rule here is narrow on purpose, because a false negative in a gate
+   * costs more than a false positive. Two earlier versions were broader and
+   * each opened a hole that the corpus could not have revealed:
+   *
+   * - A `#` ANYWHERE before the invocation treated
+   *   `echo "#$n"; gh issue list …` as a comment. Only a FULL-LINE `#` is a
+   *   comment; a `#` inside a string is not. Every trap-describing comment in
+   *   this repository is full-line, so narrowing costs nothing here.
+   * - Backtick parity applied everywhere treated `` X=`gh issue list` `` as
+   *   prose. Backticks mean inline code in markdown and command substitution in
+   *   shell, and only the first is prose -- so parity is scoped to markdown.
+   *   This repository writes substitution as `$( )` in all 77 shell uses, so
+   *   the markdown rule loses nothing either.
+   *
+   * The markdown rule is not optional: documenting this very gate in CLAUDE.md
+   * ("`gh issue list` and `gh pr list` default to 30") made it fail on the
    * sentence describing it. An assertion proves a check fires; only a control
    * proves it fires ONLY where it should.
    */
-  static isProse(line: string, column: number): boolean {
-    const prefix = line.slice(0, column);
-    if (prefix.includes("#")) return true;
-    if ((prefix.match(/`/g) ?? []).length % 2 === 1) return true;
-    return /^\s*(?:\*|\/\/)/.test(line);
+  static isProse(file: string, line: string, column: number): boolean {
+    if (/^\s*(?:#|\*|\/\/)/.test(line)) return true;
+    if (!file.endsWith(".md")) return false;
+    const backticks = line.slice(0, column).match(/`/g);
+    return backticks !== null && backticks.length % 2 === 1;
   }
 
   /**
@@ -166,7 +183,7 @@ class GhPagination {
   }
 
   /** Every invocation in one file, continuation lines joined. */
-  static commandsIn(text: string): IGhCommand[] {
+  static commandsIn(file: string, text: string): IGhCommand[] {
     const commands: IGhCommand[] = [];
     const lines = text.split("\n");
 
@@ -174,7 +191,7 @@ class GhPagination {
       const finder = new RegExp(GhPagination.INVOCATION_SOURCE, "g");
       let match = finder.exec(lines[index]);
       while (match !== null) {
-        if (!GhPagination.isProse(lines[index], match.index)) {
+        if (!GhPagination.isProse(file, lines[index], match.index)) {
           commands.push({
             line: index + 1,
             text: GhPagination.join(lines, index, match.index),
@@ -199,6 +216,13 @@ class GhPagination {
     ) {
       const next = lines[index + 1];
       if (/^\s*```/.test(next)) break;
+      // A line that starts a NEW invocation ends this one, whatever the quote
+      // count says. Without this, one stray apostrophe -- `# don't do this` on
+      // a trailing comment -- ran the joiner into the next command and absorbed
+      // its `--paginate`, so an unpaginated collection read classified as sound
+      // and the file reported clean. A bound must come from the command it
+      // bounds; borrowing one from the next command is this gate's own defect.
+      if (new RegExp(GhPagination.INVOCATION_SOURCE).test(next)) break;
       text = `${text.trimEnd().replace(/\\$/, "")}\n${next}`;
       index += 1;
     }
@@ -267,7 +291,7 @@ class GhPagination {
   static scanFile(file: string, text: string): IGhPaginationViolation[] {
     const violations: IGhPaginationViolation[] = [];
 
-    for (const command of GhPagination.commandsIn(text)) {
+    for (const command of GhPagination.commandsIn(file, text)) {
       const kind = GhPagination.classify(command.text);
       if (kind === null) continue;
       violations.push({
@@ -289,11 +313,28 @@ class GhPagination {
    */
   static candidates(rootDir: string): string[] {
     try {
-      const found = execFileSync("git", ["grep", "-lIF", "gh ", "--", "."], {
-        cwd: rootDir,
-        encoding: "utf-8",
-        maxBuffer: 64 * 1024 * 1024,
-      });
+      const found = execFileSync(
+        "git",
+        [
+          "grep",
+          "-lIF",
+          // A new file that is not committed yet is exactly when this gate is
+          // most useful: the local run before the push. Without --untracked it
+          // reported clean on a brand-new skill carrying an unbounded command.
+          // --exclude-standard keeps .gitignore honoured, so node_modules and
+          // build output stay out.
+          "--untracked",
+          "--exclude-standard",
+          "gh ",
+          "--",
+          ".",
+        ],
+        {
+          cwd: rootDir,
+          encoding: "utf-8",
+          maxBuffer: 64 * 1024 * 1024,
+        },
+      );
       return found.split("\n").filter((line) => line.length > 0);
     } catch (error) {
       // `git grep -l` exits 1 for "no matches", which is clean. Anything else is

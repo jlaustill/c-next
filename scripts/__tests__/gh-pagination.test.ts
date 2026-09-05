@@ -13,8 +13,8 @@ const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
  * This file is a tracked file, so the repository scan at the bottom reads it the
  * same as any other -- and an unbounded command written out in full here would
  * be a real violation, because a command in a committed file is ready to copy
- * and run whatever its surrounding prose claims. Building the text from a variable
- * how a test about broken commands avoids containing one.
+ * and run whatever its surrounding prose claims. Building the text from a
+ * variable is how a test about broken commands avoids containing one.
  */
 const GH = "gh";
 
@@ -135,14 +135,28 @@ describe("GhPagination — commands span lines two ways", () => {
     const text = `${GH} api graphql -f query='\n\`\`\`\nitems(first: 100)`;
     expect(kinds(text)).toEqual([]);
   });
+
+  // A bound must come from the command it bounds. One stray apostrophe in a
+  // trailing comment left the quote count odd, ran the joiner into the NEXT
+  // command, and absorbed its --paginate -- so an unpaginated collection read
+  // classified as sound and the file reported clean. The gate's own defect,
+  // and the reason a new invocation ends the previous one regardless of quotes.
+  it("does not let one command borrow the next command's --paginate", () => {
+    const text = [
+      `${GH} api repos/o/r/issues/1/comments   # don't do this`,
+      `${GH} api --paginate 'repos/o/r/pulls?per_page=100'`,
+    ].join("\n");
+    expect(GhPagination.scanFile("run.sh", text)).toMatchObject([
+      { line: 1, kind: "unpaginated-collection" },
+    ]);
+  });
 });
 
 describe("GhPagination — prose is not a command", () => {
   it.each([
-    ["a shell comment", `# ${GH} issue list --state open`],
+    ["a full-line shell comment", `# ${GH} issue list --state open`],
     ["a TypeScript comment", `// ${GH} issue list --state open`],
     ["a doc-comment line", ` * ${GH} api repos/o/r/issues?state=open`],
-    ["a trailing comment", `run something  # ${GH} pr list --state open`],
     ["markdown inline code", `Never write \`${GH} issue list\` unbounded.`],
     [
       "two inline spans on one line",
@@ -152,12 +166,35 @@ describe("GhPagination — prose is not a command", () => {
     expect(kinds(text)).toEqual([]);
   });
 
-  // The control that a fence is still scanned: prose blindness must not become
-  // blindness. Backtick parity is even here, so this IS a command.
-  it("still flags a real command on a line with no open backtick", () => {
-    expect(kinds(`  ${GH} issue list --state open --json number`)).toEqual([
-      "unbounded-list",
-    ]);
+  // Controls. Each of the three was a live FALSE NEGATIVE found by probing
+  // shapes the corpus does not contain; a gate that misses is worse than one
+  // that over-reports, so each rule is only as wide as the corpus proves safe.
+  it.each([
+    [
+      "a # inside a string, not a comment",
+      `echo "#1"; ${GH} issue list --state open`,
+    ],
+    [
+      "a real command, plainly indented",
+      `  ${GH} issue list --state open --json number`,
+    ],
+  ])("still flags %s", (_name, text) => {
+    expect(kinds(text)).toEqual(["unbounded-list"]);
+  });
+
+  it("still flags backtick command substitution outside markdown", () => {
+    expect(
+      GhPagination.scanFile(
+        "run.sh",
+        `X=\`${GH} issue list --state open\``,
+      ).map((violation) => violation.kind),
+    ).toEqual(["unbounded-list"]);
+  });
+
+  it("applies the inline-code rule only to markdown", () => {
+    const inline = `Never write \`${GH} issue list\` unbounded.`;
+    expect(kinds(inline)).toEqual([]);
+    expect(GhPagination.scanFile("run.sh", inline)).toHaveLength(1);
   });
 });
 
