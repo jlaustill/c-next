@@ -22,6 +22,7 @@
  */
 
 import SymbolTable from "../logic/symbols/SymbolTable";
+import type IProgram from "../types/IProgram";
 import TYPE_FORMING_KINDS from "../logic/symbols/TYPE_FORMING_KINDS";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
 import type TSymbolKindCNext from "../types/symbol-kinds/TSymbolKindCNext";
@@ -126,6 +127,15 @@ export default class CodeGenState {
    * Owned by CodeGenState; persists across per-file reset() calls.
    * Cleared via symbolTable.clear() at the start of each Transpiler run.
    */
+  /**
+   * The artifact 1.4 Resolve emitted for this run (#1447).
+   *
+   * Run-wide, so it is NOT cleared by `reset()` -- that runs per file. The
+   * Transpiler clears it at the start of each run, the same way
+   * `callbackCompatibleFunctions` is handled.
+   */
+  static program: IProgram | null = null;
+
   static symbolTable: SymbolTable = new SymbolTable();
 
   /**
@@ -903,16 +913,19 @@ export default class CodeGenState {
    * wherever it was declared.
    *
    * Issue #1220: the analyzer-facing companion to getCNextVariableTypeName,
-   * and deliberately symbol-table-ONLY. The obvious alternative -- reading
-   * CodeGenState.constValues first -- looks like it works, because that map is
-   * cleared by CodeGenerator.generate() and so still holds the consts of the
-   * file generated just before this one. Dependencies happen to be generated
-   * before their dependents today, which makes the stale map agree with the
-   * symbol table by coincidence rather than by rule. Asking the symbol table
-   * makes the answer independent of file order.
+   * and deliberately NOT `CodeGenState.constValues`. That map is cleared by
+   * CodeGenerator.generate(), so it still holds the consts of the file
+   * generated just before this one; dependencies happen to be generated before
+   * their dependents today, which makes the stale map agree by coincidence
+   * rather than by rule.
+   *
+   * #1447: asked of `Program` rather than the symbol table. Both are
+   * order-independent, but only one of them is the pass that OWNS the fact --
+   * "what is this const worth" spans files, so after 1.4 it is read from the
+   * artifact rather than re-derived from whatever the table has accumulated.
    */
   static getCNextConstValue(name: string): number | undefined {
-    return this.symbolTable.getConstValue(name);
+    return this.program?.constValue(name);
   }
 
   /**

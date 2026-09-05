@@ -2376,12 +2376,15 @@ export default class CodeGenerator implements IOrchestrator {
       CodeGenState.setScopeMembers(scopeName, new Set(members));
     }
 
-    // Issue #461: Initialize constValues from symbol table.
-    // Issue #1220: derived by SymbolTable.getConstValues() rather than walked
-    // again here -- this loop and SymbolTable's were two implementations of one
-    // rule, and only one of them was reachable from the analyzers.
-    CodeGenState.constValues =
-      CodeGenState.symbolTable?.getConstValues() ?? new Map();
+    // Issue #461: seed constValues for this file's generation.
+    // Issue #1220: one derivation of "what is this const worth", not a second
+    // walk here -- this loop and the symbol table's were two implementations of
+    // one rule, and only one was reachable from the analyzers.
+    // #1447: that derivation now lives on `Program`, because a const reached
+    // through an include is worth the same as one declared beside the use and
+    // only 1.4 sees both. Copied into a mutable map because generation adds
+    // file-local consts to it as it goes.
+    CodeGenState.constValues = new Map(CodeGenState.program?.constValues());
   }
 
   /**

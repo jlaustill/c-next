@@ -46,6 +46,19 @@ interface IProgram {
 
   /** Every file the program declared, in the order they were declared. */
   sourceFiles(): ReadonlyArray<string>;
+
+  /**
+   * Integer value of a named const, or undefined when the name is not a const
+   * with a literal integer initializer.
+   *
+   * Cross-file by nature: #1220 is the case where an analyzer knew only the
+   * consts it had walked out of the current file, so `10 / ZERO` with an
+   * imported ZERO emitted a real division by zero that compiled clean.
+   */
+  constValue(name: string): number | undefined;
+
+  /** Every const name to its integer value, keyed by bare name. */
+  constValues(): ReadonlyMap<string, number>;
 }
 
 export default IProgram;

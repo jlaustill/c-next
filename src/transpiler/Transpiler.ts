@@ -440,9 +440,6 @@ class Transpiler {
       return;
     }
 
-    // Stage 3b: Resolve external const array dimensions
-    CodeGenState.symbolTable.resolveExternalArrayDimensions();
-
     // Stage 4: Check for symbol conflicts
     if (!this._checkSymbolConflicts(result)) {
       return;
@@ -609,6 +606,9 @@ class Transpiler {
     // line can observe an unsettled one.
     try {
       this.program = Program.build(declared.map((entry) => entry.fileSymbols));
+      // Passes after 1.4 read cross-file facts from the artifact rather than
+      // re-deriving them. Set once per run, not per file.
+      CodeGenState.program = this.program;
     } catch (err) {
       result.errors.push(Transpiler._collectionError(err));
       result.success = false;
@@ -1134,6 +1134,7 @@ class Transpiler {
     // may read one across runs, and leaving a stale one reachable is the
     // shape #1323's header-content leak had.
     this.program = null;
+    CodeGenState.program = null;
     // Issue #1241: the previous run's ADR provenance is not this run's evidence
     AdrProvenance.reset();
   }
