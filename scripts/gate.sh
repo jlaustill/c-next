@@ -59,6 +59,7 @@ run_check "Static Analysis" "diagnostics:manifest:check" npm run diagnostics:man
 run_check "Static Analysis" "docs:throw-citations:check" npm run docs:throw-citations:check
 run_check "Static Analysis" "scope-joins:check"          npm run scope-joins:check
 run_check "Static Analysis" "adr:independence:check"     npm run adr:independence:check
+run_check "Static Analysis" "gh:pagination:check"        npm run gh:pagination:check
 
 echo -e "\n${YELLOW}Build${NC}"
 run_check "Build" "build"                                npm run build

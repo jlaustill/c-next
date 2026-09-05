@@ -152,6 +152,17 @@ jobs:
         run: npm run adr:independence:check
         continue-on-error: true
 
+      # Issue #1416: `gh issue list` and `gh pr list` default to 30 and REST
+      # collections page at 30, and a filter over a truncated page returns a
+      # shorter answer rather than an error. It shipped twice in one file --
+      # the second time the in-flight detector reported no assigned issues
+      # while one was assigned, in WIP, and 34 minutes old, and recommended it
+      # as free work. There is no exemption mechanism.
+      - name: Check gh reads are bounded
+        id: ghpagination
+        run: npm run gh:pagination:check
+        continue-on-error: true
+
       # Issue #1316: a `.expected.error` is the only assertion that a diagnostic
       # fires, and losing one was silent -- `--update` unlinked it and reported
       # the run green. docs/diagnostic-manifest.md is the committed record, so
@@ -202,6 +213,7 @@ jobs:
           [ "${{ steps.toolchaindocs.outcome }}" != "success" ] && echo "❌ Toolchain docs" && FAILED=1 || echo "✅ Toolchain docs"
           [ "${{ steps.scopematrix.outcome }}" != "success" ] && echo "❌ Scope-context matrix" && FAILED=1 || echo "✅ Scope-context matrix"
           [ "${{ steps.adrindependence.outcome }}" != "success" ] && echo "❌ ADR rewrite test" && FAILED=1 || echo "✅ ADR rewrite test"
+          [ "${{ steps.ghpagination.outcome }}" != "success" ] && echo "❌ Bounded gh reads" && FAILED=1 || echo "✅ Bounded gh reads"
           [ "${{ steps.diagnosticmanifest.outcome }}" != "success" ] && echo "❌ Diagnostic manifest" && FAILED=1 || echo "✅ Diagnostic manifest"
           [ "${{ steps.throwcitations.outcome }}" != "success" ] && echo "❌ Throw citations" && FAILED=1 || echo "✅ Throw citations"
           [ "${{ steps.scopejoins.outcome }}" != "success" ] && echo "❌ Scope-join sites" && FAILED=1 || echo "✅ Scope-join sites"
