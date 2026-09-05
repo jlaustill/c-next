@@ -14,14 +14,14 @@ codes that already have a fixture.
 | --------- | ----------------------- | ------ |
 | E00xx     | Reserved/Test           | 1      |
 | E02xx     | Identifier/Param Naming | 5      |
-| E03xx     | Struct Fields           | 1      |
-| E04xx     | Symbol Resolution       | 8      |
+| E03xx     | Struct Fields           | 2      |
+| E04xx     | Symbol Resolution       | 9      |
 | E05xx     | Include/Preprocessor    | 7      |
 | E06xx     | Sizeof Expressions      | 2      |
 | E07xx     | Control Flow            | 7      |
 | E08xx     | Arithmetic/Array Safety | 16     |
 | E09xx     | NULL Safety             | 8      |
-| **Total** |                         | **55** |
+| **Total** |                         | **57** |
 
 ---
 
@@ -108,6 +108,7 @@ second header and the program ran with a wrong value.
 | E0427 | Identifier is not defined                               | Declare it, or #include the file that does                                                                                                                       | `logic/analysis/UndeclaredValueAnalyzer.ts`                                        |
 | E0428 | _(reserved)_ — cannot assign integer to enum            | Not yet implemented. Reserved by the #1321 throw audit (`docs/architecture/output-throw-classification.md`) so it is not assigned twice; #1380 tracks this drift | `output/codegen/helpers/EnumAssignmentValidator.ts`                                |
 | E0429 | Name is a register, not a type                          | Access the register's members instead, e.g. `GPIO.DR`                                                                                                            | `logic/analysis/UndeclaredTypeAnalyzer.ts`                                         |
+| E0430 | Nested scopes are not allowed                           | Use a flat scope such as `Hardware_GPIO`                                                                                                                         | `logic/parser/CNextSourceParser.ts`                                                |
 
 **Related:** ADR-030 (E0422), ADR-016 (E0425 — a reopened scope composes, but its
 members stay unique)

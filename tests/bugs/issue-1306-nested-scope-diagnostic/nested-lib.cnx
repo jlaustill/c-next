@@ -1,0 +1,10 @@
+// Helper for cross-file-nested.test.cnx (#1306). Declares a scope containing a
+// nested scope. The rejection must fire for an INCLUDED file, at the included
+// file's own position -- not only for the entry file.
+scope LibOuter {
+    u8 libValue <- 1;
+
+    scope LibInner {
+        u8 deeper <- 2;
+    }
+}

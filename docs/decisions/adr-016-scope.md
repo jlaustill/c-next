@@ -510,12 +510,17 @@ Options to research:
 
 ### 2. Should scopes nest?
 
-**DECIDED: No nested scopes for v1.**
+**DECIDED: No nested scopes. This is permanent, not a simplification to revisit.**
 
-Nested scopes add complexity without significant benefit for embedded use cases. Keep it simple:
+The limit is imposed by the target, not by taste. C99 section 5.2.4.1 guarantees only
+31 significant initial characters in an external identifier, and MISRA C:2012 Rule 5.1
+is evaluated inside that budget. With six-character scope names, a depth-3 member
+generates a 30-character name and stays distinct; a depth-4 member generates 38 and
+does not. Nesting therefore cannot be admitted without either abandoning the guarantee
+or silently truncating names that a conforming toolchain is free to conflate.
 
 ```cnx
-// NOT supported in v1:
+// NOT supported:
 scope Hardware {
     scope GPIO { ... }  // ERROR: nested scopes not allowed
 }
@@ -562,7 +567,7 @@ struct RingBuffer<T, N> {
 ## What This ADR Decides
 
 - **Name resolution:** ~~`this.` and `global.` are REQUIRED inside scopes (no implicit resolution)~~ — **withdrawn by [ADR-057](adr-057-implicit-scope-resolution.md)**, which resolves bare names local → scope → global. `this.` and `global.` remain available to force a level.
-- **Nested scopes:** Not supported in v1
+- **Nested scopes:** Not supported, permanently — the generated name would exceed C99's 31-character significance guarantee at depth 4
 - **`this.` in type position:** Supported for scoped types (e.g., `this.State`)
 
 ## What This ADR Does NOT Decide
@@ -631,6 +636,7 @@ duplicate-definition error and belongs to whatever ADR governs that, not here.
 | Code  | Reported when                                                                                       | Asserted by                                                                                                                                                             |
 | ----- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | E0425 | Two definitions of the same member name in one scope, or a C-Next symbol colliding with a C/C++ one | `tests/bugs/issue-1333-scope-reopening/duplicate-member-reopened`, `tests/bugs/issue-1334-scope-declaration-sites/conflict-across-files`, `.../cross-language-conflict` |
+| E0430 | A scope is declared inside another scope, in the entry file or in an included one                   | `tests/scope/nested-scope-error`, `tests/bugs/issue-1306-nested-scope-diagnostic/cross-file-nested`                                                                     |
 
 A scope **composes**: reopening it in another file adds members rather than
 redefining it (see Scope Composition above). Member names stay unique across every
@@ -642,6 +648,15 @@ Every block that declares a scope is remembered, not just the first. Before #133
 only one position was kept, so a conflict spanning two files printed the same
 location twice — the diagnostic named a file the reader had already looked at
 instead of the other definition.
+
+E0430 names the position of the inner `scope` keyword and carries the flat-scope
+workaround in its own text. Recovery noise that follows the rejection is suppressed:
+the surrounding block is reparented by error recovery, so any further complaint
+describes a structure already known to be wrong. A second genuine nested scope is
+still reported. The rejection is stated once here and enforced where a nested scope
+first becomes visible, which is while the source is being read — a scope member is
+not admitted as a scope declaration in the first place, so the construct never reaches
+a later stage to be analysed.
 
 ## Implementation Status
 

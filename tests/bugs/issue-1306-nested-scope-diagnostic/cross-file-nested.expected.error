@@ -1,0 +1,1 @@
+7:4 error[E0430]: nested scopes are not allowed (ADR-016); use a flat scope such as Hardware_GPIO

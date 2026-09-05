@@ -14,6 +14,7 @@ package-lock.json
 # name. `npm run format:fidelity` fails if this list drifts from the set of
 # fixtures the parser actually rejects.
 tests/atomic/atomic-struct-member.test.cnx
+tests/bugs/issue-1306-nested-scope-diagnostic/nested-lib.cnx
 tests/c-interop/use-c-union-basic.test.cnx
 tests/c-interop/use-c-union-typedef.test.cnx
 tests/constructor-syntax/error-literal-arg.test.cnx
