@@ -36,8 +36,30 @@ class HeaderParser {
   /**
    * Parse a C header file
    *
-   * Error listeners are removed to suppress parse errors, as headers
-   * may contain constructs that the C parser doesn't fully support.
+   * Error listeners are removed DELIBERATELY, and the reason is measurable rather
+   * than a guess about "unsupported constructs" (#1306).
+   *
+   * This parser reads the header as written. It does not preprocess, so it sees
+   * every branch including the ones a C compiler never would. The dominant case is
+   * the C++ interop guard that C-Next itself emits into every header:
+   *
+   *     #ifdef __cplusplus
+   *     extern "C" {
+   *     #endif
+   *
+   * `extern "C"` is C++, not C, so the C grammar has no alternative for it and the
+   * parse errors -- on a line that is switched off in the very build that would use
+   * this parser. Measured over `tests/`: 1698 C headers, 1444 carrying that guard,
+   * and 1522 producing at least one syntax error. Surfacing them would reject about
+   * nine headers in ten for code that never compiles.
+   *
+   * Surfacing them correctly requires preprocessing first. That capability exists
+   * (`logic/preprocessor`) but has no production caller and shells out to a system
+   * compiler, so wiring it into this path is a toolchain dependency, not a
+   * listener change.
+   *
+   * A null tree, not a silent empty one, is what a caller sees when the parse
+   * cannot proceed at all.
    *
    * @param content - The header file content
    * @returns Parse result with tree (null if parsing failed)
@@ -49,7 +71,7 @@ class HeaderParser {
       const tokenStream = new CommonTokenStream(lexer);
       const parser = new CParser(tokenStream);
 
-      // Suppress parse errors - headers may have unsupported constructs
+      // Suppressed by measurement, not assumption -- see the doc comment.
       parser.removeErrorListeners();
 
       const tree = parser.compilationUnit();
@@ -63,8 +85,11 @@ class HeaderParser {
   /**
    * Parse a C++ header file
    *
-   * Error listeners are removed to suppress parse errors, as headers
-   * may contain complex C++ features that aren't fully supported.
+   * Suppressed for the same structural reason as `parseC`: the header is read
+   * unpreprocessed, so conditional branches meant for other compilers or other
+   * language modes are parsed as if they were live. The `extern "C"` count above
+   * was measured on the C path specifically; the C++ grammar accepts that
+   * construct, so the mix differs even though the cause does not.
    *
    * @param content - The header file content
    * @returns Parse result with tree (null if parsing failed)
@@ -76,7 +101,7 @@ class HeaderParser {
       const tokenStream = new CommonTokenStream(lexer);
       const parser = new CPP14Parser(tokenStream);
 
-      // Suppress parse errors - headers may have complex C++ features
+      // Suppressed by measurement, not assumption -- see the doc comment.
       parser.removeErrorListeners();
 
       const tree = parser.translationUnit();

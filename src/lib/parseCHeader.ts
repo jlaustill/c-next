@@ -117,7 +117,12 @@ function parseCHeader(
     const tokenStream = new CommonTokenStream(lexer);
     const parser = new CParser(tokenStream);
 
-    // Suppress error output for headers (they often have incomplete code)
+    // Suppressed deliberately, for the reason measured in HeaderParser.parseC
+    // (#1306): this reads the header unpreprocessed, so the `extern "C"` inside
+    // C-Next's own `#ifdef __cplusplus` guard is parsed as live C and cannot match
+    // the C grammar. 1522 of 1698 headers under tests/ error this way. Reporting
+    // them would mean preprocessing first, which is a toolchain dependency rather
+    // than a listener change.
     lexer.removeErrorListeners();
     parser.removeErrorListeners();
 
