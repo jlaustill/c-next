@@ -220,6 +220,44 @@ export default class CodeGenState {
   static callbackTypeReferences: Set<string> = new Set();
 
   /**
+   * #1491: the subset of `callbackTypeReferences` named by a declaration that
+   * APPEARS IN THE HEADER -- a struct field, a scope member variable, or a
+   * parameter.
+   *
+   * A local variable inside a function body names a callback type too (#1484),
+   * and that reference must still produce a typedef -- but in the `.c`, not the
+   * header. Treating the two alike put a type in the public interface because
+   * one function body happened to use it, which is neither what C does nor
+   * safe: two files that both named an INCLUDED function-as-type locally each
+   * exported the same typedef, and anything including both headers saw it
+   * twice, which C99 rejects.
+   *
+   * The C practice this follows: a library header typedefs the callback types
+   * ITS OWN API uses -- POSIX's signal-handler typedef, `curl_write_callback`, `sqlite3_callback`
+   * -- and nothing else. `stdlib.h` does not typedef `qsort`'s comparator; it
+   * writes the pointer inline, because no caller needs to name it.
+   */
+  static publicCallbackTypeReferences: Set<string> = new Set();
+
+  /**
+   * Callback typedefs this file has already emitted, so the sweep for types it
+   * does NOT declare cannot emit one twice.
+   */
+  static emittedCallbackTypedefs: Set<string> = new Set();
+
+  /**
+   * Record a callback type named by a declaration that APPEARS IN THE HEADER.
+   *
+   * The single writer for that decision, so "does the public interface name
+   * this type" is decided in one place rather than by remembering to update a
+   * second set at each of the three declaration sites.
+   */
+  static notePublicCallbackTypeReference(functionName: string): void {
+    this.callbackTypeReferences.add(functionName);
+    this.publicCallbackTypeReferences.add(functionName);
+  }
+
+  /**
    * Issue #1164: does the generated header own this callback's typedef?
    *
    * When the `.c` includes its own header, whichever typedefs the header emits
@@ -232,7 +270,7 @@ export default class CodeGenState {
    * emission cannot drift apart.
    */
   static headerOwnsCallbackTypedef(functionName: string): boolean {
-    return this.callbackTypeReferences.has(functionName);
+    return this.publicCallbackTypeReferences.has(functionName);
   }
 
   /**
@@ -553,6 +591,8 @@ export default class CodeGenState {
     this.callbackFieldTypes = new Map();
     this.generatedStructInits = new Set();
     this.callbackTypeReferences = new Set();
+    this.publicCallbackTypeReferences = new Set();
+    this.emittedCallbackTypedefs = new Set();
     this.pendingCallbackTypedefs = [];
     // Note: callbackCompatibleFunctions is NOT reset here — it's populated by
     // FunctionCallAnalyzer (which runs before CodeGenerator.generate()) and must

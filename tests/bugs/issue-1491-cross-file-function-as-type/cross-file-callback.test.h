@@ -14,11 +14,6 @@
 extern "C" {
 #endif
 
-/* Callback typedefs */
-typedef uint32_t (*localHelper_fp)(void);
-typedef uint32_t (*sharedHelper_fp)(void);
-typedef void (*sharedNotify_fp)(void);
-
 /* Function prototypes */
 uint32_t localHelper(void);
 

@@ -1,0 +1,8 @@
+// The second, independent consumer. Same shape as consumer-a.cnx on purpose:
+// the defect needs TWO files naming one included function-as-type.
+#include "dup-lib.cnx"
+
+u32 useB() {
+    sharedWork viaB <- sharedWork;
+    return viaB();
+}

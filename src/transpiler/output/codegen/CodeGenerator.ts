@@ -1549,6 +1549,39 @@ export default class CodeGenerator implements IOrchestrator {
    * rejecting a callback assignment that transpiles on main.
    */
   /**
+   * ADR-029 + #1491: emit typedefs for callback types this file NAMES but does
+   * not DECLARE.
+   *
+   * `recordCallbackTypedef` fires when a function is emitted, so it covers
+   * every type this file declares and none it reaches through an include. A
+   * variable typed by an included function-as-type therefore referenced a
+   * typedef nothing had emitted.
+   *
+   * It goes in the `.c`, not the header, unless this file's own public
+   * interface names the type -- which `generateCallbackTypedef` already decides
+   * via `headerOwnsCallbackTypedef`. That is the rule C libraries follow: a
+   * header typedefs the callback types its API uses, and a type needed only
+   * inside one translation unit stays there. It is also what stops two files
+   * that both name the same included function-as-type from each exporting the
+   * typedef and colliding in anything that includes both.
+   */
+  private emitTypedefsForUndeclaredCallbackTypes(): void {
+    for (const funcName of CodeGenState.callbackTypeReferences) {
+      if (
+        !CodeGenState.callbackTypes.has(funcName) ||
+        CodeGenState.emittedCallbackTypedefs.has(funcName)
+      ) {
+        continue;
+      }
+      const typedef = this.generateCallbackTypedef(funcName);
+      if (typedef) {
+        CodeGenState.pendingCallbackTypedefs.push(typedef);
+        CodeGenState.emittedCallbackTypedefs.add(funcName);
+      }
+    }
+  }
+
+  /**
    * ADR-029 / Issues #1201, #1212: record that this function needs a callback
    * `_fp` typedef, if it does.
    *
@@ -1569,6 +1602,7 @@ export default class CodeGenerator implements IOrchestrator {
     const typedef = this.generateCallbackTypedef(funcName);
     if (typedef) {
       CodeGenState.pendingCallbackTypedefs.push(typedef);
+      CodeGenState.emittedCallbackTypedefs.add(funcName);
     }
   }
 
@@ -1673,12 +1707,15 @@ export default class CodeGenerator implements IOrchestrator {
       return null;
     }
 
-    return `\n${CallbackTypedefFormatter.format(
+    // Bare, with no padding of its own: the splice in generateAllDeclarations
+    // decides the blank lines around the whole block, so one place owns the
+    // layout instead of each typedef guessing at it.
+    return CallbackTypedefFormatter.format(
       callbackInfo.returnType,
       callbackInfo.typedefName,
       callbackInfo.parameters,
       this.isCppMode(),
-    )}\n`;
+    );
   }
 
   /**
@@ -2576,12 +2613,19 @@ export default class CodeGenerator implements IOrchestrator {
       }
     }
 
+    this.emitTypedefsForUndeclaredCallbackTypes();
+
     const typedefs = CodeGenState.pendingCallbackTypedefs;
     if (typedefs.length > 0) {
+      // One blank line either side of the block, and none between the typedefs
+      // themselves -- they are one group of related declarations, and the
+      // generated C is read by people auditing it.
       declarations.splice(
         firstFunctionIndex ?? declarations.length,
         0,
+        "",
         ...typedefs,
+        "",
       );
       CodeGenState.pendingCallbackTypedefs = [];
     }
@@ -2800,7 +2844,7 @@ export default class CodeGenerator implements IOrchestrator {
       }
       if (member.variableDeclaration()) {
         const varType = this.getTypeName(member.variableDeclaration()!.type());
-        CodeGenState.callbackTypeReferences.add(varType);
+        CodeGenState.notePublicCallbackTypeReference(varType);
       }
     }
 
@@ -2856,7 +2900,7 @@ export default class CodeGenerator implements IOrchestrator {
           fieldType,
         );
       }
-      CodeGenState.callbackTypeReferences.add(fieldType);
+      CodeGenState.notePublicCallbackTypeReference(fieldType);
     }
   }
 
@@ -2973,7 +3017,7 @@ export default class CodeGenerator implements IOrchestrator {
         const baseType = this.getTypeName(param.type());
         // Issue #1201: a parameter naming a callback type needs that type's
         // typedef emitted, exactly as a struct field does.
-        CodeGenState.callbackTypeReferences.add(baseType);
+        CodeGenState.notePublicCallbackTypeReference(baseType);
         parameters.push({ name: paramName, baseType, isConst, isArray });
       }
     }

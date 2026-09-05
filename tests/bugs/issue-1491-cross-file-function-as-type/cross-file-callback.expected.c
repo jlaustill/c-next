@@ -47,6 +47,11 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return (uint32_t)(a + (uint32_t)b);
 }
 
+
+typedef uint32_t (*localHelper_fp)(void);
+typedef uint32_t (*sharedHelper_fp)(void);
+typedef void (*sharedNotify_fp)(void);
+
 uint32_t localHelper(void) {
     return 5;
 }
