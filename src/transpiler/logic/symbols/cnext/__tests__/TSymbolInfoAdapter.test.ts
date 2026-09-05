@@ -665,6 +665,50 @@ describe("TSymbolInfoAdapter", () => {
 
       expect(info.scopePrivateConstValues.has("Motor_MATRIX")).toBe(false);
     });
+
+    /**
+     * #1398: `processVariable` routes a variable to exactly one of two places,
+     * and the value check reads them on different keys -- `knownVariables` by
+     * bare name, `scopeMembers` under a scope path. The exclusion is the half
+     * most likely to drift, because putting a scoped variable in both sets
+     * still passes every fixture: it would only make E0427 more permissive,
+     * which no assertion notices until a scoped name leaks bare.
+     */
+    const makeValue = (name: string, scopePath: string): IVariableSymbol => ({
+      ...TestSymbolUtils.base({
+        kind: "variable",
+        name,
+        scopePath,
+        sourceFile: "lib.cnx",
+        span: TestSourceSpan.at(1),
+        sourceLanguage: ESourceLanguage.CNext,
+        visibility: "public",
+      }),
+      type: TypeResolver.resolve("u32"),
+      isConst: true,
+      isAtomic: false,
+      isVolatile: false,
+      overflowBehavior: "clamp",
+      isArray: false,
+      initialValue: "42",
+    });
+
+    it("records a file-scope variable in knownVariables (#1398)", () => {
+      const info = TSymbolInfoAdapter.convert([makeValue("SHARED_LIMIT", "")]);
+
+      expect(info.knownVariables.has("SHARED_LIMIT")).toBe(true);
+    });
+
+    it("keeps a scoped variable OUT of knownVariables, in scopeMembers", () => {
+      const info = TSymbolInfoAdapter.convert([
+        makeValue("MAX_SPEED", "Motor"),
+      ]);
+
+      // Not reachable bare, so it must not answer the bare value lookup...
+      expect(info.knownVariables.has("MAX_SPEED")).toBe(false);
+      // ...it is reached through the scope path instead.
+      expect(info.scopeMembers.get("Motor")?.has("MAX_SPEED")).toBe(true);
+    });
   });
 
   describe("getSingleFunctionForVariable", () => {
@@ -935,6 +979,65 @@ describe("TSymbolInfoAdapter", () => {
       const base = TSymbolInfoAdapter.convert([makeBitmap("Flags")]);
 
       expect(TSymbolInfoAdapter.mergeExternalSymbols(base, [])).toBe(base);
+    });
+  });
+
+  describe("mergeExternalSymbols — file-scope value names (#1398)", () => {
+    const makeFileScopeConst = (name: string): IVariableSymbol => ({
+      ...TestSymbolUtils.base({
+        kind: "variable",
+        name,
+        scopePath: "",
+        sourceFile: "lib.cnx",
+        span: TestSourceSpan.at(1),
+        sourceLanguage: ESourceLanguage.CNext,
+        visibility: "public",
+      }),
+      type: TypeResolver.resolve("u32"),
+      isConst: true,
+      isAtomic: false,
+      isVolatile: false,
+      overflowBehavior: "clamp",
+      isArray: false,
+      initialValue: "42",
+    });
+
+    /**
+     * The value-axis twin of the bitmap test above. #1333 fixed this same
+     * asymmetry between two kinds of TYPE in this same function; #1398 is the
+     * kind of asymmetry one axis over -- a type declared in an included file
+     * crossed and a const beside it did not, so E0426 fired across a file
+     * boundary and E0427 could not.
+     *
+     * Asserted here rather than only through `declared-value-resolves` because
+     * the integration control reaches this line by traversal: deleting the
+     * `_mergeNames` call reddens a `.cnx` fixture three layers away, and per
+     * CLAUDE.md's "presence is not proof", an assertion beside the line is the
+     * one that cannot be satisfied by accident.
+     */
+    it("carries a file-scope value name across the boundary", () => {
+      const base = TSymbolInfoAdapter.convert([]);
+      const external = TSymbolInfoAdapter.convert([
+        makeFileScopeConst("SHARED_LIMIT"),
+      ]);
+
+      const merged = TSymbolInfoAdapter.mergeExternalSymbols(base, [external]);
+
+      expect(merged.knownVariables.has("SHARED_LIMIT")).toBe(true);
+    });
+
+    it("keeps the local file's own value names when merging", () => {
+      const base = TSymbolInfoAdapter.convert([
+        makeFileScopeConst("OWN_LIMIT"),
+      ]);
+      const external = TSymbolInfoAdapter.convert([
+        makeFileScopeConst("SHARED_LIMIT"),
+      ]);
+
+      const merged = TSymbolInfoAdapter.mergeExternalSymbols(base, [external]);
+
+      expect(merged.knownVariables.has("OWN_LIMIT")).toBe(true);
+      expect(merged.knownVariables.has("SHARED_LIMIT")).toBe(true);
     });
   });
 

@@ -1,0 +1,22 @@
+// test-error
+// Issue #1353, cross-file: value-consumer.cnx reads a const declared in
+// value-source.cnx without including it.
+//
+// #1502 review: paired with undeclared-value-sibling-consumer-first.test.cnx
+// — same two sources, opposite include order, and the two must produce the
+// IDENTICAL diagnostic set. `knownVariables` is assembled from
+// `getSymbolInfoByFileMap()`, which Transpiler.ts documents at the call site
+// as filled incrementally and order-sensitive, so "stage 5 reads a complete
+// map" is a property this pair asserts rather than a comment anyone has to
+// trust. #1430 is the same analyzer failing in exactly this way.
+//
+// Both halves carry the `-first` suffix on purpose: scripts/__tests__/
+// order-pair-fixtures.test.ts treats that name as a promise of a pair and
+// fails a directory holding a lone half. This fixture was `undeclared-value-
+// sibling.test.cnx` until the twin was added.
+#include <value-source.cnx>
+#include <value-consumer.cnx>
+
+u32 main() {
+    return 0;
+}

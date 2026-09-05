@@ -97,19 +97,44 @@ class NameExistence {
   /**
    * Whether a bare name denotes anything usable in a VALUE position.
    *
-   * This is `isTypeName` plus registers, and the difference is the whole point
-   * of the split (#1336). A type answers here because it is the base of
-   * `Type.MEMBER`; a register answers here because `GPIO.DR` reads a value at
-   * an address. One predicate served both positions and so had to say "yes" to
-   * a register, which suppressed the type-position diagnostic and let
-   * `Control c;` reach codegen with no type behind it.
+   * This is `isTypeName` plus registers plus file-scope variables, and the
+   * difference is the whole point of the split (#1336). A type answers here
+   * because it is the base of `Type.MEMBER`; a register answers here because
+   * `GPIO.DR` reads a value at an address; a variable answers here because
+   * being a value is what it is. One predicate served both positions and so
+   * had to say "yes" to a register, which suppressed the type-position
+   * diagnostic and let `Control c;` reach codegen with no type behind it.
    *
-   * Registers are named in exactly one place -- `isRegisterName` -- so the two
-   * positions differ by one term rather than by two lists that must be kept in
-   * step.
+   * Each added term is named in exactly one place -- `isRegisterName`, and the
+   * `knownVariables` read below -- so the two positions differ by those terms
+   * rather than by two lists that must be kept in step.
+   *
+   * ## Why the variable term lives here (#1502 review)
+   *
+   * It was written in `UndeclaredValueAnalyzer.isVisible` first, three lines
+   * above the call to this predicate, which made the opening sentence of this
+   * comment false: a file-scope `const` is the most ordinary thing usable in a
+   * value position, and this answered no while the caller quietly answered yes.
+   * That is two modules deciding one question -- CLAUDE.md's rule that a single
+   * source of truth is the DECISION and not merely the data -- with the module
+   * that claims the question holding the incomplete answer.
+   *
+   * `knownVariables` is a per-file set, so it belongs on the per-file side of
+   * the table above, beside the type-forming kinds. The run-wide `SymbolTable`
+   * must NOT answer it, and that is #1398 itself: a const declared in a sibling
+   * this file never included was reachable through `ScopeFrameResolver`'s
+   * run-wide fallback, so E0427 could not fire across a file boundary while
+   * E0426 fired for the identical type case.
+   *
+   * One call site passes a qualified `Scope__name`, which no bare file-scope
+   * name can equal unless a variable is declared spelled with the transpiler's
+   * own separator. That exposure is neither new nor specific to variables --
+   * every `known*` set above is read on the same key by the same call -- and it
+   * errs toward NOT firing, so its cost is a missed diagnostic rather than a
+   * rejection of valid code.
    *
    * ADR-111: if a register becomes a type, this stops differing from
-   * `isTypeName` and collapses back into it. Retire it there, not here.
+   * `isTypeName` by the register term. The variable term stays either way.
    */
   static isValueName(
     name: string,
@@ -118,7 +143,10 @@ class NameExistence {
   ): boolean {
     return (
       NameExistence.isTypeName(name, symbols, symbolTable) ||
-      NameExistence.isRegisterName(name, symbols)
+      NameExistence.isRegisterName(name, symbols) ||
+      // #1398: a file-scope variable or const declared in this file or in a
+      // `.cnx` file it includes. Per-file on purpose -- see above.
+      symbols.knownVariables.has(name)
     );
   }
 

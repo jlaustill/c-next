@@ -61,6 +61,7 @@ describe("include-order fixture pairs (#1430)", () => {
     expect(dirs).toEqual(
       expect.arrayContaining([
         "issue-1312-undefined-type-position",
+        "issue-1353-undeclared-value-position",
         "issue-1430-e0427-order-dependence",
       ]),
     );
