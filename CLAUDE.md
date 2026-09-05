@@ -592,10 +592,21 @@ Update: `src/index.ts` (parse + pass), `src/transpiler/types/ITranspilerConfig.t
 
 ### Adding Generator Effects
 
-1. Add to `TIncludeHeader` union
-2. Add `needs<Effect>` field in CodeGenerator (reset in `generate()`)
-3. Handle in `processEffects()` switch
-4. Generate in `assembleOutput()`
+1. Add to the `TIncludeHeader` union in `src/transpiler/types/` — it is a shared
+   contract, not a codegen type: `CodeGenState` names it too, and `state/` may not
+   import `output/`
+2. Add the `needs<Effect>` field to **`CodeGenState`** (reset in `CodeGenState.reset()`)
+3. Handle it in **`CodeGenerator.applyEffects()`**, which delegates to the one sink,
+   `CodeGenState.requireInclude()` — never set a `needs*` field directly
+4. Emit it in **`CodeGenerator.assembleGeneratedOutput()`** (via `addAutoIncludes()` for
+   a real `#include`, or `addGeneratedHelpers()` for the three deferred code-emission
+   members)
+
+Three of the four names this list carried were wrong: `processEffects()` and
+`assembleOutput()` have never existed, and the `needs*` fields are static on
+`CodeGenState`, not on `CodeGenerator` — which is the same file's own rule
+("CodeGenState: sole state container"). Corrected under #1449, which needed the real
+ones. `npx tsc --noEmit` cannot catch a name in prose; only a reader can.
 
 ### Struct Param Access Helpers
 

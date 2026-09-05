@@ -23,6 +23,7 @@
 
 import SymbolTable from "../logic/symbols/SymbolTable";
 import type IProgram from "../types/IProgram";
+import type TIncludeHeader from "../types/TIncludeHeader";
 import TYPE_FORMING_KINDS from "../../PARSE/3-Declare/TYPE_FORMING_KINDS";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
 import type TSymbolKindCNext from "../types/symbol-kinds/TSymbolKindCNext";
@@ -1422,52 +1423,6 @@ export default class CodeGenState {
   }
 
   // ===========================================================================
-  // INCLUDE FLAG HELPERS
-  // ===========================================================================
-
-  /**
-   * Mark that stdint.h is needed.
-   */
-  static requireStdint(): void {
-    this.needsStdint = true;
-  }
-
-  /**
-   * Mark that stdbool.h is needed.
-   */
-  static requireStdbool(): void {
-    this.needsStdbool = true;
-  }
-
-  /**
-   * Mark that string.h is needed.
-   */
-  static requireString(): void {
-    this.needsString = true;
-  }
-
-  /**
-   * Mark that CMSIS headers are needed.
-   */
-  static requireCMSIS(): void {
-    this.needsCMSIS = true;
-  }
-
-  /**
-   * Mark that limits.h is needed.
-   */
-  static requireLimits(): void {
-    this.needsLimits = true;
-  }
-
-  /**
-   * Mark that ISR type is needed.
-   */
-  static requireISR(): void {
-    this.needsISR = true;
-  }
-
-  // ===========================================================================
   // TYPE REGISTRATION HELPERS
   // ===========================================================================
 
@@ -1688,6 +1643,74 @@ export default class CodeGenState {
   /** Issue #1143: Sites recorded for a deferred emission. */
   static takeDeferredSites(requestKey: string): readonly IRequirementSite[] {
     return this.deferredRequirementSites.get(requestKey) ?? [];
+  }
+
+  /**
+   * THE sink for include and deferred-emission requests.
+   *
+   * Every transport lands here -- generator effects via
+   * `CodeGenerator.applyEffects`, the `requireInclude` callbacks injected into
+   * the static helpers, and direct calls from assignment handlers. It sits
+   * beside `requireToolchain` for the reason that one gives: the question
+   * "does this file need <string.h>?" gets exactly one recorded answer, so
+   * changing how that answer is REPRESENTED is one edit rather than one per
+   * writer.
+   *
+   * It was a private method on `CodeGenerator` until #1449, which is why five
+   * sites in `StringHandlers` set `needsString` raw instead -- a handler could
+   * not reach the funnel, so it wrote the flag. That made the include decision
+   * six edits wide, and #1449 turns these flags into an `EmissionPlan` entry.
+   * Every line of the body writes this class and reads nothing from the
+   * generator, so `state/` is where it already lived in all but name.
+   *
+   * @param header - The header to require (stdint, stdbool, string, ...)
+   * @param line - The `.cnx` line that asked, for deferred attribution
+   */
+  static requireInclude(
+    header: TIncludeHeader,
+    line: number | null = null,
+  ): void {
+    // Issue #1143: three of these "headers" are really deferred code-emission
+    // requests. Record where they were asked for, so the emitter that finally
+    // produces the block can attribute its requirement to a .cnx line. No
+    // requirement is recorded here -- the code does not exist yet, and
+    // recording a requirement for text that may never be emitted is exactly
+    // the mistake that made #1141's guard fire on files without the construct.
+    // Only the two headers that have a claiming emitter. "isr" was noted here
+    // and never read: takeDeferredSites is called for float_static_assert and
+    // irq_wrappers alone, and the ISR typedef carries no requirement. Keeping
+    // the deferred keys equal to the set that gets claimed is the property the
+    // rest of this design leans on.
+    if (header === "irq_wrappers" || header === "float_static_assert") {
+      this.noteDeferredSite(header, line);
+    }
+
+    switch (header) {
+      case "stdint":
+        this.needsStdint = true;
+        break;
+      case "stdbool":
+        this.needsStdbool = true;
+        break;
+      case "string":
+        this.needsString = true;
+        break;
+      case "cmsis":
+        this.needsCMSIS = true;
+        break;
+      case "limits":
+        this.needsLimits = true;
+        break;
+      case "isr":
+        this.needsISR = true;
+        break;
+      case "float_static_assert":
+        this.needsFloatStaticAssert = true;
+        break;
+      case "irq_wrappers":
+        this.needsIrqWrappers = true;
+        break;
+    }
   }
 
   /**

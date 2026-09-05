@@ -17,7 +17,7 @@
  */
 
 import TTypeInfo from "../../../types/TTypeInfo.js";
-import TIncludeHeader from "../generators/TIncludeHeader.js";
+import TIncludeHeader from "../../../types/TIncludeHeader";
 import CodeGenState from "../../../state/CodeGenState.js";
 
 /**

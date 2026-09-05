@@ -43,6 +43,17 @@ const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
  * open, and to 1.4 Resolve when it needs more than one file. That test is
  * already authored, so this manifest records the ANSWER for each module rather
  * than inventing a second rule.
+ *
+ * That test places a module in a PASS, and it is two-way, so it has no answer
+ * for a module that belongs to no pass at all. A type named by more than one
+ * layer is one of those: it is a shared contract, and `.dependency-cruiser.cjs`
+ * already says where those go -- "Any layer -> transpiler/types/ (shared
+ * contracts, layer-neutral)", and "If you need shared types, move them to
+ * transpiler/types/". So the third destination is `src/transpiler/types/`, and
+ * it is reached by asking whether more than one layer names the module, not by
+ * asking which pass computes it. Recorded here because a rule that cannot
+ * express the move being made is how the wrong row gets written and then
+ * defended (#1449).
  */
 interface IMove {
   /** Path relative to the repository root. A directory moves with its tree. */
@@ -156,6 +167,14 @@ const MOVES: readonly IMove[] = [
     to: "src/PARSE/4-Resolve/__tests__/TransitiveEnumCollector.test.ts",
     because: "covers TransitiveEnumCollector",
   },
+
+  // --- shared contracts: named by more than one layer ---------------------
+  {
+    from: "src/transpiler/output/codegen/generators/TIncludeHeader.ts",
+    to: "src/transpiler/types/TIncludeHeader.ts",
+    because:
+      "the include funnel that consumes it moves to CodeGenState, and state/ may not import output/ (`state-cannot-import-output`); a union two layers name is a shared contract, which .dependency-cruiser.cjs sends to transpiler/types/",
+  },
 ];
 
 /** Every `.ts` file under a path, or the path itself when it is a file. */
@@ -230,8 +249,8 @@ function main(): void {
   }
 
   console.log(
-    `\n${moved} file(s) moved, ${fixed} import specifier(s) had a `
-      .ts` extension stripped.`,
+    `\n${moved} file(s) moved, ${fixed} import specifier(s) had a ` +
+      "`.ts` extension stripped.",
   );
 
   if (!apply) {

@@ -3,7 +3,7 @@
  * Allows the helper to request includes and access state without
  * direct coupling to CodeGenerator.
  */
-import TIncludeHeader from "../generators/TIncludeHeader";
+import TIncludeHeader from "../../../types/TIncludeHeader";
 
 type IArrayAccessDeps = {
   /** Generate a bit mask for the given width */

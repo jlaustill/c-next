@@ -28,7 +28,6 @@ import IOrchestrator from "./generators/IOrchestrator";
 import IGeneratorInput from "./generators/IGeneratorInput";
 import IGeneratorState from "./generators/IGeneratorState";
 import TGeneratorEffect from "./generators/TGeneratorEffect";
-import TIncludeHeader from "./generators/TIncludeHeader";
 import GeneratorRegistry from "./generators/GeneratorRegistry";
 // Expression generators
 import generateLiteral from "./generators/expressions/LiteralGenerator";
@@ -442,10 +441,10 @@ export default class CodeGenerator implements IOrchestrator {
       switch (effect.type) {
         // Include effects - delegate to requireInclude()
         case "include":
-          this.requireInclude(effect.header, effect.line ?? null);
+          CodeGenState.requireInclude(effect.header, effect.line ?? null);
           break;
         case "isr":
-          this.requireInclude("isr");
+          CodeGenState.requireInclude("isr");
           break;
 
         // Toolchain requirement effects (Issue #1143)
@@ -469,7 +468,7 @@ export default class CodeGenerator implements IOrchestrator {
           // ADR-051 safe-div helpers return a bool error flag. Route that
           // dependency through the single include path (#1108) rather than
           // letting the helper emit its own #include <stdbool.h>.
-          this.requireInclude("stdbool");
+          CodeGenState.requireInclude("stdbool");
           break;
 
         // Type registration effects
@@ -535,59 +534,6 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Register a required include header. Centralizes all include flag management
-   * to reduce scattered assignments throughout the codebase.
-   *
-   * @param header - The header to require (stdint, stdbool, string, etc.)
-   */
-  private requireInclude(
-    header: TIncludeHeader,
-    line: number | null = null,
-  ): void {
-    // Issue #1143: three of these "headers" are really deferred code-emission
-    // requests. Record where they were asked for, so the emitter that finally
-    // produces the block can attribute its requirement to a .cnx line. No
-    // requirement is recorded here -- the code does not exist yet, and
-    // recording a requirement for text that may never be emitted is exactly
-    // the mistake that made #1141's guard fire on files without the construct.
-    // Only the two headers that have a claiming emitter. "isr" was noted here
-    // and never read: takeDeferredSites is called for float_static_assert and
-    // irq_wrappers alone, and the ISR typedef carries no requirement. Keeping
-    // the deferred keys equal to the set that gets claimed is the property the
-    // rest of this design leans on.
-    if (header === "irq_wrappers" || header === "float_static_assert") {
-      CodeGenState.noteDeferredSite(header, line);
-    }
-
-    switch (header) {
-      case "stdint":
-        CodeGenState.needsStdint = true;
-        break;
-      case "stdbool":
-        CodeGenState.needsStdbool = true;
-        break;
-      case "string":
-        CodeGenState.needsString = true;
-        break;
-      case "cmsis":
-        CodeGenState.needsCMSIS = true;
-        break;
-      case "limits":
-        CodeGenState.needsLimits = true;
-        break;
-      case "isr":
-        CodeGenState.needsISR = true;
-        break;
-      case "float_static_assert":
-        CodeGenState.needsFloatStaticAssert = true;
-        break;
-      case "irq_wrappers":
-        CodeGenState.needsIrqWrappers = true;
-        break;
-    }
-  }
-
-  /**
    * Get the current indentation string.
    */
   getIndent(): string {
@@ -643,7 +589,7 @@ export default class CodeGenerator implements IOrchestrator {
     // Track required includes based on type usage
     const requiredInclude = TypeGenerationHelper.getRequiredInclude(ctx);
     if (requiredInclude) {
-      this.requireInclude(requiredInclude);
+      CodeGenState.requireInclude(requiredInclude);
     }
 
     // Generate the C type using the helper with dependencies
@@ -2934,7 +2880,7 @@ export default class CodeGenerator implements IOrchestrator {
   private registerAllVariableTypes(tree: Parser.ProgramContext): void {
     TypeRegistrationEngine.register(tree, {
       tryEvaluateConstant: (ctx) => this.tryEvaluateConstant(ctx),
-      requireInclude: (header) => this.requireInclude(header),
+      requireInclude: (header) => CodeGenState.requireInclude(header),
       resolveQualifiedType: (ids) => this.resolveQualifiedType(ids),
     });
   }
@@ -4260,7 +4206,7 @@ export default class CodeGenerator implements IOrchestrator {
       getSubstringOperands: (substrCtx) =>
         this._getSubstringOperands(substrCtx),
       getStringExprCapacity: (exprCode) => this.getStringExprCapacity(exprCode),
-      requireStringInclude: () => this.requireInclude("string"),
+      requireStringInclude: () => CodeGenState.requireInclude("string"),
     });
   }
 
@@ -4445,7 +4391,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     TypeRegistrationEngine.trackVariable(ctx, {
       tryEvaluateConstant: (expr) => this.tryEvaluateConstant(expr),
-      requireInclude: (header) => this.requireInclude(header),
+      requireInclude: (header) => CodeGenState.requireInclude(header),
       resolveQualifiedType: (ids) => this.resolveQualifiedType(ids),
     });
     CodeGenState.registerLocalVariable(name);
@@ -4601,7 +4547,7 @@ export default class CodeGenerator implements IOrchestrator {
       {
         generateBitMask: (w, is64Bit) => this.generateBitMask(w, is64Bit),
         foldBooleanToInt: (expr) => this.foldBooleanToInt(expr),
-        requireInclude: (header) => this.requireInclude(header),
+        requireInclude: (header) => CodeGenState.requireInclude(header),
       },
     );
   }
@@ -5069,7 +5015,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Mark that we need limits.h for the type limit macros
-    this.requireInclude("limits");
+    CodeGenState.requireInclude("limits");
 
     // Use appropriate float suffix and type for comparisons
     const floatSuffix = sourceType === "f32" ? "f" : "";
@@ -5248,17 +5194,6 @@ export default class CodeGenerator implements IOrchestrator {
       "#endif",
       "",
     ];
-  }
-
-  /**
-   * Mark a clamp operation as used (will trigger helper generation)
-   */
-  private markClampOpUsed(operation: string, cnxType: string): void {
-    // Only generate helpers for integer types (not float/bool)
-    if (TYPE_WIDTH[cnxType] && TypeCheckUtils.isInteger(cnxType)) {
-      // Internal helper-op key, not a scope-qualified C name
-      CodeGenState.usedClampOps.add(`${operation}_${cnxType}`);
-    }
   }
 
   // ========================================================================
