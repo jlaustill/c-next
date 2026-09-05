@@ -136,6 +136,20 @@ module.exports = {
       to: { path: "^src/PARSE/4-Resolve/", reachable: true },
     },
     {
+      name: "plan-cannot-import-render",
+      comment:
+        '#1449: `docs/architecture/README.md` §1 -- "**2.2 decides, 2.3 ' +
+        'formats.**" A plan that reaches the renderer can ask it what it would ' +
+        "emit, and then the decision is made in both places again -- which is " +
+        "the duplicate derivation 2.2 exists to remove, reintroduced through " +
+        "the back door. The digit is the rule: 2.2 may be read BY 2.3 and " +
+        "never the reverse. `reachable` because a helper is as good a route " +
+        "as a direct import (#1297).",
+      severity: "error",
+      from: { path: "^src/TRANSPILE/2-Plan/", pathNot: "__tests__" },
+      to: { path: "^src/transpiler/output/", reachable: true },
+    },
+    {
       name: "nothing-after-resolve-derives-cross-file-facts",
       comment:
         "#1447's definition of done. `docs/architecture/README.md`: \"After 1.4, " +
@@ -151,7 +165,11 @@ module.exports = {
         "as directly (#1297).",
       severity: "error",
       from: {
-        path: ["^src/transpiler/output/", "^src/transpiler/logic/analysis/"],
+        path: [
+          "^src/transpiler/output/",
+          "^src/transpiler/logic/analysis/",
+          "^src/TRANSPILE/",
+        ],
         pathNot: "__tests__",
       },
       to: { path: "^src/PARSE/4-Resolve/", reachable: true },
@@ -249,6 +267,12 @@ module.exports = {
     // `^src/transpiler/` here is how the move would have silently taken 63
     // modules out of every rule at once: the checks stay green because
     // nothing is analyzed, which is the shape of #1297 one level up.
-    focus: "^src/(PARSE|transpiler)/",
+    //
+    // `TRANSPILE` is spelled out rather than folded into a case-insensitive
+    // pattern: the filesystem is case-sensitive, `transpiler` does not match
+    // `TRANSPILE`, and #1449 created `src/TRANSPILE/2-Plan/` -- which the two
+    // named alternatives would have left outside every rule on the same day
+    // the rules for it were written.
+    focus: "^src/(PARSE|TRANSPILE|transpiler)/",
   },
 };

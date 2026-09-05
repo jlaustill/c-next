@@ -16,7 +16,7 @@
  */
 import HeaderGenerator from "./HeaderGenerator";
 import IHeaderEmissionFacts from "./types/IHeaderEmissionFacts";
-import IEmissionPlan from "../../types/IEmissionPlan";
+import IHeaderRenderResult from "../../types/IHeaderRenderResult";
 
 class HeaderEmissionPlanner {
   /**
@@ -33,7 +33,7 @@ class HeaderEmissionPlanner {
   static plan(
     factsBySourcePath: ReadonlyMap<string, IHeaderEmissionFacts>,
     headerGenerator: HeaderGenerator,
-  ): IEmissionPlan {
+  ): IHeaderRenderResult {
     const headersBySourcePath = new Map<string, string>();
     const errorsBySourcePath = new Map<string, string>();
 

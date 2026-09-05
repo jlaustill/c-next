@@ -39,8 +39,19 @@ const CONFIG_PATH = join(__dirname, "..", "..", ".dependency-cruiser.cjs");
  * and this file -- whose entire purpose is to catch that -- would pass over it.
  * That is #1297 one level up, and it is the failure the move itself would
  * otherwise have caused in silence.
+ *
+ * `^src/TRANSPILE/` joined it with #1449, and it did not join quietly: adding
+ * `^src/TRANSPILE/` to an existing rule's `from` dropped that rule OUT of this
+ * set, because a rule counts only when BOTH ends name a known root. The count
+ * assertion below went 7 -> 6 and said so. That is the mechanism working -- an
+ * unrecognized root does not weaken one rule, it removes the rule from every
+ * assertion here at once, which is why the roots are a list that has to be
+ * maintained rather than a prefix that happens to match.
+ *
+ * Case matters: the filesystem is case-sensitive, `TRANSPILE` is a layer and
+ * `transpiler` is the pre-move tree, and neither pattern matches the other.
  */
-const LAYER_ROOTS = ["^src/transpiler/", "^src/PARSE/"];
+const LAYER_ROOTS = ["^src/transpiler/", "^src/PARSE/", "^src/TRANSPILE/"];
 
 interface IRuleEnd {
   path?: string | string[];
@@ -94,7 +105,7 @@ describe("dependency-cruiser layer rules (#1297)", () => {
     // Guards the selector itself. If the path convention changes and this
     // returns nothing, "every layer rule is transitive" passes over an empty
     // list -- the same defect as #1297, one level up.
-    expect(layerRules().length).toBeGreaterThanOrEqual(7);
+    expect(layerRules().length).toBeGreaterThanOrEqual(8);
   });
 
   it("every layer rule is transitive", () => {
@@ -117,6 +128,7 @@ describe("dependency-cruiser layer rules (#1297)", () => {
       "logic-cannot-import-output",
       "nothing-after-resolve-derives-cross-file-facts",
       "parse-cannot-import-render",
+      "plan-cannot-import-render",
       "state-cannot-import-output",
     ]);
   });
