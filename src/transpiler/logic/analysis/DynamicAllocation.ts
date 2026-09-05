@@ -22,23 +22,43 @@
  * ## Why the suffix rule
  *
  * A name matches when it IS one of these, or ends with `_` followed by one.
- * Vendor allocators are overwhelmingly spelled that way -- `heap_caps_malloc`,
- * `pvPort_malloc` -- and ADR-003 extends the prohibition to "any user-defined
- * equivalents", so a deliberate `my_free` wrapper is caught by design. The
- * separator is what keeps `myfree`, `saferealloc` and `free_list_init` legal:
- * those are ordinary names that happen to contain these letters.
+ * `k_malloc`/`k_free` (Zephyr) and `heap_caps_malloc` (ESP-IDF) are real
+ * allocators spelled that way, and ADR-003 extends the prohibition to "any
+ * user-defined equivalents", so a deliberate `my_free` wrapper is caught by
+ * design. The separator is what keeps `myfree`, `saferealloc` and
+ * `free_list_init` legal: ordinary names that happen to contain these letters.
+ *
+ * ## What a name rule cannot reach, stated plainly
+ *
+ * It matches snake_case suffixes and nothing else. FreeRTOS spells its
+ * allocators `pvPortMalloc` / `vPortFree`, CMSIS-RTOS `osMemoryPoolAlloc`,
+ * ThreadX `tx_byte_allocate`, and newlib's reentrant form is the PREFIXED
+ * `_malloc_r`. None of them match, and no widening of a name rule would catch
+ * them without also rejecting ordinary code. This is a cheap check for the
+ * common spelling, not a guarantee (#1306 review -- an earlier version of this
+ * comment claimed vendor allocators are "overwhelmingly" spelled with the
+ * separator and offered `pvPort_malloc`, a name that does not exist).
+ *
+ * It also cannot tell releasing MEMORY from releasing a device: ESP-IDF's
+ * `spi_bus_free` matches and is rejected. That follows from the maintainer's
+ * rule -- exact, or after an underscore -- and the message stays true, because
+ * such a function genuinely is imported from C or C++. An author who needs it
+ * calls it from their C or C++ code, which is what ADR-003 asks for anyway.
  *
  * `getline`/`getdelim` are deliberately absent. They reallocate, but are
  * routinely called with a caller-owned buffer, so listing them would reject
  * correct code.
  *
- * KNOWN LIMITATION: the diagnostic says the IMPORT is forbidden, which is true
- * of every case reachable today -- C-Next cannot allocate, so an allocator is
- * always something a header brought in. A function DEFINED in C-Next whose name
- * fits the rule (`u32 my_free(...)`) is still rejected, per ADR-003 extending the
- * prohibition to user-defined equivalents, but reads the import wording. No such
- * function exists in the corpus. Distinguishing the two needs a pre-pass over
- * declarations that this analyzer does not have.
+ * ## Where the decision is made -- deliberately not here
+ *
+ * This class owns the LIST and the MATCH RULE. It does not own the consequence:
+ * a match only means E0902 when the callee did not resolve to a C-Next
+ * definition, and that is known in exactly one place, the call analyzer's
+ * resolution ladder. Asking `matches()` from anywhere else re-derives the
+ * consequence from a name alone -- which is how `pool_free` and `slot_is_free`,
+ * both written in C-Next three lines above their call, came to be told they had
+ * been imported from a header (#1306 review). Sharing the predicate made the two
+ * sites agree on the letters and left them disagreeing on the meaning.
  */
 const DYNAMIC_MEMORY_FUNCTIONS: ReadonlySet<string> = new Set([
   // C standard
@@ -82,14 +102,14 @@ class DynamicAllocation {
   }
 
   /**
-   * The one diagnostic for this condition, reported from two places.
+   * The one diagnostic for this condition, reported from one place.
    *
-   * Two analyzers see it, decided by whether the header was included: with
-   * `#include <stdlib.h>` the call resolves and NULL-check analysis reports it;
-   * without, call analysis gets there first and the step loop breaks before
-   * NULL-check analysis runs. The user made the same mistake either way, so both
-   * report the same code and read the same sentence from here rather than each
-   * spelling it out.
+   * It used to be two, split by whether the header was included -- with
+   * `#include <stdlib.h>` the call resolved and NULL-check analysis reported it,
+   * without it call analysis got there first. The author's mistake does not
+   * change because a header happened to be present, and neither does the
+   * diagnostic; what the split actually bought was a second site with no idea
+   * whether the callee was C-Next code.
    */
   static readonly CODE = "E0902";
 

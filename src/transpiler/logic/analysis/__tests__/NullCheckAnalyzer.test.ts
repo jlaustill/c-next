@@ -105,76 +105,14 @@ describe("NullCheckAnalyzer", () => {
   });
 
   // ========================================================================
-  // E0902: Forbidden functions (dynamic allocation - ADR-003)
+  // E0902 is NOT decided here -- see FunctionCallAnalyzer.test.ts.
+  //
+  // ADR-003 needs to know whether the callee resolved to a C-Next definition or
+  // to a C/C++ symbol, and this analyzer sees only the name. While it also
+  // reported E0902, `pool_free` defined three lines above the call was told it
+  // had been imported from a header (#1306 review). The tests that used to sit
+  // here moved with the decision.
   // ========================================================================
-
-  describe("E0902 - forbidden functions", () => {
-    it("should detect malloc usage", () => {
-      const code = `
-        void main() {
-          malloc(100);
-        }
-      `;
-      const tree = parse(code);
-      const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
-
-      expect(errors).toHaveLength(1);
-      expect(errors[0].code).toBe("E0902");
-      expect(errors[0].functionName).toBe("malloc");
-      expect(errors[0].message).toBe(
-        "Importing dynamic memory function 'malloc' from C/C++ is forbidden",
-      );
-    });
-
-    it("should detect calloc usage", () => {
-      const code = `
-        void main() {
-          calloc(10, 4);
-        }
-      `;
-      const tree = parse(code);
-      const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
-
-      expect(errors).toHaveLength(1);
-      expect(errors[0].code).toBe("E0902");
-      expect(errors[0].functionName).toBe("calloc");
-    });
-
-    it("should detect realloc usage", () => {
-      const code = `
-        void main() {
-          cstring c_ptr <- strchr("test", 't');
-          realloc(c_ptr, 200);
-        }
-      `;
-      const tree = parse(code);
-      const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
-
-      // Should have E0902 for realloc
-      const reallocErrors = errors.filter((e) => e.code === "E0902");
-      expect(reallocErrors).toHaveLength(1);
-      expect(reallocErrors[0].functionName).toBe("realloc");
-    });
-
-    it("should detect free usage", () => {
-      const code = `
-        void main() {
-          cstring c_ptr <- strchr("test", 't');
-          free(c_ptr);
-        }
-      `;
-      const tree = parse(code);
-      const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
-
-      const freeErrors = errors.filter((e) => e.code === "E0902");
-      expect(freeErrors).toHaveLength(1);
-      expect(freeErrors[0].functionName).toBe("free");
-    });
-  });
 
   // ========================================================================
   // E0903: NULL outside comparison context
@@ -1118,22 +1056,6 @@ describe("NullCheckAnalyzer", () => {
       // Both are in comparison context
       expect(errors).toHaveLength(0);
     });
-
-    it("should detect forbidden function in variable declaration", () => {
-      const code = `
-        void main() {
-          cstring c_ptr <- malloc(100);
-        }
-      `;
-      const tree = parse(code);
-      const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
-
-      // malloc is detected (may be detected in multiple contexts)
-      const e0902Errors = errors.filter((e) => e.code === "E0902");
-      expect(e0902Errors.length).toBeGreaterThanOrEqual(1);
-      expect(e0902Errors.every((e) => e.functionName === "malloc")).toBe(true);
-    });
   });
 
   // ========================================================================
@@ -1241,19 +1163,6 @@ describe("NullCheckAnalyzer", () => {
       const errors = analyzer.analyze(tree);
 
       expect(errors[0].helpText).toContain("strchr");
-    });
-
-    it("should include ADR reference in E0902 helpText", () => {
-      const code = `
-        void main() {
-          malloc(100);
-        }
-      `;
-      const tree = parse(code);
-      const analyzer = new NullCheckAnalyzer();
-      const errors = analyzer.analyze(tree);
-
-      expect(errors[0].helpText).toContain("ADR-003");
     });
 
     it("should include suggested fix in E0905 helpText", () => {

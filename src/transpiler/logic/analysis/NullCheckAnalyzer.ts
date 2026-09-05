@@ -17,7 +17,6 @@ import { CNextListener } from "../parser/grammar/CNextListener";
 import * as Parser from "../parser/grammar/CNextParser";
 import INullCheckError from "./types/INullCheckError";
 import ParserUtils from "../../../utils/ParserUtils";
-import DynamicAllocation from "./DynamicAllocation";
 
 /**
  * Metadata for C library functions that can return NULL
@@ -583,14 +582,11 @@ class NullCheckListener extends CNextListener {
 
     const { line, column } = ParserUtils.getPosition(ctx);
 
-    // ADR-003. The ONLY place this is decided: `enterPostfixExpression` sees
-    // every call, including one in a declaration initializer, so the declaration
-    // listener does not need its own copy -- and when it had one, a declaration
-    // reported the same call twice (#1306 review).
-    if (DynamicAllocation.matches(funcName)) {
-      this.analyzer.reportForbiddenFunction(funcName, line, column);
-      return;
-    }
+    // ADR-003 is NOT decided here. This listener sees a callee's NAME and
+    // nothing about what it resolved to, so it answered "you imported this from
+    // C/C++" for `pool_free` and `slot_is_free` defined in the same file
+    // (#1306 review). Call analysis runs first, knows the difference, and halts
+    // the step loop before this analyzer is reached.
 
     // Check nullable C functions
     if (NULLABLE_C_FUNCTIONS.has(funcName)) {
@@ -852,28 +848,6 @@ class NullCheckAnalyzer {
       column,
       message: `C library function '${funcName}' can return NULL - must check result`,
       helpText: `Use: if (${funcName}(...) != NULL) { ... }`,
-    });
-  }
-
-  /**
-   * Report error: a dynamic memory function imported from C/C++ (ADR-003).
-   *
-   * The message names the IMPORT as what is forbidden. Saying "'calloc' is
-   * forbidden" read as though C-Next has a `calloc` and disallows it; it has no
-   * such function, and the call is only reachable because a header was included.
-   */
-  public reportForbiddenFunction(
-    funcName: string,
-    line: number,
-    column: number,
-  ): void {
-    this.errors.push({
-      code: DynamicAllocation.CODE,
-      functionName: funcName,
-      line,
-      column,
-      message: DynamicAllocation.message(funcName),
-      helpText: DynamicAllocation.helpText(funcName),
     });
   }
 

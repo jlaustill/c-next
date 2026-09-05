@@ -13,11 +13,16 @@
 extern "C" {
 #endif
 
+/* External variables */
+extern uint8_t pool[8];
+
 /* Function prototypes */
 uint32_t myfree(uint32_t slot);
 uint32_t saferealloc(uint32_t size);
 uint32_t free_list_init(uint32_t count);
 uint32_t mallocation(uint32_t n);
+uint32_t pool_free(uint32_t slot);
+bool slot_is_free(uint32_t slot);
 
 #ifdef __cplusplus
 }

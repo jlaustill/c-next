@@ -6,14 +6,26 @@
 #include "allocator-lookalike-names.test.hpp"
 
 #include <stdint.h>
+#include <stdbool.h>
 
 // test-execution
 // ADR-003 / #1306 review: THE negative control for the allocator name rule.
 //
-// Every name here merely CONTAINS a forbidden one with no `_` separator, so
-// every one is an ordinary C-Next function and this file must COMPILE AND RUN.
-// Before the separator rule, `myfree` and `saferealloc` were rejected as `free`
-// and `realloc` -- valid C-Next refused by the transpiler.
+// Two shapes must compile, and they fail for different reasons:
+//
+//   1. names that merely CONTAIN a forbidden one with no `_` separator --
+//      `myfree`, `saferealloc`. Before the separator rule these were rejected
+//      as `free` and `realloc`.
+//   2. names the separator rule DOES match, defined right here in C-Next --
+//      `pool_free`, `slot_is_free`. ADR-003 forbids IMPORTING an allocator; a
+//      function the author wrote is not an import, and a static pool with a
+//      `pool_free` is the alternative ADR-003's own Memory Pools section points
+//      to. These were rejected until the decision moved to the one analyzer
+//      that knows whether a callee resolved to a C-Next definition.
+//
+// Shape 2 is the control the first version of this file lacked: every name in
+// it avoided the separator, so nothing here could redden a rule that fired on
+// C-Next definitions.
 //
 // It compiles on purpose. A control that sits beside a diagnostic cannot be
 // evaluated, because the first analyzer to report halts the step loop; this
@@ -34,14 +46,31 @@ uint32_t mallocation(uint32_t n) {
     return n + 4;
 }
 
+uint8_t pool[8] = {};
+
+// Matches `_free` and is a C-Next definition, not an import.
+uint32_t pool_free(uint32_t slot) {
+    pool[slot] = 0U;
+    return slot + 5;
+}
+
+// Matches `_free` and does not release anything at all -- a predicate.
+bool slot_is_free(uint32_t slot) {
+    return pool[slot] == 0;
+}
+
 int main(void) {
     uint32_t a = myfree(1U);
     uint32_t b = saferealloc(1U);
     uint32_t c = free_list_init(1U);
     uint32_t d = mallocation(1U);
+    uint32_t e = pool_free(1U);
+    bool f = slot_is_free(1U);
     if (a != 2) return 1;
     if (b != 3) return 2;
     if (c != 4) return 3;
     if (d != 5) return 4;
+    if (e != 6) return 5;
+    if (f != true) return 6;
     return 0;
 }

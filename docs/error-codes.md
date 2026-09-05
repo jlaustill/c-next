@@ -108,7 +108,7 @@ second header and the program ran with a wrong value.
 | E0427 | Identifier is not defined                               | Declare it, or #include the file that does                                                                                                                       | `logic/analysis/UndeclaredValueAnalyzer.ts`                                        |
 | E0428 | _(reserved)_ — cannot assign integer to enum            | Not yet implemented. Reserved by the #1321 throw audit (`docs/architecture/output-throw-classification.md`) so it is not assigned twice; #1380 tracks this drift | `output/codegen/helpers/EnumAssignmentValidator.ts`                                |
 | E0429 | Name is a register, not a type                          | Access the register's members instead, e.g. `GPIO.DR`                                                                                                            | `logic/analysis/UndeclaredTypeAnalyzer.ts`                                         |
-| E0430 | Nested scopes are not allowed                           | Use a flat scope such as `Hardware_GPIO`                                                                                                                         | `logic/parser/CNextSourceParser.ts`                                                |
+| E0430 | Nested scopes are not allowed                           | Close the enclosing scope before declaring another, or use a flat scope such as `Hardware_GPIO`                                                                  | `logic/parser/CNextSourceParser.ts`                                                |
 
 **Related:** ADR-030 (E0422), ADR-016 (E0425 — a reopened scope composes, but its
 members stay unique)
@@ -240,16 +240,16 @@ base: bare, `this.` and `global.`.
 
 ## E09xx — NULL Safety (ADR-046)
 
-| Code  | Message                                                | Help                                                      | Source                                |
-| ----- | ------------------------------------------------------ | --------------------------------------------------------- | ------------------------------------- |
-| E0901 | C library function can return NULL — must check result | Use: `if (func(...) != NULL) { ... }`                     | `logic/analysis/NullCheckAnalyzer.ts` |
-| E0902 | Importing a dynamic memory function from C/C++         | Keep it in your C or C++ code (ADR-003)                   | `logic/analysis/DynamicAllocation.ts` |
-| E0903 | NULL can only be used in comparison context            | Use: `if (func(...) != NULL)` or `== NULL`                | `logic/analysis/NullCheckAnalyzer.ts` |
-| E0904 | Cannot store C function pointer return in variable     | Use direct comparison: `if (func(...) != NULL)`           | `logic/analysis/NullCheckAnalyzer.ts` |
-| E0905 | Missing `c_` prefix for nullable C type                | Use: `TypeName c_varName <- func(...)`                    | `logic/analysis/NullCheckAnalyzer.ts` |
-| E0906 | Invalid `c_` prefix on non-nullable type               | Remove `c_` — only for nullable C pointer types           | `logic/analysis/NullCheckAnalyzer.ts` |
-| E0907 | NULL comparison on non-nullable variable               | Only `c_` variables can be compared to NULL               | `logic/analysis/NullCheckAnalyzer.ts` |
-| E0908 | Nullable variable used without NULL check              | Check for NULL before use: `if (varName != NULL) { ... }` | `logic/analysis/NullCheckAnalyzer.ts` |
+| Code  | Message                                                | Help                                                      | Source                                   |
+| ----- | ------------------------------------------------------ | --------------------------------------------------------- | ---------------------------------------- |
+| E0901 | C library function can return NULL — must check result | Use: `if (func(...) != NULL) { ... }`                     | `logic/analysis/NullCheckAnalyzer.ts`    |
+| E0902 | Importing a dynamic memory function from C/C++         | Keep it in your C or C++ code (ADR-003)                   | `logic/analysis/FunctionCallAnalyzer.ts` |
+| E0903 | NULL can only be used in comparison context            | Use: `if (func(...) != NULL)` or `== NULL`                | `logic/analysis/NullCheckAnalyzer.ts`    |
+| E0904 | Cannot store C function pointer return in variable     | Use direct comparison: `if (func(...) != NULL)`           | `logic/analysis/NullCheckAnalyzer.ts`    |
+| E0905 | Missing `c_` prefix for nullable C type                | Use: `TypeName c_varName <- func(...)`                    | `logic/analysis/NullCheckAnalyzer.ts`    |
+| E0906 | Invalid `c_` prefix on non-nullable type               | Remove `c_` — only for nullable C pointer types           | `logic/analysis/NullCheckAnalyzer.ts`    |
+| E0907 | NULL comparison on non-nullable variable               | Only `c_` variables can be compared to NULL               | `logic/analysis/NullCheckAnalyzer.ts`    |
+| E0908 | Nullable variable used without NULL check              | Check for NULL before use: `if (varName != NULL) { ... }` | `logic/analysis/NullCheckAnalyzer.ts`    |
 
 ---
 

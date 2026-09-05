@@ -108,16 +108,21 @@ Previously forbidden by ADR-047, now allowed:
 
 ## Functions Still Forbidden
 
-Per ADR-003 (static allocation only), and reported as E0902:
+Dynamic memory imported from C or C++, reported as **E0902**.
 
-- `malloc`, `calloc`, `realloc`, `free`, `aligned_alloc`
-- `reallocarray`, `posix_memalign`, `memalign`, `valloc`, `pvalloc`
-- `strdup`, `strndup`, `asprintf`, `vasprintf` — the caller owns the result and
-  must release it, which is the same ownership problem under another name
+**Which names, and the match rule, are stated once — in
+[ADR-003 § What a `.cnx` File May Not Call](adr-003-static-allocation.md#decision-what-a-cnx-file-may-not-call).**
+That is the ADR that owns static allocation, so that is where the language-level
+statement of what compiles belongs. This section deliberately does not repeat the
+list: when it did, the two homes disagreed — ADR-003 named five functions and
+this file named fourteen plus a suffix rule, so a transpiler rebuilt from one
+rejected `heap_caps_malloc` and one rebuilt from the other did not.
 
-A name is also forbidden when it ends with `_` and one of these, which catches
-vendor wrappers such as `heap_caps_malloc`. The separator is what keeps ordinary
-names like `myfree` and `saferealloc` legal.
+What belongs here is the interop consequence: a header that declares these
+functions can still be included, and every other function it declares remains
+usable under this ADR's `c_` rules. Only a call to a forbidden name from a `.cnx`
+file is rejected, and the diagnostic names the **import** as what is forbidden
+rather than describing the function as a C-Next one.
 
 ## Compiler Enforcement
 

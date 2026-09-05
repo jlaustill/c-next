@@ -106,10 +106,32 @@ describe("CNextSourceParser", () => {
 
       expect(result.errors).toHaveLength(1);
       expect(result.errors[0].message).toBe(
-        "error[E0430]: nested scopes are not allowed (ADR-016); use a flat scope such as Hardware_GPIO",
+        "error[E0430]: nested scopes are not allowed (ADR-016)",
+      );
+      // The advice sits on `help:`, the shape every other coded diagnostic uses.
+      expect(result.errors[0].helpText).toBe(
+        "close the enclosing scope before declaring another, or use a flat scope such as Hardware_GPIO",
       );
       expect(result.errors[0].line).toBe(3);
       expect(result.errors[0].column).toBe(4);
+    });
+
+    it("names the missing brace first, because it cannot tell the two apart", () => {
+      // A forgotten `}` before the next `scope` produces a token stream IDENTICAL
+      // to a deliberate nesting -- the recognizer has nothing to separate them.
+      // This author nested nothing, so advice that only said "use a flat scope"
+      // sent them looking at the wrong line (#1306 review).
+      const source = `scope A {
+    u8 x <- 1;
+
+scope B {
+    u8 y <- 2;
+}`;
+
+      const result = CNextSourceParser.parse(source);
+
+      expect(result.errors[0].message).toContain("error[E0430]");
+      expect(result.errors[0].helpText).toMatch(/^close the enclosing scope/);
     });
 
     it("reports E0430 when the nested scope carries a visibility modifier", () => {
@@ -194,6 +216,30 @@ scope C {
       const result = CNextSourceParser.parse(source);
 
       expect(result.errors).toHaveLength(0);
+    });
+
+    it("still reports an unrelated later error in the same file", () => {
+      // The suppression covers the recovery's OWN noise -- the `no viable
+      // alternative` inside the rejected construct, and the `}` left at file
+      // scope by the block ANTLR moves out. It used to drop every later parser error,
+      // so `u8 y <- ;` in a SEPARATE top-level function went unreported and the
+      // author met it only after fixing the scope and re-running. That is a
+      // different declaration, not a structure already known to be wrong
+      // (#1306 review).
+      const source = `scope Outer {
+    scope Inner { u8 w <- 2; }
+}
+
+void main() {
+    u8 y <- ;
+}`;
+
+      const result = CNextSourceParser.parse(source);
+
+      expect(result.errors).toHaveLength(2);
+      expect(result.errors[0].message).toContain("error[E0430]");
+      expect(result.errors[1].message).not.toContain("E0430");
+      expect(result.errors[1].line).toBe(6);
     });
 
     it("still reports an ordinary syntax error when no scope is nested", () => {

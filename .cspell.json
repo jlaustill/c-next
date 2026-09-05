@@ -340,6 +340,7 @@
     "mystruct",
     "nanf",
     "nanl",
+    "newlib",
     "nexe",
     "nocheck",
     "nodenext",

@@ -78,6 +78,15 @@ string<64>? result <- fgets(...);  // ERROR: No nullable types
 
 ## Forbidden Functions (ADR-103)
 
+> **Superseded — do not read this table as current.** ADR-046 allows `fopen`,
+> `fclose`, `getenv`, `strstr`, `strchr` and `memchr` under its `c_` rules; they
+> report **E0901** (check the result for NULL), not E0902. Only the four
+> allocation functions below are still forbidden, and the current list and match
+> rule live in
+> [ADR-003 § What a `.cnx` File May Not Call](adr-003-static-allocation.md#decision-what-a-cnx-file-may-not-call).
+> A test fixture comment repeated this table's reading and had to be corrected in
+> #1306; the pointer is here so the next reader does not repeat it again.
+
 These functions return pointers that C-Next cannot handle safely:
 
 | Function  | Reason                                                   |

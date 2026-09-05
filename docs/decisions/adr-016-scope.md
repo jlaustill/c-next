@@ -512,12 +512,26 @@ Options to research:
 
 **DECIDED: No nested scopes. This is permanent, not a simplification to revisit.**
 
-The limit is imposed by the target, not by taste. C99 section 5.2.4.1 guarantees only
-31 significant initial characters in an external identifier, and MISRA C:2012 Rule 5.1
-is evaluated inside that budget. With six-character scope names, a depth-3 member
-generates a 30-character name and stays distinct; a depth-4 member generates 38 and
-does not. Nesting therefore cannot be admitted without either abandoning the guarantee
-or silently truncating names that a conforming toolchain is free to conflate.
+**Scopes are a flat namespace.** That is the decision, and the identifier budget is
+why unbounded depth was never a candidate for it — not, on its own, an argument that
+depth 2 in particular must be refused.
+
+C99 section 5.2.4.1 guarantees only 31 significant initial characters in an external
+identifier, and MISRA C:2012 Rule 5.1 is evaluated inside that budget. With
+six-character scope names, a depth-3 member generates a 30-character name and stays
+distinct; a depth-4 member generates 38 and does not. Unbounded nesting therefore
+cannot be admitted without either abandoning the guarantee or silently truncating
+names a conforming toolchain is free to conflate.
+
+What the budget proves is that depth must be **bounded**; it does not locate the
+bound. `Hw__Gpio__init` is 14 characters and fits comfortably, while a flat
+`HardwareAbstractionLayer__initialize` exceeds 31 with no nesting at all — so the
+budget neither forbids depth 2 nor rescues a flat name. Flatness is chosen because
+one level is a namespace and more than one is a hierarchy: a hierarchy needs
+resolution rules, shadowing rules, and a visibility model per level, and every one of
+those is a place a reader can be wrong about where a name comes from. C-Next declines
+to have them. A proposal for depth-2 nesting is not answered by arithmetic and is not
+reopened by it either (#1306 review).
 
 ```cnx
 // NOT supported:
@@ -649,14 +663,26 @@ only one position was kept, so a conflict spanning two files printed the same
 location twice — the diagnostic named a file the reader had already looked at
 instead of the other definition.
 
-E0430 names the position of the inner `scope` keyword and carries the flat-scope
-workaround in its own text. Recovery noise that follows the rejection is suppressed:
-error recovery moves the surrounding block, so any further complaint
-describes a structure already known to be wrong. A second genuine nested scope is
-still reported. The rejection is stated once here and enforced where a nested scope
-first becomes visible, which is while the source is being read — a scope member is
-not admitted as a scope declaration in the first place, so the construct never reaches
-a later stage to be analyzed.
+E0430 names the position of the inner `scope` keyword. Its advice reaches the reader
+on the `help:` line, the shape every other coded diagnostic uses, and it is hedged on
+purpose: the reader cannot distinguish a deliberate nesting from a **missing closing
+brace** before the next `scope`, because the two produce an identical token stream. A
+forgotten `}` is at least as common as deliberate nesting, so the advice names closing
+the enclosing scope first and flattening second.
+
+Recovery noise that follows the rejection is suppressed, and only that noise. Error
+recovery moves the rejected block out and complains twice — once inside the construct
+already reported, once about the closing brace the move left behind at file scope —
+and those two describe a structure already known to be wrong. **Everything else still
+reports**, including an unrelated syntax error in a different top-level declaration
+later in the same file. A blanket suppression swallowed those, so the author fixed the
+scope, re-ran, and met a second error that had been sitting there the whole time
+(#1306 review). A second genuine nested scope is reported in its own right.
+
+The rejection is stated once here and enforced where a nested scope first becomes
+visible, which is while the source is being read — a scope member is not admitted as a
+scope declaration in the first place, so the construct never reaches a later stage to
+be analyzed.
 
 ## Implementation Status
 
