@@ -65,7 +65,19 @@ function isDistFresh(): boolean {
 // Auto-rebuild on module load to ensure tests always use fresh bundle.
 // Only the main process should rebuild — workers (created via fork()) have
 // process.send, so we skip the build check in them to avoid 24 concurrent builds.
-if (!process.send && existsSync(DIST_ENTRY) && !isDistFresh()) {
+//
+// CNEXT_SKIP_DIST_REBUILD is the same exemption for a child that is NOT a fork
+// and so has no process.send: a test that spawns this harness to observe how it
+// REPORTS would otherwise make its own suite build the project as a side effect,
+// and a concurrent `npm test` would have dist/index.js rewritten underneath it
+// (the #1488 shape). Such a child accepts a stale bundle deliberately -- it is
+// not asserting on transpiler output -- and every gate builds before it runs.
+if (
+  !process.send &&
+  !process.env.CNEXT_SKIP_DIST_REBUILD &&
+  existsSync(DIST_ENTRY) &&
+  !isDistFresh()
+) {
   console.warn("Warning: dist/index.js is stale. Rebuilding...");
   const buildResult = spawnSync("npm", ["run", "build"], {
     cwd: PROJECT_ROOT,
@@ -1188,6 +1200,7 @@ class TestUtils {
       result.compileSuccess = true;
       result.execSuccess = true;
       result.skippedExec = true;
+      result.skipReason = "transpile-only";
       return result;
     }
 
@@ -1197,6 +1210,7 @@ class TestUtils {
       result.compileSuccess = true;
       result.execSuccess = true;
       result.skippedExec = true;
+      result.skipReason = "transpile-only";
       // No cleanup needed for helper files
       return result;
     }
@@ -1273,6 +1287,7 @@ class TestUtils {
       if (TestUtils.requiresArmRuntime(existingCode)) {
         result.execSuccess = true;
         result.skippedExec = true;
+        result.skipReason = "arm";
         // No cleanup needed for helper files
         return result;
       }
@@ -1677,8 +1692,10 @@ class TestUtils {
         !r.execSuccess,
     );
 
-    // Check for skipped execution
+    // Check for skipped execution, and why (Issue #1397): the printed cause
+    // used to be hard-coded to ARM, which is one of three reasons.
     const anySkippedExec = results.some((r) => r.skippedExec);
+    const skipReason = results.find((r) => r.skippedExec)?.skipReason;
 
     // Check for missing snapshots (no expected file)
     const noSnapshot = results.every((r) =>
@@ -1692,6 +1709,7 @@ class TestUtils {
       cSkipped: !requestedModes.includes("c"),
       cppSkipped: !requestedModes.includes("cpp"),
       skippedExec: anySkippedExec,
+      skipReason,
       noSnapshot,
     };
 

@@ -3,6 +3,7 @@
  */
 
 import TTestMode from "./TTestMode";
+import TExecSkipReason from "./TExecSkipReason";
 
 /**
  * Result of running a test in a single mode (C or C++)
@@ -15,6 +16,8 @@ interface IModeResult {
   compileSuccess: boolean;
   execSuccess: boolean;
   skippedExec?: boolean;
+  /** Why execution was skipped (Issue #1397). Set wherever skippedExec is. */
+  skipReason?: TExecSkipReason;
   error?: string;
   expected?: string;
   actual?: string;
