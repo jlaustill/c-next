@@ -100,6 +100,21 @@ class Program {
       }
     }
 
+    // --- Tier 2: every enum the program declares ------------------------
+    // Header generation needs "is this enum declared anywhere" to decide it
+    // must not forward-declare one from an include (#478). Aggregating it from
+    // per-file views as they accumulated made the answer depend on topological
+    // order, which holds only while the include graph is acyclic (#1167).
+    // Derived here it cannot: `Program` is complete before anything reads it.
+    const knownEnums = new Set<string>();
+    for (const settled of symbolsByFile.values()) {
+      for (const symbol of settled) {
+        if (symbol.kind === "enum") {
+          knownEnums.add(symbol.fullyQualifiedCName);
+        }
+      }
+    }
+
     const sourceFiles = files.map((file) => file.sourceFile);
 
     // The query surface. `scopeTypes`, `symbolsByFile` and `symbolsByCName`
@@ -113,6 +128,7 @@ class Program {
       symbolsInFile: (sourceFile: string): ReadonlyArray<TSymbol> =>
         symbolsByFile.get(sourceFile) ?? [],
       sourceFiles: (): ReadonlyArray<string> => sourceFiles,
+      knownEnums: (): ReadonlySet<string> => knownEnums,
       constValue: (name: string): number | undefined => constValues.get(name),
       constValues: (): ReadonlyMap<string, number> => constValues,
     });

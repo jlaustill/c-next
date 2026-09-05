@@ -65,63 +65,6 @@ describe("TransitiveEnumCollector", () => {
     }
   });
 
-  describe("aggregateKnownEnums", () => {
-    it("should aggregate enums from multiple sources", () => {
-      const infos: ICodeGenSymbols[] = [
-        createSymbolInfo(["Status", "Mode"]),
-        createSymbolInfo(["Priority", "Status"]), // Status duplicated
-        createSymbolInfo(["ErrorCode"]),
-      ];
-
-      const result = TransitiveEnumCollector.aggregateKnownEnums(infos);
-
-      expect(result.size).toBe(4);
-      expect(result.has("Status")).toBe(true);
-      expect(result.has("Mode")).toBe(true);
-      expect(result.has("Priority")).toBe(true);
-      expect(result.has("ErrorCode")).toBe(true);
-    });
-
-    it("should return empty set for empty input", () => {
-      const result = TransitiveEnumCollector.aggregateKnownEnums([]);
-
-      expect(result.size).toBe(0);
-    });
-
-    it("should handle sources with no enums", () => {
-      const infos: ICodeGenSymbols[] = [
-        createSymbolInfo([]),
-        createSymbolInfo([]),
-      ];
-
-      const result = TransitiveEnumCollector.aggregateKnownEnums(infos);
-
-      expect(result.size).toBe(0);
-    });
-
-    it("should handle single source", () => {
-      const infos: ICodeGenSymbols[] = [createSymbolInfo(["OnlyEnum"])];
-
-      const result = TransitiveEnumCollector.aggregateKnownEnums(infos);
-
-      expect(result.size).toBe(1);
-      expect(result.has("OnlyEnum")).toBe(true);
-    });
-
-    it("should work with Map.values() iterator", () => {
-      const map = new Map<string, ICodeGenSymbols>([
-        ["/path/a.cnx", createSymbolInfo(["EnumA"])],
-        ["/path/b.cnx", createSymbolInfo(["EnumB"])],
-      ]);
-
-      const result = TransitiveEnumCollector.aggregateKnownEnums(map.values());
-
-      expect(result.size).toBe(2);
-      expect(result.has("EnumA")).toBe(true);
-      expect(result.has("EnumB")).toBe(true);
-    });
-  });
-
   describe("collect", () => {
     it("should return empty array for file with no includes", () => {
       const rootFile = join(testDir, "root.cnx");

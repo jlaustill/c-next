@@ -48,6 +48,16 @@ interface IProgram {
   sourceFiles(): ReadonlyArray<string>;
 
   /**
+   * Every enum the program declares, by transpiled C name.
+   *
+   * Header generation asks this to avoid forward-declaring an enum that an
+   * include already defines (#478). Whole-program by nature, and derived from
+   * the artifact rather than accumulated as files are transpiled -- the latter
+   * made the answer depend on topological order.
+   */
+  knownEnums(): ReadonlySet<string>;
+
+  /**
    * Integer value of a named const, or undefined when the name is not a const
    * with a literal integer initializer.
    *

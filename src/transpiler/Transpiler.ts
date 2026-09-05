@@ -2459,9 +2459,12 @@ class Transpiler {
         ]
       : cnxIncludes;
 
-    const allKnownEnums = TransitiveEnumCollector.aggregateKnownEnums(
-      this.state.getAllSymbolInfo(),
-    );
+    // #1447: read from the artifact, not accumulated from the files transpiled
+    // so far. The old form was correct only because `_sortFilesByDependency`
+    // put every dependency first, and a dependency cycle (#1167) made the order
+    // -- and so the answer -- arbitrary. `Program` is complete before any file
+    // is rendered, so this cannot depend on where in the run it is asked.
+    const allKnownEnums = this.program?.knownEnums() ?? new Set<string>();
 
     const externalTypeHeaders = ExternalTypeHeaderBuilder.build(
       this.state.getAllHeaderDirectives(),

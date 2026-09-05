@@ -64,29 +64,44 @@ class DeferredTypes {
     const settle = (type: TType): TType =>
       DeferredTypes.settleType(type, isScopeType);
 
+    // Identity is preserved wherever nothing was deferred, which is the common
+    // case by a wide margin: only a bare name inside a scope can defer, so most
+    // symbols have nothing to settle. Rebuilding them regardless would allocate
+    // a copy of the whole symbol table on every run and quietly break any
+    // consumer comparing by reference.
     if (symbol.kind === "variable") {
-      return { ...symbol, type: settle(symbol.type) };
+      const type = settle(symbol.type);
+      return type === symbol.type ? symbol : { ...symbol, type };
     }
 
     if (symbol.kind === "function") {
-      return {
-        ...symbol,
-        returnType: settle(symbol.returnType),
-        parameters: symbol.parameters.map(
-          (parameter): IParameterInfo => ({
-            ...parameter,
-            type: settle(parameter.type),
-          }),
-        ),
-      };
+      const returnType = settle(symbol.returnType);
+      let parametersChanged = false;
+      const parameters = symbol.parameters.map((parameter): IParameterInfo => {
+        const type = settle(parameter.type);
+        if (type === parameter.type) return parameter;
+        parametersChanged = true;
+        return { ...parameter, type };
+      });
+      if (returnType === symbol.returnType && !parametersChanged) {
+        return symbol;
+      }
+      return { ...symbol, returnType, parameters };
     }
 
     if (symbol.kind === "struct") {
+      let fieldsChanged = false;
       const fields = new Map<string, IStructFieldSymbol>();
       for (const [name, field] of symbol.fields) {
-        fields.set(name, { ...field, type: settle(field.type) });
+        const type = settle(field.type);
+        if (type === field.type) {
+          fields.set(name, field);
+          continue;
+        }
+        fieldsChanged = true;
+        fields.set(name, { ...field, type });
       }
-      return { ...symbol, fields };
+      return fieldsChanged ? { ...symbol, fields } : symbol;
     }
 
     // enum, bitmap, register and scope carry no TType: an enum member holds a

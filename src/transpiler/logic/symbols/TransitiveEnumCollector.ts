@@ -21,28 +21,6 @@ import IncludeTreeWalker from "../../data/IncludeTreeWalker";
  */
 class TransitiveEnumCollector {
   /**
-   * Aggregate all known enum names from multiple symbol info sources.
-   *
-   * Issue #478: Enables header generation to skip forward-declaring enums
-   * from included files by collecting all known enum names across all
-   * processed files.
-   *
-   * @param symbolInfos - Iterable of ICodeGenSymbols (e.g., from symbolCollectors.values())
-   * @returns Set of all known enum type names
-   */
-  static aggregateKnownEnums(
-    symbolInfos: Iterable<ICodeGenSymbols>,
-  ): Set<string> {
-    const allEnums = new Set<string>();
-    for (const info of symbolInfos) {
-      for (const enumName of info.knownEnums) {
-        allEnums.add(enumName);
-      }
-    }
-    return allEnums;
-  }
-
-  /**
    * Collect symbol info from all transitively included .cnx files.
    *
    * Performs depth-first traversal of the include graph, collecting
