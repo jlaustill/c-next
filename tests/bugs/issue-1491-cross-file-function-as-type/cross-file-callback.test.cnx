@@ -1,0 +1,57 @@
+// test-execution
+// test-adr: 029
+// Issue #1491: a variable typed by an INCLUDED function-as-type was rejected.
+//
+// ADR-029 makes every function declaration a type and draws no distinction
+// between a function declared here and one reached through an include. But
+// FunctionCallAnalyzer.isCallbackType answered "is this a callback type?" by
+// asking `allLocalFunctions`, a set that exists to EXCLUDE cross-file functions
+// because ADR-030 define-before-use ordering (#786) needs that distinction.
+// One set, two questions -- so calling through the variable was rejected with
+// `E0422: function 'viaInclude' called before definition`, for valid C-Next.
+//
+// The same-file pair is the CONTROL, not decoration: it is the byte-identical
+// shape with the type's function declared locally. It was accepted before the
+// fix and must keep passing, so a failure in the cross-file pair is
+// attributable to the include alone rather than to function-as-type support
+// in general.
+//
+// Both the DECLARATION and the CALL are exercised. The declaration alone was
+// already accepted before the fix, so a fixture that only declared the variable
+// would pass while the bug was live -- presence is not proof (#1222).
+//
+// `sharedNotify` covers the void case deliberately: the visible-here set the
+// fix reads is `functionReturnTypes`, and a reader could reasonably assume a
+// map named for return types skips functions that return none. It does not.
+
+#include "func-lib.cnx"
+
+u32 localHelper() {
+    return 5;
+}
+
+u32 main() {
+    // Control: same-file function-as-type, declared and called.
+    // MISRA C:2012 Rule 13.5 forbids a call in an `if` condition, so every
+    // result is bound first and then compared.
+    localHelper ownRef <- localHelper;
+    u32 ownResult <- ownRef();
+    if (ownResult != 5) return 1;
+
+    // The assertion: cross-file function-as-type. The declaration was accepted
+    // before the fix; the call was not.
+    sharedHelper viaInclude <- sharedHelper;
+    u32 includedResult <- viaInclude();
+    if (includedResult != 7) return 2;
+
+    // Both reached through their variables, pinning that the two paths produce
+    // the same shape rather than merely both compiling.
+    u32 combined <- ownResult + includedResult;
+    if (combined != 12) return 3;
+
+    // A void function is a type too, and is callable through a variable.
+    sharedNotify viaVoid <- sharedNotify;
+    viaVoid();
+
+    return 0;
+}
