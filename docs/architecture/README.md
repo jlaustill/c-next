@@ -201,7 +201,7 @@ member list within reach of every symbol in the program.
 
 #### Depth is bounded by the target, not by the language
 
-[ADR-016](../decisions/adr-016-scope.md) decides no nested scopes for v1. The reason is
+[ADR-016](../decisions/adr-016-scope.md) decides no nested scopes, permanently. The reason is
 pragmatic and has a hard edge: **C99 section 5.2.4.1 guarantees only 31 significant initial
 characters in an external identifier**, and MISRA C:2012 Rule 5.1 is evaluated within that
 budget.

@@ -14,7 +14,7 @@ C's storage class specifiers:
 
 ## Decision
 
-**Rejected for v1.** C-Next will not support the `static` keyword.
+**Permanently rejected.** C-Next will not support the `static` keyword.
 
 Visibility control is handled by `scope` (ADR-016) instead:
 

@@ -127,7 +127,7 @@ Vector table placement is handled by:
 - Platform startup code (weak handlers)
 - Vendor HALs
 
-C-Next does not provide `@section` attributes in v1. The `ISR` type enables passing handlers to platform setup code.
+C-Next does not provide `@section` attributes. Placement is the linker script's job, and the `ISR` type enables passing handlers to platform setup code.
 
 ## ISR Constraints
 

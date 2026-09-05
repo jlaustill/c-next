@@ -64,7 +64,7 @@ Because C-Next has no `break`/`continue` (ADR-026), loop bodies have no early st
 
 ### Known limitation
 
-A non-void function whose body is an infinite loop with no return (e.g. `while (1 = 1) { ... }`) is conservatively flagged, because the analyzer does not prove loop infiniteness. This is rare for value-returning functions (infinite loops are normally `void`). Recognizing constant-true loop conditions as non-terminating is a possible future enhancement; it is deliberately out of scope here to keep v1 strict and simple.
+A non-void function whose body is an infinite loop with no return (e.g. `while (1 = 1) { ... }`) is conservatively flagged, because the analyzer does not prove loop infiniteness. This is rare for value-returning functions (infinite loops are normally `void`). Recognizing constant-true loop conditions as non-terminating is a possible future enhancement; it is deliberately out of scope here to keep the rule strict and simple.
 
 ## Examples
 

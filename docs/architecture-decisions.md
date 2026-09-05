@@ -107,7 +107,7 @@ v2 (so "Research (v2 Roadmap)" holds `1xx` ADRs).
 | [ADR-002](decisions/adr-002-namespaces.md)                  | Namespaces          | Replaced by `scope` keyword (ADR-016)                                   |
 | [ADR-005](decisions/adr-005-classes-without-inheritance.md) | Classes             | Use structs + free functions instead (ADR-016)                          |
 | [ADR-018](decisions/adr-018-unions.md)                      | Unions              | Use ADR-004 register bindings or explicit byte manipulation             |
-| [ADR-038](decisions/adr-038-static-extern.md)               | Static/Extern       | Use `scope` for visibility; no `static` keyword in v1                   |
+| [ADR-038](decisions/adr-038-static-extern.md)               | Static/Extern       | Use `scope` for visibility; no `static` keyword                         |
 | [ADR-026](decisions/adr-026-break-continue.md)              | Break/Continue      | Use structured loop conditions instead                                  |
 | [ADR-028](decisions/adr-028-goto.md)                        | Goto                | Permanently rejected; use structured alternatives                       |
 | [ADR-031](decisions/adr-031-inline-functions.md)            | Inline Functions    | Trust compiler; `inline` is just a hint anyway                          |

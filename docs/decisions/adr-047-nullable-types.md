@@ -56,8 +56,8 @@ void readInput() {
 fgets(buffer, buffer.size, stdin);
 printf("Got: %s", buffer);  // ERROR!
 
-// E0902: Forbidden function
-fopen("file.txt", "r");  // ERROR: Not supported in v1
+// E0902: Forbidden function (dynamic allocation, ADR-003)
+malloc(64);  // ERROR: dynamic allocation is forbidden
 
 // E0903: NULL outside comparison
 u32 x <- NULL;  // ERROR
@@ -78,7 +78,7 @@ string<64>? result <- fgets(...);  // ERROR: No nullable types
 
 ## Forbidden Functions (ADR-103)
 
-These functions return pointers that cannot be safely handled in C-Next v1:
+These functions return pointers that C-Next cannot handle safely:
 
 | Function  | Reason                                                   |
 | --------- | -------------------------------------------------------- |
@@ -95,12 +95,12 @@ These functions return pointers that cannot be safely handled in C-Next v1:
 
 ## Error Codes
 
-| Code  | Message                                                        |
-| ----- | -------------------------------------------------------------- |
-| E0901 | C library function 'X' can return NULL - must check result     |
-| E0902 | C library function 'X' returns a pointer - not supported in v1 |
-| E0903 | NULL can only be used in comparison context                    |
-| E0904 | Cannot store 'X' return value in variable 'Y'                  |
+| Code  | Message                                                    |
+| ----- | ---------------------------------------------------------- |
+| E0901 | C library function 'X' can return NULL - must check result |
+| E0902 | Dynamic allocation function 'X' is forbidden (ADR-003)     |
+| E0903 | NULL can only be used in comparison context                |
+| E0904 | Cannot store 'X' return value in variable 'Y'              |
 
 ## Why This Approach
 

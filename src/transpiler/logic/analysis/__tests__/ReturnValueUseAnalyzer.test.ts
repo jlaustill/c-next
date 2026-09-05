@@ -197,7 +197,7 @@ describe("ReturnValueUseAnalyzer", () => {
     });
   });
 
-  describe("out of scope for v1", () => {
+  describe("out of scope", () => {
     it("ignores a member access on a call result", () => {
       // ADR-070 puts `foo().field;` out of scope: the statement's value is the
       // member, not the call, and the form is vanishingly rare.
