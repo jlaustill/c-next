@@ -28,7 +28,7 @@ function parse(source: string) {
 function analyze(source: string) {
   const tree = parse(source);
   CodeGenState.symbols = TSymbolInfoAdapter.convert(
-    CNextResolver.resolve(tree, "test.cnx"),
+    CNextResolver.resolve(tree, "test.cnx").symbols,
   );
   // Same precondition as E0426: the analyzer declines unless the transpiler
   // knows the file's whole name universe. These sources include nothing.

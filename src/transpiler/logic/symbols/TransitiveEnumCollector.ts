@@ -8,6 +8,7 @@
  */
 
 import ICodeGenSymbols from "../../types/ICodeGenSymbols";
+import type ITransitiveIncludes from "../../types/ITransitiveIncludes";
 import IncludeTreeWalker from "../../data/IncludeTreeWalker";
 
 /**
@@ -51,24 +52,47 @@ class TransitiveEnumCollector {
    * @param filePath - The root file to start collecting from
    * @param symbolInfoByFile - Map of file paths to their symbol info
    * @param includeDirs - Additional directories to search for includes
-   * @returns Array of ICodeGenSymbols from all transitively included .cnx files
+   * @returns the closure's `ICodeGenSymbols` and the paths they came from
    */
   static collect(
     filePath: string,
     symbolInfoByFile: ReadonlyMap<string, ICodeGenSymbols>,
     includeDirs: readonly string[],
-  ): ICodeGenSymbols[] {
-    const result: ICodeGenSymbols[] = [];
+  ): ITransitiveIncludes {
+    return TransitiveEnumCollector._gather(
+      (visit) => IncludeTreeWalker.walkFromFile(filePath, includeDirs, visit),
+      symbolInfoByFile,
+    );
+  }
 
-    // Issue #591: Use shared IncludeTreeWalker for traversal
-    IncludeTreeWalker.walkFromFile(filePath, includeDirs, (file) => {
+  /**
+   * The body both entry points share.
+   *
+   * #1472: these two methods differed only in which `IncludeTreeWalker` entry
+   * they called -- the per-file work was written out twice, so adding `paths`
+   * to the walk would have been two edits that had to agree. They are one edit
+   * now, which is the point: "if two code paths must produce identical output,
+   * they MUST share the same logic" (CLAUDE.md).
+   *
+   * @param walk - invokes the appropriate walker with the visitor given to it
+   * @param symbolInfoByFile - Map of file paths to their symbol info
+   */
+  private static _gather(
+    walk: (visit: (file: { path: string }) => void) => void,
+    symbolInfoByFile: ReadonlyMap<string, ICodeGenSymbols>,
+  ): ITransitiveIncludes {
+    const sources: ICodeGenSymbols[] = [];
+    const paths: string[] = [];
+
+    walk((file) => {
+      paths.push(file.path);
       const externalInfo = symbolInfoByFile.get(file.path);
       if (externalInfo) {
-        result.push(externalInfo);
+        sources.push(externalInfo);
       }
     });
 
-    return result;
+    return { sources, paths };
   }
 
   /**
@@ -81,24 +105,17 @@ class TransitiveEnumCollector {
    * @param cnextIncludes - Array of resolved C-Next include files
    * @param symbolInfoByFile - Map of file paths to their symbol info
    * @param includeDirs - Additional directories to search for nested includes
-   * @returns Array of ICodeGenSymbols from all transitively included .cnx files
+   * @returns the closure's `ICodeGenSymbols` and the paths they came from
    */
   static collectForStandalone(
     cnextIncludes: ReadonlyArray<{ path: string }>,
     symbolInfoByFile: ReadonlyMap<string, ICodeGenSymbols>,
     includeDirs: readonly string[],
-  ): ICodeGenSymbols[] {
-    const result: ICodeGenSymbols[] = [];
-
-    // Issue #591: Use shared IncludeTreeWalker for traversal
-    IncludeTreeWalker.walk(cnextIncludes, includeDirs, (file) => {
-      const externalInfo = symbolInfoByFile.get(file.path);
-      if (externalInfo) {
-        result.push(externalInfo);
-      }
-    });
-
-    return result;
+  ): ITransitiveIncludes {
+    return TransitiveEnumCollector._gather(
+      (visit) => IncludeTreeWalker.walk(cnextIncludes, includeDirs, visit),
+      symbolInfoByFile,
+    );
   }
 }
 

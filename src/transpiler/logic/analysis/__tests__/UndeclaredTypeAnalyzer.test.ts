@@ -35,7 +35,7 @@ function parse(source: string) {
 function analyze(source: string) {
   const tree = parse(source);
   CodeGenState.symbols = TSymbolInfoAdapter.convert(
-    CNextResolver.resolve(tree, "test.cnx"),
+    CNextResolver.resolve(tree, "test.cnx").symbols,
   );
   // Defaults to `true`, and `reset()` restores it to `true` -- the analyzer
   // declines unless the transpiler knows the file's whole name universe, so the
@@ -174,7 +174,7 @@ describe("UndeclaredTypeAnalyzer", () => {
       // status quo -- so the analyzer declines rather than guesses.
       const tree = parse(`u32 main() { Nowhere c; return 0; }`);
       CodeGenState.symbols = TSymbolInfoAdapter.convert(
-        CNextResolver.resolve(tree, "test.cnx"),
+        CNextResolver.resolve(tree, "test.cnx").symbols,
       );
       CodeGenState.currentFileReachesForeignHeader = true;
       expect(new UndeclaredTypeAnalyzer().analyze(tree)).toHaveLength(0);

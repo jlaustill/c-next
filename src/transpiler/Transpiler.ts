@@ -33,6 +33,7 @@ import HeaderGeneratorUtils from "./output/headers/HeaderGeneratorUtils";
 import IHeaderEmissionFacts from "./output/headers/types/IHeaderEmissionFacts";
 import IHeaderCallbackType from "./types/IHeaderCallbackType";
 import ICodeGenSymbols from "./types/ICodeGenSymbols";
+import type ITransitiveIncludes from "./types/ITransitiveIncludes";
 import IncludeExtractor from "./logic/IncludeExtractor";
 import SymbolTable from "./logic/symbols/SymbolTable";
 import ESourceLanguage from "../utils/types/ESourceLanguage";
@@ -178,6 +179,26 @@ class Transpiler {
    * stays free of ANTLR contexts (#1317).
    */
   private readonly declaredFiles = new Map<string, IDeclaredFile>();
+
+  /**
+   * What each file DECLARES, per ADR-057 -- `IFileSymbols.declaredScopeTypes`,
+   * retained so an includer can be seeded from its includes' own artifacts.
+   *
+   * #1472: the seed used to be re-derived by merging the known-enum,
+   * known-struct and known-bitmap sets of `ICodeGenSymbols` -- the CODEGEN view
+   * of the same fact, and a wider set than ADR-057 asks about, since it also
+   * holds top-level types that no qualified probe can match. Two layers each
+   * deriving "which scope types exist" is the condition CLAUDE.md describes as
+   * agreeing by coincidence; Declare authors it once, and this map is where the
+   * answer is kept between files.
+   *
+   * Every file, not only those producing output: a symbol-only file is exactly
+   * the one an includer needs the answer from.
+   */
+  private readonly declaredScopeTypesByFile = new Map<
+    string,
+    ReadonlySet<string>
+  >();
   /**
    * Issue #593: Centralized analyzer for cross-file const inference in C++ mode.
    * Accumulates parameter modifications and param lists across all processed files.
@@ -357,6 +378,7 @@ class Transpiler {
       // reddened nothing. Two sites for one invariant is the duplication CLAUDE.md
       // calls the worst anti-pattern, and the unreachable half is the #1143 shape.
       this.declaredFiles.clear();
+      this.declaredScopeTypesByFile.clear();
     }
   }
 
@@ -712,7 +734,7 @@ class Transpiler {
       const externalEnumSources = this._collectExternalEnumSources(
         sourcePath,
         file.cnextIncludes,
-      );
+      ).sources;
       let symbolInfo = TSymbolInfoAdapter.convert(declared.symbols);
 
       if (externalEnumSources.length > 0) {
@@ -2477,17 +2499,34 @@ class Transpiler {
     tree: Parser.ProgramContext,
     sourcePath: string,
     cnextIncludes?: ReadonlyArray<{ path: string }>,
-  ): { symbols: TSymbol[]; externalEnumSources: ICodeGenSymbols[] } {
-    const externalEnumSources = this._collectExternalEnumSources(
+  ): {
+    symbols: readonly TSymbol[];
+    externalEnumSources: readonly ICodeGenSymbols[];
+  } {
+    const included = this._collectExternalEnumSources(
       sourcePath,
       cnextIncludes,
     );
-    const visibleScopeTypes =
-      TSymbolInfoAdapter.collectScopeTypeNames(externalEnumSources);
+
+    // #1472: the seed is the union of what each INCLUDED FILE DECLARES, read
+    // from Declare's own artifact. Files are visited in dependency order, so
+    // every include's entry is already present.
+    const visibleScopeTypes = new Set<string>();
+    for (const includedPath of included.paths) {
+      const declaredThere = this.declaredScopeTypesByFile.get(includedPath);
+      if (declaredThere) {
+        for (const scopeType of declaredThere) {
+          visibleScopeTypes.add(scopeType);
+        }
+      }
+    }
+
+    const declared = CNextResolver.resolve(tree, sourcePath, visibleScopeTypes);
+    this.declaredScopeTypesByFile.set(sourcePath, declared.declaredScopeTypes);
 
     return {
-      symbols: CNextResolver.resolve(tree, sourcePath, visibleScopeTypes),
-      externalEnumSources,
+      symbols: declared.symbols,
+      externalEnumSources: included.sources,
     };
   }
 
@@ -2497,7 +2536,7 @@ class Transpiler {
   private _collectExternalEnumSources(
     sourcePath: string,
     cnextIncludes?: ReadonlyArray<{ path: string }>,
-  ): ICodeGenSymbols[] {
+  ): ITransitiveIncludes {
     const symbolInfoByFile = this.state.getSymbolInfoByFileMap();
 
     if (cnextIncludes) {

@@ -22,7 +22,7 @@ describe("CNextResolver Integration", () => {
         }
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx");
+      const symbols = CNextResolver.resolve(tree, "test.cnx").symbols;
 
       expect(symbols).toHaveLength(1);
       expect(SymbolGuards.isStruct(symbols[0])).toBe(true);
@@ -38,7 +38,7 @@ describe("CNextResolver Integration", () => {
         }
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx");
+      const symbols = CNextResolver.resolve(tree, "test.cnx").symbols;
 
       expect(symbols).toHaveLength(1);
       expect(SymbolGuards.isEnum(symbols[0])).toBe(true);
@@ -50,7 +50,7 @@ describe("CNextResolver Integration", () => {
         }
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx");
+      const symbols = CNextResolver.resolve(tree, "test.cnx").symbols;
 
       expect(symbols).toHaveLength(1);
       expect(SymbolGuards.isFunction(symbols[0])).toBe(true);
@@ -62,7 +62,7 @@ describe("CNextResolver Integration", () => {
         u32 counter <- 0;
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx");
+      const symbols = CNextResolver.resolve(tree, "test.cnx").symbols;
 
       expect(symbols).toHaveLength(1);
       expect(SymbolGuards.isVariable(symbols[0])).toBe(true);
@@ -79,7 +79,7 @@ describe("CNextResolver Integration", () => {
         }
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx");
+      const symbols = CNextResolver.resolve(tree, "test.cnx").symbols;
 
       expect(symbols).toHaveLength(1);
       expect(SymbolGuards.isBitmap(symbols[0])).toBe(true);
@@ -94,7 +94,7 @@ describe("CNextResolver Integration", () => {
         }
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx");
+      const symbols = CNextResolver.resolve(tree, "test.cnx").symbols;
 
       expect(symbols).toHaveLength(1);
       expect(SymbolGuards.isRegister(symbols[0])).toBe(true);
@@ -117,7 +117,7 @@ describe("CNextResolver Integration", () => {
         }
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx");
+      const symbols = CNextResolver.resolve(tree, "test.cnx").symbols;
 
       // Scope + 3 members
       expect(symbols).toHaveLength(4);
@@ -163,7 +163,7 @@ describe("CNextResolver Integration", () => {
         }
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx");
+      const symbols = CNextResolver.resolve(tree, "test.cnx").symbols;
 
       // Scope + enum + struct
       expect(symbols).toHaveLength(3);
@@ -196,7 +196,7 @@ describe("CNextResolver Integration", () => {
         }
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx");
+      const symbols = CNextResolver.resolve(tree, "test.cnx").symbols;
 
       expect(symbols).toHaveLength(2);
 
@@ -223,7 +223,7 @@ describe("CNextResolver Integration", () => {
         }
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx");
+      const symbols = CNextResolver.resolve(tree, "test.cnx").symbols;
 
       // Scope + bitmap + register
       expect(symbols).toHaveLength(3);
@@ -282,7 +282,7 @@ describe("CNextResolver Integration", () => {
         }
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx");
+      const symbols = CNextResolver.resolve(tree, "test.cnx").symbols;
 
       // Count symbols:
       // 1 struct (Point)
@@ -338,7 +338,7 @@ describe("CNextResolver Integration", () => {
         }
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx");
+      const symbols = CNextResolver.resolve(tree, "test.cnx").symbols;
 
       // 2 scopes + 2 functions each = 6
       expect(symbols).toHaveLength(6);
@@ -371,7 +371,7 @@ describe("CNextResolver Integration", () => {
     it("returns empty array for empty program", () => {
       const code = ``;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx");
+      const symbols = CNextResolver.resolve(tree, "test.cnx").symbols;
 
       expect(symbols).toEqual([]);
     });
@@ -384,7 +384,7 @@ describe("CNextResolver Integration", () => {
         bool arr[SIZE];
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx");
+      const symbols = CNextResolver.resolve(tree, "test.cnx").symbols;
 
       expect(symbols).toHaveLength(2);
 
@@ -404,7 +404,7 @@ describe("CNextResolver Integration", () => {
         }
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx");
+      const symbols = CNextResolver.resolve(tree, "test.cnx").symbols;
 
       // Find buffer by bare name with scope reference
       const bufferSymbol = symbols.find(
@@ -423,7 +423,7 @@ describe("CNextResolver Integration", () => {
         bool hex_arr[HEX_SIZE];
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx");
+      const symbols = CNextResolver.resolve(tree, "test.cnx").symbols;
 
       const arrSymbol = symbols.find((s) => s.name === "hex_arr");
       expect(arrSymbol).toBeDefined();
@@ -438,7 +438,7 @@ describe("CNextResolver Integration", () => {
         i16 bin_arr[BIN_SIZE];
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx");
+      const symbols = CNextResolver.resolve(tree, "test.cnx").symbols;
 
       const arrSymbol = symbols.find((s) => s.name === "bin_arr");
       expect(arrSymbol).toBeDefined();
@@ -453,7 +453,7 @@ describe("CNextResolver Integration", () => {
         bool arr[4];
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx");
+      const symbols = CNextResolver.resolve(tree, "test.cnx").symbols;
 
       // Should still parse without error
       expect(symbols).toHaveLength(2);
@@ -464,7 +464,7 @@ describe("CNextResolver Integration", () => {
         bool arr[DEVICE_COUNT];
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx");
+      const symbols = CNextResolver.resolve(tree, "test.cnx").symbols;
 
       // Issue #455: Unresolved identifiers (like C macros) should pass through
       const arrSymbol = symbols.find((s) => s.name === "arr");
@@ -481,7 +481,7 @@ describe("CNextResolver Integration", () => {
         bool arr[SIZE * 2];
       `;
       const tree = parse(code);
-      const symbols = CNextResolver.resolve(tree, "test.cnx");
+      const symbols = CNextResolver.resolve(tree, "test.cnx").symbols;
 
       // Issue #455: Complex expressions should pass through as strings
       const arrSymbol = symbols.find((s) => s.name === "arr");
@@ -492,11 +492,66 @@ describe("CNextResolver Integration", () => {
       }
     });
   });
+  describe("IFileSymbols: the per-file artifact (#1472)", () => {
+    it("declaredScopeTypes holds what THIS file declares", () => {
+      const code = `
+        scope Local {
+          public struct S { u8 a; }
+          public enum E { x, y }
+        }
+      `;
+      const declared = CNextResolver.resolve(parse(code), "test.cnx");
+
+      expect(declared.sourceFile).toBe("test.cnx");
+      expect([...declared.declaredScopeTypes].sort()).toEqual([
+        "Local__E",
+        "Local__S",
+      ]);
+    });
+
+    it("does NOT let the cross-file seed leak onto the per-file artifact", () => {
+      // The negative control. Declare used to collect local scope types INTO the
+      // seeded set, so "declared here" and "visible here" were one object and
+      // neither could be read back. Collapsing them again passes every other
+      // test in this file and fails only this one -- which is the whole reason
+      // it is here, because that collapse is what makes the artifact a lie.
+      const code = `scope Local { public struct S { u8 a; } }`;
+      const seed = new Set(["Elsewhere__T"]);
+
+      const declared = CNextResolver.resolve(parse(code), "test.cnx", seed);
+
+      expect(declared.declaredScopeTypes.has("Local__S")).toBe(true);
+      expect(declared.declaredScopeTypes.has("Elsewhere__T")).toBe(false);
+    });
+
+    it("still resolves a bare type against the seed it was given", () => {
+      // The positive half: excluding the seed from the ARTIFACT must not
+      // exclude it from RESOLUTION. Without this pair, a change that dropped
+      // the seed entirely would still satisfy the negative control above.
+      const code = `
+        scope Spanned {
+          public Point origin() { ... }
+        }
+      `.replace("...", "return this.stored;");
+      const seed = new Set(["Spanned__Point"]);
+
+      const declared = CNextResolver.resolve(parse(code), "test.cnx", seed);
+      const origin = declared.symbols.find((sym) => sym.name === "origin");
+
+      expect(origin && SymbolGuards.isFunction(origin)).toBe(true);
+      if (origin && SymbolGuards.isFunction(origin)) {
+        expect(TypeResolver.getTypeName(origin.returnType)).toBe(
+          "Spanned__Point",
+        );
+      }
+    });
+  });
+
   describe("ADR-057 scope type qualification (#1130)", () => {
     const typeOf = (
-      symbols: ReturnType<typeof CNextResolver.resolve>,
+      declared: ReturnType<typeof CNextResolver.resolve>,
       name: string,
-    ) => symbols.find((sym) => sym.name === name);
+    ) => declared.symbols.find((sym) => sym.name === name);
 
     it("qualifies a bare scope-local type at a parameter and return position", () => {
       const code = `

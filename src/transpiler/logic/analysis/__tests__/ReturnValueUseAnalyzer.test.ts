@@ -27,7 +27,7 @@ function parse(source: string) {
 function analyze(source: string) {
   const tree = parse(source);
   CodeGenState.symbols = TSymbolInfoAdapter.convert(
-    CNextResolver.resolve(tree, "test.cnx"),
+    CNextResolver.resolve(tree, "test.cnx").symbols,
   );
   return ReturnValueUseAnalyzer.analyze(tree);
 }

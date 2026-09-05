@@ -133,7 +133,7 @@ describe("TransitiveEnumCollector", () => {
         rootFile,
         symbolInfoByFile,
         [],
-      );
+      ).sources;
 
       expect(result).toEqual([]);
     });
@@ -155,7 +155,7 @@ describe("TransitiveEnumCollector", () => {
         rootFile,
         symbolInfoByFile,
         [],
-      );
+      ).sources;
 
       expect(result).toHaveLength(1);
       expect(result[0].knownEnums.has("Status")).toBe(true);
@@ -182,7 +182,7 @@ describe("TransitiveEnumCollector", () => {
         rootFile,
         symbolInfoByFile,
         [],
-      );
+      ).sources;
 
       expect(result).toHaveLength(2);
       const enumNames = result.flatMap((info) => Array.from(info.knownEnums));
@@ -210,7 +210,7 @@ describe("TransitiveEnumCollector", () => {
         fileA,
         symbolInfoByFile,
         [],
-      );
+      ).sources;
 
       // When collecting from A: we get B's info (since A includes B)
       // The circular include from B->A doesn't add A's info because:
@@ -233,7 +233,7 @@ describe("TransitiveEnumCollector", () => {
         rootFile,
         symbolInfoByFile,
         [],
-      );
+      ).sources;
 
       expect(result).toEqual([]);
     });
@@ -252,7 +252,7 @@ describe("TransitiveEnumCollector", () => {
         rootFile,
         symbolInfoByFile,
         [],
-      );
+      ).sources;
 
       // Included file exists but has no symbol info
       expect(result).toEqual([]);
@@ -279,7 +279,7 @@ describe("TransitiveEnumCollector", () => {
         rootFile,
         symbolInfoByFile,
         [includeDir],
-      );
+      ).sources;
 
       expect(result).toHaveLength(1);
       expect(result[0].knownEnums.has("Status")).toBe(true);
@@ -308,7 +308,7 @@ describe("TransitiveEnumCollector", () => {
         rootFile,
         symbolInfoByFile,
         [],
-      );
+      ).sources;
 
       // Should only include .cnx file info
       expect(result).toHaveLength(1);
@@ -338,7 +338,7 @@ describe("TransitiveEnumCollector", () => {
         rootFile,
         symbolInfoByFile,
         [],
-      );
+      ).sources;
 
       expect(result).toHaveLength(2);
       const allEnums = result.flatMap((info) => Array.from(info.knownEnums));
@@ -355,7 +355,7 @@ describe("TransitiveEnumCollector", () => {
         rootFile,
         symbolInfoByFile,
         [],
-      );
+      ).sources;
 
       expect(result).toEqual([]);
     });
@@ -369,7 +369,7 @@ describe("TransitiveEnumCollector", () => {
         [],
         symbolInfoByFile,
         [],
-      );
+      ).sources;
 
       expect(result).toEqual([]);
     });
@@ -387,7 +387,7 @@ describe("TransitiveEnumCollector", () => {
         [{ path: includedFile }],
         symbolInfoByFile,
         [],
-      );
+      ).sources;
 
       expect(result).toHaveLength(1);
       expect(result[0].knownEnums.has("Status")).toBe(true);
@@ -411,7 +411,7 @@ describe("TransitiveEnumCollector", () => {
         [{ path: file1 }, { path: file2 }],
         symbolInfoByFile,
         [],
-      );
+      ).sources;
 
       expect(result).toHaveLength(2);
       const allEnums = result.flatMap((info) => Array.from(info.knownEnums));
@@ -430,7 +430,7 @@ describe("TransitiveEnumCollector", () => {
         [{ path: includedFile }],
         symbolInfoByFile,
         [],
-      );
+      ).sources;
 
       expect(result).toEqual([]);
     });
@@ -457,7 +457,7 @@ describe("TransitiveEnumCollector", () => {
         [{ path: includeFile }],
         symbolInfoByFile,
         [],
-      );
+      ).sources;
 
       expect(result).toHaveLength(2);
       const allEnums = result.flatMap((info) => Array.from(info.knownEnums));
@@ -482,7 +482,7 @@ describe("TransitiveEnumCollector", () => {
         [{ path: file1 }, { path: file2 }],
         symbolInfoByFile,
         [],
-      );
+      ).sources;
 
       // Should only include the file with symbol info
       expect(result).toHaveLength(1);
