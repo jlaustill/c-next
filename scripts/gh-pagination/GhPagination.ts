@@ -125,9 +125,18 @@ class GhPagination {
    * YAML `#`, a TypeScript `//`, and a doc-comment `*` -- this file's own header
    * writes `gh api` in prose, and so do three comments in the skills that exist
    * precisely to describe the trap.
+   *
+   * The third case is markdown INLINE CODE, decided by backtick parity: an odd
+   * number of backticks earlier on the line means the invocation is being named,
+   * not issued. Found the hard way -- documenting this very rule in CLAUDE.md
+   * ("`gh issue list` and `gh pr list` default to 30") made the gate fail on the
+   * sentence describing it. An assertion proves a check fires; only a control
+   * proves it fires ONLY where it should.
    */
   static isProse(line: string, column: number): boolean {
-    if (line.slice(0, column).includes("#")) return true;
+    const prefix = line.slice(0, column);
+    if (prefix.includes("#")) return true;
+    if ((prefix.match(/`/g) ?? []).length % 2 === 1) return true;
     return /^\s*(?:\*|\/\/)/.test(line);
   }
 

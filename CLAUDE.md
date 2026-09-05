@@ -140,6 +140,23 @@ exit code too. To check a paginated result rather than trust it, compare
 `cut -f1 out | sort -u | wc -l` against `wc -l`; equal means no page repeated. For a handful
 of known items, N separate `node(id:)` queries are faster and cannot loop at all.
 
+**The same cap applies to every list, not just GraphQL — and this section used to omit it.**
+`gh issue list` and `gh pr list` default to **30** (`-L, --limit int … (default 30)`), and a
+REST collection such as `.../issues/<n>/comments` pages at 30 without `--paginate`. A filter
+over a truncated page returns a shorter answer, never an error. Enforced by
+`npm run gh:pagination:check` in the **`lint`** job, which has no exemption mechanism.
+
+**They sort by CREATED descending, not updated.** That distinction is the whole trap, and
+getting it backwards is what made this recur: `/issue-check` recommended #1449 as free work
+while it was assigned, in `WIP`, and 34 minutes into planning, because the fix for #1416 left
+behind a comment saying `gh` "returns the most recently updated first". If that were true,
+recency of _activity_ would keep a row in the page and an **assigned** issue would be safe
+unbounded. It is not: #1449 was the 2nd-most-recently-**updated** issue in the repo and still
+outside the default page. Prefer a server-side filter where one exists — `--assignee "*"`
+answered in 1 row what filtering 257 could not — then `--limit`, then assert the returned
+count is strictly below it. `--paginate` concatenates pages, so a per-item `--jq '.[] | …'`
+is safe under it but an aggregate `--jq 'length'` prints once **per page**.
+
 **Refactoring with ts-morph**: `ts-morph` is a direct devDependency (28.x). Use it for
 anything that moves or renames across files — a relative specifier changes differently
 depending on where the IMPORTER sits, so `../../utils` from one directory and `../../../utils`

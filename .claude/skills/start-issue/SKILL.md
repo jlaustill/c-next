@@ -102,7 +102,7 @@ q='query($endCursor: String) { user(login: "jlaustill") { projectV2(number: 1) {
     pageInfo { hasNextPage endCursor }
     nodes {
       content { ... on Issue { number } }
-      fieldValues(first: 20) { nodes {
+      fieldValues(first: 100) { nodes {
         ... on ProjectV2ItemFieldSingleSelectValue {
           name field { ... on ProjectV2FieldCommon { name } } } } }
     } } } } }'
@@ -166,7 +166,7 @@ query($endCursor: String) { user(login: "jlaustill") { projectV2(number: 1) {
     pageInfo { hasNextPage endCursor }
     nodes {
       content { ... on Issue { number } }
-      fieldValues(first: 20) { nodes {
+      fieldValues(first: 100) { nodes {
         ... on ProjectV2ItemFieldTextValue {
           text field { ... on ProjectV2FieldCommon { name } } } } }
     } } } } }' \
@@ -220,7 +220,10 @@ IF commits reference this issue:
 gh api repos/jlaustill/c-next/issues/<ISSUE> \
   --jq '{title, body, labels: [.labels[].name], milestone: .milestone.title, created_at, state}'
 
-gh api repos/jlaustill/c-next/issues/<ISSUE>/comments \
+# --paginate is REQUIRED. This endpoint pages at 30 and returns comments
+# ASCENDING by creation, so the tail that drops is the NEWEST — the half of the
+# history that says what the card looks like today (#1416).
+gh api --paginate 'repos/jlaustill/c-next/issues/<ISSUE>/comments?per_page=100' \
   --jq '.[] | {author: .user.login, created: .created_at, body}'
 ```
 

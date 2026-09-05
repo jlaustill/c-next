@@ -73,14 +73,25 @@ jobs:
           CONTENT_ID="${{ github.event.issue.node_id || github.event.pull_request.node_id }}"
 
           # One query for the project, its Status field, and every option id.
-          if ! PROJECT_JSON=$(gh api graphql -f owner="$PROJECT_OWNER" -f query='
-            query($owner: String!) {
+          #
+          # --paginate with a cursor named $endCursor, which is the only name it
+          # advances: on any other name `after` stays null and the query
+          # re-fetches page one forever. Without it, projectsV2(first: 100) is a
+          # capped page and a project past it makes the select() below report
+          # "No project titled ..." -- a lookup failure where the truth is a
+          # truncated list (#1416).
+          #
+          # fields is 100, not 50: --paginate cannot advance a NESTED connection,
+          # so an inner cap needs headroom instead. 14 fields exist today.
+          if ! PROJECT_JSON=$(gh api graphql --paginate -f owner="$PROJECT_OWNER" -f query='
+            query($owner: String!, $endCursor: String) {
               user(login: $owner) {
-                projectsV2(first: 100) {
+                projectsV2(first: 100, after: $endCursor) {
+                  pageInfo { hasNextPage endCursor }
                   nodes {
                     id
                     title
-                    fields(first: 50) {
+                    fields(first: 100) {
                       nodes {
                         ... on ProjectV2SingleSelectField {
                           id

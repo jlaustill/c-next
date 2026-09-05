@@ -4,6 +4,24 @@
 
 set -e
 
+# Count open issues, optionally filtered to one label.
+#
+# One definition for all six call sites. Each used to inline its own
+# `gh api .../issues?...`, which carried two defects six times over: the REST
+# endpoint pages at 30 with no `--paginate`, so this printed `Open Issues: 30`
+# against a true 257; and `/issues` returns pull requests too, so even the
+# capped number conflated them. `gh issue list` excludes PRs natively and
+# `--limit` is the bound (#1416).
+open_issue_count() {
+    if [[ -n "${1:-}" ]]; then
+        gh issue list --state open --limit 1000 --label "$1" \
+            --json number --jq 'length' 2>/dev/null || echo 0
+    else
+        gh issue list --state open --limit 1000 \
+            --json number --jq 'length' 2>/dev/null || echo 0
+    fi
+}
+
 echo "========================================"
 echo "  C-Next Test Coverage - Progress"
 echo "========================================"
@@ -38,12 +56,10 @@ echo ""
 # GitHub Issues
 if command -v gh &> /dev/null; then
     echo "🎫 GitHub Issues:"
-    # jq filter for counting array length
-    JQ_LENGTH='. | length'
-    OPEN_ISSUES=$(gh api repos/jlaustill/c-next/issues?state=open 2>/dev/null | jq -r '.[] | .number' | wc -l)
-    HIGH=$(gh api repos/jlaustill/c-next/issues?labels="priority:%20high" 2>/dev/null | jq "$JQ_LENGTH")
-    MEDIUM=$(gh api repos/jlaustill/c-next/issues?labels="priority:%20medium" 2>/dev/null | jq "$JQ_LENGTH")
-    LOW=$(gh api repos/jlaustill/c-next/issues?labels="priority:%20low" 2>/dev/null | jq "$JQ_LENGTH")
+    HIGH=$(open_issue_count "priority: high")
+    MEDIUM=$(open_issue_count "priority: medium")
+    LOW=$(open_issue_count "priority: low")
+    OPEN_ISSUES=$(open_issue_count)
 
     echo "  Open Issues:        $OPEN_ISSUES"
     echo "    - HIGH:           $HIGH 🔴"
@@ -89,12 +105,12 @@ if [[ "$SKIPPED" -gt 0 ]]; then
 fi
 
 if command -v gh &> /dev/null; then
-    TEST_BLOCKED=$(gh api repos/jlaustill/c-next/issues?labels=test-blocked 2>/dev/null | jq "$JQ_LENGTH")
+    TEST_BLOCKED=$(open_issue_count "test-blocked")
     if [[ "$TEST_BLOCKED" -gt 0 ]]; then
         echo "  🔨 Fix $TEST_BLOCKED bug(s) to unblock tests"
     fi
 
-    GOOD_FIRST=$(gh api repos/jlaustill/c-next/issues?labels="good%20first%20issue" 2>/dev/null | jq "$JQ_LENGTH")
+    GOOD_FIRST=$(open_issue_count "good first issue")
     if [[ "$GOOD_FIRST" -gt 0 ]]; then
         echo "  ✨ $GOOD_FIRST good first issue(s) available"
     fi

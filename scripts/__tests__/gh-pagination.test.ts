@@ -143,8 +143,21 @@ describe("GhPagination — prose is not a command", () => {
     ["a TypeScript comment", `// ${GH} issue list --state open`],
     ["a doc-comment line", ` * ${GH} api repos/o/r/issues?state=open`],
     ["a trailing comment", `run something  # ${GH} pr list --state open`],
+    ["markdown inline code", `Never write \`${GH} issue list\` unbounded.`],
+    [
+      "two inline spans on one line",
+      `\`${GH} issue list\` and \`${GH} pr list\` default to 30.`,
+    ],
   ])("ignores %s", (_name, text) => {
     expect(kinds(text)).toEqual([]);
+  });
+
+  // The control that a fence is still scanned: prose blindness must not become
+  // blindness. Backtick parity is even here, so this IS a command.
+  it("still flags a real command on a line with no open backtick", () => {
+    expect(kinds(`  ${GH} issue list --state open --json number`)).toEqual([
+      "unbounded-list",
+    ]);
   });
 });
 

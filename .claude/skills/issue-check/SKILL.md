@@ -48,9 +48,19 @@ Identify everything currently being worked on so we don't recommend conflicting 
 #### 1a: Open Pull Requests
 
 ```bash
-# Get all open PRs with their linked issues and branch names
-gh pr list --state open --json number,title,headRefName,body,author,updatedAt,labels \
+# Get all open PRs with their linked issues and branch names.
+# --limit is REQUIRED: this command defaults to 30, sorted by CREATED
+# descending. An open PR older than the 30 newest reads as absent, and the
+# issue it is fixing then reads as free work (#1416).
+gh pr list --state open --limit 1000 \
+  --json number,title,headRefName,body,author,updatedAt,labels \
   --jq '.[] | {number, title, branch: .headRefName, author: .author.login, updated: .updatedAt, labels: [.labels[].name], body: .body[:200]}'
+```
+
+```
+ASSERT the returned PR count is strictly less than the --limit above. If it
+  equals the limit the list was truncated: SAY SO and stop, rather than
+  detecting in-flight work from a page you can only partly see.
 ```
 
 ```
@@ -66,12 +76,23 @@ FOR each open PR:
 #### 1b: Assigned Issues
 
 ```bash
-# Issues assigned to anyone
-gh issue list --state open --json number,title,assignees,labels,milestone,updatedAt,createdAt,comments \
-  --jq '.[] | select(.assignees | length > 0) | {number, title, assignees: [.assignees[].login], labels: [.labels[].name]}'
+# Issues assigned to anyone.
+# `--assignee "*"` filters on the SERVER, so the answer does not depend on the
+# page size at all -- it returned 1 row where the unfiltered list returns 257.
+# --limit is the bound behind it; the ASSERT below is what survives growth.
+#
+# Filtering an UNBOUNDED list here is what recommended #1449 as the top new pick
+# while it was assigned, in WIP, and 34 minutes into planning. This command
+# defaults to 30 sorted by CREATED descending, and #1449 sat outside that page
+# despite being the 2nd-most-recently-UPDATED issue in the repo (#1416).
+gh issue list --state open --assignee "*" --limit 1000 \
+  --json number,title,assignees,labels,milestone,updatedAt,createdAt \
+  --jq '.[] | {number, title, assignees: [.assignees[].login], labels: [.labels[].name]}'
 ```
 
 ```
+ASSERT the returned count is strictly less than the --limit above, as in 1a.
+
 ADD assigned issues to IN_FLIGHT_ISSUES (if not already there)
 ```
 
@@ -97,13 +118,19 @@ Where an issue sits, what is blocking it, and which release it ships in live on 
 # --paginate is REQUIRED: the board is past 200 items, and a bare
 # items(first: 100) truncates silently — every card past the first page
 # reads as "not on the board" — no blocker, no status, no sprint.
+#
+# fieldValues is 100, not 20. --paginate cannot advance a NESTED connection, so
+# an inner cap needs headroom rather than pagination. The board has 14 fields
+# and `Blocked by` is the 14th and last, so at the old cap of 20 six new fields
+# would have dropped it — and every card would then read as unblocked, silently.
+# 100 is the GraphQL connection maximum (#1416).
 gh api graphql --paginate -f query='
 query($endCursor: String) { user(login: "jlaustill") { projectV2(number: 1) {
   items(first: 100, after: $endCursor) {
     pageInfo { hasNextPage endCursor }
     nodes {
     content { ... on Issue { number } }
-    fieldValues(first: 20) { nodes {
+    fieldValues(first: 100) { nodes {
       ... on ProjectV2ItemFieldSingleSelectValue { name field { ... on ProjectV2FieldCommon { name } } }
       ... on ProjectV2ItemFieldTextValue { text field { ... on ProjectV2FieldCommon { name } } } } }
   } } } } }' \
@@ -162,8 +189,16 @@ IF the query fails (needs `gh auth refresh -s project`):
 ### Phase 2: Fetch Open Issues
 
 ```bash
-# --limit must exceed the open-issue count or the tail is dropped in silence —
-# gh returns the most recently updated first, so the oldest simply vanish (#1416).
+# --limit must exceed the open-issue count or the tail is dropped in silence.
+# gh returns the most recently CREATED first — NOT the most recently updated.
+# That distinction is the whole trap: recency of ACTIVITY does not keep a row in
+# the page, so an assigned issue, or one commented on minutes ago, drops out
+# exactly like a dormant one. The previous version of this comment said
+# "most recently updated", which made an assigned issue look safe unbounded and
+# is why Phases 1a and 1b kept the bug after Phase 2 was fixed (#1416).
+# Measured: the default page's createdAt column is byte-identical to itself
+# sorted descending, updatedAt is not, and the 2nd-most-recently-updated issue
+# in the repo was outside it.
 # The ASSERT below is the part that survives backlog growth; the number alone rots.
 gh issue list --state open --limit 1000 --json number,title,labels,milestone,createdAt,updatedAt,comments,body \
   --jq '.[] | {number, title, labels: [.labels[].name], milestone: .milestone.title, created: .createdAt, updated: .updatedAt, comment_count: (.comments | length), body: .body[:300]}'
@@ -289,7 +324,12 @@ not affordable and is not the point.
 FOR each of the top 5 ranked candidates:
 
   1. COMMENTS — cheapest check, and the one that has actually fired.
-       gh api repos/jlaustill/c-next/issues/<n>/comments \
+       # --paginate is REQUIRED. This endpoint pages at 30 and returns comments
+       # ASCENDING by creation, so the tail that drops is the NEWEST — which is
+       # exactly where a set-aside note lives, and is the signal this phase
+       # exists to find. A per-item --jq is safe under --paginate; an aggregate
+       # one like `length` is not, it prints once per page (#1416).
+       gh api --paginate 'repos/jlaustill/c-next/issues/<n>/comments?per_page=100' \
          --jq '.[] | "\(.created_at) @\(.user.login)\n\(.body)"'
 
      A comment that sets the card aside, defers it, assigns it a later wave, says it
