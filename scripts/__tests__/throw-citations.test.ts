@@ -20,6 +20,20 @@ const SAMPLE = [
   "}",
 ].join("\n");
 
+/**
+ * Two DIFFERENT throws that share a prefix, at lines 2 and 5 -- the shape the
+ * #1374 review found three times in the shipped document: an anchor that
+ * stops before the discriminator matches both, and the rows can trade.
+ */
+const COUSINS = [
+  "function a() {",
+  '  throw new Error("shared prefix alpha");',
+  "}",
+  "function b() {",
+  '  throw new Error("shared prefix beta");',
+  "}",
+].join("\n");
+
 const sources = (source = SAMPLE): Map<string, string> =>
   new Map([[FILE, source]]);
 
@@ -84,6 +98,33 @@ describe("ThrowCitations.throwArgument", () => {
     expect(ThrowCitations.throwArgument(SAMPLE, 5)).toBe(
       "`second failure at ${where}`, );",
     );
+  });
+
+  it("skips a `//` comment line inside the statement: not anchor material, not a terminator", () => {
+    // PostfixExpressionGenerator.ts:629 carries a three-line comment between
+    // the opener and the message. A comment is not what the throw says, and
+    // one ending in `;` must not end the scan before the message.
+    const commented = [
+      "throw new Error(",
+      "  // see the guard at foo;",
+      '  "real message",',
+      ");",
+    ].join("\n");
+    expect(ThrowCitations.throwArgument(commented, 1)).toBe(
+      '"real message", );',
+    );
+  });
+
+  it("strips a generic constructor's opener", () => {
+    // `throwLines` counts any `throw new` line; the strip must not accept a
+    // narrower shape, or the opener survives into the text it returns.
+    expect(
+      ThrowCitations.throwArgument('throw new SomeError<T>("boom");', 1),
+    ).toBe('"boom");');
+  });
+
+  it("returns null when the statement opens no argument", () => {
+    expect(ThrowCitations.throwArgument("throw new Error;", 1)).toBeNull();
   });
 });
 
@@ -221,6 +262,65 @@ describe("ThrowCitations.check", () => {
     expect(outcome.errors[0]).toContain("`new Error(`");
     expect(outcome.errors[0]).toContain("not found");
   });
+
+  it("reports a throw whose opener it cannot strip rather than matching against it", () => {
+    // `throw new Error;` is counted by throwLines but opens no argument. Left
+    // silent, `new Error;` would be a legal anchor corroborating every such
+    // site -- the universally-true anchor the strip exists to prevent.
+    const outcome = ThrowCitations.check(
+      docFor("| `Sample.ts:1` | `new Error;` | why |"),
+      sources("throw new Error;"),
+    );
+    expect(outcome.ok).toBe(false);
+    expect(outcome.errors).toHaveLength(1);
+    expect(outcome.errors[0]).toContain("Sample.ts:1");
+    expect(outcome.errors[0]).toContain("opener");
+  });
+
+  it("fails two rows in one file whose anchors would survive a trade", () => {
+    // Invariant 4. Each anchor matches its own line AND the other's, so the
+    // rows could swap line numbers undetected. Different throws, so this is
+    // not the identical-message exemption.
+    const outcome = ThrowCitations.check(
+      docFor(
+        "| `Sample.ts:2` | `shared prefix` | why |",
+        "| `Sample.ts:5` | `shared prefix` | why |",
+      ),
+      sources(COUSINS),
+    );
+    expect(outcome.ok).toBe(false);
+    expect(outcome.errors).toHaveLength(1);
+    expect(outcome.errors[0]).toContain("Sample.ts:2");
+    expect(outcome.errors[0]).toContain(":5");
+    expect(outcome.errors[0]).toContain("trade");
+  });
+
+  // A trade is caught by whichever anchor fails on the other's line, so one
+  // distinguishing anchor per pair is enough -- the remedy the error names.
+  // Both placements, because a check that tests only one direction passes
+  // whichever placement it happens to look at (found by mutation).
+  it.each([
+    [
+      "first",
+      "| `Sample.ts:2` | `shared prefix alpha` | why |",
+      "| `Sample.ts:5` | `shared prefix` | why |",
+    ],
+    [
+      "second",
+      "| `Sample.ts:2` | `shared prefix` | why |",
+      "| `Sample.ts:5` | `shared prefix beta` | why |",
+    ],
+  ])(
+    "passes when the %s of two overlapping rows carries a distinguishing anchor",
+    (_, rowA, rowB) => {
+      const outcome = ThrowCitations.check(
+        docFor(rowA, rowB),
+        sources(COUSINS),
+      );
+      expect(outcome.ok).toBe(true);
+      expect(outcome.errors).toEqual([]);
+    },
+  );
 
   it("fails a citation that has drifted, and names the nearest throw", () => {
     const outcome = ThrowCitations.check(

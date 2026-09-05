@@ -15,11 +15,12 @@
  * does not identify one. `file:line` is the only unique key, which is why this
  * gate verifies it rather than the doc trading it for something softer.
  *
- * Three invariants, all mechanical:
+ * Four invariants, all mechanical:
  *
  *   1. every cited `file:line` is exactly a line containing `throw new`
  *   2. every `throw new` under `output/` is cited exactly once
  *   3. every row's anchor is a substring of what the throw at its line says
+ *   4. no two rows in one file could trade line numbers and keep 3 holding
  *
  * The second is the one that earns its keep beyond drift: it fails when a new
  * throw is added and nobody classifies it, which is how `output/` grows a
@@ -34,6 +35,13 @@
  * the cited line. The line stays the key and the anchor corroborates it:
  * identically-messaged sites keep identical anchors and stay interchangeable,
  * because the source makes no distinction between them either.
+ *
+ * The fourth is what makes the third a gate rather than an audit. An anchor
+ * that clears the floor can still stop just short of the text that tells two
+ * different throws apart, and then both rows corroborate both sites. Whether
+ * a pair could trade is directly computable from the rows of a file, so it
+ * is computed -- the #1374 review found three such pairs by hand; this finds
+ * them mechanically, and the next ones #1322 adds.
  */
 
 /**
@@ -47,6 +55,13 @@ interface IThrowCitation {
   readonly line: number;
   /** The second cell, when it is a lone code span; null when it is not. */
   readonly anchor: string | null;
+}
+
+/** A row whose line holds a throw and whose anchor cleared the floor. */
+interface IAnchoredRow {
+  readonly line: number;
+  readonly anchor: string;
+  readonly argument: string;
 }
 
 interface IThrowCitationOutcome {
@@ -107,28 +122,39 @@ class ThrowCitations {
 
   /**
    * What the throw statement starting at `line` (1-based) says: its text from
-   * that line to the first line ending in `;`, whitespace collapsed, with the
-   * `throw new Ctor(` opener removed.
+   * that line to the first line ending in `;`, comment lines dropped,
+   * whitespace collapsed, with the `throw new Ctor(` opener removed.
    *
    * The opener is scaffolding every site shares, so an anchor drawn from it
    * would corroborate every row; removing it is what makes `Error(` an
    * invalid anchor rather than a universally true one. 155 of the 181 sites
    * span several lines, so the anchor is held to the statement, not the line.
+   *
+   * Returns null when the statement opens no argument list at all. A strip
+   * that silently did nothing would hand the opener back as text, and
+   * `new Ctor(` would become the universally-true anchor the strip exists to
+   * prevent -- so the miss is reported, not absorbed.
    */
-  static throwArgument(source: string, line: number): string {
+  static throwArgument(source: string, line: number): string | null {
     const lines = source.split("\n");
     const collected: string[] = [];
     for (let index = line - 1; index < lines.length; index += 1) {
       const text = lines[index].trim();
+      // A comment is not what the throw says, and one ending in `;` must
+      // not end the scan early -- the hazard throwLines guards against.
+      if (text.startsWith("//")) {
+        continue;
+      }
       collected.push(text);
       if (text.endsWith(";")) {
         break;
       }
     }
-    return collected
-      .join(" ")
-      .replace(/\s+/g, " ")
-      .replace(/^throw new [\w$.]+\s*\(\s*/, "");
+    const statement = collected.join(" ").replace(/\s+/g, " ");
+    // `[^(]*` admits any constructor expression -- dotted, generic -- up to
+    // its argument list: the same breadth throwLines counts.
+    const opener = /^throw new\b[^(]*\(\s*/.exec(statement);
+    return opener === null ? null : statement.slice(opener[0].length);
   }
 
   /**
@@ -222,7 +248,7 @@ class ThrowCitations {
     const cited = ThrowCitations.parse(markdown);
     const files = [...sources.keys()];
     const errors: string[] = [];
-    const citedByFile = new Map<string, number[]>();
+    const rowsByFile = new Map<string, IThrowCitation[]>();
 
     for (const citation of cited) {
       const file = ThrowCitations.resolve(citation.path, files);
@@ -235,16 +261,15 @@ class ThrowCitations {
       errors.push(
         ...ThrowCitations.checkCitation(citation, sources.get(file)!),
       );
-      const seen = citedByFile.get(file) ?? [];
-      seen.push(citation.line);
-      citedByFile.set(file, seen);
+      rowsByFile.set(file, [...(rowsByFile.get(file) ?? []), citation]);
     }
 
     let total = 0;
     for (const [file, source] of sources) {
       const actual = ThrowCitations.throwLines(source);
       total += actual.length;
-      const claimed = citedByFile.get(file) ?? [];
+      const rows = rowsByFile.get(file) ?? [];
+      const claimed = rows.map((row) => row.line);
       for (const line of actual) {
         if (!claimed.includes(line)) {
           errors.push(`${file}:${line} -- \`throw new\` is not classified`);
@@ -256,6 +281,7 @@ class ThrowCitations {
       for (const line of new Set(duplicates)) {
         errors.push(`${file}:${line} -- cited more than once`);
       }
+      errors.push(...ThrowCitations.checkTradeable(file, rows, source));
     }
 
     errors.push(...ThrowCitations.checkDeclaredCounts(markdown, cited.length));
@@ -318,12 +344,75 @@ class ThrowCitations {
       ];
     }
     const argument = ThrowCitations.throwArgument(source, citation.line);
+    if (argument === null) {
+      return [
+        `${where} -- unrecognized throw opener: no argument list to hold the anchor to`,
+      ];
+    }
     if (!argument.includes(citation.anchor)) {
       return [
         `${where} -- anchor \`${citation.anchor}\` not found in the throw at that line (it says: ${argument.slice(0, 80)})`,
       ];
     }
     return [];
+  }
+
+  /**
+   * Invariant 4: no two rows in one file may be able to trade line numbers
+   * undetected. A trade goes undetected exactly when each row's anchor is
+   * also a substring of the other row's throw, so that is what is tested --
+   * a mutual-substring check over a file's rows -- rather than a length
+   * floor standing in for it with a hand audit behind that. The #1374 review
+   * found three pairs the audit had missed; this check finds them.
+   *
+   * Throws with identical text are exempt: the source makes no distinction
+   * between them, so a row cannot either, and their rows are interchangeable
+   * by design. Rows already carrying an error -- no anchor, below the floor,
+   * a line holding no throw, an anchor its own line does not contain -- are
+   * left out: a trade invariant 3 caught is detected, not undetected.
+   */
+  static checkTradeable(
+    file: string,
+    rows: readonly IThrowCitation[],
+    source: string,
+  ): string[] {
+    const throwsAt = new Set(ThrowCitations.throwLines(source));
+    const anchored: IAnchoredRow[] = [];
+    for (const row of rows) {
+      if (
+        row.anchor === null ||
+        row.anchor.length < MIN_ANCHOR_LENGTH ||
+        !throwsAt.has(row.line)
+      ) {
+        continue;
+      }
+      const argument = ThrowCitations.throwArgument(source, row.line);
+      // A row whose anchor already fails on its own line was detected by
+      // invariant 3; only rows that pass it can trade undetected.
+      if (argument !== null && argument.includes(row.anchor)) {
+        anchored.push({ line: row.line, anchor: row.anchor, argument });
+      }
+    }
+    const errors: string[] = [];
+    for (const [index, a] of anchored.entries()) {
+      for (const b of anchored.slice(index + 1)) {
+        if (ThrowCitations.canTrade(a, b)) {
+          errors.push(
+            `${file}:${a.line} and :${b.line} -- these rows could trade lines undetected; lengthen one anchor past the text both throws share`,
+          );
+        }
+      }
+    }
+    return errors;
+  }
+
+  /** Both anchors match both throws, and the throws are not the same text. */
+  private static canTrade(a: IAnchoredRow, b: IAnchoredRow): boolean {
+    return (
+      a.argument !== b.argument &&
+      b.argument.includes(a.anchor) &&
+      a.argument.includes(b.anchor)
+    );
   }
 
   /**
