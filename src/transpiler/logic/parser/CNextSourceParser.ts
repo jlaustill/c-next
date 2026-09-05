@@ -112,8 +112,8 @@ class CNextSourceParser {
           return;
         }
 
-        // Once a nested scope is rejected, ANTLR's recovery reparents the inner
-        // block and reports the outer `}` as extraneous -- noise about a tree that
+        // Once a nested scope is rejected, ANTLR's recovery moves the inner
+        // block out and reports the outer `}` as extraneous -- noise about a tree that
         // is already known to be wrong. Suppressing it is what lets the fixture
         // assert the RULE instead of the parser's token set, which is the whole
         // point of #1306. Only PARSER errors are dropped: lexer errors describe

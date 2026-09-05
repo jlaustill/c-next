@@ -651,12 +651,12 @@ instead of the other definition.
 
 E0430 names the position of the inner `scope` keyword and carries the flat-scope
 workaround in its own text. Recovery noise that follows the rejection is suppressed:
-the surrounding block is reparented by error recovery, so any further complaint
+error recovery moves the surrounding block, so any further complaint
 describes a structure already known to be wrong. A second genuine nested scope is
 still reported. The rejection is stated once here and enforced where a nested scope
 first becomes visible, which is while the source is being read — a scope member is
 not admitted as a scope declaration in the first place, so the construct never reaches
-a later stage to be analysed.
+a later stage to be analyzed.
 
 ## Implementation Status
 

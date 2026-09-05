@@ -55,8 +55,13 @@ WRITE       3.1 Write     --> disk
   that carries it, never rebuilt from a scope and a leaf.
 - After **1.4**, nothing may compute a cross-file fact. A pass that needs one reads it from
   `Program`, which is complete before 2.1 begins.
-- **2.1 authors every rejection.** A diagnostic carries a code and a position, which means
-  it cannot originate from a `throw` in a later pass.
+- **2.1 authors every rejection that survives to it.** A diagnostic carries a code and a
+  position, which means it cannot originate from a `throw` in a later pass. The exception is
+  a rejection of syntactic FORM: a construct the grammar does not admit never produces a
+  tree for 2.1 to analyze, so it is authored at 1.2, where it is the only place the
+  construct is visible. Such a rejection carries a code and a position like any other -- the
+  rule is about where a diagnostic may be INVENTED, not about smuggling an uncoded `throw`
+  in earlier. Nested scopes (ADR-016, E0430) are the case this covers.
 - **2.2 decides, 2.3 formats.** "Does this file need `<stdint.h>`?" is decided once, in the
   plan. Render reads the plan and produces text from it.
 

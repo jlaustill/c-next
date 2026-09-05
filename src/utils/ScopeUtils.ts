@@ -212,9 +212,13 @@ class ScopeUtils {
    * the canonical identity a symbol can be looked up by.
    *
    * Takes the whole enclosing PATH rather than a scope's leaf name -- the latter
-   * silently drops outer scopes. The two agreed only because the grammar does not
-   * admit nested scopes today, which is a latent divergence rather than a shared
-   * decision.
+   * silently drops outer scopes. The two agree on every program C-Next can
+   * express, and ADR-016 makes that a DECISION rather than the coincidence #1285
+   * called it: scopes never nest, permanently, so a leaf is always the whole path
+   * in source. The encoder is still written at the path level because it is handed
+   * paths, not source: `SymbolRegistry.getOrCreateScope` accepts a dotted path and
+   * builds the chain, so correctness here cannot be argued from what the grammar
+   * admits.
    *
    * `fromParts` expands a dotted component and drops empties, so the path goes in
    * as one element and needs no splitting: `["Outer.Inner", "process"]` joins to

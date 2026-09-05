@@ -128,7 +128,7 @@ describe("CNextSourceParser", () => {
     });
 
     it("suppresses the recovery cascade so only the rule is reported", () => {
-      // ANTLR reparents the inner block and then calls the outer `}` extraneous.
+      // ANTLR moves the inner block out, then calls the outer `}` extraneous.
       // Without suppression the fixture would assert a ~30-token expectation set.
       const source = `scope Outer {
     scope Inner { u8 w <- 2; }

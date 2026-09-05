@@ -5,10 +5,12 @@
  * #1357. Five analyzers each tracked this as a `string | null` assigned from
  * `ctx.IDENTIFIER().getText()`, then qualified members with
  * `QualifiedCName.fromParts([thatLeaf, member])`. That drops every outer scope,
- * which is invisible today only because `scopeMember` admits no
- * `scopeDeclaration` (`grammar/CNext.g4`) -- a coincidence, not a decision. Five
- * copies of the same coincidence is also five places to fix when the grammar
- * changes, which is the duplicate-path shape this project forbids outright.
+ * which stays invisible because `scopeMember` admits no `scopeDeclaration`
+ * (`grammar/CNext.g4`). ADR-016 makes that a permanent decision rather than the
+ * coincidence #1357 recorded, so the leaf really is the whole path in source. The
+ * stack stays anyway: five sites each deciding that separately is the duplicate-path
+ * shape this project forbids, and the assumption is wrong at the registry's API,
+ * which accepts a dotted path and builds the chain.
  *
  * A stack rather than a single slot for the same reason: the leaf is only
  * sufficient at depth one, and the whole point is to stop encoding that

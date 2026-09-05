@@ -5,11 +5,12 @@ import SymbolRegistry from "../../../../state/SymbolRegistry";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
 
 /**
- * #1357. These cover the nesting the grammar cannot yet express: `scopeMember`
- * admits no `scopeDeclaration`, so no `.cnx` fixture can reach depth two and the
- * integration corpus cannot tell a chain-walking encoder from a leaf-only one.
- * That is precisely the coincidence this helper exists to stop relying on, so
- * the assertions that prove it live here rather than in a fixture.
+ * #1357. These cover nesting the grammar does not express and never will:
+ * `scopeMember` admits no `scopeDeclaration` (ADR-016, permanently), so no `.cnx`
+ * fixture can reach depth two and the integration corpus cannot tell a
+ * chain-walking encoder from a leaf-only one. The depth is still reachable through
+ * `SymbolRegistry`, which takes a dotted path -- which is why these assertions can
+ * exist here at all, and why they cannot be fixtures.
  */
 describe("EnclosingScope", () => {
   beforeEach(() => {

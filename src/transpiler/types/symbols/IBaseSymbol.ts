@@ -21,8 +21,11 @@ interface IBaseSymbol {
    * Computed ONCE, from the scope chain, when the symbol is built
    * (`ScopeUtils.identityOf`). Before this field existed every consumer
    * re-derived it, and they did not all derive it the same way: the chain-walking
-   * encoder and the leaf-only ones agreed only because the grammar admits no
-   * nested scopes, which is a coincidence rather than a shared decision (#1285).
+   * encoder and the leaf-only ones agreed because the grammar admits no nested
+   * scopes. #1285 called that a coincidence; ADR-016 makes it a decision, and a
+   * permanent one. Computing it once is still the point -- agreement reached
+   * separately at each site is a duplicate path whether or not the fact it rests
+   * on can change.
    *
    * ADR-063 makes the result injective, so it is also this symbol's canonical
    * identity -- what `SymbolTable` indexes it by, and what a lookup holding a
