@@ -486,7 +486,7 @@ foo.expected.error    # Expected error (if test-error)
   generated-code shape can declare `error` — occupancy derives from diagnostic positions
   **union** ADR provenance. What it costs is one line at the decision itself
   (`AdrProvenance.record("NNN", line)`); an ADR with no recording site still occupies
-  nothing, and only ADR-016 and ADR-057 have one today. Do not read `warn` on an existing
+  nothing, and only ADR-016, ADR-044 and ADR-057 have one today (2026-09-05). Do not read `warn` on an existing
   matrix as "cannot be covered" — a `warn` declaration is an obligation, not a verdict on
   reachability; `docs/scope-context-matrix.md` is what says whether a cell is occupied.
   What remains is tracked as **#1402**: the relationship axis still measures the
@@ -500,6 +500,19 @@ foo.expected.error    # Expected error (if test-error)
   fixture would **fail** if the feature broke. #1222 is exactly that — regression fixtures
   that cannot fail if the fix is reverted. Mutation-check anything you add: break the thing
   it watches and confirm it goes red
+- **New PRs use the matrix (#1508, #1511)**: adoption is iterative — a PR brings the
+  matrix along for the behavior it touches, never for someone else's ADR, and no PR is
+  gated on completing another ADR's table. A PR that adds or changes a **cross-file**
+  behavior does four things for that behavior: the owning ADR declares the cells it is
+  observable in (`direct` and `transitive` per context; an undeclared cell reads as `off`
+  and is a claim, so give it a sentence), the fixtures that exercise it gain
+  `// test-adr: NNN` or get written, `npm run coverage:matrix` regenerates with
+  `coverage:matrix:check` green for the declared rows, and the mutation check names the
+  `transitive` cell it reddens. Measured 2026-09-05: five ADRs have a table (016, 044,
+  051, 057, 070) and only 016 owns any of the twelve cross-file Tier 2 facts, so most
+  cross-file work today lands on an ADR with no rows and "mutation-checked" has nothing
+  cross-file to redden until the PR adds them. #1508 §2–4 is the worked example
+  (ADR-010's include patterns); #1511 carries the per-PR rule for the Tier 2 moves
 - **String comparison vs indexing**: `a = b` / `a != b` on whole `string<N>` values compiles to `strcmp` (value comparison, ADR-045). Indexing a string (`s[i]`) yields a `char` and compares as a `char` — e.g. `s[0] != 'H'` generates `s[0] != 'H'`, not `strcmp`. (Verified 2026-06-26; the prior note claiming `str[0]` generates `strcmp` was stale.)
 - **Array declarations**: use prefix syntax `u32[N] arr` — C-style `u32 arr[N]` is rejected. `N` may be a literal or a `const`; the transpiler resolves consts to their value (no C VLA), so const-sized arrays are fine
 - **C++ mode**: `const T` params become `const T&` with `.` access (not pointers)
