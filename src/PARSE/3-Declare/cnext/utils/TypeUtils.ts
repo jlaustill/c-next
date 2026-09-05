@@ -115,7 +115,7 @@ class TypeUtils {
     const classified = TypeBinding.classifyNamedType(accessors, scopePath, {
       isScopeType,
     });
-    if (!classified || classified.branch !== "bare") {
+    if (classified?.branch !== "bare") {
       return null;
     }
 
