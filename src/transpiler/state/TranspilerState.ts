@@ -13,7 +13,7 @@ import ICodeGenSymbols from "../types/ICodeGenSymbols";
  *
  * State groups:
  * - Group 1 (Header Generation): symbolCollectors, passByValueParams, userIncludes
- * - Group 2 (Symbol Resolution): symbolInfoByFile
+ * - Group 2 (Symbol Resolution): symbolInfoByFile, declaredScopeTypesByFile
  * - Group 3 (Cross-file Type Info): headerIncludeDirectives
  * - Group 4 (Cycle Prevention): processedHeaders
  */
@@ -46,6 +46,25 @@ class TranspilerState {
   /** Issue #465: Store ICodeGenSymbols per file during stage 3 for external enum resolution */
   private readonly symbolInfoByFile = new Map<string, ICodeGenSymbols>();
 
+  /**
+   * What each file DECLARES, per ADR-057 -- `IFileSymbols.declaredScopeTypes`,
+   * retained so an includer can be seeded from its includes' own artifacts.
+   *
+   * #1472: sits beside `symbolInfoByFile` because the ADR-057 seed JOINS the two
+   * -- it walks a file's include closure and reads this map at each path -- so
+   * the join is only complete while their key universes agree. Both are filled
+   * for every declared file in stage 3, neither gated by `_producesOutput`, and
+   * sharing `reset()` is what keeps one lifecycle rather than two that must be
+   * remembered together. It does not live on the orchestrator beside
+   * `declaredFiles`: that map holds ANTLR contexts and stays out of `state/` for
+   * #1317's parse-tree confinement reason, which a `ReadonlySet<string>` has no
+   * part in.
+   */
+  private readonly declaredScopeTypesByFile = new Map<
+    string,
+    ReadonlySet<string>
+  >();
+
   // === Group 3: Cross-file Type Info ===
 
   /**
@@ -71,6 +90,7 @@ class TranspilerState {
     this.userIncludes.clear();
     this.cnxIncludeRewrites.clear();
     this.symbolInfoByFile.clear();
+    this.declaredScopeTypesByFile.clear();
     this.headerIncludeDirectives.clear();
     this.processedHeaders.clear();
   }
@@ -183,6 +203,24 @@ class TranspilerState {
    */
   getSymbolInfoByFileMap(): ReadonlyMap<string, ICodeGenSymbols> {
     return this.symbolInfoByFile;
+  }
+
+  /**
+   * Record the scope types a file declares (ADR-057, pass 1.3 Declare).
+   */
+  setFileDeclaredScopeTypes(
+    filePath: string,
+    scopeTypes: ReadonlySet<string>,
+  ): void {
+    this.declaredScopeTypesByFile.set(filePath, scopeTypes);
+  }
+
+  /**
+   * The scope types a file declares, or undefined if it has not been declared
+   * yet -- which an include cycle makes reachable (#1167), so callers guard.
+   */
+  getFileDeclaredScopeTypes(filePath: string): ReadonlySet<string> | undefined {
+    return this.declaredScopeTypesByFile.get(filePath);
   }
 
   // === Header Include Directives (Group 3) ===

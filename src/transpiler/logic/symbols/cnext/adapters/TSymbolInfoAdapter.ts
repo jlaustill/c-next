@@ -674,34 +674,9 @@ class TSymbolInfoAdapter {
    * @param externalSources Array of ISymbolInfo from included .cnx files
    * @returns New ISymbolInfo with merged enum, scope and visibility data
    */
-  /**
-   * The qualified names of every type-forming declaration in these sources.
-   *
-   * #1333: fed to CNextResolver Pass 0b so the symbols layer sees the same scope
-   * types the codegen layer does. The two resolve type names independently
-   * (CLAUDE.md, "Two resolution points, one decision"), and a reopened scope puts
-   * half its members in another file -- so without this the `.h` prototype and the
-   * `.c` definition disagree about a parameter's type and gcc rejects the pair.
-   *
-   * Kinds match CodeGenState.isScopeType: enums, structs and bitmaps. Registers
-   * are excluded, exactly as they are there -- a register declares a variable at
-   * an address, not a type.
-   */
-  static collectScopeTypeNames(
-    sources: readonly ICodeGenSymbols[],
-  ): ReadonlySet<string> {
-    const names = new Set<string>();
-    for (const source of sources) {
-      for (const name of source.knownEnums) names.add(name);
-      for (const name of source.knownStructs) names.add(name);
-      for (const name of source.knownBitmaps) names.add(name);
-    }
-    return names;
-  }
-
   static mergeExternalSymbols(
     base: ICodeGenSymbols,
-    externalSources: ICodeGenSymbols[],
+    externalSources: readonly ICodeGenSymbols[],
   ): ICodeGenSymbols {
     // If no external sources, return base unchanged
     if (externalSources.length === 0) {

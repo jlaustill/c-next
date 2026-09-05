@@ -38,7 +38,7 @@ function setupGenerator(
   }
 
   const symbolTable = new SymbolTable();
-  const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+  const tSymbols = CNextResolver.resolve(tree, "test.cnx").symbols;
   // Issue #831: Register TSymbols in SymbolTable (single source of truth)
   symbolTable.addTSymbols(tSymbols);
   const symbols = TSymbolInfoAdapter.convert(tSymbols);
@@ -655,7 +655,7 @@ describe("CodeGenerator Coverage Tests", () => {
       // Mark NamedPoint as requiring 'struct' keyword (simulates C header import)
       symbolTable.markNeedsStructKeyword("NamedPoint");
 
-      const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+      const tSymbols = CNextResolver.resolve(tree, "test.cnx").symbols;
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const generator = new CodeGenerator();
@@ -686,7 +686,7 @@ describe("CodeGenerator Coverage Tests", () => {
       const symbolTable = new SymbolTable();
       symbolTable.markNeedsStructKeyword("ReturnStruct");
 
-      const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+      const tSymbols = CNextResolver.resolve(tree, "test.cnx").symbols;
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const generator = new CodeGenerator();
@@ -716,7 +716,7 @@ describe("CodeGenerator Coverage Tests", () => {
       const symbolTable = new SymbolTable();
       // Do NOT mark as needing struct keyword (simulates typedef'd struct)
 
-      const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+      const tSymbols = CNextResolver.resolve(tree, "test.cnx").symbols;
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const generator = new CodeGenerator();
@@ -746,7 +746,7 @@ describe("CodeGenerator Coverage Tests", () => {
       const symbolTable = new SymbolTable();
       symbolTable.markNeedsStructKeyword("CppPoint");
 
-      const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+      const tSymbols = CNextResolver.resolve(tree, "test.cnx").symbols;
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       const generator = new CodeGenerator();
@@ -1219,7 +1219,7 @@ describe("CodeGenerator Coverage Tests", () => {
       const { tree, tokenStream } = CNextSourceParser.parse(source);
 
       const symbolTable = new SymbolTable();
-      const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+      const tSymbols = CNextResolver.resolve(tree, "test.cnx").symbols;
       symbolTable.addTSymbols(tSymbols);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1410,7 +1410,7 @@ describe("CodeGenerator Coverage Tests", () => {
       const { tree, tokenStream } = CNextSourceParser.parse(source);
 
       const symbolTable = new SymbolTable();
-      const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+      const tSymbols = CNextResolver.resolve(tree, "test.cnx").symbols;
       symbolTable.addTSymbols(tSymbols);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1450,7 +1450,7 @@ describe("CodeGenerator Coverage Tests", () => {
       const { tree, tokenStream } = CNextSourceParser.parse(source);
 
       const symbolTable = new SymbolTable();
-      const tSymbols = CNextResolver.resolve(tree, "test.cnx");
+      const tSymbols = CNextResolver.resolve(tree, "test.cnx").symbols;
       symbolTable.addTSymbols(tSymbols);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 

@@ -8,6 +8,7 @@
 import * as Parser from "../../parser/grammar/CNextParser";
 import ScopeUtils from "../../../../utils/ScopeUtils";
 import TSymbol from "../../../types/symbols/TSymbol";
+import IFileSymbols from "../../../types/IFileSymbols";
 import SymbolRegistry from "../../../state/SymbolRegistry";
 import LiteralUtils from "../../../../utils/LiteralUtils";
 import BitmapCollector from "./collectors/BitmapCollector";
@@ -43,13 +44,15 @@ class CNextResolver {
    *
    * @param tree The program context from the parser
    * @param sourceFile Source file path
-   * @returns Array of all collected symbols
+   * @returns `IFileSymbols` -- the symbols this file declares, plus the scope
+   *   types it declares. The latter is a per-file fact and travels on the
+   *   artifact; the seed it is merged with is cross-file and does not.
    */
   static resolve(
     tree: Parser.ProgramContext,
     sourceFile: string,
     externalScopeTypes?: ReadonlySet<string>,
-  ): TSymbol[] {
+  ): IFileSymbols {
     const symbols: TSymbol[] = [];
     const knownBitmaps = new Set<string>();
     const constValues = new Map<string, number>();
@@ -68,8 +71,21 @@ class CNextResolver {
     // `Point` unqualified while codegen resolves it to `Lib__Point`, so the `.h`
     // and the `.c` disagree about a function's signature and the file does not
     // compile (CLAUDE.md, "Two resolution points, one decision").
+    // #1472: what THIS FILE declares is collected on its own, into its own set.
+    // It is the per-file half of the question, so it is the half that can travel
+    // on `IFileSymbols`; the seed cannot, being a union across an include
+    // closure. Collecting into one shared set made "declared here" and "visible
+    // here" the same object, so neither could be read back afterwards.
+    const declaredScopeTypes = new Set<string>();
+    CNextResolver.collectScopeTypesPass0b(tree, declaredScopeTypes);
+
+    // What this file can SEE: its own declarations plus its includes'. Same set
+    // as before the split, built in the other order -- union is commutative, so
+    // every resolution below is unchanged.
     const scopeTypes = new Set<string>(externalScopeTypes ?? []);
-    CNextResolver.collectScopeTypesPass0b(tree, scopeTypes);
+    for (const declared of declaredScopeTypes) {
+      scopeTypes.add(declared);
+    }
     const isScopeType = (qualifiedName: string): boolean =>
       scopeTypes.has(qualifiedName);
 
@@ -94,7 +110,7 @@ class CNextResolver {
       isScopeType,
     );
 
-    return symbols;
+    return { sourceFile, symbols, declaredScopeTypes };
   }
 
   /**

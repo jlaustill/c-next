@@ -33,6 +33,7 @@ import HeaderGeneratorUtils from "./output/headers/HeaderGeneratorUtils";
 import IHeaderEmissionFacts from "./output/headers/types/IHeaderEmissionFacts";
 import IHeaderCallbackType from "./types/IHeaderCallbackType";
 import ICodeGenSymbols from "./types/ICodeGenSymbols";
+import type ITransitiveIncludes from "./types/ITransitiveIncludes";
 import IncludeExtractor from "./logic/IncludeExtractor";
 import SymbolTable from "./logic/symbols/SymbolTable";
 import ESourceLanguage from "../utils/types/ESourceLanguage";
@@ -178,6 +179,7 @@ class Transpiler {
    * stays free of ANTLR contexts (#1317).
    */
   private readonly declaredFiles = new Map<string, IDeclaredFile>();
+
   /**
    * Issue #593: Centralized analyzer for cross-file const inference in C++ mode.
    * Accumulates parameter modifications and param lists across all processed files.
@@ -712,7 +714,7 @@ class Transpiler {
       const externalEnumSources = this._collectExternalEnumSources(
         sourcePath,
         file.cnextIncludes,
-      );
+      ).sources;
       let symbolInfo = TSymbolInfoAdapter.convert(declared.symbols);
 
       if (externalEnumSources.length > 0) {
@@ -2477,17 +2479,41 @@ class Transpiler {
     tree: Parser.ProgramContext,
     sourcePath: string,
     cnextIncludes?: ReadonlyArray<{ path: string }>,
-  ): { symbols: TSymbol[]; externalEnumSources: ICodeGenSymbols[] } {
-    const externalEnumSources = this._collectExternalEnumSources(
+  ): {
+    symbols: readonly TSymbol[];
+    externalEnumSources: readonly ICodeGenSymbols[];
+  } {
+    const included = this._collectExternalEnumSources(
       sourcePath,
       cnextIncludes,
     );
-    const visibleScopeTypes =
-      TSymbolInfoAdapter.collectScopeTypeNames(externalEnumSources);
+
+    // #1472: the seed is the union of what each INCLUDED FILE DECLARES, read
+    // from Declare's own artifact. Files are visited in dependency order where
+    // one exists, so an include's entry is normally present. Under an include
+    // cycle the toposort falls back to insertion order (#1167) and it may not
+    // be -- the guard below skips it, exactly as the old `symbolInfoByFile`
+    // lookup did. Behavior on that shape is unchanged by this change, which is
+    // why the guard is preserved rather than asserted away.
+    const visibleScopeTypes = new Set<string>();
+    for (const includedPath of included.paths) {
+      const declaredThere = this.state.getFileDeclaredScopeTypes(includedPath);
+      if (declaredThere) {
+        for (const scopeType of declaredThere) {
+          visibleScopeTypes.add(scopeType);
+        }
+      }
+    }
+
+    const declared = CNextResolver.resolve(tree, sourcePath, visibleScopeTypes);
+    this.state.setFileDeclaredScopeTypes(
+      sourcePath,
+      declared.declaredScopeTypes,
+    );
 
     return {
-      symbols: CNextResolver.resolve(tree, sourcePath, visibleScopeTypes),
-      externalEnumSources,
+      symbols: declared.symbols,
+      externalEnumSources: included.sources,
     };
   }
 
@@ -2497,7 +2523,7 @@ class Transpiler {
   private _collectExternalEnumSources(
     sourcePath: string,
     cnextIncludes?: ReadonlyArray<{ path: string }>,
-  ): ICodeGenSymbols[] {
+  ): ITransitiveIncludes {
     const symbolInfoByFile = this.state.getSymbolInfoByFileMap();
 
     if (cnextIncludes) {

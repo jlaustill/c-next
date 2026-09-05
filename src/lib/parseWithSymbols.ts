@@ -19,7 +19,9 @@ const getParentId = SymbolPathUtils.getParentId;
  * ADR-055 Phase 7: Convert TSymbol directly to ISymbolInfo array.
  * Expands compound symbols (bitmaps, enums, structs, registers) into multiple ISymbolInfo entries.
  */
-function convertTSymbolsToISymbolInfo(symbols: TSymbol[]): ISymbolInfo[] {
+function convertTSymbolsToISymbolInfo(
+  symbols: readonly TSymbol[],
+): ISymbolInfo[] {
   const result: ISymbolInfo[] = [];
 
   for (const symbol of symbols) {
@@ -295,7 +297,7 @@ function parseWithSymbols(source: string): IParseWithSymbolsResult {
   const { tree, errors } = CNextSourceParser.parse(source);
 
   // ADR-055 Phase 7: Direct TSymbol → ISymbolInfo conversion (no ISymbol intermediate)
-  const tSymbols = CNextResolver.resolve(tree, "<source>");
+  const tSymbols = CNextResolver.resolve(tree, "<source>").symbols;
   const symbols = convertTSymbolsToISymbolInfo(tSymbols);
 
   return {
