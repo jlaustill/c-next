@@ -71,7 +71,18 @@ function runHarness(dir: string, extraArgs: string[] = []): IHarnessRun {
     {
       encoding: "utf-8",
       cwd: repoRoot,
-      env: { ...process.env, FORCE_COLOR: "0", NO_COLOR: "1" },
+      env: {
+        ...process.env,
+        FORCE_COLOR: "0",
+        NO_COLOR: "1",
+        // This child is spawned, not forked, so it has no `process.send` and
+        // falls outside the guard that keeps vitest workers off `test-utils`'
+        // auto-rebuild path. Without this, `npm run unit` would build the
+        // project as a side effect and could rewrite `dist/index.js` under a
+        // concurrent `npm test`. What is asserted here is how the harness
+        // REPORTS, so a stale bundle is immaterial.
+        CNEXT_SKIP_DIST_REBUILD: "1",
+      },
     },
   );
 
@@ -148,5 +159,14 @@ describe("missing-snapshot reporting (Issue #1397)", () => {
     expect(withSnapshot.failed).toBe(0);
     expect(withSnapshot.skipped).toBe(0);
     expect(withSnapshot.failLines).toHaveLength(0);
+  });
+
+  it("states the real reason execution was skipped, not a fixed one", () => {
+    // Issue #1397: the note was hard-coded to ARM on every skip, while two of
+    // the three skips are transpile-only. Host-independent: `--transpile-only`
+    // returns before the ARM check is ever reached, so this holds on an ARM
+    // runner too.
+    expect(withSnapshot.output).toContain("exec skipped: transpile-only");
+    expect(withSnapshot.output).not.toContain("exec skipped: ARM");
   });
 });

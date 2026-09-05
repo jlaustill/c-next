@@ -1,3 +1,5 @@
+import type TExecSkipReason from "./TExecSkipReason";
+
 /**
  * What a finished test result MEANS -- decided once, in `TestOutcome.classify`.
  *
@@ -8,14 +10,24 @@
  *
  * The point is not that the two sites read the same fields -- they did -- but
  * that each drew its own conclusion from them. Consumers switch on `kind` and
- * derive nothing themselves, so a result kind added here has to be answered
- * everywhere it matters rather than defaulting differently in each place.
+ * derive nothing themselves.
+ *
+ * That a kind added here must be ANSWERED rather than defaulted is enforced,
+ * not merely intended: each consumer ends in a `never` assignment, so a fourth
+ * kind fails to compile instead of falling through to the failure branch in
+ * both places. Note the enforcement is currently one-sided -- `tsconfig.json`
+ * is `include: ["src/**"]`, so `scripts/` is not typechecked by CI until #1489
+ * lands, and until then the guard fires at runtime rather than at build time.
  */
 type TTestOutcome =
   /** Passed, and `--update` wrote its snapshot. Counts as a pass too. */
   | { kind: "updated" }
-  /** Passed. `execSkipped` when the binary was not run (ARM host). */
-  | { kind: "passed"; execSkipped: boolean }
+  /**
+   * Passed. `execSkip` is the recorded reason the binary was not run, or
+   * `null` when it was -- a reason rather than a flag, so the report can say
+   * which of the three skips happened instead of always naming the rarest.
+   */
+  | { kind: "passed"; execSkip: TExecSkipReason | null }
   /**
    * Did not pass. `missingSnapshot` is the REASON for the failure, not an
    * outcome beside it: a fixture that asserts nothing must not report green

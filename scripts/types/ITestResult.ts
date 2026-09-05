@@ -1,4 +1,5 @@
 import type IModeResult from "./ITestMode";
+import type TExecSkipReason from "./TExecSkipReason";
 
 /**
  * Result of running a single test
@@ -13,6 +14,8 @@ interface ITestResult {
   actual?: string;
   updated?: boolean;
   skippedExec?: boolean;
+  /** Why execution was skipped (Issue #1397), from the first skipped mode. */
+  skipReason?: TExecSkipReason;
   noSnapshot?: boolean;
   execError?: string;
   warningError?: string;

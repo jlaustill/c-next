@@ -23,7 +23,11 @@ function classify(result: ITestResult): TTestOutcome {
     if (result.updated === true) {
       return { kind: "updated" };
     }
-    return { kind: "passed", execSkipped: result.skippedExec === true };
+    // A skip with no recorded reason renders without one; it never inherits
+    // whichever cause happens to be spelled at the print site (Issue #1397).
+    const execSkip =
+      result.skippedExec === true ? (result.skipReason ?? "unspecified") : null;
+    return { kind: "passed", execSkip };
   }
 
   return { kind: "failed", missingSnapshot: result.noSnapshot === true };

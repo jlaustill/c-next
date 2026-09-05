@@ -39,6 +39,7 @@ import ITools from "./types/ITools";
 import ITestOptions from "./types/ITestOptions";
 import ITestResult from "./types/ITestResult";
 import ITestTotals from "./types/ITestTotals";
+import TExecSkipReason from "./types/TExecSkipReason";
 
 // Import shared test utilities
 import TestUtils from "./test-utils";
@@ -114,6 +115,22 @@ function getModeIndicator(result: ITestResult): string {
 }
 
 /**
+ * Render why execution was skipped, or nothing when it was not.
+ *
+ * Issue #1397: this used to be a fixed `(exec skipped: ARM)` on any skip, while
+ * two of the three skips are transpile-only -- so the stated cause was wrong in
+ * the common case. An unrecorded reason prints bare rather than borrowing one.
+ */
+function execSkipNote(reason: TExecSkipReason | null): string {
+  if (reason === null) {
+    return "";
+  }
+  const label = reason === "arm" ? "exec skipped: ARM" : "exec skipped";
+  const detail = reason === "transpile-only" ? ": transpile-only" : "";
+  return ` ${chalk.dim(`(${label}${detail})`)}`;
+}
+
+/**
  * Print a test result
  */
 function printResult(
@@ -133,14 +150,19 @@ function printResult(
 
   if (outcome.kind === "passed") {
     if (!quietMode) {
-      const execNote = outcome.execSkipped
-        ? ` ${chalk.dim("(exec skipped: ARM)")}`
-        : "";
       console.log(
-        `${chalk.green("PASS")}    ${relativePath}${modeIndicator}${execNote}`,
+        `${chalk.green("PASS")}    ${relativePath}${modeIndicator}${execSkipNote(outcome.execSkip)}`,
       );
     }
     return;
+  }
+
+  // An `if`-chain falls through, so a kind added to TTestOutcome would be
+  // silently rendered as a failure here. This makes that a compile error the
+  // moment `scripts/` enters `tsconfig` (#1489), and a loud one before then.
+  if (outcome.kind !== "failed") {
+    const unhandled: never = outcome;
+    throw new Error(`unhandled test outcome: ${JSON.stringify(unhandled)}`);
   }
 
   console.log(`${chalk.red("FAIL")}    ${relativePath}${modeIndicator}`);
@@ -216,6 +238,14 @@ function getCounterUpdates(result: ITestResult): ITestTotals {
   if (outcome.kind === "passed") {
     updates.passed++;
     return updates;
+  }
+
+  // Same exhaustiveness guard as printResult: without it a new kind would be
+  // counted as a failure here and rendered as one there -- each place
+  // defaulting on its own, which is what TTestOutcome exists to prevent.
+  if (outcome.kind !== "failed") {
+    const unhandled: never = outcome;
+    throw new Error(`unhandled test outcome: ${JSON.stringify(unhandled)}`);
   }
 
   updates.failed++;

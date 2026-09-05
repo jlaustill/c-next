@@ -18,17 +18,37 @@ const resultWith = (fields: Partial<ITestResult>): ITestResult => ({
 });
 
 describe("TestOutcome.classify (Issue #1397)", () => {
-  it("a passing result is a pass", () => {
+  it("a passing result is a pass, with no skip reason", () => {
     expect(TestOutcome.classify(resultWith({ passed: true }))).toEqual({
       kind: "passed",
-      execSkipped: false,
+      execSkip: null,
     });
   });
 
-  it("a passing result whose execution was skipped is still a pass", () => {
+  it("a skipped execution carries the reason that was recorded", () => {
+    // Issue #1397: the reason is read, not assumed. `arm` used to be printed
+    // for every skip, including the two that are transpile-only.
+    expect(
+      TestOutcome.classify(
+        resultWith({ passed: true, skippedExec: true, skipReason: "arm" }),
+      ),
+    ).toEqual({ kind: "passed", execSkip: "arm" });
+
+    expect(
+      TestOutcome.classify(
+        resultWith({
+          passed: true,
+          skippedExec: true,
+          skipReason: "transpile-only",
+        }),
+      ),
+    ).toEqual({ kind: "passed", execSkip: "transpile-only" });
+  });
+
+  it("a skip with no recorded reason is unspecified, not guessed", () => {
     expect(
       TestOutcome.classify(resultWith({ passed: true, skippedExec: true })),
-    ).toEqual({ kind: "passed", execSkipped: true });
+    ).toEqual({ kind: "passed", execSkip: "unspecified" });
   });
 
   it("an updated snapshot is its own kind, not a plain pass", () => {
