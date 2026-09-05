@@ -47,9 +47,9 @@ lands.
 
 | File                                                                          | First element        | Sites  | Kind       | Moves with |
 | ----------------------------------------------------------------------------- | -------------------- | ------ | ---------- | ---------- |
+| `src/PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter.ts`                    | `scopeName`          | 1      | leaf-keyed | #1394      |
+| `src/PARSE/3-Declare/cnext/index.ts`                                          | `scopeName`          | 1      | leaf-keyed | #1295      |
 | `src/transpiler/logic/analysis/helpers/CalleeNameResolver.ts`                 | `resolvedName`       | 1      | path       | --         |
-| `src/transpiler/logic/symbols/cnext/adapters/TSymbolInfoAdapter.ts`           | `scopeName`          | 1      | leaf-keyed | #1394      |
-| `src/transpiler/logic/symbols/cnext/index.ts`                                 | `scopeName`          | 1      | leaf-keyed | #1295      |
 | `src/transpiler/output/codegen/assignment/AssignmentClassifier.ts`            | `firstId`            | 1      | path       | --         |
 | `src/transpiler/output/codegen/assignment/AssignmentClassifier.ts`            | `scopeName`          | 2      | path       | --         |
 | `src/transpiler/output/codegen/assignment/handlers/AssignmentHandlerUtils.ts` | `leadingId`          | 1      | path       | --         |
@@ -71,7 +71,7 @@ shape that must change in the SAME commit as its collection's keying --
 a key built one way against a map filed another returns empty, which
 reads as "no such symbol" rather than "wrong question" (#1139).
 
-| Site                                                                              | Paired with          | Moves with | Why                                                                                                                                                                      |
-| --------------------------------------------------------------------------------- | -------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `src/transpiler/logic/symbols/cnext/adapters/TSymbolInfoAdapter.ts` (`scopeName`) | `scopeVariableUsage` | #1394      | reads a map that is never written, in a method with no caller -- the in-source claim that both sides move together describes a pairing with no producer                  |
-| `src/transpiler/logic/symbols/cnext/index.ts` (`scopeName`)                       | `constValues`        | #1295      | files each scoped const under a leaf-joined key; live, and the same latent shape as #1295's three collections, but not one of them -- scope question raised on that card |
+| Site                                                                     | Paired with          | Moves with | Why                                                                                                                                                                      |
+| ------------------------------------------------------------------------ | -------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter.ts` (`scopeName`) | `scopeVariableUsage` | #1394      | reads a map that is never written, in a method with no caller -- the in-source claim that both sides move together describes a pairing with no producer                  |
+| `src/PARSE/3-Declare/cnext/index.ts` (`scopeName`)                       | `constValues`        | #1295      | files each scoped const under a leaf-joined key; live, and the same latent shape as #1295's three collections, but not one of them -- scope question raised on that card |

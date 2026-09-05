@@ -1,0 +1,69 @@
+// test-execution
+// test-adr: 029
+// Issue #1491, the duplicate half: two files that both name ONE included
+// function-as-type must not each export its `_fp` typedef.
+//
+// When the typedef went wherever the type was NAMED, `consumer-a.h` and
+// `consumer-b.h` each defined `sharedWork_fp`, and this file -- which includes
+// both -- saw the same typedef twice. gcc accepts that as an extension, so the
+// suite stayed green; `-std=c99 -pedantic-errors` rejects it outright:
+//
+//     error: redefinition of typedef 'sharedWork_fp' [-Wpedantic]
+//
+// The generated C is the certification artifact, so "gcc happened not to
+// complain" is not the standard.
+//
+// The rule that fixes it is the one C libraries already follow: a header
+// typedefs the callback types ITS OWN API uses -- POSIX's signal-handler typedef,
+// `curl_write_callback` -- and nothing else. `stdlib.h` does not typedef
+// `qsort`'s comparator; it writes the pointer inline, because no caller needs
+// to name it. Here neither consumer's public interface mentions the type, so
+// each keeps its typedef in its own `.c`, where a duplicate across separate
+// translation units is legal and ordinary.
+//
+// This file exports `combined()` so that it HAS a header at all. Without one,
+// `selfIncludeAdded` is false and the `.c` emits the typedef whatever the
+// ownership rule says -- the decision under test is unreachable, and a fixture
+// built on it passes either way. That was the first version of this file.
+//
+// The assertion is in THIS file's own snapshot, deliberately. The consumers'
+// headers are helpers -- not snapshot-compared -- and gcc accepts a duplicate
+// typedef as an extension, so a fixture resting on either could not fail. So
+// `main` also names the type locally: under the correct rule the typedef lands
+// in `two-consumers.test.c`, and if header ownership goes back to "whoever
+// names it" it moves into `two-consumers.test.h` instead. Both files are
+// compared, so the regression reddens this fixture rather than only dirtying a
+// helper header.
+
+// `dup-lib.cnx` is included here as well so its object gets linked; the
+// harness links a fixture's DIRECT includes, and without this the two
+// consumers reference `sharedWork` with nothing defining it. It does not
+// weaken the test: the duplicate under test is between the two CONSUMER
+// headers, and this file names no callback type of its own.
+#include "dup-lib.cnx"
+#include "consumer-a.cnx"
+#include "consumer-b.cnx"
+
+// Public, so this file gets a header and the ownership decision is reachable.
+u32 combined() {
+    return useA() + useB();
+}
+
+u32 main() {
+    u32 a <- useA();
+    if (a != 3) return 1;
+
+    u32 b <- useB();
+    if (b != 3) return 2;
+
+    // Both consumers reach the same included function, so they must agree.
+    if (a != b) return 3;
+
+    // Names the type here too -- this is what puts the typedef in this file's
+    // own compared output and makes the regression visible.
+    sharedWork viaMain <- sharedWork;
+    u32 m <- viaMain();
+    if (m != 3) return 4;
+
+    return 0;
+}

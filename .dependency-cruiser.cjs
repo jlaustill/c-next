@@ -67,7 +67,7 @@ module.exports = {
       severity: "error",
       from: {
         path: [
-          "^src/transpiler/logic/symbols/cnext/collectors/",
+          "^src/PARSE/3-Declare/cnext/collectors/",
           "^src/transpiler/logic/parser/",
           "^src/transpiler/logic/preprocessor/",
           "^src/transpiler/data/",
@@ -109,6 +109,53 @@ module.exports = {
     // General Best Practices
     // ==========================================================================
 
+    {
+      name: "parse-cannot-import-render",
+      comment:
+        "#1447: PARSE is passes 1.x. `output/` is 2.2 Plan and 2.3 Render, so " +
+        "an import here would be an earlier pass reading a later one's code -- " +
+        "the direction the pass table exists to forbid. `reachable` because a " +
+        "layer boundary is a claim about what a module can REACH, not about who " +
+        "it names directly (#1297).",
+      severity: "error",
+      from: { path: "^src/PARSE/" },
+      to: { path: "^src/transpiler/output/", reachable: true },
+    },
+    {
+      name: "declare-cannot-import-resolve",
+      comment:
+        "#1472/#1447: 1.3 Declare must not depend on 1.4 Resolve. Declare emits " +
+        "FileSymbols from one parse tree; Resolve consumes every file's. An " +
+        "import the other way is the pass order backwards, and it is how the " +
+        "cross-file parameter #1472 removed would come back. " +
+        "`__tests__` is excluded deliberately: a test that runs BOTH passes -- " +
+        "which is what the pipeline does -- must name both, and forbidding that " +
+        "would only push the coverage somewhere less honest.",
+      severity: "error",
+      from: { path: "^src/PARSE/3-Declare/", pathNot: "__tests__" },
+      to: { path: "^src/PARSE/4-Resolve/", reachable: true },
+    },
+    {
+      name: "nothing-after-resolve-derives-cross-file-facts",
+      comment:
+        "#1447's definition of done. `docs/architecture/README.md`: \"After 1.4, " +
+        "nothing may compute a cross-file fact. A pass that needs one reads it " +
+        'from Program, which is complete before 2.1 begins." ' +
+        "Stated as an import rule, that is: a pass after 1.4 may depend on the " +
+        "TYPE `IProgram` -- which lives in `transpiler/types/`, reachable by " +
+        "every layer -- and never on `4-Resolve/` itself. Importing the builder " +
+        "or a deriver is how a later pass recomputes what 1.4 authored, which " +
+        "is the failure the ownership rule exists to prevent, and it is exactly " +
+        "the shape the `externalScopeTypes` seed had before #1472. " +
+        "`reachable` because re-derivation arrives through a helper as easily " +
+        "as directly (#1297).",
+      severity: "error",
+      from: {
+        path: ["^src/transpiler/output/", "^src/transpiler/logic/analysis/"],
+        pathNot: "__tests__",
+      },
+      to: { path: "^src/PARSE/4-Resolve/", reachable: true },
+    },
     {
       name: "no-circular",
       comment: "No circular dependencies allowed",
@@ -198,7 +245,10 @@ module.exports = {
       "src/transpiler/logic/parser/c/grammar/.*",
       "src/transpiler/logic/parser/cpp/grammar/.*",
     ],
-    // Focus on the transpiler architecture
-    focus: "^src/transpiler/",
+    // Focus on the pass tree AND what has not moved into it yet. Naming only
+    // `^src/transpiler/` here is how the move would have silently taken 63
+    // modules out of every rule at once: the checks stay green because
+    // nothing is analyzed, which is the shape of #1297 one level up.
+    focus: "^src/(PARSE|transpiler)/",
   },
 };

@@ -22,7 +22,8 @@
  */
 
 import SymbolTable from "../logic/symbols/SymbolTable";
-import TYPE_FORMING_KINDS from "../logic/symbols/TYPE_FORMING_KINDS";
+import type IProgram from "../types/IProgram";
+import TYPE_FORMING_KINDS from "../../PARSE/3-Declare/TYPE_FORMING_KINDS";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
 import type TSymbolKindCNext from "../types/symbol-kinds/TSymbolKindCNext";
 import ReservedCnxName from "../../utils/ReservedCnxName";
@@ -126,14 +127,16 @@ export default class CodeGenState {
    * Owned by CodeGenState; persists across per-file reset() calls.
    * Cleared via symbolTable.clear() at the start of each Transpiler run.
    */
-  static symbolTable: SymbolTable = new SymbolTable();
-
   /**
-   * External struct fields from C/C++ headers for initialization analysis.
-   * Maps struct name -> Set of non-array field names.
-   * Persists across per-file reset() calls, cleared at start of run.
+   * The artifact 1.4 Resolve emitted for this run (#1447).
+   *
+   * Run-wide, so it is NOT cleared by `reset()` -- that runs per file. The
+   * Transpiler clears it at the start of each run, the same way
+   * `callbackCompatibleFunctions` is handled.
    */
-  static externalStructFields: Map<string, Set<string>> = new Map();
+  static program: IProgram | null = null;
+
+  static symbolTable: SymbolTable = new SymbolTable();
 
   // ===========================================================================
   // TYPE TRACKING
@@ -210,6 +213,44 @@ export default class CodeGenState {
   static callbackTypeReferences: Set<string> = new Set();
 
   /**
+   * #1491: the subset of `callbackTypeReferences` named by a declaration that
+   * APPEARS IN THE HEADER -- a struct field, a scope member variable, or a
+   * parameter.
+   *
+   * A local variable inside a function body names a callback type too (#1484),
+   * and that reference must still produce a typedef -- but in the `.c`, not the
+   * header. Treating the two alike put a type in the public interface because
+   * one function body happened to use it, which is neither what C does nor
+   * safe: two files that both named an INCLUDED function-as-type locally each
+   * exported the same typedef, and anything including both headers saw it
+   * twice, which C99 rejects.
+   *
+   * The C practice this follows: a library header typedefs the callback types
+   * ITS OWN API uses -- POSIX's signal-handler typedef, `curl_write_callback`, `sqlite3_callback`
+   * -- and nothing else. `stdlib.h` does not typedef `qsort`'s comparator; it
+   * writes the pointer inline, because no caller needs to name it.
+   */
+  static publicCallbackTypeReferences: Set<string> = new Set();
+
+  /**
+   * Callback typedefs this file has already emitted, so the sweep for types it
+   * does NOT declare cannot emit one twice.
+   */
+  static emittedCallbackTypedefs: Set<string> = new Set();
+
+  /**
+   * Record a callback type named by a declaration that APPEARS IN THE HEADER.
+   *
+   * The single writer for that decision, so "does the public interface name
+   * this type" is decided in one place rather than by remembering to update a
+   * second set at each of the three declaration sites.
+   */
+  static notePublicCallbackTypeReference(functionName: string): void {
+    this.callbackTypeReferences.add(functionName);
+    this.publicCallbackTypeReferences.add(functionName);
+  }
+
+  /**
    * Issue #1164: does the generated header own this callback's typedef?
    *
    * When the `.c` includes its own header, whichever typedefs the header emits
@@ -222,7 +263,7 @@ export default class CodeGenState {
    * emission cannot drift apart.
    */
   static headerOwnsCallbackTypedef(functionName: string): boolean {
-    return this.callbackTypeReferences.has(functionName);
+    return this.publicCallbackTypeReferences.has(functionName);
   }
 
   /**
@@ -543,6 +584,8 @@ export default class CodeGenState {
     this.callbackFieldTypes = new Map();
     this.generatedStructInits = new Set();
     this.callbackTypeReferences = new Set();
+    this.publicCallbackTypeReferences = new Set();
+    this.emittedCallbackTypedefs = new Set();
     this.pendingCallbackTypedefs = [];
     // Note: callbackCompatibleFunctions is NOT reset here — it's populated by
     // FunctionCallAnalyzer (which runs before CodeGenerator.generate()) and must
@@ -903,16 +946,19 @@ export default class CodeGenState {
    * wherever it was declared.
    *
    * Issue #1220: the analyzer-facing companion to getCNextVariableTypeName,
-   * and deliberately symbol-table-ONLY. The obvious alternative -- reading
-   * CodeGenState.constValues first -- looks like it works, because that map is
-   * cleared by CodeGenerator.generate() and so still holds the consts of the
-   * file generated just before this one. Dependencies happen to be generated
-   * before their dependents today, which makes the stale map agree with the
-   * symbol table by coincidence rather than by rule. Asking the symbol table
-   * makes the answer independent of file order.
+   * and deliberately NOT `CodeGenState.constValues`. That map is cleared by
+   * CodeGenerator.generate(), so it still holds the consts of the file
+   * generated just before this one; dependencies happen to be generated before
+   * their dependents today, which makes the stale map agree by coincidence
+   * rather than by rule.
+   *
+   * #1447: asked of `Program` rather than the symbol table. Both are
+   * order-independent, but only one of them is the pass that OWNS the fact --
+   * "what is this const worth" spans files, so after 1.4 it is read from the
+   * artifact rather than re-derived from whatever the table has accumulated.
    */
   static getCNextConstValue(name: string): number | undefined {
-    return this.symbolTable.getConstValue(name);
+    return this.program?.constValue(name);
   }
 
   /**
@@ -1359,36 +1405,13 @@ export default class CodeGenState {
   }
 
   /**
-   * Build external struct fields from the symbol table.
-   * Called once per run after all headers are processed.
-   * Issue #355: Excludes array fields from init checking.
-   */
-  static buildExternalStructFields(): void {
-    this.externalStructFields.clear();
-    const allStructFields = this.symbolTable.getAllStructFields();
-
-    for (const [structName, fieldMap] of allStructFields) {
-      const nonArrayFields = new Set<string>();
-      for (const [fieldName, fieldInfo] of fieldMap) {
-        // Only include non-array fields in init checking
-        if (
-          !fieldInfo.arrayDimensions ||
-          fieldInfo.arrayDimensions.length === 0
-        ) {
-          nonArrayFields.add(fieldName);
-        }
-      }
-      if (nonArrayFields.size > 0) {
-        this.externalStructFields.set(structName, nonArrayFields);
-      }
-    }
-  }
-
-  /**
    * Get external struct fields for initialization analysis.
    */
-  static getExternalStructFields(): Map<string, Set<string>> {
-    return this.externalStructFields;
+  static getExternalStructFields(): ReadonlyMap<string, ReadonlySet<string>> {
+    // #1447: derived by 1.4 Resolve, not accumulated here. Which fields a
+    // header's struct has is a cross-file fact, and the pass that owns it is
+    // the one that can see every file.
+    return this.program?.externalStructFields() ?? new Map();
   }
 
   /**

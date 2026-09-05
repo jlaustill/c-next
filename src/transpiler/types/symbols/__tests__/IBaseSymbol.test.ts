@@ -3,7 +3,7 @@ import type IBaseSymbol from "../IBaseSymbol";
 import type TSymbolKindCNext from "../../symbol-kinds/TSymbolKindCNext";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import ScopeUtils from "../../../../utils/ScopeUtils";
-import TestSymbolUtils from "../../../logic/symbols/cnext/__tests__/testSymbolUtils";
+import TestSymbolUtils from "../../../../PARSE/3-Declare/cnext/__tests__/testSymbolUtils";
 import TestSourceSpan from "../../__testUtils__/testSourceSpan";
 
 describe("IBaseSymbol", () => {

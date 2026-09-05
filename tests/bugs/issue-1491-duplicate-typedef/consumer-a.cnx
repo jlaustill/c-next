@@ -1,0 +1,8 @@
+// Names the included function-as-type in a LOCAL variable only, so nothing in
+// this file's public interface mentions it.
+#include "dup-lib.cnx"
+
+u32 useA() {
+    sharedWork viaA <- sharedWork;
+    return viaA();
+}

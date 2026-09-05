@@ -19,7 +19,7 @@ import LiteralUtils from "../../../../utils/LiteralUtils";
 import OverflowBehaviorUtils from "../../../../utils/OverflowBehaviorUtils";
 import UNRESOLVED_DIMENSION from "../../../constants/UNRESOLVED_DIMENSION";
 import dimensionEvalOptions from "./dimensionEvalOptions";
-import TypeBinding from "../../../logic/symbols/TypeBinding";
+import TypeBinding from "../../../../PARSE/3-Declare/TypeBinding";
 
 /**
  * Callbacks required for type registration.

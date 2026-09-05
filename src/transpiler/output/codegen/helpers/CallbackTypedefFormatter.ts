@@ -59,6 +59,15 @@ class CallbackTypedefFormatter {
       return `${constModifier}${parameter.type} ${parameter.name ?? ""}${parameter.arrayDims ?? ""}`;
     }
 
+    // ADR-045: `string<N>` is `const char*` at a parameter position -- the same
+    // shape `ParameterSignatureBuilder._buildStringParam` gives the prototype.
+    // Checked BEFORE the plain branch below, which returns the type alone and
+    // would drop the `const`, leaving the typedef incompatible with the very
+    // function it was derived from.
+    if (parameter.isString) {
+      return `${constModifier}${parameter.type}`;
+    }
+
     if (parameter.isStruct) {
       // ADR-006: struct parameters become pointers in C, references in C++.
       const pointerOrReference = isCppMode ? "&" : "*";

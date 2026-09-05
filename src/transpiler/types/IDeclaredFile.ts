@@ -62,20 +62,21 @@ interface IDeclaredFile {
    *    `registerFunction`'s `isAlreadyRegistered` guard. A later mutation can
    *    therefore never invalidate what an earlier reader already saw.
    *
-   * There is a FOURTH mutation site, and it is neither additive nor idempotent:
-   * `SymbolTable.resolveVariableArrayDimensions` (reached from
-   * `resolveExternalArrayDimensions()` in stage 3b) casts the readonly view away and
-   * REPLACES `IVariableSymbol.arrayDimensions` wholesale. It fires BETWEEN the cache
-   * write and the cache read, so stage 5 converts post-mutation symbols where it
-   * previously converted freshly resolved ones -- the sharing described here is what
-   * makes that reachable.
+   * There used to be a FOURTH mutation site, neither additive nor idempotent:
+   * `SymbolTable.resolveVariableArrayDimensions` cast the readonly view away and
+   * REPLACED `IVariableSymbol.arrayDimensions` wholesale, in a stage-3b pass that
+   * fired BETWEEN the cache write and the cache read. It was benign only because
+   * `TSymbolInfoAdapter.convert` never reads that field -- asserted rather than
+   * remembered, by "#1301: convert() must not read arrayDimensions" in
+   * `TSymbolInfoAdapter.test.ts`.
    *
-   * It is benign because `TSymbolInfoAdapter.convert` never reads that field, which
-   * is asserted rather than remembered: "#1301: convert() must not read
-   * arrayDimensions" in `TSymbolInfoAdapter.test.ts` converts two symbols differing
-   * only in `arrayDimensions` and requires identical output. Without that assertion
-   * this would be exactly the "harmless today only by coincidence" shape the
-   * `ScopeCollector` comments condemn.
+   * #1447 removed it. Resolving a dimension needs the const's value, a const can
+   * arrive through an include, and so it is a Tier 2 fact: `Program.build` now
+   * rebuilds the symbol with resolved dimensions before anything caches it. The
+   * cast is gone with the mutation -- its own justification was that "cloning
+   * would require updating all maps", and the maps are now built afterwards.
+   * The #1301 assertion is kept: it no longer guards a live hazard, but it still
+   * pins that `convert` does not depend on when dimensions were resolved.
    *
    * The element type is `readonly` because nothing downstream mutates the array --
    * `TSymbolInfoAdapter.convert` and `SymbolTable.addTSymbols` both only iterate --

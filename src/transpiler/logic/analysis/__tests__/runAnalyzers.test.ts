@@ -11,6 +11,7 @@ import SymbolTable from "../../symbols/SymbolTable";
 import CodeGenState from "../../../state/CodeGenState";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
+import Program from "../../../../PARSE/4-Resolve/Program";
 
 /**
  * Helper to parse C-Next code and return AST + token stream
@@ -262,7 +263,10 @@ describe("runAnalyzers", () => {
         "field2",
         "u32",
       );
-      CodeGenState.buildExternalStructFields();
+      CodeGenState.program = Program.build(
+        [],
+        CodeGenState.symbolTable.getAllStructFields(),
+      );
 
       const errors = runAnalyzers(tree, tokenStream);
       expect(errors).toHaveLength(0);
@@ -307,7 +311,10 @@ describe("runAnalyzers", () => {
         visibility: "public",
       });
       CodeGenState.symbolTable.addStructField("CppMessage", "pgn", "u16");
-      CodeGenState.buildExternalStructFields();
+      CodeGenState.program = Program.build(
+        [],
+        CodeGenState.symbolTable.getAllStructFields(),
+      );
 
       // No options passed - should use CodeGenState.symbolTable
       const errors = runAnalyzers(tree, tokenStream);

@@ -35,7 +35,7 @@
     "oxlint:check": "oxlint src/ prettier-plugin/src/ --ignore-pattern '**/parser/grammar/**' --ignore-pattern '**/parser/c/grammar/**' --ignore-pattern '**/parser/cpp/grammar/**'",
     "oxlint:fix": "oxlint src/ prettier-plugin/src/ --ignore-pattern '**/parser/grammar/**' --ignore-pattern '**/parser/c/grammar/**' --ignore-pattern '**/parser/cpp/grammar/**' --fix",
     "lint:test-location": "! find src -name '*.test.ts' | grep -qv '__tests__' || (echo 'Error: .test.ts files must be in __tests__ directories' && exit 1)",
-    "depcruise": "depcruise src/transpiler --config .dependency-cruiser.cjs",
+    "depcruise": "depcruise src --config .dependency-cruiser.cjs",
     "depcruise:graph": "depcruise src/transpiler --config .dependency-cruiser.cjs --output-type dot | dot -T svg > dependency-graph.svg",
     "prepare": "husky && npm run plugin:install && npm run plugin:build",
     "prepublishOnly": "npm run prettier:check && npm run oxlint:check && npm run build && npm test",
@@ -84,7 +84,8 @@
     "format:fidelity": "tsx scripts/format-fidelity.ts tests && tsx scripts/format-fidelity.ts examples && tsx scripts/format-fidelity.ts tests-gtest",
     "plugin:install": "npm --prefix prettier-plugin ci",
     "plugin:test": "npm --prefix prettier-plugin test",
-    "plugin:build": "npm --prefix prettier-plugin run build"
+    "plugin:build": "npm --prefix prettier-plugin run build",
+    "move:modules": "tsx scripts/move-modules.ts"
   },
   "keywords": [
     "c",
@@ -129,6 +130,7 @@
     "madge": "^8.0.0",
     "oxlint": "^1.43.0",
     "prettier": "^3.8.1",
+    "ts-morph": "^28.0.0",
     "ts-prune": "^0.10.3",
     "vitest": "^4.0.18"
   },

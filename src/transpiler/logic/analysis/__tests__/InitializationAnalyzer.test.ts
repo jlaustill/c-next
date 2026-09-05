@@ -12,6 +12,7 @@ import SymbolTable from "../../symbols/SymbolTable";
 import CodeGenState from "../../../state/CodeGenState";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
+import Program from "../../../../PARSE/4-Resolve/Program";
 
 /**
  * Parse C-Next source code into an AST
@@ -58,7 +59,10 @@ describe("InitializationAnalyzer", () => {
       CodeGenState.symbolTable.addStructField("CppMessage", "pgn", "u16");
 
       // Build external struct fields from symbol table
-      CodeGenState.buildExternalStructFields();
+      CodeGenState.program = Program.build(
+        [],
+        CodeGenState.symbolTable.getAllStructFields(),
+      );
 
       const analyzer = new InitializationAnalyzer();
       const errors = analyzer.analyze(tree, CodeGenState.symbolTable);
@@ -112,7 +116,10 @@ describe("InitializationAnalyzer", () => {
       CodeGenState.symbolTable.addStructField("CppStruct", "value", "u32");
 
       // Build external struct fields from symbol table
-      CodeGenState.buildExternalStructFields();
+      CodeGenState.program = Program.build(
+        [],
+        CodeGenState.symbolTable.getAllStructFields(),
+      );
 
       const analyzer = new InitializationAnalyzer();
       const errors = analyzer.analyze(tree, CodeGenState.symbolTable);
@@ -143,7 +150,10 @@ describe("InitializationAnalyzer", () => {
       CodeGenState.symbolTable.addStructField("CStruct", "value", "u32");
 
       // Build external struct fields from symbol table (as pipeline does)
-      CodeGenState.buildExternalStructFields();
+      CodeGenState.program = Program.build(
+        [],
+        CodeGenState.symbolTable.getAllStructFields(),
+      );
 
       const analyzer = new InitializationAnalyzer();
       const errors = analyzer.analyze(tree, CodeGenState.symbolTable);

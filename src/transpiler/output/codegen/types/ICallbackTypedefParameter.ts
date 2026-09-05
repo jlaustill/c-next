@@ -9,6 +9,15 @@
 interface ICallbackTypedefParameter {
   readonly type: string;
   readonly isStruct: boolean;
+  /**
+   * ADR-045: the parameter was written `string<N>`, so it renders as `char*`
+   * and takes a `const` the plain-parameter branch does not.
+   *
+   * Carried as a flag rather than baked into `type` because `const` belongs to
+   * the parameter, not to the type name -- the same reason `isStruct` is a flag
+   * and not a `*` glued onto the string.
+   */
+  readonly isString?: boolean;
   readonly isConst?: boolean;
   readonly isArray?: boolean;
   readonly arrayDims?: string;

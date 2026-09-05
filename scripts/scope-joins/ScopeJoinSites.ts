@@ -178,7 +178,7 @@ class ScopeJoinSites {
       why: "callee chain `Scope.method()`; `resolvedName` is source text, and the `isScope` guard only confirms the author named a scope",
     },
     {
-      file: "src/transpiler/logic/symbols/cnext/adapters/TSymbolInfoAdapter.ts",
+      file: "src/PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter.ts",
       element: "scopeName",
       kind: "leaf-keyed",
       pairedWith: "scopeVariableUsage",
@@ -186,7 +186,7 @@ class ScopeJoinSites {
       why: "reads a map that is never written, in a method with no caller -- the in-source claim that both sides move together describes a pairing with no producer",
     },
     {
-      file: "src/transpiler/logic/symbols/cnext/index.ts",
+      file: "src/PARSE/3-Declare/cnext/index.ts",
       element: "scopeName",
       kind: "leaf-keyed",
       pairedWith: "constValues",

@@ -26,7 +26,7 @@ import SymbolTable from "../../../transpiler/logic/symbols/SymbolTable";
 import MockFileSystem from "../../../transpiler/__tests__/MockFileSystem";
 import TTypeUtils from "../../TTypeUtils";
 import type IFunctionSymbol from "../../../transpiler/types/symbols/IFunctionSymbol";
-import TestSymbolUtils from "../../../transpiler/logic/symbols/cnext/__tests__/testSymbolUtils";
+import TestSymbolUtils from "../../../PARSE/3-Declare/cnext/__tests__/testSymbolUtils";
 import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
 
 describe("CacheManager", () => {

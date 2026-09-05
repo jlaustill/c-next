@@ -10,7 +10,7 @@ import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../parser/grammar/CNextListener";
 import * as Parser from "../parser/grammar/CNextParser";
 import IStructFieldError from "./types/IStructFieldError";
-import SymbolUtils from "../symbols/SymbolUtils";
+import SymbolUtils from "../../../PARSE/3-Declare/SymbolUtils";
 
 /**
  * Pure function to create the error message

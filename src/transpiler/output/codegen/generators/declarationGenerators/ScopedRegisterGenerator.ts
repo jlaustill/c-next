@@ -22,7 +22,7 @@ import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
 const generateScopedRegister = (
   node: Parser.RegisterDeclarationContext,
   declaringScopePath: string,
-  input: IGeneratorInput,
+  _input: IGeneratorInput,
   _state: IGeneratorState,
   orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
@@ -30,17 +30,19 @@ const generateScopedRegister = (
   const fullName = QualifiedNameGenerator.forMember(declaringScopePath, name); // Teensy4_GPIO7
   const baseAddress = orchestrator.generateExpression(node.expression());
 
-  // Type resolver for scoped bitmaps (e.g., GPIO7Pins -> Teensy4_GPIO7Pins)
-  const resolveType = (regType: string): string | undefined => {
-    const scopedTypeName = QualifiedNameGenerator.forMember(
-      declaringScopePath,
-      regType,
-    );
-    return input.symbols?.knownBitmaps.has(scopedTypeName)
-      ? scopedTypeName
-      : undefined;
-  };
-
+  // No scoped-bitmap resolver here, deliberately. `orchestrator.generateType`
+  // already applies ADR-057 qualification through the one TypeBinding ladder,
+  // so a bare `Flags` inside `scope Chip` arrives as `Chip__Flags` and an
+  // explicit `global.Flags` arrives as `Flags`.
+  //
+  // The resolver this replaced re-qualified that ALREADY-resolved name and
+  // probed the re-qualified key first, which is the post-pass ADR-057 forbids:
+  // by then `global.Flags` and a bare `Flags` are byte-identical, so a
+  // scope-local `Chip__Flags` captured the global reference and the register
+  // was typed with a bitmap whose bit names differ. Deleting it removes a
+  // second qualification decision rather than patching both to agree, and the
+  // scoped and unscoped register paths now share one macro generator with no
+  // divergence to keep in step.
   const lines: string[] = [
     `/* Register: ${fullName} @ ${baseAddress} */`,
     ...generateRegisterMacros(
@@ -48,7 +50,6 @@ const generateScopedRegister = (
       fullName,
       baseAddress,
       orchestrator,
-      resolveType,
     ),
     "",
   ];

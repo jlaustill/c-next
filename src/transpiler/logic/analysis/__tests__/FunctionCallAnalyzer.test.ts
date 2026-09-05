@@ -12,7 +12,7 @@ import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import TTypeUtils from "../../../../utils/TTypeUtils";
 import type IFunctionSymbol from "../../../types/symbols/IFunctionSymbol";
 import CodeGenState from "../../../state/CodeGenState";
-import TestSymbolUtils from "../../symbols/cnext/__tests__/testSymbolUtils";
+import TestSymbolUtils from "../../../../PARSE/3-Declare/cnext/__tests__/testSymbolUtils";
 import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
 
 /**
