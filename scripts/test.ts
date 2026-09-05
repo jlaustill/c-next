@@ -38,11 +38,13 @@ import { cpus } from "node:os";
 import ITools from "./types/ITools";
 import ITestOptions from "./types/ITestOptions";
 import ITestResult from "./types/ITestResult";
+import ITestTotals from "./types/ITestTotals";
 
 // Import shared test utilities
 import TestUtils from "./test-utils";
 import FixtureScheduler from "./utils/FixtureScheduler";
 import FileScanner from "./utils/FileScanner";
+import TestOutcome from "./utils/TestOutcome";
 import chalk from "chalk";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -120,91 +122,105 @@ function printResult(
   quietMode: boolean,
 ): void {
   const modeIndicator = getModeIndicator(result);
+  const outcome = TestOutcome.classify(result);
 
-  if (result.passed) {
-    if (result.updated) {
-      if (!quietMode) {
-        console.log(
-          `${chalk.yellow("UPDATED")} ${relativePath}${modeIndicator}`,
-        );
-      }
-    } else if (result.skippedExec) {
-      if (!quietMode) {
-        console.log(
-          `${chalk.green("PASS")}    ${relativePath}${modeIndicator} ${chalk.dim("(exec skipped: ARM)")}`,
-        );
-      }
-    } else if (!quietMode) {
-      console.log(`${chalk.green("PASS")}    ${relativePath}${modeIndicator}`);
+  if (outcome.kind === "updated") {
+    if (!quietMode) {
+      console.log(`${chalk.yellow("UPDATED")} ${relativePath}${modeIndicator}`);
     }
-  } else if (result.noSnapshot) {
-    console.log(`${chalk.yellow("SKIP")}    ${relativePath} (no snapshot)`);
-  } else {
-    console.log(`${chalk.red("FAIL")}    ${relativePath}${modeIndicator}`);
-    console.log(`        ${chalk.dim(result.message ?? "")}`);
-    if (result.expected && result.actual) {
-      console.log(`        ${chalk.dim("Expected:")}`);
+    return;
+  }
+
+  if (outcome.kind === "passed") {
+    if (!quietMode) {
+      const execNote = outcome.execSkipped
+        ? ` ${chalk.dim("(exec skipped: ARM)")}`
+        : "";
       console.log(
-        `        ${result.expected.split("\n").slice(0, 5).join("\n        ")}`,
-      );
-      console.log(`        ${chalk.dim("Actual:")}`);
-      console.log(
-        `        ${result.actual.split("\n").slice(0, 5).join("\n        ")}`,
-      );
-    } else if (result.actual) {
-      // Just actual (no expected) - for compilation/analysis errors
-      console.log(
-        `        ${result.actual.split("\n").slice(0, 5).join("\n        ")}`,
+        `${chalk.green("PASS")}    ${relativePath}${modeIndicator}${execNote}`,
       );
     }
-    // Show execution error if present
-    if (result.execError) {
-      console.log(`        ${chalk.red("Exec error:")} ${result.execError}`);
-    }
-    // Show warning error if present (test-no-warnings failure)
-    if (result.warningError) {
-      console.log(`        ${chalk.red("Warning:")} ${result.warningError}`);
-    }
-    // Show parity mismatch details (Issue #922)
-    if (result.parityError) {
-      console.log(
-        `        ${chalk.red("Parity mismatch - C and C++ outputs differ:")}`,
-      );
-      for (const line of result.parityError.split("\n").slice(0, 10)) {
-        console.log(`          ${chalk.dim(line)}`);
-      }
+    return;
+  }
+
+  console.log(`${chalk.red("FAIL")}    ${relativePath}${modeIndicator}`);
+
+  // Issue #1397: a missing snapshot fails the build, so it prints as a failure
+  // rather than as SKIP. There is nothing to diff against, so the line carries
+  // the command that creates the snapshot instead of the generated output.
+  if (outcome.missingSnapshot) {
+    console.log(
+      `        ${chalk.dim(`no snapshot - run: npm test -- ${relativePath} --update`)}`,
+    );
+    return;
+  }
+
+  console.log(`        ${chalk.dim(result.message ?? "")}`);
+  if (result.expected && result.actual) {
+    console.log(`        ${chalk.dim("Expected:")}`);
+    console.log(
+      `        ${result.expected.split("\n").slice(0, 5).join("\n        ")}`,
+    );
+    console.log(`        ${chalk.dim("Actual:")}`);
+    console.log(
+      `        ${result.actual.split("\n").slice(0, 5).join("\n        ")}`,
+    );
+  } else if (result.actual) {
+    // Just actual (no expected) - for compilation/analysis errors
+    console.log(
+      `        ${result.actual.split("\n").slice(0, 5).join("\n        ")}`,
+    );
+  }
+  // Show execution error if present
+  if (result.execError) {
+    console.log(`        ${chalk.red("Exec error:")} ${result.execError}`);
+  }
+  // Show warning error if present (test-no-warnings failure)
+  if (result.warningError) {
+    console.log(`        ${chalk.red("Warning:")} ${result.warningError}`);
+  }
+  // Show parity mismatch details (Issue #922)
+  if (result.parityError) {
+    console.log(
+      `        ${chalk.red("Parity mismatch - C and C++ outputs differ:")}`,
+    );
+    for (const line of result.parityError.split("\n").slice(0, 10)) {
+      console.log(`          ${chalk.dim(line)}`);
     }
   }
 }
 
-interface ICounterUpdates {
-  passed: number;
-  failed: number;
-  updated: number;
-  noSnapshot: number;
-}
-
 /**
- * Get counter updates based on test result
+ * Get counter updates based on test result.
+ *
+ * Issue #1397: this reads the SAME outcome `printResult` renders, rather than
+ * re-deriving one from `passed`/`noSnapshot`. `noSnapshot` counts a subset of
+ * `failed`, so the totals partition the fixtures instead of holding one twice.
  */
-function getCounterUpdates(result: ITestResult): ICounterUpdates {
-  const updates: ICounterUpdates = {
+function getCounterUpdates(result: ITestResult): ITestTotals {
+  const updates: ITestTotals = {
     passed: 0,
     failed: 0,
     updated: 0,
     noSnapshot: 0,
   };
 
-  if (result.passed) {
-    if (result.updated) {
-      updates.updated++;
-    }
+  const outcome = TestOutcome.classify(result);
+
+  if (outcome.kind === "updated") {
+    updates.updated++;
     updates.passed++;
-  } else {
-    if (result.noSnapshot) {
-      updates.noSnapshot++;
-    }
-    updates.failed++;
+    return updates;
+  }
+
+  if (outcome.kind === "passed") {
+    updates.passed++;
+    return updates;
+  }
+
+  updates.failed++;
+  if (outcome.missingSnapshot) {
+    updates.noSnapshot++;
   }
 
   return updates;
@@ -220,12 +236,7 @@ async function runTestsParallel(
   tools: ITools,
   numWorkers: number,
   options: ITestOptions = {},
-): Promise<{
-  passed: number;
-  failed: number;
-  updated: number;
-  noSnapshot: number;
-}> {
+): Promise<ITestTotals> {
   return new Promise((resolve) => {
     let passed = 0;
     let failed = 0;
@@ -436,12 +447,7 @@ async function runTestsSequential(
   quietMode: boolean,
   tools: ITools,
   options: ITestOptions = {},
-): Promise<{
-  passed: number;
-  failed: number;
-  updated: number;
-  noSnapshot: number;
-}> {
+): Promise<ITestTotals> {
   let passed = 0;
   let failed = 0;
   let updated = 0;
@@ -567,12 +573,7 @@ async function main(): Promise<void> {
   }
 
   // Run tests (parallel or sequential)
-  let results: {
-    passed: number;
-    failed: number;
-    updated: number;
-    noSnapshot: number;
-  };
+  let results: ITestTotals;
 
   if (numJobs > 1 && cnxFiles.length > 1) {
     results = await runTestsParallel(
@@ -610,13 +611,16 @@ async function main(): Promise<void> {
     console.log(chalk.cyan("Results:"));
     console.log(`  ${chalk.green("Passed:")}  ${passed}`);
     if (failed > 0) {
-      console.log(`  ${chalk.red("Failed:")}  ${failed}`);
+      // Issue #1397: missing snapshots are a subset of the failures, reported
+      // as a clarifier rather than as a bucket beside them. Printed as
+      // "Skipped" they read as benign while still failing the build, and the
+      // same fixture was counted in both lines.
+      const noSnapshotNote =
+        noSnapshot > 0 ? chalk.dim(` (${noSnapshot} with no snapshot)`) : "";
+      console.log(`  ${chalk.red("Failed:")}  ${failed}${noSnapshotNote}`);
     }
     if (updated > 0) {
       console.log(`  ${chalk.yellow("Updated:")} ${updated}`);
-    }
-    if (noSnapshot > 0) {
-      console.log(`  ${chalk.yellow("Skipped:")} ${noSnapshot} (no snapshot)`);
     }
   }
 
