@@ -1,0 +1,26 @@
+// test-error
+// test-adr: 016
+// Issue #1306 / ADR-016: the cross-file half. A nested scope in an INCLUDED file
+// must be rejected with the same coded diagnostic, at the included file's own
+// position.
+//
+// #1219 records that 35 of 37 error codes have zero cross-file fixtures. A check
+// that reads only the entry file's parse would pass the same-file fixture and
+// silently accept this one, so same-file coverage alone cannot see the failure.
+//
+// NEGATIVE CONTROL: `EntryLegal` below is a flat scope in the entry file that must
+// stay silent, so a diagnostic that fired on any scope reachable through an include
+// -- over-enforcement -- would fail here. Only the included nested scope is named
+// in .expected.error.
+
+#include "nested-lib.cnx"
+
+scope EntryLegal {
+    u8 entryValue <- 3;
+
+    public u8 read() {
+        return this.entryValue;
+    }
+}
+
+void main() {}

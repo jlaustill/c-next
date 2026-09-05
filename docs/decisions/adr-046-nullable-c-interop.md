@@ -90,7 +90,10 @@ if (c_customer != NULL) {
 ### Retired Error Codes
 
 - E0901 → Replaced by E0908 (more general)
-- E0902 → Removed (functions now allowed)
+- E0902 → Retained, and re-scoped: the stream and lookup functions this ADR
+  allows no longer trigger it, but importing a dynamic memory function still
+  does (see _Functions Still Forbidden_ below). It reads "importing X from
+  C/C++ is forbidden" rather than naming X as a C-Next function
 - E0904 → Removed (storage allowed with `c_` prefix)
 - E0903 → Retained (NULL invalid for C-Next types)
 
@@ -105,9 +108,21 @@ Previously forbidden by ADR-047, now allowed:
 
 ## Functions Still Forbidden
 
-Per ADR-003 (static allocation only):
+Dynamic memory imported from C or C++, reported as **E0902**.
 
-- `malloc`, `calloc`, `realloc`, `free`
+**Which names, and the match rule, are stated once — in
+[ADR-003 § What a `.cnx` File May Not Call](adr-003-static-allocation.md#decision-what-a-cnx-file-may-not-call).**
+That is the ADR that owns static allocation, so that is where the language-level
+statement of what compiles belongs. This section deliberately does not repeat the
+list: when it did, the two homes disagreed — ADR-003 named five functions and
+this file named fourteen plus a suffix rule, so a transpiler rebuilt from one
+rejected `heap_caps_malloc` and one rebuilt from the other did not.
+
+What belongs here is the interop consequence: a header that declares these
+functions can still be included, and every other function it declares remains
+usable under this ADR's `c_` rules. Only a call to a forbidden name from a `.cnx`
+file is rejected, and the diagnostic names the **import** as what is forbidden
+rather than describing the function as a C-Next one.
 
 ## Compiler Enforcement
 

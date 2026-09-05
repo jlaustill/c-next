@@ -1,4 +1,8 @@
 6:21 error[E0805]: Shift operator '>>' not allowed on signed integer types
+       help: Shift operations on signed integers have undefined (<<) or implementation-defined (>>) behavior. Use unsigned types (u8, u16, u32, u64) for bit manipulation.
 9:19 error[E0805]: Shift operator '>>' not allowed on signed integer types
+       help: Shift operations on signed integers have undefined (<<) or implementation-defined (>>) behavior. Use unsigned types (u8, u16, u32, u64) for bit manipulation.
 14:25 error[E0805]: Shift operator '>>' not allowed on signed integer types
+       help: Shift operations on signed integers have undefined (<<) or implementation-defined (>>) behavior. Use unsigned types (u8, u16, u32, u64) for bit manipulation.
 17:23 error[E0805]: Shift operator '>>' not allowed on signed integer types
+       help: Shift operations on signed integers have undefined (<<) or implementation-defined (>>) behavior. Use unsigned types (u8, u16, u32, u64) for bit manipulation.

@@ -111,8 +111,8 @@ Key design choices:
 3. **No fallthrough** - Not supported; be explicit about each case's behavior
 4. **Counted default for enums** - `default(n)` where n = variants covered by default
 5. **Multiple cases with `||`** - Use `case A || B { }` syntax
-6. **Constant expressions only** - No `case x + 1:` for v1
-7. **Integral types only** - Standard C switch type restrictions for v1
+6. **Constant expressions only** - No `case x + 1:`
+7. **Integral types only** - Standard C switch type restrictions
 8. **Minimum 2 clauses** - Single-case switches should use `if` instead
 9. **Default must be last** - Improves readability and consistency
 10. **No boolean switches** - Use `if/else` for boolean expressions
@@ -356,7 +356,7 @@ defaultCase
 ## Resolved Questions
 
 1. ✅ Require exhaustive matching for enums? **Yes** - via explicit cases OR `default(n)` count
-2. ✅ Allow expressions in case labels? **No** - constants only for v1
+2. ✅ Allow expressions in case labels? **No** - constants only
 3. ✅ Require braces around case bodies? **Yes** - braces replace break
 4. ✅ Support fallthrough? **No** - be explicit about each case's behavior
 5. ✅ Need colons after case? **No** - braces make them redundant

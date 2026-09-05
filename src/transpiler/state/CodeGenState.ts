@@ -1486,9 +1486,10 @@ export default class CodeGenState {
    *
    * Every codegen caller currently passes a leaf, and that is correct for every
    * program C-Next can express: `scopeMember` admits no `scopeDeclaration`
-   * (grammar/CNext.g4:81-89), so a scope's leaf IS its whole path. It stops
-   * being correct the moment scopes can nest, which is why the gap is tracked
-   * as #1304 rather than left to be rediscovered.
+   * (grammar/CNext.g4:81-89), so a scope's leaf IS its whole path. ADR-016 makes
+   * that permanent, so no future grammar change retires the gap -- but the
+   * parameter is still a path, and a leaf passed where a path is expected is a
+   * misuse the type cannot catch. #1304 tracks it on those terms.
    */
   static setCurrentScopeByPath(name: string | null): void {
     if (name === null) {

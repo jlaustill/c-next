@@ -510,12 +510,31 @@ Options to research:
 
 ### 2. Should scopes nest?
 
-**DECIDED: No nested scopes for v1.**
+**DECIDED: No nested scopes. This is permanent, not a simplification to revisit.**
 
-Nested scopes add complexity without significant benefit for embedded use cases. Keep it simple:
+**Scopes are a flat namespace.** That is the decision, and the identifier budget is
+why unbounded depth was never a candidate for it — not, on its own, an argument that
+depth 2 in particular must be refused.
+
+C99 section 5.2.4.1 guarantees only 31 significant initial characters in an external
+identifier, and MISRA C:2012 Rule 5.1 is evaluated inside that budget. With
+six-character scope names, a depth-3 member generates a 30-character name and stays
+distinct; a depth-4 member generates 38 and does not. Unbounded nesting therefore
+cannot be admitted without either abandoning the guarantee or silently truncating
+names a conforming toolchain is free to conflate.
+
+What the budget proves is that depth must be **bounded**; it does not locate the
+bound. `Hw__Gpio__init` is 14 characters and fits comfortably, while a flat
+`HardwareAbstractionLayer__initialize` exceeds 31 with no nesting at all — so the
+budget neither forbids depth 2 nor rescues a flat name. Flatness is chosen because
+one level is a namespace and more than one is a hierarchy: a hierarchy needs
+resolution rules, shadowing rules, and a visibility model per level, and every one of
+those is a place a reader can be wrong about where a name comes from. C-Next declines
+to have them. A proposal for depth-2 nesting is not answered by arithmetic and is not
+reopened by it either (#1306 review).
 
 ```cnx
-// NOT supported in v1:
+// NOT supported:
 scope Hardware {
     scope GPIO { ... }  // ERROR: nested scopes not allowed
 }
@@ -562,7 +581,7 @@ struct RingBuffer<T, N> {
 ## What This ADR Decides
 
 - **Name resolution:** ~~`this.` and `global.` are REQUIRED inside scopes (no implicit resolution)~~ — **withdrawn by [ADR-057](adr-057-implicit-scope-resolution.md)**, which resolves bare names local → scope → global. `this.` and `global.` remain available to force a level.
-- **Nested scopes:** Not supported in v1
+- **Nested scopes:** Not supported, permanently — the generated name would exceed C99's 31-character significance guarantee at depth 4
 - **`this.` in type position:** Supported for scoped types (e.g., `this.State`)
 
 ## What This ADR Does NOT Decide
@@ -631,6 +650,7 @@ duplicate-definition error and belongs to whatever ADR governs that, not here.
 | Code  | Reported when                                                                                       | Asserted by                                                                                                                                                             |
 | ----- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | E0425 | Two definitions of the same member name in one scope, or a C-Next symbol colliding with a C/C++ one | `tests/bugs/issue-1333-scope-reopening/duplicate-member-reopened`, `tests/bugs/issue-1334-scope-declaration-sites/conflict-across-files`, `.../cross-language-conflict` |
+| E0430 | A scope is declared inside another scope, in the entry file or in an included one                   | `tests/scope/nested-scope-error`, `tests/bugs/issue-1306-nested-scope-diagnostic/cross-file-nested`                                                                     |
 
 A scope **composes**: reopening it in another file adds members rather than
 redefining it (see Scope Composition above). Member names stay unique across every
@@ -642,6 +662,27 @@ Every block that declares a scope is remembered, not just the first. Before #133
 only one position was kept, so a conflict spanning two files printed the same
 location twice — the diagnostic named a file the reader had already looked at
 instead of the other definition.
+
+E0430 names the position of the inner `scope` keyword. Its advice reaches the reader
+on the `help:` line, the shape every other coded diagnostic uses, and it is hedged on
+purpose: the reader cannot distinguish a deliberate nesting from a **missing closing
+brace** before the next `scope`, because the two produce an identical token stream. A
+forgotten `}` is at least as common as deliberate nesting, so the advice names closing
+the enclosing scope first and flattening second.
+
+Recovery noise that follows the rejection is suppressed, and only that noise. Error
+recovery moves the rejected block out and complains twice — once inside the construct
+already reported, once about the closing brace the move left behind at file scope —
+and those two describe a structure already known to be wrong. **Everything else still
+reports**, including an unrelated syntax error in a different top-level declaration
+later in the same file. A blanket suppression swallowed those, so the author fixed the
+scope, re-ran, and met a second error that had been sitting there the whole time
+(#1306 review). A second genuine nested scope is reported in its own right.
+
+The rejection is stated once here and enforced where a nested scope first becomes
+visible, which is while the source is being read — a scope member is not admitted as a
+scope declaration in the first place, so the construct never reaches a later stage to
+be analyzed.
 
 ## Implementation Status
 

@@ -56,8 +56,8 @@ void readInput() {
 fgets(buffer, buffer.size, stdin);
 printf("Got: %s", buffer);  // ERROR!
 
-// E0902: Forbidden function
-fopen("file.txt", "r");  // ERROR: Not supported in v1
+// E0902: importing a dynamic memory function from C/C++ (ADR-003)
+malloc(64);  // ERROR: C-Next has no dynamic memory allocation
 
 // E0903: NULL outside comparison
 u32 x <- NULL;  // ERROR
@@ -78,7 +78,16 @@ string<64>? result <- fgets(...);  // ERROR: No nullable types
 
 ## Forbidden Functions (ADR-103)
 
-These functions return pointers that cannot be safely handled in C-Next v1:
+> **Superseded — do not read this table as current.** ADR-046 allows `fopen`,
+> `fclose`, `getenv`, `strstr`, `strchr` and `memchr` under its `c_` rules; they
+> report **E0901** (check the result for NULL), not E0902. Only the four
+> allocation functions below are still forbidden, and the current list and match
+> rule live in
+> [ADR-003 § What a `.cnx` File May Not Call](adr-003-static-allocation.md#decision-what-a-cnx-file-may-not-call).
+> A test fixture comment repeated this table's reading and had to be corrected in
+> #1306; the pointer is here so the next reader does not repeat it again.
+
+These functions return pointers that C-Next cannot handle safely:
 
 | Function  | Reason                                                   |
 | --------- | -------------------------------------------------------- |
@@ -95,12 +104,12 @@ These functions return pointers that cannot be safely handled in C-Next v1:
 
 ## Error Codes
 
-| Code  | Message                                                        |
-| ----- | -------------------------------------------------------------- |
-| E0901 | C library function 'X' can return NULL - must check result     |
-| E0902 | C library function 'X' returns a pointer - not supported in v1 |
-| E0903 | NULL can only be used in comparison context                    |
-| E0904 | Cannot store 'X' return value in variable 'Y'                  |
+| Code  | Message                                                       |
+| ----- | ------------------------------------------------------------- |
+| E0901 | C library function 'X' can return NULL - must check result    |
+| E0902 | Importing dynamic memory function 'X' from C/C++ is forbidden |
+| E0903 | NULL can only be used in comparison context                   |
+| E0904 | Cannot store 'X' return value in variable 'Y'                 |
 
 ## Why This Approach
 

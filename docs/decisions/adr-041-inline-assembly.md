@@ -6,7 +6,7 @@
 
 ## Decision
 
-**No inline assembly in C-Next for v1.** When assembly is needed, write it in C.
+**No inline assembly in C-Next.** When assembly is needed, write it in C.
 
 > **Note (#1143).** This ADR governs C-Next _source_ syntax: a user cannot write
 > inline assembly. The transpiler itself does emit it — `generateIrqWrappers()`

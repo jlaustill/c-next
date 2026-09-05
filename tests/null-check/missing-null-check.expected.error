@@ -1,1 +1,2 @@
 7:4 error[E0901]: C library function 'fgets' can return NULL - must check result
+       help: Use: if (fgets(...) != NULL) { ... }

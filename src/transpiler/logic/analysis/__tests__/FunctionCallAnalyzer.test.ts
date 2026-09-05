@@ -1320,4 +1320,149 @@ describe("FunctionCallAnalyzer", () => {
       expect(errors).toHaveLength(0);
     });
   });
+
+  // ========================================================================
+  // E0902: dynamic memory imported from C/C++ (ADR-003)
+  //
+  // Decided here, and only here, because ADR-003 forbids the IMPORT: answering
+  // it needs to know whether the callee resolved to a C-Next definition, a
+  // header symbol, or nothing. NullCheckAnalyzer used to answer it too, from a
+  // listener that sees only the name -- which is how `pool_free` came to be
+  // told it was imported from C/C++ (#1306 review).
+  // ========================================================================
+
+  describe("E0902 - dynamic memory from C/C++", () => {
+    it.each(["malloc", "calloc", "realloc", "free"])(
+      "reports %s when stdlib.h resolves it",
+      (name) => {
+        const code = `
+        #include <stdlib.h>
+        void main() {
+          ${name}(1);
+        }
+      `;
+        const analyzer = new FunctionCallAnalyzer();
+        const errors = analyzer.analyze(parse(code));
+
+        expect(errors).toHaveLength(1);
+        expect(errors[0].code).toBe("E0902");
+        expect(errors[0].functionName).toBe(name);
+      },
+    );
+
+    it("reports the same code and sentence with no include at all", () => {
+      const code = `
+        void main() {
+          malloc(1);
+        }
+      `;
+      const analyzer = new FunctionCallAnalyzer();
+      const errors = analyzer.analyze(parse(code));
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0902");
+      expect(errors[0].message).toBe(
+        "Importing dynamic memory function 'malloc' from C/C++ is forbidden",
+      );
+      // NOT E0422's hint, which would send the author to write the include the
+      // transpiler then rejects them for.
+      expect(errors[0].message).not.toContain("stdlib.h");
+      expect(errors[0].helpText).toContain("ADR-003");
+    });
+
+    it("reports a declaration initializer exactly once", () => {
+      const code = `
+        #include <stdlib.h>
+        void main() {
+          cstring c_ptr <- malloc(100);
+        }
+      `;
+      const analyzer = new FunctionCallAnalyzer();
+      const errors = analyzer.analyze(parse(code));
+
+      expect(errors.filter((e) => e.code === "E0902")).toHaveLength(1);
+    });
+
+    it("matches a vendor allocator through the underscore rule", () => {
+      const code = `
+        void main() {
+          heap_caps_malloc(1);
+        }
+      `;
+      const analyzer = new FunctionCallAnalyzer();
+      const errors = analyzer.analyze(parse(code));
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0902");
+    });
+
+    // The regression this block exists for. Both names match the underscore
+    // rule and both are written in C-Next, so neither was imported from
+    // anywhere -- and a static pool with a `pool_free` is what ADR-003's own
+    // Memory Pools section points authors toward.
+    it.each([
+      ["a pool release function", "pool_free"],
+      ["a predicate that releases nothing", "slot_is_free"],
+    ])("does not report %s defined in C-Next", (_label, name) => {
+      const code = `
+        u32 ${name}(u32 slot) {
+          return slot;
+        }
+        void main() {
+          u32 r <- ${name}(1);
+        }
+      `;
+      const analyzer = new FunctionCallAnalyzer();
+      const errors = analyzer.analyze(parse(code));
+
+      expect(errors).toHaveLength(0);
+    });
+
+    it("does not report a scope member reached without this.", () => {
+      const code = `
+        scope Pool {
+          private u32 pool_free(u32 slot) {
+            return slot;
+          }
+          public u32 release(u32 slot) {
+            return pool_free(slot);
+          }
+        }
+      `;
+      const analyzer = new FunctionCallAnalyzer();
+      const errors = analyzer.analyze(parse(code));
+
+      expect(errors).toHaveLength(0);
+    });
+
+    // Documented consequence of the maintainer's "exact, or after an
+    // underscore" rule, pinned so it is a decision and not a surprise: a name
+    // rule cannot tell releasing memory from releasing a bus, and an external
+    // `_free` IS imported from C/C++, so the message stays true. An author who
+    // needs `spi_bus_free` calls it from their C or C++ code.
+    it("reports an external _free even though it frees no memory", () => {
+      const code = `
+        void main() {
+          spi_bus_free(1);
+        }
+      `;
+      const symbolTable = new SymbolTable();
+      symbolTable.addCSymbol({
+        name: "spi_bus_free",
+        kind: "function",
+        sourceLanguage: ESourceLanguage.C,
+        sourceFile: "driver/spi_common.h",
+        span: TestSourceSpan.at(1),
+        visibility: "public",
+        type: "int",
+        parameters: [],
+      });
+
+      const analyzer = new FunctionCallAnalyzer();
+      const errors = analyzer.analyze(parse(code), symbolTable);
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0].code).toBe("E0902");
+    });
+  });
 });

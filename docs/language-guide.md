@@ -502,7 +502,9 @@ void readInput() {
 - NULL only valid in comparison context (`!= NULL` or `= NULL`)
 - Only whitelisted stream functions: `fgets`, `fputs`, `fgetc`, `fputc`
 - Cannot store C pointer returns in variables
-- `fopen`, `malloc`, etc. are errors (see ADR-103 for future FILE\* support)
+- `fopen` returns a pointer that may be NULL, so it must be checked (E0901)
+- `malloc` and the rest of the dynamic memory family cannot be imported at all
+  (E0902): C-Next has no heap, so that code belongs in C or C++
 
 ### Startup Allocation
 

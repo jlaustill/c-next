@@ -33,7 +33,7 @@ interface IExitMessage {
 type TWorkerMessage = IInitMessage | ITestMessage | IExitMessage;
 
 let rootDir: string;
-let tools: ITools;
+let tools: ITools | undefined;
 let testOptions: ITestOptions = {};
 
 /**
@@ -44,6 +44,17 @@ async function runTest(
   cnxFile: string,
   updateMode: boolean,
 ): Promise<ITestResult> {
+  // Belt to the parent's braces. If a `test` ever arrives before `init` again,
+  // the first thing to dereference `tools` was `TestUtils.runTest` reading
+  // `tools.gcc`, and the catch below reported that as a failure OF THE FIXTURE
+  // -- an infrastructure crash wearing a test result's clothes. Saying so here
+  // costs one branch and keeps the next occurrence self-describing.
+  if (tools === undefined) {
+    throw new Error(
+      "worker received a test before its init message; " +
+        "this is a harness scheduling fault, not a fixture failure",
+    );
+  }
   return TestUtils.runTest(cnxFile, updateMode, tools, rootDir, testOptions);
 }
 

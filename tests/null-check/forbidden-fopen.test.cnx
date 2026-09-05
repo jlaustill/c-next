@@ -1,6 +1,9 @@
-// ADR-047: fopen is forbidden - returns FILE* not supported in v1
+// ADR-047: fopen is NULLABLE, not forbidden. It returns a pointer that may be
+// NULL, so it requires a check (E0901). "Forbidden" is E0902 and covers dynamic
+// allocation only -- malloc, calloc, realloc, free (ADR-003). The .expected.error
+// beside this file has always said E0901; the comment claimed otherwise.
 #include <stdio.h>
 
 void openFile() {
-    fopen("test.txt", "r"); // ERROR: forbidden function
+    fopen("test.txt", "r"); // ERROR: unchecked nullable return
 }

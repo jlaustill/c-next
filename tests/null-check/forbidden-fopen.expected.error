@@ -1,1 +1,2 @@
-5:4 error[E0901]: C library function 'fopen' can return NULL - must check result
+8:4 error[E0901]: C library function 'fopen' can return NULL - must check result
+       help: Use: if (fopen(...) != NULL) { ... }

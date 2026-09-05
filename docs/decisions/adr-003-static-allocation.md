@@ -24,6 +24,81 @@ Dynamic memory allocation introduces non-determinism and failure modes that are 
 
 ---
 
+## Decision: What a `.cnx` File May Not Call
+
+A C-Next file has no dynamic memory allocation, and it may not **import** one
+either. The prohibition is not "C-Next has a `malloc` and disallows it" — C-Next
+has no such function at all. What is rejected is bringing one in from a C or C++
+header and calling it from a `.cnx` file. Code that genuinely needs the heap is
+written in C or C++, where the surrounding project's own rules govern it.
+
+This list and the rule beneath it are stated **here**, once. ADR-046 reports the
+diagnostic and points back at this section rather than restating it: a reader who
+rebuilt the language from ADR-003 alone and a reader who rebuilt it from the
+interop ADR must reject the same programs.
+
+| Group                            | Names                                                             |
+| -------------------------------- | ----------------------------------------------------------------- |
+| C standard                       | `malloc`, `calloc`, `realloc`, `free`, `aligned_alloc`            |
+| POSIX and common extensions      | `reallocarray`, `posix_memalign`, `memalign`, `valloc`, `pvalloc` |
+| Allocating string/format helpers | `strdup`, `strndup`, `asprintf`, `vasprintf`                      |
+
+The third group allocates on the caller's behalf and hands over ownership, which
+is the same problem under another name.
+
+`getline` and `getdelim` are deliberately **absent**. They reallocate, but are
+routinely called with a caller-owned buffer, so listing them would reject correct
+programs.
+
+### The match rule
+
+A name is forbidden when it **is** one of the above, or when it **ends with `_`
+followed by** one of them. MISRA C:2023 Dir 4.12 extends its prohibition to "any
+user-defined equivalents", and the separator is what makes that enforceable
+without swallowing ordinary code:
+
+| Rejected             | Why                                                 |
+| -------------------- | --------------------------------------------------- |
+| `heap_caps_malloc`   | vendor allocator (ESP-IDF)                          |
+| `k_malloc`, `k_free` | vendor allocator (Zephyr)                           |
+| `my_free`            | a hand-written equivalent — the case Dir 4.12 names |
+| `spi_bus_free`       | see the limits below                                |
+
+| Accepted         | Why                                          |
+| ---------------- | -------------------------------------------- |
+| `myfree`         | no separator — an ordinary name              |
+| `saferealloc`    | no separator                                 |
+| `free_list_init` | the listed name is not at the end            |
+| `pool_free`      | **defined in C-Next** — nothing was imported |
+
+### Limits of a name rule, stated rather than implied
+
+A name rule is a cheap check for the common spelling, not a guarantee, and
+pretending otherwise is worse than the gap:
+
+- **It misses allocators that are not spelled this way.** FreeRTOS uses
+  `pvPortMalloc` / `vPortFree`, CMSIS-RTOS `osMemoryPoolAlloc`, ThreadX
+  `tx_byte_allocate`; newlib's reentrant form puts the listed name at the
+  **front**, `_malloc_r`. None match, and widening the rule to catch them would
+  reject ordinary code.
+- **It cannot tell releasing memory from releasing a device.** `spi_bus_free`
+  frees no memory and is still rejected. The diagnostic stays truthful — such a
+  function genuinely is imported from C or C++ — and the remedy is the one this
+  ADR already asks for: call it from the C or C++ side.
+- **It applies only to imports.** A function _defined in C-Next_ whose name fits
+  the rule is the author's own code and is accepted, because nothing was
+  imported. Whether a callee is a C-Next definition is therefore part of the
+  decision, not an optimization.
+
+### Memory pools are the alternative
+
+The **Memory Pools** pattern below is what this ADR points authors toward, and a
+pool has a release operation. `pool_free` on a statically-sized pool is the
+recommended shape, not a workaround — which is why a C-Next definition is never
+treated as an import.
+
+---
+
 ## Research: Industry Standards
 
 ### MISRA C:2023 Directive 4.12

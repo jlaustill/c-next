@@ -160,13 +160,13 @@ by ADR-069.)
 
 ## What counts as "used"
 
-To be settled in the ADR, proposed for v1:
+Settled by this ADR:
 
 - **Used:** bound in a declaration/assignment, passed as a call argument, returned, tested in a
   condition/`switch`, or an operand of any larger expression.
 - **Discarded (needs `(void)`):** the call is the _entire_ expression statement.
 - A member/element access on the result (`foo().field;`, `foo()[0];`) is **not** a bare call —
-  out of scope for v1 (it is an unusual statement form; revisit if it appears in practice).
+  out of scope (it is an unusual statement form; revisit if it appears in practice).
 
 ## Relationship to #847 and #1081
 

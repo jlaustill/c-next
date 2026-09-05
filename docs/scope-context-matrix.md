@@ -25,9 +25,11 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 
-1 linked fixture with no derivable context:
+3 linked fixtures with no derivable context:
 
+- `bugs/issue-1306-nested-scope-diagnostic/cross-file-nested.test.cnx`
 - `bugs/issue-1334-scope-declaration-sites/conflict-across-files.test.cnx`
+- `scope/nested-scope-error.test.cnx`
 
 ## ADR-029
 

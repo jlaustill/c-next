@@ -131,7 +131,7 @@ class ReturnValueUseAnalyzer {
   /**
    * Return the postfix expression when the whole statement is exactly one call.
    * `foo().field;` is deliberately not a bare call -- ADR-070 puts that form
-   * out of scope for v1.
+   * out of scope.
    */
   static asBareCall(
     expr: Parser.ExpressionContext,
