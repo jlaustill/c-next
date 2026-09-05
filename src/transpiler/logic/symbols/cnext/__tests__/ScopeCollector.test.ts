@@ -322,7 +322,18 @@ describe("ScopeCollector", () => {
       const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
       // Simulate bitmap being collected in pass 1
       const knownBitmaps = new Set(["Motor__MotorFlags"]);
-      const result = ScopeCollector.collect(scopeCtx, "test.cnx", knownBitmaps);
+      // Production always threads this predicate down from CNextResolver's
+      // pass 0b; supplying it is what makes the test model production. Nothing
+      // below the ladder re-qualifies a resolved name (#1472).
+      const isScopeType = (qualifiedName: string): boolean =>
+        knownBitmaps.has(qualifiedName);
+      const result = ScopeCollector.collect(
+        scopeCtx,
+        "test.cnx",
+        knownBitmaps,
+        undefined,
+        isScopeType,
+      );
 
       const regSymbol = result.memberSymbols.find((s) => s.name === "CTRL");
       expect(SymbolGuards.isRegister(regSymbol!)).toBe(true);
@@ -330,6 +341,37 @@ describe("ScopeCollector", () => {
         expect(regSymbol.members.get("FLAGS")?.bitmapType).toBe(
           "Motor__MotorFlags",
         );
+      }
+    });
+
+    it("keeps an explicit global. bitmap out of the scope's reach", () => {
+      const code = `
+        scope Motor {
+          register CTRL @ 0x40001000 {
+            FLAGS: global.MotorFlags rw @ 0x00,
+          }
+        }
+      `;
+      const tree = parse(code);
+      const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
+      // Both names are known bitmaps, so only ADR-057's `global.` opt-out
+      // distinguishes them. Re-qualifying the resolved name would bind the
+      // scoped one and emit a register typed with the wrong bit layout.
+      const knownBitmaps = new Set(["Motor__MotorFlags", "MotorFlags"]);
+      const isScopeType = (qualifiedName: string): boolean =>
+        knownBitmaps.has(qualifiedName);
+      const result = ScopeCollector.collect(
+        scopeCtx,
+        "test.cnx",
+        knownBitmaps,
+        undefined,
+        isScopeType,
+      );
+
+      const regSymbol = result.memberSymbols.find((s) => s.name === "CTRL");
+      expect(SymbolGuards.isRegister(regSymbol!)).toBe(true);
+      if (SymbolGuards.isRegister(regSymbol!)) {
+        expect(regSymbol.members.get("FLAGS")?.bitmapType).toBe("MotorFlags");
       }
     });
   });

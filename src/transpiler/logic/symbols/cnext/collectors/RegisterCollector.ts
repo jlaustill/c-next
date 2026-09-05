@@ -63,15 +63,24 @@ class RegisterCollector {
       );
       const cType = TypeUtils.cnextTypeToCType(typeName);
 
-      // Check if member type is a bitmap
-      // Try both scoped name and plain name for bitmap lookup
-      const scopedTypeName = ScopeUtils.qualifyInScope(typeName, scopePath);
-      let bitmapType: string | undefined;
-      if (knownBitmaps.has(scopedTypeName)) {
-        bitmapType = scopedTypeName;
-      } else if (knownBitmaps.has(typeName)) {
-        bitmapType = typeName;
-      }
+      // Is the member type a bitmap? ONE key, the one the ladder produced.
+      //
+      // ADR-057: "Qualify from the parse tree, never from a resolved name."
+      // `typeName` has already been through the single TypeBinding ladder
+      // above, which qualified it if and only if the syntax and the scope
+      // called for it. Re-qualifying it here was a SECOND qualification
+      // decision taken on an already-resolved name -- and by that point
+      // `global.Flags` and a bare `Flags` are byte-identical, so probing the
+      // re-qualified key FIRST let a scope-local `Chip__Flags` capture a
+      // deliberate `global.Flags`. The transpiler exited 0 and emitted
+      // `volatile Chip__Flags*`, whose bit names differ, so the field access
+      // was never lowered and gcc rejected the generated C.
+      //
+      // One key is sufficient because `knownBitmaps` is keyed exactly as the
+      // ladder resolves: file-scope bitmaps by their bare `name`, scope
+      // bitmaps by `fullyQualifiedCName`. The two shapes are complementary,
+      // never alternatives for the same declaration.
+      const bitmapType = knownBitmaps.has(typeName) ? typeName : undefined;
 
       const memberInfo: IRegisterMemberSymbol = {
         ...MemberSymbolBase.of({

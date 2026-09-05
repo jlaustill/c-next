@@ -9,19 +9,12 @@ import IOrchestrator from "../IOrchestrator";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
 
 /**
- * Optional type resolver for scoped types.
- * Returns resolved type name if found, undefined to use original type.
- */
-type TTypeResolver = (originalType: string) => string | undefined;
-
-/**
  * Generate #define macros for register members.
  *
  * @param members - Register member declarations from AST
  * @param prefix - Prefix for macro names (e.g., "GPIO7" or "Teensy4_GPIO7")
  * @param baseAddress - Base address expression string
  * @param orchestrator - Code generation orchestrator
- * @param typeResolver - Optional callback to resolve scoped types
  * @returns Array of #define lines
  */
 function generateRegisterMacros(
@@ -29,23 +22,18 @@ function generateRegisterMacros(
   prefix: string,
   baseAddress: string,
   orchestrator: IOrchestrator,
-  typeResolver?: TTypeResolver,
 ): string[] {
   const lines: string[] = [];
 
   for (const member of members) {
     const regName = member.IDENTIFIER().getText();
-    let regType = orchestrator.generateType(member.type());
+    // `generateType` is the single ADR-057 resolution point for this name: it
+    // qualifies a bare `Flags` to the enclosing scope's bitmap when one exists
+    // and leaves an explicit `global.Flags` alone. Nothing may re-qualify the
+    // result -- a scoped caller used to, and captured the `global.` form.
+    const regType = orchestrator.generateType(member.type());
     const access = member.accessModifier().getText();
     const offset = orchestrator.generateExpression(member.expression());
-
-    // Apply optional type resolution (for scoped bitmaps)
-    if (typeResolver) {
-      const resolved = typeResolver(regType);
-      if (resolved) {
-        regType = resolved;
-      }
-    }
 
     // Determine qualifiers based on access mode
     let cast = `volatile ${regType}*`;

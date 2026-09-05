@@ -237,8 +237,10 @@ describe("ScopedRegisterGenerator", () => {
   });
 
   describe("scoped bitmap type resolution", () => {
-    it("resolves bitmap type to scoped name when bitmap exists in scope", () => {
-      // Register member uses "GPIO7Pins" type, which should resolve to "Teensy4__GPIO7Pins"
+    it("emits the name the ladder resolved, without re-deriving it", () => {
+      // ADR-057 qualification belongs to `orchestrator.generateType`, which is
+      // the single resolution point. This generator is transparent to it: a
+      // bare `GPIO7Pins` inside `scope Teensy4` arrives ALREADY qualified.
       const ctx = createMockRegisterContext("GPIO7", "0x42004000", [
         {
           name: "PINS",
@@ -248,11 +250,46 @@ describe("ScopedRegisterGenerator", () => {
           offset: "0x00",
         },
       ]);
-      // The scoped bitmap exists
       const knownBitmaps = new Set(["Teensy4__GPIO7Pins"]);
       const input = createMockInput(knownBitmaps);
       const state = createMockState();
-      // Type map returns the type unchanged - generator handles scoping
+      // The ladder qualified it -- that is what production hands over.
+      const orchestrator = createMockOrchestrator(
+        new Map([["GPIO7Pins", "Teensy4__GPIO7Pins"]]),
+      );
+
+      const result = generateScopedRegister(
+        ctx,
+        "Teensy4",
+        input,
+        state,
+        orchestrator,
+      );
+
+      expect(result.code).toContain("volatile Teensy4__GPIO7Pins*");
+    });
+
+    it("does not re-qualify a resolved name, so an explicit global. survives", () => {
+      // The regression guard for #1472. `global.GPIO7Pins` opts out of scope
+      // resolution, so the ladder hands over the BARE name -- while a
+      // same-named scoped bitmap also exists. The generator used to re-qualify
+      // that resolved name and probe the scoped key first, binding
+      // `Teensy4__GPIO7Pins` and typing the register with a bitmap whose bit
+      // names differ. By this point the two forms are byte-identical, which is
+      // exactly why nothing below the ladder may qualify.
+      const ctx = createMockRegisterContext("GPIO7", "0x42004000", [
+        {
+          name: "PINS",
+          type: "GPIO7Pins",
+          cType: "GPIO7Pins",
+          access: "rw",
+          offset: "0x00",
+        },
+      ]);
+      const knownBitmaps = new Set(["Teensy4__GPIO7Pins"]);
+      const input = createMockInput(knownBitmaps);
+      const state = createMockState();
+      // The `global.` branch returns the bare identifier.
       const orchestrator = createMockOrchestrator(
         new Map([["GPIO7Pins", "GPIO7Pins"]]),
       );
@@ -265,7 +302,8 @@ describe("ScopedRegisterGenerator", () => {
         orchestrator,
       );
 
-      expect(result.code).toContain("volatile Teensy4__GPIO7Pins*");
+      expect(result.code).toContain("volatile GPIO7Pins*");
+      expect(result.code).not.toContain("Teensy4__GPIO7Pins");
     });
 
     it("keeps original type when scoped bitmap does not exist", () => {

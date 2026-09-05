@@ -168,7 +168,7 @@ describe("RegisterCollector", () => {
       expect(symbol.scopePath).toBe("Motor");
     });
 
-    it("resolves scoped bitmap types", () => {
+    it("resolves a bare bitmap type through the ADR-057 ladder", () => {
       const code = `
         register CTRL @ 0x40005000 {
           FLAGS: MotorFlags rw @ 0x00,
@@ -176,18 +176,53 @@ describe("RegisterCollector", () => {
       `;
       const tree = parse(code);
       const regCtx = tree.declaration(0)!.registerDeclaration()!;
-      // Bitmap would be collected as Motor_MotorFlags in a scope
+      // Bitmap would be collected as Motor__MotorFlags in a scope
       const knownBitmaps = new Set(["Motor__MotorFlags"]);
+      // Production ALWAYS supplies this predicate -- CNextResolver builds it
+      // from pass 0b -- so passing it is what makes this test model production.
+      // The collector does not qualify names itself; it reads what the one
+      // TypeBinding ladder resolved. The version of this test that omitted the
+      // predicate passed only because the collector re-qualified the result,
+      // which is precisely the capture #1472 removed.
+      const isScopeType = (qualifiedName: string): boolean =>
+        knownBitmaps.has(qualifiedName);
       const symbol = RegisterCollector.collect(
         regCtx,
         "motor.cnx",
         knownBitmaps,
         "Motor",
         "public",
+        isScopeType,
       );
 
-      // The collector checks both scoped and unscoped names
       expect(symbol.members.get("FLAGS")?.bitmapType).toBe("Motor__MotorFlags");
+    });
+
+    it("does not let a scope-local bitmap capture an explicit global. type", () => {
+      const code = `
+        register CTRL @ 0x40005000 {
+          FLAGS: global.MotorFlags rw @ 0x00,
+        }
+      `;
+      const tree = parse(code);
+      const regCtx = tree.declaration(0)!.registerDeclaration()!;
+      // BOTH names exist -- a global bitmap and a same-named one in the scope.
+      // That collision is the whole point: ADR-057 says `global.` opts out, so
+      // the member must bind the global one even though the scoped name is a
+      // known bitmap and would match if anything re-qualified the result.
+      const knownBitmaps = new Set(["Motor__MotorFlags", "MotorFlags"]);
+      const isScopeType = (qualifiedName: string): boolean =>
+        knownBitmaps.has(qualifiedName);
+      const symbol = RegisterCollector.collect(
+        regCtx,
+        "motor.cnx",
+        knownBitmaps,
+        "Motor",
+        "public",
+        isScopeType,
+      );
+
+      expect(symbol.members.get("FLAGS")?.bitmapType).toBe("MotorFlags");
     });
   });
 
