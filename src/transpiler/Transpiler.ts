@@ -432,8 +432,6 @@ class Transpiler {
     // structs that only become known through #985 recovery (their fields are added
     // to symbolTable by _collectExternalDeclarations) are folded in and remain
     // subject to init-completeness checking. Nothing consumes externalStructFields
-    // before Stage 5, so a single post-recovery build is sufficient.
-    CodeGenState.buildExternalStructFields();
 
     // Stage 3: Collect symbols from C-Next files
     if (!this._collectAllCNextSymbolsFromPipeline(input.cnextFiles, result)) {
@@ -605,7 +603,13 @@ class Transpiler {
     // Building `Program` settles every deferred type, so nothing below this
     // line can observe an unsettled one.
     try {
-      this.program = Program.build(declared.map((entry) => entry.fileSymbols));
+      // The symbol table holds only C/C++ header symbols at this point --
+      // this run's C-Next symbols are added below, per file -- so this IS
+      // the external set, which is what the fact is about.
+      this.program = Program.build(
+        declared.map((entry) => entry.fileSymbols),
+        CodeGenState.symbolTable.getAllStructFields(),
+      );
       // Passes after 1.4 read cross-file facts from the artifact rather than
       // re-deriving them. Set once per run, not per file.
       CodeGenState.program = this.program;

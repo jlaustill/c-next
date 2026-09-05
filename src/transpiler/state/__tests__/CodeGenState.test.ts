@@ -16,6 +16,7 @@ import ScopeUtils from "../../../utils/ScopeUtils";
 import createMockSymbols from "../../__tests__/codeGenSymbolsHelpers";
 import UNRESOLVED_DIMENSION from "../../constants/UNRESOLVED_DIMENSION";
 import TestSourceSpan from "../../types/__testUtils__/testSourceSpan";
+import Program from "../../logic/symbols/Program";
 
 /**
  * Create a minimal C-Next IVariableSymbol for testing.
@@ -1017,9 +1018,15 @@ describe("CodeGenState", () => {
     });
   });
 
-  describe("buildExternalStructFields", () => {
+  // #1447: the derivation moved to `Program` -- which fields a header's
+  // struct has is a cross-file fact. These still exercise it end to end,
+  // through the accessor analyzers actually call.
+  describe("external struct fields, via Program", () => {
     it("returns empty map when no struct fields exist", () => {
-      CodeGenState.buildExternalStructFields();
+      CodeGenState.program = Program.build(
+        [],
+        CodeGenState.symbolTable.getAllStructFields(),
+      );
       const result = CodeGenState.getExternalStructFields();
       expect(result.size).toBe(0);
     });
@@ -1041,7 +1048,10 @@ describe("CodeGenState", () => {
       // Use restoreStructFields to populate the symbol table
       CodeGenState.symbolTable.restoreStructFields(structFields);
 
-      CodeGenState.buildExternalStructFields();
+      CodeGenState.program = Program.build(
+        [],
+        CodeGenState.symbolTable.getAllStructFields(),
+      );
       const result = CodeGenState.getExternalStructFields();
 
       expect(result.has("Point")).toBe(true);
@@ -1065,7 +1075,10 @@ describe("CodeGenState", () => {
       structFields.set("Buffer", bufferFields);
       CodeGenState.symbolTable.restoreStructFields(structFields);
 
-      CodeGenState.buildExternalStructFields();
+      CodeGenState.program = Program.build(
+        [],
+        CodeGenState.symbolTable.getAllStructFields(),
+      );
       const result = CodeGenState.getExternalStructFields();
 
       expect(result.has("Buffer")).toBe(true);
@@ -1089,7 +1102,10 @@ describe("CodeGenState", () => {
       structFields.set("ArrayOnly", arrayOnlyFields);
       CodeGenState.symbolTable.restoreStructFields(structFields);
 
-      CodeGenState.buildExternalStructFields();
+      CodeGenState.program = Program.build(
+        [],
+        CodeGenState.symbolTable.getAllStructFields(),
+      );
       const result = CodeGenState.getExternalStructFields();
 
       // Struct should not be included since all fields are arrays
@@ -1122,7 +1138,10 @@ describe("CodeGenState", () => {
       structFields.set("Simple", simpleFields);
       CodeGenState.symbolTable.restoreStructFields(structFields);
 
-      CodeGenState.buildExternalStructFields();
+      CodeGenState.program = Program.build(
+        [],
+        CodeGenState.symbolTable.getAllStructFields(),
+      );
       const result = CodeGenState.getExternalStructFields();
 
       // Mixed struct should have only non-array fields

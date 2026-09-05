@@ -23,6 +23,7 @@
  */
 
 import type IFileSymbols from "../../types/IFileSymbols";
+import type IStructFieldInfo from "../../types/symbols/IStructFieldInfo";
 import type IProgram from "../../types/IProgram";
 import type TSymbol from "../../types/symbols/TSymbol";
 import DeferredTypes from "./DeferredTypes";
@@ -35,7 +36,13 @@ class Program {
    *
    * @param files one `IFileSymbols` per file, in declaration order
    */
-  static build(files: ReadonlyArray<IFileSymbols>): IProgram {
+  static build(
+    files: ReadonlyArray<IFileSymbols>,
+    headerStructFields: ReadonlyMap<
+      string,
+      ReadonlyMap<string, IStructFieldInfo>
+    > = new Map(),
+  ): IProgram {
     // --- the scope-type index -------------------------------------------
     // Combined from per-file answers rather than collected by a pass of its
     // own: Declare authored each file's set, and nothing may recompute a fact
@@ -115,6 +122,28 @@ class Program {
       }
     }
 
+    // --- Tier 2: external struct fields ---------------------------------
+    // Which fields a struct declared in a C/C++ header has, for ADR-016
+    // initialization analysis. Array fields are excluded (#355): an array field
+    // is not something an initializer must name.
+    const externalStructFields = new Map<string, ReadonlySet<string>>();
+    for (const [structName, fieldMap] of headerStructFields) {
+      const nonArrayFields = new Set<string>();
+      for (const [fieldName, fieldInfo] of fieldMap) {
+        if (
+          !fieldInfo.arrayDimensions ||
+          fieldInfo.arrayDimensions.length === 0
+        ) {
+          nonArrayFields.add(fieldName);
+        }
+      }
+      // A struct whose every field is an array contributes nothing to ask
+      // about, so it is absent rather than present-and-empty.
+      if (nonArrayFields.size > 0) {
+        externalStructFields.set(structName, nonArrayFields);
+      }
+    }
+
     const sourceFiles = files.map((file) => file.sourceFile);
 
     // The query surface. `scopeTypes`, `symbolsByFile` and `symbolsByCName`
@@ -129,6 +158,8 @@ class Program {
         symbolsByFile.get(sourceFile) ?? [],
       sourceFiles: (): ReadonlyArray<string> => sourceFiles,
       knownEnums: (): ReadonlySet<string> => knownEnums,
+      externalStructFields: (): ReadonlyMap<string, ReadonlySet<string>> =>
+        externalStructFields,
       constValue: (name: string): number | undefined => constValues.get(name),
       constValues: (): ReadonlyMap<string, number> => constValues,
     });

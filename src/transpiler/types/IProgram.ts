@@ -58,6 +58,15 @@ interface IProgram {
   knownEnums(): ReadonlySet<string>;
 
   /**
+   * The non-array fields of each struct declared in a C or C++ header.
+   *
+   * ADR-016 initialization analysis asks whether an initializer names every
+   * field, and an array field is not one it must name (#355). Cross-file by
+   * definition: the struct is declared in a header this program includes.
+   */
+  externalStructFields(): ReadonlyMap<string, ReadonlySet<string>>;
+
+  /**
    * Integer value of a named const, or undefined when the name is not a const
    * with a literal integer initializer.
    *

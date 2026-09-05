@@ -138,13 +138,6 @@ export default class CodeGenState {
 
   static symbolTable: SymbolTable = new SymbolTable();
 
-  /**
-   * External struct fields from C/C++ headers for initialization analysis.
-   * Maps struct name -> Set of non-array field names.
-   * Persists across per-file reset() calls, cleared at start of run.
-   */
-  static externalStructFields: Map<string, Set<string>> = new Map();
-
   // ===========================================================================
   // TYPE TRACKING
   // ===========================================================================
@@ -1412,36 +1405,13 @@ export default class CodeGenState {
   }
 
   /**
-   * Build external struct fields from the symbol table.
-   * Called once per run after all headers are processed.
-   * Issue #355: Excludes array fields from init checking.
-   */
-  static buildExternalStructFields(): void {
-    this.externalStructFields.clear();
-    const allStructFields = this.symbolTable.getAllStructFields();
-
-    for (const [structName, fieldMap] of allStructFields) {
-      const nonArrayFields = new Set<string>();
-      for (const [fieldName, fieldInfo] of fieldMap) {
-        // Only include non-array fields in init checking
-        if (
-          !fieldInfo.arrayDimensions ||
-          fieldInfo.arrayDimensions.length === 0
-        ) {
-          nonArrayFields.add(fieldName);
-        }
-      }
-      if (nonArrayFields.size > 0) {
-        this.externalStructFields.set(structName, nonArrayFields);
-      }
-    }
-  }
-
-  /**
    * Get external struct fields for initialization analysis.
    */
-  static getExternalStructFields(): Map<string, Set<string>> {
-    return this.externalStructFields;
+  static getExternalStructFields(): ReadonlyMap<string, ReadonlySet<string>> {
+    // #1447: derived by 1.4 Resolve, not accumulated here. Which fields a
+    // header's struct has is a cross-file fact, and the pass that owns it is
+    // the one that can see every file.
+    return this.program?.externalStructFields() ?? new Map();
   }
 
   /**
