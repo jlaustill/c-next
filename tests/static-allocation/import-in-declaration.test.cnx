@@ -1,0 +1,16 @@
+// test-error
+// ADR-003 / #1306 review: a dynamic memory import reports ONCE.
+//
+// This form used to report twice for the single call below -- once from the
+// declaration listener scanning statement text, once from the postfix listener
+// seeing the call. Every committed fixture was a bare statement, the one shape
+// that reported once, so the duplicate was invisible.
+//
+// NEGATIVE CONTROL: `abs` is also imported from stdlib.h and must stay silent.
+// A change that rejected every stdlib import would pass without it.
+#include <stdlib.h>
+
+void allocateAndStore() {
+    u32 kept <- abs(-5);
+    u32 block <- malloc(64);
+}

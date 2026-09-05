@@ -47,6 +47,7 @@
     "coverage:matrix:check": "tsx scripts/adr-matrix.ts check",
     "diagnostics:manifest": "tsx scripts/diagnostic-manifest.ts write",
     "diagnostics:manifest:check": "tsx scripts/diagnostic-manifest.ts check",
+    "measure:header-parse-errors": "tsx scripts/measure-header-parse-errors.ts",
     "adr:independence:check": "tsx scripts/adr-independence.ts",
     "release:milestones": "tsx scripts/release-milestones.ts apply",
     "release:milestones:check": "tsx scripts/release-milestones.ts check",

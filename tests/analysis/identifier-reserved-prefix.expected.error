@@ -1,1 +1,2 @@
 9:3 error[E0202]: Identifier 'cnx_counter' cannot begin with 'cnx_'. That prefix is reserved for names the transpiler generates, compared case-insensitively.
+       help: Drop the reserved prefix (e.g. 'counter')

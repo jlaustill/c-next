@@ -1,1 +1,2 @@
-6:4 error[E0902]: Dynamic allocation function 'free' is forbidden
+6:4 error[E0902]: Importing dynamic memory function 'free' from C/C++ is forbidden
+       help: C-Next has no dynamic memory allocation (ADR-003). Keep 'free' in your C or C++ code; a .cnx file cannot call it.

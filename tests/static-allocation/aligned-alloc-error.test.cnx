@@ -1,0 +1,10 @@
+// test-error
+// ADR-003 names aligned_alloc alongside malloc/calloc/realloc/free, but no code
+// listed it. It was rejected only because nothing declared it -- so adding it to
+// the known-function table, an ordinary improvement, would have quietly made
+// dynamic allocation legal with nothing failing.
+#include <stdlib.h>
+
+void allocateAligned() {
+    aligned_alloc(16, 64);
+}

@@ -1,1 +1,2 @@
 5:9 error[E0905]: Missing 'c_' prefix for nullable C type 'i32'
+       help: Variable 'ch' stores nullable pointer from 'fgetc'. Use: i32 c_ch <- fgetc(...)

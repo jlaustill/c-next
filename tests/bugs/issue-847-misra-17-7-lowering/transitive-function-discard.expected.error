@@ -1,1 +1,2 @@
 8:4 error[E0708]: Return value of non-void function 'Deep__value' is discarded
+       help: Use the value, or discard it explicitly: (void) Deep__value(...);

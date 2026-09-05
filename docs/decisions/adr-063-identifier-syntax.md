@@ -394,12 +394,12 @@ Live diagnostics in the VS Code extension are tracked separately: every transpil
   injective at all. Eleven sites used the one-level form after their producer had already
   been converted to walk the chain.
 
-  Measured, not assumed: the divergence is unreachable from `.cnx` source today because a
+  Measured, not assumed: the divergence is unreachable from `.cnx` source because a
   scope member cannot itself be a scope declaration, so every scope chain a program can
-  build is depth one and the two encoders coincide. That is a property of the grammar, not
-  of the encoding — and ADR-016 defers nesting "for v1" rather than forbidding it, so the
-  coincidence has a scheduled expiry. A deeper chain is constructible from a dotted path
-  even now, which is the level the guard is written at.
+  build is depth one and the two encoders coincide. ADR-016 forbids nesting permanently
+  rather than deferring it, so that agreement is a decision and not a coincidence with a
+  scheduled expiry. The guard is still written at the dotted-path level, because a deeper
+  chain is constructible there whatever the source syntax admits.
 
   The second half removed the ability to express the one-level form at all. Building a
   name now states that a COMPLETE path is in hand, rather than reading as an act of

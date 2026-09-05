@@ -1,1 +1,2 @@
 4:26 error[E0802]: Modulo by zero
+       help: Consider using safe_mod(output, numerator, divisor, defaultValue) for runtime safety

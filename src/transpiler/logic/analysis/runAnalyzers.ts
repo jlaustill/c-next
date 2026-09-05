@@ -42,7 +42,13 @@ interface IAnalyzerOptions {
 }
 
 /**
- * Generic analyzer error with common fields
+ * Generic analyzer error with common fields.
+ *
+ * Deliberately WIDER than `IBaseAnalysisError`, not a copy of it: `code` is
+ * optional and `rule` exists because this must also accept a step whose code is
+ * not an `E` number. `helpText` is here for the opposite reason -- it was absent,
+ * so every analyzer's suggested fix was silently discarded on the way through
+ * (#1306). A field missing from an accepting type drops data without failing.
  */
 interface IAnalyzerError {
   line: number;
@@ -50,6 +56,7 @@ interface IAnalyzerError {
   message: string;
   code?: string;
   rule?: string;
+  helpText?: string;
 }
 
 /**
@@ -63,11 +70,17 @@ function collectErrors(
 ): boolean {
   const formatter = formatMessage ?? ((e) => e.message);
   for (const err of analyzerErrors) {
+    // #1306: `helpText` was set at 21 analyzer sites and read at none -- it was
+    // dropped here, so the "Help" column in docs/error-codes.md documented output
+    // that did not exist. Carrying it through moves 92 `.expected.error` files,
+    // which is the evidence the advice now reaches a user rather than a cost to
+    // route around.
     target.push({
       line: err.line,
       column: err.column,
       message: formatter(err),
       severity: "error",
+      helpText: err.helpText,
     });
   }
   return analyzerErrors.length > 0;

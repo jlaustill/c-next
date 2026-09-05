@@ -142,16 +142,6 @@ const NULLABLE_C_FUNCTIONS: Map<string, ICLibraryFunction> = new Map([
   ],
 ]);
 
-/**
- * Functions that remain forbidden (dynamic allocation - ADR-003)
- */
-const FORBIDDEN_FUNCTIONS: Set<string> = new Set([
-  "malloc",
-  "calloc",
-  "realloc",
-  "free",
-]);
-
 // ============================================================================
 // Flow Analysis Data Structures (E0908)
 // ============================================================================
@@ -592,11 +582,11 @@ class NullCheckListener extends CNextListener {
 
     const { line, column } = ParserUtils.getPosition(ctx);
 
-    // Check forbidden functions (always an error)
-    if (FORBIDDEN_FUNCTIONS.has(funcName)) {
-      this.analyzer.reportForbiddenFunction(funcName, line, column);
-      return;
-    }
+    // ADR-003 is NOT decided here. This listener sees a callee's NAME and
+    // nothing about what it resolved to, so it answered "you imported this from
+    // C/C++" for `pool_free` and `slot_is_free` defined in the same file
+    // (#1306 review). Call analysis runs first, knows the difference, and halts
+    // the step loop before this analyzer is reached.
 
     // Check nullable C functions
     if (NULLABLE_C_FUNCTIONS.has(funcName)) {
@@ -729,12 +719,6 @@ class NullCheckListener extends CNextListener {
       return;
     }
 
-    // Check forbidden functions (malloc, etc.) - always error
-    if (funcName && FORBIDDEN_FUNCTIONS.has(funcName)) {
-      this.analyzer.reportForbiddenFunction(funcName, line, column);
-      return;
-    }
-
     // Check for invalid c_ prefix on non-nullable types (E0906)
     if (NullCheckAnalyzer.hasNullablePrefix(varName)) {
       // If NOT assigning from nullable function AND type is NOT nullable, c_ prefix is invalid
@@ -792,13 +776,6 @@ class NullCheckListener extends CNextListener {
 
     // Check nullable C functions
     for (const funcName of NULLABLE_C_FUNCTIONS.keys()) {
-      if (text.includes(`${funcName}(`)) {
-        return funcName;
-      }
-    }
-
-    // Check forbidden functions
-    for (const funcName of FORBIDDEN_FUNCTIONS) {
       if (text.includes(`${funcName}(`)) {
         return funcName;
       }
@@ -871,24 +848,6 @@ class NullCheckAnalyzer {
       column,
       message: `C library function '${funcName}' can return NULL - must check result`,
       helpText: `Use: if (${funcName}(...) != NULL) { ... }`,
-    });
-  }
-
-  /**
-   * Report error: forbidden function (dynamic allocation - ADR-003)
-   */
-  public reportForbiddenFunction(
-    funcName: string,
-    line: number,
-    column: number,
-  ): void {
-    this.errors.push({
-      code: "E0902",
-      functionName: funcName,
-      line,
-      column,
-      message: `Dynamic allocation function '${funcName}' is forbidden`,
-      helpText: "Dynamic allocation is forbidden by ADR-003",
     });
   }
 
@@ -1040,13 +999,6 @@ class NullCheckAnalyzer {
    */
   public static isNullableFunction(funcName: string): boolean {
     return NULLABLE_C_FUNCTIONS.has(funcName);
-  }
-
-  /**
-   * Check if a function is forbidden (dynamic allocation - ADR-003)
-   */
-  public static isForbiddenFunction(funcName: string): boolean {
-    return FORBIDDEN_FUNCTIONS.has(funcName);
   }
 
   /**

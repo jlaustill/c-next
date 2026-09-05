@@ -1,9 +1,55 @@
-// Test: ADR-016 nested scopes should produce compile error
+// test-error
+// test-adr: 016
+// ADR-016 / Issue #1306: nested scopes are not allowed. Not "not in v1" -- never.
+// C99 5.2.4.1 guarantees only 31 significant initial characters in an external
+// identifier, and MISRA C:2012 Rule 5.1 is scored inside that budget: at depth 4
+// Scope1__Scope2__Scope3__Scope4__weight is 38 characters and stops being distinct.
+// The prohibition is therefore permanent, not a simplification to be revisited.
+//
+// This fixture is the weld between two expressions of one decision. The rule lives
+// in the grammar (scopeMember admits no scopeDeclaration) AND in the recognizer
+// that turns the resulting parse failure into E0430. Widen the grammar and the file
+// would parse, no error would be produced, and this fixture fails because
+// .expected.error exists and nothing matched it. That is what stops the two halves
+// from drifting apart -- neither can be changed alone without reddening this file.
+//
+// NEGATIVE CONTROL: `Legal` below holds every one of the six member kinds
+// scopeMember admits -- variable, enum, struct, bitmap, register and function --
+// and five of them open a brace. All must stay silent. Without it, a recognizer
+// that rejected any brace inside a scope, or any declaration nested in one, would
+// pass this fixture while being wrong. Only the nested `scope` is named in
+// .expected.error. Verified to transpile clean on its own: exit 0, 8 symbols.
+
+scope Legal {
+    u8 plainValue <- 10;
+
+    public enum Mode {
+        OFF,
+        ON
+    }
+
+    public struct Point {
+        u32 x;
+    }
+
+    public bitmap8 Flags {
+        Alpha,
+        Rest[7]
+    }
+
+    register CTRL @ 0x40000000 {
+        DR: u32 rw @ 0x00,
+    }
+
+    public u8 read() {
+        return this.plainValue;
+    }
+}
 
 scope OuterScope {
     u8 outerValue <- 10;
 
-    // This should produce a compile error - nested scopes are not allowed
+    // THE ASSERTION: this is the only construct this fixture rejects.
     scope InnerScope {
         u8 innerValue <- 5;
     }

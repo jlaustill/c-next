@@ -1,1 +1,2 @@
 4:18 error[E0804]: Modulo operator not supported for floating-point types
+       help: The % operator only works with integer types. Use fmod() from <math.h> for floating-point remainder.

@@ -514,8 +514,10 @@ const generateScope: TGeneratorFn<Parser.ScopeDeclarationContext> = (
   // at the type level. `getOrCreateScope` is the same resolver `setCurrentScopeByPath`
   // uses, and it is cached, so this is one decision asked twice -- not two decisions.
   //
-  // Passing a leaf path is correct while `scopeMember` admits no `scopeDeclaration`;
-  // that limit is tracked as #1304 and is unchanged by this.
+  // Passing a leaf path is correct because `scopeMember` admits no
+  // `scopeDeclaration` -- permanently, per ADR-016, so this is a decision to rely on
+  // rather than a grammar accident that may expire. #1304 still tracks the narrower
+  // point that this argument is typed as a path.
   const declaringScopePath = ScopeUtils.pathOf(
     SymbolRegistry.getOrCreateScope(name),
   );

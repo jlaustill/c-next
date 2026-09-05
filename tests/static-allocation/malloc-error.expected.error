@@ -1,1 +1,2 @@
-6:4 error[E0902]: Dynamic allocation function 'malloc' is forbidden
+6:4 error[E0902]: Importing dynamic memory function 'malloc' from C/C++ is forbidden
+       help: C-Next has no dynamic memory allocation (ADR-003). Keep 'malloc' in your C or C++ code; a .cnx file cannot call it.

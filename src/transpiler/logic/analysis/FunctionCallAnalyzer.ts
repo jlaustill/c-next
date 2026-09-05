@@ -17,6 +17,7 @@ import CodeGenState from "../../state/CodeGenState";
 import ExpressionUnwrapper from "../../../utils/ExpressionUnwrapper";
 import QualifiedCName from "../../../utils/QualifiedCName";
 import AdrProvenance from "../../state/AdrProvenance";
+import DynamicAllocation from "./DynamicAllocation";
 import StdlibFunctions from "./StdlibFunctions";
 import CalleeNameResolver from "./helpers/CalleeNameResolver";
 import EnclosingScope from "./helpers/EnclosingScope";
@@ -773,6 +774,56 @@ class FunctionCallAnalyzer {
   }
 
   /**
+   * Whether `name` resolves to something DEFINED IN C-NEXT at this call site.
+   *
+   * This is the boundary ADR-003's diagnostic keys on. A name answering true
+   * here is the author's own code and cannot have been imported from anywhere,
+   * so the "importing ... from C/C++" message must never reach it.
+   *
+   * The branches are grouped rather than left inline so that claim is
+   * STRUCTURAL. Spread through `checkFunctionCall` they were four returns among
+   * seven, correct only while nobody inserted a check between them -- and the
+   * regression this fixes came from a second analyzer asking the ADR-003
+   * question with none of this context at all, so a C-Next `pool_free` was told
+   * it came from a header (#1306 review).
+   */
+  private resolvesToCNextDefinition(
+    name: string,
+    line: number,
+    currentScopePath: string,
+    isGlobalCall: boolean,
+  ): boolean {
+    if (this.definedFunctions.has(name)) {
+      return true; // defined before use
+    }
+    if (CNEXT_BUILTINS.has(name)) {
+      return true;
+    }
+    // ADR-040: an ISR or callback variable being invoked.
+    if (this.callableVariables.has(name)) {
+      return true;
+    }
+
+    // ADR-057: an unqualified call to a member of the enclosing scope --
+    // `helper()` for `this.helper()`. Skipped for `global.` calls, which
+    // explicitly mean global scope.
+    if (currentScopePath && !isGlobalCall) {
+      const qualifiedName = ScopeUtils.qualifyInScope(name, currentScopePath);
+      if (this.definedFunctions.has(qualifiedName)) {
+        // #1241: the enclosing scope resolved a bare call -- ADR-057's rule
+        // firing at a position. Recorded HERE, where the candidate is
+        // CONFIRMED, not at `scopeQualifiedCandidate`, which only proposes one:
+        // recording the proposal would credit a cell for a name that went on to
+        // resolve somewhere else entirely.
+        AdrProvenance.record("057", line);
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
    * Check if a function call is valid (function is defined or external)
    * @param name The function name being called
    * @param line Source line number
@@ -799,14 +850,33 @@ class FunctionCallAnalyzer {
       return;
     }
 
-    // Check if function is defined in C-Next
-    if (this.definedFunctions.has(name)) {
-      return; // OK - defined before use
+    // Everything the author wrote themselves, in one group -- see the method.
+    if (
+      this.resolvesToCNextDefinition(name, line, currentScopePath, isGlobalCall)
+    ) {
+      return; // OK - the author's own code
     }
 
-    // Check if function is a C-Next built-in
-    if (CNEXT_BUILTINS.has(name)) {
-      return; // OK - built-in function
+    // ADR-003. THE place this is decided. Below this line the callee is a C or
+    // C++ symbol or resolves to nothing at all, so "imported from C/C++" is
+    // true by construction rather than by assumption -- which is what the
+    // diagnostic's wording claims and what the previous site could not know.
+    //
+    // It also has to sit above `isStdlibFunction`, or `#include <stdlib.h>`
+    // would resolve `malloc` and legalize the heap, and above the E0422 hint
+    // below, which otherwise answers an unresolved `malloc` with "available
+    // from stdlib.h -- try global.malloc()": the transpiler directing the
+    // author to write the include it then rejects them for (#1306 review).
+    if (DynamicAllocation.matches(name)) {
+      this.errors.push({
+        code: DynamicAllocation.CODE,
+        functionName: name,
+        line,
+        column,
+        message: DynamicAllocation.message(name),
+        helpText: DynamicAllocation.helpText(name),
+      });
+      return;
     }
 
     // Check if function is from an included standard library header
@@ -817,28 +887,6 @@ class FunctionCallAnalyzer {
     // Check if function is external (from symbol table)
     if (this.isExternalFunction(name)) {
       return; // OK - external C/C++ function
-    }
-
-    // ADR-040: Check if this is an ISR or callback variable being invoked
-    if (this.callableVariables.has(name)) {
-      return; // OK - invoking a function pointer variable
-    }
-
-    // ADR-057: Allow implicit scope function calls without this. prefix
-    // Check if this is an unqualified call to a scope function
-    // e.g., calling helper() instead of this.helper() inside a scope
-    // Skip for global. calls — global. explicitly means global scope
-    if (currentScopePath && !isGlobalCall) {
-      const qualifiedName = ScopeUtils.qualifyInScope(name, currentScopePath);
-      if (this.definedFunctions.has(qualifiedName)) {
-        // #1241: the enclosing scope resolved a bare call -- ADR-057's rule
-        // firing at a position. Recorded HERE, where the candidate is
-        // CONFIRMED, not at `scopeQualifiedCandidate`, which only proposes one:
-        // recording the proposal would credit a cell for a name that went on to
-        // resolve somewhere else entirely.
-        AdrProvenance.record("057", line);
-        return; // OK - implicit resolution will handle it
-      }
     }
 
     // Not defined - report error with optional hint
