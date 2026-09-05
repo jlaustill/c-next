@@ -1,1 +1,2 @@
 8:19 Parameter 'calculate_value' cannot start with function name prefix 'calculate_'. This naming pattern is reserved for scope-level variables.
+       help: Consider renaming to a name that doesn't start with 'calculate_'

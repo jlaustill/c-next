@@ -42,6 +42,13 @@ class ResultPrinter {
         ? `${DeclarationSite.displayPath(error.sourcePath)}:${error.line}:${error.column}`
         : `${error.line}:${error.column}`;
       console.error(`Error: ${location} ${error.message}`);
+      // The advice an analyzer wrote, indented under its diagnostic. Error
+      // fixtures are generated from this output (`transpileViaCli` is the only
+      // path `runErrorTest` uses), so what a user reads and what the corpus
+      // asserts cannot drift apart.
+      if (error.helpText !== undefined && error.helpText.length > 0) {
+        console.error(`       help: ${error.helpText}`);
+      }
     }
 
     // Summary

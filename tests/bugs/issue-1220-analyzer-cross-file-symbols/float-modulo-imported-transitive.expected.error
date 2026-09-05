@@ -1,4 +1,8 @@
 6:23 error[E0804]: Modulo operator not supported for floating-point types
+       help: The % operator only works with integer types. Use fmod() from <math.h> for floating-point remainder.
 9:21 error[E0804]: Modulo operator not supported for floating-point types
+       help: The % operator only works with integer types. Use fmod() from <math.h> for floating-point remainder.
 14:27 error[E0804]: Modulo operator not supported for floating-point types
+       help: The % operator only works with integer types. Use fmod() from <math.h> for floating-point remainder.
 17:25 error[E0804]: Modulo operator not supported for floating-point types
+       help: The % operator only works with integer types. Use fmod() from <math.h> for floating-point remainder.

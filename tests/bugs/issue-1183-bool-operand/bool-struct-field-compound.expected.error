@@ -1,1 +1,2 @@
 13:4 error[E0806]: Compound assignment is not valid on bool 'o.inner.ready' - only '<-' is
+       help: MISRA C:2012 Rule 10.1: a bool is not a number. To flip it, use 'o.inner.ready <- !o.inner.ready'.

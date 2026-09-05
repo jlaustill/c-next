@@ -1,1 +1,2 @@
 7:11 error[E0851]: Subscript index must be an unsigned integer type; got 'f32'
+       help: Use an unsigned integer type (u8, u16, u32, u64) for array and bit subscript indexes.
