@@ -54,6 +54,20 @@ interface ITypeBindingDeps {
 }
 
 /**
+ * Which syntactic branch answered, what was written, and what it resolved to.
+ *
+ * `branch` is the part a resolved name cannot carry. `written` is the
+ * identifier before any scope qualification, which a caller that must defer
+ * has to record -- ADR-057 resolves from the parse tree, so the written form
+ * is the input, not the output.
+ */
+interface INamedTypeResolution {
+  readonly branch: "this" | "global" | "qualified" | "bare";
+  readonly written: string;
+  readonly name: string;
+}
+
+/**
  * Static utility class resolving a type context to its C name.
  */
 class TypeBinding {
@@ -140,37 +154,72 @@ class TypeBinding {
     scopePath: string,
     deps?: ITypeBindingDeps,
   ): string | null {
+    return (
+      TypeBinding.classifyNamedType(accessors, scopePath, deps)?.name ?? null
+    );
+  }
+
+  /**
+   * The same ladder, reporting WHICH branch answered and what was written.
+   *
+   * 1.3 Declare needs both. `resolveNamedType` returns a name, and by then a
+   * bare `Mode` that stayed bare is indistinguishable from `global.Mode` --
+   * ADR-057's whole reason for qualifying at the parse tree. Only the bare
+   * branch can be unsettled, and only when it did not qualify, so a caller
+   * that must defer needs to see the branch and the written identifier rather
+   * than infer them from a string that no longer carries either.
+   *
+   * This is the ladder; `resolveNamedType` is a view over it. Two ladders is
+   * what #1285 collapsed, and the point of routing the string version through
+   * here is that a branch cannot be added to one and forgotten in the other.
+   */
+  static classifyNamedType(
+    accessors: ITypeAccessors,
+    scopePath: string,
+    deps?: ITypeBindingDeps,
+  ): INamedTypeResolution | null {
     // this.T -- the scope is stated, so qualify against the chain unconditionally
     const scoped = accessors.scopedType();
     if (scoped) {
-      return ScopeUtils.qualifyInScope(
-        scoped.IDENTIFIER().getText(),
-        scopePath,
-      );
+      const written = scoped.IDENTIFIER().getText();
+      return {
+        branch: "this",
+        written,
+        name: ScopeUtils.qualifyInScope(written, scopePath),
+      };
     }
 
     // global.T -- explicitly opts out of scope qualification
     const global = accessors.globalType();
     if (global) {
-      return global.IDENTIFIER().getText();
+      const written = global.IDENTIFIER().getText();
+      return { branch: "global", written, name: written };
     }
 
     // Scope.T -- the path is stated in full
     const qualified = accessors.qualifiedType();
     if (qualified) {
       const names = qualified.IDENTIFIER().map((id) => id.getText());
-      return deps?.resolveQualifiedType
-        ? deps.resolveQualifiedType(names)
-        : QualifiedCName.fromParts(names);
+      return {
+        branch: "qualified",
+        written: names.join("."),
+        name: deps?.resolveQualifiedType
+          ? deps.resolveQualifiedType(names)
+          : QualifiedCName.fromParts(names),
+      };
     }
 
     // Bare T -- the ONLY branch that resolves local -> scope -> global
     const user = accessors.userType();
     if (user) {
-      const typeName = user.getText();
-      return deps?.isScopeType
-        ? ScopeUtils.qualifyScopeType(typeName, scopePath, deps.isScopeType)
-        : typeName;
+      const written = user.getText();
+      return {
+        branch: "bare",
+        written,
+        name: deps?.isScopeType
+          ? ScopeUtils.qualifyScopeType(written, scopePath, deps.isScopeType)
+          : written,
+      };
     }
 
     return null;

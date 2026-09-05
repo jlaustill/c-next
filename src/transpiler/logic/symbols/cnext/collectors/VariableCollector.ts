@@ -9,7 +9,6 @@ import * as Parser from "../../../parser/grammar/CNextParser";
 import DimensionResolver from "../utils/DimensionResolver";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import IVariableSymbol from "../../../../types/symbols/IVariableSymbol";
-import TypeResolver from "../../../../../utils/TypeResolver";
 import ArrayInitializerUtils from "../utils/ArrayInitializerUtils";
 import TypeUtils from "../utils/TypeUtils";
 import StringUtils from "../../../../../utils/StringUtils";
@@ -36,14 +35,15 @@ class VariableCollector {
   private static resolveDeclaredType(
     typeStr: string,
     ctx: Parser.VariableDeclarationContext,
+    resolved: TType,
   ): TType {
     if (typeStr !== "string") {
-      return TypeResolver.resolve(typeStr);
+      return resolved;
     }
 
     const initText = ctx.expression()?.getText() ?? "";
     if (!initText.startsWith('"') || !initText.endsWith('"')) {
-      return TypeResolver.resolve(typeStr);
+      return resolved;
     }
 
     return TTypeUtils.createString(StringUtils.literalLength(initText));
@@ -172,7 +172,11 @@ class VariableCollector {
     // holds every outer component, so nothing downstream can flatten it to a
     // leaf -- which is what the reference threaded here used to protect against.
     const typeStr = TypeUtils.getTypeName(typeCtx, scopePath, isScopeType);
-    const type = VariableCollector.resolveDeclaredType(typeStr, ctx);
+    const type = VariableCollector.resolveDeclaredType(
+      typeStr,
+      ctx,
+      TypeUtils.resolveType(typeCtx, scopePath, isScopeType),
+    );
 
     // Check for const modifier
     const isConst = ctx.constModifier() !== null;

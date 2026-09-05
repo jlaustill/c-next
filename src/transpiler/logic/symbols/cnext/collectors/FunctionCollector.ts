@@ -9,7 +9,6 @@ import * as Parser from "../../../parser/grammar/CNextParser";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import IFunctionSymbol from "../../../../types/symbols/IFunctionSymbol";
 import IParameterInfo from "../../../../types/symbols/IParameterInfo";
-import TypeResolver from "../../../../../utils/TypeResolver";
 import TypeUtils from "../utils/TypeUtils";
 import SymbolRegistry from "../../../../state/SymbolRegistry";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
@@ -46,12 +45,14 @@ class FunctionCollector {
     // #1298: members carry the scope's PATH, not the scope object. The path
     // holds every outer component, so nothing downstream can flatten it to a
     // leaf -- which is what the reference threaded here used to protect against.
-    const returnTypeStr = TypeUtils.getTypeName(
+    // #1472: `resolveType` defers a bare name this file cannot settle instead
+    // of guessing it, so 1.4 Resolve can apply ADR-057 with the whole-program
+    // scope-type set. Everything it can settle resolves exactly as before.
+    const returnType = TypeUtils.resolveType(
       returnTypeCtx,
       scopePath,
       isScopeType,
     );
-    const returnType = TypeResolver.resolve(returnTypeStr);
 
     // Collect parameters with TType
     const params = ctx.parameterList()?.parameter() ?? [];
@@ -134,8 +135,7 @@ class FunctionCollector {
     return params.map((p) => {
       const name = p.IDENTIFIER().getText();
       const typeCtx = p.type();
-      const typeStr = TypeUtils.getTypeName(typeCtx, scopePath, isScopeType);
-      const type = TypeResolver.resolve(typeStr);
+      const type = TypeUtils.resolveType(typeCtx, scopePath, isScopeType);
       const isConst = p.constModifier() !== null;
 
       // Check for C-Next style array type (u8[8] param, u8[4][4] param, u8[] param)

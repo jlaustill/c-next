@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import parse from "./testHelpers";
 import CNextResolver from "../index";
+import DeferredTypes from "../../DeferredTypes";
 import SymbolGuards from "../../../../types/symbols/SymbolGuards";
 import SymbolRegistry from "../../../../state/SymbolRegistry";
 import TypeResolver from "../../../../../utils/TypeResolver";
@@ -521,41 +522,65 @@ describe("CNextResolver Integration", () => {
       ]);
     });
 
-    it("does NOT let the cross-file seed leak onto the per-file artifact", () => {
-      // The negative control. Declare used to collect local scope types INTO the
-      // seeded set, so "declared here" and "visible here" were one object and
-      // neither could be read back. Collapsing them again passes every other
-      // test in this file and fails only this one -- which is the whole reason
-      // it is here, because that collapse is what makes the artifact a lie.
-      const code = `scope Local { public struct S { u8 a; } }`;
-      const seed = new Set(["Elsewhere__T"]);
-
-      const declared = CNextResolver.resolve(parse(code), "test.cnx", seed);
-
-      expect(declared.declaredScopeTypes.has("Local__S")).toBe(true);
-      expect(declared.declaredScopeTypes.has("Elsewhere__T")).toBe(false);
-    });
-
-    it("still resolves a bare type against the seed it was given", () => {
-      // The positive half: excluding the seed from the ARTIFACT must not
-      // exclude it from RESOLUTION. Without this pair, a change that dropped
-      // the seed entirely would still satisfy the negative control above.
+    it("defers a bare type this file does not declare, instead of guessing", () => {
+      // The replacement for the seed's negative control, and the same argument
+      // one layer down. Declare is no longer told what other files declare, so
+      // for `Point` it has NO answer -- and "no answer" must not be spelled as
+      // the bare name, because a bare `Point` and `global.Point` are the same
+      // string by then and ADR-057 cannot be applied afterwards. Spelling it as
+      // the bare name is exactly the guess the seed existed to prevent; this
+      // asserts the deferral instead, including the two things 1.4 needs and a
+      // resolved name cannot carry: the identifier AS WRITTEN and the scope it
+      // was written in.
       const code = `
         scope Spanned {
           public Point origin() { return this.stored; }
         }
       `;
-      const seed = new Set(["Spanned__Point"]);
-
-      const declared = CNextResolver.resolve(parse(code), "test.cnx", seed);
+      const declared = CNextResolver.resolve(parse(code), "test.cnx");
       const origin = declared.symbols.find((sym) => sym.name === "origin");
 
+      expect(origin && SymbolGuards.isFunction(origin)).toBe(true);
+      if (origin && SymbolGuards.isFunction(origin)) {
+        expect(origin.returnType).toEqual({
+          kind: "deferred",
+          name: "Point",
+          scopePath: "Spanned",
+        });
+      }
+    });
+
+    it("settles a deferred type against the whole-program set, and only that", () => {
+      // The positive half. Deferring is only correct if something settles it,
+      // so this runs 1.4's settlement over Declare's artifact -- and pairs it
+      // with a negative control on the same symbols. Without the control, a
+      // settlement that qualified unconditionally would pass the first
+      // assertion and be wrong: `global.Point` inside `scope Spanned` must
+      // stay `Point`, and that case is byte-identical here.
+      const code = `scope Spanned { public Point origin() { return this.stored; } }`;
+      const declared = CNextResolver.resolve(parse(code), "test.cnx");
+
+      const settled = DeferredTypes.settle(
+        declared.symbols,
+        (qualifiedName) => qualifiedName === "Spanned__Point",
+      );
+      const origin = settled.find((sym) => sym.name === "origin");
       expect(origin && SymbolGuards.isFunction(origin)).toBe(true);
       if (origin && SymbolGuards.isFunction(origin)) {
         expect(TypeResolver.getTypeName(origin.returnType)).toBe(
           "Spanned__Point",
         );
       }
+
+      const unqualified = DeferredTypes.settle(declared.symbols, () => false);
+      const bare = unqualified.find((sym) => sym.name === "origin");
+      if (bare && SymbolGuards.isFunction(bare)) {
+        expect(TypeResolver.getTypeName(bare.returnType)).toBe("Point");
+      }
+
+      // And nothing deferred survives either settlement.
+      expect(DeferredTypes.hasUnsettled(settled)).toBe(false);
+      expect(DeferredTypes.hasUnsettled(unqualified)).toBe(false);
     });
   });
 
@@ -643,9 +668,18 @@ describe("CNextResolver Integration", () => {
           public void use(Config cfg) { }
         }
       `;
-      const symbols = CNextResolver.resolve(parse(code), "test.cnx");
+      // Runs both passes, because that is where the answer now lives: Declare
+      // cannot settle a bare `Config` -- pass 0b collects TYPE-forming members
+      // only, so `A__Config` is not a scope type and the name might still name
+      // one from an included file. It defers, and 1.4 settles against the
+      // program-wide set, which has no `A__Config` either. The rule under test
+      // is unchanged: a scope member that is not a type must not capture a
+      // same-named global one.
+      const declared = CNextResolver.resolve(parse(code), "test.cnx");
+      const symbols = DeferredTypes.settle(declared.symbols, () => false);
 
-      const use = typeOf(symbols, "use");
+      const use = symbols.find((sym) => sym.name === "use");
+      expect(use && SymbolGuards.isFunction(use)).toBe(true);
       if (use && SymbolGuards.isFunction(use)) {
         expect(TypeResolver.getTypeName(use.parameters[0].type)).toBe("Config");
       }

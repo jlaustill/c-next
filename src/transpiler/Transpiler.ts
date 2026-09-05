@@ -32,7 +32,6 @@ import ExternalTypeHeaderBuilder from "./output/headers/ExternalTypeHeaderBuilde
 import HeaderGeneratorUtils from "./output/headers/HeaderGeneratorUtils";
 import IHeaderEmissionFacts from "./output/headers/types/IHeaderEmissionFacts";
 import IHeaderCallbackType from "./types/IHeaderCallbackType";
-import ICodeGenSymbols from "./types/ICodeGenSymbols";
 import type ITransitiveIncludes from "./types/ITransitiveIncludes";
 import IncludeExtractor from "./logic/IncludeExtractor";
 import SymbolTable from "./logic/symbols/SymbolTable";
@@ -40,6 +39,7 @@ import ESourceLanguage from "../utils/types/ESourceLanguage";
 import CNextResolver from "./logic/symbols/cnext";
 import SymbolRegistry from "./state/SymbolRegistry";
 import TSymbolInfoAdapter from "./logic/symbols/cnext/adapters/TSymbolInfoAdapter";
+import DeferredTypes from "./logic/symbols/DeferredTypes";
 import CResolver from "./logic/symbols/c";
 import CppResolver from "./logic/symbols/cpp";
 import HeaderSymbolAdapter from "./output/headers/adapters/HeaderSymbolAdapter";
@@ -563,32 +563,86 @@ class Transpiler {
     cnextFiles: IPipelineFile[],
     result: ITranspilerResult,
   ): boolean {
+    // 1.3 Declare, every file. Per-file facts only: a file's symbols are
+    // computable with its own parse tree open and nothing else.
+    const declaredFiles: Array<{
+      readonly file: IPipelineFile;
+      readonly declared: IDeclaredFile;
+    }> = [];
     for (const file of cnextFiles) {
-      const errors = this._doCollectCNextSymbolsFromPipeline(file);
+      const outcome = this._declarePipelineFile(file);
+      if (outcome.errors) {
+        result.errors.push(...outcome.errors);
+        result.success = false;
+        continue;
+      }
+      declaredFiles.push({ file, declared: outcome.declared });
+    }
+
+    if (!result.success) {
+      return false;
+    }
+
+    // 1.4 Resolve. The whole-program scope-type set exists only now that every
+    // file has been declared, which is the entire reason the two loops are
+    // separate: a file's bare type reference may name a scope type declared in
+    // a file that had not been read when the first loop reached it.
+    const programScopeTypes = this._programScopeTypes();
+    for (const { file, declared } of declaredFiles) {
+      const errors = this._resolvePipelineFile(
+        file,
+        declared,
+        programScopeTypes,
+      );
       if (errors) {
         result.errors.push(...errors);
         result.success = false;
       }
     }
+
     return result.success;
   }
 
   /**
-   * Collect symbols from a single C-Next pipeline file.
-   * Uses file.source when available (in-memory), otherwise reads from disk.
+   * Every scope type the PROGRAM declares, combined from each file's own
+   * `IFileSymbols.declaredScopeTypes`.
    *
-   * @returns null on success, or an array of ITranspileError on failure
+   * This is the cross-file fact 1.3 no longer receives as a parameter. It is
+   * assembled from per-file answers rather than collected by a pass of its
+   * own, so nothing recomputes what Declare already authored.
    */
-  private _doCollectCNextSymbolsFromPipeline(
+  private _programScopeTypes(): ReadonlySet<string> {
+    const all = new Set<string>();
+    for (const declared of this.state.getAllDeclaredScopeTypes()) {
+      for (const scopeType of declared) {
+        all.add(scopeType);
+      }
+    }
+    return all;
+  }
+
+  /**
+   * 1.3 Declare one file: parse it and collect the symbols it declares.
+   *
+   * Per-file by construction -- nothing here reads another file's symbols, and
+   * `_declareFile` no longer receives a cross-file parameter. A bare type name
+   * this file cannot settle is recorded as deferred rather than guessed, and
+   * `_resolvePipelineFile` settles it once every file has been declared.
+   *
+   * @returns the declared file, or the errors that stopped it
+   */
+  private _declarePipelineFile(
     file: IPipelineFile,
-  ): ITranspileError[] | null {
+  ):
+    | { readonly errors: ITranspileError[]; readonly declared?: undefined }
+    | { readonly errors?: undefined; readonly declared: IDeclaredFile } {
     const content = file.source ?? this.fs.readFile(file.path);
     const { tree, tokenStream, errors, declarationCount } =
       CNextSourceParser.parse(content);
 
     // Parse errors — return them with original line/column and sourcePath
     if (errors.length > 0) {
-      return errors.map((e) => ({ ...e, sourcePath: file.path }));
+      return { errors: errors.map((e) => ({ ...e, sourcePath: file.path })) };
     }
 
     // ADR-049: record the file's declared target while its tree is in hand, so
@@ -600,22 +654,67 @@ class Transpiler {
 
     try {
       // ADR-055 Phase 7: Use composable collectors via CNextResolver
-      const declared = this._declareFile(tree, file.path, file.cnextIncludes);
-      const tSymbols = declared.symbols;
+      const declared = this._declareFile(tree, file.path);
 
-      // #1301: Stage 5 consumes this parse and this declare instead of repeating
-      // both. Recorded after _declareFile returns, so a file that throws while
-      // declaring leaves no half-built entry for Stage 5 to find.
-      //
-      // Only for files that will read it back. A symbol-only file is still DECLARED
-      // above -- that is the entire reason it was discovered -- but nothing reads
-      // its tree, so retaining one would be pure cost. Retention is this design's
-      // one real expense, so it is not paid for a consumer that does not exist.
-      if (Transpiler._producesOutput(file)) {
-        this.declaredFiles.set(file.path, {
+      return {
+        declared: {
           tree,
           tokenStream,
           declarationCount,
+          symbols: declared.symbols,
+        },
+      };
+    } catch (err) {
+      return { errors: [Transpiler._collectionError(err)] };
+    }
+  }
+
+  /**
+   * 1.4 Resolve one file: settle its deferred types, then publish it.
+   *
+   * Everything below the settlement consumed resolved type names before this
+   * split too; what changed is that the names are now correct for a bare
+   * reference to a scope type declared in another file, which no per-file pass
+   * could have answered.
+   *
+   * The retention decision stays here rather than in Declare because what is
+   * retained must be the SETTLED symbols -- Stage 5 reads this entry instead of
+   * re-declaring, so handing it Declare's provisional types would put unsettled
+   * names back into codegen through the cache.
+   */
+  private _resolvePipelineFile(
+    file: IPipelineFile,
+    declared: IDeclaredFile,
+    programScopeTypes: ReadonlySet<string>,
+  ): ITranspileError[] | null {
+    try {
+      const tSymbols = DeferredTypes.settle(declared.symbols, (qualifiedName) =>
+        programScopeTypes.has(qualifiedName),
+      );
+
+      // The settlement's own negative control. `TypeResolver.getTypeName`
+      // throws on a deferred type, so an escapee would surface somewhere in
+      // codegen with nothing to say about which pass dropped it.
+      if (DeferredTypes.hasUnsettled(tSymbols)) {
+        throw new Error(
+          `Internal error: 1.4 Resolve left a deferred type in ${file.path}`,
+        );
+      }
+
+      // #1301: Stage 5 consumes this parse and this declare instead of repeating
+      // both. Recorded after settlement, so a file that throws while resolving
+      // leaves no half-built entry for Stage 5 to find.
+      //
+      // Only for files that will read it back. A symbol-only file is still DECLARED
+      // and RESOLVED -- that is the entire reason it was discovered -- but nothing
+      // reads its tree, so retaining one would be pure cost. Retention is this
+      // design's one real expense, so it is not paid for a consumer that does not
+      // exist.
+      if (Transpiler._producesOutput(file)) {
+        this.declaredFiles.set(file.path, {
+          tree: declared.tree,
+          tokenStream: declared.tokenStream,
+          declarationCount: declared.declarationCount,
           symbols: tSymbols,
         });
       }
@@ -633,26 +732,31 @@ class Transpiler {
       // and from per-file data alone in C. The analysis itself is
       // language-neutral, so both modes now share the one answer.
       const results = this.codeGenerator.analyzeModificationsOnly(
-        tree,
+        declared.tree,
         this.modificationAnalyzer.getModifications(),
         this.modificationAnalyzer.getParamLists(),
       );
       this.modificationAnalyzer.accumulateResults(results);
     } catch (err) {
-      // Symbol collection errors (e.g., BitmapCollector) — format as "Code generation failed"
-      const rawMessage = err instanceof Error ? err.message : String(err);
-      const parsed = ParserUtils.parseErrorLocation(rawMessage);
-      return [
-        {
-          line: parsed.line,
-          column: parsed.column,
-          message: `Code generation failed: ${parsed.message}`,
-          severity: "error",
-        },
-      ];
+      return [Transpiler._collectionError(err)];
     }
 
     return null;
+  }
+
+  /**
+   * Symbol collection and resolution errors (e.g. BitmapCollector) formatted
+   * the way a `.c` generation failure is, so both loops report one shape.
+   */
+  private static _collectionError(err: unknown): ITranspileError {
+    const rawMessage = err instanceof Error ? err.message : String(err);
+    const parsed = ParserUtils.parseErrorLocation(rawMessage);
+    return {
+      line: parsed.line,
+      column: parsed.column,
+      message: `Code generation failed: ${parsed.message}`,
+      severity: "error",
+    };
   }
 
   /**
@@ -2478,43 +2582,25 @@ class Transpiler {
   private _declareFile(
     tree: Parser.ProgramContext,
     sourcePath: string,
-    cnextIncludes?: ReadonlyArray<{ path: string }>,
-  ): {
-    symbols: readonly TSymbol[];
-    externalEnumSources: readonly ICodeGenSymbols[];
-  } {
-    const included = this._collectExternalEnumSources(
-      sourcePath,
-      cnextIncludes,
-    );
-
-    // #1472: the seed is the union of what each INCLUDED FILE DECLARES, read
-    // from Declare's own artifact. Files are visited in dependency order where
-    // one exists, so an include's entry is normally present. Under an include
-    // cycle the toposort falls back to insertion order (#1167) and it may not
-    // be -- the guard below skips it, exactly as the old `symbolInfoByFile`
-    // lookup did. Behavior on that shape is unchanged by this change, which is
-    // why the guard is preserved rather than asserted away.
-    const visibleScopeTypes = new Set<string>();
-    for (const includedPath of included.paths) {
-      const declaredThere = this.state.getFileDeclaredScopeTypes(includedPath);
-      if (declaredThere) {
-        for (const scopeType of declaredThere) {
-          visibleScopeTypes.add(scopeType);
-        }
-      }
-    }
-
-    const declared = CNextResolver.resolve(tree, sourcePath, visibleScopeTypes);
+  ): { symbols: readonly TSymbol[] } {
+    // #1472 item 2: no cross-file parameter. Declare is handed one tree and one
+    // path, and everything it authors is computable from those alone.
+    //
+    // The seed this replaced was the union of what each INCLUDED file declared,
+    // threaded in so a bare type reference could be qualified here. That made
+    // Declare answer a cross-file question, and it also made the answer depend
+    // on visit order: under an include cycle the toposort falls back to
+    // insertion order (#1167), so an include's entry could be missing and the
+    // seed silently short. Neither is true now -- 1.4 Resolve settles those
+    // references against the whole program, after every file is declared, so
+    // order cannot affect the result.
+    const declared = CNextResolver.resolve(tree, sourcePath);
     this.state.setFileDeclaredScopeTypes(
       sourcePath,
       declared.declaredScopeTypes,
     );
 
-    return {
-      symbols: declared.symbols,
-      externalEnumSources: included.sources,
-    };
+    return { symbols: declared.symbols };
   }
 
   /**

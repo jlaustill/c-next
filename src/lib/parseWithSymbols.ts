@@ -5,6 +5,7 @@
 
 import CNextSourceParser from "../transpiler/logic/parser/CNextSourceParser";
 import CNextResolver from "../transpiler/logic/symbols/cnext/index";
+import DeferredTypes from "../transpiler/logic/symbols/DeferredTypes";
 import ScopeUtils from "../utils/ScopeUtils";
 import TypeResolver from "../utils/TypeResolver";
 import ISymbolInfo from "./types/ISymbolInfo";
@@ -297,7 +298,17 @@ function parseWithSymbols(source: string): IParseWithSymbolsResult {
   const { tree, errors } = CNextSourceParser.parse(source);
 
   // ADR-055 Phase 7: Direct TSymbol → ISymbolInfo conversion (no ISymbol intermediate)
-  const tSymbols = CNextResolver.resolve(tree, "<source>").symbols;
+  //
+  // #1472: both passes, because this API has the same obligation the pipeline
+  // does. 1.3 Declare defers a bare type name it cannot settle, and reading one
+  // of those as a type name throws -- so a caller that ran Declare alone would
+  // get an internal error on any scope that names a type bare. This entry point
+  // takes a single source with no include context, so the program IS this file
+  // and its own declared scope types are the whole-program set.
+  const declared = CNextResolver.resolve(tree, "<source>");
+  const tSymbols = DeferredTypes.settle(declared.symbols, (qualifiedName) =>
+    declared.declaredScopeTypes.has(qualifiedName),
+  );
   const symbols = convertTSymbolsToISymbolInfo(tSymbols);
 
   return {

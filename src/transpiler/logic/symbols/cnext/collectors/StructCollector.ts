@@ -9,7 +9,6 @@ import * as Parser from "../../../parser/grammar/CNextParser";
 import ESourceLanguage from "../../../../../utils/types/ESourceLanguage";
 import IStructSymbol from "../../../../types/symbols/IStructSymbol";
 import type IStructFieldSymbol from "../../../../types/symbols/IStructFieldSymbol";
-import TypeResolver from "../../../../../utils/TypeResolver";
 import TypeUtils from "../utils/TypeUtils";
 import DimensionResolver from "../utils/DimensionResolver";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
@@ -225,8 +224,7 @@ class StructCollector {
     isScopeType?: (qualifiedName: string) => boolean,
   ): IStructFieldSymbol {
     const typeCtx = member.type();
-    const fieldTypeStr = TypeUtils.getTypeName(typeCtx, scopePath, isScopeType);
-    const fieldType = TypeResolver.resolve(fieldTypeStr);
+    const fieldType = TypeUtils.resolveType(typeCtx, scopePath, isScopeType);
     // Note: C-Next struct members don't have const modifier in grammar
     const isConst = false;
     // C-Next struct members don't have atomic modifier

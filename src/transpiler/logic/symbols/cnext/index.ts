@@ -51,7 +51,6 @@ class CNextResolver {
   static resolve(
     tree: Parser.ProgramContext,
     sourceFile: string,
-    externalScopeTypes?: ReadonlySet<string>,
   ): IFileSymbols {
     const symbols: TSymbol[] = [];
     const knownBitmaps = new Set<string>();
@@ -82,12 +81,14 @@ class CNextResolver {
     // What this file can SEE: its own declarations plus its includes'. Same set
     // as before the split, built in the other order -- union is commutative, so
     // every resolution below is unchanged.
-    const scopeTypes = new Set<string>(externalScopeTypes ?? []);
-    for (const declared of declaredScopeTypes) {
-      scopeTypes.add(declared);
-    }
+    // #1472: what this file DECLARES is the whole answer available here. A
+    // bare name this set does not contain is not "not a scope type" -- it may
+    // name one declared in an included file -- so `TypeUtils.resolveType`
+    // records it as deferred and 1.4 Resolve settles it. Answering `false`
+    // here and moving on is what the seed existed to prevent, and it is the
+    // guess ADR-057 cannot recover from once the name is a string.
     const isScopeType = (qualifiedName: string): boolean =>
-      scopeTypes.has(qualifiedName);
+      declaredScopeTypes.has(qualifiedName);
 
     // Pass 1: Collect all bitmap names (needed before registers reference them)
     // This includes bitmaps in scopes

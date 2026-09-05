@@ -223,6 +223,18 @@ class TranspilerState {
     return this.declaredScopeTypesByFile.get(filePath);
   }
 
+  /**
+   * Every declared file's scope types, for the whole-program set 1.4 Resolve
+   * needs.
+   *
+   * Deliberately not pre-combined into one set: the per-file answer is the fact Declare
+   * authored, and 1.4 is the only pass allowed to join them. Storing the union
+   * here would put a cross-file fact in per-file state.
+   */
+  getAllDeclaredScopeTypes(): Iterable<ReadonlySet<string>> {
+    return this.declaredScopeTypesByFile.values();
+  }
+
   // === Header Include Directives (Group 3) ===
 
   /**
