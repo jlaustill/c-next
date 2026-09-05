@@ -6,13 +6,19 @@ src/transpiler/logic/parser/cpp/grammar/
 package-lock.json
 .claude/
 
-# Issue #1364: fixtures that are deliberately not valid C-Next.
+# Issue #1364: files that are deliberately not valid C-Next.
 #
-# Each asserts a *syntax* error and has a committed .expected.error to prove it.
+# Two shapes. Most are fixtures asserting their own *syntax* error, with a
+# committed .expected.error beside them to prove it. One is a HELPER that carries
+# the error its sibling asserts: a cross-file diagnostic has to put the offending
+# construct in the included file, so nested-lib.cnx is unparseable on purpose and
+# cross-file-nested.expected.error is where the assertion lives (#1306).
+#
 # A formatter cannot format what it cannot parse, and Prettier treats an
 # unparseable file as an error rather than skipping it, so these are excluded by
-# name. `npm run format:fidelity` fails if this list drifts from the set of
-# fixtures the parser actually rejects.
+# name. This is a registry, not a mute button: `npm run format:fidelity` fails
+# BOTH ways -- on a file the parser rejects that is missing here, and on a file
+# listed here that parses fine -- so nothing can be silenced by adding it.
 tests/atomic/atomic-struct-member.test.cnx
 tests/bugs/issue-1306-nested-scope-diagnostic/nested-lib.cnx
 tests/c-interop/use-c-union-basic.test.cnx
