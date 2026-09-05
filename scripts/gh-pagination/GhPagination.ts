@@ -33,10 +33,23 @@ import IGhPaginationViolation from "../types/IGhPaginationViolation";
  * KNOWN LIMIT: this is a text scanner. A paginator assembled programmatically is
  * invisible to it -- `release-milestones.ts` and `setup-project.ts` build argv
  * arrays and hand-roll correct `hasNextPage` loops, and would stay silent if
- * they did not. Nested connection caps (`fieldValues(first: 20)` on a board that
- * has 14 fields) are likewise out of reach: `--paginate` cannot advance an inner
- * connection, so there is no flag whose absence would prove anything. Those need
- * a reader, and headroom recorded where they are written.
+ * they did not.
+ *
+ * KNOWN LIMIT: nested connection caps are out of reach in principle, not just in
+ * practice. `--paginate` cannot advance an inner connection, so there is no flag
+ * whose absence would prove anything, and requiring a token like `totalCount`
+ * would demand a spelling without demanding the behaviour -- this defect one
+ * level up. They need a reader and measured headroom instead. Measured
+ * 2026-09-05, and the reason the first of these was raised in the same commit:
+ *
+ *   fieldValues        14 of 20  -- 70%, `Blocked by` the 14th and last; raised
+ *                                  to 100 in both skills
+ *   board fields       14 of 50  -- raised to 100 in setup-project for one cap,
+ *                                  not two, over the same field list
+ *   projectsV2          1 of 100
+ *   timelineItems       1 of 20  -- and `last:` takes the newest, so the end it
+ *                                  drops is the one nobody reads
+ *   closedByPRs         2 of 10
  */
 class GhPagination {
   /**

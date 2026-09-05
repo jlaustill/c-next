@@ -85,6 +85,7 @@
     "format:fidelity": "tsx scripts/format-fidelity.ts tests && tsx scripts/format-fidelity.ts examples && tsx scripts/format-fidelity.ts tests-gtest",
     "plugin:install": "npm --prefix prettier-plugin ci",
     "plugin:test": "npm --prefix prettier-plugin test",
+    "test:hooks": "bash .claude/hooks/__tests__/start-issue-assign-reminder.test.sh",
     "plugin:build": "npm --prefix prettier-plugin run build",
     "move:modules": "tsx scripts/move-modules.ts"
   },

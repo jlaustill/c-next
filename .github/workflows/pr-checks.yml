@@ -152,6 +152,15 @@ jobs:
         run: npm run adr:independence:check
         continue-on-error: true
 
+      # The start-issue hook's own test suite. It was committed with #1423 and
+      # run by nothing -- not CI, not package.json, not gate.sh -- so its
+      # negative controls could not have caught a regression. Green at 17/17
+      # when wired in; a test nobody runs is the #1143 inert-guard shape.
+      - name: Check hook tests
+        id: hooktests
+        run: npm run test:hooks
+        continue-on-error: true
+
       # Issue #1416: `gh issue list` and `gh pr list` default to 30 and REST
       # collections page at 30, and a filter over a truncated page returns a
       # shorter answer rather than an error. It shipped twice in one file --
@@ -214,6 +223,7 @@ jobs:
           [ "${{ steps.scopematrix.outcome }}" != "success" ] && echo "❌ Scope-context matrix" && FAILED=1 || echo "✅ Scope-context matrix"
           [ "${{ steps.adrindependence.outcome }}" != "success" ] && echo "❌ ADR rewrite test" && FAILED=1 || echo "✅ ADR rewrite test"
           [ "${{ steps.ghpagination.outcome }}" != "success" ] && echo "❌ Bounded gh reads" && FAILED=1 || echo "✅ Bounded gh reads"
+          [ "${{ steps.hooktests.outcome }}" != "success" ] && echo "❌ Hook tests" && FAILED=1 || echo "✅ Hook tests"
           [ "${{ steps.diagnosticmanifest.outcome }}" != "success" ] && echo "❌ Diagnostic manifest" && FAILED=1 || echo "✅ Diagnostic manifest"
           [ "${{ steps.throwcitations.outcome }}" != "success" ] && echo "❌ Throw citations" && FAILED=1 || echo "✅ Throw citations"
           [ "${{ steps.scopejoins.outcome }}" != "success" ] && echo "❌ Scope-join sites" && FAILED=1 || echo "✅ Scope-join sites"
