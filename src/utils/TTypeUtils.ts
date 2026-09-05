@@ -16,6 +16,7 @@ type TStringType = Extract<TType, { kind: "string" }>;
 type TCallbackType = Extract<TType, { kind: "callback" }>;
 type TRegisterType = Extract<TType, { kind: "register" }>;
 type TExternalType = Extract<TType, { kind: "external" }>;
+type TDeferredType = Extract<TType, { kind: "deferred" }>;
 
 class TTypeUtils {
   // ============================================================================
@@ -84,6 +85,15 @@ class TTypeUtils {
   /**
    * Create an external type (C++ templates, etc.)
    */
+  /**
+   * Create a type 1.3 Declare could not settle -- a bare name whose ADR-057
+   * resolution needs scope types the whole program declares, not just this
+   * file. 1.4 Resolve replaces it; nothing downstream may hold one.
+   */
+  static createDeferred(name: string, scopePath: string): TDeferredType {
+    return { kind: "deferred", name, scopePath };
+  }
+
   static createExternal(name: string): TExternalType {
     return { kind: "external", name };
   }
@@ -151,6 +161,11 @@ class TTypeUtils {
   /**
    * Check if type is external
    */
+  /** Is this a bare name 1.3 Declare left for 1.4 Resolve to settle? */
+  static isDeferred(t: TType): t is TDeferredType {
+    return t.kind === "deferred";
+  }
+
   static isExternal(t: TType): t is TExternalType {
     return t.kind === "external";
   }
