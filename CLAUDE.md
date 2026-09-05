@@ -140,14 +140,24 @@ exit code too. To check a paginated result rather than trust it, compare
 `cut -f1 out | sort -u | wc -l` against `wc -l`; equal means no page repeated. For a handful
 of known items, N separate `node(id:)` queries are faster and cannot loop at all.
 
-**ts-morph MCP tools (PREFER FOR REFACTORING)**: Use ts-morph MCP tools as the **first choice** for TypeScript refactoring operations:
+**Refactoring with ts-morph**: `ts-morph` is a direct devDependency (28.x). Use it for
+anything that moves or renames across files — a relative specifier changes differently
+depending on where the IMPORTER sits, so `../../utils` from one directory and `../../../utils`
+from another cannot both be right under one regex.
 
-- `rename_symbol_by_tsmorph` — rename functions/variables/classes across project
-- `rename_filesystem_entry_by_tsmorph` — move/rename files with import updates
-- `move_symbol_to_file_by_tsmorph` — extract symbols to new/existing files
-- `find_references_by_tsmorph` — find all usages before refactoring
+**Moving modules**: `npm run move:modules` (dry run) / `-- --apply`. The manifest in
+`scripts/move-modules.ts` records every move WITH the reason for its destination, so the
+move is reviewable in the diff rather than a tool call nobody can inspect afterwards. It is
+idempotent — add entries and re-run.
 
-**Always use `dryRun: true` first.** Gotcha: May add `.ts` extensions to imports — remove them manually after moves.
+**Do not use the transitively-installed ts-morph 13.** It bundles TypeScript ~4.x, which
+predates `moduleResolution: "bundler"`: it cannot resolve directory-index specifiers such as
+`./cnext` and leaves them broken **with no error**. Import the direct dependency.
+
+This section previously named four `*_by_tsmorph` MCP tools as the first choice. No ts-morph
+MCP server is configured for this repo (`claude mcp list`, and no `mcpServers` entry in any
+project or user config), and the successor package no longer exposes those names, so the
+instruction could not be followed as written.
 
 **Layer constraints (depcruise)**: `data/` cannot import from `logic/` or `output/`, and
 `logic/` and `state/` cannot import from `output/` — all four **transitively**, not just as a
@@ -367,15 +377,16 @@ export default new Registry();
 
 ### C/C++ Resolvers (symbol-resolution Phase 6)
 
-| Resolver      | Location                     | Returns        |
-| ------------- | ---------------------------- | -------------- |
-| `CResolver`   | `logic/symbols/c/index.ts`   | `TCSymbol[]`   |
-| `CppResolver` | `logic/symbols/cpp/index.ts` | `TCppSymbol[]` |
+| Resolver      | Location                       | Returns        |
+| ------------- | ------------------------------ | -------------- |
+| `CResolver`   | `PARSE/3-Declare/c/index.ts`   | `TCSymbol[]`   |
+| `CppResolver` | `PARSE/3-Declare/cpp/index.ts` | `TCppSymbol[]` |
 
 - **Composable collector pattern**: Static classes with `collect()` (StructCollector, EnumCollector, etc.)
 - **C/C++ symbols use string types**: Unlike C-Next's `TType`, pass through unchanged
 - **TAnySymbol**: Cross-language union (`TSymbol | TCSymbol | TCppSymbol`)
-- **Adapters**: `CTSymbolAdapter`, `CppTSymbolAdapter` convert to legacy `ISymbol[]`
+- **Adapters**: none. `CTSymbolAdapter`/`CppTSymbolAdapter` were named here but have never
+  existed in `src/`; `TCSymbol`/`TCppSymbol` are consumed directly
 
 ### Enum `expectedType` Contexts
 
@@ -401,7 +412,9 @@ export default new Registry();
 - **TSymbols use bare names**: `name: "init"` with `scopePath: string` -- the dotted path of the enclosing scope (`""` at file scope), never the scope object. #1298: holding the object gave every symbol a chain to walk and a cycle to represent, which made the graph unserializable and left `getScopePath`'s identity-based guard unable to fire on a proxy chain. The scope object is one `SymbolRegistry.getScope(path)` away where a mutable member list is genuinely needed
 - **Lookup key by layer**: `getOverloads(bareName)` answers "what does `init` mean _here_?" and needs ADR-057 scope context; `getOverloadsByCName("Motor__init")` answers "which symbol _is_ this?" and is an exact canonical identity. Codegen and anything downstream of it holds the latter — asking the bare-name index with a transpiled C name returns empty for every scoped symbol, which reads as "no such symbol" rather than "wrong question" (#1139). Build the key with `ScopeUtils.getTranspiledCName()`, the single encoder; never re-derive a qualified name by hand
 - **Per-file vs run-wide symbol views**: `ICodeGenSymbols.known*` is built by
-  `_declareFile(tree, path, file.cnextIncludes)` and holds what **this file** can see;
+  `TSymbolInfoAdapter.convert` (from `Transpiler._publishResolvedFile`, after 1.4 settles the
+  file's symbols) and holds what **this file** can see. `_declareFile` does not build it, and
+  since #1472 takes only `(tree, sourcePath)` — it returns `IFileSymbols`;
   `SymbolTable.getOverloadsByCName` accumulates the **whole run** and is cleared once. A
   sibling that was never included is absent from the first and present in the second — that
   disagreement _is_ #1312. `CodeGenState.isScopeType()` answers neither visibility question:
@@ -634,7 +647,7 @@ Update both when adding new statement types.
 - **ADR-057 type qualification**: Check the _qualified_ name against `knownEnums`/`knownStructs`/`knownBitmaps`, not the bare name against `scopeMembers`. This prevents non-type scope members (functions/variables) from capturing a same-named global type at a type position.
 - **Qualify only the bare `userType()` branch.** `this.T`, `global.T` and `Scope.T` state their answer in the syntax and keep their own branches. This is not a style point: once a type name is resolved to a string, `global.Mode` and a bare `Mode` are byte-identical, so anything that qualifies _after_ resolution silently rewrites `global.` references. A post-pass over resolved names cannot be made correct — qualify while the parse tree is still available.
 - **Two resolution points, one decision.** Type names are resolved twice, in different layers, and both must qualify:
-  - **Symbols layer** — `TypeUtils.dispatchTypeResolution()`, fed an `isScopeType` predicate threaded from `CNextResolver.resolve()`. Everything downstream (`TSymbol`, `HeaderSymbolAdapter`, the `.h`) inherits the qualified name from here and must NOT re-qualify.
+  - **Symbols layer** — `TypeUtils.resolveType()`, fed an `isScopeType` predicate threaded from `CNextResolver.resolve()`. (`dispatchTypeResolution` was named here and was removed by #1285.) It answers with a settled name OR a `TDeferredType` when 1.3 cannot settle a bare name, and 1.4 Resolve settles those. Everything downstream (`TSymbol`, `HeaderSymbolAdapter`, the `.h`) inherits the name from here and must NOT re-qualify.
   - **Codegen layer** — `CodeGenerator.getTypeName()` and friends, via `CodeGenState.qualifyScopeType()`.
 - **`CNextResolver` Pass 0b** collects the qualified names of scope-declared enums/structs/bitmaps _before_ any type is resolved, so qualification does not depend on whether a type is declared above or below its use. Do not swap this for `scope.members`: that list is kind-agnostic (a function named `B` would capture global type `B`) and is still being built while collectors read it.
 - **`ScopeUtils.qualifyScopeType()`**: Shared utility in `src/utils/ScopeUtils.ts`. Takes `typeName`, the enclosing `scopePath`, and an `isKnownType(qualifiedName)` predicate. Call it via `CodeGenState.qualifyScopeType()` in codegen; `TypeGenerationHelper` injects the predicate through `ITypeGenerationDeps` instead, to stay unit-testable.

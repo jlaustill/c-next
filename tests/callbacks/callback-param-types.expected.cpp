@@ -11,8 +11,12 @@
 // test-transpile-only
 // Tests: Callbacks with various parameter types
 // Validates: u8, u32, bool, and struct parameters work correctly
-// NOTE: Changed to transpile-only due to Issue #1033 - callback calls with struct params
-// don't pass by pointer (ph.handler(pt) should be ph.handler(&pt))
+// NOTE: Changed to transpile-only due to Issue #1223 - a callback invoked with a
+// struct argument passes it by value into a pointer parameter, so the generated C
+// does not compile (ph.handler(pt) should be ph.handler(&pt)).
+// The number here previously read #1033, which is a merged PR about C-style array
+// declarations and tracks nothing about callbacks -- so this downgrade read as
+// tracked to anyone who checked, while the bug had no issue attached to it.
 // Callback with u8 parameter
 uint32_t processU8(uint8_t val) {
     return val + 100;

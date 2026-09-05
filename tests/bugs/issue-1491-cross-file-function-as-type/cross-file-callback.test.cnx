@@ -1,0 +1,91 @@
+// test-execution
+// test-adr: 029
+// Issue #1491: a variable typed by an INCLUDED function-as-type was rejected.
+//
+// ADR-029 makes every function declaration a type and draws no distinction
+// between a function declared here and one reached through an include. But
+// FunctionCallAnalyzer.isCallbackType answered "is this a callback type?" by
+// asking `allLocalFunctions`, a set that exists to EXCLUDE cross-file functions
+// because ADR-030 define-before-use ordering (#786) needs that distinction.
+// One set, two questions -- so calling through the variable was rejected with
+// `E0422: function 'viaInclude' called before definition`, for valid C-Next.
+//
+// The same-file pair is the CONTROL, not decoration: it is the byte-identical
+// shape with the type's function declared locally. It was accepted before the
+// fix and must keep passing, so a failure in the cross-file pair is
+// attributable to the include alone rather than to function-as-type support
+// in general.
+//
+// Both the DECLARATION and the CALL are exercised. The declaration alone was
+// already accepted before the fix, so a fixture that only declared the variable
+// would pass while the bug was live -- presence is not proof (#1222).
+//
+// `sharedNotify` covers the void case deliberately: the visible-here set the
+// fix reads is `functionReturnTypes`, and a reader could reasonably assume a
+// map named for return types skips functions that return none. It does not.
+//
+// The PARAMETER axis is covered here too, and it is the axis that matters: a
+// callback typedef's parameter list is the only place the symbol path and the
+// parse-tree path can disagree, because it is the only place either consults a
+// type renderer. Every function here took zero parameters until `sharedWithCount`
+// and `localWithText` were added, so `(void)` was the only typedef shape this
+// fixture ever produced and the two renderers were never asked the same question.
+//
+// `localWithText` takes `string<8>` because that is the type whose C rendering is
+// neither the written name nor the element type -- the parse-tree path used to
+// answer `char`, losing the pointer. It is SAME-FILE on purpose: the cross-file
+// `string<N>` case is one `const` away from correct and lives in
+// cross-file-string-param.test.cnx, which records what is still missing.
+
+#include "func-lib.cnx"
+
+u32 localHelper() {
+    return 5;
+}
+
+// The same-file half of the parameter axis. `string<8>` renders as `const char*`
+// in the prototype, so the typedef must say `const char*` too or the two are
+// incompatible pointer types and assigning the function to a variable of its own
+// type warns.
+u32 localWithText(string<8> label) {
+    return label.char_count;
+}
+
+u32 main() {
+    // Control: same-file function-as-type, declared and called.
+    // MISRA C:2012 Rule 13.5 forbids a call in an `if` condition, so every
+    // result is bound first and then compared.
+    localHelper ownRef <- localHelper;
+    u32 ownResult <- ownRef();
+    if (ownResult != 5) return 1;
+
+    // The assertion: cross-file function-as-type. The declaration was accepted
+    // before the fix; the call was not.
+    sharedHelper viaInclude <- sharedHelper;
+    u32 includedResult <- viaInclude();
+    if (includedResult != 7) return 2;
+
+    // Both reached through their variables, pinning that the two paths produce
+    // the same shape rather than merely both compiling.
+    u32 combined <- ownResult + includedResult;
+    if (combined != 12) return 3;
+
+    // A void function is a type too, and is callable through a variable.
+    sharedNotify viaVoid <- sharedNotify;
+    viaVoid();
+
+    // The parameter axis, same-file: `string<8>` must reach `const char*`.
+    string<8> text <- "abcd";
+    localWithText ownText <- localWithText;
+    u32 ownLength <- ownText(text);
+    if (ownLength != 4) return 4;
+
+    // The parameter axis across the include boundary. `u32` is a type both
+    // renderers agree on, so this pins that parameters SURVIVE the symbol path
+    // at all -- which they did not have to, since nothing exercised them.
+    sharedWithCount viaCount <- sharedWithCount;
+    u32 counted <- viaCount(41);
+    if (counted != 42) return 5;
+
+    return 0;
+}

@@ -21,7 +21,7 @@
  * one specific utility module, which is a claim about direct authorship -- made
  * transitive it produces seven errors, because everything reaches that module
  * through `utils/`. The discriminator is the rule's SHAPE: a rule whose `from`
- * and `to` are both transpiler paths is a layering claim; one that names a
+ * and `to` are both inside a layer root is a layering claim; one that names a
  * single module outside the layers is not. See the negative control below.
  */
 
@@ -29,7 +29,18 @@ import { join } from "node:path";
 
 const CONFIG_PATH = join(__dirname, "..", "..", ".dependency-cruiser.cjs");
 
-const TRANSPILER_PATH = "^src/transpiler/";
+/**
+ * The roots a layering claim can be made about.
+ *
+ * `^src/PARSE/` joined the list when #1472/#1447 moved 1.3 Declare and 1.4
+ * Resolve out of `src/transpiler/logic/symbols/`. Adding it is not cosmetic:
+ * with only the transpiler root here, a rule about the pass tree is not
+ * RECOGNIZED as a layering claim, so it could ship without `reachable: true`
+ * and this file -- whose entire purpose is to catch that -- would pass over it.
+ * That is #1297 one level up, and it is the failure the move itself would
+ * otherwise have caused in silence.
+ */
+const LAYER_ROOTS = ["^src/transpiler/", "^src/PARSE/"];
 
 interface IRuleEnd {
   path?: string | string[];
@@ -50,7 +61,7 @@ const paths = (end: IRuleEnd | undefined): string[] => {
 };
 
 /**
- * A layering claim: every path on BOTH ends is inside `src/transpiler/`.
+ * A layering claim: every path on BOTH ends is inside a layer root.
  *
  * Normalizing arrays matters -- a rule listing several source directories is
  * still a layering claim, and reading only `typeof path === "string"` would let
@@ -62,7 +73,9 @@ const isLayerRule = (rule: IRule): boolean => {
 
   if (from.length === 0 || to.length === 0) return false;
 
-  return [...from, ...to].every((path) => path.startsWith(TRANSPILER_PATH));
+  return [...from, ...to].every((path) =>
+    LAYER_ROOTS.some((root) => path.startsWith(root)),
+  );
 };
 
 const layerRules = (): IRule[] => {
@@ -81,7 +94,7 @@ describe("dependency-cruiser layer rules (#1297)", () => {
     // Guards the selector itself. If the path convention changes and this
     // returns nothing, "every layer rule is transitive" passes over an empty
     // list -- the same defect as #1297, one level up.
-    expect(layerRules().length).toBeGreaterThanOrEqual(4);
+    expect(layerRules().length).toBeGreaterThanOrEqual(7);
   });
 
   it("every layer rule is transitive", () => {
@@ -100,7 +113,10 @@ describe("dependency-cruiser layer rules (#1297)", () => {
     expect(names.sort()).toEqual([
       "data-cannot-import-logic",
       "data-cannot-import-output",
+      "declare-cannot-import-resolve",
       "logic-cannot-import-output",
+      "nothing-after-resolve-derives-cross-file-facts",
+      "parse-cannot-import-render",
       "state-cannot-import-output",
     ]);
   });

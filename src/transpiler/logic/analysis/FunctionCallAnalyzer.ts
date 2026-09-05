@@ -385,19 +385,29 @@ class FunctionCallAnalyzer {
    * every scope member, while the collector it sat beside walked them
    * correctly.
    *
-   * KNOWN LIMITATION (#1491): `allLocalFunctions` exists to EXCLUDE cross-file
-   * functions, because define-before-use (#786) needs that distinction. This
-   * predicate wants "callable here", for which an included function-as-type
-   * qualifies under ADR-029 — so a variable typed by one is still rejected with
-   * E0422. Pre-existing: the set this replaced walked the entry file alone and
-   * omitted included functions too. Do not fix it by adding included functions
-   * to `allLocalFunctions`; that set is load-bearing for ADR-030 ordering.
+   * #1491: the answer is NOT `allLocalFunctions` alone. That set exists to
+   * EXCLUDE cross-file functions, because ADR-030 define-before-use (#786)
+   * needs exactly that distinction -- so asking it "is this callable here?"
+   * asked one set two questions, and a variable typed by an INCLUDED
+   * function-as-type was rejected with E0422 "called before definition" for
+   * valid C-Next. ADR-029 draws no line at the include boundary.
+   *
+   * The second reading is the per-file VISIBLE set, not a second derivation of
+   * the first: `functionReturnTypes` is authored once by TSymbolInfoAdapter for
+   * every function regardless of return type, carried across the include
+   * boundary by `mergeExternalSymbols` on the same terms as the type-forming
+   * kinds (#1333), and keyed by transpiled C name -- which is the key this
+   * method is given. `allLocalFunctions` is left untouched and keeps answering
+   * the ordering question it exists for.
    *
    * @param name The lookup key, already qualified by the caller -- see
    *             `FunctionCallListener.isCallbackTypeHere`.
    */
   public isCallbackType(name: string): boolean {
-    return this.allLocalFunctions.has(name);
+    return (
+      this.allLocalFunctions.has(name) ||
+      (CodeGenState.symbols?.functionReturnTypes.has(name) ?? false)
+    );
   }
 
   /**

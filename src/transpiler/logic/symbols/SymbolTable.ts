@@ -13,7 +13,6 @@ import ScopeUtils from "../../../utils/ScopeUtils";
 import SymbolRegistry from "../../state/SymbolRegistry";
 import { produce, enableMapSet } from "immer";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
-import LiteralUtils from "../../../utils/LiteralUtils";
 import IConflict from "../../types/IConflict";
 import IStructFieldInfo from "../../types/symbols/IStructFieldInfo";
 import IStructSymbolState from "../../types/symbols/IStructSymbolState";
@@ -1622,117 +1621,6 @@ class SymbolTable {
   // ========================================================================
   // External Array Dimension Resolution
   // ========================================================================
-
-  /**
-   * Issue #461: Resolve external const array dimensions
-   *
-   * After all symbols are collected, scan for variable symbols with unresolved
-   * array dimensions (stored as strings instead of numbers). For each unresolved
-   * dimension, look up the const value in the symbol table and resolve it.
-   *
-   * This handles the case where array dimensions reference constants from
-   * external .cnx files that were not available during initial symbol collection.
-   */
-  resolveExternalArrayDimensions(): void {
-    const constValues = this.getConstValues();
-    if (constValues.size === 0) {
-      return;
-    }
-    this.resolveArrayDimensionsWithConstants(constValues);
-  }
-
-  /**
-   * Integer value of one symbol, if it is a const variable with a literal
-   * integer initializer.
-   *
-   * The single derivation of "what is this const worth". Issue #1220 found it
-   * written out twice -- here and again in CodeGenerator.initializeSymbolData()
-   * -- each walking getAllTSymbols() and re-deciding the kind/isConst/parse
-   * chain. Two copies of a rule that must agree is exactly the duplicate path
-   * CLAUDE.md forbids, so both callers now go through this.
-   */
-  private constValueOfSymbol(symbol: TSymbol): number | undefined {
-    if (symbol.kind !== "variable" || !symbol.isConst) return undefined;
-    if (symbol.initialValue === undefined) return undefined;
-    return LiteralUtils.parseIntegerLiteral(symbol.initialValue);
-  }
-
-  /**
-   * Integer value of a named const, or undefined when the name is not a const
-   * with a literal integer initializer.
-   *
-   * Issue #1220: this is how an analyzer reaches a const that arrived through
-   * an #include. Before it, DivisionByZeroAnalyzer knew only the const zeros it
-   * had walked out of the current file's parse tree, so `10 / ZERO` with an
-   * imported ZERO emitted a real runtime division by zero that compiles clean
-   * under -Wall -Wextra.
-   */
-  getConstValue(name: string): number | undefined {
-    const symbol = this.getTSymbol(name);
-    return symbol ? this.constValueOfSymbol(symbol) : undefined;
-  }
-
-  /**
-   * Map of every const variable name to its integer value.
-   */
-  getConstValues(): Map<string, number> {
-    const constValues = new Map<string, number>();
-    for (const symbol of this.getAllTSymbols()) {
-      const value = this.constValueOfSymbol(symbol);
-      if (value !== undefined) {
-        constValues.set(symbol.name, value);
-      }
-    }
-    return constValues;
-  }
-
-  /**
-   * Resolve string array dimensions using const values lookup.
-   */
-  private resolveArrayDimensionsWithConstants(
-    constValues: Map<string, number>,
-  ): void {
-    for (const symbol of this.getAllTSymbols()) {
-      if (
-        symbol.kind === "variable" &&
-        symbol.isArray &&
-        symbol.arrayDimensions
-      ) {
-        // After kind check, symbol is narrowed to IVariableSymbol
-        this.resolveVariableArrayDimensions(symbol, constValues);
-      }
-    }
-  }
-
-  /**
-   * Resolve array dimensions for a single variable symbol.
-   */
-  private resolveVariableArrayDimensions(
-    variable: IVariableSymbol,
-    constValues: Map<string, number>,
-  ): void {
-    let modified = false;
-    const resolvedDimensions = variable.arrayDimensions!.map((dim) => {
-      if (typeof dim === "number") {
-        return dim;
-      }
-      const constValue = constValues.get(dim);
-      if (constValue !== undefined) {
-        modified = true;
-        return constValue;
-      }
-      return dim;
-    });
-
-    if (modified) {
-      // Mutate in place - symbol is already in storage, cloning would require
-      // updating all maps. The readonly typing prevents accidental mutations
-      // elsewhere; this controlled mutation is intentional during resolution.
-      (
-        variable as unknown as { arrayDimensions: (number | string)[] }
-      ).arrayDimensions = resolvedDimensions;
-    }
-  }
 
   // ========================================================================
   // Clear / Reset

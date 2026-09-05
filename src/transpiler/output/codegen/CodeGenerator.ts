@@ -155,11 +155,18 @@ import type TRequirementKey from "../../types/TRequirementKey";
 import type IRecordedRequirement from "../../types/IRecordedRequirement";
 import ToolchainRequirementUtils from "../../../utils/ToolchainRequirementUtils";
 import ScopeUtils from "../../../utils/ScopeUtils";
-import TypeBinding from "../../logic/symbols/TypeBinding";
+import TypeBinding from "../../../PARSE/3-Declare/TypeBinding";
 import REJECTED_KEYWORDS from "../../constants/REJECTED_KEYWORDS";
 import type ITargetCapabilities from "../../types/ITargetCapabilities";
 import DEFAULT_TARGET from "../../constants/DEFAULT_TARGET";
 import TargetResolver from "../../../utils/TargetResolver";
+import SymbolTypeResolver from "../../../utils/TypeResolver";
+import CNEXT_TO_C_TYPE_MAP from "../../../utils/constants/TypeMappings";
+import ESourceLanguage from "../../../utils/types/ESourceLanguage";
+import SymbolGuards from "../../types/symbols/SymbolGuards";
+import type IFunctionSymbol from "../../types/symbols/IFunctionSymbol";
+import type TSymbol from "../../types/symbols/TSymbol";
+import type ICallbackTypeInfo from "../../types/ICallbackTypeInfo";
 
 const {
   generateOverflowHelpers: helperGenerateOverflowHelpers,
@@ -1542,6 +1549,39 @@ export default class CodeGenerator implements IOrchestrator {
    * rejecting a callback assignment that transpiles on main.
    */
   /**
+   * ADR-029 + #1491: emit typedefs for callback types this file NAMES but does
+   * not DECLARE.
+   *
+   * `recordCallbackTypedef` fires when a function is emitted, so it covers
+   * every type this file declares and none it reaches through an include. A
+   * variable typed by an included function-as-type therefore referenced a
+   * typedef nothing had emitted.
+   *
+   * It goes in the `.c`, not the header, unless this file's own public
+   * interface names the type -- which `generateCallbackTypedef` already decides
+   * via `headerOwnsCallbackTypedef`. That is the rule C libraries follow: a
+   * header typedefs the callback types its API uses, and a type needed only
+   * inside one translation unit stays there. It is also what stops two files
+   * that both name the same included function-as-type from each exporting the
+   * typedef and colliding in anything that includes both.
+   */
+  private emitTypedefsForUndeclaredCallbackTypes(): void {
+    for (const funcName of CodeGenState.callbackTypeReferences) {
+      if (
+        !CodeGenState.callbackTypes.has(funcName) ||
+        CodeGenState.emittedCallbackTypedefs.has(funcName)
+      ) {
+        continue;
+      }
+      const typedef = this.generateCallbackTypedef(funcName);
+      if (typedef) {
+        CodeGenState.pendingCallbackTypedefs.push(typedef);
+        CodeGenState.emittedCallbackTypedefs.add(funcName);
+      }
+    }
+  }
+
+  /**
    * ADR-029 / Issues #1201, #1212: record that this function needs a callback
    * `_fp` typedef, if it does.
    *
@@ -1562,6 +1602,7 @@ export default class CodeGenerator implements IOrchestrator {
     const typedef = this.generateCallbackTypedef(funcName);
     if (typedef) {
       CodeGenState.pendingCallbackTypedefs.push(typedef);
+      CodeGenState.emittedCallbackTypedefs.add(funcName);
     }
   }
 
@@ -1666,12 +1707,15 @@ export default class CodeGenerator implements IOrchestrator {
       return null;
     }
 
-    return `\n${CallbackTypedefFormatter.format(
+    // Bare, with no padding of its own: the splice in generateAllDeclarations
+    // decides the blank lines around the whole block, so one place owns the
+    // layout instead of each typedef guessing at it.
+    return CallbackTypedefFormatter.format(
       callbackInfo.returnType,
       callbackInfo.typedefName,
       callbackInfo.parameters,
       this.isCppMode(),
-    )}\n`;
+    );
   }
 
   /**
@@ -2302,6 +2346,12 @@ export default class CodeGenerator implements IOrchestrator {
     }
     CodeGenState.symbols = options.symbolInfo;
 
+    // ADR-029 + #1491: register function-as-types reached through an include
+    // BEFORE anything can reference one. Must run after `symbols` is set and
+    // before the declaration walk, which registers this file's own functions
+    // afterwards and correctly overwrites on a name collision.
+    this.registerIncludedCallbackTypes();
+
     // Initialize symbol data and const values
     this.initializeSymbolData();
 
@@ -2363,12 +2413,15 @@ export default class CodeGenerator implements IOrchestrator {
       CodeGenState.setScopeMembers(scopeName, new Set(members));
     }
 
-    // Issue #461: Initialize constValues from symbol table.
-    // Issue #1220: derived by SymbolTable.getConstValues() rather than walked
-    // again here -- this loop and SymbolTable's were two implementations of one
-    // rule, and only one of them was reachable from the analyzers.
-    CodeGenState.constValues =
-      CodeGenState.symbolTable?.getConstValues() ?? new Map();
+    // Issue #461: seed constValues for this file's generation.
+    // Issue #1220: one derivation of "what is this const worth", not a second
+    // walk here -- this loop and the symbol table's were two implementations of
+    // one rule, and only one was reachable from the analyzers.
+    // #1447: that derivation now lives on `Program`, because a const reached
+    // through an include is worth the same as one declared beside the use and
+    // only 1.4 sees both. Copied into a mutable map because generation adds
+    // file-local consts to it as it goes.
+    CodeGenState.constValues = new Map(CodeGenState.program?.constValues());
   }
 
   /**
@@ -2560,12 +2613,19 @@ export default class CodeGenerator implements IOrchestrator {
       }
     }
 
+    this.emitTypedefsForUndeclaredCallbackTypes();
+
     const typedefs = CodeGenState.pendingCallbackTypedefs;
     if (typedefs.length > 0) {
+      // One blank line either side of the block, and none between the typedefs
+      // themselves -- they are one group of related declarations, and the
+      // generated C is read by people auditing it.
       declarations.splice(
         firstFunctionIndex ?? declarations.length,
         0,
+        "",
         ...typedefs,
+        "",
       );
       CodeGenState.pendingCallbackTypedefs = [];
     }
@@ -2784,7 +2844,7 @@ export default class CodeGenerator implements IOrchestrator {
       }
       if (member.variableDeclaration()) {
         const varType = this.getTypeName(member.variableDeclaration()!.type());
-        CodeGenState.callbackTypeReferences.add(varType);
+        CodeGenState.notePublicCallbackTypeReference(varType);
       }
     }
 
@@ -2840,7 +2900,7 @@ export default class CodeGenerator implements IOrchestrator {
           fieldType,
         );
       }
-      CodeGenState.callbackTypeReferences.add(fieldType);
+      CodeGenState.notePublicCallbackTypeReference(fieldType);
     }
   }
 
@@ -2957,7 +3017,7 @@ export default class CodeGenerator implements IOrchestrator {
         const baseType = this.getTypeName(param.type());
         // Issue #1201: a parameter naming a callback type needs that type's
         // typedef emitted, exactly as a struct field does.
-        CodeGenState.callbackTypeReferences.add(baseType);
+        CodeGenState.notePublicCallbackTypeReference(baseType);
         parameters.push({ name: paramName, baseType, isConst, isArray });
       }
     }
@@ -3009,6 +3069,180 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
+   * ADR-029: the typedef name for a function-as-type. One encoder, so the
+   * declaration site and every reference cannot spell it differently.
+   */
+  private static callbackTypedefName(functionName: string): string {
+    return `${functionName}_fp`;
+  }
+
+  /**
+   * ADR-029 + ADR-006: what one parameter of a callback typedef MEANS -- its
+   * rendered type and its pointer semantics.
+   *
+   * Extracted because two callers build an `ICallbackTypeInfo`: the parse-tree
+   * path, for functions declared in this file, and the symbol path, for
+   * functions reached through an include (#1491). They differ only in how they
+   * OBTAIN a type name. What they must not differ on is what that name means,
+   * and two copies of this decision could only ever agree by coincidence.
+   *
+   * `renderType` is a thunk on purpose: the parse-tree renderer records
+   * required includes as a side effect, and the callback branch must not fire
+   * it -- it did not before this was extracted, and eager evaluation would add
+   * an include nobody asked for.
+   */
+  private callbackParamShape(
+    typeName: string,
+    isArray: boolean,
+    renderType: () => string,
+  ): {
+    type: string;
+    isPointer: boolean;
+    isStruct: boolean;
+    isString: boolean;
+  } {
+    // ADR-006: struct-ness drives reference semantics.
+    const isStruct = this.isStructType(typeName);
+
+    // ADR-029: a parameter whose type is itself a function-as-type.
+    const cbInfo = CodeGenState.callbackTypes.get(typeName);
+    if (cbInfo) {
+      // Function pointers are already pointers.
+      return {
+        type: cbInfo.typedefName,
+        isPointer: false,
+        isStruct,
+        isString: false,
+      };
+    }
+
+    // ADR-045: a `string<N>` parameter is `char*` in C. Decided HERE, not in
+    // either caller's renderer, because that is where the two disagreed: the
+    // parse-tree renderer answered `char` (the ELEMENT type) and the symbol
+    // renderer answered `string<8>` (C-Next surface syntax, not C at all, and
+    // rejected by cc while the transpiler exited 0). Both are now wrong in one
+    // place instead of differently wrong in two -- which is the property this
+    // method exists to hold, and the one its comment already claimed.
+    if (!isArray && TypeCheckUtils.isString(typeName)) {
+      return {
+        type: "char*",
+        isPointer: false,
+        isStruct: false,
+        isString: true,
+      };
+    }
+
+    // ADR-006: non-array struct parameters become pointers in C mode.
+    return {
+      type: renderType(),
+      isPointer: !isArray && isStruct,
+      isStruct,
+      isString: false,
+    };
+  }
+
+  /**
+   * ADR-029 + #1491: a function reached through an include is a type HERE too.
+   *
+   * `registerCallbackType` walks only this file's own declarations, so an
+   * included function-as-type was never registered and a variable declared
+   * with it emitted the FUNCTION's name where a type belongs --
+   * `sharedHelper viaInclude` rather than `sharedHelper_fp viaInclude` -- which
+   * does not compile. The analyzer half of the same bug reported the call as
+   * E0422; fixing that alone only moved the failure from cnext to cc.
+   *
+   * The signature is READ FROM THE SYMBOL, not re-derived from a parse tree
+   * this file does not have -- "after 1.3, nothing may compute a symbol's
+   * name." That is also what makes it safe: a symbol's `arrayDimensions` are
+   * already const-folded, which is the property the parse-tree path works to
+   * establish for MISRA Rule 18.8.
+   *
+   * Registration is unconditional; EMISSION stays gated by
+   * `headerOwnsCallbackTypedef`, which intersects with `callbackTypeReferences`.
+   * So a visible function nobody uses as a type still yields no typedef and
+   * cannot trip MISRA Rule 2.3 (unused type declarations).
+   *
+   * Local declarations register afterwards and overwrite, which is the right
+   * precedence: a name declared here wins over the same name reached through
+   * an include.
+   */
+  private registerIncludedCallbackTypes(): void {
+    const symbols = CodeGenState.symbols;
+    if (!symbols) {
+      return;
+    }
+
+    // The per-file VISIBLE set: what this file declares, plus what its includes
+    // contribute via mergeExternalSymbols. Keyed by transpiled C name.
+    for (const cName of symbols.functionReturnTypes.keys()) {
+      if (CodeGenState.callbackTypes.has(cName)) {
+        continue;
+      }
+
+      // Run-wide identity lookup -- the exact-name index, never the bare-name
+      // one, which returns empty for every scoped symbol (#1139).
+      const symbol = CodeGenState.symbolTable
+        .getOverloadsByCName(cName)
+        .find(
+          (candidate) =>
+            candidate.sourceLanguage === ESourceLanguage.CNext &&
+            SymbolGuards.isFunction(candidate as TSymbol),
+        ) as IFunctionSymbol | undefined;
+
+      if (symbol) {
+        CodeGenState.callbackTypes.set(
+          cName,
+          this.callbackInfoFromSymbol(cName, symbol),
+        );
+      }
+    }
+  }
+
+  /**
+   * Build an `ICallbackTypeInfo` from a resolved function symbol.
+   *
+   * The symbol carries the resolved return type and parameters, so nothing here
+   * re-resolves a name. Parameter meaning is delegated to `callbackParamShape`,
+   * the same decision the parse-tree path makes.
+   */
+  private callbackInfoFromSymbol(
+    cName: string,
+    symbol: IFunctionSymbol,
+  ): ICallbackTypeInfo {
+    const toCType = (typeName: string): string =>
+      CNEXT_TO_C_TYPE_MAP[typeName] ?? typeName;
+
+    return {
+      functionName: cName,
+      returnType: toCType(SymbolTypeResolver.getTypeName(symbol.returnType)),
+      parameters: symbol.parameters.map((param) => {
+        const typeName = SymbolTypeResolver.getTypeName(param.type);
+        const { type, isPointer, isStruct, isString } = this.callbackParamShape(
+          typeName,
+          param.isArray,
+          () => toCType(typeName),
+        );
+        return {
+          name: param.name,
+          type,
+          isConst: param.isConst || (param.isAutoConst ?? false),
+          isPointer,
+          isStruct,
+          isString,
+          isArray: param.isArray,
+          // Already folded to literals by the symbols layer, which is exactly
+          // what MISRA Rule 18.8 needs -- a dimension that is still an
+          // identifier makes the typedef a variably-modified type.
+          arrayDims: (param.arrayDimensions ?? [])
+            .map((dimension) => `[${dimension}]`)
+            .join(""),
+        };
+      }),
+      typedefName: CodeGenerator.callbackTypedefName(cName),
+    };
+  }
+
+  /**
    * ADR-029: Register a function as a callback type
    * The function name becomes both a callable function and a type for callback fields
    */
@@ -3023,6 +3257,7 @@ export default class CodeGenerator implements IOrchestrator {
       isConst: boolean;
       isPointer: boolean;
       isStruct: boolean;
+      isString: boolean;
       isArray: boolean;
       arrayDims: string;
     }> = [];
@@ -3036,24 +3271,25 @@ export default class CodeGenerator implements IOrchestrator {
         const arrayTypeCtx = param.type().arrayType();
         const isArray = dims.length > 0 || arrayTypeCtx !== null;
 
-        // ADR-029: Check if parameter type is itself a callback type
-        const isCallbackParam = CodeGenState.callbackTypes.has(typeName);
-        // ADR-006: Check if parameter type is a struct (for pointer/reference semantics)
-        const isStruct = this.isStructType(typeName);
+        const {
+          type: paramType,
+          isPointer,
+          isStruct,
+          isString,
+        } = this.callbackParamShape(typeName, isArray, () =>
+          this.generateType(param.type()),
+        );
 
-        let paramType: string;
-        let isPointer: boolean;
-
-        if (isCallbackParam) {
-          // Use the callback typedef name
-          const cbInfo = CodeGenState.callbackTypes.get(typeName)!;
-          paramType = cbInfo.typedefName;
-          isPointer = false; // Function pointers are already pointers
-        } else {
-          paramType = this.generateType(param.type());
-          // ADR-006: Non-array struct parameters become pointers in C mode
-          isPointer = !isArray && isStruct;
-        }
+        // The typedef must carry the SAME const the prototype carries, or the
+        // two are incompatible pointer types and every assignment of the
+        // function to a variable of its own type warns. The prototype's const
+        // on a string or struct parameter comes from auto-const (#268), so the
+        // typedef reads that same fact rather than explicit `const` alone.
+        const isEffectivelyConst =
+          isConst ||
+          ((isString || isStruct) &&
+            CodeGenState.getUnmodifiedParameters().get(name)?.has(paramName) ===
+              true);
 
         let arrayDims: string;
         if (dims.length > 0) {
@@ -3087,9 +3323,10 @@ export default class CodeGenerator implements IOrchestrator {
         parameters.push({
           name: paramName,
           type: paramType,
-          isConst,
+          isConst: isEffectivelyConst,
           isPointer,
           isStruct,
+          isString,
           isArray,
           arrayDims,
         });
@@ -3100,7 +3337,7 @@ export default class CodeGenerator implements IOrchestrator {
       functionName: name,
       returnType,
       parameters,
-      typedefName: `${name}_fp`,
+      typedefName: CodeGenerator.callbackTypedefName(name),
     });
   }
 

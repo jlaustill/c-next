@@ -29,12 +29,28 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 //
 // Two defects, and the second was hidden behind the first: the type was not
 // mapped, AND nothing recorded that a local names a callback type, so even the
-// corrected `onTick_fp` referenced a typedef nothing emitted. Both are exercised
-// here -- the header must contain the typedef and the body must use it.
+// corrected `onTick_fp` referenced a typedef nothing emitted. Both are still
+// exercised here: the typedef must exist and the body must use it.
+//
+// #1491 moved WHERE it exists. It used to go in the header, because "this file
+// names the type" was the whole test for header ownership. That put a type in
+// the public interface because one function body happened to use it, and it is
+// not what C does: a library header typedefs the callback types its own API
+// uses -- POSIX's signal-handler typedef, `curl_write_callback` -- while `stdlib.h` writes
+// `qsort`'s comparator inline, since no caller needs to name it. It was also
+// unsafe: two files that both named an INCLUDED function-as-type locally each
+// exported the same typedef, and anything including both headers saw it twice,
+// which C99 rejects. So a type named only by a local now lives in the `.c`.
+// The header stays empty of it here, deliberately -- nothing in this file's
+// public interface mentions either callback type.
 //
 // The scope case additionally depends on #1472: before that fix the analyzer
 // refused the call through `handler` with E0422.
 uint32_t total = 0U;
+
+
+typedef void (*onTick_fp)(uint32_t);
+typedef void (*Motor__onBeat_fp)(uint32_t);
 
 void onTick(uint32_t ms) {
     total = cnx_clamp_add_u32(total, ms);

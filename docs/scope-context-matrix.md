@@ -31,6 +31,21 @@ cell is declared by the ADR that owns it.
 - `bugs/issue-1334-scope-declaration-sites/conflict-across-files.test.cnx`
 - `scope/nested-scope-error.test.cnx`
 
+## ADR-029
+
+| Context            | same file | direct | transitive | from 1 away | thru chain |
+| ------------------ | --------- | ------ | ---------- | ----------- | ---------- |
+| global variable    | -         | -      | -          | n/a         | n/a        |
+| top-level function | -         | -      | -          | n/a         | n/a        |
+| scope member       | -         | -      | -          | n/a         | n/a        |
+| scope method       | -         | -      | -          | n/a         | n/a        |
+
+3 linked fixtures with no derivable context:
+
+- `bugs/issue-1491-cross-file-function-as-type/cross-file-callback.test.cnx`
+- `bugs/issue-1491-cross-file-function-as-type/cross-file-string-param.test.cnx`
+- `bugs/issue-1491-duplicate-typedef/two-consumers.test.cnx`
+
 ## ADR-044
 
 | Context            | same file | direct | transitive | from 1 away | thru chain |
@@ -58,11 +73,12 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 
-3 linked fixtures with no derivable context:
+4 linked fixtures with no derivable context:
 
 - `adr-057/local-shadows-scope.test.cnx`
 - `adr-057/scope-variable-does-not-capture-type.test.cnx`
 - `adr-057/shadowing-all-levels.test.cnx`
+- `bugs/issue-1472-global-qualifier-register-capture/global-vs-scoped-bitmap.test.cnx`
 
 ## ADR-070
 

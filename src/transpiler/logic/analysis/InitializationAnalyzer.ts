@@ -446,7 +446,7 @@ class InitializationAnalyzer {
    * Get struct fields for a given struct type.
    * Checks C-Next structs first, then falls back to CodeGenState for external structs.
    */
-  private getStructFields(structName: string): Set<string> | undefined {
+  private getStructFields(structName: string): ReadonlySet<string> | undefined {
     // Check C-Next structs from current file first
     const cnextFields = this.cnextStructFields.get(structName);
     if (cnextFields) {

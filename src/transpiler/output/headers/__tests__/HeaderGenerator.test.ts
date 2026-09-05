@@ -13,7 +13,7 @@ import IHeaderTypeInput from "../generators/IHeaderTypeInput";
 import TTypeUtils from "../../../../utils/TTypeUtils";
 import type IFunctionSymbol from "../../../types/symbols/IFunctionSymbol";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
-import TestSymbolUtils from "../../../logic/symbols/cnext/__tests__/testSymbolUtils";
+import TestSymbolUtils from "../../../../PARSE/3-Declare/cnext/__tests__/testSymbolUtils";
 import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
 
 describe("HeaderGenerator", () => {
