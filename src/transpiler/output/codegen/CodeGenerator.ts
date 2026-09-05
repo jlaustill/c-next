@@ -155,7 +155,7 @@ import type TRequirementKey from "../../types/TRequirementKey";
 import type IRecordedRequirement from "../../types/IRecordedRequirement";
 import ToolchainRequirementUtils from "../../../utils/ToolchainRequirementUtils";
 import ScopeUtils from "../../../utils/ScopeUtils";
-import TypeBinding from "../../logic/symbols/TypeBinding";
+import TypeBinding from "../../../PARSE/3-Declare/TypeBinding";
 import REJECTED_KEYWORDS from "../../constants/REJECTED_KEYWORDS";
 import type ITargetCapabilities from "../../types/ITargetCapabilities";
 import DEFAULT_TARGET from "../../constants/DEFAULT_TARGET";

@@ -10,13 +10,13 @@ import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import IVariableSymbol from "../../types/symbols/IVariableSymbol";
 import ICVariableSymbol from "../../types/symbols/c/ICVariableSymbol";
 import TTypeUtils from "../../../utils/TTypeUtils";
-import TestSymbolUtils from "../../logic/symbols/cnext/__tests__/testSymbolUtils";
+import TestSymbolUtils from "../../../PARSE/3-Declare/cnext/__tests__/testSymbolUtils";
 import SymbolRegistry from "../SymbolRegistry";
 import ScopeUtils from "../../../utils/ScopeUtils";
 import createMockSymbols from "../../__tests__/codeGenSymbolsHelpers";
 import UNRESOLVED_DIMENSION from "../../constants/UNRESOLVED_DIMENSION";
 import TestSourceSpan from "../../types/__testUtils__/testSourceSpan";
-import Program from "../../logic/symbols/Program";
+import Program from "../../../PARSE/4-Resolve/Program";
 
 /**
  * Create a minimal C-Next IVariableSymbol for testing.

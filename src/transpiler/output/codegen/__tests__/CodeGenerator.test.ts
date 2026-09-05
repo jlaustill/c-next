@@ -7,13 +7,13 @@ import CodeGenerator from "../CodeGenerator";
 import CNextSourceParser from "../../../logic/parser/CNextSourceParser";
 import * as Parser from "../../../logic/parser/grammar/CNextParser";
 import SymbolTable from "../../../logic/symbols/SymbolTable";
-import CNextResolver from "../../../logic/symbols/cnext/index";
-import TSymbolInfoAdapter from "../../../logic/symbols/cnext/adapters/TSymbolInfoAdapter";
+import CNextResolver from "../../../../PARSE/3-Declare/cnext/index";
+import TSymbolInfoAdapter from "../../../../PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
 import ICodeGenSymbols from "../../../types/ICodeGenSymbols";
 import TParameterInfo from "../../../types/TParameterInfo";
 import CodeGenState from "../../../state/CodeGenState";
 import SymbolRegistry from "../../../state/SymbolRegistry";
-import DeferredTypes from "../../../logic/symbols/DeferredTypes";
+import DeferredTypes from "../../../../PARSE/4-Resolve/DeferredTypes";
 import type TSymbol from "../../../types/symbols/TSymbol";
 
 /**

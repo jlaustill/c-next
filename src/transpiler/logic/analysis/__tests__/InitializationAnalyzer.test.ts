@@ -12,7 +12,7 @@ import SymbolTable from "../../symbols/SymbolTable";
 import CodeGenState from "../../../state/CodeGenState";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
-import Program from "../../symbols/Program";
+import Program from "../../../../PARSE/4-Resolve/Program";
 
 /**
  * Parse C-Next source code into an AST

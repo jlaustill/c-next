@@ -23,7 +23,7 @@
 
 import SymbolTable from "../logic/symbols/SymbolTable";
 import type IProgram from "../types/IProgram";
-import TYPE_FORMING_KINDS from "../logic/symbols/TYPE_FORMING_KINDS";
+import TYPE_FORMING_KINDS from "../../PARSE/3-Declare/TYPE_FORMING_KINDS";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
 import type TSymbolKindCNext from "../types/symbol-kinds/TSymbolKindCNext";
 import ReservedCnxName from "../../utils/ReservedCnxName";

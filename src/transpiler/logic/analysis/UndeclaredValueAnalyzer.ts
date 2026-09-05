@@ -38,7 +38,7 @@ import CodeGenState from "../../state/CodeGenState";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
 import EnclosingScope from "./helpers/EnclosingScope";
 import IUndeclaredValueError from "./types/IUndeclaredValueError";
-import NameExistence from "../symbols/NameExistence";
+import NameExistence from "../../../PARSE/3-Declare/NameExistence";
 import ParserUtils from "../../../utils/ParserUtils";
 import REJECTED_KEYWORDS from "../../constants/REJECTED_KEYWORDS";
 import ScopeFrameResolver from "./ScopeFrameResolver";

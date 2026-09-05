@@ -43,7 +43,7 @@ import CodeGenState from "../../state/CodeGenState";
 import EnclosingScope from "./helpers/EnclosingScope";
 import ICodeGenSymbols from "../../types/ICodeGenSymbols";
 import IUndeclaredTypeError from "./types/IUndeclaredTypeError";
-import NameExistence from "../symbols/NameExistence";
+import NameExistence from "../../../PARSE/3-Declare/NameExistence";
 import SymbolTable from "../symbols/SymbolTable";
 import ParserUtils from "../../../utils/ParserUtils";
 import ScopeUtils from "../../../utils/ScopeUtils";

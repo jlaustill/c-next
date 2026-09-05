@@ -20,7 +20,7 @@ import IFunctionContextCallbacks from "../types/IFunctionContextCallbacks.js";
 import TypedefParamParser from "./TypedefParamParser.js";
 import UNRESOLVED_DIMENSION from "../../../constants/UNRESOLVED_DIMENSION";
 import ScopeUtils from "../../../../utils/ScopeUtils";
-import TypeBinding from "../../../logic/symbols/TypeBinding";
+import TypeBinding from "../../../../PARSE/3-Declare/TypeBinding";
 
 /**
  * Result from resolving parameter type information.

@@ -9,7 +9,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mockResolve = vi.fn();
 
 // Mock CResolver before importing parseCHeader
-vi.mock("../../transpiler/logic/symbols/c", () => {
+vi.mock("../../PARSE/3-Declare/c", () => {
   return {
     default: {
       resolve: () => mockResolve(),
@@ -31,7 +31,7 @@ describe("parseCHeader mocked scenarios", () => {
   describe("mapSymbolKind default case", () => {
     it("maps Namespace kind to variable (default case)", () => {
       // Return a symbol with Namespace kind (not explicitly handled in switch)
-      // Use TCSymbol format which then gets converted by CTSymbolAdapter
+      // Use TCSymbol format, which parseCHeader then converts itself
       mockResolve.mockReturnValue({
         symbols: [
           {

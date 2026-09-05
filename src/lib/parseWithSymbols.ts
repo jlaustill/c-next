@@ -4,8 +4,8 @@
  */
 
 import CNextSourceParser from "../transpiler/logic/parser/CNextSourceParser";
-import CNextResolver from "../transpiler/logic/symbols/cnext/index";
-import DeferredTypes from "../transpiler/logic/symbols/DeferredTypes";
+import CNextResolver from "../PARSE/3-Declare/cnext/index";
+import DeferredTypes from "../PARSE/4-Resolve/DeferredTypes";
 import ScopeUtils from "../utils/ScopeUtils";
 import TypeResolver from "../utils/TypeResolver";
 import ISymbolInfo from "./types/ISymbolInfo";
