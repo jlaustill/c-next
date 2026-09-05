@@ -141,9 +141,17 @@ class UndeclaredValueAnalyzer {
     scopePath: ReturnType<EnclosingScope["current"]>,
     scopes: ScopeFrameResolver,
   ): boolean {
-    // A declared variable -- lexical frames first, then the symbol table for a
-    // declaration that arrived through a .cnx include (#1220).
-    if (scopes.typeOfName(name, frame) !== null) {
+    // A declared variable in an enclosing lexical frame of THIS file.
+    //
+    // #1398: deliberately the lexical half alone. The full `typeOfName` falls
+    // back to the run-wide symbol table, which answers "declared anywhere in
+    // this run" -- so a const declared in a sibling that this file never
+    // included resolved here and returned visible, and E0427 could not fire
+    // across a file boundary at all. The cross-file half of the question is
+    // answered by `NameExistence.isValueName` below, whose `knownVariables`
+    // term is include-filtered. The fallback itself stays for #1220's
+    // essential-type analyzers, which want exactly the run-wide answer.
+    if (scopes.typeOfNameLexical(name, frame) !== null) {
       return true;
     }
 
@@ -153,10 +161,14 @@ class UndeclaredValueAnalyzer {
     }
 
     // A function referenced as a value (ADR-029 function-as-type), a type used
-    // as the base of `Type.MEMBER`, and a register, which is a value at an
-    // address (ADR-004) and so answers here but NOT in the type position
-    // (#1336). ADR-111: when a register becomes a type, `isValueName` collapses
-    // into `isTypeName` and both call sites below revert to it.
+    // as the base of `Type.MEMBER`, a register, which is a value at an address
+    // (ADR-004) and so answers here but NOT in the type position (#1336), and
+    // -- since #1398 -- a file-scope variable or const from this file or a
+    // `.cnx` it includes. That last term was briefly written here instead of in
+    // the predicate, which left the module that owns "is this a visible value"
+    // with the incomplete answer; see `isValueName`'s comment.
+    // ADR-111: when a register becomes a type, `isValueName` loses the register
+    // term. It does not collapse into `isTypeName` -- the variable term stays.
     //
     // #1430: `CodeGenState.knownFunctions` is deliberately NOT consulted, for
     // the reason `NameExistence`'s class comment already gives for

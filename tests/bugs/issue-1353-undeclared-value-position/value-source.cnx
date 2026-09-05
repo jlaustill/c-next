@@ -1,0 +1,3 @@
+// Helper for issue-1353. Declares the const that the sibling consumer
+// references without including this file.
+const u32 SHARED_LIMIT <- 42;

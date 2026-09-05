@@ -123,6 +123,33 @@ describe("the type / value position split (#1336)", () => {
     );
   });
 
+  /**
+   * #1398, and the same shape as the register pair above: the two positions
+   * must disagree about a variable, in the opposite direction to a register.
+   *
+   * A file-scope `const` is a value and not a type, so it answers in the value
+   * position and must NOT answer in the type position -- putting the term in
+   * `_isKnownCNextType` instead would let `SHARED_LIMIT x;` past E0426 with no
+   * typedef behind it, which is #1336's failure with a different set.
+   */
+  it("DOES accept a file-scope variable in a value position", () => {
+    const symbols = createMockSymbols({
+      knownVariables: new Set(["SHARED_LIMIT"]),
+    });
+    expect(
+      NameExistence.isValueName("SHARED_LIMIT", symbols, EMPTY_TABLE),
+    ).toBe(true);
+  });
+
+  it("does NOT accept a file-scope variable in a type position", () => {
+    const symbols = createMockSymbols({
+      knownVariables: new Set(["SHARED_LIMIT"]),
+    });
+    expect(NameExistence.isTypeName("SHARED_LIMIT", symbols, EMPTY_TABLE)).toBe(
+      false,
+    );
+  });
+
   it("rejects a name that is neither, in either position", () => {
     expect(
       NameExistence.isTypeName("Nowhere", createMockSymbols(), EMPTY_TABLE),

@@ -45,6 +45,7 @@ function setupSymbols(
     knownRegisters: new Set(),
     knownEnums: new Set(),
     knownBitmaps: new Set(),
+    knownVariables: new Set(),
     scopeMembers: new Map(),
     scopeMemberVisibility: new Map(),
     structFields: new Map(),

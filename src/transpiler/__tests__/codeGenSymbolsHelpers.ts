@@ -30,6 +30,7 @@ function createMockSymbols(
     knownRegisters: new Set(),
     knownEnums: new Set(),
     knownBitmaps: new Set(),
+    knownVariables: new Set(),
 
     // Scope information
     scopeMembers: new Map(),

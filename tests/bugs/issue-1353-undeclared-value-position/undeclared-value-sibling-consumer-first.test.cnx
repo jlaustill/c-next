@@ -1,0 +1,14 @@
+// test-error
+// #1502 review: the other include order. The twin of
+// undeclared-value-sibling-source-first.test.cnx — same two sources,
+// opposite order.
+//
+// Neither half detects an order leak alone; only the pair does. That is the
+// lesson of #1430, where UndeclaredValueAnalyzer was order-dependent and
+// nothing in the corpus would have noticed it becoming so.
+#include <value-consumer.cnx>
+#include <value-source.cnx>
+
+u32 main() {
+    return 0;
+}

@@ -102,6 +102,7 @@ describe("MemberChainAnalyzer", () => {
         knownScopes: new Set(),
         knownEnums: new Set(),
         knownBitmaps: new Set(),
+        knownVariables: new Set(),
         knownRegisters: new Set(),
         structFields: new Map(),
         structFieldArrays: new Map(),
