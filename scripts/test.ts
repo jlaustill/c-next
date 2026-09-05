@@ -274,6 +274,14 @@ async function runTestsParallel(
     let noSnapshot = 0;
 
     const activeWorkers = new Map<ChildProcess, string>();
+    // Workers that have processed their `init` and answered `ready`. A forked
+    // worker is in `workers` before it has been initialized, and #1488's
+    // broadcast offers work to EVERY worker in that array -- so without this an
+    // uninitialized worker takes a fixture and runs it with `tools` undefined.
+    // What the reader then sees is `Worker error: Cannot read properties of
+    // undefined (reading 'gcc')` reported as a FAILURE of whichever fixture it
+    // happened to claim, on CI, intermittently, blaming code that is fine.
+    const readyWorkers = new Set<ChildProcess>();
     let completedCount = 0;
 
     // Issue #1488: the harness re-transpiles every helper `.cnx` IN PLACE, so
@@ -330,6 +338,7 @@ async function runTestsParallel(
           worker.send({ type: "init", rootDir, tools, options });
         } else if (message.type === "ready") {
           // Worker is initialized, assign work
+          readyWorkers.add(worker);
           assignWork(worker);
         } else if (
           message.type === "result" &&
@@ -432,6 +441,7 @@ async function runTestsParallel(
     // a fixture, lock its helpers, and `send()` into a closed channel, turning
     // one crash into a spurious failure per remaining fixture.
     function removeWorker(worker: ChildProcess): void {
+      readyWorkers.delete(worker);
       const at = workers.indexOf(worker);
       if (at !== -1) {
         workers.splice(at, 1);
@@ -439,7 +449,14 @@ async function runTestsParallel(
     }
 
     function assignWork(worker: ChildProcess): void {
-      if (activeWorkers.has(worker) || !worker.connected) {
+      // `readyWorkers` first: connected says the channel is open, which a worker
+      // is from the moment it is forked -- long before it has been told which
+      // tools exist. Its own `ready` is the only proof it can run a fixture.
+      if (
+        !readyWorkers.has(worker) ||
+        activeWorkers.has(worker) ||
+        !worker.connected
+      ) {
         return;
       }
       // Take the first pending fixture none of whose helpers another worker
