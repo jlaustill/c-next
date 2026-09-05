@@ -17,7 +17,10 @@ describe("DiagnosticManifest.parseCodes", () => {
   it("extracts an E-code from a coded diagnostic", () => {
     expect(
       DiagnosticManifest.parseCodes(
-        "6:4 error[E0902]: Dynamic allocation function 'calloc' is forbidden\n",
+        // Any coded diagnostic will do; this one is verbatim from
+        // tests/static-allocation/calloc-error.expected.error so it stays a real
+        // sample rather than drifting into a shape the corpus never produces.
+        "6:4 error[E0902]: Importing dynamic memory function 'calloc' from C/C++ is forbidden\n",
       ),
     ).toEqual(["E0902"]);
   });

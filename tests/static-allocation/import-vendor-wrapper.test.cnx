@@ -1,0 +1,17 @@
+// test-error
+// ADR-003 / #1306 review: vendor allocators wrap the same heap.
+//
+// `heap_caps_malloc` is ESP-IDF's allocator. It used to compile as a bare
+// statement while being rejected when its result was assigned -- the same call,
+// two answers, because the check was written twice with different matching.
+// A name matches when it IS a listed function or ends with `_` and one.
+//
+// The lookalike controls (`myfree`, `saferealloc`) deliberately live in
+// allocator-lookalike-names.test.cnx, NOT here: this fixture's own diagnostic
+// halts the analyzer step loop, so a control beside it could never be evaluated
+// and could never fail. Mutation-checking caught that -- restoring the old
+// substring matching left this fixture green.
+
+void useVendorAllocator() {
+    heap_caps_malloc(64);
+}

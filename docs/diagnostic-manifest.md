@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-308 fixture(s) assert a diagnostic; 187 carry a code.
+312 fixture(s) assert a diagnostic; 191 carry a code.
 
 | Fixture                                                                                          | Codes        |
 | ------------------------------------------------------------------------------------------------ | ------------ |
@@ -296,8 +296,12 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/slice-assignment/slice-runtime-offsets.test.cnx                                            | (uncoded)    |
 | tests/slice-assignment/slice-silent-overflow.test.cnx                                            | (uncoded)    |
 | tests/slice-assignment/slice-zero-length.test.cnx                                                | (uncoded)    |
+| tests/static-allocation/aligned-alloc-error.test.cnx                                             | E0902        |
 | tests/static-allocation/calloc-error.test.cnx                                                    | E0902        |
 | tests/static-allocation/free-error.test.cnx                                                      | E0902        |
+| tests/static-allocation/import-in-declaration.test.cnx                                           | E0902        |
+| tests/static-allocation/import-vendor-wrapper.test.cnx                                           | E0902        |
+| tests/static-allocation/import-without-include.test.cnx                                          | E0902        |
 | tests/static-allocation/malloc-error.test.cnx                                                    | E0902        |
 | tests/static-allocation/realloc-error.test.cnx                                                   | E0902        |
 | tests/string-array-init/string-array-init-error-mismatch.test.cnx                                | (uncoded)    |

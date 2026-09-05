@@ -122,7 +122,9 @@ describe("NullCheckAnalyzer", () => {
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0902");
       expect(errors[0].functionName).toBe("malloc");
-      expect(errors[0].message).toContain("forbidden");
+      expect(errors[0].message).toBe(
+        "Importing dynamic memory function 'malloc' from C/C++ is forbidden",
+      );
     });
 
     it("should detect calloc usage", () => {
@@ -534,21 +536,6 @@ describe("NullCheckAnalyzer", () => {
         expect(NullCheckAnalyzer.isNullableFunction("strlen")).toBe(false);
         expect(NullCheckAnalyzer.isNullableFunction("printf")).toBe(false);
         expect(NullCheckAnalyzer.isNullableFunction("memcpy")).toBe(false);
-      });
-    });
-
-    describe("isForbiddenFunction", () => {
-      it("should return true for forbidden allocation functions", () => {
-        expect(NullCheckAnalyzer.isForbiddenFunction("malloc")).toBe(true);
-        expect(NullCheckAnalyzer.isForbiddenFunction("calloc")).toBe(true);
-        expect(NullCheckAnalyzer.isForbiddenFunction("realloc")).toBe(true);
-        expect(NullCheckAnalyzer.isForbiddenFunction("free")).toBe(true);
-      });
-
-      it("should return false for allowed functions", () => {
-        expect(NullCheckAnalyzer.isForbiddenFunction("strchr")).toBe(false);
-        expect(NullCheckAnalyzer.isForbiddenFunction("fopen")).toBe(false);
-        expect(NullCheckAnalyzer.isForbiddenFunction("strlen")).toBe(false);
       });
     });
 

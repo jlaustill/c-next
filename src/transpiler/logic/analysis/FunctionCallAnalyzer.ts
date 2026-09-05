@@ -17,6 +17,7 @@ import CodeGenState from "../../state/CodeGenState";
 import ExpressionUnwrapper from "../../../utils/ExpressionUnwrapper";
 import QualifiedCName from "../../../utils/QualifiedCName";
 import AdrProvenance from "../../state/AdrProvenance";
+import DynamicAllocation from "./DynamicAllocation";
 import StdlibFunctions from "./StdlibFunctions";
 import CalleeNameResolver from "./helpers/CalleeNameResolver";
 import EnclosingScope from "./helpers/EnclosingScope";
@@ -839,6 +840,24 @@ class FunctionCallAnalyzer {
         AdrProvenance.record("057", line);
         return; // OK - implicit resolution will handle it
       }
+    }
+
+    // ADR-003, before the stdlib hint below. Without this, an unresolved
+    // `malloc` was answered with "available from stdlib.h -- try global.malloc()"
+    // -- the transpiler directing the author to write the include it then rejects
+    // them for (#1306 review). Same code and same sentence as the with-include
+    // case, which NULL-check analysis reports; the author's mistake does not
+    // change because a header happened to be present.
+    if (DynamicAllocation.matches(name)) {
+      this.errors.push({
+        code: DynamicAllocation.CODE,
+        functionName: name,
+        line,
+        column,
+        message: DynamicAllocation.message(name),
+        helpText: DynamicAllocation.helpText(name),
+      });
+      return;
     }
 
     // Not defined - report error with optional hint

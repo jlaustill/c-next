@@ -1042,7 +1042,9 @@ void modify(u32 x) { x <- 5; }      // modifies original
 ### 4. Using malloc/dynamic allocation
 
 ```cnx
-// WRONG — forbidden (ADR-003)
+// WRONG — E0902. C-Next has no heap, so this cannot be imported at all.
+// The rule matches a listed allocator, or a name ending `_` plus one, which is
+// why the vendor wrapper is caught and `myfree` is not.
 void c_buf <- heap_caps_malloc(size, MALLOC_CAP_SPIRAM);
 
 // RIGHT — static allocation

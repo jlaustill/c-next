@@ -17,6 +17,7 @@ import { CNextListener } from "../parser/grammar/CNextListener";
 import * as Parser from "../parser/grammar/CNextParser";
 import INullCheckError from "./types/INullCheckError";
 import ParserUtils from "../../../utils/ParserUtils";
+import DynamicAllocation from "./DynamicAllocation";
 
 /**
  * Metadata for C library functions that can return NULL
@@ -140,16 +141,6 @@ const NULLABLE_C_FUNCTIONS: Map<string, ICLibraryFunction> = new Map([
       docsUrl: "https://en.cppreference.com/w/c/program/getenv",
     },
   ],
-]);
-
-/**
- * Functions that remain forbidden (dynamic allocation - ADR-003)
- */
-const FORBIDDEN_FUNCTIONS: Set<string> = new Set([
-  "malloc",
-  "calloc",
-  "realloc",
-  "free",
 ]);
 
 // ============================================================================
@@ -592,8 +583,11 @@ class NullCheckListener extends CNextListener {
 
     const { line, column } = ParserUtils.getPosition(ctx);
 
-    // Check forbidden functions (always an error)
-    if (FORBIDDEN_FUNCTIONS.has(funcName)) {
+    // ADR-003. The ONLY place this is decided: `enterPostfixExpression` sees
+    // every call, including one in a declaration initializer, so the declaration
+    // listener does not need its own copy -- and when it had one, a declaration
+    // reported the same call twice (#1306 review).
+    if (DynamicAllocation.matches(funcName)) {
       this.analyzer.reportForbiddenFunction(funcName, line, column);
       return;
     }
@@ -729,12 +723,6 @@ class NullCheckListener extends CNextListener {
       return;
     }
 
-    // Check forbidden functions (malloc, etc.) - always error
-    if (funcName && FORBIDDEN_FUNCTIONS.has(funcName)) {
-      this.analyzer.reportForbiddenFunction(funcName, line, column);
-      return;
-    }
-
     // Check for invalid c_ prefix on non-nullable types (E0906)
     if (NullCheckAnalyzer.hasNullablePrefix(varName)) {
       // If NOT assigning from nullable function AND type is NOT nullable, c_ prefix is invalid
@@ -792,13 +780,6 @@ class NullCheckListener extends CNextListener {
 
     // Check nullable C functions
     for (const funcName of NULLABLE_C_FUNCTIONS.keys()) {
-      if (text.includes(`${funcName}(`)) {
-        return funcName;
-      }
-    }
-
-    // Check forbidden functions
-    for (const funcName of FORBIDDEN_FUNCTIONS) {
       if (text.includes(`${funcName}(`)) {
         return funcName;
       }
@@ -875,7 +856,11 @@ class NullCheckAnalyzer {
   }
 
   /**
-   * Report error: forbidden function (dynamic allocation - ADR-003)
+   * Report error: a dynamic memory function imported from C/C++ (ADR-003).
+   *
+   * The message names the IMPORT as what is forbidden. Saying "'calloc' is
+   * forbidden" read as though C-Next has a `calloc` and disallows it; it has no
+   * such function, and the call is only reachable because a header was included.
    */
   public reportForbiddenFunction(
     funcName: string,
@@ -883,12 +868,12 @@ class NullCheckAnalyzer {
     column: number,
   ): void {
     this.errors.push({
-      code: "E0902",
+      code: DynamicAllocation.CODE,
       functionName: funcName,
       line,
       column,
-      message: `Dynamic allocation function '${funcName}' is forbidden`,
-      helpText: "Dynamic allocation is forbidden by ADR-003",
+      message: DynamicAllocation.message(funcName),
+      helpText: DynamicAllocation.helpText(funcName),
     });
   }
 
@@ -1040,13 +1025,6 @@ class NullCheckAnalyzer {
    */
   public static isNullableFunction(funcName: string): boolean {
     return NULLABLE_C_FUNCTIONS.has(funcName);
-  }
-
-  /**
-   * Check if a function is forbidden (dynamic allocation - ADR-003)
-   */
-  public static isForbiddenFunction(funcName: string): boolean {
-    return FORBIDDEN_FUNCTIONS.has(funcName);
   }
 
   /**

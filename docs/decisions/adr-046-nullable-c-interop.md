@@ -90,7 +90,10 @@ if (c_customer != NULL) {
 ### Retired Error Codes
 
 - E0901 → Replaced by E0908 (more general)
-- E0902 → Removed (functions now allowed)
+- E0902 → Retained, and re-scoped: the stream and lookup functions this ADR
+  allows no longer trigger it, but importing a dynamic memory function still
+  does (see _Functions Still Forbidden_ below). It reads "importing X from
+  C/C++ is forbidden" rather than naming X as a C-Next function
 - E0904 → Removed (storage allowed with `c_` prefix)
 - E0903 → Retained (NULL invalid for C-Next types)
 
@@ -105,9 +108,16 @@ Previously forbidden by ADR-047, now allowed:
 
 ## Functions Still Forbidden
 
-Per ADR-003 (static allocation only):
+Per ADR-003 (static allocation only), and reported as E0902:
 
-- `malloc`, `calloc`, `realloc`, `free`
+- `malloc`, `calloc`, `realloc`, `free`, `aligned_alloc`
+- `reallocarray`, `posix_memalign`, `memalign`, `valloc`, `pvalloc`
+- `strdup`, `strndup`, `asprintf`, `vasprintf` — the caller owns the result and
+  must release it, which is the same ownership problem under another name
+
+A name is also forbidden when it ends with `_` and one of these, which catches
+vendor wrappers such as `heap_caps_malloc`. The separator is what keeps ordinary
+names like `myfree` and `saferealloc` legal.
 
 ## Compiler Enforcement
 

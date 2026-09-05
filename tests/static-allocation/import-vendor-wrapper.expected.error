@@ -1,0 +1,2 @@
+16:4 error[E0902]: Importing dynamic memory function 'heap_caps_malloc' from C/C++ is forbidden
+       help: C-Next has no dynamic memory allocation (ADR-003). Keep 'heap_caps_malloc' in your C or C++ code; a .cnx file cannot call it.

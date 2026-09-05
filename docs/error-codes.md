@@ -243,7 +243,7 @@ base: bare, `this.` and `global.`.
 | Code  | Message                                                | Help                                                      | Source                                |
 | ----- | ------------------------------------------------------ | --------------------------------------------------------- | ------------------------------------- |
 | E0901 | C library function can return NULL — must check result | Use: `if (func(...) != NULL) { ... }`                     | `logic/analysis/NullCheckAnalyzer.ts` |
-| E0902 | Dynamic allocation function forbidden                  | Dynamic allocation is forbidden (ADR-003)                 | `logic/analysis/NullCheckAnalyzer.ts` |
+| E0902 | Importing a dynamic memory function from C/C++         | Keep it in your C or C++ code (ADR-003)                   | `logic/analysis/DynamicAllocation.ts` |
 | E0903 | NULL can only be used in comparison context            | Use: `if (func(...) != NULL)` or `== NULL`                | `logic/analysis/NullCheckAnalyzer.ts` |
 | E0904 | Cannot store C function pointer return in variable     | Use direct comparison: `if (func(...) != NULL)`           | `logic/analysis/NullCheckAnalyzer.ts` |
 | E0905 | Missing `c_` prefix for nullable C type                | Use: `TypeName c_varName <- func(...)`                    | `logic/analysis/NullCheckAnalyzer.ts` |

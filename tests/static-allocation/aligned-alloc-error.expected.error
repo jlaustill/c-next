@@ -1,0 +1,2 @@
+9:4 error[E0902]: Importing dynamic memory function 'aligned_alloc' from C/C++ is forbidden
+       help: C-Next has no dynamic memory allocation (ADR-003). Keep 'aligned_alloc' in your C or C++ code; a .cnx file cannot call it.

@@ -3,7 +3,7 @@
  *
  * Error codes:
  * - E0901: C library function can return NULL - must check result
- * - E0902: Dynamic allocation function forbidden (ADR-003)
+ * - E0902: Importing a dynamic memory function from C/C++ (ADR-003)
  * - E0903: NULL can only be used in comparison context
  * - E0904: Cannot store C function pointer return in variable
  * - E0905: Missing c_ prefix for nullable C type

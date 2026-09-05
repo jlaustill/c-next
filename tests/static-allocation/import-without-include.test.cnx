@@ -1,0 +1,12 @@
+// test-error
+// ADR-003 / #1306 review: the same answer with or without the header.
+//
+// With no include this used to report
+//   E0422 ... hint: 'malloc' is available from stdlib.h -- try global.malloc()
+// which directs the author to write the include the transpiler then rejects them
+// for. The author's mistake does not change because a header is absent, so the
+// code and the sentence do not change either.
+
+void allocateMemory() {
+    malloc(100);
+}
