@@ -46,7 +46,7 @@ import IGhPaginationViolation from "../types/IGhPaginationViolation";
  * KNOWN LIMIT: nested connection caps are out of reach in principle, not just in
  * practice. `--paginate` cannot advance an inner connection, so there is no flag
  * whose absence would prove anything, and requiring a token like `totalCount`
- * would demand a spelling without demanding the behaviour -- this defect one
+ * would demand a spelling without demanding the behavior -- this defect one
  * level up. They need a reader and measured headroom instead. Measured
  * 2026-09-05, and the reason the first of these was raised in the same commit:
  *
