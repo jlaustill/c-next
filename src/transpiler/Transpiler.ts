@@ -181,25 +181,6 @@ class Transpiler {
   private readonly declaredFiles = new Map<string, IDeclaredFile>();
 
   /**
-   * What each file DECLARES, per ADR-057 -- `IFileSymbols.declaredScopeTypes`,
-   * retained so an includer can be seeded from its includes' own artifacts.
-   *
-   * #1472: the seed used to be re-derived by merging the known-enum,
-   * known-struct and known-bitmap sets of `ICodeGenSymbols` -- the CODEGEN view
-   * of the same fact, and a wider set than ADR-057 asks about, since it also
-   * holds top-level types that no qualified probe can match. Two layers each
-   * deriving "which scope types exist" is the condition CLAUDE.md describes as
-   * agreeing by coincidence; Declare authors it once, and this map is where the
-   * answer is kept between files.
-   *
-   * Every file, not only those producing output: a symbol-only file is exactly
-   * the one an includer needs the answer from.
-   */
-  private readonly declaredScopeTypesByFile = new Map<
-    string,
-    ReadonlySet<string>
-  >();
-  /**
    * Issue #593: Centralized analyzer for cross-file const inference in C++ mode.
    * Accumulates parameter modifications and param lists across all processed files.
    */
@@ -378,7 +359,6 @@ class Transpiler {
       // reddened nothing. Two sites for one invariant is the duplication CLAUDE.md
       // calls the worst anti-pattern, and the unreachable half is the #1143 shape.
       this.declaredFiles.clear();
-      this.declaredScopeTypesByFile.clear();
     }
   }
 
@@ -2509,11 +2489,15 @@ class Transpiler {
     );
 
     // #1472: the seed is the union of what each INCLUDED FILE DECLARES, read
-    // from Declare's own artifact. Files are visited in dependency order, so
-    // every include's entry is already present.
+    // from Declare's own artifact. Files are visited in dependency order where
+    // one exists, so an include's entry is normally present. Under an include
+    // cycle the toposort falls back to insertion order (#1167) and it may not
+    // be -- the guard below skips it, exactly as the old `symbolInfoByFile`
+    // lookup did. Behavior on that shape is unchanged by this change, which is
+    // why the guard is preserved rather than asserted away.
     const visibleScopeTypes = new Set<string>();
     for (const includedPath of included.paths) {
-      const declaredThere = this.declaredScopeTypesByFile.get(includedPath);
+      const declaredThere = this.state.getFileDeclaredScopeTypes(includedPath);
       if (declaredThere) {
         for (const scopeType of declaredThere) {
           visibleScopeTypes.add(scopeType);
@@ -2522,7 +2506,10 @@ class Transpiler {
     }
 
     const declared = CNextResolver.resolve(tree, sourcePath, visibleScopeTypes);
-    this.declaredScopeTypesByFile.set(sourcePath, declared.declaredScopeTypes);
+    this.state.setFileDeclaredScopeTypes(
+      sourcePath,
+      declared.declaredScopeTypes,
+    );
 
     return {
       symbols: declared.symbols,

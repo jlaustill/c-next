@@ -493,11 +493,23 @@ describe("CNextResolver Integration", () => {
     });
   });
   describe("IFileSymbols: the per-file artifact (#1472)", () => {
-    it("declaredScopeTypes holds what THIS file declares", () => {
+    it("declaredScopeTypes holds what THIS file declares, and only that", () => {
+      // `Top` and `GPIO` are the artifact's own negative controls. Its contract
+      // is types declared INSIDE A SCOPE, registers excluded -- a register
+      // declares a variable at an address, not a type. Both exclusions lived
+      // only in the doc comment: widening pass 0b to add top-level names makes
+      // `declaredScopeTypes` come back as ["Local__S", "Top"] with every other
+      // test here still green, because `qualifyScopeType` only ever probes
+      // `Scope__T` and a leaked bare name is inert for resolution. Inert is not
+      // absent -- the artifact would carry names its own contract forbids.
       const code = `
+        struct Top { u8 a; }
         scope Local {
           public struct S { u8 a; }
           public enum E { x, y }
+          public register GPIO @ 0x40000000 {
+            DATA: u32 rw @ 0x00,
+          }
         }
       `;
       const declared = CNextResolver.resolve(parse(code), "test.cnx");
@@ -530,9 +542,9 @@ describe("CNextResolver Integration", () => {
       // the seed entirely would still satisfy the negative control above.
       const code = `
         scope Spanned {
-          public Point origin() { ... }
+          public Point origin() { return this.stored; }
         }
-      `.replace("...", "return this.stored;");
+      `;
       const seed = new Set(["Spanned__Point"]);
 
       const declared = CNextResolver.resolve(parse(code), "test.cnx", seed);

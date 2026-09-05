@@ -248,14 +248,22 @@ describe("TransitiveEnumCollector", () => {
       // Empty map - no symbol info registered
       const symbolInfoByFile = new Map<string, ICodeGenSymbols>();
 
-      const result = TransitiveEnumCollector.collect(
+      const included = TransitiveEnumCollector.collect(
         rootFile,
         symbolInfoByFile,
         [],
-      ).sources;
+      );
 
       // Included file exists but has no symbol info
-      expect(result).toEqual([]);
+      expect(included.sources).toEqual([]);
+
+      // #1472: the one case where `paths` and `sources` must DIFFER, and so the
+      // only place the documented contract can be guarded. `paths` is the join
+      // key the ADR-057 seed reads, so a file visited without symbol info still
+      // has to be keyed -- moving `paths.push` inside the `sources` guard leaves
+      // every other test in this file green and breaks the seed.
+      // The walk covers the INCLUDES, not the root that started it.
+      expect(included.paths).toEqual([includedFile]);
     });
 
     it("should use include directories to resolve includes", () => {
@@ -407,16 +415,23 @@ describe("TransitiveEnumCollector", () => {
         [file2, info2],
       ]);
 
-      const result = TransitiveEnumCollector.collectForStandalone(
+      const included = TransitiveEnumCollector.collectForStandalone(
         [{ path: file1 }, { path: file2 }],
         symbolInfoByFile,
         [],
-      ).sources;
+      );
+      const result = included.sources;
 
       expect(result).toHaveLength(2);
       const allEnums = result.flatMap((info) => Array.from(info.knownEnums));
       expect(allEnums).toContain("Enum1");
       expect(allEnums).toContain("Enum2");
+
+      // #1472: the other half of the contract -- `paths` comes back in VISIT
+      // order. The seed unions over it, so order is not load-bearing today; it
+      // is pinned because a caller joining a per-file map against the closure
+      // has no other way to know the correspondence is positional.
+      expect(included.paths).toEqual([file1, file2]);
     });
 
     it("should return empty when include has no symbol info in map", () => {
