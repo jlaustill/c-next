@@ -4,13 +4,33 @@ import ThrowCitations from "../diagnostics/ThrowCitations";
 
 const FILE = "src/transpiler/output/codegen/Sample.ts";
 
-/** Two throws, at lines 2 and 5. */
+/**
+ * Two throws, at lines 2 and 5. The second spans three lines -- the shape 155
+ * of the 181 real sites take (#1374) -- so every `check` test below exercises
+ * a statement whose text is not on its cited line.
+ */
 const SAMPLE = [
   "function a() {",
-  '  throw new Error("first");',
+  '  throw new Error("first failure");',
   "}",
   "function b() {",
-  '  throw new TypeError("second");',
+  "  throw new TypeError(",
+  "    `second failure at ${where}`,",
+  "  );",
+  "}",
+].join("\n");
+
+/**
+ * Two DIFFERENT throws that share a prefix, at lines 2 and 5 -- the shape the
+ * #1374 review found three times in the shipped document: an anchor that
+ * stops before the discriminator matches both, and the rows can trade.
+ */
+const COUSINS = [
+  "function a() {",
+  '  throw new Error("shared prefix alpha");',
+  "}",
+  "function b() {",
+  '  throw new Error("shared prefix beta");',
   "}",
 ].join("\n");
 
@@ -18,15 +38,34 @@ const sources = (source = SAMPLE): Map<string, string> =>
   new Map([[FILE, source]]);
 
 describe("ThrowCitations.parse", () => {
-  it("reads a citation from the first cell of a table row", () => {
-    expect(ThrowCitations.parse("| `Sample.ts:12` | why |")).toEqual([
-      { path: "Sample.ts", line: 12 },
-    ]);
+  it("reads a citation and its anchor from the first two cells of a row", () => {
+    expect(
+      ThrowCitations.parse("| `Sample.ts:12` | `first failure` | why |"),
+    ).toEqual([{ path: "Sample.ts", line: 12, anchor: "first failure" }]);
   });
 
   it("accepts the abbreviated `…/` path form the document uses", () => {
-    expect(ThrowCitations.parse("| `…/Deeply/Nested.ts:7` | why |")).toEqual([
-      { path: "…/Deeply/Nested.ts", line: 7 },
+    expect(
+      ThrowCitations.parse(
+        "| `…/Deeply/Nested.ts:7` | `first failure` | why |",
+      ),
+    ).toEqual([
+      { path: "…/Deeply/Nested.ts", line: 7, anchor: "first failure" },
+    ]);
+  });
+
+  // The pre-#1374 row shape put prose second, and prose may open with a code
+  // span -- `this.Type` outside a scope -- which must not be mistaken for an
+  // anchor. Only a cell that IS a code span is a claim this gate defends.
+  it.each([
+    [
+      "prose opening with a code span",
+      "| `Sample.ts:12` | `this.Type` outside a scope |",
+    ],
+    ["plain prose", "| `Sample.ts:12` | why |"],
+  ])("reads a null anchor when the second cell is %s", (_, row) => {
+    expect(ThrowCitations.parse(row)).toEqual([
+      { path: "Sample.ts", line: 12, anchor: null },
     ]);
   });
 
@@ -45,6 +84,47 @@ describe("ThrowCitations.throwLines", () => {
 
   it("returns nothing for a file with no throws", () => {
     expect(ThrowCitations.throwLines("const x = 1;")).toEqual([]);
+  });
+});
+
+describe("ThrowCitations.throwArgument", () => {
+  it("returns what a single-line throw says, without its `throw new Ctor(` opener", () => {
+    // The opener is scaffolding every site shares; an anchor drawn from it
+    // (`Error(`) would corroborate every row.
+    expect(ThrowCitations.throwArgument(SAMPLE, 2)).toBe('"first failure");');
+  });
+
+  it("joins a multi-line statement to its terminating `;` with whitespace collapsed", () => {
+    expect(ThrowCitations.throwArgument(SAMPLE, 5)).toBe(
+      "`second failure at ${where}`, );",
+    );
+  });
+
+  it("skips a `//` comment line inside the statement: not anchor material, not a terminator", () => {
+    // PostfixExpressionGenerator.ts:629 carries a three-line comment between
+    // the opener and the message. A comment is not what the throw says, and
+    // one ending in `;` must not end the scan before the message.
+    const commented = [
+      "throw new Error(",
+      "  // see the guard at foo;",
+      '  "real message",',
+      ");",
+    ].join("\n");
+    expect(ThrowCitations.throwArgument(commented, 1)).toBe(
+      '"real message", );',
+    );
+  });
+
+  it("strips a generic constructor's opener", () => {
+    // `throwLines` counts any `throw new` line; the strip must not accept a
+    // narrower shape, or the opener survives into the text it returns.
+    expect(
+      ThrowCitations.throwArgument('throw new SomeError<T>("boom");', 1),
+    ).toBe('"boom");');
+  });
+
+  it("returns null when the statement opens no argument", () => {
+    expect(ThrowCitations.throwArgument("throw new Error;", 1)).toBeNull();
   });
 });
 
@@ -88,24 +168,173 @@ describe("ThrowCitations.check", () => {
       "## Bucket 1 — user-facing (" + rows.length + ")",
       ...rows,
     ].join("\n");
-  const ROW2 = "| `Sample.ts:2` | why |";
-  const ROW5 = "| `Sample.ts:5` | why |";
+  const ROW2 = "| `Sample.ts:2` | `first failure` | why |";
+  const ROW5 = "| `Sample.ts:5` | `second failure` | why |";
 
-  it("passes when every throw is cited exactly once", () => {
+  it("passes when every throw is cited exactly once, each with its anchor", () => {
+    // Negative control for the anchor check: an untouched document stays
+    // green, including the anchor that sits on line 6 of a throw cited at :5.
     const outcome = ThrowCitations.check(docFor(ROW2, ROW5), sources());
     expect(outcome.ok).toBe(true);
     expect(outcome.errors).toEqual([]);
     expect(outcome.info[0]).toContain("2 citation(s)");
   });
 
+  it("fails two rows that trade line numbers between sites with different messages", () => {
+    // #1374. Both swapped lines ARE throw lines, so membership in each
+    // direction still holds and the pre-anchor gate stayed green with both
+    // rows describing each other's site. Only the anchor can tell.
+    const outcome = ThrowCitations.check(
+      docFor(
+        "| `Sample.ts:5` | `first failure` | why |",
+        "| `Sample.ts:2` | `second failure` | why |",
+      ),
+      sources(),
+    );
+    expect(outcome.ok).toBe(false);
+    expect(outcome.errors).toHaveLength(2);
+    expect(outcome.errors[0]).toContain("Sample.ts:5");
+    expect(outcome.errors[0]).toContain("`first failure`");
+    expect(outcome.errors[1]).toContain("Sample.ts:2");
+    expect(outcome.errors[1]).toContain("`second failure`");
+  });
+
+  it("stays green when two identically-messaged sites trade line numbers", () => {
+    // Negative control. Nine real sites throw the same text; their rows are
+    // interchangeable, and the anchor corroborates a row rather than keying
+    // it (#1374). A gate that failed here would be demanding a distinction
+    // the source does not make.
+    const twins = [
+      "function a() {",
+      "  throw new Error(\"Error: 'this' can only be used inside a scope\");",
+      "}",
+      "function b() {",
+      "  throw new Error(\"Error: 'this' can only be used inside a scope\");",
+      "}",
+    ].join("\n");
+    const outcome = ThrowCitations.check(
+      docFor(
+        "| `Sample.ts:5` | `can only be used inside a scope` | first site |",
+        "| `Sample.ts:2` | `can only be used inside a scope` | second site |",
+      ),
+      sources(twins),
+    );
+    expect(outcome.ok).toBe(true);
+    expect(outcome.errors).toEqual([]);
+  });
+
+  it("fails a row that carries no anchor", () => {
+    // Optional would be the #1143 shape: a row #1322 adds without one is a
+    // row the swap check cannot defend.
+    const outcome = ThrowCitations.check(
+      docFor("| `Sample.ts:2` | why |", ROW5),
+      sources(),
+    );
+    expect(outcome.ok).toBe(false);
+    expect(outcome.errors).toHaveLength(1);
+    expect(outcome.errors[0]).toContain("Sample.ts:2");
+    expect(outcome.errors[0]).toContain("no anchor");
+  });
+
+  it("fails an anchor too short to tell sites apart", () => {
+    // `failure` is in both of SAMPLE's throws. The floor is what stops an
+    // anchor of `Error` or `'` from corroborating every row in the document.
+    const outcome = ThrowCitations.check(
+      docFor("| `Sample.ts:2` | `failure` | why |", ROW5),
+      sources(),
+    );
+    expect(outcome.ok).toBe(false);
+    expect(outcome.errors).toHaveLength(1);
+    expect(outcome.errors[0]).toContain("`failure`");
+    expect(outcome.errors[0]).toContain("shorter than");
+  });
+
+  it("fails an anchor drawn from the opener every site shares", () => {
+    // `new Error(` is long enough to clear the floor and appears in every
+    // statement. The opener is removed before matching so that scaffolding
+    // cannot corroborate a row.
+    const outcome = ThrowCitations.check(
+      docFor("| `Sample.ts:2` | `new Error(` | why |", ROW5),
+      sources(),
+    );
+    expect(outcome.ok).toBe(false);
+    expect(outcome.errors).toHaveLength(1);
+    expect(outcome.errors[0]).toContain("`new Error(`");
+    expect(outcome.errors[0]).toContain("not found");
+  });
+
+  it("reports a throw whose opener it cannot strip rather than matching against it", () => {
+    // `throw new Error;` is counted by throwLines but opens no argument. Left
+    // silent, `new Error;` would be a legal anchor corroborating every such
+    // site -- the universally-true anchor the strip exists to prevent.
+    const outcome = ThrowCitations.check(
+      docFor("| `Sample.ts:1` | `new Error;` | why |"),
+      sources("throw new Error;"),
+    );
+    expect(outcome.ok).toBe(false);
+    expect(outcome.errors).toHaveLength(1);
+    expect(outcome.errors[0]).toContain("Sample.ts:1");
+    expect(outcome.errors[0]).toContain("opener");
+  });
+
+  it("fails two rows in one file whose anchors would survive a trade", () => {
+    // Invariant 4. Each anchor matches its own line AND the other's, so the
+    // rows could swap line numbers undetected. Different throws, so this is
+    // not the identical-message exemption.
+    const outcome = ThrowCitations.check(
+      docFor(
+        "| `Sample.ts:2` | `shared prefix` | why |",
+        "| `Sample.ts:5` | `shared prefix` | why |",
+      ),
+      sources(COUSINS),
+    );
+    expect(outcome.ok).toBe(false);
+    expect(outcome.errors).toHaveLength(1);
+    expect(outcome.errors[0]).toContain("Sample.ts:2");
+    expect(outcome.errors[0]).toContain(":5");
+    expect(outcome.errors[0]).toContain("trade");
+  });
+
+  // A trade is caught by whichever anchor fails on the other's line, so one
+  // distinguishing anchor per pair is enough -- the remedy the error names.
+  // Both placements, because a check that tests only one direction passes
+  // whichever placement it happens to look at (found by mutation).
+  it.each([
+    [
+      "first",
+      "| `Sample.ts:2` | `shared prefix alpha` | why |",
+      "| `Sample.ts:5` | `shared prefix` | why |",
+    ],
+    [
+      "second",
+      "| `Sample.ts:2` | `shared prefix` | why |",
+      "| `Sample.ts:5` | `shared prefix beta` | why |",
+    ],
+  ])(
+    "passes when the %s of two overlapping rows carries a distinguishing anchor",
+    (_, rowA, rowB) => {
+      const outcome = ThrowCitations.check(
+        docFor(rowA, rowB),
+        sources(COUSINS),
+      );
+      expect(outcome.ok).toBe(true);
+      expect(outcome.errors).toEqual([]);
+    },
+  );
+
   it("fails a citation that has drifted, and names the nearest throw", () => {
     const outcome = ThrowCitations.check(
-      docFor("| `Sample.ts:3` | why |", ROW5),
+      docFor("| `Sample.ts:3` | `first failure` | why |", ROW5),
       sources(),
     );
     expect(outcome.ok).toBe(false);
     expect(outcome.errors[0]).toContain("Sample.ts:3");
     expect(outcome.errors[0]).toContain("nearest is :2");
+    // Two errors, not three: the drift, and the throw at :2 the drifted row
+    // left unclaimed. A line holding no throw has nothing to anchor against,
+    // so the anchor check stays silent rather than piling on (#1374).
+    expect(outcome.errors).toHaveLength(2);
+    expect(outcome.errors.some((e) => e.includes("anchor"))).toBe(false);
   });
 
   it("fails a throw that nobody classified", () => {
@@ -135,7 +364,7 @@ describe("ThrowCitations.check", () => {
 
   it("fails a citation whose path matches no file", () => {
     const outcome = ThrowCitations.check(
-      docFor("| `Missing.ts:1` | why |", ROW2, ROW5),
+      docFor("| `Missing.ts:1` | `first failure` | why |", ROW2, ROW5),
       sources(),
     );
     expect(outcome.ok).toBe(false);
@@ -144,7 +373,7 @@ describe("ThrowCitations.check", () => {
 
   it("reports a drifted citation with no throws at all in the file", () => {
     const outcome = ThrowCitations.check(
-      docFor("| `Sample.ts:1` | why |"),
+      docFor("| `Sample.ts:1` | `first failure` | why |"),
       sources("const x = 1;"),
     );
     expect(outcome.ok).toBe(false);
@@ -164,10 +393,10 @@ describe("ThrowCitations.checkDeclaredCounts", () => {
     "| `codegen/` | 2 | 1 | 1 | 0 |",
     "",
     "## Bucket 1 — user-facing (1)",
-    "| `Sample.ts:2` | why |",
+    "| `Sample.ts:2` | `first failure` | why |",
     "",
     "## Bucket 2 — internal invariants (1)",
-    "| `Sample.ts:5` | why |",
+    "| `Sample.ts:5` | `second failure` | why |",
   ].join("\n");
 
   it("passes when every declared number matches the rows", () => {
@@ -211,8 +440,8 @@ describe("ThrowCitations.bucketCounts", () => {
     const md = [
       "## Bucket 1 — user-facing (2)",
       "### `codegen/` root — 2",
-      "| `Sample.ts:2` | why |",
-      "| `Sample.ts:5` | why |",
+      "| `Sample.ts:2` | `first failure` | why |",
+      "| `Sample.ts:5` | `second failure` | why |",
       "## Next",
     ].join("\n");
     const sections = ThrowCitations.bucketCounts(md);
