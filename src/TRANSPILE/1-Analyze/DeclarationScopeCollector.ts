@@ -19,6 +19,7 @@ import { ParserRuleContext } from "antlr4ng";
 import { CNextListener } from "../../transpiler/logic/parser/grammar/CNextListener";
 import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
 import IScopeFrame from "./types/IScopeFrame";
+import IDeclaredVar from "./types/IDeclaredVar";
 import EnclosingScope from "./helpers/EnclosingScope";
 
 class DeclarationScopeCollector extends CNextListener {
@@ -67,12 +68,68 @@ class DeclarationScopeCollector extends CNextListener {
     this.stack.pop();
   }
 
+  /**
+   * #1322: dimensions come from the TYPE, not from trailing brackets after the
+   * name. C-Next declares an array as `u32[10] buffer`; the C-style
+   * `u32 buffer[10]` is rejected outright by
+   * `VariableDeclHelper.validateArrayDeclarationSyntax`, so a declaration that
+   * reaches here with trailing dimensions is one the transpiler will refuse
+   * anyway. Reading `arrayType()` is therefore reading the only spelling that
+   * can be valid, not the commoner of two.
+   */
+  private static dimensionsOf(
+    typeCtx: Parser.TypeContext,
+  ): readonly (number | string)[] {
+    const arrayType = typeCtx.arrayType();
+    if (!arrayType) return [];
+    return arrayType.arrayTypeDimension().map((dimension) => {
+      const text = dimension.expression()?.getText() ?? "";
+      const literal = Number.parseInt(text, 10);
+      // A dimension may name a const or a C macro. `Number.isNaN` is the whole
+      // discriminator: a bounds check can run against a number and must decline
+      // against a name, and collapsing the two here would remove its ability to.
+      return Number.isNaN(literal) ? text : literal;
+    });
+  }
+
+  /** `N` from `string<N>`; null when the type is not a string. */
+  private static capacityOf(typeCtx: Parser.TypeContext): number | null {
+    const digits = typeCtx.stringType()?.INTEGER_LITERAL()?.getText();
+    if (digits === undefined) return null;
+    const capacity = Number.parseInt(digits, 10);
+    return Number.isNaN(capacity) ? null : capacity;
+  }
+
   private record(
     typeCtx: Parser.TypeContext | null,
     identifier: { getText(): string } | null,
+    declared: IDeclaredVar | null = null,
   ): void {
     if (!typeCtx || !identifier) return;
-    this.top().vars.set(identifier.getText(), typeCtx.getText());
+    this.top().vars.set(
+      identifier.getText(),
+      declared ?? {
+        typeText: typeCtx.getText(),
+        dimensions: DeclarationScopeCollector.dimensionsOf(typeCtx),
+        stringCapacity: DeclarationScopeCollector.capacityOf(typeCtx),
+        isConst: false,
+      },
+    );
+  }
+
+  /** The shared record, with const-ness read from a context that carries it. */
+  private recordWithModifiers(
+    typeCtx: Parser.TypeContext | null,
+    identifier: { getText(): string } | null,
+    isConst: boolean,
+  ): void {
+    if (!typeCtx || !identifier) return;
+    this.record(typeCtx, identifier, {
+      typeText: typeCtx.getText(),
+      dimensions: DeclarationScopeCollector.dimensionsOf(typeCtx),
+      stringCapacity: DeclarationScopeCollector.capacityOf(typeCtx),
+      isConst,
+    });
   }
 
   override enterFunctionDeclaration = (
@@ -98,11 +155,19 @@ class DeclarationScopeCollector extends CNextListener {
   override enterVariableDeclaration = (
     ctx: Parser.VariableDeclarationContext,
   ): void => {
-    this.record(ctx.type(), ctx.IDENTIFIER());
+    this.recordWithModifiers(
+      ctx.type(),
+      ctx.IDENTIFIER(),
+      ctx.constModifier() !== null,
+    );
   };
 
   override enterParameter = (ctx: Parser.ParameterContext): void => {
-    this.record(ctx.type(), ctx.IDENTIFIER());
+    this.recordWithModifiers(
+      ctx.type(),
+      ctx.IDENTIFIER(),
+      ctx.constModifier() !== null,
+    );
   };
 
   override enterForVarDecl = (ctx: Parser.ForVarDeclContext): void => {

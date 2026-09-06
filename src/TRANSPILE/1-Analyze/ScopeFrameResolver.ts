@@ -16,6 +16,7 @@
 
 import { ParserRuleContext } from "antlr4ng";
 import IScopeFrame from "./types/IScopeFrame";
+import IDeclaredVar from "./types/IDeclaredVar";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
 import CodeGenState from "../../transpiler/state/CodeGenState";
 
@@ -81,10 +82,25 @@ class ScopeFrameResolver {
    * drifting from it. `typeOfName` itself is unchanged for its other callers.
    */
   public typeOfNameLexical(name: string, frame: IScopeFrame): string | null {
+    return this.declarationOfNameLexical(name, frame)?.typeText ?? null;
+  }
+
+  /**
+   * The whole declaration a name resolves to, searching outward as above.
+   *
+   * #1322: `typeOfNameLexical` is this with `.typeText` taken off the end, and
+   * is kept because its callers ask only that. The outward walk is written once
+   * -- two copies would be free to disagree about shadowing, which is the bug
+   * this class was extracted to prevent (#1183).
+   */
+  public declarationOfNameLexical(
+    name: string,
+    frame: IScopeFrame,
+  ): IDeclaredVar | null {
     let current: IScopeFrame | null = frame;
     while (current) {
-      const typeName = current.vars.get(name);
-      if (typeName) return typeName;
+      const declared = current.vars.get(name);
+      if (declared) return declared;
       current = current.parent;
     }
     return null;
