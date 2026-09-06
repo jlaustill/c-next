@@ -72,6 +72,46 @@ class ThrowCitationRemap {
    * refused is left byte-identical -- a refusal must not perturb the document
    * it declined to fix.
    */
+  /**
+   * For a shared anchor, the ascending pairing of stale rows to candidates --
+   * but only when their counts are equal.
+   *
+   * Nine sites share `Error: 'this' can only be used inside a scope` and four
+   * share the enum-assignment message, so refusing every shared anchor left
+   * the largest groups to be re-numbered by hand, which is the arithmetic this
+   * tool exists to take over.
+   *
+   * Equal counts make the pairing a derivation rather than a guess: an edit
+   * elsewhere in the file shifts every survivor and cannot reorder them, so
+   * the k-th remaining row is the k-th remaining throw. Unequal counts mean one
+   * of the group was DELETED and nothing says which, so pairing in order would
+   * silently reattribute the rest -- that case is still refused.
+   */
+  /**
+   * One definition of what makes two rows the same group.
+   *
+   * It was written twice, and the two copies differed by one invisible byte --
+   * a NUL where a space was intended -- so every lookup missed and the ordered
+   * pairing silently never fired. The test caught it, but only because it
+   * asserted the pairing HAPPENED rather than that nothing crashed. Two
+   * expressions that must agree are one expression.
+   */
+  private static groupKey(file: string, anchor: string): string {
+    return `${file}\u0000${anchor}`;
+  }
+
+  private static orderedPairing(
+    rows: readonly { line: number; anchor: string }[],
+    candidates: readonly number[],
+  ): Map<number, number> | null {
+    if (rows.length !== candidates.length) return null;
+    const stale = rows.map((row) => row.line).sort((a, b) => a - b);
+    const targets = [...candidates].sort((a, b) => a - b);
+    const pairing = new Map<number, number>();
+    stale.forEach((line, index) => pairing.set(line, targets[index]));
+    return pairing;
+  }
+
   static remap(
     markdown: string,
     sources: ReadonlyMap<string, string>,
@@ -79,6 +119,22 @@ class ThrowCitationRemap {
     const files = [...sources.keys()];
     const changes: IRemapChange[] = [];
     const refusals: string[] = [];
+
+    // Rows keyed by file+anchor, so a shared-anchor group can be paired as a
+    // group rather than each row deciding alone with no view of its siblings.
+    const groups = new Map<string, { line: number; anchor: string }[]>();
+    for (const line of markdown.split("\n")) {
+      for (const citation of ThrowCitations.parse(line)) {
+        if (citation.anchor === null) continue;
+        const file = ThrowCitations.resolve(citation.path, files);
+        if (file === null) continue;
+        const key = ThrowCitationRemap.groupKey(file, citation.anchor);
+        groups.set(key, [
+          ...(groups.get(key) ?? []),
+          { line: citation.line, anchor: citation.anchor },
+        ]);
+      }
+    }
 
     const rewritten = markdown
       .split("\n")
@@ -122,16 +178,31 @@ class ThrowCitationRemap {
           // check would not enforce.
           return text;
         }
+        let line: number;
         if (found.length > 1) {
-          // The row is stale AND the anchor is shared, so nothing says which of
-          // the candidates it meant. Assigning one would silently reattribute a
-          // row to the wrong site, and the gate would then certify the guess.
-          refusals.push(
-            `${where} -- anchor \`${citation.anchor}\` matches ${found.length} throws (${found.join(", ")}); remap by hand`,
+          const pairing = ThrowCitationRemap.orderedPairing(
+            groups.get(ThrowCitationRemap.groupKey(file, citation.anchor)) ??
+              [],
+            found,
           );
+          const paired = pairing?.get(citation.line);
+          if (paired === undefined) {
+            // The row is stale, the anchor is shared, and the group's size does
+            // not match the candidates' -- so one of them was deleted and
+            // nothing says which. Assigning in order would silently reattribute
+            // the rest, and the gate would then certify the guess.
+            refusals.push(
+              `${where} -- anchor \`${citation.anchor}\` matches ${found.length} throws (${found.join(", ")}) and the group does not pair; remap by hand`,
+            );
+            return text;
+          }
+          line = paired;
+        } else {
+          [line] = found;
+        }
+        if (line === citation.line) {
           return text;
         }
-        const [line] = found;
         changes.push({
           path: citation.path,
           from: citation.line,

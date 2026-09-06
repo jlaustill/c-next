@@ -112,18 +112,11 @@ describe("EnumAssignmentValidator", () => {
       ).not.toThrow();
     });
 
-    it("throws for global.WrongEnum.MEMBER pattern", () => {
-      CodeGenState.symbols = createMockSymbols({
-        knownEnums: new Set(["Color", "Status"]),
-      });
-      vi.spyOn(EnumTypeResolver, "resolve").mockReturnValue(null);
-
-      const expression = { getText: () => "global.Status.OK" } as never;
-
-      expect(() =>
-        EnumAssignmentValidator.validateEnumAssignment("Color", expression),
-      ).toThrow("Cannot assign non-enum value to Color enum");
-    });
+    // #1322a: `validateGlobalEnumPattern` is deleted. Its only rejection was
+    // unreachable -- `EnumTypeResolver.getEnumTypeFromGlobalEnum` evaluates the
+    // identical predicate on the identical text earlier and returns non-null,
+    // so the arm was never entered for a known enum -- and with the throw gone
+    // the method did nothing at all.
 
     it("allows global.structVar.enumField (non-enum parts[1])", () => {
       CodeGenState.symbols = createMockSymbols({

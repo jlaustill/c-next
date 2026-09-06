@@ -116,7 +116,6 @@ function handleRegisterBitRange(ctx: IAssignmentContext): string {
  */
 function handleScopedRegisterBit(ctx: IAssignmentContext): string {
   // Issue #707: Use shared validation utilities
-  AssignmentHandlerUtils.validateScopeContext(CodeGenState.currentScopePath);
   AssignmentHandlerUtils.validateNoCompoundForBitAccess(
     ctx.isCompound,
     ctx.cnextOp,
@@ -153,7 +152,6 @@ function handleScopedRegisterBit(ctx: IAssignmentContext): string {
  */
 function handleScopedRegisterBitRange(ctx: IAssignmentContext): string {
   // Issue #707: Use shared validation utilities
-  AssignmentHandlerUtils.validateScopeContext(CodeGenState.currentScopePath);
   AssignmentHandlerUtils.validateNoCompoundForBitAccess(
     ctx.isCompound,
     ctx.cnextOp,

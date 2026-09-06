@@ -358,69 +358,6 @@ class TypeValidator {
     return false;
   }
 
-  // ========================================================================
-  // Scope Identifier Validation (ADR-016)
-  // ========================================================================
-
-  static validateBareIdentifierInScope(
-    identifier: string,
-    isLocalVariable: boolean,
-    isKnownStruct: (name: string) => boolean,
-  ): void {
-    const currentScopePath = CodeGenState.currentScopePath;
-
-    if (!currentScopePath) {
-      return;
-    }
-
-    if (isLocalVariable) {
-      return;
-    }
-
-    const scopeMembers = CodeGenState.getScopeMembers(
-      ScopeUtils.leafOf(currentScopePath),
-    );
-    if (scopeMembers?.has(identifier)) {
-      throw new Error(
-        `Error: Use 'this.${identifier}' to access scope member '${identifier}' inside scope '${currentScopePath}'`,
-      );
-    }
-
-    if (CodeGenState.symbols!.knownRegisters.has(identifier)) {
-      throw new Error(
-        `Error: Use 'global.${identifier}' to access register '${identifier}' inside scope '${currentScopePath}'`,
-      );
-    }
-
-    if (
-      CodeGenState.knownFunctions.has(identifier) &&
-      !QualifiedCName.isInScope(identifier, ScopeUtils.leafOf(currentScopePath))
-    ) {
-      throw new Error(
-        `Error: Use 'global.${identifier}' to access global function '${identifier}' inside scope '${currentScopePath}'`,
-      );
-    }
-
-    if (CodeGenState.symbols!.knownEnums.has(identifier)) {
-      throw new Error(
-        `Error: Use 'global.${identifier}' to access global enum '${identifier}' inside scope '${currentScopePath}'`,
-      );
-    }
-
-    if (isKnownStruct(identifier)) {
-      throw new Error(
-        `Error: Use 'global.${identifier}' to access global struct '${identifier}' inside scope '${currentScopePath}'`,
-      );
-    }
-
-    const typeInfo = CodeGenState.getVariableTypeInfo(identifier);
-    if (typeInfo && !QualifiedCName.isQualified(identifier)) {
-      throw new Error(
-        `Error: Use 'global.${identifier}' to access global variable '${identifier}' inside scope '${currentScopePath}'`,
-      );
-    }
-  }
-
   /**
    * @param line Source line of the reference, when the caller has one. Used only
    *   to record #1241 provenance: an ADR-057 resolution is invisible to the

@@ -164,18 +164,11 @@ describe("StringHandlers", () => {
       expect(handler!(ctx)).toContain("48");
     });
 
-    it("throws when used outside scope", () => {
-      CodeGenState.setCurrentScopeByPath(null);
-      const ctx = createMockContext();
-
-      const handler = stringHandlers.find(
-        ([kind]) => kind === AssignmentKind.STRING_THIS_MEMBER,
-      )?.[1];
-
-      expect(() => handler!(ctx)).toThrow(
-        "'this' can only be used inside a scope",
-      );
-    });
+    // #1322a: the `'this' outside a scope` guard this asserted is deleted. It
+    // was unreachable -- `this.x <- 5` at file scope is a PARSE error, so the
+    // assignment never reaches codegen -- and this test reached it only by
+    // calling the handler directly with state production cannot produce. A test
+    // that is a dead branch's only caller is what keeps the branch alive.
   });
 
   describe("handleStringStructField (STRING_STRUCT_FIELD)", () => {

@@ -3344,8 +3344,11 @@ export default class CodeGenerator implements IOrchestrator {
   /**
    * ADR-029: Check if a function is used as a callback type (field type in a struct)
    */
-  // Issue #63: validateCallbackAssignment, callbackSignaturesMatch, isConstValue,
-  //            and validateBareIdentifierInScope moved to TypeValidator
+  // Issue #63: validateCallbackAssignment, callbackSignaturesMatch and
+  //            isConstValue moved to TypeValidator. #1322 then deleted
+  //            validateBareIdentifierInScope, which had had no production
+  //            caller since ADR-057 gave bare identifiers a resolver that
+  //            resolves rather than throws.
 
   // EnumTypeResolver now handles: _getEnumTypeFromThisEnum, _getEnumTypeFromGlobalEnum,
   // _getEnumTypeFromThisVariable, _getEnumTypeFromScopedEnum, _getEnumTypeFromMemberAccess,

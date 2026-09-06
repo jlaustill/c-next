@@ -152,51 +152,6 @@ describe("TypeGenerationHelper", () => {
     });
   });
 
-  describe("generateArrayBaseType", () => {
-    it("maps primitive type to C type", () => {
-      const result = TypeGenerationHelper.generateArrayBaseType(
-        "u32",
-        null,
-        false,
-      );
-      expect(result).toBe("uint32_t");
-    });
-
-    it("returns unknown primitive type unchanged", () => {
-      // When primitive type is not in TYPE_MAP, return as-is
-      const result = TypeGenerationHelper.generateArrayBaseType(
-        "unknownType",
-        null,
-        false,
-      );
-      expect(result).toBe("unknownType");
-    });
-
-    it("returns user type unchanged", () => {
-      const result = TypeGenerationHelper.generateArrayBaseType(
-        null,
-        "MyType",
-        false,
-      );
-      expect(result).toBe("MyType");
-    });
-
-    it("adds struct keyword for user types when needed", () => {
-      const result = TypeGenerationHelper.generateArrayBaseType(
-        null,
-        "CStruct",
-        true,
-      );
-      expect(result).toBe("struct CStruct");
-    });
-
-    it("throws when neither primitive nor user type provided", () => {
-      expect(() => {
-        TypeGenerationHelper.generateArrayBaseType(null, null, false);
-      }).toThrow("Array type must have either primitive or user type");
-    });
-  });
-
   describe("generateStringType", () => {
     it("returns char for bounded strings", () => {
       const result = TypeGenerationHelper.generateStringType();
@@ -280,18 +235,6 @@ describe("TypeGenerationHelper", () => {
         ...depsOverride,
       });
       expect(result).toBe(expected);
-    });
-
-    it("generates array base type for primitive array", () => {
-      // Arrays in C-Next are declared with dimensions after name: u8 arr[10];
-      // The type context for arrays is handled separately (not in type context)
-      // This test verifies that primitive arrays work via generateArrayBaseType
-      const result = TypeGenerationHelper.generateArrayBaseType(
-        "u8",
-        null,
-        false,
-      );
-      expect(result).toBe("uint8_t");
     });
 
     it("generates array type with primitive via generate()", () => {

@@ -8,20 +8,6 @@ import SymbolRegistry from "../../../../../state/SymbolRegistry";
 import ScopeUtils from "../../../../../../utils/ScopeUtils";
 
 describe("AssignmentHandlerUtils", () => {
-  describe("validateScopeContext", () => {
-    it("should not throw for valid scope", () => {
-      expect(() =>
-        AssignmentHandlerUtils.validateScopeContext("MyScope"),
-      ).not.toThrow();
-    });
-
-    it("should throw for null scope", () => {
-      expect(() => AssignmentHandlerUtils.validateScopeContext("")).toThrow(
-        "Error: 'this' can only be used inside a scope",
-      );
-    });
-  });
-
   describe("validateNoCompoundForBitAccess", () => {
     it("should not throw for non-compound assignment", () => {
       expect(() =>

@@ -206,14 +206,11 @@ describe("AccessPatternHandlers", () => {
       expect(result).toBe("Motor__speed = 5;");
     });
 
-    it("throws when used outside scope", () => {
-      CodeGenState.setCurrentScopeByPath(null);
-      const ctx = createMockContext({ hasThis: true, hasGlobal: false });
-
-      expect(() => getHandler()!(ctx)).toThrow(
-        "'this' can only be used inside a scope",
-      );
-    });
+    // #1322a: the `'this' outside a scope` guard this asserted is deleted. It
+    // was unreachable -- `this.x <- 5` at file scope is a PARSE error, so the
+    // assignment never reaches codegen -- and this test reached it only by
+    // calling the handler directly with state production cannot produce. A test
+    // that is a dead branch's only caller is what keeps the branch alive.
 
     it("handles compound assignment", () => {
       CodeGenState.setCurrentScopeByPath("Motor");

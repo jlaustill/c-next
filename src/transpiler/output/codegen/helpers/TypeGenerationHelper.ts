@@ -129,33 +129,6 @@ class TypeGenerationHelper {
   }
 
   /**
-   * Generate base type for an array type.
-   *
-   * @param primitiveText - The primitive type text (if primitive)
-   * @param userTypeName - The user type name (if user type)
-   * @param needsStructKeyword - Whether to prefix with 'struct'
-   * @returns The C base type string
-   */
-  static generateArrayBaseType(
-    primitiveText: string | null,
-    userTypeName: string | null,
-    needsStructKeyword: boolean,
-  ): string {
-    if (primitiveText) {
-      return TYPE_MAP[primitiveText] || primitiveText;
-    }
-
-    if (userTypeName) {
-      if (needsStructKeyword) {
-        return `struct ${userTypeName}`;
-      }
-      return userTypeName;
-    }
-
-    throw new Error("Array type must have either primitive or user type");
-  }
-
-  /**
    * Generate string type (bounded strings).
    * Returns the base type for char arrays.
    */

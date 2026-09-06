@@ -10,19 +10,6 @@ import QualifiedCName from "../../../../../utils/QualifiedCName";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
 
 /**
- * Validate that 'this' is being used within a scope context.
- * Throws if currentScopePath is not set.
- *
- * @param currentScopePath - Path of the enclosing scope; `""` at file scope
- * @throws Error if 'this' is used outside a scope
- */
-function validateScopeContext(currentScopePath: string): void {
-  if (!currentScopePath) {
-    throw new Error("Error: 'this' can only be used inside a scope");
-  }
-}
-
-/**
  * Validate that compound assignment operators are not used with bit field access.
  *
  * @param isCompound - Whether this is a compound assignment
@@ -121,7 +108,6 @@ function buildRegisterNameWithScopeDetection(
  * Assignment Handler Utilities
  */
 class AssignmentHandlerUtils {
-  static readonly validateScopeContext = validateScopeContext;
   static readonly validateNoCompoundForBitAccess =
     validateNoCompoundForBitAccess;
   static readonly validateWriteOnlyValue = validateWriteOnlyValue;

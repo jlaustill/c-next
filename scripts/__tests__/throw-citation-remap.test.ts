@@ -85,6 +85,52 @@ describe("ThrowCitationRemap.remap", () => {
     expect(result.refusals[0]).toContain("2 throws");
   });
 
+  it("maps a shared-anchor group in order when the counts match", () => {
+    // Three rows sharing an anchor, three candidates, all rows stale. A
+    // deletion above them shifts every survivor by the same amount and cannot
+    // reorder them, so the ascending pairing is a derivation rather than a
+    // guess -- and its precondition is the equal counts.
+    const triplets = [
+      "// a line",
+      "// another",
+      'throw new Error("same text");',
+      "//",
+      'throw new Error("same text");',
+      "//",
+      'throw new Error("same text");',
+    ].join("\n");
+    const markdown = [
+      row(6, "same text"),
+      row(8, "same text"),
+      row(10, "same text"),
+    ].join("\n");
+    const result = ThrowCitationRemap.remap(markdown, sources(triplets));
+    expect(result.refusals).toEqual([]);
+    expect(result.markdown).toBe(
+      [row(3, "same text"), row(5, "same text"), row(7, "same text")].join(
+        "\n",
+      ),
+    );
+  });
+
+  it("still refuses when one of the group was deleted, so the counts differ", () => {
+    // Three rows, two candidates: one of the three throws is gone and nothing
+    // says which. Pairing in order would silently reattribute two rows.
+    const pair = [
+      'throw new Error("same text");',
+      "//",
+      'throw new Error("same text");',
+    ].join("\n");
+    const markdown = [
+      row(6, "same text"),
+      row(8, "same text"),
+      row(10, "same text"),
+    ].join("\n");
+    const result = ThrowCitationRemap.remap(markdown, sources(pair));
+    expect(result.changes).toEqual([]);
+    expect(result.refusals).toHaveLength(3);
+  });
+
   it("refuses when the anchor matches no throw at all", () => {
     // The anchor itself is wrong, or the throw is gone. Either way the row
     // needs a human: there is nothing to move it to.

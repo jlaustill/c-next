@@ -109,9 +109,13 @@ class EnumAssignmentValidator {
       return;
     }
 
-    // Issue #478: Handle global.Enum.MEMBER or global.struct.field pattern
+    // Issue #478: `global.Enum.MEMBER` and `global.struct.field` are allowed
+    // through. #1322 deleted the validation that used to sit here: its only
+    // rejection was unreachable, because `EnumTypeResolver.getEnumTypeFromGlobalEnum`
+    // evaluates the identical predicate on the identical text earlier and
+    // returns non-null, so this arm was never entered for a known enum. With
+    // the throw gone the method did nothing at all, so it went too.
     if (parts[0] === "global" && parts.length >= 3) {
-      EnumAssignmentValidator.validateGlobalEnumPattern(parts, typeName);
       return;
     }
 
@@ -160,32 +164,6 @@ class EnumAssignmentValidator {
       parts[1],
     );
     if (scopedEnumName !== typeName) {
-      throw new Error(
-        `Error: Cannot assign non-enum value to ${typeName} enum`,
-      );
-    }
-  }
-
-  /**
-   * Issue #478: Validate global.X.Y pattern.
-   * If X is a known enum, validates it matches the target type.
-   * If X is not an enum (e.g. struct variable), allows through since
-   * EnumTypeResolver.resolve() with TypeResolver fallback handles the chain.
-   */
-  private static validateGlobalEnumPattern(
-    parts: string[],
-    typeName: string,
-  ): void {
-    const name = parts[1];
-
-    // Not an enum (e.g. struct variable like global.input.field) — allow through
-    // since EnumTypeResolver.resolve() with TypeResolver fallback handles the chain
-    if (!CodeGenState.isKnownEnum(name)) {
-      return;
-    }
-
-    // Known enum that doesn't match target type
-    if (name !== typeName) {
       throw new Error(
         `Error: Cannot assign non-enum value to ${typeName} enum`,
       );

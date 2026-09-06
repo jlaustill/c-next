@@ -83,39 +83,6 @@ class CastValidator {
   }
 
   /**
-   * Validate an integer-to-integer cast.
-   * Throws an error if the cast is narrowing or involves a sign change.
-   *
-   * @param sourceType The source integer type
-   * @param targetType The target integer type
-   * @throws Error if the cast is invalid
-   */
-  static validateIntegerCast(sourceType: string, targetType: string): void {
-    if (
-      !CastValidator.isIntegerType(sourceType) ||
-      !CastValidator.isIntegerType(targetType)
-    ) {
-      return; // Not an integer-to-integer cast, validation not applicable
-    }
-
-    if (CastValidator.isNarrowingConversion(sourceType, targetType)) {
-      const targetWidth = TYPE_WIDTH[targetType] ?? 0;
-      throw new Error(
-        `Error: Cannot cast ${sourceType} to ${targetType} (narrowing). ` +
-          `Use bit indexing: expr[0, ${targetWidth}]`,
-      );
-    }
-
-    if (CastValidator.isSignConversion(sourceType, targetType)) {
-      const targetWidth = TYPE_WIDTH[targetType] ?? 0;
-      throw new Error(
-        `Error: Cannot cast ${sourceType} to ${targetType} (sign change). ` +
-          `Use bit indexing: expr[0, ${targetWidth}]`,
-      );
-    }
-  }
-
-  /**
    * Check if a cast requires clamping (float-to-integer).
    * Float-to-integer casts need explicit bounds checking to avoid undefined behavior.
    *

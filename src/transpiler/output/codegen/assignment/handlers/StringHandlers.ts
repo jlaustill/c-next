@@ -15,6 +15,7 @@ import StringUtils from "../../../../../utils/StringUtils";
 import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import CodeGenState from "../../../../state/CodeGenState";
+import invariant from "../../../../../utils/invariant";
 import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
 
 /**
@@ -56,22 +57,30 @@ function handleSimpleStringAssignment(ctx: IAssignmentContext): string {
 function getStructFieldType(structName: string, fieldName: string): string {
   // Issue #831: Use SymbolTable as single source of truth for struct fields
   const structTypeInfo = CodeGenState.getVariableTypeInfo(structName);
-  if (!structTypeInfo) {
-    throw new Error(
-      `Error: Unknown struct variable '${structName}' in string assignment`,
-    );
-  }
+  // #1322: classified "dead -- delete" by #1321's audit, and it is indeed
+  // unreachable: STRING_STRUCT_FIELD is produced only via
+  // `AssignmentClassifier._resolveStructType`, which runs the identical
+  // `getVariableTypeInfo` lookup and returns null when it misses. But deleting
+  // it yields `TS18048: possibly 'undefined'` on the next line -- the guard is
+  // doing type work as well as runtime work. Unreachable AND load-bearing is
+  // not dead; it is an invariant, so it says so.
+  invariant(
+    structTypeInfo,
+    "a classified struct assignment names a variable the symbol table knows",
+  );
 
   const structType = structTypeInfo.baseType;
   const fieldType = CodeGenState.symbolTable?.getStructFieldType(
     structType,
     fieldName,
   );
-  if (!fieldType) {
-    throw new Error(
-      `Error: Unknown field '${fieldName}' on struct '${structType}' in string assignment`,
-    );
-  }
+  // Same shape: the classifier already required `getStructFieldType` truthy
+  // and `TypeCheckUtils.isString` before producing this kind, so a miss here
+  // is the transpiler contradicting itself, not the author's program.
+  invariant(
+    fieldType,
+    "a classified string-field assignment names a field the struct declares",
+  );
 
   return fieldType;
 }
@@ -83,11 +92,17 @@ function getStructFieldType(structName: string, fieldName: string): string {
  */
 function getStructType(structName: string): string {
   const structTypeInfo = CodeGenState.getVariableTypeInfo(structName);
-  if (!structTypeInfo) {
-    throw new Error(
-      `Error: Unknown struct variable '${structName}' in string assignment`,
-    );
-  }
+  // #1322: classified "dead -- delete" by #1321's audit, and it is indeed
+  // unreachable: STRING_STRUCT_FIELD is produced only via
+  // `AssignmentClassifier._resolveStructType`, which runs the identical
+  // `getVariableTypeInfo` lookup and returns null when it misses. But deleting
+  // it yields `TS18048: possibly 'undefined'` on the next line -- the guard is
+  // doing type work as well as runtime work. Unreachable AND load-bearing is
+  // not dead; it is an invariant, so it says so.
+  invariant(
+    structTypeInfo,
+    "a classified struct assignment names a variable the symbol table knows",
+  );
   return structTypeInfo.baseType;
 }
 
@@ -95,10 +110,6 @@ function getStructType(structName: string): string {
  * Handle this.member string: this.name <- "value"
  */
 function handleStringThisMember(ctx: IAssignmentContext): string {
-  if (!CodeGenState.currentScopePath) {
-    throw new Error("Error: 'this' can only be used inside a scope");
-  }
-
   validateNotCompound(ctx);
 
   const memberName = ctx.identifiers[0];
@@ -181,11 +192,12 @@ function handleStringStructArrayElement(ctx: IAssignmentContext): string {
   const dimensions =
     CodeGenState.symbols!.structFieldDimensions.get(structType)?.get(fieldName);
 
-  if (!dimensions || dimensions.length === 0) {
-    throw new Error(
-      `Error: Cannot determine string capacity for struct field '${structType}.${fieldName}'`,
-    );
-  }
+  // `_classifyStructArrayElementString` required `dimensions.length >= 1` from
+  // the same map with the same keys before producing this kind.
+  invariant(
+    dimensions && dimensions.length > 0,
+    "a classified struct-array string element has recorded dimensions",
+  );
 
   // String arrays: dimensions are [array_size, string_capacity+1]
   // -1 because we added +1 for null terminator during symbol collection.
