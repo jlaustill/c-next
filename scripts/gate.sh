@@ -76,6 +76,7 @@ run_check "Format Fidelity"   "format:fidelity"          npm run format:fidelity
 
 echo -e "\n${YELLOW}C Static Analysis${NC}"
 run_check "C Static Analysis" "validate:c"               npm run validate:c
+run_check "Integration Tests" "headers:standalone:check"  npm run headers:standalone:check
 
 # Mirrors the Verify Clean job: the suite regenerates .test.c/.test.h, and a
 # generated file that is missing, stale or untracked shows up here. This is what

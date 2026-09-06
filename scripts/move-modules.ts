@@ -43,6 +43,17 @@ const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
  * open, and to 1.4 Resolve when it needs more than one file. That test is
  * already authored, so this manifest records the ANSWER for each module rather
  * than inventing a second rule.
+ *
+ * That test places a module in a PASS, and it is two-way, so it has no answer
+ * for a module that belongs to no pass at all. A type named by more than one
+ * layer is one of those: it is a shared contract, and `.dependency-cruiser.cjs`
+ * already says where those go -- "Any layer -> transpiler/types/ (shared
+ * contracts, layer-neutral)", and "If you need shared types, move them to
+ * transpiler/types/". So the third destination is `src/transpiler/types/`, and
+ * it is reached by asking whether more than one layer names the module, not by
+ * asking which pass computes it. Recorded here because a rule that cannot
+ * express the move being made is how the wrong row gets written and then
+ * defended (#1449).
  */
 interface IMove {
   /** Path relative to the repository root. A directory moves with its tree. */
@@ -156,6 +167,41 @@ const MOVES: readonly IMove[] = [
     to: "src/PARSE/4-Resolve/__tests__/TransitiveEnumCollector.test.ts",
     because: "covers TransitiveEnumCollector",
   },
+
+  // --- 2.2 Plan: what C should exist -------------------------------------
+  {
+    from: "src/transpiler/logic/symbols/PublicInterface.ts",
+    to: "src/TRANSPILE/2-Plan/PublicInterface.ts",
+    because:
+      "decides which symbols form a file's public C interface -- `isExported` minus ADR-030's `main` exemption minus \"a scope is a container\", which `docs/architecture/README.md` §2 assigns to `EmissionPlan`. Its destination map row read `awaiting 1.4 Resolve` because the admission rule was two-way; the move was blocked by 1.3 Declare calling `existsIn`, which #1515 removed",
+  },
+
+  // --- type utilities: named by more than one layer -----------------------
+  {
+    from: "src/transpiler/output/headers/generators/mapType.ts",
+    to: "src/utils/mapType.ts",
+    because:
+      "the C-Next to C type mapping is a translation fact, not a rendering decision: 2.2 Plan asks it to decide a header's includes and 2.3 Render asks it to write a declaration. CLAUDE.md puts type utilities in src/utils/, and leaving it under output/ made `plan-cannot-import-render` fire on a Plan module asking a question Render does not own",
+  },
+  {
+    from: "src/transpiler/output/headers/generators/headerCType.ts",
+    to: "src/utils/headerCType.ts",
+    because:
+      'same: the one answer to "what does a header call this type", asked by both passes since #1520 unified it',
+  },
+  {
+    from: "src/transpiler/output/headers/generators/__tests__/mapType.test.ts",
+    to: "src/utils/__tests__/mapType.test.ts",
+    because: "covers mapType",
+  },
+
+  // --- shared contracts: named by more than one layer ---------------------
+  {
+    from: "src/transpiler/output/codegen/generators/TIncludeHeader.ts",
+    to: "src/transpiler/types/TIncludeHeader.ts",
+    because:
+      "the include funnel that consumes it moves to CodeGenState, and state/ may not import output/ (`state-cannot-import-output`); a union two layers name is a shared contract, which .dependency-cruiser.cjs sends to transpiler/types/",
+  },
 ];
 
 /** Every `.ts` file under a path, or the path itself when it is a file. */
@@ -230,8 +276,8 @@ function main(): void {
   }
 
   console.log(
-    `\n${moved} file(s) moved, ${fixed} import specifier(s) had a `
-      .ts` extension stripped.`,
+    `\n${moved} file(s) moved, ${fixed} import specifier(s) had a ` +
+      "`.ts` extension stripped.",
   );
 
   if (!apply) {

@@ -6,6 +6,7 @@
  * - MULTI_DIM_ARRAY_ELEMENT: matrix[i][j] <- value
  * - ARRAY_SLICE: buffer[0, 10] <- source
  */
+import ComplianceAnnotations from "../../../../../TRANSPILE/2-Plan/ComplianceAnnotations";
 import * as Parser from "../../../../logic/parser/grammar/CNextParser";
 import AssignmentKind from "../AssignmentKind";
 import IAssignmentContext from "../IAssignmentContext";
@@ -30,9 +31,8 @@ const SIGNED_INT_RE = /^i(8|16|32|64)$/;
  * the source type is unknown, or a single element is written, no rule is cited.
  */
 function sliceUnrollComment(destCType: string, srcCType: string): string {
-  return (
-    `/* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes ` +
-    `(memcpy would pass incompatible pointer types: ${destCType}* vs ${srcCType}*). */`
+  return ComplianceAnnotations.render(
+    ComplianceAnnotations.sliceUnroll(destCType, srcCType),
   );
 }
 

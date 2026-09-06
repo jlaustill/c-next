@@ -10,7 +10,7 @@ import SymbolRegistry from "../state/SymbolRegistry";
 /**
  * Issue #1323: `_renderHeaders` (Stage 5.5) promotes a header-render failure
  * to `fileResult.success = false` and `result.errors`/`result.success`. That
- * promotion has no test of its own -- `HeaderEmissionPlanner.test.ts` covers
+ * promotion has no test of its own -- `HeaderRenderer.test.ts` covers
  * the planner's per-file ISOLATION of a render failure
  * (`errorsBySourcePath`), not the Transpiler's PROMOTION of one, which is the
  * half that decides whether a failed header fails the build at all. Replacing
@@ -41,7 +41,7 @@ describe("header render failure promotion (#1323)", () => {
     );
 
     // The first header rendered throws; every later one renders for real.
-    // Mirrors HeaderEmissionPlanner.test.ts's own "does not let one file's
+    // Mirrors HeaderRenderer.test.ts's own "does not let one file's
     // render failure abort another file's render".
     const generateSpy = vi.spyOn(HeaderGenerator.prototype, "generate");
     generateSpy.mockImplementationOnce(() => {

@@ -8,6 +8,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "SeaDash.hpp"
 
 #ifdef __cplusplus
 extern "C" {

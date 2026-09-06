@@ -8,7 +8,7 @@
 import IHeaderSymbol from "./types/IHeaderSymbol";
 import SymbolTable from "../../logic/symbols/SymbolTable";
 import CppNamespaceUtils from "../../../utils/CppNamespaceUtils";
-import typeUtils from "./generators/mapType";
+import typeUtils from "../../../utils/mapType";
 import IGroupedSymbols from "./types/IGroupedSymbols";
 import IHeaderOptions from "../codegen/types/IHeaderOptions";
 import IHeaderTypeInput from "./generators/IHeaderTypeInput";
@@ -356,15 +356,17 @@ class HeaderGeneratorUtils {
   /**
    * Generate all include directives (system, user, and external type headers)
    */
+
   static generateIncludes(
     options: IHeaderOptions,
     headersToInclude: Set<string>,
+    systemIncludes: readonly string[],
   ): string[] {
     const lines: string[] = [];
 
-    // System includes
+    // System includes, as decided by decideSystemIncludes above.
     if (options.includeSystemHeaders !== false) {
-      lines.push("#include <stdint.h>", "#include <stdbool.h>");
+      lines.push(...systemIncludes.map((target) => `#include ${target}`));
     }
 
     // User includes (already have correct extension from IncludeExtractor)
@@ -386,8 +388,11 @@ class HeaderGeneratorUtils {
     );
 
     // Add blank line if any includes were added
+    // A header that needs no system include and has no user include emits no
+    // blank line either -- the separator belonged to includes that were always
+    // there, and 332 headers had it for two includes they never used.
     const hasIncludes =
-      options.includeSystemHeaders !== false ||
+      (options.includeSystemHeaders !== false && systemIncludes.length > 0) ||
       (options.userIncludes && options.userIncludes.length > 0) ||
       headersToInclude.size > 0;
     if (hasIncludes) {

@@ -7,7 +7,6 @@
  */
 
 #include <stdint.h>
-#include <stdbool.h>
 #include "switch-enum-cross-file-types.hpp"
 
 #ifdef __cplusplus

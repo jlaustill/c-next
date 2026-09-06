@@ -28,7 +28,11 @@ import IOrchestrator from "./generators/IOrchestrator";
 import IGeneratorInput from "./generators/IGeneratorInput";
 import IGeneratorState from "./generators/IGeneratorState";
 import TGeneratorEffect from "./generators/TGeneratorEffect";
-import TIncludeHeader from "./generators/TIncludeHeader";
+import EmissionPlan from "../../../TRANSPILE/2-Plan/EmissionPlan";
+import DeclarationOrder from "../../../TRANSPILE/2-Plan/DeclarationOrder";
+import type TDeclarationKind from "../../types/TDeclarationKind";
+import type IEmissionPlan from "../../types/IEmissionPlan";
+import type IEmissionFacts from "../../types/IEmissionFacts";
 import GeneratorRegistry from "./generators/GeneratorRegistry";
 // Expression generators
 import generateLiteral from "./generators/expressions/LiteralGenerator";
@@ -151,7 +155,6 @@ import ScopeResolver from "./resolution/ScopeResolver";
 import QualifiedNameGenerator from "./utils/QualifiedNameGenerator";
 import MisraSuppressionUtils from "../MisraSuppressionUtils";
 import QualifiedCName from "../../../utils/QualifiedCName";
-import type TRequirementKey from "../../types/TRequirementKey";
 import type IRecordedRequirement from "../../types/IRecordedRequirement";
 import ToolchainRequirementUtils from "../../../utils/ToolchainRequirementUtils";
 import ScopeUtils from "../../../utils/ScopeUtils";
@@ -213,21 +216,6 @@ interface FunctionSignature {
     isArray: boolean;
   }>;
 }
-
-/**
- * Issue #1143: The requirements carried by generateIrqWrappers()'s output.
- *
- * One key per arm of the emitted #if/#elif/#else chain, consumed by
- * addGeneratedHelpers(). Declaring them as one list means adding a platform arm
- * without stating its cost shows up as a list that no longer matches the
- * emitter -- and the probe invariant test fails on the mismatch.
- */
-const IRQ_WRAPPER_REQUIREMENTS: readonly TRequirementKey[] = [
-  "critical-arm-gnu",
-  "critical-arduino",
-  "critical-avr-libc",
-  "critical-cmsis-fallback",
-];
 
 /**
  * Code Generator - Transpiles C-Next to C
@@ -442,10 +430,10 @@ export default class CodeGenerator implements IOrchestrator {
       switch (effect.type) {
         // Include effects - delegate to requireInclude()
         case "include":
-          this.requireInclude(effect.header, effect.line ?? null);
+          CodeGenState.requireInclude(effect.header, effect.line ?? null);
           break;
         case "isr":
-          this.requireInclude("isr");
+          CodeGenState.requireInclude("isr");
           break;
 
         // Toolchain requirement effects (Issue #1143)
@@ -469,7 +457,7 @@ export default class CodeGenerator implements IOrchestrator {
           // ADR-051 safe-div helpers return a bool error flag. Route that
           // dependency through the single include path (#1108) rather than
           // letting the helper emit its own #include <stdbool.h>.
-          this.requireInclude("stdbool");
+          CodeGenState.requireInclude("stdbool");
           break;
 
         // Type registration effects
@@ -535,59 +523,6 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Register a required include header. Centralizes all include flag management
-   * to reduce scattered assignments throughout the codebase.
-   *
-   * @param header - The header to require (stdint, stdbool, string, etc.)
-   */
-  private requireInclude(
-    header: TIncludeHeader,
-    line: number | null = null,
-  ): void {
-    // Issue #1143: three of these "headers" are really deferred code-emission
-    // requests. Record where they were asked for, so the emitter that finally
-    // produces the block can attribute its requirement to a .cnx line. No
-    // requirement is recorded here -- the code does not exist yet, and
-    // recording a requirement for text that may never be emitted is exactly
-    // the mistake that made #1141's guard fire on files without the construct.
-    // Only the two headers that have a claiming emitter. "isr" was noted here
-    // and never read: takeDeferredSites is called for float_static_assert and
-    // irq_wrappers alone, and the ISR typedef carries no requirement. Keeping
-    // the deferred keys equal to the set that gets claimed is the property the
-    // rest of this design leans on.
-    if (header === "irq_wrappers" || header === "float_static_assert") {
-      CodeGenState.noteDeferredSite(header, line);
-    }
-
-    switch (header) {
-      case "stdint":
-        CodeGenState.needsStdint = true;
-        break;
-      case "stdbool":
-        CodeGenState.needsStdbool = true;
-        break;
-      case "string":
-        CodeGenState.needsString = true;
-        break;
-      case "cmsis":
-        CodeGenState.needsCMSIS = true;
-        break;
-      case "limits":
-        CodeGenState.needsLimits = true;
-        break;
-      case "isr":
-        CodeGenState.needsISR = true;
-        break;
-      case "float_static_assert":
-        CodeGenState.needsFloatStaticAssert = true;
-        break;
-      case "irq_wrappers":
-        CodeGenState.needsIrqWrappers = true;
-        break;
-    }
-  }
-
-  /**
    * Get the current indentation string.
    */
   getIndent(): string {
@@ -643,7 +578,7 @@ export default class CodeGenerator implements IOrchestrator {
     // Track required includes based on type usage
     const requiredInclude = TypeGenerationHelper.getRequiredInclude(ctx);
     if (requiredInclude) {
-      this.requireInclude(requiredInclude);
+      CodeGenState.requireInclude(requiredInclude);
     }
 
     // Generate the C type using the helper with dependencies
@@ -2441,7 +2376,6 @@ export default class CodeGenerator implements IOrchestrator {
     options: ICodeGeneratorOptions | undefined,
   ): string {
     const output: string[] = [];
-    const symbols = CodeGenState.symbols!;
 
     // Issue #1143: every file carries its mode's baseline. Recorded here rather
     // than assumed by consumers, so "what does this file need?" has exactly one
@@ -2455,7 +2389,9 @@ export default class CodeGenerator implements IOrchestrator {
     // members, so a file exporting types, consts or top-level functions got a
     // header nothing included. Same question, same answer source as the header
     // itself.
-    if (symbols.hasPublicInterface && CodeGenState.sourcePath) {
+    // #1515: supplied by the caller, which asked `PublicInterface`. Not read
+    // off `ICodeGenSymbols`, where 1.3 Declare used to put it.
+    if (options?.hasPublicInterface && CodeGenState.sourcePath) {
       const pathToUse =
         options?.sourceRelativePath ||
         CodeGenState.sourcePath.replace(/^.*[\\/]/, "");
@@ -2476,9 +2412,14 @@ export default class CodeGenerator implements IOrchestrator {
     // Generate declarations
     const declarations = this.generateAllDeclarations(tree);
 
-    // Add auto-includes and helpers
-    this.addAutoIncludes(output);
-    this.addGeneratedHelpers(output);
+    // 2.2 Plan: every "does this file need X?" question the declarations above
+    // raised is answered ONCE, here, from state that is warm for exactly this
+    // long. Nothing below reads a `needs*` flag.
+    const plan = EmissionPlan.build(this.captureEmissionFacts(output));
+
+    // 2.3 Render: format the plan. These two decide nothing.
+    this.addAutoIncludes(output, plan);
+    this.addGeneratedHelpers(output, plan);
 
     // Add the declarations
     output.push(...declarations);
@@ -2589,21 +2530,40 @@ export default class CodeGenerator implements IOrchestrator {
   /**
    * Generate all declarations from the tree.
    */
+  /**
+   * What a declaration is, in the terms 2.2 Plan's ordering asks about.
+   *
+   * The parse tree stops here: `DeclarationOrder` takes kinds, not contexts,
+   * so a pass outside the parse layer does not grow a dependency on ANTLR to
+   * answer a question about order (#1317).
+   */
+  private static declarationKindOf(
+    decl: Parser.DeclarationContext,
+  ): TDeclarationKind {
+    if (decl.functionDeclaration() !== null) return "function";
+    if (decl.scopeDeclaration() !== null) return "scope";
+    return "other";
+  }
+
   private generateAllDeclarations(tree: Parser.ProgramContext): string[] {
+    const sourceOrder = tree.declaration();
+
+    // Issue #1212, #1449: WHICH declaration the callback typedef block precedes
+    // is decided by 2.2 Plan, from the shape of the file. WHERE that lands in
+    // the emitted array is arithmetic, and stays here -- the index depends on
+    // how many leading-comment lines were pushed, which is a fact about text.
+    const precedes = DeclarationOrder.callbackTypedefsPrecede(
+      sourceOrder.map((decl) => CodeGenerator.declarationKindOf(decl)),
+    );
+
     const declarations: string[] = [];
-    // Issue #1212: where the callback typedef block belongs -- after the type
-    // declarations it may depend on, before the first function that may use it.
     let firstFunctionIndex: number | null = null;
 
-    for (const decl of tree.declaration()) {
+    for (const [index, decl] of sourceOrder.entries()) {
       const leadingComments = this.getLeadingComments(decl);
       declarations.push(...this.formatLeadingComments(leadingComments));
 
-      if (
-        firstFunctionIndex === null &&
-        (decl.functionDeclaration() !== null ||
-          decl.scopeDeclaration() !== null)
-      ) {
+      if (index === precedes) {
         firstFunctionIndex = declarations.length;
       }
 
@@ -2636,32 +2596,58 @@ export default class CodeGenerator implements IOrchestrator {
   /**
    * Add auto-generated includes based on usage.
    */
-  private addAutoIncludes(output: string[]): void {
-    // Issue #1108: dedup auto-includes against passthrough source includes
-    // (processIncludeDirectives runs first). A source that already
-    // `#include`s e.g. <stdint.h> must not have it emitted a second time.
-    const present = new Set(
-      output
-        .map((line) => CodeGenerator.extractIncludeTarget(line))
-        .filter((target): target is string => target !== null),
+  /**
+   * Print the system includes the plan decided on.
+   *
+   * Deliberately holds no condition. It used to hold five `if (needs*)` tests
+   * plus a dedup that re-parsed `#include` lines already in `output` -- so the
+   * emitted text was an input to the decision, and the answer depended on how
+   * much of the file had been rendered. Both moved into `EmissionPlan`.
+   */
+  private addAutoIncludes(output: string[], plan: IEmissionPlan): void {
+    if (plan.systemIncludes.length === 0) return;
+    output.push(
+      ...plan.systemIncludes.map((target) => `#include ${target}`),
+      "",
     );
+  }
 
-    const autoIncludes: string[] = [];
-    const addInclude = (target: string): void => {
-      if (present.has(target)) return;
-      autoIncludes.push(`#include ${target}`);
-      present.add(target);
+  /**
+   * Freeze this file's emission questions while `CodeGenState` still holds
+   * them.
+   *
+   * The `.c` counterpart of `Transpiler._captureHeaderEmissionFacts`, and
+   * captured at the same kind of moment: `CodeGenState.reset()` runs per file,
+   * so every field below is correct for exactly the window between this file's
+   * declarations being generated and the next file's `generate()`.
+   *
+   * `output` is read only for the include targets the source itself carries --
+   * `processIncludeDirectives` has already pushed them -- so that the plan can
+   * decide the final set rather than a renderer subtracting one list from
+   * another.
+   */
+  private captureEmissionFacts(output: readonly string[]): IEmissionFacts {
+    const existingIncludeTargets = output
+      .map((line) => CodeGenerator.extractIncludeTarget(line))
+      .filter((target): target is string => target !== null);
+
+    return {
+      cppMode: this.isCppMode(),
+      needsStdint: CodeGenState.needsStdint,
+      needsStdbool: CodeGenState.needsStdbool,
+      needsString: CodeGenState.needsString,
+      needsCMSIS: CodeGenState.needsCMSIS,
+      needsLimits: CodeGenState.needsLimits,
+      needsFloatStaticAssert: CodeGenState.needsFloatStaticAssert,
+      needsIrqWrappers: CodeGenState.needsIrqWrappers,
+      needsISR: CodeGenState.needsISR,
+      selfIncludeAdded: CodeGenState.selfIncludeAdded,
+      existingIncludeTargets,
+      clampOps: CodeGenState.usedClampOps,
+      safeDivOps: CodeGenState.usedSafeDivOps,
+      floatAssertSites: CodeGenState.takeDeferredSites("float_static_assert"),
+      irqWrapperSites: CodeGenState.takeDeferredSites("irq_wrappers"),
     };
-
-    if (CodeGenState.needsStdint) addInclude("<stdint.h>");
-    if (CodeGenState.needsStdbool) addInclude("<stdbool.h>");
-    if (CodeGenState.needsString) addInclude("<string.h>");
-    if (CodeGenState.needsCMSIS) addInclude("<cmsis_gcc.h>");
-    if (CodeGenState.needsLimits) addInclude("<limits.h>");
-
-    if (autoIncludes.length > 0) {
-      output.push(...autoIncludes, "");
-    }
   }
 
   /**
@@ -2676,41 +2662,42 @@ export default class CodeGenerator implements IOrchestrator {
   /**
    * Add generated helpers (static asserts, IRQ wrappers, typedefs, etc.).
    */
-  private addGeneratedHelpers(output: string[]): void {
-    if (CodeGenState.needsFloatStaticAssert) {
-      // Use static_assert for C++ (standard), _Static_assert for C11.
-      // Issue #1143: the requirement is recorded from this same ternary, so
-      // the recorded key and the emitted keyword cannot disagree -- C11 for
-      // _Static_assert, C++11 for static_assert.
-      const cppMode = this.isCppMode();
-      const assertKeyword = cppMode ? "static_assert" : "_Static_assert";
-      CodeGenState.requireToolchain(
-        cppMode ? "float-assert-cpp11" : "float-assert-c11",
-        CodeGenState.takeDeferredSites("float_static_assert"),
-      );
+  /**
+   * Print the deferred blocks and helpers the plan decided on.
+   *
+   * Every `if` below tests a decision the plan already made, never a question.
+   * The float assert's keyword arrives WITH the requirement key it costs, so
+   * the two cannot disagree -- #1143 kept them in step by computing both from
+   * one ternary at this site; the plan keeps them in step by making them two
+   * fields of one record, and the ternary is gone from here.
+   *
+   * Requirements are still recorded into `CodeGenState` rather than read off
+   * the plan by the banner, because the banner also carries requirements this
+   * plan does not yet own (the mode baseline, C++ initializer forms, atomics).
+   * Recording a decision someone else made is transcription, not derivation.
+   */
+  private addGeneratedHelpers(output: string[], plan: IEmissionPlan): void {
+    const floatAssert = plan.floatStaticAssert;
+    if (floatAssert !== null) {
+      for (const key of floatAssert.requirements) {
+        CodeGenState.requireToolchain(key, floatAssert.sites);
+      }
       output.push(
-        `${assertKeyword}(sizeof(float) == 4, "Float bit indexing requires 32-bit float");`,
-        `${assertKeyword}(sizeof(double) == 8, "Float bit indexing requires 64-bit double");`,
+        `${floatAssert.keyword}(sizeof(float) == 4, "Float bit indexing requires 32-bit float");`,
+        `${floatAssert.keyword}(sizeof(double) == 8, "Float bit indexing requires 64-bit double");`,
         "",
       );
     }
 
-    if (CodeGenState.needsIrqWrappers) {
-      // Issue #1143: the block emits all four platform arms in one
-      // #if/#elif/#else chain, so the file carries all four requirements --
-      // which one applies is decided by the *compiler*, not by us. Recording a
-      // single "critical section" requirement here would force one answer to a
-      // per-target question and is how a requirements table starts lying.
-      const irqSites = CodeGenState.takeDeferredSites("irq_wrappers");
-      for (const key of IRQ_WRAPPER_REQUIREMENTS) {
-        CodeGenState.requireToolchain(key, irqSites);
+    const irq = plan.irqWrappers;
+    if (irq !== null) {
+      for (const key of irq.requirements) {
+        CodeGenState.requireToolchain(key, irq.sites);
       }
       output.push(...this.generateIrqWrappers());
     }
 
-    // Issue #369/#1164: when the .c includes its own header, the header owns
-    // this typedef. Emitting it here too is a redeclaration error.
-    if (CodeGenState.needsISR && !CodeGenState.selfIncludeAdded) {
+    if (plan.isrTypedef) {
       output.push(
         "/* ADR-040: ISR function pointer type */",
         "typedef void (*ISR)(void);",
@@ -2718,12 +2705,12 @@ export default class CodeGenerator implements IOrchestrator {
       );
     }
 
-    const helpers = this.generateOverflowHelpers();
+    const helpers = this.generateOverflowHelpers(plan.clampOps);
     if (helpers.length > 0) {
       output.push(...helpers);
     }
 
-    const safeDivHelpers = this.generateSafeDivHelpers();
+    const safeDivHelpers = this.generateSafeDivHelpers(plan.safeDivOps);
     if (safeDivHelpers.length > 0) {
       output.push(...safeDivHelpers);
     }
@@ -2934,7 +2921,7 @@ export default class CodeGenerator implements IOrchestrator {
   private registerAllVariableTypes(tree: Parser.ProgramContext): void {
     TypeRegistrationEngine.register(tree, {
       tryEvaluateConstant: (ctx) => this.tryEvaluateConstant(ctx),
-      requireInclude: (header) => this.requireInclude(header),
+      requireInclude: (header) => CodeGenState.requireInclude(header),
       resolveQualifiedType: (ids) => this.resolveQualifiedType(ids),
     });
   }
@@ -4260,7 +4247,7 @@ export default class CodeGenerator implements IOrchestrator {
       getSubstringOperands: (substrCtx) =>
         this._getSubstringOperands(substrCtx),
       getStringExprCapacity: (exprCode) => this.getStringExprCapacity(exprCode),
-      requireStringInclude: () => this.requireInclude("string"),
+      requireStringInclude: () => CodeGenState.requireInclude("string"),
     });
   }
 
@@ -4445,7 +4432,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     TypeRegistrationEngine.trackVariable(ctx, {
       tryEvaluateConstant: (expr) => this.tryEvaluateConstant(expr),
-      requireInclude: (header) => this.requireInclude(header),
+      requireInclude: (header) => CodeGenState.requireInclude(header),
       resolveQualifiedType: (ids) => this.resolveQualifiedType(ids),
     });
     CodeGenState.registerLocalVariable(name);
@@ -4601,7 +4588,7 @@ export default class CodeGenerator implements IOrchestrator {
       {
         generateBitMask: (w, is64Bit) => this.generateBitMask(w, is64Bit),
         foldBooleanToInt: (expr) => this.foldBooleanToInt(expr),
-        requireInclude: (header) => this.requireInclude(header),
+        requireInclude: (header) => CodeGenState.requireInclude(header),
       },
     );
   }
@@ -5069,7 +5056,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Mark that we need limits.h for the type limit macros
-    this.requireInclude("limits");
+    CodeGenState.requireInclude("limits");
 
     // Use appropriate float suffix and type for comparisons
     const floatSuffix = sourceType === "f32" ? "f" : "";
@@ -5193,10 +5180,15 @@ export default class CodeGenerator implements IOrchestrator {
   /**
    * Generate all needed overflow helper functions
    * Delegates to HelperGenerator
+   *
+   * Takes the ops from the PLAN, not from `CodeGenState`. Reading the state
+   * here while the plan also carried them was the fact in two places with the
+   * renderer using the other one -- the duplicate path this pass exists to
+   * remove, reintroduced by the pass itself.
    */
-  private generateOverflowHelpers(): string[] {
+  private generateOverflowHelpers(clampOps: readonly string[]): string[] {
     return helperGenerateOverflowHelpers(
-      CodeGenState.usedClampOps,
+      new Set(clampOps),
       CodeGenState.debugMode,
     );
   }
@@ -5250,17 +5242,6 @@ export default class CodeGenerator implements IOrchestrator {
     ];
   }
 
-  /**
-   * Mark a clamp operation as used (will trigger helper generation)
-   */
-  private markClampOpUsed(operation: string, cnxType: string): void {
-    // Only generate helpers for integer types (not float/bool)
-    if (TYPE_WIDTH[cnxType] && TypeCheckUtils.isInteger(cnxType)) {
-      // Internal helper-op key, not a scope-qualified C name
-      CodeGenState.usedClampOps.add(`${operation}_${cnxType}`);
-    }
-  }
-
   // ========================================================================
   // Preprocessor Directive Handling (ADR-037)
   // ========================================================================
@@ -5305,7 +5286,7 @@ export default class CodeGenerator implements IOrchestrator {
    * ADR-051: Generate safe division helper functions for used integer types only
    * Delegates to HelperGenerator
    */
-  private generateSafeDivHelpers(): string[] {
-    return helperGenerateSafeDivHelpers(CodeGenState.usedSafeDivOps);
+  private generateSafeDivHelpers(safeDivOps: readonly string[]): string[] {
+    return helperGenerateSafeDivHelpers(new Set(safeDivOps));
   }
 }

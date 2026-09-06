@@ -246,41 +246,52 @@ describe("CodeGenState", () => {
     });
   });
 
-  describe("Include Flag Helpers", () => {
-    it("requireStdint sets needsStdint", () => {
-      expect(CodeGenState.needsStdint).toBe(false);
-      CodeGenState.requireStdint();
-      expect(CodeGenState.needsStdint).toBe(true);
+  describe("requireInclude -- the one include sink (#1449)", () => {
+    // Parameterized rather than eight near-identical blocks: that shape is
+    // SonarCloud S5976, and the six it replaces were exactly it.
+    it.each([
+      ["stdint", () => CodeGenState.needsStdint],
+      ["stdbool", () => CodeGenState.needsStdbool],
+      ["string", () => CodeGenState.needsString],
+      ["cmsis", () => CodeGenState.needsCMSIS],
+      ["limits", () => CodeGenState.needsLimits],
+      ["isr", () => CodeGenState.needsISR],
+      ["float_static_assert", () => CodeGenState.needsFloatStaticAssert],
+      ["irq_wrappers", () => CodeGenState.needsIrqWrappers],
+    ] as const)("%s raises its flag and no other", (header, read) => {
+      expect(read()).toBe(false);
+      CodeGenState.requireInclude(header);
+      expect(read()).toBe(true);
     });
 
-    it("requireStdbool sets needsStdbool", () => {
-      expect(CodeGenState.needsStdbool).toBe(false);
-      CodeGenState.requireStdbool();
-      expect(CodeGenState.needsStdbool).toBe(true);
-    });
+    // Negative control: the funnel must raise ONE flag, not blanket them.
+    // Without this the test above passes just as well against a body that
+    // sets every flag on any call.
+    it("raises only the flag it was asked for", () => {
+      CodeGenState.requireInclude("string");
 
-    it("requireString sets needsString", () => {
-      expect(CodeGenState.needsString).toBe(false);
-      CodeGenState.requireString();
       expect(CodeGenState.needsString).toBe(true);
-    });
-
-    it("requireCMSIS sets needsCMSIS", () => {
+      expect(CodeGenState.needsStdint).toBe(false);
+      expect(CodeGenState.needsStdbool).toBe(false);
       expect(CodeGenState.needsCMSIS).toBe(false);
-      CodeGenState.requireCMSIS();
-      expect(CodeGenState.needsCMSIS).toBe(true);
-    });
-
-    it("requireLimits sets needsLimits", () => {
       expect(CodeGenState.needsLimits).toBe(false);
-      CodeGenState.requireLimits();
-      expect(CodeGenState.needsLimits).toBe(true);
+      expect(CodeGenState.needsISR).toBe(false);
+      expect(CodeGenState.needsFloatStaticAssert).toBe(false);
+      expect(CodeGenState.needsIrqWrappers).toBe(false);
     });
 
-    it("requireISR sets needsISR", () => {
-      expect(CodeGenState.needsISR).toBe(false);
-      CodeGenState.requireISR();
-      expect(CodeGenState.needsISR).toBe(true);
+    // #1143: only the two headers with a claiming emitter are recorded as
+    // deferred sites. "isr" is deliberately NOT one -- takeDeferredSites is
+    // called for float_static_assert and irq_wrappers alone.
+    it.each([
+      ["float_static_assert", true],
+      ["irq_wrappers", true],
+      ["isr", false],
+      ["string", false],
+    ] as const)("%s deferred-site recorded: %s", (header, recorded) => {
+      CodeGenState.requireInclude(header, 42);
+
+      expect(CodeGenState.takeDeferredSites(header).length > 0).toBe(recorded);
     });
   });
 

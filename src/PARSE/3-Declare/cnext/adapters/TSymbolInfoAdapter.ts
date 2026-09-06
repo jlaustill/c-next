@@ -22,7 +22,6 @@ import IVariableSymbol from "../../../../transpiler/types/symbols/IVariableSymbo
 import TypeResolver from "../../../../utils/TypeResolver";
 import ScopeUtils from "../../../../utils/ScopeUtils";
 import QualifiedCName from "../../../../utils/QualifiedCName";
-import PublicInterface from "../../../../transpiler/logic/symbols/PublicInterface";
 
 /**
  * Groups register-related maps for processRegister method.
@@ -254,8 +253,6 @@ class TSymbolInfoAdapter {
       opaqueTypes,
 
       // Methods
-      hasPublicInterface: PublicInterface.existsIn(symbols),
-
       getSingleFunctionForVariable: (scopeName: string, varName: string) =>
         TSymbolInfoAdapter.getSingleFunctionForVariable(
           scopeVariableUsage,

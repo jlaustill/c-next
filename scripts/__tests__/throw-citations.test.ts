@@ -449,3 +449,114 @@ describe("ThrowCitations.bucketCounts", () => {
     expect(sections.every((s) => s.declared === s.rows)).toBe(true);
   });
 });
+
+describe("ThrowCitations.remap (#1518)", () => {
+  const doc = (line: number): string =>
+    `| \`Gen.ts:${line}\` | \`boom\` | why |\n`;
+
+  const previous = ["a", "b", 'throw new Error("boom");', "c"].join("\n");
+
+  it("moves a citation by however far its throw moved", () => {
+    const current = [
+      "a",
+      "INSERTED",
+      "b",
+      'throw new Error("boom");',
+      "c",
+    ].join("\n");
+
+    const outcome = ThrowCitations.remap(
+      doc(3),
+      new Map([["Gen.ts", { previous, current }]]),
+    );
+
+    expect(outcome.markdown).toBe(doc(4));
+    expect(outcome.rewritten).toBe(1);
+    expect(outcome.refusals).toEqual([]);
+  });
+
+  it("leaves a citation alone when nothing moved", () => {
+    const outcome = ThrowCitations.remap(
+      doc(3),
+      new Map([["Gen.ts", { previous, current: previous }]]),
+    );
+
+    expect(outcome.markdown).toBe(doc(3));
+  });
+
+  // The case the original "no write mode" objection is right about: which row
+  // means which is a judgement about content, so the tool declines it.
+  it("refuses a file whose throw count changed, and writes nothing for it", () => {
+    const current = [
+      "a",
+      'throw new Error("added");',
+      "b",
+      'throw new Error("boom");',
+      "c",
+    ].join("\n");
+
+    const outcome = ThrowCitations.remap(
+      doc(3),
+      new Map([["Gen.ts", { previous, current }]]),
+    );
+
+    expect(outcome.refusals).toHaveLength(1);
+    expect(outcome.refusals[0]).toContain("count changed 1 -> 2");
+    expect(outcome.markdown).toBe(doc(3));
+    expect(outcome.rewritten).toBe(0);
+  });
+
+  it("refuses one file without abandoning another", () => {
+    const other = ["x", 'throw new Error("other");'].join("\n");
+    const otherMoved = ["x", "y", 'throw new Error("other");'].join("\n");
+    const broken = [previous, 'throw new Error("added");'].join("\n");
+
+    const outcome = ThrowCitations.remap(
+      `${doc(3)}| \`Other.ts:2\` | \`other\` | why |\n`,
+      new Map([
+        ["Gen.ts", { previous, current: broken }],
+        ["Other.ts", { previous: other, current: otherMoved }],
+      ]),
+    );
+
+    expect(outcome.refusals).toHaveLength(1);
+    expect(outcome.markdown).toContain("Gen.ts:3");
+    expect(outcome.markdown).toContain("Other.ts:3");
+  });
+
+  it("rewrites a citation written with a directory prefix", () => {
+    const current = [
+      "a",
+      "INSERTED",
+      "b",
+      'throw new Error("boom");',
+      "c",
+    ].join("\n");
+
+    const outcome = ThrowCitations.remap(
+      "| `codegen/Gen.ts:3` | `boom` | why |\n",
+      new Map([["Gen.ts", { previous, current }]]),
+    );
+
+    expect(outcome.markdown).toBe("| `codegen/Gen.ts:4` | `boom` | why |\n");
+  });
+
+  it("leaves a line it cannot place, rather than guessing one", () => {
+    const outcome = ThrowCitations.remap(
+      doc(9999),
+      new Map([["Gen.ts", { previous, current: previous }]]),
+    );
+
+    expect(outcome.markdown).toBe(doc(9999));
+    expect(outcome.rewritten).toBe(0);
+  });
+
+  it("ignores a file it was given no revision for", () => {
+    const outcome = ThrowCitations.remap(
+      "| `Absent.ts:7` | `x` | y |\n",
+      new Map(),
+    );
+
+    expect(outcome.markdown).toBe("| `Absent.ts:7` | `x` | y |\n");
+  });
+});

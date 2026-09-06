@@ -7,7 +7,6 @@
  */
 
 #include <stdint.h>
-#include <stdbool.h>
 #include "cpp-class-array-init.h"
 
 #ifdef __cplusplus

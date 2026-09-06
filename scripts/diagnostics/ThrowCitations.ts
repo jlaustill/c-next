@@ -44,6 +44,9 @@
  * them mechanically, and the next ones #1322 adds.
  */
 
+import LineMap from "./LineMap";
+import type IRevision from "./IRevision";
+
 /**
  * Below this an anchor stops telling sites apart -- `Error` or `'` would
  * corroborate every row in the document, the #1143 shape.
@@ -64,6 +67,13 @@ interface IAnchoredRow {
   readonly argument: string;
 }
 
+interface IRemapOutcome {
+  readonly markdown: string;
+  readonly rewritten: number;
+  /** Files this refused to touch, and why. Non-empty means do not write. */
+  readonly refusals: readonly string[];
+}
+
 interface IThrowCitationOutcome {
   readonly ok: boolean;
   readonly errors: readonly string[];
@@ -71,6 +81,77 @@ interface IThrowCitationOutcome {
 }
 
 class ThrowCitations {
+  /**
+   * Rewrite every `file:line` in the document against a previous revision.
+   *
+   * #1518. The header of `scripts/throw-citations.ts` used to say there could
+   * be no write mode, because "a fixer would have to guess which throw a stale
+   * citation meant, and nine sites share a message". That objection is about a
+   * fixer reading the DOCUMENT ALONE, and it is correct about one. This reads
+   * the previous revision as well, where no guessing is required: when a file's
+   * `throw new` COUNT is unchanged, the Nth throw then is the Nth throw now,
+   * because nothing was added or removed to renumber them against.
+   *
+   * It REFUSES per file when that count changes. That is exactly the case the
+   * original objection describes -- a site appeared or vanished, and which row
+   * means which is a judgement about content, not arithmetic. Refusing there is
+   * what makes the rest safe to automate.
+   *
+   * Prose references to non-throw lines are remapped too, through `LineMap`,
+   * which declines any line it cannot place. An unmapped line is left exactly
+   * as written: visibly stale beats plausibly wrong, because the gate goes
+   * green on plausibly wrong.
+   *
+   * @param revisions cited basename -> that file's previous and current text
+   */
+  static remap(
+    markdown: string,
+    revisions: ReadonlyMap<string, IRevision>,
+  ): IRemapOutcome {
+    const maps = new Map<string, ReadonlyMap<number, number>>();
+    const refusals: string[] = [];
+
+    for (const [basename, revision] of revisions) {
+      const before = ThrowCitations.throwLines(revision.previous);
+      const after = ThrowCitations.throwLines(revision.current);
+      if (before.length !== after.length) {
+        refusals.push(
+          `${basename}: \`throw new\` count changed ${before.length} -> ${after.length}; ` +
+            `a site was added or removed, so which row means which is not arithmetic`,
+        );
+        continue;
+      }
+
+      // Line mapping first, then the throw pairs OVER it. Where they disagree
+      // the throw pairing wins: it is exact by construction, while the line map
+      // is a best alignment and a throw may sit inside a region it declined.
+      const map = new Map(
+        LineMap.build(
+          revision.previous.split("\n"),
+          revision.current.split("\n"),
+        ),
+      );
+      for (const [index, oldLine] of before.entries()) {
+        map.set(oldLine, after[index]);
+      }
+      maps.set(basename, map);
+    }
+
+    let rewritten = 0;
+    const updated = markdown.replace(
+      /([A-Za-z0-9_/….]*\.ts):(\d+)/g,
+      (whole, path: string, digits: string) => {
+        const basename = path.slice(path.lastIndexOf("/") + 1);
+        const mapped = maps.get(basename)?.get(Number.parseInt(digits, 10));
+        if (mapped === undefined) return whole;
+        rewritten += 1;
+        return `${path}:${mapped}`;
+      },
+    );
+
+    return { markdown: updated, rewritten, refusals };
+  }
+
   /**
    * A citation is the first cell of a table row, `| \`Path.ts:123\` |`, and
    * its anchor is the second cell when that cell is nothing but a code span,

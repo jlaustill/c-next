@@ -5,12 +5,8 @@
  * Used by HeaderGenerator to emit full struct definitions in headers.
  */
 
+import headerCType from "../../../../utils/headerCType";
 import IHeaderTypeInput from "./IHeaderTypeInput";
-import typeUtils from "./mapType";
-import CppNamespaceUtils from "../../../../utils/CppNamespaceUtils";
-
-const { mapType } = typeUtils;
-
 /**
  * Resolve the C type for a struct field, checking for callback types first.
  */
@@ -20,12 +16,10 @@ function resolveFieldCType(fieldType: string, input: IHeaderTypeInput): string {
   if (callbackInfo) {
     return callbackInfo.typedefName;
   }
-  // Issue #502/#522: Convert C++ namespace types from _ to :: format
-  const convertedType = CppNamespaceUtils.convertToCppNamespace(
-    fieldType,
-    input.symbolTable,
-  );
-  return mapType(convertedType);
+  // Issue #502/#522: a C++ namespaced type is written `A::B`, not `A__B`.
+  // Shared with the function-prototype path, which used to skip the conversion
+  // and name a type nothing declares (#1520).
+  return headerCType(fieldType, input.symbolTable);
 }
 
 /**

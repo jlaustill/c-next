@@ -7,7 +7,7 @@
  */
 
 #include <stdint.h>
-#include <stdbool.h>
+#include "Lib.hpp"
 
 #ifdef __cplusplus
 extern "C" {

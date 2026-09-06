@@ -27,7 +27,7 @@ import CodeGenState from "../../../../state/CodeGenState";
 import AdrProvenance from "../../../../state/AdrProvenance";
 import SymbolRegistry from "../../../../state/SymbolRegistry";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
-import PublicInterface from "../../../../logic/symbols/PublicInterface";
+import PublicInterface from "../../../../../TRANSPILE/2-Plan/PublicInterface";
 import generateEnumHeader from "../../../headers/generators/generateEnumHeader";
 import generateBitmapHeader from "../../../headers/generators/generateBitmapHeader";
 import generateStructHeader from "../../../headers/generators/generateStructHeader";

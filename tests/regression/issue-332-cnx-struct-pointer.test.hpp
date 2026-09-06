@@ -6,8 +6,6 @@
  * Header file for cross-language interoperability
  */
 
-#include <stdint.h>
-#include <stdbool.h>
 #include <issue-332-cnx-types.hpp>
 
 #ifdef __cplusplus

@@ -531,17 +531,28 @@ describe("HeaderGeneratorUtils", () => {
   });
 
   describe("generateIncludes", () => {
-    it("generates system includes by default", () => {
-      const lines = HeaderGeneratorUtils.generateIncludes({}, new Set());
+    // #1517: no longer "by default" -- what is decided is what is emitted.
+    it("emits exactly the system includes it was given", () => {
+      const lines = HeaderGeneratorUtils.generateIncludes({}, new Set(), [
+        "<stdint.h>",
+        "<stdbool.h>",
+      ]);
 
       expect(lines).toContain("#include <stdint.h>");
       expect(lines).toContain("#include <stdbool.h>");
+    });
+
+    it("emits no system include when the declarations need none", () => {
+      const lines = HeaderGeneratorUtils.generateIncludes({}, new Set(), []);
+
+      expect(lines).toEqual([]);
     });
 
     it("skips system includes when disabled", () => {
       const lines = HeaderGeneratorUtils.generateIncludes(
         { includeSystemHeaders: false },
         new Set(),
+        ["<stdint.h>"],
       );
 
       expect(lines).not.toContain("#include <stdint.h>");
@@ -551,6 +562,7 @@ describe("HeaderGeneratorUtils", () => {
       const lines = HeaderGeneratorUtils.generateIncludes(
         { userIncludes: ['#include "custom.h"'] },
         new Set(),
+        [],
       );
 
       expect(lines).toContain('#include "custom.h"');
@@ -558,13 +570,15 @@ describe("HeaderGeneratorUtils", () => {
 
     it("includes external type headers", () => {
       const headers = new Set(['#include "external.h"']);
-      const lines = HeaderGeneratorUtils.generateIncludes({}, headers);
+      const lines = HeaderGeneratorUtils.generateIncludes({}, headers, []);
 
       expect(lines).toContain('#include "external.h"');
     });
 
     it("adds blank line after includes", () => {
-      const lines = HeaderGeneratorUtils.generateIncludes({}, new Set());
+      const lines = HeaderGeneratorUtils.generateIncludes({}, new Set(), [
+        "<stdint.h>",
+      ]);
 
       expect(lines[lines.length - 1]).toBe("");
     });
@@ -576,6 +590,7 @@ describe("HeaderGeneratorUtils", () => {
           cppMode: true,
         },
         new Set(),
+        [],
       );
 
       expect(lines).toContain('#include "types.hpp"');
@@ -588,6 +603,7 @@ describe("HeaderGeneratorUtils", () => {
           cppMode: true,
         },
         new Set(['#include "../AppConfig.hpp"']),
+        [],
       );
       // Should NOT have duplicate - different path styles for same file should dedup
       const configIncludes = result.filter((l) => l.includes("AppConfig"));
@@ -605,6 +621,7 @@ describe("HeaderGeneratorUtils", () => {
           cppMode: true,
         },
         new Set(["#include <Display/AppData.h>"]),
+        [],
       );
       const appDataIncludes = result.filter((l) => l.includes("AppData"));
       expect(appDataIncludes).toEqual(["#include <Display/AppData.hpp>"]);

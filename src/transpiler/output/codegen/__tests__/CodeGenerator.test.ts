@@ -2,6 +2,7 @@
  * Unit tests for CodeGenerator - the main transpiler component.
  * Tests the IOrchestrator interface and internal methods.
  */
+import PublicInterface from "../../../../TRANSPILE/2-Plan/PublicInterface";
 import { describe, it, expect, beforeEach } from "vitest";
 import CodeGenerator from "../CodeGenerator";
 import CNextSourceParser from "../../../logic/parser/CNextSourceParser";
@@ -1971,6 +1972,11 @@ describe("CodeGenerator", () => {
         symbolInfo: symbols,
         sourcePath: "myfile.cnx",
         sourceRelativePath: "myfile.cnx",
+        // #1515: the caller decides, from the rule's owner. This is the same
+        // call `Transpiler` makes; it used to be made inside 1.3 Declare and
+        // arrive on `symbolInfo`, which is what put an emission decision in the
+        // parse layer.
+        hasPublicInterface: PublicInterface.existsIn(tSymbols),
       });
 
       expect(code).toContain('#include "myfile.h"');

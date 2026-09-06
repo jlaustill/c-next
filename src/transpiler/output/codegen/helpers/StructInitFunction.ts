@@ -16,6 +16,7 @@
  * existence decision is therefore recorded where it is made and read
  * everywhere else; only the spelling lives in this module.
  */
+import ComplianceAnnotations from "../../../../TRANSPILE/2-Plan/ComplianceAnnotations";
 import ICallbackFieldInit from "../types/ICallbackFieldInit";
 
 /**
@@ -24,8 +25,9 @@ import ICallbackFieldInit from "../types/ICallbackFieldInit";
  * One line above the block -- the declarations are contiguous and share a
  * single reason, so repeating it per prototype would add noise, not tracing.
  */
-const RULE_8_4_ANNOTATION =
-  "/* MISRA C:2012 Rule 8.4: declaration for the ADR-029 generated init function (the definition has external linkage and would otherwise be undeclared). */";
+const RULE_8_4_ANNOTATION = ComplianceAnnotations.render(
+  ComplianceAnnotations.INIT_PROTOTYPE,
+);
 
 class StructInitFunction {
   /** Generated C name, e.g. `Controller` -> `Controller_init`. */
