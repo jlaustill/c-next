@@ -18,6 +18,7 @@
     "start": "tsx src/index.ts",
     "dev": "tsx src/index.ts",
     "typecheck": "tsc --noEmit",
+    "typecheck:scripts": "tsc --noEmit -p tsconfig.scripts.json",
     "test": "tsx scripts/test.ts",
     "test:cli": "node scripts/test-cli.js",
     "test:q": "tsx scripts/test.ts -q",

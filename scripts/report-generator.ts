@@ -6,11 +6,10 @@
 import { writeFileSync } from "node:fs";
 import ICoverageItem from "./types/ICoverageItem";
 import ITestAnnotation from "./types/ITestAnnotation";
-import ICoverageReport, {
-  ICoverageSummary,
-  IMismatch,
-  ISectionSummary,
-} from "./types/ICoverageReport";
+import ICoverageReport from "./types/ICoverageReport";
+import ICoverageSummary from "./types/ICoverageSummary";
+import IMismatch from "./types/IMismatch";
+import ISectionSummary from "./types/ISectionSummary";
 import chalk from "chalk";
 
 /** Get color function based on percentage threshold */

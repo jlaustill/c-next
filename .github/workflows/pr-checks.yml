@@ -264,6 +264,13 @@ jobs:
       - name: Check Prettier plugin types
         run: npx tsc --noEmit -p prettier-plugin/tsconfig.json
 
+      # scripts/ is outside tsconfig.json's `include`, so the test harness and
+      # every gate the lint job runs were never typechecked -- which is how a
+      # statically detectable TS2339 shipped in scripts/move-modules.ts and left
+      # the documented mover unable to move anything (#1489).
+      - name: Check scripts types
+        run: npm run typecheck:scripts
+
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:

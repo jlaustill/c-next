@@ -65,10 +65,13 @@ describe("examples transpile and compile cleanly (Issue #1048)", () => {
   it.each(examples)("%s transpiles and compiles", async (_label, file) => {
     const outDir = mkdtempSync(join(tmpdir(), "cnext-examples-"));
     try {
+      // `basePath` has never existed on ITranspilerConfig -- it is only a local
+      // in PathNormalizer -- so this key was silently discarded. Removed rather
+      // than added: the test asserts transpile success and clean compilation,
+      // neither of which it affects (#1489).
       const pipeline = new Transpiler({
         input: file,
         outDir,
-        basePath: dirname(file),
       });
 
       const result = await pipeline.transpile({ kind: "files" });

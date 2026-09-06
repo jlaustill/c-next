@@ -230,8 +230,7 @@ function main(): void {
   }
 
   console.log(
-    `\n${moved} file(s) moved, ${fixed} import specifier(s) had a `
-      .ts` extension stripped.`,
+    `\n${moved} file(s) moved, ${fixed} import specifier(s) had a \`.ts\` extension stripped.`,
   );
 
   if (!apply) {

@@ -1,0 +1,23 @@
+{
+  // scripts/ is outside the root tsconfig's `include`, so `npm run typecheck` has
+  // never opened it. That is not a cosmetic gap: the test harness (scripts/test.ts,
+  // scripts/test-utils.ts) and every gate the `lint` job runs live here, so the code
+  // that decides whether everything else passes was the code nothing checked. It let
+  // `move-modules.ts` ship a template literal that closes on the `.ts` it means to
+  // print -- a statically detectable TS2339 -- and the documented mover therefore
+  // never performed a single move (#1489).
+  //
+  // `rootDir` is the repo root, not ./src, because scripts import from both src/ and
+  // scripts/. Everything else is inherited so the two surfaces cannot drift apart.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    // scripts/ still holds three .mjs files. `allowJs` lets the checker read
+    // them directly and infer, rather than shipping a hand-written .d.ts --
+    // which would be a second declaration of one module's shape, i.e. the
+    // duplicate code path CLAUDE.md forbids.
+    "allowJs": true
+  },
+  "include": ["scripts/**/*.ts", "scripts/**/*.mjs"],
+  "exclude": ["node_modules", "dist"]
+}

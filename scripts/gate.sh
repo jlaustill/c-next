@@ -66,6 +66,7 @@ echo -e "\n${YELLOW}Build${NC}"
 run_check "Build" "build"                                npm run build
 run_check "Build" "typecheck"                            npm run typecheck
 run_check "Build" "typecheck (prettier-plugin)"          npx tsc --noEmit -p prettier-plugin/tsconfig.json
+run_check "Build" "typecheck (scripts)"                   npm run typecheck:scripts
 
 echo -e "\n${YELLOW}Tests${NC}"
 run_check "Unit Tests"        "unit"                     npm run unit

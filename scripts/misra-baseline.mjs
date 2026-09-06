@@ -78,10 +78,26 @@ const BASELINE = new Map([
 // drive-letter path (`C:\...`) would need a more specific anchor.
 const MISRA_LINE = /^(.+?):\d+:\d+:.*\[(misra-c2012-\d+\.\d+)\]/;
 
+/**
+ * One cppcheck finding attributed to a MISRA rule.
+ *
+ * Declared as JSDoc rather than a sibling `.d.ts` so the shape has a single
+ * source of truth: a hand-written declaration file is a second copy that drifts
+ * silently, which is the duplicate code path CLAUDE.md forbids. `allowJs` in
+ * `tsconfig.scripts.json` is what makes these annotations load-bearing (#1489).
+ *
+ * @typedef {{ file: string | undefined, ruleId: string | undefined, raw: string }} IMisraViolation
+ */
+
 class MisraBaseline {
   static BASELINE = BASELINE;
 
-  /** cppcheck argv for a single C file. Always enables style (the #1057 fix). */
+  /**
+   * cppcheck argv for a single C file. Always enables style (the #1057 fix).
+   * @param {string} file
+   * @param {string} includeDir
+   * @returns {string[]}
+   */
   static buildArgs(file, includeDir) {
     return [
       "--addon=misra",
@@ -115,12 +131,20 @@ class MisraBaseline {
     return violations;
   }
 
-  /** True for C-Next-generated output (*.test.c / *.test.h), false for fixtures. */
+  /**
+   * True for C-Next-generated output (*.test.c / *.test.h), false for fixtures.
+   * @param {string | undefined} file
+   * @returns {boolean}
+   */
   static isGenerated(file) {
     return /\.test\.(c|h)$/.test(file);
   }
 
-  /** Violations that should fail the build: generated code, un-baselined rule. */
+  /**
+   * Violations that should fail the build: generated code, un-baselined rule.
+   * @param {IMisraViolation[]} violations
+   * @returns {IMisraViolation[]}
+   */
   static findFailures(violations) {
     return violations.filter(
       (violation) =>

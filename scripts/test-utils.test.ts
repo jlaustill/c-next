@@ -18,11 +18,12 @@ import IValidationResult from "./types/IValidationResult";
 describe("test-utils exports", () => {
   it("should export ITools interface", () => {
     // TypeScript compile-time check - just verify we can use the type
+    // `cppcheck`, `clangTidy` and `misra` were removed from ITools when static
+    // analysis moved to the `npm run validate:c` batch step. This literal kept
+    // naming them, and the assertion is a compile-time one -- so it was silently
+    // wrong for as long as `scripts/` sat outside tsconfig's `include` (#1489).
     const tools: ITools = {
       gcc: true,
-      cppcheck: false,
-      clangTidy: false,
-      misra: false,
     };
     expect(tools.gcc).toBe(true);
   });
