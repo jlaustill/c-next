@@ -7,7 +7,6 @@
  */
 
 #include <stdint.h>
-#include <stdbool.h>
 #include "dup-lib.hpp"
 
 #ifdef __cplusplus

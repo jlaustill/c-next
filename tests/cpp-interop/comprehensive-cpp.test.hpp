@@ -7,7 +7,6 @@
  */
 
 #include <stdint.h>
-#include <stdbool.h>
 #include "comprehensive-cpp.hpp"
 
 #ifdef __cplusplus

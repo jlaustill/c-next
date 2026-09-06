@@ -41,7 +41,7 @@ function handleSimpleStringAssignment(ctx: IAssignmentContext): string {
   const typeInfo = CodeGenState.getVariableTypeInfo(id);
   const capacity = typeInfo!.stringCapacity!;
 
-  CodeGenState.needsString = true;
+  CodeGenState.requireInclude("string");
 
   const target = CodeGenState.requireGenerator().generateAssignmentTarget(
     ctx.targetCtx,
@@ -126,7 +126,7 @@ function handleStringThisMember(ctx: IAssignmentContext): string {
   const typeInfo = CodeGenState.getVariableTypeInfo(scopedName);
   const capacity = typeInfo!.stringCapacity!;
 
-  CodeGenState.needsString = true;
+  CodeGenState.requireInclude("string");
 
   const target = CodeGenState.requireGenerator().generateAssignmentTarget(
     ctx.targetCtx,
@@ -146,7 +146,7 @@ function handleStringStructField(ctx: IAssignmentContext): string {
   const fieldType = getStructFieldType(structName, fieldName);
   const capacity = TypeCheckUtils.getStringCapacity(fieldType)!;
 
-  CodeGenState.needsString = true;
+  CodeGenState.requireInclude("string");
 
   return StringUtils.copyToStructField(
     structName,
@@ -166,7 +166,7 @@ function handleStringArrayElement(ctx: IAssignmentContext): string {
   const typeInfo = CodeGenState.getVariableTypeInfo(name);
   const capacity = typeInfo!.stringCapacity!;
 
-  CodeGenState.needsString = true;
+  CodeGenState.requireInclude("string");
 
   const index = CodeGenState.requireGenerator().generateExpression(
     ctx.subscripts[0],
@@ -215,7 +215,7 @@ function handleStringStructArrayElement(ctx: IAssignmentContext): string {
   );
   const capacity = rawCapacity - 1;
 
-  CodeGenState.needsString = true;
+  CodeGenState.requireInclude("string");
 
   const index = CodeGenState.requireGenerator().generateExpression(
     ctx.subscripts[0],

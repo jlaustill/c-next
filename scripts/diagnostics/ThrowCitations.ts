@@ -54,6 +54,9 @@
  * spending it on text) is what tier A was scoped from.
  */
 
+import LineMap from "./LineMap";
+import type IRevision from "./IRevision";
+
 /**
  * Below this an anchor stops telling sites apart -- `Error` or `'` would
  * corroborate every row in the document, the #1143 shape.
@@ -77,6 +80,13 @@ interface IAnchoredRow {
   readonly argument: string;
 }
 
+interface IRemapOutcome {
+  readonly markdown: string;
+  readonly rewritten: number;
+  /** Files this refused to touch, and why. Non-empty means do not write. */
+  readonly refusals: readonly string[];
+}
+
 interface IThrowCitationOutcome {
   readonly ok: boolean;
   readonly errors: readonly string[];
@@ -84,6 +94,153 @@ interface IThrowCitationOutcome {
 }
 
 class ThrowCitations {
+  /**
+   * Rewrite every `file:line` in the document against a previous revision.
+   *
+   * #1518. The header of `scripts/throw-citations.ts` used to say there could
+   * be no write mode, because "a fixer would have to guess which throw a stale
+   * citation meant, and nine sites share a message". That objection is about a
+   * fixer reading the DOCUMENT ALONE, and it is correct about one. This reads
+   * the previous revision as well, where no guessing is required: when a file's
+   * `throw new` COUNT is unchanged, the Nth throw then is the Nth throw now,
+   * because nothing was added or removed to renumber them against.
+   *
+   * It REFUSES per file when that count changes. That is exactly the case the
+   * original objection describes -- a site appeared or vanished, and which row
+   * means which is a judgement about content, not arithmetic. Refusing there is
+   * what makes the rest safe to automate.
+   *
+   * Prose references to non-throw lines are remapped too, through `LineMap`,
+   * which declines any line it cannot place. An unmapped line is left exactly
+   * as written: visibly stale beats plausibly wrong, because the gate goes
+   * green on plausibly wrong.
+   *
+   * @param revisions cited basename -> that file's previous and current text
+   */
+  static remap(
+    markdown: string,
+    revisions: ReadonlyMap<string, IRevision>,
+  ): IRemapOutcome {
+    const maps = new Map<string, ReadonlyMap<number, number>>();
+    const refusals: string[] = [];
+
+    for (const [basename, revision] of revisions) {
+      const before = ThrowCitations.throwLines(revision.previous);
+      const after = ThrowCitations.throwLines(revision.current);
+      if (before.length !== after.length) {
+        // #1322 folded the anchor fallback in here rather than shipping a
+        // second fixer beside this one. The objection this method's header
+        // records -- "which row means which is not arithmetic" -- is exactly
+        // right about ORDINALS, and #1374 is what changed the inputs: every row
+        // now carries an ANCHOR, a verbatim substring of what its throw says.
+        // Where an anchor identifies one throw there is still nothing to guess.
+        //
+        // It matters because a count change is not an edge case for this card:
+        // #1322 deletes 23 sites and relocates 145, so refusing on count change
+        // refuses on every commit it will make.
+        //
+        // Rows only. Prose in such a file keeps no mapping and is reported,
+        // because prose carries no anchor and there is nothing to re-find it by.
+        const [anchored, unplaced] = ThrowCitations.anchorPairs(
+          markdown,
+          basename,
+          revision.current,
+        );
+        if (anchored.size > 0) {
+          maps.set(basename, anchored);
+        }
+        refusals.push(
+          ...unplaced.map(
+            (why) =>
+              `${basename}: \`throw new\` count changed ${before.length} -> ${after.length}; ${why}`,
+          ),
+        );
+        continue;
+      }
+
+      // Line mapping first, then the throw pairs OVER it. Where they disagree
+      // the throw pairing wins: it is exact by construction, while the line map
+      // is a best alignment and a throw may sit inside a region it declined.
+      const map = new Map(
+        LineMap.build(
+          revision.previous.split("\n"),
+          revision.current.split("\n"),
+        ),
+      );
+      for (const [index, oldLine] of before.entries()) {
+        map.set(oldLine, after[index]);
+      }
+      maps.set(basename, map);
+    }
+
+    let rewritten = 0;
+    const updated = markdown.replace(
+      /([A-Za-z0-9_/….]*\.ts):(\d+)/g,
+      (whole, path: string, digits: string) => {
+        const basename = path.slice(path.lastIndexOf("/") + 1);
+        const mapped = maps.get(basename)?.get(Number.parseInt(digits, 10));
+        if (mapped === undefined) return whole;
+        rewritten += 1;
+        return `${path}:${mapped}`;
+      },
+    );
+
+    return { markdown: updated, rewritten, refusals };
+  }
+
+  /**
+   * Old line -> new line for the rows of one file, matched by ANCHOR.
+   *
+   * Used when a file's throw count changed, so the ordinal pairing above cannot
+   * apply. Returns the pairs it is certain of, and a reason for every row it is
+   * not: a row whose anchor matches nothing, matches several throws its
+   * siblings do not account for, or carries no anchor at all.
+   *
+   * A group of N rows sharing an anchor pairs in ascending order against N
+   * candidates. That is a derivation, not a guess -- an edit elsewhere in the
+   * file shifts every survivor and cannot reorder them -- and its precondition
+   * is the equal counts. Unequal means one of the group was deleted and nothing
+   * says which, so the whole group is refused rather than silently shifted.
+   */
+  static anchorPairs(
+    markdown: string,
+    basename: string,
+    current: string,
+  ): [Map<number, number>, string[]] {
+    const rows = ThrowCitations.parse(markdown).filter(
+      (row) => row.path.slice(row.path.lastIndexOf("/") + 1) === basename,
+    );
+    const byAnchor = new Map<string, IThrowCitation[]>();
+    const pairs = new Map<number, number>();
+    const unplaced: string[] = [];
+
+    for (const row of rows) {
+      if (row.anchor === null) {
+        unplaced.push(`row at :${row.line} carries no anchor to re-find it by`);
+        continue;
+      }
+      byAnchor.set(row.anchor, [...(byAnchor.get(row.anchor) ?? []), row]);
+    }
+
+    for (const [anchor, group] of byAnchor) {
+      const candidates = ThrowCitations.throwLines(current).filter((line) => {
+        const argument = ThrowCitations.throwArgument(current, line);
+        return argument !== null && argument.includes(anchor);
+      });
+      if (candidates.length === group.length) {
+        const stale = group.map((row) => row.line).sort((a, b) => a - b);
+        const targets = [...candidates].sort((a, b) => a - b);
+        stale.forEach((line, index) => pairs.set(line, targets[index]));
+        continue;
+      }
+      unplaced.push(
+        `anchor \`${anchor}\` names ${group.length} row(s) and matches ` +
+          `${candidates.length} throw(s), so the group does not pair`,
+      );
+    }
+    return [pairs, unplaced];
+  }
+
   /**
    * A citation is the first cell of a table row, `| \`Path.ts:123\` |`, and
    * its anchor is the second cell when that cell is nothing but a code span,

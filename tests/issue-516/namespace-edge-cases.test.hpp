@@ -6,8 +6,7 @@
  * Header file for cross-language interoperability
  */
 
-#include <stdint.h>
-#include <stdbool.h>
+#include "CppNamespace.hpp"
 
 #ifdef __cplusplus
 extern "C" {

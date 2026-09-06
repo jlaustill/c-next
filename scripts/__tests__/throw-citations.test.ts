@@ -534,3 +534,168 @@ describe("ThrowCitations.bucketCounts", () => {
     expect(sections.every((s) => s.declared === s.rows)).toBe(true);
   });
 });
+
+describe("ThrowCitations.remap (#1518)", () => {
+  const doc = (line: number): string =>
+    `| \`Gen.ts:${line}\` | \`boom\` | why |\n`;
+
+  const previous = ["a", "b", 'throw new Error("boom");', "c"].join("\n");
+
+  it("moves a citation by however far its throw moved", () => {
+    const current = [
+      "a",
+      "INSERTED",
+      "b",
+      'throw new Error("boom");',
+      "c",
+    ].join("\n");
+
+    const outcome = ThrowCitations.remap(
+      doc(3),
+      new Map([["Gen.ts", { previous, current }]]),
+    );
+
+    expect(outcome.markdown).toBe(doc(4));
+    expect(outcome.rewritten).toBe(1);
+    expect(outcome.refusals).toEqual([]);
+  });
+
+  it("leaves a citation alone when nothing moved", () => {
+    const outcome = ThrowCitations.remap(
+      doc(3),
+      new Map([["Gen.ts", { previous, current: previous }]]),
+    );
+
+    expect(outcome.markdown).toBe(doc(3));
+  });
+
+  // The case the original "no write mode" objection is right about: which row
+  // means which is a judgement about content, so the tool declines it.
+  it("falls back to the anchor when the throw count changed (#1322)", () => {
+    // #1518 refused here, and was right that ORDINALS cannot decide a count
+    // change. #1374 had already changed the inputs though: every row carries an
+    // anchor, and `boom` names exactly one of the two throws below. Nothing is
+    // guessed, so nothing needs refusing.
+    //
+    // It matters because a count change is #1322's normal case, not an edge
+    // one: that card deletes 23 sites and relocates 145, so refusing on count
+    // change refuses on every commit it makes.
+    const current = [
+      "a",
+      'throw new Error("added");',
+      "b",
+      'throw new Error("boom");',
+      "c",
+    ].join("\n");
+
+    const outcome = ThrowCitations.remap(
+      doc(3),
+      new Map([["Gen.ts", { previous, current }]]),
+    );
+
+    expect(outcome.markdown).toBe(doc(4));
+    expect(outcome.rewritten).toBe(1);
+    expect(outcome.refusals).toEqual([]);
+  });
+
+  it("still refuses a count change the anchor cannot decide", () => {
+    // Two throws now share the row's anchor, and only one row claims it. The
+    // group does not pair, so which one the row meant is a judgement about
+    // content -- exactly #1518's objection, and it survives intact for the case
+    // it was actually about.
+    const current = [
+      "a",
+      'throw new Error("boom");',
+      "b",
+      'throw new Error("boom");',
+      "c",
+    ].join("\n");
+
+    const outcome = ThrowCitations.remap(
+      doc(3),
+      new Map([["Gen.ts", { previous, current }]]),
+    );
+
+    expect(outcome.refusals).toHaveLength(1);
+    expect(outcome.refusals[0]).toContain("count changed 1 -> 2");
+    expect(outcome.refusals[0]).toContain("does not pair");
+    expect(outcome.markdown).toBe(doc(3));
+    expect(outcome.rewritten).toBe(0);
+  });
+
+  it("refuses a row that carries no anchor to re-find it by", () => {
+    const current = [
+      "a",
+      'throw new Error("added");',
+      "b",
+      'throw new Error("boom");',
+      "c",
+    ].join("\n");
+
+    const outcome = ThrowCitations.remap(
+      "| `Gen.ts:3` | prose, not an anchor | why |\n",
+      new Map([["Gen.ts", { previous, current }]]),
+    );
+
+    expect(outcome.refusals).toHaveLength(1);
+    expect(outcome.refusals[0]).toContain("no anchor");
+    expect(outcome.rewritten).toBe(0);
+  });
+
+  it("refuses one file without abandoning another", () => {
+    const other = ["x", 'throw new Error("other");'].join("\n");
+    const otherMoved = ["x", "y", 'throw new Error("other");'].join("\n");
+    const broken = [previous, 'throw new Error("added");'].join("\n");
+
+    const outcome = ThrowCitations.remap(
+      `${doc(3)}| \`Other.ts:2\` | \`other\` | why |\n`,
+      new Map([
+        ["Gen.ts", { previous, current: broken }],
+        ["Other.ts", { previous: other, current: otherMoved }],
+      ]),
+    );
+
+    // `Gen.ts` changed count, but its row's anchor `boom` still names one
+    // throw, so it is placed rather than refused; `Other.ts` moves by the line
+    // map as before. Neither file's outcome depends on the other's.
+    expect(outcome.refusals).toEqual([]);
+    expect(outcome.markdown).toContain("Gen.ts:3");
+    expect(outcome.markdown).toContain("Other.ts:3");
+  });
+
+  it("rewrites a citation written with a directory prefix", () => {
+    const current = [
+      "a",
+      "INSERTED",
+      "b",
+      'throw new Error("boom");',
+      "c",
+    ].join("\n");
+
+    const outcome = ThrowCitations.remap(
+      "| `codegen/Gen.ts:3` | `boom` | why |\n",
+      new Map([["Gen.ts", { previous, current }]]),
+    );
+
+    expect(outcome.markdown).toBe("| `codegen/Gen.ts:4` | `boom` | why |\n");
+  });
+
+  it("leaves a line it cannot place, rather than guessing one", () => {
+    const outcome = ThrowCitations.remap(
+      doc(9999),
+      new Map([["Gen.ts", { previous, current: previous }]]),
+    );
+
+    expect(outcome.markdown).toBe(doc(9999));
+    expect(outcome.rewritten).toBe(0);
+  });
+
+  it("ignores a file it was given no revision for", () => {
+    const outcome = ThrowCitations.remap(
+      "| `Absent.ts:7` | `x` | y |\n",
+      new Map(),
+    );
+
+    expect(outcome.markdown).toBe("| `Absent.ts:7` | `x` | y |\n");
+  });
+});

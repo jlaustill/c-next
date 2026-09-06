@@ -7,7 +7,6 @@
  */
 
 #include <stdint.h>
-#include <stdbool.h>
 #include "span4-b.h"
 
 #ifdef __cplusplus

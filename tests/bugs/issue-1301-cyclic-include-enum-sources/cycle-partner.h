@@ -7,7 +7,6 @@
  */
 
 #include <stdint.h>
-#include <stdbool.h>
 #include "cyclic-include.test.h"
 
 #ifdef __cplusplus

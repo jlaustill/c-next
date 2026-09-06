@@ -7,7 +7,6 @@
  */
 
 #include <stdint.h>
-#include <stdbool.h>
 #include "fake_lib.h"
 
 #ifdef __cplusplus

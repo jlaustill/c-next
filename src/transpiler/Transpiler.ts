@@ -24,10 +24,12 @@ import CodeGenState from "./state/CodeGenState";
 import AdrProvenance from "./state/AdrProvenance";
 import CachedSymbolReader from "../utils/cache/CachedSymbolReader";
 import TJsonValue from "../utils/types/TJsonValue";
-import TypeResolver from "../utils/TypeResolver";
-import PublicInterface from "./logic/symbols/PublicInterface";
+import PublicInterface from "../TRANSPILE/2-Plan/PublicInterface";
 import HeaderGenerator from "./output/headers/HeaderGenerator";
-import HeaderEmissionPlanner from "./output/headers/HeaderEmissionPlanner";
+import HeaderRenderer from "./output/headers/HeaderRenderer";
+import HeaderTypeNames from "../TRANSPILE/2-Plan/HeaderTypeNames";
+import HeaderIncludes from "../TRANSPILE/2-Plan/HeaderIncludes";
+import QualifiedCName from "../utils/QualifiedCName";
 import ExternalTypeHeaderBuilder from "./output/headers/ExternalTypeHeaderBuilder";
 import HeaderGeneratorUtils from "./output/headers/HeaderGeneratorUtils";
 import IHeaderEmissionFacts from "./output/headers/types/IHeaderEmissionFacts";
@@ -496,7 +498,7 @@ class Transpiler {
    * Stage 5.5: render every file's captured `IHeaderEmissionFacts` into
    * header text, in one batch, after the Stage 5 loop has finished.
    *
-   * #1323: `HeaderEmissionPlanner.plan()` never reads `CodeGenState` -- it
+   * #1323: `HeaderRenderer.render()` never reads `CodeGenState` -- it
    * only reads the captured records -- so calling it here, once, after every
    * file's state has already moved on, is exactly the timing issue #1139's
    * fix forbade for `generateHeaderForFile`. That method no longer exists;
@@ -515,7 +517,7 @@ class Transpiler {
    * block that produced that failure.
    */
   private _renderHeaders(result: ITranspilerResult): void {
-    const plan = HeaderEmissionPlanner.plan(
+    const rendered = HeaderRenderer.render(
       this.headerEmissionFactsByPath,
       this.headerGenerator,
     );
@@ -525,13 +527,17 @@ class Transpiler {
         continue;
       }
 
-      const headerCode = plan.headersBySourcePath.get(fileResult.sourcePath);
+      const headerCode = rendered.headersBySourcePath.get(
+        fileResult.sourcePath,
+      );
       if (headerCode !== undefined) {
         fileResult.headerCode = headerCode;
         continue;
       }
 
-      const errorMessage = plan.errorsBySourcePath.get(fileResult.sourcePath);
+      const errorMessage = rendered.errorsBySourcePath.get(
+        fileResult.sourcePath,
+      );
       if (errorMessage === undefined) {
         continue;
       }
@@ -878,6 +884,11 @@ class Transpiler {
         symbolInfo,
         sourceRelativePath,
         cnxIncludeRewrites: this.state.getCnxIncludeRewrites(sourcePath),
+        // #1515: decided here, from the rule's owner. 1.3 Declare used to
+        // answer this, which put an emission decision in the parse layer.
+        hasPublicInterface: PublicInterface.existsIn(
+          CodeGenState.symbolTable.getTSymbolsByFile(sourcePath),
+        ),
       });
 
       // Collect user includes
@@ -907,7 +918,7 @@ class Transpiler {
 
       // #1323: resolve this file's header-render input while its state is
       // warm (reads from state populated above), but do not render it here.
-      // HeaderEmissionPlanner renders every file's header in one step, after
+      // HeaderRenderer renders every file's header in one step, after
       // this per-file loop finishes -- headerCode is filled in there.
       const headerFacts = this._captureHeaderEmissionFacts(file);
       if (headerFacts) {
@@ -2328,7 +2339,7 @@ class Transpiler {
    * ADR-055 Phase 7: Uses TSymbol directly, converts to IHeaderSymbol for generation.
    *
    * #1323: this decides a header's content -- it no longer renders it. It
-   * returns the resolved `IHeaderEmissionFacts` `HeaderEmissionPlanner` will
+   * returns the resolved `IHeaderEmissionFacts` `HeaderRenderer` will
    * later pass to `HeaderGenerator.generate()`, instead of calling that
    * itself. That split is what makes issue #1139 structurally impossible
    * rather than merely fixed: #1139 happened because a SECOND, LATER call
@@ -2353,7 +2364,7 @@ class Transpiler {
    * A dependency cycle would break that ordering (`_sortFilesByDependency`
    * drains `depGraph.getWarnings()` into warnings rather than failing, so
    * cycle order is arbitrary, #1167) -- captured here rather than read by
-   * `HeaderEmissionPlanner` for exactly that reason: reading it once more,
+   * `HeaderRenderer` for exactly that reason: reading it once more,
    * after every file, would make a cycle's header content correct regardless
    * of order, but that is a genuine behavior change belonging to #1167, not
    * a side effect of this refactor.
@@ -2385,7 +2396,19 @@ class Transpiler {
     }
 
     // Known to a C/C++ header, but not as something forward-declarable.
+    //
+    // The C++ index is keyed by the C++ NAME -- `SeaDash::Parse::ParseResult`
+    // -- while a C-Next type naming it carries the generated C form,
+    // `SeaDash__Parse__ParseResult`. Asking the index with the transpiled name
+    // returns nothing for every namespaced type, which reads as "no such
+    // symbol" rather than "wrong question" (CLAUDE.md, #1139). That is why
+    // #1520's four headers declared a field whose type nothing defined: the
+    // lookup could not fail loudly, it just answered no. `toCppQualified` is
+    // the single encoder for that key, and it leaves an unqualified name alone.
     const declared =
+      CodeGenState.symbolTable.getCppSymbol(
+        QualifiedCName.toCppQualified(typeName, "::"),
+      ) ??
       CodeGenState.symbolTable.getCppSymbol(typeName) ??
       CodeGenState.symbolTable.getCSymbol(typeName);
     if (!declared) {
@@ -2398,34 +2421,45 @@ class Transpiler {
     );
   }
 
+  /**
+   * Whether the header must carry the source's own C/C++ includes.
+   *
+   * Two reasons, and they are different questions over the same symbols:
+   *
+   *   - the header names a MACRO it does not define -- an array dimension that
+   *     stayed an identifier, which only the source's headers supply (#424); or
+   *   - the header names a TYPE whose definition lives in one of them.
+   *
+   * The second used to be asked per symbol kind, here, and answered `false` for
+   * a struct -- so a struct field typed by a C++ header got no include and the
+   * header would not compile (#1520). The enumeration is now
+   * `HeaderTypeNames.collect`, shared with the other derivation that had the
+   * same hole, and this asks only the question it owns.
+   */
   private static _headerNeedsUserCHeaders(symbols: TSymbol[]): boolean {
-    return symbols.some((symbol) => {
-      if (symbol.kind === "variable") {
-        const namesMacroDimension =
-          symbol.arrayDimensions?.some(
-            (dimension) => typeof dimension === "string",
-          ) ?? false;
-        return (
-          namesMacroDimension ||
-          Transpiler._needsDefiningHeader(TypeResolver.getTypeName(symbol.type))
-        );
+    if (symbols.some(Transpiler._namesMacroDimension)) {
+      return true;
+    }
+    for (const typeName of HeaderTypeNames.collect(symbols)) {
+      if (Transpiler._needsDefiningHeader(typeName)) {
+        return true;
       }
+    }
+    return false;
+  }
 
-      if (symbol.kind === "function") {
-        return (
-          Transpiler._needsDefiningHeader(
-            TypeResolver.getTypeName(symbol.returnType),
-          ) ||
-          symbol.parameters.some((parameter) =>
-            Transpiler._needsDefiningHeader(
-              TypeResolver.getTypeName(parameter.type),
-            ),
-          )
-        );
-      }
-
-      return false;
-    });
+  /**
+   * Issue #424: an array dimension that is still an identifier is a macro the
+   * header names and does not define.
+   */
+  private static _namesMacroDimension(symbol: TSymbol): boolean {
+    return (
+      symbol.kind === "variable" &&
+      (symbol.arrayDimensions?.some(
+        (dimension) => typeof dimension === "string",
+      ) ??
+        false)
+    );
   }
 
   private _captureHeaderEmissionFacts(
@@ -2515,6 +2549,14 @@ class Transpiler {
         generatedStructInits: new Set(CodeGenState.generatedStructInits),
         externalTypeHeaders,
         cppMode: this.cppMode,
+        // #1517: 2.2 Plan decides; the header generator prints. Possible only
+        // since #1520 made `headerCType` the one answer to "what does this
+        // header call this type" -- before that, deciding from the symbols
+        // meant deriving the type mapping a second time.
+        systemIncludes: HeaderIncludes.decide(
+          exportedSymbols,
+          CodeGenState.symbolTable,
+        ),
       },
       typeInput: typeInputWithSymbolTable,
       passByValueParams,

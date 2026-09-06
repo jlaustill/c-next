@@ -60,6 +60,16 @@ interface IHeaderOptions {
    * locally would declare functions that are never defined.
    */
   readonly generatedStructInits?: ReadonlySet<string>;
+
+  /**
+   * Issue #1517: the system headers this header emits, decided by 2.2 Plan.
+   *
+   * Not a flag the renderer interprets -- the strings it prints. It used to
+   * emit `<stdint.h>` and `<stdbool.h>` unconditionally while the `.c` was
+   * precise, so one question had two derivations that agreed only where both
+   * happened to be true.
+   */
+  systemIncludes?: readonly string[];
 }
 
 export default IHeaderOptions;

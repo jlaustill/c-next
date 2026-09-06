@@ -7,7 +7,6 @@
  */
 
 #include <stdint.h>
-#include <stdbool.h>
 #include "widget.h"
 
 #ifdef __cplusplus

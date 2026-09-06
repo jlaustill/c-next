@@ -9,7 +9,7 @@
 
 import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
 import TYPE_MAP from "../types/TYPE_MAP.js";
-import TIncludeHeader from "../generators/TIncludeHeader.js";
+import TIncludeHeader from "../../../types/TIncludeHeader";
 import QualifiedCName from "../../../../utils/QualifiedCName";
 import ScopeUtils from "../../../../utils/ScopeUtils";
 import ITypeAccessors from "../../../types/ITypeAccessors";

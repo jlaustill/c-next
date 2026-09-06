@@ -7,7 +7,6 @@
  */
 
 #include <stdint.h>
-#include <stdbool.h>
 #include "lib/sensors.h"
 
 #ifdef __cplusplus

@@ -930,6 +930,73 @@ class TestUtils {
    * helper are in flight at once and a difference seen here is a real one. The
    * compile step no longer races either, for the same reason.
    */
+  /**
+   * A dependency's generated file paired with the snapshot beside it.
+   *
+   * #1521: 60 `.expected.*` files were compared by nothing, and 48 of them had
+   * gone stale. The harness walks `*.test.cnx`, so a HELPER -- a plain `.cnx`
+   * pulled in by an entry -- has no fixture of its own to drive a comparison.
+   * Its `.expected.h` sat beside it looking exactly like a snapshot and
+   * asserting nothing: `chain-types-base.expected.h` still said
+   * `typedef struct Coordinate` long after the generator began emitting
+   * `ChainTypesBase__Coordinate`, with the suite green.
+   *
+   * CLAUDE.md records the reason those files exist -- "Helper files: Create
+   * `.expected.h` to prevent test framework cleanup" -- which makes them
+   * cleanup MARKERS. A marker named `.expected.*` in a repository where every
+   * other `.expected.*` is an assertion is a trap, so they become assertions
+   * rather than being renamed: a compared file is not a cleanup candidate
+   * either, so the reason they were created still holds.
+   *
+   * Only paths that already HAVE a snapshot are returned. A dependency without
+   * one is not made to grow one -- that is the author's call, and #1149's
+   * orphans show what unasked-for snapshots become.
+   */
+  static helperSnapshotPairs(
+    generatedPaths: readonly string[],
+  ): { generated: string; snapshot: string }[] {
+    const pairs: { generated: string; snapshot: string }[] = [];
+    for (const generated of generatedPaths) {
+      const snapshot = generated.replace(/\.(c|cpp|h|hpp)$/, ".expected.$1");
+      if (snapshot !== generated && existsSync(snapshot)) {
+        pairs.push({ generated, snapshot });
+      }
+    }
+    return pairs;
+  }
+
+  /**
+   * The first dependency whose snapshot disagrees with what was generated.
+   *
+   * Reported like any other snapshot mismatch, because that is what it is --
+   * the only thing that made it different was that nothing looked.
+   */
+  static findHelperSnapshotMismatch(
+    generatedPaths: readonly string[],
+  ): { error: string; expected: string; actual: string } | null {
+    for (const { generated, snapshot } of TestUtils.helperSnapshotPairs(
+      generatedPaths,
+    )) {
+      if (!existsSync(generated)) continue;
+      const actual = readFileSync(generated, "utf-8");
+      const expected = readFileSync(snapshot, "utf-8");
+      if (TestUtils.normalize(actual) === TestUtils.normalize(expected)) {
+        continue;
+      }
+      return {
+        error:
+          `Dependency snapshot mismatch: ${basename(snapshot)}` +
+          TestUtils.describeFirstDifference(
+            TestUtils.normalize(expected),
+            TestUtils.normalize(actual),
+          ),
+        expected,
+        actual,
+      };
+    }
+    return null;
+  }
+
   static findHelperHeaderDivergence(
     captured: { path: string; content: string | null }[],
     mode: TTestMode,
@@ -1071,6 +1138,17 @@ class TestUtils {
       content: existsSync(path) ? readFileSync(path, "utf-8") : null,
     }));
 
+    // #1521: every file this run generated for something OTHER than the entry.
+    // The entry's own two are excluded because the code below already compares
+    // them -- including them here would give one file two comparisons and two
+    // ways to report the same failure.
+    const dependencySnapshotPaths = [
+      ...dependencyHeaderPaths,
+      ...transpileResult.generatedImplPaths.filter(
+        (path) => path !== expectedImplPath && path !== paths.tempImpl,
+      ),
+    ];
+
     // Transpile helper files via CLI
     // NOTE: Don't use -o flag here. The CLI's -o flag causes a rename operation
     // that would move tracked helper files to temp locations. Instead, let
@@ -1140,6 +1218,17 @@ class TestUtils {
       if (transpileResult.headerCode) {
         writeFileSync(paths.expectedHeader, transpileResult.headerCode);
       }
+      // #1521: a dependency's snapshot is refreshed by the same command that
+      // refreshes the entry's. It was not, which is how 48 of them drifted
+      // years out of date while `npm run test:update` reported everything
+      // updated.
+      for (const { generated, snapshot } of TestUtils.helperSnapshotPairs(
+        dependencySnapshotPaths,
+      )) {
+        if (existsSync(generated)) {
+          writeFileSync(snapshot, readFileSync(generated, "utf-8"));
+        }
+      }
     }
 
     // Computed AFTER the update write, so a fixture whose snapshot this run just
@@ -1194,6 +1283,18 @@ class TestUtils {
       }
     }
     result.headerMatch = true;
+
+    // #1521: the dependencies' snapshots, checked exactly like the entry's.
+    // Nothing about them was ever different except that nothing looked.
+    const dependencyMismatch = TestUtils.findHelperSnapshotMismatch(
+      dependencySnapshotPaths,
+    );
+    if (dependencyMismatch) {
+      result.error = dependencyMismatch.error;
+      result.expected = dependencyMismatch.expected;
+      result.actual = dependencyMismatch.actual;
+      return result;
+    }
 
     // transpileOnly mode: Skip compilation and execution
     if (options.transpileOnly) {

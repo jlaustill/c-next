@@ -564,7 +564,21 @@ foo.expected.error    # Expected error (if test-error)
   the mutation marker to confirm it is gone
 - **Negative controls in error fixtures**: an `.expected.error` proves the diagnostic fires, not that it fires _only_ where it should. Put a case that must stay silent beside the flagged one — `tests/bugs/issue-847-misra-17-7-lowering/external-c-discard.test.cnx` calls a `void` C function directly above the non-void call and names only the latter in its `.expected.error`, so an analyzer that flagged every call regardless of return type would fail it. The assertion catches under-enforcement; the control catches over-enforcement
 - **Examples are CI-guarded**: `scripts/__tests__/examples-transpile.test.ts` transpiles every `examples/**/*.cnx` during `npm run unit`
-- **Orphaned snapshots**: `.expected.cpp/.hpp` beside a `// test-c-only` fixture (or `.c/.h` beside `test-cpp-only`) is never regenerated _or_ compared — 30 exist, preserving dead codegen shapes (#1149). Exclude them from any corpus-wide analysis
+- **Orphaned snapshots are gone, and cannot come back (#1149).** A `.expected.cpp/.hpp` beside a
+  `// test-c-only` fixture — or `.c/.h` beside `test-cpp-only` — is never regenerated _or_
+  compared, so it preserves whatever codegen produced the day it was written; several held C++
+  syntax in a `.h`. This entry used to say "30 exist … exclude them from any corpus-wide
+  analysis", which is an instruction to remember something. **90 existed** when it was measured
+  (66 snapshots, 24 generated files); all are deleted, and
+  `scripts/__tests__/snapshot-modes.test.ts` fails on another. Nothing needs excluding, so
+  nothing has to remember to
+- **Dependency snapshots are compared (#1521).** The harness walks `*.test.cnx`, so a helper's
+  `.expected.h` had no fixture to drive it: 60 were compared by nothing and 48 had gone stale —
+  `chain-types-base.expected.h` still described a transpiler that predated scope-qualified C
+  names, with the suite green. `runTest` now checks and updates every file a run generated for
+  something other than the entry. CLAUDE.md's own "create `.expected.h` to prevent test framework
+  cleanup" is what made them look like snapshots; the harness stopped cleaning helper files, so
+  they are assertions now instead
 - **`/* test-no-warnings */`** compiles `-c -O3` (`TestUtils.validateNoWarnings`). `-Wstringop-overflow`/`-Warray-bounds` are middle-end diagnostics — under the previous `-fsyntax-only` with no `-O` they could never fire, so the marker was inert (#1143)
 
 ### Transpiler Entry Point
@@ -615,10 +629,21 @@ Update: `src/index.ts` (parse + pass), `src/transpiler/types/ITranspilerConfig.t
 
 ### Adding Generator Effects
 
-1. Add to `TIncludeHeader` union
-2. Add `needs<Effect>` field in CodeGenerator (reset in `generate()`)
-3. Handle in `processEffects()` switch
-4. Generate in `assembleOutput()`
+1. Add to the `TIncludeHeader` union in `src/transpiler/types/` — it is a shared
+   contract, not a codegen type: `CodeGenState` names it too, and `state/` may not
+   import `output/`
+2. Add the `needs<Effect>` field to **`CodeGenState`** (reset in `CodeGenState.reset()`)
+3. Handle it in **`CodeGenerator.applyEffects()`**, which delegates to the one sink,
+   `CodeGenState.requireInclude()` — never set a `needs*` field directly
+4. Emit it in **`CodeGenerator.assembleGeneratedOutput()`** (via `addAutoIncludes()` for
+   a real `#include`, or `addGeneratedHelpers()` for the three deferred code-emission
+   members)
+
+Three of the four names this list carried were wrong: `processEffects()` and
+`assembleOutput()` have never existed, and the `needs*` fields are static on
+`CodeGenState`, not on `CodeGenerator` — which is the same file's own rule
+("CodeGenState: sole state container"). Corrected under #1449, which needed the real
+ones. `npx tsc --noEmit` cannot catch a name in prose; only a reader can.
 
 ### Struct Param Access Helpers
 

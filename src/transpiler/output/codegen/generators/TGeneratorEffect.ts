@@ -8,7 +8,7 @@
  */
 import TTypeInfo from "../../../types/TTypeInfo";
 import TParameterInfo from "../../../types/TParameterInfo";
-import TIncludeHeader from "./TIncludeHeader";
+import TIncludeHeader from "../../../types/TIncludeHeader";
 import type TRequirementKey from "../../../types/TRequirementKey";
 
 type TGeneratorEffect =

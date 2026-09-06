@@ -7,7 +7,6 @@
  */
 
 #include <stdint.h>
-#include <stdbool.h>
 #include "func-lib.h"
 
 #ifdef __cplusplus

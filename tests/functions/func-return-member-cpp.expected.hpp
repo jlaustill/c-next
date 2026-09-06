@@ -7,7 +7,6 @@
  */
 
 #include <stdint.h>
-#include <stdbool.h>
 #include "func-return-member-cpp.h"
 
 #ifdef __cplusplus

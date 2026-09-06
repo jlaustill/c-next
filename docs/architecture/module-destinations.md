@@ -20,6 +20,30 @@ already authored on `IFileSymbols`, applied to modules instead of fields. Using
 the same test in both places is the point: a second rule would be a second thing
 to keep in step.
 
+### The rule above is about PARSE, and it is two-way
+
+It answers "1.3 or 1.4", so it has no answer for a module in neither. That is
+not a gap to paper over with judgement — a rule that cannot express the move
+being made is how the wrong row gets written and then defended, which is
+exactly what happened to `PublicInterface.ts` below.
+
+For the TRANSPILE passes the test is **what the module decides**, because that
+is what §1 assigns them by:
+
+- **2.1 Analyze** — whether the program is legal. Emits diagnostics.
+- **2.2 Plan** — what C should exist. Emits decisions: includes, helpers,
+  declarations and order, MISRA annotations, toolchain requirements.
+- **2.3 Render** — what the text looks like. Decides nothing.
+
+The discriminator between 2.2 and 2.3 is whether removing the module would
+change _what_ is emitted or only _how it reads_. A module that answers "does
+this file need `<stdint.h>`?" is 2.2 even if it also prints the line; a module
+that cannot answer any such question is 2.3.
+
+A module named by more than one LAYER belongs to neither and is a shared
+contract: `.dependency-cruiser.cjs` sends those to `transpiler/types/`, which
+every layer may depend on.
+
 ## `awaiting` is a real destination
 
 A row reading `awaiting #NNNN` means the destination is decided and the move is
@@ -54,21 +78,37 @@ from `awaiting` to a real path, never back.
 | `DeferredTypes.ts`           | settles bare names against the whole-program scope-type set       |
 | `TransitiveEnumCollector.ts` | walks the include graph, so it needs the graph rather than a file |
 
+## TRANSPILE
+
+### 2.2 Plan — `src/TRANSPILE/2-Plan/`
+
+| module                     | why                                                                                                                                                               |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `EmissionPlan.ts`          | decides what C should exist for one file — the artifact 2.2 emits                                                                                                 |
+| `ComplianceAnnotations.ts` | which safety-standard rule shaped a construct, and the one rendering of the house form                                                                            |
+| `HeaderTypeNames.ts`       | every type name a file's public header will name — one enumeration, where two derivations each stopped at functions and variables (#1520)                         |
+| `PublicInterface.ts`       | which symbols form a file's public C interface — `isExported` minus ADR-030's `main` exemption minus "a scope is a container", which §2 assigns to `EmissionPlan` |
+
+Created here rather than moved: 2.2 Plan did not exist as a module anywhere, so
+there was nothing to relocate. #1323's `HeaderRenderer` (`HeaderEmissionPlanner` until #1449) is **not** listed
+— it renders header text from already-decided facts, which is 2.3 by the
+discriminator above.
+
 ## Blocked
 
 | module                                 | destination                                                                                                      | blocked on                                                                                                                                                                                                                                                      |
 | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `logic/symbols/SymbolTable.ts`         | `awaiting` 1.4 Resolve                                                                                           | 1.3 Declare imports it: the C and C++ collectors take a `SymbolTable` parameter. Moving it now makes a 3-Declare → 4-Resolve edge, which is the pass order backwards. The edges are type-only, so this is shallow coupling, but it is not this card's to remove |
-| `logic/symbols/PublicInterface.ts`     | `awaiting` 1.4 Resolve                                                                                           | same shape: `TSymbolInfoAdapter` calls `PublicInterface.existsIn`                                                                                                                                                                                               |
 | `cnext/adapters/TSymbolInfoAdapter.ts` | **split** — `convert()` stays in 1.3; `mergeExternalSymbols`/`mergeOpaqueTypes` are cross-file and belong in 1.4 | the merge half is only reachable once `ICodeGenSymbols` stops being the per-file view codegen reads                                                                                                                                                             |
 
-Those three are the measurement behind "the pass split is not finished", and
-they are why `src/transpiler/logic/symbols/` still exists.
+Those are the measurement behind "the pass split is not finished", and they are
+why `src/transpiler/logic/symbols/` still exists — holding `SymbolTable.ts`
+alone, since #1515 removed the edge that pinned `PublicInterface` there.
 
 ## Not yet placed
 
-The other five passes (1.1 Discover, 1.2 Parse, 2.1 Analyze, 2.2 Plan, 2.3
-Render, 3.1 Write) have no rows here, and neither do the 60 genuinely-shared
+The other five passes (1.1 Discover, 1.2 Parse, 2.1 Analyze, 2.3 Render, 3.1
+Write) have no rows here, and neither do the 60 genuinely-shared
 modules or `cli/`, `lib/` and `index.ts` — §1's tree names no home for the last
 group, which is [#1466](https://github.com/jlaustill/c-next/issues/1466).
 

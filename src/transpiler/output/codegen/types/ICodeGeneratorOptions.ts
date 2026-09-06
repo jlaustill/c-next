@@ -36,6 +36,22 @@ interface ICodeGeneratorOptions {
    * options advertised it.
    */
   cnxIncludeRewrites?: ReadonlyMap<string, string>;
+  /**
+   * Issue #1515: whether this file has a public C interface, so the generated
+   * `.c` must include its own header.
+   *
+   * Decided by `PublicInterface`, which owns the rule, and passed IN rather
+   * than looked up. It used to ride on `ICodeGenSymbols`, computed by
+   * `TSymbolInfoAdapter` in 1.3 Declare -- making the earliest pass in the
+   * pipeline the author of an emission decision, and a `PARSE -> TRANSPILE`
+   * edge the moment `PublicInterface` was placed in 2.2 Plan.
+   *
+   * Asking the run-wide symbol table here instead was tried and is worse: it
+   * makes `generate()` depend on global state for a fact about the file it was
+   * handed, so a caller that supplies `symbolInfo` and a `sourcePath` no longer
+   * gets a self-contained answer. The caller knows; the caller says.
+   */
+  hasPublicInterface?: boolean;
 }
 
 export default ICodeGeneratorOptions;

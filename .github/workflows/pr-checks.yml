@@ -336,6 +336,13 @@ jobs:
         # Covers tests/bugs/ regression fixtures — same command a developer runs.
         run: npm test
 
+      - name: Every generated header compiles on its own
+        # In the blocking `integration` job, not `c-validation`, which is
+        # ADVISORY -- its result never sets FAILED, so a gate placed there
+        # could not fail a pull request. This job also provably has gcc and
+        # g++, because the step above compiles every fixture with them.
+        run: npm run headers:standalone:check
+
       - name: Re-run warm — a warm .cnx cache must produce identical output
         # Issue #1225: the run above populates .cnx/, so this one reads it. CI
         # otherwise only ever sees a cold cache (fresh checkout, .cnx gitignored),

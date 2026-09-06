@@ -7,7 +7,6 @@
  */
 
 #include <stdint.h>
-#include <stdbool.h>
 #include "cross-file-middle.hpp"
 
 #ifdef __cplusplus

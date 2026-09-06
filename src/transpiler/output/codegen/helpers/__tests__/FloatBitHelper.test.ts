@@ -10,7 +10,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import FloatBitHelper from "../FloatBitHelper.js";
 import CodeGenState from "../../../../state/CodeGenState.js";
 import type TTypeInfo from "../../../../types/TTypeInfo.js";
-import type TIncludeHeader from "../../generators/TIncludeHeader.js";
+import type TIncludeHeader from "../../../../types/TIncludeHeader";
 
 /**
  * Callback types for code generation operations.

@@ -6,16 +6,15 @@
  * Header file for cross-language interoperability
  */
 
-#include <stdint.h>
-#include <stdbool.h>
+#include "SeaDash.hpp"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /* Function prototypes */
-void processResult(const SeaDash__Parse__ParseResult& result);
-SeaDash__Parse__ParseResult createResult(void);
+void processResult(const SeaDash::Parse::ParseResult& result);
+SeaDash::Parse::ParseResult createResult(void);
 
 #ifdef __cplusplus
 }

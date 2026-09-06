@@ -8,6 +8,7 @@
  * - do-while loops
  * - for loops
  */
+import ComplianceAnnotations from "../../../../../TRANSPILE/2-Plan/ComplianceAnnotations";
 import {
   ReturnStatementContext,
   IfStatementContext,
@@ -411,8 +412,9 @@ const generateForever = (
   }
 
   const body = orchestrator.generateBlock(node.block());
-  const comment =
-    "/* MISRA C:2012 Rule 14.3: infinite loop is intentional (C-Next `forever`) */";
+  const comment = ComplianceAnnotations.render(
+    ComplianceAnnotations.FOREVER_LOOP,
+  );
 
   return { code: `${comment}\nfor (;;) ${body}`, effects };
 };

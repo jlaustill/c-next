@@ -6,8 +6,6 @@
  * Header file for cross-language interoperability
  */
 
-#include <stdint.h>
-#include <stdbool.h>
 #include "level1.h"
 
 #ifdef __cplusplus

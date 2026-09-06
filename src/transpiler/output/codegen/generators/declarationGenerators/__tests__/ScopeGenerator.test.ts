@@ -17,7 +17,7 @@ import IGeneratorState from "../../IGeneratorState";
 import IOrchestrator from "../../IOrchestrator";
 import * as Parser from "../../../../../logic/parser/grammar/CNextParser";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
-import PublicInterface from "../../../../../logic/symbols/PublicInterface";
+import PublicInterface from "../../../../../../TRANSPILE/2-Plan/PublicInterface";
 import CodeGenState from "../../../../../state/CodeGenState";
 
 // ========================================================================
