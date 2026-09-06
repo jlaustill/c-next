@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-330 fixture(s) assert a diagnostic; 233 carry a code.
+331 fixture(s) assert a diagnostic; 234 carry a code.
 
 | Fixture                                                                                          | Codes        |
 | ------------------------------------------------------------------------------------------------ | ------------ |
@@ -36,8 +36,23 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-017/enum-error-compare-types.test.cnx                                                  | E0434        |
 | tests/adr-017/enum-error-imported-direct.test.cnx                                                | E0428, E0434 |
 | tests/adr-017/enum-error-imported-transitive.test.cnx                                            | E0428, E0434 |
+| tests/adr-022/controlling-expression-every-kind-error.test.cnx                                   | E0701        |
+| tests/adr-022/do-while-error-non-boolean.test.cnx                                                | E0701        |
+| tests/adr-022/for-error-non-boolean.test.cnx                                                     | E0701        |
+| tests/adr-022/function-call-in-do-while-error.test.cnx                                           | E0702        |
+| tests/adr-022/function-call-in-for-error.test.cnx                                                | E0702        |
+| tests/adr-022/function-call-in-if-double-negated-error.test.cnx                                  | E0702        |
+| tests/adr-022/function-call-in-if-error.test.cnx                                                 | E0702        |
+| tests/adr-022/function-call-in-if-negated-error.test.cnx                                         | E0702        |
+| tests/adr-022/function-call-in-if-negated-this-error.test.cnx                                    | E0702        |
+| tests/adr-022/function-call-in-if-this-method-error.test.cnx                                     | E0702        |
+| tests/adr-022/function-call-in-ternary-error.test.cnx                                            | E0702        |
+| tests/adr-022/function-call-in-while-error.test.cnx                                              | E0702        |
+| tests/adr-022/if-error-non-boolean.test.cnx                                                      | E0701        |
 | tests/adr-022/nested-ternary-error.test.cnx                                                      | E0710        |
 | tests/adr-022/nested-ternary-unparenthesized-error.test.cnx                                      | (uncoded)    |
+| tests/adr-022/ternary-error-non-boolean.test.cnx                                                 | E0701        |
+| tests/adr-022/while-error-non-boolean.test.cnx                                                   | E0701        |
 | tests/adr-025/switch-error-boolean.test.cnx                                                      | E0711        |
 | tests/adr-025/switch-error-duplicate-case.test.cnx                                               | E0713        |
 | tests/adr-025/switch-error-duplicate-neg-hex.test.cnx                                            | E0713        |
@@ -206,15 +221,6 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/comments/misra-3-2-backslash.test.cnx                                                      | MISRA-3.2    |
 | tests/compound-assign/bit-index-compound.test.cnx                                                | E0857        |
 | tests/compound-assign/struct-field-bit-index-compound.test.cnx                                   | E0857        |
-| tests/conditions/function-call-in-do-while-error.test.cnx                                        | E0702        |
-| tests/conditions/function-call-in-for-error.test.cnx                                             | E0702        |
-| tests/conditions/function-call-in-if-double-negated-error.test.cnx                               | E0702        |
-| tests/conditions/function-call-in-if-error.test.cnx                                              | E0702        |
-| tests/conditions/function-call-in-if-negated-error.test.cnx                                      | E0702        |
-| tests/conditions/function-call-in-if-negated-this-error.test.cnx                                 | E0702        |
-| tests/conditions/function-call-in-if-this-method-error.test.cnx                                  | E0702        |
-| tests/conditions/function-call-in-ternary-error.test.cnx                                         | E0702        |
-| tests/conditions/function-call-in-while-error.test.cnx                                           | E0702        |
 | tests/const/const-assign-error.test.cnx                                                          | (uncoded)    |
 | tests/const/const-bool-assign-error.test.cnx                                                     | (uncoded)    |
 | tests/const/const-bool-param-assign-error.test.cnx                                               | (uncoded)    |
@@ -253,9 +259,6 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/control-flow/forever-disguised-while-eq.test.cnx                                           | E0707        |
 | tests/control-flow/forever-disguised-while-rel.test.cnx                                          | E0707        |
 | tests/control-flow/forever-non-void-error.test.cnx                                               | E0705        |
-| tests/control-flow/if-error-non-boolean.test.cnx                                                 | E0701        |
-| tests/control-flow/while-error-non-boolean.test.cnx                                              | E0701        |
-| tests/do-while/do-while-error-non-boolean.test.cnx                                               | E0701        |
 | tests/enum/enum-error-negative.test.cnx                                                          | (uncoded)    |
 | tests/errors/length-property-deprecated.test.cnx                                                 | (uncoded)    |
 | tests/external-types/cpp-class-global-error.test.cnx                                             | (uncoded)    |
@@ -266,7 +269,6 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/floats/float-modulo-f64-error.test.cnx                                                     | E0804        |
 | tests/floats/float-modulo-literal-error.test.cnx                                                 | E0804        |
 | tests/floats/float-modulo-param-error.test.cnx                                                   | E0804        |
-| tests/for-loops/for-error-non-boolean.test.cnx                                                   | E0701        |
 | tests/forward-declarations/bare-undeclared-function-error.test.cnx                               | E0422        |
 | tests/forward-declarations/call-before-define-error.test.cnx                                     | E0422        |
 | tests/forward-declarations/global-undeclared-function-error.test.cnx                             | E0422        |
@@ -345,4 +347,3 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/string/string-error-substring-global.test.cnx                                              | (uncoded)    |
 | tests/structs/struct-redundant-type-error.test.cnx                                               | (uncoded)    |
 | tests/ternary/ternary-error-no-parens.test.cnx                                                   | (uncoded)    |
-| tests/ternary/ternary-error-non-boolean.test.cnx                                                 | E0701        |

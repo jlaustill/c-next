@@ -117,12 +117,6 @@ const generateIf = (
   // Set up cache and generate declarations
   const cacheDecls = orchestrator.setupLengthCache(lengthCounts);
 
-  // Issue #254: Validate no function calls in condition (E0702)
-  orchestrator.validateConditionNoFunctionCall(node.expression(), "if");
-
-  // Issue #884: Validate condition is a boolean expression (E0701)
-  orchestrator.validateConditionIsBoolean(node.expression(), "if");
-
   // Generate with cache enabled
   const condition = orchestrator.generateExpression(node.expression());
 
@@ -163,12 +157,9 @@ const generateWhile = (
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
 
-  // Issue #254: Validate no function calls in condition (E0702)
-  orchestrator.validateConditionNoFunctionCall(node.expression(), "while");
-
-  // Issue #884: Validate condition is a boolean expression (E0701)
-  orchestrator.validateConditionIsBoolean(node.expression(), "while");
-
+  // #1322: the E0702 and E0701 checks that stood above are authored in pass
+  // 2.1, which halts before this runs -- so the condition reaching E0707 is
+  // still guaranteed to be a comparison, which is what that check assumes.
   // ADR-068 / #1075: reject always-true literal condition (E0707)
   orchestrator.validateLoopConditionNotAlwaysTrue(node.expression());
 
@@ -199,12 +190,6 @@ const generateDoWhile = (
   orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
-
-  // Issue #254: Validate no function calls in condition (E0702)
-  orchestrator.validateConditionNoFunctionCall(node.expression(), "do-while");
-
-  // Issue #884: Validate condition is a boolean expression (E0701)
-  orchestrator.validateConditionIsBoolean(node.expression(), "do-while");
 
   // ADR-068 / #1075: reject always-true literal condition (E0707)
   orchestrator.validateLoopConditionNotAlwaysTrue(node.expression());
@@ -338,12 +323,6 @@ const generateFor = (
   // The empty-header case (`for (;;)`) already threw E0707 above, so the
   // controlling expression is guaranteed present here.
   const conditionExpr = node.expression()!;
-
-  // Issue #254: Validate no function calls in condition (E0702)
-  orchestrator.validateConditionNoFunctionCall(conditionExpr, "for");
-
-  // Issue #884: Validate condition is a boolean expression (E0701)
-  orchestrator.validateConditionIsBoolean(conditionExpr, "for");
 
   // ADR-068 / #1075: reject always-true literal condition (E0707)
   orchestrator.validateLoopConditionNotAlwaysTrue(conditionExpr);

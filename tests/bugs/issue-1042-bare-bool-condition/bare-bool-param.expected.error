@@ -1,2 +1,2 @@
-1:0 Code generation failed: Error E0701: if condition must be a boolean expression (comparison or logical operation), not 'flag' (MISRA C:2012 Rule 14.4)
-  help: use explicit comparison: flag = true
+3:8 error[E0701]: if condition must be a comparison, not 'flag'
+       help: MISRA C:2012 Rule 14.4: write it out, e.g. flag = true

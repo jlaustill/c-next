@@ -1,5 +1,15 @@
 // Coverage: Section 7.1 - if statement non-boolean condition error
+// test-adr: 022
 // Tests: Error when using non-boolean expression as if condition
+// NEGATIVE CONTROL -- the same value in the same position, written as an
+// explicit comparison. The rule asks for the comparison, so this must compile.
+void okComparison() {
+    u32 value <- 5;
+    if (value > 0) {
+        value <- 10;
+    }
+}
+
 void test() {
     u32 value <- 5;
 

@@ -1,0 +1,2 @@
+16:13 error[E0701]: do-while condition must be a comparison, not 'count'
+       help: MISRA C:2012 Rule 14.4: write it out, e.g. count > 0 or count != 0

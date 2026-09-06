@@ -66,12 +66,9 @@ const generateTernaryExpr = (
   const trueExpr = orExprs[1];
   const falseExpr = orExprs[2];
 
-  // ADR-022: Validate ternary constraints
-  orchestrator.validateTernaryCondition(condition);
-  // #1322: nested-ternary rejection is E0710 in pass 2.1.
-
-  // Issue #254: Validate no function calls in ternary condition (E0702)
-  orchestrator.validateTernaryConditionNoFunctionCall(condition);
+  // #1322: every ADR-022 ternary rule -- nested ternary (E0710), the
+  // controlling-expression rule (E0701) and no function call in a condition
+  // (E0702) -- is authored in pass 2.1.
 
   // Generate C output - parentheses already present from grammar
   // Issue #992: Clear inDeclarationInit in ternary arms — struct initializers

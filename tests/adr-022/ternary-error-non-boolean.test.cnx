@@ -1,5 +1,12 @@
 // ADR-022: Error - condition is not boolean expression
+// test-adr: 022
 // Should error: condition must be comparison or logical
+// NEGATIVE CONTROL -- the explicit form of the same condition.
+u32 okComparison() {
+    u32 x <- 5;
+    return (x > 0) ? 1 : 0;
+}
+
 void test() {
     u32 x <- 5;
     u32 result <- (x) ? 1 : 0;

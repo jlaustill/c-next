@@ -29,6 +29,7 @@ import ConstructorArgumentAnalyzer from "./ConstructorArgumentAnalyzer";
 import CriticalSectionAnalyzer from "./CriticalSectionAnalyzer";
 import EnumTypeSafetyAnalyzer from "./EnumTypeSafetyAnalyzer";
 import SliceAssignmentAnalyzer from "./SliceAssignmentAnalyzer";
+import ControllingExpressionAnalyzer from "./ControllingExpressionAnalyzer";
 import SwitchStatementAnalyzer from "./SwitchStatementAnalyzer";
 import NestedTernaryAnalyzer from "./NestedTernaryAnalyzer";
 import ThisOutsideScopeAnalyzer from "./ThisOutsideScopeAnalyzer";
@@ -261,6 +262,10 @@ function runAnalyzers(
     {
       label: "switch statements (ADR-025, E0711-E0714)",
       run: () => new SwitchStatementAnalyzer().analyze(tree),
+    },
+    {
+      label: "controlling expressions (ADR-022, MISRA 14.4/13.5, E0701/E0702)",
+      run: () => new ControllingExpressionAnalyzer().analyze(tree),
     },
     {
       // Last, and does not halt: comment findings are reported alongside

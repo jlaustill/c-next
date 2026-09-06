@@ -1,0 +1,2 @@
+18:8 error[E0702]: if condition may not call a function: 'getValue()>0'
+       help: MISRA C:2012 Rule 13.5: Store the function result in a variable first.

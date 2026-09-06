@@ -1,9 +1,16 @@
 // Issue #366: this.method() calls in if conditions should trigger E0702
+// test-adr: 022
 // MISRA C:2012 Rule 13.5 - Short-circuit evaluation may skip function calls
 
 scope Validator {
     bool validateConfig() {
         return true;
+    }
+
+    // NEGATIVE CONTROL -- the same scope method, hoisted out of the condition.
+    public void okHoisted() {
+        bool ok <- this.validateConfig();
+        if (ok = true) {}
     }
 
     public void test() {

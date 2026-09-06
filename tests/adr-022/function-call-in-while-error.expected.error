@@ -1,0 +1,2 @@
+16:11 error[E0702]: while condition may not call a function: 'hasMore()=true'
+       help: MISRA C:2012 Rule 13.5: Store the function result in a variable first.

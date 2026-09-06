@@ -1,5 +1,14 @@
 // Coverage: Section 7.4 - for loop non-boolean condition error
+// test-adr: 022
 // Tests: Error when using non-boolean expression as for condition
+// NEGATIVE CONTROL -- the explicit form of the same condition.
+void okComparison() {
+    u32 total <- 0;
+    for (u32 i <- 0; i < 3; i +<- 1) {
+        total +<- i;
+    }
+}
+
 void test() {
     u32 count <- 0;
 

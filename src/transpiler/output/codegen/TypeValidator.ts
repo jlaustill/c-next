@@ -9,7 +9,6 @@ import * as Parser from "../../logic/parser/grammar/CNextParser";
 import CodeGenState from "../../state/CodeGenState";
 import AdrProvenance from "../../state/AdrProvenance";
 import TypeResolver from "./TypeResolver";
-import ExpressionUtils from "../../../utils/ExpressionUtils";
 // SonarCloud S3776: Extracted literal parsing to reduce complexity
 import LiteralEvaluator from "./helpers/LiteralEvaluator";
 import QualifiedCName from "../../../utils/QualifiedCName";
@@ -492,14 +491,6 @@ class TypeValidator {
   // are in the parse tree. They lived here because this is where the switch
   // was being WRITTEN, not because this is where the facts were.
 
-  // ========================================================================
-  // Ternary Validation (ADR-022)
-  // ========================================================================
-
-  static validateTernaryCondition(ctx: Parser.OrExpressionContext): void {
-    TypeValidator._validateConditionOrExpression(ctx, "ternary");
-  }
-
   // #1322: `validateNoNestedTernary` is gone. ADR-022's rule is E0710 in pass
   // 2.1, asked of the parse tree.
   //
@@ -509,94 +500,12 @@ class TypeValidator {
   // string literal containing both characters. A rule about syntax asking
   // about characters.
 
-  // ========================================================================
-  // Condition Boolean Validation (ADR-027, Issue #884)
-  // ========================================================================
-
-  static validateConditionIsBoolean(
-    ctx: Parser.ExpressionContext,
-    conditionType: string,
-  ): void {
-    const ternaryExpr = ctx.ternaryExpression();
-    const orExprs = ternaryExpr.orExpression();
-
-    if (orExprs.length !== 1) {
-      throw new Error(
-        `Error E0701: ${conditionType} condition must be a boolean expression, not a ternary (MISRA C:2012 Rule 14.4)`,
-      );
-    }
-
-    TypeValidator._validateConditionOrExpression(orExprs[0], conditionType);
-  }
-
-  /**
-   * MISRA C:2012 Rule 14.4 (Issue #1042): a controlling expression must be an
-   * explicit comparison. Every leaf operand — after decomposing `||` and `&&` —
-   * must itself be an equality (`=`, `!=`) or relational (`<`, `>`, `<=`, `>=`)
-   * comparison. A bare value, a bare boolean (local, parameter, or `this.`/
-   * `global.` member), a literal, or a negation (`!x`) is rejected; use an
-   * explicit form such as `x = true`. This is the single decision point shared
-   * by `if`/`while`/`for`/`do-while` and ternary conditions.
-   */
-  private static _validateConditionOrExpression(
-    orExpr: Parser.OrExpressionContext,
-    conditionType: string,
-  ): void {
-    const andExprs = orExpr.andExpression();
-    if (andExprs.length === 0) {
-      TypeValidator._throwConditionNotBoolean(orExpr, conditionType);
-    }
-
-    for (const andExpr of andExprs) {
-      const equalityExprs = andExpr.equalityExpression();
-      if (equalityExprs.length === 0) {
-        TypeValidator._throwConditionNotBoolean(orExpr, conditionType);
-      }
-
-      for (const equalityExpr of equalityExprs) {
-        TypeValidator._validateConditionIsComparison(
-          equalityExpr,
-          orExpr,
-          conditionType,
-        );
-      }
-    }
-  }
-
-  private static _validateConditionIsComparison(
-    equalityExpr: Parser.EqualityExpressionContext,
-    orExpr: Parser.OrExpressionContext,
-    conditionType: string,
-  ): void {
-    // An equality operator (`=`, `!=`) makes this operand a comparison.
-    if (equalityExpr.relationalExpression().length > 1) {
-      return;
-    }
-
-    const relationalExpr = equalityExpr.relationalExpression(0);
-    if (!relationalExpr) {
-      TypeValidator._throwConditionNotBoolean(orExpr, conditionType);
-      return;
-    }
-
-    // A relational operator (`<`, `>`, `<=`, `>=`) makes this operand a comparison.
-    if (relationalExpr.bitwiseOrExpression().length > 1) {
-      return;
-    }
-
-    // No comparison operator: a bare value, bare boolean, literal, or negation.
-    TypeValidator._throwConditionNotBoolean(equalityExpr, conditionType);
-  }
-
-  private static _throwConditionNotBoolean(
-    node: Parser.OrExpressionContext | Parser.EqualityExpressionContext,
-    conditionType: string,
-  ): void {
-    const text = node.getText();
-    throw new Error(
-      `Error E0701: ${conditionType} condition must be a boolean expression (comparison or logical operation), not '${text}' (MISRA C:2012 Rule 14.4)\n  help: ${TypeValidator._conditionHelp(text)}`,
-    );
-  }
+  // #1322: ADR-022's controlling-expression rule is E0701/E0702 in pass 2.1.
+  // Eight methods stood here -- the boolean check, its three-level decomposition
+  // of `||`/`&&`, the help-text builder, and the two function-call checks. The
+  // rule is purely SYNTACTIC, so none of it needed anything codegen had; only
+  // the help text asked a type question, and 2.1 asks it of the lexical frames,
+  // which honour shadowing where a flat registry lookup does not.
 
   // ========================================================================
   // Disguised Infinite Loop Validation (ADR-068 / #1075, E0707)
@@ -716,54 +625,6 @@ class TypeValidator {
         return comparison.left >= comparison.right;
       default:
         return false;
-    }
-  }
-
-  /**
-   * Builds a context-aware "help" suggestion for a rejected condition. For a
-   * boolean operand the correct explicit form is `flag = true` (or `flag = false`
-   * for a negated `!flag`), not a numeric `> 0` comparison. Non-boolean operands
-   * keep the generic `> 0 or != 0` guidance. A member access (`this.flag`) that
-   * does not resolve to a known type falls back to the generic form.
-   */
-  private static _conditionHelp(text: string): string {
-    const isNegated = text.startsWith("!");
-    const base = isNegated ? text.slice(1) : text;
-    const typeInfo = CodeGenState.getVariableTypeInfo(base);
-    if (typeInfo?.baseType === "bool") {
-      return `use explicit comparison: ${base} = ${isNegated ? "false" : "true"}`;
-    }
-    return `use explicit comparison: ${text} > 0 or ${text} != 0`;
-  }
-
-  // ========================================================================
-  // Function Call in Condition Validation (Issue #254)
-  // ========================================================================
-
-  static validateConditionNoFunctionCall(
-    ctx: Parser.ExpressionContext,
-    conditionType: string,
-  ): void {
-    if (ExpressionUtils.hasFunctionCall(ctx)) {
-      const text = ctx.getText();
-      throw new Error(
-        `Error E0702: Function call in '${conditionType}' condition is not allowed (MISRA C:2012 Rule 13.5)\n` +
-          `  expression: ${text}\n` +
-          `  help: store the function result in a variable first`,
-      );
-    }
-  }
-
-  static validateTernaryConditionNoFunctionCall(
-    ctx: Parser.OrExpressionContext,
-  ): void {
-    if (ExpressionUtils.hasFunctionCallInOr(ctx)) {
-      const text = ctx.getText();
-      throw new Error(
-        `Error E0702: Function call in 'ternary' condition is not allowed (MISRA C:2012 Rule 13.5)\n` +
-          `  expression: ${text}\n` +
-          `  help: store the function result in a variable first`,
-      );
     }
   }
 

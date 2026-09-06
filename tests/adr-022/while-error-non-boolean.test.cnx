@@ -1,5 +1,14 @@
 // Coverage: Section 7.2 - while loop non-boolean condition error
+// test-adr: 022
 // Tests: Error when using non-boolean expression as while condition
+// NEGATIVE CONTROL -- the explicit form of the same condition.
+void okComparison() {
+    u32 value <- 5;
+    while (value > 0) {
+        value <- 0;
+    }
+}
+
 void test() {
     u32 count <- 5;
 

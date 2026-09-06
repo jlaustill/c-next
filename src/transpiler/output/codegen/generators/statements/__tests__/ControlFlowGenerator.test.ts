@@ -356,8 +356,6 @@ function createMockOrchestrator(options?: {
     // "nothing shadowed, keep the source name".
     registerLocalVariable: vi.fn((name: string) => name),
     flushPendingTempDeclarations: vi.fn(() => options?.tempDeclarations ?? ""),
-    validateConditionNoFunctionCall: vi.fn(),
-    validateConditionIsBoolean: vi.fn(),
     validateLoopConditionNotAlwaysTrue: vi.fn(),
     countStringLengthAccesses: vi.fn(() => new Map()),
     countBlockLengthAccesses: vi.fn(),
@@ -370,6 +368,13 @@ function createMockOrchestrator(options?: {
 // Tests - generateReturn
 // ========================================================================
 
+// #1322: the condition-validation delegation tests are gone with the calls.
+// ADR-022's controlling-expression rules -- E0701 (a condition must be a
+// comparison) and E0702 (no function call in a condition) -- are authored in
+// pass 2.1, which halts before codegen runs. Deleted rather than emptied: an
+// `it` that runs the generator and asserts nothing is green whatever the
+// generator does. Covered by
+// `1-Analyze/__tests__/ControllingExpressionAnalyzer.test.ts`.
 describe("ControlFlowGenerator", () => {
   describe("generateReturn", () => {
     it("generates simple return without expression", () => {
@@ -513,38 +518,6 @@ describe("ControlFlowGenerator", () => {
       expect(result.code).toBe("if (x > 0) { a = 1; } else { a = 2; }");
     });
 
-    it("validates no function calls in condition (Issue #254)", () => {
-      const expr = createMockExpression();
-      const ctx = createMockIfStatement({ expr });
-      const input = createMockInput();
-      const state = createMockState();
-      const validateConditionNoFunctionCall = vi.fn();
-      const orchestrator = {
-        ...createMockOrchestrator(),
-        validateConditionNoFunctionCall,
-      } as unknown as IOrchestrator;
-
-      generateIf(ctx, input, state, orchestrator);
-
-      expect(validateConditionNoFunctionCall).toHaveBeenCalledWith(expr, "if");
-    });
-
-    it("throws when validation fails (function in condition)", () => {
-      const ctx = createMockIfStatement();
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = {
-        ...createMockOrchestrator(),
-        validateConditionNoFunctionCall: () => {
-          throw new Error("E0702: Function call not allowed in if condition");
-        },
-      } as unknown as IOrchestrator;
-
-      expect(() => generateIf(ctx, input, state, orchestrator)).toThrow(
-        "Function call not allowed in if condition",
-      );
-    });
-
     it("flushes temp declarations before branches (Issue #250)", () => {
       const ctx = createMockIfStatement();
       const input = createMockInput();
@@ -613,25 +586,6 @@ describe("ControlFlowGenerator", () => {
       expect(result.code).toBe("while (i < 10) { i++; }");
     });
 
-    it("validates no function calls in condition (Issue #254)", () => {
-      const expr = createMockExpression();
-      const ctx = createMockWhileStatement({ expr });
-      const input = createMockInput();
-      const state = createMockState();
-      const validateConditionNoFunctionCall = vi.fn();
-      const orchestrator = {
-        ...createMockOrchestrator(),
-        validateConditionNoFunctionCall,
-      } as unknown as IOrchestrator;
-
-      generateWhile(ctx, input, state, orchestrator);
-
-      expect(validateConditionNoFunctionCall).toHaveBeenCalledWith(
-        expr,
-        "while",
-      );
-    });
-
     it("flushes temp declarations before body (Issue #250)", () => {
       const ctx = createMockWhileStatement();
       const input = createMockInput();
@@ -677,41 +631,6 @@ describe("ControlFlowGenerator", () => {
       const result = generateDoWhile(ctx, input, state, orchestrator);
 
       expect(result.code).toBe("do { count--; } while (count > 0);");
-    });
-
-    it("validates do-while condition (E0701)", () => {
-      const expr = createMockExpression();
-      const ctx = createMockDoWhileStatement({ expr });
-      const input = createMockInput();
-      const state = createMockState();
-      const validateConditionIsBoolean = vi.fn();
-      const orchestrator = {
-        ...createMockOrchestrator(),
-        validateConditionIsBoolean,
-      } as unknown as IOrchestrator;
-
-      generateDoWhile(ctx, input, state, orchestrator);
-
-      expect(validateConditionIsBoolean).toHaveBeenCalledWith(expr, "do-while");
-    });
-
-    it("validates no function calls in condition (Issue #254)", () => {
-      const expr = createMockExpression();
-      const ctx = createMockDoWhileStatement({ expr });
-      const input = createMockInput();
-      const state = createMockState();
-      const validateConditionNoFunctionCall = vi.fn();
-      const orchestrator = {
-        ...createMockOrchestrator(),
-        validateConditionNoFunctionCall,
-      } as unknown as IOrchestrator;
-
-      generateDoWhile(ctx, input, state, orchestrator);
-
-      expect(validateConditionNoFunctionCall).toHaveBeenCalledWith(
-        expr,
-        "do-while",
-      );
     });
 
     it("flushes temp declarations before loop (Issue #250)", () => {
@@ -953,22 +872,6 @@ describe("ControlFlowGenerator", () => {
       const result = generateFor(ctx, input, state, orchestrator);
 
       expect(result.code).toContain("for (i = 0;");
-    });
-
-    it("validates no function calls in condition (Issue #254)", () => {
-      const expr = createMockExpression();
-      const ctx = createMockForStatement({ expr });
-      const input = createMockInput();
-      const state = createMockState();
-      const validateConditionNoFunctionCall = vi.fn();
-      const orchestrator = {
-        ...createMockOrchestrator(),
-        validateConditionNoFunctionCall,
-      } as unknown as IOrchestrator;
-
-      generateFor(ctx, input, state, orchestrator);
-
-      expect(validateConditionNoFunctionCall).toHaveBeenCalledWith(expr, "for");
     });
 
     it("flushes temp declarations from all stages (Issue #250)", () => {

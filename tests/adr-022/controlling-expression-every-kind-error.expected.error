@@ -1,0 +1,10 @@
+50:8 error[E0701]: if condition must be a comparison, not 'value'
+       help: MISRA C:2012 Rule 14.4: write it out, e.g. value > 0 or value != 0
+53:11 error[E0701]: while condition must be a comparison, not 'value'
+       help: MISRA C:2012 Rule 14.4: write it out, e.g. value > 0 or value != 0
+58:13 error[E0701]: do-while condition must be a comparison, not 'value'
+       help: MISRA C:2012 Rule 14.4: write it out, e.g. value > 0 or value != 0
+59:21 error[E0701]: for condition must be a comparison, not 'value'
+       help: MISRA C:2012 Rule 14.4: write it out, e.g. value > 0 or value != 0
+62:17 error[E0701]: ternary condition must be a comparison, not 'value'
+       help: MISRA C:2012 Rule 14.4: write it out, e.g. value > 0 or value != 0

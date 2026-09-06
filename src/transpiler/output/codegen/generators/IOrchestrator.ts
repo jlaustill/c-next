@@ -130,9 +130,6 @@ interface IOrchestrator {
     ctx: Parser.ShiftExpressionContext,
   ): void;
 
-  /** Validate ternary condition is a comparison (ADR-022) */
-  validateTernaryCondition(condition: Parser.OrExpressionContext): void;
-
   /** Validate that a literal value fits in the target type */
   validateLiteralFitsType(literal: string, typeName: string): void;
 
@@ -189,23 +186,8 @@ interface IOrchestrator {
 
   // === Statement Validation ===
 
-  /** Validate condition is a boolean expression (ADR-027, Issue #884) */
-  validateConditionIsBoolean(
-    ctx: Parser.ExpressionContext,
-    conditionType: string,
-  ): void;
-
   /** Reject an always-true literal loop condition (ADR-068 / #1075, E0707) */
   validateLoopConditionNotAlwaysTrue(ctx: Parser.ExpressionContext): void;
-
-  /** Validate no function calls in condition (Issue #254, E0702) */
-  validateConditionNoFunctionCall(
-    ctx: Parser.ExpressionContext,
-    conditionType: string,
-  ): void;
-
-  /** Validate no function calls in ternary condition (Issue #254, E0702) */
-  validateTernaryConditionNoFunctionCall(ctx: Parser.OrExpressionContext): void;
 
   // === Control Flow Helpers ===
 

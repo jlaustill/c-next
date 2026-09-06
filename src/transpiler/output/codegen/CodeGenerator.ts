@@ -870,14 +870,6 @@ export default class CodeGenerator implements IOrchestrator {
     TypeValidator.validateShiftAmount(leftType, rightExpr, op, ctx);
   }
 
-  /**
-   * Validate ternary condition is a comparison (ADR-022).
-   * Part of IOrchestrator interface - delegates to TypeValidator.
-   */
-  validateTernaryCondition(condition: Parser.OrExpressionContext): void {
-    TypeValidator.validateTernaryCondition(condition);
-  }
-
   // === Function Call Helpers ===
 
   /**
@@ -1046,43 +1038,11 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Validate condition is a boolean expression (ADR-027, Issue #884).
-   * Part of IOrchestrator interface.
-   */
-  validateConditionIsBoolean(
-    ctx: Parser.ExpressionContext,
-    conditionType: string,
-  ): void {
-    TypeValidator.validateConditionIsBoolean(ctx, conditionType);
-  }
-
-  /**
    * ADR-068 / #1075: reject an always-true literal loop condition (E0707).
    * Part of IOrchestrator interface.
    */
   validateLoopConditionNotAlwaysTrue(ctx: Parser.ExpressionContext): void {
     TypeValidator.validateLoopConditionNotAlwaysTrue(ctx);
-  }
-
-  /**
-   * Issue #254: Validate no function calls in condition (E0702).
-   * Part of IOrchestrator interface.
-   */
-  validateConditionNoFunctionCall(
-    ctx: Parser.ExpressionContext,
-    conditionType: string,
-  ): void {
-    TypeValidator.validateConditionNoFunctionCall(ctx, conditionType);
-  }
-
-  /**
-   * Issue #254: Validate no function calls in ternary condition (E0702).
-   * Part of IOrchestrator interface.
-   */
-  validateTernaryConditionNoFunctionCall(
-    ctx: Parser.OrExpressionContext,
-  ): void {
-    TypeValidator.validateTernaryConditionNoFunctionCall(ctx);
   }
 
   /**

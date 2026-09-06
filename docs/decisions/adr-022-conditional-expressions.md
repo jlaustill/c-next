@@ -316,10 +316,15 @@ code path that this change unified.
 
 ## Scope-context matrix
 
-Declared for **E0710**, the nested-ternary rule, which #1322 moved out of codegen
-into pass 2.1. It covers that rule only; the other diagnostics this ADR governs
-(E0701, E0702) still throw from `output/` and will declare their cells when they
-move.
+Declared for the rules #1322 moved out of codegen into pass 2.1: **E0710**
+(no ternary inside a ternary), **E0701** (a controlling expression must be an
+explicit comparison, MISRA C:2012 Rule 14.4) and **E0702** (a controlling
+expression may not call a function, Rule 13.5).
+
+The cells are shared, because a matrix cell is a claim about where an ADR's
+rules are observable rather than about one code. All three are properties of an
+EXPRESSION, so all three reach the same four same-file contexts and none of them
+crosses a file boundary.
 
 **No nesting is rejected two different ways, and only one of them is E0710.**
 Written without parentheses, `(x > 0) ? 1 : (x < 0) ? -1 : 0` is a syntax error.
@@ -359,8 +364,9 @@ as well as a function body. That was probed rather than assumed — a nested
 ternary in a file-scope initializer and in a scope-member initializer both
 report — and all four are occupied by `nested-ternary-error`.
 
-Every `imported` cell is `off`, and that is a claim about the rule rather than a
-gap in the corpus: nesting is a property of one expression, written in one file.
+Every `imported` cell is `off`, and that is a claim about the rules rather than
+a gap in the corpus: nesting, being a comparison, and containing a call are all
+properties of one expression, written in one file.
 An include cannot introduce a ternary into another file's expression, so no
 cross-file arrangement can change the answer. Adding a fixture there would
 occupy a cell by transporting an unrelated include, not by testing anything.
