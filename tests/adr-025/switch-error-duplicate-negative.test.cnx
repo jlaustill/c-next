@@ -1,0 +1,23 @@
+// Issue #107: Error Test - Duplicate Negative Case
+// test-adr: 025
+// Should error: duplicate negative case values not allowed
+// NEGATIVE CONTROL -- a negative and its positive twin are different values.
+// A check that compared magnitudes, or dropped the sign while normalizing,
+// would call these a duplicate.
+void okSignDiffers() {
+    i32 val <- 0;
+    switch (val) {
+        case -1 {}
+        case 1 {}
+        default {}
+    }
+}
+
+void test() {
+    i32 val <- 0;
+    switch (val) {
+        case -1 {}
+        case 0 {}
+        case -1 {}
+    }
+}

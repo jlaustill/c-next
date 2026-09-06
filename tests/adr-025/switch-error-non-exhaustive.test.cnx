@@ -1,0 +1,36 @@
+// ADR-025: Error Test - Non-Exhaustive Enum Switch
+// test-adr: 025
+// Should error: missing enum variants without default
+enum EState {
+    IDLE,
+    RUNNING,
+    STOPPED
+}
+
+// NEGATIVE CONTROL -- the same enum, covered completely. The rule counts
+// variants against labels, so a complete switch must stay silent.
+void okExhaustive(EState state) {
+    switch (state) {
+        case EState.IDLE {}
+        case EState.RUNNING {}
+        case EState.STOPPED {}
+    }
+}
+
+// NEGATIVE CONTROL -- a BARE `default` states no count, so there is nothing to
+// check and this must be accepted even though it names one variant of three.
+// Treating a bare default as covering zero would reject every switch that uses
+// one. Mutating that branch reddened no fixture until this was written.
+void okBareDefault(EState state) {
+    switch (state) {
+        case EState.IDLE {}
+        default {}
+    }
+}
+
+void handleState(EState state) {
+    switch (state) {
+        case EState.IDLE {}
+        case EState.RUNNING {}
+    }
+}

@@ -1046,17 +1046,6 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Validate switch statement.
-   * Part of IOrchestrator interface.
-   */
-  validateSwitchStatement(
-    ctx: Parser.SwitchStatementContext,
-    switchExpr: Parser.ExpressionContext,
-  ): void {
-    TypeValidator.validateSwitchStatement(ctx, switchExpr);
-  }
-
-  /**
    * Validate condition is a boolean expression (ADR-027, Issue #884).
    * Part of IOrchestrator interface.
    */

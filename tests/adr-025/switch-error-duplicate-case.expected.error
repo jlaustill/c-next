@@ -1,0 +1,2 @@
+21:13 error[E0713]: Duplicate case value '0' in switch statement
+       help: Two clauses cannot claim the same value; one of them is unreachable.

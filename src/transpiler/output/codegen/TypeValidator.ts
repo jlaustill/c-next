@@ -483,127 +483,14 @@ class TypeValidator {
   // Switch Statement Validation (ADR-025)
   // ========================================================================
 
-  static validateSwitchStatement(
-    ctx: Parser.SwitchStatementContext,
-    switchExpr: Parser.ExpressionContext,
-  ): void {
-    const cases = ctx.switchCase();
-    const defaultCase = ctx.defaultCase();
-    const totalClauses = cases.length + (defaultCase ? 1 : 0);
-
-    const exprType = TypeResolver.getExpressionType(switchExpr);
-    if (exprType === "bool") {
-      throw new Error(
-        "Error: Cannot switch on boolean type (MISRA 16.7). Use if/else instead.",
-      );
-    }
-
-    if (totalClauses < 2) {
-      throw new Error(
-        "Error: Switch requires at least 2 clauses (MISRA 16.6). Use if statement for single case.",
-      );
-    }
-
-    const seenValues = new Set<string>();
-    for (const caseCtx of cases) {
-      for (const labelCtx of caseCtx.caseLabel()) {
-        const labelValue = TypeValidator.getCaseLabelValue(labelCtx);
-        if (seenValues.has(labelValue)) {
-          throw new Error(
-            `Error: Duplicate case value '${labelValue}' in switch statement.`,
-          );
-        }
-        seenValues.add(labelValue);
-      }
-    }
-
-    if (exprType && CodeGenState.symbols!.knownEnums.has(exprType)) {
-      TypeValidator.validateEnumExhaustiveness(
-        ctx,
-        exprType,
-        cases,
-        defaultCase,
-      );
-    }
-  }
-
-  static validateEnumExhaustiveness(
-    ctx: Parser.SwitchStatementContext,
-    enumTypeName: string,
-    cases: Parser.SwitchCaseContext[],
-    defaultCase: Parser.DefaultCaseContext | null,
-  ): void {
-    const enumVariants = CodeGenState.symbols!.enumMembers.get(enumTypeName);
-    if (!enumVariants) return;
-
-    const totalVariants = enumVariants.size;
-
-    let explicitCaseCount = 0;
-    for (const caseCtx of cases) {
-      explicitCaseCount += caseCtx.caseLabel().length;
-    }
-
-    if (defaultCase) {
-      const defaultCount = TypeValidator.getDefaultCount(defaultCase);
-
-      if (defaultCount !== null) {
-        const covered = explicitCaseCount + defaultCount;
-        if (covered !== totalVariants) {
-          throw new Error(
-            `Error: switch covers ${covered} of ${totalVariants} ${enumTypeName} variants ` +
-              `(${explicitCaseCount} explicit + default(${defaultCount})). ` +
-              `Expected ${totalVariants}.`,
-          );
-        }
-      }
-    } else if (explicitCaseCount !== totalVariants) {
-      const missing = totalVariants - explicitCaseCount;
-      throw new Error(
-        `Error: Non-exhaustive switch on ${enumTypeName}: covers ${explicitCaseCount} of ${totalVariants} variants, missing ${missing}.`,
-      );
-    }
-  }
-
-  static getDefaultCount(ctx: Parser.DefaultCaseContext): number | null {
-    const intLiteral = ctx.INTEGER_LITERAL();
-    if (intLiteral) {
-      return Number.parseInt(intLiteral.getText(), 10);
-    }
-    return null;
-  }
-
-  static getCaseLabelValue(ctx: Parser.CaseLabelContext): string {
-    if (ctx.qualifiedType()) {
-      const qt = ctx.qualifiedType()!;
-      return qt
-        .IDENTIFIER()
-        .map((id) => id.getText())
-        .join(".");
-    }
-    if (ctx.IDENTIFIER()) {
-      return ctx.IDENTIFIER()!.getText();
-    }
-    if (ctx.INTEGER_LITERAL()) {
-      const num = ctx.INTEGER_LITERAL()!.getText();
-      const hasNeg = ctx.children && ctx.children[0]?.getText() === "-";
-      const value = BigInt(num);
-      return String(hasNeg ? -value : value);
-    }
-    if (ctx.HEX_LITERAL()) {
-      const hex = ctx.HEX_LITERAL()!.getText();
-      const hasNeg = ctx.children && ctx.children[0]?.getText() === "-";
-      const value = BigInt(hex);
-      return String(hasNeg ? -value : value);
-    }
-    if (ctx.BINARY_LITERAL()) {
-      const bin = ctx.BINARY_LITERAL()!.getText();
-      return String(BigInt(bin));
-    }
-    if (ctx.CHAR_LITERAL()) {
-      return ctx.CHAR_LITERAL()!.getText();
-    }
-    return "";
-  }
+  // #1322: ADR-025's switch rules are E0711-E0714 in pass 2.1 --
+  // `validateSwitchStatement` and the three helpers only it used are gone.
+  // All five throws reached the user as `1:0`, which seven fixtures under
+  // `tests/switch/` asserted verbatim. Nothing here needed a fact the
+  // analyzers could not already see: `knownEnums` and `enumMembers` are on the
+  // per-file symbol view, and the clause count, the labels and `default(N)`
+  // are in the parse tree. They lived here because this is where the switch
+  // was being WRITTEN, not because this is where the facts were.
 
   // ========================================================================
   // Ternary Validation (ADR-022)

@@ -1,0 +1,23 @@
+// Issue #107: Error Test - Duplicate Negative Hex/Decimal
+// test-adr: 025
+// Should error: -128 and -0x80 are the same value
+// NEGATIVE CONTROL -- the same two BASES holding different values. -128 and
+// -0x80 collide below; -128 and -0x7F must not. This is what separates
+// "normalizes the spelling" from "ignores the digits".
+void okDifferentValues() {
+    i32 val <- 0;
+    switch (val) {
+        case -128 {}
+        case -0x7F {}
+        default {}
+    }
+}
+
+void test() {
+    i32 val <- 0;
+    switch (val) {
+        case -128 {}
+        case 0 {}
+        case -0x80 {}
+    }
+}

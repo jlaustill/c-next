@@ -249,7 +249,6 @@ function createMockState(): IGeneratorState {
  * Create mock orchestrator for SwitchGenerator.
  * Methods used:
  * - generateExpression(expr) - for switch expression
- * - validateSwitchStatement(node, expr) - validation
  * - getExpressionEnumType(expr) - enum type resolution
  * - indent(text) - indentation
  * - generateStatement(stmt) - for statements in blocks
@@ -258,21 +257,14 @@ function createMockOrchestrator(options?: {
   exprCode?: string;
   enumType?: string | null;
   statementCode?: string;
-  validateSwitchStatement?: (
-    node: Parser.SwitchStatementContext,
-    expr: Parser.ExpressionContext,
-  ) => void;
 }): IOrchestrator {
   const generateExpression = vi.fn(() => options?.exprCode ?? "state");
-  const validateSwitchStatement =
-    options?.validateSwitchStatement ?? vi.fn(() => undefined);
   const getExpressionEnumType = vi.fn(() => options?.enumType ?? null);
   const indent = vi.fn((text: string) => `    ${text}`);
   const generateStatement = vi.fn(() => options?.statementCode ?? "x = 1;");
 
   return {
     generateExpression,
-    validateSwitchStatement,
     getExpressionEnumType,
     indent,
     generateStatement,
@@ -740,32 +732,13 @@ describe("SwitchGenerator", () => {
       expect(result.code).toContain("default: {");
     });
 
-    it("calls validateSwitchStatement", () => {
-      const ctx = createMockSwitchStatement({ cases: [] });
-      const input = createMockInput();
-      const state = createMockState();
-      const validateSwitchStatement = vi.fn();
-      const orchestrator = createMockOrchestrator({ validateSwitchStatement });
-
-      generateSwitch(ctx, input, state, orchestrator);
-
-      expect(validateSwitchStatement).toHaveBeenCalledOnce();
-    });
-
-    it("throws when validation fails", () => {
-      const ctx = createMockSwitchStatement({ cases: [] });
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({
-        validateSwitchStatement: () => {
-          throw new Error("Error: switch requires at least one case");
-        },
-      });
-
-      expect(() => generateSwitch(ctx, input, state, orchestrator)).toThrow(
-        "switch requires at least one case",
-      );
-    });
+    // #1322: the two cases here asserted that `generateSwitch` DELEGATES to
+    // `orchestrator.validateSwitchStatement` and propagates its throw. ADR-025's
+    // rules are E0711-E0714 in pass 2.1, which halts before codegen runs, so
+    // there is no delegation left to assert. Deleted rather than emptied: an
+    // `it` that calls the generator and checks nothing is green whatever the
+    // generator does. Covered by
+    // `1-Analyze/__tests__/SwitchStatementAnalyzer.test.ts`.
 
     it("uses enum type from expression for case resolution (Issue #471)", () => {
       const caseCtx = createMockSwitchCase(
@@ -795,7 +768,6 @@ describe("SwitchGenerator", () => {
       const getExpressionEnumType = vi.fn(() => null);
       const orchestrator = {
         generateExpression: vi.fn(() => "x"),
-        validateSwitchStatement: vi.fn(),
         getExpressionEnumType,
         indent: (t: string) => `    ${t}`,
       } as unknown as IOrchestrator;

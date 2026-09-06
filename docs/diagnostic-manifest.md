@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-327 fixture(s) assert a diagnostic; 223 carry a code.
+330 fixture(s) assert a diagnostic; 233 carry a code.
 
 | Fixture                                                                                          | Codes        |
 | ------------------------------------------------------------------------------------------------ | ------------ |
@@ -38,6 +38,16 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-017/enum-error-imported-transitive.test.cnx                                            | E0428, E0434 |
 | tests/adr-022/nested-ternary-error.test.cnx                                                      | E0710        |
 | tests/adr-022/nested-ternary-unparenthesized-error.test.cnx                                      | (uncoded)    |
+| tests/adr-025/switch-error-boolean.test.cnx                                                      | E0711        |
+| tests/adr-025/switch-error-duplicate-case.test.cnx                                               | E0713        |
+| tests/adr-025/switch-error-duplicate-neg-hex.test.cnx                                            | E0713        |
+| tests/adr-025/switch-error-duplicate-negative.test.cnx                                           | E0713        |
+| tests/adr-025/switch-error-non-exhaustive.test.cnx                                               | E0714        |
+| tests/adr-025/switch-error-single-case.test.cnx                                                  | E0712        |
+| tests/adr-025/switch-error-wrong-count.test.cnx                                                  | E0714        |
+| tests/adr-025/switch-imported-direct-error.test.cnx                                              | E0714        |
+| tests/adr-025/switch-imported-transitive-error.test.cnx                                          | E0714        |
+| tests/adr-025/switch-in-scope-method-error.test.cnx                                              | E0714        |
 | tests/adr-050/return-in-critical-error.test.cnx                                                  | E0853        |
 | tests/adr-050/return-in-critical-scope-method-error.test.cnx                                     | E0853        |
 | tests/adr-050/return-in-critical-switch-error.test.cnx                                           | E0853        |
@@ -334,12 +344,5 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/string/string-error-substring-dest.test.cnx                                                | (uncoded)    |
 | tests/string/string-error-substring-global.test.cnx                                              | (uncoded)    |
 | tests/structs/struct-redundant-type-error.test.cnx                                               | (uncoded)    |
-| tests/switch/switch-error-boolean.test.cnx                                                       | (uncoded)    |
-| tests/switch/switch-error-duplicate-case.test.cnx                                                | (uncoded)    |
-| tests/switch/switch-error-duplicate-neg-hex.test.cnx                                             | (uncoded)    |
-| tests/switch/switch-error-duplicate-negative.test.cnx                                            | (uncoded)    |
-| tests/switch/switch-error-non-exhaustive.test.cnx                                                | (uncoded)    |
-| tests/switch/switch-error-single-case.test.cnx                                                   | (uncoded)    |
-| tests/switch/switch-error-wrong-count.test.cnx                                                   | (uncoded)    |
 | tests/ternary/ternary-error-no-parens.test.cnx                                                   | (uncoded)    |
 | tests/ternary/ternary-error-non-boolean.test.cnx                                                 | E0701        |

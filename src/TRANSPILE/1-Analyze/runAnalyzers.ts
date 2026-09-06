@@ -29,6 +29,7 @@ import ConstructorArgumentAnalyzer from "./ConstructorArgumentAnalyzer";
 import CriticalSectionAnalyzer from "./CriticalSectionAnalyzer";
 import EnumTypeSafetyAnalyzer from "./EnumTypeSafetyAnalyzer";
 import SliceAssignmentAnalyzer from "./SliceAssignmentAnalyzer";
+import SwitchStatementAnalyzer from "./SwitchStatementAnalyzer";
 import NestedTernaryAnalyzer from "./NestedTernaryAnalyzer";
 import ThisOutsideScopeAnalyzer from "./ThisOutsideScopeAnalyzer";
 import CommentExtractor from "./CommentExtractor";
@@ -254,8 +255,12 @@ function runAnalyzers(
       run: () => new EnumTypeSafetyAnalyzer().analyze(tree),
     },
     {
-      label: "slice assignment (ADR-052, E0858-E0861)",
+      label: "slice assignment (ADR-007, E0858-E0861)",
       run: () => new SliceAssignmentAnalyzer().analyze(tree),
+    },
+    {
+      label: "switch statements (ADR-025, E0711-E0714)",
+      run: () => new SwitchStatementAnalyzer().analyze(tree),
     },
     {
       // Last, and does not halt: comment findings are reported alongside

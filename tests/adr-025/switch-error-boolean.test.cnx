@@ -1,0 +1,20 @@
+// ADR-025: Error Test - Boolean Switch
+// test-adr: 025
+// Should error: MISRA 16.7 prohibits switch on boolean expression
+// NEGATIVE CONTROL -- a switch on the INTEGER, not on the comparison. The rule
+// is about the switched value's type, so this must stay accepted.
+void okInteger() {
+    u32 x <- 5;
+    switch (x) {
+        case 0 {}
+        default {}
+    }
+}
+
+void test() {
+    u32 x <- 5;
+    switch (x > 0) {
+        case 0 {}
+        case 1 {}
+    }
+}

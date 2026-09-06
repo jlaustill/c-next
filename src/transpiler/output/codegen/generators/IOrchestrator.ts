@@ -189,12 +189,6 @@ interface IOrchestrator {
 
   // === Statement Validation ===
 
-  /** Validate switch statement (ADR-025) */
-  validateSwitchStatement(
-    ctx: Parser.SwitchStatementContext,
-    switchExpr: Parser.ExpressionContext,
-  ): void;
-
   /** Validate condition is a boolean expression (ADR-027, Issue #884) */
   validateConditionIsBoolean(
     ctx: Parser.ExpressionContext,

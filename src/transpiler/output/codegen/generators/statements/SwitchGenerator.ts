@@ -305,8 +305,7 @@ const generateSwitch = (
   const switchExpr = node.expression();
   const exprCode = orchestrator.generateExpression(switchExpr);
 
-  // ADR-025: Semantic validation
-  orchestrator.validateSwitchStatement(node, switchExpr);
+  // #1322: ADR-025's semantic validation is E0711-E0714 in pass 2.1.
 
   // Issue #471: Get the enum type of the switch expression for case label resolution
   const switchEnumType = orchestrator.getExpressionEnumType(switchExpr);
