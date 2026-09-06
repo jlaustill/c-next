@@ -56,7 +56,7 @@ something is not worth fixing is fine; deciding it is not worth *recording* is
 not yours to make.
 
 Touching code containing a defect means owning it. "It pre-dates this change"
-and "it follows an existing pattern" are not defences.
+and "it follows an existing pattern" are not defenses.
 
 The same applies to the decision record governing what you touched. You own it,
 including obligations it never declared. An absent obligation is neither a defect
@@ -128,7 +128,7 @@ Three real instances, all in one week:
 
 Mutation-checking proves a guard *can* fail. It says nothing about the cases the
 harness never constructs. **Coverage of contexts is a separate axis from coverage
-of behaviour**, and a suite green on one looks exactly like a suite green on both.
+of behavior**, and a suite green on one looks exactly like a suite green on both.
 
 A rule can survive every mutation and still be unenforced everywhere the harness
 cannot reach — across a file boundary, through an included header, inside a
@@ -150,7 +150,7 @@ silently matches nothing runs against unmodified code and reports the same green
 as a guard that cannot fail.
 
 So **assert the mutation changed the file**, expect it to redden exactly the guard
-it targets, and give each fixture a **negative control**: a neighbouring case that
+it targets, and give each fixture a **negative control**: a neighboring case that
 must stay silent, so the fixture cannot pass by over-enforcing. Treat an
 unexpected green as a broken experiment before a coverage gap.
 
@@ -240,7 +240,7 @@ You are about to take a shortcut when you catch yourself thinking:
 | thought | what it means |
 |---|---|
 | "It's just a comment / a test / generated" | Those are the artifacts people trust most |
-| "The existing code does it this way" | Pre-existing is not a defence — touching it means owning it |
+| "The existing code does it this way" | Pre-existing is not a defense — touching it means owning it |
 | "This is a false positive" | Prove it. A *true* positive was read as false here for years |
 | "I'll note it and move on" | Fix it or file it, with a reproduction |
 | "Close enough to regenerate later" | Regenerate now; later never has the context |
