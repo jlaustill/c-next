@@ -1,5 +1,8 @@
 /**
- * #1449: which files `headers:standalone:check` is entitled to compile.
+ * Which `.cnx` a file under `tests/` came from, and which mode it belongs to.
+ *
+ * #1449: which files `headers:standalone:check` is entitled to compile, and
+ * #1149: which files exist for a mode their fixture excludes.
  *
  * Separated from the check itself, and injected rather than reading the disk,
  * because this is the half with a bug history and it fails SILENTLY. A wrong
@@ -13,7 +16,7 @@
  * Nine such files were being compiled and reported as generated headers. They
  * happened to compile, so nothing said otherwise.
  */
-class HeaderPopulation {
+class FixtureFiles {
   /**
    * The `.cnx` a generated header came from, or null when it came from none.
    *
@@ -28,18 +31,38 @@ class HeaderPopulation {
    *   sources
    */
   static sourceOf(
-    header: string,
-    exists: (path: string) => boolean,
+    path: string,
+    exists: (candidate: string) => boolean,
   ): string | null {
-    const base = header.replace(/\.(h|hpp)$/, "");
-    if (base === header) return null;
+    const isSnapshot = /\.expected\.(c|h|cpp|hpp)$/.test(path);
+    const base = path.replace(/(?:\.expected)?\.(c|h|cpp|hpp)$/, "");
+    if (base === path) return null;
 
+    // A snapshot is written for whichever shape produced it, and does not carry
+    // `.test` either way: `foo.expected.c` belongs to `foo.test.cnx` when that
+    // fixture exists, and to the helper `foo.cnx` otherwise.
+    if (isSnapshot) {
+      for (const candidate of [`${base}.test.cnx`, `${base}.cnx`]) {
+        if (exists(candidate)) return candidate;
+      }
+      return null;
+    }
+
+    // Generated output, where the two shapes do NOT share a stem and trying
+    // both picks up hand-written INPUT: `comprehensive-cpp.hpp` is a
+    // hand-authored interop fixture the transpiler READS, beside
+    // `comprehensive-cpp.test.cnx` whose output is `comprehensive-cpp.test.hpp`.
     if (base.endsWith(".test")) {
       const candidate = `${base.slice(0, -".test".length)}.test.cnx`;
       return exists(candidate) ? candidate : null;
     }
     const candidate = `${base}.cnx`;
     return exists(candidate) ? candidate : null;
+  }
+
+  /** The mode a file belongs to, from its extension. */
+  static modeOf(path: string): "c" | "cpp" {
+    return path.endsWith(".cpp") || path.endsWith(".hpp") ? "cpp" : "c";
   }
 
   /**
@@ -49,11 +72,11 @@ class HeaderPopulation {
    * compared; it preserves a dead codegen shape. Compiling one reports a defect
    * in output nothing produces any more, which is worse than not checking it.
    */
-  static isModeOrphan(header: string, sourceText: string): boolean {
-    return header.endsWith(".hpp")
+  static isModeOrphan(path: string, sourceText: string): boolean {
+    return FixtureFiles.modeOf(path) === "cpp"
       ? sourceText.includes("test-c-only")
       : sourceText.includes("test-cpp-only");
   }
 }
 
-export default HeaderPopulation;
+export default FixtureFiles;

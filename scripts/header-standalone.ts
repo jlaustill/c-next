@@ -14,6 +14,16 @@
  * header that only works in one of those orders is a header whose includes are
  * the caller's problem.
  *
+ * ## Nothing is excluded for being a mode orphan
+ *
+ * It used to skip a `.h` beside a `// test-cpp-only` fixture, because such a
+ * file is never regenerated and compiling one reports a defect in output
+ * nothing produces (#1149). That exclusion is gone: 90 of them were deleted and
+ * `scripts/__tests__/snapshot-modes.test.ts` now forbids another, so there is
+ * nothing to exclude. Keeping the skip would have been a second mechanism for
+ * one property -- and the silent kind, which is how they accumulated to 90
+ * while CLAUDE.md recorded 30.
+ *
  * ## It compiles the GENERATED files, never the snapshots
  *
  * `.expected.*` would be the wrong input: 48 of them are stale and 60 are
@@ -28,14 +38,14 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import chalk from "chalk";
 
 import FileScanner from "./utils/FileScanner";
-import HeaderPopulation from "./headers/HeaderPopulation";
+import FixtureFiles from "./headers/FixtureFiles";
 
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const testsDir = join(rootDir, "tests");
@@ -56,15 +66,6 @@ const EXPECTED_FAILURES: ReadonlyMap<string, string> = new Map([
       "version that did would mean the fixture had stopped testing anything",
   ],
 ]);
-
-const sourceCache = new Map<string, string>();
-function readSource(path: string): string {
-  const cached = sourceCache.get(path);
-  if (cached !== undefined) return cached;
-  const text = readFileSync(path, "utf-8");
-  sourceCache.set(path, text);
-  return text;
-}
 
 interface IOutcome {
   readonly path: string;
@@ -110,11 +111,9 @@ function generatedHeaders(): string[] {
   for (const suffix of [".h", ".hpp"]) {
     for (const full of FileScanner.findFiles(testsDir, suffix)) {
       if (full.includes(".expected.")) continue;
-      const source = HeaderPopulation.sourceOf(full, existsSync);
-      if (source === null) continue; // not transpiler output
-      if (HeaderPopulation.isModeOrphan(full, readSource(source))) {
-        continue; // #1149
-      }
+      // Null means the transpiler did not write this file -- a hand-authored
+      // interop fixture, or a vendored header.
+      if (FixtureFiles.sourceOf(full, existsSync) === null) continue;
       headers.push(full);
     }
   }
