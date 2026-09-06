@@ -138,12 +138,6 @@ interface IOrchestrator {
   /** Validate ternary condition is a comparison (ADR-022) */
   validateTernaryCondition(condition: Parser.OrExpressionContext): void;
 
-  /** Validate no nested ternary expressions (ADR-022) */
-  validateNoNestedTernary(
-    expr: Parser.OrExpressionContext,
-    branchName: string,
-  ): void;
-
   /** Validate that a literal value fits in the target type */
   validateLiteralFitsType(literal: string, typeName: string): void;
 

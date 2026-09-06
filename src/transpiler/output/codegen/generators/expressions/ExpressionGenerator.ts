@@ -68,8 +68,7 @@ const generateTernaryExpr = (
 
   // ADR-022: Validate ternary constraints
   orchestrator.validateTernaryCondition(condition);
-  orchestrator.validateNoNestedTernary(trueExpr, "true branch");
-  orchestrator.validateNoNestedTernary(falseExpr, "false branch");
+  // #1322: nested-ternary rejection is E0710 in pass 2.1.
 
   // Issue #254: Validate no function calls in ternary condition (E0702)
   orchestrator.validateTernaryConditionNoFunctionCall(condition);

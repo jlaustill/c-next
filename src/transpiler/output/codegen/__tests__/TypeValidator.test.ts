@@ -1468,23 +1468,11 @@ describe("TypeValidator", () => {
     });
   });
 
-  describe("validateNoNestedTernary", () => {
-    it("allows non-ternary expressions", () => {
-      setupState();
-      const ctx = createMockOrExpression("x + 1");
-      expect(() =>
-        TypeValidator.validateNoNestedTernary(ctx, "true branch"),
-      ).not.toThrow();
-    });
-
-    it("throws for nested ternary", () => {
-      setupState();
-      const ctx = createMockOrExpression("a ? b : c");
-      expect(() =>
-        TypeValidator.validateNoNestedTernary(ctx, "true branch"),
-      ).toThrow("Nested ternary not allowed in true branch");
-    });
-  });
+  // #1322: ADR-022's nested-ternary rule is E0710 in pass 2.1, asked of the
+  // parse tree. What it replaced was a substring test on the branch's source
+  // text, which rejected a legal ternary whose branch was a string literal
+  // containing `?` and `:`. Covered by
+  // `1-Analyze/__tests__/NestedTernaryAnalyzer.test.ts`.
 
   // ========================================================================
   // Tests - Do-While Validation (ADR-027)

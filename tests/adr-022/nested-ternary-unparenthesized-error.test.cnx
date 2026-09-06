@@ -1,0 +1,17 @@
+// test-error
+// ADR-022 forbids a ternary inside a ternary. TWO mechanisms enforce that, and
+// this fixture holds the half that is NOT E0710.
+//
+// Unparenthesized, the nesting is a GRAMMAR error -- the parser rejects it and
+// no analyzer ever runs. Parenthesized, it parses fine and E0710 rejects it in
+// pass 2.1 (`nested-ternary-error` beside this file).
+//
+// #1322 moved it here from `tests/ternary/`, where its name suggested it
+// covered ADR-022's rule. It covers the grammar. The audit that classified the
+// codegen throws recorded "fixture: none" for the nested-ternary throw and was
+// right: this fixture never reaches it.
+
+void test() {
+    i32 x <- 5;
+    i32 sign <- (x > 0) ? 1 : (x < 0) ? -1 : 0;
+}

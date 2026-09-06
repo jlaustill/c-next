@@ -31,6 +31,15 @@ cell is declared by the ADR that owns it.
 - `bugs/issue-1334-scope-declaration-sites/conflict-across-files.test.cnx`
 - `scope/nested-scope-error.test.cnx`
 
+## ADR-022
+
+| Context            | same file | direct | transitive | from 1 away | thru chain |
+| ------------------ | --------- | ------ | ---------- | ----------- | ---------- |
+| global variable    | ok        | -      | -          | n/a         | n/a        |
+| top-level function | ok        | -      | -          | n/a         | n/a        |
+| scope member       | ok        | -      | -          | n/a         | n/a        |
+| scope method       | ok        | -      | -          | n/a         | n/a        |
+
 ## ADR-029
 
 | Context            | same file | direct | transitive | from 1 away | thru chain |

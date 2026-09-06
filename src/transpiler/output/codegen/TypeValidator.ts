@@ -613,17 +613,14 @@ class TypeValidator {
     TypeValidator._validateConditionOrExpression(ctx, "ternary");
   }
 
-  static validateNoNestedTernary(
-    ctx: Parser.OrExpressionContext,
-    branchName: string,
-  ): void {
-    const text = ctx.getText();
-    if (text.includes("?") && text.includes(":")) {
-      throw new Error(
-        `Error: Nested ternary not allowed in ${branchName}. Use if/else instead.`,
-      );
-    }
-  }
+  // #1322: `validateNoNestedTernary` is gone. ADR-022's rule is E0710 in pass
+  // 2.1, asked of the parse tree.
+  //
+  // What stood here was a SUBSTRING TEST on the branch's source text --
+  // `text.includes("?") && text.includes(":")` -- which rejected
+  // `(n = 1) ? "a?b:c" : "plain"`, a legal ternary whose true branch is a
+  // string literal containing both characters. A rule about syntax asking
+  // about characters.
 
   // ========================================================================
   // Condition Boolean Validation (ADR-027, Issue #884)

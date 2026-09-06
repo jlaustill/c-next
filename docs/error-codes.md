@@ -18,7 +18,7 @@ codes that already have a fixture.
 | E04xx     | Symbol Resolution       | 12     |
 | E05xx     | Include/Preprocessor    | 7      |
 | E06xx     | Sizeof Expressions      | 2      |
-| E07xx     | Control Flow            | 7      |
+| E07xx     | Control Flow            | 8      |
 | E08xx     | Arithmetic/Array Safety | 17     |
 | E09xx     | NULL Safety             | 8      |
 | **Total** |                         | **57** |
@@ -181,8 +181,9 @@ include-visibility is not derivable for a C or C++ name.
 | E0705 | `forever` loop in non-void function                                 | Make the function return `void`, or use a `while` loop with an exit condition | `output/codegen/generators/statements/ControlFlowGenerator.ts` |
 | E0707 | Disguised infinite loop (`for(;;)` / always-true literal condition) | Write `forever { ... }` for an intentional infinite loop                      | `output/codegen/TypeValidator.ts`, `ControlFlowGenerator.ts`   |
 | E0708 | Return value of non-void function discarded                         | Use the value, or discard it explicitly: `(void) f(...);`                     | `logic/analysis/ReturnValueUseAnalyzer.ts`                     |
+| E0710 | Nested ternary not allowed in a ternary's condition or branches     | Use `if`/`else`, or lift the inner expression into a named variable first     | `TRANSPILE/1-Analyze/NestedTernaryAnalyzer.ts`                 |
 
-**Related:** MISRA C:2012 Rule 14.4 (E0701), Rule 13.5 / Issue #254 (E0702), ADR-026 / Issue #1011 (E0703), ADR-067 / Issue #1040 (E0704), ADR-068 / Issue #1074 (E0705), ADR-068 / Issue #1075 (E0707; E0706 reserved for ADR-069 unreachable code; ADR-070 / Issue #847 (E0708); E0709 reserved for ADR-069 unused variable / Issue #1107)
+**Related:** MISRA C:2012 Rule 14.4 (E0701), Rule 13.5 / Issue #254 (E0702), ADR-026 / Issue #1011 (E0703), ADR-067 / Issue #1040 (E0704), ADR-068 / Issue #1074 (E0705), ADR-068 / Issue #1075 (E0707; E0706 reserved for ADR-069 unreachable code; ADR-070 / Issue #847 (E0708); E0709 reserved for ADR-069 unused variable / Issue #1107; ADR-022 / Issue #1322 (E0710))
 
 ---
 

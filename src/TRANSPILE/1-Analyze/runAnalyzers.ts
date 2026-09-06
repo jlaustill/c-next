@@ -27,6 +27,7 @@ import ReturnValueUseAnalyzer from "./ReturnValueUseAnalyzer";
 import CompoundAssignmentAnalyzer from "./CompoundAssignmentAnalyzer";
 import ConstructorArgumentAnalyzer from "./ConstructorArgumentAnalyzer";
 import CriticalSectionAnalyzer from "./CriticalSectionAnalyzer";
+import NestedTernaryAnalyzer from "./NestedTernaryAnalyzer";
 import ThisOutsideScopeAnalyzer from "./ThisOutsideScopeAnalyzer";
 import CommentExtractor from "./CommentExtractor";
 import ITranspileError from "../../lib/types/ITranspileError";
@@ -209,6 +210,26 @@ function runAnalyzers(
         "return-value use (ADR-070 / MISRA C:2012 Rule 17.7 at source level)",
       run: () => ReturnValueUseAnalyzer.analyze(tree),
     },
+    // ---------------------------------------------------------------------
+    // #1322 relocations: appended as a BLOCK, never inserted among the steps
+    // above. The loop breaks at the first non-advisory step that finds
+    // anything, so where a step sits decides which diagnostic a file reports
+    // when two would fire. Appending is the only placement that CANNOT change
+    // what an existing fixture says -- every file that reaches an older
+    // analyzer today still reaches it first -- and a fixture that quietly
+    // starts reporting a different code is what
+    // `diagnostics:manifest:check` calls `code-removed`, which the suite
+    // stays green through.
+    //
+    // Order WITHIN this block is not load-bearing: no fixture triggers two of
+    // these rules, so no diagnostic depends on it. A later relocation that
+    // needs to preempt a step ABOVE the block states its
+    // cause-before-consequence reason at its own entry, as the pairs above do.
+    // ---------------------------------------------------------------------
+    {
+      label: "nested ternary in a condition or branch (ADR-022, E0710)",
+      run: () => new NestedTernaryAnalyzer().analyze(tree),
+    },
     {
       label:
         "compound assignment needs a whole storage location (ADR-007, E0857)",
@@ -223,17 +244,6 @@ function runAnalyzers(
       run: () => new CriticalSectionAnalyzer().analyze(tree),
     },
     {
-      // #1322: appended rather than inserted. The loop breaks at the first
-      // non-advisory step that finds anything, so where a step sits decides
-      // which diagnostic a file reports when two would fire. Appending is the
-      // only placement that CANNOT change what an existing fixture says --
-      // every file that reaches an older analyzer today still reaches it
-      // first -- and a fixture that quietly starts reporting a different code
-      // is what `diagnostics:manifest:check` calls `code-removed`, which the
-      // suite stays green through.
-      //
-      // A later relocation that needs to preempt an existing step states its
-      // cause-before-consequence reason here, as the pairs above do.
       label: "`this` outside a scope (ADR-016)",
       run: () => new ThisOutsideScopeAnalyzer().analyze(tree),
     },

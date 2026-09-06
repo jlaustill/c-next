@@ -12,11 +12,13 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-316 fixture(s) assert a diagnostic; 200 carry a code.
+317 fixture(s) assert a diagnostic; 201 carry a code.
 
 | Fixture                                                                                          | Codes        |
 | ------------------------------------------------------------------------------------------------ | ------------ |
 | tests/adr-016/this-outside-scope-error.test.cnx                                                  | E0431        |
+| tests/adr-022/nested-ternary-error.test.cnx                                                      | E0710        |
+| tests/adr-022/nested-ternary-unparenthesized-error.test.cnx                                      | (uncoded)    |
 | tests/adr-050/return-in-critical-error.test.cnx                                                  | E0853        |
 | tests/adr-050/return-in-critical-scope-method-error.test.cnx                                     | E0853        |
 | tests/adr-050/return-in-critical-switch-error.test.cnx                                           | E0853        |
@@ -329,6 +331,5 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/switch/switch-error-non-exhaustive.test.cnx                                                | (uncoded)    |
 | tests/switch/switch-error-single-case.test.cnx                                                   | (uncoded)    |
 | tests/switch/switch-error-wrong-count.test.cnx                                                   | (uncoded)    |
-| tests/ternary/ternary-error-nested.test.cnx                                                      | (uncoded)    |
 | tests/ternary/ternary-error-no-parens.test.cnx                                                   | (uncoded)    |
 | tests/ternary/ternary-error-non-boolean.test.cnx                                                 | E0701        |

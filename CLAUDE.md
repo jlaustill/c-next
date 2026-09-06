@@ -210,19 +210,28 @@ update step: an `--update` inside it could not fail on a mismatch. `npm run test
 regenerates every snapshot, `tests/bugs/` included (#1142); `npm run test:bugs:update` narrows
 it to the regression fixtures.
 
-**`test:all` is four checks of twenty-eight — run `npm run test:gate` before pushing.**
-`test:all` is `build && unit && test:q && validate:c`. CI runs twenty-four more with no local
+**`test:all` is four checks of twenty-nine — run `npm run test:gate` before pushing.**
+`test:all` is `build && unit && test:q && validate:c`. CI runs twenty-five more with no local
 alias: the whole **`Static Analysis`** job (`prettier:check`, `plugin:test`, `test:hooks`,
 `cspell:check`, `oxlint:check`, `knip`, `depcruise`, `lint:test-location`,
 `analyze:duplication`, `docs:toolchain:check`, `coverage:matrix:check`,
 `diagnostics:manifest:check`, `error-codes:check`, `docs:throw-citations:check`, `scope-joins:check`,
 `adr:independence:check`, `gh:pagination:check`), plus `typecheck`, `typecheck` for
 `prettier-plugin`, `typecheck:scripts`, `test:cli`,
-`coverage:grammar:check`, `format:fidelity`, and the working-tree check that `Verify Clean`
-performs. This roster is a list that reads as complete, so it fails the way every other list
-in this section does: it stood at twenty-four in the pull request that added the
-twenty-fifth and twenty-sixth, and twenty-six in the one that added `typecheck:scripts` and `error-codes:check`.
-`scripts/gate.sh` is the count that cannot drift (`grep -c '^run_check'`). `scripts/gate.sh` runs all of them, reports each against the CI job that owns it,
+`coverage:grammar:check`, `headers:standalone:check`, `format:fidelity`, and the working-tree
+check that `Verify Clean` performs. This roster is a list that reads as complete, so it fails
+the way every other list in this section does: it stood at twenty-four in the pull request that
+added the twenty-fifth and twenty-sixth, twenty-six in the one that added `typecheck:scripts`
+and `error-codes:check`, and twenty-eight while `headers:standalone:check` had been running
+unnamed (#1322).
+
+**Counting it needs care, and the prescribed command is off by a coincidence.**
+`grep -c '^run_check'` returns 29 because it also matches the line that DEFINES the
+function; there are 28 invocations. That happens to equal the number of checks the script
+reports, because the working-tree check is written inline rather than as a `run_check` — one
+uncounted check cancelling one over-counted line. Use `grep -c '^run_check "'` for the
+invocations and remember the inline one, or the next check added inline will read as no
+change at all. `scripts/gate.sh` runs all of them, reports each against the CI job that owns it,
 and does **not** stop at the first failure. A green `test:all` says nothing about any of
 them: #1399 pushed on one and turned CI red on `docs:throw-citations:check`, because
 **adding a single import to a file under `output/` shifts every later `throw new` down one

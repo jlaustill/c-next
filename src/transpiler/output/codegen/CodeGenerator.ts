@@ -889,17 +889,6 @@ export default class CodeGenerator implements IOrchestrator {
     TypeValidator.validateTernaryCondition(condition);
   }
 
-  /**
-   * Validate no nested ternary expressions (ADR-022).
-   * Part of IOrchestrator interface - delegates to TypeValidator.
-   */
-  validateNoNestedTernary(
-    expr: Parser.OrExpressionContext,
-    branchName: string,
-  ): void {
-    TypeValidator.validateNoNestedTernary(expr, branchName);
-  }
-
   // === Function Call Helpers ===
 
   /**
