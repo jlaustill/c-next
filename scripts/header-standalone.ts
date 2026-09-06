@@ -35,6 +35,7 @@ import { fileURLToPath } from "node:url";
 import chalk from "chalk";
 
 import FileScanner from "./utils/FileScanner";
+import HeaderPopulation from "./headers/HeaderPopulation";
 
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const testsDir = join(rootDir, "tests");
@@ -71,42 +72,6 @@ const EXPECTED_FAILURES: ReadonlyMap<string, string> = new Map([
     "#1520: a struct FIELD's C++ header is not included",
   ],
 ]);
-
-/**
- * The `.cnx` a generated header came from, or null when it came from none.
- *
- * The two output shapes do not share a stem, and conflating them picks up
- * hand-written INPUT as though it were output: `comprehensive-cpp.hpp` is a
- * hand-authored C++ interop fixture that the transpiler READS, sitting beside
- * `comprehensive-cpp.test.cnx` whose output is `comprehensive-cpp.test.hpp`.
- * A rule that accepts either source for either name compiles the input and
- * calls it a generated header.
- *
- *   `X.test.h` / `X.test.hpp`  <- `X.test.cnx`   (a fixture's own output)
- *   `Y.h` / `Y.hpp`            <- `Y.cnx`        (a helper's output)
- */
-function sourceOf(header: string): string | null {
-  const base = header.replace(/\.(h|hpp)$/, "");
-  if (base.endsWith(".test")) {
-    const candidate = `${base.slice(0, -".test".length)}.test.cnx`;
-    return existsSync(candidate) ? candidate : null;
-  }
-  const candidate = `${base}.cnx`;
-  return existsSync(candidate) ? candidate : null;
-}
-
-/**
- * Whether this header is an orphan of the other mode (#1149).
- *
- * A `.h` beside a `// test-cpp-only` fixture is never regenerated and never
- * compared -- it preserves a dead codegen shape. Compiling one reports a defect
- * in output nothing produces any more.
- */
-function isModeOrphan(header: string, source: string): boolean {
-  const text = readSource(source);
-  if (header.endsWith(".hpp")) return text.includes("test-c-only");
-  return text.includes("test-cpp-only");
-}
 
 const sourceCache = new Map<string, string>();
 function readSource(path: string): string {
@@ -161,9 +126,11 @@ function generatedHeaders(): string[] {
   for (const suffix of [".h", ".hpp"]) {
     for (const full of FileScanner.findFiles(testsDir, suffix)) {
       if (full.includes(".expected.")) continue;
-      const source = sourceOf(full);
+      const source = HeaderPopulation.sourceOf(full, existsSync);
       if (source === null) continue; // not transpiler output
-      if (isModeOrphan(full, source)) continue; // #1149
+      if (HeaderPopulation.isModeOrphan(full, readSource(source))) {
+        continue; // #1149
+      }
       headers.push(full);
     }
   }
