@@ -1,18 +1,18 @@
 /**
- * Tests for HeaderEmissionPlanner
+ * Tests for HeaderRenderer
  * Issue #1323: the whole-program render step that turns every file's captured
  * IHeaderEmissionFacts into header text, reading no CodeGenState.
  */
 
 import { describe, it, expect, vi, afterEach } from "vitest";
-import HeaderEmissionPlanner from "../HeaderEmissionPlanner";
+import HeaderRenderer from "../HeaderRenderer";
 import HeaderGenerator from "../HeaderGenerator";
 import IHeaderEmissionFacts from "../types/IHeaderEmissionFacts";
 import IHeaderSymbol from "../types/IHeaderSymbol";
 import IHeaderOptions from "../../codegen/types/IHeaderOptions";
 import CodeGenState from "../../../state/CodeGenState";
 
-describe("HeaderEmissionPlanner", () => {
+describe("HeaderRenderer", () => {
   afterEach(() => {
     CodeGenState.reset();
   });
@@ -44,7 +44,7 @@ describe("HeaderEmissionPlanner", () => {
   }
 
   it("returns empty maps for an empty facts input", () => {
-    const plan = HeaderEmissionPlanner.plan(new Map(), new HeaderGenerator());
+    const plan = HeaderRenderer.render(new Map(), new HeaderGenerator());
 
     expect(plan.headersBySourcePath.size).toBe(0);
     expect(plan.errorsBySourcePath.size).toBe(0);
@@ -53,7 +53,7 @@ describe("HeaderEmissionPlanner", () => {
   it("renders one file's header, keyed by source path", () => {
     const facts = new Map([["/src/foo.cnx", makeFacts("foo.h")]]);
 
-    const plan = HeaderEmissionPlanner.plan(facts, new HeaderGenerator());
+    const plan = HeaderRenderer.render(facts, new HeaderGenerator());
 
     expect(plan.headersBySourcePath.size).toBe(1);
     expect(plan.errorsBySourcePath.size).toBe(0);
@@ -67,7 +67,7 @@ describe("HeaderEmissionPlanner", () => {
       ["/src/bar.cnx", makeFacts("bar.h", [makeVarSymbol("b", "u16")])],
     ]);
 
-    const plan = HeaderEmissionPlanner.plan(facts, new HeaderGenerator());
+    const plan = HeaderRenderer.render(facts, new HeaderGenerator());
 
     expect(plan.headersBySourcePath.size).toBe(2);
     expect(plan.headersBySourcePath.get("/src/foo.cnx")).toContain(
@@ -85,7 +85,7 @@ describe("HeaderEmissionPlanner", () => {
     });
     const facts = new Map([["/src/bad.cnx", makeFacts("bad.h")]]);
 
-    const plan = HeaderEmissionPlanner.plan(facts, generator);
+    const plan = HeaderRenderer.render(facts, generator);
 
     expect(plan.headersBySourcePath.has("/src/bad.cnx")).toBe(false);
     expect(plan.errorsBySourcePath.get("/src/bad.cnx")).toBe("boom");
@@ -106,7 +106,7 @@ describe("HeaderEmissionPlanner", () => {
       ["/src/good.cnx", makeFacts("good.h", [makeVarSymbol("c", "u32")])],
     ]);
 
-    const plan = HeaderEmissionPlanner.plan(facts, generator);
+    const plan = HeaderRenderer.render(facts, generator);
 
     expect(plan.errorsBySourcePath.get("/src/bad.cnx")).toBe("boom");
     expect(plan.headersBySourcePath.get("/src/good.cnx")).toContain(
@@ -115,7 +115,7 @@ describe("HeaderEmissionPlanner", () => {
   });
 
   it("renders identically after CodeGenState has moved on to another file", () => {
-    // This is the invariant HeaderEmissionPlanner exists to provide (#1323):
+    // This is the invariant HeaderRenderer exists to provide (#1323):
     // plan() reads no CodeGenState, only the facts it is handed. Captured
     // while CodeGenState said "this file needs the ISR typedef" --
     const facts = new Map([
@@ -129,7 +129,7 @@ describe("HeaderEmissionPlanner", () => {
     // the same way the real per-file loop leaves it before Stage 5.5 runs.
     CodeGenState.needsISR = false;
 
-    const plan = HeaderEmissionPlanner.plan(facts, new HeaderGenerator());
+    const plan = HeaderRenderer.render(facts, new HeaderGenerator());
 
     // If plan() (or the generate() call path it uses) ever read live
     // CodeGenState.needsISR instead of the captured facts.options value,
@@ -148,7 +148,7 @@ describe("HeaderEmissionPlanner", () => {
     });
     const facts = new Map([["/src/weird.cnx", makeFacts("weird.h")]]);
 
-    const plan = HeaderEmissionPlanner.plan(facts, generator);
+    const plan = HeaderRenderer.render(facts, generator);
 
     expect(plan.errorsBySourcePath.get("/src/weird.cnx")).toBe(
       "not an Error instance",

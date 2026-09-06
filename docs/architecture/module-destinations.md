@@ -88,7 +88,7 @@ from `awaiting` to a real path, never back.
 | `ComplianceAnnotations.ts` | which safety-standard rule shaped a construct, and the one rendering of the house form |
 
 Created here rather than moved: 2.2 Plan did not exist as a module anywhere, so
-there was nothing to relocate. #1323's `HeaderEmissionPlanner` is **not** listed
+there was nothing to relocate. #1323's `HeaderRenderer` (`HeaderEmissionPlanner` until #1449) is **not** listed
 — it renders header text from already-decided facts, which is 2.3 by the
 discriminator above.
 

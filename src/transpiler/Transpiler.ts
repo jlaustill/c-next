@@ -27,7 +27,7 @@ import TJsonValue from "../utils/types/TJsonValue";
 import TypeResolver from "../utils/TypeResolver";
 import PublicInterface from "./logic/symbols/PublicInterface";
 import HeaderGenerator from "./output/headers/HeaderGenerator";
-import HeaderEmissionPlanner from "./output/headers/HeaderEmissionPlanner";
+import HeaderRenderer from "./output/headers/HeaderRenderer";
 import ExternalTypeHeaderBuilder from "./output/headers/ExternalTypeHeaderBuilder";
 import HeaderGeneratorUtils from "./output/headers/HeaderGeneratorUtils";
 import IHeaderEmissionFacts from "./output/headers/types/IHeaderEmissionFacts";
@@ -496,7 +496,7 @@ class Transpiler {
    * Stage 5.5: render every file's captured `IHeaderEmissionFacts` into
    * header text, in one batch, after the Stage 5 loop has finished.
    *
-   * #1323: `HeaderEmissionPlanner.plan()` never reads `CodeGenState` -- it
+   * #1323: `HeaderRenderer.render()` never reads `CodeGenState` -- it
    * only reads the captured records -- so calling it here, once, after every
    * file's state has already moved on, is exactly the timing issue #1139's
    * fix forbade for `generateHeaderForFile`. That method no longer exists;
@@ -515,7 +515,7 @@ class Transpiler {
    * block that produced that failure.
    */
   private _renderHeaders(result: ITranspilerResult): void {
-    const plan = HeaderEmissionPlanner.plan(
+    const rendered = HeaderRenderer.render(
       this.headerEmissionFactsByPath,
       this.headerGenerator,
     );
@@ -525,13 +525,17 @@ class Transpiler {
         continue;
       }
 
-      const headerCode = plan.headersBySourcePath.get(fileResult.sourcePath);
+      const headerCode = rendered.headersBySourcePath.get(
+        fileResult.sourcePath,
+      );
       if (headerCode !== undefined) {
         fileResult.headerCode = headerCode;
         continue;
       }
 
-      const errorMessage = plan.errorsBySourcePath.get(fileResult.sourcePath);
+      const errorMessage = rendered.errorsBySourcePath.get(
+        fileResult.sourcePath,
+      );
       if (errorMessage === undefined) {
         continue;
       }
@@ -907,7 +911,7 @@ class Transpiler {
 
       // #1323: resolve this file's header-render input while its state is
       // warm (reads from state populated above), but do not render it here.
-      // HeaderEmissionPlanner renders every file's header in one step, after
+      // HeaderRenderer renders every file's header in one step, after
       // this per-file loop finishes -- headerCode is filled in there.
       const headerFacts = this._captureHeaderEmissionFacts(file);
       if (headerFacts) {
@@ -2328,7 +2332,7 @@ class Transpiler {
    * ADR-055 Phase 7: Uses TSymbol directly, converts to IHeaderSymbol for generation.
    *
    * #1323: this decides a header's content -- it no longer renders it. It
-   * returns the resolved `IHeaderEmissionFacts` `HeaderEmissionPlanner` will
+   * returns the resolved `IHeaderEmissionFacts` `HeaderRenderer` will
    * later pass to `HeaderGenerator.generate()`, instead of calling that
    * itself. That split is what makes issue #1139 structurally impossible
    * rather than merely fixed: #1139 happened because a SECOND, LATER call
@@ -2353,7 +2357,7 @@ class Transpiler {
    * A dependency cycle would break that ordering (`_sortFilesByDependency`
    * drains `depGraph.getWarnings()` into warnings rather than failing, so
    * cycle order is arbitrary, #1167) -- captured here rather than read by
-   * `HeaderEmissionPlanner` for exactly that reason: reading it once more,
+   * `HeaderRenderer` for exactly that reason: reading it once more,
    * after every file, would make a cycle's header content correct regardless
    * of order, but that is a genuine behavior change belonging to #1167, not
    * a side effect of this refactor.

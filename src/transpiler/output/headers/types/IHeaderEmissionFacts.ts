@@ -11,7 +11,7 @@ import TPassByValueParams from "../../../types/TPassByValueParams";
  *
  * #1323: `generateHeaderForFile` used to both DECIDE this content and RENDER
  * it inline, in the same per-file moment. This is the decision, frozen; the
- * render that consumes it (`HeaderEmissionPlanner`) never touches
+ * render that consumes it (`HeaderRenderer`) never touches
  * `CodeGenState`, which is what makes issue #1139's failure mode structurally
  * impossible rather than merely fixed -- there is no live per-file state left
  * for a later call to read stale, because nothing here is read live.

@@ -1,7 +1,7 @@
 /**
  * The rendered header text for every file in this run, keyed by source path.
  *
- * Produced by `HeaderEmissionPlanner` from the `IHeaderEmissionFacts` each file
+ * Produced by `HeaderRenderer` from the `IHeaderEmissionFacts` each file
  * captured while its `CodeGenState` was warm (#1323).
  *
  * ## It used to be called `IEmissionPlan`, and it is not one

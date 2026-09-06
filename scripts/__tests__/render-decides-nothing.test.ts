@@ -36,7 +36,7 @@ const CAPTURE = "private captureEmissionFacts(";
  *
  * `usedClampOps` and `usedSafeDivOps` are here because the plan carries them
  * too, and for a while the renderer took them from the state anyway -- the fact
- * in two places with the renderer using the other one. Nothing behavioural
+ * in two places with the renderer using the other one. Nothing behavioral
  * could catch that: the plan is BUILT from the state, so both hold the same
  * values and a test asserting the output cannot tell which was read. The claim
  * is structural, so the check is.

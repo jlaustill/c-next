@@ -1,7 +1,5 @@
 /**
- * HeaderEmissionPlanner
- *
- * #1323: the whole-program step that turns every file's captured
+ * 2.3 Render -- the whole-program step that turns every file's captured
  * `IHeaderEmissionFacts` into rendered header text, run once after every file
  * has been transpiled.
  *
@@ -13,12 +11,25 @@
  * exists so the render call is genuinely centralized rather than interleaved
  * with the per-file transpile loop, which is the seam #1449's real 2.2 Plan
  * pass needs to build on.
+ *
+ * ## It was `HeaderEmissionPlanner`, and that name outlived its reason
+ *
+ * #1323 named it for the artifact it returned, which was then called
+ * `IEmissionPlan`. #1449 took that name for the real 2.2 Plan artifact and gave
+ * this one `IHeaderRenderResult`, which left a class called `...Planner`, with a
+ * method called `plan()`, returning a render result. The names are the argument
+ * in a pass table, so a half-finished rename is worse than none.
+ *
+ * Renaming does NOT claim the decide/render split is done. `HeaderGenerator.generate()`,
+ * which this calls, still both decides and renders -- that is #1450's, and
+ * #1323's commit said so. What this module does is run the render once, over
+ * frozen facts; the name now says that and nothing more.
  */
 import HeaderGenerator from "./HeaderGenerator";
 import IHeaderEmissionFacts from "./types/IHeaderEmissionFacts";
 import IHeaderRenderResult from "../../types/IHeaderRenderResult";
 
-class HeaderEmissionPlanner {
+class HeaderRenderer {
   /**
    * Render every captured file's header. One file's render failure is
    * isolated to that file's entry in `errorsBySourcePath` -- it neither
@@ -30,7 +41,7 @@ class HeaderEmissionPlanner {
    *   header; a file with none (`PublicInterface.forFile` was empty) has no
    *   entry and gets no `headersBySourcePath` entry either.
    */
-  static plan(
+  static render(
     factsBySourcePath: ReadonlyMap<string, IHeaderEmissionFacts>,
     headerGenerator: HeaderGenerator,
   ): IHeaderRenderResult {
@@ -59,4 +70,4 @@ class HeaderEmissionPlanner {
   }
 }
 
-export default HeaderEmissionPlanner;
+export default HeaderRenderer;
