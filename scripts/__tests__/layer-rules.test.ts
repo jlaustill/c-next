@@ -105,7 +105,7 @@ describe("dependency-cruiser layer rules (#1297)", () => {
     // Guards the selector itself. If the path convention changes and this
     // returns nothing, "every layer rule is transitive" passes over an empty
     // list -- the same defect as #1297, one level up.
-    expect(layerRules().length).toBeGreaterThanOrEqual(8);
+    expect(layerRules().length).toBeGreaterThanOrEqual(9);
   });
 
   it("every layer rule is transitive", () => {
@@ -128,6 +128,7 @@ describe("dependency-cruiser layer rules (#1297)", () => {
       "logic-cannot-import-output",
       "nothing-after-resolve-derives-cross-file-facts",
       "parse-cannot-import-render",
+      "parse-cannot-import-transpile",
       "plan-cannot-import-render",
       "state-cannot-import-output",
     ]);

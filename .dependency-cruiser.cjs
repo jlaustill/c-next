@@ -122,6 +122,22 @@ module.exports = {
       to: { path: "^src/transpiler/output/", reachable: true },
     },
     {
+      name: "parse-cannot-import-transpile",
+      comment:
+        "#1515: PARSE is passes 1.x and TRANSPILE is 2.x, so an import here is " +
+        "an earlier LAYER reading a later one -- worse than the one-pass edge " +
+        "`declare-cannot-import-resolve` forbids. It is not hypothetical: " +
+        "`TSymbolInfoAdapter`, in 1.3 Declare, computed `hasPublicInterface` " +
+        "from `PublicInterface`, so the parse layer decided whether the " +
+        "generated `.c` includes its own header. Nothing said so while " +
+        "`PublicInterface` sat in `logic/symbols/`; placing it in 2.2 Plan is " +
+        "what made the edge visible, and this is what keeps it that way. " +
+        "`reachable` because a helper is as good a route as a direct import.",
+      severity: "error",
+      from: { path: "^src/PARSE/", pathNot: "__tests__" },
+      to: { path: "^src/TRANSPILE/", reachable: true },
+    },
+    {
       name: "declare-cannot-import-resolve",
       comment:
         "#1472/#1447: 1.3 Declare must not depend on 1.4 Resolve. Declare emits " +

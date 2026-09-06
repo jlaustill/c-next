@@ -2374,7 +2374,6 @@ export default class CodeGenerator implements IOrchestrator {
     options: ICodeGeneratorOptions | undefined,
   ): string {
     const output: string[] = [];
-    const symbols = CodeGenState.symbols!;
 
     // Issue #1143: every file carries its mode's baseline. Recorded here rather
     // than assumed by consumers, so "what does this file need?" has exactly one
@@ -2388,7 +2387,9 @@ export default class CodeGenerator implements IOrchestrator {
     // members, so a file exporting types, consts or top-level functions got a
     // header nothing included. Same question, same answer source as the header
     // itself.
-    if (symbols.hasPublicInterface && CodeGenState.sourcePath) {
+    // #1515: supplied by the caller, which asked `PublicInterface`. Not read
+    // off `ICodeGenSymbols`, where 1.3 Declare used to put it.
+    if (options?.hasPublicInterface && CodeGenState.sourcePath) {
       const pathToUse =
         options?.sourceRelativePath ||
         CodeGenState.sourcePath.replace(/^.*[\\/]/, "");

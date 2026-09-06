@@ -114,28 +114,34 @@ function write(): void {
     process.exit(1);
   }
 
-  writeFileSync(docPath, outcome.markdown);
-  console.log(
-    `Remapped ${outcome.rewritten} line number(s) across ` +
-      `${revisions.size} changed file(s).`,
-  );
-
-  // Re-check its own output. A fixer that can leave the document in a state the
-  // gate rejects is a fixer nobody can trust to run unattended.
-  const rechecked = ThrowCitations.check(
-    readFileSync(docPath, "utf-8"),
-    sources(),
-  );
+  // Checked BEFORE writing. An earlier version wrote first and checked after,
+  // so a remap that did not verify left the document WORSE than it found it --
+  // and then the next run saw a document that fails the check, decided it had
+  // work to do, and remapped the already-remapped rows a second time. One bad
+  // run poisoned every following one.
+  //
+  // Checking the candidate instead makes a failed remap a no-op, which is what
+  // lets the idempotence guard above stay simple: the only states on disk are
+  // "consistent" and "untouched since the last commit".
+  const rechecked = ThrowCitations.check(outcome.markdown, sources());
   if (!rechecked.ok) {
     console.error(
       chalk.red(
-        "The remap did not satisfy the check it exists to satisfy:\n" +
+        "Nothing written. The remap would not have satisfied the check it " +
+          "exists to satisfy:\n" +
           rechecked.errors.map((error) => `  ${error}`).join("\n"),
       ),
     );
     process.exit(1);
   }
-  console.log(chalk.green("Verified: the document now passes its own check."));
+
+  writeFileSync(docPath, outcome.markdown);
+  console.log(
+    chalk.green(
+      `Remapped ${outcome.rewritten} line number(s) across ` +
+        `${revisions.size} changed file(s), verified against the check.`,
+    ),
+  );
 }
 
 /**

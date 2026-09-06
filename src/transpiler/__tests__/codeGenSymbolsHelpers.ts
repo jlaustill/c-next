@@ -65,7 +65,6 @@ function createMockSymbols(
     functionReturnTypes: new Map(),
 
     // Methods and flags
-    hasPublicInterface: false,
     getSingleFunctionForVariable: () => null,
     opaqueTypes: new Set(),
 

@@ -168,6 +168,14 @@ const MOVES: readonly IMove[] = [
     because: "covers TransitiveEnumCollector",
   },
 
+  // --- 2.2 Plan: what C should exist -------------------------------------
+  {
+    from: "src/transpiler/logic/symbols/PublicInterface.ts",
+    to: "src/TRANSPILE/2-Plan/PublicInterface.ts",
+    because:
+      "decides which symbols form a file's public C interface -- `isExported` minus ADR-030's `main` exemption minus \"a scope is a container\", which `docs/architecture/README.md` §2 assigns to `EmissionPlan`. Its destination map row read `awaiting 1.4 Resolve` because the admission rule was two-way; the move was blocked by 1.3 Declare calling `existsIn`, which #1515 removed",
+  },
+
   // --- shared contracts: named by more than one layer ---------------------
   {
     from: "src/transpiler/output/codegen/generators/TIncludeHeader.ts",

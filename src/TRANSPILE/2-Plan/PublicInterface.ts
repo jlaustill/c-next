@@ -1,8 +1,8 @@
-import type SymbolTable from "./SymbolTable";
-import type TSymbol from "../../types/symbols/TSymbol";
-import type TType from "../../types/TType";
-import QualifiedCName from "../../../utils/QualifiedCName";
-import ScopeUtils from "../../../utils/ScopeUtils";
+import type SymbolTable from "../../transpiler/logic/symbols/SymbolTable";
+import type TSymbol from "../../transpiler/types/symbols/TSymbol";
+import type TType from "../../transpiler/types/TType";
+import QualifiedCName from "../../utils/QualifiedCName";
+import ScopeUtils from "../../utils/ScopeUtils";
 
 /**
  * Issues #1161 and #1164 — the single answer to "which symbols form this

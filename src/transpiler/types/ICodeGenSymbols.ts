@@ -157,14 +157,21 @@ interface ICodeGenSymbols {
     varName: string,
   ): string | null;
 
-  /**
-   * Issues #1161/#1164: does this file have a public C interface — i.e. will a
-   * header be generated, and must the generated `.c` include it?
+  /*
+   * `hasPublicInterface` was here, computed by 1.3 Declare (#1515).
    *
-   * Computed by PublicInterface from this file's symbols, the same rule that
-   * decides the header's contents. Do not re-derive it.
+   * "Does this file have a public C interface" is a question about symbols, but
+   * "must the generated `.c` include its own header" is a decision about
+   * EMISSION -- and `TSymbolInfoAdapter` answered the second by putting the
+   * first on the per-file view that codegen reads. That made 1.3 Declare the
+   * author of an emission decision, and once `PublicInterface` is placed in 2.2
+   * Plan it would have been a `PARSE -> TRANSPILE` edge: a layer crossed
+   * backwards, not one pass.
+   *
+   * The rule did not move -- `PublicInterface` still owns it, and is still the
+   * only thing that may derive it. What moved is WHERE it is asked, which is
+   * now the point of use.
    */
-  hasPublicInterface: boolean;
 }
 
 export default ICodeGenSymbols;

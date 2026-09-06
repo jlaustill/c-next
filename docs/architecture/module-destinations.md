@@ -82,10 +82,12 @@ from `awaiting` to a real path, never back.
 
 ### 2.2 Plan — `src/TRANSPILE/2-Plan/`
 
-| module                     | why                                                                                    |
-| -------------------------- | -------------------------------------------------------------------------------------- |
-| `EmissionPlan.ts`          | decides what C should exist for one file — the artifact 2.2 emits                      |
-| `ComplianceAnnotations.ts` | which safety-standard rule shaped a construct, and the one rendering of the house form |
+| module                     | why                                                                                                                                                               |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `EmissionPlan.ts`          | decides what C should exist for one file — the artifact 2.2 emits                                                                                                 |
+| `ComplianceAnnotations.ts` | which safety-standard rule shaped a construct, and the one rendering of the house form                                                                            |
+| `HeaderTypeNames.ts`       | every type name a file's public header will name — one enumeration, where two derivations each stopped at functions and variables (#1520)                         |
+| `PublicInterface.ts`       | which symbols form a file's public C interface — `isExported` minus ADR-030's `main` exemption minus "a scope is a container", which §2 assigns to `EmissionPlan` |
 
 Created here rather than moved: 2.2 Plan did not exist as a module anywhere, so
 there was nothing to relocate. #1323's `HeaderRenderer` (`HeaderEmissionPlanner` until #1449) is **not** listed
@@ -94,14 +96,14 @@ discriminator above.
 
 ## Blocked
 
-| module                                 | destination                                                                                                      | blocked on                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `logic/symbols/SymbolTable.ts`         | `awaiting` 1.4 Resolve                                                                                           | 1.3 Declare imports it: the C and C++ collectors take a `SymbolTable` parameter. Moving it now makes a 3-Declare → 4-Resolve edge, which is the pass order backwards. The edges are type-only, so this is shallow coupling, but it is not this card's to remove                                                                                                                                                                                                                                                                                                                                       |
-| `logic/symbols/PublicInterface.ts`     | `awaiting` **2.2 Plan**                                                                                          | Destination corrected by #1449. It read `awaiting 1.4 Resolve`, which the two-way rule above was the only test available to produce; §1 assigns the computation to 2.2 — "`isExported` is **not** a fact… Those rules belong in `EmissionPlan`". The move is still blocked, and by a WORSE edge than the row recorded: `TSymbolInfoAdapter` (1.3 Declare) calls `PublicInterface.existsIn`, so once the destination is 2.2 that is a PARSE → TRANSPILE edge — a layer crossed backwards, not one pass. Tracked as [#1515](https://github.com/jlaustill/c-next/issues/1515); not this card's to remove |
-| `cnext/adapters/TSymbolInfoAdapter.ts` | **split** — `convert()` stays in 1.3; `mergeExternalSymbols`/`mergeOpaqueTypes` are cross-file and belong in 1.4 | the merge half is only reachable once `ICodeGenSymbols` stops being the per-file view codegen reads                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| module                                 | destination                                                                                                      | blocked on                                                                                                                                                                                                                                                      |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `logic/symbols/SymbolTable.ts`         | `awaiting` 1.4 Resolve                                                                                           | 1.3 Declare imports it: the C and C++ collectors take a `SymbolTable` parameter. Moving it now makes a 3-Declare → 4-Resolve edge, which is the pass order backwards. The edges are type-only, so this is shallow coupling, but it is not this card's to remove |
+| `cnext/adapters/TSymbolInfoAdapter.ts` | **split** — `convert()` stays in 1.3; `mergeExternalSymbols`/`mergeOpaqueTypes` are cross-file and belong in 1.4 | the merge half is only reachable once `ICodeGenSymbols` stops being the per-file view codegen reads                                                                                                                                                             |
 
-Those three are the measurement behind "the pass split is not finished", and
-they are why `src/transpiler/logic/symbols/` still exists.
+Those are the measurement behind "the pass split is not finished", and they are
+why `src/transpiler/logic/symbols/` still exists — holding `SymbolTable.ts`
+alone, since #1515 removed the edge that pinned `PublicInterface` there.
 
 ## Not yet placed
 

@@ -24,7 +24,7 @@ import CodeGenState from "./state/CodeGenState";
 import AdrProvenance from "./state/AdrProvenance";
 import CachedSymbolReader from "../utils/cache/CachedSymbolReader";
 import TJsonValue from "../utils/types/TJsonValue";
-import PublicInterface from "./logic/symbols/PublicInterface";
+import PublicInterface from "../TRANSPILE/2-Plan/PublicInterface";
 import HeaderGenerator from "./output/headers/HeaderGenerator";
 import HeaderRenderer from "./output/headers/HeaderRenderer";
 import HeaderTypeNames from "../TRANSPILE/2-Plan/HeaderTypeNames";
@@ -883,6 +883,11 @@ class Transpiler {
         symbolInfo,
         sourceRelativePath,
         cnxIncludeRewrites: this.state.getCnxIncludeRewrites(sourcePath),
+        // #1515: decided here, from the rule's owner. 1.3 Declare used to
+        // answer this, which put an emission decision in the parse layer.
+        hasPublicInterface: PublicInterface.existsIn(
+          CodeGenState.symbolTable.getTSymbolsByFile(sourcePath),
+        ),
       });
 
       // Collect user includes
