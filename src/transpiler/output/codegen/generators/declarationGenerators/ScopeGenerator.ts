@@ -73,14 +73,15 @@ function getScopedName(
 }
 
 /**
- * Validate and resolve constructor arguments, ensuring each is const.
- * Returns array of scope-prefixed argument names.
+ * Resolve constructor arguments to their scope-prefixed names.
+ *
+ * #1322: it no longer VALIDATES. `line` and `orchestrator` were parameters only
+ * so it could report and so it could ask `isConstValue`; both rejections are
+ * authored in pass 2.1 now (E0432, E0433), which halts before codegen.
  */
 function resolveConstructorArgs(
   argIdentifiers: { getText(): string }[],
   declaringScopePath: string,
-  line: number,
-  orchestrator: IOrchestrator,
 ): string[] {
   const resolvedArgs: string[] = [];
 
@@ -92,13 +93,10 @@ function resolveConstructorArgs(
       argName,
     );
 
-    // Check if it's const using orchestrator
-    if (!orchestrator.isConstValue(scopedArgName)) {
-      throw new Error(
-        `Error at line ${line}: Constructor argument '${argName}' must be const. ` +
-          `C++ constructors in C-Next only accept const variables.`,
-      );
-    }
+    // #1322: the const check that stood here is E0432 in pass 2.1. It was the
+    // second of two implementations of one decision -- this one asked
+    // `orchestrator.isConstValue` on a scope-qualified name, the file-scope
+    // copy read the type registry directly.
 
     resolvedArgs.push(scopedArgName);
   }
@@ -178,12 +176,9 @@ function generateConstructorVariable(
 
   // Validate and resolve constructor arguments
   const argIdentifiers = constructorArgList.IDENTIFIER();
-  const line = varDecl.start?.line ?? 0;
   const resolvedArgs = resolveConstructorArgs(
     argIdentifiers,
     declaringScopePath,
-    line,
-    orchestrator,
   );
 
   return `${prefix}${type} ${fullName}(${resolvedArgs.join(", ")});`;

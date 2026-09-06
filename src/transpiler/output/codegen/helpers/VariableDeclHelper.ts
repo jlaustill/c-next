@@ -741,7 +741,6 @@ class VariableDeclHelper {
   ): string {
     const type = callbacks.generateType(ctx.type());
     const name = ctx.IDENTIFIER().getText();
-    const line = ctx.start?.line ?? 0;
 
     // Collect and validate all arguments
     const argIdentifiers = argListCtx.IDENTIFIER();
@@ -750,38 +749,25 @@ class VariableDeclHelper {
     for (const argNode of argIdentifiers) {
       const argName = argNode.getText();
 
-      // Check if it exists in type registry
-      const typeInfo = CodeGenState.getVariableTypeInfo(argName);
-
-      // Also check scoped variables if inside a scope
-      let scopedArgName = argName;
-      let scopedTypeInfo = typeInfo;
-      if (!typeInfo && CodeGenState.currentScopePath) {
-        scopedArgName = QualifiedNameGenerator.forMember(
-          CodeGenState.currentScopePath,
-          argName,
-        );
-        scopedTypeInfo = CodeGenState.getVariableTypeInfo(scopedArgName);
-      }
-
-      if (!typeInfo && !scopedTypeInfo) {
-        throw new Error(
-          `Error at line ${line}: Constructor argument '${argName}' is not declared`,
-        );
-      }
-
-      const finalTypeInfo = typeInfo ?? scopedTypeInfo!;
-      const finalArgName = typeInfo ? argName : scopedArgName;
-
-      // Check if it's const
-      if (!finalTypeInfo.isConst) {
-        throw new Error(
-          `Error at line ${line}: Constructor argument '${argName}' must be const. ` +
-            `C++ constructors in C-Next only accept const variables.`,
-        );
-      }
-
-      resolvedArgs.push(finalArgName);
+      // #1322: the "is not declared" (E0433) and "must be const" (E0432)
+      // rejections that stood here are authored in pass 2.1, which halts before
+      // codegen -- so an argument reaching this line is declared and const. The
+      // two copies of this rule also decided const-ness two different ways;
+      // `IDeclaredVar.isConst` is now the single answer.
+      //
+      // What survives is NAME resolution, which is codegen's own question: a
+      // scope member is emitted by its qualified C name. The type lookup that
+      // stood beside it existed only to answer the const question.
+      const isFileScope =
+        CodeGenState.getVariableTypeInfo(argName) !== undefined;
+      resolvedArgs.push(
+        isFileScope || !CodeGenState.currentScopePath
+          ? argName
+          : QualifiedNameGenerator.forMember(
+              CodeGenState.currentScopePath,
+              argName,
+            ),
+      );
     }
 
     // Track the variable in type registry (as an external C++ type)

@@ -1,1 +1,2 @@
-1:0 Code generation failed: Error at line 5: Constructor argument 'nonExistentPin' is not declared
+5:0 error[E0433]: Constructor argument 'nonExistentPin' is not declared
+       help: Declare 'nonExistentPin' as a const before the constructor, or pass a literal.

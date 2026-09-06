@@ -923,26 +923,12 @@ describe("ScopeGenerator", () => {
       );
     });
 
-    it("throws error for non-const constructor argument", () => {
-      const varDecl = createMockVariableDecl({
-        name: "obj",
-        type: "MyClass",
-        constructorArgs: ["nonConstArg"],
-        startLine: 42,
-      });
-      const member = createMockScopeMember({ variableDecl: varDecl });
-      const ctx = createMockScopeContext("Test", [member]);
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({
-        ...createMockOrchestrator(),
-        isConstValue: vi.fn(() => false),
-      });
-
-      expect(() => generateScope(ctx, input, state, orchestrator)).toThrow(
-        "Error at line 42: Constructor argument 'nonConstArg' must be const",
-      );
-    });
+    // #1322: this drove codegen directly with an argument pass 2.1 now
+    // rejects (E0432 / E0433), so the pipeline halts before this code runs.
+    // The rule is covered by
+    // `1-Analyze/__tests__/ConstructorArgumentAnalyzer.test.ts` and by
+    // `tests/constructor-syntax/error-non-const-arg` and
+    // `error-undeclared-arg`, which now assert a real position.
 
     it("generates public constructor without static", () => {
       const varDecl = createMockVariableDecl({

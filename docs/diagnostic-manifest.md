@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-316 fixture(s) assert a diagnostic; 194 carry a code.
+316 fixture(s) assert a diagnostic; 196 carry a code.
 
 | Fixture                                                                                          | Codes        |
 | ------------------------------------------------------------------------------------------------ | ------------ |
@@ -209,8 +209,8 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/const/const-u64-assign-error.test.cnx                                                      | (uncoded)    |
 | tests/const/const-u64-param-assign-error.test.cnx                                                | (uncoded)    |
 | tests/constructor-syntax/error-literal-arg.test.cnx                                              | (uncoded)    |
-| tests/constructor-syntax/error-non-const-arg.test.cnx                                            | (uncoded)    |
-| tests/constructor-syntax/error-undeclared-arg.test.cnx                                           | (uncoded)    |
+| tests/constructor-syntax/error-non-const-arg.test.cnx                                            | E0432        |
+| tests/constructor-syntax/error-undeclared-arg.test.cnx                                           | E0433        |
 | tests/control-flow/break-rejected.test.cnx                                                       | E0703        |
 | tests/control-flow/continue-rejected.test.cnx                                                    | E0703        |
 | tests/control-flow/forever-disguised-dowhile.test.cnx                                            | E0707        |

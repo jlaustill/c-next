@@ -154,11 +154,14 @@ class EnumAssignmentValidator {
     parts: string[],
     typeName: string,
   ): void {
-    if (!CodeGenState.currentScopePath) {
-      throw new Error(
-        `Error: Cannot assign non-enum value to ${typeName} enum`,
-      );
-    }
+    // #1322: the `!currentScopePath` guard that stood here is unreachable now.
+    // `this` outside a scope is E0431, authored in pass 2.1, which halts the
+    // pipeline before codegen runs -- so this method cannot be entered with an
+    // empty scope path. Verified by probe: `Color c <- this.Color.RED;` at file
+    // scope reports E0431 at its real position and never reaches here.
+    //
+    // It also reported the wrong thing: "cannot assign non-enum value" for what
+    // is actually `this` used outside a scope.
     const scopedEnumName = QualifiedNameGenerator.forMember(
       CodeGenState.currentScopePath,
       parts[1],

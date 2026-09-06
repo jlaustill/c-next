@@ -24,6 +24,7 @@ import BooleanOperandAnalyzer from "./BooleanOperandAnalyzer";
 import MixedTypeCategoryAnalyzer from "./MixedTypeCategoryAnalyzer";
 import ReturnPathAnalyzer from "./ReturnPathAnalyzer";
 import ReturnValueUseAnalyzer from "./ReturnValueUseAnalyzer";
+import ConstructorArgumentAnalyzer from "./ConstructorArgumentAnalyzer";
 import CriticalSectionAnalyzer from "./CriticalSectionAnalyzer";
 import ThisOutsideScopeAnalyzer from "./ThisOutsideScopeAnalyzer";
 import CommentExtractor from "./CommentExtractor";
@@ -206,6 +207,10 @@ function runAnalyzers(
       label:
         "return-value use (ADR-070 / MISRA C:2012 Rule 17.7 at source level)",
       run: () => ReturnValueUseAnalyzer.analyze(tree),
+    },
+    {
+      label: "C++ constructor arguments must be declared const (ADR-013, #375)",
+      run: () => new ConstructorArgumentAnalyzer().analyze(tree),
     },
     {
       label: "`return` inside a critical section (ADR-050, E0853)",

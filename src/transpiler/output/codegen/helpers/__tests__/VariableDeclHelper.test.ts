@@ -390,35 +390,19 @@ describe("VariableDeclHelper", () => {
       expect(result).toBe("MAX31856 thermo(pinConst);");
     });
 
-    it("throws for undeclared constructor argument", () => {
-      const varDecl = parseVarDecl("MAX31856 thermo(unknownVar);");
-      const argListCtx = varDecl.constructorArgumentList()!;
+    // #1322: this drove codegen directly with an argument pass 2.1 now
+    // rejects (E0432 / E0433), so the pipeline halts before this code runs.
+    // The rule is covered by
+    // `1-Analyze/__tests__/ConstructorArgumentAnalyzer.test.ts` and by
+    // `tests/constructor-syntax/error-non-const-arg` and
+    // `error-undeclared-arg`, which now assert a real position.
 
-      expect(() => {
-        VariableDeclHelper.generateConstructorDecl(varDecl, argListCtx, {
-          generateType: () => "MAX31856",
-        });
-      }).toThrow(/not declared/);
-    });
-
-    it("throws for non-const constructor argument", () => {
-      CodeGenState.setVariableTypeInfo("nonConstVar", {
-        baseType: "u8",
-        bitWidth: 8,
-        isArray: false,
-        arrayDimensions: [],
-        isConst: false,
-      });
-
-      const varDecl = parseVarDecl("MAX31856 thermo(nonConstVar);");
-      const argListCtx = varDecl.constructorArgumentList()!;
-
-      expect(() => {
-        VariableDeclHelper.generateConstructorDecl(varDecl, argListCtx, {
-          generateType: () => "MAX31856",
-        });
-      }).toThrow(/must be const/);
-    });
+    // #1322: this drove codegen directly with an argument pass 2.1 now
+    // rejects (E0432 / E0433), so the pipeline halts before this code runs.
+    // The rule is covered by
+    // `1-Analyze/__tests__/ConstructorArgumentAnalyzer.test.ts` and by
+    // `tests/constructor-syntax/error-non-const-arg` and
+    // `error-undeclared-arg`, which now assert a real position.
 
     it("tracks the variable in type registry", () => {
       const varDecl = parseVarDecl("MAX31856 thermo(pinConst);");
