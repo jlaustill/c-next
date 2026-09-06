@@ -70,9 +70,13 @@ describe("ThrowCitations.parse", () => {
   });
 
   it("ignores a file:line mentioned in prose", () => {
-    // Only a row's first cell is a claim this gate defends. Prose citing
-    // `Sample.ts:99` is commentary, and failing on it would make the document
-    // impossible to write.
+    // Only a row's first cell is a CITATION -- prose carries no anchor and no
+    // bucket, so it is not a row. That is a statement about `parse`, not about
+    // whether prose is checked: since #1322 it is, by `checkProse`, which holds
+    // it to landing on a throw. The rationale here used to read "failing on it
+    // would make the document impossible to write", and the measurement
+    // disagreed -- 14 of 59 prose citations had rotted while the gated rows sat
+    // at 0% drift.
     expect(ThrowCitations.parse("See `Sample.ts:99` for context.")).toEqual([]);
   });
 });
@@ -411,6 +415,55 @@ describe("ThrowCitations.check", () => {
     expect(outcome.ok).toBe(false);
     expect(outcome.errors[0]).toContain("no `throw new` on that line");
     expect(outcome.errors[0]).not.toContain("nearest");
+  });
+});
+
+describe("ThrowCitations.checkProse", () => {
+  // #1322: the gate defended table rows and left prose alone, on the reasoning
+  // that prose is not a claim. It is: 14 of 59 prose citations had drifted --
+  // every one of them short by the same 4-6 lines an intervening edit added --
+  // while the 181 gated rows were at 0% drift. The tier tables and the split
+  // that sizes this card's phases are built on that prose, so a stale prose
+  // number is not decoration; it mis-sizes the work.
+  const SOURCES = new Map([
+    [
+      "src/transpiler/output/codegen/Thing.ts",
+      'const a = 1;\nthrow new Error("boom");\n',
+    ],
+  ]);
+
+  it("fails a prose citation that does not land on a throw", () => {
+    const markdown = "Only `Thing.ts:1` still does this.\n";
+    const outcome = ThrowCitations.checkProse(markdown, SOURCES);
+    expect(outcome.some((e) => e.includes("prose"))).toBe(true);
+  });
+
+  it("accepts a prose citation that lands on a throw", () => {
+    expect(ThrowCitations.checkProse("See `Thing.ts:2`.\n", SOURCES)).toEqual(
+      [],
+    );
+  });
+
+  it("ignores a citation row, which the row invariants already defend", () => {
+    // A row's line is checked by invariant 1 with its anchor; re-checking it
+    // here would report one drift twice and say nothing new.
+    expect(
+      ThrowCitations.checkProse("| `Thing.ts:1` | `boom` | dead |\n", SOURCES),
+    ).toEqual([]);
+  });
+
+  it("reports every line in a slash-joined list, not only the first", () => {
+    // `Thing.ts:1/2` is the shape the drifted prose used, and a parser that
+    // reads only the first number would have called this document clean.
+    const outcome = ThrowCitations.checkProse("`Thing.ts:1/2`\n", SOURCES);
+    expect(outcome).toHaveLength(1);
+    expect(outcome[0]).toContain("Thing.ts:1");
+  });
+
+  it("fails a descending range, which cannot be a span", () => {
+    // The document carried `CodeGenerator.ts:4985-4767`.
+    const outcome = ThrowCitations.checkProse("`Thing.ts:9-2`\n", SOURCES);
+    expect(outcome.some((e) => e.includes("descending"))).toBe(true);
   });
 });
 

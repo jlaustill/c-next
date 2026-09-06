@@ -72,19 +72,32 @@ By area:
 
 ## Position availability — the finding that shapes #1322
 
-**Only 2 of 181 sites emit a real position.** `SwitchGenerator.ts:94` and
-`ControlFlowGenerator.ts:46` prefix `line:col ` into the message text, which
-`ParserUtils.parseErrorLocation` scrapes back out at `Transpiler.ts:450`/`:2282`, defaulting to
-`1:0`. That is why those two fixtures read `13:13` and `11:13` while nearly every other reads
-`1:0`.
+**32 of 184 sites already hold the line; 20 of them let the user see it.** An earlier version of
+this section said "only 2 of 181", which is wrong by an order of magnitude and sized tier A far too
+small. Measured mechanically -- a throw's statement is collected to its terminating `;` and matched
+for an interpolated line:
+
+| what the message does with the line                     | sites   | reaches the user?                                                   |
+| ------------------------------------------------------- | ------- | ------------------------------------------------------------------- |
+| opens with a `${line}:${col} ` prefix                   | **20**  | yes -- `ParserUtils.parseErrorLocation` scrapes the prefix back out |
+| names the line in prose (`Error at line 45:`, `Line 7`) | **12**  | no -- the number is computed and then spent on text                 |
+| carries no line at all                                  | **152** | no -- `parseErrorLocation` falls back to `1:0`                      |
+
+The 20 are the reason the corpus is not uniformly `1:0`: 176 of 312 `.expected.error` fixtures
+carry a real position. The 12 are tier A's core -- the position is in hand and thrown away, so
+relocating them adds no plumbing.
+
+Both forms are hacks around the same absence. A prefix parsed back out of a message is a position
+smuggled through a channel that does not carry one, which is precisely what a coded diagnostic in
+2.1 makes unnecessary.
 
 Sites divide into three tiers, and the tiers are the natural work split:
 
-| tier  | situation                                                                                           | sites                                                                                                                                                                                                                                                                               |
-| ----- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **A** | position already computed, then spent on prose (`Error at line 45:`, `Line 7`) or a hard-coded `:0` | `ScopeGenerator.ts:97`, `IncludeGenerator.ts:111/121`, `PostfixExpressionGenerator.ts:1757`, `VariableModifierBuilder.ts:82`, `VariableDeclHelper.ts:768/778`, and the 13 `ArrayHandlers` slice sites                                                                               |
-| **B** | an AST node is in scope and simply unused                                                           | every `assignment/handlers/` site (`ctx.statementCtx` / `targetCtx` / `valueCtx` / `subscripts[]`), plus `TypeValidator` and most of `CodeGenerator`                                                                                                                                |
-| **C** | no AST node anywhere; must be threaded from callers                                                 | `ScopeResolver.ts:37/53` (string-only signature, 4+ callers), `SizeofResolver.ts:154`, `TypeResolver.ts:153/159/822/830`, most of `PostfixExpressionGenerator` (`IPostfixContext`, `IExplicitLengthContext`, `IMemberAccessContext` and `IFloatBitRangeContext` carry only strings) |
+| tier  | situation                                                                                           | sites                                                                                                                                                                                                                                                    |
+| ----- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **A** | position already computed, then spent on prose (`Error at line 45:`, `Line 7`) or a hard-coded `:0` | the 12 prose-line sites above (`ScopeGenerator`, `IncludeGenerator` ×2, `PostfixExpressionGenerator`'s bitmap bracket-indexing throw, `VariableModifierBuilder`, `VariableDeclHelper` ×2, `TypeValidator` ×5) plus the 13 `ArrayHandlers` slice sites    |
+| **B** | an AST node is in scope and simply unused                                                           | every `assignment/handlers/` site (`ctx.statementCtx` / `targetCtx` / `valueCtx` / `subscripts[]`), plus `TypeValidator` and most of `CodeGenerator`                                                                                                     |
+| **C** | no AST node anywhere; must be threaded from callers                                                 | `ScopeResolver` (string-only signature, 4+ callers), `SizeofResolver`, `codegen/TypeResolver`, most of `PostfixExpressionGenerator` (`IPostfixContext`, `IExplicitLengthContext`, `IMemberAccessContext` and `IFloatBitRangeContext` carry only strings) |
 
 `ISubscriptAccessContext` is the sole context interface that already carries its node (`op:
 PostfixOpContext`) and is the model for tier C.
@@ -176,14 +189,15 @@ Each carries evidence that it cannot be reached, not an assumption, as #1321 req
 | `assignment/handlers/AccessPatternHandlers.ts:45`  | `Error: 'this' can only be used inside a scope` | same two proofs. Reproduced: `this.count <- 5` at file scope lands on `BaseIdentifierBuilder.ts:43`                                                                                                                                                                                                                                                                                 |
 | `assignment/handlers/BitmapHandlers.ts:200`        | `Error: 'this' can only be used inside a scope` | `SCOPED_REGISTER_MEMBER_BITMAP_FIELD` with `hasThis` comes only from `classifyThisPrefix:613`, past the `currentScope` guard at `:586`. Reproduced: `this.HW.CTRL.Run <- true` at file scope                                                                                                                                                                                        |
 
-**`CastValidator.ts:103/111` is a duplicate code path, not merely dead** — identical message text
-and identical rules to the live logic inlined at `CodeGenerator.ts:4985-4767`. Deleting the
-unreachable copy is the correct resolution; leaving both is the anti-pattern `CLAUDE.md` forbids.
+**`CastValidator`'s two throws are a duplicate code path, not merely dead** — identical message
+text and identical rules to the live narrowing/sign-change logic inlined in `CodeGenerator`
+(the `narrowing` and `sign change` rows in bucket 1). Deleting the unreachable copy is the correct
+resolution; leaving both is the anti-pattern `CLAUDE.md` forbids.
 
 Three bucket-3 calls are **conditional on current behavior** and must be revisited if it changes:
 `StringDeclHelper.ts:515/559/596` are dead only while `validateArrayDeclarationSyntax` rejects all
-trailing brackets (#1014–#1017), and the stale doc comment at `VariableDeclHelper.ts:243-247`
-still describes the relaxed behavior.
+trailing brackets (#1014–#1017), and `VariableDeclHelper.validateArrayDeclarationSyntax`'s doc
+comment still lists "Exceptions (grammar limitations)" the code no longer honours.
 
 ## Bucket 1 — user-facing diagnostics (145)
 
@@ -234,8 +248,8 @@ Each needs a code and a real position in pass 2.1. `code` is the code it already
 | `CodeGenerator.ts:4998` | `narrowing`                                       | narrowing cast (ADR-024)                                          | NEW E08xx                | `ctx.start` (`CastExpressionContext`) **is** in scope                                          | `casting/narrowing-cast-error`                     |
 | `CodeGenerator.ts:5005` | `sign change`                                     | sign-change cast                                                  | NEW E08xx                | `ctx.start`                                                                                    | `casting/sign-cast-error`                          |
 
-**13 of these 39 already carry a code**; 26 need one. **12 have no fixture at all.** Only
-`CodeGenerator.ts:1991/3862/3881` emit a real position today.
+**13 of these 39 already carry a code**; 26 need one. **12 have no fixture at all.** Three emit a
+real position today -- the `${line}:${col} `-prefixed rows in the table below.
 
 ### `codegen/helpers/` — 39
 
@@ -332,10 +346,11 @@ no longer honours — it throws unconditionally once `arrayDimension().length > 
 | `…/PostfixExpressionGenerator.ts:1790`          | `Cannot use bracket indexing on bitmap type`       | bracket indexing on a bitmap (ADR-034)                                                        | NEW       | **`ctx.op.start` available and already read**, spent on `Error at line 45:` prose — cheapest site to convert | `bitmap/bitmap-bracket-indexing-error`                  |
 | `…/PostfixExpressionGenerator.ts:2007`          | `Float bit indexing reads`                         | float bit-range read at global scope                                                          | NEW E08xx | `IFloatBitRangeContext` carries no node; the subscript `op` is available upstream                            | none                                                    |
 
-**32 of 44 in this area are unpinned**, including all 23 ADR-058 property diagnostics except
+**32 of the 41 in this area are unpinned**, including all 23 ADR-058 property diagnostics except
 `:623`, the ADR-013 const rule, and all four `safe_div`/`safe_mod` checks.
 
-Five sites — `CallExprGenerator.ts:386` and `PostfixExpressionGenerator.ts:760/1014/1083/1179` —
+Five sites — one in `CallExprGenerator` and four in `PostfixExpressionGenerator` (their rows are
+the ones whose message names a property on an identifier that was never declared) —
 fire on an **undeclared identifier**, not on property misuse. The honest fix is one
 undefined-identifier diagnostic in symbol resolution; allocating five per-property codes would
 bake in a wrong diagnosis.
@@ -398,14 +413,14 @@ because at this site the message does not exist.
 The last acceptance criterion of #1321 is that the relocation card becomes workable pieces. The
 position tiers above give the split, ordered so each piece is independently mergeable:
 
-| piece              | scope                                                                                 | why it is separable                                                                                                                             |
-| ------------------ | ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| **1322a — delete** | the 21 bucket-3 sites                                                                 | no diagnostic changes; pure removal, and it shrinks every later piece. `CastValidator.ts:103/111` also retires a duplicate code path            |
-| **1322b — assert** | the 15 bucket-2 sites                                                                 | converts to assertions and normalizes the `Error:`/`Internal:` split; no user-visible behavior                                                  |
-| **1322c — tier A** | ~20 sites already computing a position and spending it on prose or `:0`               | the position exists; this is moving it from the message into the diagnostic. Includes all 13 slice sites, which replaces the string-prefix hack |
-| **1322d — tier B** | the `assignment/handlers/` and `TypeValidator` sites with a node in scope             | mechanical: read `ctx.*.start` instead of discarding it                                                                                         |
-| **1322e — tier C** | sites with no node, needing threading from callers                                    | the real work: `ScopeResolver`, `SizeofResolver`, `TypeResolver`, and the `PostfixExpressionGenerator` context interfaces                       |
-| **1322f — unify**  | the 5 duplicated messages, notably the 9-way `'this' can only be used inside a scope` | must land as one decision point, not N ported copies                                                                                            |
+| piece              | scope                                                                                                       | why it is separable                                                                                                                                                                                                                                                    |
+| ------------------ | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1322a — delete** | the 23 bucket-3 sites                                                                                       | no diagnostic changes; pure removal, and it shrinks every later piece. `CastValidator`'s pair also retires a duplicate code path, and `ArrayAccessHelper` goes entirely                                                                                                |
+| **1322b — assert** | the 16 bucket-2 sites                                                                                       | converts to assertions and normalizes the `Error:`/`Internal:` split; no user-visible behavior                                                                                                                                                                         |
+| **1322c — tier A** | the 32 sites that already hold the line — 12 spending it on prose, 20 smuggling it through a message prefix | the position exists; this is moving it from the message into the diagnostic. Includes all 13 slice sites, which replaces the string-prefix hack                                                                                                                        |
+| **1322d — tier B** | the `assignment/handlers/` and `TypeValidator` sites with a node in scope                                   | mechanical: read `ctx.*.start` instead of discarding it                                                                                                                                                                                                                |
+| **1322e — tier C** | sites with no node, needing threading from callers                                                          | the real work: `ScopeResolver`, `SizeofResolver`, `TypeResolver`, and the `PostfixExpressionGenerator` context interfaces                                                                                                                                              |
+| **1322f — unify**  | the 5 duplicated messages, notably the 9-way `'this' can only be used inside a scope`                       | must land as one decision point, not N ported copies. **Not a final phase**: relocating a family and then merging the copies _is_ the N-ported-copies state, so unification is a constraint on every relocation commit — a family leaves `output/` whole or not at all |
 
 Piece **1322e** should also resolve the five sites that report a property error for what is
 actually an undeclared identifier, rather than allocating codes that record the wrong diagnosis.

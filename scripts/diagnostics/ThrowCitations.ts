@@ -15,12 +15,13 @@
  * does not identify one. `file:line` is the only unique key, which is why this
  * gate verifies it rather than the doc trading it for something softer.
  *
- * Four invariants, all mechanical:
+ * Five invariants, all mechanical:
  *
  *   1. every cited `file:line` is exactly a line opening a throw statement
  *   2. every throw under `output/` is cited exactly once
  *   3. every row's anchor is a substring of what the throw at its line says
  *   4. no two rows in one file could trade line numbers and keep 3 holding
+ *   5. a `file:line` written in PROSE lands on a throw too
  *
  * The second is the one that earns its keep beyond drift: it fails when a new
  * throw is added and nobody classifies it, which is how `output/` grows a
@@ -42,6 +43,15 @@
  * a pair could trade is directly computable from the rows of a file, so it
  * is computed -- the #1374 review found three such pairs by hand; this finds
  * them mechanically, and the next ones #1322 adds.
+ *
+ * The fifth is #1322, and it exists because the asymmetry was measurable: the
+ * 181 gated rows were at 0% drift while 14 of 59 PROSE citations had rotted,
+ * each short by the same few lines an intervening edit had added. The rows were
+ * accurate because something checked them; the prose was not because nothing
+ * did. That mattered beyond tidiness -- the tier tables and the split that
+ * sizes #1322's phases are prose, and the claim "only 2 of 181 sites emit a
+ * real position" (the true figure is 20, with 12 more computing a position and
+ * spending it on text) is what tier A was scoped from.
  */
 
 /**
@@ -49,6 +59,9 @@
  * corroborate every row in the document, the #1143 shape.
  */
 const MIN_ANCHOR_LENGTH = 8;
+
+/** Prefix on a prose-citation error, naming the line OF THE DOCUMENT. */
+const DOC_LINE_LABEL = "output-throw-classification.md:";
 
 interface IThrowCitation {
   readonly path: string;
@@ -306,6 +319,7 @@ class ThrowCitations {
       errors.push(...ThrowCitations.checkTradeable(file, rows, source));
     }
 
+    errors.push(...ThrowCitations.checkProse(markdown, sources));
     errors.push(...ThrowCitations.checkDeclaredCounts(markdown, cited.length));
 
     return {
@@ -315,6 +329,70 @@ class ThrowCitations {
         `${cited.length} citation(s) checked against ${total} throw site(s) in output/.`,
       ],
     };
+  }
+
+  /**
+   * Invariant 5: a `file.ts:N` written in PROSE also lands on a throw.
+   *
+   * #1322. This gate used to defend table rows only, on the reasoning that
+   * prose is not a claim it has to keep. The measurement says otherwise: the
+   * 181 gated rows were at **0% drift**, and **14 of 59** prose citations had
+   * rotted -- every one short by the same 4-6 lines some intervening edit
+   * added, including a `4985-4767` that reads backwards. The rows were
+   * accurate precisely because something checked them.
+   *
+   * That asymmetry is not cosmetic here. The tier tables and the `## Proposed
+   * split` that sizes this card's phases are prose, so a stale prose citation
+   * mis-sizes the work rather than merely misdirecting a reader -- and the
+   * "only 2 of 181 sites emit a real position" claim, off by an order of
+   * magnitude, is what tier A was scoped from.
+   *
+   * A row's own line is skipped: `checkCitation` already holds it to an anchor,
+   * and reporting one drift twice adds nothing. The consequence of this
+   * invariant is that the document may not cite a NON-throw line by number at
+   * all -- name the file and the symbol instead. That is the intended
+   * restriction: a symbol name does not move when a line does.
+   */
+  static checkProse(
+    markdown: string,
+    sources: ReadonlyMap<string, string>,
+  ): string[] {
+    const files = [...sources.keys()];
+    const errors: string[] = [];
+    markdown.split("\n").forEach((text, index) => {
+      // A citation row is defended by invariants 1 and 3 already.
+      if (/^\| `[A-Za-z0-9_/….]+\.ts:\d+`/.test(text)) return;
+      // `Thing.ts:1`, `Thing.ts:1/2/3` and `Thing.ts:9-12` all appear in this
+      // document; reading only the first number is how a drifted list passes.
+      const pattern = /([A-Za-z0-9_]+\.ts):(\d+(?:[/-]\d+)*)/g;
+      let match = pattern.exec(text);
+      while (match !== null) {
+        const where = `${DOC_LINE_LABEL}${index + 1}: ${match[1]}`;
+        const lines = match[2].split(/[/-]/).map((n) => Number.parseInt(n, 10));
+        const file = ThrowCitations.resolve(match[1], files);
+        if (
+          match[2].includes("-") &&
+          lines.length === 2 &&
+          lines[1] < lines[0]
+        ) {
+          errors.push(`${where}:${match[2]} -- prose cites a descending range`);
+        } else if (file === null) {
+          errors.push(`${where} -- prose names no single file under output/`);
+        } else {
+          const source = sources.get(file)!;
+          const actual = ThrowCitations.throwLines(source);
+          for (const line of lines) {
+            if (!actual.includes(line)) {
+              errors.push(
+                `${where}:${line} -- prose cites a line that holds no throw`,
+              );
+            }
+          }
+        }
+        match = pattern.exec(text);
+      }
+    });
+    return errors;
   }
 
   /**
