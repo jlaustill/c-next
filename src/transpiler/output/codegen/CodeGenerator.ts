@@ -2610,7 +2610,6 @@ export default class CodeGenerator implements IOrchestrator {
       .filter((target): target is string => target !== null);
 
     return {
-      sourcePath: CodeGenState.sourcePath ?? "",
       cppMode: this.isCppMode(),
       needsStdint: CodeGenState.needsStdint,
       needsStdbool: CodeGenState.needsStdbool,
@@ -2684,12 +2683,12 @@ export default class CodeGenerator implements IOrchestrator {
       );
     }
 
-    const helpers = this.generateOverflowHelpers();
+    const helpers = this.generateOverflowHelpers(plan.clampOps);
     if (helpers.length > 0) {
       output.push(...helpers);
     }
 
-    const safeDivHelpers = this.generateSafeDivHelpers();
+    const safeDivHelpers = this.generateSafeDivHelpers(plan.safeDivOps);
     if (safeDivHelpers.length > 0) {
       output.push(...safeDivHelpers);
     }
@@ -5159,10 +5158,15 @@ export default class CodeGenerator implements IOrchestrator {
   /**
    * Generate all needed overflow helper functions
    * Delegates to HelperGenerator
+   *
+   * Takes the ops from the PLAN, not from `CodeGenState`. Reading the state
+   * here while the plan also carried them was the fact in two places with the
+   * renderer using the other one -- the duplicate path this pass exists to
+   * remove, reintroduced by the pass itself.
    */
-  private generateOverflowHelpers(): string[] {
+  private generateOverflowHelpers(clampOps: readonly string[]): string[] {
     return helperGenerateOverflowHelpers(
-      CodeGenState.usedClampOps,
+      new Set(clampOps),
       CodeGenState.debugMode,
     );
   }
@@ -5260,7 +5264,7 @@ export default class CodeGenerator implements IOrchestrator {
    * ADR-051: Generate safe division helper functions for used integer types only
    * Delegates to HelperGenerator
    */
-  private generateSafeDivHelpers(): string[] {
-    return helperGenerateSafeDivHelpers(CodeGenState.usedSafeDivOps);
+  private generateSafeDivHelpers(safeDivOps: readonly string[]): string[] {
+    return helperGenerateSafeDivHelpers(new Set(safeDivOps));
   }
 }

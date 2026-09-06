@@ -11,7 +11,6 @@ import EmissionPlan from "../EmissionPlan";
 import type IEmissionFacts from "../../../transpiler/types/IEmissionFacts";
 
 const NOTHING: IEmissionFacts = {
-  sourcePath: "main.cnx",
   cppMode: false,
   needsStdint: false,
   needsStdbool: false,

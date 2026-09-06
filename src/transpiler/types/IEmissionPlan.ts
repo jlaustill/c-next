@@ -27,11 +27,14 @@ import type IPlannedBlock from "./IPlannedBlock";
  * flag and emitted conditionally while the header emitted `<stdint.h>` and
  * `<stdbool.h>` unconditionally -- one question with two derivations that
  * agreed only where both happened to be true.
+ *
+ * It carries no `sourcePath`. A draft had one and nothing read it: the plan is
+ * built and consumed inside one file's turn, so nothing keys by it -- unlike
+ * `IFileSymbols.sourceFile`, which `Program.build` genuinely indexes on. A
+ * member written and never read is the shape #1394 is filed against, and
+ * "#1450 will want it" is a reason to add it then, with its consumer.
  */
 interface IEmissionPlan {
-  /** The `.cnx` this plan is for. */
-  readonly sourcePath: string;
-
   /**
    * System headers the implementation file includes, already spelled as they
    * are emitted and in emission order. Empty when it needs none.

@@ -31,8 +31,22 @@ const outputDir = join(rootDir, "src", "transpiler", "output");
 /** The one method allowed to read the flags, and the reason it exists. */
 const CAPTURE = "private captureEmissionFacts(";
 
-/** `CodeGenState.needsStdint`, `CodeGenState.needsISR`, ... */
-const FLAG_READ = /CodeGenState\.needs[A-Z]\w*/g;
+/**
+ * A decision read off `CodeGenState`: an include flag, or a helper-op set.
+ *
+ * `usedClampOps` and `usedSafeDivOps` are here because the plan carries them
+ * too, and for a while the renderer took them from the state anyway -- the fact
+ * in two places with the renderer using the other one. Nothing behavioural
+ * could catch that: the plan is BUILT from the state, so both hold the same
+ * values and a test asserting the output cannot tell which was read. The claim
+ * is structural, so the check is.
+ *
+ * `.add(` is excluded, not exempted: `applyEffects` mutating the set while
+ * declarations are generated is the accumulate phase, which is what produces
+ * the questions the plan answers. Reading one at emission time is the defect.
+ */
+const FLAG_READ =
+  /CodeGenState\.(?:needs[A-Z]\w*|usedClampOps|usedSafeDivOps)(?!\.add\()/g;
 
 interface IRead {
   readonly file: string;
@@ -87,7 +101,7 @@ describe("2.3 Render decides nothing (#1449)", () => {
     expect(flagReads().length).toBeGreaterThan(0);
   });
 
-  it("reads a needs* flag in exactly one file under output/", () => {
+  it("reads a decision off CodeGenState in exactly one file under output/", () => {
     const files = [...new Set(flagReads().map((read) => read.file))].sort();
 
     expect(files).toEqual(["src/transpiler/output/codegen/CodeGenerator.ts"]);

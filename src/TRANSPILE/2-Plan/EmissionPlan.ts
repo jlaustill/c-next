@@ -91,7 +91,6 @@ class EmissionPlan {
    */
   static build(facts: IEmissionFacts): IEmissionPlan {
     const plan: IEmissionPlan = {
-      sourcePath: facts.sourcePath,
       systemIncludes: EmissionPlan.decideSystemIncludes(facts),
       floatStaticAssert: EmissionPlan.decideFloatStaticAssert(facts),
       irqWrappers: EmissionPlan.decideIrqWrappers(facts),

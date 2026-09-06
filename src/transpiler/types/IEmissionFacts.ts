@@ -20,9 +20,6 @@ import type IRequirementSite from "./IRequirementSite";
  * further.
  */
 interface IEmissionFacts {
-  /** The `.cnx` these facts were captured from. */
-  readonly sourcePath: string;
-
   /**
    * Whether this run emits C++.
    *
