@@ -29,6 +29,8 @@ import IGeneratorInput from "./generators/IGeneratorInput";
 import IGeneratorState from "./generators/IGeneratorState";
 import TGeneratorEffect from "./generators/TGeneratorEffect";
 import EmissionPlan from "../../../TRANSPILE/2-Plan/EmissionPlan";
+import DeclarationOrder from "../../../TRANSPILE/2-Plan/DeclarationOrder";
+import type TDeclarationKind from "../../types/TDeclarationKind";
 import type IEmissionPlan from "../../types/IEmissionPlan";
 import type IEmissionFacts from "../../types/IEmissionFacts";
 import GeneratorRegistry from "./generators/GeneratorRegistry";
@@ -2528,21 +2530,40 @@ export default class CodeGenerator implements IOrchestrator {
   /**
    * Generate all declarations from the tree.
    */
+  /**
+   * What a declaration is, in the terms 2.2 Plan's ordering asks about.
+   *
+   * The parse tree stops here: `DeclarationOrder` takes kinds, not contexts,
+   * so a pass outside the parse layer does not grow a dependency on ANTLR to
+   * answer a question about order (#1317).
+   */
+  private static declarationKindOf(
+    decl: Parser.DeclarationContext,
+  ): TDeclarationKind {
+    if (decl.functionDeclaration() !== null) return "function";
+    if (decl.scopeDeclaration() !== null) return "scope";
+    return "other";
+  }
+
   private generateAllDeclarations(tree: Parser.ProgramContext): string[] {
+    const sourceOrder = tree.declaration();
+
+    // Issue #1212, #1449: WHICH declaration the callback typedef block precedes
+    // is decided by 2.2 Plan, from the shape of the file. WHERE that lands in
+    // the emitted array is arithmetic, and stays here -- the index depends on
+    // how many leading-comment lines were pushed, which is a fact about text.
+    const precedes = DeclarationOrder.callbackTypedefsPrecede(
+      sourceOrder.map((decl) => CodeGenerator.declarationKindOf(decl)),
+    );
+
     const declarations: string[] = [];
-    // Issue #1212: where the callback typedef block belongs -- after the type
-    // declarations it may depend on, before the first function that may use it.
     let firstFunctionIndex: number | null = null;
 
-    for (const decl of tree.declaration()) {
+    for (const [index, decl] of sourceOrder.entries()) {
       const leadingComments = this.getLeadingComments(decl);
       declarations.push(...this.formatLeadingComments(leadingComments));
 
-      if (
-        firstFunctionIndex === null &&
-        (decl.functionDeclaration() !== null ||
-          decl.scopeDeclaration() !== null)
-      ) {
+      if (index === precedes) {
         firstFunctionIndex = declarations.length;
       }
 
