@@ -180,6 +180,49 @@ class DiagnosticManifest {
     return [cells[0], cells[1]];
   }
 
+  /**
+   * What a whole migration lost, comparing a BASE manifest to the current one.
+   *
+   * `checkOutcome` compares against `HEAD`, which is right per commit and says
+   * nothing across a branch: a commit that deletes a row AND its fixture is
+   * self-consistent and passes. #1322's definition of done is the stronger
+   * claim -- that no diagnostic was lost anywhere between the merge base and
+   * the tip -- and nothing in the repo could express it.
+   *
+   * Keyed on the SET OF CODES, not on fixtures, and that choice is the whole
+   * design. #1322 also relocates fixtures into `tests/adr-NNN/`; a
+   * fixture-keyed comparison would report every one of those as a loss, would
+   * therefore be overridden as a matter of routine, and a check that is
+   * routinely overridden is worse than no check. A code asserted at base and
+   * asserted by SOME fixture at tip has not been lost, wherever it now lives.
+   *
+   * `movedFixtures` is reported, never failed on: it is the list a reviewer
+   * pairs up by eye to confirm each disappearance was a rename.
+   */
+  static compareToBase(
+    base: readonly IManifestEntry[],
+    current: readonly IManifestEntry[],
+  ): { lostCodes: string[]; movedFixtures: string[] } {
+    const asserted = new Set(current.flatMap((entry) => entry.codes));
+    const present = new Set(current.map((entry) => entry.fixture));
+    const lost = new Set<string>();
+    const moved: string[] = [];
+    for (const entry of base) {
+      for (const code of entry.codes) {
+        if (!asserted.has(code)) {
+          lost.add(code);
+        }
+      }
+      if (!present.has(entry.fixture)) {
+        moved.push(entry.fixture);
+      }
+    }
+    return {
+      lostCodes: [...lost].sort((a, b) => a.localeCompare(b)),
+      movedFixtures: moved.sort((a, b) => a.localeCompare(b)),
+    };
+  }
+
   /** Describes a `check` run without performing any of its I/O. */
   static checkOutcome(
     committedDocument: string | null,

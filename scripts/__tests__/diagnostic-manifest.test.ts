@@ -315,6 +315,69 @@ describe("DiagnosticManifest.checkOutcome", () => {
   });
 });
 
+describe("DiagnosticManifest.compareToBase", () => {
+  // #1322 runs `--update` more than any change in this project's history: 136
+  // fixtures change position and 145 change message. `diagnostics:manifest:check`
+  // compares against HEAD only, so a commit that deletes a row AND its fixture
+  // passes -- correct per-commit, and useless as a guarantee across a migration.
+  //
+  // The comparison is deliberately over the SET OF CODES rather than over
+  // fixtures, because this card also moves fixtures into `tests/adr-NNN/`. A
+  // fixture-keyed check would report every one of those as a loss and would then
+  // be routinely overridden, which is worse than not having it.
+  const coded = (fixture: string, ...codes: string[]) => ({ fixture, codes });
+
+  it("passes when every code asserted at base is still asserted somewhere", () => {
+    const base = [coded("tests/a.test.cnx", "E0422", "E0500")];
+    const tip = [
+      coded("tests/adr-016/a.test.cnx", "E0422"),
+      coded("tests/b.test.cnx", "E0500"),
+    ];
+    expect(DiagnosticManifest.compareToBase(base, tip).lostCodes).toEqual([]);
+  });
+
+  it("names a code that no fixture asserts any more", () => {
+    const base = [coded("tests/a.test.cnx", "E0422", "E0500")];
+    const tip = [coded("tests/a.test.cnx", "E0422")];
+    expect(DiagnosticManifest.compareToBase(base, tip).lostCodes).toEqual([
+      "E0500",
+    ]);
+  });
+
+  it("is not fooled by a rename, which is the whole reason it is code-keyed", () => {
+    const base = [coded("tests/a.test.cnx", "E0422")];
+    const tip = [coded("tests/adr-057/a.test.cnx", "E0422")];
+    const result = DiagnosticManifest.compareToBase(base, tip);
+    expect(result.lostCodes).toEqual([]);
+    expect(result.movedFixtures).toEqual(["tests/a.test.cnx"]);
+  });
+
+  it("reports a fixture that vanished without its codes being re-asserted", () => {
+    const base = [coded("tests/a.test.cnx", "E0422")];
+    const result = DiagnosticManifest.compareToBase(base, []);
+    expect(result.lostCodes).toEqual(["E0422"]);
+    expect(result.movedFixtures).toEqual(["tests/a.test.cnx"]);
+  });
+
+  it("says nothing about growth", () => {
+    const base = [coded("tests/a.test.cnx", "E0422")];
+    const tip = [
+      coded("tests/a.test.cnx", "E0422"),
+      coded("tests/b.test.cnx", "E0999"),
+    ];
+    const result = DiagnosticManifest.compareToBase(base, tip);
+    expect(result.lostCodes).toEqual([]);
+    expect(result.movedFixtures).toEqual([]);
+  });
+
+  it("ignores an uncoded fixture, which asserts no code to lose", () => {
+    // An uncoded fixture still asserts a diagnostic, but this check is about
+    // codes; its disappearance is `assertion-removed`'s job, per commit.
+    const base = [coded("tests/a.test.cnx")];
+    expect(DiagnosticManifest.compareToBase(base, []).lostCodes).toEqual([]);
+  });
+});
+
 describe("DiagnosticManifest.writeOutcome", () => {
   const entry = { fixture: "tests/a.test.cnx", codes: ["E0422"] };
   const rendered = DiagnosticManifest.render([entry]);

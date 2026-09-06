@@ -57,6 +57,7 @@ run_check "Static Analysis" "analyze:duplication"        npm run analyze:duplica
 run_check "Static Analysis" "docs:toolchain:check"       npm run docs:toolchain:check
 run_check "Static Analysis" "coverage:matrix:check"      npm run coverage:matrix:check
 run_check "Static Analysis" "diagnostics:manifest:check" npm run diagnostics:manifest:check
+run_check "Static Analysis" "error-codes:check"          npm run error-codes:check
 run_check "Static Analysis" "docs:throw-citations:check" npm run docs:throw-citations:check
 run_check "Static Analysis" "scope-joins:check"          npm run scope-joins:check
 run_check "Static Analysis" "adr:independence:check"     npm run adr:independence:check

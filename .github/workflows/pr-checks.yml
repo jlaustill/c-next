@@ -182,6 +182,16 @@ jobs:
         run: npm run diagnostics:manifest:check
         continue-on-error: true
 
+      # Issue #1322: docs/error-codes.md says of itself that it "is
+      # hand-maintained and has no gate", so a code reserved in one place and
+      # recorded nowhere is assigned a second time and the collision is silent.
+      # Tolerable at 55 codes growing by one a release; #1322 allocates ~45-60
+      # at once across eight ranges with eight reserved-do-not-reuse entries.
+      - name: Check error-code registry
+        id: errorcodes
+        run: npm run error-codes:check
+        continue-on-error: true
+
       # Issue #1365: docs/architecture/output-throw-classification.md cites all
       # every throw site in output/ by file:line, and a line number decays
       # silently. #1362
@@ -225,6 +235,7 @@ jobs:
           [ "${{ steps.ghpagination.outcome }}" != "success" ] && echo "❌ Bounded gh reads" && FAILED=1 || echo "✅ Bounded gh reads"
           [ "${{ steps.hooktests.outcome }}" != "success" ] && echo "❌ Hook tests" && FAILED=1 || echo "✅ Hook tests"
           [ "${{ steps.diagnosticmanifest.outcome }}" != "success" ] && echo "❌ Diagnostic manifest" && FAILED=1 || echo "✅ Diagnostic manifest"
+          [ "${{ steps.errorcodes.outcome }}" != "success" ] && echo "❌ Error-code registry" && FAILED=1 || echo "✅ Error-code registry"
           [ "${{ steps.throwcitations.outcome }}" != "success" ] && echo "❌ Throw citations" && FAILED=1 || echo "✅ Throw citations"
           [ "${{ steps.scopejoins.outcome }}" != "success" ] && echo "❌ Scope-join sites" && FAILED=1 || echo "✅ Scope-join sites"
           [ $FAILED -eq 1 ] && exit 1 || exit 0
