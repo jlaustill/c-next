@@ -13,9 +13,14 @@
  *
  * An exclusion must therefore be written down where it can be reviewed --
  * `ignorePaths` in `.cspell.json` -- rather than achieved by omission. `.idea/`
- * is excluded that way: it is JetBrains-generated XML carrying JetBrains' own
- * misspellings ("Overriden", "Doesnt"), which this project did not write and
- * cannot fix.
+ * is excluded that way: it is JetBrains-generated XML whose inspection names
+ * carry two of JetBrains' own misspellings, which this project did not write
+ * and cannot fix.
+ *
+ * Those two words are deliberately described rather than quoted here. Spelling
+ * them out would fail this very check, and adding them to the dictionary to
+ * make that go away would blind the checker to the same typos everywhere else
+ * -- suppressing a rule to write about the rule.
  */
 
 import { execFileSync } from "node:child_process";
