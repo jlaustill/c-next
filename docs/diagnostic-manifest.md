@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-312 fixture(s) assert a diagnostic; 191 carry a code.
+313 fixture(s) assert a diagnostic; 191 carry a code.
 
 | Fixture                                                                                          | Codes        |
 | ------------------------------------------------------------------------------------------------ | ------------ |
@@ -57,6 +57,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/array-initializers/bounds-error.test.cnx                                                   | (uncoded)    |
 | tests/atomic/atomic-struct-member.test.cnx                                                       | (uncoded)    |
 | tests/atomic/atomic-volatile-error.test.cnx                                                      | (uncoded)    |
+| tests/bit-indexing/float-bit-range-global-scope-error.test.cnx                                   | (uncoded)    |
 | tests/bit-indexing/scalar-over-subscript-this.test.cnx                                           | E0856        |
 | tests/bit-indexing/scalar-over-subscript.test.cnx                                                | E0856        |
 | tests/bitmap/bitmap-bracket-indexing-error.test.cnx                                              | (uncoded)    |

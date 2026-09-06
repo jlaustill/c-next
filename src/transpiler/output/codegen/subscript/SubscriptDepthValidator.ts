@@ -17,7 +17,6 @@
  */
 import TTypeInfo from "../../../types/TTypeInfo";
 import TypeCheckUtils from "../../../../utils/TypeCheckUtils";
-import CodeGenErrors from "../helpers/CodeGenErrors";
 
 /**
  * Structural shape common to `postfixOp` (read path) and `postfixTargetOp`
@@ -92,11 +91,27 @@ class SubscriptDepthValidator {
     const arrayDimensions = typeInfo.arrayDimensions?.length ?? 0;
     const maxDepth = arrayDimensions + 1;
     if (subscriptOpCount > maxDepth) {
-      throw CodeGenErrors.tooManySubscripts(
-        line,
-        varName,
-        typeInfo.baseType,
-        arrayDimensions,
+      // #1322: raised here rather than through a `CodeGenErrors` factory. The
+      // factory returned an Error for the caller to throw, so the line did not
+      // begin `throw new` -- and `docs:throw-citations:check` matched on that
+      // spelling, which made E0856 invisible to the audit that classifies every
+      // rejection in `output/`. A coded, fixture-covered, user-facing
+      // diagnostic that the classifier cannot see is one that cannot be
+      // relocated to 2.1. The gate has since been widened; the indirection is
+      // removed because it bought nothing and cost that.
+      const allowed = maxDepth;
+      const shape =
+        arrayDimensions === 0
+          ? `a scalar '${typeInfo.baseType}'`
+          : `a ${arrayDimensions}-dimensional '${typeInfo.baseType}' array`;
+      const plural = allowed === 1 ? "subscript" : "subscripts";
+      const dimensionWord = arrayDimensions === 1 ? "dimension" : "dimensions";
+      throw new Error(
+        `E0856: Error at line ${line}: too many subscripts on '${varName}'. ` +
+          `'${varName}' is ${shape}, so it allows at most ${allowed} ${plural} ` +
+          `(${arrayDimensions} for array ${dimensionWord} ` +
+          `plus one optional bit index — ADR-036/ADR-007). Indexing further indexes a ` +
+          `value that is not an array. Did you mean the bit range '${varName}[start, width]'?`,
       );
     }
   }

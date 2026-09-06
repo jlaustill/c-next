@@ -15060,7 +15060,7 @@ describe("CodeGenerator", () => {
       });
     });
 
-    describe("array access via ArrayAccessHelper", () => {
+    describe("array access", () => {
       it("should generate single-index array access", () => {
         const source = `
           u32[10] arr;

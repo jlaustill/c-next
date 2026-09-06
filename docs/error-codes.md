@@ -227,9 +227,9 @@ include-visibility is not derivable for a C or C++ name.
 
 ### Subscript Depth (ADR-036 / ADR-007)
 
-| Code  | Message                       | Help                                                                                     | Source                                    |
-| ----- | ----------------------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------- |
-| E0856 | Too many subscripts on a base | A base allows `arrayDimensions + 1` subscripts; for a bit field use `name[start, width]` | `output/codegen/helpers/CodeGenErrors.ts` |
+| Code  | Message                       | Help                                                                                     | Source                                                |
+| ----- | ----------------------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| E0856 | Too many subscripts on a base | A base allows `arrayDimensions + 1` subscripts; for a bit field use `name[start, width]` | `output/codegen/subscript/SubscriptDepthValidator.ts` |
 
 Each subscript peels one array dimension (ADR-036) and a scalar integer/float may be
 bit-indexed once (ADR-007), so `flags[4][3]` on a scalar `u8` indexes the single bit
