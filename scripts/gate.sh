@@ -81,17 +81,14 @@ run_check "Integration Tests" "headers:standalone:check"  npm run headers:standa
 # Mirrors the Verify Clean job: the suite regenerates .test.c/.test.h, and a
 # generated file that is missing, stale or untracked shows up here. This is what
 # catches a `rm` glob that swept a committed artifact into a deletion.
+#
+# Goes through run_check like every other check, rather than open-coding the
+# pass/fail bookkeeping. Hand-rolled, it was the one check `grep -c '^run_check'`
+# could not see -- which is how that command came to be wrong twice in ways that
+# cancelled: it counted the function definition and missed this.
 echo -e "\n${YELLOW}Verify Clean${NC}"
-printf '  %-34s ' "working tree clean"
-DIRTY="$(git status --porcelain)"
-if [ -z "$DIRTY" ]; then
-  printf "${GREEN}pass${NC}\n"
-  PASSED=$((PASSED + 1))
-else
-  printf "${RED}FAIL${NC}\n"
-  echo "$DIRTY" | sed 's/^/      /'
-  FAILED+=("Verify Clean|working tree clean|")
-fi
+run_check "Verify Clean" "working tree clean" \
+  bash -c 'DIRTY="$(git status --porcelain)"; [ -z "$DIRTY" ] || { echo "$DIRTY"; exit 1; }'
 
 echo ""
 if [ ${#FAILED[@]} -eq 0 ]; then
