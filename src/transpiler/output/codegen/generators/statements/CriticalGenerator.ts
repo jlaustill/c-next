@@ -40,8 +40,9 @@ const generateCriticalStatement = (
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
 
-  // Validate no early exits inside critical block
-  orchestrator.validateNoEarlyExits(node.block());
+  // #1322: the early-exit check that stood here is E0853 in pass 2.1, which
+  // reaches every statement the grammar can nest inside the block -- including
+  // `switch`, which the recursion it replaces did not descend into.
 
   // Mark that we need IRQ wrapper functions (not cmsis_gcc.h include)
   // This avoids macro collisions with platform headers like Teensy's imxrt.h

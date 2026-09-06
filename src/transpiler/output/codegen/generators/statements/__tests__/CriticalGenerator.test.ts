@@ -61,19 +61,14 @@ function createMockState(): IGeneratorState {
 /**
  * Create mock orchestrator for CriticalGenerator.
  * CriticalGenerator uses:
- * - validateNoEarlyExits(block) - validation
  * - generateBlock(block) - block generation
  */
 function createMockOrchestrator(options?: {
   blockCode?: string;
-  validateNoEarlyExits?: (ctx: Parser.BlockContext) => void;
 }): IOrchestrator {
-  const validateNoEarlyExits =
-    options?.validateNoEarlyExits ?? vi.fn(() => undefined);
   const generateBlock = vi.fn(() => options?.blockCode ?? "{\n    x <- 1;\n}");
 
   return {
-    validateNoEarlyExits,
     generateBlock,
   } as unknown as IOrchestrator;
 }
@@ -140,55 +135,11 @@ describe("CriticalGenerator", () => {
     });
   });
 
-  describe("validation", () => {
-    it("calls validateNoEarlyExits on the block", () => {
-      const blockCtx = createMockBlockContext();
-      const ctx = createMockCriticalContext(blockCtx);
-      const input = createMockInput();
-      const state = createMockState();
-      const validateNoEarlyExits = vi.fn();
-      const orchestrator = createMockOrchestrator({ validateNoEarlyExits });
-
-      generateCriticalStatement(ctx, input, state, orchestrator);
-
-      expect(validateNoEarlyExits).toHaveBeenCalledOnce();
-      expect(validateNoEarlyExits).toHaveBeenCalledWith(blockCtx);
-    });
-
-    it("throws when validation fails (early return in critical block)", () => {
-      const ctx = createMockCriticalContext();
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({
-        validateNoEarlyExits: () => {
-          throw new Error(
-            "Error: return statement not allowed inside critical block",
-          );
-        },
-      });
-
-      expect(() =>
-        generateCriticalStatement(ctx, input, state, orchestrator),
-      ).toThrow("return statement not allowed inside critical block");
-    });
-
-    it("throws when validation fails (break in critical block)", () => {
-      const ctx = createMockCriticalContext();
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({
-        validateNoEarlyExits: () => {
-          throw new Error(
-            "Error: break statement not allowed inside critical block",
-          );
-        },
-      });
-
-      expect(() =>
-        generateCriticalStatement(ctx, input, state, orchestrator),
-      ).toThrow("break statement not allowed inside critical block");
-    });
-  });
+  // #1322: `CriticalGenerator` no longer validates. E0853 is authored in pass
+  // 2.1, so by the time this generator runs the program is already known legal
+  // -- and the check reaches every statement the grammar can nest, including
+  // `switch`, which the recursion it replaced did not descend into.
+  // Covered by `1-Analyze/__tests__/CriticalSectionAnalyzer.test.ts`.
 
   describe("effects", () => {
     it("returns irq_wrappers include effect", () => {

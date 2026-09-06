@@ -140,23 +140,8 @@ function createMockBlock(
   } as unknown as Parser.BlockContext;
 }
 
-function createMockStatement(options?: {
-  hasReturn?: boolean;
-  hasBlock?: Parser.BlockContext;
-  hasIf?: Partial<Parser.IfStatementContext>;
-  hasWhile?: Partial<Parser.WhileStatementContext>;
-  hasFor?: Partial<Parser.ForStatementContext>;
-  hasDoWhile?: Partial<Parser.DoWhileStatementContext>;
-}): Partial<Parser.StatementContext> {
-  return {
-    returnStatement: () => (options?.hasReturn ? {} : null),
-    block: () => options?.hasBlock ?? null,
-    ifStatement: () => (options?.hasIf ? options.hasIf : null),
-    whileStatement: () => (options?.hasWhile ? options.hasWhile : null),
-    forStatement: () => (options?.hasFor ? options.hasFor : null),
-    doWhileStatement: () => (options?.hasDoWhile ? options.hasDoWhile : null),
-  } as Partial<Parser.StatementContext>;
-}
+// #1322: `createMockStatement` built statements for the suite above, which
+// moved to pass 2.1 with the rule it tested.
 
 function createMockSwitchStatement(options: {
   cases?: Partial<Parser.SwitchCaseContext>[];
@@ -1040,143 +1025,12 @@ describe("TypeValidator", () => {
   // Tests - Critical Section Validation (ADR-050)
   // ========================================================================
 
-  describe("validateNoEarlyExits", () => {
-    it("allows blocks without early exits", () => {
-      setupState();
-      const block = createMockBlock([
-        createMockStatement(),
-        createMockStatement(),
-      ]);
-      expect(() => TypeValidator.validateNoEarlyExits(block)).not.toThrow();
-    });
-
-    it("throws for return statement in critical block", () => {
-      setupState();
-      const block = createMockBlock([createMockStatement({ hasReturn: true })]);
-      expect(() => TypeValidator.validateNoEarlyExits(block)).toThrow("E0853");
-      expect(() => TypeValidator.validateNoEarlyExits(block)).toThrow(
-        "Cannot use 'return' inside critical section",
-      );
-    });
-
-    it("throws for return in nested block", () => {
-      setupState();
-      const innerBlock = createMockBlock([
-        createMockStatement({ hasReturn: true }),
-      ]);
-      const block = createMockBlock([
-        createMockStatement({ hasBlock: innerBlock }),
-      ]);
-      expect(() => TypeValidator.validateNoEarlyExits(block)).toThrow("E0853");
-    });
-
-    it("throws for return in if statement", () => {
-      setupState();
-      const ifStmt = {
-        statement: () => [
-          {
-            returnStatement: () => ({}),
-            block: () => null,
-          } as Partial<Parser.StatementContext>,
-        ],
-      } as Partial<Parser.IfStatementContext>;
-      const block = createMockBlock([createMockStatement({ hasIf: ifStmt })]);
-      expect(() => TypeValidator.validateNoEarlyExits(block)).toThrow("E0853");
-    });
-
-    it("throws for return in if statement's nested block", () => {
-      setupState();
-      const innerBlock = createMockBlock([
-        createMockStatement({ hasReturn: true }),
-      ]);
-      const ifStmt = {
-        statement: () => [
-          {
-            returnStatement: () => null,
-            block: () => innerBlock,
-          } as Partial<Parser.StatementContext>,
-        ],
-      } as Partial<Parser.IfStatementContext>;
-      const block = createMockBlock([createMockStatement({ hasIf: ifStmt })]);
-      expect(() => TypeValidator.validateNoEarlyExits(block)).toThrow("E0853");
-    });
-
-    it("throws for return in while loop", () => {
-      setupState();
-      const whileStmt = {
-        statement: () =>
-          ({
-            returnStatement: () => ({}),
-            block: () => null,
-          }) as unknown as Parser.StatementContext,
-      } as Partial<Parser.WhileStatementContext>;
-      const block = createMockBlock([
-        createMockStatement({ hasWhile: whileStmt }),
-      ]);
-      expect(() => TypeValidator.validateNoEarlyExits(block)).toThrow("E0853");
-    });
-
-    it("throws for return in while loop's nested block", () => {
-      setupState();
-      const innerBlock = createMockBlock([
-        createMockStatement({ hasReturn: true }),
-      ]);
-      const whileStmt = {
-        statement: () =>
-          ({
-            returnStatement: () => null,
-            block: () => innerBlock,
-          }) as unknown as Parser.StatementContext,
-      } as Partial<Parser.WhileStatementContext>;
-      const block = createMockBlock([
-        createMockStatement({ hasWhile: whileStmt }),
-      ]);
-      expect(() => TypeValidator.validateNoEarlyExits(block)).toThrow("E0853");
-    });
-
-    it("throws for return in for loop", () => {
-      setupState();
-      const forStmt = {
-        statement: () =>
-          ({
-            returnStatement: () => ({}),
-            block: () => null,
-          }) as unknown as Parser.StatementContext,
-      } as Partial<Parser.ForStatementContext>;
-      const block = createMockBlock([createMockStatement({ hasFor: forStmt })]);
-      expect(() => TypeValidator.validateNoEarlyExits(block)).toThrow("E0853");
-    });
-
-    it("throws for return in for loop's nested block", () => {
-      setupState();
-      const innerBlock = createMockBlock([
-        createMockStatement({ hasReturn: true }),
-      ]);
-      const forStmt = {
-        statement: () =>
-          ({
-            returnStatement: () => null,
-            block: () => innerBlock,
-          }) as unknown as Parser.StatementContext,
-      } as Partial<Parser.ForStatementContext>;
-      const block = createMockBlock([createMockStatement({ hasFor: forStmt })]);
-      expect(() => TypeValidator.validateNoEarlyExits(block)).toThrow("E0853");
-    });
-
-    it("throws for return in do-while loop", () => {
-      setupState();
-      const innerBlock = createMockBlock([
-        createMockStatement({ hasReturn: true }),
-      ]);
-      const doWhileStmt = {
-        block: () => innerBlock,
-      } as Partial<Parser.DoWhileStatementContext>;
-      const block = createMockBlock([
-        createMockStatement({ hasDoWhile: doWhileStmt }),
-      ]);
-      expect(() => TypeValidator.validateNoEarlyExits(block)).toThrow("E0853");
-    });
-  });
+  // #1322: `validateNoEarlyExits` is gone. E0853 is authored in pass 2.1,
+  // where a tree walk reaches every statement the grammar can nest inside a
+  // `critical` block -- including `switch`, which the recursion these tests
+  // drove did not descend into, so a `return` in a switch case compiled
+  // clean. Covered by `1-Analyze/__tests__/CriticalSectionAnalyzer.test.ts`
+  // and `tests/adr-050/`.
 
   // ========================================================================
   // Tests - Switch Statement Validation (ADR-025)

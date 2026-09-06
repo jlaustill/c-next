@@ -12,11 +12,14 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-314 fixture(s) assert a diagnostic; 192 carry a code.
+316 fixture(s) assert a diagnostic; 194 carry a code.
 
 | Fixture                                                                                          | Codes        |
 | ------------------------------------------------------------------------------------------------ | ------------ |
 | tests/adr-016/this-outside-scope-error.test.cnx                                                  | E0431        |
+| tests/adr-050/return-in-critical-error.test.cnx                                                  | E0853        |
+| tests/adr-050/return-in-critical-scope-method-error.test.cnx                                     | E0853        |
+| tests/adr-050/return-in-critical-switch-error.test.cnx                                           | E0853        |
 | tests/analysis/division-by-const-zero.test.cnx                                                   | E0800        |
 | tests/analysis/division-by-zero.test.cnx                                                         | E0800        |
 | tests/analysis/enum-context/enum-bare-in-array-dim.test.cnx                                      | E0424        |
@@ -219,7 +222,6 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/control-flow/forever-non-void-error.test.cnx                                               | E0705        |
 | tests/control-flow/if-error-non-boolean.test.cnx                                                 | E0701        |
 | tests/control-flow/while-error-non-boolean.test.cnx                                              | E0701        |
-| tests/critical/return-error.test.cnx                                                             | E0853        |
 | tests/do-while/do-while-error-non-boolean.test.cnx                                               | E0701        |
 | tests/enum/enum-error-assign-int.test.cnx                                                        | (uncoded)    |
 | tests/enum/enum-error-compare-int.test.cnx                                                       | (uncoded)    |

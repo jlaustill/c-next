@@ -1001,14 +1001,6 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Validate no early exits (return/break) in critical blocks.
-   * Part of IOrchestrator interface.
-   */
-  validateNoEarlyExits(ctx: Parser.BlockContext): void {
-    TypeValidator.validateNoEarlyExits(ctx);
-  }
-
-  /**
    * Generate a single statement.
    * Part of IOrchestrator interface.
    */

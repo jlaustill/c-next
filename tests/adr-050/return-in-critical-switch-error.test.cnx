@@ -1,0 +1,47 @@
+// test-error
+// test-c-only
+// test-adr: 050
+// REGRESSION for a safety defect #1322 found while relocating E0853.
+//
+// The check used to be a hand-rolled recursion in `TypeValidator` that
+// ENUMERATED the statement kinds it descended into: return, if, while, for,
+// do-while. It did not list `switch`, so this file compiled clean and emitted:
+//
+//     __cnx_disable_irq();
+//     switch (value) { case 1: { return value; break; } ... }
+//     __cnx_set_PRIMASK(__primask);   // never reached on that path
+//
+// On device the interrupts stay off -- exactly the hazard E0853 exists to
+// prevent, shipped past the guard that prevents it. Pass 2.1 walks the tree
+// instead of enumerating, so it cannot have this hole.
+
+u32 value <- 0;
+
+// NEGATIVE CONTROL -- the same switch, outside a critical block. Returning from
+// a switch case is ordinary C-Next and must stay silent; declared first, so an
+// over-broad check reports it and changes the message asserted below.
+u32 outsideCritical() {
+    switch (value) {
+        case 1 {
+            return value;
+        }
+        default {
+            return 0;
+        }
+    }
+    return 0;
+}
+
+u32 insideCritical() {
+    critical {
+        switch (value) {
+            case 1 {
+                return value;
+            }
+            default {
+                value <- 0;
+            }
+        }
+    }
+    return 0;
+}

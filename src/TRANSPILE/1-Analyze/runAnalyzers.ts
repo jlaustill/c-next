@@ -24,6 +24,7 @@ import BooleanOperandAnalyzer from "./BooleanOperandAnalyzer";
 import MixedTypeCategoryAnalyzer from "./MixedTypeCategoryAnalyzer";
 import ReturnPathAnalyzer from "./ReturnPathAnalyzer";
 import ReturnValueUseAnalyzer from "./ReturnValueUseAnalyzer";
+import CriticalSectionAnalyzer from "./CriticalSectionAnalyzer";
 import ThisOutsideScopeAnalyzer from "./ThisOutsideScopeAnalyzer";
 import CommentExtractor from "./CommentExtractor";
 import ITranspileError from "../../lib/types/ITranspileError";
@@ -205,6 +206,10 @@ function runAnalyzers(
       label:
         "return-value use (ADR-070 / MISRA C:2012 Rule 17.7 at source level)",
       run: () => ReturnValueUseAnalyzer.analyze(tree),
+    },
+    {
+      label: "`return` inside a critical section (ADR-050, E0853)",
+      run: () => new CriticalSectionAnalyzer().analyze(tree),
     },
     {
       // #1322: appended rather than inserted. The loop breaks at the first

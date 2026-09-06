@@ -737,6 +737,44 @@ ADR-102 (v2) will explore compiler-assisted analysis including cycle estimation 
 
 ---
 
+## Scope-context matrix
+
+<!-- MATRIX-SEVERITY -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | off      |
+| scope member       | same file           | off      |
+| top-level function | imported direct     | off      |
+| scope method       | imported direct     | off      |
+| global variable    | imported direct     | off      |
+| scope member       | imported direct     | off      |
+| top-level function | imported transitive | off      |
+| scope method       | imported transitive | off      |
+| global variable    | imported transitive | off      |
+| scope member       | imported transitive | off      |
+
+Added by #1322, when E0853 moved out of codegen into pass 2.1. Each `off` is a
+recorded claim that the cell cannot exist, not an admission that nobody wrote a
+fixture:
+
+- **`global variable` and `scope member`, in every relationship.** A `critical`
+  block is a STATEMENT. It appears in a function body and nowhere else, so there
+  is no declaration context for this rule to fire in. A `return` cannot appear in
+  an initializer either.
+- **Every `imported` relationship.** The rule is entirely local: it asks whether
+  a `return` is lexically inside a `critical` block in the same function. Nothing
+  about it crosses a file boundary, so an include cannot change the answer. This
+  is one of the few genuinely single-file rules in the corpus, and the matrix
+  should say so rather than leave twelve cells silent.
+
+The two `error` cells are the two places a critical section can be written, and
+both are occupied: `return-in-critical-error` and
+`return-in-critical-switch-error` for a top-level function,
+`return-in-critical-scope-method-error` for a scope method.
+
 ## References
 
 - [ADR-009: ISR Safety](adr-009-isr-safety.md) - Parent ADR

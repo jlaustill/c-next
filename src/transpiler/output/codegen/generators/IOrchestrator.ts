@@ -200,9 +200,6 @@ interface IOrchestrator {
 
   // === Statement Validation ===
 
-  /** Validate no early exits (return/break) in critical blocks (ADR-050) */
-  validateNoEarlyExits(ctx: Parser.BlockContext): void;
-
   /** Validate switch statement (ADR-025) */
   validateSwitchStatement(
     ctx: Parser.SwitchStatementContext,

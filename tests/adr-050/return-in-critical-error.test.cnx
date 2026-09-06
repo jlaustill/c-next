@@ -1,0 +1,30 @@
+// test-error
+// test-c-only
+// test-adr: 050
+// ADR-050, E0853: the generated C restores PRIMASK after a critical block, so a
+// `return` jumps past the restore and leaves interrupts disabled on device.
+//
+// #1322 moved this rule out of `output/`, where it reported `1:0`. It now
+// carries a real position, and reaches every statement the grammar can nest --
+// see the switch regression beside this fixture.
+u32 value <- 0;
+
+u32 badFunction() {
+    critical {
+        value +<- 1;
+        return value;
+    }
+}
+
+// NEGATIVE CONTROL -- a critical block that assigns and falls through is the
+// normal way to write this, and must stay silent. Placed after the assertion so
+// an over-broad check that rejected every `return` near a critical block would
+// report the trailing `return` below and change the message.
+u32 goodFunction() {
+    u32 captured <- 0;
+    critical {
+        value +<- 1;
+        captured <- value;
+    }
+    return captured;
+}

@@ -469,73 +469,15 @@ class TypeValidator {
   // Critical Section Validation (ADR-050)
   // ========================================================================
 
-  static validateNoEarlyExits(ctx: Parser.BlockContext): void {
-    for (const stmt of ctx.statement()) {
-      TypeValidator._validateStatementForEarlyExit(stmt);
-    }
-  }
-
-  private static _validateStatementForEarlyExit(
-    stmt: Parser.StatementContext,
-  ): void {
-    if (stmt.returnStatement()) {
-      throw new Error(
-        `E0853: Cannot use 'return' inside critical section - would leave interrupts disabled`,
-      );
-    }
-
-    if (stmt.block()) {
-      TypeValidator.validateNoEarlyExits(stmt.block()!);
-    }
-
-    if (stmt.ifStatement()) {
-      TypeValidator._validateIfStatementForEarlyExit(stmt.ifStatement()!);
-    }
-
-    TypeValidator._validateLoopForEarlyExit(stmt);
-  }
-
-  private static _validateIfStatementForEarlyExit(
-    ifStmt: Parser.IfStatementContext,
-  ): void {
-    for (const innerStmt of ifStmt.statement()) {
-      if (innerStmt.returnStatement()) {
-        throw new Error(
-          `E0853: Cannot use 'return' inside critical section - would leave interrupts disabled`,
-        );
-      }
-      if (innerStmt.block()) {
-        TypeValidator.validateNoEarlyExits(innerStmt.block()!);
-      }
-    }
-  }
-
-  private static _validateLoopForEarlyExit(
-    stmt: Parser.StatementContext,
-  ): void {
-    if (stmt.whileStatement()) {
-      TypeValidator._checkLoopBodyForReturn(stmt.whileStatement()!.statement());
-    }
-    if (stmt.forStatement()) {
-      TypeValidator._checkLoopBodyForReturn(stmt.forStatement()!.statement());
-    }
-    if (stmt.doWhileStatement()) {
-      TypeValidator.validateNoEarlyExits(stmt.doWhileStatement()!.block());
-    }
-  }
-
-  private static _checkLoopBodyForReturn(
-    loopStmt: Parser.StatementContext,
-  ): void {
-    if (loopStmt.returnStatement()) {
-      throw new Error(
-        `E0853: Cannot use 'return' inside critical section - would leave interrupts disabled`,
-      );
-    }
-    if (loopStmt.block()) {
-      TypeValidator.validateNoEarlyExits(loopStmt.block()!);
-    }
-  }
+  // #1322: `validateNoEarlyExits` and its four private helpers are gone. The
+  // rule is E0853 in pass 2.1, where a tree walk reaches every statement the
+  // grammar can nest inside a `critical` block.
+  //
+  // The recursion here ENUMERATED the kinds it descended into -- return, if,
+  // while, for, do-while -- and omitted `switch`, so a `return` in a switch
+  // case compiled clean and emitted C that returns between
+  // `__cnx_disable_irq()` and `__cnx_set_PRIMASK()`. On device, interrupts stay
+  // off. A walk does not enumerate, so it cannot have that hole.
 
   // ========================================================================
   // Switch Statement Validation (ADR-025)
