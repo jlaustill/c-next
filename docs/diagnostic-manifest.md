@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-317 fixture(s) assert a diagnostic; 201 carry a code.
+319 fixture(s) assert a diagnostic; 203 carry a code.
 
 | Fixture                                                                                          | Codes        |
 | ------------------------------------------------------------------------------------------------ | ------------ |
@@ -135,6 +135,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1312-undefined-type-position/order-lib-first.test.cnx                           | E0426        |
 | tests/bugs/issue-1312-undefined-type-position/undefined-type-same-file.test.cnx                  | E0426        |
 | tests/bugs/issue-1312-undefined-type-position/undefined-type-sibling.test.cnx                    | E0426        |
+| tests/bugs/issue-1322-scoped-struct-field-type/scoped-struct-bool-operand.test.cnx               | E0807        |
 | tests/bugs/issue-1333-scope-reopening/duplicate-member-reopened.test.cnx                         | E0425        |
 | tests/bugs/issue-1334-scope-declaration-sites/conflict-across-files.test.cnx                     | E0425        |
 | tests/bugs/issue-1334-scope-declaration-sites/cross-language-conflict.test.cnx                   | E0425        |
@@ -175,6 +176,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/comments/misra-3-1-nested-block.test.cnx                                                   | MISRA-3.1    |
 | tests/comments/misra-3-2-backslash.test.cnx                                                      | MISRA-3.2    |
 | tests/compound-assign/bit-index-compound.test.cnx                                                | E0857        |
+| tests/compound-assign/struct-field-bit-index-compound.test.cnx                                   | E0857        |
 | tests/conditions/function-call-in-do-while-error.test.cnx                                        | E0702        |
 | tests/conditions/function-call-in-for-error.test.cnx                                             | E0702        |
 | tests/conditions/function-call-in-if-double-negated-error.test.cnx                               | E0702        |

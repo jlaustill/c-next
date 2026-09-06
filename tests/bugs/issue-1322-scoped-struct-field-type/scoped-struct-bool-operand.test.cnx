@@ -1,0 +1,55 @@
+// test-error
+// #1322. Every 2.1 analyzer that follows a member chain looked struct fields up
+// by the type as WRITTEN, and `ICodeGenSymbols.structFields` is keyed by the
+// TRANSPILED C name. A scope-declared struct is `S.Cfg` at the declaration and
+// `S__Cfg` in the map, so the lookup missed and the chain became unresolvable
+// -- and an unresolvable operand is never rejected.
+//
+// The result: MISRA C:2012 Rule 10.1 was enforced on a global struct's bool
+// field and silently absent on a scope-declared struct's. Same rule, same
+// spelling, different answer depending on where the struct was declared.
+//
+// Found while relocating the enum type-safety family, which needed the same
+// chain resolution and would have inherited the same hole.
+
+scope S {
+    public struct Cfg {
+        bool ready;
+        bool armed;
+    }
+}
+
+// NEGATIVE CONTROL -- the identical shape on a GLOBAL struct. This was always
+// rejected; it is here so a fix that broke global structs cannot pass, and so
+// the pair shows the two spellings now agree.
+struct GlobalCfg {
+    bool ready;
+    bool armed;
+}
+
+u8 globalCase() {
+    GlobalCfg g <- { ready: true, armed: false };
+    return g.ready / g.armed;
+}
+
+// NEGATIVE CONTROL -- a NON-bool field of the same scope-declared struct. The
+// fix makes the chain resolvable, so an over-broad rule would start rejecting
+// ordinary arithmetic on a scope struct's numeric field.
+scope N {
+    public struct Nums {
+        u8 a;
+        u8 b;
+    }
+}
+
+u8 numericCase() {
+    N.Nums n <- { a: 6, b: 3 };
+    return n.a / n.b;
+}
+
+// THE ASSERTION -- a bool field of a SCOPE-declared struct. Compiled clean
+// before this fix, dividing by zero at runtime.
+u8 scopedCase() {
+    S.Cfg c <- { ready: true, armed: false };
+    return c.ready / c.armed;
+}

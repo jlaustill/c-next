@@ -33,7 +33,6 @@ import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../transpiler/logic/parser/grammar/CNextListener";
 import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
 import ParserUtils from "../../utils/ParserUtils";
-import ScopeUtils from "../../utils/ScopeUtils";
 import CodeGenState from "../../transpiler/state/CodeGenState";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
 import ScopeFrameResolver from "./ScopeFrameResolver";
@@ -127,12 +126,13 @@ class CompoundAssignmentListener extends CNextListener {
         typeName = null;
         continue;
       }
-      const key = CompoundAssignmentAnalyzer.structKey(typeName);
-      const fields = CodeGenState.symbols?.structFields.get(key);
+      // #1322: both maps are read through one resolved key inside
+      // `CodeGenState`, so a scope-declared struct is found here and by every
+      // other chain-following analyzer. This used to derive the key privately,
+      // which left the other four resolving nothing for the same structs.
       dimensions =
-        CodeGenState.symbols?.structFieldDimensions.get(key)?.get(field) ??
-        (fields?.has(field) ? [] : null);
-      typeName = fields?.get(field) ?? null;
+        CodeGenState.getStructFieldDimensions(typeName, field) ?? null;
+      typeName = CodeGenState.getStructFieldType(typeName, field) ?? null;
     }
 
     // The chain may END on a string -- `config.name +<- " suffix"` where `name`
@@ -151,28 +151,6 @@ class CompoundAssignmentListener extends CNextListener {
 }
 
 class CompoundAssignmentAnalyzer {
-  /**
-   * The key `structFields` is built with, from a type as WRITTEN.
-   *
-   * `TSymbolInfoAdapter` keys those maps by the transpiled C name, so a
-   * scope-declared struct is `StrCompoundErr__Config` while its declaration
-   * reads `StrCompoundErr.Config`. Looking up the source spelling misses every
-   * scoped struct silently -- `config.name +<- " suffix"` compiled clean.
-   *
-   * The join goes through `ScopeUtils.getTranspiledCName`, the single encoder,
-   * rather than being spelled here: CLAUDE.md's rule is never to re-derive a
-   * qualified name by hand, and this is exactly the shape it means.
-   */
-  public static structKey(typeName: string): string {
-    const cut = typeName.lastIndexOf(".");
-    return cut === -1
-      ? typeName
-      : ScopeUtils.getTranspiledCName({
-          scopePath: typeName.slice(0, cut),
-          name: typeName.slice(cut + 1),
-        });
-  }
-
   /**
    * A declared type text naming a bounded string.
    *

@@ -431,6 +431,19 @@ actually an undeclared identifier, rather than allocating codes that record the 
   found zero conditions containing a ternary, so closing the hole regressed
   nothing. Same shape as the E0853 `switch` miss: a rule stated once and
   implemented over an enumerated subset of the places it applies.
+- **Struct fields of a scope-declared struct resolved to nothing, in four
+  analyzers at once.** `ICodeGenSymbols.structFields` is keyed by the transpiled
+  C name, so `S.Cfg` at a declaration is `S__Cfg` in the map. Every chain-
+  following analyzer passed the source spelling, missed, and treated the chain as
+  unresolvable -- and an unresolvable operand is correctly never rejected, so the
+  rules simply went quiet. MISRA C:2012 Rule 10.1 fired on a global struct's
+  `bool` field and not on a scope-declared struct's; the divide-by-zero,
+  array-index and essential-category rules followed the same chains and had the
+  same silence. The key is now derived once, inside the lookup, so the fifth
+  caller inherits it. `CompoundAssignmentAnalyzer` had been forced to spell the
+  derivation out privately, which is the duplicate-path shape; that copy is gone.
+  Found while relocating the enum type-safety family, which needs the same chain
+  resolution and would have inherited the same hole.
 - **#1014–#1017 — resolved by deletion.** `StringDeclHelper`'s C-style string-array path was
   dead only while trailing brackets are rejected unconditionally. They are, verified by probe
   on all three routes in, so the path is gone (1322a) and the conditional dependency with it.
