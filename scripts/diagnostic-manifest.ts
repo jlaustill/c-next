@@ -42,7 +42,12 @@ async function main(): Promise<void> {
   const outcome =
     mode === "write"
       ? DiagnosticManifest.writeOutcome(committed, current)
-      : DiagnosticManifest.checkOutcome(committed, current, document);
+      : DiagnosticManifest.checkOutcome(
+          committed,
+          current,
+          document,
+          DiagnosticManifest.orphans(rootDir),
+        );
 
   if (mode === "write") {
     writeFileSync(manifestPath, document);

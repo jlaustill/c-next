@@ -181,6 +181,43 @@ describe("DiagnosticManifest.collect", () => {
   });
 });
 
+describe("DiagnosticManifest.orphans", () => {
+  // #1361: `tests/string-array-init/string-array-init-error-mismatch.expected.error`
+  // had no `.test.cnx` beside it, so it could never run -- while still holding a
+  // manifest row and appearing, in #1321's audit, to cover two `Array size
+  // mismatch` throws. Coverage that cannot execute is worse than none: the row
+  // reads as green, and the count it contributes to is the number this card's
+  // definition of done is measured against.
+  let tempDir: string;
+
+  beforeEach(() => {
+    tempDir = mkdtempSync(join(tmpdir(), "cnx-orphan-"));
+    mkdirSync(join(tempDir, "tests"), { recursive: true });
+  });
+
+  afterEach(() => {
+    rmSync(tempDir, { recursive: true, force: true });
+  });
+
+  it("names an .expected.error with no fixture beside it", () => {
+    writeFileSync(join(tempDir, "tests", "lonely.expected.error"), "1:0 x\n");
+    expect(DiagnosticManifest.orphans(tempDir)).toEqual([
+      "tests/lonely.expected.error",
+    ]);
+  });
+
+  it("accepts one whose .test.cnx exists", () => {
+    writeFileSync(join(tempDir, "tests", "paired.expected.error"), "1:0 x\n");
+    writeFileSync(join(tempDir, "tests", "paired.test.cnx"), "// test-error\n");
+    expect(DiagnosticManifest.orphans(tempDir)).toEqual([]);
+  });
+
+  it("returns nothing when there is no tests directory", () => {
+    rmSync(join(tempDir, "tests"), { recursive: true });
+    expect(DiagnosticManifest.orphans(tempDir)).toEqual([]);
+  });
+});
+
 describe("DiagnosticManifest render/parse roundtrip", () => {
   it("reads back exactly what it rendered", () => {
     // The gate compares a parsed committed manifest against a fresh collect, so
@@ -247,6 +284,34 @@ describe("DiagnosticManifest.checkOutcome", () => {
     expect(outcome.ok).toBe(true);
     expect(outcome.errors).toEqual([]);
     expect(outcome.info.join("\n")).toContain("1 fixture(s)");
+  });
+
+  it("fails on an orphaned .expected.error even when nothing shrank (#1361)", () => {
+    // The manifest is otherwise perfectly in sync -- this is the case that
+    // passed for as long as the orphan existed. It has to fail on its own,
+    // because a fixture that cannot run never shrinks and never grows.
+    const outcome = DiagnosticManifest.checkOutcome(
+      rendered,
+      [entry],
+      rendered,
+      [
+        "tests/string-array-init/string-array-init-error-mismatch.expected.error",
+      ],
+    );
+    expect(outcome.ok).toBe(false);
+    const text = outcome.errors.join("\n");
+    expect(text).toContain("string-array-init-error-mismatch");
+    expect(text).toContain("cannot run");
+  });
+
+  it("reports an orphan alongside a real shrinkage rather than hiding one behind the other", () => {
+    const outcome = DiagnosticManifest.checkOutcome(rendered, [], rendered, [
+      "tests/lonely.expected.error",
+    ]);
+    expect(outcome.ok).toBe(false);
+    const text = outcome.errors.join("\n");
+    expect(text).toContain("tests/a.test.cnx");
+    expect(text).toContain("tests/lonely.expected.error");
   });
 });
 

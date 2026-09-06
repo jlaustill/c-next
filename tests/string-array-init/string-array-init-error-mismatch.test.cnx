@@ -1,0 +1,17 @@
+// test-error
+// test-transpile-only
+// Issue #1361: this `.expected.error` existed with no `.test.cnx` beside it, so
+// it could never run -- while still occupying a row in
+// `docs/diagnostic-manifest.md` and appearing, in #1321's audit, to cover the
+// `Array size mismatch` throws in `StringDeclHelper` and `ArrayInitHelper`.
+// Coverage that cannot execute is worse than none: it reads as green.
+
+// NEGATIVE CONTROL -- declared first, and must stay silent.
+// A check that compared the wrong pair, or fired on any string array with an
+// initializer, would reject this one too. Because a throw aborts at the first
+// occurrence, over-enforcement here changes the reported message rather than
+// adding a line, so the exact-match assertion in the .expected.error catches it.
+const string<8>[3] EXACT <- ["One", "Two", "Three"];
+
+// THE ASSERTION -- declared [3], given 2.
+const string<8>[3] SHORT <- ["One", "Two"];
