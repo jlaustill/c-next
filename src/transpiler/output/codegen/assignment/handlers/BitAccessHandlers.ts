@@ -7,6 +7,7 @@
  * - STRUCT_MEMBER_BIT: item.byte[7] <- true
  * - ARRAY_ELEMENT_BIT: matrix[i][j][FIELD_BIT] <- false
  */
+import invariant from "../../../../../utils/invariant";
 import AssignmentKind from "../AssignmentKind";
 import IAssignmentContext from "../IAssignmentContext";
 import BitUtils from "../../../../../utils/BitUtils";
@@ -144,11 +145,10 @@ function handleArrayElementBit(ctx: IAssignmentContext): string {
   const arrayName = ctx.resolvedBaseIdentifier;
   const typeInfo = CodeGenState.getVariableTypeInfo(arrayName);
 
-  if (!typeInfo?.arrayDimensions) {
-    // Use raw identifier in error message for clarity
-    const rawName = ctx.identifiers[0];
-    throw new Error(`Error: ${rawName} is not an array`);
-  }
+  invariant(
+    typeInfo?.arrayDimensions,
+    `the classifier and this handler agree on a variable's array-ness; both ARRAY_ELEMENT_BIT sites read the same typeInfo ('${ctx.identifiers[0]}')`,
+  );
 
   const numDims = typeInfo.arrayDimensions.length;
 

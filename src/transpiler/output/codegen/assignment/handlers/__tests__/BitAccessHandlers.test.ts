@@ -407,7 +407,9 @@ describe("BitAccessHandlers", () => {
         identifiers: ["notArray"],
       });
 
-      expect(() => getHandler()!(ctx)).toThrow("notArray is not an array");
+      expect(() => getHandler()!(ctx)).toThrow(
+        "agree on a variable's array-ness",
+      );
     });
 
     it("throws on compound assignment", () => {

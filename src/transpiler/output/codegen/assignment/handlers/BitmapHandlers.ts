@@ -9,6 +9,7 @@
  * - REGISTER_MEMBER_BITMAP_FIELD: MOTOR.CTRL.Running <- true
  * - SCOPED_REGISTER_MEMBER_BITMAP_FIELD: Scope.GPIO7.ICR1.LED <- value
  */
+import invariant from "../../../../../utils/invariant";
 import type IBitmapFieldLayout from "../../../../types/IBitmapFieldLayout";
 import AssignmentKind from "../AssignmentKind";
 import IAssignmentContext from "../IAssignmentContext";
@@ -37,11 +38,17 @@ function getBitmapFieldInfo(
   ctx: IAssignmentContext,
 ): IBitmapFieldLayout {
   const fields = CodeGenState.symbols!.bitmapFields.get(bitmapType);
-  if (!fields?.has(fieldName)) {
-    throw new Error(
-      `Error: Unknown bitmap field '${fieldName}' on type '${bitmapType}'`,
-    );
-  }
+  // Two statements, because `asserts condition` narrows a REFERENCE, not an
+  // arbitrary expression: asserting `fields?.has(...)` leaves `fields` itself
+  // possibly-undefined for the line below.
+  invariant(
+    fields,
+    `every bitmap the classifier routed here was collected by the resolver (missing type '${bitmapType}')`,
+  );
+  invariant(
+    fields.has(fieldName),
+    `the classifier and this handler agree on the bitmap field key ('${fieldName}' on '${bitmapType}')`,
+  );
 
   const fieldInfo = fields.get(fieldName)!;
 

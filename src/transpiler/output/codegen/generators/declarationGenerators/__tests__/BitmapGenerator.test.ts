@@ -215,7 +215,7 @@ describe("BitmapGenerator", () => {
       const orchestrator = createMockOrchestrator();
 
       expect(() => generateBitmap(ctx, input, state, orchestrator)).toThrow(
-        "Error: Bitmap Unknown not found in registry",
+        "was collected by the resolver, so its qualified name is in bitmapBackingType",
       );
     });
   });

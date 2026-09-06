@@ -7,6 +7,7 @@
  * - C function calls with pass-by-value semantics
  * - Const-to-non-const validation (ADR-013)
  */
+import invariant from "../../../../../utils/invariant";
 import {
   ArgumentListContext,
   ExpressionContext,
@@ -390,11 +391,10 @@ const generateSafeDivMod = (
 
   // Map C-Next type to helper function suffix
   const cnxType = typeInfo.baseType;
-  if (!cnxType) {
-    throw new Error(
-      `Output parameter '${outputArgId}' has no C-Next type for ${funcName}`,
-    );
-  }
+  invariant(
+    cnxType,
+    `a registered variable always has a non-empty baseType (output parameter '${outputArgId}' of ${funcName})`,
+  );
 
   // Generate arguments: &output, numerator, divisor, defaultValue
   const outputArg = `&${orchestrator.generateExpression(argExprs[0])}`;

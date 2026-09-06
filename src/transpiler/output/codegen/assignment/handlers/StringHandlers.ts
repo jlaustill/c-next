@@ -209,12 +209,10 @@ function handleStringStructArrayElement(ctx: IAssignmentContext): string {
   // the string-array shape changed, and silently producing NaN capacity would
   // corrupt every strncpy bound generated from it.
   const rawCapacity = dimensions.at(-1);
-  if (typeof rawCapacity !== "number") {
-    throw new TypeError(
-      `Error: Cannot determine string capacity for struct field '${structType}.${fieldName}': ` +
-        `expected a numeric capacity, got '${String(rawCapacity)}'`,
-    );
-  }
+  invariant(
+    typeof rawCapacity === "number",
+    `a string<N> capacity is always numeric -- the grammar restricts that token to digits ('${structType}.${fieldName}' gave '${String(rawCapacity)}')`,
+  );
   const capacity = rawCapacity - 1;
 
   CodeGenState.needsString = true;

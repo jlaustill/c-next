@@ -15,6 +15,7 @@
  *   //   Reserved: bits 5-6 (2 bits)
  *   typedef uint8_t MotorFlags;
  */
+import invariant from "../../../../../utils/invariant";
 import * as Parser from "../../../../logic/parser/grammar/CNextParser";
 import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
@@ -46,9 +47,10 @@ const generateBitmap: TGeneratorFn<Parser.BitmapDeclarationContext> = (
 
   // Look up backing type from symbols (collected by SymbolCollector)
   const backingType = input.symbols?.bitmapBackingType.get(fullName);
-  if (!backingType) {
-    throw new Error(`Error: Bitmap ${fullName} not found in registry`);
-  }
+  invariant(
+    backingType,
+    `every bitmap declaration codegen visits was collected by the resolver, so its qualified name is in bitmapBackingType (missing '${fullName}')`,
+  );
 
   // Bitmap requires stdint.h for uint8_t, uint16_t, etc.
   effects.push({ type: "include", header: "stdint" });

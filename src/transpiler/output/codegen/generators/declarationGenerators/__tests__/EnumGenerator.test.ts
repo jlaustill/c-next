@@ -182,7 +182,7 @@ describe("EnumGenerator", () => {
       const orchestrator = createMockOrchestrator();
 
       expect(() => generateEnum(ctx, input, state, orchestrator)).toThrow(
-        "Error: Enum Unknown not found in registry",
+        "was collected by the resolver, so its qualified name is in enumMembers",
       );
     });
   });

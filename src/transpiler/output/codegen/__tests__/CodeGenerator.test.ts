@@ -131,7 +131,7 @@ describe("CodeGenerator", () => {
         generator.generate(tree, tokenStream, {
           sourcePath: "test.cnx",
         } as never),
-      ).toThrow("symbolInfo is required");
+      ).toThrow("the pipeline always supplies options.symbolInfo");
     });
 
     it("should enable debug mode when specified", () => {
@@ -15256,7 +15256,7 @@ describe("CodeGenerator", () => {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
-      }).toThrow("Error: struct generator not registered");
+      }).toThrow('registerDeclaration("struct") is unconditional');
     });
 
     it("throws error when enum generator is not registered", () => {
@@ -15291,7 +15291,7 @@ describe("CodeGenerator", () => {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
-      }).toThrow("Error: enum generator not registered");
+      }).toThrow('registerDeclaration("enum") is unconditional');
     });
   });
 

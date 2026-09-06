@@ -134,6 +134,7 @@ import FunctionContextManager from "./helpers/FunctionContextManager";
 import IFunctionContextCallbacks from "./types/IFunctionContextCallbacks";
 // Global state for code generation (simplifies debugging, eliminates DI complexity)
 import CodeGenState from "../../state/CodeGenState";
+import invariant from "../../../utils/invariant";
 import AdrProvenance from "../../state/AdrProvenance";
 import SymbolRegistry from "../../state/SymbolRegistry";
 import CallbackTypedefFormatter from "./helpers/CallbackTypedefFormatter";
@@ -362,9 +363,10 @@ export default class CodeGenerator implements IOrchestrator {
    */
   private invokeStatement(name: string, ctx: ParserRuleContext): string {
     const generator = this.registry.getStatement(name);
-    if (!generator) {
-      throw new Error(`${name} statement generator not registered`);
-    }
+    invariant(
+      generator,
+      `every statement name reaching invokeStatement was registered by initializeGenerators (got '${name}')`,
+    );
     const result = generator(ctx, this.getInput(), this.getState(), this);
     this.applyEffects(result.effects);
     return result.code;
@@ -376,9 +378,10 @@ export default class CodeGenerator implements IOrchestrator {
    */
   private invokeExpression(name: string, ctx: ParserRuleContext): string {
     const generator = this.registry.getExpression(name);
-    if (!generator) {
-      throw new Error(`${name} expression generator not registered`);
-    }
+    invariant(
+      generator,
+      `every expression name reaching invokeExpression was registered by initializeGenerators (got '${name}')`,
+    );
     const result = generator(ctx, this.getInput(), this.getState(), this);
     this.applyEffects(result.effects);
     return result.code;
@@ -2339,11 +2342,10 @@ export default class CodeGenerator implements IOrchestrator {
     this.initializeGenerateOptions(options, tokenStream);
 
     // ADR-055: Use pre-collected symbolInfo from Pipeline (TSymbolInfoAdapter)
-    if (!options?.symbolInfo) {
-      throw new Error(
-        "symbolInfo is required - use CNextResolver + TSymbolInfoAdapter",
-      );
-    }
+    invariant(
+      options?.symbolInfo,
+      "the pipeline always supplies options.symbolInfo to generate(); its absence is a caller/API error, not a program error",
+    );
     CodeGenState.symbols = options.symbolInfo;
 
     // ADR-029 + #1491: register function-as-types reached through an include
@@ -3701,11 +3703,10 @@ export default class CodeGenerator implements IOrchestrator {
     // was unreachable -- while still having to be kept in step by hand. A
     // missing generator is an internal invariant violation, not a second path.
     const generator = this.registry.getDeclaration("scope");
-    if (!generator) {
-      throw new Error(
-        "Internal: no 'scope' declaration generator is registered",
-      );
-    }
+    invariant(
+      generator,
+      'registerDeclaration("scope") is unconditional in the constructor',
+    );
     const result = generator(ctx, this.getInput(), this.getState(), this);
     this.applyEffects(result.effects);
     return result.code;
@@ -3733,11 +3734,10 @@ export default class CodeGenerator implements IOrchestrator {
     // was unreachable -- while still having to be kept in step by hand. A
     // missing generator is an internal invariant violation, not a second path.
     const generator = this.registry.getDeclaration("register");
-    if (!generator) {
-      throw new Error(
-        "Internal: no 'register' declaration generator is registered",
-      );
-    }
+    invariant(
+      generator,
+      'registerDeclaration("register") is unconditional in the constructor',
+    );
     const result = generator(ctx, this.getInput(), this.getState(), this);
     this.applyEffects(result.effects);
     return result.code;
@@ -3750,9 +3750,10 @@ export default class CodeGenerator implements IOrchestrator {
   private generateStruct(ctx: Parser.StructDeclarationContext): string {
     // Delegates to extracted StructGenerator
     const generator = this.registry.getDeclaration("struct");
-    if (!generator) {
-      throw new Error("Error: struct generator not registered");
-    }
+    invariant(
+      generator,
+      'registerDeclaration("struct") is unconditional in the constructor',
+    );
     const result = generator(ctx, this.getInput(), this.getState(), this);
     this.applyEffects(result.effects);
     return result.code;
@@ -3771,9 +3772,10 @@ export default class CodeGenerator implements IOrchestrator {
    */
   private generateEnum(ctx: Parser.EnumDeclarationContext): string {
     const generator = this.registry.getDeclaration("enum");
-    if (!generator) {
-      throw new Error("Error: enum generator not registered");
-    }
+    invariant(
+      generator,
+      'registerDeclaration("enum") is unconditional in the constructor',
+    );
     const result = generator(ctx, this.getInput(), this.getState(), this);
     this.applyEffects(result.effects);
     // Issues #369/#1164: the included header owns the definition. The generator
@@ -3796,11 +3798,10 @@ export default class CodeGenerator implements IOrchestrator {
     // was unreachable -- while still having to be kept in step by hand. A
     // missing generator is an internal invariant violation, not a second path.
     const generator = this.registry.getDeclaration("bitmap");
-    if (!generator) {
-      throw new Error(
-        "Internal: no 'bitmap' declaration generator is registered",
-      );
-    }
+    invariant(
+      generator,
+      'registerDeclaration("bitmap") is unconditional in the constructor',
+    );
     const result = generator(ctx, this.getInput(), this.getState(), this);
     this.applyEffects(result.effects);
     // Issues #369/#1164: the included header owns the definition.
@@ -4018,11 +4019,10 @@ export default class CodeGenerator implements IOrchestrator {
     // was unreachable -- while still having to be kept in step by hand. A
     // missing generator is an internal invariant violation, not a second path.
     const generator = this.registry.getDeclaration("function");
-    if (!generator) {
-      throw new Error(
-        "Internal: no 'function' declaration generator is registered",
-      );
-    }
+    invariant(
+      generator,
+      'registerDeclaration("function") is unconditional in the constructor',
+    );
     const result = generator(ctx, this.getInput(), this.getState(), this);
     this.applyEffects(result.effects);
     return result.code;

@@ -1102,7 +1102,7 @@ describe("CallExprGenerator", () => {
 
       expect(() =>
         generateFunctionCall("safe_div", argCtx, input, state, orchestrator),
-      ).toThrow("Output parameter 'noType' has no C-Next type for safe_div");
+      ).toThrow("a registered variable always has a non-empty baseType");
     });
   });
 

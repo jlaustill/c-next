@@ -135,9 +135,7 @@ describe("BitmapHandlers", () => {
         identifiers: ["flags", "Unknown"],
       });
 
-      expect(() => getHandler()!(ctx)).toThrow(
-        "Unknown bitmap field 'Unknown' on type 'StatusFlags'",
-      );
+      expect(() => getHandler()!(ctx)).toThrow("agree on the bitmap field key");
     });
 
     it("throws on compound assignment", () => {
