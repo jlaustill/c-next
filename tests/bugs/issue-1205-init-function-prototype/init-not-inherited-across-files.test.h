@@ -7,7 +7,6 @@
  */
 
 #include <stdint.h>
-#include <stdbool.h>
 #include "lib/callback-owner.h"
 
 #ifdef __cplusplus

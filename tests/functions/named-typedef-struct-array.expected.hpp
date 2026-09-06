@@ -7,7 +7,6 @@
  */
 
 #include <stdint.h>
-#include <stdbool.h>
 #include "named-typedef-struct-array.h"
 
 #ifdef __cplusplus

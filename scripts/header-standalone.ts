@@ -72,14 +72,27 @@ const EXPECTED_FAILURES: ReadonlyMap<string, string> = new Map([
   ],
 ]);
 
-/** The `.cnx` a generated header came from, or null when it came from none. */
+/**
+ * The `.cnx` a generated header came from, or null when it came from none.
+ *
+ * The two output shapes do not share a stem, and conflating them picks up
+ * hand-written INPUT as though it were output: `comprehensive-cpp.hpp` is a
+ * hand-authored C++ interop fixture that the transpiler READS, sitting beside
+ * `comprehensive-cpp.test.cnx` whose output is `comprehensive-cpp.test.hpp`.
+ * A rule that accepts either source for either name compiles the input and
+ * calls it a generated header.
+ *
+ *   `X.test.h` / `X.test.hpp`  <- `X.test.cnx`   (a fixture's own output)
+ *   `Y.h` / `Y.hpp`            <- `Y.cnx`        (a helper's output)
+ */
 function sourceOf(header: string): string | null {
   const base = header.replace(/\.(h|hpp)$/, "");
-  const stem = base.endsWith(".test") ? base.slice(0, -".test".length) : base;
-  for (const candidate of [`${stem}.test.cnx`, `${stem}.cnx`]) {
-    if (existsSync(candidate)) return candidate;
+  if (base.endsWith(".test")) {
+    const candidate = `${base.slice(0, -".test".length)}.test.cnx`;
+    return existsSync(candidate) ? candidate : null;
   }
-  return null;
+  const candidate = `${base}.cnx`;
+  return existsSync(candidate) ? candidate : null;
 }
 
 /**

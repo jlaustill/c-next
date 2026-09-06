@@ -453,6 +453,10 @@ uint32_t testVar = 0;
     writeFileSync(join(tempDir, "hdrchk.expected.c"), expectedC);
 
     // Create MISMATCHED .expected.h (intentionally wrong - has WRONG_VAR)
+    // #1517: no `<stdbool.h>` -- this header declares no `bool`, so the
+    // transpiler no longer emits one. Leaving it here would make the
+    // fixture differ for TWO reasons and pass even if the variable name
+    // it exists to catch were corrected.
     const wrongExpectedH = `#ifndef HDRCHK_TEST_H
 #define HDRCHK_TEST_H
 
@@ -462,7 +466,6 @@ uint32_t testVar = 0;
  */
 
 #include <stdint.h>
-#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -551,7 +554,6 @@ uint32_t goodVar = 0;
  */
 
 #include <stdint.h>
-#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {

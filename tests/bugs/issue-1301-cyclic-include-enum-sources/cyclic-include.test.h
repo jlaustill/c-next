@@ -7,7 +7,6 @@
  */
 
 #include <stdint.h>
-#include <stdbool.h>
 #include "cycle-partner.h"
 
 #ifdef __cplusplus

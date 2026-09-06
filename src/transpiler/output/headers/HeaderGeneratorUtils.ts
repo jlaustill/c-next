@@ -6,6 +6,7 @@
  */
 
 import IHeaderSymbol from "./types/IHeaderSymbol";
+import SYSTEM_INCLUDE_TARGETS from "../../constants/SYSTEM_INCLUDE_TARGETS";
 import SymbolTable from "../../logic/symbols/SymbolTable";
 import CppNamespaceUtils from "../../../utils/CppNamespaceUtils";
 import typeUtils from "./generators/mapType";
@@ -356,15 +357,78 @@ class HeaderGeneratorUtils {
   /**
    * Generate all include directives (system, user, and external type headers)
    */
+  /**
+   * Which system headers the declarations below actually use.
+   *
+   * #1517: this used to be `#include <stdint.h>` and `#include <stdbool.h>`,
+   * unconditionally. Measured over 1346 generated headers, 332 used neither and
+   * carried both anyway, and 157 of the rest used `bool` while 1000-odd did
+   * not. The implementation file has always been precise, so one question --
+   * "does this file need `<stdint.h>`?" -- had two derivations that agreed only
+   * where both happened to be true.
+   *
+   * ## Why it reads the emitted declarations and not the symbols
+   *
+   * A parallel walk over the symbols would have to decide, a second time, what
+   * `mapType` decides when it renders -- that `u32` becomes `uint32_t`. Two
+   * derivations of one mapping is the defect this is fixing, in a new place. So
+   * the answer comes from the ONE derivation: the text `mapType` produced.
+   *
+   * It can therefore only over-include -- a type named in a comment pulls its
+   * header in needlessly -- and never under-include, which is the direction
+   * that breaks a build. `npm run headers:standalone:check` compiles every
+   * generated header alone and would catch it if that were ever wrong.
+   *
+   * ## Where this belongs
+   *
+   * In `EmissionPlan`, with the implementation file's copy. It cannot move
+   * there yet: the plan would need the declarations, and the declarations are
+   * still produced by the renderer. That inversion is #1450's -- "2.3 Render
+   * emits RenderedFile and decides nothing" -- and #1323's commit already
+   * scoped the decide/render split inside `HeaderGenerator` to it. #1517 tracks
+   * the merge. What could be made single today is the spelling, which now comes
+   * from `SYSTEM_INCLUDE_TARGETS`.
+   */
+  static decideSystemIncludes(body: readonly string[]): string[] {
+    // Flatten first. A section pushes a whole multi-line block as ONE element
+    // -- `generateBitmapSection` pushes the entire `generateBitmapHeader`
+    // result, which opens with a `/**` layout comment and ends with
+    // `typedef uint8_t Flags;`. Filtering the elements instead of the lines
+    // dropped that typedef with the comment it was attached to, and twelve
+    // bitmap headers lost `<stdint.h>` while still declaring `uint8_t`.
+    const declarations = body
+      .flatMap((element) => element.split("\n"))
+      .filter((line) => {
+        const trimmed = line.trimStart();
+        return (
+          trimmed.length > 0 &&
+          !trimmed.startsWith("*") &&
+          !trimmed.startsWith("//") &&
+          !trimmed.startsWith("/*")
+        );
+      });
+    const text = declarations.join("\n");
+
+    const decided: string[] = [];
+    if (/\b(?:u?int(?:8|16|32|64)_t|u?intptr_t|u?intmax_t)\b/.test(text)) {
+      decided.push(SYSTEM_INCLUDE_TARGETS.stdint!);
+    }
+    if (/\bbool\b/.test(text)) {
+      decided.push(SYSTEM_INCLUDE_TARGETS.stdbool!);
+    }
+    return decided;
+  }
+
   static generateIncludes(
     options: IHeaderOptions,
     headersToInclude: Set<string>,
+    systemIncludes: readonly string[],
   ): string[] {
     const lines: string[] = [];
 
-    // System includes
+    // System includes, as decided by decideSystemIncludes above.
     if (options.includeSystemHeaders !== false) {
-      lines.push("#include <stdint.h>", "#include <stdbool.h>");
+      lines.push(...systemIncludes.map((target) => `#include ${target}`));
     }
 
     // User includes (already have correct extension from IncludeExtractor)
@@ -386,8 +450,11 @@ class HeaderGeneratorUtils {
     );
 
     // Add blank line if any includes were added
+    // A header that needs no system include and has no user include emits no
+    // blank line either -- the separator belonged to includes that were always
+    // there, and 332 headers had it for two includes they never used.
     const hasIncludes =
-      options.includeSystemHeaders !== false ||
+      (options.includeSystemHeaders !== false && systemIncludes.length > 0) ||
       (options.userIncludes && options.userIncludes.length > 0) ||
       headersToInclude.size > 0;
     if (hasIncludes) {

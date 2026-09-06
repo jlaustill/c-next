@@ -48,6 +48,7 @@ import type IEmissionFacts from "../../transpiler/types/IEmissionFacts";
 import type IEmissionPlan from "../../transpiler/types/IEmissionPlan";
 import type IPlannedBlock from "../../transpiler/types/IPlannedBlock";
 import type TRequirementKey from "../../transpiler/types/TRequirementKey";
+import SYSTEM_INCLUDE_TARGETS from "../../transpiler/constants/SYSTEM_INCLUDE_TARGETS";
 
 /**
  * The four platform arms of the emitted IRQ wrapper chain.
@@ -75,11 +76,11 @@ const SYSTEM_INCLUDES: readonly {
   readonly target: string;
   readonly needed: (facts: IEmissionFacts) => boolean;
 }[] = [
-  { target: "<stdint.h>", needed: (f) => f.needsStdint },
-  { target: "<stdbool.h>", needed: (f) => f.needsStdbool },
-  { target: "<string.h>", needed: (f) => f.needsString },
-  { target: "<cmsis_gcc.h>", needed: (f) => f.needsCMSIS },
-  { target: "<limits.h>", needed: (f) => f.needsLimits },
+  { target: SYSTEM_INCLUDE_TARGETS.stdint!, needed: (f) => f.needsStdint },
+  { target: SYSTEM_INCLUDE_TARGETS.stdbool!, needed: (f) => f.needsStdbool },
+  { target: SYSTEM_INCLUDE_TARGETS.string!, needed: (f) => f.needsString },
+  { target: SYSTEM_INCLUDE_TARGETS.cmsis!, needed: (f) => f.needsCMSIS },
+  { target: SYSTEM_INCLUDE_TARGETS.limits!, needed: (f) => f.needsLimits },
 ];
 
 class EmissionPlan {

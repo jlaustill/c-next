@@ -7,7 +7,6 @@
  */
 
 #include <stdint.h>
-#include <stdbool.h>
 #include <issue-294-decoder.hpp>
 
 #ifdef __cplusplus

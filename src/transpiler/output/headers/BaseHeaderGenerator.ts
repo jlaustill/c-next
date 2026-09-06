@@ -199,10 +199,13 @@ abstract class BaseHeaderGenerator {
       );
     }
 
-    // Build header sections using utility methods
-    const lines: string[] = [
-      ...HeaderGeneratorUtils.generateHeaderStart(guard, sourcePath),
-      ...HeaderGeneratorUtils.generateIncludes(options, headersToInclude),
+    // #1517: the declarations are built FIRST, because the includes depend on
+    // what they say. `CodeGenerator.assembleGeneratedOutput` does the same with
+    // its banner, and for the same reason -- "none of the requirement state
+    // exists until generateAllDeclarations() above has run". A header emitting
+    // `<stdint.h>` before knowing whether it declares a `uint32_t` can only
+    // ever guess, and it guessed the same way every time.
+    const body: string[] = [
       ...HeaderGeneratorUtils.generateCppWrapperStart(),
       ...HeaderGeneratorUtils.generateForwardDeclarations(
         // #1164: `typedef struct opaque_t* handle_t` is a different type from
@@ -239,6 +242,16 @@ abstract class BaseHeaderGenerator {
         options.generatedStructInits,
       ),
       ...HeaderGeneratorUtils.generateHeaderEnd(guard),
+    ];
+
+    const lines: string[] = [
+      ...HeaderGeneratorUtils.generateHeaderStart(guard, sourcePath),
+      ...HeaderGeneratorUtils.generateIncludes(
+        options,
+        headersToInclude,
+        HeaderGeneratorUtils.decideSystemIncludes(body),
+      ),
+      ...body,
     ];
 
     return lines.join("\n");

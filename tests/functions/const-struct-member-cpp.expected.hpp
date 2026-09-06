@@ -7,7 +7,6 @@
  */
 
 #include <stdint.h>
-#include <stdbool.h>
 #include "const-struct-member-cpp.h"
 
 #ifdef __cplusplus

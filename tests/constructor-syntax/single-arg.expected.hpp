@@ -7,7 +7,6 @@
  */
 
 #include <stdint.h>
-#include <stdbool.h>
 #include "constructor-stubs.h"
 
 #ifdef __cplusplus

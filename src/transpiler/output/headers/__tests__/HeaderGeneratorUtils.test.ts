@@ -530,18 +530,85 @@ describe("HeaderGeneratorUtils", () => {
     });
   });
 
+  describe("decideSystemIncludes (#1517)", () => {
+    it.each([
+      ["uint8_t x;", ["<stdint.h>"]],
+      ["int64_t x;", ["<stdint.h>"]],
+      ["uintptr_t p;", ["<stdint.h>"]],
+      ["bool flag;", ["<stdbool.h>"]],
+      ["uint8_t x; bool f;", ["<stdint.h>", "<stdbool.h>"]],
+      ["float f;", []],
+      ["char name[8];", []],
+      ["MyStruct s;", []],
+    ] as const)("%s decides %s", (declaration, expected) => {
+      expect(HeaderGeneratorUtils.decideSystemIncludes([declaration])).toEqual(
+        expected,
+      );
+    });
+
+    it("orders stdint before stdbool, whatever order the text uses", () => {
+      expect(
+        HeaderGeneratorUtils.decideSystemIncludes(["bool f;", "uint8_t x;"]),
+      ).toEqual(["<stdint.h>", "<stdbool.h>"]);
+    });
+
+    // A comment is not a declaration. This is the direction that is safe to be
+    // wrong in -- an unused include compiles -- but being right is free.
+    it.each([
+      [" * a uint32_t lives here", []],
+      ["// bool", []],
+      ["/* uint8_t */", []],
+    ] as const)("ignores the comment line %s", (line, expected) => {
+      expect(HeaderGeneratorUtils.decideSystemIncludes([line])).toEqual(
+        expected,
+      );
+    });
+
+    // A section pushes a whole multi-line block as one element -- the shape
+    // that made twelve bitmap headers lose <stdint.h> while still declaring
+    // uint8_t, because the block opens with a /** comment.
+    it("reads inside a multi-line element, not just its first line", () => {
+      const bitmapBlock =
+        "/**\n * Bitmap: MotorFlags\n *   Running: bit 0\n */\n" +
+        "typedef uint8_t MotorFlags;";
+
+      expect(HeaderGeneratorUtils.decideSystemIncludes([bitmapBlock])).toEqual([
+        "<stdint.h>",
+      ]);
+    });
+
+    it("does not match a longer identifier that merely contains a type", () => {
+      expect(
+        HeaderGeneratorUtils.decideSystemIncludes([
+          "my_uint8_t_field x; boolean b;",
+        ]),
+      ).toEqual([]);
+    });
+  });
+
   describe("generateIncludes", () => {
-    it("generates system includes by default", () => {
-      const lines = HeaderGeneratorUtils.generateIncludes({}, new Set());
+    // #1517: no longer "by default" -- what is decided is what is emitted.
+    it("emits exactly the system includes it was given", () => {
+      const lines = HeaderGeneratorUtils.generateIncludes({}, new Set(), [
+        "<stdint.h>",
+        "<stdbool.h>",
+      ]);
 
       expect(lines).toContain("#include <stdint.h>");
       expect(lines).toContain("#include <stdbool.h>");
+    });
+
+    it("emits no system include when the declarations need none", () => {
+      const lines = HeaderGeneratorUtils.generateIncludes({}, new Set(), []);
+
+      expect(lines).toEqual([]);
     });
 
     it("skips system includes when disabled", () => {
       const lines = HeaderGeneratorUtils.generateIncludes(
         { includeSystemHeaders: false },
         new Set(),
+        ["<stdint.h>"],
       );
 
       expect(lines).not.toContain("#include <stdint.h>");
@@ -551,6 +618,7 @@ describe("HeaderGeneratorUtils", () => {
       const lines = HeaderGeneratorUtils.generateIncludes(
         { userIncludes: ['#include "custom.h"'] },
         new Set(),
+        [],
       );
 
       expect(lines).toContain('#include "custom.h"');
@@ -558,13 +626,15 @@ describe("HeaderGeneratorUtils", () => {
 
     it("includes external type headers", () => {
       const headers = new Set(['#include "external.h"']);
-      const lines = HeaderGeneratorUtils.generateIncludes({}, headers);
+      const lines = HeaderGeneratorUtils.generateIncludes({}, headers, []);
 
       expect(lines).toContain('#include "external.h"');
     });
 
     it("adds blank line after includes", () => {
-      const lines = HeaderGeneratorUtils.generateIncludes({}, new Set());
+      const lines = HeaderGeneratorUtils.generateIncludes({}, new Set(), [
+        "<stdint.h>",
+      ]);
 
       expect(lines[lines.length - 1]).toBe("");
     });
@@ -576,6 +646,7 @@ describe("HeaderGeneratorUtils", () => {
           cppMode: true,
         },
         new Set(),
+        [],
       );
 
       expect(lines).toContain('#include "types.hpp"');
@@ -588,6 +659,7 @@ describe("HeaderGeneratorUtils", () => {
           cppMode: true,
         },
         new Set(['#include "../AppConfig.hpp"']),
+        [],
       );
       // Should NOT have duplicate - different path styles for same file should dedup
       const configIncludes = result.filter((l) => l.includes("AppConfig"));
@@ -605,6 +677,7 @@ describe("HeaderGeneratorUtils", () => {
           cppMode: true,
         },
         new Set(["#include <Display/AppData.h>"]),
+        [],
       );
       const appDataIncludes = result.filter((l) => l.includes("AppData"));
       expect(appDataIncludes).toEqual(["#include <Display/AppData.hpp>"]);

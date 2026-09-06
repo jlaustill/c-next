@@ -7,7 +7,6 @@
  */
 
 #include <stdint.h>
-#include <stdbool.h>
 #include "anon_types.h"
 
 #ifdef __cplusplus
