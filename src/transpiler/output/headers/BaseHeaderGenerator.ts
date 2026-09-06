@@ -6,7 +6,7 @@
  * determine pointer (*) vs reference (&) semantics.
  */
 
-import headerCType from "./generators/headerCType";
+import headerCType from "../../../utils/headerCType";
 import IHeaderSymbol from "./types/IHeaderSymbol";
 import IParameterSymbol from "../../../utils/types/IParameterSymbol";
 import IHeaderOptions from "../codegen/types/IHeaderOptions";
@@ -245,10 +245,12 @@ abstract class BaseHeaderGenerator {
 
     const lines: string[] = [
       ...HeaderGeneratorUtils.generateHeaderStart(guard, sourcePath),
+      // #1517: printed from the plan's decision, not worked out from the text
+      // just rendered. `body` no longer has any say in what precedes it.
       ...HeaderGeneratorUtils.generateIncludes(
         options,
         headersToInclude,
-        HeaderGeneratorUtils.decideSystemIncludes(body),
+        options.systemIncludes ?? [],
       ),
       ...body,
     ];

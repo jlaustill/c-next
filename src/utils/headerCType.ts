@@ -1,5 +1,5 @@
-import CppNamespaceUtils from "../../../../utils/CppNamespaceUtils";
-import SymbolTable from "../../../logic/symbols/SymbolTable";
+import CppNamespaceUtils from "./CppNamespaceUtils";
+import SymbolTable from "../transpiler/logic/symbols/SymbolTable";
 import TypeMapping from "./mapType";
 
 /**

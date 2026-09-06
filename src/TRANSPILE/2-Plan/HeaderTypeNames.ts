@@ -69,6 +69,16 @@ class HeaderTypeNames {
       for (const field of symbol.fields.values()) {
         into.add(TypeResolver.getTypeName(field.type));
       }
+      return;
+    }
+
+    // A bitmap emits `typedef uint8_t Flags;`, and that `uint8_t` is the one
+    // type it names. It is not on a field and not on the symbol's own `type` --
+    // it is `backingType`, which is why the first version of this missed it and
+    // twelve bitmap headers lost `<stdint.h>`. `headers:standalone:check`
+    // caught it, for the second time on the same construct.
+    if (symbol.kind === "bitmap") {
+      into.add(symbol.backingType);
     }
   }
 }

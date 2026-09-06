@@ -5,7 +5,7 @@
  * Used by HeaderGenerator to emit full struct definitions in headers.
  */
 
-import headerCType from "./headerCType";
+import headerCType from "../../../../utils/headerCType";
 import IHeaderTypeInput from "./IHeaderTypeInput";
 /**
  * Resolve the C type for a struct field, checking for callback types first.

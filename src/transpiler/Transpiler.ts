@@ -28,6 +28,7 @@ import PublicInterface from "../TRANSPILE/2-Plan/PublicInterface";
 import HeaderGenerator from "./output/headers/HeaderGenerator";
 import HeaderRenderer from "./output/headers/HeaderRenderer";
 import HeaderTypeNames from "../TRANSPILE/2-Plan/HeaderTypeNames";
+import HeaderIncludes from "../TRANSPILE/2-Plan/HeaderIncludes";
 import QualifiedCName from "../utils/QualifiedCName";
 import ExternalTypeHeaderBuilder from "./output/headers/ExternalTypeHeaderBuilder";
 import HeaderGeneratorUtils from "./output/headers/HeaderGeneratorUtils";
@@ -2548,6 +2549,14 @@ class Transpiler {
         generatedStructInits: new Set(CodeGenState.generatedStructInits),
         externalTypeHeaders,
         cppMode: this.cppMode,
+        // #1517: 2.2 Plan decides; the header generator prints. Possible only
+        // since #1520 made `headerCType` the one answer to "what does this
+        // header call this type" -- before that, deciding from the symbols
+        // meant deriving the type mapping a second time.
+        systemIncludes: HeaderIncludes.decide(
+          exportedSymbols,
+          CodeGenState.symbolTable,
+        ),
       },
       typeInput: typeInputWithSymbolTable,
       passByValueParams,

@@ -7,7 +7,7 @@
  * Source of truth: src/constants/TypeMappings.ts
  */
 
-import CNEXT_TO_C_TYPE_MAP from "../../../../utils/constants/TypeMappings";
+import CNEXT_TO_C_TYPE_MAP from "./constants/TypeMappings";
 
 /**
  * Map a C-Next type to C type

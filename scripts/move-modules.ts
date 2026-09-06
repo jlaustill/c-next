@@ -176,6 +176,25 @@ const MOVES: readonly IMove[] = [
       "decides which symbols form a file's public C interface -- `isExported` minus ADR-030's `main` exemption minus \"a scope is a container\", which `docs/architecture/README.md` §2 assigns to `EmissionPlan`. Its destination map row read `awaiting 1.4 Resolve` because the admission rule was two-way; the move was blocked by 1.3 Declare calling `existsIn`, which #1515 removed",
   },
 
+  // --- type utilities: named by more than one layer -----------------------
+  {
+    from: "src/transpiler/output/headers/generators/mapType.ts",
+    to: "src/utils/mapType.ts",
+    because:
+      "the C-Next to C type mapping is a translation fact, not a rendering decision: 2.2 Plan asks it to decide a header's includes and 2.3 Render asks it to write a declaration. CLAUDE.md puts type utilities in src/utils/, and leaving it under output/ made `plan-cannot-import-render` fire on a Plan module asking a question Render does not own",
+  },
+  {
+    from: "src/transpiler/output/headers/generators/headerCType.ts",
+    to: "src/utils/headerCType.ts",
+    because:
+      'same: the one answer to "what does a header call this type", asked by both passes since #1520 unified it',
+  },
+  {
+    from: "src/transpiler/output/headers/generators/__tests__/mapType.test.ts",
+    to: "src/utils/__tests__/mapType.test.ts",
+    because: "covers mapType",
+  },
+
   // --- shared contracts: named by more than one layer ---------------------
   {
     from: "src/transpiler/output/codegen/generators/TIncludeHeader.ts",
