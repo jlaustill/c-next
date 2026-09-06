@@ -14,26 +14,48 @@ A `throw` in `output/` has no position to carry, which is why a fixture reports 
 
 ## Counts
 
-Measured on `main` @ `71fe06f4`:
+## How to recount
+
+Run these rather than restating the numbers below; a count in prose is the thing that goes
+stale, and this document has done it before.
 
 ```bash
-grep -rn 'throw new Error' src/transpiler/output --include='*.ts' | grep -v __tests__ | wc -l   # 180
-grep -rn 'throw new '      src/transpiler/output --include='*.ts' | grep -v __tests__ | wc -l   # 181
-grep -rn 'throw new Error' src/transpiler/logic  --include='*.ts' | grep -v __tests__ | wc -l   # 4
+# every throw STATEMENT in output/ -- the corpus this audit classifies (184)
+grep -rn '^\s*throw\b' src/transpiler/output --include='*.ts' | grep -v __tests__ | wc -l
+# the subset spelled `throw new` (181)
+grep -rn '^\s*throw new' src/transpiler/output --include='*.ts' | grep -v __tests__ | wc -l
+# and the authority: the gate agrees or fails
+npm run docs:throw-citations:check
 ```
 
-#1321 was filed against 177. `throw new Error` is **180**, and one further site throws a
-`TypeError` (`StringHandlers.ts:201`), so **181** sites are classified below — this audit covers
-every `throw new` in `output/`, not only the `Error` constructor. The number grows with ordinary
-work, which is why the acceptance criterion should read "every site as counted at audit time"
-rather than a literal.
+Measured on `fix/1322-diagnostics-into-pass-2-1` @ `8477f526`.
+
+#1321 was filed against 177 and this audit first recorded 181, counting `throw new` only: 180
+`Error` plus one `TypeError` (`StringHandlers.ts:201`).
+
+**That definition was too narrow, and the gate shared the blind spot (#1322).** A throw need not
+say `new`. `helpers/CodeGenErrors.ts` builds seven `Error`s with `return new Error(...)` and its
+callers write `throw CodeGenErrors.x(...)`, so **three further sites** were classified nowhere and
+demanded by nothing — invisible in both directions, because a site the gate does not count is also
+a site it never asks for a row for. One of them, `subscript/SubscriptDepthValidator.ts:95`, carries
+**E0856**: registered in `docs/error-codes.md` and asserted by two fixtures under
+`tests/bit-indexing/`. A user-facing, coded, fixture-covered diagnostic sat outside the audit that
+exists to find exactly those.
+
+So the corpus is **184**. Note what this costs the anchors: a factory throw's argument list is
+`(line, varName, …)`, not the message — the message lives in `CodeGenErrors.ts`. Those three rows
+are therefore anchored on their **arguments**, which is the honest key for a site whose text is
+written elsewhere, and a further reason the factory indirection should not survive #1322.
+
+The number grows with ordinary work, which is why the acceptance criterion should read "every site
+as counted at audit time" rather than a literal.
 
 | bucket | meaning                                                                        | count   |
 | ------ | ------------------------------------------------------------------------------ | ------- |
-| **1**  | user-facing diagnostic — belongs in pass 2.1, needs a code and a real position | **144** |
+| **1**  | user-facing diagnostic — belongs in pass 2.1, needs a code and a real position | **145** |
 | **2**  | internal invariant — should never fire for valid input; becomes an assertion   | **16**  |
-| **3**  | dead — unreachable or subsumed; delete                                         | **21**  |
-|        | **total**                                                                      | **181** |
+| **3**  | dead — unreachable or subsumed; delete                                         | **23**  |
+|        | **total**                                                                      | **184** |
 
 **80% of `output/`'s throws are rejections.** That is the answer to open question 4: Render does
 not own nothing, it currently owns almost all of the rejection surface.
@@ -43,8 +65,9 @@ By area:
 | area                                                                | sites | b1  | b2  | b3  |
 | ------------------------------------------------------------------- | ----- | --- | --- | --- |
 | `codegen/` (root: `CodeGenerator`, `TypeValidator`, `TypeResolver`) | 54    | 39  | 9   | 6   |
-| `codegen/helpers/`                                                  | 46    | 39  | 0   | 7   |
+| `codegen/helpers/`                                                  | 48    | 39  | 0   | 9   |
 | `codegen/generators/**`                                             | 44    | 41  | 3   | 0   |
+| `codegen/subscript/`                                                | 1     | 1   | 0   | 0   |
 | `codegen/assignment/**`, `codegen/resolution/`, `headers/`          | 37    | 25  | 4   | 8   |
 
 ## Position availability — the finding that shapes #1322
@@ -123,33 +146,35 @@ _"a missing generator is an internal invariant violation, not a second path."_ T
 family (`:3438`, `:3459`) are spelled `Error: …` rather than `Internal: …`, which makes an
 assertion read as a user diagnostic — worth normalizing in the same change.
 
-## Bucket 3 — dead (21)
+## Bucket 3 — dead (23)
 
 Each carries evidence that it cannot be reached, not an assumption, as #1321 requires.
 
-| file:line                                          | anchor                                          | evidence                                                                                                                                                                                                                                                                                                                           |
-| -------------------------------------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `codegen/TypeValidator.ts:384`                     | `Error: Use 'this`                              | in `validateBareIdentifierInScope`, which has **zero production callers** — repo-wide grep returns its definition, its unit test, a stale comment at `CodeGenerator.ts:3348`, and a plan doc. Superseded by `resolveBareIdentifier` (ADR-057), which resolves rather than throws                                                   |
-| `codegen/TypeValidator.ts:390`                     | `to access register`                            | same function                                                                                                                                                                                                                                                                                                                      |
-| `codegen/TypeValidator.ts:399`                     | `to access global function`                     | same function                                                                                                                                                                                                                                                                                                                      |
-| `codegen/TypeValidator.ts:405`                     | `to access global enum`                         | same function                                                                                                                                                                                                                                                                                                                      |
-| `codegen/TypeValidator.ts:411`                     | `to access global struct`                       | same function                                                                                                                                                                                                                                                                                                                      |
-| `codegen/TypeValidator.ts:418`                     | `to access global variable`                     | same function                                                                                                                                                                                                                                                                                                                      |
-| `helpers/TypeGenerationHelper.ts:155`              | `Array type must have either primitive or user` | `generateArrayBaseType` has no caller in `src/` or `scripts/` — only its unit test. Live array-element typing goes through `dispatchTypeGeneration`, which returns `null` and falls back to `ctx.getText()`                                                                                                                        |
-| `helpers/EnumAssignmentValidator.ts:189`           | `Error: Cannot assign non-enum value to`        | reaching it needs `isKnownEnum(parts[1])` with `parts[0]==="global"` and `length>=3`. `EnumTypeResolver.getEnumTypeFromGlobalEnum:133-139` evaluates the identical predicate on the identical `getText()` earlier (`validateEnumAssignment:41`) and returns non-null, so `validateNonEnumExpression` is never entered in that case |
-| `helpers/StringDeclHelper.ts:515`                  | `Error: String array initialization from`       | in `_generateStringArrayDecl`, entered only when `arrayDims.length > 0`; `VariableDeclHelper.validateArrayDeclarationSyntax` (`:635`, before `StringDeclHelper` at `:655`) throws unconditionally on any trailing bracket. Confirmed: `string<8> items[3] <- [...]` yields the C-style-array error                                 |
-| `helpers/StringDeclHelper.ts:559`                  | `Error: Fill-all syntax`                        | `_handleSizeInference`'s sole call site is `_generateStringArrayDecl:527` — same unreachable branch                                                                                                                                                                                                                                |
-| `helpers/StringDeclHelper.ts:596`                  | `Error: Array size mismatch - declared`         | `_handleExplicitSize`'s sole call site is `_generateStringArrayDecl:529` — same branch                                                                                                                                                                                                                                             |
-| `helpers/CastValidator.ts:103`                     | `narrowing`                                     | `validateIntegerCast` has no production caller (grep: definition + unit test). `tests/casting/narrowing-cast-error` is produced by the live duplicate at `CodeGenerator.ts:4991`                                                                                                                                                   |
-| `helpers/CastValidator.ts:111`                     | `sign change`                                   | same; live copy at `CodeGenerator.ts:4998` pins `tests/casting/sign-cast-error`                                                                                                                                                                                                                                                    |
-| `assignment/handlers/StringHandlers.ts:60`         | `Error: Unknown struct variable`                | STRING_STRUCT_FIELD is produced only via `_resolveStructType` (`AssignmentClassifier.ts:876-883`), which runs the identical `getVariableTypeInfo(structName)` with the identical key and returns `null` on failure                                                                                                                 |
-| `assignment/handlers/StringHandlers.ts:71`         | `Error: Unknown field`                          | same path additionally requires `getStructFieldType` truthy and `TypeCheckUtils.isString` (`AssignmentClassifier.ts:906-925`)                                                                                                                                                                                                      |
-| `assignment/handlers/StringHandlers.ts:87`         | `Error: Unknown struct variable`                | only caller is `handleStringStructArrayElement`, gated by the same `_resolveStructType`. Also a literal duplicate of `:60`                                                                                                                                                                                                         |
-| `assignment/handlers/StringHandlers.ts:99`         | `Error: 'this' can only be used inside a scope` | two proofs: `_classifyThisMemberString` returns `null` when `!CodeGenState.currentScope` (`:845`), and `buildAssignmentContext` calls `generateAssignmentTarget` first, so `this.`-outside-scope throws at `BaseIdentifierBuilder.ts:43` — reproduced with `this.name <- "bob"`                                                    |
-| `assignment/handlers/StringHandlers.ts:185`        | `Error: Cannot determine string capacity for`   | `_classifyStructArrayElementString` requires `dimensions && dimensions.length >= 1` (`:958-963`) from the same map with the same keys; the handler rejects only `!dimensions \|\| length === 0`                                                                                                                                    |
-| `assignment/handlers/AssignmentHandlerUtils.ts:21` | `Error: 'this' can only be used inside a scope` | callers are `RegisterHandlers.ts:119/156`, produced solely by `classifyThisWithArrayAccess`, reached only after `classifyThisPrefix`'s `!currentScope` early return (`:585-588`). Reproduced: `this.HW.DR[3] <- true` at file scope lands on `BaseIdentifierBuilder.ts:43`                                                         |
-| `assignment/handlers/AccessPatternHandlers.ts:45`  | `Error: 'this' can only be used inside a scope` | same two proofs. Reproduced: `this.count <- 5` at file scope lands on `BaseIdentifierBuilder.ts:43`                                                                                                                                                                                                                                |
-| `assignment/handlers/BitmapHandlers.ts:200`        | `Error: 'this' can only be used inside a scope` | `SCOPED_REGISTER_MEMBER_BITMAP_FIELD` with `hasThis` comes only from `classifyThisPrefix:613`, past the `currentScope` guard at `:586`. Reproduced: `this.HW.CTRL.Run <- true` at file scope                                                                                                                                       |
+| file:line                                          | anchor                                          | evidence                                                                                                                                                                                                                                                                                                                                                                            |
+| -------------------------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `codegen/TypeValidator.ts:384`                     | `Error: Use 'this`                              | in `validateBareIdentifierInScope`, which has **zero production callers** — repo-wide grep returns its definition, its unit test, a stale comment at `CodeGenerator.ts:3348`, and a plan doc. Superseded by `resolveBareIdentifier` (ADR-057), which resolves rather than throws                                                                                                    |
+| `codegen/TypeValidator.ts:390`                     | `to access register`                            | same function                                                                                                                                                                                                                                                                                                                                                                       |
+| `codegen/TypeValidator.ts:399`                     | `to access global function`                     | same function                                                                                                                                                                                                                                                                                                                                                                       |
+| `codegen/TypeValidator.ts:405`                     | `to access global enum`                         | same function                                                                                                                                                                                                                                                                                                                                                                       |
+| `codegen/TypeValidator.ts:411`                     | `to access global struct`                       | same function                                                                                                                                                                                                                                                                                                                                                                       |
+| `codegen/TypeValidator.ts:418`                     | `to access global variable`                     | same function                                                                                                                                                                                                                                                                                                                                                                       |
+| `helpers/ArrayAccessHelper.ts:43`                  | `info.typeInfo.bitmapTypeName`                  | the whole module is dead: `ArrayAccessHelper` has **zero production importers** — repo-wide grep returns only its own file, its unit test, and a doc comment in `IArrayAccessDeps.ts`. Byte-near duplicate of the live `PostfixExpressionGenerator.ts:1790`. Not cited until #1322 widened the gate: the throw names a `CodeGenErrors` factory, so it was never spelled `throw new` |
+| `helpers/ArrayAccessHelper.ts:84`                  | `info.startExpr ?? "0"`                         | same dead module; duplicate of the live `PostfixExpressionGenerator.ts:2007`. Its own source says `generateFloatBitRange` "is not used in production… exists for testing and completeness" — the dead-code-kept-alive-by-its-test shape, written down                                                                                                                               |
+| `helpers/TypeGenerationHelper.ts:155`              | `Array type must have either primitive or user` | `generateArrayBaseType` has no caller in `src/` or `scripts/` — only its unit test. Live array-element typing goes through `dispatchTypeGeneration`, which returns `null` and falls back to `ctx.getText()`                                                                                                                                                                         |
+| `helpers/EnumAssignmentValidator.ts:189`           | `Error: Cannot assign non-enum value to`        | reaching it needs `isKnownEnum(parts[1])` with `parts[0]==="global"` and `length>=3`. `EnumTypeResolver.getEnumTypeFromGlobalEnum:133-139` evaluates the identical predicate on the identical `getText()` earlier (`validateEnumAssignment:41`) and returns non-null, so `validateNonEnumExpression` is never entered in that case                                                  |
+| `helpers/StringDeclHelper.ts:515`                  | `Error: String array initialization from`       | in `_generateStringArrayDecl`, entered only when `arrayDims.length > 0`; `VariableDeclHelper.validateArrayDeclarationSyntax` (`:635`, before `StringDeclHelper` at `:655`) throws unconditionally on any trailing bracket. Confirmed: `string<8> items[3] <- [...]` yields the C-style-array error                                                                                  |
+| `helpers/StringDeclHelper.ts:559`                  | `Error: Fill-all syntax`                        | `_handleSizeInference`'s sole call site is `_generateStringArrayDecl:527` — same unreachable branch                                                                                                                                                                                                                                                                                 |
+| `helpers/StringDeclHelper.ts:596`                  | `Error: Array size mismatch - declared`         | `_handleExplicitSize`'s sole call site is `_generateStringArrayDecl:529` — same branch                                                                                                                                                                                                                                                                                              |
+| `helpers/CastValidator.ts:103`                     | `narrowing`                                     | `validateIntegerCast` has no production caller (grep: definition + unit test). `tests/casting/narrowing-cast-error` is produced by the live duplicate at `CodeGenerator.ts:4991`                                                                                                                                                                                                    |
+| `helpers/CastValidator.ts:111`                     | `sign change`                                   | same; live copy at `CodeGenerator.ts:4998` pins `tests/casting/sign-cast-error`                                                                                                                                                                                                                                                                                                     |
+| `assignment/handlers/StringHandlers.ts:60`         | `Error: Unknown struct variable`                | STRING_STRUCT_FIELD is produced only via `_resolveStructType` (`AssignmentClassifier.ts:876-883`), which runs the identical `getVariableTypeInfo(structName)` with the identical key and returns `null` on failure                                                                                                                                                                  |
+| `assignment/handlers/StringHandlers.ts:71`         | `Error: Unknown field`                          | same path additionally requires `getStructFieldType` truthy and `TypeCheckUtils.isString` (`AssignmentClassifier.ts:906-925`)                                                                                                                                                                                                                                                       |
+| `assignment/handlers/StringHandlers.ts:87`         | `Error: Unknown struct variable`                | only caller is `handleStringStructArrayElement`, gated by the same `_resolveStructType`. Also a literal duplicate of `:60`                                                                                                                                                                                                                                                          |
+| `assignment/handlers/StringHandlers.ts:99`         | `Error: 'this' can only be used inside a scope` | two proofs: `_classifyThisMemberString` returns `null` when `!CodeGenState.currentScope` (`:845`), and `buildAssignmentContext` calls `generateAssignmentTarget` first, so `this.`-outside-scope throws at `BaseIdentifierBuilder.ts:43` — reproduced with `this.name <- "bob"`                                                                                                     |
+| `assignment/handlers/StringHandlers.ts:185`        | `Error: Cannot determine string capacity for`   | `_classifyStructArrayElementString` requires `dimensions && dimensions.length >= 1` (`:958-963`) from the same map with the same keys; the handler rejects only `!dimensions \|\| length === 0`                                                                                                                                                                                     |
+| `assignment/handlers/AssignmentHandlerUtils.ts:21` | `Error: 'this' can only be used inside a scope` | callers are `RegisterHandlers.ts:119/156`, produced solely by `classifyThisWithArrayAccess`, reached only after `classifyThisPrefix`'s `!currentScope` early return (`:585-588`). Reproduced: `this.HW.DR[3] <- true` at file scope lands on `BaseIdentifierBuilder.ts:43`                                                                                                          |
+| `assignment/handlers/AccessPatternHandlers.ts:45`  | `Error: 'this' can only be used inside a scope` | same two proofs. Reproduced: `this.count <- 5` at file scope lands on `BaseIdentifierBuilder.ts:43`                                                                                                                                                                                                                                                                                 |
+| `assignment/handlers/BitmapHandlers.ts:200`        | `Error: 'this' can only be used inside a scope` | `SCOPED_REGISTER_MEMBER_BITMAP_FIELD` with `hasThis` comes only from `classifyThisPrefix:613`, past the `currentScope` guard at `:586`. Reproduced: `this.HW.CTRL.Run <- true` at file scope                                                                                                                                                                                        |
 
 **`CastValidator.ts:103/111` is a duplicate code path, not merely dead** — identical message text
 and identical rules to the live logic inlined at `CodeGenerator.ts:4985-4767`. Deleting the
@@ -160,7 +185,7 @@ Three bucket-3 calls are **conditional on current behavior** and must be revisit
 trailing brackets (#1014–#1017), and the stale doc comment at `VariableDeclHelper.ts:243-247`
 still describes the relaxed behavior.
 
-## Bucket 1 — user-facing diagnostics (144)
+## Bucket 1 — user-facing diagnostics (145)
 
 Each needs a code and a real position in pass 2.1. `code` is the code it already carries, or
 **NEW** where one must be allocated. `position` names the node that is or would be in scope.
@@ -355,6 +380,18 @@ The 13 `ArrayHandlers` slice sites **already smuggle a position through the mess
 The line is real, the column is a hard-coded `0`, and the mechanism is string formatting rather
 than a carried node. Moving these to 2.1 **replaces an existing hack** rather than adding
 positions where none exist.
+
+### `codegen/subscript/` — 1
+
+| file:line                                 | anchor                               | message                                         | code      | position source                                                              | fixture                                                                         |
+| ----------------------------------------- | ------------------------------------ | ----------------------------------------------- | --------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `subscript/SubscriptDepthValidator.ts:95` | `typeInfo.baseType, arrayDimensions` | too many subscripts on a base (ADR-036/ADR-007) | **E0856** | `line` is already a parameter and is spent on `Error at line ${line}:` prose | `bit-indexing/scalar-over-subscript`, `bit-indexing/scalar-over-subscript-this` |
+
+**This row is why the gate was widened.** E0856 is registered, fixture-covered and user-facing, and
+it was absent from this audit because the throw names a factory rather than `new`. It is tier A —
+the line is in hand and spent on prose — but the message is built in `helpers/CodeGenErrors.ts`, so
+relocating it also retires that indirection. The anchor is the argument list, not the message,
+because at this site the message does not exist.
 
 ## Proposed split of #1322
 

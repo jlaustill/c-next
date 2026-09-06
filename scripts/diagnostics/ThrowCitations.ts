@@ -3,7 +3,7 @@
  * line number decays silently.
  *
  * `docs/architecture/output-throw-classification.md` (#1321) is the input that
- * splits #1322. It names every `throw new` site in `output/` by file and
+ * splits #1322. It names every throw site in `output/` by file and
  * line. #1362 committed it with correct citations; #1363 then added 62 lines to
  * `TypeValidator.ts`, and 64 of the 180 citations silently began pointing at a
  * docstring or a closing brace. Each pull request was green on its own -- one
@@ -17,8 +17,8 @@
  *
  * Four invariants, all mechanical:
  *
- *   1. every cited `file:line` is exactly a line containing `throw new`
- *   2. every `throw new` under `output/` is cited exactly once
+ *   1. every cited `file:line` is exactly a line opening a throw statement
+ *   2. every throw under `output/` is cited exactly once
  *   3. every row's anchor is a substring of what the throw at its line says
  *   4. no two rows in one file could trade line numbers and keep 3 holding
  *
@@ -99,7 +99,7 @@ class ThrowCitations {
   }
 
   /**
-   * 1-based line numbers of every `throw new` STATEMENT in a source file.
+   * 1-based line numbers of every throw STATEMENT in a source file.
    *
    * A raw substring test would count a comment or a string literal that merely
    * mentions `throw new`, and invariant 2 would then demand a classification
@@ -107,16 +107,34 @@ class ThrowCitations {
    * exists to protect. That is not hypothetical here: five bucket-2 sites carry
    * an in-file comment whose subject is throwing.
    *
-   * So the match is structural: a comment marker is stripped, and `throw new`
-   * must OPEN the statement rather than merely appear on the line. Every site
-   * in `output/` is a bare `throw new` statement, verified, so nothing is lost
-   * by requiring it.
+   * So the match is structural: the throw must OPEN the statement rather than
+   * merely appear on the line.
+   *
+   * #1322: this used to require the literal spelling `throw new`, on a comment
+   * that said "every site in `output/` is a bare `throw new` statement,
+   * verified". That was false, and the gate could not report it -- a site it
+   * does not count is also a site invariant 2 never demands a row for, so the
+   * hole was silent in both directions. `CodeGenErrors` builds its Errors with
+   * `return new Error(...)` and callers write `throw CodeGenErrors.x(...)`,
+   * hiding three production sites, one of them `SubscriptDepthValidator.ts:95`
+   * -- E0856, registered in `docs/error-codes.md` and asserted by two fixtures.
+   * A user-facing diagnostic the classifier cannot see is one #1322 cannot
+   * relocate.
+   *
+   * A factory call must open an argument list to count. That is what keeps a
+   * bare rethrow (`throw err;`) out: it carries no message, so there is nothing
+   * for an anchor to corroborate and no diagnostic to classify. `throw new` is
+   * still counted without one, so `throw new Error;` keeps reaching
+   * `throwArgument`'s null path rather than vanishing from the corpus.
    */
+  private static readonly THROW_STATEMENT =
+    /^throw\s+(?:new\b|[A-Za-z_$][\w$.]*\s*\()/;
+
   static throwLines(source: string): number[] {
     return source
       .split("\n")
       .map((text, index) => ({ text: text.trim(), line: index + 1 }))
-      .filter((entry) => entry.text.startsWith("throw new"))
+      .filter((entry) => ThrowCitations.THROW_STATEMENT.test(entry.text))
       .map((entry) => entry.line);
   }
 
@@ -151,9 +169,13 @@ class ThrowCitations {
       }
     }
     const statement = collected.join(" ").replace(/\s+/g, " ");
-    // `[^(]*` admits any constructor expression -- dotted, generic -- up to
-    // its argument list: the same breadth throwLines counts.
-    const opener = /^throw new\b[^(]*\(\s*/.exec(statement);
+    // `[^(]*` admits any constructor or factory expression -- dotted, generic
+    // -- up to its argument list: the same breadth throwLines counts. `new` is
+    // optional because a throw may name a factory instead (#1322); without the
+    // strip, `CodeGenErrors.tooManySubscripts(` would be a valid anchor for
+    // every site sharing that factory, which is the universally-true anchor
+    // this strip exists to prevent.
+    const opener = /^throw\s+(?:new\b)?[^(]*\(\s*/.exec(statement);
     return opener === null ? null : statement.slice(opener[0].length);
   }
 
@@ -272,7 +294,7 @@ class ThrowCitations {
       const claimed = rows.map((row) => row.line);
       for (const line of actual) {
         if (!claimed.includes(line)) {
-          errors.push(`${file}:${line} -- \`throw new\` is not classified`);
+          errors.push(`${file}:${line} -- throw statement is not classified`);
         }
       }
       const duplicates = claimed.filter(
@@ -290,7 +312,7 @@ class ThrowCitations {
       ok: errors.length === 0,
       errors,
       info: [
-        `${cited.length} citation(s) checked against ${total} \`throw new\` site(s) in output/.`,
+        `${cited.length} citation(s) checked against ${total} throw site(s) in output/.`,
       ],
     };
   }

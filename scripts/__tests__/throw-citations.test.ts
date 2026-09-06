@@ -85,6 +85,26 @@ describe("ThrowCitations.throwLines", () => {
   it("returns nothing for a file with no throws", () => {
     expect(ThrowCitations.throwLines("const x = 1;")).toEqual([]);
   });
+
+  it("counts a throw whose Error comes from a factory, not from `new` (#1322)", () => {
+    // The corpus was believed to be uniformly `throw new`, and this method
+    // required that spelling. It is not: `CodeGenErrors` builds its Errors with
+    // `return new Error(...)` and callers write `throw CodeGenErrors.x(...)`, so
+    // three production sites in `output/` were invisible to every invariant this
+    // gate enforces -- including `SubscriptDepthValidator.ts:95`, which carries
+    // E0856 and is asserted by two fixtures. A diagnostic the classifier cannot
+    // see is one #1322 cannot relocate.
+    const source = [
+      "const x = 1;",
+      "throw CodeGenErrors.tooManySubscripts(line, varName);",
+      "throw new Error('ordinary');",
+    ].join("\n");
+    expect(ThrowCitations.throwLines(source)).toEqual([2, 3]);
+  });
+
+  it("does not count a bare rethrow, which opens no argument to anchor", () => {
+    expect(ThrowCitations.throwLines("throw err;")).toEqual([]);
+  });
 });
 
 describe("ThrowCitations.throwArgument", () => {
@@ -125,6 +145,18 @@ describe("ThrowCitations.throwArgument", () => {
 
   it("returns null when the statement opens no argument", () => {
     expect(ThrowCitations.throwArgument("throw new Error;", 1)).toBeNull();
+  });
+
+  it("strips a factory call's opener, so its anchor is the message (#1322)", () => {
+    // Without `new`, the opener is `throw CodeGenErrors.tooManySubscripts(`.
+    // If it survived, it would be a valid anchor for every site that shares the
+    // factory -- the universally-true anchor the strip exists to prevent.
+    expect(
+      ThrowCitations.throwArgument(
+        'throw CodeGenErrors.tooManySubscripts("too many subscripts");',
+        1,
+      ),
+    ).toBe('"too many subscripts");');
   });
 });
 
