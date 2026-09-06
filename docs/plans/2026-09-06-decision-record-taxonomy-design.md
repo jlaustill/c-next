@@ -92,43 +92,66 @@ the gate enforces that exactly one shape exists.
 | Directory                 | Holds                                            | Identity  | Rewrite test | Release bands            | Matrix obligations |
 | ------------------------- | ------------------------------------------------ | --------- | ------------ | ------------------------ | ------------------ |
 | `docs/cnx-spec-adrs/`     | decisions about the **C-Next language**          | `ADR-NNN` | yes          | yes (`0xx`→v1, `1xx`→v2) | yes                |
-| `docs/project-decisions/` | decisions about the **project/toolchain**        | `PDR-NNN` | no           | no                       | no                 |
+| `docs/project-decisions/` | decisions about the **project/toolchain**        | `PDR-NNN` | no           | yes (same bands as ADRs) | no                 |
 | `docs/architecture/`      | descriptions of how the transpiler is structured | path      | no           | n/a                      | no                 |
 | `docs/implementation/`    | descriptions of how one decision is carried out  | path      | no           | n/a                      | no                 |
 
 Rows 1–2 are decision records and have a lifecycle. Rows 3–4 are descriptions and do not. The
 observable marker of that difference is the `**Status:**` line.
 
-### Why separate prefixes, not a shared sequence
+### Numbering: one space, one band semantics, two prefixes
 
-`docs/decisions/README.md` guarantees that a retired number "can never resolve to a different
-decision than the one its author meant". Two series both starting at `001` would break that
-guarantee the first time someone writes `ADR-012` in a commit message — it would resolve to two
-files. Distinct prefixes make `ADR-012` and `PDR-012` unambiguous, and keep `git log --grep`
-usable.
+**A number is allocated once, ever, to one decision. The prefix says which series holds it. The
+band says which release it must ship in.** Both series draw from the same ledger, so `011` names
+exactly one decision whether it is written `ADR-011` or `PDR-011`.
 
-### Why the PDR series is not band-gated
+This is a strengthening of the existing guarantee, not a change to it.
+`docs/decisions/README.md` promises that a number "can never resolve to a different decision than
+the one its author meant" — and `PDR-011` _is_ `ADR-011`, the same decision relocated to a series
+that fits it. A migrated record therefore **keeps its number and changes only its prefix**, so a
+reference in an old commit resolves to a record still bearing the number its author wrote, rather
+than to a table row pointing somewhere else.
 
-A band is a release commitment about the language: "every `0xx` ADR must be implemented to cut
-v1". A toolchain decision has no business gating a language release — a `PDR` about npm
-packaging must not be able to hold v1 hostage. PDRs therefore carry a Status but no band, and
-the gate rejects a band claim in a PDR.
+A new PDR takes the next free number in the shared ledger and picks its band by the same question
+an ADR asks: _which release must this ship in?_ The mechanism half of ADR-010 is therefore
+`PDR-071` — the next free `0xx` number, band `0xx`, Status Implemented.
+
+**PDRs are band-gated on the same terms as ADRs.** Cutting `v(N+1)` requires every non-terminal
+record in band `N` to be Implemented, in **both** series. A release needs its toolchain and
+distribution story as much as its language surface, so a project decision that v1 depends on
+should block v1 — the release gate becomes more honest, not merely broader.
+
+The practical cost is one new v1 blocker. Verified 2026-09-06: `vscode-extension`,
+`static-analysis` and `cli-distribution` are all `Implemented`, but `extension-separation`
+(`PDR-060`) is `Research`, so it must be implemented, moved to band `1xx` by the documented
+`git mv` procedure, or marked terminal before v1 is cut.
+
+Because bands apply to both series identically, no reserved number range is needed and no
+grandfathered exception set exists: `PDR-071` in band `0xx` means exactly what it appears to
+mean.
 
 ### Initial PDR population
 
-| New       | From                                                        | Notes                             |
-| --------- | ----------------------------------------------------------- | --------------------------------- |
-| `PDR-001` | `docs/implementation/vscode-extension.md` (was ADR-011)     | already has Status + alternatives |
-| `PDR-002` | `docs/implementation/static-analysis.md` (was ADR-012)      | already has Status + alternatives |
-| `PDR-003` | `docs/implementation/cli-distribution.md` (was ADR-048)     | already has Status + alternatives |
-| `PDR-004` | `docs/implementation/extension-separation.md` (was ADR-060) | Status: Research                  |
-| `PDR-005` | new — the mechanism half of ADR-010                         | see below                         |
+| New       | From                                                        | Band  | Status                      |
+| --------- | ----------------------------------------------------------- | ----- | --------------------------- |
+| `PDR-011` | `docs/implementation/vscode-extension.md` (was ADR-011)     | `0xx` | Implemented                 |
+| `PDR-012` | `docs/implementation/static-analysis.md` (was ADR-012)      | `0xx` | Implemented                 |
+| `PDR-048` | `docs/implementation/cli-distribution.md` (was ADR-048)     | `0xx` | Implemented                 |
+| `PDR-060` | `docs/implementation/extension-separation.md` (was ADR-060) | `0xx` | **Research — a v1 blocker** |
+| `PDR-071` | new — the mechanism half of ADR-010                         | `0xx` | Implemented                 |
 
-Retired ADR numbers **stay retired**. The renumbering table in the numbering README gains a
-column recording where each retiree now lives, so a reference to `ADR-011` in an old commit
-still resolves to an explanation rather than to a live record.
+The numbering README's retirement table splits into three genuinely different fates, which it
+currently conflates into one:
 
-`055` and `065` are not touched: they correctly became descriptions.
+| Number                  | Fate                                             | Resolves to                                |
+| ----------------------- | ------------------------------------------------ | ------------------------------------------ |
+| `011` `012` `048` `060` | **recategorized** — same decision, new series    | `PDR-011`, `PDR-012`, `PDR-048`, `PDR-060` |
+| `055` `065`             | became descriptions — no longer decision records | `docs/architecture/…`                      |
+| `053`                   | withdrawn                                        | nothing; permanently retired               |
+| `059` `107`             | never allocated                                  | nothing; never will be                     |
+
+`055` and `065` are not touched: they correctly became descriptions and their numbers stay
+retired.
 
 ### ADR-010 splits
 
@@ -145,7 +168,7 @@ Decision section is a component diagram.
 - The limits of the boundary — what C-Next promises to understand from a C/C++ header
 - A `MATRIX-SEVERITY` table, once the interop matrix exists
 
-**PDR-005 takes** (the mechanism):
+**PDR-071 takes** (the mechanism):
 
 - Why vendored ANTLR grammars over libclang, a hand-written parser, or declaration files
 - C and CPP14 grammar caveats, preprocessor handling
@@ -173,11 +196,11 @@ rulesets. A second scanner would duplicate the directory walk, the front-matter 
 violation reporting that `AdrIndependence` (312 lines) already performs, and the two would
 diverge the first time a rule changed.
 
-| Directory                          | Must have                       | Must not have                                   |
-| ---------------------------------- | ------------------------------- | ----------------------------------------------- |
-| `cnx-spec-adrs/`                   | `adr-NNN-*.md`, Status, Summary | _(existing rewrite-test rules, unchanged)_      |
-| `project-decisions/`               | `pdr-NNN-*.md`, Status, Summary | a `MATRIX-SEVERITY` table; a release-band claim |
-| `architecture/`, `implementation/` | —                               | a status declaration, in **either** shape       |
+| Directory                          | Must have                       | Must not have                              |
+| ---------------------------------- | ------------------------------- | ------------------------------------------ |
+| `cnx-spec-adrs/`                   | `adr-NNN-*.md`, Status, Summary | _(existing rewrite-test rules, unchanged)_ |
+| `project-decisions/`               | `pdr-NNN-*.md`, Status, Summary | a `MATRIX-SEVERITY` table                  |
+| `architecture/`, `implementation/` | —                               | a status declaration, in **either** shape  |
 
 Plus three mechanical invariants: exactly one status shape exists corpus-wide, no number is used
 twice within a series, and the numbering README's allocation table matches what is on disk.
@@ -229,8 +252,9 @@ Ordered so each step is independently reviewable.
    header.
 2. **`git mv docs/decisions docs/cnx-spec-adrs`.** Pure rename.
 3. **Create `docs/project-decisions/`** with its README and TEMPLATE; move the four #1403
-   retirees in as PDR-001…004; add the retirement-destination column to the numbering README.
-4. **Split ADR-010** into ADR-010 + PDR-005. Fix the `adr-045-string-implementation.md` status
+   retirees in as PDR-011, PDR-012, PDR-048 and PDR-060, each keeping its original number;
+   replace the numbering README's single retirement table with the three-fate table above.
+4. **Split ADR-010** into ADR-010 + PDR-071. Fix the `adr-045-string-implementation.md` status
    contradiction. Review 016 and 051.
 5. **Generate the index** (`docs:adr-index` / `:check`), covering both series.
 6. **Extend the gate** to `docs:taxonomy:check` with the per-directory rulesets.
@@ -265,7 +289,7 @@ Each gate gets a mutation check, because a gate that cannot fail on its own case
 | No status in descriptions, other shape | add a `## Status` section to an `architecture/` file  | red — the hole a template-only check would leave |
 | One status shape                       | revert one ADR to the `## Status` section form        | red                                              |
 | PDRs own no matrix                     | add a `MATRIX-SEVERITY` table to a PDR                | red                                              |
-| PDRs claim no band                     | add a band claim to a PDR                             | red                                              |
+| One ledger, no collisions              | give a PDR a number an ADR already holds              | red                                              |
 | No duplicate numbers                   | duplicate a number within one series                  | red                                              |
 | Filename pattern                       | add `notes.md` to `project-decisions/`                | red                                              |
 | Index is current                       | delete a row from the generated index                 | `docs:adr-index:check` red                       |
@@ -278,11 +302,15 @@ Unit tests live in `scripts/__tests__/`, alongside the existing `adr-independenc
 
 ## Documentation
 
-- `docs/cnx-spec-adrs/README.md` — numbering, bands, the rewrite test and its in/out list
-  (unchanged content, new path), plus a pointer to the PDR series for decisions that fail the test
-- `docs/project-decisions/README.md` — numbering (no bands), what belongs here, and the explicit
-  statement that a PDR is not band-gated and owns no matrix obligation
+- `docs/cnx-spec-adrs/README.md` — the shared numbering ledger, bands, the rewrite test and its
+  in/out list (unchanged content, new path), the three-fate retirement table, and a pointer to
+  the PDR series for decisions that fail the rewrite test
+- `docs/project-decisions/README.md` — what belongs here, that a PDR owns no matrix obligation,
+  and that numbering and bands are the shared rules defined once in the ADR README, not restated
 - `docs/project-decisions/TEMPLATE.md`
+- `.github/ISSUE_TEMPLATE/release.md` — §2's band gate must count every non-terminal record in
+  **both** series, not ADRs alone; its checklist item and its link both need updating. Without
+  this the band decision is stated in the READMEs and enforced by nothing at release time.
 - `CLAUDE.md`, `CONTRIBUTING.md`, `AGENTS.md`, root `README.md` — path updates; the in/out list
   stays in one home and is not copied
 - `.claude/skills/cnext-way/SKILL.md`, `.claude/skills/start-issue/SKILL.md` — path updates
