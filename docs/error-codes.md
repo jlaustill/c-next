@@ -15,7 +15,7 @@ codes that already have a fixture.
 | E00xx     | Reserved/Test           | 1      |
 | E02xx     | Identifier/Param Naming | 5      |
 | E03xx     | Struct Fields           | 2      |
-| E04xx     | Symbol Resolution       | 9      |
+| E04xx     | Symbol Resolution       | 10     |
 | E05xx     | Include/Preprocessor    | 7      |
 | E06xx     | Sizeof Expressions      | 2      |
 | E07xx     | Control Flow            | 7      |
@@ -109,6 +109,7 @@ second header and the program ran with a wrong value.
 | E0428 | _(reserved)_ — cannot assign integer to enum            | Not yet implemented. Reserved by the #1321 throw audit (`docs/architecture/output-throw-classification.md`) so it is not assigned twice; #1380 tracks this drift | `output/codegen/helpers/EnumAssignmentValidator.ts`                                |
 | E0429 | Name is a register, not a type                          | Access the register's members instead, e.g. `GPIO.DR`                                                                                                            | `logic/analysis/UndeclaredTypeAnalyzer.ts`                                         |
 | E0430 | Nested scopes are not allowed                           | Close the enclosing scope before declaring another, or use a flat scope such as `Hardware_GPIO`                                                                  | `logic/parser/CNextSourceParser.ts`                                                |
+| E0431 | `this` used outside a `scope` (ADR-016)                 | Use `global.Name` for a file-scope declaration, or move the code into the scope it belongs to                                                                    | `TRANSPILE/1-Analyze/ThisOutsideScopeAnalyzer.ts`                                  |
 
 **Related:** ADR-030 (E0422), ADR-016 (E0425 — a reopened scope composes, but its
 members stay unique)

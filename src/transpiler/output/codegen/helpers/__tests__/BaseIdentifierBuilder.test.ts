@@ -21,11 +21,15 @@ describe("BaseIdentifierBuilder", () => {
       });
     });
 
-    it("should throw error when this is used outside scope", () => {
-      expect(() => {
-        BaseIdentifierBuilder.build("x", false, true, "");
-      }).toThrow("Error: 'this' can only be used inside a scope");
-    });
+    // #1322: the `this` outside a scope guard this asserted moved to pass 2.1 as
+    // E0431, where it carries a real position -- codegen reported it as `1:0`
+    // from four identical throws. Codegen is never reached with an empty
+    // `currentScopePath` now, because 2.1 halts the pipeline first, so this test
+    // drove a state production cannot produce.
+    //
+    // The rule is covered by `1-Analyze/__tests__/ThisOutsideScopeAnalyzer.test.ts`
+    // and by `tests/adr-016/this-outside-scope-error`, which asserts the real
+    // line and column and carries in-scope negative controls.
 
     it("should return identifier unchanged for bare identifier", () => {
       const result = BaseIdentifierBuilder.build("myVar", false, false, "");

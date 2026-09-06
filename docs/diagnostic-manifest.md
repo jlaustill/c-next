@@ -12,10 +12,11 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-313 fixture(s) assert a diagnostic; 191 carry a code.
+314 fixture(s) assert a diagnostic; 192 carry a code.
 
 | Fixture                                                                                          | Codes        |
 | ------------------------------------------------------------------------------------------------ | ------------ |
+| tests/adr-016/this-outside-scope-error.test.cnx                                                  | E0431        |
 | tests/analysis/division-by-const-zero.test.cnx                                                   | E0800        |
 | tests/analysis/division-by-zero.test.cnx                                                         | E0800        |
 | tests/analysis/enum-context/enum-bare-in-array-dim.test.cnx                                      | E0424        |

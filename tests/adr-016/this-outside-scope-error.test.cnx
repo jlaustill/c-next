@@ -1,0 +1,37 @@
+// test-error
+// test-transpile-only
+// test-adr: 016
+// ADR-016: `this` names the enclosing scope's own member, so it is meaningless
+// outside one. E0431.
+//
+// #1322 relocated this rule from four identical throws in `output/` into pass
+// 2.1. Every one of them reached the user as `1:0`, because a throw from
+// codegen carries no position; the assertion below is a real line and column,
+// which is the whole point of the card.
+
+scope Motor {
+    u32 speed <- 0;
+
+    // NEGATIVE CONTROLS -- every legal use of `this`, and all must stay silent.
+    // They are inside the scope, which is the only condition the rule tests, so
+    // a check that fired on `this` regardless of context would report these
+    // FIRST and change the message the assertion below expects.
+    public u32 read() {
+        return this.speed;
+    }
+
+    public void write() {
+        this.speed <- 1;
+    }
+}
+
+u32 outsideAny <- 0;
+
+// THE ASSERTIONS -- `this` at file scope, and `this` in a top-level function.
+// Both routes are reported: an analyzer sees the whole file, where the throw it
+// replaces aborted at the first occurrence.
+u32 atFileScope <- this.outsideAny;
+
+u32 inPlainFunction() {
+    return this.outsideAny;
+}

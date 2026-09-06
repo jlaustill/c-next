@@ -5232,26 +5232,10 @@ describe("CodeGenerator", () => {
     });
   });
 
-  describe("Error - this outside scope", () => {
-    it("should throw error for this keyword outside scope", () => {
-      const source = `
-        void main() {
-          this.foo <- 1;
-        }
-      `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
-      const tSymbols = declareAndResolve(tree);
-      const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-      expect(() =>
-        generator.generate(tree, tokenStream, {
-          symbolInfo: symbols,
-          sourcePath: "test.cnx",
-        }),
-      ).toThrow("'this' can only be used inside a scope");
-    });
-  });
+  // #1322: this suite held only the `this` outside a scope test. The rule
+  // is E0431 in pass 2.1 now, with a real position; codegen reported it as
+  // `1:0`. Covered by `1-Analyze/__tests__/ThisOutsideScopeAnalyzer.test.ts`
+  // and `tests/adr-016/this-outside-scope-error`.
 
   describe("Const assignment error", () => {
     it("should throw error when assigning to const variable", () => {
@@ -7195,26 +7179,10 @@ describe("CodeGenerator", () => {
       });
     });
 
-    describe("'this' keyword error handling", () => {
-      it("should throw error when 'this' is used outside a scope", () => {
-        const source = `
-          void foo() {
-            u32 x <- this.value;
-          }
-        `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        expect(() =>
-          generator.generate(tree, tokenStream, {
-            symbolInfo: symbols,
-            sourcePath: "test.cnx",
-          }),
-        ).toThrow("'this' can only be used inside a scope");
-      });
-    });
+    // #1322: this suite held only the `this` outside a scope test. The rule
+    // is E0431 in pass 2.1 now, with a real position; codegen reported it as
+    // `1:0`. Covered by `1-Analyze/__tests__/ThisOutsideScopeAnalyzer.test.ts`
+    // and `tests/adr-016/this-outside-scope-error`.
 
     describe("ambiguous enum member error handling", () => {
       it("should throw error for ambiguous unqualified enum member", () => {

@@ -467,9 +467,7 @@ const handleThisScopeLength = (
   if (tracking.result !== "__THIS_SCOPE__" || memberName !== "length") {
     return false;
   }
-  if (!state.currentScopePath) {
-    throw new Error("Error: 'this' can only be used inside a scope");
-  }
+  // #1322: `this` outside a scope is E0431 in 2.1.
   const members = state.scopeMembers.get(
     ScopeUtils.leafOf(state.currentScopePath),
   );
@@ -1346,10 +1344,7 @@ const tryScopeMemberAccess = (
   if (ctx.result !== "__THIS_SCOPE__") {
     return null;
   }
-  if (!state.currentScopePath) {
-    throw new Error("Error: 'this' can only be used inside a scope");
-  }
-
+  // #1322: `this` outside a scope is E0431 in 2.1.
   const output = initializeMemberOutput(ctx);
   const fullName = ScopeUtils.qualifyInScope(
     ctx.memberName,

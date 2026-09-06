@@ -214,6 +214,25 @@ class ThrowCitations {
     const pairs = new Map<number, number>();
     const unplaced: string[] = [];
 
+    // File-level ordinal pairing, tried first. When the document holds exactly
+    // as many rows for a file as the file now has throws, the two lists are the
+    // same sites in the same order: a deletion removes a row AND its throw, and
+    // nothing an edit can do reorders the survivors.
+    //
+    // This is the same argument #1518 makes between two REVISIONS, applied
+    // between the document and the source -- which is what lets it work when a
+    // count changed, because the row count changed with it. It also avoids
+    // per-anchor whack-a-mole in files like `PostfixExpressionGenerator`, where
+    // a dozen messages differ only in an interpolated name and every anchor is
+    // one edit away from matching its neighbor.
+    const throwsNow = ThrowCitations.throwLines(current);
+    if (rows.length === throwsNow.length && rows.length > 0) {
+      const cited = rows.map((row) => row.line).sort((a, b) => a - b);
+      const actual = [...throwsNow].sort((a, b) => a - b);
+      cited.forEach((line, index) => pairs.set(line, actual[index]));
+      return [pairs, unplaced];
+    }
+
     for (const row of rows) {
       if (row.anchor === null) {
         unplaced.push(`row at :${row.line} carries no anchor to re-find it by`);

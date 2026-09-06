@@ -4854,9 +4854,9 @@ export default class CodeGenerator implements IOrchestrator {
    * ADR-016: 'this' returns a marker that postfixOps will transform to Scope_member
    */
   private _resolveThisKeyword(): string {
-    if (!CodeGenState.currentScopePath) {
-      throw new Error("Error: 'this' can only be used inside a scope");
-    }
+    // #1322: the `!currentScopePath` guard that stood here is now E0431 in 2.1,
+    // with a real position. It threw the same string from four places in
+    // `output/`, and every one reached the user as `1:0`.
     return "__THIS_SCOPE__";
   }
 

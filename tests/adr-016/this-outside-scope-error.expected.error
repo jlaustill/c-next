@@ -1,0 +1,4 @@
+33:19 error[E0431]: 'this' can only be used inside a scope
+       help: `this` names the enclosing scope's own member. Outside a scope, write `global.Name` for a file-scope declaration, or move the code into the scope it belongs to.
+36:11 error[E0431]: 'this' can only be used inside a scope
+       help: `this` names the enclosing scope's own member. Outside a scope, write `global.Name` for a file-scope declaration, or move the code into the scope it belongs to.

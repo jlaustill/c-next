@@ -24,6 +24,7 @@ import BooleanOperandAnalyzer from "./BooleanOperandAnalyzer";
 import MixedTypeCategoryAnalyzer from "./MixedTypeCategoryAnalyzer";
 import ReturnPathAnalyzer from "./ReturnPathAnalyzer";
 import ReturnValueUseAnalyzer from "./ReturnValueUseAnalyzer";
+import ThisOutsideScopeAnalyzer from "./ThisOutsideScopeAnalyzer";
 import CommentExtractor from "./CommentExtractor";
 import ITranspileError from "../../lib/types/ITranspileError";
 import SymbolTable from "../../transpiler/logic/symbols/SymbolTable";
@@ -204,6 +205,21 @@ function runAnalyzers(
       label:
         "return-value use (ADR-070 / MISRA C:2012 Rule 17.7 at source level)",
       run: () => ReturnValueUseAnalyzer.analyze(tree),
+    },
+    {
+      // #1322: appended rather than inserted. The loop breaks at the first
+      // non-advisory step that finds anything, so where a step sits decides
+      // which diagnostic a file reports when two would fire. Appending is the
+      // only placement that CANNOT change what an existing fixture says --
+      // every file that reaches an older analyzer today still reaches it
+      // first -- and a fixture that quietly starts reporting a different code
+      // is what `diagnostics:manifest:check` calls `code-removed`, which the
+      // suite stays green through.
+      //
+      // A later relocation that needs to preempt an existing step states its
+      // cause-before-consequence reason here, as the pairs above do.
+      label: "`this` outside a scope (ADR-016)",
+      run: () => new ThisOutsideScopeAnalyzer().analyze(tree),
     },
     {
       // Last, and does not halt: comment findings are reported alongside

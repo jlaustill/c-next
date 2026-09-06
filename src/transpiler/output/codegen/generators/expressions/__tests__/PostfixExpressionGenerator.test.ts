@@ -427,20 +427,15 @@ describe("PostfixExpressionGenerator", () => {
       expect(result.code).toBe("Motor__length");
     });
 
-    it("throws when using this outside a scope", () => {
-      const ctx = createMockPostfixExpressionContext("this", [
-        createMockPostfixOp({ identifier: "speed" }),
-      ]);
-      const input = createMockInput();
-      const state = createMockState({ currentScopePath: "" });
-      const orchestrator = createMockOrchestrator({
-        generatePrimaryExpr: () => "__THIS_SCOPE__",
-      });
-
-      expect(() =>
-        generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow("'this' can only be used inside a scope");
-    });
+    // #1322: the `this` outside a scope guard this asserted moved to pass 2.1 as
+    // E0431, where it carries a real position -- codegen reported it as `1:0`
+    // from four identical throws. Codegen is never reached with an empty
+    // `currentScopePath` now, because 2.1 halts the pipeline first, so this test
+    // drove a state production cannot produce.
+    //
+    // The rule is covered by `1-Analyze/__tests__/ThisOutsideScopeAnalyzer.test.ts`
+    // and by `tests/adr-016/this-outside-scope-error`, which asserts the real
+    // line and column and carries in-scope negative controls.
 
     it("resolves this.member to scope-prefixed name", () => {
       const ctx = createMockPostfixExpressionContext("this", [
@@ -1636,20 +1631,15 @@ describe("PostfixExpressionGenerator", () => {
   });
 
   describe("this.length as scope member", () => {
-    it("throws when this.length used outside scope without length member", () => {
-      const ctx = createMockPostfixExpressionContext("this", [
-        createMockPostfixOp({ identifier: "length" }),
-      ]);
-      const input = createMockInput();
-      const state = createMockState({ currentScopePath: "" });
-      const orchestrator = createMockOrchestrator({
-        generatePrimaryExpr: () => "__THIS_SCOPE__",
-      });
-
-      expect(() =>
-        generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow("'this' can only be used inside a scope");
-    });
+    // #1322: the `this` outside a scope guard this asserted moved to pass 2.1 as
+    // E0431, where it carries a real position -- codegen reported it as `1:0`
+    // from four identical throws. Codegen is never reached with an empty
+    // `currentScopePath` now, because 2.1 halts the pipeline first, so this test
+    // drove a state production cannot produce.
+    //
+    // The rule is covered by `1-Analyze/__tests__/ThisOutsideScopeAnalyzer.test.ts`
+    // and by `tests/adr-016/this-outside-scope-error`, which asserts the real
+    // line and column and carries in-scope negative controls.
 
     it("resolves this.length to scope member when length is a struct type", () => {
       const typeRegistry = new Map<string, TTypeInfo>([
