@@ -165,16 +165,12 @@ describe("BitAccessHandlers", () => {
       expect(result).toBe("float_bit_write_result");
     });
 
-    it("throws on compound assignment", () => {
-      const ctx = createMockContext({
-        isCompound: true,
-        cnextOp: "+<-",
-      });
-
-      expect(() => getHandler()!(ctx)).toThrow(
-        "Compound assignment operators not supported for bit field access",
-      );
-    });
+    // #1322: compound assignment on a bit index, bit range, slice, bitmap field
+    // or string is E0857 in pass 2.1 -- one decision where `output/` had six
+    // throws with four messages, and `validateNotCompound` defined twice verbatim.
+    // The pipeline halts before these handlers run. Covered by
+    // `1-Analyze/__tests__/CompoundAssignmentAnalyzer.test.ts` plus
+    // `tests/compound-assign/` and `tests/string-assignment/`.
   });
 
   describe("handleIntegerBitRange (INTEGER_BIT_RANGE)", () => {
@@ -274,18 +270,6 @@ describe("BitAccessHandlers", () => {
       );
       expect(result).toBe("float_range_write_result");
     });
-
-    it("throws on compound assignment", () => {
-      const ctx = createMockContext({
-        isCompound: true,
-        cnextOp: "+<-",
-        subscripts: [{ mockValue: "0" } as never, { mockValue: "8" } as never],
-      });
-
-      expect(() => getHandler()!(ctx)).toThrow(
-        "Compound assignment operators not supported for bit field access",
-      );
-    });
   });
 
   describe("handleStructMemberBit (STRUCT_MEMBER_BIT)", () => {
@@ -309,17 +293,6 @@ describe("BitAccessHandlers", () => {
       expect(result).toContain("item.byte =");
       expect(result).toContain("& ~(1U << 7)");
       expect(result).toContain("1U << 7");
-    });
-
-    it("throws on compound assignment", () => {
-      const ctx = createMockContext({
-        isCompound: true,
-        cnextOp: "+<-",
-      });
-
-      expect(() => getHandler()!(ctx)).toThrow(
-        "Compound assignment operators not supported for bit field access",
-      );
     });
   });
 
@@ -411,20 +384,6 @@ describe("BitAccessHandlers", () => {
         "agree on a variable's array-ness",
       );
     });
-
-    it("throws on compound assignment", () => {
-      HandlerTestUtils.setupMockTypeRegistry([
-        ["arr", { baseType: "u32", arrayDimensions: [10] }],
-      ]);
-      const ctx = createMockContext({
-        isCompound: true,
-        cnextOp: "+<-",
-      });
-
-      expect(() => getHandler()!(ctx)).toThrow(
-        "Compound assignment operators not supported for bit field access",
-      );
-    });
   });
 
   describe("handleStructChainBitRange (STRUCT_CHAIN_BIT_RANGE)", () => {
@@ -478,24 +437,6 @@ describe("BitAccessHandlers", () => {
       expect(result).toContain("& ~(");
       expect(result).toContain("<< 0");
       expect(result).toContain("15");
-    });
-
-    it("throws on compound assignment", () => {
-      const mockPostfixOps = [
-        {
-          IDENTIFIER: () => null,
-          expression: () => [{ mockValue: "0" }, { mockValue: "4" }],
-        },
-      ];
-      const ctx = createMockContext({
-        isCompound: true,
-        cnextOp: "+<-",
-        postfixOps: mockPostfixOps as never,
-      });
-
-      expect(() => getHandler()!(ctx)).toThrow(
-        "Compound assignment operators not supported for bit field access",
-      );
     });
   });
 });

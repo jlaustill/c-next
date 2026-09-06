@@ -130,13 +130,12 @@ describe("RegisterHandlers", () => {
       );
     });
 
-    it("throws on compound assignment", () => {
-      const ctx = createMockContext({ isCompound: true, cnextOp: "+<-" });
-
-      expect(() => getHandler()!(ctx)).toThrow(
-        "Compound assignment operators not supported for bit field access",
-      );
-    });
+    // #1322: compound assignment on a bit index, bit range, slice, bitmap field
+    // or string is E0857 in pass 2.1 -- one decision where `output/` had six
+    // throws with four messages, and `validateNotCompound` defined twice verbatim.
+    // The pipeline halts before these handlers run. Covered by
+    // `1-Analyze/__tests__/CompoundAssignmentAnalyzer.test.ts` plus
+    // `tests/compound-assign/` and `tests/string-assignment/`.
 
     it("handles scoped register prefix correctly", () => {
       HandlerTestUtils.setupMockGenerator({
@@ -276,18 +275,6 @@ describe("RegisterHandlers", () => {
       expect(result).toContain("volatile uint16_t*");
       expect(result).toContain("0x04 + 1");
     });
-
-    it("throws on compound assignment", () => {
-      const ctx = createMockContext({
-        isCompound: true,
-        cnextOp: "+<-",
-        subscripts: [{ mockValue: "0" } as never, { mockValue: "8" } as never],
-      });
-
-      expect(() => getHandler()!(ctx)).toThrow(
-        "Compound assignment operators not supported for bit field access",
-      );
-    });
   });
 
   describe("handleScopedRegisterBit (SCOPED_REGISTER_BIT)", () => {
@@ -335,15 +322,6 @@ describe("RegisterHandlers", () => {
     // assignment never reaches codegen -- and this test reached it only by
     // calling the handler directly with state production cannot produce. A test
     // that is a dead branch's only caller is what keeps the branch alive.
-
-    it("throws on compound assignment", () => {
-      CodeGenState.setCurrentScopeByPath("Motor");
-      const ctx = createMockContext({ isCompound: true, cnextOp: "+<-" });
-
-      expect(() => getHandler()!(ctx)).toThrow(
-        "Compound assignment operators not supported for bit field access",
-      );
-    });
 
     it("throws on write-only register with false value", () => {
       CodeGenState.setCurrentScopeByPath("Motor");
@@ -452,19 +430,6 @@ describe("RegisterHandlers", () => {
     // assignment never reaches codegen -- and this test reached it only by
     // calling the handler directly with state production cannot produce. A test
     // that is a dead branch's only caller is what keeps the branch alive.
-
-    it("throws on compound assignment", () => {
-      CodeGenState.setCurrentScopeByPath("Motor");
-      const ctx = createMockContext({
-        isCompound: true,
-        cnextOp: "+<-",
-        subscripts: [{ mockValue: "6" } as never, { mockValue: "2" } as never],
-      });
-
-      expect(() => getHandler()!(ctx)).toThrow(
-        "Compound assignment operators not supported for bit field access",
-      );
-    });
 
     it("throws on write-only bit range with 0 value", () => {
       CodeGenState.setCurrentScopeByPath("Motor");

@@ -19,7 +19,7 @@ codes that already have a fixture.
 | E05xx     | Include/Preprocessor    | 7      |
 | E06xx     | Sizeof Expressions      | 2      |
 | E07xx     | Control Flow            | 7      |
-| E08xx     | Arithmetic/Array Safety | 16     |
+| E08xx     | Arithmetic/Array Safety | 17     |
 | E09xx     | NULL Safety             | 8      |
 | **Total** |                         | **57** |
 
@@ -230,9 +230,10 @@ include-visibility is not derivable for a C or C++ name.
 
 ### Subscript Depth (ADR-036 / ADR-007)
 
-| Code  | Message                       | Help                                                                                     | Source                                                |
-| ----- | ----------------------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| E0856 | Too many subscripts on a base | A base allows `arrayDimensions + 1` subscripts; for a bit field use `name[start, width]` | `output/codegen/subscript/SubscriptDepthValidator.ts` |
+| Code  | Message                                                              | Help                                                                                                  | Source                                                |
+| ----- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| E0856 | Too many subscripts on a base                                        | A base allows `arrayDimensions + 1` subscripts; for a bit field use `name[start, width]`              | `output/codegen/subscript/SubscriptDepthValidator.ts` |
+| E0857 | Compound assignment on a target that is not a whole storage location | A compound operator reads, modifies and writes back one location; write the read and write separately | `TRANSPILE/1-Analyze/CompoundAssignmentAnalyzer.ts`   |
 
 Each subscript peels one array dimension (ADR-036) and a scalar integer/float may be
 bit-indexed once (ADR-007), so `flags[4][3]` on a scalar `u8` indexes the single bit

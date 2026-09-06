@@ -18,16 +18,9 @@ import CodeGenState from "../../../../state/CodeGenState";
 import invariant from "../../../../../utils/invariant";
 import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
 
-/**
- * Validate compound operators are not used with strings.
- */
-function validateNotCompound(ctx: IAssignmentContext): void {
-  if (ctx.isCompound) {
-    throw new Error(
-      `Error: Compound operators not supported for string assignment: ${ctx.cnextOp}`,
-    );
-  }
-}
+// #1322: `validateNotCompound` is gone -- E0857 in pass 2.1. It was defined
+// here AND in the sibling handler, verbatim: one rule, two copies, in a group
+// of six.
 
 /**
  * Common handler for simple string assignments (STRING_SIMPLE and STRING_GLOBAL).
@@ -35,8 +28,6 @@ function validateNotCompound(ctx: IAssignmentContext): void {
  * Gets capacity from typeRegistry and generates strncpy with null terminator.
  */
 function handleSimpleStringAssignment(ctx: IAssignmentContext): string {
-  validateNotCompound(ctx);
-
   const id = ctx.identifiers[0];
   const typeInfo = CodeGenState.getVariableTypeInfo(id);
   const capacity = typeInfo!.stringCapacity!;
@@ -110,8 +101,6 @@ function getStructType(structName: string): string {
  * Handle this.member string: this.name <- "value"
  */
 function handleStringThisMember(ctx: IAssignmentContext): string {
-  validateNotCompound(ctx);
-
   const memberName = ctx.identifiers[0];
   // The key must match `_classifyThisMemberString`
   // (AssignmentClassifier.ts:846), which hits the same map to decide whether to
@@ -138,8 +127,6 @@ function handleStringThisMember(ctx: IAssignmentContext): string {
  * Handle struct.field string: person.name <- "Alice"
  */
 function handleStringStructField(ctx: IAssignmentContext): string {
-  validateNotCompound(ctx);
-
   const structName = ctx.identifiers[0];
   const fieldName = ctx.identifiers[1];
 
@@ -160,8 +147,6 @@ function handleStringStructField(ctx: IAssignmentContext): string {
  * Handle string array element: names[0] <- "first"
  */
 function handleStringArrayElement(ctx: IAssignmentContext): string {
-  validateNotCompound(ctx);
-
   const name = ctx.identifiers[0];
   const typeInfo = CodeGenState.getVariableTypeInfo(name);
   const capacity = typeInfo!.stringCapacity!;
@@ -183,8 +168,6 @@ function handleStringArrayElement(ctx: IAssignmentContext): string {
  * Handle struct field string array element: config.items[0] <- "value"
  */
 function handleStringStructArrayElement(ctx: IAssignmentContext): string {
-  validateNotCompound(ctx);
-
   const structName = ctx.identifiers[0];
   const fieldName = ctx.identifiers[1];
 

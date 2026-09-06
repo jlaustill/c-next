@@ -86,20 +86,12 @@ describe("StringHandlers", () => {
       expect(CodeGenState.needsString).toBe(true);
     });
 
-    it("throws on compound assignment", () => {
-      HandlerTestUtils.setupMockTypeRegistry([
-        ["testVar", { stringCapacity: 32, baseType: "string" }],
-      ]);
-      const ctx = createMockContext({ isCompound: true, cnextOp: "+<-" });
-
-      const handler = stringHandlers.find(
-        ([kind]) => kind === AssignmentKind.STRING_SIMPLE,
-      )?.[1];
-
-      expect(() => handler!(ctx)).toThrow(
-        "Compound operators not supported for string assignment",
-      );
-    });
+    // #1322: compound assignment on a bit index, bit range, slice, bitmap field
+    // or string is E0857 in pass 2.1 -- one decision where `output/` had six
+    // throws with four messages, and `validateNotCompound` defined twice verbatim.
+    // The pipeline halts before these handlers run. Covered by
+    // `1-Analyze/__tests__/CompoundAssignmentAnalyzer.test.ts` plus
+    // `tests/compound-assign/` and `tests/string-assignment/`.
   });
 
   describe("handleStringThisMember (STRING_THIS_MEMBER)", () => {

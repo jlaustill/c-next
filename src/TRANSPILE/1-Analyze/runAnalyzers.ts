@@ -24,6 +24,7 @@ import BooleanOperandAnalyzer from "./BooleanOperandAnalyzer";
 import MixedTypeCategoryAnalyzer from "./MixedTypeCategoryAnalyzer";
 import ReturnPathAnalyzer from "./ReturnPathAnalyzer";
 import ReturnValueUseAnalyzer from "./ReturnValueUseAnalyzer";
+import CompoundAssignmentAnalyzer from "./CompoundAssignmentAnalyzer";
 import ConstructorArgumentAnalyzer from "./ConstructorArgumentAnalyzer";
 import CriticalSectionAnalyzer from "./CriticalSectionAnalyzer";
 import ThisOutsideScopeAnalyzer from "./ThisOutsideScopeAnalyzer";
@@ -207,6 +208,11 @@ function runAnalyzers(
       label:
         "return-value use (ADR-070 / MISRA C:2012 Rule 17.7 at source level)",
       run: () => ReturnValueUseAnalyzer.analyze(tree),
+    },
+    {
+      label:
+        "compound assignment needs a whole storage location (ADR-007, E0857)",
+      run: () => new CompoundAssignmentAnalyzer().analyze(tree),
     },
     {
       label: "C++ constructor arguments must be declared const (ADR-013, #375)",

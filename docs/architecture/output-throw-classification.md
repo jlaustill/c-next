@@ -53,10 +53,10 @@ as counted at audit time" rather than a literal.
 
 | bucket | meaning                                                                        | count   |
 | ------ | ------------------------------------------------------------------------------ | ------- |
-| **1**  | user-facing diagnostic — belongs in pass 2.1, needs a code and a real position | **134** |
+| **1**  | user-facing diagnostic — belongs in pass 2.1, needs a code and a real position | **128** |
 | **2**  | internal invariant — should never fire for valid input; becomes an assertion   | **0**   |
 | **3**  | dead — unreachable or subsumed; delete                                         | **0**   |
-|        | **total**                                                                      | **134** |
+|        | **total**                                                                      | **128** |
 
 **80% of `output/`'s throws are rejections.** That is the answer to open question 4: Render does
 not own nothing, it currently owns almost all of the rejection surface.
@@ -69,7 +69,7 @@ By area:
 | `codegen/helpers/`                                                  | 35    | 35  | 0   | 0   |
 | `codegen/generators/**`                                             | 38    | 38  | 0   | 0   |
 | `codegen/subscript/`                                                | 1     | 1   | 0   | 0   |
-| `codegen/assignment/**`, `codegen/resolution/`, `headers/`          | 25    | 25  | 0   | 0   |
+| `codegen/assignment/**`, `codegen/resolution/`, `headers/`          | 19    | 19  | 0   | 0   |
 
 ## Position availability — the finding that shapes #1322
 
@@ -116,10 +116,9 @@ had drifted (invariant 5, #1322).
 **Measured after 1322a**, by collecting each throw's statement to its terminating `;` and
 grouping on the result:
 
-| message                                                            | copies | where                                                                                                                                                           |
-| ------------------------------------------------------------------ | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Error: Cannot assign non-enum value to ${typeName} enum`          | **3**  | `EnumAssignmentValidator` (was 4; the arm this audit flagged as misreporting `this` outside a scope became unreachable when E0431 moved to 2.1, and is deleted) |
-| `Compound assignment operators not supported for bit field access` | **2**  | `AccessPatternHandlers`, `BitAccessHandlers`                                                                                                                    |
+| message                                                   | copies | where                                                                                                                                                           |
+| --------------------------------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Error: Cannot assign non-enum value to ${typeName} enum` | **3**  | `EnumAssignmentValidator` (was 4; the arm this audit flagged as misreporting `this` outside a scope became unreachable when E0431 moved to 2.1, and is deleted) |
 
 The first row was **9** before 1322a: four copies were bucket-3 deletions and the ninth was
 `CodeGenErrors.scopedTypeOutsideScope`, a factory with no caller at all. Deleting the dead
@@ -204,7 +203,7 @@ questions and only the first was asked.
   **parse error**, so it never reaches codegen at all. That leaves four live copies plus the
   factory, which is what makes unification tractable.
 
-## Bucket 1 — user-facing diagnostics (134)
+## Bucket 1 — user-facing diagnostics (128)
 
 Each needs a code and a real position in pass 2.1. `code` is the code it already carries, or
 **NEW** where one must be allocated. `position` names the node that is or would be in scope.
@@ -349,39 +348,33 @@ fire on an **undeclared identifier**, not on property misuse. The honest fix is 
 undefined-identifier diagnostic in symbol resolution; allocating five per-property codes would
 bake in a wrong diagnosis.
 
-### `codegen/assignment/**`, `codegen/resolution/`, `headers/` — 25
+### `codegen/assignment/**`, `codegen/resolution/`, `headers/` — 19
 
 Attribution here was established by proxying `Error` construction and reading the constructing
 stack frame, not by matching message text — necessary because three messages in this area are
 byte-identical across sites.
 
-| file:line                               | anchor                                            | message                                                      | code      | position source                                                              | fixture                                             |
-| --------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------ | --------- | ---------------------------------------------------------------------------- | --------------------------------------------------- |
-| `headers/BaseHeaderGenerator.ts:79`     | `is a typedef of a pointer declared in another`   | typedef of a pointer declared in another header              | E0505     | `origin.sourceLine` (`IHeaderSymbol`) — no parse tree exists                 | none                                                |
-| `resolution/ScopeResolver.ts:41`        | `Error: Cannot reference own scope`               | cannot reference own scope by name (ADR-016)                 | NEW E04xx | **none** — `(scopeName, memberName, isGlobalAccess)`; thread from 4+ callers | `scope/self-scope-bare-error`                       |
-| `resolution/ScopeResolver.ts:58`        | `Cannot access private member`                    | cannot access a private member (ADR-016)                     | NEW E04xx | same                                                                         | `scope/private-var-access-error` +4                 |
-| `resolution/SizeofResolver.ts:154`      | `Error[E0601]: sizeof() on array parameter`       | `sizeof()` on an array parameter (ADR-023)                   | E0601     | none in `throwArrayParamSizeofError(varName)`; thread from `:172`            | `sizeof/array-param-error` +1                       |
-| `resolution/SizeofResolver.ts:178`      | `Error[E0602]: sizeof() operand must not have`    | `sizeof()` operand has side effects (MISRA 13.6)             | E0602     | `expr` **is already the parameter** — position available, unused             | `sizeof/side-effects-error` +1                      |
-| `handlers/BitAccessHandlers.ts:22`      | `Compound assignment operators not supported for` | compound operator on bit-field access                        | NEW E08xx | `ctx.statementCtx.assignmentOperator()`                                      | `compound-assign/bit-index-compound`                |
-| `handlers/ArrayHandlers.ts:120`         | `0 Error: Slice assignment is not supported for`  | slice assignment unsupported for element type                | NEW E08xx | `ctx.subscripts[0]` — line used, column hard-coded `0`                       | none                                                |
-| `handlers/ArrayHandlers.ts:234`         | `0 Error: Slice assignment source must be an`     | slice source must be an integer                              | NEW E08xx | `ctx.valueCtx`                                                               | none                                                |
-| `handlers/ArrayHandlers.ts:286`         | `0 Error: Slice assignment literal value`         | slice literal does not fit (ADR-052)                         | NEW E08xx | `ctx.valueCtx`                                                               | `slice-assignment/slice-literal-too-wide` +1        |
-| `handlers/ArrayHandlers.ts:321`         | `multiple of the element size`                    | slice length must be a multiple of element size              | NEW E08xx | `ctx.subscripts[1]`                                                          | none                                                |
-| `handlers/ArrayHandlers.ts:329`         | `0 Error: Slice assignment out of bounds`         | slice out of bounds                                          | NEW E08xx | `ctx.subscripts[0]`                                                          | `slice-assignment/slice-bounds-violation`           |
-| `handlers/ArrayHandlers.ts:340`         | `bytes) exceeds`                                  | slice length exceeds source width                            | NEW E08xx | `ctx.subscripts[1]` / `ctx.valueCtx`                                         | `slice-assignment/slice-length-exceeds-source`      |
-| `handlers/ArrayHandlers.ts:480`         | `Compound assignment operators not supported for` | compound operator on slice assignment                        | NEW E08xx | `ctx.statementCtx.assignmentOperator()`                                      | none                                                |
-| `handlers/ArrayHandlers.ts:496`         | `0 Error: Slice assignment is only valid on`      | slice only valid on 1-D arrays                               | NEW E08xx | `ctx.targetCtx` / `ctx.subscripts[0]`                                        | `multi-dim-arrays/slice-outer-dim-error`            |
-| `handlers/ArrayHandlers.ts:508`         | `0 Error: Slice assignment offset must be a`      | slice offset must be compile-time constant                   | NEW E08xx | `ctx.subscripts[0]`                                                          | `slice-assignment/slice-runtime-offsets` +2         |
-| `handlers/ArrayHandlers.ts:519`         | `0 Error: Slice assignment length must be a`      | slice length must be compile-time constant                   | NEW E08xx | `ctx.subscripts[1]`                                                          | none                                                |
-| `handlers/ArrayHandlers.ts:534`         | `0 Error: Cannot determine buffer size for`       | cannot determine buffer size at compile time                 | NEW E08xx | `ctx.targetCtx`                                                              | none                                                |
-| `handlers/ArrayHandlers.ts:540`         | `0 Error: Slice assignment offset cannot be`      | slice offset cannot be negative                              | NEW E08xx | `ctx.subscripts[0]`                                                          | none                                                |
-| `handlers/ArrayHandlers.ts:546`         | `0 Error: Slice assignment length must be`        | slice length must be positive                                | NEW E08xx | `ctx.subscripts[1]`                                                          | `slice-assignment/slice-zero-length`                |
-| `handlers/StringHandlers.ts:26`         | `Error: Compound operators not supported for`     | compound operator on string assignment (ADR-045)             | NEW       | `ctx.statementCtx.assignmentOperator()`                                      | `string-assignment/string-assign-error-compound` +2 |
-| `handlers/AssignmentHandlerUtils.ts:24` | `Compound assignment operators not supported for` | compound operator on bit-field access                        | NEW E08xx | thread `ctx` from `RegisterHandlers.ts:25/60/120/157`                        | none                                                |
-| `handlers/AssignmentHandlerUtils.ts:47` | `Cannot assign false to write-only register bit`  | cannot assign `false` to a write-only register bit (ADR-013) | NEW       | thread `ctx.valueCtx` from `RegisterHandlers.ts:43/78/139/184`               | `register/register-wo-set-false-error`              |
-| `handlers/AssignmentHandlerUtils.ts:53` | `Cannot assign 0 to write-only register bits`     | cannot assign `0` to write-only register bits                | NEW       | same                                                                         | none                                                |
-| `handlers/AccessPatternHandlers.ts:69`  | `Compound assignment operators not supported for` | compound operator on bit-field access                        | NEW E08xx | `ctx.statementCtx.assignmentOperator()`                                      | none                                                |
-| `handlers/BitmapHandlers.ts:57`         | `Compound assignment operators not supported for` | compound operator on bitmap field access                     | NEW E08xx | `ctx.statementCtx.assignmentOperator()`                                      | none                                                |
+| file:line                               | anchor                                           | message                                                      | code      | position source                                                              | fixture                                        |
+| --------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------ | --------- | ---------------------------------------------------------------------------- | ---------------------------------------------- |
+| `headers/BaseHeaderGenerator.ts:79`     | `is a typedef of a pointer declared in another`  | typedef of a pointer declared in another header              | E0505     | `origin.sourceLine` (`IHeaderSymbol`) — no parse tree exists                 | none                                           |
+| `resolution/ScopeResolver.ts:41`        | `Error: Cannot reference own scope`              | cannot reference own scope by name (ADR-016)                 | NEW E04xx | **none** — `(scopeName, memberName, isGlobalAccess)`; thread from 4+ callers | `scope/self-scope-bare-error`                  |
+| `resolution/ScopeResolver.ts:58`        | `Cannot access private member`                   | cannot access a private member (ADR-016)                     | NEW E04xx | same                                                                         | `scope/private-var-access-error` +4            |
+| `resolution/SizeofResolver.ts:154`      | `Error[E0601]: sizeof() on array parameter`      | `sizeof()` on an array parameter (ADR-023)                   | E0601     | none in `throwArrayParamSizeofError(varName)`; thread from `:172`            | `sizeof/array-param-error` +1                  |
+| `resolution/SizeofResolver.ts:178`      | `Error[E0602]: sizeof() operand must not have`   | `sizeof()` operand has side effects (MISRA 13.6)             | E0602     | `expr` **is already the parameter** — position available, unused             | `sizeof/side-effects-error` +1                 |
+| `handlers/ArrayHandlers.ts:120`         | `0 Error: Slice assignment is not supported for` | slice assignment unsupported for element type                | NEW E08xx | `ctx.subscripts[0]` — line used, column hard-coded `0`                       | none                                           |
+| `handlers/ArrayHandlers.ts:234`         | `0 Error: Slice assignment source must be an`    | slice source must be an integer                              | NEW E08xx | `ctx.valueCtx`                                                               | none                                           |
+| `handlers/ArrayHandlers.ts:286`         | `0 Error: Slice assignment literal value`        | slice literal does not fit (ADR-052)                         | NEW E08xx | `ctx.valueCtx`                                                               | `slice-assignment/slice-literal-too-wide` +1   |
+| `handlers/ArrayHandlers.ts:321`         | `multiple of the element size`                   | slice length must be a multiple of element size              | NEW E08xx | `ctx.subscripts[1]`                                                          | none                                           |
+| `handlers/ArrayHandlers.ts:329`         | `0 Error: Slice assignment out of bounds`        | slice out of bounds                                          | NEW E08xx | `ctx.subscripts[0]`                                                          | `slice-assignment/slice-bounds-violation`      |
+| `handlers/ArrayHandlers.ts:340`         | `bytes) exceeds`                                 | slice length exceeds source width                            | NEW E08xx | `ctx.subscripts[1]` / `ctx.valueCtx`                                         | `slice-assignment/slice-length-exceeds-source` |
+| `handlers/ArrayHandlers.ts:492`         | `0 Error: Slice assignment is only valid on`     | slice only valid on 1-D arrays                               | NEW E08xx | `ctx.targetCtx` / `ctx.subscripts[0]`                                        | `multi-dim-arrays/slice-outer-dim-error`       |
+| `handlers/ArrayHandlers.ts:504`         | `0 Error: Slice assignment offset must be a`     | slice offset must be compile-time constant                   | NEW E08xx | `ctx.subscripts[0]`                                                          | `slice-assignment/slice-runtime-offsets` +2    |
+| `handlers/ArrayHandlers.ts:515`         | `0 Error: Slice assignment length must be a`     | slice length must be compile-time constant                   | NEW E08xx | `ctx.subscripts[1]`                                                          | none                                           |
+| `handlers/ArrayHandlers.ts:530`         | `0 Error: Cannot determine buffer size for`      | cannot determine buffer size at compile time                 | NEW E08xx | `ctx.targetCtx`                                                              | none                                           |
+| `handlers/ArrayHandlers.ts:536`         | `0 Error: Slice assignment offset cannot be`     | slice offset cannot be negative                              | NEW E08xx | `ctx.subscripts[0]`                                                          | none                                           |
+| `handlers/ArrayHandlers.ts:542`         | `0 Error: Slice assignment length must be`       | slice length must be positive                                | NEW E08xx | `ctx.subscripts[1]`                                                          | `slice-assignment/slice-zero-length`           |
+| `handlers/AssignmentHandlerUtils.ts:41` | `Cannot assign false to write-only register bit` | cannot assign `false` to a write-only register bit (ADR-013) | NEW       | thread `ctx.valueCtx` from `RegisterHandlers.ts:39/78/139/184`               | `register/register-wo-set-false-error`         |
+| `handlers/AssignmentHandlerUtils.ts:47` | `Cannot assign 0 to write-only register bits`    | cannot assign `0` to write-only register bits                | NEW       | same                                                                         | none                                           |
 
 The 13 `ArrayHandlers` slice sites **already smuggle a position through the message string** as a
 `${line}:0` prefix that a downstream layer parses — which is why

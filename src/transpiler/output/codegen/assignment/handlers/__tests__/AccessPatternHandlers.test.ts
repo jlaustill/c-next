@@ -323,24 +323,12 @@ describe("AccessPatternHandlers", () => {
       expect(result).toContain("1ULL << bit");
     });
 
-    it("throws on compound assignment for bit access in member chain", () => {
-      HandlerTestUtils.setupMockGenerator({
-        analyzeMemberChainForBitAccess: vi.fn().mockReturnValue({
-          isBitAccess: true,
-          baseTarget: "data.flags",
-          bitIndex: "0",
-          baseType: "u32",
-        }),
-      });
-      const ctx = createMockContext({
-        isCompound: true,
-        cnextOp: "+<-",
-      });
-
-      expect(() => getHandler()!(ctx)).toThrow(
-        "Compound assignment operators not supported for bit field access",
-      );
-    });
+    // #1322: compound assignment on a bit index, bit range, slice, bitmap field
+    // or string is E0857 in pass 2.1 -- one decision where `output/` had six
+    // throws with four messages, and `validateNotCompound` defined twice verbatim.
+    // The pipeline halts before these handlers run. Covered by
+    // `1-Analyze/__tests__/CompoundAssignmentAnalyzer.test.ts` plus
+    // `tests/compound-assign/` and `tests/string-assignment/`.
 
     it("handles compound assignment for normal member chain", () => {
       HandlerTestUtils.setupMockGenerator({

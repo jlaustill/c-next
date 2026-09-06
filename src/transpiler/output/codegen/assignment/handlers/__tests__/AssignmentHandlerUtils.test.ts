@@ -8,21 +8,11 @@ import SymbolRegistry from "../../../../../state/SymbolRegistry";
 import ScopeUtils from "../../../../../../utils/ScopeUtils";
 
 describe("AssignmentHandlerUtils", () => {
-  describe("validateNoCompoundForBitAccess", () => {
-    it("should not throw for non-compound assignment", () => {
-      expect(() =>
-        AssignmentHandlerUtils.validateNoCompoundForBitAccess(false, "<-"),
-      ).not.toThrow();
-    });
-
-    it("should throw for compound assignment", () => {
-      expect(() =>
-        AssignmentHandlerUtils.validateNoCompoundForBitAccess(true, "+<-"),
-      ).toThrow(
-        "Compound assignment operators not supported for bit field access: +<-",
-      );
-    });
-  });
+  // #1322: compound assignment on a bit index, bit range, slice or string is
+  // E0857 in pass 2.1 -- one decision where this was six throws with four
+  // messages, and where this helper was defined a second time, verbatim, in
+  // `BitAccessHandlers`. Covered by
+  // `1-Analyze/__tests__/CompoundAssignmentAnalyzer.test.ts`.
 
   describe("validateWriteOnlyValue", () => {
     describe("single bit access", () => {

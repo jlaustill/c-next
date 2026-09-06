@@ -476,11 +476,7 @@ function buildSliceWrites(
  * - Bounds checking at compile time
  */
 function handleArraySlice(ctx: IAssignmentContext): string {
-  if (ctx.isCompound) {
-    throw new Error(
-      `Compound assignment operators not supported for slice assignment: ${ctx.cnextOp}`,
-    );
-  }
+  // #1322: compound assignment on this target is E0857 in pass 2.1.
 
   // Use resolvedBaseIdentifier for type lookup (includes scope prefix)
   const name = ctx.resolvedBaseIdentifier;

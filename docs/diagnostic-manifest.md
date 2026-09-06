@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-316 fixture(s) assert a diagnostic; 196 carry a code.
+316 fixture(s) assert a diagnostic; 200 carry a code.
 
 | Fixture                                                                                          | Codes        |
 | ------------------------------------------------------------------------------------------------ | ------------ |
@@ -172,7 +172,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/casting/sign-cast-error.test.cnx                                                           | (uncoded)    |
 | tests/comments/misra-3-1-nested-block.test.cnx                                                   | MISRA-3.1    |
 | tests/comments/misra-3-2-backslash.test.cnx                                                      | MISRA-3.2    |
-| tests/compound-assign/bit-index-compound.test.cnx                                                | (uncoded)    |
+| tests/compound-assign/bit-index-compound.test.cnx                                                | E0857        |
 | tests/conditions/function-call-in-do-while-error.test.cnx                                        | E0702        |
 | tests/conditions/function-call-in-for-error.test.cnx                                             | E0702        |
 | tests/conditions/function-call-in-if-double-negated-error.test.cnx                               | E0702        |
@@ -309,9 +309,9 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/static-allocation/malloc-error.test.cnx                                                    | E0902        |
 | tests/static-allocation/realloc-error.test.cnx                                                   | E0902        |
 | tests/string-array-init/string-array-init-error-mismatch.test.cnx                                | (uncoded)    |
-| tests/string-assignment/string-assign-error-compound.test.cnx                                    | (uncoded)    |
-| tests/string-assignment/string-assign-error-struct-compound.test.cnx                             | (uncoded)    |
-| tests/string-assignment/string-assign-error-this-compound.test.cnx                               | (uncoded)    |
+| tests/string-assignment/string-assign-error-compound.test.cnx                                    | E0857        |
+| tests/string-assignment/string-assign-error-struct-compound.test.cnx                             | E0857        |
+| tests/string-assignment/string-assign-error-this-compound.test.cnx                               | E0857        |
 | tests/string/string-error-concat-global.test.cnx                                                 | (uncoded)    |
 | tests/string/string-error-concat-overflow.test.cnx                                               | (uncoded)    |
 | tests/string/string-error-const-no-init.test.cnx                                                 | (uncoded)    |

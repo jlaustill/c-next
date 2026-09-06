@@ -767,29 +767,12 @@ describe("ArrayHandlers", () => {
       );
     });
 
-    it("throws on compound assignment", () => {
-      HandlerTestUtils.setupMockTypeRegistry([
-        ["buffer", { arrayDimensions: [100], baseType: "u8" }],
-      ]);
-      HandlerTestUtils.setupMockGenerator({
-        tryEvaluateConstant: vi
-          .fn()
-          .mockReturnValueOnce(0)
-          .mockReturnValueOnce(10),
-      });
-      const ctx = createMockContext({
-        isCompound: true,
-        cnextOp: "+<-",
-        subscripts: [
-          { mockValue: "0", start: { line: 1 } } as never,
-          { mockValue: "10", start: { line: 1 } } as never,
-        ],
-      });
-
-      expect(() => getHandler()!(ctx)).toThrow(
-        "Compound assignment operators not supported for slice assignment",
-      );
-    });
+    // #1322: compound assignment on a bit index, bit range, slice, bitmap field
+    // or string is E0857 in pass 2.1 -- one decision where `output/` had six
+    // throws with four messages, and `validateNotCompound` defined twice verbatim.
+    // The pipeline halts before these handlers run. Covered by
+    // `1-Analyze/__tests__/CompoundAssignmentAnalyzer.test.ts` plus
+    // `tests/compound-assign/` and `tests/string-assignment/`.
 
     it("throws on multi-dimensional array", () => {
       HandlerTestUtils.setupMockTypeRegistry([

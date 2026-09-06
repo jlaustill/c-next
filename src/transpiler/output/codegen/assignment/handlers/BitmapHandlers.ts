@@ -52,12 +52,7 @@ function getBitmapFieldInfo(
 
   const fieldInfo = fields.get(fieldName)!;
 
-  // Validate compound operators not allowed
-  if (ctx.isCompound) {
-    throw new Error(
-      `Compound assignment operators not supported for bitmap field access: ${ctx.cnextOp}`,
-    );
-  }
+  // #1322: compound assignment on this target is E0857 in pass 2.1.
 
   // Validate compile-time literal overflow
   if (ctx.valueCtx) {

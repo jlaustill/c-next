@@ -1,1 +1,2 @@
-1:0 Code generation failed: Error: Compound operators not supported for string assignment: +<-
+5:8 error[E0857]: Compound assignment operators are not supported on a string
+       help: A compound operator reads, modifies and writes back one storage location. Write the read and the write out separately.

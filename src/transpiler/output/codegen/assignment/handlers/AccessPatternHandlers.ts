@@ -64,12 +64,7 @@ function handleMemberChain(ctx: IAssignmentContext): string {
     );
 
   if (bitAnalysis.isBitAccess) {
-    // Validate compound operators not supported for bit access
-    if (ctx.isCompound) {
-      throw new Error(
-        `Compound assignment operators not supported for bit field access: ${ctx.cnextOp}`,
-      );
-    }
+    // #1322: compound assignment on this target is E0857 in pass 2.1.
 
     const { baseTarget, bitIndex, baseType } = bitAnalysis;
     const one = BitUtils.oneForType(baseType!);

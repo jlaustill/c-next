@@ -16,16 +16,10 @@ import ScopeUtils from "../../../../../utils/ScopeUtils";
  * @param cnextOp - The C-Next operator being used
  * @throws Error if compound operator is used with bit fields
  */
-function validateNoCompoundForBitAccess(
-  isCompound: boolean,
-  cnextOp: string,
-): void {
-  if (isCompound) {
-    throw new Error(
-      `Compound assignment operators not supported for bit field access: ${cnextOp}`,
-    );
-  }
-}
+// #1322: `validateNoCompoundForBitAccess` is gone. Compound assignment on a
+// bit index, bit range, slice or string is E0857 in pass 2.1 -- one decision
+// where this was six throws with four message variants, and where this very
+// helper was defined a second time, verbatim, in `BitAccessHandlers`.
 
 /**
  * Validate write-only register assignment value.
@@ -108,8 +102,6 @@ function buildRegisterNameWithScopeDetection(
  * Assignment Handler Utilities
  */
 class AssignmentHandlerUtils {
-  static readonly validateNoCompoundForBitAccess =
-    validateNoCompoundForBitAccess;
   static readonly validateWriteOnlyValue = validateWriteOnlyValue;
   static readonly buildScopedRegisterName = buildScopedRegisterName;
   static readonly buildRegisterNameWithScopeDetection =

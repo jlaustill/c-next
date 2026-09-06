@@ -138,24 +138,12 @@ describe("BitmapHandlers", () => {
       expect(() => getHandler()!(ctx)).toThrow("agree on the bitmap field key");
     });
 
-    it("throws on compound assignment", () => {
-      HandlerTestUtils.setupMockTypeRegistry([
-        ["flags", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
-      ]);
-      HandlerTestUtils.setupMockSymbols({
-        bitmapFields: new Map([
-          ["StatusFlags", new Map([["Running", { offset: 0, width: 1 }]])],
-        ]),
-      });
-      const ctx = createMockContext({
-        isCompound: true,
-        cnextOp: "+<-",
-      });
-
-      expect(() => getHandler()!(ctx)).toThrow(
-        "Compound assignment operators not supported for bitmap field access",
-      );
-    });
+    // #1322: compound assignment on a bit index, bit range, slice, bitmap field
+    // or string is E0857 in pass 2.1 -- one decision where `output/` had six
+    // throws with four messages, and `validateNotCompound` defined twice verbatim.
+    // The pipeline halts before these handlers run. Covered by
+    // `1-Analyze/__tests__/CompoundAssignmentAnalyzer.test.ts` plus
+    // `tests/compound-assign/` and `tests/string-assignment/`.
 
     it("validates bitmap field literal", () => {
       HandlerTestUtils.setupMockTypeRegistry([
