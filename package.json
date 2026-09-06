@@ -50,6 +50,7 @@
     "measure:header-parse-errors": "tsx scripts/measure-header-parse-errors.ts",
     "adr:independence:check": "tsx scripts/adr-independence.ts",
     "gh:pagination:check": "tsx scripts/gh-pagination.ts",
+    "gate:roster:check": "tsx scripts/gate-roster.ts",
     "release:milestones": "tsx scripts/release-milestones.ts apply",
     "release:milestones:check": "tsx scripts/release-milestones.ts check",
     "scope-joins": "tsx scripts/scope-join-sites.ts write",
