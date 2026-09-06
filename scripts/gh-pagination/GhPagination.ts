@@ -43,12 +43,28 @@ import IGhPaginationViolation from "../types/IGhPaginationViolation";
  * legitimate case ever appears, that is the moment to add heredoc tracking --
  * not before, when there would be no way to tell whether it worked.
  *
- * KNOWN LIMIT: nested connection caps are out of reach in principle, not just in
- * practice. `--paginate` cannot advance an inner connection, so there is no flag
- * whose absence would prove anything, and requiring a token like `totalCount`
- * would demand a spelling without demanding the behavior -- this defect one
- * level up. They need a reader and measured headroom instead. Measured
- * 2026-09-05, and the reason the first of these was raised in the same commit:
+ * KNOWN LIMIT, and narrower than it first read: a cap nested inside ANOTHER
+ * CONNECTION is out of reach. `fieldValues(first: 100)` sits inside
+ * `items(first: 100)`, and advancing it would need one cursor per outer item,
+ * which `--paginate` has no way to carry. Requiring a token like `totalCount`
+ * there would demand a spelling without demanding the behavior -- this defect
+ * one level up. Those need a reader and measured headroom instead.
+ *
+ * A cap nested inside SINGULAR selections is a different thing and is NOT out
+ * of reach, so `classify` is right to require pagination of it. Measured
+ * 2026-09-06 against the live API: `--paginate` with `$endCursor` advanced
+ * `repository(...) { issues(first: 2, after: $endCursor) }` -- a connection two
+ * levels down -- and returned twelve issues from a page size of two. So a
+ * `node(id: $id) { ... fieldValues(first: 100) }` query is reported, and the
+ * fix is the ordinary one: add `pageInfo`, `after: $endCursor`, `--paginate`.
+ * This was raised as a false positive with no available fix; the fix exists,
+ * and the measurement is recorded here because the claim was plausible.
+ *
+ * Every out-of-reach cap in this repository is accompanied by an outer cap on
+ * the connection enclosing it, and that outer cap is what the rule fires on, so
+ * the two cases have never yet had to be told apart in practice. Headroom
+ * measured 2026-09-05, and the reason the first of these was raised in the same
+ * commit:
  *
  *   fieldValues        14 of 20  -- 70%, `Blocked by` the 14th and last; raised
  *                                  to 100 in both skills
@@ -72,14 +88,31 @@ class GhPagination {
    * `classify`, where it is visible, rather than here where a miss is silent.
    */
   static readonly INVOCATION_SOURCE =
-    "(?<![\\w.$-])gh\\s+(?:api|issue|pr|run|release|workflow|cache|search)\\b";
+    "(?<![\\w.$-])gh\\s+(?:api|issue|pr|run|release|workflow|cache|search|project|repo|label|secret|variable|ruleset|gist)\\b";
 
-  /** A read that returns a page: `gh <thing> list`, or a `gh search` subcommand. */
+  /**
+   * A read that returns a page: `gh <thing> list`, a `gh search` subcommand, or
+   * one of `gh project`'s list-shaped commands, which are not spelled `list`.
+   *
+   * `gh project item-list` is the one that matters most here. CLAUDE.md records
+   * that the board is past 200 items, and someone who wants it without writing
+   * GraphQL by hand reaches for `item-list` -- which caps at 30 like the rest.
+   */
   static readonly LIST_COMMAND =
-    /^gh\s+(?:issue|pr|run|release|workflow|cache)\s+list\b|^gh\s+search\s+(?:issues|prs|repos|code|commits)\b/;
+    /^gh\s+(?:issue|pr|run|release|workflow|cache|repo|label|secret|variable|ruleset|gist)\s+list\b|^gh\s+search\s+(?:issues|prs|repos|code|commits)\b|^gh\s+project\s+(?:list|item-list|field-list)\b/;
 
-  /** `--limit N` or `-L N`. `-L` must not be the tail of a longer flag. */
-  static readonly LIMIT = /(?:--limit|(?<![\w-])-L)[= ]\s*\d+/;
+  /**
+   * `--limit N` or `-L N`. `-L` must not be the tail of a longer flag.
+   *
+   * A shell variable counts as a bound. What this gate exists to catch is a
+   * limit that is ABSENT, because absence truncates in silence; `--limit
+   * "$LIMIT"` is a finite bound, and an unset variable makes `gh` fail loudly
+   * rather than return page one. Requiring a literal would force the bound to
+   * be written twice wherever a caller also asserts against it -- the constant
+   * in the command and the same constant in the assertion -- which is the
+   * duplicate-path anti-pattern bought with no added safety.
+   */
+  static readonly LIMIT = /(?:--limit|(?<![\w-])-L)[= ]\s*(?:\d+|"?\$\{?\w+)/;
 
   /** A write cannot truncate a result set, because it does not read one. */
   static readonly WRITE = /(?:-X|--method)[= ]\s*(?:POST|PUT|PATCH|DELETE)\b/i;
@@ -104,12 +137,25 @@ class GhPagination {
    * Path segments that name a collection. The discriminator is the LAST segment:
    * `issues/1449` is one issue and cannot truncate, `issues/1449/comments` is a
    * page of comments and can.
+   *
+   * Every entry must be a segment GitHub actually serves. `checks` was in this
+   * set and is not one -- the endpoints are `commits/{ref}/check-runs` and
+   * `/check-suites` -- so it could never match while both real collections read
+   * as single resources. An invented segment is worse than a missing one: it
+   * looks like coverage. `check-runs` earns its place twice over, because
+   * CLAUDE.md instructs the reader to "query the check-run rollup by head SHA",
+   * so the repository's own merge-safety workflow produced a shape this gate
+   * could not see. (`review-comments` was proposed alongside these and is not
+   * here for the same reason `checks` left: the path is `pulls/{n}/comments`.)
    */
   static readonly COLLECTION_SEGMENTS: ReadonlySet<string> = new Set([
+    "annotations",
     "artifacts",
+    "assets",
     "assignees",
     "branches",
-    "checks",
+    "check-runs",
+    "check-suites",
     "collaborators",
     "comments",
     "commits",
@@ -117,6 +163,7 @@ class GhPagination {
     "deployments",
     "environments",
     "events",
+    "files",
     "forks",
     "issues",
     "jobs",
@@ -137,9 +184,87 @@ class GhPagination {
     "subscribers",
     "tags",
     "teams",
+    "timeline",
     "variables",
     "workflows",
   ]);
+
+  /**
+   * Flags whose value is a SEPARATE token, and must be skipped with them.
+   *
+   * This does NOT fix the reported `-H "Accept: application/vnd.github+json"`
+   * miss, though an earlier version of this comment claimed it did. `tokenize`
+   * fixes that one on its own: the header value stays in a single token and
+   * fails the path shape at its colon. Mutation-checking is what said so --
+   * removing `-H` from this set left the whole suite green, which is a fixture
+   * that cannot fail, and crediting a fix to the wrong mechanism is the exact
+   * error this gate was built to stop recurring.
+   *
+   * What this set earns is the flag value that IS path-shaped, where the
+   * tokenizer cannot help. Both measured:
+   *
+   *   --input notes/body.json repos/o/r/issues   -> `notes/body.json`, and
+   *     `body.json` is not a collection segment, so the real collection read
+   *     silently classified as sound
+   *   --template repos/o/r/pulls repos/o/r/issues -> the wrong path entirely
+   */
+  static readonly VALUE_FLAGS: ReadonlySet<string> = new Set([
+    "--cache",
+    "--field",
+    "--header",
+    "--hostname",
+    "--input",
+    "--jq",
+    "--method",
+    "--raw-field",
+    "--template",
+    "-F",
+    "-H",
+    "-X",
+    "-f",
+    "-q",
+    "-t",
+  ]);
+
+  /**
+   * Split a command the way a shell would: whitespace separates tokens, except
+   * inside quotes.
+   *
+   * `split(/\s+/)` tore `-H "Accept: application/vnd.github+json"` into three
+   * tokens, so skipping the flag left `application/vnd.github+json` standing
+   * where a path belongs and the real endpoint was never reached. Keeping the
+   * value whole is what settles that -- it then fails the path shape at its
+   * colon -- so this method, not `VALUE_FLAGS`, is the fix for the reported
+   * case. Quoting is handled here rather than stripped afterwards, which also
+   * retires the older `^["\']|["\']$` trim and the class of bug where a `--jq`
+   * body contributed tokens of its own.
+   */
+  static tokenize(command: string): string[] {
+    const tokens: string[] = [];
+    let current = "";
+    let quote: string | null = null;
+    let open = false;
+
+    for (const char of command) {
+      if (quote !== null) {
+        if (char === quote) quote = null;
+        else current += char;
+      } else if (char === '"' || char === "'") {
+        quote = char;
+        open = true;
+      } else if (/\s/.test(char)) {
+        if (open) tokens.push(current);
+        current = "";
+        open = false;
+      } else {
+        current += char;
+        open = true;
+      }
+    }
+
+    if (open) tokens.push(current);
+    return tokens;
+  }
 
   /**
    * Whether a line is prose rather than something anyone runs.
@@ -233,19 +358,38 @@ class GhPagination {
   /**
    * The API path a `gh api` call reads: the first path-shaped non-flag token.
    *
-   * Quotes come off BEFORE the shape test, not after. A path is quoted exactly
-   * when it carries a query string -- `'…/comments?per_page=100'` -- so testing
-   * the quoted form would return null for every paginated call and report it
-   * sound because the path was unreadable, not because a bound was found. That
-   * is a guard passing for a reason unrelated to what it asserts.
+   * Quotes come off BEFORE the shape test, not after -- a path is quoted exactly
+   * when it carries a query string, `'…/comments?per_page=100'`, so testing the
+   * quoted form returned null for every paginated call and reported it sound
+   * because the path was unreadable, not because a bound was found. That is a
+   * guard passing for a reason unrelated to what it asserts, and two more
+   * instances of it were found afterwards by probing rather than reading:
+   *
+   *   gh api -H "Accept: …+json" repos/o/r/issues  -> the header VALUE
+   *   gh api /repos/o/r/issues                     -> null
+   *
+   * The first is fixed by consuming `VALUE_FLAGS` values with their flag, the
+   * second by accepting the leading slash `gh api` accepts and its own docs use.
+   * Neither shape exists in this repository today, which is precisely why
+   * neither would have been noticed until it did.
+   *
+   * Returning null no longer means "sound" -- see `classify`.
    */
   static apiPath(command: string): string | null {
-    const tokens = command.replace(GhPagination.REST, "").split(/\s+/);
+    const tokens = GhPagination.tokenize(
+      command.replace(GhPagination.REST, ""),
+    );
 
-    for (const token of tokens) {
-      const bare = token.replace(/^["']|["']$/g, "");
-      if (bare.startsWith("-")) continue;
-      if (/^[A-Za-z][\w.-]*(?:\/[^\s'"|)]+)+/.test(bare)) return bare;
+    for (let index = 0; index < tokens.length; index += 1) {
+      const token = tokens[index];
+      if (GhPagination.VALUE_FLAGS.has(token)) {
+        index += 1;
+        continue;
+      }
+      if (token.startsWith("-")) continue;
+      if (/^\/?[A-Za-z][\w.-]*(?:\/[^\s'"|)]+)+/.test(token)) {
+        return token.replace(/^\//, "");
+      }
     }
 
     return null;
@@ -279,9 +423,16 @@ class GhPagination {
     }
 
     if (GhPagination.REST.test(command)) {
+      const paginated = /--paginate\b/.test(command);
       const path = GhPagination.apiPath(command);
-      if (path === null || !GhPagination.isCollection(path)) return null;
-      return /--paginate\b/.test(command) ? null : "unpaginated-collection";
+      // An unreadable path is NOT a single resource, and reading it as one is
+      // how the two misses above stayed quiet. `--paginate` still settles it --
+      // it is harmless on a single resource and required on a collection -- so
+      // reporting here always has a fix, and the token walk becomes
+      // self-verifying: if it regresses, the gate goes red instead of silent.
+      if (path === null) return paginated ? null : "unreadable-path";
+      if (!GhPagination.isCollection(path)) return null;
+      return paginated ? null : "unpaginated-collection";
     }
 
     return null;

@@ -12,14 +12,46 @@ set -e
 # against a true 257; and `/issues` returns pull requests too, so even the
 # capped number conflated them. `gh issue list` excludes PRs natively and
 # `--limit` is the bound (#1416).
+
+# The bound, named once: the command and the assertion that watches it have to
+# agree about it, so neither spells the number out.
+GH_ISSUE_LIMIT=1000
+
 open_issue_count() {
+    # One argv built conditionally, not two calls differing by a single flag --
+    # collapsing six copies into a function that holds two branches would have
+    # kept the very shape that let the six diverge. Only the VARYING flag goes
+    # in the array: the bound stays spelled at the call site, where a reader and
+    # `npm run gh:pagination:check` can both see it. Folding it into
+    # "${args[@]}" hid it from both, and the gate said so.
+    local args=(--state open)
     if [[ -n "${1:-}" ]]; then
-        gh issue list --state open --limit 1000 --label "$1" \
-            --json number --jq 'length' 2>/dev/null || echo 0
-    else
-        gh issue list --state open --limit 1000 \
-            --json number --jq 'length' 2>/dev/null || echo 0
+        args+=(--label "$1")
     fi
+
+    local count
+    if ! count=$(gh issue list --limit "$GH_ISSUE_LIMIT" "${args[@]}" \
+        --json number --jq 'length' 2>/dev/null); then
+        # A failed read must not print as a confident zero: `Open Issues: 0`
+        # from an expired token is the same genre of lie as `Open Issues: 30`
+        # from a capped page. Callers compare numerically, so the value stays a
+        # number and the doubt goes to stderr, where it cannot be read as data.
+        echo "warning: the open-issue read failed${1:+ for label '$1'} -- reporting 0" >&2
+        echo 0
+        return
+    fi
+
+    # `--limit` bounds the read; only this notices when the bound was REACHED.
+    # Here the count IS the output, so at the limit it stops being a total and
+    # becomes a page with nothing to say so -- the defect this file was fixed
+    # for. The headroom is comfortable today; the count that would say by how
+    # much is deliberately not written here, because it moved the day after it
+    # was measured. The assertion is the part that does not rot (#1416).
+    if [[ "$count" -ge "$GH_ISSUE_LIMIT" ]]; then
+        echo "warning: count $count reached --limit $GH_ISSUE_LIMIT -- this is a page, not a total" >&2
+    fi
+
+    echo "$count"
 }
 
 echo "========================================"

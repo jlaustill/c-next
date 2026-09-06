@@ -153,8 +153,10 @@ behind a comment saying `gh` "returns the most recently updated first". If that 
 recency of _activity_ would keep a row in the page and an **assigned** issue would be safe
 unbounded. It is not: #1449 was the 2nd-most-recently-**updated** issue in the repo and still
 outside the default page. Prefer a server-side filter where one exists — `--assignee "*"`
-answered in 1 row what filtering 257 could not — then `--limit`, then assert the returned
-count is strictly below it. `--paginate` concatenates pages, so a per-item `--jq '.[] | …'`
+returns the assigned rows, where filtering the list client-side must first receive every
+open issue and receives thirty — then `--limit`, then assert the returned count is strictly
+below it. (Both counts this sentence used to quote had moved within a day of being measured,
+which is the same argument in miniature: assert the bound, do not record the reading.) `--paginate` concatenates pages, so a per-item `--jq '.[] | …'`
 is safe under it but an aggregate `--jq 'length'` prints once **per page**.
 
 **Refactoring with ts-morph**: `ts-morph` is a direct devDependency (28.x). Use it for
@@ -208,15 +210,19 @@ update step: an `--update` inside it could not fail on a mismatch. `npm run test
 regenerates every snapshot, `tests/bugs/` included (#1142); `npm run test:bugs:update` narrows
 it to the regression fixtures.
 
-**`test:all` is four checks of twenty-four — run `npm run test:gate` before pushing.**
-`test:all` is `build && unit && test:q && validate:c`. CI runs twenty more with no local
-alias: the whole **`Static Analysis`** job (`prettier:check`, `plugin:test`, `cspell:check`,
-`oxlint:check`, `knip`, `depcruise`, `lint:test-location`, `analyze:duplication`,
-`docs:toolchain:check`, `coverage:matrix:check`, `diagnostics:manifest:check`,
-`docs:throw-citations:check`, `scope-joins:check`, `adr:independence:check`), plus
-`typecheck`, `test:cli`,
+**`test:all` is four checks of twenty-six — run `npm run test:gate` before pushing.**
+`test:all` is `build && unit && test:q && validate:c`. CI runs twenty-two more with no local
+alias: the whole **`Static Analysis`** job (`prettier:check`, `plugin:test`, `test:hooks`,
+`cspell:check`, `oxlint:check`, `knip`, `depcruise`, `lint:test-location`,
+`analyze:duplication`, `docs:toolchain:check`, `coverage:matrix:check`,
+`diagnostics:manifest:check`, `docs:throw-citations:check`, `scope-joins:check`,
+`adr:independence:check`, `gh:pagination:check`), plus `typecheck`, `typecheck` for
+`prettier-plugin`, `test:cli`,
 `coverage:grammar:check`, `format:fidelity`, and the working-tree check that `Verify Clean`
-performs. `scripts/gate.sh` runs all of them, reports each against the CI job that owns it,
+performs. This roster is a list that reads as complete, so it fails the way every other list
+in this section does: it stood at twenty-four in the pull request that added the
+twenty-fifth and twenty-sixth, and `scripts/gate.sh` is the count that cannot drift
+(`grep -c '^run_check'`). `scripts/gate.sh` runs all of them, reports each against the CI job that owns it,
 and does **not** stop at the first failure. A green `test:all` says nothing about any of
 them: #1399 pushed on one and turned CI red on `docs:throw-citations:check`, because
 **adding a single import to a file under `output/` shifts every later `throw new` down one

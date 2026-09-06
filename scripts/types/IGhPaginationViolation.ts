@@ -12,8 +12,15 @@ interface IGhPaginationViolation {
    * with no `--paginate` (the API defaults to 30). `unpaginated-graphql` is a
    * GraphQL query carrying `first:`/`last:` without `--paginate` driving an
    * `$endCursor` — the cursor name matters, because `--paginate` advances no other.
+   * `unreadable-path` is a `gh api` whose endpoint the scanner could not find at
+   * all: reporting it keeps "I could not read this" distinct from "this is a
+   * single resource", a conflation that hid two live misses.
    */
-  kind: "unbounded-list" | "unpaginated-collection" | "unpaginated-graphql";
+  kind:
+    | "unbounded-list"
+    | "unpaginated-collection"
+    | "unpaginated-graphql"
+    | "unreadable-path";
   /** The offending command, collapsed to one line for the report. */
   detail: string;
 }

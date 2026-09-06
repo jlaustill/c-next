@@ -28,6 +28,21 @@ console.log(
   `Scanned ${outcome.scanned} tracked file(s) for gh invocations. No exemption mechanism exists.`,
 );
 
+// The unit suite asserts this number is plausible; until now the CLI only
+// printed it, and the CLI is what `gate.sh` and the `lint` job run. Anything
+// that empties the candidate list -- `git grep` missing from a runner image,
+// the `-F 'gh '` literal drifting, a changed cwd -- turned the gate GREEN.
+// That is this PR's own subject one level up: a truncated read reporting as a
+// complete one. A repository with no candidates is not a clean repository.
+if (outcome.scanned === 0) {
+  console.log(
+    chalk.red(
+      "\nScanned 0 files: the candidate filter found nothing, which is a broken selector reporting a clean repository.",
+    ),
+  );
+  process.exit(1);
+}
+
 if (outcome.failures.length > 0) {
   console.log(
     chalk.red(`\nUnbounded gh reads: ${outcome.failures.length} violation(s).`),

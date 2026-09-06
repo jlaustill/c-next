@@ -78,8 +78,12 @@ FOR each open PR:
 ```bash
 # Issues assigned to anyone.
 # `--assignee "*"` filters on the SERVER, so the answer does not depend on the
-# page size at all -- it returned 1 row where the unfiltered list returns 257.
+# page size at all -- it returns the assigned rows, where the unfiltered list
+# must first receive every open issue and receives thirty of them.
 # --limit is the bound behind it; the ASSERT below is what survives growth.
+# The row count is deliberately not written here: it changed the day after it
+# was measured, and this comment is read as ground truth. The assertion is what
+# does not rot.
 #
 # Filtering an UNBOUNDED list here is what recommended #1449 as the top new pick
 # while it was assigned, in WIP, and 34 minutes into planning. This command
