@@ -2,44 +2,27 @@
 /**
  * Issue #1365: verify `docs/architecture/output-throw-classification.md`.
  *
- * Check-only. There is no `write` mode because the document is authored, not
- * generated -- a fixer would have to guess which throw a stale citation meant,
- * and nine sites share a message, so the guess is not safe. The failure lists
- * the nearest `throw new` instead, which is enough to correct a row by hand.
+ * Check-only. There is no `write` mode here because a fixer that also validated
+ * could only ever agree with itself -- the `/* test-no-warnings *\/` shape
+ * (#1143). `npm run docs:throw-citations:remap` is that fixer, deliberately a
+ * separate command outside `gate.sh`, so this re-derives its answer
+ * independently afterwards. It refuses wherever an anchor does not identify
+ * exactly one throw, which is the guess the original no-fixer note was
+ * protecting against: nine sites share a message.
  */
 
 import { readFileSync } from "node:fs";
-import { dirname, join, sep } from "node:path";
-import { fileURLToPath } from "node:url";
 
 import chalk from "chalk";
 
+import OutputThrowSources from "./diagnostics/OutputThrowSources";
 import ThrowCitations from "./diagnostics/ThrowCitations";
-import FileScanner from "./utils/FileScanner";
-
-const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..");
-const docPath = join(
-  rootDir,
-  "docs",
-  "architecture",
-  "output-throw-classification.md",
-);
-const outputDir = join(rootDir, "src", "transpiler", "output");
 
 function main(): void {
-  // FileScanner is the shared recursive walk this repo standardized on; two
-  // other scripts carry a comment recording that a local copy was removed in
-  // favour of it. The `__tests__` skip composes on top, and is what the
-  // document's own command spells as `| grep -v __tests__`.
-  const sources = new Map<string, string>();
-  for (const full of FileScanner.findFiles(outputDir, ".ts")) {
-    if (full.includes(`${sep}__tests__${sep}`)) {
-      continue;
-    }
-    sources.set(full.slice(rootDir.length + 1), readFileSync(full, "utf-8"));
-  }
-
-  const outcome = ThrowCitations.check(readFileSync(docPath, "utf-8"), sources);
+  const outcome = ThrowCitations.check(
+    readFileSync(OutputThrowSources.docPath, "utf-8"),
+    OutputThrowSources.read(),
+  );
 
   for (const line of outcome.info) {
     console.log(chalk.green(line));
