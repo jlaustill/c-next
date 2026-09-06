@@ -29,6 +29,14 @@ const defaultCallbacks = {
   requireStringInclude: vi.fn(),
 };
 
+// #1322: the `throws error ...` cases below now assert INVARIANTS, not
+// diagnostics. ADR-045's declaration rules are E0862-E0866 in pass 2.1, which
+// halts before codegen runs, so a declaration reaching this helper has already
+// been checked. The assertion is the safety net for a DIVERGENCE between the
+// two -- 2.1 accepting something this code cannot emit -- and these cases are
+// what prove the net is there. Kept and re-aimed rather than deleted: they
+// were the only coverage of these conditions, and an assertion nothing
+// exercises is the guard-that-cannot-fail shape.
 describe("StringDeclHelper", () => {
   beforeEach(() => {
     CodeGenState.reset();
@@ -128,7 +136,7 @@ describe("StringDeclHelper", () => {
       expect(result.code).toContain("const char label[11]");
     });
 
-    it("throws error for string literal exceeding capacity", () => {
+    it("asserts the invariant for string literal exceeding capacity", () => {
       const typeCtx = {
         stringType: () => ({
           INTEGER_LITERAL: () => ({ getText: () => "5" }),
@@ -149,10 +157,10 @@ describe("StringDeclHelper", () => {
           false,
           defaultCallbacks,
         ),
-      ).toThrow("exceeds string<5> capacity");
+      ).toThrow("a string literal fits its declared capacity");
     });
 
-    it("throws error for non-const unsized string", () => {
+    it("asserts the invariant for non-const unsized string", () => {
       const typeCtx = {
         stringType: () => ({
           INTEGER_LITERAL: () => null,
@@ -169,10 +177,10 @@ describe("StringDeclHelper", () => {
           false,
           defaultCallbacks,
         ),
-      ).toThrow("Non-const string requires explicit capacity");
+      ).toThrow("a non-const string states its capacity");
     });
 
-    it("throws error for unsized const string without initializer", () => {
+    it("asserts the invariant for unsized const string without initializer", () => {
       const typeCtx = {
         stringType: () => ({
           INTEGER_LITERAL: () => null,
@@ -189,10 +197,10 @@ describe("StringDeclHelper", () => {
           true,
           defaultCallbacks,
         ),
-      ).toThrow("const string requires initializer");
+      ).toThrow("an unsized const string has an initializer to infer from");
     });
 
-    it("throws error for unsized const string with non-literal", () => {
+    it("asserts the invariant for unsized const string with non-literal", () => {
       const typeCtx = {
         stringType: () => ({
           INTEGER_LITERAL: () => null,
@@ -213,7 +221,7 @@ describe("StringDeclHelper", () => {
           true,
           defaultCallbacks,
         ),
-      ).toThrow("const string requires string literal");
+      ).toThrow("an unsized const string infers from a LITERAL");
     });
 
     it("generates unsized const string with literal initializer", () => {
@@ -280,7 +288,7 @@ describe("StringDeclHelper", () => {
   });
 
   describe("string variable assignment validation", () => {
-    it("throws error when source string capacity exceeds destination", () => {
+    it("asserts the invariant when source string capacity exceeds destination", () => {
       const callbacks = {
         ...defaultCallbacks,
         getStringExprCapacity: vi.fn(() => 100),
@@ -306,7 +314,9 @@ describe("StringDeclHelper", () => {
           false,
           callbacks,
         ),
-      ).toThrow("Cannot assign string<100> to string<32>");
+      ).toThrow(
+        "a string source fits its destination -- E0864 rejects string<100> into string<32>",
+      );
     });
 
     it("allows assignment when source capacity fits", () => {
@@ -384,7 +394,7 @@ describe("StringDeclHelper", () => {
       );
     });
 
-    it("throws error for string variable initialization at global scope", () => {
+    it("asserts the invariant for string variable initialization at global scope", () => {
       // Issue #1030: String variable initialization requires function body
       CodeGenState.inFunctionBody = false;
       const callbacks = {
@@ -413,7 +423,7 @@ describe("StringDeclHelper", () => {
           callbacks,
         ),
       ).toThrow(
-        "String initialization from variable cannot be used at global scope",
+        "a string at file scope is initialized by a literal -- E0863 rejects a copy from a variable",
       );
     });
   });
@@ -463,7 +473,7 @@ describe("StringDeclHelper", () => {
       expect(concatLines[3]).toBe("combined[32] = '\\0';");
     });
 
-    it("throws error for concatenation at global scope", () => {
+    it("asserts the invariant for concatenation at global scope", () => {
       CodeGenState.inFunctionBody = false;
       const concatOps = {
         left: "str1",
@@ -496,10 +506,12 @@ describe("StringDeclHelper", () => {
           false,
           callbacks,
         ),
-      ).toThrow("String concatenation cannot be used at global scope");
+      ).toThrow(
+        "a string at file scope is initialized by a literal -- E0863 rejects a concatenation",
+      );
     });
 
-    it("throws error when combined capacity exceeds destination", () => {
+    it("asserts the invariant when combined capacity exceeds destination", () => {
       const concatOps = {
         left: "str1",
         right: "str2",
@@ -531,7 +543,9 @@ describe("StringDeclHelper", () => {
           false,
           callbacks,
         ),
-      ).toThrow("String concatenation requires capacity 40, but string<30>");
+      ).toThrow(
+        "a concatenation fits its destination -- E0864 rejects 40 into string<30>",
+      );
     });
 
     it("generates const concatenation declaration", () => {
@@ -611,7 +625,7 @@ describe("StringDeclHelper", () => {
       expect(subLines[2]).toBe("sub[5] = '\\0';");
     });
 
-    it("throws error for substring at global scope", () => {
+    it("asserts the invariant for substring at global scope", () => {
       CodeGenState.inFunctionBody = false;
       const substringOps = {
         source: "srcStr",
@@ -644,10 +658,12 @@ describe("StringDeclHelper", () => {
           false,
           callbacks,
         ),
-      ).toThrow("Substring extraction cannot be used at global scope");
+      ).toThrow(
+        "a string at file scope is initialized by a literal -- E0863 rejects a substring",
+      );
     });
 
-    it("throws error when substring bounds exceed source capacity", () => {
+    it("asserts the invariant when substring bounds exceed source capacity", () => {
       const substringOps = {
         source: "srcStr",
         start: "30",
@@ -679,10 +695,12 @@ describe("StringDeclHelper", () => {
           false,
           callbacks,
         ),
-      ).toThrow("Substring bounds [30, 10] exceed source string<32>");
+      ).toThrow(
+        "substring bounds stay within the source -- E0865 rejects [30, 10] against string<32>",
+      );
     });
 
-    it("throws error when substring length exceeds destination capacity", () => {
+    it("asserts the invariant when substring length exceeds destination capacity", () => {
       const substringOps = {
         source: "srcStr",
         start: "0",
@@ -714,7 +732,9 @@ describe("StringDeclHelper", () => {
           false,
           callbacks,
         ),
-      ).toThrow("Substring length 20 exceeds destination string<10>");
+      ).toThrow(
+        "a substring fits its destination -- E0864 rejects 20 into string<10>",
+      );
     });
 
     it("skips bounds check when start is not numeric", () => {
@@ -941,7 +961,7 @@ describe("StringDeclHelper", () => {
       expect(result.code).toBe("char matrix[2][3][11] = {0};");
     });
 
-    it("throws error for unsized string array from arrayType", () => {
+    it("asserts the invariant for unsized string array from arrayType", () => {
       // Simulates: string[4] items; (missing capacity)
       const typeCtx = {
         stringType: () => null,
@@ -965,7 +985,7 @@ describe("StringDeclHelper", () => {
           false,
           defaultCallbacks,
         ),
-      ).toThrow("String arrays require explicit capacity");
+      ).toThrow("a string array states its element capacity");
     });
 
     it("validates element count matches declared size from arrayType", () => {
@@ -1005,7 +1025,9 @@ describe("StringDeclHelper", () => {
           false,
           callbacks,
         ),
-      ).toThrow("Array size mismatch - declared [4] but got 2 elements");
+      ).toThrow(
+        "a string array initializer matches its declared size -- E0866 rejects [4] against 2 element(s)",
+      );
     });
 
     it("tracks local arrays from arrayType in localArrays set", () => {

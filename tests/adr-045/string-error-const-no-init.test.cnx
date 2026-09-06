@@ -1,0 +1,7 @@
+// ADR-045: Test error when const string has no initializer
+// test-adr: 045
+// NEGATIVE CONTROL -- an unsized const WITH a literal to infer from, which is
+// the form the rule exists to permit.
+const string INFERRED <- "ok";
+
+const string MISSING;

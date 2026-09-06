@@ -1,0 +1,27 @@
+// test-error
+// test-adr: 045
+// E0864 across ONE include hop -- matrix cells: imported direct, in the
+// global-variable and top-level-function contexts.
+//
+// The destination's capacity is in this file and the SOURCE's is not. A check
+// reading only this file finds no capacity for `wideShared`, and an unknown
+// capacity never rejects -- so the rule would go quiet across an include.
+
+#include "string-declarations.cnx"
+
+// ASSERTION -- the file-scope rule (E0863) reaching an IMPORTED source. At
+// file scope only a literal is allowed, so this is the rule that fires here;
+// the capacity rule below needs a function to be reachable at all.
+string<8> narrowGlobal <- wideShared;
+
+u32 main() {
+    // NEGATIVE CONTROL -- a destination wide enough for the imported source.
+    // Only reachable inside a function, for the reason above. If the capacity
+    // did not cross the include boundary this would be unresolvable and the
+    // assertion below would go silent with it.
+    string<16> okSameWidth <- wideShared;
+
+    // ASSERTION -- the capacity rule (E0864) against an imported source.
+    string<8> narrowLocal <- wideShared;
+    return 0;
+}

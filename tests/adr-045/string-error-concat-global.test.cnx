@@ -1,6 +1,11 @@
 // test-error
+// test-adr: 045
 // ADR-045: Test string concatenation at global scope
 // Concatenation requires runtime code (strncpy/strncat) which can't run at global scope
 string<32> first <- "Hello";
 string<32> second <- " World";
+// NEGATIVE CONTROL -- a LITERAL initializer at file scope. Only the runtime
+// forms are impossible before `main`; a literal is a plain C initializer.
+string<64> okLiteral <- "Hello World";
+
 string<64> result <- first + second;

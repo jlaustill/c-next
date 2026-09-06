@@ -1,4 +1,5 @@
 // test-error
+// test-adr: 045
 // test-transpile-only
 // Issue #1361: this `.expected.error` existed with no `.test.cnx` beside it, so
 // it could never run -- while still occupying a row in
@@ -14,4 +15,7 @@
 const string<8>[3] EXACT <- ["One", "Two", "Three"];
 
 // THE ASSERTION -- declared [3], given 2.
+// NEGATIVE CONTROL -- the same declaration with the right number of elements.
+// `EXACT` is already here and must stay silent; the rule counts, so a check
+// that rejected every list would fail on it.
 const string<8>[3] SHORT <- ["One", "Two"];

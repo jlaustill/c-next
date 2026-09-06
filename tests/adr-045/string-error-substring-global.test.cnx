@@ -1,5 +1,9 @@
 // test-error
+// test-adr: 045
 // ADR-045: Test substring extraction at global scope
 // Substring requires runtime code (strncpy) which can't run at global scope
 string<64> source <- "Hello, World!";
+// NEGATIVE CONTROL -- a literal initializer at file scope.
+string<10> okLiteral <- "Hello";
+
 string<10> sub <- source[0, 5];

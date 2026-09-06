@@ -1,0 +1,8 @@
+31:6 error[E0862]: A string array requires an explicit capacity
+       help: Write the element capacity, e.g. string<64>[4].
+35:33 error[E0862]: A const string without a capacity requires a string literal to infer it from
+       help: Write the capacity, e.g. string<64>. A capacity can only be inferred from a literal.
+44:32 error[E0866]: A string array must be initialized by a list, not 'OK_ARRAY'
+       help: Write the elements out in brackets, or declare it empty and assign the elements afterwards.
+48:24 error[E0864]: Cannot initialize string<8> from string<16> -- the source may not fit
+       help: Widen the declaration to string<16>, or extract a substring of the source.

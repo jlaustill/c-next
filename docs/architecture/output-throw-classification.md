@@ -53,10 +53,10 @@ as counted at audit time" rather than a literal.
 
 | bucket | meaning                                                                        | count  |
 | ------ | ------------------------------------------------------------------------------ | ------ |
-| **1**  | user-facing diagnostic — belongs in pass 2.1, needs a code and a real position | **98** |
+| **1**  | user-facing diagnostic — belongs in pass 2.1, needs a code and a real position | **84** |
 | **2**  | internal invariant — should never fire for valid input; becomes an assertion   | **0**  |
 | **3**  | dead — unreachable or subsumed; delete                                         | **0**  |
-|        | **total**                                                                      | **98** |
+|        | **total**                                                                      | **84** |
 
 **80% of `output/`'s throws are rejections.** That is the answer to open question 4: Render does
 not own nothing, it currently owns almost all of the rejection surface.
@@ -66,7 +66,7 @@ By area:
 | area                                                                | sites | b1  | b2  | b3  |
 | ------------------------------------------------------------------- | ----- | --- | --- | --- |
 | `codegen/` (root: `CodeGenerator`, `TypeValidator`, `TypeResolver`) | 25    | 25  | 0   | 0   |
-| `codegen/helpers/`                                                  | 30    | 30  | 0   | 0   |
+| `codegen/helpers/`                                                  | 16    | 16  | 0   | 0   |
 | `codegen/generators/**`                                             | 35    | 35  | 0   | 0   |
 | `codegen/subscript/`                                                | 1     | 1   | 0   | 0   |
 | `codegen/assignment/**`, `codegen/resolution/`, `headers/`          | 7     | 7   | 0   | 0   |
@@ -206,7 +206,7 @@ questions and only the first was asked.
   **parse error**, so it never reaches codegen at all. That leaves four live copies plus the
   factory, which is what makes unification tractable.
 
-## Bucket 1 — user-facing diagnostics (98)
+## Bucket 1 — user-facing diagnostics (84)
 
 Each needs a code and a real position in pass 2.1. `code` is the code it already carries, or
 **NEW** where one must be allocated. `position` names the node that is or would be in scope.
@@ -244,42 +244,28 @@ Each needs a code and a real position in pass 2.1. `code` is the code it already
 **13 of these 39 already carry a code**; 26 need one. **12 have no fixture at all.** Three emit a
 real position today -- the `${line}:${col} `-prefixed rows in the table below.
 
-### `codegen/helpers/` — 30
+### `codegen/helpers/` — 16
 
 **Zero carry a code today.** 25 of the 39 have no fixture.
 
-| file:line                       | anchor                                            | message                                                | code      | position source                                                      | fixture                                     |
-| ------------------------------- | ------------------------------------------------- | ------------------------------------------------------ | --------- | -------------------------------------------------------------------- | ------------------------------------------- |
-| `TypeGenerationHelper.ts:71`    | `Cannot use 'this.Type' outside of a scope`       | `this.Type` outside a scope                            | NEW E0426 | thread `accessors.scopedType()!.start` from `dispatchTypeGeneration` | none                                        |
-| `ArrayInitHelper.ts:129`        | `Error: Fill-all syntax`                          | fill-all `[v*]` requires explicit array size           | NEW E0858 | thread `expression.start` from `processArrayInit`                    | none                                        |
-| `ArrayInitHelper.ts:160`        | `Error: Array size mismatch - declared`           | array size mismatch                                    | NEW E0857 | `expression.start`                                                   | **orphaned** — see #1361                    |
-| `StringDeclHelper.ts:153`       | `Error: String arrays require explicit capacity`  | string arrays require explicit capacity                | NEW       | `arrayTypeCtx.stringType()!.start` (in scope)                        | none                                        |
-| `StringDeclHelper.ts:218`       | `Error: String array initialization from`         | string array init from variables unsupported           | NEW       | `expression.start` (in scope)                                        | none                                        |
-| `StringDeclHelper.ts:231`       | `Error: Array size mismatch - declared`           | array size mismatch                                    | NEW E0857 | `expression.start`                                                   | **orphaned** — see #1361                    |
-| `StringDeclHelper.ts:417`       | `Error: String initialization from variable`      | string init from variable at global scope              | NEW       | `expression.start` (in scope)                                        | `string/string-error-init-global`           |
-| `StringDeclHelper.ts:447`       | `Error: String literal`                           | literal exceeds `string<C>` capacity                   | NEW       | thread `expression` from `_generateBoundedStringWithInit`            | `string/string-error-overflow`              |
-| `StringDeclHelper.ts:457`       | `Error: Cannot assign string`                     | `string<S>` to `string<C>` truncation                  | NEW       | same                                                                 | none                                        |
-| `StringDeclHelper.ts:500`       | `Error: String concatenation cannot be used at`   | concatenation at global scope                          | NEW       | thread `expression`                                                  | `string/string-error-concat-global`         |
-| `StringDeclHelper.ts:509`       | `Error: String concatenation requires capacity`   | concatenation exceeds capacity                         | NEW       | same                                                                 | `string/string-error-concat-overflow`       |
-| `StringDeclHelper.ts:539`       | `Error: Substring extraction cannot be used at`   | substring at global scope                              | NEW       | same                                                                 | `string/string-error-substring-global`      |
-| `StringDeclHelper.ts:553`       | `Error: Substring bounds`                         | substring bounds exceed source                         | NEW       | same                                                                 | `string/string-error-substring-bounds`      |
-| `StringDeclHelper.ts:561`       | `Error: Substring length`                         | substring length exceeds destination                   | NEW       | same                                                                 | `string/string-error-substring-dest`        |
-| `StringDeclHelper.ts:593`       | `Error: Non-const string requires explicit`       | non-const string needs explicit capacity               | NEW       | `typeCtx.stringType()!.start` (`expression` may be null)             | `string/string-error-nonconst-unsized`      |
-| `StringDeclHelper.ts:599`       | `Error: const string requires initializer for`    | const string needs initializer                         | NEW       | `stringCtx.start` (`expression` null by construction)                | `string/string-error-const-no-init`         |
-| `StringDeclHelper.ts:606`       | `Error: const string requires string literal for` | const string needs a literal                           | NEW       | `expression.start` (non-null on this branch)                         | none                                        |
-| `AssignmentValidator.ts:116`    | `constError`                                      | cannot assign to const variable/parameter              | NEW       | `targetCtx` (`AssignmentTargetContext`, in scope)                    | 26 fixtures under `tests/const/`            |
-| `AssignmentValidator.ts:144`    | `${errorLine}:${col} ${msg}`                      | ADR-024 conversion, assignment path                    | NEW       | **already carries a real position**                                  | none                                        |
-| `AssignmentValidator.ts:163`    | `array element`                                   | const assign, array element                            | NEW       | `subscriptExprs[0].start` (`line` already a parameter)               | none                                        |
-| `AssignmentValidator.ts:194`    | `member access`                                   | const assign, member access                            | NEW       | thread `targetCtx`                                                   | none                                        |
-| `AssignmentValidator.ts:202`    | `cannot assign to read-only register member`      | write to a read-only (`ro`) register member            | NEW       | thread `targetCtx` / `postfixTargetOp`                               | `register/register-write-ro-error`          |
-| `VariableModifierBuilder.ts:82` | `Cannot use both 'atomic' and 'volatile`          | both `atomic` and `volatile`                           | NEW       | `ctx.start` — line already read, column discarded                    | `atomic/atomic-volatile-error`              |
-| `VariableDeclHelper.ts:281`     | `C-style array declaration is not allowed`        | C-style array declaration                              | NEW E0859 | **already carries a real position** from `ctx.start`                 | `array-declaration-syntax/c-style-error` +1 |
-| `VariableDeclHelper.ts:368`     | `Error: C++ class`                                | C++ class with constructor at global scope             | NEW       | `typeCtx.start` (in scope)                                           | `external-types/cpp-class-global-error`     |
-| `IntegerLiteralValidator.ts:88` | `${line}:${col} ${msg}`                           | ADR-024, declaration path                              | NEW       | **already carries a real position** from `ctx.start`                 | `casting/literal-overflow-error` +5         |
-| `MemberAccessValidator.ts:34`   | `cannot read from write-only register member`     | read from a write-only (`wo`) register member          | NEW       | caller `PostfixExpressionGenerator.ts:1461` holds the ctx            | `register/register-read-wo-error`           |
-| `MemberAccessValidator.ts:53`   | `by name. Use 'this`                              | cannot reference own scope by name (ADR-016)           | NEW       | caller `PostfixExpressionGenerator.ts:1391`                          | `scope/self-scope-bare-error` +1            |
-| `MemberAccessValidator.ts:108`  | `to access enum`                                  | use `global.X.Y`; scope member shadows global enum     | NEW       | callers `PostfixExpressionGenerator.ts:1273/1426/1452`               | `scope/scope-enum-naming-conflict`          |
-| `MemberAccessValidator.ts:129`  | `from inside scope`                               | use `global.X.Y` for enum/register from inside a scope | NEW       | same                                                                 | `scope/cross-scope-register-bare-error`     |
+| file:line                       | anchor                                        | message                                                | code      | position source                                                      | fixture                                     |
+| ------------------------------- | --------------------------------------------- | ------------------------------------------------------ | --------- | -------------------------------------------------------------------- | ------------------------------------------- |
+| `TypeGenerationHelper.ts:71`    | `Cannot use 'this.Type' outside of a scope`   | `this.Type` outside a scope                            | NEW E0426 | thread `accessors.scopedType()!.start` from `dispatchTypeGeneration` | none                                        |
+| `ArrayInitHelper.ts:129`        | `Error: Fill-all syntax`                      | fill-all `[v*]` requires explicit array size           | NEW E0858 | thread `expression.start` from `processArrayInit`                    | none                                        |
+| `ArrayInitHelper.ts:160`        | `Error: Array size mismatch - declared`       | array size mismatch                                    | NEW E0857 | `expression.start`                                                   | **orphaned** — see #1361                    |
+| `AssignmentValidator.ts:116`    | `constError`                                  | cannot assign to const variable/parameter              | NEW       | `targetCtx` (`AssignmentTargetContext`, in scope)                    | 26 fixtures under `tests/const/`            |
+| `AssignmentValidator.ts:144`    | `${errorLine}:${col} ${msg}`                  | ADR-024 conversion, assignment path                    | NEW       | **already carries a real position**                                  | none                                        |
+| `AssignmentValidator.ts:163`    | `array element`                               | const assign, array element                            | NEW       | `subscriptExprs[0].start` (`line` already a parameter)               | none                                        |
+| `AssignmentValidator.ts:194`    | `member access`                               | const assign, member access                            | NEW       | thread `targetCtx`                                                   | none                                        |
+| `AssignmentValidator.ts:202`    | `cannot assign to read-only register member`  | write to a read-only (`ro`) register member            | NEW       | thread `targetCtx` / `postfixTargetOp`                               | `register/register-write-ro-error`          |
+| `VariableModifierBuilder.ts:82` | `Cannot use both 'atomic' and 'volatile`      | both `atomic` and `volatile`                           | NEW       | `ctx.start` — line already read, column discarded                    | `atomic/atomic-volatile-error`              |
+| `VariableDeclHelper.ts:281`     | `C-style array declaration is not allowed`    | C-style array declaration                              | NEW E0859 | **already carries a real position** from `ctx.start`                 | `array-declaration-syntax/c-style-error` +1 |
+| `VariableDeclHelper.ts:368`     | `Error: C++ class`                            | C++ class with constructor at global scope             | NEW       | `typeCtx.start` (in scope)                                           | `external-types/cpp-class-global-error`     |
+| `IntegerLiteralValidator.ts:88` | `${line}:${col} ${msg}`                       | ADR-024, declaration path                              | NEW       | **already carries a real position** from `ctx.start`                 | `casting/literal-overflow-error` +5         |
+| `MemberAccessValidator.ts:34`   | `cannot read from write-only register member` | read from a write-only (`wo`) register member          | NEW       | caller `PostfixExpressionGenerator.ts:1461` holds the ctx            | `register/register-read-wo-error`           |
+| `MemberAccessValidator.ts:53`   | `by name. Use 'this`                          | cannot reference own scope by name (ADR-016)           | NEW       | caller `PostfixExpressionGenerator.ts:1391`                          | `scope/self-scope-bare-error` +1            |
+| `MemberAccessValidator.ts:108`  | `to access enum`                              | use `global.X.Y`; scope member shadows global enum     | NEW       | callers `PostfixExpressionGenerator.ts:1273/1426/1452`               | `scope/scope-enum-naming-conflict`          |
+| `MemberAccessValidator.ts:129`  | `from inside scope`                           | use `global.X.Y` for enum/register from inside a scope | NEW       | same                                                                 | `scope/cross-scope-register-bare-error`     |
 
 `VariableDeclHelper.ts:281`'s doc comment still lists "Exceptions (grammar limitations)" the code
 no longer honours — it throws unconditionally once `arrayDimension().length > 0` (#1014–#1017).
@@ -458,6 +444,16 @@ actually an undeclared identifier, rather than allocating codes that record the 
   proving the parser does NOT always answer `1:0`. It no longer depends on which
   diagnostic happens to lack a position, and when the last throw is relocated it
   becomes dead and goes with it.
+- **Three string messages were one rule, and a fourth message was wrong.** At
+  file scope a string may be initialized by a LITERAL and by nothing else -- C
+  cannot run `strncpy` or `strncat` before `main` -- so a copy from a variable,
+  a concatenation and a substring extraction all threw, with three different
+  messages, from three different generation paths. Asked once about the
+  initializer's FORM, they collapse. Separately, `String array initialization
+from variables not supported` was misleading: a LIST whose elements are
+  variables is a perfectly good array initializer, and what is rejected is an
+  initializer that is not a list at all. The first fixture written to the old
+  wording used `[a, a]` and did not fire, which is how the wording was caught.
 - **#1014–#1017 — resolved by deletion.** `StringDeclHelper`'s C-style string-array path was
   dead only while trailing brackets are rejected unconditionally. They are, verified by probe
   on all three routes in, so the path is gone (1322a) and the conditional dependency with it.

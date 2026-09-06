@@ -19,9 +19,9 @@ codes that already have a fixture.
 | E05xx     | Include/Preprocessor    | 7      |
 | E06xx     | Sizeof Expressions      | 2      |
 | E07xx     | Control Flow            | 12     |
-| E08xx     | Arithmetic/Array Safety | 21     |
+| E08xx     | Arithmetic/Array Safety | 26     |
 | E09xx     | NULL Safety             | 8      |
-| **Total** |                         | **71** |
+| **Total** |                         | **76** |
 
 ---
 
@@ -244,6 +244,11 @@ include-visibility is not derivable for a C or C++ name.
 | E0859 | Slice assignment offset or length is not a compile-time constant               | Use a literal or a `const`; a runtime span cannot be bounds-checked                                              | `TRANSPILE/1-Analyze/SliceAssignmentAnalyzer.ts`      |
 | E0860 | Slice assignment span does not fit the buffer (bounds, alignment, or sign)     | Keep `offset + length / elementSize` within the capacity, and the length a positive multiple of the element size | `TRANSPILE/1-Analyze/SliceAssignmentAnalyzer.ts`      |
 | E0861 | Slice assignment source does not fit the slice (type, width, or literal range) | Assign an integer no wider than the slice, or widen the slice                                                    | `TRANSPILE/1-Analyze/SliceAssignmentAnalyzer.ts`      |
+| E0862 | String declaration does not state a capacity that can be determined            | Write the capacity, e.g. `string<64>`; only a `const` with a literal can have one inferred                       | `TRANSPILE/1-Analyze/StringDeclarationAnalyzer.ts`    |
+| E0863 | String at file scope is initialized by something other than a literal          | Move the declaration into a function, or initialize it empty and assign later                                    | `TRANSPILE/1-Analyze/StringDeclarationAnalyzer.ts`    |
+| E0864 | Value does not fit the declared string capacity                                | Widen the declaration, or shorten the value                                                                      | `TRANSPILE/1-Analyze/StringDeclarationAnalyzer.ts`    |
+| E0865 | Substring bounds exceed the source string                                      | Keep `start + length` within the source's capacity                                                               | `TRANSPILE/1-Analyze/StringDeclarationAnalyzer.ts`    |
+| E0866 | String array initializer does not match the declaration                        | Give a bracketed list with one element per slot, or the fill-all form                                            | `TRANSPILE/1-Analyze/StringDeclarationAnalyzer.ts`    |
 
 Each subscript peels one array dimension (ADR-036) and a scalar integer/float may be
 bit-indexed once (ADR-007), so `flags[4][3]` on a scalar `u8` indexes the single bit

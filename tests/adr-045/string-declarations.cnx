@@ -1,0 +1,5 @@
+// Helper (not a test): the wide string the cross-file fixtures narrow from.
+// A capacity crosses the include boundary, so the fit rules have to reach it.
+string<16> wideShared <- "wide";
+
+const u32 STRING_MARKER <- 1;

@@ -1,0 +1,8 @@
+// ADR-045: Test string literal overflow error
+// test-adr: 045
+// "Hello" is 5 chars, but capacity is only 4
+// NEGATIVE CONTROL -- a literal that exactly fills the capacity. "Hell" is 4
+// chars in string<4>, so the boundary the assertion is one past must pass.
+const string<4> EXACTLY <- "Hell";
+
+string<4> tooSmall <- "Hello";

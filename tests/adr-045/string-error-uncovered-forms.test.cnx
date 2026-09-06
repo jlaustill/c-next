@@ -1,0 +1,51 @@
+// test-error
+// test-adr: 045
+// The four ADR-045 declaration rules that had NO fixture before #1322.
+//
+// The #1321 audit recorded them as `fixture: none`, which means they were
+// enforced only by code nothing exercised -- the state where a rule and its
+// absence look identical.
+
+// NEGATIVE CONTROL -- the correct form of each rule below, so an over-broad
+// fix fails here before reaching the assertions. The second one matters: a LIST
+// whose elements are variables is a valid array initializer, and only an
+// initializer that is not a list at all is rejected.
+const string<8>[2] OK_ARRAY <- ["a", "b"];
+
+u32 okListOfVariables() {
+    string<8> a <- "x";
+    string<8>[2] fromList <- [a, a];
+    return 0;
+}
+const string OK_INFERRED <- "literal";
+string<16> okSource <- "wide";
+
+u32 okNarrowing() {
+    string<16> src <- "wide";
+    string<16> sameWidth <- src;
+    return 0;
+}
+
+// ASSERTION 1 -- a string array with no element capacity. Nothing can be
+// emitted for it: the element width is what sizes the buffer.
+const string[2] NO_ELEMENT_CAPACITY <- ["a", "b"];
+
+// ASSERTION 2 -- an unsized `const` initialized by something other than a
+// literal. A capacity can only be inferred from a literal's length.
+const string FROM_NON_LITERAL <- okSource;
+
+u32 main() {
+    // ASSERTION 3 -- a string array initialized by something that is not a
+    // list. The old message said "from variables", which is misleading: a LIST
+    // of variables is accepted (it is still an array initializer), and what is
+    // rejected is any initializer that is not a list at all. Probed -- the
+    // first version of this fixture used `[a, a]` and did not fire, because
+    // that is a list.
+    string<8>[2] fromAnother <- OK_ARRAY;
+
+    // ASSERTION 4 -- a source wider than its destination. The copy would
+    // truncate silently, so it is rejected rather than narrowed.
+    string<8> narrow <- okSource;
+
+    return 0;
+}

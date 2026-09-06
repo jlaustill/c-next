@@ -1,0 +1,17 @@
+// test-error
+// test-adr: 045
+// ADR-045: Test concatenation overflow error
+// Combined capacity of two string<32> is 64, but destination is only string<50>
+// NEGATIVE CONTROL -- the same two operands into a destination that FITS.
+// 32 + 32 = 64, so string<64> is exactly enough and must be accepted.
+void okFits() {
+    string<32> a <- "Hello";
+    string<32> b <- " World";
+    string<64> joined <- a + b;
+}
+
+void test() {
+    string<32> first <- "Hello";
+    string<32> second <- " World";
+    string<50> result <- first + second;
+}

@@ -1,0 +1,2 @@
+8:22 error[E0864]: String literal (5 chars) exceeds string<4> capacity
+       help: Widen the declaration to string<5>, or shorten the literal.

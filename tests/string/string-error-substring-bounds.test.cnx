@@ -1,7 +1,0 @@
-// test-error
-// ADR-045: Test substring bounds error
-// Start position 60 + length 10 = 70, which exceeds source capacity of 64
-void test() {
-    string<64> source <- "Hello, World!";
-    string<10> invalid <- source[60, 10];
-}

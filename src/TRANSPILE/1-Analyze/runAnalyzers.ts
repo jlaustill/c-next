@@ -30,6 +30,7 @@ import CriticalSectionAnalyzer from "./CriticalSectionAnalyzer";
 import EnumTypeSafetyAnalyzer from "./EnumTypeSafetyAnalyzer";
 import SliceAssignmentAnalyzer from "./SliceAssignmentAnalyzer";
 import ControllingExpressionAnalyzer from "./ControllingExpressionAnalyzer";
+import StringDeclarationAnalyzer from "./StringDeclarationAnalyzer";
 import SwitchStatementAnalyzer from "./SwitchStatementAnalyzer";
 import NestedTernaryAnalyzer from "./NestedTernaryAnalyzer";
 import ThisOutsideScopeAnalyzer from "./ThisOutsideScopeAnalyzer";
@@ -266,6 +267,10 @@ function runAnalyzers(
     {
       label: "controlling expressions (ADR-022, MISRA 14.4/13.5, E0701/E0702)",
       run: () => new ControllingExpressionAnalyzer().analyze(tree),
+    },
+    {
+      label: "string declarations (ADR-045, E0862-E0866)",
+      run: () => new StringDeclarationAnalyzer().analyze(tree),
     },
     {
       // Last, and does not halt: comment findings are reported alongside

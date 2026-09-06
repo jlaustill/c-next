@@ -1,8 +1,17 @@
 // test-error
+// test-adr: 045
 // Issue #1030: String variable initialization from another string at global scope
 // should fail because strncpy cannot be used outside a function body
 
 string<32> source <- "Hello";
+// NEGATIVE CONTROL -- the same copy, inside a function, where the runtime call
+// it needs is possible. The rule is about file scope, not about copying.
+i32 okInsideFunction() {
+    string<32> src <- "Hello";
+    string<64> dst <- src;
+    return 0;
+}
+
 string<64> dest <- source; // Error: cannot use strcpy at global scope
 
 i32 main() {

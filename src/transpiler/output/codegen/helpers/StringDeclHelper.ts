@@ -18,6 +18,7 @@ import dimensionEvalOptions from "./dimensionEvalOptions";
 import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
 import StringUtils from "../../../../utils/StringUtils.js";
 import CodeGenState from "../../../state/CodeGenState.js";
+import invariant from "../../../../utils/invariant";
 
 /**
  * String concatenation operands extracted from expression.
@@ -150,8 +151,9 @@ class StringDeclHelper {
     const intLiteral = stringCtx.INTEGER_LITERAL();
     if (!intLiteral) {
       // Unsized string array - not supported
-      throw new Error(
-        "Error: String arrays require explicit capacity, e.g., string<64>[4]",
+      invariant(
+        false,
+        "a string array states its element capacity -- E0862 rejects an unsized one in pass 2.1",
       );
     }
 
@@ -215,8 +217,9 @@ class StringDeclHelper {
       CodeGenState.lastArrayFillValue !== undefined;
 
     if (!isArrayInit) {
-      throw new Error(
-        `Error: String array initialization from variables not supported`,
+      invariant(
+        false,
+        `a string array is initialized from literals -- E0866 rejects a variable initializer in pass 2.1`,
       );
     }
 
@@ -228,8 +231,9 @@ class StringDeclHelper {
       const elementCount = CodeGenState.lastArrayInitCount;
 
       if (!isFillAll && elementCount !== declaredSize) {
-        throw new Error(
-          `Error: Array size mismatch - declared [${declaredSize}] but got ${elementCount} elements`,
+        invariant(
+          false,
+          `a string array initializer matches its declared size -- E0866 rejects [${declaredSize}] against ${elementCount} element(s) in pass 2.1`,
         );
       }
     }
@@ -414,9 +418,9 @@ class StringDeclHelper {
     // than an unbounded strcpy, which flawfinder flags as CWE-120.
     // Issue #1030: string-to-string initialization
     if (!CodeGenState.inFunctionBody) {
-      throw new Error(
-        `Error: String initialization from variable cannot be used at global scope. ` +
-          `Move the declaration inside a function, or use an empty initializer and assign later.`,
+      invariant(
+        false,
+        `a string at file scope is initialized by a literal -- E0863 rejects a copy from a variable in pass 2.1`,
       );
     }
 
@@ -444,8 +448,9 @@ class StringDeclHelper {
     if (exprText.startsWith('"') && exprText.endsWith('"')) {
       const content = StringUtils.literalLength(exprText);
       if (content > capacity) {
-        throw new Error(
-          `Error: String literal (${content} chars) exceeds string<${capacity}> capacity`,
+        invariant(
+          false,
+          `a string literal fits its declared capacity -- E0864 rejects ${content} chars in string<${capacity}> in pass 2.1`,
         );
       }
       return true; // Is a literal
@@ -454,8 +459,9 @@ class StringDeclHelper {
     // Check for string variable assignment
     const srcCapacity = callbacks.getStringExprCapacity(exprText);
     if (srcCapacity !== null && srcCapacity > capacity) {
-      throw new Error(
-        `Error: Cannot assign string<${srcCapacity}> to string<${capacity}> (potential truncation)`,
+      invariant(
+        false,
+        `a string source fits its destination -- E0864 rejects string<${srcCapacity}> into string<${capacity}> in pass 2.1`,
       );
     }
     return false; // Is a variable (not a literal)
@@ -497,17 +503,18 @@ class StringDeclHelper {
     // String concatenation requires runtime function calls (strncpy, strncat)
     // which cannot exist at global scope in C
     if (!CodeGenState.inFunctionBody) {
-      throw new Error(
-        `Error: String concatenation cannot be used at global scope. ` +
-          `Move the declaration inside a function.`,
+      invariant(
+        false,
+        `a string at file scope is initialized by a literal -- E0863 rejects a concatenation in pass 2.1`,
       );
     }
 
     // Validate capacity: dest >= left + right
     const requiredCapacity = concatOps.leftCapacity + concatOps.rightCapacity;
     if (requiredCapacity > capacity) {
-      throw new Error(
-        `Error: String concatenation requires capacity ${requiredCapacity}, but string<${capacity}> only has ${capacity}`,
+      invariant(
+        false,
+        `a concatenation fits its destination -- E0864 rejects ${requiredCapacity} into string<${capacity}> in pass 2.1`,
       );
     }
 
@@ -536,9 +543,9 @@ class StringDeclHelper {
     // Substring extraction requires runtime function calls (strncpy)
     // which cannot exist at global scope in C
     if (!CodeGenState.inFunctionBody) {
-      throw new Error(
-        `Error: Substring extraction cannot be used at global scope. ` +
-          `Move the declaration inside a function.`,
+      invariant(
+        false,
+        `a string at file scope is initialized by a literal -- E0863 rejects a substring in pass 2.1`,
       );
     }
 
@@ -550,16 +557,18 @@ class StringDeclHelper {
     if (!Number.isNaN(startNum) && !Number.isNaN(lengthNum)) {
       // Bounds check: start + length <= sourceCapacity
       if (startNum + lengthNum > substringOps.sourceCapacity) {
-        throw new Error(
-          `Error: Substring bounds [${startNum}, ${lengthNum}] exceed source string<${substringOps.sourceCapacity}> capacity`,
+        invariant(
+          false,
+          `substring bounds stay within the source -- E0865 rejects [${startNum}, ${lengthNum}] against string<${substringOps.sourceCapacity}> in pass 2.1`,
         );
       }
     }
 
     // Validate destination capacity can hold the substring
     if (!Number.isNaN(lengthNum) && lengthNum > capacity) {
-      throw new Error(
-        `Error: Substring length ${lengthNum} exceeds destination string<${capacity}> capacity`,
+      invariant(
+        false,
+        `a substring fits its destination -- E0864 rejects ${lengthNum} into string<${capacity}> in pass 2.1`,
       );
     }
 
@@ -590,21 +599,24 @@ class StringDeclHelper {
     callbacks: IStringDeclCallbacks,
   ): IStringDeclResult {
     if (!isConst) {
-      throw new Error(
-        "Error: Non-const string requires explicit capacity, e.g., string<64>",
+      invariant(
+        false,
+        "a non-const string states its capacity -- E0862 rejects an unsized one in pass 2.1",
       );
     }
 
     if (!expression) {
-      throw new Error(
-        "Error: const string requires initializer for capacity inference",
+      invariant(
+        false,
+        "an unsized const string has an initializer to infer from -- E0862 rejects one without in pass 2.1",
       );
     }
 
     const exprText = expression.getText();
     if (!exprText.startsWith('"') || !exprText.endsWith('"')) {
-      throw new Error(
-        "Error: const string requires string literal for capacity inference",
+      invariant(
+        false,
+        "an unsized const string infers from a LITERAL -- E0862 rejects any other initializer in pass 2.1",
       );
     }
 

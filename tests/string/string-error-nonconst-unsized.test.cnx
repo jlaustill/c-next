@@ -1,2 +1,0 @@
-// ADR-045: Test error when non-const string has no capacity
-string buffer;
