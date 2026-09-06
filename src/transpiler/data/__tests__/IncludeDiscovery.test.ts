@@ -200,7 +200,7 @@ describe("IncludeDiscovery", () => {
 
   describe("extractIncludesWithInfo", () => {
     // The corpus the scan was checked against when it replaced
-    // /^\s*#\s*include\s*([<"])([^>"]+)[>"]/gm. Two behaviours are
+    // /^\s*#\s*include\s*([<"])([^>"]+)[>"]/gm. Two behaviors are
     // deliberate rather than accidental: the closing delimiter need not match
     // the opening one, and whitespace runs may span newlines.
     it.each([

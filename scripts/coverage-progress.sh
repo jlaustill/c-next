@@ -4,6 +4,56 @@
 
 set -e
 
+# Count open issues, optionally filtered to one label.
+#
+# One definition for all six call sites. Each used to inline its own
+# `gh api .../issues?...`, which carried two defects six times over: the REST
+# endpoint pages at 30 with no `--paginate`, so this printed `Open Issues: 30`
+# against a true 257; and `/issues` returns pull requests too, so even the
+# capped number conflated them. `gh issue list` excludes PRs natively and
+# `--limit` is the bound (#1416).
+
+# The bound, named once: the command and the assertion that watches it have to
+# agree about it, so neither spells the number out.
+GH_ISSUE_LIMIT=1000
+
+open_issue_count() {
+    # One argv built conditionally, not two calls differing by a single flag --
+    # collapsing six copies into a function that holds two branches would have
+    # kept the very shape that let the six diverge. Only the VARYING flag goes
+    # in the array: the bound stays spelled at the call site, where a reader and
+    # `npm run gh:pagination:check` can both see it. Folding it into
+    # "${args[@]}" hid it from both, and the gate said so.
+    local args=(--state open)
+    if [[ -n "${1:-}" ]]; then
+        args+=(--label "$1")
+    fi
+
+    local count
+    if ! count=$(gh issue list --limit "$GH_ISSUE_LIMIT" "${args[@]}" \
+        --json number --jq 'length' 2>/dev/null); then
+        # A failed read must not print as a confident zero: `Open Issues: 0`
+        # from an expired token is the same genre of lie as `Open Issues: 30`
+        # from a capped page. Callers compare numerically, so the value stays a
+        # number and the doubt goes to stderr, where it cannot be read as data.
+        echo "warning: the open-issue read failed${1:+ for label '$1'} -- reporting 0" >&2
+        echo 0
+        return
+    fi
+
+    # `--limit` bounds the read; only this notices when the bound was REACHED.
+    # Here the count IS the output, so at the limit it stops being a total and
+    # becomes a page with nothing to say so -- the defect this file was fixed
+    # for. The headroom is comfortable today; the count that would say by how
+    # much is deliberately not written here, because it moved the day after it
+    # was measured. The assertion is the part that does not rot (#1416).
+    if [[ "$count" -ge "$GH_ISSUE_LIMIT" ]]; then
+        echo "warning: count $count reached --limit $GH_ISSUE_LIMIT -- this is a page, not a total" >&2
+    fi
+
+    echo "$count"
+}
+
 echo "========================================"
 echo "  C-Next Test Coverage - Progress"
 echo "========================================"
@@ -38,12 +88,10 @@ echo ""
 # GitHub Issues
 if command -v gh &> /dev/null; then
     echo "🎫 GitHub Issues:"
-    # jq filter for counting array length
-    JQ_LENGTH='. | length'
-    OPEN_ISSUES=$(gh api repos/jlaustill/c-next/issues?state=open 2>/dev/null | jq -r '.[] | .number' | wc -l)
-    HIGH=$(gh api repos/jlaustill/c-next/issues?labels="priority:%20high" 2>/dev/null | jq "$JQ_LENGTH")
-    MEDIUM=$(gh api repos/jlaustill/c-next/issues?labels="priority:%20medium" 2>/dev/null | jq "$JQ_LENGTH")
-    LOW=$(gh api repos/jlaustill/c-next/issues?labels="priority:%20low" 2>/dev/null | jq "$JQ_LENGTH")
+    HIGH=$(open_issue_count "priority: high")
+    MEDIUM=$(open_issue_count "priority: medium")
+    LOW=$(open_issue_count "priority: low")
+    OPEN_ISSUES=$(open_issue_count)
 
     echo "  Open Issues:        $OPEN_ISSUES"
     echo "    - HIGH:           $HIGH 🔴"
@@ -89,12 +137,12 @@ if [[ "$SKIPPED" -gt 0 ]]; then
 fi
 
 if command -v gh &> /dev/null; then
-    TEST_BLOCKED=$(gh api repos/jlaustill/c-next/issues?labels=test-blocked 2>/dev/null | jq "$JQ_LENGTH")
+    TEST_BLOCKED=$(open_issue_count "test-blocked")
     if [[ "$TEST_BLOCKED" -gt 0 ]]; then
         echo "  🔨 Fix $TEST_BLOCKED bug(s) to unblock tests"
     fi
 
-    GOOD_FIRST=$(gh api repos/jlaustill/c-next/issues?labels="good%20first%20issue" 2>/dev/null | jq "$JQ_LENGTH")
+    GOOD_FIRST=$(open_issue_count "good first issue")
     if [[ "$GOOD_FIRST" -gt 0 ]]; then
         echo "  ✨ $GOOD_FIRST good first issue(s) available"
     fi

@@ -43,7 +43,10 @@ individual commits of a branch survive. See the "Never squash-merge" rule in
 Read the live configuration at any time:
 
 ```bash
-gh api repos/jlaustill/c-next/rulesets
+# --paginate: the rulesets list pages at 30. One ruleset exists today, so this
+# is headroom rather than a fix — but a command in a doc gets copied and run,
+# and the capped form gives no sign it was capped (#1416).
+gh api --paginate 'repos/jlaustill/c-next/rulesets?per_page=100'
 gh api repos/jlaustill/c-next/rulesets/<id> --jq '{name, enforcement, rules}'
 ```
 

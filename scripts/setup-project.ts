@@ -291,7 +291,7 @@ class SetupProject {
       query($projectId: ID!) {
         node(id: $projectId) {
           ... on ProjectV2 {
-            fields(first: 50) {
+            fields(first: 100) {
               nodes {
                 ... on ProjectV2FieldCommon { id name dataType }
                 ... on ProjectV2SingleSelectField {

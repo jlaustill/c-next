@@ -47,6 +47,7 @@ echo -e "${BLUE}=== C-Next full gate (every CI check that runs locally) ===${NC}
 echo -e "\n${YELLOW}Static Analysis${NC}"
 run_check "Static Analysis" "prettier:check"             npm run prettier:check
 run_check "Static Analysis" "plugin:test"                npm run plugin:test
+run_check "Static Analysis" "test:hooks"                 npm run test:hooks
 run_check "Static Analysis" "cspell:check"               npm run cspell:check
 run_check "Static Analysis" "oxlint:check"               npm run oxlint:check
 run_check "Static Analysis" "knip"                       npx knip
@@ -59,6 +60,7 @@ run_check "Static Analysis" "diagnostics:manifest:check" npm run diagnostics:man
 run_check "Static Analysis" "docs:throw-citations:check" npm run docs:throw-citations:check
 run_check "Static Analysis" "scope-joins:check"          npm run scope-joins:check
 run_check "Static Analysis" "adr:independence:check"     npm run adr:independence:check
+run_check "Static Analysis" "gh:pagination:check"        npm run gh:pagination:check
 
 echo -e "\n${YELLOW}Build${NC}"
 run_check "Build" "build"                                npm run build
