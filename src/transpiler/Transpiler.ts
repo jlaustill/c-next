@@ -24,10 +24,11 @@ import CodeGenState from "./state/CodeGenState";
 import AdrProvenance from "./state/AdrProvenance";
 import CachedSymbolReader from "../utils/cache/CachedSymbolReader";
 import TJsonValue from "../utils/types/TJsonValue";
-import TypeResolver from "../utils/TypeResolver";
 import PublicInterface from "./logic/symbols/PublicInterface";
 import HeaderGenerator from "./output/headers/HeaderGenerator";
 import HeaderRenderer from "./output/headers/HeaderRenderer";
+import HeaderTypeNames from "../TRANSPILE/2-Plan/HeaderTypeNames";
+import QualifiedCName from "../utils/QualifiedCName";
 import ExternalTypeHeaderBuilder from "./output/headers/ExternalTypeHeaderBuilder";
 import HeaderGeneratorUtils from "./output/headers/HeaderGeneratorUtils";
 import IHeaderEmissionFacts from "./output/headers/types/IHeaderEmissionFacts";
@@ -2389,7 +2390,19 @@ class Transpiler {
     }
 
     // Known to a C/C++ header, but not as something forward-declarable.
+    //
+    // The C++ index is keyed by the C++ NAME -- `SeaDash::Parse::ParseResult`
+    // -- while a C-Next type naming it carries the generated C form,
+    // `SeaDash__Parse__ParseResult`. Asking the index with the transpiled name
+    // returns nothing for every namespaced type, which reads as "no such
+    // symbol" rather than "wrong question" (CLAUDE.md, #1139). That is why
+    // #1520's four headers declared a field whose type nothing defined: the
+    // lookup could not fail loudly, it just answered no. `toCppQualified` is
+    // the single encoder for that key, and it leaves an unqualified name alone.
     const declared =
+      CodeGenState.symbolTable.getCppSymbol(
+        QualifiedCName.toCppQualified(typeName, "::"),
+      ) ??
       CodeGenState.symbolTable.getCppSymbol(typeName) ??
       CodeGenState.symbolTable.getCSymbol(typeName);
     if (!declared) {
@@ -2402,34 +2415,45 @@ class Transpiler {
     );
   }
 
+  /**
+   * Whether the header must carry the source's own C/C++ includes.
+   *
+   * Two reasons, and they are different questions over the same symbols:
+   *
+   *   - the header names a MACRO it does not define -- an array dimension that
+   *     stayed an identifier, which only the source's headers supply (#424); or
+   *   - the header names a TYPE whose definition lives in one of them.
+   *
+   * The second used to be asked per symbol kind, here, and answered `false` for
+   * a struct -- so a struct field typed by a C++ header got no include and the
+   * header would not compile (#1520). The enumeration is now
+   * `HeaderTypeNames.collect`, shared with the other derivation that had the
+   * same hole, and this asks only the question it owns.
+   */
   private static _headerNeedsUserCHeaders(symbols: TSymbol[]): boolean {
-    return symbols.some((symbol) => {
-      if (symbol.kind === "variable") {
-        const namesMacroDimension =
-          symbol.arrayDimensions?.some(
-            (dimension) => typeof dimension === "string",
-          ) ?? false;
-        return (
-          namesMacroDimension ||
-          Transpiler._needsDefiningHeader(TypeResolver.getTypeName(symbol.type))
-        );
+    if (symbols.some(Transpiler._namesMacroDimension)) {
+      return true;
+    }
+    for (const typeName of HeaderTypeNames.collect(symbols)) {
+      if (Transpiler._needsDefiningHeader(typeName)) {
+        return true;
       }
+    }
+    return false;
+  }
 
-      if (symbol.kind === "function") {
-        return (
-          Transpiler._needsDefiningHeader(
-            TypeResolver.getTypeName(symbol.returnType),
-          ) ||
-          symbol.parameters.some((parameter) =>
-            Transpiler._needsDefiningHeader(
-              TypeResolver.getTypeName(parameter.type),
-            ),
-          )
-        );
-      }
-
-      return false;
-    });
+  /**
+   * Issue #424: an array dimension that is still an identifier is a macro the
+   * header names and does not define.
+   */
+  private static _namesMacroDimension(symbol: TSymbol): boolean {
+    return (
+      symbol.kind === "variable" &&
+      (symbol.arrayDimensions?.some(
+        (dimension) => typeof dimension === "string",
+      ) ??
+        false)
+    );
   }
 
   private _captureHeaderEmissionFacts(

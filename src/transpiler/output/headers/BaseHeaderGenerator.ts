@@ -6,11 +6,11 @@
  * determine pointer (*) vs reference (&) semantics.
  */
 
+import headerCType from "./generators/headerCType";
 import IHeaderSymbol from "./types/IHeaderSymbol";
 import IParameterSymbol from "../../../utils/types/IParameterSymbol";
 import IHeaderOptions from "../codegen/types/IHeaderOptions";
 import IHeaderTypeInput from "./generators/IHeaderTypeInput";
-import typeUtils from "./generators/mapType";
 import HeaderGeneratorUtils from "./HeaderGeneratorUtils";
 import SymbolTable from "../../logic/symbols/SymbolTable";
 // Unified parameter generation (Phase 1)
@@ -18,8 +18,6 @@ import ParameterInputAdapter from "../codegen/helpers/ParameterInputAdapter";
 import ParameterSignatureBuilder from "../codegen/helpers/ParameterSignatureBuilder";
 import StructInitFunction from "../codegen/helpers/StructInitFunction";
 import TPassByValueParams from "../../types/TPassByValueParams";
-
-const { mapType } = typeUtils;
 
 /**
  * Abstract base class for header file generation
@@ -240,6 +238,7 @@ abstract class BaseHeaderGenerator {
         passByValueParams,
         allKnownEnums,
         options.generatedStructInits,
+        symbolTable,
       ),
       ...HeaderGeneratorUtils.generateHeaderEnd(guard),
     ];
@@ -265,6 +264,7 @@ abstract class BaseHeaderGenerator {
     passByValueParams?: TPassByValueParams,
     allKnownEnums?: ReadonlySet<string>,
     generatedStructInits?: ReadonlySet<string>,
+    symbolTable?: SymbolTable,
   ): string[] {
     // #1205: the ADR-029 init functions are declarations too, so the section
     // exists when there is either kind. Keying the early return on `functions`
@@ -283,6 +283,7 @@ abstract class BaseHeaderGenerator {
         sym,
         passByValueParams,
         allKnownEnums,
+        symbolTable,
       );
       if (proto) {
         lines.push(proto);
@@ -299,9 +300,13 @@ abstract class BaseHeaderGenerator {
     sym: IHeaderSymbol,
     passByValueParams?: TPassByValueParams,
     allKnownEnums?: ReadonlySet<string>,
+    symbolTable?: SymbolTable,
   ): string | null {
-    // Map return type (main() always returns int)
-    const mappedType = sym.type ? mapType(sym.type) : "void";
+    // Map return type (main() always returns int). `headerCType`, not
+    // `mapType`: a C++ namespaced return type is written `A::B` here exactly as
+    // it is in a struct field, and calling the narrower one is what made those
+    // two disagree (#1520).
+    const mappedType = sym.type ? headerCType(sym.type, symbolTable) : "void";
     const returnType = sym.name === "main" ? "int" : mappedType;
 
     // Get pass-by-value parameter names for this function
@@ -312,7 +317,7 @@ abstract class BaseHeaderGenerator {
 
     if (sym.parameters && sym.parameters.length > 0) {
       const translatedParams = sym.parameters.map((p) =>
-        this.generateParameter(p, passByValueSet, allKnownEnums),
+        this.generateParameter(p, passByValueSet, allKnownEnums, symbolTable),
       );
       params = translatedParams.join(", ");
     }
@@ -327,6 +332,7 @@ abstract class BaseHeaderGenerator {
     p: IParameterSymbol,
     passByValueSet?: ReadonlySet<string>,
     allKnownEnums?: ReadonlySet<string>,
+    symbolTable?: SymbolTable,
   ): string {
     // Pre-compute pass-by-value (ISR, float, enum, or explicitly marked)
     const isPassByValue =
@@ -339,7 +345,9 @@ abstract class BaseHeaderGenerator {
 
     // Build normalized input using adapter
     const input = ParameterInputAdapter.fromSymbol(p, {
-      mapType: (t) => mapType(t),
+      // `headerCType`, so a C++ namespaced parameter type is written `A::B`
+      // exactly as the same type is in a struct field (#1520).
+      mapType: (t) => headerCType(t, symbolTable),
       isPassByValue,
     });
 

@@ -55,22 +55,6 @@ const EXPECTED_FAILURES: ReadonlyMap<string, string> = new Map([
       "control for #1312's diagnostic, so its header cannot compile and a " +
       "version that did would mean the fixture had stopped testing anything",
   ],
-  [
-    "tests/issue-502/mixed-scope-init.test.hpp",
-    "#1520: a struct FIELD's C++ header is not included",
-  ],
-  [
-    "tests/issue-502/nested-struct-init.test.hpp",
-    "#1520: a struct FIELD's C++ header is not included",
-  ],
-  [
-    "tests/issue-502/deep-nested-init.test.hpp",
-    "#1520: a struct FIELD's C++ header is not included",
-  ],
-  [
-    "tests/issue-502/function-param-init.test.hpp",
-    "#1520: a struct FIELD's C++ header is not included",
-  ],
 ]);
 
 const sourceCache = new Map<string, string>();

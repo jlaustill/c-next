@@ -6,6 +6,8 @@
  * Header file for cross-language interoperability
  */
 
+#include "SeaDash.hpp"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
