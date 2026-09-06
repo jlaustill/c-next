@@ -79,9 +79,24 @@ class ComplianceAnnotations {
   }
 
   /**
-   * Every annotation this transpiler can emit, for the tests that hold the set
-   * to the house form -- and so that "which rules does our codegen cite?" has
-   * an answer that is read from the code rather than grepped for.
+   * Every annotation this transpiler can emit.
+   *
+   * ## Its only caller is a test, deliberately
+   *
+   * That is the #1418 shape -- "a test-only caller counts as usage, so knip
+   * reports clean on a method whose last production caller is gone" -- and this
+   * branch deleted six methods that had it. So the difference is stated rather
+   * than left for someone to rediscover: those six were duplicates of a live
+   * sink, and deleting them removed a second way to do one thing. This one has
+   * no production caller because enumerating the set is not something the
+   * transpiler does while transpiling; it is what the tests hold to the house
+   * form, and what answers "which rules does our codegen cite?" for someone
+   * auditing the generated C.
+   *
+   * Without it the test would hardcode the list, and there would be two lists.
+   * If a sweep proposes deleting this, the question to ask is whether the
+   * assertion in `__tests__/ComplianceAnnotations.test.ts` still has a set to
+   * assert over.
    */
   static all(): readonly IComplianceAnnotation[] {
     return [
