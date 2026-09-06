@@ -3,7 +3,7 @@
  * Extracted from CodeGenerator.ts.
  */
 import IComment from "../../../../types/IComment";
-import CommentExtractor from "../../../../logic/analysis/CommentExtractor";
+import CommentScanner from "../../../../logic/parser/CommentScanner";
 import CommentFormatter from "../../CommentFormatter";
 
 /**
@@ -11,7 +11,7 @@ import CommentFormatter from "../../CommentFormatter";
  */
 const getLeadingComments = (
   ctx: { start?: { tokenIndex: number } | null },
-  extractor: CommentExtractor | null,
+  extractor: CommentScanner | null,
 ): IComment[] => {
   if (!extractor || !ctx.start) return [];
   return extractor.getCommentsBefore(ctx.start.tokenIndex);
@@ -22,7 +22,7 @@ const getLeadingComments = (
  */
 const getTrailingComments = (
   ctx: { stop?: { tokenIndex: number } | null },
-  extractor: CommentExtractor | null,
+  extractor: CommentScanner | null,
 ): IComment[] => {
   if (!extractor || !ctx.stop) return [];
   return extractor.getCommentsAfter(ctx.stop.tokenIndex);

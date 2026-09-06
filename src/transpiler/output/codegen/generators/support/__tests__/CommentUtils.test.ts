@@ -4,7 +4,7 @@
  */
 import { describe, it, expect, vi } from "vitest";
 import commentUtils from "../CommentUtils";
-import CommentExtractor from "../../../../../logic/analysis/CommentExtractor";
+import CommentScanner from "../../../../../../transpiler/logic/parser/CommentScanner";
 import CommentFormatter from "../../../CommentFormatter";
 import ECommentType from "../../../../../types/ECommentType";
 import IComment from "../../../../../types/IComment";
@@ -31,7 +31,7 @@ describe("CommentUtils", () => {
     it("should return empty array when ctx.start is null", () => {
       const extractor = {
         getCommentsBefore: vi.fn(),
-      } as unknown as CommentExtractor;
+      } as unknown as CommentScanner;
       const ctx = { start: null };
 
       const result = getLeadingComments(ctx, extractor);
@@ -43,7 +43,7 @@ describe("CommentUtils", () => {
     it("should return empty array when ctx.start is undefined", () => {
       const extractor = {
         getCommentsBefore: vi.fn(),
-      } as unknown as CommentExtractor;
+      } as unknown as CommentScanner;
       const ctx = {};
 
       const result = getLeadingComments(ctx, extractor);
@@ -64,7 +64,7 @@ describe("CommentUtils", () => {
       ];
       const extractor = {
         getCommentsBefore: vi.fn().mockReturnValue(mockComments),
-      } as unknown as CommentExtractor;
+      } as unknown as CommentScanner;
       const ctx = { start: { tokenIndex: 10 } };
 
       const result = getLeadingComments(ctx, extractor);
@@ -88,7 +88,7 @@ describe("CommentUtils", () => {
     it("should return empty array when ctx.stop is null", () => {
       const extractor = {
         getCommentsAfter: vi.fn(),
-      } as unknown as CommentExtractor;
+      } as unknown as CommentScanner;
       const ctx = { stop: null };
 
       const result = getTrailingComments(ctx, extractor);
@@ -100,7 +100,7 @@ describe("CommentUtils", () => {
     it("should return empty array when ctx.stop is undefined", () => {
       const extractor = {
         getCommentsAfter: vi.fn(),
-      } as unknown as CommentExtractor;
+      } as unknown as CommentScanner;
       const ctx = {};
 
       const result = getTrailingComments(ctx, extractor);
@@ -121,7 +121,7 @@ describe("CommentUtils", () => {
       ];
       const extractor = {
         getCommentsAfter: vi.fn().mockReturnValue(mockComments),
-      } as unknown as CommentExtractor;
+      } as unknown as CommentScanner;
       const ctx = { stop: { tokenIndex: 14 } };
 
       const result = getTrailingComments(ctx, extractor);

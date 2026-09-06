@@ -53,6 +53,84 @@ interface IMove {
 }
 
 const MOVES: readonly IMove[] = [
+  // --- layer-neutral: reached by more than one pass ----------------------
+  {
+    from: "src/TRANSPILE/1-Analyze/helpers/AssignmentTargetExtractor.ts",
+    to: "src/utils/ast/AssignmentTargetExtractor.ts",
+    because:
+      "#1322. Filed under `analysis/helpers/` but never a 2.1 fact: its own " +
+      "header says it was extracted from `walkStatementForModifications` for " +
+      "testability, and `CodeGenerator` reaches it. A generic parse-tree " +
+      "walker that two passes use belongs where every layer may depend on it, " +
+      "which the dependency-cruiser config already names as `utils/`. Leaving " +
+      "it made `render-cannot-import-analyzers` unsatisfiable for a module " +
+      "that decides nothing about legality.",
+  },
+  {
+    from: "src/TRANSPILE/1-Analyze/helpers/ChildStatementCollector.ts",
+    to: "src/utils/ast/ChildStatementCollector.ts",
+    because:
+      "Same: 'centralizes recursion patterns', extracted from `CodeGenerator` " +
+      "under #566. It answers *what statements are inside this one?*, which is " +
+      "a question about the tree, not about the program's legality.",
+  },
+  {
+    from: "src/TRANSPILE/1-Analyze/helpers/StatementExpressionCollector.ts",
+    to: "src/utils/ast/StatementExpressionCollector.ts",
+    because: "Same shape, same reason (#565).",
+  },
+  {
+    from: "src/TRANSPILE/1-Analyze/types/IBaseAnalysisError.ts",
+    to: "src/transpiler/types/IBaseAnalysisError.ts",
+    because:
+      "#1322. The shape of a diagnostic is a shared contract, and `output/` " +
+      "reads it. `logic-cannot-import-output`'s own comment prescribes the " +
+      "remedy for exactly this: 'If you need shared types, move them to " +
+      "`transpiler/types/`', which is layer-neutral.",
+  },
+  {
+    from: "src/TRANSPILE/1-Analyze/types/INullCheckError.ts",
+    to: "src/transpiler/types/INullCheckError.ts",
+    because: "Same contract, same reader.",
+  },
+  // --- 2.2 Plan: what C should exist? -------------------------------------
+  {
+    from: "src/transpiler/logic/analysis/PassByValueAnalyzer.ts",
+    to: "src/TRANSPILE/2-Plan/PassByValueAnalyzer.ts",
+    because:
+      "Named `Analyzer`, filed under `analysis/`, and not a `runAnalyzers` step: " +
+      "its only importer is `CodeGenerator`, and what it computes is whether a " +
+      "parameter is passed by value -- an emission decision, which 2.2 owns. " +
+      "Leaving it in 1-Analyze would make `analyze-cannot-import-plan` " +
+      "unsatisfiable on the day it was written.",
+  },
+  {
+    from: "src/transpiler/logic/analysis/ModificationAnalyzer.ts",
+    to: "src/TRANSPILE/2-Plan/ModificationAnalyzer.ts",
+    because:
+      "Const inference. Also not a step; its importer is `Transpiler`, and " +
+      "`const` on a generated declaration is a fact about the C that should " +
+      "exist, not about whether the C-Next is legal.",
+  },
+  {
+    from: "src/transpiler/logic/analysis/helpers/TransitiveModificationPropagator.ts",
+    to: "src/TRANSPILE/2-Plan/TransitiveModificationPropagator.ts",
+    because: "Only `ModificationAnalyzer` uses it; it follows its one caller.",
+  },
+  // --- 2.1 Analyze: is this program legal? --------------------------------
+  {
+    from: "src/transpiler/logic/analysis",
+    to: "src/TRANSPILE/1-Analyze",
+    because:
+      "#1322. `docs/architecture/README.md`: 2.1 Analyze owns *is this program " +
+      "legal?* -- all diagnostics, codes, positions. This directory already IS " +
+      "that pass: `runAnalyzers` and its sixteen steps are what authors every " +
+      "coded diagnostic the transpiler emits. It moves whole rather than " +
+      "gaining a sibling under `src/TRANSPILE/`, because two homes for one pass " +
+      "is the duplicate code path CLAUDE.md calls the project's worst " +
+      "anti-pattern -- and #1322 is about to author 145 more diagnostics, each " +
+      "of which would have to pick a home.",
+  },
   // --- 1.3 Declare: per-file identity and declaration ---------------------
   {
     from: "src/transpiler/logic/symbols/cnext",

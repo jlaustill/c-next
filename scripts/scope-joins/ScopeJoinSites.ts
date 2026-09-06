@@ -170,7 +170,7 @@ class ScopeJoinSites {
       why: "`qualifyPathInScope` -- the one implementation the converted sites route to; its parameter IS the enclosing path",
     },
     {
-      file: "src/transpiler/logic/analysis/helpers/CalleeNameResolver.ts",
+      file: "src/TRANSPILE/1-Analyze/helpers/CalleeNameResolver.ts",
       element: "resolvedName",
       kind: "path",
       pairedWith: null,

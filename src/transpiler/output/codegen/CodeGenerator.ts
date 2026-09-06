@@ -9,7 +9,7 @@ import ReservedCnxName from "../../../utils/ReservedCnxName";
 import { CommonTokenStream, ParserRuleContext } from "antlr4ng";
 import * as Parser from "../../logic/parser/grammar/CNextParser";
 
-import CommentExtractor from "../../logic/analysis/CommentExtractor";
+import CommentScanner from "../../logic/parser/CommentScanner";
 import TypeRegistrationEngine from "./helpers/TypeRegistrationEngine";
 import CommentFormatter from "./CommentFormatter";
 import IncludeDiscovery from "../../data/IncludeDiscovery";
@@ -59,8 +59,9 @@ import ExpressionUtils from "../../../utils/ExpressionUtils";
 import helperGenerators from "./generators/support/HelperGenerator";
 import includeGenerators from "./generators/support/IncludeGenerator";
 import commentUtils from "./generators/support/CommentUtils";
-// ADR-046: NullCheckAnalyzer for nullable C pointer type detection
-import NullCheckAnalyzer from "../../logic/analysis/NullCheckAnalyzer";
+// ADR-046: which nullable C functions return a struct pointer (#1322: a
+// constant lookup, not an analyzer -- see the module header)
+import STRUCT_POINTER_C_FUNCTIONS from "../../constants/STRUCT_POINTER_C_FUNCTIONS";
 // ADR-006: Helper for building member access chains with proper separators
 import memberAccessChain from "./memberAccessChain";
 // ADR-065: Assignment decomposition (Phase 2)
@@ -139,7 +140,7 @@ import AdrProvenance from "../../state/AdrProvenance";
 import SymbolRegistry from "../../state/SymbolRegistry";
 import CallbackTypedefFormatter from "./helpers/CallbackTypedefFormatter";
 // Issue #269: Pass-by-value analysis extracted from CodeGenerator
-import PassByValueAnalyzer from "../../logic/analysis/PassByValueAnalyzer";
+import PassByValueAnalyzer from "../../../TRANSPILE/2-Plan/PassByValueAnalyzer";
 // Unified parameter generation (Phase 1)
 import ParameterInputAdapter from "./helpers/ParameterInputAdapter";
 import ParameterSignatureBuilder from "./helpers/ParameterSignatureBuilder";
@@ -247,7 +248,7 @@ export default class CodeGenerator implements IOrchestrator {
   /** Token stream for comment extraction (ADR-043) */
   private tokenStream: CommonTokenStream | null = null;
 
-  private commentExtractor: CommentExtractor | null = null;
+  private commentExtractor: CommentScanner | null = null;
 
   private readonly commentFormatter: CommentFormatter = new CommentFormatter();
 
@@ -2389,7 +2390,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     this.tokenStream = tokenStream ?? null;
     this.commentExtractor = this.tokenStream
-      ? new CommentExtractor(this.tokenStream)
+      ? new CommentScanner(this.tokenStream)
       : null;
   }
 
@@ -4301,7 +4302,7 @@ export default class CodeGenerator implements IOrchestrator {
     // ADR-046: Handle nullable C pointer types (c_ prefix variables)
     if (name.startsWith("c_")) {
       const exprText = ctx.expression()!.getText();
-      for (const funcName of NullCheckAnalyzer.getStructPointerFunctions()) {
+      for (const funcName of STRUCT_POINTER_C_FUNCTIONS) {
         if (exprText.includes(`${funcName}(`)) {
           return `${type}*`;
         }

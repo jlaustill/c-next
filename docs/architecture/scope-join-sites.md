@@ -49,7 +49,7 @@ lands.
 | ----------------------------------------------------------------------------- | -------------------- | ------ | ---------- | ---------- |
 | `src/PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter.ts`                    | `scopeName`          | 1      | leaf-keyed | #1394      |
 | `src/PARSE/3-Declare/cnext/index.ts`                                          | `scopeName`          | 1      | leaf-keyed | #1295      |
-| `src/transpiler/logic/analysis/helpers/CalleeNameResolver.ts`                 | `resolvedName`       | 1      | path       | --         |
+| `src/TRANSPILE/1-Analyze/helpers/CalleeNameResolver.ts`                       | `resolvedName`       | 1      | path       | --         |
 | `src/transpiler/output/codegen/assignment/AssignmentClassifier.ts`            | `firstId`            | 1      | path       | --         |
 | `src/transpiler/output/codegen/assignment/AssignmentClassifier.ts`            | `scopeName`          | 2      | path       | --         |
 | `src/transpiler/output/codegen/assignment/handlers/AssignmentHandlerUtils.ts` | `leadingId`          | 1      | path       | --         |
