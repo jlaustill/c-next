@@ -1,0 +1,2 @@
+18:20 error[E0861]: Slice assignment length (8 bytes) exceeds the source value width (4 bytes) for 'buffer'
+       help: Copying more bytes than the source holds would shift past its width, which is undefined behavior.

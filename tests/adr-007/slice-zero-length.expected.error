@@ -1,0 +1,2 @@
+19:14 error[E0860]: Slice assignment length must be positive: 0
+       help: A slice writes at least one byte; a zero-length slice writes nothing and is almost certainly a mistake.

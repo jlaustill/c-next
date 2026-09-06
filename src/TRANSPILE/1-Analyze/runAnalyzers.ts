@@ -28,6 +28,7 @@ import CompoundAssignmentAnalyzer from "./CompoundAssignmentAnalyzer";
 import ConstructorArgumentAnalyzer from "./ConstructorArgumentAnalyzer";
 import CriticalSectionAnalyzer from "./CriticalSectionAnalyzer";
 import EnumTypeSafetyAnalyzer from "./EnumTypeSafetyAnalyzer";
+import SliceAssignmentAnalyzer from "./SliceAssignmentAnalyzer";
 import NestedTernaryAnalyzer from "./NestedTernaryAnalyzer";
 import ThisOutsideScopeAnalyzer from "./ThisOutsideScopeAnalyzer";
 import CommentExtractor from "./CommentExtractor";
@@ -251,6 +252,10 @@ function runAnalyzers(
     {
       label: "enum type safety (ADR-017, E0428/E0434)",
       run: () => new EnumTypeSafetyAnalyzer().analyze(tree),
+    },
+    {
+      label: "slice assignment (ADR-052, E0858-E0861)",
+      run: () => new SliceAssignmentAnalyzer().analyze(tree),
     },
     {
       // Last, and does not halt: comment findings are reported alongside

@@ -12,10 +12,22 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-323 fixture(s) assert a diagnostic; 210 carry a code.
+327 fixture(s) assert a diagnostic; 223 carry a code.
 
 | Fixture                                                                                          | Codes        |
 | ------------------------------------------------------------------------------------------------ | ------------ |
+| tests/adr-007/slice-bounds-violation.test.cnx                                                    | E0860        |
+| tests/adr-007/slice-imported-direct-error.test.cnx                                               | E0860        |
+| tests/adr-007/slice-imported-transitive-error.test.cnx                                           | E0860        |
+| tests/adr-007/slice-in-scope-method-error.test.cnx                                               | E0860        |
+| tests/adr-007/slice-length-exceeds-source.test.cnx                                               | E0861        |
+| tests/adr-007/slice-literal-negative-too-wide.test.cnx                                           | E0861        |
+| tests/adr-007/slice-literal-too-wide.test.cnx                                                    | E0861        |
+| tests/adr-007/slice-outer-dim-error.test.cnx                                                     | E0858        |
+| tests/adr-007/slice-runtime-offsets.test.cnx                                                     | E0859        |
+| tests/adr-007/slice-silent-overflow.test.cnx                                                     | E0859        |
+| tests/adr-007/slice-wide-element-span-error.test.cnx                                             | E0860        |
+| tests/adr-007/slice-zero-length.test.cnx                                                         | E0860        |
 | tests/adr-016/this-outside-scope-error.test.cnx                                                  | E0431        |
 | tests/adr-017/enum-error-assign-int.test.cnx                                                     | E0428        |
 | tests/adr-017/enum-error-assign-non-enum.test.cnx                                                | E0428        |
@@ -167,7 +179,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-847-misra-17-7-lowering/scope-method-imported-discard.test.cnx                  | E0708        |
 | tests/bugs/issue-847-misra-17-7-lowering/transitive-function-discard.test.cnx                    | E0708        |
 | tests/bugs/issue-847-misra-17-7-lowering/transitive-scope-method-discard.test.cnx                | E0708        |
-| tests/c-interop/cpp14-header/crc32.test.cnx                                                      | (uncoded)    |
+| tests/c-interop/cpp14-header/crc32.test.cnx                                                      | E0859        |
 | tests/c-interop/use-c-union-basic.test.cnx                                                       | (uncoded)    |
 | tests/c-interop/use-c-union-typedef.test.cnx                                                     | (uncoded)    |
 | tests/callbacks/callback-error-nominal.test.cnx                                                  | (uncoded)    |
@@ -267,7 +279,6 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/initialization/use-before-init.test.cnx                                                    | E0381        |
 | tests/multi-dim-arrays/bounds-error.test.cnx                                                     | (uncoded)    |
 | tests/multi-dim-arrays/c-style-trailing-bracket-rejected.test.cnx                                | (uncoded)    |
-| tests/multi-dim-arrays/slice-outer-dim-error.test.cnx                                            | (uncoded)    |
 | tests/null-check/e0908-basic.test.cnx                                                            | E0908        |
 | tests/null-check/e0908-reassignment.test.cnx                                                     | E0908        |
 | tests/null-check/forbidden-fopen.test.cnx                                                        | E0901        |
@@ -301,13 +312,6 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/scoped-structs/private-scoped-struct-error.test.cnx                                        | (uncoded)    |
 | tests/sizeof/array-param-error.test.cnx                                                          | E0601        |
 | tests/sizeof/side-effects-error.test.cnx                                                         | E0602        |
-| tests/slice-assignment/slice-bounds-violation.test.cnx                                           | (uncoded)    |
-| tests/slice-assignment/slice-length-exceeds-source.test.cnx                                      | (uncoded)    |
-| tests/slice-assignment/slice-literal-negative-too-wide.test.cnx                                  | (uncoded)    |
-| tests/slice-assignment/slice-literal-too-wide.test.cnx                                           | (uncoded)    |
-| tests/slice-assignment/slice-runtime-offsets.test.cnx                                            | (uncoded)    |
-| tests/slice-assignment/slice-silent-overflow.test.cnx                                            | (uncoded)    |
-| tests/slice-assignment/slice-zero-length.test.cnx                                                | (uncoded)    |
 | tests/static-allocation/aligned-alloc-error.test.cnx                                             | E0902        |
 | tests/static-allocation/calloc-error.test.cnx                                                    | E0902        |
 | tests/static-allocation/free-error.test.cnx                                                      | E0902        |

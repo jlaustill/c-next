@@ -1,0 +1,25 @@
+// test-error
+// test-adr: 007
+// E0860 inside a scope method -- matrix cell: scope method / same file.
+//
+// A slice assignment is a statement, so a scope METHOD is the second and last
+// context it can appear in. The buffer is a scope member, reached with `this.`,
+// which is a spelling the same-file function fixtures never exercise.
+
+scope Packet {
+    u8[8] buf;
+
+    // NEGATIVE CONTROL -- the same member, the same source, sliced within its
+    // capacity. 0 + 8 is exactly the capacity and must be accepted.
+    public u32 inBounds() {
+        u64 v <- 0xDEADBEEFDEADBEEF;
+        this.buf[0, 8] <- v;
+        return 0;
+    }
+
+    public u32 overflows() {
+        u64 v <- 0xDEADBEEFDEADBEEF;
+        this.buf[4, 8] <- v;
+        return 0;
+    }
+}

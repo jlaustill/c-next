@@ -19,9 +19,9 @@ codes that already have a fixture.
 | E05xx     | Include/Preprocessor    | 7      |
 | E06xx     | Sizeof Expressions      | 2      |
 | E07xx     | Control Flow            | 8      |
-| E08xx     | Arithmetic/Array Safety | 17     |
+| E08xx     | Arithmetic/Array Safety | 21     |
 | E09xx     | NULL Safety             | 8      |
-| **Total** |                         | **63** |
+| **Total** |                         | **67** |
 
 ---
 
@@ -232,10 +232,14 @@ include-visibility is not derivable for a C or C++ name.
 
 ### Subscript Depth (ADR-036 / ADR-007)
 
-| Code  | Message                                                              | Help                                                                                                  | Source                                                |
-| ----- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| E0856 | Too many subscripts on a base                                        | A base allows `arrayDimensions + 1` subscripts; for a bit field use `name[start, width]`              | `output/codegen/subscript/SubscriptDepthValidator.ts` |
-| E0857 | Compound assignment on a target that is not a whole storage location | A compound operator reads, modifies and writes back one location; write the read and write separately | `TRANSPILE/1-Analyze/CompoundAssignmentAnalyzer.ts`   |
+| Code  | Message                                                                        | Help                                                                                                             | Source                                                |
+| ----- | ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| E0856 | Too many subscripts on a base                                                  | A base allows `arrayDimensions + 1` subscripts; for a bit field use `name[start, width]`                         | `output/codegen/subscript/SubscriptDepthValidator.ts` |
+| E0857 | Compound assignment on a target that is not a whole storage location           | A compound operator reads, modifies and writes back one location; write the read and write separately            | `TRANSPILE/1-Analyze/CompoundAssignmentAnalyzer.ts`   |
+| E0858 | Slice assignment target cannot be sliced (element type, dimensions, or size)   | Slice a one-dimensional integer or string buffer whose size folds at compile time                                | `TRANSPILE/1-Analyze/SliceAssignmentAnalyzer.ts`      |
+| E0859 | Slice assignment offset or length is not a compile-time constant               | Use a literal or a `const`; a runtime span cannot be bounds-checked                                              | `TRANSPILE/1-Analyze/SliceAssignmentAnalyzer.ts`      |
+| E0860 | Slice assignment span does not fit the buffer (bounds, alignment, or sign)     | Keep `offset + length / elementSize` within the capacity, and the length a positive multiple of the element size | `TRANSPILE/1-Analyze/SliceAssignmentAnalyzer.ts`      |
+| E0861 | Slice assignment source does not fit the slice (type, width, or literal range) | Assign an integer no wider than the slice, or widen the slice                                                    | `TRANSPILE/1-Analyze/SliceAssignmentAnalyzer.ts`      |
 
 Each subscript peels one array dimension (ADR-036) and a scalar integer/float may be
 bit-indexed once (ADR-007), so `flags[4][3]` on a scalar `u8` indexes the single bit

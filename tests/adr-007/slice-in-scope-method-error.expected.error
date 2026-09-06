@@ -1,0 +1,2 @@
+22:17 error[E0860]: Slice assignment out of bounds: offset(4) + 8 element(s) = 12 exceeds buffer capacity(8) for 'buf'
+       help: The offset is an element index and the capacity an element count, so the span is compared in elements, not bytes.

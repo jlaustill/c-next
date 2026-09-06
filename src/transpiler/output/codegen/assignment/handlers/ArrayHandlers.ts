@@ -16,6 +16,7 @@ import TypeValidator from "../../TypeValidator";
 import type TTypeInfo from "../../../../types/TTypeInfo";
 import CNEXT_TO_C_TYPE_MAP from "../../../../../utils/constants/TypeMappings";
 import TypeResolver from "../../TypeResolver";
+import invariant from "../../../../../utils/invariant";
 
 /** Matches the unsigned C-Next integer types (u8/u16/u32/u64). */
 const UNSIGNED_INT_RE = /^u(8|16|32|64)$/;
@@ -117,9 +118,10 @@ function resolveSliceElement(
     return { bytes, cType, wrap: (chunk) => `(${cType})(${uType})${chunk}` };
   }
 
-  throw new Error(
-    `${line}:0 Error: Slice assignment is not supported for element type ` +
-      `'${baseType}' of '${rawName}'. Only integer and string buffers can be sliced.`,
+  invariant(
+    false,
+    `a sliced buffer has an integer or string element type -- E0858 rejects ` +
+      `'${baseType}' on '${rawName}' in pass 2.1, before this runs`,
   );
 }
 
@@ -231,9 +233,10 @@ function resolveSliceSource(
   const isUnsigned = UNSIGNED_INT_RE.test(sourceType);
   const isSigned = SIGNED_INT_RE.test(sourceType);
   if (!isUnsigned && !isSigned) {
-    throw new Error(
-      `${line}:0 Error: Slice assignment source must be an integer value; ` +
-        `the value assigned to '${rawName}' has type '${sourceType}'.`,
+    invariant(
+      false,
+      `a slice source is an integer -- E0861 rejects '${sourceType}' for ` +
+        `'${rawName}' in pass 2.1, before this runs`,
     );
   }
 
@@ -283,9 +286,10 @@ function resolveLiteralSliceSource(
     const unsignedUpperBound = 1n << BigInt(8 * lengthValue);
     const signedLowerBound = -(1n << BigInt(8 * lengthValue - 1));
     if (truncated >= unsignedUpperBound || truncated < signedLowerBound) {
-      throw new Error(
-        `${line}:0 Error: Slice assignment literal value (${value}) does not fit ` +
-          `in the ${lengthValue}-byte slice for '${rawName}'.`,
+      invariant(
+        false,
+        `a slice literal fits its byte width -- E0861 rejects ${value} in a ` +
+          `${lengthValue}-byte slice for '${rawName}' in pass 2.1`,
       );
     }
   }
@@ -318,28 +322,29 @@ function validateSliceSpan(
   rawName: string,
 ): number {
   if (lengthValue % dest.bytes !== 0) {
-    throw new Error(
-      `${line}:0 Error: Slice assignment length (${lengthValue}) must be a ` +
-        `multiple of the element size (${dest.bytes} bytes) for '${rawName}'.`,
+    invariant(
+      false,
+      `a slice length divides the element size -- E0860 rejects ${lengthValue} ` +
+        `against ${dest.bytes} bytes for '${rawName}' in pass 2.1`,
     );
   }
 
   const elementCount = lengthValue / dest.bytes;
   if (offsetValue + elementCount > capacity) {
-    throw new Error(
-      `${line}:0 Error: Slice assignment out of bounds: ` +
-        `offset(${offsetValue}) + ${elementCount} element(s) = ` +
-        `${offsetValue + elementCount} exceeds buffer capacity(${capacity}) ` +
-        `for '${rawName}'.`,
+    invariant(
+      false,
+      `a slice span fits its buffer -- E0860 rejects offset(${offsetValue}) + ` +
+        `${elementCount} against capacity(${capacity}) for '${rawName}' in pass 2.1`,
     );
   }
 
   // A slice cannot copy more bytes than the source value holds — that would be
   // an out-of-range shift (undefined behavior) baked in at compile time.
   if (lengthValue > src.bytes) {
-    throw new Error(
-      `${line}:0 Error: Slice assignment length (${lengthValue} bytes) exceeds ` +
-        `the source value width (${src.bytes} bytes) for '${rawName}'.`,
+    invariant(
+      false,
+      `a slice length fits its source width -- E0861 rejects ${lengthValue} ` +
+        `bytes against ${src.bytes} for '${rawName}' in pass 2.1`,
     );
   }
 
@@ -489,10 +494,10 @@ function handleArraySlice(ctx: IAssignmentContext): string {
   if (typeInfo?.arrayDimensions && typeInfo.arrayDimensions.length > 1) {
     // Use raw identifier in error message for clarity
     const rawName = ctx.identifiers[0];
-    throw new Error(
-      `${line}:0 Error: Slice assignment is only valid on one-dimensional arrays. ` +
-        `'${rawName}' has ${typeInfo.arrayDimensions.length} dimensions. ` +
-        `Access the innermost dimension first (e.g., ${rawName}[index][offset, length]).`,
+    invariant(
+      false,
+      `a sliced buffer is one-dimensional -- E0858 rejects ` +
+        `${typeInfo.arrayDimensions.length} dimensions on '${rawName}' in pass 2.1`,
     );
   }
 
@@ -501,9 +506,9 @@ function handleArraySlice(ctx: IAssignmentContext): string {
     ctx.subscripts[0],
   );
   if (offsetValue === undefined) {
-    throw new Error(
-      `${line}:0 Error: Slice assignment offset must be a compile-time constant. ` +
-        `Runtime offsets are not allowed to ensure bounds safety.`,
+    invariant(
+      false,
+      "a slice offset folds at compile time -- E0859 rejects a runtime offset in pass 2.1",
     );
   }
 
@@ -512,9 +517,9 @@ function handleArraySlice(ctx: IAssignmentContext): string {
     ctx.subscripts[1],
   );
   if (lengthValue === undefined) {
-    throw new Error(
-      `${line}:0 Error: Slice assignment length must be a compile-time constant. ` +
-        `Runtime lengths are not allowed to ensure bounds safety.`,
+    invariant(
+      false,
+      "a slice length folds at compile time -- E0859 rejects a runtime length in pass 2.1",
     );
   }
 
@@ -527,20 +532,23 @@ function handleArraySlice(ctx: IAssignmentContext): string {
   } else {
     // Use raw identifier in error message for clarity
     const rawName = ctx.identifiers[0];
-    throw new Error(
-      `${line}:0 Error: Cannot determine buffer size for '${rawName}' at compile time.`,
+    invariant(
+      false,
+      `a sliced buffer has a foldable size -- E0858 rejects '${rawName}' in pass 2.1`,
     );
   }
 
   if (offsetValue < 0) {
-    throw new Error(
-      `${line}:0 Error: Slice assignment offset cannot be negative: ${offsetValue}`,
+    invariant(
+      false,
+      `a slice offset is not negative -- E0860 rejects ${offsetValue} in pass 2.1`,
     );
   }
 
   if (lengthValue <= 0) {
-    throw new Error(
-      `${line}:0 Error: Slice assignment length must be positive: ${lengthValue}`,
+    invariant(
+      false,
+      `a slice length is positive -- E0860 rejects ${lengthValue} in pass 2.1`,
     );
   }
 

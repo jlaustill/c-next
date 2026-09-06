@@ -529,6 +529,44 @@ packetArray[OFFSET_FIELD3, 1] <- data.field3;
 
 ---
 
+## Scope-context matrix
+
+Declared for **array slice assignment** (the section above), whose rules #1322
+moved out of codegen: the target must be a one-dimensional integer or string
+buffer whose size folds, the offset and length must fold, the span must fit, and
+the source must fit the span.
+
+<!-- MATRIX-SEVERITY -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | off      |
+| scope member       | same file           | off      |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | off      |
+| global variable    | imported direct     | off      |
+| scope member       | imported direct     | off      |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | off      |
+| global variable    | imported transitive | off      |
+| scope member       | imported transitive | off      |
+
+A slice assignment is a **statement**. It appears in a function body and
+nowhere else, so the two declaration contexts cannot hold one and are `off` --
+the same shape as a `critical` block, and for the same reason.
+
+The imported columns are `error` for a top-level function because the rules are
+checked against the buffer's DECLARATION, which may live in another file. That
+is not a hypothetical: resolving the target through the current file alone made
+an out-of-bounds slice on an imported buffer pass the check entirely.
+
+`scope method` is `off` in the imported columns, and this one is an obligation
+not yet met rather than a claim that the cell cannot exist -- a scope method can
+certainly slice an imported buffer. It is declared `off` so the table does not
+assert coverage that no fixture provides.
+
 ## References
 
 ### Bit Manipulation in Other Languages

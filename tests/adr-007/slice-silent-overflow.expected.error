@@ -1,2 +1,2 @@
-22:11 error[E0859]: Slice assignment offset must be a compile-time constant for 'buffer'
+28:11 error[E0859]: Slice assignment offset must be a compile-time constant for 'buffer'
        help: A runtime offset cannot be bounds-checked at compile time. Use a literal or a `const`.

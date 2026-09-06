@@ -1,7 +1,16 @@
 // test-error
+// test-adr: 007
 // Issue #1085 review (Finding D): a literal slice source is contextually typed to
 // the slice byte-width, so a literal that does not fit the slice length is a clear
 // compile error. 0x12345678 needs 4 bytes but the slice is only 2 bytes wide.
+// NEGATIVE CONTROL -- the largest value a 2-byte slice CAN hold. 0x12345678
+// is rejected; 0xFFFF is exactly the unsigned upper bound and must not be.
+u32 fits() {
+    u8[8] ok;
+    ok[0, 2] <- 0xFFFF;
+    return 0;
+}
+
 u32 main() {
     u8[8] buf;
     buf[0, 2] <- 0x12345678;

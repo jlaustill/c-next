@@ -16,6 +16,15 @@ cell is declared by the ADR that owns it.
 | `-`           | no obligation declared (`off`)                                                  |
 | `n/a`         | not derivable yet -- provider-side relationships need the emitting file (#1219) |
 
+## ADR-007
+
+| Context            | same file | direct | transitive | from 1 away | thru chain |
+| ------------------ | --------- | ------ | ---------- | ----------- | ---------- |
+| global variable    | -         | -      | -          | n/a         | n/a        |
+| top-level function | ok        | ok     | ok         | n/a         | n/a        |
+| scope member       | -         | -      | -          | n/a         | n/a        |
+| scope method       | ok        | -      | -          | n/a         | n/a        |
+
 ## ADR-016
 
 | Context            | same file | direct | transitive | from 1 away | thru chain |
