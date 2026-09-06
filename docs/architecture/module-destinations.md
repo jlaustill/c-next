@@ -82,9 +82,10 @@ from `awaiting` to a real path, never back.
 
 ### 2.2 Plan — `src/TRANSPILE/2-Plan/`
 
-| module            | why                                                               |
-| ----------------- | ----------------------------------------------------------------- |
-| `EmissionPlan.ts` | decides what C should exist for one file — the artifact 2.2 emits |
+| module                     | why                                                                                    |
+| -------------------------- | -------------------------------------------------------------------------------------- |
+| `EmissionPlan.ts`          | decides what C should exist for one file — the artifact 2.2 emits                      |
+| `ComplianceAnnotations.ts` | which safety-standard rule shaped a construct, and the one rendering of the house form |
 
 Created here rather than moved: 2.2 Plan did not exist as a module anywhere, so
 there was nothing to relocate. #1323's `HeaderEmissionPlanner` is **not** listed
