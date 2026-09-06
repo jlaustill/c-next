@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import AssignmentValidator from "../AssignmentValidator.js";
 import TypeValidator from "../../TypeValidator.js";
-import EnumAssignmentValidator from "../EnumAssignmentValidator.js";
 import CNextSourceParser from "../../../../logic/parser/CNextSourceParser.js";
 import CodeGenState from "../../../../state/CodeGenState.js";
 
@@ -79,11 +78,6 @@ describe("AssignmentValidator", () => {
     vi.spyOn(TypeValidator, "validateCallbackAssignment").mockImplementation(
       () => {},
     );
-    vi.spyOn(
-      EnumAssignmentValidator,
-      "validateEnumAssignment",
-    ).mockImplementation(() => {});
-
     CodeGenState.reset();
     setupSymbols();
   });
@@ -141,29 +135,12 @@ describe("AssignmentValidator", () => {
       expect(CodeGenState.floatShadowCurrent.has("__bits_myFloat")).toBe(false);
     });
 
-    it("should validate enum assignment for enum-typed variable", () => {
-      CodeGenState.setVariableTypeInfo("status", {
-        baseType: "Status",
-        bitWidth: 8,
-        isArray: false,
-        isConst: false,
-        isEnum: true,
-        enumTypeName: "Status",
-      });
-      const { target, expression } = parseAssignment("status");
-
-      AssignmentValidator.validate(
-        target,
-        expression,
-        false,
-        1,
-        defaultCallbacks,
-      );
-
-      expect(
-        EnumAssignmentValidator.validateEnumAssignment,
-      ).toHaveBeenCalledWith("Status", expression);
-    });
+    // #1322: the enum-assignment test that stood here asserted a delegation to
+    // `EnumAssignmentValidator`, which is deleted. ADR-017's assignment rule is
+    // E0428 in pass 2.1 and is covered by
+    // `1-Analyze/__tests__/EnumTypeSafetyAnalyzer.test.ts`. Keeping the test
+    // with the assertion removed would have left a case that runs `validate`
+    // and checks nothing.
 
     it("should validate integer assignment for integer-typed variable", () => {
       CodeGenState.setVariableTypeInfo("counter", {

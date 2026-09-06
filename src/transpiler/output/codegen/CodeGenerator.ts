@@ -89,7 +89,6 @@ import FloatBitHelper from "./helpers/FloatBitHelper";
 // Issue #794: Argument generation helper for ADR-006 semantics
 import ArgumentGenerator from "./helpers/ArgumentGenerator";
 // Issue #644: Enum assignment validator for type-safe enum assignments
-import EnumAssignmentValidator from "./helpers/EnumAssignmentValidator";
 // Issue #644: Array initialization helper for size inference and fill-all
 // Note: ArrayInitHelper is now used via VariableDeclHelper
 // Issue #644: Assignment expected type resolution helper
@@ -682,16 +681,6 @@ export default class CodeGenerator implements IOrchestrator {
     ctx: Parser.ExpressionContext | Parser.RelationalExpressionContext,
   ): string | null {
     return EnumTypeResolver.resolve(ctx);
-  }
-
-  /**
-   * Check if an expression is an integer literal or variable.
-   * Part of IOrchestrator interface - delegates to private implementation.
-   */
-  isIntegerExpression(
-    ctx: Parser.ExpressionContext | Parser.RelationalExpressionContext,
-  ): boolean {
-    return this._isIntegerExpression(ctx);
   }
 
   /**
@@ -3328,11 +3317,6 @@ export default class CodeGenerator implements IOrchestrator {
    * ADR-017: Check if an expression represents an integer literal or numeric type.
    * Used to detect comparisons between enums and integers.
    */
-  private _isIntegerExpression(
-    ctx: Parser.ExpressionContext | Parser.RelationalExpressionContext,
-  ): boolean {
-    return EnumAssignmentValidator.isIntegerExpression(ctx);
-  }
 
   /**
    * ADR-045: Check if an expression is a string concatenation.

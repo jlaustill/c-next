@@ -1,0 +1,2 @@
+30:12 error[E0434]: Cannot compare State enum to Power enum
+       help: ADR-017: an enum is its own type, not an integer. Compare it with a member of the same enum, or cast explicitly.

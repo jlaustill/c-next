@@ -1,0 +1,9 @@
+// Helper (not a test): the enum the cross-file ADR-017 fixtures resolve
+// against. An enum's TYPE crosses the include boundary, so every cell in
+// ADR-017's matrix that is not `same file` needs it to live here.
+enum Shared {
+    A,
+    B
+}
+
+const u32 SHARED_MARKER <- 1;

@@ -259,6 +259,39 @@ castExpression
 
 1. Exhaustiveness checking in switch statements? (ADR-025)
 
+## Scope-context matrix
+
+Declared for the enum type-safety rules -- a value assigned to an enum must be
+of that enum type, and the two sides of a comparison must be the same enum type.
+
+<!-- MATRIX-SEVERITY -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| scope member       | same file           | error    |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | error    |
+
+Every cell is `error`, and none of them is an assumption. An enum value is an
+EXPRESSION, so it reaches an initializer as well as a function body, which
+occupies the two declaration contexts; and an enum TYPE crosses an include
+boundary, so the rule is observable wherever the enum was declared. Both were
+probed rather than reasoned about.
+
+The imported columns are the ones worth stating: a checker that consulted only
+the file it is looking at finds no enum there, and "no enum" reads as "the rule
+does not apply" -- so the rule would go quiet across an include instead of
+failing, which is the silence this matrix exists to make visible.
+
 ## References
 
 - TypeScript enum semantics

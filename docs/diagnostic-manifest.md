@@ -12,11 +12,18 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-319 fixture(s) assert a diagnostic; 203 carry a code.
+323 fixture(s) assert a diagnostic; 210 carry a code.
 
 | Fixture                                                                                          | Codes        |
 | ------------------------------------------------------------------------------------------------ | ------------ |
 | tests/adr-016/this-outside-scope-error.test.cnx                                                  | E0431        |
+| tests/adr-017/enum-error-assign-int.test.cnx                                                     | E0428        |
+| tests/adr-017/enum-error-assign-non-enum.test.cnx                                                | E0428        |
+| tests/adr-017/enum-error-assign-wrong-enum.test.cnx                                              | E0428        |
+| tests/adr-017/enum-error-compare-int.test.cnx                                                    | E0434        |
+| tests/adr-017/enum-error-compare-types.test.cnx                                                  | E0434        |
+| tests/adr-017/enum-error-imported-direct.test.cnx                                                | E0428, E0434 |
+| tests/adr-017/enum-error-imported-transitive.test.cnx                                            | E0428, E0434 |
 | tests/adr-022/nested-ternary-error.test.cnx                                                      | E0710        |
 | tests/adr-022/nested-ternary-unparenthesized-error.test.cnx                                      | (uncoded)    |
 | tests/adr-050/return-in-critical-error.test.cnx                                                  | E0853        |
@@ -227,9 +234,6 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/control-flow/if-error-non-boolean.test.cnx                                                 | E0701        |
 | tests/control-flow/while-error-non-boolean.test.cnx                                              | E0701        |
 | tests/do-while/do-while-error-non-boolean.test.cnx                                               | E0701        |
-| tests/enum/enum-error-assign-int.test.cnx                                                        | (uncoded)    |
-| tests/enum/enum-error-compare-int.test.cnx                                                       | (uncoded)    |
-| tests/enum/enum-error-compare-types.test.cnx                                                     | (uncoded)    |
 | tests/enum/enum-error-negative.test.cnx                                                          | (uncoded)    |
 | tests/errors/length-property-deprecated.test.cnx                                                 | (uncoded)    |
 | tests/external-types/cpp-class-global-error.test.cnx                                             | (uncoded)    |

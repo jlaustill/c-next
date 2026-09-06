@@ -102,11 +102,6 @@ interface IOrchestrator {
     ctx: Parser.ExpressionContext | Parser.RelationalExpressionContext,
   ): string | null;
 
-  /** Check if an expression is an integer literal or variable */
-  isIntegerExpression(
-    ctx: Parser.ExpressionContext | Parser.RelationalExpressionContext,
-  ): boolean;
-
   /** Check if an expression is a string type */
   isStringExpression(ctx: Parser.RelationalExpressionContext): boolean;
 

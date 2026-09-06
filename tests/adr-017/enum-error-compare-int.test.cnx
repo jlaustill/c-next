@@ -1,0 +1,31 @@
+// test-error
+// test-adr: 017
+// ADR-017, E0434: an enum may not be compared to an integer.
+//
+// #1322 moved this out of codegen, where it reported `1:0`.
+
+enum State {
+    IDLE,
+    RUNNING
+}
+
+// NEGATIVE CONTROL -- comparing the enum to a member of the SAME enum, which is
+// the normal way to write this and must stay silent.
+bool sameEnum() {
+    State s <- State.IDLE;
+    return (s = State.IDLE);
+}
+
+// NEGATIVE CONTROL -- comparing two integers. The rule fires only when one side
+// is an enum.
+bool twoIntegers() {
+    u32 n <- 1;
+    return (n = 0);
+}
+
+void main() {
+    State s <- State.IDLE;
+
+    // THE ASSERTION.
+    if (s = 0) {}
+}

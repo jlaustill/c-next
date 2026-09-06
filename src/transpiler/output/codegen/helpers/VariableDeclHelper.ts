@@ -20,7 +20,6 @@ import CodeGenState from "../../../state/CodeGenState.js";
 import TypeResolver from "../TypeResolver.js";
 import ArrayInitHelper from "./ArrayInitHelper.js";
 import CppModeHelper from "./CppModeHelper.js";
-import EnumAssignmentValidator from "./EnumAssignmentValidator.js";
 import IntegerLiteralValidator from "./IntegerLiteralValidator.js";
 import NarrowingCastHelper from "./NarrowingCastHelper.js";
 import StringDeclHelper from "./StringDeclHelper.js";
@@ -539,9 +538,6 @@ class VariableDeclHelper {
     }
 
     const typeName = callbacks.getTypeName(typeCtx);
-
-    // ADR-017: Validate enum type for initialization
-    EnumAssignmentValidator.validateEnumAssignment(typeName, ctx.expression()!);
 
     // ADR-024: Validate integer literals and type conversions
     VariableDeclHelper.validateIntegerInitializer(ctx, typeName, {

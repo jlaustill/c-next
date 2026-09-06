@@ -16,7 +16,6 @@
 
 import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
 import TypeValidator from "../TypeValidator.js";
-import EnumAssignmentValidator from "./EnumAssignmentValidator.js";
 import CodeGenState from "../../../state/CodeGenState.js";
 import TypeCheckUtils from "../../../../utils/TypeCheckUtils.js";
 import QualifiedCName from "../../../../utils/QualifiedCName";
@@ -124,14 +123,6 @@ class AssignmentValidator {
     const targetTypeInfo = CodeGenState.getVariableTypeInfo(id);
     if (!targetTypeInfo) {
       return;
-    }
-
-    // ADR-017: Validate enum assignment for enum-typed variable
-    if (targetTypeInfo.isEnum && targetTypeInfo.enumTypeName) {
-      EnumAssignmentValidator.validateEnumAssignment(
-        targetTypeInfo.enumTypeName,
-        expression,
-      );
     }
 
     // ADR-024: Validate integer type conversions

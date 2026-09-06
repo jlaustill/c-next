@@ -74,6 +74,18 @@ class ErrorCodeRegistry {
     return declared;
   }
 
+  /** The number the `**Total**` summary row claims, or null if it has none. */
+  private static declaredTotal(markdown: string): number | null {
+    for (const line of markdown.split("\n")) {
+      const cells = ErrorCodeRegistry.cells(line);
+      if (cells === null || cells.length !== 3) continue;
+      if (cells[0].replaceAll("*", "").trim() !== "Total") continue;
+      const count = Number.parseInt(cells[2].replaceAll("*", "").trim(), 10);
+      return Number.isNaN(count) ? null : count;
+    }
+    return null;
+  }
+
   /**
    * A row for a code no source raises is legitimate only when the row says so.
    * Two spellings exist and both are load-bearing: `_(reserved)_` in the
@@ -131,6 +143,17 @@ class ErrorCodeRegistry {
           `${range} declares ${count} code(s) and has ${actual} row(s)`,
         );
       }
+    }
+
+    // The **Total** row was the one cell in this table nothing checked, because
+    // it is not a range and so never matched RANGE. It read 57 while the ranges
+    // summed to 62 -- every range row correct and the total five behind, which
+    // is the failure mode a per-part check cannot see (#1322).
+    const total = ErrorCodeRegistry.declaredTotal(markdown);
+    if (total !== null && total !== codes.length) {
+      errors.push(
+        `the **Total** row says ${total} and the table has ${codes.length} code row(s)`,
+      );
     }
 
     return errors;

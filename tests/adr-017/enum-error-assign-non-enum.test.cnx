@@ -1,0 +1,58 @@
+// test-error
+// test-adr: 017
+// ADR-017, E0428 -- the four holes the codegen check left open.
+//
+// It decided by splitting the value's SOURCE TEXT on `.` and matching the
+// pieces against patterns. That recognised what it had patterns for and
+// silently ACCEPTED everything else, so every assertion below compiled and
+// emitted C before #1322:
+//
+//     State a <- flag;    // a bool
+//     State b <- x;       // an f32
+//     State c <- f();     // a call returning u32
+//     State d <- 1 + 1;   // emitted `State d = 2;`
+//
+// The last is the sharpest: ADR-017 lists `s <- 1;` as an error, and the only
+// reason `1 + 1` was not one is that the check regexed for a bare integer
+// literal while constant folding happens later, in codegen.
+
+enum State {
+    IDLE,
+    RUNNING
+}
+
+bool flag <- true;
+f32 x <- 1.0;
+
+u32 raw() {
+    return 1;
+}
+
+State properly() {
+    return State.IDLE;
+}
+
+// NEGATIVE CONTROL -- a call returning the enum. Resolving the value's type is
+// what closes the holes above, and the same resolution has to keep this legal:
+// a rule that rejected every call would fail here.
+State fromCall() {
+    return properly();
+}
+
+// NEGATIVE CONTROL -- the members themselves, and a cast. Neither may be
+// touched by a rule aimed at the values above.
+State fromMember() {
+    return State.RUNNING;
+}
+
+State fromCast() {
+    return (State)1;
+}
+
+void main() {
+    // THE ASSERTIONS -- one per closed hole.
+    State a <- flag;
+    State b <- x;
+    State c <- raw();
+    State d <- 1 + 1;
+}

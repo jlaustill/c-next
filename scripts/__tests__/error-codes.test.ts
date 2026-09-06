@@ -98,6 +98,40 @@ describe("ErrorCodeRegistry.check", () => {
     ).toContain("declares 5");
   });
 
+  it("fails a **Total** row that no longer matches the code rows", () => {
+    // The one cell in this table nothing checked: it is not a range, so it
+    // never matched the range pattern. It read 57 while the ranges summed to
+    // 62 -- every range row correct and the total five behind, which is the
+    // failure a per-part check cannot see.
+    const errors = ErrorCodeRegistry.check(
+      doc(
+        "| E04xx | Symbol Resolution | 2 |",
+        "| **Total** | | **7** |",
+        "| E0424 | Unqualified enum member | Qualify it | `a.ts` |",
+        "| E0429 | Register in a type position | Name the type | `b.ts` |",
+      ),
+      new Set(["E0424", "E0429"]),
+    );
+    expect(errors.join("\n")).toContain("**Total** row says 7");
+  });
+
+  it("accepts a **Total** row that matches, and a table with none", () => {
+    expect(
+      ErrorCodeRegistry.check(
+        doc(
+          "| E04xx | Symbol Resolution | 2 |",
+          "| **Total** | | **2** |",
+          "| E0424 | Unqualified enum member | Qualify it | `a.ts` |",
+          "| E0429 | Register in a type position | Name the type | `b.ts` |",
+        ),
+        new Set(["E0424", "E0429"]),
+      ),
+    ).toEqual([]);
+    expect(ErrorCodeRegistry.check(good, new Set(["E0424", "E0429"]))).toEqual(
+      [],
+    );
+  });
+
   it("reads the source cell of a row whose text contains its own pipes", () => {
     // E0807's description contains `|` characters, so it splits into six cells
     // rather than four. Keying on the FIRST and LAST cell is what stops a row
