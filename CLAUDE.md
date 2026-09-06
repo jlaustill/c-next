@@ -210,20 +210,34 @@ update step: an `--update` inside it could not fail on a mismatch. `npm run test
 regenerates every snapshot, `tests/bugs/` included (#1142); `npm run test:bugs:update` narrows
 it to the regression fixtures.
 
-**`test:all` is four checks of twenty-six — run `npm run test:gate` before pushing.**
-`test:all` is `build && unit && test:q && validate:c`. CI runs twenty-two more with no local
+**`test:all` is four checks of thirty — run `npm run test:gate` before pushing.**
+`test:all` is `build && unit && test:q && validate:c`. CI runs twenty-six more with no local
 alias: the whole **`Static Analysis`** job (`prettier:check`, `plugin:test`, `test:hooks`,
 `cspell:check`, `oxlint:check`, `knip`, `depcruise`, `lint:test-location`,
 `analyze:duplication`, `docs:toolchain:check`, `coverage:matrix:check`,
 `diagnostics:manifest:check`, `docs:throw-citations:check`, `scope-joins:check`,
-`adr:independence:check`, `gh:pagination:check`), plus `typecheck`, `typecheck` for
-`prettier-plugin`, `test:cli`,
-`coverage:grammar:check`, `format:fidelity`, and the working-tree check that `Verify Clean`
-performs. This roster is a list that reads as complete, so it fails the way every other list
-in this section does: it stood at twenty-four in the pull request that added the
-twenty-fifth and twenty-sixth, and `scripts/gate.sh` is the count that cannot drift
-(`grep -c '^run_check'`). `scripts/gate.sh` runs all of them, reports each against the CI job that owns it,
-and does **not** stop at the first failure. A green `test:all` says nothing about any of
+`adr:independence:check`, `gh:pagination:check`, `gate:roster:check`), plus `typecheck`, `typecheck` for
+`prettier-plugin`, `test:cli`, `cli smoke`, `coverage:grammar:check`, `format:fidelity`,
+`headers:standalone:check`, `re-run warm`, and the `working tree clean` check that
+`Verify Clean` performs.
+
+**This roster is no longer maintained by hand.** `npm run gate:roster:check` derives it: it
+counts `run_check` invocations in `scripts/gate.sh`, compares the npm scripts CI runs against
+the ones the gate runs, and asserts the two numerals in the paragraph above. A check added to
+`pr-checks.yml` and forgotten here now fails the **`lint`** job. That is the point — this list
+had drifted three times in silence (`24 → 26`, `26 → 27`, `27 → 30`), each time reading as
+complete while being short, and the command previously offered as proof was itself wrong twice
+in ways that cancelled: `grep -c '^run_check'` matched `run_check() {`, the function
+definition, while missing the `Verify Clean` check that open-coded its own pass/fail
+bookkeeping. **A guard that passes by coincidence is worse than one that fails, because nothing
+ever prompts anyone to look** — which is the whole argument for deriving the claim rather than
+asserting it. `scripts/gate.sh` runs all of them, reports each against the CI job that owns it,
+and does **not** stop at the first failure.
+
+The one npm script CI runs that the gate deliberately skips (`antlr:all`) is listed in `gate.sh`'s header
+as a `# not-in-gate:` line with its reason, and `gate:roster:check` fails on any script that
+is neither run nor listed — in either direction, so an exclusion CI stopped running also fails. Sonar and Deploy Coverage need tokens and run no npm script, so they
+never enter the comparison. A green `test:all` says nothing about any of
 them: #1399 pushed on one and turned CI red on `docs:throw-citations:check`, because
 **adding a single import to a file under `output/` shifts every later `throw new` down one
 line** and all 20 citations in `docs/architecture/output-throw-classification.md` missed by
