@@ -15,6 +15,5 @@
     "src/transpiler/output/codegen/analysis/StringLengthCounter.ts",
     "src/transpiler/output/headers/types/IHeaderSymbol.ts"
   ],
-  "ignoreBinaries": ["jscpd", "jq", "dot", "madge", "ts-prune"],
-  "ignoreDependencies": ["madge", "ts-prune"]
+  "ignoreBinaries": ["jscpd", "jq", "dot"]
 }
