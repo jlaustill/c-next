@@ -124,4 +124,19 @@ describe("HeaderIncludes.decide (#1517)", () => {
   ])("a bitmap backed by %s decides %s", (backing, expected) => {
     expect(decide([bitmap("Flags", backing)])).toEqual(expected);
   });
+
+  // `baseTypeOf` strips pointer and array decoration. These pin the shapes it
+  // has to see through, since it was rewritten from regular expressions to
+  // index arithmetic to avoid super-linear backtracking (S5852).
+  it.each([
+    ["a pointer to a fixed-width type", "u8", true],
+    ["an array of a fixed-width type", "u16", true],
+  ])("sees through decoration on %s", (_label, cnxType, expected) => {
+    const decorated = variable(
+      "v",
+      TTypeUtils.createArray(TTypeUtils.createPrimitive(cnxType as never), [4]),
+    );
+
+    expect(decide([decorated]).length > 0).toBe(expected);
+  });
 });

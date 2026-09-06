@@ -70,10 +70,14 @@ class HeaderIncludes {
    * `string<64>`, and the question here is about the element type either way.
    */
   private static baseTypeOf(cType: string): string {
-    return cType
-      .replace(/\s*\*+$/, "")
-      .replace(/\[[^\]]*\]$/, "")
-      .trim();
+    // Written without regular expressions on purpose. `/\s*\*+$/` and
+    // `/\[[^\]]*\]$/` both let one quantifier feed another over the same
+    // input, which SonarCloud flags as super-linear backtracking (S5852) --
+    // and this runs once per named type per file. Index arithmetic answers the
+    // same question in one pass and reads no worse.
+    const array = cType.indexOf("[");
+    const withoutArray = array === -1 ? cType : cType.slice(0, array);
+    return withoutArray.replaceAll("*", "").trim();
   }
 }
 
