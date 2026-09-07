@@ -21,6 +21,7 @@ import accessGenerators from "./AccessExprGenerator";
 import generateFunctionCall from "./CallExprGenerator";
 import memberAccessChain from "../../memberAccessChain";
 import BitmapAccessHelper from "./BitmapAccessHelper";
+import BitRangeHelper from "../../helpers/BitRangeHelper";
 import NarrowingCastHelper from "../../helpers/NarrowingCastHelper";
 import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import SubscriptClassifier from "../../subscript/SubscriptClassifier";
@@ -1950,7 +1951,7 @@ const handleFloatBitRange = (
   const isF64 = ctx.baseType === "f64";
   const floatType = getFloatTypeName(ctx.baseType);
   const intType = isF64 ? "uint64_t" : "uint32_t";
-  const shadowName = `__bits_${ctx.rootIdentifier}`;
+  const shadowName = BitRangeHelper.getShadowVarName(ctx.rootIdentifier);
   const mask = orchestrator.generateBitMask(ctx.maskWidth, isF64);
 
   const needsDeclaration = !orchestrator.hasFloatBitShadow(shadowName);

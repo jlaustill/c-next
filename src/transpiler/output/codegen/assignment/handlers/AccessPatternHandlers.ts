@@ -14,24 +14,20 @@ import TAssignmentHandler from "./TAssignmentHandler";
 import CodeGenState from "../../../../state/CodeGenState";
 
 /**
- * Common handler for global access patterns (GLOBAL_MEMBER and GLOBAL_ARRAY).
+ * Emission for a qualified access target: `global.Counter.value <- 5`,
+ * `global.obj.field[i] <- v`, `this.count <- 5`.
  *
- * #1322: cross-scope visibility for the target is E0435/E0436 in pass 2.1;
- * this only generates the assignment.
- */
-function handleGlobalAccess(ctx: IAssignmentContext): string {
-  const target = CodeGenState.requireGenerator().generateAssignmentTarget(
-    ctx.targetCtx,
-  );
-  return `${target} ${ctx.cOp} ${ctx.generatedValue};`;
-}
-
-/**
- * Handler for `this.member <- value` (THIS_MEMBER).
+ * #1322: there were two functions here, one per qualifier, and they became
+ * byte-identical when the checks they differed by moved to pass 2.1 --
+ * cross-scope visibility is E0435/E0436, and `this` outside a scope is E0431.
+ * What was left was one expression written twice, with the `this` copy still
+ * documented as "validates scope context", which it no longer did.
  *
- * Validates scope context and generates standard assignment.
+ * The three assignment KINDS stay distinct: the classifier tells them apart,
+ * and a future rule may need to. What is shared is the emission, and it is
+ * shared by being one function rather than by two that happen to agree.
  */
-function handleThisAccess(ctx: IAssignmentContext): string {
+function handleQualifiedAccess(ctx: IAssignmentContext): string {
   const target = CodeGenState.requireGenerator().generateAssignmentTarget(
     ctx.targetCtx,
   );
@@ -77,9 +73,9 @@ function handleMemberChain(ctx: IAssignmentContext): string {
 const accessPatternHandlers: ReadonlyArray<
   [AssignmentKind, TAssignmentHandler]
 > = [
-  [AssignmentKind.GLOBAL_MEMBER, handleGlobalAccess],
-  [AssignmentKind.GLOBAL_ARRAY, handleGlobalAccess],
-  [AssignmentKind.THIS_MEMBER, handleThisAccess],
+  [AssignmentKind.GLOBAL_MEMBER, handleQualifiedAccess],
+  [AssignmentKind.GLOBAL_ARRAY, handleQualifiedAccess],
+  [AssignmentKind.THIS_MEMBER, handleQualifiedAccess],
   [AssignmentKind.MEMBER_CHAIN, handleMemberChain],
 ];
 

@@ -138,12 +138,10 @@ class BareEnumMemberListener extends CNextListener {
     node: ParserRuleContext,
     frame: IScopeFrame,
   ): TExpected {
-    let child: ParserRuleContext = node;
     let cursor: ParserRuleContext | null = node.parent;
     while (cursor) {
-      const answer = this.establishedBy(cursor, child, frame);
+      const answer = this.establishedBy(cursor, frame);
       if (answer !== undefined) return answer;
-      child = cursor;
       cursor = cursor.parent;
     }
     return null;
@@ -152,10 +150,17 @@ class BareEnumMemberListener extends CNextListener {
   /**
    * What `cursor` says about the expected type of its child, or undefined when
    * it says nothing and the walk continues upward.
+   *
+   * Deliberately does NOT take the child it is answering about. Every arm here
+   * establishes or clears a type for the whole node -- a comparison clears for
+   * both operands, an array element establishes for all of them -- so no arm
+   * has ever needed to know WHICH child asked. The parameter was threaded
+   * anyway and silenced with a `void`, which is a signal turned off rather
+   * than acted on. If an arm ever does need it (an argument's index would),
+   * thread it then, to that arm.
    */
   private establishedBy(
     cursor: ParserRuleContext,
-    child: ParserRuleContext,
     frame: IScopeFrame,
   ): TExpected | undefined {
     // --- clears and suppressions ------------------------------------------
@@ -217,7 +222,6 @@ class BareEnumMemberListener extends CNextListener {
     ) {
       return null;
     }
-    void child;
     return undefined;
   }
 
