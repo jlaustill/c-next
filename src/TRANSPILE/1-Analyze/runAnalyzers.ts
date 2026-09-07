@@ -28,6 +28,7 @@ import CompoundAssignmentAnalyzer from "./CompoundAssignmentAnalyzer";
 import ConstructorArgumentAnalyzer from "./ConstructorArgumentAnalyzer";
 import CriticalSectionAnalyzer from "./CriticalSectionAnalyzer";
 import EnumTypeSafetyAnalyzer from "./EnumTypeSafetyAnalyzer";
+import ScopeAccessAnalyzer from "./ScopeAccessAnalyzer";
 import SliceAssignmentAnalyzer from "./SliceAssignmentAnalyzer";
 import ControllingExpressionAnalyzer from "./ControllingExpressionAnalyzer";
 import IntegerConversionAnalyzer from "./IntegerConversionAnalyzer";
@@ -281,6 +282,10 @@ function runAnalyzers(
     {
       label: "integer conversions (ADR-024, E0868/E0869)",
       run: () => new IntegerConversionAnalyzer().analyze(tree),
+    },
+    {
+      label: "scope access (ADR-016, E0435-E0437)",
+      run: () => new ScopeAccessAnalyzer().analyze(tree),
     },
     {
       // Last, and does not halt: comment findings are reported alongside

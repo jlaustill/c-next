@@ -1,4 +1,5 @@
 // Postfix Chain Test: Mixed Access Types - ULTIMATE STRESS TEST
+// test-adr: 016
 // Tests: Every combination of postfix operations together
 // This is the HIGHEST RISK area (lines 5850-6285 CodeGenerator.ts)
 // Tests the most complex chaining scenarios that can exist in the language

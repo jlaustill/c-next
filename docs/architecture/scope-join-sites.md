@@ -45,24 +45,23 @@ judgement cannot outlive the code it was made about. A new row is a prompt
 to adjudicate, not proof of a bug -- but it must be adjudicated before it
 lands.
 
-| File                                                                          | First element        | Sites  | Kind       | Moves with |
-| ----------------------------------------------------------------------------- | -------------------- | ------ | ---------- | ---------- |
-| `src/PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter.ts`                    | `scopeName`          | 1      | leaf-keyed | #1394      |
-| `src/PARSE/3-Declare/cnext/index.ts`                                          | `scopeName`          | 1      | leaf-keyed | #1295      |
-| `src/TRANSPILE/1-Analyze/helpers/CalleeNameResolver.ts`                       | `resolvedName`       | 1      | path       | --         |
-| `src/transpiler/output/codegen/assignment/AssignmentClassifier.ts`            | `firstId`            | 1      | path       | --         |
-| `src/transpiler/output/codegen/assignment/AssignmentClassifier.ts`            | `scopeName`          | 2      | path       | --         |
-| `src/transpiler/output/codegen/assignment/handlers/AssignmentHandlerUtils.ts` | `leadingId`          | 1      | path       | --         |
-| `src/transpiler/output/codegen/assignment/handlers/BitmapHandlers.ts`         | `scopeName`          | 1      | path       | --         |
-| `src/transpiler/output/codegen/helpers/MemberSeparatorResolver.ts`            | `identifierChain[0]` | 1      | path       | --         |
-| `src/transpiler/output/codegen/resolution/EnumTypeResolver.ts`                | `parts[0]`           | 1      | path       | --         |
-| `src/transpiler/output/codegen/resolution/EnumTypeResolver.ts`                | `parts[1]`           | 1      | path       | --         |
-| `src/transpiler/output/codegen/resolution/EnumTypeResolver.ts`                | `scopeName`          | 1      | path       | --         |
-| `src/utils/ScopeUtils.ts`                                                     | `scopePath`          | 1      | encoder    | --         |
-| `src/utils/ScopeUtils.ts`                                                     | `symbol.scopePath`   | 1      | encoder    | --         |
-| **total**                                                                     |                      | **14** |            |            |
+| File                                                                          | First element      | Sites  | Kind       | Moves with |
+| ----------------------------------------------------------------------------- | ------------------ | ------ | ---------- | ---------- |
+| `src/PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter.ts`                    | `scopeName`        | 1      | leaf-keyed | #1394      |
+| `src/PARSE/3-Declare/cnext/index.ts`                                          | `scopeName`        | 1      | leaf-keyed | #1295      |
+| `src/TRANSPILE/1-Analyze/helpers/CalleeNameResolver.ts`                       | `resolvedName`     | 1      | path       | --         |
+| `src/transpiler/output/codegen/assignment/AssignmentClassifier.ts`            | `firstId`          | 1      | path       | --         |
+| `src/transpiler/output/codegen/assignment/AssignmentClassifier.ts`            | `scopeName`        | 2      | path       | --         |
+| `src/transpiler/output/codegen/assignment/handlers/AssignmentHandlerUtils.ts` | `leadingId`        | 1      | path       | --         |
+| `src/transpiler/output/codegen/assignment/handlers/BitmapHandlers.ts`         | `scopeName`        | 1      | path       | --         |
+| `src/transpiler/output/codegen/resolution/EnumTypeResolver.ts`                | `parts[0]`         | 1      | path       | --         |
+| `src/transpiler/output/codegen/resolution/EnumTypeResolver.ts`                | `parts[1]`         | 1      | path       | --         |
+| `src/transpiler/output/codegen/resolution/EnumTypeResolver.ts`                | `scopeName`        | 1      | path       | --         |
+| `src/utils/ScopeUtils.ts`                                                     | `scopePath`        | 1      | encoder    | --         |
+| `src/utils/ScopeUtils.ts`                                                     | `symbol.scopePath` | 1      | encoder    | --         |
+| **total**                                                                     |                    | **13** |            |            |
 
-14 site(s) across 9 file(s).
+13 site(s) across 8 file(s).
 
 ## What must move, and with what
 

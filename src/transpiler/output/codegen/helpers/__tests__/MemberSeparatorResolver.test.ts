@@ -17,8 +17,6 @@ describe("MemberSeparatorResolver", () => {
     return {
       isKnownScope: vi.fn(() => false),
       isKnownRegister: vi.fn(() => false),
-      validateCrossScopeVisibility: vi.fn(),
-      validateRegisterAccess: vi.fn(),
       getStructParamSeparator: vi.fn(() => "->"),
       ...overrides,
     };
@@ -29,7 +27,6 @@ describe("MemberSeparatorResolver", () => {
     overrides: Partial<ISeparatorContext> = {},
   ): ISeparatorContext {
     return {
-      hasGlobal: false,
       isCrossScope: false,
       isStructParam: false,
       isCppAccess: false,
@@ -58,7 +55,6 @@ describe("MemberSeparatorResolver", () => {
       );
 
       expect(ctx.isCrossScope).toBe(true);
-      expect(ctx.hasGlobal).toBe(true);
     });
 
     it("should detect cross-scope access for known registers", () => {
@@ -165,7 +161,6 @@ describe("MemberSeparatorResolver", () => {
 
       const sep = MemberSeparatorResolver.getFirstSeparator(
         ["SeaDash"],
-        "Parse",
         ctx,
         deps,
       );
@@ -181,7 +176,6 @@ describe("MemberSeparatorResolver", () => {
 
       const sep = MemberSeparatorResolver.getFirstSeparator(
         ["point"],
-        "x",
         ctx,
         deps,
       );
@@ -197,7 +191,6 @@ describe("MemberSeparatorResolver", () => {
 
       const sep = MemberSeparatorResolver.getFirstSeparator(
         ["point"],
-        "x",
         ctx,
         deps,
       );
@@ -211,7 +204,6 @@ describe("MemberSeparatorResolver", () => {
 
       const sep = MemberSeparatorResolver.getFirstSeparator(
         ["Motor"],
-        "speed",
         ctx,
         deps,
       );
@@ -223,11 +215,10 @@ describe("MemberSeparatorResolver", () => {
       const deps = createMockDeps({
         isKnownRegister: vi.fn(() => true),
       });
-      const ctx = createContext({ hasGlobal: true });
+      const ctx = createContext({ isCrossScope: true });
 
       const sep = MemberSeparatorResolver.getFirstSeparator(
         ["GPIO7"],
-        "DR_SET",
         ctx,
         deps,
       );
@@ -235,26 +226,21 @@ describe("MemberSeparatorResolver", () => {
       expect(sep).toBe("__");
     });
 
-    it("should validate visibility and return _ for global scope access", () => {
-      const validateCrossScopeVisibility = vi.fn();
+    it("should return _ for a known scope, with or without global.", () => {
+      // #1322: the visibility check that used to be asserted here is E0436
+      // in pass 2.1; the separator only spells the C name.
       const deps = createMockDeps({
         isKnownScope: vi.fn(() => true),
-        validateCrossScopeVisibility,
       });
-      const ctx = createContext({ hasGlobal: true });
+      const ctx = createContext({ isCrossScope: true });
 
       const sep = MemberSeparatorResolver.getFirstSeparator(
         ["Motor"],
-        "speed",
         ctx,
         deps,
       );
 
       expect(sep).toBe("__");
-      expect(validateCrossScopeVisibility).toHaveBeenCalledWith(
-        "Motor",
-        "speed",
-      );
     });
 
     it("should return _ for scoped register access", () => {
@@ -263,7 +249,6 @@ describe("MemberSeparatorResolver", () => {
 
       const sep = MemberSeparatorResolver.getFirstSeparator(
         ["CONTROL_REG"],
-        "SPEED",
         ctx,
         deps,
       );
@@ -277,7 +262,6 @@ describe("MemberSeparatorResolver", () => {
 
       const sep = MemberSeparatorResolver.getFirstSeparator(
         ["point"],
-        "x",
         ctx,
         deps,
       );
@@ -354,7 +338,6 @@ describe("MemberSeparatorResolver", () => {
       const sep = MemberSeparatorResolver.getSeparator(
         true, // isFirstOp
         ["SeaDash"],
-        "Parse",
         ctx,
         deps,
       );
@@ -371,7 +354,6 @@ describe("MemberSeparatorResolver", () => {
       const sep = MemberSeparatorResolver.getSeparator(
         false, // not first op
         ["GPIO7", "DR"],
-        "SET",
         ctx,
         deps,
       );
@@ -390,12 +372,7 @@ describe("MemberSeparatorResolver", () => {
         isStructParam: true,
       });
 
-      const sep = MemberSeparatorResolver.getFirstSeparator(
-        ["obj"],
-        "field",
-        ctx,
-        deps,
-      );
+      const sep = MemberSeparatorResolver.getFirstSeparator(["obj"], ctx, deps);
 
       expect(sep).toBe("::");
       expect(deps.getStructParamSeparator).not.toHaveBeenCalled();
@@ -412,7 +389,6 @@ describe("MemberSeparatorResolver", () => {
 
       const sep = MemberSeparatorResolver.getFirstSeparator(
         ["point"],
-        "x",
         ctx,
         deps,
       );

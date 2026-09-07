@@ -1,8 +1,17 @@
 // Test: Accessing private scope variable from outside should error
+// test-adr: 016
 // This should fail with a visibility error per ADR-016
 
 scope Counter {
     i32 privateValue <- 100; // private by default
+}
+
+// NEGATIVE CONTROL -- a PUBLIC member of the same scope, reached the same way.
+scope Open {
+    public i32 shared <- 1;
+}
+void okPublic() {
+    Open.shared <- 2;
 }
 
 void main() {

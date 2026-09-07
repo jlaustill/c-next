@@ -26,11 +26,7 @@ describe("PostfixChainBuilder", () => {
       const result = PostfixChainBuilder.build("foo", "foo", ops, deps);
 
       expect(result).toBe("foo.bar");
-      expect(deps.getSeparator).toHaveBeenCalledWith(
-        true,
-        ["foo", "bar"],
-        "bar",
-      );
+      expect(deps.getSeparator).toHaveBeenCalledWith(true, ["foo", "bar"]);
     });
 
     it("should handle multiple member accesses", () => {
@@ -45,19 +41,16 @@ describe("PostfixChainBuilder", () => {
       expect(result).toBe("foo.bar.baz");
       expect(deps.getSeparator).toHaveBeenCalledTimes(2);
       // First call is first op
-      expect(deps.getSeparator).toHaveBeenNthCalledWith(
-        1,
-        true,
-        ["foo", "bar"],
+      expect(deps.getSeparator).toHaveBeenNthCalledWith(1, true, [
+        "foo",
         "bar",
-      );
+      ]);
       // Second call is not first op
-      expect(deps.getSeparator).toHaveBeenNthCalledWith(
-        2,
-        false,
-        ["foo", "bar", "baz"],
+      expect(deps.getSeparator).toHaveBeenNthCalledWith(2, false, [
+        "foo",
+        "bar",
         "baz",
-      );
+      ]);
     });
 
     it("should handle single array subscript", () => {

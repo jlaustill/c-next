@@ -1291,26 +1291,12 @@ const generateMemberAccess = (
   orchestrator: IOrchestrator,
   effects: TGeneratorEffect[],
 ): MemberAccessResult => {
-  // Check for enum shadowing before dispatch - catches case where identifier
-  // was resolved to a scope member that shadows a global enum
-  MemberAccessValidator.validateGlobalEntityAccess(
-    ctx.result,
-    ctx.memberName,
-    "enum",
-    state.currentScopePath,
-    ctx.isGlobalAccess,
-    {
-      rootIdentifier: ctx.rootIdentifier,
-      knownEnums: input.symbols!.knownEnums,
-    },
-  );
-
   return (
     tryBitmapFieldAccess(ctx, input, effects) ??
     tryScopeMemberAccess(ctx, input, state, orchestrator) ??
     tryKnownScopeAccess(ctx, input, state, orchestrator) ??
     tryEnumMemberAccess(ctx, input, state, orchestrator) ??
-    tryRegisterMemberAccess(ctx, input, state) ??
+    tryRegisterMemberAccess(ctx, input) ??
     tryStructParamAccess(ctx, orchestrator) ??
     tryRegisterBitmapAccess(ctx, input, effects) ??
     tryStructBitmapAccess(ctx, input, effects) ??
@@ -1392,6 +1378,9 @@ const tryScopeMemberAccess = (
 /**
  * Check for known scope access (e.g., LED.on).
  */
+// #1322: ADR-016's access rules -- own scope by name, private from outside, a
+// shadowed global reached bare -- are E0435-E0437 in pass 2.1. Four call sites
+// stood in the handlers below, checking each position on its own path.
 const tryKnownScopeAccess = (
   ctx: IMemberAccessContext,
   input: IGeneratorInput,
@@ -1401,19 +1390,6 @@ const tryKnownScopeAccess = (
   if (!orchestrator.isKnownScope(ctx.result)) {
     return null;
   }
-
-  if (!ctx.isGlobalAccess) {
-    MemberAccessValidator.validateNotSelfScopeReference(
-      ctx.result,
-      ctx.memberName,
-      state.currentScopePath,
-    );
-  }
-  orchestrator.validateCrossScopeVisibility(
-    ctx.result,
-    ctx.memberName,
-    ctx.isGlobalAccess,
-  );
 
   const output = initializeMemberOutput(ctx);
   output.result = `${ctx.result}${orchestrator.getScopeSeparator(ctx.isCppAccessChain)}${ctx.memberName}`;
@@ -1441,17 +1417,6 @@ const tryEnumMemberAccess = (
     return null;
   }
 
-  // Shadowing check already done in generateMemberAccess; this catches
-  // direct conflicts where ctx.result is the enum name (no resolution happened)
-  MemberAccessValidator.validateGlobalEntityAccess(
-    ctx.result,
-    ctx.memberName,
-    "enum",
-    state.currentScopePath,
-    ctx.isGlobalAccess,
-    { scopeMembers: state.scopeMembers },
-  );
-
   const output = initializeMemberOutput(ctx);
   output.result = `${ctx.result}${orchestrator.getScopeSeparator(ctx.isCppAccessChain)}${ctx.memberName}`;
   return output;
@@ -1463,20 +1428,10 @@ const tryEnumMemberAccess = (
 const tryRegisterMemberAccess = (
   ctx: IMemberAccessContext,
   input: IGeneratorInput,
-  state: IGeneratorState,
 ): MemberAccessResult | null => {
   if (!input.symbols!.knownRegisters.has(ctx.result)) {
     return null;
   }
-
-  MemberAccessValidator.validateGlobalEntityAccess(
-    ctx.result,
-    ctx.memberName,
-    "register",
-    state.currentScopePath,
-    ctx.isGlobalAccess,
-    { scopeMembers: state.scopeMembers },
-  );
 
   MemberAccessValidator.validateRegisterReadAccess(
     QualifiedCName.fromParts([ctx.result, ctx.memberName]),

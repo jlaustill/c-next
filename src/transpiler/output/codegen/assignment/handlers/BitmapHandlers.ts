@@ -212,12 +212,6 @@ function handleScopedRegisterMemberBitmapField(
     memberName = ctx.identifiers[2];
     fieldName = ctx.identifiers[3];
 
-    // Validate cross-scope access
-    CodeGenState.requireGenerator().validateCrossScopeVisibility(
-      scopeName,
-      regName,
-    );
-
     fullRegName = QualifiedCName.fromParts([scopeName, regName]);
   }
 

@@ -2900,31 +2900,6 @@ describe("CodeGenerator", () => {
       expect(code).toContain("&value");
     });
   });
-
-  describe("Error: private member access", () => {
-    it("should throw error when accessing private scope member", () => {
-      const source = `
-        scope Motor {
-          u32 speed;
-        }
-        void main() {
-          Motor.speed <- 100;
-        }
-      `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
-      const tSymbols = declareAndResolve(tree);
-      const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-      expect(() =>
-        generator.generate(tree, tokenStream, {
-          symbolInfo: symbols,
-          sourcePath: "test.cnx",
-        }),
-      ).toThrow(/private/i);
-    });
-  });
-
   describe("Wrap modifier", () => {
     it("should allow wrap integer overflow without clamping", () => {
       const source = `
@@ -3454,8 +3429,8 @@ describe("CodeGenerator", () => {
     });
   });
 
-  describe("validateCrossScopeVisibility()", () => {
-    it("should not throw for public member access", () => {
+  describe("Public scope member access", () => {
+    it("should generate a public member access from outside the scope", () => {
       const source = `
         scope Motor {
           public u32 speed;
@@ -5227,31 +5202,6 @@ describe("CodeGenerator", () => {
       ).toThrow("const");
     });
   });
-
-  describe("Private scope member access error", () => {
-    it("should throw error when accessing private member from outside", () => {
-      const source = `
-        scope Motor {
-          u32 internalState <- 0;
-        }
-        void main() {
-          Motor.internalState <- 5;
-        }
-      `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
-      const tSymbols = declareAndResolve(tree);
-      const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-      expect(() =>
-        generator.generate(tree, tokenStream, {
-          symbolInfo: symbols,
-          sourcePath: "test.cnx",
-        }),
-      ).toThrow(/private|not public|visibility/i);
-    });
-  });
-
   describe("Struct member initializer", () => {
     it("should generate designated initializer", () => {
       const source = `
@@ -6866,28 +6816,6 @@ describe("CodeGenerator", () => {
         expect(code).toContain("Sensor__value = 100");
       });
 
-      it("should throw on self-scope reference in assignment target", () => {
-        const source = `
-          scope Motor {
-              public u32 speed;
-              public void test() {
-                  Motor.speed <- 100;
-              }
-          }
-        `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        expect(() =>
-          generator.generate(tree, tokenStream, {
-            symbolInfo: symbols,
-            sourcePath: "test.cnx",
-          }),
-        ).toThrow("Cannot reference own scope 'Motor' by name");
-      });
-
       it("should generate struct-through-scope access", () => {
         const source = `
           struct Point { i32 x; i32 y; }
@@ -6936,28 +6864,6 @@ describe("CodeGenerator", () => {
     });
 
     describe("Scope member access with subscripts (assignment targets)", () => {
-      it("should throw on self-scope reference with subscript in assignment", () => {
-        const source = `
-          scope Motor {
-              public u32 speeds[4] <- [0, 0, 0, 0];
-              public void test() {
-                  Motor.speeds[0] <- 100;
-              }
-          }
-        `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        expect(() =>
-          generator.generate(tree, tokenStream, {
-            symbolInfo: symbols,
-            sourcePath: "test.cnx",
-          }),
-        ).toThrow("Cannot reference own scope 'Motor' by name");
-      });
-
       it("should generate cross-scope array member write", () => {
         const source = `
           scope Sensor {
@@ -7027,33 +6933,6 @@ describe("CodeGenerator", () => {
 
         expect(code).toContain("cfg.timeout = 1000");
         expect(code).toContain("cfg.enabled = true");
-      });
-
-      it("should throw when writing register from inside scope when SHADOWED without global prefix", () => {
-        // Issue #779: Ambiguity-aware validation - only require global. when shadowed
-        const source = `
-          register GPIO @ 0x40000000 {
-              DR: u32 rw @ 0x00,
-          }
-          scope Motor {
-              // Shadow the register name with a scope member
-              u32 GPIO <- 0;
-              public void init() {
-                  GPIO.DR <- 0xFF;
-              }
-          }
-        `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        expect(() =>
-          generator.generate(tree, tokenStream, {
-            symbolInfo: symbols,
-            sourcePath: "test.cnx",
-          }),
-        ).toThrow("Use 'global.GPIO.DR' to access register");
       });
 
       it("should allow bare register access from inside scope when NOT shadowed", () => {

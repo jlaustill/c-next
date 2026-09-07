@@ -1,0 +1,2 @@
+27:15 error[E0437]: Use 'global.EColor.RED' to access enum 'EColor' from inside scope 'Test' (scope member 'EColor' shadows the global enum)
+       help: A bare name resolves to the nearest declaration, which here is the shadow. `global.` names the file-scope one unambiguously.

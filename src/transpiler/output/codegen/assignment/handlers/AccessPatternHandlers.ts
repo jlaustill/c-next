@@ -16,19 +16,10 @@ import CodeGenState from "../../../../state/CodeGenState";
 /**
  * Common handler for global access patterns (GLOBAL_MEMBER and GLOBAL_ARRAY).
  *
- * Validates cross-scope visibility and generates standard assignment.
+ * #1322: cross-scope visibility for the target is E0435/E0436 in pass 2.1;
+ * this only generates the assignment.
  */
 function handleGlobalAccess(ctx: IAssignmentContext): string {
-  const firstId = ctx.identifiers[0];
-
-  // Validate cross-scope visibility if first id is a scope
-  if (CodeGenState.isKnownScope(firstId) && ctx.identifiers.length >= 2) {
-    CodeGenState.requireGenerator().validateCrossScopeVisibility(
-      firstId,
-      ctx.identifiers[1],
-    );
-  }
-
   const target = CodeGenState.requireGenerator().generateAssignmentTarget(
     ctx.targetCtx,
   );

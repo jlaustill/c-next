@@ -1,4 +1,5 @@
 // test-error
+// test-adr: 016
 // Test: Bare register access from inside a scope should error when SHADOWED
 // Issue #779: Ambiguity-aware validation - only require global. when shadowed
 
@@ -11,6 +12,10 @@ scope Motor {
     // Shadow the GPIO register name with a scope member
     u32 GPIO <- 0;
 
+    // NEGATIVE CONTROL -- the `global.` spelling the diagnostic asks for.
+    void okQualified() {
+        global.GPIO.DIR <- 0x01;
+    }
     void test() {
         // ERROR: GPIO is shadowed by scope member, must use global.GPIO.DR
         GPIO.DR <- 0x01;

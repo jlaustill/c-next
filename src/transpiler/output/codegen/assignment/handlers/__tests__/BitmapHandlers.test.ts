@@ -326,10 +326,7 @@ describe("BitmapHandlers", () => {
     });
 
     it("generates scope-prefixed register bitmap field", () => {
-      const validateCrossScopeVisibility = vi.fn();
-      HandlerTestUtils.setupMockGenerator({
-        validateCrossScopeVisibility,
-      });
+      HandlerTestUtils.setupMockGenerator({});
       HandlerTestUtils.setupMockSymbols({
         bitmapFields: new Map([
           ["ICR1Bits", new Map([["LED", { offset: 6, width: 2 }]])],
@@ -345,10 +342,6 @@ describe("BitmapHandlers", () => {
       const result = getHandler()!(ctx);
 
       expect(result).toContain("Motor__GPIO7__ICR1 =");
-      expect(validateCrossScopeVisibility).toHaveBeenCalledWith(
-        "Motor",
-        "GPIO7",
-      );
     });
 
     // #1322a: the `'this' outside a scope` guard this asserted is deleted. It

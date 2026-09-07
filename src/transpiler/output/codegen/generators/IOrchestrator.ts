@@ -115,13 +115,6 @@ interface IOrchestrator {
 
   // === Validation ===
 
-  /** Validate cross-scope member visibility (ADR-016) */
-  validateCrossScopeVisibility(
-    scopeName: string,
-    memberName: string,
-    isGlobalAccess?: boolean,
-  ): void;
-
   /** Validate shift amount is within type bounds */
   validateShiftAmount(
     leftType: string,

@@ -1,0 +1,44 @@
+// test-error
+// test-adr: 016
+// The ADR-016 access arms that had no fixture, plus the global-variable context.
+//
+// E0435 as a TYPE: `M.T t;` inside M. E0437 for a register shadowed by a LOCAL
+// variable rather than a scope member. E0436 from a file-scope INITIALIZER --
+// a reference to a scope's member can stand anywhere a value can.
+
+register GPIO @ 0x40000000 {
+    DR: u32 rw @ 0x00,
+}
+
+scope Vault {
+    i32 secret <- 7;
+    public struct Shape {
+        u32 w;
+    }
+
+    // NEGATIVE CONTROLS -- the scope's own type through `this.`, and the
+    // register through `global.` where a local shadows it.
+    public void okThisType() {
+        this.Shape s;
+        s.w <- 1;
+    }
+    public void okGlobalRegister() {
+        u32 GPIO <- 1;
+        global.GPIO.DR <- GPIO;
+    }
+
+    // ASSERTION -- E0435 in a TYPE position.
+    public void ownType() {
+        Vault.Shape s;
+        s.w <- 2;
+    }
+
+    // ASSERTION -- E0437, the register shadowed by a local variable.
+    public void localShadow() {
+        u32 GPIO <- 1;
+        GPIO.DR <- GPIO;
+    }
+}
+
+// ASSERTION -- E0436 from a file-scope initializer (global variable context).
+i32 leaked <- Vault.secret;

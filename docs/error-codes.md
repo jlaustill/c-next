@@ -15,13 +15,13 @@ codes that already have a fixture.
 | E00xx     | Reserved/Test           | 1      |
 | E02xx     | Identifier/Param Naming | 5      |
 | E03xx     | Struct Fields           | 2      |
-| E04xx     | Symbol Resolution       | 13     |
+| E04xx     | Symbol Resolution       | 16     |
 | E05xx     | Include/Preprocessor    | 7      |
 | E06xx     | Sizeof Expressions      | 2      |
 | E07xx     | Control Flow            | 12     |
 | E08xx     | Arithmetic/Array Safety | 29     |
 | E09xx     | NULL Safety             | 8      |
-| **Total** |                         | **79** |
+| **Total** |                         | **82** |
 
 ---
 
@@ -97,22 +97,25 @@ second header and the program ran with a wrong value.
 
 ## E04xx — Symbol Resolution / Initialization
 
-| Code  | Message                                                 | Help                                                                                            | Source                                                                             |
-| ----- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| E0381 | Use of possibly/uninitialized variable                  | Variable must be initialized before use                                                         | `logic/analysis/InitializationAnalyzer.ts`                                         |
-| E0422 | Function called before definition                       | Define function before calling it                                                               | `logic/analysis/FunctionCallAnalyzer.ts`                                           |
-| E0423 | Recursive function call (MISRA C:2012 Rule 17.2)        | Remove recursive call                                                                           | `logic/analysis/FunctionCallAnalyzer.ts`                                           |
-| E0424 | Unqualified enum member — did you mean `Enum.member`?   | Use qualified enum member syntax                                                                | `output/codegen/CodeGenerator.ts`, `SwitchGenerator.ts`, `ControlFlowGenerator.ts` |
-| E0425 | Symbol defined multiple times, or in multiple languages | Rename one definition                                                                           | `logic/symbols/SymbolTable.ts`, `Transpiler.ts`                                    |
-| E0426 | Type is not defined                                     | Declare the type, or #include the file that does                                                | `logic/analysis/UndeclaredTypeAnalyzer.ts`                                         |
-| E0427 | Identifier is not defined                               | Declare it, or #include the file that does                                                      | `logic/analysis/UndeclaredValueAnalyzer.ts`                                        |
-| E0428 | Value assigned to an enum is not of that enum type      | Assign one of the enum's members, or convert explicitly with a cast                             | `TRANSPILE/1-Analyze/EnumTypeSafetyAnalyzer.ts`                                    |
-| E0429 | Name is a register, not a type                          | Access the register's members instead, e.g. `GPIO.DR`                                           | `logic/analysis/UndeclaredTypeAnalyzer.ts`                                         |
-| E0430 | Nested scopes are not allowed                           | Close the enclosing scope before declaring another, or use a flat scope such as `Hardware_GPIO` | `logic/parser/CNextSourceParser.ts`                                                |
-| E0431 | `this` used outside a `scope` (ADR-016)                 | Use `global.Name` for a file-scope declaration, or move the code into the scope it belongs to   | `TRANSPILE/1-Analyze/ThisOutsideScopeAnalyzer.ts`                                  |
-| E0432 | C++ constructor argument is not `const`                 | Declare the argument `const`; a constructor runs during static initialization                   | `TRANSPILE/1-Analyze/ConstructorArgumentAnalyzer.ts`                               |
-| E0433 | C++ constructor argument names nothing declared         | Declare it before the constructor, or pass a literal                                            | `TRANSPILE/1-Analyze/ConstructorArgumentAnalyzer.ts`                               |
-| E0434 | Comparison operands are not the same enum type          | Compare the enum with a member of the same enum, or cast explicitly                             | `TRANSPILE/1-Analyze/EnumTypeSafetyAnalyzer.ts`                                    |
+| Code  | Message                                                                    | Help                                                                                            | Source                                                                             |
+| ----- | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| E0381 | Use of possibly/uninitialized variable                                     | Variable must be initialized before use                                                         | `logic/analysis/InitializationAnalyzer.ts`                                         |
+| E0422 | Function called before definition                                          | Define function before calling it                                                               | `logic/analysis/FunctionCallAnalyzer.ts`                                           |
+| E0423 | Recursive function call (MISRA C:2012 Rule 17.2)                           | Remove recursive call                                                                           | `logic/analysis/FunctionCallAnalyzer.ts`                                           |
+| E0424 | Unqualified enum member — did you mean `Enum.member`?                      | Use qualified enum member syntax                                                                | `output/codegen/CodeGenerator.ts`, `SwitchGenerator.ts`, `ControlFlowGenerator.ts` |
+| E0425 | Symbol defined multiple times, or in multiple languages                    | Rename one definition                                                                           | `logic/symbols/SymbolTable.ts`, `Transpiler.ts`                                    |
+| E0426 | Type is not defined                                                        | Declare the type, or #include the file that does                                                | `logic/analysis/UndeclaredTypeAnalyzer.ts`                                         |
+| E0427 | Identifier is not defined                                                  | Declare it, or #include the file that does                                                      | `logic/analysis/UndeclaredValueAnalyzer.ts`                                        |
+| E0428 | Value assigned to an enum is not of that enum type                         | Assign one of the enum's members, or convert explicitly with a cast                             | `TRANSPILE/1-Analyze/EnumTypeSafetyAnalyzer.ts`                                    |
+| E0429 | Name is a register, not a type                                             | Access the register's members instead, e.g. `GPIO.DR`                                           | `logic/analysis/UndeclaredTypeAnalyzer.ts`                                         |
+| E0430 | Nested scopes are not allowed                                              | Close the enclosing scope before declaring another, or use a flat scope such as `Hardware_GPIO` | `logic/parser/CNextSourceParser.ts`                                                |
+| E0431 | `this` used outside a `scope` (ADR-016)                                    | Use `global.Name` for a file-scope declaration, or move the code into the scope it belongs to   | `TRANSPILE/1-Analyze/ThisOutsideScopeAnalyzer.ts`                                  |
+| E0432 | C++ constructor argument is not `const`                                    | Declare the argument `const`; a constructor runs during static initialization                   | `TRANSPILE/1-Analyze/ConstructorArgumentAnalyzer.ts`                               |
+| E0433 | C++ constructor argument names nothing declared                            | Declare it before the constructor, or pass a literal                                            | `TRANSPILE/1-Analyze/ConstructorArgumentAnalyzer.ts`                               |
+| E0434 | Comparison operands are not the same enum type                             | Compare the enum with a member of the same enum, or cast explicitly                             | `TRANSPILE/1-Analyze/EnumTypeSafetyAnalyzer.ts`                                    |
+| E0435 | Scope's own member referenced through the scope's name (ADR-016)           | Use `this.member` inside the scope; `global.Scope.member` is allowed when deliberate            | `TRANSPILE/1-Analyze/ScopeAccessAnalyzer.ts`                                       |
+| E0436 | Private scope member reached from outside its scope (ADR-016)              | Mark the member `public`, or reach it through a public one                                      | `TRANSPILE/1-Analyze/ScopeAccessAnalyzer.ts`                                       |
+| E0437 | Global enum or register shadowed inside a scope and reached bare (ADR-016) | Write `global.Name.member`; the bare name resolves to the shadow                                | `TRANSPILE/1-Analyze/ScopeAccessAnalyzer.ts`                                       |
 
 **Related:** ADR-030 (E0422), ADR-016 (E0425 — a reopened scope composes, but its
 members stay unique)

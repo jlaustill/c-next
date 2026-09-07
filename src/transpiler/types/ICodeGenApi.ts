@@ -33,9 +33,6 @@ interface ICodeGenApi {
     value: string,
   ): string | null;
 
-  /** Validate cross-scope member visibility */
-  validateCrossScopeVisibility(scopeName: string, memberName: string): void;
-
   /** Analyze member chain for bit access patterns */
   analyzeMemberChainForBitAccess(ctx: unknown): {
     isBitAccess: boolean;

@@ -53,10 +53,10 @@ as counted at audit time" rather than a literal.
 
 | bucket | meaning                                                                        | count  |
 | ------ | ------------------------------------------------------------------------------ | ------ |
-| **1**  | user-facing diagnostic — belongs in pass 2.1, needs a code and a real position | **58** |
+| **1**  | user-facing diagnostic — belongs in pass 2.1, needs a code and a real position | **52** |
 | **2**  | internal invariant — should never fire for valid input; becomes an assertion   | **0**  |
 | **3**  | dead — unreachable or subsumed; delete                                         | **0**  |
-|        | **total**                                                                      | **58** |
+|        | **total**                                                                      | **52** |
 
 **80% of `output/`'s throws are rejections.** That is the answer to open question 4: Render does
 not own nothing, it currently owns almost all of the rejection surface.
@@ -65,11 +65,11 @@ By area:
 
 | area                                                                | sites | b1  | b2  | b3  |
 | ------------------------------------------------------------------- | ----- | --- | --- | --- |
-| `codegen/` (root: `CodeGenerator`, `TypeValidator`, `TypeResolver`) | 19    | 19  | 0   | 0   |
-| `codegen/helpers/`                                                  | 14    | 14  | 0   | 0   |
+| `codegen/` (root: `CodeGenerator`, `TypeValidator`, `TypeResolver`) | 18    | 18  | 0   | 0   |
+| `codegen/helpers/`                                                  | 11    | 11  | 0   | 0   |
 | `codegen/generators/**`                                             | 17    | 17  | 0   | 0   |
 | `codegen/subscript/`                                                | 1     | 1   | 0   | 0   |
-| `codegen/assignment/**`, `codegen/resolution/`, `headers/`          | 7     | 7   | 0   | 0   |
+| `codegen/assignment/**`, `codegen/resolution/`, `headers/`          | 5     | 5   | 0   | 0   |
 
 ## Position availability — the finding that shapes #1322
 
@@ -206,58 +206,54 @@ questions and only the first was asked.
   **parse error**, so it never reaches codegen at all. That leaves four live copies plus the
   factory, which is what makes unification tractable.
 
-## Bucket 1 — user-facing diagnostics (58)
+## Bucket 1 — user-facing diagnostics (52)
 
 Each needs a code and a real position in pass 2.1. `code` is the code it already carries, or
 **NEW** where one must be allocated. `position` names the node that is or would be in scope.
 
-### `codegen/` root — 19
+### `codegen/` root — 18
 
-| file:line               | anchor                                            | message                                                           | code                     | position source                                                                                | fixture                                            |
-| ----------------------- | ------------------------------------------------- | ----------------------------------------------------------------- | ------------------------ | ---------------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| `TypeValidator.ts:56`   | `E0503: Cannot #include implementation file`      | cannot `#include` an implementation file (ADR-010)                | E0503                    | `includeDir` (`IncludeDirectiveContext`) at `CodeGenerator.ts:2398`                            | `preprocessor/include-impl-file-error`             |
-| `TypeValidator.ts:127`  | `E0504: Found #include "`                         | `#include "p"` but `p.cnx` exists alongside                       | E0504                    | same `includeDir`, `CodeGenerator.ts:2407`                                                     | `include/cnx-alternative-error-quoted`             |
-| `TypeValidator.ts:144`  | `E0504: Found #include <`                         | angle-include twin of the above                                   | E0504                    | same                                                                                           | `include/cnx-alternative-error-angle`              |
-| `TypeValidator.ts:175`  | `maximum of`                                      | value exceeds W-bit bitmap field maximum (ADR-034)                | NEW E08xx                | `expr` (`ExpressionContext`, a parameter)                                                      | `bitmap/bitmap-error-overflow`                     |
-| `TypeValidator.ts:235`  | `is negative for`                                 | array index is negative                                           | NEW — **E0854 reserved** | `indexExprs[i].start`                                                                          | none                                               |
-| `TypeValidator.ts:243`  | `Array index out of bounds`                       | array index `N >= D`                                              | NEW — E0854              | `indexExprs[i].start`                                                                          | `array-initializers/bounds-error` +3               |
-| `TypeValidator.ts:274`  | `Error: Function`                                 | function signature does not match callback type                   | NEW                      | `valueExpr.start`                                                                              | none                                               |
-| `TypeValidator.ts:283`  | `to callback field`                               | cannot assign function to callback field (ADR-029 nominal typing) | NEW                      | `valueExpr.start`                                                                              | `callbacks/callback-error-nominal`                 |
-| `TypeValidator.ts:528`  | `Error E0707: loop condition`                     | loop condition is always true (ADR-068)                           | E0707                    | `ctx.start`                                                                                    | `control-flow/forever-disguised-*` (6)             |
-| `TypeValidator.ts:647`  | `Error: Negative shift amount`                    | negative shift amount is undefined behavior                       | NEW E08xx                | `ctx.start` / `rightExpr.start`                                                                | `bitwise/shift-negative-error`                     |
-| `TypeValidator.ts:656`  | `Error: Shift amount`                             | shift exceeds type width (MISRA 12.2)                             | NEW E08xx                | `ctx.start`                                                                                    | `bitwise/shift-beyond-width-*` (4)                 |
-| `CodeGenerator.ts:1845` | `error[E0703`                                     | `break`/`continue` unsupported (ADR-026)                          | E0703                    | **already emits `ctx.start.line/column`** — the model                                          | `control-flow/break-rejected`, `continue-rejected` |
-| `CodeGenerator.ts:2113` | `to access register`                              | use `global.R.m` for a register from inside a scope (ADR-016)     | NEW                      | none — via the `validateRegisterAccess` closure at `:2140`; thread from the member-access site | `scope/cross-scope-register-bare-error`            |
-| `CodeGenerator.ts:3694` | `Redundant type`                                  | redundant type in struct initializer (ADR-014)                    | NEW E03xx                | `explicit.symbol` / `ctx.start`                                                                | `structs/struct-redundant-type-error`              |
-| `CodeGenerator.ts:3702` | `Cannot infer struct type - no explicit type and` | cannot infer struct type — **fires on valid code, see #1277**     | NEW E03xx                | `ctx.start` (`StructInitializerContext`)                                                       | none                                               |
-| `CodeGenerator.ts:4047` | `C-style array parameter is not allowed`          | C-style array parameter                                           | NEW                      | **already positioned** via `ctx.start`                                                         | none                                               |
-| `CodeGenerator.ts:4066` | `Unbounded array parameters are not allowed`      | unbounded array parameter                                         | NEW                      | **already positioned** via `ctx.start`                                                         | none                                               |
-| `CodeGenerator.ts:4825` | `is not defined; did you mean '`                  | `X` not defined; did you mean `E.X`                               | E0424                    | none — `generatePrimaryExpr(ctx)` has the node                                                 | `analysis/enum-context/enum-bare-in-comparison` +2 |
-| `CodeGenerator.ts:4831` | `did you mean ${suggestions}`                     | multi-match arm of the above                                      | E0424                    | same                                                                                           | none                                               |
+| file:line               | anchor                                            | message                                                           | code                     | position source                                                     | fixture                                            |
+| ----------------------- | ------------------------------------------------- | ----------------------------------------------------------------- | ------------------------ | ------------------------------------------------------------------- | -------------------------------------------------- |
+| `TypeValidator.ts:56`   | `E0503: Cannot #include implementation file`      | cannot `#include` an implementation file (ADR-010)                | E0503                    | `includeDir` (`IncludeDirectiveContext`) at `CodeGenerator.ts:2398` | `preprocessor/include-impl-file-error`             |
+| `TypeValidator.ts:127`  | `E0504: Found #include "`                         | `#include "p"` but `p.cnx` exists alongside                       | E0504                    | same `includeDir`, `CodeGenerator.ts:2407`                          | `include/cnx-alternative-error-quoted`             |
+| `TypeValidator.ts:144`  | `E0504: Found #include <`                         | angle-include twin of the above                                   | E0504                    | same                                                                | `include/cnx-alternative-error-angle`              |
+| `TypeValidator.ts:175`  | `maximum of`                                      | value exceeds W-bit bitmap field maximum (ADR-034)                | NEW E08xx                | `expr` (`ExpressionContext`, a parameter)                           | `bitmap/bitmap-error-overflow`                     |
+| `TypeValidator.ts:235`  | `is negative for`                                 | array index is negative                                           | NEW — **E0854 reserved** | `indexExprs[i].start`                                               | none                                               |
+| `TypeValidator.ts:243`  | `Array index out of bounds`                       | array index `N >= D`                                              | NEW — E0854              | `indexExprs[i].start`                                               | `array-initializers/bounds-error` +3               |
+| `TypeValidator.ts:274`  | `Error: Function`                                 | function signature does not match callback type                   | NEW                      | `valueExpr.start`                                                   | none                                               |
+| `TypeValidator.ts:283`  | `to callback field`                               | cannot assign function to callback field (ADR-029 nominal typing) | NEW                      | `valueExpr.start`                                                   | `callbacks/callback-error-nominal`                 |
+| `TypeValidator.ts:528`  | `Error E0707: loop condition`                     | loop condition is always true (ADR-068)                           | E0707                    | `ctx.start`                                                         | `control-flow/forever-disguised-*` (6)             |
+| `TypeValidator.ts:647`  | `Error: Negative shift amount`                    | negative shift amount is undefined behavior                       | NEW E08xx                | `ctx.start` / `rightExpr.start`                                     | `bitwise/shift-negative-error`                     |
+| `TypeValidator.ts:656`  | `Error: Shift amount`                             | shift exceeds type width (MISRA 12.2)                             | NEW E08xx                | `ctx.start`                                                         | `bitwise/shift-beyond-width-*` (4)                 |
+| `CodeGenerator.ts:1826` | `error[E0703`                                     | `break`/`continue` unsupported (ADR-026)                          | E0703                    | **already emits `ctx.start.line/column`** — the model               | `control-flow/break-rejected`, `continue-rejected` |
+| `CodeGenerator.ts:3619` | `Redundant type`                                  | redundant type in struct initializer (ADR-014)                    | NEW E03xx                | `explicit.symbol` / `ctx.start`                                     | `structs/struct-redundant-type-error`              |
+| `CodeGenerator.ts:3627` | `Cannot infer struct type - no explicit type and` | cannot infer struct type — **fires on valid code, see #1277**     | NEW E03xx                | `ctx.start` (`StructInitializerContext`)                            | none                                               |
+| `CodeGenerator.ts:3972` | `C-style array parameter is not allowed`          | C-style array parameter                                           | NEW                      | **already positioned** via `ctx.start`                              | none                                               |
+| `CodeGenerator.ts:3991` | `Unbounded array parameters are not allowed`      | unbounded array parameter                                         | NEW                      | **already positioned** via `ctx.start`                              | none                                               |
+| `CodeGenerator.ts:4746` | `is not defined; did you mean '`                  | `X` not defined; did you mean `E.X`                               | E0424                    | none — `generatePrimaryExpr(ctx)` has the node                      | `analysis/enum-context/enum-bare-in-comparison` +2 |
+| `CodeGenerator.ts:4752` | `did you mean ${suggestions}`                     | multi-match arm of the above                                      | E0424                    | same                                                                | none                                               |
 
 **13 of these 39 already carry a code**; 26 need one. **12 have no fixture at all.** Three emit a
 real position today -- the `${line}:${col} `-prefixed rows in the table below.
 
-### `codegen/helpers/` — 14
+### `codegen/helpers/` — 11
 
 **Zero carry a code today.** 25 of the 39 have no fixture.
 
-| file:line                       | anchor                                        | message                                                | code      | position source                                                      | fixture                                     |
-| ------------------------------- | --------------------------------------------- | ------------------------------------------------------ | --------- | -------------------------------------------------------------------- | ------------------------------------------- |
-| `TypeGenerationHelper.ts:71`    | `Cannot use 'this.Type' outside of a scope`   | `this.Type` outside a scope                            | NEW E0426 | thread `accessors.scopedType()!.start` from `dispatchTypeGeneration` | none                                        |
-| `ArrayInitHelper.ts:129`        | `Error: Fill-all syntax`                      | fill-all `[v*]` requires explicit array size           | NEW E0858 | thread `expression.start` from `processArrayInit`                    | none                                        |
-| `ArrayInitHelper.ts:160`        | `Error: Array size mismatch - declared`       | array size mismatch                                    | NEW E0857 | `expression.start`                                                   | **orphaned** — see #1361                    |
-| `AssignmentValidator.ts:105`    | `constError`                                  | cannot assign to const variable/parameter              | NEW       | `targetCtx` (`AssignmentTargetContext`, in scope)                    | 26 fixtures under `tests/const/`            |
-| `AssignmentValidator.ts:134`    | `array element`                               | const assign, array element                            | NEW       | `subscriptExprs[0].start` (`line` already a parameter)               | none                                        |
-| `AssignmentValidator.ts:165`    | `member access`                               | const assign, member access                            | NEW       | thread `targetCtx`                                                   | none                                        |
-| `AssignmentValidator.ts:173`    | `cannot assign to read-only register member`  | write to a read-only (`ro`) register member            | NEW       | thread `targetCtx` / `postfixTargetOp`                               | `register/register-write-ro-error`          |
-| `VariableModifierBuilder.ts:82` | `Cannot use both 'atomic' and 'volatile`      | both `atomic` and `volatile`                           | NEW       | `ctx.start` — line already read, column discarded                    | `atomic/atomic-volatile-error`              |
-| `VariableDeclHelper.ts:270`     | `C-style array declaration is not allowed`    | C-style array declaration                              | NEW E0859 | **already carries a real position** from `ctx.start`                 | `array-declaration-syntax/c-style-error` +1 |
-| `VariableDeclHelper.ts:308`     | `Error: C++ class`                            | C++ class with constructor at global scope             | NEW       | `typeCtx.start` (in scope)                                           | `external-types/cpp-class-global-error`     |
-| `MemberAccessValidator.ts:34`   | `cannot read from write-only register member` | read from a write-only (`wo`) register member          | NEW       | caller `PostfixExpressionGenerator.ts:1461` holds the ctx            | `register/register-read-wo-error`           |
-| `MemberAccessValidator.ts:53`   | `by name. Use 'this`                          | cannot reference own scope by name (ADR-016)           | NEW       | caller `PostfixExpressionGenerator.ts:1391`                          | `scope/self-scope-bare-error` +1            |
-| `MemberAccessValidator.ts:108`  | `to access enum`                              | use `global.X.Y`; scope member shadows global enum     | NEW       | callers `PostfixExpressionGenerator.ts:1273/1426/1452`               | `scope/scope-enum-naming-conflict`          |
-| `MemberAccessValidator.ts:129`  | `from inside scope`                           | use `global.X.Y` for enum/register from inside a scope | NEW       | same                                                                 | `scope/cross-scope-register-bare-error`     |
+| file:line                       | anchor                                        | message                                       | code      | position source                                                      | fixture                                     |
+| ------------------------------- | --------------------------------------------- | --------------------------------------------- | --------- | -------------------------------------------------------------------- | ------------------------------------------- |
+| `TypeGenerationHelper.ts:70`    | `Cannot use 'this.Type' outside of a scope`   | `this.Type` outside a scope                   | NEW E0426 | thread `accessors.scopedType()!.start` from `dispatchTypeGeneration` | none                                        |
+| `ArrayInitHelper.ts:129`        | `Error: Fill-all syntax`                      | fill-all `[v*]` requires explicit array size  | NEW E0858 | thread `expression.start` from `processArrayInit`                    | none                                        |
+| `ArrayInitHelper.ts:160`        | `Error: Array size mismatch - declared`       | array size mismatch                           | NEW E0857 | `expression.start`                                                   | **orphaned** — see #1361                    |
+| `AssignmentValidator.ts:105`    | `constError`                                  | cannot assign to const variable/parameter     | NEW       | `targetCtx` (`AssignmentTargetContext`, in scope)                    | 26 fixtures under `tests/const/`            |
+| `AssignmentValidator.ts:134`    | `array element`                               | const assign, array element                   | NEW       | `subscriptExprs[0].start` (`line` already a parameter)               | none                                        |
+| `AssignmentValidator.ts:165`    | `member access`                               | const assign, member access                   | NEW       | thread `targetCtx`                                                   | none                                        |
+| `AssignmentValidator.ts:173`    | `cannot assign to read-only register member`  | write to a read-only (`ro`) register member   | NEW       | thread `targetCtx` / `postfixTargetOp`                               | `register/register-write-ro-error`          |
+| `VariableModifierBuilder.ts:82` | `Cannot use both 'atomic' and 'volatile`      | both `atomic` and `volatile`                  | NEW       | `ctx.start` — line already read, column discarded                    | `atomic/atomic-volatile-error`              |
+| `VariableDeclHelper.ts:270`     | `C-style array declaration is not allowed`    | C-style array declaration                     | NEW E0859 | **already carries a real position** from `ctx.start`                 | `array-declaration-syntax/c-style-error` +1 |
+| `VariableDeclHelper.ts:308`     | `Error: C++ class`                            | C++ class with constructor at global scope    | NEW       | `typeCtx.start` (in scope)                                           | `external-types/cpp-class-global-error`     |
+| `MemberAccessValidator.ts:31`   | `cannot read from write-only register member` | read from a write-only (`wo`) register member | NEW       | caller `PostfixExpressionGenerator.ts:1426` holds the ctx            | `register/register-read-wo-error`           |
 
 `VariableDeclHelper.ts:270`'s doc comment still lists "Exceptions (grammar limitations)" the code
 no longer honours — it throws unconditionally once `arrayDimension().length > 0` (#1014–#1017).
@@ -281,8 +277,8 @@ no longer honours — it throws unconditionally once `arrayDimension().length > 
 | `expressions/CallExprGenerator.ts:387`   | `Cannot determine type of output parameter`      | cannot determine output parameter type — **really an undeclared identifier**                  | NEW       | `argExprs[0].start`                                                                                          | none                                                    |
 | `expressions/CallExprGenerator.ts:443`   | `cannot pass const`                              | cannot pass const to a non-const parameter (ADR-013)                                          | NEW       | `argExprs[argIdx].start`                                                                                     | none                                                    |
 | `…/PostfixExpressionGenerator.ts:628`    | `is deprecated. Use explicit properties`         | `.length` deprecated (ADR-058)                                                                | NEW E06xx | `PostfixOpContext` not threaded                                                                              | `errors/length-property-deprecated`                     |
-| `…/PostfixExpressionGenerator.ts:1804`   | `Cannot use bracket indexing on bitmap type`     | bracket indexing on a bitmap (ADR-034)                                                        | NEW       | **`ctx.op.start` available and already read**, spent on `Error at line 45:` prose — cheapest site to convert | `bitmap/bitmap-bracket-indexing-error`                  |
-| `…/PostfixExpressionGenerator.ts:2021`   | `Float bit indexing reads`                       | float bit-range read at global scope                                                          | NEW E08xx | `IFloatBitRangeContext` carries no node; the subscript `op` is available upstream                            | none                                                    |
+| `…/PostfixExpressionGenerator.ts:1759`   | `Cannot use bracket indexing on bitmap type`     | bracket indexing on a bitmap (ADR-034)                                                        | NEW       | **`ctx.op.start` available and already read**, spent on `Error at line 45:` prose — cheapest site to convert | `bitmap/bitmap-bracket-indexing-error`                  |
+| `…/PostfixExpressionGenerator.ts:1976`   | `Float bit indexing reads`                       | float bit-range read at global scope                                                          | NEW E08xx | `IFloatBitRangeContext` carries no node; the subscript `op` is available upstream                            | none                                                    |
 
 **32 of the 41 in this area are unpinned**, including all 23 ADR-058 property diagnostics except
 `:623`, the ADR-013 const rule, and all four `safe_div`/`safe_mod` checks.
@@ -293,21 +289,19 @@ fire on an **undeclared identifier**, not on property misuse. The honest fix is 
 undefined-identifier diagnostic in symbol resolution; allocating five per-property codes would
 bake in a wrong diagnosis.
 
-### `codegen/assignment/**`, `codegen/resolution/`, `headers/` — 7
+### `codegen/assignment/**`, `codegen/resolution/`, `headers/` — 5
 
 Attribution here was established by proxying `Error` construction and reading the constructing
 stack frame, not by matching message text — necessary because three messages in this area are
 byte-identical across sites.
 
-| file:line                               | anchor                                           | message                                                      | code      | position source                                                              | fixture                                |
-| --------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------ | --------- | ---------------------------------------------------------------------------- | -------------------------------------- |
-| `headers/BaseHeaderGenerator.ts:79`     | `is a typedef of a pointer declared in another`  | typedef of a pointer declared in another header              | E0505     | `origin.sourceLine` (`IHeaderSymbol`) — no parse tree exists                 | none                                   |
-| `resolution/ScopeResolver.ts:41`        | `Error: Cannot reference own scope`              | cannot reference own scope by name (ADR-016)                 | NEW E04xx | **none** — `(scopeName, memberName, isGlobalAccess)`; thread from 4+ callers | `scope/self-scope-bare-error`          |
-| `resolution/ScopeResolver.ts:58`        | `Cannot access private member`                   | cannot access a private member (ADR-016)                     | NEW E04xx | same                                                                         | `scope/private-var-access-error` +4    |
-| `resolution/SizeofResolver.ts:154`      | `Error[E0601]: sizeof() on array parameter`      | `sizeof()` on an array parameter (ADR-023)                   | E0601     | none in `throwArrayParamSizeofError(varName)`; thread from `:172`            | `sizeof/array-param-error` +1          |
-| `resolution/SizeofResolver.ts:178`      | `Error[E0602]: sizeof() operand must not have`   | `sizeof()` operand has side effects (MISRA 13.6)             | E0602     | `expr` **is already the parameter** — position available, unused             | `sizeof/side-effects-error` +1         |
-| `handlers/AssignmentHandlerUtils.ts:41` | `Cannot assign false to write-only register bit` | cannot assign `false` to a write-only register bit (ADR-013) | NEW       | thread `ctx.valueCtx` from `RegisterHandlers.ts:39/78/139/184`               | `register/register-wo-set-false-error` |
-| `handlers/AssignmentHandlerUtils.ts:47` | `Cannot assign 0 to write-only register bits`    | cannot assign `0` to write-only register bits                | NEW       | same                                                                         | none                                   |
+| file:line                               | anchor                                           | message                                                      | code  | position source                                                   | fixture                                |
+| --------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------ | ----- | ----------------------------------------------------------------- | -------------------------------------- |
+| `headers/BaseHeaderGenerator.ts:79`     | `is a typedef of a pointer declared in another`  | typedef of a pointer declared in another header              | E0505 | `origin.sourceLine` (`IHeaderSymbol`) — no parse tree exists      | none                                   |
+| `resolution/SizeofResolver.ts:154`      | `Error[E0601]: sizeof() on array parameter`      | `sizeof()` on an array parameter (ADR-023)                   | E0601 | none in `throwArrayParamSizeofError(varName)`; thread from `:172` | `sizeof/array-param-error` +1          |
+| `resolution/SizeofResolver.ts:178`      | `Error[E0602]: sizeof() operand must not have`   | `sizeof()` operand has side effects (MISRA 13.6)             | E0602 | `expr` **is already the parameter** — position available, unused  | `sizeof/side-effects-error` +1         |
+| `handlers/AssignmentHandlerUtils.ts:41` | `Cannot assign false to write-only register bit` | cannot assign `false` to a write-only register bit (ADR-013) | NEW   | thread `ctx.valueCtx` from `RegisterHandlers.ts:39/78/139/184`    | `register/register-wo-set-false-error` |
+| `handlers/AssignmentHandlerUtils.ts:47` | `Cannot assign 0 to write-only register bits`    | cannot assign `0` to write-only register bits                | NEW   | same                                                              | none                                   |
 
 The 13 `ArrayHandlers` slice sites **already smuggle a position through the message string** as a
 `${line}:0` prefix that a downstream layer parses — which is why
@@ -458,6 +452,18 @@ registry` appears once per property, and the audit classed all four as
   fixtures assert the first two, so both are reproduced in 2.1 -- in one flag
   and one lookup, stated, not two rules -- and raised for a decision. No fixture
   depended on the third, so it is closed.
+- **A duplicate the duplicate-message table missed.**
+  `ScopeResolver.validateCrossScopeVisibility` and
+  `MemberAccessValidator.validateNotSelfScopeReference` both rejected a scope's
+  own member reached through the scope's name, with the same words, decided in
+  two places -- and the table above grouped by throw text, which one of the two
+  prefixed with `Error:` and the other did not. ADR-016's access rules are
+  E0435-E0437 in pass 2.1, one decision each, asked once for the three
+  syntactic positions a `Scope.member` can stand in (an expression, an
+  assignment target, a type). Two codegen exemptions are reproduced rather than
+  closed: a register declared in a scope bypasses all three rules, and a struct
+  member's qualified type was never visibility-checked -- `S.onTick handler;`
+  with a private `onTick` compiles, and #1205's fixture depends on it.
 - **#1014–#1017 — resolved by deletion.** `StringDeclHelper`'s C-style string-array path was
   dead only while trailing brackets are rejected unconditionally. They are, verified by probe
   on all three routes in, so the path is gone (1322a) and the conditional dependency with it.

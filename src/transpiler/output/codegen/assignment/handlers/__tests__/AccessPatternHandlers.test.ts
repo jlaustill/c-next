@@ -108,45 +108,6 @@ describe("AccessPatternHandlers", () => {
       expect(result).toBe("Counter__value = 5;");
     });
 
-    it("validates cross-scope visibility when first id is a scope", () => {
-      const validateCrossScopeVisibility = vi.fn();
-      HandlerTestUtils.setupMockGenerator({
-        generateAssignmentTarget: vi.fn().mockReturnValue("Motor__speed"),
-        validateCrossScopeVisibility,
-      });
-      HandlerTestUtils.setupMockSymbols({
-        knownScopes: new Set(["Motor"]),
-      });
-      const ctx = createMockContext({
-        identifiers: ["Motor", "speed"],
-      });
-
-      getHandler()!(ctx);
-
-      expect(validateCrossScopeVisibility).toHaveBeenCalledWith(
-        "Motor",
-        "speed",
-      );
-    });
-
-    it("does not validate when first id is not a scope", () => {
-      const validateCrossScopeVisibility = vi.fn();
-      HandlerTestUtils.setupMockGenerator({
-        generateAssignmentTarget: vi.fn().mockReturnValue("someVar"),
-        validateCrossScopeVisibility,
-      });
-      HandlerTestUtils.setupMockSymbols({
-        knownScopes: new Set(),
-      });
-      const ctx = createMockContext({
-        identifiers: ["someVar"],
-      });
-
-      getHandler()!(ctx);
-
-      expect(validateCrossScopeVisibility).not.toHaveBeenCalled();
-    });
-
     it("handles compound assignment", () => {
       HandlerTestUtils.setupMockGenerator({
         generateAssignmentTarget: vi.fn().mockReturnValue("Counter__value"),

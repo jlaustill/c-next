@@ -226,14 +226,6 @@ class ScopeJoinSites {
       why: "`ctx.identifiers[0]` of `Scope.REG.MEMBER.field`; the sibling `this.` branch already routes through `ScopeUtils.qualifyInScope`",
     },
     {
-      file: "src/transpiler/output/codegen/helpers/MemberSeparatorResolver.ts",
-      element: "identifierChain[0]",
-      kind: "path",
-      pairedWith: null,
-      movesWith: null,
-      why: "source chain `Board.GPIO`, admitted by `deps.isKnownScope(identifierChain[0])`; the JOINED name is then tested against `isKnownRegister` before any cross-scope check",
-    },
-    {
       file: "src/transpiler/output/codegen/resolution/EnumTypeResolver.ts",
       element: "scopeName",
       kind: "path",

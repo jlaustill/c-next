@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-343 fixture(s) assert a diagnostic; 264 carry a code.
+346 fixture(s) assert a diagnostic; 278 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -28,6 +28,18 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-007/slice-silent-overflow.test.cnx                                                     | E0859               |
 | tests/adr-007/slice-wide-element-span-error.test.cnx                                             | E0860               |
 | tests/adr-007/slice-zero-length.test.cnx                                                         | E0860               |
+| tests/adr-016/cross-scope-bare-error.test.cnx                                                    | E0436               |
+| tests/adr-016/cross-scope-register-bare-error.test.cnx                                           | E0437               |
+| tests/adr-016/mixed-access-ultimate-error.test.cnx                                               | E0435, E0436        |
+| tests/adr-016/private-cross-scope-error.test.cnx                                                 | E0436               |
+| tests/adr-016/private-func-access-error.test.cnx                                                 | E0436               |
+| tests/adr-016/private-imported-direct-error.test.cnx                                             | E0436               |
+| tests/adr-016/private-imported-transitive-error.test.cnx                                         | E0436               |
+| tests/adr-016/private-scoped-struct-error.test.cnx                                               | E0436               |
+| tests/adr-016/private-var-access-error.test.cnx                                                  | E0436               |
+| tests/adr-016/scope-access-uncovered-arms-error.test.cnx                                         | E0435, E0436, E0437 |
+| tests/adr-016/scope-enum-naming-conflict.test.cnx                                                | E0437               |
+| tests/adr-016/self-scope-bare-error.test.cnx                                                     | E0435               |
 | tests/adr-016/this-outside-scope-error.test.cnx                                                  | E0431               |
 | tests/adr-017/enum-error-assign-int.test.cnx                                                     | E0428               |
 | tests/adr-017/enum-error-assign-non-enum.test.cnx                                                | E0428               |
@@ -185,8 +197,8 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1183-bool-operand/bool-struct-field-compound.test.cnx                           | E0806               |
 | tests/bugs/issue-1183-bool-operand/bool-ternary-operand.test.cnx                                 | E0807               |
 | tests/bugs/issue-1183-bool-operand/bool-valued-expression-operand.test.cnx                       | E0807               |
-| tests/bugs/issue-1190-cross-file-private-member/cross-file-private-const.test.cnx                | (uncoded)           |
-| tests/bugs/issue-1190-cross-file-private-member/transitive-private-const.test.cnx                | (uncoded)           |
+| tests/bugs/issue-1190-cross-file-private-member/cross-file-private-const.test.cnx                | E0436               |
+| tests/bugs/issue-1190-cross-file-private-member/transitive-private-const.test.cnx                | E0436               |
 | tests/bugs/issue-1220-analyzer-cross-file-symbols/boolean-operand-imported-direct.test.cnx       | E0807               |
 | tests/bugs/issue-1220-analyzer-cross-file-symbols/boolean-operand-imported-transitive.test.cnx   | E0807               |
 | tests/bugs/issue-1220-analyzer-cross-file-symbols/boolean-operand-same-file.test.cnx             | E0807               |
@@ -324,7 +336,6 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/null-check/null-in-ternary.test.cnx                                                        | (uncoded)           |
 | tests/null-check/null-neq-check.test.cnx                                                         | E0905, E0907        |
 | tests/null-check/valid-fgetc-check.test.cnx                                                      | E0905               |
-| tests/postfix-chains/mixed-access-ultimate.test.cnx                                              | (uncoded)           |
 | tests/preprocessor/function-macro-error.test.cnx                                                 | E0501               |
 | tests/preprocessor/include-impl-file-error.test.cnx                                              | E0503               |
 | tests/preprocessor/nested-ifdef.test.cnx                                                         | (uncoded)           |
@@ -333,17 +344,9 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/register/register-read-wo-error.test.cnx                                                   | (uncoded)           |
 | tests/register/register-wo-set-false-error.test.cnx                                              | (uncoded)           |
 | tests/register/register-write-ro-error.test.cnx                                                  | (uncoded)           |
-| tests/scope/cross-scope-bare-error.test.cnx                                                      | (uncoded)           |
-| tests/scope/cross-scope-register-bare-error.test.cnx                                             | (uncoded)           |
 | tests/scope/nested-scope-error.test.cnx                                                          | E0430               |
 | tests/scope/param-prefix-naming-error.test.cnx                                                   | (uncoded)           |
 | tests/scope/param-prefix-naming-scope-error.test.cnx                                             | (uncoded)           |
-| tests/scope/private-cross-scope-error.test.cnx                                                   | (uncoded)           |
-| tests/scope/private-func-access-error.test.cnx                                                   | (uncoded)           |
-| tests/scope/private-var-access-error.test.cnx                                                    | (uncoded)           |
-| tests/scope/scope-enum-naming-conflict.test.cnx                                                  | (uncoded)           |
-| tests/scope/self-scope-bare-error.test.cnx                                                       | (uncoded)           |
-| tests/scoped-structs/private-scoped-struct-error.test.cnx                                        | (uncoded)           |
 | tests/sizeof/array-param-error.test.cnx                                                          | E0601               |
 | tests/sizeof/side-effects-error.test.cnx                                                         | E0602               |
 | tests/static-allocation/aligned-alloc-error.test.cnx                                             | E0902               |

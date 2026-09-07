@@ -30,7 +30,6 @@ interface ITypeGenerationDeps {
   currentScopePath: string;
   isCppScopeSymbol: (name: string) => boolean;
   checkNeedsStructKeyword: (name: string) => boolean;
-  validateCrossScopeVisibility: (scope: string, member: string) => void;
   /**
    * Check if a *qualified* type name is a known type declared in the current
    * scope (ADR-057). Receives the already-joined C name (e.g. "A__B") so
@@ -91,16 +90,14 @@ class TypeGenerationHelper {
   static generateQualifiedType(
     identifiers: string[],
     isCppNamespace: boolean,
-    validateVisibility?: (scope: string, member: string) => void,
   ): string {
     if (isCppNamespace) {
       return identifiers.join("::");
     }
 
     // C-Next scoped type - validate visibility for 2-part types
-    if (identifiers.length === 2 && validateVisibility) {
-      validateVisibility(identifiers[0], identifiers[1]);
-    }
+    // #1322: ADR-016's visibility check for a qualified type is E0435/E0436
+    // in pass 2.1.
 
     return QualifiedCName.fromParts(identifiers);
   }
@@ -168,11 +165,7 @@ class TypeGenerationHelper {
       const identifiers = accessors.qualifiedType()!.IDENTIFIER();
       const identifierNames = identifiers.map((id) => id.getText());
       const isCpp = deps.isCppScopeSymbol(identifierNames[0]);
-      return TypeGenerationHelper.generateQualifiedType(
-        identifierNames,
-        isCpp,
-        deps.validateCrossScopeVisibility,
-      );
+      return TypeGenerationHelper.generateQualifiedType(identifierNames, isCpp);
     }
 
     if (accessors.primitiveType()) {

@@ -1,4 +1,5 @@
 // test-error
+// test-adr: 016
 // Tests: Private scoped structs should not be accessible from outside the scope
 
 scope Internal {
@@ -12,6 +13,17 @@ scope Internal {
         s.value <- 42;
         return s.value;
     }
+}
+
+// NEGATIVE CONTROL -- a PUBLIC struct of the same scope as a type, same spelling.
+scope Open {
+    public struct Shape {
+        u32 w;
+    }
+}
+void okPublicType() {
+    Open.Shape s;
+    s.w <- 1;
 }
 
 void main() {

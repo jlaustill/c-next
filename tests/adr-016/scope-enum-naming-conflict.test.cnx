@@ -1,4 +1,5 @@
 // test-error
+// test-adr: 016
 // Tests: Enum access requires global. when scope has member with same name
 // Issue #774: This is the ambiguous case - must error with helpful message
 
@@ -6,6 +7,14 @@ enum EColor {
     RED,
     GREEN,
     BLUE
+}
+
+// NEGATIVE CONTROLS -- the same enum where nothing shadows it, and the
+// `global.` spelling the diagnostic asks for where something does.
+scope Clear {
+    public u32 ok() {
+        return EColor.GREEN;
+    }
 }
 
 scope Test {

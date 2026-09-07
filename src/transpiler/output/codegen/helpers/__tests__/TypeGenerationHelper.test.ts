@@ -3,7 +3,7 @@
  * Tests for C type generation from C-Next type contexts
  */
 
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import CNextSourceParser from "../../../../logic/parser/CNextSourceParser.js";
 import TypeGenerationHelper from "../TypeGenerationHelper.js";
 import * as Parser from "../../../../logic/parser/grammar/CNextParser.js";
@@ -103,36 +103,6 @@ describe("TypeGenerationHelper", () => {
       );
       expect(result).toBe("Motor__State");
     });
-
-    it("validates visibility for 2-part C-Next types", () => {
-      const validateFn = vi.fn();
-      TypeGenerationHelper.generateQualifiedType(
-        ["Motor", "State"],
-        false,
-        validateFn,
-      );
-      expect(validateFn).toHaveBeenCalledWith("Motor", "State");
-    });
-
-    it("does not validate visibility for 3+ part types", () => {
-      const validateFn = vi.fn();
-      TypeGenerationHelper.generateQualifiedType(
-        ["A", "B", "C"],
-        false,
-        validateFn,
-      );
-      expect(validateFn).not.toHaveBeenCalled();
-    });
-
-    it("does not validate visibility for C++ namespaces", () => {
-      const validateFn = vi.fn();
-      TypeGenerationHelper.generateQualifiedType(
-        ["Lib", "Type"],
-        true,
-        validateFn,
-      );
-      expect(validateFn).not.toHaveBeenCalled();
-    });
   });
 
   describe("generateUserType", () => {
@@ -164,7 +134,6 @@ describe("TypeGenerationHelper", () => {
       currentScopePath: "",
       isCppScopeSymbol: () => false,
       checkNeedsStructKeyword: () => false,
-      validateCrossScopeVisibility: vi.fn(),
       isScopeType: () => false,
     };
 

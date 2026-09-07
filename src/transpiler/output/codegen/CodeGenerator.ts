@@ -151,7 +151,6 @@ import ParameterSignatureBuilder from "./helpers/ParameterSignatureBuilder";
 // Extracted resolvers that use CodeGenState
 import SizeofResolver from "./resolution/SizeofResolver";
 import EnumTypeResolver from "./resolution/EnumTypeResolver";
-import ScopeResolver from "./resolution/ScopeResolver";
 // Issue #797: Centralized C-style name generation
 import QualifiedNameGenerator from "./utils/QualifiedNameGenerator";
 import MisraSuppressionUtils from "../MisraSuppressionUtils";
@@ -590,8 +589,6 @@ export default class CodeGenerator implements IOrchestrator {
       isCppScopeSymbol: (name) => this.isCppScopeSymbol(name),
       checkNeedsStructKeyword: (name) =>
         CodeGenState.symbolTable.checkNeedsStructKeyword(name),
-      validateCrossScopeVisibility: (scope, member) =>
-        ScopeResolver.validateCrossScopeVisibility(scope, member),
       isScopeType: (qn) => CodeGenState.isScopeType(qn),
     });
   }
@@ -840,22 +837,6 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   // === Validation ===
-
-  /**
-   * Validate cross-scope member visibility.
-   * Part of IOrchestrator interface - delegates to private implementation.
-   */
-  validateCrossScopeVisibility(
-    scopeName: string,
-    memberName: string,
-    isGlobalAccess: boolean = false,
-  ): void {
-    ScopeResolver.validateCrossScopeVisibility(
-      scopeName,
-      memberName,
-      isGlobalAccess,
-    );
-  }
 
   /**
    * Validate shift amount is within type bounds.
@@ -2054,67 +2035,11 @@ export default class CodeGenerator implements IOrchestrator {
       isKnownScope: (name: string) => this.isKnownScope(name),
       isKnownRegister: (name: string) =>
         CodeGenState.symbols!.knownRegisters.has(name),
-      validateCrossScopeVisibility: (scopeName: string, memberName: string) =>
-        this.validateCrossScopeVisibility(scopeName, memberName),
-      validateRegisterAccess: (
-        registerName: string,
-        memberName: string,
-        hasGlobal: boolean,
-      ) => this._validateRegisterAccess(registerName, memberName, hasGlobal),
       getStructParamSeparator: () =>
         memberAccessChain.getStructParamSeparator({
           cppMode: CodeGenState.cppMode,
         }),
     };
-  }
-
-  /**
-   * Validate register access from inside a scope requires global. prefix.
-   *
-   * Issue #779: Use ambiguity-aware validation - only require global. when
-   * the register name is ACTUALLY shadowed by a local or scope member.
-   *
-   * Exceptions (no global. required):
-   * 1. Scoped registers defined within the current scope
-   * 2. Unambiguous access - no local/scope member with the same name
-   */
-  private _validateRegisterAccess(
-    registerName: string,
-    memberName: string,
-    hasGlobal: boolean,
-  ): void {
-    // Only validate when inside a scope and accessing without global. prefix
-    if (CodeGenState.currentScopePath && !hasGlobal) {
-      // Check if this is a scoped register (defined within the current scope)
-      // The registerName may already be the fully qualified name (e.g., "GPIO_PORTA")
-      // if accessed as PORTA from inside scope GPIO
-      if (
-        QualifiedCName.isInScope(
-          registerName,
-          ScopeUtils.leafOf(CodeGenState.currentScopePath),
-        )
-      ) {
-        // This is a scoped register - allow bare access
-        return;
-      }
-
-      // Issue #779: Ambiguity-aware validation
-      // Only require global. if the register name is shadowed by:
-      // 1. A local variable in the current function
-      // 2. A member of the current scope
-      const isShadowedByLocal = CodeGenState.localVariables.has(registerName);
-      const isShadowedByScope = CodeGenState.isCurrentScopeMember(registerName);
-
-      if (!isShadowedByLocal && !isShadowedByScope) {
-        // Unambiguous - allow bare access
-        return;
-      }
-
-      throw new Error(
-        `Error: Use 'global.${registerName}.${memberName}' to access register '${registerName}' ` +
-          `from inside scope '${CodeGenState.currentScopePath}'`,
-      );
-    }
   }
 
   /**
@@ -4631,22 +4556,18 @@ export default class CodeGenerator implements IOrchestrator {
     return {
       generateExpression: (expr: unknown) =>
         this.generateExpression(expr as Parser.ExpressionContext),
-      getSeparator: (
-        isFirstOp: boolean,
-        identifierChain: string[],
-        memberName: string,
-      ) =>
+      getSeparator: (isFirstOp: boolean, identifierChain: string[]) =>
         MemberSeparatorResolver.getSeparator(
           isFirstOp,
           identifierChain,
-          memberName,
           separatorCtx,
           separatorDeps,
         ),
     };
   }
 
-  // ADR-016: _validateCrossScopeVisibility moved to ScopeResolver
+  // #1322: ADR-016's access rules are E0435-E0437 in pass 2.1; `ScopeResolver`
+  // is gone with them.
 
   // Issue #387: Dead methods removed (generateGlobalMemberAccess, generateGlobalArrayAccess,
   // generateThisMemberAccess, generateThisArrayAccess) - now handled by unified doGenerateAssignmentTarget

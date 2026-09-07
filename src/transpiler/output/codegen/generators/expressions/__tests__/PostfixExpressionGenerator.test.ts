@@ -113,7 +113,6 @@ function createMockOrchestrator(overrides?: {
     structType: string,
     memberName: string,
   ) => TTypeInfo | null;
-  validateCrossScopeVisibility?: (scope: string, member: string) => void;
   generateBitMask?: (width: string, is64?: boolean) => string;
   tryEvaluateConstant?: (ctx: unknown) => number | undefined;
   hasFloatBitShadow?: (name: string) => boolean;
@@ -144,17 +143,10 @@ function createMockOrchestrator(overrides?: {
     tryEvaluateConstant: overrides?.tryEvaluateConstant ?? vi.fn(),
     getZeroInitializer: vi.fn(),
     getExpressionEnumType: vi.fn(),
-    isIntegerExpression: vi.fn(),
     isStringExpression: vi.fn(),
     getAdditiveExpressionType: vi.fn(),
     getOperatorsFromChildren: vi.fn(),
-    validateCrossScopeVisibility:
-      overrides?.validateCrossScopeVisibility ?? vi.fn(),
     validateShiftAmount: vi.fn(),
-    validateTernaryCondition: vi.fn(),
-    validateNoNestedTernary: vi.fn(),
-    validateLiteralFitsType: vi.fn(),
-    validateTypeConversion: vi.fn(),
     getSimpleIdentifier: vi.fn(),
     generateFunctionArg: overrides?.generateFunctionArg ?? vi.fn(),
     isConstValue: vi.fn(),
@@ -167,11 +159,6 @@ function createMockOrchestrator(overrides?: {
     generateStatement: vi.fn(),
     flushPendingTempDeclarations: vi.fn(() => ""),
     indent: vi.fn((text) => text),
-    validateNoEarlyExits: vi.fn(),
-    validateSwitchStatement: vi.fn(),
-    validateConditionIsBoolean: vi.fn(),
-    validateConditionNoFunctionCall: vi.fn(),
-    validateTernaryConditionNoFunctionCall: vi.fn(),
     generateAssignmentTarget: vi.fn(),
     generateArrayDimensions: vi.fn(),
     generateArrayDimension: vi.fn(),
@@ -196,7 +183,6 @@ function createMockOrchestrator(overrides?: {
     exitFunctionBody: vi.fn(),
     setMainArgsName: vi.fn(),
     isMainFunctionWithArgs: vi.fn(),
-    generateCallbackTypedef: vi.fn(),
     updateFunctionParamsAutoConst: vi.fn(),
     markParameterModified: vi.fn(),
     isCalleeParameterModified: vi.fn(),
@@ -822,24 +808,6 @@ describe("PostfixExpressionGenerator", () => {
       expect(result.code).toBe("LED__on");
     });
 
-    it("throws when referencing own scope by name", () => {
-      const ctx = createMockPostfixExpressionContext("Motor", [
-        createMockPostfixOp({ identifier: "speed" }),
-      ]);
-      const input = createMockInput();
-      const state = createMockState({
-        currentScopePath: "Motor",
-      });
-      const orchestrator = createMockOrchestrator({
-        generatePrimaryExpr: () => "Motor",
-        isKnownScope: (name) => name === "Motor",
-      });
-
-      expect(() =>
-        generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow("Cannot reference own scope 'Motor' by name");
-    });
-
     it("uses :: separator for C++ mode", () => {
       const ctx = createMockPostfixExpressionContext("LED", [
         createMockPostfixOp({ identifier: "on" }),
@@ -877,29 +845,6 @@ describe("PostfixExpressionGenerator", () => {
       expect(result.code).toBe("Color__Red");
     });
 
-    it("throws when accessing enum with naming conflict inside scope", () => {
-      const symbols = createMockSymbols({
-        knownEnums: new Set(["Color"]),
-      });
-      const ctx = createMockPostfixExpressionContext("Color", [
-        createMockPostfixOp({ identifier: "Red" }),
-      ]);
-      const input = createMockInput({ symbols });
-      const scopeMembers = new Map([["Motor", new Set(["Color"])]]);
-      const state = createMockState({
-        currentScopePath: "Motor",
-        scopeMembers,
-      });
-      const orchestrator = createMockOrchestrator({
-        generatePrimaryExpr: () => "Color",
-        getScopeSeparator: () => "__",
-      });
-
-      expect(() =>
-        generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow("Use 'global.Color.Red' to access enum 'Color'");
-    });
-
     it("allows enum access without global prefix when no naming conflict", () => {
       const symbols = createMockSymbols({
         knownEnums: new Set(["Color"]),
@@ -920,32 +865,6 @@ describe("PostfixExpressionGenerator", () => {
 
       const result = generatePostfixExpression(ctx, input, state, orchestrator);
       expect(result.code).toBe("Color__Red");
-    });
-
-    it("throws when scope member shadows global enum (resolved identifier differs)", () => {
-      const symbols = createMockSymbols({
-        knownEnums: new Set(["Color"]),
-      });
-      const ctx = createMockPostfixExpressionContext("Color", [
-        createMockPostfixOp({ identifier: "Red" }),
-      ]);
-      const input = createMockInput({ symbols });
-      const scopeMembers = new Map([["Motor", new Set(["Color"])]]);
-      const state = createMockState({
-        currentScopePath: "Motor",
-        scopeMembers,
-      });
-      const orchestrator = createMockOrchestrator({
-        // Simulates identifier resolution: Color -> Motor_Color (scope member)
-        generatePrimaryExpr: () => "Motor_Color",
-        getScopeSeparator: () => "__",
-      });
-
-      expect(() =>
-        generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow(
-        "Use 'global.Color.Red' to access enum 'Color' from inside scope 'Motor' (scope member 'Color' shadows the global enum)",
-      );
     });
   });
 
@@ -984,28 +903,6 @@ describe("PostfixExpressionGenerator", () => {
       expect(() =>
         generatePostfixExpression(ctx, input, state, orchestrator),
       ).toThrow("cannot read from write-only register member 'DATA'");
-    });
-
-    it("throws when accessing register with naming conflict inside scope", () => {
-      const symbols = createMockSymbols({
-        knownRegisters: new Set(["GPIO"]),
-      });
-      const ctx = createMockPostfixExpressionContext("GPIO", [
-        createMockPostfixOp({ identifier: "PIN0" }),
-      ]);
-      const input = createMockInput({ symbols });
-      const scopeMembers = new Map([["Motor", new Set(["GPIO"])]]);
-      const state = createMockState({
-        currentScopePath: "Motor",
-        scopeMembers,
-      });
-      const orchestrator = createMockOrchestrator({
-        generatePrimaryExpr: () => "GPIO",
-      });
-
-      expect(() =>
-        generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow("Use 'global.GPIO.PIN0' to access register 'GPIO'");
     });
 
     it("allows register access without global prefix when no naming conflict", () => {
