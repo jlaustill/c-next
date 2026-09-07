@@ -1,0 +1,14 @@
+38:11 error[E0873]: Shift amount (9) exceeds type width (8 bits) for type 'u8' (expression: a<<<-9;)
+       help: Shift amount must be < 8 for 8-bit types; shifting by the width or more is undefined behavior (MISRA C:2012 Rule 12.2).
+39:17 error[E0873]: Shift amount (9) exceeds type width (8 bits) for type 'u8' (expression: d.value>><-9;)
+       help: Shift amount must be < 8 for 8-bit types; shifting by the width or more is undefined behavior (MISRA C:2012 Rule 12.2).
+40:16 error[E0873]: Shift amount (9) exceeds type width (8 bits) for type 'u8' (expression: arr[1]<<<-9;)
+       help: Shift amount must be < 8 for 8-bit types; shifting by the width or more is undefined behavior (MISRA C:2012 Rule 12.2).
+42:17 error[E0873]: Shift amount (9) exceeds type width (8 bits) for type 'u8' (expression: a<<N)
+       help: Shift amount must be < 8 for 8-bit types; shifting by the width or more is undefined behavior (MISRA C:2012 Rule 12.2).
+44:22 error[E0873]: Shift amount (9) exceeds type width (8 bits) for type 'u8' (expression: arr[0]<<N)
+       help: Shift amount must be < 8 for 8-bit types; shifting by the width or more is undefined behavior (MISRA C:2012 Rule 12.2).
+54:26 error[E0873]: Shift amount (8) exceeds type width (8 bits) for type 'u8' (expression: this.m<<8)
+       help: Shift amount must be < 8 for 8-bit types; shifting by the width or more is undefined behavior (MISRA C:2012 Rule 12.2).
+55:20 error[E0873]: Shift amount (12) exceeds type width (8 bits) for type 'u8' (expression: this.m<<<-this.STEP;)
+       help: Shift amount must be < 8 for 8-bit types; shifting by the width or more is undefined behavior (MISRA C:2012 Rule 12.2).

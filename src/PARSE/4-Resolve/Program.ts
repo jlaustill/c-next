@@ -141,7 +141,12 @@ class Program {
    * "What is this const worth" is a whole-program question the moment a const
    * can arrive through an include (#1220), so it is authored once, here, from
    * every file's symbols. Keyed by BARE name, which is the question callers
-   * ask: "what does SIZE mean?", not "which symbol is this?".
+   * ask: "what does SIZE mean?", not "which symbol is this?" -- and, for a
+   * const declared inside a scope, by its C name as well (`Board__STEP`),
+   * which is the question `this.STEP` asks. #1322: the pass-0 collector this
+   * derivation replaced recorded both keys; the artifact recorded only the
+   * bare one, so two scopes each declaring a `STEP` shared one slot and
+   * `this.STEP` could not be told from the other scope's.
    */
   private static deriveConstValues(
     settledByFile: ReadonlyMap<string, ReadonlyArray<TSymbol>>,
@@ -152,6 +157,9 @@ class Program {
         const value = Program.constValueOf(symbol);
         if (value !== undefined) {
           constValues.set(symbol.name, value);
+          if (symbol.scopePath !== "") {
+            constValues.set(symbol.fullyQualifiedCName, value);
+          }
         }
       }
     }

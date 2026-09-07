@@ -105,23 +105,8 @@ interface IOrchestrator {
   /** Check if an expression is a string type */
   isStringExpression(ctx: Parser.RelationalExpressionContext): boolean;
 
-  /** Get type of additive expression for shift validation */
-  getAdditiveExpressionType(
-    ctx: Parser.AdditiveExpressionContext,
-  ): string | null;
-
   /** Extract operators from parse tree children in correct order */
   getOperatorsFromChildren(ctx: ParserRuleContext): string[];
-
-  // === Validation ===
-
-  /** Validate shift amount is within type bounds */
-  validateShiftAmount(
-    leftType: string,
-    rightExpr: Parser.AdditiveExpressionContext,
-    op: string,
-    ctx: Parser.ShiftExpressionContext,
-  ): void;
 
   // === Function Call Helpers ===
 

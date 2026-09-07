@@ -9,7 +9,6 @@ import * as Parser from "../../logic/parser/grammar/CNextParser";
 import CodeGenState from "../../state/CodeGenState";
 import AdrProvenance from "../../state/AdrProvenance";
 // SonarCloud S3776: Extracted literal parsing to reduce complexity
-import LiteralEvaluator from "./helpers/LiteralEvaluator";
 import QualifiedCName from "../../../utils/QualifiedCName";
 import ScopeUtils from "../../../utils/ScopeUtils";
 
@@ -511,107 +510,10 @@ class TypeValidator {
   // slice's comparison reader, its number parser and the verdict -- all facts
   // of the parse tree that never needed codegen.
 
-  // ========================================================================
-  // Shift Amount Validation (MISRA C:2012 Rule 12.2)
-  // ========================================================================
-
-  static validateShiftAmount(
-    leftType: string,
-    rightExpr: Parser.AdditiveExpressionContext,
-    op: string,
-    ctx: Parser.ShiftExpressionContext,
-  ): void {
-    const typeWidth = TypeValidator._getTypeWidth(leftType);
-    if (!typeWidth) return;
-
-    const shiftAmount = TypeValidator._evaluateShiftAmount(rightExpr);
-    if (shiftAmount === null) return;
-
-    if (shiftAmount < 0) {
-      throw new Error(
-        `Error: Negative shift amount (${shiftAmount}) is undefined behavior\n` +
-          `  Type: ${leftType}\n` +
-          `  Expression: ${ctx.getText()}\n` +
-          `  Shift amounts must be non-negative`,
-      );
-    }
-
-    if (shiftAmount >= typeWidth) {
-      throw new Error(
-        `Error: Shift amount (${shiftAmount}) exceeds type width (${typeWidth} bits) for type '${leftType}'\n` +
-          `  Expression: ${ctx.getText()}\n` +
-          `  Shift amount must be < ${typeWidth} for ${typeWidth}-bit types\n` +
-          `  This violates MISRA C:2012 Rule 12.2 and causes undefined behavior`,
-      );
-    }
-  }
-
-  private static _getTypeWidth(type: string): number | null {
-    switch (type) {
-      case "u8":
-      case "i8":
-        return 8;
-      case "u16":
-      case "i16":
-        return 16;
-      case "u32":
-      case "i32":
-        return 32;
-      case "u64":
-      case "i64":
-        return 64;
-      default:
-        return null;
-    }
-  }
-
-  private static _evaluateShiftAmount(
-    ctx: Parser.AdditiveExpressionContext,
-  ): number | null {
-    const multExprs = ctx.multiplicativeExpression();
-    if (multExprs.length !== 1) return null;
-
-    const multExpr = multExprs[0];
-    const unaryExprs = multExpr.unaryExpression();
-    if (unaryExprs.length !== 1) return null;
-
-    return TypeValidator._evaluateUnaryExpression(unaryExprs[0]);
-  }
-
-  private static _evaluateUnaryExpression(
-    ctx: Parser.UnaryExpressionContext,
-  ): number | null {
-    const unaryText = ctx.getText();
-    const isNegative = unaryText.startsWith("-");
-
-    const postfixExpr = ctx.postfixExpression();
-    if (postfixExpr) {
-      return TypeValidator._evaluateLiteralFromPostfix(postfixExpr, isNegative);
-    }
-
-    const nestedUnary = ctx.unaryExpression();
-    if (nestedUnary) {
-      const nestedValue = TypeValidator._evaluateUnaryExpression(nestedUnary);
-      return LiteralEvaluator.applySign(nestedValue, isNegative);
-    }
-
-    return null;
-  }
-
-  private static _evaluateLiteralFromPostfix(
-    postfixExpr: Parser.PostfixExpressionContext,
-    isNegative: boolean,
-  ): number | null {
-    const primaryExpr = postfixExpr.primaryExpression();
-    if (!primaryExpr) return null;
-
-    const literal = primaryExpr.literal();
-    if (!literal) return null;
-
-    const text = literal.getText();
-    const value = LiteralEvaluator.parseLiteral(text);
-    return LiteralEvaluator.applySign(value, isNegative);
-  }
+  // #1322: MISRA 12.2's shift-amount rule (E0873) is in pass 2.1, beside the
+  // Rule 10.1 signed-operand rule it always belonged with. Five methods stood
+  // here -- the width table, the literal amount evaluator and the two throws --
+  // and the compound forms (`<<<-`, `>><-`) never reached them.
 
   // #1322: `validateIntegerAssignment` stood here -- ADR-024's literal-range,
   // narrowing and sign-change rules, reached through `AssignmentValidator`,

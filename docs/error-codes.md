@@ -19,9 +19,9 @@ codes that already have a fixture.
 | E05xx     | Include/Preprocessor    | 7      |
 | E06xx     | Sizeof Expressions      | 2      |
 | E07xx     | Control Flow            | 12     |
-| E08xx     | Arithmetic/Array Safety | 32     |
+| E08xx     | Arithmetic/Array Safety | 33     |
 | E09xx     | NULL Safety             | 8      |
-| **Total** |                         | **85** |
+| **Total** |                         | **86** |
 
 ---
 
@@ -211,7 +211,7 @@ include-visibility is not derivable for a C or C++ name.
 
 | Code  | Message                                                                                                | Help                                                                                         | Source                                        |
 | ----- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- | --------------------------------------------- |
-| E0805 | Shift operator used on a signed integer type (MISRA C:2012 Rule 10.1)                                  | Shift an unsigned value; signed shifts are UB / implementation-defined in C                  | `logic/analysis/SignedShiftAnalyzer.ts`       |
+| E0805 | Shift operator used on a signed integer type (MISRA C:2012 Rule 10.1)                                  | Shift an unsigned value; signed shifts are UB / implementation-defined in C                  | `TRANSPILE/1-Analyze/ShiftAnalyzer.ts`        |
 | E0806 | Compound assignment used on a `bool` (MISRA C:2012 Rule 10.1)                                          | Only `<-` is valid on a bool; flip a flag with `flag <- !flag`                               | `logic/analysis/BooleanOperandAnalyzer.ts`    |
 | E0807 | Arithmetic, bitwise, shift or relational operator applied to a `bool` operand (MISRA C:2012 Rule 10.1) | A bool is not a number; combine flags with `&&` / `\|\|` / `!`, compare them with `=` / `!=` | `logic/analysis/BooleanOperandAnalyzer.ts`    |
 | E0810 | Binary operator combines operands of different essential type categories (Rule 10.4)                   | Reinterpret one operand's bits to match the other with bit indexing, e.g. `value[0, 32]`     | `logic/analysis/MixedTypeCategoryAnalyzer.ts` |
@@ -270,6 +270,12 @@ bit-indexed once (ADR-007), so `flags[4][3]` on a scalar `u8` indexes the single
 base: bare, `this.` and `global.`.
 
 ---
+
+### Shift Range (MISRA C:2012 Rule 12.2)
+
+| Code  | Message                                                                | Help                                                                                   | Source                                 |
+| ----- | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | -------------------------------------- |
+| E0873 | Shift amount is negative, or not below the shifted operand's bit width | Keep the amount in `0 .. width-1`; shifting by the width or more is undefined behavior | `TRANSPILE/1-Analyze/ShiftAnalyzer.ts` |
 
 ## E09xx — NULL Safety (ADR-046)
 

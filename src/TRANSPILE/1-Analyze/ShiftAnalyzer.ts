@@ -1,6 +1,5 @@
 /**
- * Signed Shift Analyzer
- * Detects shift operators used with signed integer types at compile time
+ * Shift Analyzer: E0805 (signed operand) and E0873 (amount out of range).
  *
  * MISRA C:2012 Rule 10.1: Operands shall not be of an inappropriate essential type
  * - Left-shifting negative signed values is undefined behavior in C
@@ -8,6 +7,22 @@
  *
  * C-Next rejects all shift operations on signed types (i8, i16, i32, i64) at
  * compile time to ensure defined, portable behavior.
+ *
+ * MISRA C:2012 Rule 12.2: the right operand of a shift shall lie in the range
+ * zero to one less than the essential width of the left operand. #1322 moved
+ * that rule here from `output/`, where two throws in `TypeValidator` reported
+ * it as `1:0`. It reads the LEADING operand's declared type, as codegen did
+ * (`(a + 1) << 9` is a composite and stays untyped), and evaluates the amount
+ * when it is a literal or a named const. Two holes closed on the way, both
+ * probed: `a <<<- 9` on a `u8` emitted `a = (uint8_t)(a << 9U)` unchecked --
+ * the compound forms never reached the check -- and `a << N` with
+ * `const u8 N <- 9` was accepted because only a literal amount was evaluated.
+ *
+ * The signed rule keeps its own operand walk: it asks whether ANY operand of a
+ * composite is signed and treats a negated literal as signed, which is a
+ * different question from "what is this operand's declared type". The width
+ * rule asks the shared `OperandTypeResolver`, as every other typed rule in
+ * this pass does.
  *
  * Two-pass analysis:
  * 1. Build lexical scope frames (DeclarationScopeCollector)
@@ -24,27 +39,34 @@
 import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../transpiler/logic/parser/grammar/CNextListener";
 import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
-import ISignedShiftError from "./types/ISignedShiftError";
+import IShiftError from "./types/IShiftError";
 import ParserUtils from "../../utils/ParserUtils";
 import TypeConstants from "../../utils/constants/TypeConstants";
 import ExpressionUtils from "../../utils/ExpressionUtils";
 import CodeGenState from "../../transpiler/state/CodeGenState";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
 import ScopeFrameResolver from "./ScopeFrameResolver";
+import OperandTypeResolver from "./OperandTypeResolver";
+import LiteralUtils from "../../utils/LiteralUtils";
+import ScopeUtils from "../../utils/ScopeUtils";
+import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
 
 /**
  * Second pass: Detect shift operations with signed operands
  */
-class SignedShiftListener extends CNextListener {
-  private readonly analyzer: SignedShiftAnalyzer;
+class ShiftListener extends CNextListener {
+  private readonly analyzer: ShiftAnalyzer;
 
   // eslint-disable-next-line @typescript-eslint/lines-between-class-members
   private readonly scopes: ScopeFrameResolver;
 
-  constructor(analyzer: SignedShiftAnalyzer, scopes: ScopeFrameResolver) {
+  private readonly types: OperandTypeResolver;
+
+  constructor(analyzer: ShiftAnalyzer, scopes: ScopeFrameResolver) {
     super();
     this.analyzer = analyzer;
     this.scopes = scopes;
+    this.types = new OperandTypeResolver(scopes);
   }
 
   /**
@@ -88,9 +110,143 @@ class SignedShiftListener extends CNextListener {
       if (this.isSignedOperand(leftOperand)) {
         const { line, column } = ParserUtils.getPosition(leftOperand);
         this.analyzer.addError(line, column, operator);
+        continue;
       }
+
+      // Rule 12.2: the amount against the leading operand's width. Codegen
+      // typed the first unary of the left additive expression -- `a + b << 9`
+      // reads as `a`'s width -- and that is reproduced, not widened.
+      const leading = leftOperand
+        .multiplicativeExpression()[0]
+        ?.unaryExpression()[0];
+      if (!leading) continue;
+      const leftType = this.types.typeOfOperand(
+        leading,
+        this.scopes.frameFor(ctx),
+      );
+      this.checkAmount(leftType, operands[i + 1], ctx);
     }
   };
+
+  /**
+   * E0873: a compile-time shift amount that is negative or not below the
+   * width of the shifted operand's type. Silent when either side is unknown
+   * -- a runtime amount, or an operand this pass cannot type.
+   */
+  private checkAmount(
+    leftType: string | null,
+    amountExpr: ParserRuleContext,
+    at: ParserRuleContext,
+  ): void {
+    if (leftType === null || !/^[ui](8|16|32|64)$/.test(leftType)) return;
+    const width = TYPE_WIDTH[leftType];
+    const amount = this.amountOf(amountExpr, at);
+    if (amount === null) return;
+    const { line, column } = ParserUtils.getPosition(amountExpr);
+    if (amount < 0) {
+      this.analyzer.addAmountError(
+        line,
+        column,
+        `Negative shift amount (${amount}) is undefined behavior (type: ${leftType}, expression: ${at.getText()})`,
+        "Shift amounts must be non-negative (MISRA C:2012 Rule 12.2).",
+      );
+      return;
+    }
+    if (amount >= width) {
+      this.analyzer.addAmountError(
+        line,
+        column,
+        `Shift amount (${amount}) exceeds type width (${width} bits) for type '${leftType}' (expression: ${at.getText()})`,
+        `Shift amount must be < ${width} for ${width}-bit types; shifting by the width or more is undefined behavior (MISRA C:2012 Rule 12.2).`,
+      );
+    }
+  }
+
+  /**
+   * The amount as a compile-time integer: a literal with any number of
+   * leading minus signs, or a const declared at file scope or in the enclosing
+   * scope. Anything else is a runtime amount and returns null.
+   */
+  private amountOf(
+    expr: ParserRuleContext,
+    at: ParserRuleContext,
+  ): number | null {
+    let node: ParserRuleContext = expr;
+    while (
+      !(node instanceof Parser.UnaryExpressionContext) &&
+      node.getChildCount() === 1 &&
+      node.getChild(0) instanceof ParserRuleContext
+    ) {
+      node = node.getChild(0) as ParserRuleContext;
+    }
+    if (!(node instanceof Parser.UnaryExpressionContext)) return null;
+    return this.unaryAmount(node, at);
+  }
+
+  private unaryAmount(
+    ctx: Parser.UnaryExpressionContext,
+    at: ParserRuleContext,
+  ): number | null {
+    const nested = ctx.unaryExpression();
+    if (nested) {
+      if (ctx.MINUS() === null) return null; // `!x`, `~x`, `&x` are not amounts
+      const inner = this.unaryAmount(nested, at);
+      return inner === null ? null : -inner;
+    }
+    const postfix = ctx.postfixExpression();
+    const primary = postfix?.primaryExpression();
+    if (!postfix || !primary) return null;
+    const ops = postfix.postfixOp();
+    const literal = primary.literal();
+    if (literal && ops.length === 0) {
+      const match = /^(0[xX][\da-fA-F]+|0[bB][01]+|\d+)([uUiI]\d+)?$/.exec(
+        literal.getText(),
+      );
+      return match === null
+        ? null
+        : (LiteralUtils.parseIntegerLiteral(match[1]) ?? null);
+    }
+    // A named const: bare, `this.NAME` (the enclosing scope's) or
+    // `global.NAME` (file scope). Anything else is a runtime amount.
+    const member =
+      ops.length === 1 && ops[0].DOT() !== null
+        ? (ops[0].IDENTIFIER()?.getText() ?? null)
+        : null;
+    if (primary.THIS() && member !== null) {
+      return this.constValue(member, at, "this");
+    }
+    if (primary.GLOBAL() && member !== null) {
+      return this.constValue(member, at, "global");
+    }
+    const name = primary.IDENTIFIER()?.getText();
+    if (name === undefined || ops.length > 0) return null;
+    return this.constValue(name, at, null);
+  }
+
+  /**
+   * A named const's value, from the program's order-independent const table.
+   * A bare name tries the enclosing scope first, then file scope; `this.`
+   * and `global.` state which one.
+   */
+  private constValue(
+    name: string,
+    at: ParserRuleContext,
+    root: "this" | "global" | null,
+  ): number | null {
+    const here = this.scopes.frameFor(at).scopePath;
+    const scoped =
+      here === ""
+        ? null
+        : ScopeUtils.getTranspiledCName({ scopePath: here, name });
+    const candidates =
+      root === "global" ? [name] : root === "this" ? [scoped] : [scoped, name];
+    for (const cName of candidates) {
+      if (cName === null) continue;
+      const value = CodeGenState.program?.constValue(cName);
+      if (value !== undefined) return value;
+    }
+    return null;
+  }
 
   /**
    * Check compound shift-assign statements for signed targets
@@ -121,7 +277,16 @@ class SignedShiftListener extends CNextListener {
       const operator = isLeftShiftAssign ? "<<<-" : ">><-";
       const { line, column } = ParserUtils.getPosition(target);
       this.analyzer.addError(line, column, operator);
+      return;
     }
+
+    // Rule 12.2 for the compound forms, which codegen never checked:
+    // `a <<<- 9` on a u8 emitted `a = (uint8_t)(a << 9U)` at exit 0.
+    this.checkAmount(
+      this.types.typeOfAssignmentTarget(target, this.scopes.frameFor(ctx)),
+      ctx.expression(),
+      ctx,
+    );
   };
 
   /**
@@ -257,15 +422,16 @@ class SignedShiftListener extends CNextListener {
 }
 
 /**
- * Analyzer that detects shift operations on signed integer types
+ * Analyzer that detects shift operations on signed integer types, and shift
+ * amounts outside the shifted operand's width.
  */
-class SignedShiftAnalyzer {
-  private errors: ISignedShiftError[] = [];
+class ShiftAnalyzer {
+  private errors: IShiftError[] = [];
 
   /**
-   * Analyze the parse tree for signed shift operations
+   * Analyze the parse tree for shift operations
    */
-  public analyze(tree: Parser.ProgramContext): ISignedShiftError[] {
+  public analyze(tree: Parser.ProgramContext): IShiftError[] {
     this.errors = [];
 
     // First pass: build the lexical scope frames
@@ -273,7 +439,7 @@ class SignedShiftAnalyzer {
     ParseTreeWalker.DEFAULT.walk(declarations, tree);
 
     // Second pass: detect shift with signed operands
-    const listener = new SignedShiftListener(
+    const listener = new ShiftListener(
       this,
       new ScopeFrameResolver(declarations),
     );
@@ -297,11 +463,23 @@ class SignedShiftAnalyzer {
   }
 
   /**
+   * Add a shift amount error (E0873)
+   */
+  public addAmountError(
+    line: number,
+    column: number,
+    message: string,
+    helpText: string,
+  ): void {
+    this.errors.push({ code: "E0873", line, column, message, helpText });
+  }
+
+  /**
    * Get all detected errors
    */
-  public getErrors(): ISignedShiftError[] {
+  public getErrors(): IShiftError[] {
     return this.errors;
   }
 }
 
-export default SignedShiftAnalyzer;
+export default ShiftAnalyzer;

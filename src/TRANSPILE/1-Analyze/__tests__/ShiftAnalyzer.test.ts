@@ -1,12 +1,13 @@
 /**
- * Unit tests for SignedShiftAnalyzer
- * Tests detection of shift operators with signed integer types
+ * Unit tests for ShiftAnalyzer
+ * Tests detection of shift operators with signed integer types (E0805), and
+ * of shift amounts outside the shifted operand's width (E0873, #1322).
  */
 import { describe, it, expect } from "vitest";
 import { CharStream, CommonTokenStream } from "antlr4ng";
 import { CNextLexer } from "../../../transpiler/logic/parser/grammar/CNextLexer";
 import { CNextParser } from "../../../transpiler/logic/parser/grammar/CNextParser";
-import SignedShiftAnalyzer from "../SignedShiftAnalyzer";
+import ShiftAnalyzer from "../ShiftAnalyzer";
 
 /**
  * Helper to parse C-Next code and return the AST
@@ -19,7 +20,7 @@ function parse(source: string) {
   return parser.program();
 }
 
-describe("SignedShiftAnalyzer", () => {
+describe("ShiftAnalyzer", () => {
   // ========================================================================
   // Signed Variable Left Shift Detection
   // ========================================================================
@@ -33,7 +34,7 @@ describe("SignedShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new SignedShiftAnalyzer();
+      const analyzer = new ShiftAnalyzer();
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -50,7 +51,7 @@ describe("SignedShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new SignedShiftAnalyzer();
+      const analyzer = new ShiftAnalyzer();
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -65,7 +66,7 @@ describe("SignedShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new SignedShiftAnalyzer();
+      const analyzer = new ShiftAnalyzer();
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -80,7 +81,7 @@ describe("SignedShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new SignedShiftAnalyzer();
+      const analyzer = new ShiftAnalyzer();
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -101,7 +102,7 @@ describe("SignedShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new SignedShiftAnalyzer();
+      const analyzer = new ShiftAnalyzer();
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -117,7 +118,7 @@ describe("SignedShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new SignedShiftAnalyzer();
+      const analyzer = new ShiftAnalyzer();
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -137,7 +138,7 @@ describe("SignedShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new SignedShiftAnalyzer();
+      const analyzer = new ShiftAnalyzer();
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -151,7 +152,7 @@ describe("SignedShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new SignedShiftAnalyzer();
+      const analyzer = new ShiftAnalyzer();
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -173,7 +174,7 @@ describe("SignedShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new SignedShiftAnalyzer();
+      const analyzer = new ShiftAnalyzer();
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -194,7 +195,7 @@ describe("SignedShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new SignedShiftAnalyzer();
+      const analyzer = new ShiftAnalyzer();
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -208,7 +209,7 @@ describe("SignedShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new SignedShiftAnalyzer();
+      const analyzer = new ShiftAnalyzer();
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -222,7 +223,7 @@ describe("SignedShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new SignedShiftAnalyzer();
+      const analyzer = new ShiftAnalyzer();
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -236,7 +237,7 @@ describe("SignedShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new SignedShiftAnalyzer();
+      const analyzer = new ShiftAnalyzer();
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -249,7 +250,7 @@ describe("SignedShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new SignedShiftAnalyzer();
+      const analyzer = new ShiftAnalyzer();
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -268,7 +269,7 @@ describe("SignedShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new SignedShiftAnalyzer();
+      const analyzer = new ShiftAnalyzer();
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -289,7 +290,7 @@ describe("SignedShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new SignedShiftAnalyzer();
+      const analyzer = new ShiftAnalyzer();
       const errors = analyzer.analyze(tree);
 
       expect(errors[0].helpText).toContain("undefined");
@@ -302,7 +303,7 @@ describe("SignedShiftAnalyzer", () => {
   i32 result <- x << 2;
 }`;
       const tree = parse(code);
-      const analyzer = new SignedShiftAnalyzer();
+      const analyzer = new ShiftAnalyzer();
       const errors = analyzer.analyze(tree);
 
       expect(errors[0].line).toBe(3);
@@ -324,7 +325,7 @@ describe("SignedShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new SignedShiftAnalyzer();
+      const analyzer = new ShiftAnalyzer();
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(2);
@@ -339,7 +340,7 @@ describe("SignedShiftAnalyzer", () => {
     it("should handle empty program", () => {
       const code = ``;
       const tree = parse(code);
-      const analyzer = new SignedShiftAnalyzer();
+      const analyzer = new ShiftAnalyzer();
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -353,7 +354,7 @@ describe("SignedShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new SignedShiftAnalyzer();
+      const analyzer = new ShiftAnalyzer();
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -370,7 +371,7 @@ describe("SignedShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new SignedShiftAnalyzer();
+      const analyzer = new ShiftAnalyzer();
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -390,7 +391,7 @@ describe("SignedShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new SignedShiftAnalyzer();
+      const analyzer = new ShiftAnalyzer();
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -405,7 +406,7 @@ describe("SignedShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new SignedShiftAnalyzer();
+      const analyzer = new ShiftAnalyzer();
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -425,7 +426,7 @@ describe("SignedShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new SignedShiftAnalyzer();
+      const analyzer = new ShiftAnalyzer();
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -442,7 +443,7 @@ describe("SignedShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new SignedShiftAnalyzer();
+      const analyzer = new ShiftAnalyzer();
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -458,7 +459,7 @@ describe("SignedShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new SignedShiftAnalyzer();
+      const analyzer = new ShiftAnalyzer();
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -473,7 +474,7 @@ describe("SignedShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new SignedShiftAnalyzer();
+      const analyzer = new ShiftAnalyzer();
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -488,7 +489,7 @@ describe("SignedShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new SignedShiftAnalyzer();
+      const analyzer = new ShiftAnalyzer();
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -503,7 +504,7 @@ describe("SignedShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new SignedShiftAnalyzer();
+      const analyzer = new ShiftAnalyzer();
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -517,7 +518,7 @@ describe("SignedShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new SignedShiftAnalyzer();
+      const analyzer = new ShiftAnalyzer();
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -533,7 +534,7 @@ describe("SignedShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new SignedShiftAnalyzer();
+      const analyzer = new ShiftAnalyzer();
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(2);
@@ -556,7 +557,7 @@ describe("SignedShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new SignedShiftAnalyzer();
+      const analyzer = new ShiftAnalyzer();
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -580,7 +581,7 @@ describe("SignedShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new SignedShiftAnalyzer();
+      const analyzer = new ShiftAnalyzer();
       // Without CodeGenState.symbols populated, this won't detect the issue
       // The integration test covers this case
       const errors = analyzer.analyze(tree);
@@ -598,7 +599,7 @@ describe("SignedShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new SignedShiftAnalyzer();
+      const analyzer = new ShiftAnalyzer();
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -614,12 +615,106 @@ describe("SignedShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new SignedShiftAnalyzer();
+      const analyzer = new ShiftAnalyzer();
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
       expect(errors[0].code).toBe("E0805");
       expect(errors[0].message).toContain("<<<-");
     });
+  });
+});
+
+describe("ShiftAnalyzer -- E0873 shift amount (MISRA C:2012 Rule 12.2)", () => {
+  const errors = (code: string) => new ShiftAnalyzer().analyze(parse(code));
+  const inMain = (body: string) => `void main() {\n    u8 a <- 1;\n${body}\n}`;
+
+  it("rejects an amount at or beyond the width, at the amount's position", () => {
+    const found = errors(inMain("    u8 b <- a << 8;"));
+    expect(found).toHaveLength(1);
+    expect(found[0].code).toBe("E0873");
+    expect(found[0].line).toBe(3);
+    expect(found[0].column).toBeGreaterThan(10);
+    expect(found[0].message).toContain(
+      "Shift amount (8) exceeds type width (8 bits) for type 'u8'",
+    );
+  });
+
+  it("rejects a negative amount", () => {
+    const found = errors(inMain("    u8 b <- a >> -1;"));
+    expect(found).toHaveLength(1);
+    expect(found[0].message).toContain("Negative shift amount (-1)");
+  });
+
+  it("accepts the last legal amount, zero, and every width", () => {
+    const source = [
+      "void main() {",
+      "    u8 a <- 1;",
+      "    u16 b <- 1;",
+      "    u32 c <- 1;",
+      "    u64 d <- 1;",
+      "    u8 r1 <- a << 7;",
+      "    u16 r2 <- b << 15;",
+      "    u32 r3 <- c << 31;",
+      "    u64 r4 <- d << 63;",
+      "    u8 r5 <- a >> 0;",
+      "}",
+    ].join("\n");
+    expect(errors(source)).toEqual([]);
+  });
+
+  it("rejects the compound forms, which codegen never checked", () => {
+    // REGRESSION. `a <<<- 9` on a u8 emitted `a = (uint8_t)(a << 9U)`.
+    const found = errors(inMain("    a <<<- 9;\n    a >><- 8;\n    a <<<- 7;"));
+    expect(found.map((e) => [e.code, e.line])).toEqual([
+      ["E0873", 3],
+      ["E0873", 4],
+    ]);
+  });
+
+  it("reads a hex, binary or suffixed literal amount", () => {
+    const found = errors(
+      inMain(
+        "    u8 b <- a << 0x10;\n    u8 c <- a << 0b1000;\n    u8 d <- a << 8u8;",
+      ),
+    );
+    expect(found).toHaveLength(3);
+  });
+
+  it("stays silent on a runtime amount, a literal left operand and a composite", () => {
+    // A literal has no declared width; `(a + 1)` is a composite, untyped here
+    // as it was in codegen -- reproduced, not widened.
+    const source = [
+      "void main(u8 s) {",
+      "    u8 a <- 1;",
+      "    u8 b <- a << s;",
+      "    u8 c <- 1 << 9;",
+      "    u8 d <- (a + 1) << 9;",
+      "}",
+    ].join("\n");
+    expect(errors(source)).toEqual([]);
+  });
+
+  it("reports the signed rule and not the width rule on a signed operand", () => {
+    // One diagnostic per shift: a signed operand is E0805's, whatever the
+    // amount, so the two rules never both fire on the same operator.
+    const found = errors(
+      "void main() {\n    i8 a <- 1;\n    i8 b <- a << 9;\n}",
+    );
+    expect(found.map((e) => e.code)).toEqual(["E0805"]);
+  });
+
+  it("types an array element through the shared resolver", () => {
+    // A struct member needs the per-file symbol view, which a unit test does
+    // not build; `tests/bitwise/shift-width-uncovered-arms-error` asserts
+    // `d.value >><- 9` end to end.
+    const source = [
+      "void main() {",
+      "    u8[4] arr <- [1, 2, 3, 4];",
+      "    u8 c <- arr[0] << 8;",
+      "    arr[1] <<<- 8;",
+      "}",
+    ].join("\n");
+    expect(errors(source).map((e) => e.line)).toEqual([3, 4]);
   });
 });

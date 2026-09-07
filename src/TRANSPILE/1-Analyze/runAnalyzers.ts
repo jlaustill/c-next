@@ -19,7 +19,7 @@ import NullCheckAnalyzer from "./NullCheckAnalyzer";
 import DivisionByZeroAnalyzer from "./DivisionByZeroAnalyzer";
 import FloatModuloAnalyzer from "./FloatModuloAnalyzer";
 import ArrayIndexTypeAnalyzer from "./ArrayIndexTypeAnalyzer";
-import SignedShiftAnalyzer from "./SignedShiftAnalyzer";
+import ShiftAnalyzer from "./ShiftAnalyzer";
 import BooleanOperandAnalyzer from "./BooleanOperandAnalyzer";
 import MixedTypeCategoryAnalyzer from "./MixedTypeCategoryAnalyzer";
 import ReturnPathAnalyzer from "./ReturnPathAnalyzer";
@@ -196,8 +196,9 @@ function runAnalyzers(
       run: () => new ArrayIndexTypeAnalyzer().analyze(tree),
     },
     {
-      label: "signed shift (MISRA C:2012 Rule 10.1)",
-      run: () => new SignedShiftAnalyzer().analyze(tree),
+      label:
+        "shift operands and amounts (MISRA C:2012 Rules 10.1 and 12.2, E0805/E0873)",
+      run: () => new ShiftAnalyzer().analyze(tree),
     },
     {
       // Before the Rule 10.4 check, so a bool in an arithmetic expression is

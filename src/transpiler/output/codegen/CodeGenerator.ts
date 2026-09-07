@@ -818,16 +818,6 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Get type of additive expression.
-   * Part of IOrchestrator interface - delegates to private implementation.
-   */
-  getAdditiveExpressionType(
-    ctx: Parser.AdditiveExpressionContext,
-  ): string | null {
-    return this._getAdditiveExpressionType(ctx);
-  }
-
-  /**
    * Extract operators from parse tree children in correct order.
    * Part of IOrchestrator interface - delegates to CodegenParserUtils.
    */
@@ -836,19 +826,6 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   // === Validation ===
-
-  /**
-   * Validate shift amount is within type bounds.
-   * Part of IOrchestrator interface - delegates to TypeValidator.
-   */
-  validateShiftAmount(
-    leftType: string,
-    rightExpr: Parser.AdditiveExpressionContext,
-    op: string,
-    ctx: Parser.ShiftExpressionContext,
-  ): void {
-    TypeValidator.validateShiftAmount(leftType, rightExpr, op, ctx);
-  }
 
   // === Function Call Helpers ===
 
@@ -4607,33 +4584,9 @@ export default class CodeGenerator implements IOrchestrator {
   // Expressions
   // ========================================================================
 
-  // Issue #63: validateShiftAmount, getTypeWidth, evaluateShiftAmount,
-  //            evaluateUnaryExpression moved to TypeValidator
-
-  /**
-   * Get the type of an additive expression.
-   */
-  private _getAdditiveExpressionType(
-    ctx: Parser.AdditiveExpressionContext,
-  ): string | null {
-    // For simple case, get type from first multiplicative expression
-    const multExprs = ctx.multiplicativeExpression();
-    if (multExprs.length === 0) return null;
-
-    return this.getMultiplicativeExpressionType(multExprs[0]);
-  }
-
-  /**
-   * Get the type of a multiplicative expression.
-   */
-  private getMultiplicativeExpressionType(
-    ctx: Parser.MultiplicativeExpressionContext,
-  ): string | null {
-    const unaryExprs = ctx.unaryExpression();
-    if (unaryExprs.length === 0) return null;
-
-    return this.getUnaryExpressionType(unaryExprs[0]);
-  }
+  // #1322: the shift-amount check (MISRA 12.2, E0873) that Issue #63 moved
+  // to TypeValidator is in pass 2.1, with the additive-type helpers that
+  // existed only to feed it.
 
   /**
    * Resolve 'this' keyword to scope marker

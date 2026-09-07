@@ -1,9 +1,13 @@
+// test-error
 // test-coverage: 5.5-shift-beyond-width-error
-// Test u16 shift beyond width - should be ERROR
+// Test u16 shift beyond width - should be ERROR (MISRA C:2012 Rule 12.2, E0873)
 // Coverage: Section 5.5-5.6 error case - shift beyond type width
+//
+// #1322 relocated this from `output/`, where it reported `1:0`.
 void testU16ShiftBeyondWidth() {
     u16 a <- 1;
-
+    // NEGATIVE CONTROL -- one below the width is the last legal amount.
+    u16 ok <- a << 15;
     // u16 is 16 bits, so shifting by 16 or more is undefined/error
     u16 bad_shift <- a << 16; // ERROR: shift amount >= type width
 }

@@ -331,16 +331,9 @@ const generateShiftExpr = (
   effects.push(...firstResult.effects);
   let result = firstResult.code;
 
-  // Get type of left operand for shift validation
-  const leftType = orchestrator.getAdditiveExpressionType(exprs[0]);
-
+  // #1322: the shift amount (MISRA 12.2, E0873) is checked in pass 2.1.
   for (let i = 1; i < exprs.length; i++) {
     const op = operators[i - 1] || "<<";
-
-    // Validate shift amount if we can determine the left operand type
-    if (leftType) {
-      orchestrator.validateShiftAmount(leftType, exprs[i], op, node);
-    }
 
     const exprResult = generateAdditiveExpr(
       exprs[i],

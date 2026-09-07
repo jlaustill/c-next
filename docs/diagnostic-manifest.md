@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-350 fixture(s) assert a diagnostic; 285 carry a code.
+351 fixture(s) assert a diagnostic; 291 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -181,11 +181,12 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bitwise/i8-compound-right-shift-assign.test.cnx                                            | E0805               |
 | tests/bitwise/i8-compound-shift-assign.test.cnx                                                  | E0805               |
 | tests/bitwise/i8-shift-ops.test.cnx                                                              | E0805               |
-| tests/bitwise/shift-beyond-width-u16-error.test.cnx                                              | (uncoded)           |
-| tests/bitwise/shift-beyond-width-u32-error.test.cnx                                              | (uncoded)           |
-| tests/bitwise/shift-beyond-width-u64-error.test.cnx                                              | (uncoded)           |
-| tests/bitwise/shift-beyond-width-u8-error.test.cnx                                               | (uncoded)           |
-| tests/bitwise/shift-negative-error.test.cnx                                                      | (uncoded)           |
+| tests/bitwise/shift-beyond-width-u16-error.test.cnx                                              | E0873               |
+| tests/bitwise/shift-beyond-width-u32-error.test.cnx                                              | E0873               |
+| tests/bitwise/shift-beyond-width-u64-error.test.cnx                                              | E0873               |
+| tests/bitwise/shift-beyond-width-u8-error.test.cnx                                               | E0873               |
+| tests/bitwise/shift-negative-error.test.cnx                                                      | E0873               |
+| tests/bitwise/shift-width-uncovered-arms-error.test.cnx                                          | E0873               |
 | tests/bitwise/struct-member-compound-shift.test.cnx                                              | E0805               |
 | tests/bugs/issue-1019-scope-member-string-init/read-before-init.test.cnx                         | E0381               |
 | tests/bugs/issue-1040-all-paths-return/bare-return-nonvoid.test.cnx                              | E0704               |
