@@ -9,10 +9,17 @@
 # Runs everything and summarizes rather than stopping at the first failure:
 # when you are chasing green you want the whole list, not one line of it.
 #
-# Not included, because they cannot run locally:
-#   Sonar / Deploy Coverage  need tokens
-#   antlr:all                regenerates the parser; CI runs it in `build`, and
-#                            the working-tree check below catches a stale one
+# Every npm script CI runs that this file deliberately does NOT run is listed
+# below, with its reason. `npm run gate:roster:check` reads these lines, so a
+# check added to `pr-checks.yml` and forgotten here fails the lint job rather
+# than going unnoticed -- which is how `headers:standalone:check` sat outside
+# the roster.
+#
+# not-in-gate: antlr:all  regenerates the parser; CI runs it in `build`, and the
+#              working-tree check below catches a stale one
+#
+# Sonar and Deploy Coverage need tokens and run no npm script, so they are not
+# npm scripts to exclude -- they never enter the comparison.
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$PROJECT_ROOT" || exit 1
@@ -62,6 +69,7 @@ run_check "Static Analysis" "docs:throw-citations:check" npm run docs:throw-cita
 run_check "Static Analysis" "scope-joins:check"          npm run scope-joins:check
 run_check "Static Analysis" "adr:independence:check"     npm run adr:independence:check
 run_check "Static Analysis" "gh:pagination:check"        npm run gh:pagination:check
+run_check "Static Analysis" "gate:roster:check"         npm run gate:roster:check
 
 echo -e "\n${YELLOW}Build${NC}"
 run_check "Build" "build"                                npm run build
@@ -72,7 +80,21 @@ run_check "Build" "typecheck (scripts)"                   npm run typecheck:scri
 echo -e "\n${YELLOW}Tests${NC}"
 run_check "Unit Tests"        "unit"                     npm run unit
 run_check "Integration Tests" "test"                     npm test
+# Issue #1225: the run above populates .cnx/, so this one reads it. A cold
+# cache is all CI used to see, which is how four cache-fidelity bugs reached
+# main green. --transpile-only skips compile/execute: the divergence is in
+# generated text, so transpile plus snapshot comparison catches it in full.
+run_check "Integration Tests" "re-run warm" \
+  bash -c 'npm test -- --transpile-only && git diff --exit-code tests/'
 run_check "CLI Tests"         "test:cli"                 npm run test:cli
+# Writes into examples/ ON PURPOSE, matching what CI's "Verify transpiler CLI"
+# step does. The committed example output is generated but nothing compared it,
+# so it drifted: a bitmap comment block moved from the .h to the .c and
+# examples/teensy4 kept the old shape. Writing in place makes `working tree
+# clean` below catch that; a temp directory would run the CLI and prove nothing
+# about the committed files.
+run_check "CLI Tests"         "cli smoke" \
+  bash -c 'node dist/index.js examples/teensy4/blink.cnx && test -f examples/teensy4/blink.c'
 run_check "Grammar Coverage"  "coverage:grammar:check"   npm run coverage:grammar:check -- --threshold 80
 run_check "Format Fidelity"   "format:fidelity"          npm run format:fidelity
 
@@ -83,17 +105,14 @@ run_check "Integration Tests" "headers:standalone:check"  npm run headers:standa
 # Mirrors the Verify Clean job: the suite regenerates .test.c/.test.h, and a
 # generated file that is missing, stale or untracked shows up here. This is what
 # catches a `rm` glob that swept a committed artifact into a deletion.
+#
+# Goes through run_check like every other check, rather than open-coding the
+# pass/fail bookkeeping. Hand-rolled, it was the one check `grep -c '^run_check'`
+# could not see -- which is how that command came to be wrong twice in ways that
+# cancelled: it counted the function definition and missed this.
 echo -e "\n${YELLOW}Verify Clean${NC}"
-printf '  %-34s ' "working tree clean"
-DIRTY="$(git status --porcelain)"
-if [ -z "$DIRTY" ]; then
-  printf "${GREEN}pass${NC}\n"
-  PASSED=$((PASSED + 1))
-else
-  printf "${RED}FAIL${NC}\n"
-  echo "$DIRTY" | sed 's/^/      /'
-  FAILED+=("Verify Clean|working tree clean|")
-fi
+run_check "Verify Clean" "working tree clean" \
+  bash -c 'DIRTY="$(git status --porcelain)"; [ -z "$DIRTY" ] || { echo "$DIRTY"; echo "-- $(echo "$DIRTY" | wc -l) entries; run: git status"; exit 1; }'
 
 echo ""
 if [ ${#FAILED[@]} -eq 0 ]; then
