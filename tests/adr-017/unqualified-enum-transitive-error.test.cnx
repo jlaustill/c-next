@@ -1,0 +1,28 @@
+// test-error
+// test-adr: 017
+// E0424 across TWO include hops, in all four contexts -- the `imported
+// transitive` column. The enum is declared two files away, so a check reading
+// only this file has no members to match against and stays silent.
+
+#include "enum-types-relay.cnx"
+
+// NEGATIVE CONTROL -- the imported enum named by the declaration.
+ESpnCategory categoryOk <- SPN_CAT_UNKNOWN;
+
+// ASSERTION 1 -- global initializer of a non-enum type.
+u8 categoryBad <- SPN_CAT_PRESSURE;
+
+// ASSERTION 2 -- top-level function, non-enum return.
+u8 code() {
+    return SPN_CAT_TEMPERATURE;
+}
+
+scope Sensor {
+    // ASSERTION 3 -- scope member initializer.
+    u8 kind <- SPN_CAT_UNKNOWN;
+
+    // ASSERTION 4 -- scope method.
+    public u8 read() {
+        return SPN_CAT_PRESSURE;
+    }
+}

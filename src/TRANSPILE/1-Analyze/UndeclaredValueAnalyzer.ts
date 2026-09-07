@@ -141,6 +141,32 @@ class UndeclaredValueAnalyzer {
     scopePath: ReturnType<EnclosingScope["current"]>,
     scopes: ScopeFrameResolver,
   ): boolean {
+    const symbols = CodeGenState.symbols;
+    return (
+      UndeclaredValueAnalyzer.isDeclaredValue(name, frame, scopePath, scopes) ||
+      (symbols !== null &&
+        symbols !== undefined &&
+        NameExistence.isKnownEnumMember(name, symbols))
+    );
+  }
+
+  /**
+   * Whether a bare name denotes a DECLARED value -- a variable, parameter,
+   * const, function, register or type name this file can see -- as distinct
+   * from an enum MEMBER, which `isVisible` also admits.
+   *
+   * #1322: split out for E0424. An enum member written bare is a name this
+   * file can see (so it is not undefined), but whether it may stand bare is a
+   * question about its POSITION, and that rule must first know the name is not
+   * a variable that merely shares the spelling. One predicate answers both
+   * analyzers, so "declared" cannot mean two things.
+   */
+  static isDeclaredValue(
+    name: string,
+    frame: Parameters<ScopeFrameResolver["typeOfName"]>[1],
+    scopePath: ReturnType<EnclosingScope["current"]>,
+    scopes: ScopeFrameResolver,
+  ): boolean {
     // A declared variable in an enclosing lexical frame of THIS file.
     //
     // #1398: deliberately the lexical half alone. The full `typeOfName` falls
@@ -184,10 +210,7 @@ class UndeclaredValueAnalyzer {
     // argument alone: reinstating it reddens no fixture, because the
     // `scopeMembers` term beside it already answers cross-file (#1494).
     const symbolTable = CodeGenState.symbolTable;
-    if (
-      NameExistence.isValueName(name, symbols, symbolTable) ||
-      NameExistence.isKnownEnumMember(name, symbols)
-    ) {
+    if (NameExistence.isValueName(name, symbols, symbolTable)) {
       return true;
     }
 

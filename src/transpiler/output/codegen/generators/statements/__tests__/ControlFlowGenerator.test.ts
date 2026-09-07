@@ -424,21 +424,6 @@ describe("ControlFlowGenerator", () => {
       expect(result.code).toBe("return State_IDLE;");
     });
 
-    it("throws for unqualified enum member in non-enum return (Issue #477)", () => {
-      const ctx = createMockReturnStatement(
-        createMockExpression({ identifier: "IDLE", line: 10, col: 5 }),
-      );
-      const input = createMockInput({
-        enumMembers: new Map([["State", new Map([["IDLE", 0]])]]),
-      });
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({ returnType: "u8" }); // non-enum
-
-      expect(() => generateReturn(ctx, input, state, orchestrator)).toThrow(
-        "10:5 error[E0424]: 'IDLE' is not defined; did you mean 'State.IDLE'?",
-      );
-    });
-
     it("allows unqualified identifier that is not an enum member", () => {
       const ctx = createMockReturnStatement(
         createMockExpression({ identifier: "count" }),

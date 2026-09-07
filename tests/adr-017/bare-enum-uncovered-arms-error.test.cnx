@@ -1,0 +1,74 @@
+// test-error
+// test-adr: 017
+// E0424 in the contexts the single-purpose fixtures do not reach, and the
+// one hole #1322 closed: `Color c <- YELLOW`, where YELLOW is declared only
+// by Status, resolved nothing and codegen emitted the bare name into C at
+// exit 0. Here it is E0424 with the enum that does declare it.
+
+enum Color {
+    RED <- 0,
+    GREEN <- 1,
+    BLUE <- 2
+}
+
+enum Status {
+    YELLOW <- 10,
+    GREEN <- 30
+}
+
+struct Palette {
+    Color primary;
+    Color[2] pair;
+}
+
+// NEGATIVE CONTROLS -- every position that names the enum: a global
+// initializer, a struct-field initializer, an array element, an assignment,
+// a compound chain target, a return from the enum's own type, and a ternary
+// arm under an enum-typed declaration. GREEN is declared by both enums and
+// the position picks Color's.
+Color globalOk <- RED;
+Palette paletteOk <- { primary: GREEN, pair: [RED, BLUE] };
+
+Color choose(bool flag) {
+    Color c <- (flag = true) ? RED : BLUE;
+    c <- GREEN;
+    paletteOk.primary <- BLUE;
+    paletteOk.pair[1] <- RED;
+    return GREEN;
+}
+
+Color same(Color c) {
+    return c;
+}
+
+// NEGATIVE CONTROL -- a declared name of the same spelling is that name, not
+// the member: a parameter and a local both win over the enum, as codegen
+// resolved a declared name before ever asking the enums.
+u8 shadowed(u8 GREEN) {
+    u8 BLUE <- 2;
+    return GREEN + BLUE;
+}
+
+// ASSERTION 1 -- a global initializer of a non-enum type.
+u8 globalBad <- RED;
+
+// ASSERTION 1b -- a call's ARGUMENT is never anchored, even when the call
+// sits under an enum-typed declaration: codegen suppressed bare members in
+// arguments (#872), and only the parameter's own type could change that.
+Color viaCall <- same(RED);
+
+// ASSERTION 2 -- the closed hole: a member of the OTHER enum.
+Color wrongEnum <- YELLOW;
+
+scope Board {
+    // ASSERTION 3 -- a scope member initializer of a non-enum type.
+    u8 memberBad <- BLUE;
+
+    // NEGATIVE CONTROL -- a scope member of the enum's type, spelled global.
+    global.Color memberOk <- RED;
+
+    // ASSERTION 4 -- a scope method: a bare member in arithmetic.
+    public u8 mix() {
+        return this.memberBad + RED;
+    }
+}

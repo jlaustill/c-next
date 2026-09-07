@@ -34,6 +34,7 @@ import EnumValueResolver from "./EnumValueResolver";
 import ISwitchStatementError from "./types/ISwitchStatementError";
 import OperandTypeResolver from "./OperandTypeResolver";
 import ScopeFrameResolver from "./ScopeFrameResolver";
+import EnumMemberSuggestion from "./helpers/EnumMemberSuggestion";
 
 /** MISRA C:2012 Rule 16.6: a switch needs at least two clauses. */
 const MINIMUM_CLAUSES = 2;
@@ -84,15 +85,53 @@ class SwitchStatementListener extends CNextListener {
     if (this.reportDuplicateCase(cases)) return;
 
     const verdict = this.values.classify(switchExpr, frame);
-    if (verdict.kind === "enum") {
-      this.checkExhaustiveness(
-        switchExpr,
-        verdict.typeName,
-        cases,
-        defaultCase,
-      );
+    const switchEnum = verdict.kind === "enum" ? verdict.typeName : null;
+    if (this.reportBareMemberLabels(cases, switchEnum)) return;
+    if (switchEnum !== null) {
+      this.checkExhaustiveness(switchExpr, switchEnum, cases, defaultCase);
     }
   };
+
+  /**
+   * E0424 on a case label (ADR-017, #1322): a bare identifier label resolves
+   * against the switch's enum, and against nothing when the switch is not on
+   * an enum. A label naming a member of some OTHER enum is the bare-member
+   * mistake with the enum spelled out for it. True when one was reported.
+   */
+  private reportBareMemberLabels(
+    cases: readonly Parser.SwitchCaseContext[],
+    switchEnum: string | null,
+  ): boolean {
+    const symbols = CodeGenState.symbols;
+    if (!symbols) return false;
+    let reported = false;
+    for (const caseCtx of cases) {
+      for (const label of caseCtx.caseLabel()) {
+        const name = label.IDENTIFIER()?.getText();
+        if (name === undefined) continue;
+        if (
+          switchEnum !== null &&
+          symbols.enumMembers.get(switchEnum)?.has(name)
+        )
+          continue;
+        const declaring = EnumMemberSuggestion.enumsDeclaring(name, symbols);
+        if (declaring.length === 0) continue; // a const label
+        const { line, column } = ParserUtils.getPosition(label);
+        this.found.push({
+          code: "E0424",
+          line,
+          column,
+          message: EnumMemberSuggestion.message(name, declaring),
+          helpText:
+            switchEnum === null
+              ? "The switch is not on an enum, so a bare member names nothing here; qualify it, or switch on a value of the enum's type (ADR-017)."
+              : `The switch is on ${switchEnum}, which declares no such member; qualify the label with the enum it belongs to (ADR-017).`,
+        });
+        reported = true;
+      }
+    }
+    return reported;
+  }
 
   /** True when a duplicate was reported, so the later checks are skipped. */
   private reportDuplicateCase(

@@ -30,6 +30,7 @@ import CriticalSectionAnalyzer from "./CriticalSectionAnalyzer";
 import EnumTypeSafetyAnalyzer from "./EnumTypeSafetyAnalyzer";
 import ScopeAccessAnalyzer from "./ScopeAccessAnalyzer";
 import RegisterAccessAnalyzer from "./RegisterAccessAnalyzer";
+import BareEnumMemberAnalyzer from "./BareEnumMemberAnalyzer";
 import LoopAnalyzer from "./LoopAnalyzer";
 import SliceAssignmentAnalyzer from "./SliceAssignmentAnalyzer";
 import ControllingExpressionAnalyzer from "./ControllingExpressionAnalyzer";
@@ -257,6 +258,14 @@ function runAnalyzers(
     {
       label: "`this` outside a scope (ADR-016)",
       run: () => new ThisOutsideScopeAnalyzer().analyze(tree),
+    },
+    {
+      // Before the enum type-safety step: `Color c <- YELLOW` with YELLOW
+      // declared by another enum is a bare member in the wrong place, and
+      // "did you mean 'Status.YELLOW'" is the useful answer; the type-safety
+      // step would call the same line a non-enum value.
+      label: "bare enum members (ADR-017, E0424)",
+      run: () => new BareEnumMemberAnalyzer().analyze(tree),
     },
     {
       label: "enum type safety (ADR-017, E0428/E0434)",

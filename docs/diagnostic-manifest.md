@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-351 fixture(s) assert a diagnostic; 291 carry a code.
+353 fixture(s) assert a diagnostic; 293 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -47,6 +47,10 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-016/scope-enum-naming-conflict.test.cnx                                                | E0437               |
 | tests/adr-016/self-scope-bare-error.test.cnx                                                     | E0435               |
 | tests/adr-016/this-outside-scope-error.test.cnx                                                  | E0431               |
+| tests/adr-017/bare-enum-uncovered-arms-error.test.cnx                                            | E0424               |
+| tests/adr-017/enum-bare-in-array-dim.test.cnx                                                    | E0424               |
+| tests/adr-017/enum-bare-in-comparison.test.cnx                                                   | E0424               |
+| tests/adr-017/enum-bare-in-function-arg.test.cnx                                                 | E0424               |
 | tests/adr-017/enum-error-assign-int.test.cnx                                                     | E0428               |
 | tests/adr-017/enum-error-assign-non-enum.test.cnx                                                | E0428               |
 | tests/adr-017/enum-error-assign-wrong-enum.test.cnx                                              | E0428               |
@@ -54,6 +58,14 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-017/enum-error-compare-types.test.cnx                                                  | E0434               |
 | tests/adr-017/enum-error-imported-direct.test.cnx                                                | E0428, E0434        |
 | tests/adr-017/enum-error-imported-transitive.test.cnx                                            | E0428, E0434        |
+| tests/adr-017/unqualified-enum-crossfile-return.test.cnx                                         | E0424               |
+| tests/adr-017/unqualified-enum-crossfile-switch.test.cnx                                         | E0424               |
+| tests/adr-017/unqualified-enum-return-bool.test.cnx                                              | E0424               |
+| tests/adr-017/unqualified-enum-return-i32.test.cnx                                               | E0424               |
+| tests/adr-017/unqualified-enum-return-u8.test.cnx                                                | E0424               |
+| tests/adr-017/unqualified-enum-scope-return.test.cnx                                             | E0424               |
+| tests/adr-017/unqualified-enum-switch-case.test.cnx                                              | E0424               |
+| tests/adr-017/unqualified-enum-transitive-error.test.cnx                                         | E0424               |
 | tests/adr-022/controlling-expression-every-kind-error.test.cnx                                   | E0701               |
 | tests/adr-022/do-while-error-non-boolean.test.cnx                                                | E0701               |
 | tests/adr-022/for-error-non-boolean.test.cnx                                                     | E0701               |
@@ -127,16 +139,6 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-068/loops-in-scope-error.test.cnx                                                      | E0705, E0707        |
 | tests/analysis/division-by-const-zero.test.cnx                                                   | E0800               |
 | tests/analysis/division-by-zero.test.cnx                                                         | E0800               |
-| tests/analysis/enum-context/enum-bare-in-array-dim.test.cnx                                      | E0424               |
-| tests/analysis/enum-context/enum-bare-in-comparison.test.cnx                                     | E0424               |
-| tests/analysis/enum-context/enum-bare-in-function-arg.test.cnx                                   | E0424               |
-| tests/analysis/enum-context/unqualified-enum-crossfile-return.test.cnx                           | E0424               |
-| tests/analysis/enum-context/unqualified-enum-crossfile-switch.test.cnx                           | E0424               |
-| tests/analysis/enum-context/unqualified-enum-return-bool.test.cnx                                | E0424               |
-| tests/analysis/enum-context/unqualified-enum-return-i32.test.cnx                                 | E0424               |
-| tests/analysis/enum-context/unqualified-enum-return-u8.test.cnx                                  | E0424               |
-| tests/analysis/enum-context/unqualified-enum-scope-return.test.cnx                               | E0424               |
-| tests/analysis/enum-context/unqualified-enum-switch-case.test.cnx                                | E0424               |
 | tests/analysis/float-array-index.test.cnx                                                        | E0851               |
 | tests/analysis/float-modulo.test.cnx                                                             | E0804               |
 | tests/analysis/identifier-consecutive-underscore.test.cnx                                        | E0201               |

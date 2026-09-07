@@ -341,38 +341,6 @@ describe("SwitchGenerator", () => {
 
         expect(result.code).toBe("State__IDLE");
       });
-
-      it("throws for unqualified enum member when switch is not on enum (Issue #477)", () => {
-        const ctx = createIdentifierCaseLabel("IDLE", 5, 10);
-        const input = createMockInput({
-          enumMembers: new Map([["State", new Map([["IDLE", 0]])]]),
-        });
-        const state = createMockState();
-        const orchestrator = createMockOrchestrator();
-
-        // No switchEnumType - switching on non-enum
-        expect(() =>
-          generateCaseLabel(ctx, input, state, orchestrator),
-        ).toThrow(
-          "5:10 error[E0424]: 'IDLE' is not defined; did you mean 'State.IDLE'?",
-        );
-      });
-
-      it("suggests multiple enums when identifier exists in multiple", () => {
-        const ctx = createIdentifierCaseLabel("ACTIVE", 3, 5);
-        const input = createMockInput({
-          enumMembers: new Map([
-            ["Mode", new Map([["ACTIVE", 1]])],
-            ["Status", new Map([["ACTIVE", 2]])],
-          ]),
-        });
-        const state = createMockState();
-        const orchestrator = createMockOrchestrator();
-
-        expect(() =>
-          generateCaseLabel(ctx, input, state, orchestrator),
-        ).toThrow("exists in: Mode, Status. Use qualified access.");
-      });
     });
 
     describe("integer literals", () => {

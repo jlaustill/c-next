@@ -1,0 +1,26 @@
+// test-error
+// test-adr: 017
+// Tests: Bare enum member as function argument should error (no expectedType context)
+// Issue #872: MISRA 7.2 sets expectedType for U suffix but suppressBareEnumResolution
+// prevents changing this behavior without ADR approval.
+
+enum Mode {
+    OFF <- 0,
+    ON <- 1
+}
+
+bool isOn(Mode m) {
+    return m = Mode.ON;
+}
+
+// NEGATIVE CONTROL -- the same member bare where its enum IS named: a
+// declaration of the enum's type, and an assignment to it.
+void okContexts() {
+    Mode m <- ON;
+    m <- OFF;
+}
+
+u32 main() {
+    bool result <- isOn(ON);
+    return 0;
+}

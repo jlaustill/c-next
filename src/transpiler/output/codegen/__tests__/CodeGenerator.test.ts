@@ -7033,7 +7033,7 @@ describe("CodeGenerator", () => {
     // and `tests/adr-016/this-outside-scope-error`.
 
     describe("ambiguous enum member error handling", () => {
-      it("should throw error for ambiguous unqualified enum member", () => {
+      it("asserts, since #1322, that an ambiguous bare member never reaches generation (E0424 owns it)", () => {
         const source = `
           enum Color { RED, GREEN }
           enum Status { RED, BLUE }
@@ -7051,9 +7051,7 @@ describe("CodeGenerator", () => {
             symbolInfo: symbols,
             sourcePath: "test.cnx",
           }),
-        ).toThrow(
-          "error[E0424]: 'RED' is not defined; did you mean 'Color.RED' or 'Status.RED'?",
-        );
+        ).toThrow("E0424 rejects 'RED' (declared by Color, Status)");
       });
     });
 

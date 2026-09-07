@@ -18,7 +18,6 @@ import {
   ForeverStatementContext,
   ForVarDeclContext,
   ForAssignmentContext,
-  ExpressionContext,
 } from "../../../../logic/parser/grammar/CNextParser";
 import IGeneratorOutput from "../IGeneratorOutput";
 import TGeneratorEffect from "../TGeneratorEffect";
@@ -26,30 +25,7 @@ import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IOrchestrator from "../IOrchestrator";
 import VariableModifierBuilder from "../../helpers/VariableModifierBuilder";
-import ExpressionUtils from "../../../../../utils/ExpressionUtils";
 import ASSIGNMENT_OPERATOR_MAP from "../../../../../utils/constants/OperatorMappings";
-
-/**
- * Issue #477: Check if a simple identifier is an unqualified enum member.
- * Throws an error with helpful suggestion if found.
- */
-function rejectUnqualifiedEnumInReturn(
-  simpleId: string,
-  symbols: IGeneratorInput["symbols"],
-  exprCtx: ExpressionContext,
-): void {
-  if (!symbols) return;
-
-  for (const [enumName, members] of symbols.enumMembers) {
-    if (members.has(simpleId)) {
-      const line = exprCtx.start?.line ?? 0;
-      const col = exprCtx.start?.column ?? 0;
-      throw new Error(
-        `${line}:${col} error[E0424]: '${simpleId}' is not defined; did you mean '${enumName}.${simpleId}'?`,
-      );
-    }
-  }
-}
 
 /**
  * Generate C code for a return statement.
@@ -73,14 +49,8 @@ const generateReturn = (
   const returnTypeIsEnum =
     returnType && input.symbols?.knownEnums.has(returnType);
 
-  // Issue #477: Validate unqualified enum in non-enum return context
-  // Use ExpressionUtils to check for simple identifier (no binary ops, no postfix)
-  if (!returnTypeIsEnum) {
-    const simpleId = ExpressionUtils.extractIdentifier(exprCtx);
-    if (simpleId) {
-      rejectUnqualifiedEnumInReturn(simpleId, input.symbols, exprCtx);
-    }
-  }
+  // #1322: a bare enum member returned from a non-enum function is E0424 in
+  // pass 2.1 (ADR-017).
 
   // Set expectedType if return type is enum (enables unqualified enum returns)
   const expr = returnTypeIsEnum

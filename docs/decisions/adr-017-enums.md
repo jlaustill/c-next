@@ -259,6 +259,25 @@ castExpression
 
 1. Exhaustiveness checking in switch statements? (ADR-025)
 
+## Diagnostics
+
+| Code  | Reported when                                                                          | Asserted by                                                                          |
+| ----- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| E0424 | An enum member is written bare where nothing names its enum, or names a different enum | `tests/adr-017/unqualified-enum-*.test.cnx`, `tests/adr-017/enum-bare-in-*.test.cnx` |
+| E0428 | A value assigned to an enum-typed target is not of that enum                           | `tests/adr-017/enum-error-assign-*.test.cnx`                                         |
+| E0434 | The two sides of a comparison are not the same enum type                               | `tests/adr-017/enum-error-compare-*.test.cnx`                                        |
+
+A bare member (`RED` for `Color.RED`) is accepted only where the position
+already names the enum: a declaration or assignment whose type is the enum, a
+return from a function of that type, a struct field or array element of that
+type, and a ternary arm in any of those. A comparison operand, a call
+argument, a subscript and an array dimension name nothing, and a bare member
+there is rejected with the enums that declare it. A member of a DIFFERENT enum
+under an enum-typed position is the same mistake and is reported the same way
+(#1322 closed that one -- it used to reach the generated C bare). The rule is
+decided during analysis, at the member's own position, and every offense in a
+file is reported.
+
 ## Scope-context matrix
 
 Declared for the enum type-safety rules -- a value assigned to an enum must be

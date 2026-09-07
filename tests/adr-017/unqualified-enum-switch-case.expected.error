@@ -1,0 +1,6 @@
+14:13 error[E0424]: 'OFF' is not defined; did you mean 'Mode.OFF'?
+       help: The switch is not on an enum, so a bare member names nothing here; qualify it, or switch on a value of the enum's type (ADR-017).
+15:13 error[E0424]: 'ON' is not defined; did you mean 'Mode.ON'?
+       help: The switch is not on an enum, so a bare member names nothing here; qualify it, or switch on a value of the enum's type (ADR-017).
+16:13 error[E0424]: 'AUTO' is not defined; did you mean 'Mode.AUTO'?
+       help: The switch is not on an enum, so a bare member names nothing here; qualify it, or switch on a value of the enum's type (ADR-017).

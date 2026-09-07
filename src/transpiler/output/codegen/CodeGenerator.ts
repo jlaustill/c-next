@@ -4667,29 +4667,25 @@ export default class CodeGenerator implements IOrchestrator {
       if (members?.has(id)) {
         return `${CodeGenState.expectedType}${this.getScopeSeparator(false)}${id}`;
       }
-      return null;
+      // Not a member of the expected enum: falls through to the assertion
+      // below. Before #1322 this returned null and the bare name was emitted
+      // into C when another enum declared it.
     }
 
-    // No expected enum type - bare enum members are not allowed without context
+    // #1322: a bare member with no enum naming its position is E0424 in pass
+    // 2.1 (ADR-017). Reaching here with a match means the emission would put a
+    // bare `RED` into C, so it is asserted rather than guessed at.
     const matchingEnums: string[] = [];
     for (const [enumName, members] of CodeGenState.symbols!.enumMembers) {
       if (members.has(id)) {
         matchingEnums.push(enumName);
       }
     }
-
-    if (matchingEnums.length === 1) {
-      throw new Error(
-        `error[E0424]: '${id}' is not defined; did you mean '${matchingEnums[0]}.${id}'?`,
-      );
-    }
-    if (matchingEnums.length > 1) {
-      const suggestions = matchingEnums.map((e) => `'${e}.${id}'`).join(" or ");
-      throw new Error(
-        `error[E0424]: '${id}' is not defined; did you mean ${suggestions}?`,
-      );
-    }
-
+    invariant(
+      matchingEnums.length === 0,
+      `a bare enum member is resolved by its position -- E0424 rejects '${id}' ` +
+        `(declared by ${matchingEnums.join(", ")}) here in pass 2.1, before this runs`,
+    );
     return null;
   }
 

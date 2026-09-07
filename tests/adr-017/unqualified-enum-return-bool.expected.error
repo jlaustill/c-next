@@ -1,0 +1,2 @@
+12:11 error[E0424]: 'ACTIVE' is not defined; did you mean 'State.ACTIVE'?
+       help: A bare enum member is accepted only where its enum is already named -- a declaration or assignment of that type, a return from a function of that type, a field of that type. Elsewhere, qualify it (ADR-017).
