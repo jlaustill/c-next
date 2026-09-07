@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-339 fixture(s) assert a diagnostic; 252 carry a code.
+343 fixture(s) assert a diagnostic; 264 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -53,6 +53,18 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-022/nested-ternary-unparenthesized-error.test.cnx                                      | (uncoded)           |
 | tests/adr-022/ternary-error-non-boolean.test.cnx                                                 | E0701               |
 | tests/adr-022/while-error-non-boolean.test.cnx                                                   | E0701               |
+| tests/adr-024/composite-narrowing-error.test.cnx                                                 | E0869               |
+| tests/adr-024/conversion-imported-direct-error.test.cnx                                          | E0869               |
+| tests/adr-024/conversion-imported-transitive-error.test.cnx                                      | E0869               |
+| tests/adr-024/conversion-in-scope-error.test.cnx                                                 | E0869               |
+| tests/adr-024/literal-binary-overflow-error.test.cnx                                             | E0868               |
+| tests/adr-024/literal-hex-overflow-error.test.cnx                                                | E0868               |
+| tests/adr-024/literal-negative-unsigned-error.test.cnx                                           | E0868               |
+| tests/adr-024/literal-overflow-error.test.cnx                                                    | E0868               |
+| tests/adr-024/narrowing-assign-error.test.cnx                                                    | E0869               |
+| tests/adr-024/narrowing-cast-error.test.cnx                                                      | E0869               |
+| tests/adr-024/sign-assign-error.test.cnx                                                         | E0869               |
+| tests/adr-024/sign-cast-error.test.cnx                                                           | E0869               |
 | tests/adr-025/switch-error-boolean.test.cnx                                                      | E0711               |
 | tests/adr-025/switch-error-duplicate-case.test.cnx                                               | E0713               |
 | tests/adr-025/switch-error-duplicate-neg-hex.test.cnx                                            | E0713               |
@@ -227,15 +239,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/c-interop/use-c-union-basic.test.cnx                                                       | (uncoded)           |
 | tests/c-interop/use-c-union-typedef.test.cnx                                                     | (uncoded)           |
 | tests/callbacks/callback-error-nominal.test.cnx                                                  | (uncoded)           |
-| tests/casting/literal-binary-overflow-error.test.cnx                                             | (uncoded)           |
-| tests/casting/literal-hex-overflow-error.test.cnx                                                | (uncoded)           |
-| tests/casting/literal-negative-unsigned-error.test.cnx                                           | (uncoded)           |
-| tests/casting/literal-overflow-error.test.cnx                                                    | (uncoded)           |
 | tests/casting/mixed-category-arithmetic.test.cnx                                                 | E0810               |
-| tests/casting/narrowing-assign-error.test.cnx                                                    | (uncoded)           |
-| tests/casting/narrowing-cast-error.test.cnx                                                      | (uncoded)           |
-| tests/casting/sign-assign-error.test.cnx                                                         | (uncoded)           |
-| tests/casting/sign-cast-error.test.cnx                                                           | (uncoded)           |
 | tests/comments/misra-3-1-nested-block.test.cnx                                                   | MISRA-3.1           |
 | tests/comments/misra-3-2-backslash.test.cnx                                                      | MISRA-3.2           |
 | tests/compound-assign/bit-index-compound.test.cnx                                                | E0857               |

@@ -1,0 +1,4 @@
+25:19 error[E0869]: Cannot assign u32 to u8 (narrowing)
+       help: Use bit indexing to say which bits you mean: value[0, 8]
+35:17 error[E0869]: Cannot assign u32 to u8 (narrowing)
+       help: Use bit indexing to say which bits you mean: value[0, 8]

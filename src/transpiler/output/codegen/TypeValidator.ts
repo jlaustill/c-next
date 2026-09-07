@@ -8,7 +8,6 @@ import { dirname, resolve, join } from "node:path";
 import * as Parser from "../../logic/parser/grammar/CNextParser";
 import CodeGenState from "../../state/CodeGenState";
 import AdrProvenance from "../../state/AdrProvenance";
-import TypeResolver from "./TypeResolver";
 // SonarCloud S3776: Extracted literal parsing to reduce complexity
 import LiteralEvaluator from "./helpers/LiteralEvaluator";
 import QualifiedCName from "../../../utils/QualifiedCName";
@@ -730,36 +729,10 @@ class TypeValidator {
     return LiteralEvaluator.applySign(value, isNegative);
   }
 
-  // ========================================================================
-  // Integer Assignment Validation (ADR-024)
-  // ========================================================================
-
-  static validateIntegerAssignment(
-    targetType: string,
-    expressionText: string,
-    sourceType: string | null,
-    isCompound: boolean,
-  ): void {
-    if (isCompound) {
-      return;
-    }
-
-    if (!TypeResolver.isIntegerType(targetType)) {
-      return;
-    }
-
-    const trimmed = expressionText.trim();
-
-    const isDecimalLiteral = /^-?\d+$/.exec(trimmed);
-    const isHexLiteral = /^0[xX][0-9a-fA-F]+$/.exec(trimmed);
-    const isBinaryLiteral = /^0[bB][01]+$/.exec(trimmed);
-
-    if (isDecimalLiteral || isHexLiteral || isBinaryLiteral) {
-      TypeResolver.validateLiteralFitsType(trimmed, targetType);
-    } else {
-      TypeResolver.validateTypeConversion(targetType, sourceType);
-    }
-  }
+  // #1322: `validateIntegerAssignment` stood here -- ADR-024's literal-range,
+  // narrowing and sign-change rules, reached through `AssignmentValidator`,
+  // which caught the throw and prefixed `${line}:${col}` onto it. E0868/E0869
+  // in pass 2.1 now.
 }
 
 export default TypeValidator;

@@ -1,0 +1,2 @@
+6:19 error[E0868]: Value 0b100000000 exceeds u8 range (0 to 255)
+       help: Widen the target type, or narrow the value.

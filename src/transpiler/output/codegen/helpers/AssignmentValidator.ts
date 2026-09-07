@@ -17,7 +17,6 @@
 import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
 import TypeValidator from "../TypeValidator.js";
 import CodeGenState from "../../../state/CodeGenState.js";
-import TypeCheckUtils from "../../../../utils/TypeCheckUtils.js";
 import QualifiedCName from "../../../../utils/QualifiedCName";
 
 /**
@@ -58,12 +57,7 @@ class AssignmentValidator {
 
     // Case 1: Simple identifier assignment (no postfix ops)
     if (baseId && postfixOps.length === 0) {
-      AssignmentValidator.validateSimpleIdentifier(
-        baseId,
-        expression,
-        isCompound,
-        callbacks,
-      );
+      AssignmentValidator.validateSimpleIdentifier(baseId);
       return;
     }
 
@@ -104,12 +98,7 @@ class AssignmentValidator {
   /**
    * Validate simple identifier assignment.
    */
-  private static validateSimpleIdentifier(
-    id: string,
-    expression: Parser.ExpressionContext,
-    isCompound: boolean,
-    callbacks: IAssignmentValidatorCallbacks,
-  ): void {
+  private static validateSimpleIdentifier(id: string): void {
     // ADR-013: Validate const assignment
     const constError = TypeValidator.checkConstAssignment(id);
     if (constError) {
@@ -125,27 +114,9 @@ class AssignmentValidator {
       return;
     }
 
-    // ADR-024: Validate integer type conversions
-    if (TypeCheckUtils.isInteger(targetTypeInfo.baseType)) {
-      try {
-        TypeValidator.validateIntegerAssignment(
-          targetTypeInfo.baseType,
-          expression.getText(),
-          callbacks.getExpressionType(expression),
-          isCompound,
-        );
-      } catch (validationError) {
-        const errorLine = expression.start?.line ?? 0;
-        const col = expression.start?.column ?? 0;
-        const msg =
-          validationError instanceof Error
-            ? validationError.message
-            : String(validationError);
-        throw new Error(`${errorLine}:${col} ${msg}`, {
-          cause: validationError,
-        });
-      }
-    }
+    // #1322: ADR-024's assignment rules are E0868/E0869 in pass 2.1. What
+    // stood here caught the rule's throw and prefixed `${line}:${col}` onto it --
+    // the position smuggled through the message on this path and not the cast's.
   }
 
   /**

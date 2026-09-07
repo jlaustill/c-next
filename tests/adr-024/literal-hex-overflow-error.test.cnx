@@ -1,5 +1,7 @@
 // ADR-024: Test that hex literal overflow is caught
+// test-adr: 024
 // This should produce a compiler error
 void main() {
+    u8 exactlyFull <- 0xFF; // NEGATIVE CONTROL -- same base, in range
     u8 overflow <- 0x100; // ERROR: 256 exceeds u8 range (0-255)
 }

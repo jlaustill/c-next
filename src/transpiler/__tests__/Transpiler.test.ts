@@ -128,7 +128,13 @@ describe("Transpiler", () => {
         expect(result.success).toBe(false);
         expect(result.errors).toHaveLength(1);
         expect(result.errors[0].line).toBe(3);
-        expect(result.errors[0].column).toBe(2);
+        // #1322: column 14 is `large`, the VALUE being narrowed. This used to
+        // assert column 2 -- the declaration's first character -- because the
+        // position was smuggled through the message by a rethrow wrapper that
+        // only knew where the statement began. E0869 in pass 2.1 points at
+        // the operand the message is about.
+        expect(result.errors[0].column).toBe(14);
+        expect(result.errors[0].message).toContain("E0869");
         expect(result.errors[0].message).toContain("narrowing");
       });
 

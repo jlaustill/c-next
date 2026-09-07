@@ -10,7 +10,6 @@ import FLOAT_TYPES from "./types/FLOAT_TYPES";
 import SIGNED_TYPES from "./types/SIGNED_TYPES";
 import UNSIGNED_TYPES from "./types/UNSIGNED_TYPES";
 import TYPE_WIDTH from "../../constants/TYPE_WIDTH";
-import TYPE_RANGES from "./types/TYPE_RANGES";
 import ExpressionUnwrapper from "../../../utils/ExpressionUnwrapper";
 import type TOverflowBehavior from "../../types/TOverflowBehavior";
 import type TTypeInfo from "../../types/TTypeInfo";
@@ -115,51 +114,6 @@ class TypeResolver {
       (sourceIsSigned && targetIsUnsigned) ||
       (sourceIsUnsigned && targetIsSigned)
     );
-  }
-
-  /**
-   * ADR-024: Validate that a literal value fits within the target type's range.
-   * Throws an error if the value doesn't fit.
-   */
-  static validateLiteralFitsType(
-    literalText: string,
-    targetType: string,
-  ): void {
-    const range = TYPE_RANGES[targetType];
-    if (!range) {
-      return;
-    }
-
-    let value: bigint;
-    try {
-      const cleanText = literalText.trim();
-
-      if (/^-?\d+$/.exec(cleanText)) {
-        value = BigInt(cleanText);
-      } else if (/^0[xX][0-9a-fA-F]+$/.exec(cleanText)) {
-        value = BigInt(cleanText);
-      } else if (/^0[bB][01]+$/.exec(cleanText)) {
-        value = BigInt(cleanText);
-      } else {
-        return;
-      }
-    } catch {
-      return;
-    }
-
-    const [min, max] = range;
-
-    if (TypeResolver.isUnsignedType(targetType) && value < 0n) {
-      throw new Error(
-        `Error: Negative value ${literalText} cannot be assigned to unsigned type ${targetType}`,
-      );
-    }
-
-    if (value < min || value > max) {
-      throw new Error(
-        `Error: Value ${literalText} exceeds ${targetType} range (${min} to ${max})`,
-      );
-    }
   }
 
   /**
@@ -799,39 +753,6 @@ class TypeResolver {
     }
 
     return null;
-  }
-
-  /**
-   * ADR-024: Validate that a type conversion is allowed.
-   */
-  static validateTypeConversion(
-    targetType: string,
-    sourceType: string | null,
-  ): void {
-    if (!sourceType) return;
-    if (sourceType === targetType) return;
-
-    if (
-      !TypeResolver.isIntegerType(sourceType) ||
-      !TypeResolver.isIntegerType(targetType)
-    )
-      return;
-
-    if (TypeResolver.isNarrowingConversion(sourceType, targetType)) {
-      const targetWidth = TYPE_WIDTH[targetType] || 0;
-      throw new Error(
-        `Error: Cannot assign ${sourceType} to ${targetType} (narrowing). ` +
-          `Use bit indexing: value[0, ${targetWidth}]`,
-      );
-    }
-
-    if (TypeResolver.isSignConversion(sourceType, targetType)) {
-      const targetWidth = TYPE_WIDTH[targetType] || 0;
-      throw new Error(
-        `Error: Cannot assign ${sourceType} to ${targetType} (sign change). ` +
-          `Use bit indexing: value[0, ${targetWidth}]`,
-      );
-    }
   }
 
   /**

@@ -17,24 +17,13 @@
 import ISubstringOps from "../types/ISubstringOps";
 import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
 import CodeGenState from "../../../state/CodeGenState.js";
-import TypeResolver from "../TypeResolver.js";
 import ArrayInitHelper from "./ArrayInitHelper.js";
 import CppModeHelper from "./CppModeHelper.js";
-import IntegerLiteralValidator from "./IntegerLiteralValidator.js";
 import NarrowingCastHelper from "./NarrowingCastHelper.js";
 import StringDeclHelper from "./StringDeclHelper.js";
 import VariableModifierBuilder from "./VariableModifierBuilder.js";
 import TYPE_MAP from "../types/TYPE_MAP.js";
-import ExpressionUnwrapper from "../../../../utils/ExpressionUnwrapper";
 import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
-
-/**
- * Callbacks for integer validation in variable declarations.
- */
-interface IIntegerValidationCallbacks {
-  /** Get expression type for validation */
-  getExpressionType: (ctx: Parser.ExpressionContext) => string | null;
-}
 
 /**
  * Callbacks for C++ class assignment finalization.
@@ -285,55 +274,6 @@ class VariableDeclHelper {
   }
 
   /**
-   * Validate integer initializer using type validation helpers.
-   * Checks that literal values fit in target type and validates type conversions.
-   *
-   * Delegates to IntegerLiteralValidator for the actual validation logic.
-   *
-   * @param ctx - Variable declaration context (must have expression)
-   * @param typeName - Target type name
-   * @param callbacks - Callbacks for expression type resolution
-   * @throws Error if value doesn't fit in type or conversion is invalid
-   */
-  static validateIntegerInitializer(
-    ctx: Parser.VariableDeclarationContext,
-    typeName: string,
-    callbacks: IIntegerValidationCallbacks,
-  ): void {
-    const exprText = ctx.expression()!.getText();
-    const line = ctx.start?.line ?? 0;
-    const col = ctx.start?.column ?? 0;
-
-    const validator = new IntegerLiteralValidator({
-      isIntegerType: TypeResolver.isIntegerType,
-      validateLiteralFitsType: TypeResolver.validateLiteralFitsType,
-      getExpressionType: (_text: string) => {
-        // IntegerLiteralValidator passes text, but our callback uses the context
-        const direct = callbacks.getExpressionType(ctx.expression()!);
-        if (direct !== null) return direct;
-        // Issue #1152: getExpressionType returns null for a COMPOSITE
-        // expression (`a + b`), so every conversion rule keyed on the source
-        // type silently no-ops on exactly the expressions MISRA 10.8 is about.
-        // resolveCompositeIntegerType already types these correctly -- it was
-        // written for slice assignment and cites 10.8 -- so reuse it rather
-        // than leaving composites untyped here.
-        //
-        // Only for a genuine composite. A lone postfix that direct typing
-        // declined is a bit extraction (`x[0, 32]`), which ADR-024 defines as
-        // the EXPLICIT reinterpret -- typing it here would make the sanctioned
-        // escape hatch fail the very check it exists to satisfy.
-        if (ExpressionUnwrapper.getPostfixExpression(ctx.expression()!)) {
-          return null;
-        }
-        return TypeResolver.getIntegerExpressionType(ctx.expression()!);
-      },
-      validateTypeConversion: TypeResolver.validateTypeConversion,
-    });
-
-    validator.validateIntegerAssignment(typeName, exprText, line, col);
-  }
-
-  /**
    * Handle pending C++ class field assignments.
    * In function body, generates assignments after declaration.
    * At global scope, throws error since assignments can't exist there.
@@ -539,10 +479,7 @@ class VariableDeclHelper {
 
     const typeName = callbacks.getTypeName(typeCtx);
 
-    // ADR-024: Validate integer literals and type conversions
-    VariableDeclHelper.validateIntegerInitializer(ctx, typeName, {
-      getExpressionType: callbacks.getExpressionType,
-    });
+    // #1322: ADR-024's initializer rules are E0868/E0869 in pass 2.1.
 
     // Issue #872: Set expectedType for MISRA 7.2 U suffix compliance
     // MISRA 10.3: Also check for cross-type-category conversions (int <-> float)

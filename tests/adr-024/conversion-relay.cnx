@@ -1,0 +1,7 @@
+// Helper (not a test): puts conversion-declarations.cnx two hops away,
+// covering the `imported transitive` column. It declares something of its own
+// so a header is written for it (#1234).
+
+#include "conversion-declarations.cnx"
+
+const u32 CONVERSION_RELAY_MARKER <- 2;

@@ -8,7 +8,6 @@ import createMockSymbols from "../../../__tests__/codeGenSymbolsHelpers";
 import * as Parser from "../../../logic/parser/grammar/CNextParser";
 import CodeGenState from "../../../state/CodeGenState";
 import type ICodeGenSymbols from "../../../types/ICodeGenSymbols";
-import TypeResolver from "../TypeResolver";
 import type ICallbackTypeInfo from "../../../types/ICallbackTypeInfo";
 import type TParameterInfo from "../../../types/TParameterInfo";
 import type TTypeInfo from "../../../types/TTypeInfo";
@@ -1518,60 +1517,8 @@ describe("TypeValidator", () => {
   // Integer Assignment Validation (ADR-024)
   // ========================================================================
 
-  describe("validateIntegerAssignment", () => {
-    it("skips validation for compound assignments", () => {
-      setupState();
-      const literalSpy = vi.spyOn(TypeResolver, "validateLiteralFitsType");
-      const conversionSpy = vi.spyOn(TypeResolver, "validateTypeConversion");
-
-      TypeValidator.validateIntegerAssignment("u8", "10", null, true);
-
-      expect(literalSpy).not.toHaveBeenCalled();
-      expect(conversionSpy).not.toHaveBeenCalled();
-    });
-
-    it("skips validation for non-integer types", () => {
-      setupState();
-      const spy = vi.spyOn(TypeResolver, "validateLiteralFitsType");
-
-      TypeValidator.validateIntegerAssignment("f32", "10", null, false);
-
-      expect(spy).not.toHaveBeenCalled();
-    });
-
-    it.each([
-      ["decimal literal", "u8", "100", "100"],
-      ["negative decimal literal", "i8", "-50", "-50"],
-      ["hex literal", "u8", "0xFF", "0xFF"],
-      ["binary literal", "u8", "0b11111111", "0b11111111"],
-      ["expression text with surrounding whitespace", "u8", "  100  ", "100"],
-    ])(
-      "validates %s fits the target type",
-      (_label, targetType, expression, forwarded) => {
-        setupState();
-        const spy = vi
-          .spyOn(TypeResolver, "validateLiteralFitsType")
-          .mockImplementation(() => {});
-
-        TypeValidator.validateIntegerAssignment(
-          targetType,
-          expression,
-          null,
-          false,
-        );
-
-        expect(spy).toHaveBeenCalledWith(forwarded, targetType);
-      },
-    );
-    it("validates type conversion for non-literal expressions", () => {
-      setupState();
-      const spy = vi
-        .spyOn(TypeResolver, "validateTypeConversion")
-        .mockImplementation(() => {});
-
-      TypeValidator.validateIntegerAssignment("u8", "myVariable", "u16", false);
-
-      expect(spy).toHaveBeenCalledWith("u8", "u16");
-    });
-  });
+  // #1322: the `validateIntegerAssignment` suite that stood here is gone with the method. ADR-024's
+  // rules are E0868/E0869 in pass 2.1, covered by
+  // `1-Analyze/__tests__/IntegerConversionAnalyzer.test.ts` against real source
+  // rather than a text API.
 });

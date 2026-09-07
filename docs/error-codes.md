@@ -19,9 +19,9 @@ codes that already have a fixture.
 | E05xx     | Include/Preprocessor    | 7      |
 | E06xx     | Sizeof Expressions      | 2      |
 | E07xx     | Control Flow            | 12     |
-| E08xx     | Arithmetic/Array Safety | 27     |
+| E08xx     | Arithmetic/Array Safety | 29     |
 | E09xx     | NULL Safety             | 8      |
-| **Total** |                         | **77** |
+| **Total** |                         | **79** |
 
 ---
 
@@ -250,6 +250,8 @@ include-visibility is not derivable for a C or C++ name.
 | E0865 | Substring bounds exceed the source string                                      | Keep `start + length` within the source's capacity                                                               | `TRANSPILE/1-Analyze/StringDeclarationAnalyzer.ts`    |
 | E0866 | String array initializer does not match the declaration                        | Give a bracketed list with one element per slot, or the fill-all form                                            | `TRANSPILE/1-Analyze/StringDeclarationAnalyzer.ts`    |
 | E0867 | Length property not available on this type (ADR-058)                           | `.element_count` needs an array, `.char_count` a string, `.bit_length`/`.byte_length` a sized type               | `TRANSPILE/1-Analyze/LengthPropertyAnalyzer.ts`       |
+| E0868 | Integer literal does not fit the target type's range (ADR-024)                 | Widen the target type, or narrow the value; an unsigned type holds no negative                                   | `TRANSPILE/1-Analyze/IntegerConversionAnalyzer.ts`    |
+| E0869 | Implicit narrowing or sign-changing integer conversion (ADR-024)               | Use bit indexing to say which bits you mean, e.g. `value[0, 8]`                                                  | `TRANSPILE/1-Analyze/IntegerConversionAnalyzer.ts`    |
 
 Each subscript peels one array dimension (ADR-036) and a scalar integer/float may be
 bit-indexed once (ADR-007), so `flags[4][3]` on a scalar `u8` indexes the single bit

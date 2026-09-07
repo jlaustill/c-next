@@ -1,0 +1,2 @@
+7:24 error[E0869]: Cannot assign i32 to u32 (sign change)
+       help: Use bit indexing to reinterpret the bits explicitly: value[0, 32]

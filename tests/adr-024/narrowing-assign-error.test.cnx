@@ -1,6 +1,9 @@
 // ADR-024: Test that narrowing assignment produces error
+// test-adr: 024
 // Assigning u32 to u8 should produce a compiler error
 void main() {
     u32 large <- 1000;
+    u32 widened <- 7; // NEGATIVE CONTROL -- widening is fine
+    u8 bits <- large[0, 8]; // NEGATIVE CONTROL -- the explicit reinterpret the message asks for
     u8 small <- large; // ERROR: u32 to u8 is narrowing
 }

@@ -130,12 +130,6 @@ interface IOrchestrator {
     ctx: Parser.ShiftExpressionContext,
   ): void;
 
-  /** Validate that a literal value fits in the target type */
-  validateLiteralFitsType(literal: string, typeName: string): void;
-
-  /** Validate type conversion is allowed */
-  validateTypeConversion(targetType: string, sourceType: string | null): void;
-
   // === Function Call Helpers ===
 
   /** Get simple identifier from expression, or null if complex */

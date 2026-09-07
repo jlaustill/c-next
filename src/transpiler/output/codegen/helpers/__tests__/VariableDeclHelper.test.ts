@@ -153,35 +153,10 @@ describe("VariableDeclHelper", () => {
     });
   });
 
-  describe("validateIntegerInitializer", () => {
-    it("does nothing for non-integer types", () => {
-      const varDecl = parseVarDecl("f32 x <- 1.5;");
-      // Should not throw
-      expect(() => {
-        VariableDeclHelper.validateIntegerInitializer(varDecl, "f32", {
-          getExpressionType: () => "f32",
-        });
-      }).not.toThrow();
-    });
-
-    it("accepts valid integer literal", () => {
-      const varDecl = parseVarDecl("u8 x <- 255;");
-      expect(() => {
-        VariableDeclHelper.validateIntegerInitializer(varDecl, "u8", {
-          getExpressionType: () => "u8",
-        });
-      }).not.toThrow();
-    });
-
-    it("throws for overflow in literal", () => {
-      const varDecl = parseVarDecl("u8 x <- 256;");
-      expect(() => {
-        VariableDeclHelper.validateIntegerInitializer(varDecl, "u8", {
-          getExpressionType: () => "u8",
-        });
-      }).toThrow();
-    });
-  });
+  // #1322: the `validateIntegerInitializer` suite that stood here is gone with the method. ADR-024's
+  // rules are E0868/E0869 in pass 2.1, covered by
+  // `1-Analyze/__tests__/IntegerConversionAnalyzer.test.ts` against real source
+  // rather than a text API.
 
   describe("finalizeCppClassAssignments", () => {
     beforeEach(() => {

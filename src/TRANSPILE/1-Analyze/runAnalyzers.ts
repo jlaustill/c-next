@@ -30,6 +30,7 @@ import CriticalSectionAnalyzer from "./CriticalSectionAnalyzer";
 import EnumTypeSafetyAnalyzer from "./EnumTypeSafetyAnalyzer";
 import SliceAssignmentAnalyzer from "./SliceAssignmentAnalyzer";
 import ControllingExpressionAnalyzer from "./ControllingExpressionAnalyzer";
+import IntegerConversionAnalyzer from "./IntegerConversionAnalyzer";
 import LengthPropertyAnalyzer from "./LengthPropertyAnalyzer";
 import StringDeclarationAnalyzer from "./StringDeclarationAnalyzer";
 import SwitchStatementAnalyzer from "./SwitchStatementAnalyzer";
@@ -276,6 +277,10 @@ function runAnalyzers(
     {
       label: "length properties (ADR-058, E0867)",
       run: () => new LengthPropertyAnalyzer().analyze(tree),
+    },
+    {
+      label: "integer conversions (ADR-024, E0868/E0869)",
+      run: () => new IntegerConversionAnalyzer().analyze(tree),
     },
     {
       // Last, and does not halt: comment findings are reported alongside

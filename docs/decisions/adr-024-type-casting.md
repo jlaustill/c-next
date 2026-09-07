@@ -356,6 +356,50 @@ ERROR: Cannot convert i32 to u32 (sign change)
 
 ---
 
+## Scope-context matrix
+
+Declared for the integer-conversion rules #1322 moved out of codegen: a literal
+must fit its target's range, and a non-literal integer source must be neither
+wider than its target nor of the other signedness -- whether it reaches the
+target through a declaration, an assignment, or a cast.
+
+<!-- MATRIX-SEVERITY -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| scope member       | same file           | error    |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | off      |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | off      |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | off      |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | off      |
+
+A conversion happens wherever a value meets a typed target, so it reaches an
+initializer as well as a function body -- all four same-file contexts. The two
+scope contexts are where the rule had been SILENT: `u8 narrow <- this.wide;`
+inside a scope was accepted while the identical line at top level was not, and
+no fixture depended on that, so it is closed rather than reproduced.
+
+The imported columns matter because the rule asks the SOURCE's type, and the
+source may be declared in another file. A check reading only the file in front
+of it finds no type for it, and untyped never rejects -- the rule would go
+quiet across an include rather than fail. The scope contexts are `off` in those
+columns as a stated obligation, not a claim they cannot exist.
+
+**Two divergences preserved on purpose, both raised rather than decided.** The
+transpiler typed a composite source (`a + b`) on a declaration's initializer and
+never on an assignment statement, and it checked an assignment against the root
+variable's declared type -- so a u32 into a u8 FIELD reached through a chain was
+never checked at all. Twelve fixtures assert the lax paths. This ADR does not
+say how a composite is typed, and closing either gap is a behavior change on
+code the corpus treats as valid.
+
 ## References
 
 ### Vulnerability Research

@@ -4261,6 +4261,11 @@ describe("CodeGenerator", () => {
     });
   });
 
+  // #1322: two cases here drove `generate()` on a narrowing declaration and a
+  // literal overflow and asserted a throw carrying a `line:column` prefix --
+  // the prefix a rethrow wrapper smuggled onto ADR-024's message. The
+  // generator no longer throws for either; E0868/E0869 are authored in pass
+  // 2.1, which halts before it runs. Deleted rather than emptied.
   describe("Cast expression", () => {
     it("should handle widening cast", () => {
       const source = `
@@ -4280,42 +4285,6 @@ describe("CodeGenerator", () => {
       // Should compile with the cast (implicit widening is allowed)
       expect(code).toContain("big =");
       expect(code).toContain("small");
-    });
-
-    it("should throw with line:column prefix for narrowing declaration", () => {
-      const source = `void test() {
-  u32 large <- 1000;
-  u8 small <- large;
-}`;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
-      const tSymbols = declareAndResolve(tree);
-      const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-      expect(() =>
-        generator.generate(tree, tokenStream, {
-          symbolInfo: symbols,
-          sourcePath: "test.cnx",
-        }),
-      ).toThrow(/^3:\d+ Error: Cannot assign u32 to u8 \(narrowing\)/);
-    });
-
-    it("should throw with line:column prefix for literal overflow", () => {
-      const source = `void test() {
-  u8 ok <- 200;
-  u8 overflow <- 300;
-}`;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
-      const tSymbols = declareAndResolve(tree);
-      const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-      expect(() =>
-        generator.generate(tree, tokenStream, {
-          symbolInfo: symbols,
-          sourcePath: "test.cnx",
-        }),
-      ).toThrow(/^3:\d+ Error: Value 300 exceeds u8 range/);
     });
 
     it("should generate bit extraction for narrowing", () => {

@@ -72,9 +72,6 @@ describe("AssignmentValidator", () => {
   beforeEach(() => {
     vi.spyOn(TypeValidator, "checkConstAssignment").mockReturnValue(null);
     vi.spyOn(TypeValidator, "checkArrayBounds").mockImplementation(() => {});
-    vi.spyOn(TypeValidator, "validateIntegerAssignment").mockImplementation(
-      () => {},
-    );
     vi.spyOn(TypeValidator, "validateCallbackAssignment").mockImplementation(
       () => {},
     );
@@ -86,6 +83,10 @@ describe("AssignmentValidator", () => {
     vi.restoreAllMocks();
   });
 
+  // #1322: four cases here asserted the delegation to
+  // `TypeValidator.validateIntegerAssignment` and its propagated throw, and a
+  // spy in `beforeEach` stubbed it. Gone with the method; ADR-024's rules are
+  // E0868/E0869 in pass 2.1. Deleted rather than emptied.
   describe("validate() - simple identifier", () => {
     it("should check const assignment for simple identifier", () => {
       const { target, expression } = parseAssignment("counter");
@@ -141,106 +142,6 @@ describe("AssignmentValidator", () => {
     // `1-Analyze/__tests__/EnumTypeSafetyAnalyzer.test.ts`. Keeping the test
     // with the assertion removed would have left a case that runs `validate`
     // and checks nothing.
-
-    it("should validate integer assignment for integer-typed variable", () => {
-      CodeGenState.setVariableTypeInfo("counter", {
-        baseType: "u32",
-        bitWidth: 32,
-        isArray: false,
-        isConst: false,
-      });
-      const { target, expression } = parseAssignment("counter");
-
-      AssignmentValidator.validate(
-        target,
-        expression,
-        false,
-        1,
-        defaultCallbacks,
-      );
-
-      expect(TypeValidator.validateIntegerAssignment).toHaveBeenCalledWith(
-        "u32",
-        expect.any(String),
-        null,
-        false,
-      );
-    });
-
-    it("should pass isCompound flag to integer validation", () => {
-      CodeGenState.setVariableTypeInfo("counter", {
-        baseType: "u32",
-        bitWidth: 32,
-        isArray: false,
-        isConst: false,
-      });
-      const { target, expression } = parseAssignment("counter");
-
-      AssignmentValidator.validate(
-        target,
-        expression,
-        true,
-        1,
-        defaultCallbacks,
-      );
-
-      expect(TypeValidator.validateIntegerAssignment).toHaveBeenCalledWith(
-        "u32",
-        expect.any(String),
-        null,
-        true,
-      );
-    });
-
-    it("should rethrow validation error with line:column prefix", () => {
-      CodeGenState.setVariableTypeInfo("counter", {
-        baseType: "u8",
-        bitWidth: 8,
-        isArray: false,
-        isConst: false,
-      });
-      vi.mocked(TypeValidator.validateIntegerAssignment).mockImplementation(
-        () => {
-          throw new Error("Error: Cannot assign u32 to u8 (narrowing)");
-        },
-      );
-      const { target, expression } = parseAssignment("counter");
-
-      expect(() =>
-        AssignmentValidator.validate(
-          target,
-          expression,
-          false,
-          1,
-          defaultCallbacks,
-        ),
-      ).toThrow(/^\d+:\d+ Error: Cannot assign u32 to u8 \(narrowing\)/);
-    });
-
-    it("should handle non-Error validation exceptions", () => {
-      CodeGenState.setVariableTypeInfo("counter", {
-        baseType: "u8",
-        bitWidth: 8,
-        isArray: false,
-        isConst: false,
-      });
-      vi.mocked(TypeValidator.validateIntegerAssignment).mockImplementation(
-        () => {
-          throw "string error";
-        },
-      );
-      const { target, expression } = parseAssignment("counter");
-
-      expect(() =>
-        AssignmentValidator.validate(
-          target,
-          expression,
-          false,
-          1,
-          defaultCallbacks,
-        ),
-      ).toThrow(/^\d+:\d+ string error/);
-    });
   });
 
   describe("validate() - array element", () => {

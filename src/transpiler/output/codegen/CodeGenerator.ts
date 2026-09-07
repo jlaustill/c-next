@@ -1315,17 +1315,9 @@ export default class CodeGenerator implements IOrchestrator {
     return "0";
   }
 
-  // === Validation (IOrchestrator A4) ===
-
-  /** Validate that a literal value fits in the target type */
-  validateLiteralFitsType(literal: string, typeName: string): void {
-    this._validateLiteralFitsType(literal, typeName);
-  }
-
-  /** Validate type conversion is allowed */
-  validateTypeConversion(targetType: string, sourceType: string | null): void {
-    this._validateTypeConversion(targetType, sourceType);
-  }
+  // #1322: the `Validation (IOrchestrator A4)` section that stood here held
+  // ADR-024's `validateLiteralFitsType` and `validateTypeConversion`. Both are
+  // E0868/E0869 in pass 2.1, and no generator asks the orchestrator for them.
 
   // === String Helpers (IOrchestrator A4) ===
 
@@ -3326,36 +3318,12 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * ADR-024: Validate that a literal value fits within the target type's range.
-   * Throws an error if the value doesn't fit.
-   * @param literalText The literal text (e.g., "256", "-1", "0xFF")
-   * @param targetType The target type (e.g., "u8", "i32")
-   */
-  private _validateLiteralFitsType(
-    literalText: string,
-    targetType: string,
-  ): void {
-    TypeResolver.validateLiteralFitsType(literalText, targetType);
-  }
-
-  /**
    * ADR-024: Get the type of a unary expression (for cast validation).
    */
   private getUnaryExpressionType(
     ctx: Parser.UnaryExpressionContext,
   ): string | null {
     return TypeResolver.getUnaryExpressionType(ctx);
-  }
-
-  /**
-   * ADR-024: Validate that a type conversion is allowed.
-   * Throws error for narrowing or sign-changing conversions.
-   */
-  private _validateTypeConversion(
-    targetType: string,
-    sourceType: string | null,
-  ): void {
-    TypeResolver.validateTypeConversion(targetType, sourceType);
   }
 
   // Issue #63: checkConstAssignment moved to TypeValidator
@@ -4381,7 +4349,7 @@ export default class CodeGenerator implements IOrchestrator {
 
   // Issue #792: Methods _handleArrayDeclaration, _getArrayTypeDimension, _parseArrayTypeDimension,
   // _parseFirstArrayDimension, _validateArrayDeclarationSyntax, _extractBaseTypeName,
-  // _generateVariableInitializer, _validateIntegerInitializer, _finalizeCppClassAssignments,
+  // _generateVariableInitializer, _finalizeCppClassAssignments,
   // and _generateConstructorDecl have been extracted to VariableDeclHelper.ts
 
   /**
@@ -4894,26 +4862,8 @@ export default class CodeGenerator implements IOrchestrator {
     const targetType = this.generateType(ctx.type());
     const targetTypeName = ctx.type().getText();
 
-    // ADR-024: Validate integer casts for narrowing and sign conversion
-    if (this._isIntegerType(targetTypeName)) {
-      const sourceType = this.getUnaryExpressionType(ctx.unaryExpression());
-      if (sourceType && this._isIntegerType(sourceType)) {
-        if (this.isNarrowingConversion(sourceType, targetTypeName)) {
-          const targetWidth = TYPE_WIDTH[targetTypeName] || 0;
-          throw new Error(
-            `Error: Cannot cast ${sourceType} to ${targetTypeName} (narrowing). ` +
-              `Use bit indexing: expr[0, ${targetWidth}]`,
-          );
-        }
-        if (this.isSignConversion(sourceType, targetTypeName)) {
-          const targetWidth = TYPE_WIDTH[targetTypeName] || 0;
-          throw new Error(
-            `Error: Cannot cast ${sourceType} to ${targetTypeName} (sign change). ` +
-              `Use bit indexing: expr[0, ${targetWidth}]`,
-          );
-        }
-      }
-    }
+    // #1322: ADR-024's cast rules -- narrowing and sign change -- are E0869 in
+    // pass 2.1. They stood here as two throws that reached the user as `1:0`.
 
     const expr = this.generateUnaryExpr(ctx.unaryExpression());
 
