@@ -1,0 +1,23 @@
+// test-error
+// test-adr: 058
+// E0867 in a scope MEMBER initializer and in a scope METHOD -- a length
+// property is an expression, so it reaches both.
+
+scope Probe {
+    u32 scalar <- 5;
+    u32[4] array;
+
+    // NEGATIVE CONTROLS -- the right property on each, in the same contexts.
+    u32 okMember <- this.array.element_count;
+
+    public u32 okMethod() {
+        return this.scalar.bit_length;
+    }
+
+    // THE ASSERTIONS.
+    u32 badMember <- this.scalar.element_count;
+
+    public u32 badMethod() {
+        return this.array.char_count;
+    }
+}

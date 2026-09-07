@@ -117,6 +117,24 @@ class OperandTypeResolver {
   }
 
   /**
+   * A struct field's declared type, WITH its array dimensions.
+   *
+   * #1322: `structFields` stores a field's ELEMENT type and
+   * `structFieldDimensions` stores its shape, so reading only the first made
+   * `DataPoint[10] samples` resolve to `DataPoint` -- an array that looks
+   * scalar. Every consumer of this walk reads dimensions off the type TEXT
+   * (`elementType` strips one `[...]` per subscript), so the two halves are
+   * rejoined here, once, rather than at each caller that happens to care.
+   */
+  private static fieldType(structType: string, field: string): string | null {
+    const base = CodeGenState.getStructFieldType(structType, field);
+    if (base === undefined) return null;
+    const dimensions = CodeGenState.getStructFieldDimensions(structType, field);
+    if (dimensions === undefined || dimensions.length === 0) return base;
+    return base + dimensions.map((d) => `[${d}]`).join("");
+  }
+
+  /**
    * Walk a chain from its base, applying one step at a time.
    *
    * `current` carries a type for a subscript or member step, and the callee's
@@ -159,7 +177,7 @@ class OperandTypeResolver {
       if (step.isSubscript) {
         current = OperandTypeResolver.elementType(current);
       } else if (step.member) {
-        current = CodeGenState.getStructFieldType(current, step.member) ?? null;
+        current = OperandTypeResolver.fieldType(current, step.member);
       } else {
         return null;
       }
@@ -202,6 +220,25 @@ class OperandTypeResolver {
     ctx: Parser.PostfixExpressionContext,
     frame: IScopeFrame,
   ): string | null {
+    return this.typeOfPostfixPrefix(ctx, frame, 0);
+  }
+
+  /**
+   * The same walk with the last `dropTrailingOps` operations left off.
+   *
+   * #1322: ADR-058's length properties are the LAST step of a chain, and the
+   * rule is about what precedes them -- `.element_count` needs an array, so the
+   * question is the type of `a.b[0]`, not of `a.b[0].element_count`. Exposed as
+   * a bound on the existing walk rather than as a second walker: a copy would
+   * be free to disagree about `this.`/`global.` roots, about subscripts
+   * stripping one dimension at a time, and about struct-field keys, which are
+   * exactly the three things that have already been got wrong once each.
+   */
+  public typeOfPostfixPrefix(
+    ctx: Parser.PostfixExpressionContext,
+    frame: IScopeFrame,
+    dropTrailingOps: number,
+  ): string | null {
     const primary = ctx.primaryExpression();
     if (!primary) return null;
 
@@ -228,19 +265,24 @@ class OperandTypeResolver {
       base = this.scopes.typeOfName(identifier, frame);
     }
 
-    const steps: IChainStep[] = [];
+    // Counted against the ops that REMAIN: a `this.`/`global.` root has
+    // already consumed one above to name the declaration, and a caller saying
+    // "drop the property step" must not have to know that.
+    const limit = Math.max(0, ops.length - dropTrailingOps);
+    const chain: IChainStep[] = [];
     for (const op of ops) {
+      if (chain.length >= limit) break;
       // Neither `.member` nor `[index]` is a call suffix.
       const isSubscript = op.LBRACKET() !== null;
       const member = op.DOT() !== null ? op.IDENTIFIER()?.getText() : null;
-      steps.push({
+      chain.push({
         member: member ?? null,
         isSubscript,
         isCall: !isSubscript && !member,
       });
     }
 
-    return this.applyChain(base, baseName, steps);
+    return this.applyChain(base, baseName, chain);
   }
 
   /**

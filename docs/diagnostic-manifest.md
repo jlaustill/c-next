@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-335 fixture(s) assert a diagnostic; 248 carry a code.
+339 fixture(s) assert a diagnostic; 252 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -80,6 +80,11 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-050/return-in-critical-error.test.cnx                                                  | E0853               |
 | tests/adr-050/return-in-critical-scope-method-error.test.cnx                                     | E0853               |
 | tests/adr-050/return-in-critical-switch-error.test.cnx                                           | E0853               |
+| tests/adr-058/length-property-deprecated.test.cnx                                                | (uncoded)           |
+| tests/adr-058/length-property-imported-direct-error.test.cnx                                     | E0867               |
+| tests/adr-058/length-property-imported-transitive-error.test.cnx                                 | E0867               |
+| tests/adr-058/length-property-in-scope-error.test.cnx                                            | E0867               |
+| tests/adr-058/length-property-wrong-type-error.test.cnx                                          | E0867               |
 | tests/analysis/division-by-const-zero.test.cnx                                                   | E0800               |
 | tests/analysis/division-by-zero.test.cnx                                                         | E0800               |
 | tests/analysis/enum-context/enum-bare-in-array-dim.test.cnx                                      | E0424               |
@@ -274,7 +279,6 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/control-flow/forever-disguised-while-rel.test.cnx                                          | E0707               |
 | tests/control-flow/forever-non-void-error.test.cnx                                               | E0705               |
 | tests/enum/enum-error-negative.test.cnx                                                          | (uncoded)           |
-| tests/errors/length-property-deprecated.test.cnx                                                 | (uncoded)           |
 | tests/external-types/cpp-class-global-error.test.cnx                                             | (uncoded)           |
 | tests/floats/float-const-zero-error.test.cnx                                                     | E0800               |
 | tests/floats/float-division-by-literal-zero.test.cnx                                             | E0800               |

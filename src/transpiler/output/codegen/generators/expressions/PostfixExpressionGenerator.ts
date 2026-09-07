@@ -33,6 +33,7 @@ import CodeGenState from "../../../../state/CodeGenState";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
 import TypeValidator from "../../TypeValidator";
+import invariant from "../../../../../utils/invariant";
 
 // ========================================================================
 // Tracking State
@@ -739,8 +740,9 @@ const generateBitLengthProperty = (
 ): string | null => {
   // Special case: main function's args.bit_length -> not supported
   if (state.mainArgsName && ctx.rootIdentifier === state.mainArgsName) {
-    throw new Error(
-      `Error: .bit_length is not supported on 'args' parameter. Use .element_count for argc.`,
+    invariant(
+      false,
+      `E0867 rejects this in pass 2.1 -- .bit_length is not supported on 'args' parameter. Use .element_count for argc.`,
     );
   }
 
@@ -761,8 +763,9 @@ const generateBitLengthProperty = (
     : undefined;
 
   if (!typeInfo) {
-    throw new Error(
-      `Error: Cannot determine .bit_length for '${ctx.result}' - type not found in registry.`,
+    invariant(
+      false,
+      `E0867 rejects this in pass 2.1 -- Cannot determine .bit_length for '${ctx.result}' - type not found in registry.`,
     );
   }
 
@@ -843,8 +846,9 @@ const generateStructFieldBitLength = (
     return String(bitWidth);
   }
 
-  throw new Error(
-    `Error: Cannot determine .bit_length for unsupported type '${memberType}'.`,
+  invariant(
+    false,
+    `E0867 rejects this in pass 2.1 -- Cannot determine .bit_length for unsupported type '${memberType}'.`,
   );
 };
 
@@ -873,8 +877,9 @@ const generateScalarBitLength = (
   if (bitWidth > 0) {
     return String(bitWidth);
   }
-  throw new Error(
-    `Error: Cannot determine .bit_length for unsupported type '${typeInfo.baseType}'.`,
+  invariant(
+    false,
+    `E0867 rejects this in pass 2.1 -- Cannot determine .bit_length for unsupported type '${typeInfo.baseType}'.`,
   );
 };
 
@@ -914,15 +919,17 @@ const generateArrayBitLength = (
 ): string => {
   const dims = typeInfo.arrayDimensions;
   if (!dims || dims.length === 0) {
-    throw new Error(
-      `Error: Cannot determine .bit_length for array with unknown dimensions.`,
+    invariant(
+      false,
+      `E0867 rejects this in pass 2.1 -- Cannot determine .bit_length for array with unknown dimensions.`,
     );
   }
 
   const elementBitWidth = getArrayElementBitWidth(typeInfo, input);
   if (elementBitWidth === 0) {
-    throw new Error(
-      `Error: Cannot determine .bit_length for array with unsupported element type '${typeInfo.baseType}'.`,
+    invariant(
+      false,
+      `E0867 rejects this in pass 2.1 -- Cannot determine .bit_length for array with unsupported element type '${typeInfo.baseType}'.`,
     );
   }
 
@@ -957,8 +964,9 @@ const generateTypeInfoBitLength = (
     if (typeInfo.stringCapacity !== undefined) {
       return String((typeInfo.stringCapacity + 1) * 8);
     }
-    throw new Error(
-      `Error: Cannot determine .bit_length for string with unknown capacity.`,
+    invariant(
+      false,
+      `E0867 rejects this in pass 2.1 -- Cannot determine .bit_length for string with unknown capacity.`,
     );
   }
 
@@ -983,8 +991,9 @@ const generateByteLengthProperty = (
 ): string | null => {
   // Special case: main function's args
   if (state.mainArgsName && ctx.rootIdentifier === state.mainArgsName) {
-    throw new Error(
-      `Error: .byte_length is not supported on 'args' parameter. Use .element_count for argc.`,
+    invariant(
+      false,
+      `E0867 rejects this in pass 2.1 -- .byte_length is not supported on 'args' parameter. Use .element_count for argc.`,
     );
   }
 
@@ -1015,8 +1024,9 @@ const generateByteLengthProperty = (
     : undefined;
 
   if (!typeInfo) {
-    throw new Error(
-      `Error: Cannot determine .byte_length for '${ctx.result}' - type not found in registry.`,
+    invariant(
+      false,
+      `E0867 rejects this in pass 2.1 -- Cannot determine .byte_length for '${ctx.result}' - type not found in registry.`,
     );
   }
 
@@ -1067,8 +1077,9 @@ const generateStructFieldElementCount = (
   }
 
   // Non-array field - element_count not applicable
-  throw new Error(
-    `Error: .element_count is only available on arrays, not on '${fieldInfo?.type || ctx.previousMemberName}'.`,
+  invariant(
+    false,
+    `E0867 rejects this in pass 2.1 -- .element_count is only available on arrays, not on '${fieldInfo?.type || ctx.previousMemberName}'.`,
   );
 };
 
@@ -1084,21 +1095,24 @@ const generateTypeInfoElementCount = (
     : undefined;
 
   if (!typeInfo) {
-    throw new Error(
-      `Error: Cannot determine .element_count for '${ctx.result}' - type not found in registry.`,
+    invariant(
+      false,
+      `E0867 rejects this in pass 2.1 -- Cannot determine .element_count for '${ctx.result}' - type not found in registry.`,
     );
   }
 
   if (!typeInfo.isArray) {
-    throw new Error(
-      `Error: .element_count is only available on arrays, not on '${typeInfo.baseType}'.`,
+    invariant(
+      false,
+      `E0867 rejects this in pass 2.1 -- .element_count is only available on arrays, not on '${typeInfo.baseType}'.`,
     );
   }
 
   const dims = typeInfo.arrayDimensions;
   if (!dims || dims.length === 0) {
-    throw new Error(
-      `Error: Cannot determine .element_count for array with unknown dimensions.`,
+    invariant(
+      false,
+      `E0867 rejects this in pass 2.1 -- Cannot determine .element_count for array with unknown dimensions.`,
     );
   }
 
@@ -1106,8 +1120,9 @@ const generateTypeInfoElementCount = (
     return getDimensionAtDepth(dims, ctx.subscriptDepth);
   }
 
-  throw new Error(
-    `Error: .element_count is not available on array elements. Array is fully subscripted.`,
+  invariant(
+    false,
+    `E0867 rejects this in pass 2.1 -- .element_count is not available on array elements. Array is fully subscripted.`,
   );
 };
 
@@ -1153,8 +1168,9 @@ const generateCharCountProperty = (
 ): string | null => {
   // Special case: main function's args
   if (state.mainArgsName && ctx.rootIdentifier === state.mainArgsName) {
-    throw new Error(
-      `Error: .char_count is only available on strings, not on 'args'. Use .element_count for argc.`,
+    invariant(
+      false,
+      `E0867 rejects this in pass 2.1 -- .char_count is only available on strings, not on 'args'. Use .element_count for argc.`,
     );
   }
 
@@ -1169,8 +1185,9 @@ const generateCharCountProperty = (
       return `strlen(${ctx.result})`;
     }
     // Non-string field
-    throw new Error(
-      `Error: .char_count is only available on strings, not on '${fieldInfo?.type || ctx.previousMemberName}'.`,
+    invariant(
+      false,
+      `E0867 rejects this in pass 2.1 -- .char_count is only available on strings, not on '${fieldInfo?.type || ctx.previousMemberName}'.`,
     );
   }
 
@@ -1180,15 +1197,17 @@ const generateCharCountProperty = (
     : undefined;
 
   if (!typeInfo) {
-    throw new Error(
-      `Error: Cannot determine .char_count for '${ctx.result}' - type not found in registry.`,
+    invariant(
+      false,
+      `E0867 rejects this in pass 2.1 -- Cannot determine .char_count for '${ctx.result}' - type not found in registry.`,
     );
   }
 
   // Must be a string type
   if (!typeInfo.isString) {
-    throw new Error(
-      `Error: .char_count is only available on strings, not on '${typeInfo.baseType}'.`,
+    invariant(
+      false,
+      `E0867 rejects this in pass 2.1 -- .char_count is only available on strings, not on '${typeInfo.baseType}'.`,
     );
   }
 

@@ -939,7 +939,17 @@ export default class CodeGenState {
    */
   static getCNextVariableTypeName(name: string): string | null {
     const symbol = this.getCNextVariableSymbol(name);
-    return symbol ? TypeResolver.getTypeName(symbol.type) : null;
+    if (!symbol) return null;
+    // #1322: WITH its dimensions. `IDeclaredVar.typeText` records `u32[4]` for
+    // a lexical declaration, and every chain walk reads array-ness off the type
+    // text, so the run-wide fallback has to say the same thing or an imported
+    // array reads as a scalar -- which is how `sharedArray.element_count`
+    // across an include was rejected while the same line in-file was accepted.
+    // The join matches the lexical spelling on purpose: one encoding, read by
+    // one `elementType`, whichever source answered.
+    const base = TypeResolver.getTypeName(symbol.type);
+    const dimensions = symbol.arrayDimensions ?? [];
+    return base + dimensions.map((d) => `[${d}]`).join("");
   }
 
   /**

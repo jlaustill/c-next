@@ -1,0 +1,72 @@
+// test-error
+// test-adr: 058
+// E0867: a length property asked of a type that cannot answer it.
+//
+// Seventeen throws enforced these before #1322, and ONE fixture existed in the
+// corpus -- about the removed `.length`, not about any of them. Every rule here
+// was enforced by code nothing exercised.
+
+u32 scalar <- 5;
+u32[4] array;
+string<8> text <- "hi";
+
+// NEGATIVE CONTROLS -- each property on a type that answers it. An over-broad
+// rule fails here before the assertions are reached.
+u32 okElementCount() {
+    return array.element_count;
+}
+
+u32 okCharCount() {
+    return text.char_count;
+}
+
+u32 okBitLengthOnScalar() {
+    return scalar.bit_length;
+}
+
+u32 okBitLengthOnArray() {
+    return array.bit_length;
+}
+
+u32 okByteLengthOnString() {
+    return text.byte_length;
+}
+
+// NEGATIVE CONTROL -- an ARRAY FIELD of a struct. The field's type is stored
+// without its dimensions, in a separate map; a walk that read only the type
+// saw a scalar and rejected this. It compiled clean under codegen and must
+// still.
+struct Sample {
+    u32 t;
+}
+
+struct Batch {
+    Sample[10] samples;
+}
+
+u32 okArrayField() {
+    Batch b;
+    b.samples[0].t <- 1;
+    return b.samples.element_count;
+}
+
+// THE ASSERTIONS -- the first in a global-variable initializer, since a length
+// property is an expression and reaches one.
+u32 badGlobal <- scalar.element_count;
+
+u32 elementCountOnScalar() {
+    return scalar.element_count;
+}
+
+u32 charCountOnScalar() {
+    return scalar.char_count;
+}
+
+u32 charCountOnArray() {
+    return array.char_count;
+}
+
+u32 elementCountOnElement() {
+    array[0] <- 1;
+    return array[0].element_count;
+}

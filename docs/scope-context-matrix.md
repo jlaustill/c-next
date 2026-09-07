@@ -134,6 +134,20 @@ cell is declared by the ADR that owns it.
 - `adr-057/shadowing-all-levels.test.cnx`
 - `bugs/issue-1472-global-qualifier-register-capture/global-vs-scoped-bitmap.test.cnx`
 
+## ADR-058
+
+| Context            | same file | direct | transitive | from 1 away | thru chain |
+| ------------------ | --------- | ------ | ---------- | ----------- | ---------- |
+| global variable    | ok        | ok     | ok         | n/a         | n/a        |
+| top-level function | ok        | ok     | ok         | n/a         | n/a        |
+| scope member       | ok        | -      | -          | n/a         | n/a        |
+| scope method       | ok        | -      | -          | n/a         | n/a        |
+
+2 linked fixtures with no derivable context:
+
+- `adr-058/length-property-deprecated.test.cnx`
+- `adr-058/length-property-enum-and-bitmap.test.cnx`
+
 ## ADR-070
 
 | Context            | same file | direct | transitive | from 1 away | thru chain |

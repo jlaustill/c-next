@@ -19,9 +19,9 @@ codes that already have a fixture.
 | E05xx     | Include/Preprocessor    | 7      |
 | E06xx     | Sizeof Expressions      | 2      |
 | E07xx     | Control Flow            | 12     |
-| E08xx     | Arithmetic/Array Safety | 26     |
+| E08xx     | Arithmetic/Array Safety | 27     |
 | E09xx     | NULL Safety             | 8      |
-| **Total** |                         | **76** |
+| **Total** |                         | **77** |
 
 ---
 
@@ -249,6 +249,7 @@ include-visibility is not derivable for a C or C++ name.
 | E0864 | Value does not fit the declared string capacity                                | Widen the declaration, or shorten the value                                                                      | `TRANSPILE/1-Analyze/StringDeclarationAnalyzer.ts`    |
 | E0865 | Substring bounds exceed the source string                                      | Keep `start + length` within the source's capacity                                                               | `TRANSPILE/1-Analyze/StringDeclarationAnalyzer.ts`    |
 | E0866 | String array initializer does not match the declaration                        | Give a bracketed list with one element per slot, or the fill-all form                                            | `TRANSPILE/1-Analyze/StringDeclarationAnalyzer.ts`    |
+| E0867 | Length property not available on this type (ADR-058)                           | `.element_count` needs an array, `.char_count` a string, `.bit_length`/`.byte_length` a sized type               | `TRANSPILE/1-Analyze/LengthPropertyAnalyzer.ts`       |
 
 Each subscript peels one array dimension (ADR-036) and a scalar integer/float may be
 bit-indexed once (ADR-007), so `flags[4][3]` on a scalar `u8` indexes the single bit
