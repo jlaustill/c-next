@@ -3,16 +3,13 @@
  * A safer C for embedded systems
  */
 
+#include "register-u64-field.test.h"
+
 #include <stdint.h>
 
 // Tests: u64 as register field type (compilation only - registers need hardware)
 // Coverage: Section 1.1 u64 in register field
 // 64-bit timer register (common in modern MCUs)
-/* Register: TIMER64 @ 0x40001000 */
-#define TIMER64__COUNT (*(volatile uint64_t const *)(0x40001000 + 0x00))
-#define TIMER64__COMPARE (*(volatile uint64_t*)(0x40001000 + 0x08))
-#define TIMER64__CONTROL (*(volatile uint32_t*)(0x40001000 + 0x10))
-
 int main(void) {
     TIMER64__COMPARE = 0x123456789ABCDEF0;
     uint64_t compare_val = TIMER64__COMPARE;

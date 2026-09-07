@@ -43,6 +43,28 @@ describe("HeaderRenderer", () => {
     };
   }
 
+  it("prints the register blocks the .c recorded, from the captured facts (#1453)", () => {
+    const block = [
+      "/* Register: HW @ 0x40000000 */",
+      "#define HW__CTRL (*(volatile uint32_t*)(0x40000000 + 0x00))",
+      "",
+    ].join("\n");
+    const facts = new Map([
+      [
+        "/src/hw.cnx",
+        makeFacts("hw.h", undefined, { registerBlocks: [block] }),
+      ],
+    ]);
+    // CodeGenState has moved on, exactly as it has when Stage 5.5 renders.
+    CodeGenState.exportedRegisterBlocks = [];
+
+    const plan = HeaderRenderer.render(facts, new HeaderGenerator());
+
+    const header = plan.headersBySourcePath.get("/src/hw.cnx") ?? "";
+    expect(header).toContain("/* Registers (ADR-004) */");
+    expect(header).toContain("#define HW__CTRL (*(volatile uint32_t*)");
+  });
+
   it("returns empty maps for an empty facts input", () => {
     const plan = HeaderRenderer.render(new Map(), new HeaderGenerator());
 

@@ -232,6 +232,9 @@ abstract class BaseHeaderGenerator {
         groups.classes,
         typeInput,
       ),
+      ...HeaderGeneratorUtils.generateRegisterSection(
+        options.registerBlocks ?? [],
+      ),
       ...HeaderGeneratorUtils.generateVariableSection(cCompatibleVariables),
       ...this.generateFunctionSection(
         groups.functions,

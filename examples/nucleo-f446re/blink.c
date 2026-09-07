@@ -32,6 +32,11 @@
 // ADR-044: Overflow helper functions
 #include <limits.h>
 
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
 static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     if (b > (uint64_t)(UINT32_MAX - a)) return UINT32_MAX;
     return (uint32_t)(a + (uint32_t)b);
@@ -43,6 +48,42 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // SysTick is a 24-bit countdown timer present in all Cortex-M processors
 // Base address: 0xE000E010 (part of System Control Space)
 /* Scope: SysTick */
+
+/* Bitmap: SysTick__ControlBits
+ *   ENABLE: bit 0
+ *   TICKINT: bit 1
+ *   CLKSOURCE: bit 2
+ *   Reserved_3: bit 3
+ *   Reserved_4: bit 4
+ *   Reserved_5: bit 5
+ *   Reserved_6: bit 6
+ *   Reserved_7: bit 7
+ *   Reserved_8: bit 8
+ *   Reserved_9: bit 9
+ *   Reserved_10: bit 10
+ *   Reserved_11: bit 11
+ *   Reserved_12: bit 12
+ *   Reserved_13: bit 13
+ *   Reserved_14: bit 14
+ *   Reserved_15: bit 15
+ *   COUNTFLAG: bit 16
+ *   Reserved_17: bit 17
+ *   Reserved_18: bit 18
+ *   Reserved_19: bit 19
+ *   Reserved_20: bit 20
+ *   Reserved_21: bit 21
+ *   Reserved_22: bit 22
+ *   Reserved_23: bit 23
+ *   Reserved_24: bit 24
+ *   Reserved_25: bit 25
+ *   Reserved_26: bit 26
+ *   Reserved_27: bit 27
+ *   Reserved_28: bit 28
+ *   Reserved_29: bit 29
+ *   Reserved_30: bit 30
+ *   Reserved_31: bit 31
+ */
+typedef uint32_t SysTick__ControlBits;
 
 /* Register: SysTick__Regs @ 0xE000E010 */
 #define SysTick__Regs__CTRL (*(volatile SysTick__ControlBits*)(0xE000E010 + 0x00))
@@ -65,8 +106,6 @@ void SysTick__init(void) {
 // =============================================================================
 /* Scope: RCC */
 
-/* Register: RCC__RCC @ 0x40023800 */
-#define RCC__RCC__AHB1ENR (*(volatile RCC__AHB1Peripherals*)(0x40023800 + 0x30))
 
 
 // =============================================================================
@@ -74,17 +113,6 @@ void SysTick__init(void) {
 // =============================================================================
 /* Scope: STM32F446 */
 
-/* Register: STM32F446__GPIOA @ 0x40020000 */
-#define STM32F446__GPIOA__ModeRegister (*(volatile uint32_t*)(0x40020000 + 0x00))
-#define STM32F446__GPIOA__OutputTypeRegister (*(volatile STM32F446__GPIOAPins*)(0x40020000 + 0x04))
-#define STM32F446__GPIOA__OutputSpeedRegister (*(volatile uint32_t*)(0x40020000 + 0x08))
-#define STM32F446__GPIOA__PullUpDownRegister (*(volatile uint32_t*)(0x40020000 + 0x0C))
-#define STM32F446__GPIOA__InputData (*(volatile STM32F446__GPIOAPins const *)(0x40020000 + 0x10))
-#define STM32F446__GPIOA__OutputData (*(volatile STM32F446__GPIOAPins*)(0x40020000 + 0x14))
-#define STM32F446__GPIOA__BitSetReset (*(volatile STM32F446__GPIOAPins*)(0x40020000 + 0x18))
-#define STM32F446__GPIOA__LockRegister (*(volatile STM32F446__GPIOAPins*)(0x40020000 + 0x1C))
-#define STM32F446__GPIOA__AlternateFunctionLow (*(volatile uint32_t*)(0x40020000 + 0x20))
-#define STM32F446__GPIOA__AlternateFunctionHigh (*(volatile uint32_t*)(0x40020000 + 0x24))
 
 
 // =============================================================================
@@ -162,7 +190,7 @@ void loop(void) {
 
 int main(void) {
     setup();
-    /* MISRA C:2012 Rule 14.3: infinite loop is intentional (C-Next `forever`) */
+    /* MISRA C:2012 Rule 14.3: infinite loop written as `for (;;)` for C-Next `forever` (`while (1)` has a controlling expression with an invariant value, which the rule forbids). */
     for (;;) {
         loop();
     }

@@ -1,0 +1,35 @@
+// test-error
+// test-adr: 004
+// E0870/E0871/E0872 across ONE include hop(s), in all four contexts -- the
+// `imported direct` column of ADR-004's matrix.
+//
+// The access modifier is recorded where the register is declared, so a check
+// reading only this file finds no register and "not found" never rejects.
+
+#include "register-declarations.cnx"
+
+// NEGATIVE CONTROL -- the rw member of the same imported register, read and
+// written, and a read of its ro member.
+u32 okAccess() {
+    HW.CTRL <- 1;
+    HW.CTRL[3] <- true;
+    return HW.CTRL + HW.STATUS;
+}
+
+// ASSERTION 1 -- global variable initializer (E0870).
+u32 globalRead <- HW.COMMAND;
+
+// ASSERTION 2 -- top-level function (E0871).
+void main() {
+    HW.STATUS <- 1;
+}
+
+scope Board {
+    // ASSERTION 3 -- scope member initializer (E0870).
+    u32 memberRead <- global.HW.COMMAND;
+
+    // ASSERTION 4 -- scope method (E0872 on a w1s bit).
+    public void go() {
+        global.HW.SET[3] <- false;
+    }
+}

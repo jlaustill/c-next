@@ -3,15 +3,13 @@
  * A safer C for embedded systems
  */
 
+#include "scoped-register-basic.test.h"
+
 #include <stdint.h>
 
 // Test: Basic scoped register declaration and access
 /* Scope: Teensy4 */
 
-/* Register: Teensy4__GPIO7 @ 0x42004000 */
-#define Teensy4__GPIO7__DR (*(volatile uint32_t*)(0x42004000 + 0x00))
-#define Teensy4__GPIO7__DR_SET (*(volatile uint32_t*)(0x42004000 + 0x84))
-#define Teensy4__GPIO7__DR_TOGGLE (*(volatile uint32_t*)(0x42004000 + 0x8C))
 
 
 int main(void) {

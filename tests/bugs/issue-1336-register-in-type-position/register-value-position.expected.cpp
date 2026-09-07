@@ -3,6 +3,8 @@
  * A safer C for embedded systems
  */
 
+#include "register-value-position.test.hpp"
+
 #include <stdint.h>
 
 // Issue #1336: the NEGATIVE CONTROL for the type/value position split.
@@ -20,9 +22,6 @@
 // This assertion cannot be made in register-in-type-position.test.cnx: that fixture
 // errors in an EARLIER analyzer, and runAnalyzers stops at the first one that
 // returns errors, so the value analyzer never runs on it.
-/* Register: Control @ 0x40000000 */
-#define Control__DR (*(volatile uint32_t*)(0x40000000 + 0x00))
-
 int main(void) {
     Control__DR = 0x01;
     uint32_t seen = Control__DR;

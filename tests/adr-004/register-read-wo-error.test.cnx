@@ -1,0 +1,44 @@
+// test-error
+// test-adr: 004
+// ADR-004, E0870: a write-only (`wo`) register member is read.
+//
+// #1322 relocated this from `output/`, where it reported `1:0`. The four
+// assertions are the four contexts ADR-004's matrix declares `error` -- a
+// register read is an expression, so it reaches an initializer as well as a
+// function body.
+
+register CONTROL_REG @ 0x40000000 {
+    CTRL: u32 rw @ 0x00,
+    STATUS: u32 ro @ 0x04,
+    COMMAND: u32 wo @ 0x08,
+    PENDING: u32 w1c @ 0x0C,
+}
+
+// NEGATIVE CONTROL -- reads of rw, ro and w1c members are all fine. A w1c
+// status register is READ to see what is pending; only `wo` returns nothing.
+u32 okReads() {
+    return CONTROL_REG.CTRL + CONTROL_REG.STATUS + CONTROL_REG.PENDING;
+}
+
+// NEGATIVE CONTROL -- a WRITE to the wo member is what it is for.
+void okWrite() {
+    CONTROL_REG.COMMAND <- 0x42;
+}
+
+// ASSERTION 1 -- global variable initializer.
+u32 globalRead <- CONTROL_REG.COMMAND;
+
+// ASSERTION 2 -- top-level function.
+void main() {
+    u32 value <- CONTROL_REG.COMMAND; // ERROR: cannot read from write-only
+}
+
+scope Board {
+    // ASSERTION 3 -- scope member initializer.
+    u32 memberRead <- global.CONTROL_REG.COMMAND;
+
+    // ASSERTION 4 -- scope method.
+    public u32 read() {
+        return global.CONTROL_REG.COMMAND;
+    }
+}

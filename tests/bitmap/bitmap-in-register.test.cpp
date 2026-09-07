@@ -12,10 +12,6 @@
 // This is the "million dollar feature" - using bitmaps for type-safe hardware registers
 // Define a bitmap for motor control register
 // Use bitmap type inside a register definition
-/* Register: MOTOR @ 0x40001000 */
-#define MOTOR__CTRL (*(volatile MotorControl*)(0x40001000 + 0x00))
-#define MOTOR__STATUS (*(volatile uint8_t const *)(0x40001000 + 0x04))
-
 int main(void) {
     MOTOR__CTRL = (MOTOR__CTRL & ~(1U << 0)) | (1U << 0);
     MOTOR__CTRL = (MOTOR__CTRL & ~(1U << 1)) | (0U << 1);

@@ -11,11 +11,6 @@
 // Postfix Chain Test: Register + Bitmap + Bit Indexing
 // Tests: Complex chains mixing hardware registers, bitmap fields, and bit access
 // HIGH RISK AREA: Lines 5850-6285 in CodeGenerator.ts
-/* Register: MOTOR @ 0x40001000 */
-#define MOTOR__STATUS (*(volatile StatusFlags*)(0x40001000 + 0x00))
-#define MOTOR__CONTROL (*(volatile ControlFlags*)(0x40001000 + 0x04))
-#define MOTOR__DATA (*(volatile uint32_t*)(0x40001000 + 0x08))
-
 int main(void) {
     MOTOR__STATUS = (MOTOR__STATUS & ~(1U << 0)) | (1U << 0);
     MOTOR__STATUS = (MOTOR__STATUS & ~(1U << 1)) | (0U << 1);

@@ -20,7 +20,6 @@ import IOrchestrator from "../IOrchestrator";
 import accessGenerators from "./AccessExprGenerator";
 import generateFunctionCall from "./CallExprGenerator";
 import memberAccessChain from "../../memberAccessChain";
-import MemberAccessValidator from "../../helpers/MemberAccessValidator";
 import BitmapAccessHelper from "./BitmapAccessHelper";
 import NarrowingCastHelper from "../../helpers/NarrowingCastHelper";
 import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
@@ -1433,14 +1432,7 @@ const tryRegisterMemberAccess = (
     return null;
   }
 
-  MemberAccessValidator.validateRegisterReadAccess(
-    QualifiedCName.fromParts([ctx.result, ctx.memberName]),
-    ctx.memberName,
-    `${ctx.result}.${ctx.memberName}`,
-    input.symbols!.registerMemberAccess,
-    false,
-  );
-
+  // #1322: a read of a `wo` member is E0870 in pass 2.1 (ADR-004).
   const output = initializeMemberOutput(ctx);
   output.result = QualifiedCName.fromParts([ctx.result, ctx.memberName]);
   output.isRegisterChain = true;

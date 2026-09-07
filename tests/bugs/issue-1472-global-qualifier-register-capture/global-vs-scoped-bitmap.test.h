@@ -25,6 +25,11 @@ typedef uint8_t Flags;
  */
 typedef uint16_t Chip__Flags;
 
+/* Registers (ADR-004) */
+/* Register: Chip__CTRL @ 0x40000000 */
+#define Chip__CTRL__GLOBAL_STATUS (*(volatile Flags*)(0x40000000 + 0x00))
+#define Chip__CTRL__LOCAL_STATUS (*(volatile Chip__Flags*)(0x40000000 + 0x04))
+
 #ifdef __cplusplus
 }
 #endif

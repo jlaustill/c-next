@@ -29,6 +29,7 @@ import ConstructorArgumentAnalyzer from "./ConstructorArgumentAnalyzer";
 import CriticalSectionAnalyzer from "./CriticalSectionAnalyzer";
 import EnumTypeSafetyAnalyzer from "./EnumTypeSafetyAnalyzer";
 import ScopeAccessAnalyzer from "./ScopeAccessAnalyzer";
+import RegisterAccessAnalyzer from "./RegisterAccessAnalyzer";
 import SliceAssignmentAnalyzer from "./SliceAssignmentAnalyzer";
 import ControllingExpressionAnalyzer from "./ControllingExpressionAnalyzer";
 import IntegerConversionAnalyzer from "./IntegerConversionAnalyzer";
@@ -286,6 +287,10 @@ function runAnalyzers(
     {
       label: "scope access (ADR-016, E0435-E0437)",
       run: () => new ScopeAccessAnalyzer().analyze(tree),
+    },
+    {
+      label: "register access modifiers (ADR-004, E0870-E0872)",
+      run: () => new RegisterAccessAnalyzer().analyze(tree),
     },
     {
       // Last, and does not halt: comment findings are reported alongside

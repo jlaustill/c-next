@@ -16,6 +16,20 @@ cell is declared by the ADR that owns it.
 | `-`           | no obligation declared (`off`)                                                  |
 | `n/a`         | not derivable yet -- provider-side relationships need the emitting file (#1219) |
 
+## ADR-004
+
+| Context            | same file | direct | transitive | from 1 away | thru chain |
+| ------------------ | --------- | ------ | ---------- | ----------- | ---------- |
+| global variable    | ok        | ok     | ok         | n/a         | n/a        |
+| top-level function | ok        | ok     | ok         | n/a         | n/a        |
+| scope member       | ok        | ok     | ok         | n/a         | n/a        |
+| scope method       | ok        | ok     | ok         | n/a         | n/a        |
+
+2 linked fixtures with no derivable context:
+
+- `adr-004/register-imported-bitmap-member.test.cnx`
+- `adr-004/register-imported-rw.test.cnx`
+
 ## ADR-007
 
 | Context            | same file | direct | transitive | from 1 away | thru chain |

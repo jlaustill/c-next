@@ -14,10 +14,6 @@
 // Extracted from: scoped-register-bitmap-chain.test.cnx.skip (valid portions only)
 /* Scope: MotorController */
 
-/* Register: MotorController__MOTOR_REG @ 0x40002000 */
-#define MotorController__MOTOR_REG__CTRL (*(volatile MotorFlags*)(0x40002000 + 0x00))
-#define MotorController__MOTOR_REG__SPEED (*(volatile uint32_t*)(0x40002000 + 0x04))
-#define MotorController__MOTOR_REG__STATUS (*(volatile uint32_t const *)(0x40002000 + 0x08))
 
 
 void MotorController__start(void) {
@@ -36,9 +32,6 @@ uint8_t MotorController__getMode(void) {
 
 /* Scope: Board */
 
-/* Register: Board__GPIO @ 0x40000000 */
-#define Board__GPIO__DR (*(volatile uint32_t*)(0x40000000 + 0x00))
-#define Board__GPIO__DR_SET (*(volatile uint32_t*)(0x40000000 + 0x84))
 
 
 void Board__toggleLed(void) {

@@ -326,7 +326,7 @@ void sumArray(const u8 data[], u32 size) {
 3. **Const array parameters** — neither the array nor its elements can be assigned
 4. **Const applies to the value**, not the storage (like C's `const int*` vs `int* const`)
 5. **Const propagates through member access** — `const Point p` means `p.x` is also const
-6. **ro register members are implicitly const** — cannot assign to read-only hardware registers
+6. **ro register members are implicitly const** — cannot assign to read-only hardware registers (E0871, owned by ADR-004)
 
 ### Error Messages
 

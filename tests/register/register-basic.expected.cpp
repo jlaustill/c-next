@@ -3,14 +3,12 @@
  * A safer C for embedded systems
  */
 
+#include "register-basic.test.hpp"
+
 #include <stdint.h>
 
 // ADR-004: Basic register declaration and access
 // Tests: standalone register definition outside of scope
-/* Register: GPIO @ 0x40000000 */
-#define GPIO__DR (*(volatile uint32_t*)(0x40000000 + 0x00))
-#define GPIO__PSR (*(volatile uint32_t const *)(0x40000000 + 0x08))
-
 int main(void) {
     GPIO__DR = 0xFF;
     uint32_t status = GPIO__PSR;

@@ -77,6 +77,18 @@ typedef uint32_t Teensy4__GPIO7Pins;
  */
 typedef uint32_t Teensy4__ICR1Config;
 
+/* Registers (ADR-004) */
+/* Register: Teensy4__GPIO7 @ 0x42004000 */
+#define Teensy4__GPIO7__DataRegister (*(volatile Teensy4__GPIO7Pins*)(0x42004000 + 0x00))
+#define Teensy4__GPIO7__DirectionRegister (*(volatile Teensy4__GPIO7Pins*)(0x42004000 + 0x04))
+#define Teensy4__GPIO7__PadStatusRegister (*(volatile Teensy4__GPIO7Pins const *)(0x42004000 + 0x08))
+#define Teensy4__GPIO7__InterruptConfig1 (*(volatile Teensy4__ICR1Config*)(0x42004000 + 0x0C))
+#define Teensy4__GPIO7__InterruptMaskRegister (*(volatile Teensy4__GPIO7Pins*)(0x42004000 + 0x14))
+#define Teensy4__GPIO7__InterruptStatus (*(volatile Teensy4__GPIO7Pins*)(0x42004000 + 0x18))
+#define Teensy4__GPIO7__DataRegister_Set (*(volatile Teensy4__GPIO7Pins*)(0x42004000 + 0x84))
+#define Teensy4__GPIO7__DataRegister_Clear (*(volatile Teensy4__GPIO7Pins*)(0x42004000 + 0x88))
+#define Teensy4__GPIO7__DataRegister_Toggle (*(volatile Teensy4__GPIO7Pins*)(0x42004000 + 0x8C))
+
 /* External variables */
 extern const uint32_t BLINK_DELAY_MS;
 
@@ -88,6 +100,8 @@ void LED__toggle(void);
 bool LED__isOn(void);
 void LED__configureInterrupt(void);
 void LED__clearInterrupt(void);
+void setup(void);
+void loop(void);
 
 #ifdef __cplusplus
 }

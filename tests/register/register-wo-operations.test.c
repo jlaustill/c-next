@@ -30,12 +30,6 @@ static inline uint32_t cnx_clamp_mul_u32(uint32_t a, uint64_t b) {
 // Tests: Valid write-only register bit operations with various index types
 // Coverage: Section 12 - Register Declaration (write-only bit access)
 // Extracted from: write-only-register-chain.test.cnx.skip
-/* Register: GPIO @ 0x42000000 */
-#define GPIO__DR (*(volatile uint32_t*)(0x42000000 + 0x00))
-#define GPIO__DR_SET (*(volatile uint32_t*)(0x42000000 + 0x84))
-#define GPIO__DR_CLEAR (*(volatile uint32_t*)(0x42000000 + 0x88))
-#define GPIO__DR_TOGGLE (*(volatile uint32_t*)(0x42000000 + 0x8C))
-
 const uint32_t LED_BIT = 3U;
 
 const uint32_t BUTTON_BIT = 7U;

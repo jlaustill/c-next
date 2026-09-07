@@ -23,10 +23,6 @@
 // different handler either: `GLOBAL_REGISTER_BIT` routed to a handler that
 // skips the MMIO byte-aligned-write optimization, so the two spellings of one
 // write to a write-only register emitted different C.
-/* Register: PORT @ 0x40020000 */
-#define PORT__Set (*(volatile uint32_t*)(0x40020000 + 0x08))
-#define PORT__Mode (*(volatile uint32_t*)(0x40020000 + 0x00))
-
 /* Scope: Driver */
 
 void Driver__bareByteAligned(void) {

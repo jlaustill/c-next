@@ -19,9 +19,9 @@ codes that already have a fixture.
 | E05xx     | Include/Preprocessor    | 7      |
 | E06xx     | Sizeof Expressions      | 2      |
 | E07xx     | Control Flow            | 12     |
-| E08xx     | Arithmetic/Array Safety | 29     |
+| E08xx     | Arithmetic/Array Safety | 32     |
 | E09xx     | NULL Safety             | 8      |
-| **Total** |                         | **82** |
+| **Total** |                         | **85** |
 
 ---
 
@@ -255,6 +255,14 @@ include-visibility is not derivable for a C or C++ name.
 | E0867 | Length property not available on this type (ADR-058)                           | `.element_count` needs an array, `.char_count` a string, `.bit_length`/`.byte_length` a sized type               | `TRANSPILE/1-Analyze/LengthPropertyAnalyzer.ts`       |
 | E0868 | Integer literal does not fit the target type's range (ADR-024)                 | Widen the target type, or narrow the value; an unsigned type holds no negative                                   | `TRANSPILE/1-Analyze/IntegerConversionAnalyzer.ts`    |
 | E0869 | Implicit narrowing or sign-changing integer conversion (ADR-024)               | Use bit indexing to say which bits you mean, e.g. `value[0, 8]`                                                  | `TRANSPILE/1-Analyze/IntegerConversionAnalyzer.ts`    |
+
+### Register Access Modifiers (ADR-004)
+
+| Code  | Message                                                    | Help                                                                                                | Source                                          |
+| ----- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| E0870 | Read of a write-only (`wo`) register member                | A `wo` member returns nothing meaningful; read the register's readable member or keep a shadow copy | `TRANSPILE/1-Analyze/RegisterAccessAnalyzer.ts` |
+| E0871 | Write to a read-only (`ro`) register member                | An `ro` member is `const` hardware; write the register's writable member, or change the declaration | `TRANSPILE/1-Analyze/RegisterAccessAnalyzer.ts` |
+| E0872 | Zero assigned to a write-1 (`wo`/`w1s`/`w1c`) register bit | Writing 0 to a write-1 register does not clear the bit; use the corresponding CLEAR register        | `TRANSPILE/1-Analyze/RegisterAccessAnalyzer.ts` |
 
 Each subscript peels one array dimension (ADR-036) and a scalar integer/float may be
 bit-indexed once (ADR-007), so `flags[4][3]` on a scalar `u8` indexes the single bit

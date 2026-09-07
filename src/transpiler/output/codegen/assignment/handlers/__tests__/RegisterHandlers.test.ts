@@ -111,9 +111,7 @@ describe("RegisterHandlers", () => {
       });
       const ctx = createMockContext({ generatedValue: "false" });
 
-      expect(() => getHandler()!(ctx)).toThrow(
-        "Cannot assign false to write-only register bit",
-      );
+      expect(() => getHandler()!(ctx)).toThrow("E0872 rejects");
     });
 
     it("throws on write-only register with 0 value", () => {
@@ -125,9 +123,7 @@ describe("RegisterHandlers", () => {
       });
       const ctx = createMockContext({ generatedValue: "0" });
 
-      expect(() => getHandler()!(ctx)).toThrow(
-        "Cannot assign false to write-only register bit",
-      );
+      expect(() => getHandler()!(ctx)).toThrow("E0872 rejects");
     });
 
     // #1322: compound assignment on a bit index, bit range, slice, bitmap field
@@ -216,9 +212,7 @@ describe("RegisterHandlers", () => {
         generatedValue: "0",
       });
 
-      expect(() => getHandler()!(ctx)).toThrow(
-        "Cannot assign 0 to write-only register bits",
-      );
+      expect(() => getHandler()!(ctx)).toThrow("E0872 rejects");
     });
 
     it("generates MMIO optimization for byte-aligned access", () => {
@@ -337,9 +331,7 @@ describe("RegisterHandlers", () => {
         generatedValue: "false",
       });
 
-      expect(() => getHandler()!(ctx)).toThrow(
-        "Cannot assign false to write-only register bit",
-      );
+      expect(() => getHandler()!(ctx)).toThrow("E0872 rejects");
     });
   });
 
@@ -449,9 +441,7 @@ describe("RegisterHandlers", () => {
         generatedValue: "0",
       });
 
-      expect(() => getHandler()!(ctx)).toThrow(
-        "Cannot assign 0 to write-only register bits",
-      );
+      expect(() => getHandler()!(ctx)).toThrow("E0872 rejects");
     });
   });
 });

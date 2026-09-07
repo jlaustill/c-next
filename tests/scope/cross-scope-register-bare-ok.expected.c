@@ -10,10 +10,6 @@
 // Test: Bare register access from inside a scope should work when NOT shadowed
 // Issue #779: Ambiguity-aware validation - only require global. when shadowed
 // This is the happy path companion to cross-scope-register-bare-error.test.cnx
-/* Register: GPIO @ 0x40000000 */
-#define GPIO__DR (*(volatile uint32_t*)(0x40000000 + 0x00))
-#define GPIO__DIR (*(volatile uint32_t*)(0x40000000 + 0x04))
-
 /* Scope: Motor */
 static uint32_t Motor__speed = 0U;
 

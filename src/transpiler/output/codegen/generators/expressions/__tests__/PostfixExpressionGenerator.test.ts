@@ -886,25 +886,6 @@ describe("PostfixExpressionGenerator", () => {
       expect(result.code).toBe("GPIO__PIN0");
     });
 
-    it("throws for write-only register read", () => {
-      const symbols = createMockSymbols({
-        knownRegisters: new Set(["GPIO"]),
-        registerMemberAccess: new Map([["GPIO__DATA", "wo"]]),
-      });
-      const ctx = createMockPostfixExpressionContext("GPIO", [
-        createMockPostfixOp({ identifier: "DATA" }),
-      ]);
-      const input = createMockInput({ symbols });
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({
-        generatePrimaryExpr: () => "GPIO",
-      });
-
-      expect(() =>
-        generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow("cannot read from write-only register member 'DATA'");
-    });
-
     it("allows register access without global prefix when no naming conflict", () => {
       const symbols = createMockSymbols({
         knownRegisters: new Set(["GPIO"]),

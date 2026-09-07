@@ -616,6 +616,21 @@ class HeaderGeneratorUtils {
   }
 
   /**
+   * #1453 / ADR-004: register accessor section.
+   *
+   * The blocks arrive rendered -- the type qualification and address
+   * expressions they carry are codegen's, and a header-side renderer would be
+   * a second copy of that resolution. A `#define` needs nothing declared before
+   * it, so the section's position is for the reader, beside the types.
+   */
+  static generateRegisterSection(blocks: readonly string[]): string[] {
+    if (blocks.length === 0) {
+      return [];
+    }
+    return ["/* Registers (ADR-004) */", ...blocks];
+  }
+
+  /**
    * Generate extern variable declarations section
    *
    * Uses VariableDeclarationFormatter for consistent formatting with CodeGenerator.

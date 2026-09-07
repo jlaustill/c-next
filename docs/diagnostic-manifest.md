@@ -12,10 +12,16 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-346 fixture(s) assert a diagnostic; 278 carry a code.
+349 fixture(s) assert a diagnostic; 284 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
+| tests/adr-004/register-access-uncovered-arms-error.test.cnx                                      | E0870, E0871, E0872 |
+| tests/adr-004/register-imported-direct-error.test.cnx                                            | E0870, E0871, E0872 |
+| tests/adr-004/register-imported-transitive-error.test.cnx                                        | E0870, E0871, E0872 |
+| tests/adr-004/register-read-wo-error.test.cnx                                                    | E0870               |
+| tests/adr-004/register-wo-set-false-error.test.cnx                                               | E0872               |
+| tests/adr-004/register-write-ro-error.test.cnx                                                   | E0871               |
 | tests/adr-007/slice-bounds-violation.test.cnx                                                    | E0860               |
 | tests/adr-007/slice-imported-direct-error.test.cnx                                               | E0860               |
 | tests/adr-007/slice-imported-transitive-error.test.cnx                                           | E0860               |
@@ -341,9 +347,6 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/preprocessor/nested-ifdef.test.cnx                                                         | (uncoded)           |
 | tests/preprocessor/value-define-error.test.cnx                                                   | E0502               |
 | tests/register/register-bits-syntax-error.test.cnx                                               | (uncoded)           |
-| tests/register/register-read-wo-error.test.cnx                                                   | (uncoded)           |
-| tests/register/register-wo-set-false-error.test.cnx                                              | (uncoded)           |
-| tests/register/register-write-ro-error.test.cnx                                                  | (uncoded)           |
 | tests/scope/nested-scope-error.test.cnx                                                          | E0430               |
 | tests/scope/param-prefix-naming-error.test.cnx                                                   | (uncoded)           |
 | tests/scope/param-prefix-naming-scope-error.test.cnx                                             | (uncoded)           |

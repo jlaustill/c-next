@@ -22,6 +22,11 @@ typedef struct Line {
     Point end;
 } Line;
 
+/* Registers (ADR-004) */
+/* Register: GPIO @ 0x40000000 */
+#define GPIO__DR (*(volatile uint32_t*)(0x40000000 + 0x00))
+#define GPIO__DR_SET (*(volatile uint32_t*)(0x40000000 + 0x84))
+
 /* External variables */
 extern Point points[4];
 extern Line lines[2];

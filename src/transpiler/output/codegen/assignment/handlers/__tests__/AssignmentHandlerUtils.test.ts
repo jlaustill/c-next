@@ -14,7 +14,7 @@ describe("AssignmentHandlerUtils", () => {
   // `BitAccessHandlers`. Covered by
   // `1-Analyze/__tests__/CompoundAssignmentAnalyzer.test.ts`.
 
-  describe("validateWriteOnlyValue", () => {
+  describe("validateWriteOnlyValue (an assertion since #1322: E0872 owns the rule)", () => {
     describe("single bit access", () => {
       it("should not throw for true value", () => {
         expect(() =>
@@ -35,13 +35,13 @@ describe("AssignmentHandlerUtils", () => {
             "5",
             true,
           ),
-        ).toThrow("Cannot assign false to write-only register bit REG[5]");
+        ).toThrow("E0872 rejects");
       });
 
       it("should throw for 0 value", () => {
         expect(() =>
           AssignmentHandlerUtils.validateWriteOnlyValue("0", "REG", "5", true),
-        ).toThrow("Cannot assign false to write-only register bit REG[5]");
+        ).toThrow("E0872 rejects");
       });
     });
 
@@ -65,7 +65,7 @@ describe("AssignmentHandlerUtils", () => {
             "0, 8",
             false,
           ),
-        ).toThrow("Cannot assign 0 to write-only register bits REG[0, 8]");
+        ).toThrow("E0872 rejects");
       });
 
       it("should allow false for bit range (multi-bit)", () => {

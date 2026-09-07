@@ -12,6 +12,13 @@
 extern "C" {
 #endif
 
+/* Registers (ADR-004) */
+/* Register: GPIO7 @ 0x42004000 */
+#define GPIO7__DR (*(volatile uint32_t*)(0x42004000 + 0x00))
+#define GPIO7__DR_SET (*(volatile uint32_t*)(0x42004000 + 0x84))
+#define GPIO7__DR_CLEAR (*(volatile uint32_t*)(0x42004000 + 0x88))
+#define GPIO7__DR_TOGGLE (*(volatile uint32_t*)(0x42004000 + 0x8C))
+
 /* External variables */
 extern const uint32_t LED_BIT;
 extern const uint32_t BLINK_DELAY;

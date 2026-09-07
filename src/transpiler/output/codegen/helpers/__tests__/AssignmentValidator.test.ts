@@ -237,22 +237,6 @@ describe("AssignmentValidator", () => {
       ).toThrow("cannot assign to const variable 'config' (member access)");
     });
 
-    it("should throw for read-only register member", () => {
-      const registerMemberAccess = new Map([["GPIO__PIN", "ro"]]);
-      setupSymbols({ registerMemberAccess });
-      const { target, expression } = parseAssignment("GPIO.PIN");
-
-      expect(() =>
-        AssignmentValidator.validate(
-          target,
-          expression,
-          false,
-          1,
-          defaultCallbacks,
-        ),
-      ).toThrow("cannot assign to read-only register member 'PIN'");
-    });
-
     it("should validate callback assignment for callback field", () => {
       CodeGenState.setVariableTypeInfo("handler", {
         baseType: "Handler",

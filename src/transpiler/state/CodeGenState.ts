@@ -197,6 +197,21 @@ export default class CodeGenState {
   static generatedStructInits: Set<string> = new Set();
 
   /**
+   * #1453 / ADR-004: the accessor `#define` blocks of every register this
+   * file's header defines, rendered by the `.c` generator and printed by the
+   * header verbatim.
+   *
+   * A `#define` cannot be exported from a `.c`, so a register reaches an
+   * including file only through the header. The text is rendered once, where
+   * the ADR-057 type qualification and the address expressions are available
+   * (the register generators), and handed over rather than re-derived from the
+   * symbol -- a header-side renderer would be a second copy of that
+   * resolution. Same shape as `generatedStructInits`: one fact, recorded by the
+   * `.c`, consulted by the `.h`. Cleared per file by `reset()`.
+   */
+  static exportedRegisterBlocks: string[] = [];
+
+  /**
    * ADR-029 / Issues #1200, #1201: every type name referenced by a field or a
    * parameter, wherever it appears -- top-level struct, scope-nested struct,
    * scope member, or function parameter.
@@ -584,6 +599,7 @@ export default class CodeGenState {
     this.callbackTypes = new Map();
     this.callbackFieldTypes = new Map();
     this.generatedStructInits = new Set();
+    this.exportedRegisterBlocks = [];
     this.callbackTypeReferences = new Set();
     this.publicCallbackTypeReferences = new Set();
     this.emittedCallbackTypedefs = new Set();

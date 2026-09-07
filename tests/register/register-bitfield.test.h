@@ -45,6 +45,17 @@ typedef uint8_t UARTStatus;
  */
 typedef uint16_t TimerConfig;
 
+/* Registers (ADR-004) */
+/* Register: UART @ 0x40010000 */
+#define UART__CTRL (*(volatile UARTControl*)(0x40010000 + 0x00))
+#define UART__STATUS (*(volatile UARTStatus const *)(0x40010000 + 0x04))
+#define UART__DATA (*(volatile uint8_t*)(0x40010000 + 0x08))
+
+/* Register: TIMER @ 0x40020000 */
+#define TIMER__CONFIG (*(volatile TimerConfig*)(0x40020000 + 0x00))
+#define TIMER__COUNT (*(volatile uint32_t const *)(0x40020000 + 0x04))
+#define TIMER__RELOAD (*(volatile uint32_t*)(0x40020000 + 0x08))
+
 /* Function prototypes */
 void configureUART(void);
 bool isUARTReady(void);

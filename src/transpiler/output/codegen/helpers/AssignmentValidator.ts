@@ -17,7 +17,6 @@
 import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
 import TypeValidator from "../TypeValidator.js";
 import CodeGenState from "../../../state/CodeGenState.js";
-import QualifiedCName from "../../../../utils/QualifiedCName";
 
 /**
  * Callbacks required for assignment validation.
@@ -165,16 +164,10 @@ class AssignmentValidator {
       throw new Error(`${constError} (member access)`);
     }
 
-    const fullName = QualifiedCName.fromParts([rootName, memberName]);
-
-    // ADR-013: Check for read-only register members
-    const accessMod = CodeGenState.symbols?.registerMemberAccess.get(fullName);
-    if (accessMod === "ro") {
-      throw new Error(
-        `cannot assign to read-only register member '${memberName}' ` +
-          `(${rootName}.${memberName} has 'ro' access modifier)`,
-      );
-    }
+    // #1322: a write to an `ro` register member is E0871 in pass 2.1
+    // (ADR-004). The check that stood here keyed on the first two identifiers,
+    // so `this.R.ST <- 1` on a scoped register passed and emitted an
+    // assignment through a `const` macro.
 
     // ADR-029: Validate callback field assignments with nominal typing
     const rootTypeInfo = CodeGenState.getVariableTypeInfo(rootName);

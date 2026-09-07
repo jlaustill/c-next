@@ -1,0 +1,37 @@
+// test-error
+// test-adr: 004
+// ADR-004, E0871: a read-only (`ro`) register member is written.
+//
+// #1322 relocated this from `output/`, where it reported `1:0`. An assignment
+// is a statement, so it reaches the two function-body contexts; the whole,
+// bit, range and compound forms are each asserted once.
+
+register STATUS_REG @ 0x40000000 {
+    FLAGS: u32 ro @ 0x00,
+    CTRL: u32 rw @ 0x04,
+}
+
+// NEGATIVE CONTROL -- reading the ro member, and writing the rw one in every
+// form the assertions below use.
+u32 okAccess() {
+    STATUS_REG.CTRL <- 0xFF;
+    STATUS_REG.CTRL[3] <- true;
+    STATUS_REG.CTRL[0, 4] <- 5;
+    STATUS_REG.CTRL |<- 1;
+    return STATUS_REG.FLAGS;
+}
+
+// ASSERTION 1 -- top-level function, whole member.
+void main() {
+    STATUS_REG.FLAGS <- 0xFF; // ERROR: cannot assign to read-only
+}
+
+scope Board {
+    // ASSERTION 2 -- scope method: a bit, a range and a compound assignment
+    // are writes too.
+    public void write() {
+        global.STATUS_REG.FLAGS[3] <- true;
+        global.STATUS_REG.FLAGS[0, 4] <- 5;
+        global.STATUS_REG.FLAGS |<- 1;
+    }
+}

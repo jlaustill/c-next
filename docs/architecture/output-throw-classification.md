@@ -53,10 +53,10 @@ as counted at audit time" rather than a literal.
 
 | bucket | meaning                                                                        | count  |
 | ------ | ------------------------------------------------------------------------------ | ------ |
-| **1**  | user-facing diagnostic — belongs in pass 2.1, needs a code and a real position | **52** |
+| **1**  | user-facing diagnostic — belongs in pass 2.1, needs a code and a real position | **48** |
 | **2**  | internal invariant — should never fire for valid input; becomes an assertion   | **0**  |
 | **3**  | dead — unreachable or subsumed; delete                                         | **0**  |
-|        | **total**                                                                      | **52** |
+|        | **total**                                                                      | **48** |
 
 **80% of `output/`'s throws are rejections.** That is the answer to open question 4: Render does
 not own nothing, it currently owns almost all of the rejection surface.
@@ -66,10 +66,10 @@ By area:
 | area                                                                | sites | b1  | b2  | b3  |
 | ------------------------------------------------------------------- | ----- | --- | --- | --- |
 | `codegen/` (root: `CodeGenerator`, `TypeValidator`, `TypeResolver`) | 18    | 18  | 0   | 0   |
-| `codegen/helpers/`                                                  | 11    | 11  | 0   | 0   |
+| `codegen/helpers/`                                                  | 9     | 9   | 0   | 0   |
 | `codegen/generators/**`                                             | 17    | 17  | 0   | 0   |
 | `codegen/subscript/`                                                | 1     | 1   | 0   | 0   |
-| `codegen/assignment/**`, `codegen/resolution/`, `headers/`          | 5     | 5   | 0   | 0   |
+| `codegen/assignment/**`, `codegen/resolution/`, `headers/`          | 3     | 3   | 0   | 0   |
 
 ## Position availability — the finding that shapes #1322
 
@@ -206,7 +206,7 @@ questions and only the first was asked.
   **parse error**, so it never reaches codegen at all. That leaves four live copies plus the
   factory, which is what makes unification tractable.
 
-## Bucket 1 — user-facing diagnostics (52)
+## Bucket 1 — user-facing diagnostics (48)
 
 Each needs a code and a real position in pass 2.1. `code` is the code it already carries, or
 **NEW** where one must be allocated. `position` names the node that is or would be in scope.
@@ -237,23 +237,21 @@ Each needs a code and a real position in pass 2.1. `code` is the code it already
 **13 of these 39 already carry a code**; 26 need one. **12 have no fixture at all.** Three emit a
 real position today -- the `${line}:${col} `-prefixed rows in the table below.
 
-### `codegen/helpers/` — 11
+### `codegen/helpers/` — 9
 
 **Zero carry a code today.** 25 of the 39 have no fixture.
 
-| file:line                       | anchor                                        | message                                       | code      | position source                                                      | fixture                                     |
-| ------------------------------- | --------------------------------------------- | --------------------------------------------- | --------- | -------------------------------------------------------------------- | ------------------------------------------- |
-| `TypeGenerationHelper.ts:70`    | `Cannot use 'this.Type' outside of a scope`   | `this.Type` outside a scope                   | NEW E0426 | thread `accessors.scopedType()!.start` from `dispatchTypeGeneration` | none                                        |
-| `ArrayInitHelper.ts:129`        | `Error: Fill-all syntax`                      | fill-all `[v*]` requires explicit array size  | NEW E0858 | thread `expression.start` from `processArrayInit`                    | none                                        |
-| `ArrayInitHelper.ts:160`        | `Error: Array size mismatch - declared`       | array size mismatch                           | NEW E0857 | `expression.start`                                                   | **orphaned** — see #1361                    |
-| `AssignmentValidator.ts:105`    | `constError`                                  | cannot assign to const variable/parameter     | NEW       | `targetCtx` (`AssignmentTargetContext`, in scope)                    | 26 fixtures under `tests/const/`            |
-| `AssignmentValidator.ts:134`    | `array element`                               | const assign, array element                   | NEW       | `subscriptExprs[0].start` (`line` already a parameter)               | none                                        |
-| `AssignmentValidator.ts:165`    | `member access`                               | const assign, member access                   | NEW       | thread `targetCtx`                                                   | none                                        |
-| `AssignmentValidator.ts:173`    | `cannot assign to read-only register member`  | write to a read-only (`ro`) register member   | NEW       | thread `targetCtx` / `postfixTargetOp`                               | `register/register-write-ro-error`          |
-| `VariableModifierBuilder.ts:82` | `Cannot use both 'atomic' and 'volatile`      | both `atomic` and `volatile`                  | NEW       | `ctx.start` — line already read, column discarded                    | `atomic/atomic-volatile-error`              |
-| `VariableDeclHelper.ts:270`     | `C-style array declaration is not allowed`    | C-style array declaration                     | NEW E0859 | **already carries a real position** from `ctx.start`                 | `array-declaration-syntax/c-style-error` +1 |
-| `VariableDeclHelper.ts:308`     | `Error: C++ class`                            | C++ class with constructor at global scope    | NEW       | `typeCtx.start` (in scope)                                           | `external-types/cpp-class-global-error`     |
-| `MemberAccessValidator.ts:31`   | `cannot read from write-only register member` | read from a write-only (`wo`) register member | NEW       | caller `PostfixExpressionGenerator.ts:1426` holds the ctx            | `register/register-read-wo-error`           |
+| file:line                       | anchor                                      | message                                      | code      | position source                                                      | fixture                                     |
+| ------------------------------- | ------------------------------------------- | -------------------------------------------- | --------- | -------------------------------------------------------------------- | ------------------------------------------- |
+| `TypeGenerationHelper.ts:70`    | `Cannot use 'this.Type' outside of a scope` | `this.Type` outside a scope                  | NEW E0426 | thread `accessors.scopedType()!.start` from `dispatchTypeGeneration` | none                                        |
+| `ArrayInitHelper.ts:129`        | `Error: Fill-all syntax`                    | fill-all `[v*]` requires explicit array size | NEW E0858 | thread `expression.start` from `processArrayInit`                    | none                                        |
+| `ArrayInitHelper.ts:160`        | `Error: Array size mismatch - declared`     | array size mismatch                          | NEW E0857 | `expression.start`                                                   | **orphaned** — see #1361                    |
+| `AssignmentValidator.ts:104`    | `constError`                                | cannot assign to const variable/parameter    | NEW       | `targetCtx` (`AssignmentTargetContext`, in scope)                    | 26 fixtures under `tests/const/`            |
+| `AssignmentValidator.ts:133`    | `array element`                             | const assign, array element                  | NEW       | `subscriptExprs[0].start` (`line` already a parameter)               | none                                        |
+| `AssignmentValidator.ts:164`    | `member access`                             | const assign, member access                  | NEW       | thread `targetCtx`                                                   | none                                        |
+| `VariableModifierBuilder.ts:82` | `Cannot use both 'atomic' and 'volatile`    | both `atomic` and `volatile`                 | NEW       | `ctx.start` — line already read, column discarded                    | `atomic/atomic-volatile-error`              |
+| `VariableDeclHelper.ts:270`     | `C-style array declaration is not allowed`  | C-style array declaration                    | NEW E0859 | **already carries a real position** from `ctx.start`                 | `array-declaration-syntax/c-style-error` +1 |
+| `VariableDeclHelper.ts:308`     | `Error: C++ class`                          | C++ class with constructor at global scope   | NEW       | `typeCtx.start` (in scope)                                           | `external-types/cpp-class-global-error`     |
 
 `VariableDeclHelper.ts:270`'s doc comment still lists "Exceptions (grammar limitations)" the code
 no longer honours — it throws unconditionally once `arrayDimension().length > 0` (#1014–#1017).
@@ -270,15 +268,15 @@ no longer honours — it throws unconditionally once `arrayDimension().length > 
 | `support/IncludeGenerator.ts:111`        | `E0501: Function-like macro`                     | function-like macro not allowed                                                               | E0501     | `ctx` (`DefineDirectiveContext`) — line read, appended as `Line 7` prose                                     | `preprocessor/function-macro-error`                     |
 | `support/IncludeGenerator.ts:121`        | `E0502: #define with value`                      | `#define` with value not allowed                                                              | E0502     | same prose defect                                                                                            | `preprocessor/value-define-error`                       |
 | `expressions/BitmapAccessHelper.ts:49`   | `Error: Unknown bitmap field`                    | unknown bitmap field                                                                          | NEW E0426 | none — `IMemberAccessContext` carries no node; thread the owning `PostfixOpContext`                          | none                                                    |
-| `expressions/AccessExprGenerator.ts:31`  | `Error: .capacity is only available on string`   | `.capacity` only on string types — **also fires when it _is_ a string with unknown capacity** | NEW E06xx | thread `PostfixOpContext` from `PostfixExpressionGenerator.ts:659`                                           | none                                                    |
+| `expressions/AccessExprGenerator.ts:31`  | `Error: .capacity is only available on string`   | `.capacity` only on string types — **also fires when it _is_ a string with unknown capacity** | NEW E06xx | thread `PostfixOpContext` from `PostfixExpressionGenerator.ts:658`                                           | none                                                    |
 | `expressions/AccessExprGenerator.ts:46`  | `Error: .size is only available on string types` | `.size` only on string types                                                                  | NEW E06xx | same, from `:672`                                                                                            | none                                                    |
 | `expressions/CallExprGenerator.ts:371`   | `requires exactly 4 arguments: output`           | `safe_div`/`safe_mod` needs exactly 4 arguments (ADR-051)                                     | NEW       | `argExprs[0].start`, or `ArgumentListContext` at `:268`                                                      | none                                                    |
 | `expressions/CallExprGenerator.ts:379`   | `requires a variable as the first argument`      | first argument must be a variable (output parameter)                                          | NEW       | `argExprs[0].start`                                                                                          | none                                                    |
 | `expressions/CallExprGenerator.ts:387`   | `Cannot determine type of output parameter`      | cannot determine output parameter type — **really an undeclared identifier**                  | NEW       | `argExprs[0].start`                                                                                          | none                                                    |
 | `expressions/CallExprGenerator.ts:443`   | `cannot pass const`                              | cannot pass const to a non-const parameter (ADR-013)                                          | NEW       | `argExprs[argIdx].start`                                                                                     | none                                                    |
-| `…/PostfixExpressionGenerator.ts:628`    | `is deprecated. Use explicit properties`         | `.length` deprecated (ADR-058)                                                                | NEW E06xx | `PostfixOpContext` not threaded                                                                              | `errors/length-property-deprecated`                     |
-| `…/PostfixExpressionGenerator.ts:1759`   | `Cannot use bracket indexing on bitmap type`     | bracket indexing on a bitmap (ADR-034)                                                        | NEW       | **`ctx.op.start` available and already read**, spent on `Error at line 45:` prose — cheapest site to convert | `bitmap/bitmap-bracket-indexing-error`                  |
-| `…/PostfixExpressionGenerator.ts:1976`   | `Float bit indexing reads`                       | float bit-range read at global scope                                                          | NEW E08xx | `IFloatBitRangeContext` carries no node; the subscript `op` is available upstream                            | none                                                    |
+| `…/PostfixExpressionGenerator.ts:627`    | `is deprecated. Use explicit properties`         | `.length` deprecated (ADR-058)                                                                | NEW E06xx | `PostfixOpContext` not threaded                                                                              | `errors/length-property-deprecated`                     |
+| `…/PostfixExpressionGenerator.ts:1751`   | `Cannot use bracket indexing on bitmap type`     | bracket indexing on a bitmap (ADR-034)                                                        | NEW       | **`ctx.op.start` available and already read**, spent on `Error at line 45:` prose — cheapest site to convert | `bitmap/bitmap-bracket-indexing-error`                  |
+| `…/PostfixExpressionGenerator.ts:1968`   | `Float bit indexing reads`                       | float bit-range read at global scope                                                          | NEW E08xx | `IFloatBitRangeContext` carries no node; the subscript `op` is available upstream                            | none                                                    |
 
 **32 of the 41 in this area are unpinned**, including all 23 ADR-058 property diagnostics except
 `:623`, the ADR-013 const rule, and all four `safe_div`/`safe_mod` checks.
@@ -289,19 +287,17 @@ fire on an **undeclared identifier**, not on property misuse. The honest fix is 
 undefined-identifier diagnostic in symbol resolution; allocating five per-property codes would
 bake in a wrong diagnosis.
 
-### `codegen/assignment/**`, `codegen/resolution/`, `headers/` — 5
+### `codegen/assignment/**`, `codegen/resolution/`, `headers/` — 3
 
 Attribution here was established by proxying `Error` construction and reading the constructing
 stack frame, not by matching message text — necessary because three messages in this area are
 byte-identical across sites.
 
-| file:line                               | anchor                                           | message                                                      | code  | position source                                                   | fixture                                |
-| --------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------ | ----- | ----------------------------------------------------------------- | -------------------------------------- |
-| `headers/BaseHeaderGenerator.ts:79`     | `is a typedef of a pointer declared in another`  | typedef of a pointer declared in another header              | E0505 | `origin.sourceLine` (`IHeaderSymbol`) — no parse tree exists      | none                                   |
-| `resolution/SizeofResolver.ts:154`      | `Error[E0601]: sizeof() on array parameter`      | `sizeof()` on an array parameter (ADR-023)                   | E0601 | none in `throwArrayParamSizeofError(varName)`; thread from `:172` | `sizeof/array-param-error` +1          |
-| `resolution/SizeofResolver.ts:178`      | `Error[E0602]: sizeof() operand must not have`   | `sizeof()` operand has side effects (MISRA 13.6)             | E0602 | `expr` **is already the parameter** — position available, unused  | `sizeof/side-effects-error` +1         |
-| `handlers/AssignmentHandlerUtils.ts:41` | `Cannot assign false to write-only register bit` | cannot assign `false` to a write-only register bit (ADR-013) | NEW   | thread `ctx.valueCtx` from `RegisterHandlers.ts:39/78/139/184`    | `register/register-wo-set-false-error` |
-| `handlers/AssignmentHandlerUtils.ts:47` | `Cannot assign 0 to write-only register bits`    | cannot assign `0` to write-only register bits                | NEW   | same                                                              | none                                   |
+| file:line                           | anchor                                          | message                                          | code  | position source                                                   | fixture                        |
+| ----------------------------------- | ----------------------------------------------- | ------------------------------------------------ | ----- | ----------------------------------------------------------------- | ------------------------------ |
+| `headers/BaseHeaderGenerator.ts:79` | `is a typedef of a pointer declared in another` | typedef of a pointer declared in another header  | E0505 | `origin.sourceLine` (`IHeaderSymbol`) — no parse tree exists      | none                           |
+| `resolution/SizeofResolver.ts:154`  | `Error[E0601]: sizeof() on array parameter`     | `sizeof()` on an array parameter (ADR-023)       | E0601 | none in `throwArrayParamSizeofError(varName)`; thread from `:172` | `sizeof/array-param-error` +1  |
+| `resolution/SizeofResolver.ts:178`  | `Error[E0602]: sizeof() operand must not have`  | `sizeof()` operand has side effects (MISRA 13.6) | E0602 | `expr` **is already the parameter** — position available, unused  | `sizeof/side-effects-error` +1 |
 
 The 13 `ArrayHandlers` slice sites **already smuggle a position through the message string** as a
 `${line}:0` prefix that a downstream layer parses — which is why

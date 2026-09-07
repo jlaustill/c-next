@@ -10,9 +10,6 @@
 // Tests: Memory access width must match bit-range width (Issue #187)
 // For embedded systems, the memory access WIDTH matters for hardware behavior
 // u32 register with different access widths
-/* Register: REG32 @ 0x40000000 */
-#define REG32__DR (*(volatile uint32_t*)(0x40000000 + 0x00))
-
 // Write full 32 bits - should use uint32_t*
 void write32(uint32_t data) {
     REG32__DR = data;

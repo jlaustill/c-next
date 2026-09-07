@@ -270,7 +270,18 @@ static inline void GPIOA_ICR1_set_ICR0(uint8_t value) {
 | `w1c`    | Write-1-to-Clear | Special handling          |
 | `w1s`    | Write-1-to-Set   | Special handling          |
 
-Attempting to write to a `ro` register or read from a `wo` register would be a **compile-time error**.
+Attempting to write to a `ro` register or read from a `wo` register is a
+**compile-time error** (E0871, E0870 -- see Diagnostics below). A compound
+assignment (`+<-` and the others) reads its target, so it is a read of a `wo`
+member as well as a write.
+
+A **zero written to a single bit or bit range** of a write-1 member (`wo`,
+`w1s`, `w1c`) is also rejected (E0872): the hardware ignores zeros, so
+`REG.SET[3] <- false` cannot clear bit 3 and the author almost certainly wanted
+the corresponding CLEAR register. The rule is about the VALUE, not its spelling:
+`0`, `0x0`, `0b0`, `false` and a `const` that evaluates to zero are all the same
+zero. A zero written to the whole member (`REG.SET <- 0`) is accepted -- a
+write-only data or command register takes zero as a value.
 
 #### 2. Bitfield Safety
 
@@ -391,6 +402,72 @@ If done right, this could be C-Next's standout feature:
 3. **Research linker symbol approach** — For MISRA-compliant address binding
 4. **Survey embedded developers** — What features matter most?
 5. **Design SVD import tool** — Automatic generation from vendor files
+
+---
+
+## Diagnostics
+
+| Code  | Reported when                                                                                  | Asserted by                                          |
+| ----- | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| E0870 | A `wo` member is read -- as an operand, an initializer, or the target of a compound assignment | `tests/adr-004/register-read-wo-error.test.cnx`      |
+| E0871 | An `ro` member is written -- whole, a bit, a bit range, or through a compound assignment       | `tests/adr-004/register-write-ro-error.test.cnx`     |
+| E0872 | A single bit or bit range of a `wo`/`w1s`/`w1c` member is assigned a compile-time zero         | `tests/adr-004/register-wo-set-false-error.test.cnx` |
+
+Each rule applies to every spelling of the member: `R.M`, `this.R.M`,
+`global.R.M`, `Scope.R.M` and `global.Scope.R.M` name the same hardware, so the
+same rule answers for all of them. Until #1322 the three rules each resolved the
+spelling on their own, and the scoped forms of a write to an `ro` member were
+accepted -- the generated C then assigned through a `const` qualified access,
+which the C compiler rejected instead of C-Next. `E0871` is the register half of
+ADR-013's "read-only register members are implicitly const".
+
+Every offense in a file is reported, each at the position of the access that
+commits it.
+
+### Where the accessors live
+
+A register's accessors are `#define`s, and a `#define` can only be shared
+through a header. So a register that is part of a file's public interface -- a
+file-scope register, or a `public` one inside a scope -- is emitted into the
+file's generated header, and a file that `#include`s the declaring `.cnx` uses
+it exactly as the declaring file does. A private scoped register stays in the
+implementation file, as a private scope variable does. A public register whose
+member is typed by a private bitmap carries that bitmap's definition into the
+header with it, since the accessor names the type (#1453).
+
+Until #1453 the accessors were written to the implementation file for every
+register, so the board file that ADR-004 exists for could not be included: the
+consumer reported the register as undefined.
+
+## Scope-Context Matrix (#1219)
+
+Severity follows the eslint model: `off` records that a cell **cannot exist** for
+this feature, `warn` that it should be covered and is not, `error` that it must be.
+Undeclared cells are `off`.
+
+A register access is an expression or an assignment, and an expression can stand
+in a declaration initializer as well as in a function body, so every context is
+reachable. The rules read the member's access modifier from where the register is
+DECLARED, and a register declared in an included file is as much hardware as one
+declared here, so the imported columns are declared `error` and asserted by
+fixtures that reach the register across one and two include hops.
+
+<!-- MATRIX-SEVERITY -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| scope member       | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| top-level function | same file           | error    |
+| scope member       | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | error    |
+| top-level function | imported direct     | error    |
+| scope member       | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | error    |
+| top-level function | imported transitive | error    |
 
 ---
 

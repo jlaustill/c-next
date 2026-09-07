@@ -25,12 +25,6 @@ extern const uint32_t LED_BIT = 3U;
 
 extern const uint32_t BLINK_DELAY = 1000U;
 
-/* Register: GPIO7 @ 0x42004000 */
-#define GPIO7__DR (*(volatile uint32_t*)(0x42004000 + 0x00))
-#define GPIO7__DR_SET (*(volatile uint32_t*)(0x42004000 + 0x84))
-#define GPIO7__DR_CLEAR (*(volatile uint32_t*)(0x42004000 + 0x88))
-#define GPIO7__DR_TOGGLE (*(volatile uint32_t*)(0x42004000 + 0x8C))
-
 /* Scope: LED */
 
 void LED__on(void) {

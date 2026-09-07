@@ -2547,6 +2547,9 @@ class Transpiler {
         // enforces, so a live reference here would be correct only by
         // coincidence with reset()'s current implementation.
         generatedStructInits: new Set(CodeGenState.generatedStructInits),
+        // #1453: same contract, same reason -- copied at capture, never read
+        // live by the render.
+        registerBlocks: [...CodeGenState.exportedRegisterBlocks],
         externalTypeHeaders,
         cppMode: this.cppMode,
         // #1517: 2.2 Plan decides; the header generator prints. Possible only

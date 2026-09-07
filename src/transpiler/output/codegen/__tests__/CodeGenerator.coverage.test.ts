@@ -546,9 +546,17 @@ describe("CodeGenerator Coverage Tests", () => {
         }
       `;
       const { code } = setupGenerator(source);
-      expect(code).toContain("GPIO__PORTA");
+      // The member write lands in the .c; the accessor block itself is
+      // recorded for the header, which is the only file a #define can be
+      // exported from (#1453).
+      expect(code).toContain("GPIO__PORTA__DR = val");
+      expect(code).not.toContain("#define GPIO__PORTA__DR");
+      const block = CodeGenState.exportedRegisterBlocks.join("\n");
+      expect(block).toContain("/* Register: GPIO__PORTA @ 0x40000000 */");
       // Address format is 0x40000000 + 0x00
-      expect(code).toContain("0x40000000");
+      expect(block).toContain(
+        "#define GPIO__PORTA__DR (*(volatile uint32_t*)(0x40000000 + 0x00))",
+      );
     });
   });
 

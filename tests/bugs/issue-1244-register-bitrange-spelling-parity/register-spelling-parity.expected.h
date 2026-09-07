@@ -10,6 +10,11 @@
 extern "C" {
 #endif
 
+/* Registers (ADR-004) */
+/* Register: PORT @ 0x40020000 */
+#define PORT__Set (*(volatile uint32_t*)(0x40020000 + 0x08))
+#define PORT__Mode (*(volatile uint32_t*)(0x40020000 + 0x00))
+
 /* Function prototypes */
 void Driver__bareByteAligned(void);
 void Driver__globalByteAligned(void);
