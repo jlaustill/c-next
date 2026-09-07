@@ -265,36 +265,9 @@ class TypeValidator {
   // Const Assignment Validation (ADR-013)
   // ========================================================================
 
-  static checkConstAssignment(identifier: string): string | null {
-    const paramInfo = CodeGenState.currentParameters.get(identifier);
-    if (paramInfo?.isConst) {
-      return `cannot assign to const parameter '${identifier}'`;
-    }
-
-    const scopedName = CodeGenState.resolveIdentifier(identifier);
-
-    const typeInfo = CodeGenState.getVariableTypeInfo(scopedName);
-    if (typeInfo?.isConst) {
-      return `cannot assign to const variable '${identifier}'`;
-    }
-
-    return null;
-  }
-
-  static isConstValue(identifier: string): boolean {
-    const paramInfo = CodeGenState.currentParameters.get(identifier);
-    if (paramInfo?.isConst) {
-      return true;
-    }
-
-    const typeInfo = CodeGenState.getVariableTypeInfo(identifier);
-    if (typeInfo?.isConst) {
-      return true;
-    }
-
-    return false;
-  }
-
+  // #1322: ADR-013's `checkConstAssignment` and `isConstValue` are E0877 and
+  // E0878 in pass 2.1, decided once from the frames and the program's symbols
+  // rather than from `currentParameters` and the type registry.
   /**
    * @param line Source line of the reference, when the caller has one. Used only
    *   to record #1241 provenance: an ADR-057 resolution is invisible to the

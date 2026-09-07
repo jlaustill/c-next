@@ -19,9 +19,9 @@ codes that already have a fixture.
 | E05xx     | Include/Preprocessor    | 7      |
 | E06xx     | Sizeof Expressions      | 2      |
 | E07xx     | Control Flow            | 12     |
-| E08xx     | Arithmetic/Array Safety | 36     |
+| E08xx     | Arithmetic/Array Safety | 38     |
 | E09xx     | NULL Safety             | 8      |
-| **Total** |                         | **89** |
+| **Total** |                         | **91** |
 
 ---
 
@@ -284,6 +284,13 @@ base: bare, `this.` and `global.`.
 | E0874 | C-style array declaration or parameter (dimensions after the name) | Put every dimension in the type: `u8[4] arr`, not `u8 arr[4]`            | `TRANSPILE/1-Analyze/ArrayDeclarationAnalyzer.ts` |
 | E0875 | Unbounded array parameter                                          | Write every dimension's size; the callee can trust only what is declared | `TRANSPILE/1-Analyze/ArrayDeclarationAnalyzer.ts` |
 | E0876 | Fill-all initializer on an array whose size is inferred            | An inferred size is counted from a list; write the dimension for `[v*]`  | `TRANSPILE/1-Analyze/ArrayDeclarationAnalyzer.ts` |
+
+### Const Enforcement (ADR-013)
+
+| Code  | Message                                                                             | Help                                                         | Source                                           |
+| ----- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------ |
+| E0877 | Assignment to a `const` variable or parameter, whole or through an element or field | Remove `const` from the declaration if the value must change | `TRANSPILE/1-Analyze/ConstAssignmentAnalyzer.ts` |
+| E0878 | A `const` value passed to a function's non-const parameter                          | Declare the parameter `const`, or pass a mutable copy        | `TRANSPILE/1-Analyze/ConstAssignmentAnalyzer.ts` |
 
 ## E09xx — NULL Safety (ADR-046)
 

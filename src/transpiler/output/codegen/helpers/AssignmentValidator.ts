@@ -74,10 +74,8 @@ class AssignmentValidator {
       }
     }
 
-    // Case 2: Has subscripts - validate array bounds
-    if (subscriptExprs.length > 0 && identifiers.length > 0) {
-      AssignmentValidator.validateArrayElement(identifiers[0]);
-    }
+    // #1322: an array element target has nothing left to check here -- const
+    // (E0877) and bounds (E0854) are pass 2.1 rules.
 
     // Case 3: Has member access - validate member access
     if (identifiers.length >= 2) {
@@ -93,11 +91,7 @@ class AssignmentValidator {
    * Validate simple identifier assignment.
    */
   private static validateSimpleIdentifier(id: string): void {
-    // ADR-013: Validate const assignment
-    const constError = TypeValidator.checkConstAssignment(id);
-    if (constError) {
-      throw new Error(constError);
-    }
+    // #1322: ADR-013's const enforcement is E0877 in pass 2.1.
 
     // Invalidate float shadow when variable is assigned directly
     const shadowName = `__bits_${id}`;
@@ -111,19 +105,6 @@ class AssignmentValidator {
     // #1322: ADR-024's assignment rules are E0868/E0869 in pass 2.1. What
     // stood here caught the rule's throw and prefixed `${line}:${col}` onto it --
     // the position smuggled through the message on this path and not the cast's.
-  }
-
-  /**
-   * Validate array element assignment.
-   */
-  private static validateArrayElement(arrayName: string): void {
-    // ADR-013: Validate const assignment on array
-    const constError = TypeValidator.checkConstAssignment(arrayName);
-    if (constError) {
-      throw new Error(`${constError} (array element)`);
-    }
-
-    // #1322: constant index bounds (ADR-036, E0854) are checked in pass 2.1.
   }
 
   /**
@@ -141,11 +122,7 @@ class AssignmentValidator {
     const rootName = identifiers[0];
     const memberName = identifiers[1];
 
-    // ADR-013: Validate const assignment on struct root
-    const constError = TypeValidator.checkConstAssignment(rootName);
-    if (constError) {
-      throw new Error(`${constError} (member access)`);
-    }
+    // #1322: ADR-013's const enforcement is E0877 in pass 2.1.
 
     // #1322: a write to an `ro` register member is E0871 in pass 2.1
     // (ADR-004). The check that stood here keyed on the first two identifiers,

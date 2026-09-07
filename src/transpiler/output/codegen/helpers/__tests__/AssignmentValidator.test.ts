@@ -70,7 +70,6 @@ function setupSymbols(
 
 describe("AssignmentValidator", () => {
   beforeEach(() => {
-    vi.spyOn(TypeValidator, "checkConstAssignment").mockReturnValue(null);
     vi.spyOn(TypeValidator, "validateCallbackAssignment").mockImplementation(
       () => {},
     );
@@ -87,39 +86,6 @@ describe("AssignmentValidator", () => {
   // spy in `beforeEach` stubbed it. Gone with the method; ADR-024's rules are
   // E0868/E0869 in pass 2.1. Deleted rather than emptied.
   describe("validate() - simple identifier", () => {
-    it("should check const assignment for simple identifier", () => {
-      const { target, expression } = parseAssignment("counter");
-
-      AssignmentValidator.validate(
-        target,
-        expression,
-        false,
-        1,
-        defaultCallbacks,
-      );
-
-      expect(TypeValidator.checkConstAssignment).toHaveBeenCalledWith(
-        "counter",
-      );
-    });
-
-    it("should throw when assigning to const variable", () => {
-      vi.mocked(TypeValidator.checkConstAssignment).mockReturnValue(
-        "cannot assign to const variable 'x'",
-      );
-      const { target, expression } = parseAssignment("x");
-
-      expect(() =>
-        AssignmentValidator.validate(
-          target,
-          expression,
-          false,
-          1,
-          defaultCallbacks,
-        ),
-      ).toThrow("cannot assign to const variable 'x'");
-    });
-
     it("should invalidate float shadow on assignment", () => {
       CodeGenState.floatShadowCurrent.add("__bits_myFloat");
       const { target, expression } = parseAssignment("myFloat");
@@ -143,71 +109,7 @@ describe("AssignmentValidator", () => {
     // and checks nothing.
   });
 
-  describe("validate() - array element", () => {
-    it("should check const assignment for array", () => {
-      const { target, expression } = parseAssignment("arr[0]");
-
-      AssignmentValidator.validate(
-        target,
-        expression,
-        false,
-        1,
-        defaultCallbacks,
-      );
-
-      expect(TypeValidator.checkConstAssignment).toHaveBeenCalledWith("arr");
-    });
-
-    it("should throw with 'array element' suffix for const array", () => {
-      vi.mocked(TypeValidator.checkConstAssignment).mockReturnValue(
-        "cannot assign to const variable 'arr'",
-      );
-      const { target, expression } = parseAssignment("arr[0]");
-
-      expect(() =>
-        AssignmentValidator.validate(
-          target,
-          expression,
-          false,
-          1,
-          defaultCallbacks,
-        ),
-      ).toThrow("cannot assign to const variable 'arr' (array element)");
-    });
-  });
-
   describe("validate() - member access", () => {
-    it("should check const assignment for struct root", () => {
-      const { target, expression } = parseAssignment("config.value");
-
-      AssignmentValidator.validate(
-        target,
-        expression,
-        false,
-        1,
-        defaultCallbacks,
-      );
-
-      expect(TypeValidator.checkConstAssignment).toHaveBeenCalledWith("config");
-    });
-
-    it("should throw with 'member access' suffix for const struct", () => {
-      vi.mocked(TypeValidator.checkConstAssignment).mockReturnValue(
-        "cannot assign to const variable 'config'",
-      );
-      const { target, expression } = parseAssignment("config.value");
-
-      expect(() =>
-        AssignmentValidator.validate(
-          target,
-          expression,
-          false,
-          1,
-          defaultCallbacks,
-        ),
-      ).toThrow("cannot assign to const variable 'config' (member access)");
-    });
-
     it("should validate callback assignment for callback field", () => {
       CodeGenState.setVariableTypeInfo("handler", {
         baseType: "Handler",

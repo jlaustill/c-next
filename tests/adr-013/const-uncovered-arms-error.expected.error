@@ -1,0 +1,22 @@
+30:24 error[E0878]: cannot pass const 'K' to non-const parameter 'v' of function 'echo'
+       help: The callee may write through that parameter; declare it `const` in the callee, or pass a mutable copy (ADR-013).
+50:4 error[E0877]: cannot assign to const parameter 'table' (array element)
+       help: A const parameter is read-only for the whole function (ADR-013); remove `const` from the parameter if the function must change it.
+51:4 error[E0877]: cannot assign to const parameter 'cfg' (member access)
+       help: A const parameter is read-only for the whole function (ADR-013); remove `const` from the parameter if the function must change it.
+57:4 error[E0877]: cannot assign to const variable 'cfg' (member access)
+       help: A const binding is read-only after its declaration (ADR-013); remove `const` if the value must change.
+59:9 error[E0877]: cannot assign to const variable 'K'
+       help: A const binding is read-only after its declaration (ADR-013); remove `const` if the value must change.
+59:24 error[E0877]: cannot assign to const variable 'K'
+       help: A const binding is read-only after its declaration (ADR-013); remove `const` if the value must change.
+61:9 error[E0878]: cannot pass const 'K' to non-const parameter 'v' of function 'take'
+       help: The callee may write through that parameter; declare it `const` in the callee, or pass a mutable copy (ADR-013).
+69:22 error[E0878]: cannot pass const 'K' to non-const parameter 'v' of function 'echo'
+       help: The callee may write through that parameter; declare it `const` in the callee, or pass a mutable copy (ADR-013).
+78:8 error[E0877]: cannot assign to const variable 'STEP'
+       help: A const binding is read-only after its declaration (ADR-013); remove `const` if the value must change.
+79:8 error[E0877]: cannot assign to const variable 'K'
+       help: A const binding is read-only after its declaration (ADR-013); remove `const` if the value must change.
+80:18 error[E0878]: cannot pass const 'this.STEP' to non-const parameter 'v' of function 'bump'
+       help: The callee may write through that parameter; declare it `const` in the callee, or pass a mutable copy (ADR-013).

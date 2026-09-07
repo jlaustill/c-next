@@ -1,0 +1,19 @@
+// test-error
+// ADR-013: Error - assigning to const bool parameter
+// Tests: cannot modify const parameter
+// test-adr: 013
+
+// NEGATIVE CONTROL -- a mutable sibling assigned and passed the same way
+// the const one is; only the const target below is reported.
+u8 ctlMutable <- 0;
+void ctlTake(u8 v) {
+    v <- 1;
+}
+void ctlAssign() {
+    ctlMutable <- 1;
+    ctlMutable +<- 1;
+    ctlTake(ctlMutable);
+}
+void setFlag(const bool flag) {
+    flag <- false; // ERROR: cannot assign to const parameter
+}

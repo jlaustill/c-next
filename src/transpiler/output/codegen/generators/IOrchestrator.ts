@@ -119,9 +119,6 @@ interface IOrchestrator {
     targetParamBaseType?: string,
   ): string;
 
-  /** Check if a value is const (for const-to-non-const validation) */
-  isConstValue(name: string): boolean;
-
   /** Get known enums set for pass-by-value detection */
   getKnownEnums(): ReadonlySet<string>;
 

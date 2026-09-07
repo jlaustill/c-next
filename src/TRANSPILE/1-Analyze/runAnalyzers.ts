@@ -33,6 +33,7 @@ import RegisterAccessAnalyzer from "./RegisterAccessAnalyzer";
 import BareEnumMemberAnalyzer from "./BareEnumMemberAnalyzer";
 import ArrayDeclarationAnalyzer from "./ArrayDeclarationAnalyzer";
 import ArrayIndexBoundsAnalyzer from "./ArrayIndexBoundsAnalyzer";
+import ConstAssignmentAnalyzer from "./ConstAssignmentAnalyzer";
 import LoopAnalyzer from "./LoopAnalyzer";
 import SliceAssignmentAnalyzer from "./SliceAssignmentAnalyzer";
 import ControllingExpressionAnalyzer from "./ControllingExpressionAnalyzer";
@@ -319,6 +320,10 @@ function runAnalyzers(
     {
       label: "constant array index bounds (ADR-036, E0854)",
       run: () => new ArrayIndexBoundsAnalyzer().analyze(tree),
+    },
+    {
+      label: "const enforcement (ADR-013, E0877/E0878)",
+      run: () => new ConstAssignmentAnalyzer().analyze(tree),
     },
     {
       // Last, and does not halt: comment findings are reported alongside

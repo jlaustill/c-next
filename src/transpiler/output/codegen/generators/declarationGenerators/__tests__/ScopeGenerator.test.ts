@@ -460,7 +460,6 @@ function createMockOrchestrator(
     recordCallbackTypedef: vi.fn(),
     getCallbackTypedefName: vi.fn(() => null),
     generateCallbackTypedef: vi.fn(() => null),
-    isConstValue: vi.fn(() => true),
     tryEvaluateConstant: vi.fn(() => undefined),
     // Issue #948: Opaque type helpers
     isOpaqueType: vi.fn(() => false),
@@ -913,7 +912,6 @@ describe("ScopeGenerator", () => {
       const state = createMockState();
       const orchestrator = createMockOrchestrator({
         ...createMockOrchestrator(),
-        isConstValue: vi.fn(() => true),
       });
 
       const result = generateScope(ctx, input, state, orchestrator);
@@ -945,7 +943,6 @@ describe("ScopeGenerator", () => {
       const state = createMockState();
       const orchestrator = createMockOrchestrator({
         ...createMockOrchestrator(),
-        isConstValue: vi.fn(() => true),
       });
 
       const result = generateScope(ctx, input, state, orchestrator);

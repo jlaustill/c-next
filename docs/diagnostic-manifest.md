@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-356 fixture(s) assert a diagnostic; 308 carry a code.
+359 fixture(s) assert a diagnostic; 337 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -34,6 +34,35 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-007/slice-silent-overflow.test.cnx                                                     | E0859               |
 | tests/adr-007/slice-wide-element-span-error.test.cnx                                             | E0860               |
 | tests/adr-007/slice-zero-length.test.cnx                                                         | E0860               |
+| tests/adr-013/const-assign-error.test.cnx                                                        | E0877               |
+| tests/adr-013/const-bool-assign-error.test.cnx                                                   | E0877               |
+| tests/adr-013/const-bool-param-assign-error.test.cnx                                             | E0877               |
+| tests/adr-013/const-compound-assign-error.test.cnx                                               | E0877               |
+| tests/adr-013/const-compound-f32-error.test.cnx                                                  | E0877               |
+| tests/adr-013/const-compound-f64-error.test.cnx                                                  | E0877               |
+| tests/adr-013/const-compound-i16-error.test.cnx                                                  | E0877               |
+| tests/adr-013/const-compound-i64-error.test.cnx                                                  | E0877               |
+| tests/adr-013/const-compound-i8-error.test.cnx                                                   | E0877               |
+| tests/adr-013/const-compound-u16-error.test.cnx                                                  | E0877               |
+| tests/adr-013/const-compound-u64-error.test.cnx                                                  | E0877               |
+| tests/adr-013/const-f32-assign-error.test.cnx                                                    | E0877               |
+| tests/adr-013/const-f32-param-assign-error.test.cnx                                              | E0877               |
+| tests/adr-013/const-f64-assign-error.test.cnx                                                    | E0877               |
+| tests/adr-013/const-f64-param-assign-error.test.cnx                                              | E0877               |
+| tests/adr-013/const-i16-assign-error.test.cnx                                                    | E0877               |
+| tests/adr-013/const-i16-param-assign-error.test.cnx                                              | E0877               |
+| tests/adr-013/const-i64-assign-error.test.cnx                                                    | E0877               |
+| tests/adr-013/const-i64-param-assign-error.test.cnx                                              | E0877               |
+| tests/adr-013/const-i8-assign-error.test.cnx                                                     | E0877               |
+| tests/adr-013/const-i8-param-assign-error.test.cnx                                               | E0877               |
+| tests/adr-013/const-imported-direct-error.test.cnx                                               | E0877, E0878        |
+| tests/adr-013/const-imported-transitive-error.test.cnx                                           | E0877, E0878        |
+| tests/adr-013/const-param-assign-error.test.cnx                                                  | E0877               |
+| tests/adr-013/const-u16-assign-error.test.cnx                                                    | E0877               |
+| tests/adr-013/const-u16-param-assign-error.test.cnx                                              | E0877               |
+| tests/adr-013/const-u64-assign-error.test.cnx                                                    | E0877               |
+| tests/adr-013/const-u64-param-assign-error.test.cnx                                              | E0877               |
+| tests/adr-013/const-uncovered-arms-error.test.cnx                                                | E0877, E0878        |
 | tests/adr-016/cross-scope-bare-error.test.cnx                                                    | E0436               |
 | tests/adr-016/cross-scope-register-bare-error.test.cnx                                           | E0437               |
 | tests/adr-016/mixed-access-ultimate-error.test.cnx                                               | E0435, E0436        |
@@ -280,32 +309,6 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/comments/misra-3-2-backslash.test.cnx                                                      | MISRA-3.2           |
 | tests/compound-assign/bit-index-compound.test.cnx                                                | E0857               |
 | tests/compound-assign/struct-field-bit-index-compound.test.cnx                                   | E0857               |
-| tests/const/const-assign-error.test.cnx                                                          | (uncoded)           |
-| tests/const/const-bool-assign-error.test.cnx                                                     | (uncoded)           |
-| tests/const/const-bool-param-assign-error.test.cnx                                               | (uncoded)           |
-| tests/const/const-compound-assign-error.test.cnx                                                 | (uncoded)           |
-| tests/const/const-compound-f32-error.test.cnx                                                    | (uncoded)           |
-| tests/const/const-compound-f64-error.test.cnx                                                    | (uncoded)           |
-| tests/const/const-compound-i16-error.test.cnx                                                    | (uncoded)           |
-| tests/const/const-compound-i64-error.test.cnx                                                    | (uncoded)           |
-| tests/const/const-compound-i8-error.test.cnx                                                     | (uncoded)           |
-| tests/const/const-compound-u16-error.test.cnx                                                    | (uncoded)           |
-| tests/const/const-compound-u64-error.test.cnx                                                    | (uncoded)           |
-| tests/const/const-f32-assign-error.test.cnx                                                      | (uncoded)           |
-| tests/const/const-f32-param-assign-error.test.cnx                                                | (uncoded)           |
-| tests/const/const-f64-assign-error.test.cnx                                                      | (uncoded)           |
-| tests/const/const-f64-param-assign-error.test.cnx                                                | (uncoded)           |
-| tests/const/const-i16-assign-error.test.cnx                                                      | (uncoded)           |
-| tests/const/const-i16-param-assign-error.test.cnx                                                | (uncoded)           |
-| tests/const/const-i64-assign-error.test.cnx                                                      | (uncoded)           |
-| tests/const/const-i64-param-assign-error.test.cnx                                                | (uncoded)           |
-| tests/const/const-i8-assign-error.test.cnx                                                       | (uncoded)           |
-| tests/const/const-i8-param-assign-error.test.cnx                                                 | (uncoded)           |
-| tests/const/const-param-assign-error.test.cnx                                                    | (uncoded)           |
-| tests/const/const-u16-assign-error.test.cnx                                                      | (uncoded)           |
-| tests/const/const-u16-param-assign-error.test.cnx                                                | (uncoded)           |
-| tests/const/const-u64-assign-error.test.cnx                                                      | (uncoded)           |
-| tests/const/const-u64-param-assign-error.test.cnx                                                | (uncoded)           |
 | tests/constructor-syntax/error-literal-arg.test.cnx                                              | (uncoded)           |
 | tests/constructor-syntax/error-non-const-arg.test.cnx                                            | E0432               |
 | tests/constructor-syntax/error-undeclared-arg.test.cnx                                           | E0433               |

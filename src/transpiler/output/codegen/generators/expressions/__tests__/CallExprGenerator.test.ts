@@ -69,7 +69,6 @@ function createMockOrchestrator(
       ctx.getText(),
     ),
     isCNextFunction: vi.fn(() => false),
-    isConstValue: vi.fn(() => false),
     isFloatType: vi.fn(() => false),
     isIntegerType: vi.fn(() => false),
     isStructType: vi.fn(() => false),
@@ -1107,35 +1106,6 @@ describe("CallExprGenerator", () => {
   });
 
   describe("const-to-non-const validation (ADR-013)", () => {
-    it("throws error when const value passed to non-const parameter", () => {
-      const argExprs = [createMockExpressionContext("MY_CONST")];
-      const argCtx = createMockArgListContext(argExprs);
-      const sigs = new Map([
-        [
-          "modify",
-          {
-            name: "modify",
-            parameters: [
-              { name: "val", baseType: "u32", isConst: false, isArray: false },
-            ],
-          },
-        ],
-      ]);
-      const input = createMockInput({ functionSignatures: sigs });
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({
-        isCNextFunction: vi.fn(() => true),
-        isConstValue: vi.fn(() => true),
-        getSimpleIdentifier: vi.fn(() => "MY_CONST"),
-      });
-
-      expect(() =>
-        generateFunctionCall("modify", argCtx, input, state, orchestrator),
-      ).toThrow(
-        "cannot pass const 'MY_CONST' to non-const parameter 'val' of function 'modify'",
-      );
-    });
-
     it("allows const value passed to const parameter", () => {
       const argExprs = [createMockExpressionContext("MY_CONST")];
       const argCtx = createMockArgListContext(argExprs);
@@ -1154,7 +1124,6 @@ describe("CallExprGenerator", () => {
       const state = createMockState();
       const orchestrator = createMockOrchestrator({
         isCNextFunction: vi.fn(() => true),
-        isConstValue: vi.fn(() => true),
         isFloatType: vi.fn(() => false),
         isParameterPassByValue: vi.fn(() => false),
       });
@@ -1178,7 +1147,6 @@ describe("CallExprGenerator", () => {
       const state = createMockState();
       const orchestrator = createMockOrchestrator({
         isCNextFunction: vi.fn(() => true),
-        isConstValue: vi.fn(() => true),
         isFloatType: vi.fn(() => false),
         isStructType: vi.fn(() => false),
         isParameterPassByValue: vi.fn(() => false),

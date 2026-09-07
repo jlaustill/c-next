@@ -857,14 +857,6 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Check if a value is const.
-   * Part of IOrchestrator interface - delegates to TypeValidator.
-   */
-  isConstValue(name: string): boolean {
-    return TypeValidator.isConstValue(name);
-  }
-
-  /**
    * Get known enums set for pass-by-value detection.
    * Part of IOrchestrator interface.
    */
@@ -3131,11 +3123,9 @@ export default class CodeGenerator implements IOrchestrator {
   /**
    * ADR-029: Check if a function is used as a callback type (field type in a struct)
    */
-  // Issue #63: validateCallbackAssignment, callbackSignaturesMatch and
-  //            isConstValue moved to TypeValidator. #1322 then deleted
-  //            validateBareIdentifierInScope, which had had no production
-  //            caller since ADR-057 gave bare identifiers a resolver that
-  //            resolves rather than throws.
+  // Issue #63 moved validateCallbackAssignment and callbackSignaturesMatch to
+  // TypeValidator; #1322 deleted validateBareIdentifierInScope (no production
+  // caller) and moved the const rules (E0877/E0878) to pass 2.1.
 
   // EnumTypeResolver now handles: _getEnumTypeFromThisEnum, _getEnumTypeFromGlobalEnum,
   // _getEnumTypeFromThisVariable, _getEnumTypeFromScopedEnum, _getEnumTypeFromMemberAccess,
@@ -3211,8 +3201,6 @@ export default class CodeGenerator implements IOrchestrator {
   ): string | null {
     return TypeResolver.getUnaryExpressionType(ctx);
   }
-
-  // Issue #63: checkConstAssignment moved to TypeValidator
 
   /**
    * Check if an expression is an lvalue that needs & when passed to functions.

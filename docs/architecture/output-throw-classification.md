@@ -53,10 +53,10 @@ as counted at audit time" rather than a literal.
 
 | bucket | meaning                                                                        | count  |
 | ------ | ------------------------------------------------------------------------------ | ------ |
-| **1**  | user-facing diagnostic — belongs in pass 2.1, needs a code and a real position | **31** |
+| **1**  | user-facing diagnostic — belongs in pass 2.1, needs a code and a real position | **27** |
 | **2**  | internal invariant — should never fire for valid input; becomes an assertion   | **0**  |
 | **3**  | dead — unreachable or subsumed; delete                                         | **0**  |
-|        | **total**                                                                      | **31** |
+|        | **total**                                                                      | **27** |
 
 **80% of `output/`'s throws are rejections.** That is the answer to open question 4: Render does
 not own nothing, it currently owns almost all of the rejection surface.
@@ -66,8 +66,8 @@ By area:
 | area                                                                | sites | b1  | b2  | b3  |
 | ------------------------------------------------------------------- | ----- | --- | --- | --- |
 | `codegen/` (root: `CodeGenerator`, `TypeValidator`, `TypeResolver`) | 8     | 8   | 0   | 0   |
-| `codegen/helpers/`                                                  | 6     | 6   | 0   | 0   |
-| `codegen/generators/**`                                             | 13    | 13  | 0   | 0   |
+| `codegen/helpers/`                                                  | 3     | 3   | 0   | 0   |
+| `codegen/generators/**`                                             | 12    | 12  | 0   | 0   |
 | `codegen/subscript/`                                                | 1     | 1   | 0   | 0   |
 | `codegen/assignment/**`, `codegen/resolution/`, `headers/`          | 3     | 3   | 0   | 0   |
 
@@ -206,7 +206,7 @@ questions and only the first was asked.
   **parse error**, so it never reaches codegen at all. That leaves four live copies plus the
   factory, which is what makes unification tractable.
 
-## Bucket 1 — user-facing diagnostics (31)
+## Bucket 1 — user-facing diagnostics (27)
 
 Each needs a code and a real position in pass 2.1. `code` is the code it already carries, or
 **NEW** where one must be allocated. `position` names the node that is or would be in scope.
@@ -215,45 +215,41 @@ Each needs a code and a real position in pass 2.1. `code` is the code it already
 
 | file:line               | anchor                                            | message                                                           | code      | position source                                                     | fixture                                |
 | ----------------------- | ------------------------------------------------- | ----------------------------------------------------------------- | --------- | ------------------------------------------------------------------- | -------------------------------------- |
-| `TypeValidator.ts:55`   | `E0503: Cannot #include implementation file`      | cannot `#include` an implementation file (ADR-010)                | E0503     | `includeDir` (`IncludeDirectiveContext`) at `CodeGenerator.ts:2375` | `preprocessor/include-impl-file-error` |
-| `TypeValidator.ts:126`  | `E0504: Found #include "`                         | `#include "p"` but `p.cnx` exists alongside                       | E0504     | same `includeDir`, `CodeGenerator.ts:2384`                          | `include/cnx-alternative-error-quoted` |
+| `TypeValidator.ts:55`   | `E0503: Cannot #include implementation file`      | cannot `#include` an implementation file (ADR-010)                | E0503     | `includeDir` (`IncludeDirectiveContext`) at `CodeGenerator.ts:2367` | `preprocessor/include-impl-file-error` |
+| `TypeValidator.ts:126`  | `E0504: Found #include "`                         | `#include "p"` but `p.cnx` exists alongside                       | E0504     | same `includeDir`, `CodeGenerator.ts:2376`                          | `include/cnx-alternative-error-quoted` |
 | `TypeValidator.ts:143`  | `E0504: Found #include <`                         | angle-include twin of the above                                   | E0504     | same                                                                | `include/cnx-alternative-error-angle`  |
 | `TypeValidator.ts:174`  | `maximum of`                                      | value exceeds W-bit bitmap field maximum (ADR-034)                | NEW E08xx | `expr` (`ExpressionContext`, a parameter)                           | `bitmap/bitmap-error-overflow`         |
 | `TypeValidator.ts:213`  | `Error: Function`                                 | function signature does not match callback type                   | NEW       | `valueExpr.start`                                                   | none                                   |
 | `TypeValidator.ts:222`  | `to callback field`                               | cannot assign function to callback field (ADR-029 nominal typing) | NEW       | `valueExpr.start`                                                   | `callbacks/callback-error-nominal`     |
-| `CodeGenerator.ts:3580` | `Redundant type`                                  | redundant type in struct initializer (ADR-014)                    | NEW E03xx | `explicit.symbol` / `ctx.start`                                     | `structs/struct-redundant-type-error`  |
-| `CodeGenerator.ts:3588` | `Cannot infer struct type - no explicit type and` | cannot infer struct type — **fires on valid code, see #1277**     | NEW E03xx | `ctx.start` (`StructInitializerContext`)                            | none                                   |
+| `CodeGenerator.ts:3568` | `Redundant type`                                  | redundant type in struct initializer (ADR-014)                    | NEW E03xx | `explicit.symbol` / `ctx.start`                                     | `structs/struct-redundant-type-error`  |
+| `CodeGenerator.ts:3576` | `Cannot infer struct type - no explicit type and` | cannot infer struct type — **fires on valid code, see #1277**     | NEW E03xx | `ctx.start` (`StructInitializerContext`)                            | none                                   |
 
 **13 of these 39 already carry a code**; 26 need one. **12 have no fixture at all.** Three emit a
 real position today -- the `${line}:${col} `-prefixed rows in the table below.
 
-### `codegen/helpers/` — 6
+### `codegen/helpers/` — 3
 
 **Zero carry a code today.** 25 of the 39 have no fixture.
 
 | file:line                       | anchor                                      | message                                    | code      | position source                                                      | fixture                                 |
 | ------------------------------- | ------------------------------------------- | ------------------------------------------ | --------- | -------------------------------------------------------------------- | --------------------------------------- |
 | `TypeGenerationHelper.ts:70`    | `Cannot use 'this.Type' outside of a scope` | `this.Type` outside a scope                | NEW E0426 | thread `accessors.scopedType()!.start` from `dispatchTypeGeneration` | none                                    |
-| `AssignmentValidator.ts:99`     | `constError`                                | cannot assign to const variable/parameter  | NEW       | `targetCtx` (`AssignmentTargetContext`, in scope)                    | 26 fixtures under `tests/const/`        |
-| `AssignmentValidator.ts:123`    | `array element`                             | const assign, array element                | NEW       | `subscriptExprs[0].start` (`line` already a parameter)               | none                                    |
-| `AssignmentValidator.ts:147`    | `member access`                             | const assign, member access                | NEW       | thread `targetCtx`                                                   | none                                    |
 | `VariableModifierBuilder.ts:82` | `Cannot use both 'atomic' and 'volatile`    | both `atomic` and `volatile`               | NEW       | `ctx.start` — line already read, column discarded                    | `atomic/atomic-volatile-error`          |
 | `VariableDeclHelper.ts:231`     | `Error: C++ class`                          | C++ class with constructor at global scope | NEW       | `typeCtx.start` (in scope)                                           | `external-types/cpp-class-global-error` |
 
-### `codegen/generators/**` — 13
+### `codegen/generators/**` — 12
 
 | file:line                               | anchor                                           | message                                                                                       | code      | position source                                                                                              | fixture                                |
 | --------------------------------------- | ------------------------------------------------ | --------------------------------------------------------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------ | -------------------------------------- |
-| `support/IncludeGenerator.ts:54`        | `Error: Included C-Next file not found`          | included C-Next file not found                                                                | NEW E0506 | `includeDir` at `CodeGenerator.ts:2375`; `.start.line` read at `:2488` but not threaded                      | none                                   |
+| `support/IncludeGenerator.ts:54`        | `Error: Included C-Next file not found`          | included C-Next file not found                                                                | NEW E0506 | `includeDir` at `CodeGenerator.ts:2367`; `.start.line` read at `:2488` but not threaded                      | none                                   |
 | `support/IncludeGenerator.ts:111`       | `E0501: Function-like macro`                     | function-like macro not allowed                                                               | E0501     | `ctx` (`DefineDirectiveContext`) — line read, appended as `Line 7` prose                                     | `preprocessor/function-macro-error`    |
 | `support/IncludeGenerator.ts:121`       | `E0502: #define with value`                      | `#define` with value not allowed                                                              | E0502     | same prose defect                                                                                            | `preprocessor/value-define-error`      |
 | `expressions/BitmapAccessHelper.ts:49`  | `Error: Unknown bitmap field`                    | unknown bitmap field                                                                          | NEW E0426 | none — `IMemberAccessContext` carries no node; thread the owning `PostfixOpContext`                          | none                                   |
 | `expressions/AccessExprGenerator.ts:31` | `Error: .capacity is only available on string`   | `.capacity` only on string types — **also fires when it _is_ a string with unknown capacity** | NEW E06xx | thread `PostfixOpContext` from `PostfixExpressionGenerator.ts:657`                                           | none                                   |
 | `expressions/AccessExprGenerator.ts:46` | `Error: .size is only available on string types` | `.size` only on string types                                                                  | NEW E06xx | same, from `:672`                                                                                            | none                                   |
-| `expressions/CallExprGenerator.ts:371`  | `requires exactly 4 arguments: output`           | `safe_div`/`safe_mod` needs exactly 4 arguments (ADR-051)                                     | NEW       | `argExprs[0].start`, or `ArgumentListContext` at `:268`                                                      | none                                   |
-| `expressions/CallExprGenerator.ts:379`  | `requires a variable as the first argument`      | first argument must be a variable (output parameter)                                          | NEW       | `argExprs[0].start`                                                                                          | none                                   |
-| `expressions/CallExprGenerator.ts:387`  | `Cannot determine type of output parameter`      | cannot determine output parameter type — **really an undeclared identifier**                  | NEW       | `argExprs[0].start`                                                                                          | none                                   |
-| `expressions/CallExprGenerator.ts:443`  | `cannot pass const`                              | cannot pass const to a non-const parameter (ADR-013)                                          | NEW       | `argExprs[argIdx].start`                                                                                     | none                                   |
+| `expressions/CallExprGenerator.ts:370`  | `requires exactly 4 arguments: output`           | `safe_div`/`safe_mod` needs exactly 4 arguments (ADR-051)                                     | NEW       | `argExprs[0].start`, or `ArgumentListContext` at `:268`                                                      | none                                   |
+| `expressions/CallExprGenerator.ts:378`  | `requires a variable as the first argument`      | first argument must be a variable (output parameter)                                          | NEW       | `argExprs[0].start`                                                                                          | none                                   |
+| `expressions/CallExprGenerator.ts:386`  | `Cannot determine type of output parameter`      | cannot determine output parameter type — **really an undeclared identifier**                  | NEW       | `argExprs[0].start`                                                                                          | none                                   |
 | `…/PostfixExpressionGenerator.ts:626`   | `is deprecated. Use explicit properties`         | `.length` deprecated (ADR-058)                                                                | NEW E06xx | `PostfixOpContext` not threaded                                                                              | `errors/length-property-deprecated`    |
 | `…/PostfixExpressionGenerator.ts:1726`  | `Cannot use bracket indexing on bitmap type`     | bracket indexing on a bitmap (ADR-034)                                                        | NEW       | **`ctx.op.start` available and already read**, spent on `Error at line 45:` prose — cheapest site to convert | `bitmap/bitmap-bracket-indexing-error` |
 | `…/PostfixExpressionGenerator.ts:1943`  | `Float bit indexing reads`                       | float bit-range read at global scope                                                          | NEW E08xx | `IFloatBitRangeContext` carries no node; the subscript `op` is available upstream                            | none                                   |

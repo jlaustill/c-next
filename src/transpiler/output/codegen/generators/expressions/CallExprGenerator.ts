@@ -289,9 +289,8 @@ const generateFunctionCall = (
   }
 
   // Regular function call handling
-  // ADR-013: Check const-to-non-const before generating arguments
+  // #1322: a const argument to a non-const parameter is E0878 in pass 2.1.
   if (isCNextFunc) {
-    validateConstToNonConst(funcExpr, argExprs, input, orchestrator);
     // Issue #268: Track pass-through modifications for auto-const
     trackPassThroughModifications(funcExpr, argExprs, orchestrator);
   }
@@ -415,38 +414,6 @@ const generateSafeDivMod = (
     code: `${helperName}(${outputArg}, ${numeratorArg}, ${divisorArg}, ${defaultArg})`,
     effects,
   };
-};
-
-/**
- * Validate const-to-non-const parameter passing (ADR-013).
- *
- * Throws an error if a const value is passed to a non-const parameter.
- */
-const validateConstToNonConst = (
-  funcName: string,
-  argExprs: ExpressionContext[],
-  input: IGeneratorInput,
-  orchestrator: IOrchestrator,
-): void => {
-  const sig = input.functionSignatures.get(funcName);
-  if (!sig) return;
-
-  for (
-    let argIdx = 0;
-    argIdx < argExprs.length && argIdx < sig.parameters.length;
-    argIdx++
-  ) {
-    const argId = orchestrator.getSimpleIdentifier(argExprs[argIdx]);
-    if (argId && orchestrator.isConstValue(argId)) {
-      const param = sig.parameters[argIdx];
-      if (!param.isConst) {
-        throw new Error(
-          `cannot pass const '${argId}' to non-const parameter '${param.name}' ` +
-            `of function '${funcName}'`,
-        );
-      }
-    }
-  }
 };
 
 /**

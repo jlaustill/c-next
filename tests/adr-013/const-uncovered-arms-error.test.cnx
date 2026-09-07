@@ -1,0 +1,82 @@
+// test-error
+// test-adr: 013
+// ADR-013 in the arms the single-purpose fixtures do not reach: a scope
+// member through `this.` and `global.`, a const array parameter's element, a
+// const struct parameter's field, a const struct variable's field, the `for`
+// header forms (the holes #1322 closed -- they never reached the check and
+// emitted `K += 1` against a `const`), and a const passed to a non-const
+// parameter, including a scope method's.
+
+struct Cfg {
+    u8 x;
+}
+
+const u8 K <- 1;
+
+void take(u8 v) {
+    v <- 1;
+}
+
+void keep(const u8 v) {
+    u8 copy <- v;
+}
+
+u8 echo(u8 v) {
+    v <- 1;
+    return v;
+}
+
+// ASSERTION 0 -- a global initializer passing a const.
+u8 seededGlobal <- echo(K);
+
+// NEGATIVE CONTROLS -- every form on a mutable binding, a const read, and a
+// const passed to a const parameter.
+void controls(u8 p, u8[4] arr, Cfg c) {
+    u8 local <- K;
+    p <- 1;
+    arr[0] <- 1;
+    c.x <- 1;
+    for (u8 i <- 0; i < 3; i +<- 1) {
+        local +<- 1;
+    }
+    for (local <- 0; local < 3; local +<- 1) {}
+    keep(K);
+    take(local);
+}
+
+// ASSERTIONS 1-2 -- a const array parameter's element and a const struct
+// parameter's field.
+void params(const u8[4] table, const Cfg cfg) {
+    table[0] <- 1;
+    cfg.x <- 2;
+}
+
+void main() {
+    const Cfg cfg <- { x: 1 };
+    // ASSERTION 3 -- a const struct variable's field.
+    cfg.x <- 2;
+    // ASSERTIONS 4-5 -- the `for` header forms (closed holes).
+    for (K <- 0; K < 3; K +<- 1) {}
+    // ASSERTION 6 -- a const passed to a non-const parameter.
+    take(K);
+}
+
+scope Board {
+    const u8 STEP <- 2;
+    u8 count <- 0;
+
+    // ASSERTION 10 -- a scope member initializer passing a const.
+    u8 seeded <- echo(K);
+
+    public void bump(u8 v) {
+        this.count +<- v;
+    }
+
+    // ASSERTIONS 7-9 -- `this.STEP`, `global.K`, and a scope method's
+    // non-const parameter given a scope const.
+    public void go() {
+        this.STEP <- 3;
+        global.K <- 4;
+        this.bump(this.STEP);
+    }
+}

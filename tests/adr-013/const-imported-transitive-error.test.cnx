@@ -1,0 +1,36 @@
+// test-error
+// test-adr: 013
+// E0877/E0878 across TWO include hop(s), in all four contexts -- the
+// `imported transitive` column of ADR-013's matrix. Const-ness is recorded where
+// the binding is declared, so a check reading only this file sees no const
+// and stays silent.
+
+#include "const-relay.cnx"
+
+// NEGATIVE CONTROL -- the imported const read, and passed to the const
+// parameter that may take it.
+u8 okRead <- LIMIT;
+u8 okPassed <- 0;
+void okCalls() {
+    keep(LIMIT);
+    okPassed <- TABLE[0];
+}
+
+// ASSERTION 1 -- global initializer: a const passed to a non-const parameter.
+u8 viaCall <- consume(LIMIT);
+
+// ASSERTION 2 -- top-level function: assignment to the imported const.
+void main() {
+    LIMIT <- 1;
+    TABLE[0] <- 9;
+}
+
+scope Board {
+    // ASSERTION 3 -- scope member initializer.
+    u8 member <- consume(LIMIT);
+
+    // ASSERTION 4 -- scope method.
+    public void go() {
+        global.LIMIT +<- 1;
+    }
+}

@@ -660,26 +660,6 @@ describe("CodeGenerator", () => {
       });
     });
 
-    describe("isConstValue()", () => {
-      it("should return true for const variable", () => {
-        const generator = createMinimalGenerator(`
-          const u32 MAX_VALUE <- 100;
-          void foo() { }
-        `);
-
-        expect(generator.isConstValue("MAX_VALUE")).toBe(true);
-      });
-
-      it("should return false for non-const variable", () => {
-        const generator = createMinimalGenerator(`
-          u32 value;
-          void foo() { }
-        `);
-
-        expect(generator.isConstValue("value")).toBe(false);
-      });
-    });
-
     describe("flushPendingTempDeclarations()", () => {
       it("should return empty string when no pending declarations", () => {
         const generator = createMinimalGenerator(`void foo() { }`);
@@ -1980,28 +1960,6 @@ describe("CodeGenerator", () => {
       });
 
       expect(code).toContain('#include "myfile.h"');
-    });
-  });
-
-  describe("Error handling", () => {
-    it("should throw on const assignment", () => {
-      const source = `
-        const u32 VALUE <- 10;
-        void main() {
-          VALUE <- 20;
-        }
-      `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
-      const tSymbols = declareAndResolve(tree);
-      const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-      expect(() =>
-        generator.generate(tree, tokenStream, {
-          symbolInfo: symbols,
-          sourcePath: "test.cnx",
-        }),
-      ).toThrow(/const/i);
     });
   });
 
@@ -5180,28 +5138,6 @@ describe("CodeGenerator", () => {
   // is E0431 in pass 2.1 now, with a real position; codegen reported it as
   // `1:0`. Covered by `1-Analyze/__tests__/ThisOutsideScopeAnalyzer.test.ts`
   // and `tests/adr-016/this-outside-scope-error`.
-
-  describe("Const assignment error", () => {
-    it("should throw error when assigning to const variable", () => {
-      const source = `
-        const u32 MAX <- 100;
-        void main() {
-          MAX <- 200;
-        }
-      `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
-      const tSymbols = declareAndResolve(tree);
-      const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-      expect(() =>
-        generator.generate(tree, tokenStream, {
-          symbolInfo: symbols,
-          sourcePath: "test.cnx",
-        }),
-      ).toThrow("const");
-    });
-  });
   describe("Struct member initializer", () => {
     it("should generate designated initializer", () => {
       const source = `
