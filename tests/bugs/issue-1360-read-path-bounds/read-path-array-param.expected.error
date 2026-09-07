@@ -1,1 +1,2 @@
-1:0 Code generation failed: Array index out of bounds: 9 >= 4 for 'values' dimension 1 (line 9)
+10:28 error[E0854]: Array index out of bounds: 9 >= 4 for 'values' dimension 1
+       help: The last valid index is 3 (ADR-036).

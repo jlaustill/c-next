@@ -1,0 +1,35 @@
+// test-error
+// test-adr: 036
+// ADR-036, E0874/E0875 on parameters and in a scope method -- the arms the
+// declaration fixtures do not reach. A parameter's dimensions are the only
+// thing the callee can trust, so an unbounded one is rejected outright.
+//
+// #1322 relocated both from `output/`; they already carried a position.
+
+// NEGATIVE CONTROL -- the prefix form, bounded, in one and two dimensions.
+void okParams(u8[8] data, u8[2][4] grid) {
+    data[0] <- grid[0][0];
+}
+
+// ASSERTION 1 -- a C-style parameter.
+void cStyle(u8 data[8]) {
+    data[0] <- 1;
+}
+
+// ASSERTION 2 -- an unbounded parameter.
+void unbounded(u8[] data) {
+    data[0] <- 1;
+}
+
+scope Board {
+    // ASSERTION 3 -- a C-style local inside a scope method.
+    public void go() {
+        u8 buf[4];
+        buf[0] <- 1;
+    }
+
+    // ASSERTION 4 -- a C-style parameter on a scope method.
+    public void take(u16 samples[2]) {
+        samples[0] <- 1;
+    }
+}

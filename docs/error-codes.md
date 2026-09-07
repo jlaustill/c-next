@@ -19,9 +19,9 @@ codes that already have a fixture.
 | E05xx     | Include/Preprocessor    | 7      |
 | E06xx     | Sizeof Expressions      | 2      |
 | E07xx     | Control Flow            | 12     |
-| E08xx     | Arithmetic/Array Safety | 33     |
+| E08xx     | Arithmetic/Array Safety | 36     |
 | E09xx     | NULL Safety             | 8      |
-| **Total** |                         | **86** |
+| **Total** |                         | **89** |
 
 ---
 
@@ -230,12 +230,12 @@ include-visibility is not derivable for a C or C++ name.
 | ----- | ------------------------------------------- | ------------------------------------------------- | --------------------------------- |
 | E0853 | Cannot use `return` inside critical section | Would leave interrupts disabled; restructure flow | `output/codegen/TypeValidator.ts` |
 
-### Array Index Overflow (ADR-054) — Reserved
+### Array Index Bounds (ADR-036; E0855 reserved for ADR-054)
 
-| Code  | Message                                            | Help                                                    | Source  |
-| ----- | -------------------------------------------------- | ------------------------------------------------------- | ------- |
-| E0854 | Compile-time warning: constant index out of bounds | Fix the index; the safety net should not be relied upon | Planned |
-| E0855 | Invalid overflow modifier in array dimension       | Use `clamp`, `wrap`, or `discard`                       | Planned |
+| Code  | Message                                      | Help                                                        | Source                                            |
+| ----- | -------------------------------------------- | ----------------------------------------------------------- | ------------------------------------------------- |
+| E0854 | Constant array index out of bounds (ADR-036) | The index is negative or not below the dimension it indexes | `TRANSPILE/1-Analyze/ArrayIndexBoundsAnalyzer.ts` |
+| E0855 | Invalid overflow modifier in array dimension | Use `clamp`, `wrap`, or `discard`                           | Planned                                           |
 
 ### Subscript Depth (ADR-036 / ADR-007)
 
@@ -251,7 +251,7 @@ include-visibility is not derivable for a C or C++ name.
 | E0863 | String at file scope is initialized by something other than a literal          | Move the declaration into a function, or initialize it empty and assign later                                    | `TRANSPILE/1-Analyze/StringDeclarationAnalyzer.ts`    |
 | E0864 | Value does not fit the declared string capacity                                | Widen the declaration, or shorten the value                                                                      | `TRANSPILE/1-Analyze/StringDeclarationAnalyzer.ts`    |
 | E0865 | Substring bounds exceed the source string                                      | Keep `start + length` within the source's capacity                                                               | `TRANSPILE/1-Analyze/StringDeclarationAnalyzer.ts`    |
-| E0866 | String array initializer does not match the declaration                        | Give a bracketed list with one element per slot, or the fill-all form                                            | `TRANSPILE/1-Analyze/StringDeclarationAnalyzer.ts`    |
+| E0866 | Array initializer does not match the declaration (ADR-035)                     | Give a bracketed list with one element per slot at every level, or the fill-all form                             | `TRANSPILE/1-Analyze/ArrayDeclarationAnalyzer.ts`     |
 | E0867 | Length property not available on this type (ADR-058)                           | `.element_count` needs an array, `.char_count` a string, `.bit_length`/`.byte_length` a sized type               | `TRANSPILE/1-Analyze/LengthPropertyAnalyzer.ts`       |
 | E0868 | Integer literal does not fit the target type's range (ADR-024)                 | Widen the target type, or narrow the value; an unsigned type holds no negative                                   | `TRANSPILE/1-Analyze/IntegerConversionAnalyzer.ts`    |
 | E0869 | Implicit narrowing or sign-changing integer conversion (ADR-024)               | Use bit indexing to say which bits you mean, e.g. `value[0, 8]`                                                  | `TRANSPILE/1-Analyze/IntegerConversionAnalyzer.ts`    |
@@ -276,6 +276,14 @@ base: bare, `this.` and `global.`.
 | Code  | Message                                                                | Help                                                                                   | Source                                 |
 | ----- | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | -------------------------------------- |
 | E0873 | Shift amount is negative, or not below the shifted operand's bit width | Keep the amount in `0 .. width-1`; shifting by the width or more is undefined behavior | `TRANSPILE/1-Analyze/ShiftAnalyzer.ts` |
+
+### Array Declarations (ADR-035 / ADR-036)
+
+| Code  | Message                                                            | Help                                                                     | Source                                            |
+| ----- | ------------------------------------------------------------------ | ------------------------------------------------------------------------ | ------------------------------------------------- |
+| E0874 | C-style array declaration or parameter (dimensions after the name) | Put every dimension in the type: `u8[4] arr`, not `u8 arr[4]`            | `TRANSPILE/1-Analyze/ArrayDeclarationAnalyzer.ts` |
+| E0875 | Unbounded array parameter                                          | Write every dimension's size; the callee can trust only what is declared | `TRANSPILE/1-Analyze/ArrayDeclarationAnalyzer.ts` |
+| E0876 | Fill-all initializer on an array whose size is inferred            | An inferred size is counted from a list; write the dimension for `[v*]`  | `TRANSPILE/1-Analyze/ArrayDeclarationAnalyzer.ts` |
 
 ## E09xx — NULL Safety (ADR-046)
 

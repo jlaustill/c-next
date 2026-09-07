@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-353 fixture(s) assert a diagnostic; 293 carry a code.
+356 fixture(s) assert a diagnostic; 308 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -107,6 +107,13 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-025/switch-in-scope-method-error.test.cnx                                              | E0714               |
 | tests/adr-026/break-rejected.test.cnx                                                            | E0703               |
 | tests/adr-026/continue-rejected.test.cnx                                                         | E0703               |
+| tests/adr-035/array-init-error.test.cnx                                                          | E0866, E0876        |
+| tests/adr-036/array-bounds-uncovered-arms-error.test.cnx                                         | E0854               |
+| tests/adr-036/array-shape-uncovered-arms-error.test.cnx                                          | E0874, E0875        |
+| tests/adr-036/bounds-error.test.cnx                                                              | E0854               |
+| tests/adr-036/c-style-error.test.cnx                                                             | E0874               |
+| tests/adr-036/c-style-trailing-bracket-rejected.test.cnx                                         | E0874               |
+| tests/adr-036/init-bounds-error.test.cnx                                                         | E0854               |
 | tests/adr-045/string-array-init-error-mismatch.test.cnx                                          | E0866               |
 | tests/adr-045/string-error-concat-global.test.cnx                                                | E0863               |
 | tests/adr-045/string-error-concat-overflow.test.cnx                                              | E0864               |
@@ -118,7 +125,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-045/string-error-substring-bounds.test.cnx                                             | E0865               |
 | tests/adr-045/string-error-substring-dest.test.cnx                                               | E0864               |
 | tests/adr-045/string-error-substring-global.test.cnx                                             | E0863               |
-| tests/adr-045/string-error-uncovered-forms.test.cnx                                              | E0862, E0864, E0866 |
+| tests/adr-045/string-error-uncovered-forms.test.cnx                                              | E0862, E0864        |
 | tests/adr-045/string-imported-direct-error.test.cnx                                              | E0863, E0864        |
 | tests/adr-045/string-imported-transitive-error.test.cnx                                          | E0863, E0864        |
 | tests/adr-050/return-in-critical-error.test.cnx                                                  | E0853               |
@@ -164,8 +171,6 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/arithmetic/division-const-zero-formats.test.cnx                                            | E0800               |
 | tests/arithmetic/modulo-by-const-zero.test.cnx                                                   | E0802               |
 | tests/arithmetic/modulo-by-zero-literal.test.cnx                                                 | E0802               |
-| tests/array-declaration-syntax/c-style-error.test.cnx                                            | (uncoded)           |
-| tests/array-initializers/bounds-error.test.cnx                                                   | (uncoded)           |
 | tests/atomic/atomic-struct-member.test.cnx                                                       | (uncoded)           |
 | tests/atomic/atomic-volatile-error.test.cnx                                                      | (uncoded)           |
 | tests/bit-indexing/float-bit-range-global-scope-error.test.cnx                                   | (uncoded)           |
@@ -204,8 +209,8 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1042-bare-bool-condition/bare-bool-param.test.cnx                               | E0701               |
 | tests/bugs/issue-1133-guard-collision-diagnostic/guard-collision.test.cnx                        | E0203               |
 | tests/bugs/issue-1145-atomic-bool-clamp-helper/atomic-bool-compound.test.cnx                     | E0806               |
-| tests/bugs/issue-1159-dimension-notation-bounds/binary-dimension-bounds.test.cnx                 | (uncoded)           |
-| tests/bugs/issue-1159-dimension-notation-bounds/hex-dimension-bounds.test.cnx                    | (uncoded)           |
+| tests/bugs/issue-1159-dimension-notation-bounds/binary-dimension-bounds.test.cnx                 | E0854               |
+| tests/bugs/issue-1159-dimension-notation-bounds/hex-dimension-bounds.test.cnx                    | E0854               |
 | tests/bugs/issue-1183-bool-operand/bool-array-element-compound.test.cnx                          | E0806               |
 | tests/bugs/issue-1183-bool-operand/bool-compound-right-hand-side.test.cnx                        | E0807               |
 | tests/bugs/issue-1183-bool-operand/bool-division.test.cnx                                        | E0807               |
@@ -250,12 +255,12 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1353-undeclared-value-position/undeclared-value-sibling-consumer-first.test.cnx | E0427               |
 | tests/bugs/issue-1353-undeclared-value-position/undeclared-value-sibling-source-first.test.cnx   | E0427               |
 | tests/bugs/issue-1358-declare-idempotence/differing-signature-rejected.test.cnx                  | E0425               |
-| tests/bugs/issue-1360-read-path-bounds/cross-file-macro-dimension.test.cnx                       | (uncoded)           |
-| tests/bugs/issue-1360-read-path-bounds/read-path-array-param.test.cnx                            | (uncoded)           |
-| tests/bugs/issue-1360-read-path-bounds/read-path-bounds.test.cnx                                 | (uncoded)           |
-| tests/bugs/issue-1360-read-path-bounds/read-path-multidim.test.cnx                               | (uncoded)           |
-| tests/bugs/issue-1360-read-path-bounds/read-path-negative-index.test.cnx                         | (uncoded)           |
-| tests/bugs/issue-1360-read-path-bounds/read-path-scope-member.test.cnx                           | (uncoded)           |
+| tests/bugs/issue-1360-read-path-bounds/cross-file-macro-dimension.test.cnx                       | E0854               |
+| tests/bugs/issue-1360-read-path-bounds/read-path-array-param.test.cnx                            | E0854               |
+| tests/bugs/issue-1360-read-path-bounds/read-path-bounds.test.cnx                                 | E0854               |
+| tests/bugs/issue-1360-read-path-bounds/read-path-multidim.test.cnx                               | E0854               |
+| tests/bugs/issue-1360-read-path-bounds/read-path-negative-index.test.cnx                         | E0854               |
+| tests/bugs/issue-1360-read-path-bounds/read-path-scope-member.test.cnx                           | E0854               |
 | tests/bugs/issue-1430-e0427-order-dependence/consumer-first.test.cnx                             | E0427               |
 | tests/bugs/issue-1430-e0427-order-dependence/source-first.test.cnx                               | E0427               |
 | tests/bugs/issue-1472-scope-function-as-type/undefined-still-rejected.test.cnx                   | E0422               |
@@ -333,8 +338,6 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/initialization/if-else-branches.test.cnx                                                   | E0381               |
 | tests/initialization/partial-branch-init-error.test.cnx                                          | E0381               |
 | tests/initialization/use-before-init.test.cnx                                                    | E0381               |
-| tests/multi-dim-arrays/bounds-error.test.cnx                                                     | (uncoded)           |
-| tests/multi-dim-arrays/c-style-trailing-bracket-rejected.test.cnx                                | (uncoded)           |
 | tests/null-check/e0908-basic.test.cnx                                                            | E0908               |
 | tests/null-check/e0908-reassignment.test.cnx                                                     | E0908               |
 | tests/null-check/forbidden-fopen.test.cnx                                                        | E0901               |

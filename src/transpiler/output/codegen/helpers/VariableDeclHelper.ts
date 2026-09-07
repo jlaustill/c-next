@@ -192,86 +192,9 @@ class VariableDeclHelper {
     return null;
   }
 
-  /**
-   * Extract base type name from type context for error messages.
-   * Handles primitive types, user types, and array types.
-   *
-   * @param typeCtx - Type context
-   * @returns Base type name as string
-   */
-  static extractBaseTypeName(typeCtx: Parser.TypeContext): string {
-    if (typeCtx.primitiveType()) {
-      return typeCtx.primitiveType()!.getText();
-    }
-    if (typeCtx.userType()) {
-      return typeCtx.userType()!.getText();
-    }
-    if (typeCtx.arrayType()) {
-      const arrCtx = typeCtx.arrayType()!;
-      if (arrCtx.primitiveType()) {
-        return arrCtx.primitiveType()!.getText();
-      }
-      if (arrCtx.userType()) {
-        return arrCtx.userType()!.getText();
-      }
-    }
-    return typeCtx.getText();
-  }
-
   // ========================================================================
   // Tier 2: Simple Operations (CodeGenState + simple callbacks)
   // ========================================================================
-
-  /**
-   * Validate array declaration syntax - reject C-style, require C-Next style.
-   * C-style: u16 arr[8] (all dimensions after identifier) - REJECTED
-   * C-Next style: u16[8] arr (first dimension in type) - REQUIRED
-   * Multi-dim C-Next: u16[4] arr[2] (first in type, rest after) - ALLOWED
-   *
-   * Exceptions (grammar limitations):
-   *   - Empty dimensions for size inference: u8 arr[] <- [...]
-   *   - Qualified types: SeaDash.Parse.Result arr[3] (no arrayType support)
-   *   - Scoped/global types: this.Type arr[3], global.Type arr[3]
-   *   - String types: string<N> arr[3]
-   *
-   * @param ctx - Variable declaration context
-   * @param typeCtx - Type context
-   * @param name - Variable name
-   * @throws Error if C-style array declaration detected
-   */
-  static validateArrayDeclarationSyntax(
-    ctx: Parser.VariableDeclarationContext,
-    typeCtx: Parser.TypeContext,
-    name: string,
-  ): void {
-    const arrayDims = ctx.arrayDimension();
-    if (arrayDims.length === 0) {
-      return; // Not an array declaration
-    }
-
-    // Issues #1014-#1017: ALL trailing brackets after the variable name are rejected.
-    // The only valid form is dimensions in type position: u8[4][8] matrix, string<32>[5] names
-    // No mixed forms (u8[4] matrix[8]), no C-style (u8 matrix[4][8]), no trailing inference (u8 arr[])
-    const baseType = VariableDeclHelper.extractBaseTypeName(typeCtx);
-    const existingDims = typeCtx.arrayType()
-      ? typeCtx
-          .arrayType()!
-          .arrayTypeDimension()
-          .map((d) => `[${d.expression()?.getText() ?? ""}]`)
-          .join("")
-      : "";
-    const trailingDims = arrayDims
-      .map((dim) => `[${dim.expression()?.getText() ?? ""}]`)
-      .join("");
-    const allDims = existingDims + trailingDims;
-    const line = ctx.start?.line ?? 0;
-    const col = ctx.start?.column ?? 0;
-
-    throw new Error(
-      `${line}:${col} C-style array declaration is not allowed. ` +
-        `Use '${baseType}${allDims} ${name}' instead of '${baseType}${existingDims} ${name}${trailingDims}'`,
-    );
-  }
 
   /**
    * Handle pending C++ class field assignments.
@@ -564,8 +487,8 @@ class VariableDeclHelper {
     const name = ctx.IDENTIFIER().getText();
     const typeCtx = ctx.type();
 
-    // Reject C-style array declarations (u16 arr[8]) - require C-Next style (u16[8] arr)
-    VariableDeclHelper.validateArrayDeclarationSyntax(ctx, typeCtx, name);
+    // #1322: a C-style array declaration (u16 arr[8]) is E0874 in pass 2.1
+    // (ADR-036).
 
     const type = callbacks.inferVariableType(ctx, name);
 

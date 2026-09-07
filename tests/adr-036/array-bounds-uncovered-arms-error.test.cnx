@@ -1,0 +1,60 @@
+// test-error
+// test-adr: 036
+// ADR-036, E0854 in the arms the single-purpose fixtures do not reach: a
+// struct field (the hole #1322 closed -- codegen bounded the root variable's
+// dimensions, and `s` has none), a scope member through `this.`, a const
+// index, a negative index on a read, a parameter, and a global initializer.
+
+struct Frame {
+    u8[4] data;
+    u8[2][3] grid;
+}
+
+const u8 LAST <- 3;
+const u8 PAST <- 4;
+
+u8[4] table <- [1, 2, 3, 4];
+
+// NEGATIVE CONTROLS -- the last valid index in every form, a runtime index,
+// a const in range, and a bit index on a scalar (no dimension: not an
+// array index at all).
+u8 okGlobal <- table[3];
+
+void okReads(u8 i, Frame f) {
+    u8 a <- table[LAST];
+    u8 b <- table[i];
+    u8 c <- f.data[3];
+    u8 d <- f.grid[1][2];
+    u8 flags <- 0;
+    flags[7] <- true;
+    table[3] <- a + b + c + d;
+}
+
+// ASSERTION 1 -- a global initializer.
+u8 badGlobal <- table[4];
+
+void main(Frame f) {
+    // ASSERTION 2 -- a struct field, read (the closed hole).
+    u8 r <- f.data[9];
+    // ASSERTION 3 -- a struct field, written.
+    f.data[4] <- r;
+    // ASSERTION 4 -- an inner dimension of a struct field.
+    f.grid[0][3] <- 1;
+    // ASSERTION 5 -- a const index past the end.
+    u8 q <- table[PAST];
+    // ASSERTION 6 -- a negative index on a read.
+    u8 n <- table[-1];
+}
+
+scope Motor {
+    u8[4] samples <- [1, 2, 3, 4];
+
+    // ASSERTION 7 -- a scope member initializer.
+    u8 first <- this.samples[4];
+
+    // ASSERTION 8 -- `this.` in a method, and a bare member name.
+    public void read() {
+        u8 a <- this.samples[5];
+        samples[6] <- a;
+    }
+}

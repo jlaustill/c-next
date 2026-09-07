@@ -71,7 +71,6 @@ function setupSymbols(
 describe("AssignmentValidator", () => {
   beforeEach(() => {
     vi.spyOn(TypeValidator, "checkConstAssignment").mockReturnValue(null);
-    vi.spyOn(TypeValidator, "checkArrayBounds").mockImplementation(() => {});
     vi.spyOn(TypeValidator, "validateCallbackAssignment").mockImplementation(
       () => {},
     );
@@ -174,34 +173,6 @@ describe("AssignmentValidator", () => {
           defaultCallbacks,
         ),
       ).toThrow("cannot assign to const variable 'arr' (array element)");
-    });
-
-    it("should check array bounds for array with dimensions", () => {
-      CodeGenState.setVariableTypeInfo("arr", {
-        baseType: "u8",
-        bitWidth: 8,
-        isConst: false,
-        isArray: true,
-        arrayDimensions: [10],
-      });
-      const { target, expression } = parseAssignment("arr[0]");
-
-      AssignmentValidator.validate(
-        target,
-        expression,
-        false,
-        5,
-        defaultCallbacks,
-      );
-
-      // #1360: dimensions are no longer passed in -- checkArrayBounds owns the
-      // whether-to-check decision, so every caller asks the same question.
-      expect(TypeValidator.checkArrayBounds).toHaveBeenCalledWith(
-        "arr",
-        expect.anything(),
-        5,
-        expect.any(Function),
-      );
     });
   });
 

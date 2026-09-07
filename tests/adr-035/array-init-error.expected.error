@@ -1,0 +1,18 @@
+32:16 error[E0866]: Array size mismatch: declared [3] but the initializer has 2 element(s)
+       help: Give one element per slot, or use the fill-all form such as [0*] (ADR-035).
+35:17 error[E0866]: Array size mismatch: declared [3] but the initializer has 5 element(s)
+       help: Give one element per slot, or use the fill-all form such as [0*] (ADR-035).
+38:22 error[E0866]: Array size mismatch: declared [2] but the initializer has 3 element(s) at nesting level 2
+       help: Give one element per slot, or use the fill-all form such as [0*] (ADR-035).
+41:21 error[E0876]: Fill-all syntax [0*] requires explicit array size
+       help: An inferred size comes from counting the elements, and the fill-all form has none to count; write the dimension (ADR-035).
+46:18 error[E0866]: An array must be initialized by a list, not 'a'
+       help: Write the elements out in brackets, or declare it empty and assign the elements afterwards (ADR-035).
+48:26 error[E0866]: Array size mismatch: declared [3] but the initializer has 2 element(s)
+       help: Give one element per slot, or use the fill-all form such as [0*] (ADR-035).
+52:30 error[E0866]: An array must be initialized by a list, not 'names'
+       help: Write the elements out in brackets, or declare it empty and assign the elements afterwards (ADR-035).
+57:18 error[E0866]: Array size mismatch: declared [2] but the initializer has 3 element(s)
+       help: Give one element per slot, or use the fill-all form such as [0*] (ADR-035).
+61:23 error[E0866]: Array size mismatch: declared [4] but the initializer has 1 element(s)
+       help: Give one element per slot, or use the fill-all form such as [0*] (ADR-035).

@@ -80,78 +80,9 @@ describe("VariableDeclHelper", () => {
     });
   });
 
-  describe("extractBaseTypeName", () => {
-    it("extracts primitive type name", () => {
-      const typeCtx = parseType("u8 x;");
-      expect(VariableDeclHelper.extractBaseTypeName(typeCtx)).toBe("u8");
-    });
-
-    it("extracts user type name", () => {
-      const typeCtx = parseType("MyStruct x;");
-      expect(VariableDeclHelper.extractBaseTypeName(typeCtx)).toBe("MyStruct");
-    });
-
-    it("extracts primitive from array type", () => {
-      const typeCtx = parseType("u16[8] x;");
-      expect(VariableDeclHelper.extractBaseTypeName(typeCtx)).toBe("u16");
-    });
-
-    it("extracts user type from array type", () => {
-      const typeCtx = parseType("Point[4] x;");
-      expect(VariableDeclHelper.extractBaseTypeName(typeCtx)).toBe("Point");
-    });
-  });
-
   // ========================================================================
   // Tier 2: Simple Operations
   // ========================================================================
-
-  describe("validateArrayDeclarationSyntax", () => {
-    const validateSyntax = (source: string, name: string): (() => void) => {
-      const varDecl = parseVarDecl(source);
-      return () =>
-        VariableDeclHelper.validateArrayDeclarationSyntax(
-          varDecl,
-          varDecl.type(),
-          name,
-        );
-    };
-
-    it.each([
-      ["C-Next style array syntax", "u8[10] arr;", "arr"],
-      [
-        "empty dimension for size inference in arrayType",
-        "u8[] arr <- [1, 2, 3];",
-        "arr",
-      ],
-      ["string type with arrayType syntax", "string<32>[4] names;", "names"],
-    ])("allows %s", (_label, source, name) => {
-      expect(validateSyntax(source, name)).not.toThrow();
-    });
-
-    // The final row previously asserted with /C-style array declaration is not
-    // allowed/ rather than the string. The pattern has no metacharacters, so
-    // regex match and substring match agree; normalized to the string form the
-    // other rows use.
-    it.each([
-      [
-        "empty dimension with C-style trailing brackets (Issue #1017)",
-        "u8 arr[] <- [1, 2, 3];",
-        "arr",
-      ],
-      ["multi-dimensional C-style (Issue #1014)", "u8 matrix[4][4];", "matrix"],
-      [
-        "string type with C-style trailing brackets (Issue #1016)",
-        "string<32> names[4];",
-        "names",
-      ],
-      ["C-style single dimension for primitives", "u8 arr[10];", "arr"],
-    ])("rejects %s", (_label, source, name) => {
-      expect(validateSyntax(source, name)).toThrow(
-        "C-style array declaration is not allowed",
-      );
-    });
-  });
 
   // #1322: the `validateIntegerInitializer` suite that stood here is gone with the method. ADR-024's
   // rules are E0868/E0869 in pass 2.1, covered by

@@ -1,2 +1,2 @@
 21:28 error[E0866]: Array size mismatch: declared [3] but the initializer has 2 element(s)
-       help: Give one element per slot, or use the fill-all form such as ["x"*].
+       help: Give one element per slot, or use the fill-all form such as [0*] (ADR-035).

@@ -12,7 +12,6 @@ import AssignmentKind from "../AssignmentKind";
 import IAssignmentContext from "../IAssignmentContext";
 import TAssignmentHandler from "./TAssignmentHandler";
 import CodeGenState from "../../../../state/CodeGenState";
-import TypeValidator from "../../TypeValidator";
 import type TTypeInfo from "../../../../types/TTypeInfo";
 import CNEXT_TO_C_TYPE_MAP from "../../../../../utils/constants/TypeMappings";
 import TypeResolver from "../../TypeResolver";
@@ -54,18 +53,7 @@ function handleArrayElement(ctx: IAssignmentContext): string {
  * Uses resolvedBaseIdentifier for type lookups to support scoped arrays.
  */
 function handleMultiDimArrayElement(ctx: IAssignmentContext): string {
-  // ADR-036: Compile-time bounds checking for constant indices. Uses
-  // resolvedBaseIdentifier (includes the scope prefix, e.g. "ArrayBug_data"
-  // rather than "data"); the whether-to-check guard lives in checkArrayBounds
-  // so all three callers ask the same question (#1360).
-  const line = ctx.subscripts[0]?.start?.line ?? 0;
-  TypeValidator.checkArrayBounds(
-    ctx.resolvedBaseIdentifier,
-    [...ctx.subscripts],
-    line,
-    (expr) => CodeGenState.requireGenerator().tryEvaluateConstant(expr),
-  );
-
+  // #1322: constant index bounds (ADR-036, E0854) are checked in pass 2.1.
   return `${ctx.resolvedTarget} ${ctx.cOp} ${ctx.generatedValue};`;
 }
 

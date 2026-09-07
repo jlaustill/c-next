@@ -31,6 +31,8 @@ import EnumTypeSafetyAnalyzer from "./EnumTypeSafetyAnalyzer";
 import ScopeAccessAnalyzer from "./ScopeAccessAnalyzer";
 import RegisterAccessAnalyzer from "./RegisterAccessAnalyzer";
 import BareEnumMemberAnalyzer from "./BareEnumMemberAnalyzer";
+import ArrayDeclarationAnalyzer from "./ArrayDeclarationAnalyzer";
+import ArrayIndexBoundsAnalyzer from "./ArrayIndexBoundsAnalyzer";
 import LoopAnalyzer from "./LoopAnalyzer";
 import SliceAssignmentAnalyzer from "./SliceAssignmentAnalyzer";
 import ControllingExpressionAnalyzer from "./ControllingExpressionAnalyzer";
@@ -308,6 +310,15 @@ function runAnalyzers(
       // already guaranteed a comparison, as it did in codegen.
       label: "loops and break/continue (ADR-068/ADR-026, E0703/E0705/E0707)",
       run: () => new LoopAnalyzer().analyze(tree),
+    },
+    {
+      label:
+        "array declarations and initializers (ADR-035/036, E0866/E0874-E0876)",
+      run: () => new ArrayDeclarationAnalyzer().analyze(tree),
+    },
+    {
+      label: "constant array index bounds (ADR-036, E0854)",
+      run: () => new ArrayIndexBoundsAnalyzer().analyze(tree),
     },
     {
       // Last, and does not halt: comment findings are reported alongside

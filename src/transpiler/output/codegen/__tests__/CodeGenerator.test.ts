@@ -5224,28 +5224,6 @@ describe("CodeGenerator", () => {
     });
   });
 
-  describe("Array bounds checking", () => {
-    it("should throw error for out-of-bounds constant index", () => {
-      const source = `
-        u32[5] data;
-        void main() {
-          data[10] <- 1;
-        }
-      `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
-      const tSymbols = declareAndResolve(tree);
-      const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-      expect(() =>
-        generator.generate(tree, tokenStream, {
-          symbolInfo: symbols,
-          sourcePath: "test.cnx",
-        }),
-      ).toThrow(/bound|index|out of range/i);
-    });
-  });
-
   describe("Local variable tracking", () => {
     it("should track local variables in function scope", () => {
       const source = `
@@ -10752,47 +10730,6 @@ describe("CodeGenerator", () => {
         expect(code).toContain("BUFFER_SIZE");
       });
 
-      it("should reject C-style array declaration for primitive types", () => {
-        const source = `
-          void test() {
-            u8 buffer[10];
-          }
-        `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        expect(() => {
-          generator.generate(tree, tokenStream, {
-            symbolInfo: symbols,
-            sourcePath: "test.cnx",
-          });
-        }).toThrow(/C-style array declaration is not allowed/);
-      });
-
-      it("should reject C-style array declaration for user types", () => {
-        const source = `
-          struct Data {
-            u32 value;
-          }
-          void test() {
-            Data items[5];
-          }
-        `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        expect(() => {
-          generator.generate(tree, tokenStream, {
-            symbolInfo: symbols,
-            sourcePath: "test.cnx",
-          });
-        }).toThrow(/C-style array declaration is not allowed/);
-      });
-
       it("should allow empty brackets for size inference", () => {
         const source = `
           void test() {
@@ -10810,26 +10747,6 @@ describe("CodeGenerator", () => {
         });
 
         expect(code).toContain("uint8_t data[3]");
-      });
-
-      it("should reject multi-dimensional C-style arrays (Issue #1014)", () => {
-        const source = `
-          void test() {
-            u8 matrix[4][4];
-            matrix[0][0] <- 0;
-          }
-        `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        expect(() =>
-          generator.generate(tree, tokenStream, {
-            symbolInfo: symbols,
-            sourcePath: "test.cnx",
-          }),
-        ).toThrow("C-style array declaration is not allowed");
       });
 
       it("should allow multi-dimensional C-Next style arrays", () => {
@@ -11449,84 +11366,6 @@ describe("CodeGenerator", () => {
       });
     });
 
-    describe("C-style array parameter rejection", () => {
-      it("should reject C-style array parameter with single dimension", () => {
-        const source = `
-          void process(u8 data[8]) {
-            data[0] <- 0xFF;
-          }
-        `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        expect(() => {
-          generator.generate(tree, tokenStream, {
-            symbolInfo: symbols,
-            sourcePath: "test.cnx",
-          });
-        }).toThrow(/C-style array parameter is not allowed/);
-      });
-
-      it("should reject C-style array parameter with multiple dimensions", () => {
-        const source = `
-          void process(u32 matrix[3][3]) {
-            matrix[0][0] <- 1;
-          }
-        `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        expect(() => {
-          generator.generate(tree, tokenStream, {
-            symbolInfo: symbols,
-            sourcePath: "test.cnx",
-          });
-        }).toThrow(/C-style array parameter is not allowed/);
-      });
-
-      it("should reject C-style unsized array parameter", () => {
-        const source = `
-          void process(u8 data[]) {
-            data[0] <- 0xFF;
-          }
-        `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        expect(() => {
-          generator.generate(tree, tokenStream, {
-            symbolInfo: symbols,
-            sourcePath: "test.cnx",
-          });
-        }).toThrow(/C-style array parameter is not allowed/);
-      });
-
-      it("should suggest correct C-Next style syntax in error message", () => {
-        const source = `
-          void process(i32 values[10]) {
-            values[0] <- 1;
-          }
-        `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        expect(() => {
-          generator.generate(tree, tokenStream, {
-            symbolInfo: symbols,
-            sourcePath: "test.cnx",
-          });
-        }).toThrow(/Use 'i32\[10\] values' instead of 'i32 values\[10\]'/);
-      });
-    });
-
     describe("user type array parameters", () => {
       it("should handle struct array parameter with C-Next style", () => {
         const source = `
@@ -11607,44 +11446,6 @@ describe("CodeGenerator", () => {
         });
 
         expect(code).toContain("uint8_t cube[2][3][4]");
-      });
-
-      it("should reject unbounded array parameter for memory safety", () => {
-        const source = `
-          void processRows(u32[][4] rows, u32 count) {
-            rows[0][0] <- 1;
-          }
-        `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        expect(() => {
-          generator.generate(tree, tokenStream, {
-            symbolInfo: symbols,
-            sourcePath: "test.cnx",
-          });
-        }).toThrow(/Unbounded array parameters are not allowed/);
-      });
-
-      it("should reject simple unbounded array parameter", () => {
-        const source = `
-          void process(u8[] data) {
-            data[0] <- 0xFF;
-          }
-        `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        expect(() => {
-          generator.generate(tree, tokenStream, {
-            symbolInfo: symbols,
-            sourcePath: "test.cnx",
-          });
-        }).toThrow(/Unbounded array parameters are not allowed/);
       });
     });
 

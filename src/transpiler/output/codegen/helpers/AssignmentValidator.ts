@@ -76,12 +76,7 @@ class AssignmentValidator {
 
     // Case 2: Has subscripts - validate array bounds
     if (subscriptExprs.length > 0 && identifiers.length > 0) {
-      AssignmentValidator.validateArrayElement(
-        identifiers[0],
-        subscriptExprs,
-        line,
-        callbacks,
-      );
+      AssignmentValidator.validateArrayElement(identifiers[0]);
     }
 
     // Case 3: Has member access - validate member access
@@ -121,26 +116,14 @@ class AssignmentValidator {
   /**
    * Validate array element assignment.
    */
-  private static validateArrayElement(
-    arrayName: string,
-    subscriptExprs: Parser.ExpressionContext[],
-    line: number,
-    callbacks: IAssignmentValidatorCallbacks,
-  ): void {
+  private static validateArrayElement(arrayName: string): void {
     // ADR-013: Validate const assignment on array
     const constError = TypeValidator.checkConstAssignment(arrayName);
     if (constError) {
       throw new Error(`${constError} (array element)`);
     }
 
-    // ADR-036: Compile-time bounds checking. The whether-to-check guard lives
-    // in checkArrayBounds so all three callers ask the same question (#1360).
-    TypeValidator.checkArrayBounds(
-      arrayName,
-      subscriptExprs,
-      line,
-      callbacks.tryEvaluateConstant,
-    );
+    // #1322: constant index bounds (ADR-036, E0854) are checked in pass 2.1.
   }
 
   /**

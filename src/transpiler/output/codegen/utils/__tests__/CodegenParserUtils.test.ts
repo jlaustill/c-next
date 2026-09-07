@@ -71,32 +71,6 @@ function getAdditiveFromExpr(
   return shift.additiveExpression()[0] ?? null;
 }
 
-/**
- * Helper to parse a function declaration and get its parameter list
- */
-function parseFunctionDeclaration(source: string): {
-  name: string;
-  paramList: Parser.ParameterListContext | null;
-} {
-  const { tree, errors } = CNextSourceParser.parse(source);
-
-  if (errors.length > 0) {
-    throw new Error(`Parse failed: ${errors.map((e) => e.message).join(", ")}`);
-  }
-
-  for (const decl of tree.declaration()) {
-    const funcDecl = decl.functionDeclaration();
-    if (funcDecl) {
-      return {
-        name: funcDecl.IDENTIFIER().getText(),
-        paramList: funcDecl.parameterList() ?? null,
-      };
-    }
-  }
-
-  throw new Error("Could not find function declaration in parsed tree");
-}
-
 describe("CodegenParserUtils", () => {
   describe("getOperatorsFromChildren", () => {
     it("extracts operators from additive expression", () => {
@@ -146,46 +120,6 @@ describe("CodegenParserUtils", () => {
     ])("%s", (_label, source) => {
       const expr = parseExpression(source);
       expect(CodegenParserUtils.getSimpleIdentifier(expr)).toBeNull();
-    });
-  });
-
-  describe("isMainFunctionWithArgs", () => {
-    it.each([
-      [
-        "returns true for main with string args[]",
-        "void main(string args[]) {}",
-      ],
-      ["returns true for main with u8 args[][]", "void main(u8 args[][]) {}"],
-      ["returns true for main with i8 args[][]", "void main(i8 args[][]) {}"],
-    ])("%s", (_label, source) => {
-      const { name, paramList } = parseFunctionDeclaration(source);
-      expect(CodegenParserUtils.isMainFunctionWithArgs(name, paramList)).toBe(
-        true,
-      );
-    });
-
-    it("returns false for main with no parameters", () => {
-      const { name, paramList } = parseFunctionDeclaration("void main() {}");
-      expect(CodegenParserUtils.isMainFunctionWithArgs(name, paramList)).toBe(
-        false,
-      );
-    });
-
-    it.each([
-      ["returns false for non-main function", "void foo(string args[]) {}"],
-      [
-        "returns false for main with wrong parameter type",
-        "void main(u32 count) {}",
-      ],
-      [
-        "returns false for main with multiple parameters",
-        "void main(string args[], u32 count) {}",
-      ],
-    ])("%s", (_label, source) => {
-      const { name, paramList } = parseFunctionDeclaration(source);
-      expect(CodegenParserUtils.isMainFunctionWithArgs(name, paramList)).toBe(
-        false,
-      );
     });
   });
 });

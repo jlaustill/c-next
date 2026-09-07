@@ -90,7 +90,10 @@ class StringDeclarationListener extends CNextListener {
     if (!expression) return;
 
     if (isArray) {
-      this.checkArrayInitializer(ctx, expression);
+      // #1322: a string ARRAY's initializer -- a list, of the declared size --
+      // is the same rule for every element type, and it is asked once, in
+      // `ArrayDeclarationAnalyzer` (ADR-035, E0866). The capacity rules below
+      // are about one string.
       return;
     }
     if (!this.checkFileScopeForm(ctx, expression)) return;
@@ -251,45 +254,6 @@ class StringDeclarationListener extends CNextListener {
     }
   }
 
-  /** A string array's initializer must be a list of literals of the declared size. */
-  private checkArrayInitializer(
-    ctx: Parser.VariableDeclarationContext,
-    expression: Parser.ExpressionContext,
-  ): void {
-    const initializer = expression.getText();
-    if (!initializer.startsWith("[") && !initializer.startsWith("{")) {
-      // "a list", not "a list of literals": a list whose ELEMENTS are
-      // variables IS a valid array initializer. The message this replaces said
-      // "String array initialization from variables not supported", which
-      // reads as rejecting that -- and the first fixture written to the old
-      // wording used `[a, a]` and did not fire, because that is a list.
-      this.report(
-        expression,
-        "E0866",
-        `A string array must be initialized by a list, not '${initializer}'`,
-        "Write the elements out in brackets, or declare it empty and assign the elements afterwards.",
-      );
-      return;
-    }
-
-    const declaredSize = this.declaredArraySize(ctx);
-    if (declaredSize === null) return;
-    const elements =
-      StringDeclarationListener.countInitializerElements(expression);
-    if (
-      elements !== null &&
-      elements !== declaredSize &&
-      !initializer.includes("*")
-    ) {
-      this.report(
-        expression,
-        "E0866",
-        `Array size mismatch: declared [${declaredSize}] but the initializer has ${elements} element(s)`,
-        'Give one element per slot, or use the fill-all form such as ["x"*].',
-      );
-    }
-  }
-
   // --- The facts the rules above are asked of ------------------------------
 
   /** A string-valued expression's capacity: a literal's length, or a declared one. */
@@ -391,14 +355,6 @@ class StringDeclarationListener extends CNextListener {
     return null;
   }
 
-  private declaredArraySize(
-    ctx: Parser.VariableDeclarationContext,
-  ): number | null {
-    const dims = ctx.type().arrayType?.()?.arrayTypeDimension();
-    const first = dims?.[0]?.expression();
-    return first ? StringDeclarationListener.constantOf(first) : null;
-  }
-
   // --- Static helpers -------------------------------------------------------
 
   /** The string literal an expression IS, or null. */
@@ -430,22 +386,6 @@ class StringDeclarationListener extends CNextListener {
       node = node.parent;
     }
     return false;
-  }
-
-  private static countInitializerElements(
-    expression: Parser.ExpressionContext,
-  ): number | null {
-    const text = expression.getText();
-    const inner = text.slice(1, -1);
-    if (inner.length === 0) return 0;
-    let depth = 0;
-    let count = 1;
-    for (const ch of inner) {
-      if (ch === "[" || ch === "{") depth += 1;
-      else if (ch === "]" || ch === "}") depth -= 1;
-      else if (ch === "," && depth === 0) count += 1;
-    }
-    return count;
   }
 
   private static constantOf(expr: Parser.ExpressionContext): number | null {

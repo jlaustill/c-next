@@ -1,0 +1,14 @@
+// test-error
+// test-adr: 036
+// ADR-036: a constant index at or beyond a dimension is rejected (E0854), on
+// the dimension it indexes -- `matrix[5][0]` fails on dimension 1 of [4][8].
+//
+// #1322 relocated this from `output/`, where it reported `1:0` with the line
+// in the message text.
+u8[4][8] matrix;
+i32 main() {
+    // NEGATIVE CONTROL -- the last valid index of each dimension.
+    matrix[3][7] <- 1;
+    matrix[5][0] <- 1; // Error: index 5 >= dimension 4
+    return 0;
+}

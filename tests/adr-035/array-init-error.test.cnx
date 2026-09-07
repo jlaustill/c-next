@@ -1,0 +1,63 @@
+// test-error
+// test-adr: 035
+// ADR-035, E0866/E0876: an array's initializer is a list with one element per
+// slot at every level, or the fill-all form for a level; the fill-all form
+// cannot fix an inferred size.
+//
+// #1322 relocated the size mismatch and the fill-all rule from `output/`,
+// where they reported `1:0`, and closed two holes probed on the way: an
+// array initialized from another array reached C as `uint8_t b[2] = a;`,
+// and only the OUTER list was counted, so an inner excess reached C too.
+
+struct Point {
+    u8 x;
+    u8 y;
+}
+
+const u8 THREE <- 3;
+
+// NEGATIVE CONTROLS -- every accepted form: exact counts, nested exact
+// counts, fill-all with a size (outer and inner), an inferred size from a
+// list, a string literal into a u8 array, a struct array, a const dimension.
+u8[3] okThree <- [1, 2, 3];
+u8[2][2] okNested <- [[1, 2], [3, 4]];
+u8[4] okFill <- [0*];
+u8[2][3] okInnerFill <- [[1*], [2*]];
+u8[] okInferred <- [7, 8, 9, 10];
+u8[] okText <- "Hello";
+Point[2] okPoints <- [{ x: 1, y: 2 }, { x: 3, y: 4 }];
+u8[THREE] okConst <- [1, 2, 3];
+
+// ASSERTION 1 -- too few elements.
+u8[3] tooFew <- [1, 2];
+
+// ASSERTION 2 -- too many elements.
+u8[3] tooMany <- [1, 2, 3, 4, 5];
+
+// ASSERTION 3 -- an inner level with the wrong count (the closed hole).
+u8[2][2] innerBad <- [[1, 2, 3], [4, 5]];
+
+// ASSERTION 4 -- the fill-all form on an inferred size.
+u8[] fillInferred <- [0*];
+
+void main() {
+    u8[2] a <- [1, 2];
+    // ASSERTION 5 -- initialized from another array (the closed hole).
+    u8[2] copy <- a;
+    // ASSERTION 6 -- a const dimension counted like a literal one.
+    u8[THREE] viaConst <- [1, 2];
+    // ASSERTION 6b -- a string array from a variable: the same non-list rule
+    // (it was ADR-045's arm of E0866 before the count was made one rule).
+    string<8>[2] names <- ["a", "b"];
+    string<8>[2] namesCopy <- names;
+}
+
+scope Table {
+    // ASSERTION 7 -- a scope member.
+    u8[2] rows <- [1, 2, 3];
+
+    public void fill() {
+        // ASSERTION 8 -- a scope method.
+        u8[4] local <- [1];
+    }
+}

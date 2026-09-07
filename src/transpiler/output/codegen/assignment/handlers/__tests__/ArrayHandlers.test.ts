@@ -204,37 +204,6 @@ describe("ArrayHandlers", () => {
       expect(result).toBe("cube[x][y][z] = value;");
     });
 
-    it("performs bounds checking when type info available", () => {
-      HandlerTestUtils.setupMockTypeRegistry([
-        ["matrix", { arrayDimensions: [10, 10], baseType: "i32" }],
-      ]);
-      mockCheckArrayBounds.mockClear();
-      HandlerTestUtils.setupMockGenerator({
-        generateExpression: vi
-          .fn()
-          .mockReturnValueOnce("5")
-          .mockReturnValueOnce("3"),
-      });
-      const ctx = createMockContext({
-        identifiers: ["matrix"],
-        subscripts: [
-          { mockValue: "5", start: { line: 10 } } as never,
-          { mockValue: "3", start: { line: 10 } } as never,
-        ],
-      });
-
-      getHandler()!(ctx);
-
-      // #1360: dimensions are no longer passed in -- checkArrayBounds owns the
-      // whether-to-check decision, so every caller asks the same question.
-      expect(mockCheckArrayBounds).toHaveBeenCalledWith(
-        "matrix",
-        ctx.subscripts,
-        10,
-        expect.any(Function), // tryEvaluateConstant callback
-      );
-    });
-
     it("handles compound assignment", () => {
       HandlerTestUtils.setupMockGenerator({
         generateExpression: vi

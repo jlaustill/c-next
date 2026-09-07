@@ -125,6 +125,7 @@ import IPostfixOperation from "./types/IPostfixOperation";
 // Issue #707: Expression unwrapping utility for reducing duplication
 import ExpressionUnwrapper from "../../../utils/ExpressionUnwrapper";
 // Stateless parser utilities extracted from CodeGenerator
+import ParserUtils from "../../../utils/ParserUtils";
 import CodegenParserUtils from "./utils/CodegenParserUtils";
 import IMemberSeparatorDeps from "./types/IMemberSeparatorDeps";
 import IParameterDereferenceDeps from "./types/IParameterDereferenceDeps";
@@ -1486,7 +1487,7 @@ export default class CodeGenerator implements IOrchestrator {
     name: string,
     paramList: Parser.ParameterListContext | null,
   ): boolean {
-    return CodegenParserUtils.isMainFunctionWithArgs(name, paramList);
+    return ParserUtils.isMainFunctionWithArgs(name, paramList);
   }
 
   /**
@@ -3859,11 +3860,8 @@ export default class CodeGenerator implements IOrchestrator {
     const typeName = this.getTypeName(ctx.type());
     const name = ctx.IDENTIFIER().getText();
 
-    // Validate: Reject C-style array parameters
-    this._validateCStyleArrayParam(ctx, typeName, name);
-
-    // Validate: Reject unbounded array dimensions
-    this._validateUnboundedArrayParam(ctx);
+    // #1322: a C-style or unbounded array parameter is E0874/E0875 in pass
+    // 2.1 (ADR-036).
 
     // Pre-compute CodeGenState-dependent values
     const isModified = this._isCurrentParameterModified(name);
@@ -3910,49 +3908,6 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Use shared builder with C/C++ mode
     return ParameterSignatureBuilder.build(input, CppModeHelper.refOrPtr());
-  }
-
-  /**
-   * Validate: Reject C-style array parameters
-   * C-style: u8 data[8], u8 data[4][4], u8 data[]
-   * C-Next:  u8[8] data, u8[4][4] data, u8[] data
-   */
-  private _validateCStyleArrayParam(
-    ctx: Parser.ParameterContext,
-    typeName: string,
-    name: string,
-  ): void {
-    const dims = ctx.arrayDimension();
-    if (dims.length > 0) {
-      const dimensions = dims
-        .map((dim) => `[${dim.expression()?.getText() ?? ""}]`)
-        .join("");
-      const line = ctx.start?.line ?? 0;
-      const col = ctx.start?.column ?? 0;
-      throw new Error(
-        `${line}:${col} C-style array parameter is not allowed. ` +
-          `Use '${typeName}${dimensions} ${name}' instead of '${typeName} ${name}${dimensions}'`,
-      );
-    }
-  }
-
-  /**
-   * Validate: Reject unbounded array dimensions for memory safety
-   */
-  private _validateUnboundedArrayParam(ctx: Parser.ParameterContext): void {
-    const arrayTypeCtx = ctx.type().arrayType();
-    if (!arrayTypeCtx) return;
-
-    const allDims = arrayTypeCtx.arrayTypeDimension();
-    const hasUnboundedDim = allDims.some((d) => !d.expression());
-    if (hasUnboundedDim) {
-      const line = ctx.start?.line ?? 0;
-      const col = ctx.start?.column ?? 0;
-      throw new Error(
-        `${line}:${col} Unbounded array parameters are not allowed. ` +
-          `All dimensions must have explicit sizes for memory safety.`,
-      );
-    }
   }
 
   /**

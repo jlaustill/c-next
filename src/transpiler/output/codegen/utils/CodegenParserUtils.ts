@@ -36,41 +36,10 @@ class CodegenParserUtils {
     return operators;
   }
 
-  /**
-   * Check if this is the main function with command-line args parameter.
-   * Supports: u8 args[][] (legacy) or string args[] (preferred)
-   *
-   * @param name - Function name
-   * @param paramList - Parameter list context
-   * @returns true if this is main with args parameter
-   */
-  static isMainFunctionWithArgs(
-    name: string,
-    paramList: Parser.ParameterListContext | null,
-  ): boolean {
-    if (name !== "main" || !paramList) {
-      return false;
-    }
-
-    const params = paramList.parameter();
-    if (params.length !== 1) {
-      return false;
-    }
-
-    const param = params[0];
-    const typeCtx = param.type();
-    const dims = param.arrayDimension();
-
-    // Check for string args[] (preferred - array of strings)
-    if (typeCtx.stringType() && dims.length === 1) {
-      return true;
-    }
-
-    // Check for u8 args[][] (legacy - 2D array of bytes)
-    const type = typeCtx.getText();
-    return (type === "u8" || type === "i8") && dims.length === 2;
-  }
-
+  // #1322: `isMainFunctionWithArgs` moved to `ParserUtils` (src/utils), which
+  // pass 2.1 may import: E0874/E0875 have to exempt main's args parameter by
+  // the same criterion codegen lowers it with, and a second copy of that
+  // criterion is the duplicate-path shape.
   /**
    * Extract a simple identifier from an expression, if it is one.
    * Returns null for complex expressions (binary ops, function calls, etc.)

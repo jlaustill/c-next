@@ -35,13 +35,11 @@ const string[2] NO_ELEMENT_CAPACITY <- ["a", "b"];
 const string FROM_NON_LITERAL <- okSource;
 
 u32 main() {
-    // ASSERTION 3 -- a string array initialized by something that is not a
-    // list. The old message said "from variables", which is misleading: a LIST
-    // of variables is accepted (it is still an array initializer), and what is
-    // rejected is any initializer that is not a list at all. Probed -- the
-    // first version of this fixture used `[a, a]` and did not fire, because
-    // that is a list.
-    string<8>[2] fromAnother <- OK_ARRAY;
+    // (A string array initialized by something that is not a list was
+    // ASSERTION 3 here. #1322 made "an array is initialized by a list" one
+    // rule for every element type, ADR-035's E0866, asserted by
+    // `tests/adr-035/array-init-error`; a second copy here would be decided
+    // by a later step and never reached while this file's E0862 halts first.)
 
     // ASSERTION 4 -- a source wider than its destination. The copy would
     // truncate silently, so it is rejected rather than narrowed.

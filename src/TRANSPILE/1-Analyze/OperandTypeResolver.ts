@@ -195,10 +195,28 @@ class OperandTypeResolver {
     ctx: Parser.AssignmentTargetContext,
     frame: IScopeFrame,
   ): string | null {
+    return this.typeOfAssignmentTargetPrefix(ctx, frame, 0);
+  }
+
+  /**
+   * The same walk with the last `dropTrailingOps` operations left off.
+   *
+   * #1322: ADR-036's bounds check asks, at each subscript of a TARGET, what
+   * is being subscripted -- `grid[i][9]` is bounded by `grid[i]`'s shape, not
+   * `grid`'s -- which is the prefix walk `typeOfPostfixPrefix` already gives
+   * an expression. Exposed the same way rather than as a second walker.
+   */
+  public typeOfAssignmentTargetPrefix(
+    ctx: Parser.AssignmentTargetContext,
+    frame: IScopeFrame,
+    dropTrailingOps: number,
+  ): string | null {
     const baseName = ctx.IDENTIFIER()?.getText();
     if (!baseName) return null;
 
-    const steps: IChainStep[] = ctx.postfixTargetOp().map((op) => ({
+    const ops = ctx.postfixTargetOp();
+    const limit = Math.max(0, ops.length - dropTrailingOps);
+    const steps: IChainStep[] = ops.slice(0, limit).map((op) => ({
       member: op.DOT() !== null ? (op.IDENTIFIER()?.getText() ?? null) : null,
       isSubscript: op.LBRACKET() !== null,
       isCall: false, // an assignment target is never a call

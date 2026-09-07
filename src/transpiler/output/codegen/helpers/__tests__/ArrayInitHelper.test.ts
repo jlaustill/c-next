@@ -94,7 +94,7 @@ describe("ArrayInitHelper", () => {
       expect(CodeGenState.localArrays.has("arr")).toBe(true);
     });
 
-    it("throws error for fill-all with empty dimension", () => {
+    it("asserts, since #1322, that the fill-all form never reaches an inferred size (E0876 owns it)", () => {
       const callbacks = {
         generateExpression: vi.fn(() => {
           CodeGenState.lastArrayFillValue = "0";
@@ -118,10 +118,10 @@ describe("ArrayInitHelper", () => {
           null,
           callbacks,
         ),
-      ).toThrow("Fill-all syntax [0*] requires explicit array size");
+      ).toThrow("E0876 rejects the fill-all form");
     });
 
-    it("throws error for array size mismatch", () => {
+    it("asserts, since #1322, that a short initializer never reaches emission (E0866 owns it)", () => {
       const callbacks = {
         generateExpression: vi.fn(() => {
           CodeGenState.lastArrayInitCount = 2; // Only 2 elements
@@ -147,7 +147,7 @@ describe("ArrayInitHelper", () => {
           3, // declared size
           callbacks,
         ),
-      ).toThrow("Array size mismatch - declared [3] but got 2 elements");
+      ).toThrow("E0866 rejects 2 for [3]");
     });
 
     it("expands fill-all for non-zero values", () => {

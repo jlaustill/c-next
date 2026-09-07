@@ -1,7 +1,7 @@
 // test-error
 // Tests: sizeof on array parameter returns pointer size, not array size (E0601)
 
-void processArray(u8 data[10]) {
+void processArray(u8[10] data) {
     u32 size <- sizeof(data);
 }
 

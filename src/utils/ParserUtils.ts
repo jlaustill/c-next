@@ -5,6 +5,7 @@
  * parser contexts, providing consistent null handling across the codebase.
  */
 
+import * as Parser from "../transpiler/logic/parser/grammar/CNextParser";
 import ISourcePosition from "./types/ISourcePosition";
 import type ISourceSpan from "../transpiler/types/ISourceSpan";
 
@@ -177,6 +178,42 @@ class ParserUtils {
       column: Number.parseInt(colStr, 10),
       message: afterColon.substring(spaceIdx + 1),
     };
+  }
+  /**
+   * Whether this is the main function with its command-line args parameter
+   * -- the one place a trailing `[]` on a parameter is the language's own
+   * form (ADR-030), lowered to `int main(int argc, char *argv[])`.
+   * Supports: u8 args[][] (legacy) or string args[] (preferred)
+   *
+   * @param name - Function name
+   * @param paramList - Parameter list context
+   * @returns true if this is main with args parameter
+   */
+  static isMainFunctionWithArgs(
+    name: string,
+    paramList: Parser.ParameterListContext | null,
+  ): boolean {
+    if (name !== "main" || !paramList) {
+      return false;
+    }
+
+    const params = paramList.parameter();
+    if (params.length !== 1) {
+      return false;
+    }
+
+    const param = params[0];
+    const typeCtx = param.type();
+    const dims = param.arrayDimension();
+
+    // Check for string args[] (preferred - array of strings)
+    if (typeCtx.stringType() && dims.length === 1) {
+      return true;
+    }
+
+    // Check for u8 args[][] (legacy - 2D array of bytes)
+    const type = typeCtx.getText();
+    return (type === "u8" || type === "i8") && dims.length === 2;
   }
 }
 
