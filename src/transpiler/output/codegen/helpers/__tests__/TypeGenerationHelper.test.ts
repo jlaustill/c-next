@@ -73,11 +73,9 @@ describe("TypeGenerationHelper", () => {
       expect(result).toBe("Motor__State");
     });
 
-    it("throws when called outside scope", () => {
-      expect(() => {
-        TypeGenerationHelper.generateScopedType("State", "");
-      }).toThrow("Cannot use 'this.Type' outside of a scope");
-    });
+    // #1322: the "throws when called outside scope" case is deleted with the
+    // guard. `this` outside a scope is E0431 in pass 2.1, which halts before
+    // code generation, so the empty-scope call this asserted is unreachable.
   });
 
   describe("generateGlobalType", () => {
@@ -158,13 +156,12 @@ describe("TypeGenerationHelper", () => {
       expect(result).toBe("Motor__State");
     });
 
-    it("throws for scoped type outside scope", () => {
-      const ctx = getTypeContext("this.State status;");
-      expect(ctx).not.toBeNull();
-      expect(() => {
-        TypeGenerationHelper.generate(ctx!, defaultDeps);
-      }).toThrow();
-    });
+    // #1322: this case asserted that `generate` throws for `this.Type` with no
+    // enclosing scope. The guard is deleted, not relocated -- `this` outside a
+    // scope is E0431 in pass 2.1, which reaches a TYPE position as well as a
+    // value one and halts before code generation. Verified on both shapes that
+    // reached this code: a file-scope declaration and a local one, each
+    // reporting E0431 at the `this` token.
 
     // The deps column keeps the two cases needing a non-default dependency in
     // the same table as the rest, rather than stranding them between merged

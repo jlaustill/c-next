@@ -33,6 +33,7 @@ import RegisterAccessAnalyzer from "./RegisterAccessAnalyzer";
 import BareEnumMemberAnalyzer from "./BareEnumMemberAnalyzer";
 import ArrayDeclarationAnalyzer from "./ArrayDeclarationAnalyzer";
 import ArrayIndexBoundsAnalyzer from "./ArrayIndexBoundsAnalyzer";
+import CallbackAssignmentAnalyzer from "./CallbackAssignmentAnalyzer";
 import ConstAssignmentAnalyzer from "./ConstAssignmentAnalyzer";
 import LoopAnalyzer from "./LoopAnalyzer";
 import SliceAssignmentAnalyzer from "./SliceAssignmentAnalyzer";
@@ -324,6 +325,10 @@ function runAnalyzers(
     {
       label: "const enforcement (ADR-013, E0877/E0878)",
       run: () => new ConstAssignmentAnalyzer().analyze(tree),
+    },
+    {
+      label: "callback typing (ADR-029, E0879/E0880)",
+      run: () => new CallbackAssignmentAnalyzer().analyze(tree),
     },
     {
       // Last, and does not halt: comment findings are reported alongside

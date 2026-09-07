@@ -456,7 +456,6 @@ function createMockOrchestrator(
     generateParameterList: vi.fn(() => "void"),
     exitFunctionBody: vi.fn(),
     clearParameters: vi.fn(),
-    isCallbackTypeUsedAsFieldType: vi.fn(() => false),
     recordCallbackTypedef: vi.fn(),
     getCallbackTypedefName: vi.fn(() => null),
     generateCallbackTypedef: vi.fn(() => null),
@@ -1070,7 +1069,6 @@ describe("ScopeGenerator", () => {
       const recordCallbackTypedef = vi.fn();
       const orchestrator = createMockOrchestrator({
         ...createMockOrchestrator(),
-        isCallbackTypeUsedAsFieldType: vi.fn(() => true),
         recordCallbackTypedef,
         getCallbackTypedefName: vi.fn(() => null),
       });

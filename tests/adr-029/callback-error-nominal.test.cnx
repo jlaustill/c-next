@@ -1,0 +1,45 @@
+// test-error
+// test-adr: 029
+// ADR-029 nominal typing: a function used as a struct field's TYPE is its own
+// callback type, and cannot stand in for another one even when the signatures
+// are identical.
+
+scope CallbackErrNom {
+    public struct Point {
+        u32 x;
+        u32 y;
+    }
+}
+
+void onMouseDown(const CallbackErrNom.Point p) {
+    // default for mouse down
+}
+
+void onMouseUp(const CallbackErrNom.Point p) {
+    // default for mouse up
+}
+
+// NEGATIVE CONTROL -- same signature, and NOT used as a field type anywhere,
+// so it is a plain function and may stand in. A rule that keyed on "the
+// signatures match" rather than on "the value is itself a type" would reject
+// this line too.
+void plainHandler(const CallbackErrNom.Point p) {}
+
+struct Handler {
+    onMouseDown down;
+    onMouseUp up;
+}
+
+void test() {
+    Handler h;
+
+    // CONTROL, continued: accepted.
+    h.down <- plainHandler;
+
+    // CONTROL: a type assigned to its OWN field is always fine.
+    h.up <- onMouseUp;
+
+    // ASSERTION: onMouseUp is a callback type in its own right, so it cannot
+    // be assigned to an onMouseDown field.
+    h.down <- onMouseUp;
+}

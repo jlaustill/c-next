@@ -307,6 +307,59 @@ Following MISRA C Rule 11.1:
 
 ---
 
+## Diagnostics
+
+| Code  | Reported when                                                                                   | Asserted by                                                                                             |
+| ----- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| E0879 | A function's declared signature differs from the callback type of the slot it is placed in      | `tests/adr-029/callback-signature-error.test.cnx`, `tests/adr-029/callback-imported-*-error.test.cnx`   |
+| E0880 | A function that is itself used as a struct field's type is placed in a slot of a different type | `tests/adr-029/callback-error-nominal.test.cnx`, `tests/adr-029/callback-uncovered-arms-error.test.cnx` |
+
+A function name reaches a callback-typed slot in exactly four ways, and all
+four are decided on the same terms: an assignment target, a declaration's
+initializer, a struct initializer's field, and a call argument -- the last
+being the case the "User Implementation" example above marks `COMPILE ERROR`.
+Each is reported at the value's own position, and every offense in a file is
+reported rather than only the first.
+
+The signature compared is the one the author **declared**. A parameter may also
+acquire `const` because no body modifies it, but that is a property of an
+implementation rather than of the type, and a contract shared by several
+implementations cannot promise it.
+
+Nominal identity is a property of the **program**, not of a file: a function is
+a callback type because some struct declares a field of it, and that stays true
+in a file that imports the struct. The alternative would make the same
+assignment legal or illegal depending on the include graph.
+
+## Scope-Context Matrix (#1219)
+
+Severity follows the eslint model: `off` records that a cell **cannot exist**,
+`warn` that it should be covered and is not, `error` that it must be.
+
+<!-- MATRIX-SEVERITY -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| scope member       | same file           | error    |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | error    |
+
+An assignment and a call are statements, so both rules occupy the two function
+contexts; a declaration's initializer is where a callback-typed global or scope
+member gets its value, which occupies the other two. Both the declared
+signature and the fact that makes a function a type can be declared in an
+included file, so every imported cell is `error` and is asserted at one hop and
+at two.
+
 ## Research: MISRA C Guidelines
 
 ### Rule 11.1 - Function Pointer Conversions

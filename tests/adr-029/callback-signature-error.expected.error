@@ -1,0 +1,10 @@
+51:17 error[E0879]: Function 'wrongReturn' signature does not match callback type 'onFrame'
+       help: A callback must match its type's signature exactly: return type, parameter count, and each parameter's type, const-ness and array-ness (ADR-029).
+52:17 error[E0879]: Function 'wrongArity' signature does not match callback type 'onFrame'
+       help: A callback must match its type's signature exactly: return type, parameter count, and each parameter's type, const-ness and array-ness (ADR-029).
+53:17 error[E0879]: Function 'wrongParamType' signature does not match callback type 'onFrame'
+       help: A callback must match its type's signature exactly: return type, parameter count, and each parameter's type, const-ness and array-ness (ADR-029).
+54:17 error[E0879]: Function 'wrongConst' signature does not match callback type 'onFrame'
+       help: A callback must match its type's signature exactly: return type, parameter count, and each parameter's type, const-ness and array-ness (ADR-029).
+55:17 error[E0879]: Function 'wrongArrayness' signature does not match callback type 'onFrame'
+       help: A callback must match its type's signature exactly: return type, parameter count, and each parameter's type, const-ness and array-ness (ADR-029).

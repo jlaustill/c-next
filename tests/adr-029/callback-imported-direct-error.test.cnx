@@ -1,0 +1,40 @@
+// test-error
+// test-adr: 029
+// ADR-029 across ONE include hop(s) -- the `imported direct` column of the
+// matrix. Both facts the rule needs cross the boundary: the declared signature
+// each function has, and whether a function is named as some struct's field
+// TYPE, which is what makes it a nominal type rather than a plain function.
+
+#include "callback-declarations.cnx"
+
+// NEGATIVE CONTROL -- the imported plain function, which is nobody's field
+// type, standing in for the imported callback type. Silent in every slot.
+onDown okGlobal <- plain;
+
+void okCalls() {
+    Handler h;
+    h.down <- plain;
+    takesDown(plain);
+}
+
+// ASSERTION 1 -- global variable: an imported type in another imported type's slot.
+onDown badGlobal <- onUp;
+
+// ASSERTION 2 -- top-level function: assignment and argument.
+void main() {
+    Handler h;
+    h.down <- onUp;
+    takesDown(onUp);
+    h.down <- mismatched;
+}
+
+scope Board {
+    // ASSERTION 3 -- scope member initializer.
+    onDown member <- onUp;
+
+    // ASSERTION 4 -- scope method.
+    public void go() {
+        Handler h;
+        h.down <- onUp;
+    }
+}

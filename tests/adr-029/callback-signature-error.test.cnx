@@ -1,0 +1,56 @@
+// test-error
+// test-adr: 029
+// ADR-029: "must match the callback type's signature exactly". Until #1322 no
+// fixture asserted this at all -- the rule lived in a codegen throw that
+// returned early unless BOTH functions were registered callback types, and
+// whose const comparison read an emission fact that was not yet computed.
+//
+// Pass 2.1 compares the DECLARED signature, which 1.4 Resolve settles: return
+// type, parameter count, and per parameter the type name, `const` and
+// array-ness.
+
+struct Frame {
+    u32 id;
+}
+
+// The callback TYPE every assertion below is measured against.
+void onFrame(const Frame f) {}
+
+// NEGATIVE CONTROLS -- declared before the assertions, and every one must stay
+// silent. Each matches `onFrame` exactly and is not itself used as a field
+// type, so ADR-029 allows it to stand in.
+void matchingHandler(const Frame f) {}
+void alsoMatching(const Frame other) {
+    // parameter NAME differs, which is not part of a signature
+}
+
+// Each of these differs from `onFrame` in exactly one way.
+u32 wrongReturn(const Frame f) {
+    return 1;
+}
+void wrongArity(const Frame f, u32 extra) {}
+void wrongParamType(const u32 n) {}
+void wrongConst(Frame f) {
+    f.id <- 1;
+}
+void wrongArrayness(const Frame[2] f) {}
+
+struct Sink {
+    onFrame handler;
+}
+
+void test() {
+    Sink s;
+
+    // CONTROLS: accepted.
+    s.handler <- matchingHandler;
+    s.handler <- alsoMatching;
+    s.handler <- onFrame;
+
+    // ASSERTIONS: one per way a signature can differ.
+    s.handler <- wrongReturn;
+    s.handler <- wrongArity;
+    s.handler <- wrongParamType;
+    s.handler <- wrongConst;
+    s.handler <- wrongArrayness;
+}

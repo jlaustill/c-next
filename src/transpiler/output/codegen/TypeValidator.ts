@@ -186,80 +186,16 @@ class TypeValidator {
   // walk. It was reached from three codegen paths that each resolved the
   // array's name their own way, and a struct field's dimensions were never
   // among them.
-  // ========================================================================
-  // Callback Assignment Validation (ADR-029)
-  // ========================================================================
-
-  static validateCallbackAssignment(
-    expectedType: string,
-    valueExpr: Parser.ExpressionContext,
-    fieldName: string,
-    isCallbackTypeUsedAsFieldType: (funcName: string) => boolean,
-  ): void {
-    const valueText = valueExpr.getText();
-
-    if (!CodeGenState.knownFunctions.has(valueText)) {
-      return;
-    }
-
-    const expectedInfo = CodeGenState.callbackTypes.get(expectedType);
-    const valueInfo = CodeGenState.callbackTypes.get(valueText);
-
-    if (!expectedInfo || !valueInfo) {
-      return;
-    }
-
-    if (!TypeValidator.callbackSignaturesMatch(expectedInfo, valueInfo)) {
-      throw new Error(
-        `Error: Function '${valueText}' signature does not match callback type '${expectedType}'`,
-      );
-    }
-
-    if (
-      isCallbackTypeUsedAsFieldType(valueText) &&
-      valueText !== expectedType
-    ) {
-      throw new Error(
-        `Error: Cannot assign '${valueText}' to callback field '${fieldName}' ` +
-          `(expected ${expectedType} type, got ${valueText} type - nominal typing)`,
-      );
-    }
-  }
-
-  static callbackSignaturesMatch(
-    a: {
-      returnType: string;
-      parameters: {
-        type: string;
-        isConst: boolean;
-        isPointer: boolean;
-        isArray: boolean;
-      }[];
-    },
-    b: {
-      returnType: string;
-      parameters: {
-        type: string;
-        isConst: boolean;
-        isPointer: boolean;
-        isArray: boolean;
-      }[];
-    },
-  ): boolean {
-    if (a.returnType !== b.returnType) return false;
-    if (a.parameters.length !== b.parameters.length) return false;
-
-    for (let i = 0; i < a.parameters.length; i++) {
-      const pa = a.parameters[i];
-      const pb = b.parameters[i];
-      if (pa.type !== pb.type) return false;
-      if (pa.isConst !== pb.isConst) return false;
-      if (pa.isPointer !== pb.isPointer) return false;
-      if (pa.isArray !== pb.isArray) return false;
-    }
-
-    return true;
-  }
+  // #1322: ADR-029's callback rules are E0879 and E0880 in pass 2.1.
+  //
+  // `validateCallbackAssignment` and `callbackSignaturesMatch` stood here and
+  // compared `ICallbackTypeInfo`, whose `isConst` is `declared || inferred`.
+  // The inferred half is #268 auto-const -- a 2.2 Plan fact about whether a
+  // BODY modifies a parameter -- so the check could not move as written, and
+  // it protected nothing: it read `getUnmodifiedParameters()` before
+  // `modifiedParameters` was filled, so both sides came back "unmodified" and
+  // the const comparison was vacuous. 2.1 compares the DECLARED signature,
+  // which 1.4 Resolve settles onto the symbol.
 
   // ========================================================================
   // Const Assignment Validation (ADR-013)

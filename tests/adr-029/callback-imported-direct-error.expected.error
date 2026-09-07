@@ -1,0 +1,12 @@
+21:20 error[E0880]: Cannot assign 'onUp' to callback variable 'badGlobal' (expected onDown type, got onUp type - nominal typing)
+       help: A function used as a struct field's type is its own callback type; only a function that is not itself a type may stand in for another (ADR-029).
+26:14 error[E0880]: Cannot assign 'onUp' to callback field 'down' (expected onDown type, got onUp type - nominal typing)
+       help: A function used as a struct field's type is its own callback type; only a function that is not itself a type may stand in for another (ADR-029).
+27:14 error[E0880]: Cannot pass 'onUp' as parameter 'cb' of function 'takesDown' (expected onDown type, got onUp type - nominal typing)
+       help: A function used as a struct field's type is its own callback type; only a function that is not itself a type may stand in for another (ADR-029).
+28:14 error[E0879]: Function 'mismatched' signature does not match callback type 'onDown'
+       help: A callback must match its type's signature exactly: return type, parameter count, and each parameter's type, const-ness and array-ness (ADR-029).
+33:21 error[E0880]: Cannot assign 'onUp' to callback variable 'member' (expected onDown type, got onUp type - nominal typing)
+       help: A function used as a struct field's type is its own callback type; only a function that is not itself a type may stand in for another (ADR-029).
+38:18 error[E0880]: Cannot assign 'onUp' to callback field 'down' (expected onDown type, got onUp type - nominal typing)
+       help: A function used as a struct field's type is its own callback type; only a function that is not itself a type may stand in for another (ADR-029).

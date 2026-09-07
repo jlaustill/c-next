@@ -19,9 +19,9 @@ codes that already have a fixture.
 | E05xx     | Include/Preprocessor    | 7      |
 | E06xx     | Sizeof Expressions      | 2      |
 | E07xx     | Control Flow            | 12     |
-| E08xx     | Arithmetic/Array Safety | 38     |
+| E08xx     | Arithmetic/Array Safety | 40     |
 | E09xx     | NULL Safety             | 8      |
-| **Total** |                         | **91** |
+| **Total** |                         | **93** |
 
 ---
 
@@ -291,6 +291,13 @@ base: bare, `this.` and `global.`.
 | ----- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------ |
 | E0877 | Assignment to a `const` variable or parameter, whole or through an element or field | Remove `const` from the declaration if the value must change | `TRANSPILE/1-Analyze/ConstAssignmentAnalyzer.ts` |
 | E0878 | A `const` value passed to a function's non-const parameter                          | Declare the parameter `const`, or pass a mutable copy        | `TRANSPILE/1-Analyze/ConstAssignmentAnalyzer.ts` |
+
+### Callback Typing (ADR-029)
+
+| Code  | Message                                                                         | Help                                                                                                    | Source                                              |
+| ----- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| E0879 | A function's declared signature does not match the callback type it is given to | Match the type exactly: return type, parameter count, and each parameter's type, `const` and array-ness | `TRANSPILE/1-Analyze/CallbackAssignmentAnalyzer.ts` |
+| E0880 | A function that is itself a callback type given to a slot of another type       | Nominal typing: only a function that is not a type may stand in for one                                 | `TRANSPILE/1-Analyze/CallbackAssignmentAnalyzer.ts` |
 
 ## E09xx — NULL Safety (ADR-046)
 

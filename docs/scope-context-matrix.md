@@ -112,13 +112,20 @@ cell is declared by the ADR that owns it.
 
 | Context            | same file | direct | transitive | from 1 away | thru chain |
 | ------------------ | --------- | ------ | ---------- | ----------- | ---------- |
-| global variable    | -         | -      | -          | n/a         | n/a        |
-| top-level function | -         | -      | -          | n/a         | n/a        |
-| scope member       | -         | -      | -          | n/a         | n/a        |
-| scope method       | -         | -      | -          | n/a         | n/a        |
+| global variable    | ok        | ok     | ok         | n/a         | n/a        |
+| top-level function | ok        | ok     | ok         | n/a         | n/a        |
+| scope member       | ok        | ok     | ok         | n/a         | n/a        |
+| scope method       | ok        | ok     | ok         | n/a         | n/a        |
 
-3 linked fixtures with no derivable context:
+10 linked fixtures with no derivable context:
 
+- `adr-029/callback-assign.test.cnx`
+- `adr-029/callback-basic.test.cnx`
+- `adr-029/callback-multi-param.test.cnx`
+- `adr-029/callback-param-types.test.cnx`
+- `adr-029/callback-param.test.cnx`
+- `adr-029/callback-return-types.test.cnx`
+- `adr-029/callback-struct-member.test.cnx`
 - `bugs/issue-1491-cross-file-function-as-type/cross-file-callback.test.cnx`
 - `bugs/issue-1491-cross-file-function-as-type/cross-file-string-param.test.cnx`
 - `bugs/issue-1491-duplicate-typedef/two-consumers.test.cnx`

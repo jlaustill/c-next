@@ -1,0 +1,2 @@
+44:14 error[E0880]: Cannot assign 'onMouseUp' to callback field 'down' (expected onMouseDown type, got onMouseUp type - nominal typing)
+       help: A function used as a struct field's type is its own callback type; only a function that is not itself a type may stand in for another (ADR-029).

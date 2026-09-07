@@ -32,9 +32,9 @@ import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
 import CodeGenState from "../../transpiler/state/CodeGenState";
 import ExpressionUnwrapper from "../../utils/ExpressionUnwrapper";
 import ParserUtils from "../../utils/ParserUtils";
-import QualifiedCName from "../../utils/QualifiedCName";
 import ScopeUtils from "../../utils/ScopeUtils";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
+import FunctionReference from "./helpers/FunctionReference";
 import IConstAssignmentError from "./types/IConstAssignmentError";
 import IScopeFrame from "./types/IScopeFrame";
 import ScopeFrameResolver from "./ScopeFrameResolver";
@@ -84,10 +84,10 @@ class ConstAssignmentListener extends CNextListener {
   override enterPostfixExpression = (
     ctx: Parser.PostfixExpressionContext,
   ): void => {
-    const call = ConstAssignmentListener.callOf(ctx);
-    if (call === null) return;
+    const call = ctx.postfixOp().find((op) => op.LPAREN() !== null);
+    if (call === undefined) return;
     const frame = this.scopes.frameFor(ctx);
-    const callee = this.calleeParameters(ctx, frame);
+    const callee = FunctionReference.ofCall(ctx, frame.scopePath);
     if (callee === null) return;
     const args = call.argumentList()?.expression() ?? [];
     args.forEach((arg, index) => {
@@ -197,70 +197,6 @@ class ConstAssignmentListener extends CNextListener {
       cursor = cursor.parent;
     }
     return false;
-  }
-
-  /** The `(args)` op of a call chain whose callee is a name, or null. */
-  private static callOf(
-    ctx: Parser.PostfixExpressionContext,
-  ): Parser.PostfixOpContext | null {
-    const ops = ctx.postfixOp();
-    const last = ops[ops.length - 1];
-    if (!last || last.LPAREN() === null) return null;
-    // Every op before the call must be a `.name` step: `f(...)`, `this.f(...)`,
-    // `Scope.f(...)`. A subscript or a second call is not a named callee.
-    return ops.slice(0, -1).every((op) => op.DOT() !== null) ? last : null;
-  }
-
-  /**
-   * The C-Next function a call names, with its parameters, or null for a
-   * foreign function (no const facts) or an unresolvable name.
-   */
-  private calleeParameters(
-    ctx: Parser.PostfixExpressionContext,
-    frame: IScopeFrame,
-  ): {
-    name: string;
-    parameters: readonly { name: string; isConst: boolean }[];
-  } | null {
-    const program = CodeGenState.program;
-    const primary = ctx.primaryExpression();
-    if (!program || !primary) return null;
-    const steps = ctx
-      .postfixOp()
-      .slice(0, -1)
-      .map((op) => op.IDENTIFIER()?.getText() ?? "");
-    const here = frame.scopePath;
-    let candidates: string[];
-    if (primary.THIS()) {
-      candidates =
-        here === ""
-          ? []
-          : [
-              ScopeUtils.getTranspiledCName({
-                scopePath: here,
-                name: steps[0],
-              }),
-            ];
-    } else if (primary.GLOBAL()) {
-      candidates = [QualifiedCName.fromParts(steps)];
-    } else {
-      const head = primary.IDENTIFIER()?.getText();
-      if (head === undefined) return null;
-      const parts = [head, ...steps];
-      candidates = [QualifiedCName.fromParts(parts)];
-      if (parts.length === 1 && here !== "") {
-        candidates.unshift(
-          ScopeUtils.getTranspiledCName({ scopePath: here, name: head }),
-        );
-      }
-    }
-    for (const cName of candidates) {
-      const symbol = program.symbolByCName(cName);
-      if (symbol?.kind === "function") {
-        return { name: symbol.name, parameters: symbol.parameters };
-      }
-    }
-    return null;
   }
 
   private report(

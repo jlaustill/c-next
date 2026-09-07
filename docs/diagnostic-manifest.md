@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-359 fixture(s) assert a diagnostic; 337 carry a code.
+363 fixture(s) assert a diagnostic; 342 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -136,6 +136,11 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-025/switch-in-scope-method-error.test.cnx                                              | E0714               |
 | tests/adr-026/break-rejected.test.cnx                                                            | E0703               |
 | tests/adr-026/continue-rejected.test.cnx                                                         | E0703               |
+| tests/adr-029/callback-error-nominal.test.cnx                                                    | E0880               |
+| tests/adr-029/callback-imported-direct-error.test.cnx                                            | E0879, E0880        |
+| tests/adr-029/callback-imported-transitive-error.test.cnx                                        | E0879, E0880        |
+| tests/adr-029/callback-signature-error.test.cnx                                                  | E0879               |
+| tests/adr-029/callback-uncovered-arms-error.test.cnx                                             | E0880               |
 | tests/adr-035/array-init-error.test.cnx                                                          | E0866, E0876        |
 | tests/adr-036/array-bounds-uncovered-arms-error.test.cnx                                         | E0854               |
 | tests/adr-036/array-shape-uncovered-arms-error.test.cnx                                          | E0874, E0875        |
@@ -303,7 +308,6 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/c-interop/cpp14-header/crc32.test.cnx                                                      | E0859               |
 | tests/c-interop/use-c-union-basic.test.cnx                                                       | (uncoded)           |
 | tests/c-interop/use-c-union-typedef.test.cnx                                                     | (uncoded)           |
-| tests/callbacks/callback-error-nominal.test.cnx                                                  | (uncoded)           |
 | tests/casting/mixed-category-arithmetic.test.cnx                                                 | E0810               |
 | tests/comments/misra-3-1-nested-block.test.cnx                                                   | MISRA-3.1           |
 | tests/comments/misra-3-2-backslash.test.cnx                                                      | MISRA-3.2           |

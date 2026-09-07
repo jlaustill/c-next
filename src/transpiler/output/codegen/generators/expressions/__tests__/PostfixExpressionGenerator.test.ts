@@ -172,7 +172,6 @@ function createMockOrchestrator(overrides?: {
     getStringExprCapacity: vi.fn(),
     setParameters: vi.fn(),
     clearParameters: vi.fn(),
-    isCallbackTypeUsedAsFieldType: vi.fn(),
     setCurrentScope: vi.fn(),
     setCurrentFunctionName: vi.fn(),
     getCurrentFunctionReturnType: vi.fn(),

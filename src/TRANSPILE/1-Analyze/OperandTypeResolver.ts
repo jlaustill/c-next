@@ -22,6 +22,7 @@ import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
 import IScopeFrame from "./types/IScopeFrame";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 import CodeGenState from "../../transpiler/state/CodeGenState";
+import TypeResolver from "../../utils/TypeResolver";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ScopeUtils from "../../utils/ScopeUtils";
 
@@ -128,10 +129,43 @@ class OperandTypeResolver {
    */
   private static fieldType(structType: string, field: string): string | null {
     const base = CodeGenState.getStructFieldType(structType, field);
-    if (base === undefined) return null;
+    if (base === undefined) {
+      return OperandTypeResolver.importedFieldType(structType, field);
+    }
     const dimensions = CodeGenState.getStructFieldDimensions(structType, field);
     if (dimensions === undefined || dimensions.length === 0) return base;
     return base + dimensions.map((d) => `[${d}]`).join("");
+  }
+
+  /**
+   * The same fact for a struct declared in an INCLUDED `.cnx`.
+   *
+   * `CodeGenState.symbols.structFields` holds the structs a file DECLARES, not
+   * the ones it can see: `#include "shapes.cnx"` then `Frame f; f.data[9]`
+   * left every chain through `f` unresolved, so each rule reading this walk
+   * went quiet at the include boundary while passing every same-file fixture.
+   * That is the contexts-versus-behavior gap -- a suite green on one looks
+   * exactly like a suite green on both.
+   *
+   * The fallback is the resolved `Program`, which is complete before 2.1 runs
+   * and is the artifact `docs/architecture/README.md` names for a cross-file
+   * fact. It cannot resolve a sibling that was never included INTO a type,
+   * because the struct's name has to have been reachable for the variable to
+   * be declared at all -- the walk only ever asks about a type a declaration
+   * already named.
+   */
+  private static importedFieldType(
+    structType: string,
+    field: string,
+  ): string | null {
+    const symbol = CodeGenState.program?.symbolByCName(structType);
+    if (symbol?.kind !== "struct") return null;
+    const fieldSymbol = symbol.fields.get(field);
+    if (fieldSymbol === undefined) return null;
+    const base = TypeResolver.getTypeName(fieldSymbol.type);
+    return fieldSymbol.isArray && fieldSymbol.dimensions?.length
+      ? base + fieldSymbol.dimensions.map((d) => `[${d}]`).join("")
+      : base;
   }
 
   /**

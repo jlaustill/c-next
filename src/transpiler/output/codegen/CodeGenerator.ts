@@ -105,7 +105,6 @@ import SetMapHelper from "./helpers/SetMapHelper";
 // PR #715: Symbol lookup utilities for improved testability
 import SymbolLookupHelper from "./helpers/SymbolLookupHelper";
 // Issue #644: Assignment validation coordinator helper
-import AssignmentValidator from "./helpers/AssignmentValidator";
 // Issue #696: Variable modifier extraction helper
 // Note: VariableModifierBuilder is now used via VariableDeclHelper
 // Issue #792: Variable declaration helper
@@ -138,6 +137,7 @@ import CastValidator from "./helpers/CastValidator";
 import FunctionContextManager from "./helpers/FunctionContextManager";
 import IFunctionContextCallbacks from "./types/IFunctionContextCallbacks";
 // Global state for code generation (simplifies debugging, eliminates DI complexity)
+import BitRangeHelper from "./helpers/BitRangeHelper";
 import CodeGenState from "../../state/CodeGenState";
 import invariant from "../../../utils/invariant";
 import AdrProvenance from "../../state/AdrProvenance";
@@ -186,22 +186,15 @@ const {
   formatLeadingComments: commentFormatLeadingComments,
 } = commentUtils;
 
-/**
- * Maps C-Next assignment operators to C assignment operators
+/*
+ * #1322: a second, byte-identical `ASSIGNMENT_OPERATOR_MAP` stood here as a
+ * file-local const while `utils/constants/OperatorMappings.ts` held the same
+ * eleven entries -- the one `AssignmentContextBuilder` and `ControlFlowGenerator`
+ * already import. Two copies of one table means adding an operator is two
+ * edits, and a divergence between them would be silent. The last reader of the
+ * local copy went with `AssignmentValidator`, so it is deleted rather than
+ * re-pointed: nothing here needs it now.
  */
-const ASSIGNMENT_OPERATOR_MAP: Record<string, string> = {
-  "<-": "=",
-  "+<-": "+=",
-  "-<-": "-=",
-  "*<-": "*=",
-  "/<-": "/=",
-  "%<-": "%=",
-  "&<-": "&=",
-  "|<-": "|=",
-  "^<-": "^=",
-  "<<<-": "<<=",
-  ">><-": ">>=",
-};
 
 /**
  * ADR-013: Function signature for const parameter tracking
@@ -1335,10 +1328,13 @@ export default class CodeGenerator implements IOrchestrator {
    * scope-nested struct fields, scope members and parameters, each of which
    * produced C that referenced a typedef nothing had emitted.
    *
-   * Deliberately separate from isCallbackTypeUsedAsFieldType below. The two
-   * answer different questions and only this one is about code generation.
-   * Merging them widened ADR-029's nominal-typing rule as a side effect,
-   * rejecting a callback assignment that transpiles on main.
+   * This is an EMISSION question -- "must a typedef be written?" -- and it is
+   * the only one left here. Its twin, ADR-029's nominal-typing question ("is
+   * this function used as a field TYPE?"), was next to it until #1322 moved
+   * that rule to pass 2.1 as E0880. The two were deliberately separate then
+   * and are separate now for the same reason: merging them once widened the
+   * nominal rule as a side effect and rejected a callback assignment that
+   * transpiles on main.
    */
   /**
    * ADR-029 + #1491: emit typedefs for callback types this file NAMES but does
@@ -1402,23 +1398,13 @@ export default class CodeGenerator implements IOrchestrator {
     return CodeGenState.callbackTypeReferences.has(funcName);
   }
 
-  /**
-   * ADR-029 nominal typing: is this function used as a STRUCT FIELD type?
-   *
-   * Every top-level function is registered in callbackTypes, so this narrower
-   * predicate is what separates "a plain function with a compatible signature"
-   * from "a function used as a type" when validating a callback assignment.
-   * Widening it changes what C-Next accepts, which needs an ADR, so it stays
-   * derived from callbackFieldTypes.
-   */
-  isCallbackTypeUsedAsFieldType(funcName: string): boolean {
-    for (const callbackType of CodeGenState.callbackFieldTypes.values()) {
-      if (callbackType === funcName) {
-        return true;
-      }
-    }
-    return false;
-  }
+  // #1322: `isCallbackTypeUsedAsFieldType` stood here, answering ADR-029's
+  // nominal-typing question by scanning `CodeGenState.callbackFieldTypes`.
+  // That map holds the structs emitted SO FAR in the current file, so a struct
+  // declared below the assignment, in an enclosing scope, or in an include did
+  // not count -- the identity of a type depending on emission order. Pass 2.1
+  // asks `CodeGenState.symbols.structFields`, the per-file view, which holds
+  // every struct the file can see before any code is generated.
 
   // === Scope Management (A4) ===
 
@@ -4332,26 +4318,30 @@ export default class CodeGenerator implements IOrchestrator {
       CodeGenState.assignmentContext = savedAssignmentContext;
     }
 
-    // Get the assignment operator and map to C equivalent
-    const operatorCtx = ctx.assignmentOperator();
-    const cnextOp = operatorCtx.getText();
-    const cOp = ASSIGNMENT_OPERATOR_MAP[cnextOp] || "=";
-    const isCompound = cOp !== "=";
+    // #1322: the operator was mapped to its C form here and used for nothing
+    // but the `isCompound` flag that `AssignmentValidator` took. ADR-065's
+    // handlers do their own mapping from `ctx`, so both are gone with it.
 
-    // Issue #644: Validate assignment (const, enum, integer, array bounds, callbacks)
-    // Delegated to AssignmentValidator helper to reduce cognitive complexity
-    AssignmentValidator.validate(
-      targetCtx,
-      ctx.expression(),
-      isCompound,
-      ctx.start?.line ?? 0,
-      {
-        getExpressionType: (exprCtx) => this.getExpressionType(exprCtx),
-        tryEvaluateConstant: (exprCtx) => this.tryEvaluateConstant(exprCtx),
-        isCallbackTypeUsedAsFieldType: (name) =>
-          this.isCallbackTypeUsedAsFieldType(name),
-      },
-    );
+    // #1322: `AssignmentValidator.validate` was called here, and by the end of
+    // the relocation it validated nothing -- ADR-013's const rule is E0877,
+    // ADR-017's enum rule E0428, ADR-024's conversions E0868/E0869, ADR-036's
+    // bounds E0854, ADR-004's `ro` write E0871 and ADR-029's callback typing
+    // E0879/E0880, every one of them authored in pass 2.1 at the target's own
+    // position. What was left was this single line of emission bookkeeping
+    // wrapped in a class named for the job it no longer did, so the class is
+    // deleted rather than left as a misleading name over a side effect.
+    //
+    // Writing to a float invalidates its bit-shadow: the union copy is stale
+    // until the next read refreshes it. Only a whole-variable assignment does
+    // this -- writing THROUGH a member or an element does not rebind the float.
+    if (targetCtx.postfixTargetOp().length === 0) {
+      const assignedName = targetCtx.IDENTIFIER()?.getText();
+      if (assignedName !== undefined) {
+        CodeGenState.floatShadowCurrent.delete(
+          BitRangeHelper.getShadowVarName(assignedName),
+        );
+      }
+    }
 
     // ADR-065: Dispatch to assignment handlers
     // Build context, classify, and dispatch - all patterns handled by handlers

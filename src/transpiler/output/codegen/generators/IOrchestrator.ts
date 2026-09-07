@@ -244,9 +244,6 @@ interface IOrchestrator {
    */
   recordCallbackTypedef(funcName: string): void;
 
-  /** Check if a callback type is used as a struct field type */
-  isCallbackTypeUsedAsFieldType(funcName: string): boolean;
-
   // === Scope Management ===
 
   /** Set the current scope name for prefixing */

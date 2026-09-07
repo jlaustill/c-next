@@ -59,16 +59,19 @@ class TypeGenerationHelper {
   }
 
   /**
-   * Generate C type for a scoped type (this.Type).
-   * Throws if called outside a scope context.
+   * Generate C type for a scoped type (`this.Type`).
+   *
+   * #1322: the empty-scope guard that stood here is deleted, not relocated.
+   * `this` outside a scope is E0431, authored in pass 2.1 and reached in EVERY
+   * position including a type -- verified on both the shapes that got here,
+   * a file-scope declaration and a local one, each reporting E0431 at the
+   * `this` token. Analysis halts before code generation, so no caller can
+   * arrive with an empty scope path.
    */
   static generateScopedType(
     typeName: string,
     currentScopePath: string,
   ): string {
-    if (!currentScopePath) {
-      throw new Error("Cannot use 'this.Type' outside of a scope");
-    }
     return ScopeUtils.qualifyInScope(typeName, currentScopePath);
   }
 
