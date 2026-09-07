@@ -71,10 +71,8 @@ class LengthPropertyListener extends CNextListener {
     ctx: Parser.PostfixExpressionContext,
   ): void => {
     const ops = ctx.postfixOp();
-    if (ops.length === 0) return;
-
-    const last = ops[ops.length - 1];
-    if (last.DOT() === null) return;
+    const last = ops.at(-1);
+    if (last === undefined || last.DOT() === null) return;
     const property = last.IDENTIFIER()?.getText();
     if (property === undefined || !LENGTH_PROPERTIES.has(property)) return;
 

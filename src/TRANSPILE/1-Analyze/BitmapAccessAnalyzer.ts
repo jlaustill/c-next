@@ -131,7 +131,7 @@ class BitmapAccessListener extends CNextListener {
     // `ops[i]` follows `chain[i]`. A subscript there is E0883: ADR-034
     // addresses a bitmap by named field, never by bit index.
     const after = ops[at - 1];
-    if (after !== undefined && after.DOT() === null) {
+    if (after?.DOT() === null) {
       this.report(
         node,
         "E0883",
@@ -148,13 +148,14 @@ class BitmapAccessListener extends CNextListener {
     if (LENGTH_PROPERTIES.has(field)) return null;
     if (!bitmaps.get(bitmap)?.has(field)) {
       const known = [...(bitmaps.get(bitmap)?.keys() ?? [])];
+      const quoted = known.map((k) => `'${k}'`).join(", ");
       this.report(
         node,
         "E0882",
         `Unknown bitmap field '${field}' on '${bitmap}'`,
         known.length === 0
           ? "The bitmap declares no fields (ADR-034)."
-          : `'${bitmap}' declares ${known.map((k) => `'${k}'`).join(", ")} (ADR-034).`,
+          : `'${bitmap}' declares ${quoted} (ADR-034).`,
       );
       return null;
     }

@@ -12,3 +12,5 @@
        help: Shift amount must be < 8 for 8-bit types; shifting by the width or more is undefined behavior (MISRA C:2012 Rule 12.2).
 55:20 error[E0873]: Shift amount (12) exceeds type width (8 bits) for type 'u8' (expression: this.m<<<-this.STEP;)
        help: Shift amount must be < 8 for 8-bit types; shifting by the width or more is undefined behavior (MISRA C:2012 Rule 12.2).
+80:20 error[E0873]: Shift amount (40) exceeds type width (32 bits) for type 'u32' (expression: v<<AMOUNT)
+       help: Shift amount must be < 32 for 32-bit types; shifting by the width or more is undefined behavior (MISRA C:2012 Rule 12.2).

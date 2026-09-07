@@ -48,6 +48,7 @@ import DeclarationScopeCollector from "./DeclarationScopeCollector";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 import OperandTypeResolver from "./OperandTypeResolver";
 import LiteralUtils from "../../utils/LiteralUtils";
+import ScopeCandidates from "./helpers/ScopeCandidates";
 import ScopeUtils from "../../utils/ScopeUtils";
 import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
 
@@ -183,6 +184,37 @@ class ShiftListener extends CNextListener {
     return this.unaryAmount(node, at);
   }
 
+  /** An integer literal's value, with any width suffix stripped. */
+  private static literalAmount(text: string): number | null {
+    const match = /^(0[xX][\da-fA-F]+|0[bB][01]+|\d+)([uUiI]\d+)?$/.exec(text);
+    return match === null
+      ? null
+      : (LiteralUtils.parseIntegerLiteral(match[1]) ?? null);
+  }
+
+  /**
+   * A named const used as the amount: bare, `this.NAME` (the enclosing
+   * scope's) or `global.NAME` (file scope). Anything else is a runtime amount,
+   * which this rule cannot and must not judge.
+   */
+  private namedConstAmount(
+    primary: Parser.PrimaryExpressionContext,
+    ops: readonly Parser.PostfixOpContext[],
+    at: ParserRuleContext,
+  ): number | null {
+    const member =
+      ops.length === 1 && ops[0].DOT() !== null
+        ? (ops[0].IDENTIFIER()?.getText() ?? null)
+        : null;
+    if (member !== null) {
+      if (primary.THIS()) return this.constValue(member, at, "this");
+      if (primary.GLOBAL()) return this.constValue(member, at, "global");
+    }
+    const name = primary.IDENTIFIER()?.getText();
+    if (name === undefined || ops.length > 0) return null;
+    return this.constValue(name, at, null);
+  }
+
   private unaryAmount(
     ctx: Parser.UnaryExpressionContext,
     at: ParserRuleContext,
@@ -199,28 +231,9 @@ class ShiftListener extends CNextListener {
     const ops = postfix.postfixOp();
     const literal = primary.literal();
     if (literal && ops.length === 0) {
-      const match = /^(0[xX][\da-fA-F]+|0[bB][01]+|\d+)([uUiI]\d+)?$/.exec(
-        literal.getText(),
-      );
-      return match === null
-        ? null
-        : (LiteralUtils.parseIntegerLiteral(match[1]) ?? null);
+      return ShiftListener.literalAmount(literal.getText());
     }
-    // A named const: bare, `this.NAME` (the enclosing scope's) or
-    // `global.NAME` (file scope). Anything else is a runtime amount.
-    const member =
-      ops.length === 1 && ops[0].DOT() !== null
-        ? (ops[0].IDENTIFIER()?.getText() ?? null)
-        : null;
-    if (primary.THIS() && member !== null) {
-      return this.constValue(member, at, "this");
-    }
-    if (primary.GLOBAL() && member !== null) {
-      return this.constValue(member, at, "global");
-    }
-    const name = primary.IDENTIFIER()?.getText();
-    if (name === undefined || ops.length > 0) return null;
-    return this.constValue(name, at, null);
+    return this.namedConstAmount(primary, ops, at);
   }
 
   /**
@@ -238,10 +251,8 @@ class ShiftListener extends CNextListener {
       here === ""
         ? null
         : ScopeUtils.getTranspiledCName({ scopePath: here, name });
-    const candidates =
-      root === "global" ? [name] : root === "this" ? [scoped] : [scoped, name];
+    const candidates = ScopeCandidates.forRoot(root, scoped, [name]);
     for (const cName of candidates) {
-      if (cName === null) continue;
       const value = CodeGenState.program?.constValue(cName);
       if (value !== undefined) return value;
     }

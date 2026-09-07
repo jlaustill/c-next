@@ -18,6 +18,7 @@ import { ParserRuleContext, ParseTree } from "antlr4ng";
 import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
 import CodeGenState from "../../transpiler/state/CodeGenState";
 import QualifiedCName from "../../utils/QualifiedCName";
+import ScopeCandidates from "./helpers/ScopeCandidates";
 import ScopeUtils from "../../utils/ScopeUtils";
 import TypeCheckUtils from "../../utils/TypeCheckUtils";
 import IScopeFrame from "./types/IScopeFrame";
@@ -156,16 +157,11 @@ class EnumValueResolver {
     // so an invalid spelling read as valid. `global.X` is file scope and must
     // not be scope-qualified. Only a BARE name searches, and it searches in
     // ADR-057's order: the enclosing scope first, then file scope.
-    const candidates =
-      rooted === "this"
-        ? [ScopeUtils.qualifyInScope(transpiled, frame.scopePath)]
-        : rooted === "global"
-          ? [transpiled, path]
-          : [
-              ScopeUtils.qualifyInScope(transpiled, frame.scopePath),
-              transpiled,
-              path,
-            ];
+    const candidates = ScopeCandidates.forRoot(
+      rooted,
+      ScopeUtils.qualifyInScope(transpiled, frame.scopePath),
+      [transpiled, path],
+    );
 
     for (const candidate of candidates) {
       if (CodeGenState.isKnownEnum(candidate)) return candidate;

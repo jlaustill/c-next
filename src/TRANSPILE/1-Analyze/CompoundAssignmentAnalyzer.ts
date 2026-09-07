@@ -84,6 +84,48 @@ class CompoundAssignmentListener extends CNextListener {
    * about it. The first version of this asked only the base and rejected three
    * real fixtures.
    */
+  /**
+   * One subscript step. A shape that is not established never rejects, and an
+   * established scalar being subscripted is a bit index (ADR-007).
+   */
+  private static afterSubscript(
+    dimensions: readonly (number | string)[] | null,
+  ): {
+    dimensions: readonly (number | string)[] | null;
+    rejection?: TRejection | null;
+  } {
+    if (dimensions === null) return { dimensions: null, rejection: null };
+    if (dimensions.length === 0) {
+      return { dimensions, rejection: "bit index" };
+    }
+    return { dimensions: dimensions.slice(1) };
+  }
+
+  /**
+   * One `.field` step.
+   *
+   * #1322: both maps are read through one resolved key inside `CodeGenState`,
+   * so a scope-declared struct is found here and by every other
+   * chain-following analyzer. This used to derive the key privately, which
+   * left the other four resolving nothing for the same structs.
+   */
+  private static afterMember(
+    typeName: string | null,
+    field: string | undefined,
+  ): {
+    dimensions: readonly (number | string)[] | null;
+    typeName: string | null;
+  } {
+    if (field === undefined || typeName === null) {
+      return { dimensions: null, typeName: null };
+    }
+    return {
+      dimensions:
+        CodeGenState.getStructFieldDimensions(typeName, field) ?? null,
+      typeName: CodeGenState.getStructFieldType(typeName, field) ?? null,
+    };
+  }
+
   private rejectionFor(
     target: Parser.AssignmentTargetContext,
   ): TRejection | null {
@@ -114,25 +156,18 @@ class CompoundAssignmentListener extends CNextListener {
       }
 
       if (subscripts.length === 1) {
-        if (dimensions === null) return null;
-        if (dimensions.length === 0) return "bit index";
-        dimensions = dimensions.slice(1);
+        const stepped = CompoundAssignmentListener.afterSubscript(dimensions);
+        if (stepped.rejection !== undefined) return stepped.rejection;
+        dimensions = stepped.dimensions;
         continue;
       }
 
-      const field = op.IDENTIFIER()?.getText();
-      if (field === undefined || typeName === null) {
-        dimensions = null;
-        typeName = null;
-        continue;
-      }
-      // #1322: both maps are read through one resolved key inside
-      // `CodeGenState`, so a scope-declared struct is found here and by every
-      // other chain-following analyzer. This used to derive the key privately,
-      // which left the other four resolving nothing for the same structs.
-      dimensions =
-        CodeGenState.getStructFieldDimensions(typeName, field) ?? null;
-      typeName = CodeGenState.getStructFieldType(typeName, field) ?? null;
+      const stepped = CompoundAssignmentListener.afterMember(
+        typeName,
+        op.IDENTIFIER()?.getText(),
+      );
+      dimensions = stepped.dimensions;
+      typeName = stepped.typeName;
     }
 
     // The chain may END on a string -- `config.name +<- " suffix"` where `name`

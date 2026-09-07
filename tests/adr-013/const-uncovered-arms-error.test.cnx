@@ -78,5 +78,13 @@ scope Board {
         this.STEP <- 3;
         global.K <- 4;
         this.bump(this.STEP);
+
+        // ASSERTION 11 -- the same callee named BARE. ADR-057 resolves an
+        // unqualified name to the enclosing scope's member first, so the
+        // const-argument rule has to try the scope-qualified candidate before
+        // the file-scope one. Written out because `this.bump(...)` above does
+        // NOT exercise that: an explicit root states where to look and admits
+        // one candidate, so it passes whether or not the search order exists.
+        bump(this.STEP);
     }
 }

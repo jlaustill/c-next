@@ -83,14 +83,7 @@ class CallbackAssignmentListener extends CNextListener {
   ): void => {
     const target = ctx.assignmentTarget();
     const frame = this.scopes.frameFor(ctx);
-    const ops = target.postfixTargetOp();
-    const last = ops[ops.length - 1];
-    const description =
-      last === undefined
-        ? `callback variable '${target.getText()}'`
-        : last.DOT() !== null
-          ? `callback field '${last.IDENTIFIER()?.getText()}'`
-          : `callback '${target.getText()}'`;
+    const description = CallbackAssignmentListener.describeTarget(target);
     this.check(
       this.operands.typeOfAssignmentTarget(target, frame),
       ctx.expression(),
@@ -147,6 +140,20 @@ class CallbackAssignmentListener extends CNextListener {
       });
     });
   };
+
+  /** How an assignment target is named in a message. */
+  private static describeTarget(
+    target: Parser.AssignmentTargetContext,
+  ): string {
+    const last = target.postfixTargetOp().at(-1);
+    if (last === undefined) {
+      return `callback variable '${target.getText()}'`;
+    }
+    if (last.DOT() !== null) {
+      return `callback field '${last.IDENTIFIER()?.getText()}'`;
+    }
+    return `callback '${target.getText()}'`;
+  }
 
   private checkDeclaration(
     typeCtx: Parser.TypeContext | null,
@@ -233,18 +240,31 @@ class CallbackAssignmentListener extends CNextListener {
   }
 
   private static collectFieldTypes(): ReadonlySet<string> {
-    const types = new Set<string>();
+    return new Set([
+      ...CallbackAssignmentListener.fieldTypesInFileView(),
+      ...CallbackAssignmentListener.fieldTypesInProgram(),
+    ]);
+  }
+
+  /** Field types of the structs this file declares. */
+  private static fieldTypesInFileView(): string[] {
+    const types: string[] = [];
     for (const fields of CodeGenState.symbols?.structFields.values() ?? []) {
-      for (const type of fields.values()) types.add(type);
+      types.push(...fields.values());
     }
+    return types;
+  }
+
+  /** Field types of every struct the program declares, in any file. */
+  private static fieldTypesInProgram(): string[] {
     const program = CodeGenState.program;
-    if (program) {
-      for (const sourceFile of program.sourceFiles()) {
-        for (const symbol of program.symbolsInFile(sourceFile)) {
-          if (symbol.kind !== "struct") continue;
-          for (const field of symbol.fields.values()) {
-            types.add(TypeResolver.getTypeName(field.type));
-          }
+    if (!program) return [];
+    const types: string[] = [];
+    for (const sourceFile of program.sourceFiles()) {
+      for (const symbol of program.symbolsInFile(sourceFile)) {
+        if (symbol.kind !== "struct") continue;
+        for (const field of symbol.fields.values()) {
+          types.push(TypeResolver.getTypeName(field.type));
         }
       }
     }

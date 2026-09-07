@@ -55,3 +55,28 @@ scope Board {
         this.m <<<- this.STEP;
     }
 }
+
+// Two scopes declaring the SAME const name, with different values. This is
+// what makes the bare-name search order observable: a lookup that consults
+// only the unqualified name finds whichever of the two the program's const
+// table happened to key there, so one of these two functions gets the other
+// scope's amount. `this.AMOUNT` would pass either way -- an explicit root
+// states where to look and admits one candidate.
+scope Narrow {
+    const u8 AMOUNT <- 7;
+
+    // CONTROL -- 7 fits a u8.
+    public u8 ok(u8 v) {
+        return v << AMOUNT;
+    }
+}
+
+scope Wide {
+    const u8 AMOUNT <- 40;
+
+    // ASSERTION -- 40 does not fit a u32, and is only knowable as 40 if the
+    // scope-qualified candidate is tried before the bare one.
+    public u32 tooWide(u32 v) {
+        return v << AMOUNT;
+    }
+}

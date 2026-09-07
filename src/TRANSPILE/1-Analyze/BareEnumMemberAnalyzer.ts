@@ -59,6 +59,7 @@ import IScopeFrame from "./types/IScopeFrame";
 import OperandTypeResolver from "./OperandTypeResolver";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 import UndeclaredValueAnalyzer from "./UndeclaredValueAnalyzer";
+import TypeText from "./helpers/TypeText";
 
 /** A type name as written at the position that establishes it, or null. */
 type TExpected = string | null;
@@ -285,7 +286,7 @@ class BareEnumMemberListener extends CNextListener {
 
   /** A declaration's type as written, without its array dimensions. */
   private static declaredTypeText(type: Parser.TypeContext): string {
-    return type.getText().replace(/\[.*$/, "");
+    return TypeText.withoutDimensions(type.getText());
   }
 
   private static enclosingFunctionType(node: ParserRuleContext): TExpected {

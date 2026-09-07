@@ -47,6 +47,7 @@ import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
 import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
 import CodeGenState from "../../transpiler/state/CodeGenState";
 import ArrayDimensionParser from "../../utils/ArrayDimensionParser";
+import TypeText from "./helpers/TypeText";
 import ParserUtils from "../../utils/ParserUtils";
 import IArrayDeclarationError from "./types/IArrayDeclarationError";
 
@@ -71,7 +72,7 @@ class ArrayDeclarationListener extends CNextListener {
     const typeCtx = ctx.type();
     if (!identifier || !typeCtx) return; // the constructor-call form
     if (trailing.length > 0 && !isScopeMember) {
-      const base = typeCtx.getText().replace(/\[.*$/, "");
+      const base = TypeText.withoutDimensions(typeCtx.getText());
       const existing = ArrayDeclarationListener.dimensionText(
         typeCtx.arrayType()?.arrayTypeDimension() ?? [],
       );
@@ -184,10 +185,11 @@ class ArrayDeclarationListener extends CNextListener {
     const declared = sizes[level];
     if (declared !== null && declared !== undefined) {
       if (elements.length !== declared) {
+        const where = level > 0 ? ` at nesting level ${level + 1}` : "";
         this.report(
           initializer,
           "E0866",
-          `Array size mismatch: declared [${declared}] but the initializer has ${elements.length} element(s)${level > 0 ? ` at nesting level ${level + 1}` : ""}`,
+          `Array size mismatch: declared [${declared}] but the initializer has ${elements.length} element(s)${where}`,
           "Give one element per slot, or use the fill-all form such as [0*] (ADR-035).",
         );
         return;

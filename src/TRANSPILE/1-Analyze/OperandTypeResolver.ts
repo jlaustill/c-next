@@ -286,6 +286,51 @@ class OperandTypeResolver {
    * stripping one dimension at a time, and about struct-field keys, which are
    * exactly the three things that have already been got wrong once each.
    */
+  /**
+   * The declaration a postfix chain starts from: its type, and the name a
+   * later call step is keyed by. Consumes the first op for a `this.`/`global.`
+   * root, which is why `ops` is passed as a copy.
+   */
+  private rootOfPostfix(
+    primary: Parser.PrimaryExpressionContext,
+    ops: Parser.PostfixOpContext[],
+    frame: IScopeFrame,
+  ): { base: string | null; baseName: string } | null {
+    if (primary.THIS() ?? primary.GLOBAL()) {
+      // `this.member` / `global.member`: the first step names the declaration.
+      const firstMember = ops.shift()?.IDENTIFIER()?.getText();
+      if (!firstMember) return null;
+      // `this.member()` transpiles to a scope-qualified C name, so the callee
+      // key needs the enclosing scope. `global.` is deliberately not qualified.
+      const baseName =
+        primary.THIS() !== null && frame.scopePath !== ""
+          ? ScopeUtils.qualifyInScope(firstMember, frame.scopePath)
+          : firstMember;
+      return { base: this.scopes.typeOfName(firstMember, frame), baseName };
+    }
+    const identifier = primary.IDENTIFIER()?.getText();
+    if (!identifier) return null;
+    return {
+      base: this.scopes.typeOfName(identifier, frame),
+      baseName: identifier,
+    };
+  }
+
+  /** Each op as a chain step. Neither `.member` nor `[index]` is a call. */
+  private static stepsOf(
+    ops: readonly Parser.PostfixOpContext[],
+  ): IChainStep[] {
+    return ops.map((op) => {
+      const isSubscript = op.LBRACKET() !== null;
+      const member = op.DOT() !== null ? op.IDENTIFIER()?.getText() : null;
+      return {
+        member: member ?? null,
+        isSubscript,
+        isCall: !isSubscript && !member,
+      };
+    });
+  }
+
   public typeOfPostfixPrefix(
     ctx: Parser.PostfixExpressionContext,
     frame: IScopeFrame,
@@ -296,45 +341,18 @@ class OperandTypeResolver {
 
     // Copy: shifting the parser's own child array would corrupt the tree.
     const ops = [...ctx.postfixOp()];
-    let base: string | null;
-    let baseName: string;
-
-    if (primary.THIS() ?? primary.GLOBAL()) {
-      // `this.member` / `global.member`: the first step names the declaration.
-      const firstMember = ops.shift()?.IDENTIFIER()?.getText();
-      if (!firstMember) return null;
-      // `this.member()` transpiles to a scope-qualified C name, so the callee
-      // key needs the enclosing scope. `global.` is deliberately not qualified.
-      baseName =
-        primary.THIS() !== null && frame.scopePath !== ""
-          ? ScopeUtils.qualifyInScope(firstMember, frame.scopePath)
-          : firstMember;
-      base = this.scopes.typeOfName(firstMember, frame);
-    } else {
-      const identifier = primary.IDENTIFIER()?.getText();
-      if (!identifier) return null;
-      baseName = identifier;
-      base = this.scopes.typeOfName(identifier, frame);
-    }
+    const root = this.rootOfPostfix(primary, ops, frame);
+    if (root === null) return null;
 
     // Counted against the ops that REMAIN: a `this.`/`global.` root has
     // already consumed one above to name the declaration, and a caller saying
     // "drop the property step" must not have to know that.
     const limit = Math.max(0, ops.length - dropTrailingOps);
-    const chain: IChainStep[] = [];
-    for (const op of ops) {
-      if (chain.length >= limit) break;
-      // Neither `.member` nor `[index]` is a call suffix.
-      const isSubscript = op.LBRACKET() !== null;
-      const member = op.DOT() !== null ? op.IDENTIFIER()?.getText() : null;
-      chain.push({
-        member: member ?? null,
-        isSubscript,
-        isCall: !isSubscript && !member,
-      });
-    }
-
-    return this.applyChain(base, baseName, chain);
+    return this.applyChain(
+      root.base,
+      root.baseName,
+      OperandTypeResolver.stepsOf(ops.slice(0, limit)),
+    );
   }
 
   /**

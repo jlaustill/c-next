@@ -68,36 +68,31 @@ describe("EnumTypeSafetyAnalyzer", () => {
       expect(found[0].message).toBe("Cannot assign Power enum to State enum");
     });
 
-    it("accepts a member of the target enum", () => {
+    // The three assignments the rule must stay SILENT on. One table rather
+    // than three near-identical cases, with each row's reason kept: they are
+    // the controls this rule turns on, and a reader needs to know why each one
+    // is legal, not just that it passes.
+    it.each([
+      [
+        "a member of the target enum",
+        "enum State { IDLE, RUNNING }\nvoid main() {\n    State s <- State.IDLE;\n}",
+      ],
+      [
+        // Typing a cast by what is INSIDE the parentheses would see the
+        // literal and reject the form ADR-017 sanctions.
+        "an explicit cast, which ADR-017 makes the conversion",
+        "enum State { IDLE }\nvoid main() {\n    State s <- (State)1;\n}",
+      ],
+      [
+        // An undeclared name is E0427's to report. Guessing here would produce
+        // a second diagnostic for one mistake, and would fire on valid code
+        // wherever this resolver has a gap.
+        "a value nothing declares",
+        "enum State { IDLE }\nvoid main() {\n    State s <- undeclared;\n}",
+      ],
+    ])("accepts %s", (_reason, source) => {
       withEnums("State");
-      expect(
-        errors(
-          "enum State { IDLE, RUNNING }\nvoid main() {\n    State s <- State.IDLE;\n}",
-        ),
-      ).toEqual([]);
-    });
-
-    it("accepts an explicit cast, which ADR-017 makes the conversion", () => {
-      // The control the rule turns on. Typing a cast by what is INSIDE the
-      // parentheses would see the literal and reject the sanctioned form.
-      withEnums("State");
-      expect(
-        errors(
-          "enum State { IDLE }\nvoid main() {\n    State s <- (State)1;\n}",
-        ),
-      ).toEqual([]);
-    });
-
-    it("says nothing when nothing declares the value", () => {
-      // An undeclared name is E0427's to report. Guessing here would produce a
-      // second diagnostic for one mistake, and would fire on valid code
-      // wherever this resolver has a gap.
-      withEnums("State");
-      expect(
-        errors(
-          "enum State { IDLE }\nvoid main() {\n    State s <- undeclared;\n}",
-        ),
-      ).toEqual([]);
+      expect(errors(source)).toEqual([]);
     });
 
     it("reports every offending assignment, not just the first", () => {

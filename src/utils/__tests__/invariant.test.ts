@@ -37,7 +37,7 @@ describe("invariant", () => {
     const value: string | undefined = "present" as string | undefined;
     invariant(value, "value is present");
     // Compiles only because `invariant` narrowed `value` to `string`.
-    expect(value.length).toBe(7);
+    expect(value).toHaveLength(7);
   });
 
   it("rejects an empty statement, which would name no invariant at all", () => {

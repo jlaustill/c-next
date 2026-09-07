@@ -64,12 +64,7 @@ class ConstAssignmentListener extends CNextListener {
       : this.constKind(name, ctx, frame);
     if (kind === null) return;
 
-    const ops = ctx.postfixTargetOp();
-    const suffix = ops.some((op) => op.LBRACKET() !== null)
-      ? " (array element)"
-      : ops.some((op) => op.DOT() !== null)
-        ? " (member access)"
-        : "";
+    const suffix = ConstAssignmentListener.targetSuffix(ctx.postfixTargetOp());
     this.report(
       ctx,
       "E0877",
@@ -79,6 +74,15 @@ class ConstAssignmentListener extends CNextListener {
         : "A const binding is read-only after its declaration (ADR-013); remove `const` if the value must change.",
     );
   };
+
+  /** How the target's shape is named in E0877's message. */
+  private static targetSuffix(
+    ops: readonly Parser.PostfixTargetOpContext[],
+  ): string {
+    if (ops.some((op) => op.LBRACKET() !== null)) return " (array element)";
+    if (ops.some((op) => op.DOT() !== null)) return " (member access)";
+    return "";
+  }
 
   /** E0878: a const value passed where the callee may write. */
   override enterPostfixExpression = (

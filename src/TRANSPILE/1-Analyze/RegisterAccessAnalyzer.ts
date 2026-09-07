@@ -79,11 +79,7 @@ class RegisterAccessListener extends CNextListener {
   ): void => {
     const primary = ctx.primaryExpression();
     if (!primary) return;
-    const root: TRoot = primary.THIS()
-      ? "this"
-      : primary.GLOBAL()
-        ? "global"
-        : null;
+    const root: TRoot = RegisterMemberReference.rootOf(primary);
     const names = ctx
       .postfixOp()
       .map((op) => (op.DOT() !== null ? op.IDENTIFIER()!.getText() : null));
@@ -98,11 +94,7 @@ class RegisterAccessListener extends CNextListener {
     ctx: Parser.AssignmentStatementContext,
   ): void => {
     const target = ctx.assignmentTarget();
-    const root: TRoot = target.THIS()
-      ? "this"
-      : target.GLOBAL()
-        ? "global"
-        : null;
+    const root: TRoot = RegisterMemberReference.rootOfTarget(target);
     const ops = target.postfixTargetOp();
     const names = ops.map((op) =>
       op.DOT() !== null ? op.IDENTIFIER()!.getText() : null,

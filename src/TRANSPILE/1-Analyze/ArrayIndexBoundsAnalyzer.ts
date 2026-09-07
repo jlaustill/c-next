@@ -42,6 +42,7 @@ import DeclarationScopeCollector from "./DeclarationScopeCollector";
 import IArrayIndexBoundsError from "./types/IArrayIndexBoundsError";
 import OperandTypeResolver from "./OperandTypeResolver";
 import ScopeFrameResolver from "./ScopeFrameResolver";
+import TypeText from "./helpers/TypeText";
 
 /** One subscript in a chain: its expressions, and how many ops follow it. */
 interface ISubscript {
@@ -172,9 +173,8 @@ class ArrayIndexBoundsListener extends CNextListener {
 
   /** The first `[N]` of a type text as a size, or null when not sizable here. */
   private static leadingDimension(typeText: string): number | null {
-    const match = /\[([^\]]*)\]/.exec(typeText);
-    if (match === null) return null;
-    const inner = match[1].trim();
+    const inner = TypeText.firstDimension(typeText);
+    if (inner === null) return null;
     if (inner === "") return null;
     // A literal in any spelling (`16`, `0x10`, `0b10000`) is its value; a
     // named dimension is a const when the program knows one, and otherwise a

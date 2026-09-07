@@ -29,7 +29,9 @@ import IFunctionSymbol from "../../../transpiler/types/symbols/IFunctionSymbol";
 import ExpressionUnwrapper from "../../../utils/ExpressionUnwrapper";
 import QualifiedCName from "../../../utils/QualifiedCName";
 import ScopeUtils from "../../../utils/ScopeUtils";
+import TypeText from "./TypeText";
 import CalleeNameResolver from "./CalleeNameResolver";
+import ScopeCandidates from "./ScopeCandidates";
 
 class FunctionReference {
   /**
@@ -42,12 +44,15 @@ class FunctionReference {
     scopePath: string,
     isGlobalCall: boolean,
   ): string[] {
+    // `scopeQualifiedCandidate` already returns null for a `global.` call, so
+    // the root passed here is null: the search order is what differs, and it is
+    // decided in one place.
     const scoped = CalleeNameResolver.scopeQualifiedCandidate(
       resolvedName,
       scopePath,
       isGlobalCall,
     );
-    return scoped === null ? [resolvedName] : [scoped, resolvedName];
+    return ScopeCandidates.forRoot(null, scoped, [resolvedName]);
   }
 
   /**
@@ -57,7 +62,7 @@ class FunctionReference {
    * element type.
    */
   static candidatesForTypeText(typeText: string, scopePath: string): string[] {
-    const text = typeText.replace(/\[.*$/, "");
+    const text = TypeText.withoutDimensions(typeText);
     if (text.startsWith("this.")) {
       return scopePath === ""
         ? []

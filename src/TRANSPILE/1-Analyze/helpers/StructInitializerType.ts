@@ -186,9 +186,12 @@ class StructInitializerType {
     argument: ParserRuleContext,
     frame: IScopeFrame,
   ): string | null {
-    const index = args
-      .expression()
-      .findIndex((e: ParserRuleContext) => e === argument);
+    // `indexOf` needs the array's own element type; an argument that is not
+    // an expression is not in the list at all.
+    const index =
+      argument instanceof Parser.ExpressionContext
+        ? args.expression().indexOf(argument)
+        : -1;
     const postfix = args.parent?.parent;
     if (index < 0 || !(postfix instanceof Parser.PostfixExpressionContext)) {
       return null;

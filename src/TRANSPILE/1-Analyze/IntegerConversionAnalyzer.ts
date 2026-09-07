@@ -269,8 +269,15 @@ class IntegerConversionListener extends CNextListener {
     frame: IScopeFrame,
   ): string | null {
     const ops = leaf.postfixOp();
-    const last = ops[ops.length - 1];
-    const widthExpr = last?.LBRACKET() !== null ? last?.expression(1) : null;
+    // A bit-RANGE (`v[start, width]`) types by its width; anything else does
+    // not. Written out rather than as `last?.LBRACKET() !== null`, which was
+    // TRUE for an empty chain -- `undefined !== null` -- and reached the right
+    // answer only because the next optional call also produced `undefined`.
+    const last = ops.at(-1);
+    const widthExpr =
+      last !== undefined && last.LBRACKET() !== null
+        ? last.expression(1)
+        : null;
     if (widthExpr) {
       const width = IntegerConversionListener.literalValue(widthExpr);
       if (width !== null) {

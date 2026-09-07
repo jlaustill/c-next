@@ -127,6 +127,21 @@ class EnumTypeSafetyListener extends CNextListener {
     this.checkComparison(ctx, ctx.bitwiseOrExpression());
   };
 
+  /**
+   * How a classified operand is named in a message.
+   *
+   * #1322 review: this mapping was written twice in this file -- once in the
+   * assignment path, once as a local arrow in the comparison path -- so the
+   * two messages were free to drift into describing one verdict differently.
+   */
+  private static describe(
+    verdict: ReturnType<EnumValueResolver["classify"]>,
+  ): string {
+    if (verdict.kind === "enum") return `${verdict.typeName} enum`;
+    if (verdict.kind === "integer") return "integer";
+    return "non-enum value";
+  }
+
   private checkAssignment(
     targetType: string,
     expression: Parser.ExpressionContext,
@@ -143,12 +158,7 @@ class EnumTypeSafetyListener extends CNextListener {
     }
     if (verdict.kind === "enum" && verdict.typeName === targetType) return;
 
-    const what =
-      verdict.kind === "enum"
-        ? `${verdict.typeName} enum`
-        : verdict.kind === "integer"
-          ? "integer"
-          : "non-enum value";
+    const what = EnumTypeSafetyListener.describe(verdict);
 
     const { line, column } = ParserUtils.getPosition(expression);
     this.found.push({
@@ -179,21 +189,12 @@ class EnumTypeSafetyListener extends CNextListener {
       return;
     }
 
-    const describe = (
-      verdict: ReturnType<EnumValueResolver["classify"]>,
-    ): string =>
-      verdict.kind === "enum"
-        ? `${verdict.typeName} enum`
-        : verdict.kind === "integer"
-          ? "integer"
-          : "non-enum value";
-
     const { line, column } = ParserUtils.getPosition(operands[1]);
     this.found.push({
       code: "E0434",
       line,
       column,
-      message: `Cannot compare ${describe(left)} to ${describe(right)}`,
+      message: `Cannot compare ${EnumTypeSafetyListener.describe(left)} to ${EnumTypeSafetyListener.describe(right)}`,
       helpText: COMPARE_HELP,
     });
   }

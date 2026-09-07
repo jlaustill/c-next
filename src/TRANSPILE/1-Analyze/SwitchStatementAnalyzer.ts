@@ -98,6 +98,38 @@ class SwitchStatementListener extends CNextListener {
    * an enum. A label naming a member of some OTHER enum is the bare-member
    * mistake with the enum spelled out for it. True when one was reported.
    */
+  /**
+   * One label. True when it named a bare enum member that the switch's own
+   * enum does not declare -- a label naming nothing at all is a const, and not
+   * this rule's to judge.
+   */
+  private reportBareMemberLabel(
+    label: Parser.CaseLabelContext,
+    switchEnum: string | null,
+  ): boolean {
+    const symbols = CodeGenState.symbols;
+    const name = label.IDENTIFIER()?.getText();
+    if (!symbols || name === undefined) return false;
+    if (switchEnum !== null && symbols.enumMembers.get(switchEnum)?.has(name)) {
+      return false;
+    }
+    const declaring = EnumMemberSuggestion.enumsDeclaring(name, symbols);
+    if (declaring.length === 0) return false; // a const label
+
+    const { line, column } = ParserUtils.getPosition(label);
+    this.found.push({
+      code: "E0424",
+      line,
+      column,
+      message: EnumMemberSuggestion.message(name, declaring),
+      helpText:
+        switchEnum === null
+          ? "The switch is not on an enum, so a bare member names nothing here; qualify it, or switch on a value of the enum's type (ADR-017)."
+          : `The switch is on ${switchEnum}, which declares no such member; qualify the label with the enum it belongs to (ADR-017).`,
+    });
+    return true;
+  }
+
   private reportBareMemberLabels(
     cases: readonly Parser.SwitchCaseContext[],
     switchEnum: string | null,
@@ -107,27 +139,7 @@ class SwitchStatementListener extends CNextListener {
     let reported = false;
     for (const caseCtx of cases) {
       for (const label of caseCtx.caseLabel()) {
-        const name = label.IDENTIFIER()?.getText();
-        if (name === undefined) continue;
-        if (
-          switchEnum !== null &&
-          symbols.enumMembers.get(switchEnum)?.has(name)
-        )
-          continue;
-        const declaring = EnumMemberSuggestion.enumsDeclaring(name, symbols);
-        if (declaring.length === 0) continue; // a const label
-        const { line, column } = ParserUtils.getPosition(label);
-        this.found.push({
-          code: "E0424",
-          line,
-          column,
-          message: EnumMemberSuggestion.message(name, declaring),
-          helpText:
-            switchEnum === null
-              ? "The switch is not on an enum, so a bare member names nothing here; qualify it, or switch on a value of the enum's type (ADR-017)."
-              : `The switch is on ${switchEnum}, which declares no such member; qualify the label with the enum it belongs to (ADR-017).`,
-        });
-        reported = true;
+        if (this.reportBareMemberLabel(label, switchEnum)) reported = true;
       }
     }
     return reported;

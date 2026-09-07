@@ -58,6 +58,88 @@ class RegisterMemberReference {
     return null;
   }
 
+  /**
+   * The register spellings a chain's leading names may denote, and how many
+   * names each consumed. In the order codegen accepted them.
+   *
+   * Separated from the member lookup below because they are two questions --
+   * "which register could this be?" and "does that register declare this
+   * member?" -- and reading them as one was what made this the densest
+   * function in the pass.
+   */
+  /** The one register `this.R` can name: R in the enclosing scope. */
+  private static thisCandidate(
+    chain: string[],
+    here: string,
+  ): { reg: string; at: number }[] {
+    if (here === "") return [];
+    const inScope = ScopeUtils.getTranspiledCName({
+      scopePath: here,
+      name: chain[0],
+    });
+    return RegisterMemberReference.isRegister(inScope)
+      ? [{ reg: inScope, at: 1 }]
+      : [];
+  }
+
+  /**
+   * The registers a bare or `global.`-rooted chain may name, in the order
+   * codegen accepted them: the file-scope register, then the enclosing scope's
+   * own, then another scope's through `S.R.M`.
+   */
+  private static searchCandidates(
+    root: TRegisterRoot,
+    chain: string[],
+    here: string,
+    isShadowed: boolean,
+  ): { reg: string; at: number }[] {
+    const scoped = (scope: string, name: string): string =>
+      ScopeUtils.getTranspiledCName({ scopePath: scope, name });
+    const candidates: { reg: string; at: number }[] = [];
+
+    // `global.` bypasses shadowing by construction; a bare name does not.
+    if (!isShadowed && RegisterMemberReference.isRegister(chain[0])) {
+      candidates.push({ reg: chain[0], at: 1 });
+    }
+    if (root === null && here !== "") {
+      const inScope = scoped(here, chain[0]);
+      if (RegisterMemberReference.isRegister(inScope)) {
+        candidates.push({ reg: inScope, at: 1 });
+      }
+    }
+    if (chain.length >= 3) {
+      const crossScope = scoped(chain[0], chain[1]);
+      if (RegisterMemberReference.isRegister(crossScope)) {
+        candidates.push({ reg: crossScope, at: 2 });
+      }
+    }
+    return candidates;
+  }
+
+  /** Whether the program declares a register under this C name. */
+  private static isRegister(cName: string): boolean {
+    return CodeGenState.symbols?.knownRegisters.has(cName) ?? false;
+  }
+
+  /**
+   * The register spellings a chain's leading names may denote, and how many
+   * names each consumed.
+   *
+   * `this.R` STATES where to look and admits exactly one answer; everything
+   * else SEARCHES. Splitting on that -- rather than on line count -- is why
+   * these are two functions.
+   */
+  private static registerCandidates(
+    root: TRegisterRoot,
+    chain: string[],
+    here: string,
+    isShadowed: boolean,
+  ): { reg: string; at: number }[] {
+    return root === "this"
+      ? RegisterMemberReference.thisCandidate(chain, here)
+      : RegisterMemberReference.searchCandidates(root, chain, here, isShadowed);
+  }
+
   /** The register member a chain names, or null when it names none. */
   static resolve(
     root: TRegisterRoot,
@@ -67,30 +149,19 @@ class RegisterMemberReference {
   ): IRegisterMember | null {
     const symbols = CodeGenState.symbols;
     if (!symbols || chain.length < 2) return null;
-    const here = scopes.frameFor(node).scopePath;
-    const prefix = root === null ? "" : `${root}.`;
-    const known = (cName: string): boolean => symbols.knownRegisters.has(cName);
-    const scoped = (scope: string, name: string): string =>
-      ScopeUtils.getTranspiledCName({ scopePath: scope, name });
 
-    const candidates: { reg: string; at: number }[] = [];
-    if (root === "this") {
-      if (here !== "" && known(scoped(here, chain[0])))
-        candidates.push({ reg: scoped(here, chain[0]), at: 1 });
-    } else {
-      // `global.` bypasses shadowing by construction; a bare name does not.
-      const shadowed =
-        root === null &&
-        scopes.declarationOfNameLexical(chain[0], scopes.frameFor(node)) !==
-          null;
-      if (known(chain[0]) && !shadowed)
-        candidates.push({ reg: chain[0], at: 1 });
-      if (root === null && here !== "" && known(scoped(here, chain[0])))
-        candidates.push({ reg: scoped(here, chain[0]), at: 1 });
-      if (chain.length >= 3 && known(scoped(chain[0], chain[1])))
-        candidates.push({ reg: scoped(chain[0], chain[1]), at: 2 });
-    }
-    for (const { reg, at } of candidates) {
+    const frame = scopes.frameFor(node);
+    const isShadowed =
+      root === null &&
+      scopes.declarationOfNameLexical(chain[0], frame) !== null;
+
+    const prefix = root === null ? "" : `${root}.`;
+    for (const { reg, at } of RegisterMemberReference.registerCandidates(
+      root,
+      chain,
+      frame.scopePath,
+      isShadowed,
+    )) {
       const member = chain[at];
       if (member === undefined) continue;
       const key = QualifiedCName.fromParts([reg, member]);
