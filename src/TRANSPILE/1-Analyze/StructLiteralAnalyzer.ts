@@ -11,10 +11,15 @@
  * (`Point p <- { x: 1 }`). Exactly one of those must hold:
  *
  * - both -> the written type is redundant (E0356). ADR-014 makes
- *   `{ field: value }` the form to use once the type is already declared.
+ *   `{ field: value }` the form, and repeating the type an error.
  * - neither -> nothing can say what struct this is (E0357). A bare
  *   `{ x: 1, y: 2 };` as an expression statement is the only shape in the
  *   language that reaches it.
+ *
+ * E0357's help does NOT offer "write the type" as a remedy, though the grammar
+ * allows it. Every position that carries a value declares a type, so writing
+ * one there is E0356: the advice would name the other error. The only remedy
+ * is to move the initializer somewhere a type is declared.
  *
  * ## Why #1277 was a codegen bug and not this rule's business
  *
@@ -84,7 +89,7 @@ class StructLiteralListener extends CNextListener {
         ctx,
         "E0357",
         "Cannot infer struct type: nothing here says which struct this is",
-        "Write the type, as in `Point { x: 1 }`, or put the initializer where one is declared -- a variable, a field, an argument, or a return (ADR-014).",
+        "Put the initializer where a type is declared -- a variable, an assignment target, a field, an argument, or a return (ADR-014).",
       );
     }
   };

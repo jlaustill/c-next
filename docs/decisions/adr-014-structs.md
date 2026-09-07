@@ -45,8 +45,8 @@ UARTConfig config;
 
 // Initialization in init()
 void init() {
-    origin <- Point { x: 0, y: 0 };
-    config <- UARTConfig {
+    origin <- { x: 0, y: 0 };
+    config <- {
         baudRate: 115200,
         dataBits: 8,
         stopBits: 1,
@@ -58,7 +58,7 @@ void init() {
 ### Inline Initialization (for const structs)
 
 ```cnx
-const Point ORIGIN <- Point { x: 0, y: 0 };
+const Point ORIGIN <- { x: 0, y: 0 };
 ```
 
 ### Member Access
@@ -95,7 +95,7 @@ struct Point {
 }
 
 Point p;
-p <- Point { x: 10, y: 20 };
+p <- { x: 10, y: 20 };
 ```
 
 Generates:
@@ -159,6 +159,16 @@ class Circle {
 Use `{ field: value }` syntax (like Rust, Go, TypeScript):
 
 ```cnx
+Point p <- { x: 10, y: 20 };
+```
+
+The type is **not** repeated. It is already declared to the left, and repeating
+it is an error (E0356). Every position that declares a type behaves the same
+way: a variable's declaration, an assignment target, a field of an enclosing
+initializer, a call argument, and a `return` statement.
+
+```cnx
+// NOT SUPPORTED -- the type is already declared
 Point p <- Point { x: 10, y: 20 };
 ```
 
@@ -268,9 +278,9 @@ struct Rectangle {
     Point bottomRight;
 }
 
-Rectangle r <- Rectangle {
-    topLeft: Point { x: 0, y: 0 },
-    bottomRight: Point { x: 100, y: 50 }
+Rectangle r <- {
+    topLeft: { x: 0, y: 0 },
+    bottomRight: { x: 100, y: 50 }
 };
 ```
 
@@ -281,12 +291,16 @@ Rectangle r <- Rectangle {
 | E0356 | A struct initializer writes a type where the position it stands in already declares one | `tests/adr-014/struct-redundant-type-error.test.cnx` |
 | E0357 | A struct initializer writes no type and stands where no position declares one           | `tests/adr-014/struct-no-type-error.test.cnx`        |
 
-A struct literal has no type of its own. Either it writes one, or the position
-supplies one, and exactly one of those must hold. The positions that supply a
-type are a variable's declaration (including a `for` header's), an assignment
-target, a field of an enclosing initializer, a call argument, and a `return`
-statement, whose type is the enclosing function's declared return type. The
-only shape that supplies nothing is a bare expression statement.
+A struct literal has no type of its own, and the position it stands in gives it
+one. The positions that do are a variable's declaration (including a `for`
+header's), an assignment target, a field of an enclosing initializer, a call
+argument, and a `return` statement, whose type is the enclosing function's
+declared return type. Repeating the type in any of them is an error.
+
+Every position that carries a value is on that list, so the written form
+`Point { x: 1 }` is left legal only where nothing consumes it -- a bare
+expression statement. E0357's help therefore does not offer "write the type" as
+a remedy: it would name the other error.
 
 Both are decided during analysis, at the initializer's own position, and every
 offense in a file is reported.

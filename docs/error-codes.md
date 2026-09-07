@@ -89,11 +89,11 @@ second header and the program ran with a wrong value.
 
 ## E03xx — Struct Fields and Initializers
 
-| Code  | Message                                                                     | Help                                                            | Source                                         |
-| ----- | --------------------------------------------------------------------------- | --------------------------------------------------------------- | ---------------------------------------------- |
-| E0355 | Struct field uses a reserved property name                                  | Reserved names (e.g., `.length`). Use 'len', 'size', or 'count' | `logic/analysis/StructFieldAnalyzer.ts`        |
-| E0356 | A struct initializer writes a type the position already declares            | Use `{ field: value }` once the type is declared (ADR-014)      | `TRANSPILE/1-Analyze/StructLiteralAnalyzer.ts` |
-| E0357 | A struct initializer with no written type, in a position that declares none | Write the type, or place it where one is declared               | `TRANSPILE/1-Analyze/StructLiteralAnalyzer.ts` |
+| Code  | Message                                                                     | Help                                                                                                  | Source                                         |
+| ----- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| E0355 | Struct field uses a reserved property name                                  | Reserved names (e.g., `.length`). Use 'len', 'size', or 'count'                                       | `logic/analysis/StructFieldAnalyzer.ts`        |
+| E0356 | A struct initializer writes a type the position already declares            | Use `{ field: value }` once the type is declared (ADR-014)                                            | `TRANSPILE/1-Analyze/StructLiteralAnalyzer.ts` |
+| E0357 | A struct initializer with no written type, in a position that declares none | Move it where a type is declared: a variable, an assignment target, a field, an argument, or a return | `TRANSPILE/1-Analyze/StructLiteralAnalyzer.ts` |
 
 ---
 
