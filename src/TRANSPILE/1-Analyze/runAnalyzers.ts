@@ -34,6 +34,7 @@ import BareEnumMemberAnalyzer from "./BareEnumMemberAnalyzer";
 import ArrayDeclarationAnalyzer from "./ArrayDeclarationAnalyzer";
 import ArrayIndexBoundsAnalyzer from "./ArrayIndexBoundsAnalyzer";
 import CallbackAssignmentAnalyzer from "./CallbackAssignmentAnalyzer";
+import BitmapAccessAnalyzer from "./BitmapAccessAnalyzer";
 import StructLiteralAnalyzer from "./StructLiteralAnalyzer";
 import ConstAssignmentAnalyzer from "./ConstAssignmentAnalyzer";
 import LoopAnalyzer from "./LoopAnalyzer";
@@ -334,6 +335,10 @@ function runAnalyzers(
     {
       label: "struct initializers (ADR-014, E0356/E0357)",
       run: () => new StructLiteralAnalyzer().analyze(tree),
+    },
+    {
+      label: "bitmap access (ADR-034, E0881-E0883)",
+      run: () => new BitmapAccessAnalyzer().analyze(tree),
     },
     {
       // Last, and does not halt: comment findings are reported alongside

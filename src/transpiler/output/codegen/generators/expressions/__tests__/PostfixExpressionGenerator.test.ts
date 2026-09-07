@@ -756,7 +756,7 @@ describe("PostfixExpressionGenerator", () => {
       expect(result.code).toBe("((status >> 0) & 1)");
     });
 
-    it("throws for unknown bitmap field", () => {
+    it("asserts the invariant for an unknown bitmap field", () => {
       const symbols = createMockSymbols({
         bitmapFields: new Map([["Status", new Map()]]),
       });
@@ -784,7 +784,7 @@ describe("PostfixExpressionGenerator", () => {
 
       expect(() =>
         generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow("Unknown bitmap field 'Unknown' on type 'Status'");
+      ).toThrow("E0882 rejects this in pass 2.1");
     });
   });
 
@@ -1050,12 +1050,18 @@ describe("PostfixExpressionGenerator", () => {
       expect(result.code).toBe("((GPIO) & 1)");
     });
 
-    it("throws for bracket indexing on bitmap type", () => {
-      // This test requires the registerMemberTypes to be set for the resolved
-      // member (result after member access), which is "GPIO__CTRL"
+    it("asserts the invariant for bracket indexing on a bitmap type", () => {
+      // #1322: ADR-034's rule is E0883 in pass 2.1; the invariant is what
+      // remains. It keys on the member's type being a KNOWN bitmap, so the
+      // mock now declares one -- a register member typed by a bitmap the
+      // symbols do not carry is a different fault, and conflating the two is
+      // how the old check ended up unable to see a bitmap variable at all.
       const symbols = createMockSymbols({
         knownRegisters: new Set(["GPIO"]),
         registerMemberTypes: new Map([["GPIO__CTRL", "CtrlBits"]]),
+        bitmapFields: new Map([
+          ["CtrlBits", new Map([["ENABLE", { offset: 0, width: 1 }]])],
+        ]),
       });
       const ctx = createMockPostfixExpressionContext("GPIO", [
         createMockPostfixOp({ identifier: "CTRL" }),
@@ -1070,7 +1076,7 @@ describe("PostfixExpressionGenerator", () => {
 
       expect(() =>
         generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow("Cannot use bracket indexing on bitmap type 'CtrlBits'");
+      ).toThrow("E0883 rejects this in pass 2.1");
     });
   });
 
@@ -1575,7 +1581,7 @@ describe("PostfixExpressionGenerator", () => {
       expect(result.code).toBe("((MOTOR__CTRL >> 0) & 1)");
     });
 
-    it("throws for unknown field on register bitmap member", () => {
+    it("asserts the invariant for an unknown field on a register bitmap member", () => {
       const symbols = createMockSymbols({
         registerMemberTypes: new Map([["MOTOR__CTRL", "CtrlBits"]]),
         bitmapFields: new Map([["CtrlBits", new Map()]]),
@@ -1591,7 +1597,7 @@ describe("PostfixExpressionGenerator", () => {
 
       expect(() =>
         generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow("Unknown bitmap field 'Unknown' on register member");
+      ).toThrow("E0882 rejects this in pass 2.1");
     });
   });
 
@@ -1639,7 +1645,7 @@ describe("PostfixExpressionGenerator", () => {
       expect(result.code).toBe("((device.flags >> 0) & 1)");
     });
 
-    it("throws for unknown bitmap field on struct member", () => {
+    it("asserts the invariant for an unknown bitmap field on a struct member", () => {
       const symbols = createMockSymbols({
         bitmapFields: new Map([["StatusBits", new Map()]]),
       });
@@ -1678,7 +1684,7 @@ describe("PostfixExpressionGenerator", () => {
 
       expect(() =>
         generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow("Unknown bitmap field 'Unknown' on struct member");
+      ).toThrow("E0882 rejects this in pass 2.1");
     });
   });
 

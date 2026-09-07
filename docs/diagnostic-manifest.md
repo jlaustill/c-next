@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-364 fixture(s) assert a diagnostic; 344 carry a code.
+365 fixture(s) assert a diagnostic; 347 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -143,6 +143,9 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-029/callback-imported-transitive-error.test.cnx                                        | E0879, E0880        |
 | tests/adr-029/callback-signature-error.test.cnx                                                  | E0879               |
 | tests/adr-029/callback-uncovered-arms-error.test.cnx                                             | E0880               |
+| tests/adr-034/bitmap-bracket-indexing-error.test.cnx                                             | E0883               |
+| tests/adr-034/bitmap-error-overflow.test.cnx                                                     | E0881               |
+| tests/adr-034/bitmap-unknown-field-error.test.cnx                                                | E0882               |
 | tests/adr-035/array-init-error.test.cnx                                                          | E0866, E0876        |
 | tests/adr-036/array-bounds-uncovered-arms-error.test.cnx                                         | E0854               |
 | tests/adr-036/array-shape-uncovered-arms-error.test.cnx                                          | E0874, E0875        |
@@ -212,9 +215,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bit-indexing/float-bit-range-global-scope-error.test.cnx                                   | (uncoded)           |
 | tests/bit-indexing/scalar-over-subscript-this.test.cnx                                           | E0856               |
 | tests/bit-indexing/scalar-over-subscript.test.cnx                                                | E0856               |
-| tests/bitmap/bitmap-bracket-indexing-error.test.cnx                                              | (uncoded)           |
 | tests/bitmap/bitmap-error-bits.test.cnx                                                          | (uncoded)           |
-| tests/bitmap/bitmap-error-overflow.test.cnx                                                      | (uncoded)           |
 | tests/bitwise/i16-compound-shift-assign.test.cnx                                                 | E0805               |
 | tests/bitwise/i16-shift-ops.test.cnx                                                             | E0805               |
 | tests/bitwise/i32-compound-shift-assign.test.cnx                                                 | E0805               |

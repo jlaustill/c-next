@@ -47,25 +47,12 @@ import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
 import CodeGenState from "../../transpiler/state/CodeGenState";
 import ArrayDimensionParser from "../../utils/ArrayDimensionParser";
 import ParserUtils from "../../utils/ParserUtils";
-import QualifiedCName from "../../utils/QualifiedCName";
 import ScopeUtils from "../../utils/ScopeUtils";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
+import RegisterMemberReference from "./helpers/RegisterMemberReference";
+import IRegisterMember from "./types/IRegisterMember";
 import IRegisterAccessError from "./types/IRegisterAccessError";
 import ScopeFrameResolver from "./ScopeFrameResolver";
-
-/** A register member, resolved from a chain as written. */
-interface IRegisterMember {
-  /** The member's key in `registerMemberAccess`, e.g. `Board__R__ST`. */
-  readonly key: string;
-  /** The access modifier declared on the member. */
-  readonly access: string;
-  /** The member name as written, e.g. `ST`. */
-  readonly member: string;
-  /** The chain up to the member as written, e.g. `this.R.ST`. */
-  readonly spelling: string;
-  /** How many chain names the register and member consumed. */
-  readonly consumed: number;
-}
 
 /** The chain's root keyword, or none. */
 type TRoot = "this" | "global" | null;
@@ -101,7 +88,7 @@ class RegisterAccessListener extends CNextListener {
       .postfixOp()
       .map((op) => (op.DOT() !== null ? op.IDENTIFIER()!.getText() : null));
     const head = root === null ? primary.IDENTIFIER()?.getText() : undefined;
-    const chain = RegisterAccessListener.leadingNames(head, names);
+    const chain = RegisterMemberReference.leadingNames(head, names);
     const found = this.resolve(root, chain, ctx);
     if (found === null) return;
     this.reportRead(found, ctx);
@@ -120,7 +107,7 @@ class RegisterAccessListener extends CNextListener {
     const names = ops.map((op) =>
       op.DOT() !== null ? op.IDENTIFIER()!.getText() : null,
     );
-    const chain = RegisterAccessListener.leadingNames(
+    const chain = RegisterMemberReference.leadingNames(
       target.IDENTIFIER().getText(),
       names,
     );
@@ -162,90 +149,20 @@ class RegisterAccessListener extends CNextListener {
   // --- Resolution ---------------------------------------------------------
 
   /**
-   * The chain's leading member names: the head, then every `.name` op up to
-   * the first subscript or call.
-   */
-  private static leadingNames(
-    head: string | undefined,
-    names: (string | null)[],
-  ): string[] {
-    const chain = head === undefined ? [] : [head];
-    for (const name of names) {
-      if (name === null) break;
-      chain.push(name);
-    }
-    return chain;
-  }
-
-  /**
-   * The register member a chain names, or null when it names none.
-   *
-   * Tries the spellings codegen accepted, in order: `R.M` for a global
-   * register; a scoped register's bare name inside its own scope; `S.R.M`
-   * across a scope. `this.` binds to the enclosing scope and `global.` to the
-   * file scope, so each root reads the chain from its own offset.
+   * #1322: the chain walk, the candidate order and the shadowing rule moved to
+   * `helpers/RegisterMemberReference` when ADR-034's bitmap rules needed the
+   * same answer -- a register member may be TYPED by a bitmap, so a bitmap
+   * rule has to reach it through the register. Two copies would have been free
+   * to disagree about which register a spelling names.
    */
   private resolve(
     root: TRoot,
     chain: string[],
     node: ParserRuleContext,
   ): IRegisterMember | null {
-    const symbols = CodeGenState.symbols;
-    if (!symbols || chain.length < 2) return null;
-    const here = this.scopes.frameFor(node).scopePath;
-    const prefix = root === null ? "" : `${root}.`;
-    const known = (cName: string): boolean => symbols.knownRegisters.has(cName);
-    const scoped = (scope: string, name: string): string =>
-      ScopeUtils.getTranspiledCName({ scopePath: scope, name });
-
-    const candidates: { reg: string; at: number }[] = [];
-    if (root === "this") {
-      if (here !== "" && known(scoped(here, chain[0])))
-        candidates.push({ reg: scoped(here, chain[0]), at: 1 });
-    } else {
-      // `global.` bypasses shadowing by construction; a bare name does not.
-      const shadowed = root === null && this.shadowed(chain[0], node);
-      if (known(chain[0]) && !shadowed)
-        candidates.push({ reg: chain[0], at: 1 });
-      if (root === null && here !== "" && known(scoped(here, chain[0])))
-        candidates.push({ reg: scoped(here, chain[0]), at: 1 });
-      if (chain.length >= 3 && known(scoped(chain[0], chain[1])))
-        candidates.push({ reg: scoped(chain[0], chain[1]), at: 2 });
-    }
-    for (const { reg, at } of candidates) {
-      const member = chain[at];
-      if (member === undefined) continue;
-      const key = QualifiedCName.fromParts([reg, member]);
-      const access = symbols.registerMemberAccess.get(key);
-      if (access === undefined) continue;
-      return {
-        key,
-        access,
-        member,
-        spelling: prefix + chain.slice(0, at + 1).join("."),
-        consumed: at + 1,
-      };
-    }
-    return null;
+    return RegisterMemberReference.resolve(root, chain, node, this.scopes);
   }
 
-  /** A local declaration of the same name is not the register (E0437's case). */
-  private shadowed(name: string, node: ParserRuleContext): boolean {
-    const frame = this.scopes.frameFor(node);
-    return this.scopes.declarationOfNameLexical(name, frame) !== null;
-  }
-
-  /**
-   * Whether a value is a compile-time zero: `false`, any integer spelling or
-   * const that evaluates to 0, or a `const bool` declared `false`. Codegen
-   * compared the generated text against `"false"` and `"0"`, so `0x0` and a
-   * zero-valued const slipped through and SET the bit they were written to
-   * clear.
-   *
-   * Integer consts come from the program's order-independent const table; a
-   * bool const is not in it, so its declaring symbol is asked for the
-   * initializer it recorded.
-   */
   private isZero(
     expr: Parser.ExpressionContext,
     node: ParserRuleContext,

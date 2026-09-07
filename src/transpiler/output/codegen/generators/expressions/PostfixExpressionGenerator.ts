@@ -1722,10 +1722,10 @@ const validateNotBitmapMember = (
   if (!input.symbols!.registerMemberTypes.has(ctx.result)) return;
 
   const bitmapType = input.symbols!.registerMemberTypes.get(ctx.result)!;
-  const line = ctx.op.start?.line ?? 0;
-  throw new Error(
-    `Error at line ${line}: Cannot use bracket indexing on bitmap type '${bitmapType}'. ` +
-      `Use named field access instead (e.g., ${ctx.result.split("_").at(-1)}.FIELD_NAME).`,
+  invariant(
+    !input.symbols!.bitmapFields.has(bitmapType),
+    `a bitmap is addressed by named field, never by bit index ` +
+      `('${bitmapType}') -- E0883 rejects this in pass 2.1, before this runs`,
   );
 };
 

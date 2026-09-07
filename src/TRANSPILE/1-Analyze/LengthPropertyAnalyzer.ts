@@ -46,17 +46,10 @@ import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
 import CodeGenState from "../../transpiler/state/CodeGenState";
 import ParserUtils from "../../utils/ParserUtils";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
+import LENGTH_PROPERTIES from "./helpers/LENGTH_PROPERTIES";
 import ILengthPropertyError from "./types/ILengthPropertyError";
 import OperandTypeResolver from "./OperandTypeResolver";
 import ScopeFrameResolver from "./ScopeFrameResolver";
-
-/** The four properties ADR-058 defines. */
-const LENGTH_PROPERTIES = new Set([
-  "bit_length",
-  "byte_length",
-  "element_count",
-  "char_count",
-]);
 
 /** The CLI argument vector, which answers only `.element_count`. */
 const ARGS_PARAMETER = "args";

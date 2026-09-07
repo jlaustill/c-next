@@ -5,7 +5,6 @@
  */
 import { existsSync } from "node:fs";
 import { dirname, resolve, join } from "node:path";
-import * as Parser from "../../logic/parser/grammar/CNextParser";
 import CodeGenState from "../../state/CodeGenState";
 import AdrProvenance from "../../state/AdrProvenance";
 // SonarCloud S3776: Extracted literal parsing to reduce complexity
@@ -148,34 +147,14 @@ class TypeValidator {
     }
   }
 
-  // ========================================================================
-  // Bitmap Field Validation (ADR-034)
-  // ========================================================================
-
-  static validateBitmapFieldLiteral(
-    expr: Parser.ExpressionContext,
-    width: number,
-    fieldName: string,
-  ): void {
-    const text = expr.getText().trim();
-    const maxValue = (1 << width) - 1;
-
-    let value: number | null = null;
-
-    if (/^\d+$/.exec(text)) {
-      value = Number.parseInt(text, 10);
-    } else if (/^0[xX][0-9a-fA-F]+$/.exec(text)) {
-      value = Number.parseInt(text, 16);
-    } else if (/^0[bB][01]+$/.exec(text)) {
-      value = Number.parseInt(text.substring(2), 2);
-    }
-
-    if (value !== null && value > maxValue) {
-      throw new Error(
-        `Error: Value ${value} exceeds ${width}-bit field '${fieldName}' maximum of ${maxValue}`,
-      );
-    }
-  }
+  // #1322: ADR-034's literal-overflow check is E0881 in pass 2.1.
+  //
+  // `validateBitmapFieldLiteral` stood here and was reached only from the
+  // bitmap assignment handler, which had already resolved the field. The rule
+  // is about the VALUE and the field's width, both of which the parse tree and
+  // the per-file bitmap layouts carry, so it needs no handler to have run
+  // first -- and asking it there meant it could never see a write reached by
+  // any other path.
 
   // ========================================================================
   // Array Bounds Validation (ADR-036)

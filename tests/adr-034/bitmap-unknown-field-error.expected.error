@@ -1,0 +1,6 @@
+18:16 error[E0882]: Unknown bitmap field 'NotAField' on 'Flags'
+       help: 'Flags' declares 'Active', 'Ready', 'Level', 'Reserved' (ADR-034).
+34:15 error[E0882]: Unknown bitmap field 'Missing' on 'Flags'
+       help: 'Flags' declares 'Active', 'Ready', 'Level', 'Reserved' (ADR-034).
+35:4 error[E0882]: Unknown bitmap field 'AlsoMissing' on 'Flags'
+       help: 'Flags' declares 'Active', 'Ready', 'Level', 'Reserved' (ADR-034).

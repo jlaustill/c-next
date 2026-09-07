@@ -1,0 +1,29 @@
+// test-error
+// test-adr: 034
+// ADR-034: a value written to a bitmap field must fit the field's width.
+
+bitmap8 Flags {
+    Mode[3],
+    Enable[1],
+    Reserved[4]
+}
+
+Flags f <- 0;
+
+void main() {
+    // NEGATIVE CONTROLS -- declared before the assertions. The widest value
+    // each field holds, in each literal base, and a runtime value the rule
+    // cannot and must not judge.
+    f.Mode <- 7;
+    f.Mode <- 0x7;
+    f.Mode <- 0b111;
+    f.Enable <- 1;
+    f.Reserved <- 15;
+
+    // ASSERTIONS -- one over the maximum, in each base.
+    f.Mode <- 8;
+    f.Mode <- 0x8;
+    f.Mode <- 0b1000;
+    f.Enable <- 2;
+    f.Reserved <- 16;
+}

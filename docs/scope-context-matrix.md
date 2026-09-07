@@ -143,6 +143,15 @@ cell is declared by the ADR that owns it.
 - `bugs/issue-1491-cross-file-function-as-type/cross-file-string-param.test.cnx`
 - `bugs/issue-1491-duplicate-typedef/two-consumers.test.cnx`
 
+## ADR-034
+
+| Context            | same file | direct | transitive | from 1 away | thru chain |
+| ------------------ | --------- | ------ | ---------- | ----------- | ---------- |
+| global variable    | ok        | warn   | warn       | n/a         | n/a        |
+| top-level function | ok        | warn   | warn       | n/a         | n/a        |
+| scope member       | warn      | warn   | warn       | n/a         | n/a        |
+| scope method       | ok        | warn   | warn       | n/a         | n/a        |
+
 ## ADR-035
 
 | Context            | same file | direct | transitive | from 1 away | thru chain |

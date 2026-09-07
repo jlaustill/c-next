@@ -19,9 +19,9 @@ codes that already have a fixture.
 | E05xx     | Include/Preprocessor    | 7      |
 | E06xx     | Sizeof Expressions      | 2      |
 | E07xx     | Control Flow            | 12     |
-| E08xx     | Arithmetic/Array Safety | 40     |
+| E08xx     | Arithmetic/Array Safety | 43     |
 | E09xx     | NULL Safety             | 8      |
-| **Total** |                         | **95** |
+| **Total** |                         | **98** |
 
 ---
 
@@ -300,6 +300,14 @@ base: bare, `this.` and `global.`.
 | ----- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
 | E0879 | A function's declared signature does not match the callback type it is given to | Match the type exactly: return type, parameter count, and each parameter's type, `const` and array-ness | `TRANSPILE/1-Analyze/CallbackAssignmentAnalyzer.ts` |
 | E0880 | A function that is itself a callback type given to a slot of another type       | Nominal typing: only a function that is not a type may stand in for one                                 | `TRANSPILE/1-Analyze/CallbackAssignmentAnalyzer.ts` |
+
+### Bitmap Access (ADR-034)
+
+| Code  | Message                                                   | Help                                                                  | Source                                        |
+| ----- | --------------------------------------------------------- | --------------------------------------------------------------------- | --------------------------------------------- |
+| E0881 | A literal too wide for the bitmap field it is assigned to | Widen the field in the bitmap declaration, or write a value that fits | `TRANSPILE/1-Analyze/BitmapAccessAnalyzer.ts` |
+| E0882 | A member the bitmap does not declare                      | Use one of the bitmap's declared fields                               | `TRANSPILE/1-Analyze/BitmapAccessAnalyzer.ts` |
+| E0883 | Bracket indexing on a bitmap                              | A bitmap is addressed by named field, not by bit index                | `TRANSPILE/1-Analyze/BitmapAccessAnalyzer.ts` |
 
 ## E09xx — NULL Safety (ADR-046)
 

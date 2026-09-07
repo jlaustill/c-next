@@ -5,7 +5,6 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import createMockSymbols from "../../../__tests__/codeGenSymbolsHelpers";
-import * as Parser from "../../../logic/parser/grammar/CNextParser";
 import CodeGenState from "../../../state/CodeGenState";
 import type ICodeGenSymbols from "../../../types/ICodeGenSymbols";
 import type ICallbackTypeInfo from "../../../types/ICallbackTypeInfo";
@@ -73,14 +72,8 @@ function setupState(options: SetupStateOptions = {}): void {
 
 // ANTLR pattern: method() returns array, method(i) returns element at index i
 
-function createMockExpression(text: string): Parser.ExpressionContext {
-  return {
-    getText: () => text,
-    ternaryExpression: () => ({
-      orExpression: () => [],
-    }),
-  } as unknown as Parser.ExpressionContext;
-}
+// #1322: `createMockExpression` went with the bitmap-literal describe, its
+// only caller.
 
 // #1322: `createMockStatement` and `createMockBlock` built statements for the
 // suites above, which moved to pass 2.1 with the rules they tested. The switch
@@ -326,55 +319,10 @@ describe("TypeValidator", () => {
   // Tests - Bitmap Field Validation (ADR-034)
   // ========================================================================
 
-  describe("validateBitmapFieldLiteral", () => {
-    it("allows values within field width", () => {
-      setupState();
-      const expr = createMockExpression("7");
-      expect(() =>
-        TypeValidator.validateBitmapFieldLiteral(expr, 3, "flags"),
-      ).not.toThrow();
-    });
-
-    it("throws for decimal values exceeding field width", () => {
-      setupState();
-      const expr = createMockExpression("8");
-      expect(() =>
-        TypeValidator.validateBitmapFieldLiteral(expr, 3, "flags"),
-      ).toThrow("Value 8 exceeds 3-bit field 'flags' maximum of 7");
-    });
-
-    it("validates hex literals", () => {
-      setupState();
-      const expr = createMockExpression("0xFF");
-      expect(() =>
-        TypeValidator.validateBitmapFieldLiteral(expr, 8, "byte"),
-      ).not.toThrow();
-      const exprBad = createMockExpression("0x100");
-      expect(() =>
-        TypeValidator.validateBitmapFieldLiteral(exprBad, 8, "byte"),
-      ).toThrow("Value 256 exceeds 8-bit field 'byte' maximum of 255");
-    });
-
-    it("validates binary literals", () => {
-      setupState();
-      const expr = createMockExpression("0b1111");
-      expect(() =>
-        TypeValidator.validateBitmapFieldLiteral(expr, 4, "nibble"),
-      ).not.toThrow();
-      const exprBad = createMockExpression("0b10000");
-      expect(() =>
-        TypeValidator.validateBitmapFieldLiteral(exprBad, 4, "nibble"),
-      ).toThrow("Value 16 exceeds 4-bit field 'nibble' maximum of 15");
-    });
-
-    it("skips validation for non-literal expressions", () => {
-      setupState();
-      const expr = createMockExpression("someVariable");
-      expect(() =>
-        TypeValidator.validateBitmapFieldLiteral(expr, 1, "bit"),
-      ).not.toThrow();
-    });
-  });
+  // #1322: the `validateBitmapFieldLiteral` describe stood here and is deleted
+  // with the method. ADR-034's literal-overflow rule is E0881 in pass 2.1,
+  // covered by `1-Analyze/__tests__/BitmapAccessAnalyzer.test.ts` and the
+  // `tests/adr-034/` fixtures.
 
   // ========================================================================
   // Tests - Array Bounds Validation (ADR-036)

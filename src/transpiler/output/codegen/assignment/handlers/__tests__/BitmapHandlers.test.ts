@@ -5,18 +5,10 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock TypeValidator before imports
-vi.mock("../../../TypeValidator", () => ({
-  default: {
-    validateBitmapFieldLiteral: vi.fn(),
-  },
-}));
-
 import bitmapHandlers from "../BitmapHandlers";
 import AssignmentKind from "../../AssignmentKind";
 import IAssignmentContext from "../../IAssignmentContext";
 import CodeGenState from "../../../../../state/CodeGenState";
-import TypeValidator from "../../../TypeValidator";
 import HandlerTestUtils from "./handlerTestUtils";
 
 /**
@@ -145,26 +137,12 @@ describe("BitmapHandlers", () => {
     // `1-Analyze/__tests__/CompoundAssignmentAnalyzer.test.ts` plus
     // `tests/compound-assign/` and `tests/string-assignment/`.
 
-    it("validates bitmap field literal", () => {
-      HandlerTestUtils.setupMockTypeRegistry([
-        ["flags", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
-      ]);
-      HandlerTestUtils.setupMockSymbols({
-        bitmapFields: new Map([
-          ["StatusFlags", new Map([["Running", { offset: 0, width: 1 }]])],
-        ]),
-      });
-      const ctx = createMockContext();
-      vi.mocked(TypeValidator.validateBitmapFieldLiteral).mockClear();
-
-      getHandler()!(ctx);
-
-      expect(TypeValidator.validateBitmapFieldLiteral).toHaveBeenCalledWith(
-        ctx.valueCtx,
-        1,
-        "Running",
-      );
-    });
+    // #1322: "validates bitmap field literal" stood here and asserted the
+    // delegation to `TypeValidator.validateBitmapFieldLiteral`, which is
+    // deleted. ADR-034's overflow rule is E0881 in pass 2.1, decided from the
+    // bitmap's layouts and the value's own text rather than from a field this
+    // handler had already resolved. Deleted with its mock rather than left
+    // asserting a call that cannot happen.
   });
 
   describe("handleBitmapFieldMultiBit (BITMAP_FIELD_MULTI_BIT)", () => {

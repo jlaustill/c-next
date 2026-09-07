@@ -1,0 +1,10 @@
+24:14 error[E0881]: Value 8 exceeds 3-bit field 'Mode' maximum of 7
+       help: A 3-bit field holds 0 through 7; widen the field in the bitmap declaration, or write a value that fits (ADR-034).
+25:14 error[E0881]: Value 8 exceeds 3-bit field 'Mode' maximum of 7
+       help: A 3-bit field holds 0 through 7; widen the field in the bitmap declaration, or write a value that fits (ADR-034).
+26:14 error[E0881]: Value 8 exceeds 3-bit field 'Mode' maximum of 7
+       help: A 3-bit field holds 0 through 7; widen the field in the bitmap declaration, or write a value that fits (ADR-034).
+27:16 error[E0881]: Value 2 exceeds 1-bit field 'Enable' maximum of 1
+       help: A 1-bit field holds 0 through 1; widen the field in the bitmap declaration, or write a value that fits (ADR-034).
+28:18 error[E0881]: Value 16 exceeds 4-bit field 'Reserved' maximum of 15
+       help: A 4-bit field holds 0 through 15; widen the field in the bitmap declaration, or write a value that fits (ADR-034).
