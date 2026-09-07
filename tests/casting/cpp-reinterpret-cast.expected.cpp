@@ -32,6 +32,6 @@ uint32_t ByteProcessor__processBuffer(void) {
 
 int main(void) {
     uint32_t result = ByteProcessor__processBuffer();
-    if (result != 0x03) return 1;
-    return 0;
+    if (result != 0x03) return 1U;
+    return 0U;
 }

@@ -18,17 +18,17 @@ int main(void) {
     buf[1] = (uint8_t)(cnx_tmp0 >> 8U);
     buf[2] = (uint8_t)(cnx_tmp0 >> 16U);
     buf[3] = (uint8_t)(cnx_tmp0 >> 24U);
-    if (buf[0U] != 0x78) return 1;
-    if (buf[1U] != 0x56) return 2;
-    if (buf[2U] != 0x34) return 3;
-    if (buf[3U] != 0x12) return 4;
+    if (buf[0U] != 0x78) return 1U;
+    if (buf[1U] != 0x56) return 2U;
+    if (buf[2U] != 0x34) return 3U;
+    if (buf[3U] != 0x12) return 4U;
     int16_t sarr[4] = {0};
     int32_t packed = 0x0A0B0C0D;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: int16_t* vs int32_t*). */
     const uint32_t cnx_tmp1 = (uint32_t)(packed);
     sarr[0] = (int16_t)(uint16_t)(cnx_tmp1);
     sarr[1] = (int16_t)(uint16_t)(cnx_tmp1 >> 16U);
-    if (sarr[0U] != 0x0C0D) return 5;
-    if (sarr[1U] != 0x0A0B) return 6;
-    return 0;
+    if (sarr[0U] != 0x0C0D) return 5U;
+    if (sarr[1U] != 0x0A0B) return 6U;
+    return 0U;
 }

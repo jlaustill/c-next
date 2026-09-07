@@ -12,33 +12,33 @@
 // Tests: sizeof used in arithmetic expressions
 int main(void) {
     uint32_t totalSize = sizeof(uint32_t) + sizeof(uint16_t);
-    if (totalSize != 6) return 1;
+    if (totalSize != 6) return 1U;
     uint32_t diff = sizeof(uint64_t) - sizeof(uint32_t);
-    if (diff != 4) return 2;
+    if (diff != 4) return 2U;
     uint32_t arrayCalc = sizeof(uint32_t) * 10U;
-    if (arrayCalc != 40) return 3;
+    if (arrayCalc != 40) return 3U;
     uint32_t elements = 100U / sizeof(uint32_t);
-    if (elements != 25) return 4;
+    if (elements != 25) return 4U;
     uint32_t complex = sizeof(uint32_t) + sizeof(uint16_t) * 2U;
-    if (complex != 8) return 5;
+    if (complex != 8) return 5U;
     uint32_t paren = (sizeof(uint32_t) + sizeof(uint16_t)) * 2U;
-    if (paren != 12) return 6;
+    if (paren != 12) return 6U;
     Header h = {};
     uint32_t headerWithPadding = sizeof(h) + 4U;
-    if (headerWithPadding != 16) return 7;
-    if (sizeof(uint64_t) != 8) return 8;
-    if (sizeof(uint8_t) != 1) return 9;
+    if (headerWithPadding != 16) return 7U;
+    if (sizeof(uint64_t) != 8) return 8U;
+    if (sizeof(uint8_t) != 1) return 9U;
     uint32_t larger = (sizeof(uint64_t) > sizeof(uint32_t)) ? 1U : 0U;
-    if (larger != 1) return 10;
+    if (larger != 1) return 10U;
     uint8_t buffer[100] = {};
     uint32_t bufSize = sizeof(buffer);
     uint32_t elemSize = sizeof(uint8_t);
     uint32_t elemCount = bufSize / elemSize;
-    if (elemCount != 100) return 11;
+    if (elemCount != 100) return 11U;
     uint32_t intBuffer[25] = {};
     uint32_t intBufSize = sizeof(intBuffer);
     uint32_t intElemSize = sizeof(uint32_t);
     uint32_t intElemCount = intBufSize / intElemSize;
-    if (intElemCount != 25) return 12;
-    return 0;
+    if (intElemCount != 25) return 12U;
+    return 0U;
 }

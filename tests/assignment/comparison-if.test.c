@@ -13,10 +13,10 @@
 // Tests: = operator transpiles to == in conditions
 uint32_t checkValue(uint32_t x) {
     if (x == 0) {
-        return 0;
+        return 0U;
     }
     if (x == 100) {
-        return 100;
+        return 100U;
     }
     return x;
 }
@@ -36,23 +36,23 @@ int main(void) {
     int32_t negative = -5;
     uint32_t result1 = checkValue(zero);
     if (result1 != 0) {
-        return 1;
+        return 1U;
     }
     uint32_t result2 = checkValue(hundred);
     if (result2 != 100) {
-        return 1;
+        return 1U;
     }
     uint32_t result3 = checkValue(fifty);
     if (result3 != 50) {
-        return 1;
+        return 1U;
     }
     bool result4 = isPositive(positive);
     if (result4 != true) {
-        return 1;
+        return 1U;
     }
     bool result5 = isPositive(negative);
     if (result5 != false) {
-        return 1;
+        return 1U;
     }
-    return 0;
+    return 0U;
 }

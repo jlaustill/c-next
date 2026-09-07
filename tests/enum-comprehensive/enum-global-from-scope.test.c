@@ -29,8 +29,8 @@ bool Test__testGlobalFunction(void) {
 
 int main(void) {
     EGlobal fromScope = Test__getGlobalEnum();
-    if (fromScope != EGlobal__A) return 1;
+    if (fromScope != EGlobal__A) return 1U;
     bool testResult = Test__testGlobalFunction();
-    if (testResult == false) return 2;
-    return 0;
+    if (testResult == false) return 2U;
+    return 0U;
 }

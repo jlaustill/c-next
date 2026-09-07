@@ -77,7 +77,7 @@ uint32_t Counter__arrayShadow(void) {
 
 uint32_t Counter__loopShadow(void) {
     uint32_t sum = 0U;
-    for (uint32_t Counter__loopShadow__tick = 0; Counter__loopShadow__tick < 2; Counter__loopShadow__tick += 1) {
+    for (uint32_t Counter__loopShadow__tick = 0U; Counter__loopShadow__tick < 2; Counter__loopShadow__tick += 1) {
         sum = cnx_clamp_add_u32(sum, tick);
     }
     return sum;
@@ -139,34 +139,34 @@ uint32_t Counter__globalStringLength(void) {
 
 int main(void) {
     uint32_t a = Counter__allThreeLevels();
-    if (a != 1110) return 1;
+    if (a != 1110) return 1U;
     uint32_t b = Counter__arrayShadow();
-    if (b != 8) return 2;
+    if (b != 8) return 2U;
     uint32_t c = Counter__loopShadow();
-    if (c != 198) return 3;
+    if (c != 198) return 3U;
     uint32_t d = Counter__plain();
-    if (d != 5) return 4;
+    if (d != 5) return 4U;
     uint32_t e = Counter__writeSubscript();
-    if (e != 5) return 5;
+    if (e != 5) return 5U;
     uint32_t e2 = Counter__globalSubscript();
-    if (e2 != 70) return 6;
+    if (e2 != 70) return 6U;
     uint32_t f = Counter__writeStructField();
-    if (f != 7) return 7;
+    if (f != 7) return 7U;
     uint32_t f2 = Counter__globalStructField();
-    if (f2 != 90) return 8;
+    if (f2 != 90) return 8U;
     uint32_t g = Counter__writeBitRange();
-    if (g != 3) return 9;
+    if (g != 3) return 9U;
     uint32_t g2 = Counter__globalBits();
-    if (g2 != 0) return 10;
+    if (g2 != 0) return 10U;
     uint32_t h = Counter__shadowingString();
-    if (h != 2) return 11;
+    if (h != 2) return 11U;
     uint32_t h2 = Counter__globalStringLength();
-    if (h2 != 6) return 12;
+    if (h2 != 6) return 12U;
     uint32_t i = Counter__sizeofArray();
-    if (i != 8) return 13;
+    if (i != 8) return 13U;
     uint32_t j = Counter__sizeofMember();
-    if (j != 1) return 14;
+    if (j != 1) return 14U;
     uint32_t k = Counter__elementCount();
-    if (k != 2) return 15;
-    return 0;
+    if (k != 2) return 15U;
+    return 0U;
 }

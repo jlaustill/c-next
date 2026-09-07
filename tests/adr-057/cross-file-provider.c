@@ -30,7 +30,7 @@ static uint32_t Sensor__reading = 0U;
 static uint32_t Sensor__offset = 3U;
 
 uint32_t Sensor__raw(void) {
-    return 7;
+    return 7U;
 }
 
 void Sensor__refresh(void) {

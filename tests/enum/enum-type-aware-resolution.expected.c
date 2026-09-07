@@ -23,17 +23,17 @@ void setStatusRed(StatusConfig* cfg) {
 int main(void) {
     ColorConfig colorCfg = { .color = Color__BLUE };
     setColorRed(&colorCfg);
-    if ((uint32_t)colorCfg.color != 0) return 1;
+    if ((uint32_t)colorCfg.color != 0) return 1U;
     StatusConfig statusCfg = { .status = Status__YELLOW };
     setStatusRed(&statusCfg);
-    if ((uint32_t)statusCfg.status != 10) return 2;
+    if ((uint32_t)statusCfg.status != 10) return 2U;
     colorCfg.color = Color__GREEN;
-    if ((uint32_t)colorCfg.color != 1) return 3;
+    if ((uint32_t)colorCfg.color != 1) return 3U;
     statusCfg.status = Status__GREEN;
-    if ((uint32_t)statusCfg.status != 30) return 4;
+    if ((uint32_t)statusCfg.status != 30) return 4U;
     colorCfg.color = Color__BLUE;
-    if ((uint32_t)colorCfg.color != 2) return 5;
+    if ((uint32_t)colorCfg.color != 2) return 5U;
     statusCfg.status = Status__YELLOW;
-    if ((uint32_t)statusCfg.status != 20) return 6;
-    return 0;
+    if ((uint32_t)statusCfg.status != 20) return 6U;
+    return 0U;
 }

@@ -25,6 +25,6 @@ uint8_t S__len(void) {
 int main(void) {
     S__init();
     uint8_t length = S__len();
-    if (length != 0) return 1;
-    return 0;
+    if (length != 0) return 1U;
+    return 0U;
 }

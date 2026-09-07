@@ -34,17 +34,17 @@ extern const uint16_t DEFAULT_PORT = 8080U;
 
 int main(void) {
     uint16_t port = MAX_PORT;
-    if (port != 65535) return 1;
+    if (port != 65535) return 1U;
     uint16_t defPort = DEFAULT_PORT;
-    if (defPort != 8080) return 2;
+    if (defPort != 8080) return 2U;
     uint16_t result = cnx_clamp_sub_u16(MAX_PORT, DEFAULT_PORT);
-    if (result != 57455) return 3;
-    if (DEFAULT_PORT >= MAX_PORT) return 4;
+    if (result != 57455) return 3U;
+    if (DEFAULT_PORT >= MAX_PORT) return 4U;
     uint16_t values[3] = {100U, 200U, 300U};
     uint16_t sum = 0U;
-    for (uint16_t i = 0; i < 3; i = i + 1) {
+    for (uint16_t i = 0U; i < 3; i = i + 1) {
         sum = cnx_clamp_add_u16(sum, values[i]);
     }
-    if (sum != 600) return 5;
-    return 0;
+    if (sum != 600) return 5U;
+    return 0U;
 }

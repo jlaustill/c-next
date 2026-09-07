@@ -35,15 +35,15 @@ int main(void) {
     uint32_t cmd99 = 99U;
     handleCommand(cmd0);
     if (result != 100) {
-        return 1;
+        return 1U;
     }
     handleCommand(cmd1);
     if (result != 200) {
-        return 2;
+        return 2U;
     }
     handleCommand(cmd99);
     if (result != 999) {
-        return 3;
+        return 3U;
     }
-    return 0;
+    return 0U;
 }

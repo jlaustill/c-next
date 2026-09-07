@@ -18,10 +18,10 @@ int main(void) {
     buffer[1] = (uint8_t)(cnx_tmp0 >> 8U);
     buffer[2] = (uint8_t)(cnx_tmp0 >> 16U);
     buffer[3] = (uint8_t)(cnx_tmp0 >> 24U);
-    if (buffer[0U] != 0x78) return 1;
-    if (buffer[1U] != 0x56) return 2;
-    if (buffer[2U] != 0x34) return 3;
-    if (buffer[3U] != 0x12) return 4;
+    if (buffer[0U] != 0x78) return 1U;
+    if (buffer[1U] != 0x56) return 2U;
+    if (buffer[2U] != 0x34) return 3U;
+    if (buffer[3U] != 0x12) return 4U;
     uint64_t value64 = 0x0102030405060708ULL;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint64_t*). */
     const uint64_t cnx_tmp1 = (uint64_t)(value64);
@@ -33,23 +33,23 @@ int main(void) {
     buffer[15] = (uint8_t)(cnx_tmp1 >> 40U);
     buffer[16] = (uint8_t)(cnx_tmp1 >> 48U);
     buffer[17] = (uint8_t)(cnx_tmp1 >> 56U);
-    if (buffer[10U] != 0x08) return 5;
-    if (buffer[11U] != 0x07) return 6;
-    if (buffer[12U] != 0x06) return 7;
-    if (buffer[13U] != 0x05) return 8;
-    if (buffer[14U] != 0x04) return 9;
-    if (buffer[15U] != 0x03) return 10;
-    if (buffer[16U] != 0x02) return 11;
-    if (buffer[17U] != 0x01) return 12;
+    if (buffer[10U] != 0x08) return 5U;
+    if (buffer[11U] != 0x07) return 6U;
+    if (buffer[12U] != 0x06) return 7U;
+    if (buffer[13U] != 0x05) return 8U;
+    if (buffer[14U] != 0x04) return 9U;
+    if (buffer[15U] != 0x03) return 10U;
+    if (buffer[16U] != 0x02) return 11U;
+    if (buffer[17U] != 0x01) return 12U;
     uint8_t value8 = 0xABU;
     buffer[20] = (uint8_t)(value8);
-    if (buffer[20U] != 0xAB) return 13;
+    if (buffer[20U] != 0xAB) return 13U;
     uint16_t value16 = 0xCDEFU;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint16_t*). */
     const uint16_t cnx_tmp2 = (uint16_t)(value16);
     buffer[30] = (uint8_t)(cnx_tmp2);
     buffer[31] = (uint8_t)(cnx_tmp2 >> 8U);
-    if (buffer[30U] != 0xEF) return 14;
-    if (buffer[31U] != 0xCD) return 15;
-    return 0;
+    if (buffer[30U] != 0xEF) return 14U;
+    if (buffer[31U] != 0xCD) return 15U;
+    return 0U;
 }

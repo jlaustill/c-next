@@ -27,15 +27,15 @@ void Test__init(void) {
 }
 
 int main(void) {
-    if (3 != 3) return 1;
-    if (strlen(LABELS[0U]) != 3) return 2;
-    if (strlen(LABELS[1U]) != 3) return 3;
-    if (strlen(LABELS[2U]) != 5) return 4;
-    if (4 != 4) return 5;
-    if (strlen(colors[0U]) != 3) return 6;
-    if (strlen(colors[1U]) != 5) return 7;
-    if (strlen(colors[2U]) != 4) return 8;
-    if (strlen(colors[3U]) != 6) return 9;
+    if (3 != 3) return 1U;
+    if (strlen(LABELS[0U]) != 3) return 2U;
+    if (strlen(LABELS[1U]) != 3) return 3U;
+    if (strlen(LABELS[2U]) != 5) return 4U;
+    if (4 != 4) return 5U;
+    if (strlen(colors[0U]) != 3) return 6U;
+    if (strlen(colors[1U]) != 5) return 7U;
+    if (strlen(colors[2U]) != 4) return 8U;
+    if (strlen(colors[3U]) != 6) return 9U;
     Test__init();
-    return 0;
+    return 0U;
 }

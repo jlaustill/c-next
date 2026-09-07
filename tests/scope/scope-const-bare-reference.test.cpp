@@ -36,8 +36,8 @@ uint8_t Foo__useInExpression(void) {
 
 int main(void) {
     uint32_t val = Foo__getConstant();
-    if (val != 42) return 1;
+    if (val != 42) return 1U;
     uint8_t expr = Foo__useInExpression();
-    if (expr != 15) return 2;
-    return 0;
+    if (expr != 15) return 2U;
+    return 0U;
 }

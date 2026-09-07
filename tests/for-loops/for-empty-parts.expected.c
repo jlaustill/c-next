@@ -34,7 +34,7 @@ void testEmptyInit(void) {
 
 // Test 2: Empty update (update inside loop body)
 void testEmptyUpdate(void) {
-    for (uint32_t i = 0; i < 5; ) {
+    for (uint32_t i = 0U; i < 5; ) {
         globalCounter = cnx_clamp_add_u32(globalCounter, 1U);
         i = cnx_clamp_add_u32(i, 1U);
     }
@@ -53,7 +53,7 @@ void testEmptyInitAndUpdate(void) {
 // C-Next doesn't have break; use structured conditions
 void testExplicitCondition(void) {
     uint32_t count = 0U;
-    for (uint32_t i = 0; i < 5; i = cnx_clamp_add_u32(i, 1)) {
+    for (uint32_t i = 0U; i < 5; i = cnx_clamp_add_u32(i, 1)) {
         count = cnx_clamp_add_u32(count, 1U);
     }
     globalCounter = cnx_clamp_add_u32(globalCounter, count);

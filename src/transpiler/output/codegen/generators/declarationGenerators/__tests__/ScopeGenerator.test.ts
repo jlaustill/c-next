@@ -449,6 +449,8 @@ function createMockOrchestrator(
     ),
     getZeroInitializer: vi.fn((typeCtx, isArray) => (isArray ? "{0}" : "0")),
     setCurrentFunctionName: vi.fn(),
+    enterFunctionContext: vi.fn(),
+    exitFunctionContext: vi.fn(),
     setParameters: vi.fn(),
     enterFunctionBody: vi.fn(),
     generateBlock: vi.fn(() => "{ }"),
@@ -1034,21 +1036,21 @@ describe("ScopeGenerator", () => {
 
       generateScope(ctx, input, state, orchestrator);
 
-      // Verify call order
-      expect(orchestrator.setCurrentFunctionName).toHaveBeenCalledWith(
+      // Verify call order. #1277: the four separate context calls this used to
+      // assert are one pair now, shared with FunctionGenerator -- the scope
+      // copy had been missing the return type, so no `return` in a scope
+      // method knew its type. Asserting the pair is what makes a future
+      // divergence impossible rather than merely unlikely.
+      expect(orchestrator.enterFunctionContext).toHaveBeenCalledWith(
         "Test__test",
+        "void",
+        null,
       );
-      expect(orchestrator.setParameters).toHaveBeenCalled();
-      expect(orchestrator.enterFunctionBody).toHaveBeenCalled();
       expect(orchestrator.generateBlock).toHaveBeenCalled();
       expect(orchestrator.updateFunctionParamsAutoConst).toHaveBeenCalledWith(
         "Test__test",
       );
-      expect(orchestrator.exitFunctionBody).toHaveBeenCalled();
-      expect(orchestrator.setCurrentFunctionName).toHaveBeenLastCalledWith(
-        null,
-      );
-      expect(orchestrator.clearParameters).toHaveBeenCalled();
+      expect(orchestrator.exitFunctionContext).toHaveBeenCalled();
     });
 
     it("generates callback typedef when used as field type (ADR-029)", () => {

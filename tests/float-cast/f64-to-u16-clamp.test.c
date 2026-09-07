@@ -15,12 +15,12 @@ int main(void) {
     double in_range = 30000.0;
     double at_max = 65535.0;
     uint16_t result = ((over) > ((double)UINT16_MAX) ? (uint16_t)UINT16_MAX : (over) < 0.0 ? (uint16_t)0 : (uint16_t)(over));
-    if (result != 65535) return 1;
+    if (result != 65535) return 1U;
     result = ((negative) > ((double)UINT16_MAX) ? (uint16_t)UINT16_MAX : (negative) < 0.0 ? (uint16_t)0 : (uint16_t)(negative));
-    if (result != 0) return 2;
+    if (result != 0) return 2U;
     result = ((in_range) > ((double)UINT16_MAX) ? (uint16_t)UINT16_MAX : (in_range) < 0.0 ? (uint16_t)0 : (uint16_t)(in_range));
-    if (result != 30000) return 3;
+    if (result != 30000) return 3U;
     result = ((at_max) > ((double)UINT16_MAX) ? (uint16_t)UINT16_MAX : (at_max) < 0.0 ? (uint16_t)0 : (uint16_t)(at_max));
-    if (result != 65535) return 4;
-    return 0;
+    if (result != 65535) return 4U;
+    return 0U;
 }

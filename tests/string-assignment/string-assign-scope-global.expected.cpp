@@ -28,10 +28,10 @@ void Handler__setLongMessage(void) {
 
 int main(void) {
     Handler__updateGlobal();
-    if (strlen(globalBuffer) != 9) return 1;
+    if (strlen(globalBuffer) != 9) return 1U;
     Handler__clearGlobal();
-    if (strlen(globalBuffer) != 0) return 2;
+    if (strlen(globalBuffer) != 0) return 2U;
     Handler__setLongMessage();
-    if (strlen(globalBuffer) != 35) return 3;
-    return 0;
+    if (strlen(globalBuffer) != 35) return 3U;
+    return 0U;
 }

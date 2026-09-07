@@ -11,5 +11,5 @@
 /* Scope: AlphaModule */
 
 uint8_t AlphaModule__one(void) {
-    return 1;
+    return 1U;
 }

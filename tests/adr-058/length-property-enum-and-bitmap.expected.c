@@ -15,11 +15,11 @@
 // silently return: it EXECUTES, and asserts the widths.
 int main(void) {
     Color c = Color__RED;
-    if (32 != 32) return 1;
-    if (4 != 4) return 2;
+    if (32 != 32) return 1U;
+    if (4 != 4) return 2U;
     Flags f = {0};
     f = (f & ~(0xFU << 0)) | ((1 & 0xFU) << 0);
-    if (16 != 16) return 3;
-    if (2 != 2) return 4;
-    return 0;
+    if (16 != 16) return 3U;
+    if (2 != 2) return 4U;
+    return 0U;
 }

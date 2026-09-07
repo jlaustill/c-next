@@ -19,12 +19,12 @@ int main(void) {
     union { float f; uint32_t u; } __bits_x;
     __bits_x.f = x;
     uint32_t xbits = (__bits_x.u & 0xFFFFFFFFU);
-    if (xbits != 0x3FC00000) return 1;
+    if (xbits != 0x3FC00000) return 1U;
     const uint8_t W64 = 64U;
     double y = 1.5;
     union { double f; uint64_t u; } __bits_y;
     __bits_y.f = y;
     uint64_t ybits = (__bits_y.u & 0xFFFFFFFFFFFFFFFFULL);
-    if (ybits != 0x3FF8000000000000) return 2;
-    return 0;
+    if (ybits != 0x3FF8000000000000) return 2U;
+    return 0U;
 }

@@ -35,9 +35,9 @@ int main(void) {
     buf[1] = (uint8_t)(cnx_tmp1 >> 8U);
     buf[2] = (uint8_t)(cnx_tmp1 >> 16U);
     buf[3] = (uint8_t)(cnx_tmp1 >> 24U);
-    if (buf[0U] != 0x78) return 1;
-    if (buf[1U] != 0x56) return 2;
-    if (buf[2U] != 0x34) return 3;
-    if (buf[3U] != 0x12) return 4;
-    return 0;
+    if (buf[0U] != 0x78) return 1U;
+    if (buf[1U] != 0x56) return 2U;
+    if (buf[2U] != 0x34) return 3U;
+    if (buf[3U] != 0x12) return 4U;
+    return 0U;
 }

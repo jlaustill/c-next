@@ -11,33 +11,33 @@
 // Validates that escape sequences in char literals work correctly
 int main(void) {
     uint8_t newline = (uint8_t)'\n';
-    if (newline != 10) return 1;
+    if (newline != 10) return 1U;
     uint8_t tab = (uint8_t)'\t';
-    if (tab != 9) return 2;
+    if (tab != 9) return 2U;
     uint8_t cr = (uint8_t)'\r';
-    if (cr != 13) return 3;
+    if (cr != 13) return 3U;
     uint8_t nul = (uint8_t)'\0';
-    if (nul != 0) return 4;
+    if (nul != 0) return 4U;
     uint8_t backslash = (uint8_t)'\\';
-    if (backslash != 92) return 5;
+    if (backslash != 92) return 5U;
     uint8_t quote = (uint8_t)'\'';
-    if (quote != 39) return 6;
+    if (quote != 39) return 6U;
     uint8_t dquote = (uint8_t)'\"';
-    if (dquote != 34) return 7;
+    if (dquote != 34) return 7U;
     uint8_t escapes[7] = {(uint8_t)'\n', (uint8_t)'\t', (uint8_t)'\r', (uint8_t)'\0', (uint8_t)'\\', (uint8_t)'\'', (uint8_t)'\"'};
-    if (escapes[0U] != 10) return 8;
-    if (escapes[1U] != 9) return 9;
-    if (escapes[2U] != 13) return 10;
-    if (escapes[3U] != 0) return 11;
-    if (escapes[4U] != 92) return 12;
-    if (escapes[5U] != 39) return 13;
-    if (escapes[6U] != 34) return 14;
+    if (escapes[0U] != 10) return 8U;
+    if (escapes[1U] != 9) return 9U;
+    if (escapes[2U] != 13) return 10U;
+    if (escapes[3U] != 0) return 11U;
+    if (escapes[4U] != 92) return 12U;
+    if (escapes[5U] != 39) return 13U;
+    if (escapes[6U] != 34) return 14U;
     uint8_t c = (uint8_t)'\n';
-    if (c != '\n') return 15;
+    if (c != '\n') return 15U;
     c = (uint8_t)'\t';
-    if (c != '\t') return 16;
+    if (c != '\t') return 16U;
     c = (uint8_t)'\0';
-    if (c != '\0') return 17;
+    if (c != '\0') return 17U;
     uint8_t whitespace = (uint8_t)'\t';
     uint32_t wsType = 0U;
     switch (whitespace) {
@@ -62,7 +62,7 @@ int main(void) {
             break;
         }
     }
-    if (wsType != 2) return 18;
+    if (wsType != 2) return 18U;
     whitespace = (uint8_t)'\n';
     switch (whitespace) {
         case ' ': {
@@ -86,6 +86,6 @@ int main(void) {
             break;
         }
     }
-    if (wsType != 3) return 19;
-    return 0;
+    if (wsType != 3) return 19U;
+    return 0U;
 }

@@ -20,17 +20,17 @@ double squareConstF64(const double value) {
 
 int main(void) {
     double result = readConstF64(3.14159265);
-    if (result < 3.14159) return 1;
-    if (result > 3.1416) return 2;
+    if (result < 3.14159) return 1U;
+    if (result > 3.1416) return 2U;
     double negResult = readConstF64(-2.71828);
-    if (negResult > -2.718) return 3;
-    if (negResult < -2.719) return 4;
+    if (negResult > -2.718) return 3U;
+    if (negResult < -2.719) return 4U;
     double squared = squareConstF64(2.0);
-    if (squared < 3.9) return 5;
-    if (squared > 4.1) return 6;
+    if (squared < 3.9) return 5U;
+    if (squared > 4.1) return 6U;
     double myValue = 1.41421356;
     double readBack = readConstF64(myValue);
-    if (readBack < 1.414) return 7;
-    if (readBack > 1.415) return 8;
-    return 0;
+    if (readBack < 1.414) return 7U;
+    if (readBack > 1.415) return 8U;
+    return 0U;
 }

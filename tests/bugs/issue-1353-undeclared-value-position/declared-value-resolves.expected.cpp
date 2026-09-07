@@ -18,7 +18,7 @@
 int main(void) {
     uint32_t borrowedProperly = REACHABLE_LIMIT;
     if (borrowedProperly != 99) {
-        return 1;
+        return 1U;
     }
-    return 0;
+    return 0U;
 }

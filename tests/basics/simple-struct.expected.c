@@ -63,27 +63,27 @@ int32_t manhattanDistance(const Point* p) {
 
 int main(void) {
     Point origin = { .x = 0, .y = 0 };
-    if (origin.x != 0) return 1;
-    if (origin.y != 0) return 2;
+    if (origin.x != 0) return 1U;
+    if (origin.y != 0) return 2U;
     Point p1 = {0};
     p1.x = 10;
     p1.y = 20;
-    if (p1.x != 10) return 3;
-    if (p1.y != 20) return 4;
+    if (p1.x != 10) return 3U;
+    if (p1.y != 20) return 4U;
     Point p2 = { .x = 5, .y = -3 };
-    if (p2.x != 5) return 5;
-    if (p2.y != -3) return 6;
+    if (p2.x != 5) return 5U;
+    if (p2.y != -3) return 6U;
     int32_t xVal = getPointX(&p2);
-    if (xVal != 5) return 7;
+    if (xVal != 5) return 7U;
     Point p3 = { .x = 100, .y = 200 };
     setPointOrigin(&p3);
-    if (p3.x != 0) return 8;
-    if (p3.y != 0) return 9;
+    if (p3.x != 0) return 8U;
+    if (p3.y != 0) return 9U;
     Point p4 = { .x = -3, .y = 4 };
     int32_t dist = manhattanDistance(&p4);
-    if (dist != 7) return 10;
+    if (dist != 7) return 10U;
     SimpleStruct__Sensor s1 = { .id = 42U, .temperature = 23.5, .active = true };
-    if (s1.id != 42) return 11;
-    if (s1.active != true) return 12;
-    return 0;
+    if (s1.id != 42) return 11U;
+    if (s1.active != true) return 12U;
+    return 0U;
 }

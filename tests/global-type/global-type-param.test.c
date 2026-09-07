@@ -21,10 +21,10 @@ int32_t Processor__process(EPriority priority) {
 
 int main(void) {
     int32_t result = Processor__process(EPriority__LOW);
-    if (result != 10) return 1;
+    if (result != 10) return 1U;
     result = Processor__process(EPriority__MEDIUM);
-    if (result != 20) return 2;
+    if (result != 20) return 2U;
     result = Processor__process(EPriority__HIGH);
-    if (result != 30) return 3;
-    return 0;
+    if (result != 30) return 3U;
+    return 0U;
 }

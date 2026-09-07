@@ -33,16 +33,16 @@ extern const int64_t EPOCH = 0;
 
 int main(void) {
     int64_t minTs = MIN_TIMESTAMP;
-    if (minTs != (int32_t)INT32_MIN) return 1;
+    if (minTs != (int32_t)INT32_MIN) return 1U;
     int64_t maxTs = MAX_TIMESTAMP;
-    if (maxTs != 2147483647) return 2;
+    if (maxTs != 2147483647) return 2U;
     int64_t epoch = EPOCH;
-    if (epoch != 0) return 3;
+    if (epoch != 0) return 3U;
     int64_t range = cnx_clamp_sub_i64(MAX_TIMESTAMP, MIN_TIMESTAMP);
-    if (range != 4294967295) return 4;
-    if (MIN_TIMESTAMP >= EPOCH) return 5;
+    if (range != 4294967295) return 4U;
+    if (MIN_TIMESTAMP >= EPOCH) return 5U;
     int64_t timestamp = 1000000;
-    if (timestamp < MIN_TIMESTAMP) return 6;
-    if (timestamp > MAX_TIMESTAMP) return 7;
-    return 0;
+    if (timestamp < MIN_TIMESTAMP) return 6U;
+    if (timestamp > MAX_TIMESTAMP) return 7U;
+    return 0U;
 }

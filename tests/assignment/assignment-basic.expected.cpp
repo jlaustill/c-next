@@ -26,7 +26,7 @@ void updateValues(void) {
 int main(void) {
     updateValues();
     if (counter == 42 && offset == 100 && flag == false) {
-        return 0;
+        return 0U;
     }
-    return 1;
+    return 1U;
 }

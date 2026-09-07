@@ -39,15 +39,15 @@ int main(void) {
     uint32_t three = 3U;
     uint32_t result1 = sumUntilLimit(five);
     if (result1 != 10) {
-        return 1;
+        return 1U;
     }
     uint32_t result2 = sumUntilLimit(zero);
     if (result2 != 0) {
-        return 1;
+        return 1U;
     }
     uint32_t result3 = sumUntilLimit(three);
     if (result3 != 3) {
-        return 1;
+        return 1U;
     }
-    return 0;
+    return 0U;
 }

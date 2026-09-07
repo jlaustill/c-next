@@ -27,10 +27,10 @@ void Logger__setCustom(void) {
 
 int main(void) {
     Logger__setMessage();
-    if (strlen(Logger__message) != 16) return 1;
+    if (strlen(Logger__message) != 16) return 1U;
     Logger__clear();
-    if (strlen(Logger__message) != 0) return 2;
+    if (strlen(Logger__message) != 0) return 2U;
     Logger__setCustom();
-    if (strlen(Logger__message) != 6) return 3;
-    return 0;
+    if (strlen(Logger__message) != 6) return 3U;
+    return 0U;
 }

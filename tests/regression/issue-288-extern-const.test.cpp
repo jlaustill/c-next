@@ -36,14 +36,14 @@ uint32_t ExternConstTest__getMagic(void) {
 }
 
 int main(void) {
-    if (ExternConstTest__STATUS_OK != 0) return 1;
-    if (ExternConstTest__STATUS_ERROR != 1) return 2;
-    if (ExternConstTest__MAGIC_NUMBER != 0xCAFEBABE) return 3;
+    if (ExternConstTest__STATUS_OK != 0) return 1U;
+    if (ExternConstTest__STATUS_ERROR != 1) return 2U;
+    if (ExternConstTest__MAGIC_NUMBER != 0xCAFEBABE) return 3U;
     bool success = ExternConstTest__isSuccess(0U);
-    if (success != true) return 4;
+    if (success != true) return 4U;
     uint8_t errCode = ExternConstTest__getErrorCode();
-    if (errCode != 1) return 5;
+    if (errCode != 1) return 5U;
     uint32_t magic = ExternConstTest__getMagic();
-    if (magic != 0xCAFEBABE) return 6;
-    return 0;
+    if (magic != 0xCAFEBABE) return 6U;
+    return 0U;
 }

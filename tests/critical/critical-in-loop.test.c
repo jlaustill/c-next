@@ -64,7 +64,7 @@ uint32_t sharedData[10] = {0};
 uint32_t counter = 0U;
 
 void criticalInFor(void) {
-    for (uint32_t i = 0; i < 10; i = i + 1) {
+    for (uint32_t i = 0U; i < 10; i = i + 1) {
         {
             uint32_t __primask = __cnx_get_PRIMASK();
             __cnx_disable_irq();
@@ -102,8 +102,8 @@ void criticalInDoWhile(void) {
 }
 
 void criticalInNestedLoop(void) {
-    for (uint32_t i = 0; i < 3; i = cnx_clamp_add_u32(i, 1)) {
-        for (uint32_t j = 0; j < 3; j = j + 1) {
+    for (uint32_t i = 0U; i < 3; i = cnx_clamp_add_u32(i, 1)) {
+        for (uint32_t j = 0U; j < 3; j = j + 1) {
             {
                 uint32_t __primask = __cnx_get_PRIMASK();
                 __cnx_disable_irq();

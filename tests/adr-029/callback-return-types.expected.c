@@ -14,12 +14,12 @@
 // Validates: u32, u8, bool, and i32 return types work correctly
 // Callback returning u32
 uint32_t getU32Value(uint32_t input) {
-    return input + 1000;
+    return input + 1000U;
 }
 
 // Callback returning u8
 uint8_t getU8Value(uint32_t input) {
-    return 100;
+    return 100U;
 }
 
 // Callback returning bool
@@ -64,28 +64,28 @@ int main(void) {
     U32Returner u32r = {0};
     u32r.handler = getU32Value;
     uint32_t result = u32r.handler(500U);
-    if (result != 1500) return 1;
+    if (result != 1500) return 1U;
     result = u32r.handler(0U);
-    if (result != 1000) return 2;
+    if (result != 1000) return 2U;
     U8Returner u8r = {0};
     u8r.handler = getU8Value;
     uint8_t smallResult = u8r.handler(0U);
-    if (smallResult != 100) return 3;
+    if (smallResult != 100) return 3U;
     BoolReturner br = {0};
     br.handler = checkThreshold;
     bool boolResult = br.handler(100);
-    if (boolResult != true) return 4;
+    if (boolResult != true) return 4U;
     boolResult = br.handler(25);
-    if (boolResult != false) return 5;
+    if (boolResult != false) return 5U;
     boolResult = br.handler(50);
-    if (boolResult != false) return 6;
+    if (boolResult != false) return 6U;
     boolResult = br.handler(51);
-    if (boolResult != true) return 7;
+    if (boolResult != true) return 7U;
     I32Returner i32r = {0};
     i32r.handler = getSignedValue;
     int32_t signedResult = i32r.handler(10);
-    if (signedResult != -10) return 8;
+    if (signedResult != -10) return 8U;
     signedResult = i32r.handler(1000);
-    if (signedResult != -1000) return 9;
-    return 0;
+    if (signedResult != -1000) return 9U;
+    return 0U;
 }

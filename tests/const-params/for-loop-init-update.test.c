@@ -27,17 +27,17 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 
 uint8_t Handler__setValue(Config* cfg, uint32_t val) {
     cfg->value = val;
-    return 0;
+    return 0U;
 }
 
 uint32_t Handler__getNext(Config* cfg, uint32_t current) {
     cfg->value = current + 1U;
-    return current + 1;
+    return current + 1U;
 }
 
 // For loop with modifying call in the UPDATE part
 void handleForUpdate(Config* config) {
-    for (uint32_t i = 0; i < 1; i = Handler__getNext(config, i)) {
+    for (uint32_t i = 0U; i < 1; i = Handler__getNext(config, i)) {
     }
 }
 
@@ -52,9 +52,9 @@ int main(void) {
     Config cfg = {0};
     cfg.value = 0U;
     handleForUpdate(&cfg);
-    if (cfg.value != 1) return 1;
+    if (cfg.value != 1) return 1U;
     cfg.value = 0U;
     handleForInit(&cfg);
-    if (cfg.value != 10) return 2;
-    return 0;
+    if (cfg.value != 10) return 2U;
+    return 0U;
 }

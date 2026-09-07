@@ -14,9 +14,9 @@
 int main(void) {
     CppMessage message = {};
     if (message.pgn == 65280) {
-        return 1;
+        return 1U;
     }
     uint8_t src = message.sourceAddress;
     uint8_t pri = message.priority;
-    return 0;
+    return 0U;
 }

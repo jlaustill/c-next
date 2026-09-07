@@ -18,19 +18,19 @@ uint8_t ConstArrayTest__lookup(uint8_t index) {
     if (index < ConstArrayTest__TABLE_SIZE) {
         return ConstArrayTest__LOOKUP_TABLE[index];
     }
-    return 0;
+    return 0U;
 }
 
 int main(void) {
-    if (ConstArrayTest__LOOKUP_TABLE[0U] != 10) return 1;
-    if (ConstArrayTest__LOOKUP_TABLE[1U] != 20) return 2;
-    if (ConstArrayTest__LOOKUP_TABLE[2U] != 30) return 3;
-    if (ConstArrayTest__LOOKUP_TABLE[3U] != 40) return 4;
+    if (ConstArrayTest__LOOKUP_TABLE[0U] != 10) return 1U;
+    if (ConstArrayTest__LOOKUP_TABLE[1U] != 20) return 2U;
+    if (ConstArrayTest__LOOKUP_TABLE[2U] != 30) return 3U;
+    if (ConstArrayTest__LOOKUP_TABLE[3U] != 40) return 4U;
     uint8_t val0 = ConstArrayTest__lookup(0U);
-    if (val0 != 10) return 5;
+    if (val0 != 10) return 5U;
     uint8_t val2 = ConstArrayTest__lookup(2U);
-    if (val2 != 30) return 6;
+    if (val2 != 30) return 6U;
     uint8_t outOfBounds = ConstArrayTest__lookup(10U);
-    if (outOfBounds != 0) return 7;
-    return 0;
+    if (outOfBounds != 0) return 7U;
+    return 0U;
 }

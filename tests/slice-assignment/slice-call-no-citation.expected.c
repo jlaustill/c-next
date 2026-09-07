@@ -13,13 +13,13 @@
 // source type matches the element type and only one element is written — the
 // "memcpy would pass incompatible pointer types" comment must NOT be emitted.
 uint32_t getVal(void) {
-    return 0xAABBCCDD;
+    return 0xAABBCCDDU;
 }
 
 int main(void) {
     uint32_t arr[8] = {0};
     const uint32_t cnx_tmp0 = (uint32_t)(getVal());
     arr[0] = (uint32_t)(cnx_tmp0);
-    if (arr[0U] != 0xAABBCCDD) return 1;
-    return 0;
+    if (arr[0U] != 0xAABBCCDD) return 1U;
+    return 0U;
 }

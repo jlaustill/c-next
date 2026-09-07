@@ -12,24 +12,24 @@
 int main(void) {
     uint8_t byteArray[10] = {};
     uint32_t byteArraySize = sizeof(byteArray);
-    if (byteArraySize != 10) return 1;
+    if (byteArraySize != 10) return 1U;
     uint16_t shortArray[5] = {};
     uint32_t shortArraySize = sizeof(shortArray);
-    if (shortArraySize != 10) return 2;
+    if (shortArraySize != 10) return 2U;
     uint32_t intArray[8] = {};
     uint32_t intArraySize = sizeof(intArray);
-    if (intArraySize != 32) return 3;
+    if (intArraySize != 32) return 3U;
     uint64_t longArray[4] = {};
     uint32_t longArraySize = sizeof(longArray);
-    if (longArraySize != 32) return 4;
+    if (longArraySize != 32) return 4U;
     bool boolArray[16] = {};
     uint32_t boolArraySize = sizeof(boolArray);
-    if (boolArraySize != 16) return 5;
+    if (boolArraySize != 16) return 5U;
     float floatArray[3] = {};
     uint32_t floatArraySize = sizeof(floatArray);
-    if (floatArraySize != 12) return 6;
+    if (floatArraySize != 12) return 6U;
     double doubleArray[2] = {};
     uint32_t doubleArraySize = sizeof(doubleArray);
-    if (doubleArraySize != 16) return 7;
-    return 0;
+    if (doubleArraySize != 16) return 7U;
+    return 0U;
 }

@@ -12,30 +12,30 @@
 // Tests: Explicit enum to integer cast
 int main(void) {
     uint32_t lowVal = (uint32_t)Priority__LOW;
-    if (lowVal != 1) return 1;
+    if (lowVal != 1) return 1U;
     uint32_t medVal = (uint32_t)Priority__MEDIUM;
-    if (medVal != 5) return 2;
+    if (medVal != 5) return 2U;
     uint32_t highVal = (uint32_t)Priority__HIGH;
-    if (highVal != 10) return 3;
+    if (highVal != 10) return 3U;
     uint32_t critVal = (uint32_t)Priority__CRITICAL;
-    if (critVal != 100) return 4;
+    if (critVal != 100) return 4U;
     Priority p = Priority__HIGH;
     uint32_t pVal = (uint32_t)p;
-    if (pVal != 10) return 5;
+    if (pVal != 10) return 5U;
     uint32_t sum = (uint32_t)Priority__LOW + (uint32_t)Priority__MEDIUM;
-    if (sum != 6) return 6;
+    if (sum != 6) return 6U;
     uint32_t readFlag = (uint32_t)Flags__READ;
-    if (readFlag != 1) return 7;
+    if (readFlag != 1) return 7U;
     uint32_t writeFlag = (uint32_t)Flags__WRITE;
-    if (writeFlag != 2) return 8;
+    if (writeFlag != 2) return 8U;
     uint32_t combined = (uint32_t)Flags__READ + (uint32_t)Flags__WRITE;
-    if (combined != 3) return 9;
-    if ((uint32_t)Priority__CRITICAL != 100) return 10;
+    if (combined != 3) return 9U;
+    if ((uint32_t)Priority__CRITICAL != 100) return 10U;
     uint8_t smallVal = (uint8_t)Priority__LOW;
-    if (smallVal != 1) return 11;
+    if (smallVal != 1) return 11U;
     uint16_t mediumVal = (uint16_t)Priority__MEDIUM;
-    if (mediumVal != 5) return 12;
+    if (mediumVal != 5) return 12U;
     uint64_t largeVal = (uint64_t)Priority__CRITICAL;
-    if (largeVal != 100) return 13;
-    return 0;
+    if (largeVal != 100) return 13U;
+    return 0U;
 }

@@ -20,9 +20,9 @@ ECategory Provider__getCategory(void) {
 uint32_t Consumer__test(void) {
     ECategory cat = Provider__getCategory();
     if (cat == ECategory__CAT_A) {
-        return 0;
+        return 0U;
     }
-    return 1;
+    return 1U;
 }
 
 int main(void) {

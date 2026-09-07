@@ -20,20 +20,20 @@ Command lastCmd = Command__READ;
 
 int main(void) {
     if (static_cast<uint32_t>(State__IDLE) != 0) {
-        return 1;
+        return 1U;
     }
     if (static_cast<uint32_t>(State__RUNNING) != 1) {
-        return 2;
+        return 2U;
     }
     if (static_cast<uint32_t>(Command__ERASE) != 0x04) {
-        return 3;
+        return 3U;
     }
     if (static_cast<uint32_t>(Command__RESET) != 0xFF) {
-        return 4;
+        return 4U;
     }
     currentState = State__RUNNING;
     if (currentState != State__RUNNING) {
-        return 5;
+        return 5U;
     }
-    return 0;
+    return 0U;
 }

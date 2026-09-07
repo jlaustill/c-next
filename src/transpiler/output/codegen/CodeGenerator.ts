@@ -1435,7 +1435,29 @@ export default class CodeGenerator implements IOrchestrator {
    */
   setCurrentFunctionReturnType(returnType: string | null): void {
     CodeGenState.currentFunctionReturnType = returnType;
-    CodeGenState.currentFunctionReturnType = returnType;
+  }
+
+  /**
+   * #1277: the four facts a function body is generated against, set and
+   * cleared as one. See `IOrchestrator` for why this is a pair rather than
+   * four calls repeated at each site.
+   */
+  enterFunctionContext(
+    name: string,
+    returnTypeText: string,
+    parameterList: Parser.ParameterListContext | null,
+  ): void {
+    this.setCurrentFunctionName(name);
+    this.setCurrentFunctionReturnType(returnTypeText);
+    this.setParameters(parameterList);
+    this.enterFunctionBody();
+  }
+
+  exitFunctionContext(): void {
+    this.exitFunctionBody();
+    this.setCurrentFunctionName(null);
+    this.setCurrentFunctionReturnType(null);
+    this.clearParameters();
   }
 
   // === Function Body Management (A4) ===
@@ -3542,26 +3564,26 @@ export default class CodeGenerator implements IOrchestrator {
    * The struct type for an initializer: explicit if written, else inferred
    * from the expected type at this position.
    *
-   * Rejects a redundant explicit type, which is the case where both are
-   * present: `const Point p <- Point { x: 0 };` should be written
-   * `const Point p <- { x: 0 };`.
+   * #1322: both arms are assertions now. ADR-014's two rejections -- a
+   * redundant written type, and a literal no position can type -- are E0356
+   * and E0357 in pass 2.1, which halts before this runs.
    */
   private _resolveStructInitializerTypeName(
     ctx: Parser.StructInitializerContext,
   ): string {
     const explicit = ctx.IDENTIFIER();
-    if (explicit && CodeGenState.expectedType) {
-      throw new Error(
-        `Redundant type '${explicit.getText()}' in struct initializer. ` +
-          `Use '{ field: value }' syntax when type is already declared.`,
-      );
-    }
-    if (explicit) return explicit.getText();
-    if (CodeGenState.expectedType) return CodeGenState.expectedType;
-    // This should not happen in valid code
-    throw new Error(
-      "Cannot infer struct type - no explicit type and no context",
+    invariant(
+      !(explicit && CodeGenState.expectedType),
+      "a struct initializer states its type or takes it from its position, " +
+        "never both -- E0356 rejects this in pass 2.1, before this runs",
     );
+    if (explicit) return explicit.getText();
+    invariant(
+      CodeGenState.expectedType,
+      "a struct initializer with no written type stands where one is " +
+        "declared -- E0357 rejects this in pass 2.1, before this runs",
+    );
+    return CodeGenState.expectedType;
   }
 
   /**

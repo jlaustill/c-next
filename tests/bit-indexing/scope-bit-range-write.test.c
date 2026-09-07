@@ -35,19 +35,19 @@ int main(void) {
     Sensor__setLowByte(0xABU);
     result = Sensor__getValue();
     if (result != 0xF0AB) {
-        return 1;
+        return 1U;
     }
     Sensor__reset(0x0FFFU);
     Sensor__setHighNibble(0x05U);
     result = Sensor__getValue();
     if (result != 0x5FFF) {
-        return 2;
+        return 2U;
     }
     Sensor__reset(0x1234U);
     Sensor__setLowByte(0xFFU);
     result = Sensor__getValue();
     if (result != 0x12FF) {
-        return 3;
+        return 3U;
     }
-    return 0;
+    return 0U;
 }

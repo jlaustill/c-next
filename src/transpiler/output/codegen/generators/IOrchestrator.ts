@@ -258,6 +258,25 @@ interface IOrchestrator {
   /** Issue #477: Set the current function's return type for enum inference */
   setCurrentFunctionReturnType(returnType: string | null): void;
 
+  /**
+   * #1277: enter/leave the context a function body is generated in -- its
+   * name, its declared return type, and its parameters.
+   *
+   * One pair rather than four calls at each site. `FunctionGenerator` and
+   * `ScopeGenerator` each open-coded the same four steps in the same order,
+   * and the scope copy was missing `setCurrentFunctionReturnType`, so no
+   * `return` inside a scope method knew what type it returned: a bare enum
+   * member could not resolve there and a struct literal could not be typed.
+   * A fifth fact is now one edit, not two that have to be remembered together.
+   */
+  enterFunctionContext(
+    name: string,
+    returnTypeText: string,
+    parameterList: Parser.ParameterListContext | null,
+  ): void;
+
+  exitFunctionContext(): void;
+
   // === Function Body Management ===
 
   /** Enter function body - clears local variables and sets inFunctionBody flag */

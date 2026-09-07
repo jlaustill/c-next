@@ -50,11 +50,11 @@ static inline void __cnx_set_PRIMASK(uint32_t mask) { __set_PRIMASK(mask); }
 // while modified parameters still pass by pointer.
 // --- Unmodified parameters: should pass by value ---
 uint8_t getLowByte(uint16_t value) {
-    return ((value) & 0xFFU);
+    return (uint8_t)((value) & 0xFFU);
 }
 
 uint8_t getHighByte(uint16_t value) {
-    return ((value >> 8U) & 0xFFU);
+    return (uint8_t)((value >> 8U) & 0xFFU);
 }
 
 uint32_t addTwo(uint32_t a, uint32_t b) {
@@ -119,40 +119,40 @@ void modifyInCritical(uint32_t* x) {
 int main(void) {
     uint16_t testVal = 0x1234U;
     uint8_t low = getLowByte(testVal);
-    if (low != 0x34) return 1;
+    if (low != 0x34) return 1U;
     uint8_t high = getHighByte(testVal);
-    if (high != 0x12) return 2;
+    if (high != 0x12) return 2U;
     uint32_t sum = addTwo(100U, 200U);
-    if (sum != 300) return 3;
+    if (sum != 300) return 3U;
     bool result = invert(true);
-    if (result != false) return 4;
+    if (result != false) return 4U;
     result = invert(false);
-    if (result != true) return 5;
+    if (result != true) return 5U;
     uint32_t counter = 10U;
     increment(&counter);
-    if (counter != 11) return 6;
+    if (counter != 11) return 6U;
     uint16_t doubled = 50U;
     doubleValue(&doubled);
-    if (doubled != 100) return 7;
+    if (doubled != 100) return 7U;
     uint32_t wrapped = 20U;
     incrementWrapper(&wrapped);
-    if (wrapped != 21) return 8;
+    if (wrapped != 21) return 8U;
     uint32_t mixedA = 5U;
     uint32_t mixedB = 10U;
     uint32_t mixedResult = addAndIncrement(&mixedA, mixedB);
-    if (mixedResult != 16) return 9;
-    if (mixedA != 6) return 10;
+    if (mixedResult != 16) return 9U;
+    if (mixedA != 6) return 10U;
     uint32_t switchVal = 100U;
     modifyInSwitch(&switchVal, 1U);
-    if (switchVal != 110) return 11;
+    if (switchVal != 110) return 11U;
     switchVal = 100U;
     modifyInSwitch(&switchVal, 2U);
-    if (switchVal != 120) return 12;
+    if (switchVal != 120) return 12U;
     switchVal = 100U;
     modifyInSwitch(&switchVal, 99U);
-    if (switchVal != 101) return 13;
+    if (switchVal != 101) return 13U;
     uint32_t criticalVal = 50U;
     modifyInCritical(&criticalVal);
-    if (criticalVal != 100) return 14;
-    return 0;
+    if (criticalVal != 100) return 14U;
+    return 0U;
 }

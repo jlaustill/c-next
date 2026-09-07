@@ -32,7 +32,7 @@ int main(void) {
     cfg.items[2].value = 300U;
     cfg.items[2].flags = 0x04U;
     uint32_t sum = 0U;
-    for (uint32_t i = 0; i < 3; i += 1) {
+    for (uint32_t i = 0U; i < 3; i += 1) {
         sum = cnx_clamp_add_u32(sum, cfg.items[i].value);
     }
     uint32_t first = cfg.items[0U].value;

@@ -34,30 +34,30 @@ const char LABELS[3][11] = {"One", "Two", "Three"};
 char colors[4][9] = {"Red", "Green", "Blue", "Yellow"};
 
 int main(void) {
-    if (3 != 3) return 1;
-    if (4 != 4) return 2;
-    if (strcmp(LABELS[0U], "One") != 0) return 3;
-    if (strcmp(LABELS[1U], "Two") != 0) return 4;
-    if (strcmp(LABELS[2U], "Three") != 0) return 5;
-    if (strlen(LABELS[0U]) != 3) return 6;
-    if (strlen(LABELS[1U]) != 3) return 7;
-    if (strlen(LABELS[2U]) != 5) return 8;
-    if (strcmp(colors[0U], "Red") != 0) return 9;
-    if (strcmp(colors[1U], "Green") != 0) return 10;
-    if (strcmp(colors[2U], "Blue") != 0) return 11;
-    if (strcmp(colors[3U], "Yellow") != 0) return 12;
-    if (strlen(colors[0U]) != 3) return 13;
-    if (strlen(colors[1U]) != 5) return 14;
-    if (strlen(colors[2U]) != 4) return 15;
-    if (strlen(colors[3U]) != 6) return 16;
-    if (10 != 10) return 17;
-    if (8 != 8) return 18;
+    if (3 != 3) return 1U;
+    if (4 != 4) return 2U;
+    if (strcmp(LABELS[0U], "One") != 0) return 3U;
+    if (strcmp(LABELS[1U], "Two") != 0) return 4U;
+    if (strcmp(LABELS[2U], "Three") != 0) return 5U;
+    if (strlen(LABELS[0U]) != 3) return 6U;
+    if (strlen(LABELS[1U]) != 3) return 7U;
+    if (strlen(LABELS[2U]) != 5) return 8U;
+    if (strcmp(colors[0U], "Red") != 0) return 9U;
+    if (strcmp(colors[1U], "Green") != 0) return 10U;
+    if (strcmp(colors[2U], "Blue") != 0) return 11U;
+    if (strcmp(colors[3U], "Yellow") != 0) return 12U;
+    if (strlen(colors[0U]) != 3) return 13U;
+    if (strlen(colors[1U]) != 5) return 14U;
+    if (strlen(colors[2U]) != 4) return 15U;
+    if (strlen(colors[3U]) != 6) return 16U;
+    if (10 != 10) return 17U;
+    if (8 != 8) return 18U;
     uint32_t totalLen = 0U;
     uint32_t i = 0U;
     while (i < 3) {
         totalLen = cnx_clamp_add_u32(totalLen, strlen(LABELS[i]));
         i = cnx_clamp_add_u32(i, 1U);
     }
-    if (totalLen != 11) return 19;
-    return 0;
+    if (totalLen != 11) return 19U;
+    return 0U;
 }

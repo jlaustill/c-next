@@ -17,9 +17,9 @@ int main(void) {
     buf[1] = (uint8_t)(cnx_tmp0 >> 8U);
     buf[2] = (uint8_t)(cnx_tmp0 >> 16U);
     buf[3] = (uint8_t)(cnx_tmp0 >> 24U);
-    if (buf[0U] != 0xFF) return 1;
-    if (buf[1U] != 0xFF) return 2;
-    if (buf[2U] != 0xFF) return 3;
-    if (buf[3U] != 0xFF) return 4;
-    return 0;
+    if (buf[0U] != 0xFF) return 1U;
+    if (buf[1U] != 0xFF) return 2U;
+    if (buf[2U] != 0xFF) return 3U;
+    if (buf[3U] != 0xFF) return 4U;
+    return 0U;
 }

@@ -25,9 +25,9 @@ handle_t my_handle = {};
 int main(void) {
     create_handle(&my_handle);
     int32_t val = use_handle(my_handle);
-    if (val != 42) return 1;
+    if (val != 42) return 1U;
     replace_handle(&my_handle);
     val = use_handle(my_handle);
-    if (val != 100) return 2;
-    return 0;
+    if (val != 100) return 2U;
+    return 0U;
 }

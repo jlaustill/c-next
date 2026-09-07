@@ -31,19 +31,19 @@
 // evaluated, because the first analyzer to report halts the step loop; this
 // fixture has no diagnostic to halt it, which is what makes it able to fail.
 uint32_t myfree(uint32_t slot) {
-    return slot + 1;
+    return slot + 1U;
 }
 
 uint32_t saferealloc(uint32_t size) {
-    return size + 2;
+    return size + 2U;
 }
 
 uint32_t free_list_init(uint32_t count) {
-    return count + 3;
+    return count + 3U;
 }
 
 uint32_t mallocation(uint32_t n) {
-    return n + 4;
+    return n + 4U;
 }
 
 uint8_t pool[8] = {};
@@ -51,7 +51,7 @@ uint8_t pool[8] = {};
 // Matches `_free` and is a C-Next definition, not an import.
 uint32_t pool_free(uint32_t slot) {
     pool[slot] = 0U;
-    return slot + 5;
+    return slot + 5U;
 }
 
 // Matches `_free` and does not release anything at all -- a predicate.
@@ -66,11 +66,11 @@ int main(void) {
     uint32_t d = mallocation(1U);
     uint32_t e = pool_free(1U);
     bool f = slot_is_free(1U);
-    if (a != 2) return 1;
-    if (b != 3) return 2;
-    if (c != 4) return 3;
-    if (d != 5) return 4;
-    if (e != 6) return 5;
-    if (f != true) return 6;
-    return 0;
+    if (a != 2) return 1U;
+    if (b != 3) return 2U;
+    if (c != 4) return 3U;
+    if (d != 5) return 4U;
+    if (e != 6) return 5U;
+    if (f != true) return 6U;
+    return 0U;
 }

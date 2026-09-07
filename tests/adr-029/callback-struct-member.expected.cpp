@@ -13,12 +13,12 @@
 // Validates: default callback, assignment, invocation via struct field
 // Callback that returns a computed value (used as a type)
 uint32_t computeValue(uint32_t input) {
-    return input * 2;
+    return input * 2U;
 }
 
 // Alternative implementation with same signature
 uint32_t tripleValue(uint32_t input) {
-    return input * 3;
+    return input * 3U;
 }
 
 // Struct with callback member
@@ -33,16 +33,16 @@ int main(void) {
     p.baseValue = 10U;
     p.handler = computeValue;
     uint32_t result = p.handler(5U);
-    if (result != 10) return 1;
+    if (result != 10) return 1U;
     result = p.handler(p.baseValue);
-    if (result != 20) return 2;
+    if (result != 20) return 2U;
     p.handler = tripleValue;
     result = p.handler(5U);
-    if (result != 15) return 3;
+    if (result != 15) return 3U;
     result = p.handler(p.baseValue);
-    if (result != 30) return 4;
+    if (result != 30) return 4U;
     p.handler = computeValue;
     result = p.handler(7U);
-    if (result != 14) return 5;
-    return 0;
+    if (result != 14) return 5U;
+    return 0U;
 }

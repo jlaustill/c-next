@@ -30,9 +30,9 @@ int main(void) {
     if (and_result == 80 && or_result == 125 && xor_result == 45) {
         if (not_pos == -128 && not_neg == 127 && not_minus_one == 0) {
             if (neg_and == -16 && hex_and == 85) {
-                return 0;
+                return 0U;
             }
         }
     }
-    return 1;
+    return 1U;
 }

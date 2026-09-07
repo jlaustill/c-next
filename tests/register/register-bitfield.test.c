@@ -23,7 +23,7 @@ void configureUART(void) {
 }
 
 bool isUARTReady(void) {
-    return ((UART__STATUS >> 0) & 1);
+    return ((((UART__STATUS >> 0) & 1)) != 0U);
 }
 
 void configureTimer(uint8_t prescale) {

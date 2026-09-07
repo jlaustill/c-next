@@ -12,24 +12,24 @@
 // in both if conditions and case labels
 uint32_t categorize(ECategory cat) {
     if (cat == ECategory__CAT_A) {
-        return 100;
+        return 100U;
     }
     switch (cat) {
         case ECategory__CAT_A: {
-            return 10;
+            return 10U;
             break;
         }
         case ECategory__CAT_B: {
-            return 20;
+            return 20U;
             break;
         }
         case ECategory__CAT_C: {
-            return 30;
+            return 30U;
             break;
         }
         default: {
             break;
         }
     }
-    return 0;
+    return 0U;
 }

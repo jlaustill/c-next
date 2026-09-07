@@ -18,18 +18,18 @@ StructArr2D__TReading readings[4][4] = {};
 
 uint32_t Test__run(void) {
     readings[0][0].value = 100;
-    if (readings[0U][0U].value != 100) return 1;
+    if (readings[0U][0U].value != 100) return 1U;
     readings[0][0].timestamp = 12345U;
-    if (readings[0U][0U].timestamp != 12345) return 2;
+    if (readings[0U][0U].timestamp != 12345) return 2U;
     readings[0][0].valid = true;
-    if (readings[0U][0U].valid != true) return 3;
+    if (readings[0U][0U].valid != true) return 3U;
     readings[1][2].value = 200;
-    if (readings[1U][2U].value != 200) return 4;
+    if (readings[1U][2U].value != 200) return 4U;
     readings[3][3].value = 999;
-    if (readings[3U][3U].value != 999) return 5;
+    if (readings[3U][3U].value != 999) return 5U;
     readings[0][0].value += 50;
-    if (readings[0U][0U].value != 150) return 6;
-    return 0;
+    if (readings[0U][0U].value != 150) return 6U;
+    return 0U;
 }
 
 int main(void) {

@@ -15,11 +15,11 @@ int main(void) {
     flags = (uint8_t)((flags & ~(1U << 3)) | (1U << 3));
     flags = (uint8_t)((flags & ~(1U << 7)) | (1U << 7));
     if (flags != 0x89) {
-        return 1;
+        return 1U;
     }
     flags = (uint8_t)((flags & ~(1U << 3)) | (0U << 3));
     if (flags == 0x81) {
-        return 0;
+        return 0U;
     }
-    return 1;
+    return 1U;
 }

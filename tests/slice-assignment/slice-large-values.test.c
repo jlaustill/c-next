@@ -22,14 +22,14 @@ int main(void) {
     buffer[5] = (uint8_t)(cnx_tmp0 >> 40U);
     buffer[6] = (uint8_t)(cnx_tmp0 >> 48U);
     buffer[7] = (uint8_t)(cnx_tmp0 >> 56U);
-    if (buffer[0U] != 0xFF) return 1;
-    if (buffer[1U] != 0xFF) return 2;
-    if (buffer[2U] != 0xFF) return 3;
-    if (buffer[3U] != 0xFF) return 4;
-    if (buffer[4U] != 0xFF) return 5;
-    if (buffer[5U] != 0xFF) return 6;
-    if (buffer[6U] != 0xFF) return 7;
-    if (buffer[7U] != 0xFF) return 8;
+    if (buffer[0U] != 0xFF) return 1U;
+    if (buffer[1U] != 0xFF) return 2U;
+    if (buffer[2U] != 0xFF) return 3U;
+    if (buffer[3U] != 0xFF) return 4U;
+    if (buffer[4U] != 0xFF) return 5U;
+    if (buffer[5U] != 0xFF) return 6U;
+    if (buffer[6U] != 0xFF) return 7U;
+    if (buffer[7U] != 0xFF) return 8U;
     uint32_t maxU32 = 0xFFFFFFFFU;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
     const uint32_t cnx_tmp1 = (uint32_t)(maxU32);
@@ -37,10 +37,10 @@ int main(void) {
     buffer[11] = (uint8_t)(cnx_tmp1 >> 8U);
     buffer[12] = (uint8_t)(cnx_tmp1 >> 16U);
     buffer[13] = (uint8_t)(cnx_tmp1 >> 24U);
-    if (buffer[10U] != 0xFF) return 9;
-    if (buffer[11U] != 0xFF) return 10;
-    if (buffer[12U] != 0xFF) return 11;
-    if (buffer[13U] != 0xFF) return 12;
+    if (buffer[10U] != 0xFF) return 9U;
+    if (buffer[11U] != 0xFF) return 10U;
+    if (buffer[12U] != 0xFF) return 11U;
+    if (buffer[13U] != 0xFF) return 12U;
     uint64_t val1 = 0x8000000000000000ULL;
     uint64_t val2 = 0x7FFFFFFFFFFFFFFFULL;
     uint64_t val3 = 0x0000000000000001ULL;
@@ -74,11 +74,11 @@ int main(void) {
     buffer[41] = (uint8_t)(cnx_tmp4 >> 40U);
     buffer[42] = (uint8_t)(cnx_tmp4 >> 48U);
     buffer[43] = (uint8_t)(cnx_tmp4 >> 56U);
-    if (buffer[20U] != 0x00) return 13;
-    if (buffer[27U] != 0x80) return 14;
-    if (buffer[28U] != 0xFF) return 15;
-    if (buffer[35U] != 0x7F) return 16;
-    if (buffer[36U] != 0x01) return 17;
-    if (buffer[43U] != 0x00) return 18;
-    return 0;
+    if (buffer[20U] != 0x00) return 13U;
+    if (buffer[27U] != 0x80) return 14U;
+    if (buffer[28U] != 0xFF) return 15U;
+    if (buffer[35U] != 0x7F) return 16U;
+    if (buffer[36U] != 0x01) return 17U;
+    if (buffer[43U] != 0x00) return 18U;
+    return 0U;
 }

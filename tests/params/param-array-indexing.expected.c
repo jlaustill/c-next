@@ -55,18 +55,18 @@ void writeExplicit(uint8_t buf[8], uint32_t idx) {
 // Test 7: Bit range on parameter should still be bit extraction (NOT array access)
 // This ensures we don't over-correct and treat value[0, 8] as array access
 uint8_t getLowByte(uint16_t value) {
-    return ((value) & 0xFFU);
+    return (uint8_t)((value) & 0xFFU);
 }
 
 uint8_t getHighByte(uint16_t value) {
-    return ((value >> 8U) & 0xFFU);
+    return (uint8_t)((value >> 8U) & 0xFFU);
 }
 
 // Test 8: Local array with bit access after consuming all dimensions
 // This tests the currentStructType fix for primitive array elements
 // matrix[i][j] is array access, then [BIT] should be bit access
 uint8_t getArrayBit(uint8_t matrix[2][2], uint32_t row, uint32_t col, uint32_t bit) {
-    return ((matrix[row][col] >> bit) & 1);
+    return (uint8_t)((matrix[row][col] >> bit) & 1);
 }
 
 void setArrayBit(uint8_t matrix[2][2], uint32_t row, uint32_t col, uint32_t bit, bool val) {
@@ -78,33 +78,33 @@ int main(void) {
     uint8_t source[4] = {10U, 20U, 30U, 40U};
     uint8_t dest[4] = {0U, 0U, 0U, 0U};
     writeToParam(buffer, 3U);
-    if (buffer[3U] != 42) return 1;
+    if (buffer[3U] != 42) return 1U;
     uint8_t val = readFromParam(source, 2U);
-    if (val != 30) return 2;
+    if (val != 30) return 2U;
     copyElement(source, dest, 1U);
-    if (dest[1U] != 20) return 3;
+    if (dest[1U] != 20) return 3U;
     val = readFirst(source);
-    if (val != 10) return 4;
+    if (val != 10) return 4U;
     buffer[0] = 5U;
     buffer[1] = 7U;
     swapElements(buffer, 0U, 1U);
-    if (buffer[0U] != 7) return 5;
-    if (buffer[1U] != 5) return 6;
+    if (buffer[0U] != 7) return 5U;
+    if (buffer[1U] != 5) return 6U;
     writeExplicit(buffer, 4U);
-    if (buffer[4U] != 99) return 7;
+    if (buffer[4U] != 99) return 7U;
     uint16_t testWord = 0x1234U;
     uint8_t low = getLowByte(testWord);
-    if (low != 0x34) return 8;
+    if (low != 0x34) return 8U;
     uint8_t high = getHighByte(testWord);
-    if (high != 0x12) return 9;
+    if (high != 0x12) return 9U;
     uint8_t matrix[2][2] = {{0xFFU, 0x00U}, {0xAAU, 0x55U}};
     uint8_t bit0 = getArrayBit(matrix, 0U, 0U, 0U);
-    if (bit0 != 1) return 10;
+    if (bit0 != 1) return 10U;
     uint8_t bit1 = getArrayBit(matrix, 0U, 1U, 0U);
-    if (bit1 != 0) return 11;
+    if (bit1 != 0) return 11U;
     setArrayBit(matrix, 0U, 1U, 0U, true);
-    if (matrix[0U][1U] != 0x01) return 12;
+    if (matrix[0U][1U] != 0x01) return 12U;
     setArrayBit(matrix, 0U, 0U, 7U, false);
-    if (matrix[0U][0U] != 0x7F) return 13;
-    return 0;
+    if (matrix[0U][0U] != 0x7F) return 13U;
+    return 0U;
 }

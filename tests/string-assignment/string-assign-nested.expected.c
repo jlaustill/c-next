@@ -49,9 +49,9 @@ void mixedNest(uint32_t count) {
 
 int main(void) {
     deepNest(3U);
-    if (strlen(nested) != 8) return 1;
+    if (strlen(nested) != 8) return 1U;
     mixedNest(1U);
-    if (strlen(nested) != 5) return 2;
+    if (strlen(nested) != 5) return 2U;
     {
         {
             {
@@ -59,6 +59,6 @@ int main(void) {
             }
         }
     }
-    if (strlen(nested) != 6) return 3;
-    return 0;
+    if (strlen(nested) != 6) return 3U;
+    return 0U;
 }

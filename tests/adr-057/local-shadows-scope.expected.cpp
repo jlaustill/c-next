@@ -21,6 +21,6 @@ uint32_t State__shadowTest(void) {
 
 int main(void) {
     uint32_t result = State__shadowTest();
-    if (result != 5) return 1;
-    return 0;
+    if (result != 5) return 1U;
+    return 0U;
 }

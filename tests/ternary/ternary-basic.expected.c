@@ -31,23 +31,23 @@ int main(void) {
     int32_t pos = 7;
     uint32_t maxResult1 = getMax(a, b);
     if (maxResult1 != 20) {
-        return 1;
+        return 1U;
     }
     uint32_t maxResult2 = getMax(c, d);
     if (maxResult2 != 30) {
-        return 2;
+        return 2U;
     }
     uint32_t minResult = getMin(a, b);
     if (minResult != 10) {
-        return 3;
+        return 3U;
     }
     int32_t absResult1 = getAbs(neg);
     if (absResult1 != 5) {
-        return 4;
+        return 4U;
     }
     int32_t absResult2 = getAbs(pos);
     if (absResult2 != 7) {
-        return 5;
+        return 5U;
     }
-    return 0;
+    return 0U;
 }

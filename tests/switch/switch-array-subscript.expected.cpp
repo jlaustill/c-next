@@ -40,12 +40,12 @@ int main(void) {
     uint8_t idx2 = 2U;
     uint8_t idx3 = 3U;
     handleByArray(arr, idx0);
-    if (result != 10) return 1;
+    if (result != 10) return 1U;
     handleByArray(arr, idx1);
-    if (result != 20) return 2;
+    if (result != 20) return 2U;
     handleByArray(arr, idx2);
-    if (result != 30) return 3;
+    if (result != 30) return 3U;
     handleByArray(arr, idx3);
-    if (result != 99) return 4;
-    return 0;
+    if (result != 99) return 4U;
+    return 0U;
 }

@@ -29,13 +29,13 @@ extern const uint64_t CHUNK_SIZE = 1048576ULL;
 
 int main(void) {
     uint64_t maxSize = MAX_FILE_SIZE;
-    if (maxSize != 4294967296) return 1;
+    if (maxSize != 4294967296) return 1U;
     uint64_t chunk = CHUNK_SIZE;
-    if (chunk != 1048576) return 2;
+    if (chunk != 1048576) return 2U;
     uint64_t numChunks = MAX_FILE_SIZE / CHUNK_SIZE;
-    if (numChunks != 4096) return 3;
-    if (CHUNK_SIZE >= MAX_FILE_SIZE) return 4;
+    if (numChunks != 4096) return 3U;
+    if (CHUNK_SIZE >= MAX_FILE_SIZE) return 4U;
     uint64_t doubleChunk = cnx_clamp_mul_u64(CHUNK_SIZE, 2ULL);
-    if (doubleChunk != 2097152) return 5;
-    return 0;
+    if (doubleChunk != 2097152) return 5U;
+    return 0U;
 }

@@ -13,56 +13,56 @@
 // Function that takes enum as parameter
 uint32_t getStatusCode(Status s) {
     if (s == Status__OK) {
-        return 0;
+        return 0U;
     }
     if (s == Status__WARNING) {
-        return 1;
+        return 1U;
     }
     if (s == Status__ERROR) {
-        return 2;
+        return 2U;
     }
     if (s == Status__CRITICAL) {
-        return 3;
+        return 3U;
     }
-    return 99;
+    return 99U;
 }
 
 // Function that takes enum and returns modified value
 uint32_t getStatusPriority(Status s) {
     if (s == Status__CRITICAL) {
-        return 100;
+        return 100U;
     }
     if (s == Status__ERROR) {
-        return 50;
+        return 50U;
     }
     if (s == Status__WARNING) {
-        return 10;
+        return 10U;
     }
-    return 0;
+    return 0U;
 }
 
 int main(void) {
     uint32_t code = getStatusCode(Status__OK);
-    if (code != 0) return 1;
+    if (code != 0) return 1U;
     code = getStatusCode(Status__WARNING);
-    if (code != 1) return 2;
+    if (code != 1) return 2U;
     code = getStatusCode(Status__ERROR);
-    if (code != 2) return 3;
+    if (code != 2) return 3U;
     code = getStatusCode(Status__CRITICAL);
-    if (code != 3) return 4;
+    if (code != 3) return 4U;
     Status current = Status__ERROR;
     code = getStatusCode(current);
-    if (code != 2) return 5;
+    if (code != 2) return 5U;
     uint32_t priority = getStatusPriority(Status__OK);
-    if (priority != 0) return 6;
+    if (priority != 0) return 6U;
     priority = getStatusPriority(Status__WARNING);
-    if (priority != 10) return 7;
+    if (priority != 10) return 7U;
     priority = getStatusPriority(Status__ERROR);
-    if (priority != 50) return 8;
+    if (priority != 50) return 8U;
     priority = getStatusPriority(Status__CRITICAL);
-    if (priority != 100) return 9;
+    if (priority != 100) return 9U;
     current = Status__CRITICAL;
     priority = getStatusPriority(current);
-    if (priority != 100) return 10;
-    return 0;
+    if (priority != 100) return 10U;
+    return 0U;
 }

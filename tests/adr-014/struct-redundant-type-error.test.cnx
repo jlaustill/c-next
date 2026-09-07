@@ -1,0 +1,56 @@
+// test-error
+// test-adr: 014
+// ADR-014: a struct literal states its type or takes it from the position it
+// stands in, never both. `{ field: value }` is the form once the type is
+// already declared.
+
+struct Point {
+    i32 x;
+    i32 y;
+}
+
+struct Box {
+    Point corner;
+}
+
+void takes(Point p) {}
+
+// NEGATIVE CONTROLS -- declared before the assertions. Each of these is a
+// position that supplies the type, so the inferred form is right and must stay
+// silent; and the one place nothing supplies a type is where writing it is
+// required rather than redundant.
+const Point ORIGIN <- { x: 0, y: 0 };
+Point atFileScope <- { x: 1, y: 1 };
+
+void controls() {
+    Point local <- { x: 2, y: 2 };
+    local <- { x: 3, y: 3 };
+    Box b <- { corner: { x: 4, y: 4 } };
+    takes({ x: 5, y: 5 });
+    for (Point p <- { x: 6, y: 6 }; p.x < 7; p.x +<- 1) {}
+}
+
+Point returned() {
+    return { x: 8, y: 8 };
+}
+
+scope Shapes {
+    // CONTROL, then ASSERTION, in a scope member's initializer.
+    Point okMember <- { x: 0, y: 0 };
+    Point badMember <- Point { x: 0, y: 0 };
+
+    // CONTROL, then ASSERTION, in a scope method.
+    public void wire() {
+        Point ok <- { x: 1, y: 1 };
+        Point bad <- Point { x: 1, y: 1 };
+    }
+}
+
+// ASSERTIONS -- the type is written where the position already declares one.
+const Point REDUNDANT_CONST <- Point { x: 0, y: 0 };
+
+void assertions() {
+    Point v <- Point { x: 1, y: 1 };
+    Box nested <- { corner: Point { x: 2, y: 2 } };
+    takes(Point { x: 3, y: 3 });
+}

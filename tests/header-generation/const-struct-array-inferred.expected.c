@@ -43,7 +43,7 @@ const uint8_t ITEM_COUNT = 3U;
 
 int main(void) {
     uint32_t total = 0U;
-    for (uint8_t i = 0; i < ITEM_COUNT; i = i + 1) {
+    for (uint8_t i = 0U; i < ITEM_COUNT; i = i + 1) {
         ConstInferred__TItem item = ITEMS[i];
         total = cnx_clamp_add_u32(total, item.value);
     }

@@ -25,7 +25,7 @@ void passesThroughToModifier(uint32_t& value) {
 
 // Function that only reads its parameter - SHOULD get const
 uint32_t readOnly(uint32_t value) {
-    return value + 1;
+    return value + 1U;
 }
 
 // Function that passes to readOnly - parameter is NOT modified
@@ -44,20 +44,20 @@ void mixedPassThrough(uint32_t& value) {
 int main(void) {
     uint32_t x = 10U;
     modifiesParam(x);
-    if (x != 42) return 1;
+    if (x != 42) return 1U;
     x = 100U;
     passesThroughToModifier(x);
-    if (x != 42) return 2;
+    if (x != 42) return 2U;
     x = 5U;
     uint32_t result = readOnly(x);
-    if (result != 6) return 3;
-    if (x != 5) return 4;
+    if (result != 6) return 3U;
+    if (x != 5) return 4U;
     x = 7U;
     result = passesThroughToReader(x);
-    if (result != 8) return 5;
-    if (x != 7) return 6;
+    if (result != 8) return 5U;
+    if (x != 7) return 6U;
     x = 200U;
     mixedPassThrough(x);
-    if (x != 42) return 7;
-    return 0;
+    if (x != 42) return 7U;
+    return 0U;
 }

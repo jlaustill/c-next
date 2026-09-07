@@ -14,7 +14,7 @@
 /* Scope: Test */
 
 uint32_t Test__helper(uint32_t x) {
-    return x + 1;
+    return x + 1U;
 }
 
 uint32_t Test__process(uint32_t& val) {
@@ -25,6 +25,6 @@ uint32_t Test__process(uint32_t& val) {
 int main(void) {
     uint32_t input = 5U;
     uint32_t result = Test__process(input);
-    if (result != 6) return 1;
-    return 0;
+    if (result != 6) return 1U;
+    return 0U;
 }

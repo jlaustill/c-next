@@ -67,24 +67,24 @@ void testHexPrecision(int64_t val) {
 
 int main(void) {
     testDecimalPrecision(9223372036854775807);
-    if (result != 1) return 1;
+    if (result != 1) return 1U;
     testDecimalPrecision(9223372036854775806);
-    if (result != 2) return 2;
+    if (result != 2) return 2U;
     testDecimalPrecision(9223372036854775805);
-    if (result != 3) return 3;
+    if (result != 3) return 3U;
     testDecimalPrecision(9223372036854775804);
-    if (result != 4) return 4;
+    if (result != 4) return 4U;
     testDecimalPrecision(0);
-    if (result != 99) return 5;
+    if (result != 99) return 5U;
     testHexPrecision(9223372036854775807);
-    if (result != 10) return 10;
+    if (result != 10) return 10U;
     testHexPrecision(9223372036854775806);
-    if (result != 11) return 11;
+    if (result != 11) return 11U;
     testHexPrecision(9223372036854775805);
-    if (result != 12) return 12;
+    if (result != 12) return 12U;
     testHexPrecision(9223372036854775804);
-    if (result != 13) return 13;
+    if (result != 13) return 13U;
     testHexPrecision(0);
-    if (result != 99) return 14;
-    return 0;
+    if (result != 99) return 14U;
+    return 0U;
 }

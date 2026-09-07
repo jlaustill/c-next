@@ -84,32 +84,32 @@ void Visibility__setPrivateCounter(uint8_t value) {
 }
 
 int main(void) {
-    if (Visibility__publicCounter != 10) return 1;
-    if (Visibility__publicFlag != true) return 2;
+    if (Visibility__publicCounter != 10) return 1U;
+    if (Visibility__publicFlag != true) return 2U;
     uint8_t result3 = Visibility__getPrivateCounter();
-    if (result3 != 0) return 3;
+    if (result3 != 0) return 3U;
     uint8_t result4 = Visibility__getPrivateCounterViaInternal();
-    if (result4 != 0) return 4;
+    if (result4 != 0) return 4U;
     uint8_t result5 = Visibility__getPublicCounter();
-    if (result5 != 10) return 5;
+    if (result5 != 10) return 5U;
     Visibility__publicCounter = 20;
-    if (Visibility__publicCounter != 20) return 6;
+    if (Visibility__publicCounter != 20) return 6U;
     Visibility__setPublicCounter(30U);
     uint8_t result7 = Visibility__getPublicCounter();
-    if (result7 != 30) return 7;
+    if (result7 != 30) return 7U;
     Visibility__incrementPrivate();
     uint8_t result8 = Visibility__getPrivateCounter();
-    if (result8 != 1) return 8;
+    if (result8 != 1) return 8U;
     uint8_t result9 = Visibility__getSum();
-    if (result9 != 31) return 9;
+    if (result9 != 31) return 9U;
     Visibility__setPrivateFlag(true);
     bool result10 = Visibility__getBothFlags();
-    if (result10 != true) return 10;
+    if (result10 != true) return 10U;
     Visibility__setPublicFlag(false);
     bool result11 = Visibility__getBothFlags();
-    if (result11 != false) return 11;
+    if (result11 != false) return 11U;
     Visibility__setPrivateCounter(100U);
     uint8_t result12 = Visibility__getPrivateCounter();
-    if (result12 != 100) return 12;
-    return 0;
+    if (result12 != 100) return 12U;
+    return 0U;
 }

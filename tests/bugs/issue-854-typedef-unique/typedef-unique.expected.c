@@ -29,7 +29,7 @@ int main(void) {
     TypedefTypes__Sensor s = { .id = 42U, .value = 100U };
     Reader__update(&s);
     TypedefTypes__Sensor result = Reader__read();
-    if (result.id != 42) return 1;
-    if (result.value != 100) return 2;
-    return 0;
+    if (result.id != 42) return 1U;
+    if (result.value != 100) return 2U;
+    return 0U;
 }

@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-363 fixture(s) assert a diagnostic; 342 carry a code.
+364 fixture(s) assert a diagnostic; 344 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -63,6 +63,8 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-013/const-u64-assign-error.test.cnx                                                    | E0877               |
 | tests/adr-013/const-u64-param-assign-error.test.cnx                                              | E0877               |
 | tests/adr-013/const-uncovered-arms-error.test.cnx                                                | E0877, E0878        |
+| tests/adr-014/struct-no-type-error.test.cnx                                                      | E0357               |
+| tests/adr-014/struct-redundant-type-error.test.cnx                                               | E0356               |
 | tests/adr-016/cross-scope-bare-error.test.cnx                                                    | E0436               |
 | tests/adr-016/cross-scope-register-bare-error.test.cnx                                           | E0437               |
 | tests/adr-016/mixed-access-ultimate-error.test.cnx                                               | E0435, E0436        |
@@ -377,5 +379,4 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/string-assignment/string-assign-error-compound.test.cnx                                    | E0857               |
 | tests/string-assignment/string-assign-error-struct-compound.test.cnx                             | E0857               |
 | tests/string-assignment/string-assign-error-this-compound.test.cnx                               | E0857               |
-| tests/structs/struct-redundant-type-error.test.cnx                                               | (uncoded)           |
 | tests/ternary/ternary-error-no-parens.test.cnx                                                   | (uncoded)           |

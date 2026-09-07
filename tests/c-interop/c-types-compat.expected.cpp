@@ -33,7 +33,7 @@ bool flag = true;
 
 int main(void) {
     if (byte == 255 && word == 65535 && sbyte == -128 && flag == true) {
-        return 0;
+        return 0U;
     }
-    return 1;
+    return 1U;
 }

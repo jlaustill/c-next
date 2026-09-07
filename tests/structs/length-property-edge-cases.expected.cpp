@@ -12,24 +12,24 @@
 // Tests const parameters, all primitive types, and nested expressions
 // Test with const parameter
 uint32_t testConst(const AllTypes& data) {
-    if (32 != 32) return 1;
-    if (16 != 16) return 2;
-    return 0;
+    if (32 != 32) return 1U;
+    if (16 != 16) return 2U;
+    return 0U;
 }
 
 // Test with regular parameter
 uint32_t testParam(const AllTypes& data) {
-    if (8 != 8) return 10;
-    if (16 != 16) return 11;
-    if (32 != 32) return 12;
-    if (64 != 64) return 13;
-    if (8 != 8) return 20;
-    if (16 != 16) return 21;
-    if (32 != 32) return 22;
-    if (64 != 64) return 23;
-    if (32 != 32) return 30;
-    if (64 != 64) return 31;
-    return 0;
+    if (8 != 8) return 10U;
+    if (16 != 16) return 11U;
+    if (32 != 32) return 12U;
+    if (64 != 64) return 13U;
+    if (8 != 8) return 20U;
+    if (16 != 16) return 21U;
+    if (32 != 32) return 22U;
+    if (64 != 64) return 23U;
+    if (32 != 32) return 30U;
+    if (64 != 64) return 31U;
+    return 0U;
 }
 
 int main(void) {
@@ -49,14 +49,14 @@ int main(void) {
     result = testParam(data);
     if (result != 0) return result;
     uint32_t totalBits = 56;
-    if (totalBits != 56) return 100;
+    if (totalBits != 56) return 100U;
     uint32_t totalBytes = (48) / 8U;
-    if (totalBytes != 6) return 101;
+    if (totalBytes != 6) return 101U;
     uint32_t len1 = 32;
     uint32_t len2 = 16;
     uint32_t len3 = 8;
-    if (len1 != 32) return 110;
-    if (len2 != 16) return 111;
-    if (len3 != 8) return 112;
-    return 0;
+    if (len1 != 32) return 110U;
+    if (len2 != 16) return 111U;
+    if (len3 != 8) return 112U;
+    return 0U;
 }

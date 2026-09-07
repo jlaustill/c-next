@@ -14,8 +14,8 @@
 const uint8_t DATA[EColor__COUNT] = {10U, 20U, 30U};
 
 int main(void) {
-    if (DATA[0U] != 10) return 1;
-    if (DATA[1U] != 20) return 2;
-    if (DATA[2U] != 30) return 3;
-    return 0;
+    if (DATA[0U] != 10) return 1U;
+    if (DATA[1U] != 20) return 2U;
+    if (DATA[2U] != 30) return 3U;
+    return 0U;
 }

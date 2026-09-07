@@ -24,29 +24,29 @@ int main(void) {
     bool addedSamples = cnext_cjson_add_item_to_object(root, samplesKey, sampleArray) != 0;
     if (addedRpm == false) {
         cnext_cjson_delete(root);
-        return 1;
+        return 1U;
     }
     if (addedSamples == false) {
         cnext_cjson_delete(root);
-        return 2;
+        return 2U;
     }
     cJSON* savedRpm = cnext_cjson_get_object_item(root, rpmKey);
     int32_t savedRpmValue = cnext_cjson_get_valueint(savedRpm);
     if (savedRpmValue != 1250) {
         cnext_cjson_delete(root);
-        return 3;
+        return 3U;
     }
     cJSON* savedSamples = cnext_cjson_get_object_item(root, samplesKey);
     int32_t sampleCount = cnext_cjson_get_array_size(savedSamples);
     if (sampleCount != 3) {
         cnext_cjson_delete(root);
-        return 4;
+        return 4U;
     }
     cJSON* finalSample = cnext_cjson_get_array_item(savedSamples, 2);
     int32_t finalValue = cnext_cjson_get_valueint(finalSample);
     if (finalValue != 1500) {
         cnext_cjson_delete(root);
-        return 5;
+        return 5U;
     }
     char* jsonText = cnext_cjson_print_unformatted(root);
     char expectedJson[65] = "{\"rpm\":1250,\"samples\":[1000,1250,1500]}";
@@ -54,9 +54,9 @@ int main(void) {
     if (jsonMatches == false) {
         cnext_cjson_free_string(jsonText);
         cnext_cjson_delete(root);
-        return 6;
+        return 6U;
     }
     cnext_cjson_free_string(jsonText);
     cnext_cjson_delete(root);
-    return 0;
+    return 0U;
 }

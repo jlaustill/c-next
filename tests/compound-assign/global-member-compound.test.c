@@ -175,5 +175,5 @@ int main(void) {
     if (result != 0) return result;
     result = Worker__testRightShift();
     if (result != 0) return result;
-    return 0;
+    return 0U;
 }

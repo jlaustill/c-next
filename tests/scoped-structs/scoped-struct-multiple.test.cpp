@@ -37,23 +37,23 @@ uint32_t DataManager__getViewportArea(void) {
 
 int main(void) {
     DataManager__setCursor(10, 20);
-    if (DataManager__cursor.x != 10) return 1;
-    if (DataManager__cursor.y != 20) return 2;
+    if (DataManager__cursor.x != 10) return 1U;
+    if (DataManager__cursor.y != 20) return 2U;
     DataManager__setScreen(800U, 600U);
-    if (DataManager__screenSize.width != 800) return 3;
-    if (DataManager__screenSize.height != 600) return 4;
+    if (DataManager__screenSize.width != 800) return 3U;
+    if (DataManager__screenSize.height != 600) return 4U;
     DataManager__setViewport(50, 50, 200U, 150U);
-    if (DataManager__viewport.origin.x != 50) return 5;
-    if (DataManager__viewport.origin.y != 50) return 6;
-    if (DataManager__viewport.dimensions.width != 200) return 7;
-    if (DataManager__viewport.dimensions.height != 150) return 8;
+    if (DataManager__viewport.origin.x != 50) return 5U;
+    if (DataManager__viewport.origin.y != 50) return 6U;
+    if (DataManager__viewport.dimensions.width != 200) return 7U;
+    if (DataManager__viewport.dimensions.height != 150) return 8U;
     uint32_t area = DataManager__getViewportArea();
-    if (area != 30000) return 9;
+    if (area != 30000) return 9U;
     DataManager__cursor.x = -5;
     DataManager__cursor.y = -10;
-    if (DataManager__cursor.x != -5) return 10;
-    if (DataManager__cursor.y != -10) return 11;
+    if (DataManager__cursor.x != -5) return 10U;
+    if (DataManager__cursor.y != -10) return 11U;
     DataManager__viewport.origin.x = 100;
-    if (DataManager__viewport.origin.x != 100) return 12;
-    return 0;
+    if (DataManager__viewport.origin.x != 100) return 12U;
+    return 0U;
 }

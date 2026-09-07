@@ -34,14 +34,14 @@ static uint32_t Calculator__result = 0U;
 
 void Calculator__sumToN(uint32_t n) {
     Calculator__result = 0U;
-    for (uint32_t i = 1; i <= n; i = i + 1) {
+    for (uint32_t i = 1U; i <= n; i = i + 1) {
         Calculator__result = cnx_clamp_add_u32(Calculator__result, i);
     }
 }
 
 void Calculator__factorial(uint32_t n) {
     Calculator__result = 1U;
-    for (uint32_t i = 2; i <= n; i = i + 1) {
+    for (uint32_t i = 2U; i <= n; i = i + 1) {
         Calculator__result = cnx_clamp_mul_u32(Calculator__result, i);
     }
 }
@@ -55,14 +55,14 @@ static uint32_t ArrayOps__data[10] = {0};
 static uint32_t ArrayOps__sum = 0U;
 
 void ArrayOps__initialize(void) {
-    for (uint32_t i = 0; i < 10; i = i + 1) {
+    for (uint32_t i = 0U; i < 10; i = i + 1) {
         ArrayOps__data[i] = i * 2U;
     }
 }
 
 void ArrayOps__computeSum(void) {
     ArrayOps__sum = 0U;
-    for (uint32_t i = 0; i < 10; i = i + 1) {
+    for (uint32_t i = 0U; i < 10; i = i + 1) {
         ArrayOps__sum = cnx_clamp_add_u32(ArrayOps__sum, ArrayOps__data[i]);
     }
 }

@@ -19,7 +19,7 @@ int main(void) {
     int32_t itemCount = cnext_cjson_get_array_size(root);
     if (itemCount != 3) {
         cnext_cjson_delete(root);
-        return 1;
+        return 1U;
     }
     cJSON* first = cnext_cjson_get_array_item(root, 0);
     cJSON* second = cnext_cjson_get_array_item(root, 1);
@@ -27,23 +27,23 @@ int main(void) {
     bool firstIsNumber = cnext_cjson_is_number(first) != 0;
     if (firstIsNumber == false) {
         cnext_cjson_delete(root);
-        return 2;
+        return 2U;
     }
     double firstValue = cnext_cjson_get_number_value(first);
     if (firstValue != 10.0) {
         cnext_cjson_delete(root);
-        return 3;
+        return 3U;
     }
     int32_t secondValue = cnext_cjson_get_valueint(second);
     if (secondValue != 20) {
         cnext_cjson_delete(root);
-        return 4;
+        return 4U;
     }
     int32_t thirdValue = cnext_cjson_get_valueint(third);
     if (thirdValue != 30) {
         cnext_cjson_delete(root);
-        return 5;
+        return 5U;
     }
     cnext_cjson_delete(root);
-    return 0;
+    return 0U;
 }

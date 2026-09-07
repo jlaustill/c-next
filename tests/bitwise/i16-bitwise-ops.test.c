@@ -27,9 +27,9 @@ int main(void) {
     if (and_result == 21760 && or_result == 32597 && xor_result == 10837) {
         if (not_pos == -32768 && not_neg == 32767 && not_minus_one == 0) {
             if (neg_and == -256) {
-                return 0;
+                return 0U;
             }
         }
     }
-    return 1;
+    return 1U;
 }

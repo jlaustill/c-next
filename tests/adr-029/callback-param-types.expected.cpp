@@ -20,20 +20,20 @@
 // tracked to anyone who checked, while the bug had no issue attached to it.
 // Callback with u8 parameter
 uint32_t processU8(uint8_t val) {
-    return val + 100;
+    return val + 100U;
 }
 
 // Callback with u32 parameter
 uint32_t processU32(uint32_t val) {
-    return val + 1000;
+    return val + 1000U;
 }
 
 // Callback with bool parameter
 uint32_t processBool(bool val) {
     if (val == true) {
-        return 1;
+        return 1U;
     }
-    return 0;
+    return 0U;
 }
 
 // Struct for struct parameter test
@@ -73,31 +73,31 @@ int main(void) {
     U8Handler u8h = {};
     u8h.handler = processU8;
     uint32_t result = u8h.handler(50U);
-    if (result != 150) return 1;
+    if (result != 150) return 1U;
     result = u8h.handler(255U);
-    if (result != 355) return 2;
+    if (result != 355) return 2U;
     U32Handler u32h = {};
     u32h.handler = processU32;
     result = u32h.handler(5000U);
-    if (result != 6000) return 3;
+    if (result != 6000) return 3U;
     result = u32h.handler(1000000U);
-    if (result != 1001000) return 4;
+    if (result != 1001000) return 4U;
     BoolHandler bh = {};
     bh.handler = processBool;
     result = bh.handler(true);
-    if (result != 1) return 5;
+    if (result != 1) return 5U;
     result = bh.handler(false);
-    if (result != 0) return 6;
+    if (result != 0) return 6U;
     PointHandler ph = {};
     ph.handler = processPoint;
     CallbackParamType__Point pt = {};
     pt.x = 10U;
     pt.y = 20U;
     result = ph.handler(pt);
-    if (result != 30) return 7;
+    if (result != 30) return 7U;
     pt.x = 100U;
     pt.y = 200U;
     result = ph.handler(pt);
-    if (result != 300) return 8;
-    return 0;
+    if (result != 300) return 8U;
+    return 0U;
 }

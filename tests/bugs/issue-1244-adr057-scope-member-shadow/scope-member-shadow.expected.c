@@ -34,7 +34,7 @@ uint8_t Reg__useShadowed(void) {
 int main(void) {
     Other__member[0] = 1;
     uint8_t shadowed = Reg__useShadowed();
-    if (shadowed != 80) return 1;
-    if (Other__member[0U] != 1) return 2;
-    return 0;
+    if (shadowed != 80) return 1U;
+    if (Other__member[0U] != 1) return 2U;
+    return 0U;
 }

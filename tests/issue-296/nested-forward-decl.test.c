@@ -37,13 +37,13 @@ int main(void) {
     BoundingBox box = { .min = minPt, .max = maxPt };
     Collision__setBounds(&box);
     BoundingBox retrieved = Collision__getBounds();
-    if (retrieved.min.x != 0.0) return 1;
-    if (retrieved.max.x != 100.0) return 2;
+    if (retrieved.min.x != 0.0) return 1U;
+    if (retrieved.max.x != 100.0) return 2U;
     Vector2D inside = { .x = 50.0, .y = 50.0 };
     Vector2D outside = { .x = 150.0, .y = 50.0 };
     bool insideResult = Collision__contains(&inside);
-    if (insideResult != true) return 3;
+    if (insideResult != true) return 3U;
     bool outsideResult = Collision__contains(&outside);
-    if (outsideResult != false) return 4;
-    return 0;
+    if (outsideResult != false) return 4U;
+    return 0U;
 }

@@ -680,13 +680,19 @@ describe("CodeGenerator Coverage Tests", () => {
       expect(code).toContain("(struct NamedPoint){ .x = 10, .y = 20 }");
     });
 
-    it("should include struct keyword in empty initializer via return statement", () => {
-      // Test the empty initializer path (line 3465) via return statement
-      // This is the only way to use explicit type syntax without expectedType context
+    it("should include struct keyword in empty initializer", () => {
+      // Test the empty initializer path.
+      //
+      // #1277: this used to reach the path through `return ReturnStruct {};`,
+      // described here as "the only way to use explicit type syntax without
+      // expectedType context" -- true only because a return statement did not
+      // set one. It does now, which makes the written type redundant there
+      // (E0356). A bare expression statement is the remaining position that
+      // supplies no type, so it is what reaches the path.
       const source = `
         struct ReturnStruct { i32 value; }
-        ReturnStruct getEmpty() {
-          return ReturnStruct {};
+        void makeEmpty() {
+          ReturnStruct {};
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);

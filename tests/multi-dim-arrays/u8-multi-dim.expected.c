@@ -33,48 +33,48 @@ int main(void) {
     matrix2d[0][7] = 200U;
     matrix2d[1][3] = 123U;
     matrix2d[3][7] = 255U;
-    if (matrix2d[0U][0U] != 10) return 1;
-    if (matrix2d[0U][7U] != 200) return 2;
-    if (matrix2d[1U][3U] != 123) return 3;
-    if (matrix2d[3U][7U] != 255) return 4;
+    if (matrix2d[0U][0U] != 10) return 1U;
+    if (matrix2d[0U][7U] != 200) return 2U;
+    if (matrix2d[1U][3U] != 123) return 3U;
+    if (matrix2d[3U][7U] != 255) return 4U;
     cube3d[0][0][0] = 5U;
     cube3d[0][0][3] = 50U;
     cube3d[0][2][3] = 100U;
     cube3d[1][0][0] = 150U;
     cube3d[1][2][3] = 250U;
-    if (cube3d[0U][0U][0U] != 5) return 5;
-    if (cube3d[0U][0U][3U] != 50) return 6;
-    if (cube3d[0U][2U][3U] != 100) return 7;
-    if (cube3d[1U][0U][0U] != 150) return 8;
-    if (cube3d[1U][2U][3U] != 250) return 9;
-    if (4 != 4) return 10;
-    if (2 != 2) return 11;
-    for (uint32_t i = 0; i < 4; i += 1) {
-        for (uint32_t j = 0; j < 8; j += 1) {
+    if (cube3d[0U][0U][0U] != 5) return 5U;
+    if (cube3d[0U][0U][3U] != 50) return 6U;
+    if (cube3d[0U][2U][3U] != 100) return 7U;
+    if (cube3d[1U][0U][0U] != 150) return 8U;
+    if (cube3d[1U][2U][3U] != 250) return 9U;
+    if (4 != 4) return 10U;
+    if (2 != 2) return 11U;
+    for (uint32_t i = 0U; i < 4; i += 1) {
+        for (uint32_t j = 0U; j < 8; j += 1) {
             matrix2d[i][j] = i * 10U + j;
         }
     }
-    if (matrix2d[0U][0U] != 0) return 12;
-    if (matrix2d[0U][7U] != 7) return 13;
-    if (matrix2d[1U][3U] != 13) return 14;
-    if (matrix2d[3U][7U] != 37) return 15;
+    if (matrix2d[0U][0U] != 0) return 12U;
+    if (matrix2d[0U][7U] != 7) return 13U;
+    if (matrix2d[1U][3U] != 13) return 14U;
+    if (matrix2d[3U][7U] != 37) return 15U;
     uint16_t sum = 0U;
-    for (uint32_t i = 0; i < 2; i += 1) {
-        for (uint32_t j = 0; j < 3; j += 1) {
-            for (uint32_t k = 0; k < 4; k += 1) {
+    for (uint32_t i = 0U; i < 2; i += 1) {
+        for (uint32_t j = 0U; j < 3; j += 1) {
+            for (uint32_t k = 0U; k < 4; k += 1) {
                 cube3d[i][j][k] = i * 10U + j * 5U + k;
                 sum = cnx_clamp_add_u16(sum, cube3d[i][j][k]);
             }
         }
     }
-    if (sum != 276) return 21;
+    if (sum != 276) return 21U;
     matrix2d[2][4] = 255U;
-    if (matrix2d[2U][4U] != 255) return 22;
+    if (matrix2d[2U][4U] != 255) return 22U;
     matrix2d[3][7] = 111U;
-    if (matrix2d[3U][7U] != 111) return 23;
+    if (matrix2d[3U][7U] != 111) return 23U;
     uint8_t testArray[3][2] = {0};
-    for (uint32_t ti = 0; ti < 3; ti += 1) {
-        for (uint32_t tj = 0; tj < 2; tj += 1) {
+    for (uint32_t ti = 0U; ti < 3; ti += 1) {
+        for (uint32_t tj = 0U; tj < 2; tj += 1) {
             testArray[ti][tj] = 0U;
         }
     }
@@ -82,13 +82,13 @@ int main(void) {
     testArray[0][1] = 255U;
     testArray[1][0] = 128U;
     testArray[2][1] = 1U;
-    if (testArray[0U][0U] != 0) return 24;
-    if (testArray[0U][1U] != 255) return 25;
-    if (testArray[1U][0U] != 128) return 26;
-    if (testArray[2U][1U] != 1) return 27;
+    if (testArray[0U][0U] != 0) return 24U;
+    if (testArray[0U][1U] != 255) return 25U;
+    if (testArray[1U][0U] != 128) return 26U;
+    if (testArray[2U][1U] != 1) return 27U;
     uint8_t buffer[4][4] = {0};
-    for (uint32_t bi = 0; bi < 4; bi += 1) {
-        for (uint32_t bj = 0; bj < 4; bj += 1) {
+    for (uint32_t bi = 0U; bi < 4; bi += 1) {
+        for (uint32_t bj = 0U; bj < 4; bj += 1) {
             buffer[bi][bj] = 0U;
         }
     }
@@ -97,10 +97,10 @@ int main(void) {
     buffer[1][1] = 0xAAU;
     buffer[2][2] = 0x55U;
     buffer[3][3] = 0xFFU;
-    if (buffer[0U][0U] != 15) return 28;
-    if (buffer[0U][1U] != 240) return 29;
-    if (buffer[1U][1U] != 170) return 30;
-    if (buffer[2U][2U] != 85) return 31;
-    if (buffer[3U][3U] != 255) return 32;
-    return 0;
+    if (buffer[0U][0U] != 15) return 28U;
+    if (buffer[0U][1U] != 240) return 29U;
+    if (buffer[1U][1U] != 170) return 30U;
+    if (buffer[2U][2U] != 85) return 31U;
+    if (buffer[3U][3U] != 255) return 32U;
+    return 0U;
 }

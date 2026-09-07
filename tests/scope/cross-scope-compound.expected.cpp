@@ -29,10 +29,10 @@ int main(void) {
     Manager__incrementCounter();
     Manager__incrementCounterArray();
     if (Counter__value != 150) {
-        return 1;
+        return 1U;
     }
     if (Counter__data[0U] != 15) {
-        return 2;
+        return 2U;
     }
-    return 0;
+    return 0U;
 }

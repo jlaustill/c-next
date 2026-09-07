@@ -809,11 +809,17 @@ describe("ControlFlowGenerator", () => {
       });
       const input = createMockInput();
       const state = createMockState();
+      // #1277: a `for` header's declaration types its initializer through
+      // `generateExpressionWithExpectedType`, like any other declaration, so
+      // the initializer no longer arrives on the plain `generateExpression`
+      // sequence. Stubbing only that one made this read as a wrong loop
+      // rather than as a call nobody had stubbed.
       let exprCount = 0;
       const orchestrator = {
         ...createMockOrchestrator({ typeCode: "int" }),
+        generateExpressionWithExpectedType: vi.fn(() => "0"),
         generateExpression: vi.fn(() => {
-          return ["0", "i < 10", "1"][exprCount++] ?? "x";
+          return ["i < 10", "1"][exprCount++] ?? "x";
         }),
         generateStatement: vi.fn(() => "{ body(); }"),
       } as unknown as IOrchestrator;

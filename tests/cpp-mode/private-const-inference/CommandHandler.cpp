@@ -14,5 +14,5 @@
 
 uint8_t CommandHandler__setValue(Config& cfg, uint32_t val) {
     cfg.value = val;
-    return 0;
+    return 0U;
 }

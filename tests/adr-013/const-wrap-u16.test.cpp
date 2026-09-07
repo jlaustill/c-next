@@ -16,10 +16,10 @@ extern const uint16_t START_VALUE = 1000U;
 
 int main(void) {
     uint16_t maxCnt = MAX_COUNTER;
-    if (maxCnt != 65535) return 1;
+    if (maxCnt != 65535) return 1U;
     uint16_t start = START_VALUE;
-    if (start != 1000) return 2;
+    if (start != 1000) return 2U;
     uint16_t diff = MAX_COUNTER - START_VALUE;
-    if (diff != 64535) return 3;
-    return 0;
+    if (diff != 64535) return 3U;
+    return 0U;
 }

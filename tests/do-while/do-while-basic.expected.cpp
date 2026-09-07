@@ -26,7 +26,7 @@ int main(void) {
         count = cnx_clamp_add_u32(count, 1U);
     } while (count < 10);
     if (count == 10) {
-        return 0;
+        return 0U;
     }
-    return 1;
+    return 1U;
 }

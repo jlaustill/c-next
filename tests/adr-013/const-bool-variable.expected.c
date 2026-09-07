@@ -17,16 +17,16 @@ const bool DEBUG_MODE = false;
 
 int main(void) {
     bool enabled = FEATURE_ENABLED;
-    if (enabled == false) return 1;
+    if (enabled == false) return 1U;
     bool debug = DEBUG_MODE;
-    if (debug == true) return 2;
-    if (FEATURE_ENABLED == false) return 3;
-    if (DEBUG_MODE == true) return 4;
+    if (debug == true) return 2U;
+    if (FEATURE_ENABLED == false) return 3U;
+    if (DEBUG_MODE == true) return 4U;
     bool result = FEATURE_ENABLED && !DEBUG_MODE;
-    if (result == false) return 5;
+    if (result == false) return 5U;
     uint32_t value = (FEATURE_ENABLED == true) ? 100U : 0U;
-    if (value != 100) return 6;
+    if (value != 100) return 6U;
     uint32_t debugVal = (DEBUG_MODE == true) ? 1U : 0U;
-    if (debugVal != 0) return 7;
-    return 0;
+    if (debugVal != 0) return 7U;
+    return 0U;
 }

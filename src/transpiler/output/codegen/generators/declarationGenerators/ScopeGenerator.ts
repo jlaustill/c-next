@@ -292,14 +292,15 @@ function generateScopeFunction(
   );
   const prefix = isPrivate ? "static " : "";
 
-  // Issue #269: Set current function name for pass-by-value lookup
-  orchestrator.setCurrentFunctionName(fullName);
-
-  // Track parameters for ADR-006 pointer semantics
-  orchestrator.setParameters(funcDecl.parameterList() ?? null);
-
-  // ADR-016: Enter function body context (also clears modifiedParameters for Issue #281)
-  orchestrator.enterFunctionBody();
+  // Issues #269/#477, ADR-016 (and #281's modifiedParameters clear): the same
+  // four facts a top-level function sets, through the same call. #1277: the
+  // return type was the one this copy omitted, so no `return` in a scope
+  // method knew its type.
+  orchestrator.enterFunctionContext(
+    fullName,
+    funcDecl.type().getText(),
+    funcDecl.parameterList() ?? null,
+  );
 
   // Issue #281: Generate body FIRST to track parameter modifications,
   // then generate parameter list using that tracking info
@@ -313,10 +314,7 @@ function generateScopeFunction(
     ? orchestrator.generateParameterList(funcDecl.parameterList()!)
     : "void";
 
-  // ADR-016: Exit function body context
-  orchestrator.exitFunctionBody();
-  orchestrator.setCurrentFunctionName(null); // Issue #269: Clear function name
-  orchestrator.clearParameters();
+  orchestrator.exitFunctionContext();
 
   const lines: string[] = [];
   lines.push("", `${prefix}${returnType} ${fullName}(${params}) ${body}`);

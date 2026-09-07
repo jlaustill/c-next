@@ -65,25 +65,25 @@ void Sensor__clear(void) {
 }
 
 int main(void) {
-    if (Sensor__count != 0) return 1;
+    if (Sensor__count != 0) return 1U;
     uint8_t i = 0U;
     while (i < 3) {
         uint16_t val = (uint16_t)(cnx_clamp_add_u8(100U, cnx_clamp_mul_u8(i, 10U)));
         Sensor__addReading(val, i);
         i = cnx_clamp_add_u8(i, 1U);
     }
-    if (Sensor__count != 3) return 2;
-    if (Sensor__buffer[0U].value != 100) return 3;
-    if (Sensor__buffer[0U].channel != 0) return 4;
-    if (Sensor__buffer[1U].value != 110) return 5;
-    if (Sensor__buffer[1U].channel != 1) return 6;
-    if (Sensor__buffer[2U].value != 120) return 7;
-    if (Sensor__buffer[2U].channel != 2) return 8;
+    if (Sensor__count != 3) return 2U;
+    if (Sensor__buffer[0U].value != 100) return 3U;
+    if (Sensor__buffer[0U].channel != 0) return 4U;
+    if (Sensor__buffer[1U].value != 110) return 5U;
+    if (Sensor__buffer[1U].channel != 1) return 6U;
+    if (Sensor__buffer[2U].value != 120) return 7U;
+    if (Sensor__buffer[2U].channel != 2) return 8U;
     uint16_t sum = Sensor__sumValues();
-    if (sum != 330) return 9;
+    if (sum != 330) return 9U;
     Sensor__clear();
-    if (Sensor__count != 0) return 10;
-    if (Sensor__buffer[0U].value != 0) return 11;
+    if (Sensor__count != 0) return 10U;
+    if (Sensor__buffer[0U].value != 0) return 11U;
     i = 0U;
     while (i < 2) {
         Sensor__buffer[i].value = (uint16_t)(cnx_clamp_add_u8(200, i));
@@ -91,7 +91,7 @@ int main(void) {
         i = cnx_clamp_add_u8(i, 1U);
     }
     Sensor__count = 2;
-    if (Sensor__buffer[0U].value != 200) return 12;
-    if (Sensor__buffer[1U].value != 201) return 13;
-    return 0;
+    if (Sensor__buffer[0U].value != 200) return 12U;
+    if (Sensor__buffer[1U].value != 201) return 13U;
+    return 0U;
 }

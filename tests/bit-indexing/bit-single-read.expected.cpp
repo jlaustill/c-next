@@ -16,7 +16,7 @@ int main(void) {
     bool b2 = ((((flags >> 2U) & 1)) != 0U);
     bool b7 = ((((flags >> 7U) & 1)) != 0U);
     if (b0 == true && b1 == false && b2 == true && b7 == false) {
-        return 0;
+        return 0U;
     }
-    return 1;
+    return 1U;
 }

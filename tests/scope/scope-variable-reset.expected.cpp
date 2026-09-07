@@ -41,16 +41,16 @@ uint32_t Calculator__getOperationCount(void) {
 
 int main(void) {
     uint32_t result1 = Calculator__addAndCount(10U);
-    if (result1 != 10) return 1;
+    if (result1 != 10) return 1U;
     uint32_t count1 = Calculator__getOperationCount();
-    if (count1 != 1) return 2;
+    if (count1 != 1) return 2U;
     uint32_t result2 = Calculator__addAndCount(5U);
-    if (result2 != 5) return 3;
+    if (result2 != 5) return 3U;
     uint32_t count2 = Calculator__getOperationCount();
-    if (count2 != 2) return 4;
+    if (count2 != 2) return 4U;
     uint32_t result3 = Calculator__addAndCount(7U);
-    if (result3 != 7) return 5;
+    if (result3 != 7) return 5U;
     uint32_t count3 = Calculator__getOperationCount();
-    if (count3 != 3) return 6;
-    return 0;
+    if (count3 != 3) return 6U;
+    return 0U;
 }

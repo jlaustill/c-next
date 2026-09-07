@@ -34,7 +34,7 @@ int main(void) {
         } while (j < 3);
         i = cnx_clamp_add_u32(i, 1U);
     } while (i < 3);
-    if (count != 9) return 1;
+    if (count != 9) return 1U;
     uint32_t k = 0U;
     count = 0U;
     i = 0U;
@@ -50,7 +50,7 @@ int main(void) {
         } while (j < 2);
         i = cnx_clamp_add_u32(i, 1U);
     } while (i < 2);
-    if (count != 8) return 2;
+    if (count != 8) return 2U;
     count = 0U;
     i = 0U;
     do {
@@ -61,6 +61,6 @@ int main(void) {
         } while (j < cnx_clamp_add_u32(i, 1));
         i = cnx_clamp_add_u32(i, 1U);
     } while (i < 4);
-    if (count != 10) return 3;
-    return 0;
+    if (count != 10) return 3U;
+    return 0U;
 }

@@ -43,8 +43,8 @@
 int main(void) {
     Sample sample = { .value = 42U };
     uint8_t v = Sensors__readValue(&sample);
-    if (v != 42) return 1;
+    if (v != 42) return 1U;
     Sensors__bump(&sample);
-    if (sample.value != 43) return 2;
-    return 0;
+    if (sample.value != 43) return 2U;
+    return 0U;
 }

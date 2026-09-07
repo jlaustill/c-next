@@ -29,10 +29,10 @@ int main(void) {
     sensorData.humidity = 65.5;
     sensorData.temperature = 22.3;
     int32_t valid = SomeModule::validateHumidity(sensorData.humidity);
-    if (valid != 1) return 1;
-    if (sensorData.humidity < 65.0) return 2;
-    if (sensorData.humidity > 66.0) return 3;
-    if (sensorData.temperature < 22.0) return 4;
-    if (sensorData.temperature > 23.0) return 5;
-    return 0;
+    if (valid != 1) return 1U;
+    if (sensorData.humidity < 65.0) return 2U;
+    if (sensorData.humidity > 66.0) return 3U;
+    if (sensorData.temperature < 22.0) return 4U;
+    if (sensorData.temperature > 23.0) return 5U;
+    return 0U;
 }

@@ -41,31 +41,31 @@ void multipleCompound(uint32_t& val) {
 
 // Only reads with arithmetic - SHOULD get const
 uint32_t onlyReads(uint32_t a, uint32_t b) {
-    return a + b * 2;
+    return a + b * 2U;
 }
 
 int main(void) {
     uint32_t x = 100U;
     addToValue(x, 50U);
-    if (x != 150) return 1;
+    if (x != 150) return 1U;
     int32_t y = 100;
     subtractFromValue(y, 30);
-    if (y != 70) return 2;
+    if (y != 70) return 2U;
     uint32_t z = 10U;
     multiplyValue(z, 5U);
-    if (z != 50) return 3;
+    if (z != 50) return 3U;
     uint32_t w = 25U;
     uint32_t original = readAndAdd(w, 10U);
-    if (original != 25) return 4;
-    if (w != 35) return 5;
+    if (original != 25) return 4U;
+    if (w != 35) return 5U;
     uint32_t m = 10U;
     multipleCompound(m);
-    if (m != 35) return 6;
+    if (m != 35) return 6U;
     uint32_t a = 5U;
     uint32_t b = 3U;
     uint32_t result = onlyReads(a, b);
-    if (result != 11) return 7;
-    if (a != 5) return 8;
-    if (b != 3) return 9;
-    return 0;
+    if (result != 11) return 7U;
+    if (a != 5) return 8U;
+    if (b != 3) return 9U;
+    return 0U;
 }

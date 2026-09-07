@@ -88,28 +88,28 @@ uint16_t ConstTest__multipleRefs(void) {
 
 int main(void) {
     uint8_t maxVal = ConstTest__getMaxValue();
-    if (maxVal != 255) return 1;
+    if (maxVal != 255) return 1U;
     uint16_t bufSize = ConstTest__getBufferSize();
-    if (bufSize != 1024) return 2;
+    if (bufSize != 1024) return 2U;
     int32_t offset = ConstTest__getOffset();
-    if (offset != -100) return 3;
+    if (offset != -100) return 3U;
     bool enabled = ConstTest__getEnabled();
-    if (enabled != true) return 4;
+    if (enabled != true) return 4U;
     uint8_t pubMax = ConstTest__getPublicMax();
-    if (pubMax != 200) return 5;
+    if (pubMax != 200) return 5U;
     uint32_t pubId = ConstTest__getPublicId();
-    if (pubId != 42) return 6;
-    if (ConstTest__PUBLIC_MAX != 200) return 7;
-    if (ConstTest__PUBLIC_ID != 42) return 8;
+    if (pubId != 42) return 6U;
+    if (ConstTest__PUBLIC_MAX != 200) return 7U;
+    if (ConstTest__PUBLIC_ID != 42) return 8U;
     uint8_t cnt = ConstTest__getCounter();
-    if (cnt != 0) return 9;
+    if (cnt != 0) return 9U;
     uint8_t hexFlags = ConstTest__getHexFlags();
-    if (hexFlags != 171) return 10;
+    if (hexFlags != 171) return 10U;
     uint8_t binMask = ConstTest__getBinMask();
-    if (binMask != 202) return 11;
+    if (binMask != 202) return 11U;
     uint32_t hexAddr = ConstTest__getHexAddr();
-    if (hexAddr != 1073745920) return 12;
+    if (hexAddr != 1073745920) return 12U;
     uint16_t multiResult = ConstTest__multipleRefs();
-    if (multiResult != 765) return 13;
-    return 0;
+    if (multiResult != 765) return 13U;
+    return 0U;
 }

@@ -10,12 +10,12 @@
 // Issue #139: Test local string variable reassignment in function body
 int main(void) {
     char local[33] = "Initial";
-    if (strlen(local) != 7) return 1;
+    if (strlen(local) != 7) return 1U;
     (void) strncpy(local, "Updated", 32); local[32] = '\0';
-    if (strlen(local) != 7) return 2;
+    if (strlen(local) != 7) return 2U;
     (void) strncpy(local, "Short", 32); local[32] = '\0';
-    if (strlen(local) != 5) return 3;
+    if (strlen(local) != 5) return 3U;
     (void) strncpy(local, "This is a longer string", 32); local[32] = '\0';
-    if (strlen(local) != 23) return 4;
-    return 0;
+    if (strlen(local) != 23) return 4U;
+    return 0U;
 }

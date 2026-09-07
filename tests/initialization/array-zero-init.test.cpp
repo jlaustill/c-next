@@ -31,12 +31,12 @@ int main(void) {
     uint32_t i = 0U;
     while (i < 16) {
         if (buffer[i] != 0) {
-            return 1;
+            return 1U;
         }
         i = cnx_clamp_add_u32(i, 1U);
     }
     if (values[0U] == 0 && values[1U] == 0 && values[2U] == 0 && values[3U] == 0) {
-        return 0;
+        return 0U;
     }
-    return 1;
+    return 1U;
 }

@@ -17,19 +17,19 @@ int main(void) {
     float at_max = 255.0;
     float at_min = 0.0;
     uint8_t result = ((over) > ((float)UINT8_MAX) ? static_cast<uint8_t>(UINT8_MAX) : (over) < 0.0f ? static_cast<uint8_t>(0) : static_cast<uint8_t>((over)));
-    if (result != 255) return 1;
+    if (result != 255) return 1U;
     result = ((way_over) > ((float)UINT8_MAX) ? static_cast<uint8_t>(UINT8_MAX) : (way_over) < 0.0f ? static_cast<uint8_t>(0) : static_cast<uint8_t>((way_over)));
-    if (result != 255) return 2;
+    if (result != 255) return 2U;
     result = ((negative) > ((float)UINT8_MAX) ? static_cast<uint8_t>(UINT8_MAX) : (negative) < 0.0f ? static_cast<uint8_t>(0) : static_cast<uint8_t>((negative)));
-    if (result != 0) return 3;
+    if (result != 0) return 3U;
     result = ((in_range) > ((float)UINT8_MAX) ? static_cast<uint8_t>(UINT8_MAX) : (in_range) < 0.0f ? static_cast<uint8_t>(0) : static_cast<uint8_t>((in_range)));
-    if (result != 100) return 4;
+    if (result != 100) return 4U;
     result = ((at_max) > ((float)UINT8_MAX) ? static_cast<uint8_t>(UINT8_MAX) : (at_max) < 0.0f ? static_cast<uint8_t>(0) : static_cast<uint8_t>((at_max)));
-    if (result != 255) return 5;
+    if (result != 255) return 5U;
     result = ((at_min) > ((float)UINT8_MAX) ? static_cast<uint8_t>(UINT8_MAX) : (at_min) < 0.0f ? static_cast<uint8_t>(0) : static_cast<uint8_t>((at_min)));
-    if (result != 0) return 6;
+    if (result != 0) return 6U;
     float frac = 127.9;
     result = ((frac) > ((float)UINT8_MAX) ? static_cast<uint8_t>(UINT8_MAX) : (frac) < 0.0f ? static_cast<uint8_t>(0) : static_cast<uint8_t>((frac)));
-    if (result != 127) return 7;
-    return 0;
+    if (result != 127) return 7U;
+    return 0U;
 }

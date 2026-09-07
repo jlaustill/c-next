@@ -23,11 +23,11 @@ void MotorController__start(void) {
 }
 
 bool MotorController__isRunning(void) {
-    return ((MotorController__MOTOR_REG__CTRL >> 0) & 1);
+    return ((((MotorController__MOTOR_REG__CTRL >> 0) & 1)) != 0U);
 }
 
 uint8_t MotorController__getMode(void) {
-    return ((MotorController__MOTOR_REG__CTRL >> 3) & 0x7);
+    return static_cast<uint8_t>(((MotorController__MOTOR_REG__CTRL >> 3) & 0x7));
 }
 
 /* Scope: Board */

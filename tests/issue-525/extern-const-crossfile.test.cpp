@@ -11,14 +11,14 @@
 #include <stdint.h>
 
 int main(void) {
-    if (BYTE_CONST != 42) return 1;
-    if (WORD_CONST != 1000) return 2;
-    if (DWORD_CONST != 100000) return 3;
+    if (BYTE_CONST != 42) return 1U;
+    if (WORD_CONST != 1000) return 2U;
+    if (DWORD_CONST != 100000) return 3U;
     uint8_t firstChar = STRING_CONST[0U];
-    if (firstChar != 72) return 4;
-    if (BYTE_ARRAY[0U] != 1) return 5;
-    if (BYTE_ARRAY[3U] != 4) return 6;
+    if (firstChar != 72) return 4U;
+    if (BYTE_ARRAY[0U] != 1) return 5U;
+    if (BYTE_ARRAY[3U] != 4) return 6U;
     uint8_t oneFirst = STRING_ARRAY[0U][0U];
-    if (oneFirst != 111) return 7;
-    return 0;
+    if (oneFirst != 111) return 7U;
+    return 0U;
 }

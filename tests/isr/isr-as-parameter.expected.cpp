@@ -51,7 +51,7 @@ void executeParamHandler(ISR cb) {
 
 // Function that accepts ISR and invokes it multiple times
 void executeParamMultiple(ISR fn, uint32_t times) {
-    for (uint32_t i = 0; i < times; i += 1) {
+    for (uint32_t i = 0U; i < times; i += 1) {
         fn();
     }
 }
@@ -66,31 +66,31 @@ int main(void) {
     paramCallCount = 0U;
     paramLastHandler = 0U;
     executeParamHandler(paramHandler1);
-    if (paramCallCount != 1) return 1;
-    if (paramLastHandler != 1) return 2;
+    if (paramCallCount != 1) return 1U;
+    if (paramLastHandler != 1) return 2U;
     paramCallCount = 0U;
     paramLastHandler = 0U;
     executeParamHandler(paramHandler2);
-    if (paramCallCount != 1) return 3;
-    if (paramLastHandler != 2) return 4;
+    if (paramCallCount != 1) return 3U;
+    if (paramLastHandler != 2) return 4U;
     paramCallCount = 0U;
     executeParamMultiple(paramHandler1, 5U);
-    if (paramCallCount != 5) return 5;
+    if (paramCallCount != 5) return 5U;
     paramCallCount = 0U;
     paramLastHandler = 0U;
     executeParamBoth(paramHandler1, paramHandler2);
-    if (paramCallCount != 2) return 6;
-    if (paramLastHandler != 2) return 7;
+    if (paramCallCount != 2) return 6U;
+    if (paramLastHandler != 2) return 7U;
     paramCallCount = 0U;
     paramLastHandler = 0U;
     executeParamBoth(paramHandler2, paramHandler1);
-    if (paramCallCount != 2) return 8;
-    if (paramLastHandler != 1) return 9;
+    if (paramCallCount != 2) return 8U;
+    if (paramLastHandler != 1) return 9U;
     paramCallCount = 0U;
     executeParamHandler(paramHandler1);
     executeParamHandler(paramHandler2);
     executeParamHandler(paramHandler3);
-    if (paramCallCount != 3) return 10;
-    if (paramLastHandler != 3) return 11;
-    return 0;
+    if (paramCallCount != 3) return 10U;
+    if (paramLastHandler != 3) return 11U;
+    return 0U;
 }

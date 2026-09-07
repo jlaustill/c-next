@@ -1398,7 +1398,10 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      expect(code).toContain("return 42;");
+      // #1277: a `return` expression is typed by the declared return type, so
+      // an integer literal returned from an unsigned function now carries the
+      // MISRA C:2012 Rule 7.2 suffix it already had in `u32 x <- 42;`.
+      expect(code).toContain("return 42U;");
     });
   });
 
@@ -2407,7 +2410,10 @@ describe("CodeGenerator", () => {
       });
 
       expect(code).toContain("int main(void)");
-      expect(code).toContain("return 0;");
+      // #1277: a `return` expression is typed by the declared return type, so
+      // an integer literal returned from an unsigned function now carries the
+      // MISRA C:2012 Rule 7.2 suffix it already had in `u32 x <- 42;`.
+      expect(code).toContain("return 0U;");
     });
   });
 

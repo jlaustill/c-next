@@ -15,22 +15,22 @@ int main(void) {
     uint64_t arr64[8] = {0};
     uint64_t v64 = 0x0102030405060708ULL;
     arr64[4] = (uint64_t)(v64);
-    if (arr64[3U] != 0x0000000000000000) return 1;
-    if (arr64[4U] != 0x0102030405060708) return 2;
-    if (arr64[5U] != 0x0000000000000000) return 3;
+    if (arr64[3U] != 0x0000000000000000) return 1U;
+    if (arr64[4U] != 0x0102030405060708) return 2U;
+    if (arr64[5U] != 0x0000000000000000) return 3U;
     uint32_t arr32[8] = {0};
     uint32_t v32 = 0xAABBCCDDU;
     arr32[5] = (uint32_t)(v32);
-    if (arr32[4U] != 0x00000000) return 4;
-    if (arr32[5U] != 0xAABBCCDD) return 5;
+    if (arr32[4U] != 0x00000000) return 4U;
+    if (arr32[5U] != 0xAABBCCDD) return 5U;
     uint16_t arr16[8] = {0};
     uint32_t v16 = 0x11223344U;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint16_t* vs uint32_t*). */
     const uint32_t cnx_tmp0 = (uint32_t)(v16);
     arr16[2] = (uint16_t)(cnx_tmp0);
     arr16[3] = (uint16_t)(cnx_tmp0 >> 16U);
-    if (arr16[1U] != 0x0000) return 6;
-    if (arr16[2U] != 0x3344) return 7;
-    if (arr16[3U] != 0x1122) return 8;
-    return 0;
+    if (arr16[1U] != 0x0000) return 6U;
+    if (arr16[2U] != 0x3344) return 7U;
+    if (arr16[3U] != 0x1122) return 8U;
+    return 0U;
 }

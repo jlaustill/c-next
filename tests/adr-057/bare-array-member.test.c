@@ -33,7 +33,7 @@ int main(void) {
     ArrayBug__callback();
     uint8_t data0 = ArrayBug__getData0();
     bool flag = ArrayBug__getFlag();
-    if (data0 != 42) return 1;
-    if (flag != true) return 2;
-    return 0;
+    if (data0 != 42) return 1U;
+    if (flag != true) return 2U;
+    return 0U;
 }

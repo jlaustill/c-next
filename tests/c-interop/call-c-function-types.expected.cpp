@@ -13,26 +13,26 @@
 
 int main(void) {
     uint8_t result_u8 = add_u8(100U, 50U);
-    if (result_u8 != 150) return 1;
+    if (result_u8 != 150) return 1U;
     uint16_t result_u16 = add_u16(1000U, 2000U);
-    if (result_u16 != 3000) return 2;
+    if (result_u16 != 3000) return 2U;
     uint32_t result_u32 = add_u32(100000U, 200000U);
-    if (result_u32 != 300000) return 3;
+    if (result_u32 != 300000) return 3U;
     uint64_t result_u64 = add_u64(1000000000ULL, 2000000000ULL);
-    if (result_u64 != 3000000000) return 4;
+    if (result_u64 != 3000000000) return 4U;
     int8_t result_i8 = add_i8(50, 25);
-    if (result_i8 != 75) return 5;
+    if (result_i8 != 75) return 5U;
     int16_t result_i16 = add_i16(1000, -500);
-    if (result_i16 != 500) return 6;
+    if (result_i16 != 500) return 6U;
     int32_t result_i32 = add_i32(-100, 200);
-    if (result_i32 != 100) return 7;
+    if (result_i32 != 100) return 7U;
     int64_t result_i64 = add_i64(-1000000000, 2000000000);
-    if (result_i64 != 1000000000) return 8;
+    if (result_i64 != 1000000000) return 8U;
     uint8_t id_u8 = identity_u8(255U);
-    if (id_u8 != 255) return 9;
+    if (id_u8 != 255) return 9U;
     uint32_t id_u32 = identity_u32(0x12345678U);
-    if (id_u32 != 0x12345678) return 10;
+    if (id_u32 != 0x12345678) return 10U;
     int32_t id_i32 = identity_i32(-12345);
-    if (id_i32 != -12345) return 11;
-    return 0;
+    if (id_i32 != -12345) return 11U;
+    return 0U;
 }

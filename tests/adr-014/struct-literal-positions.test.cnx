@@ -1,0 +1,71 @@
+// test-execution
+// test-adr: 014
+// #1277: a struct literal takes its type from the position it stands in. Every
+// position that can supply one, exercised and its value checked -- the three
+// at the end were rejected as "Cannot infer struct type" until #1322, while the
+// identical literal assigned to a local first compiled.
+
+struct Point {
+    u32 x;
+    u32 y;
+}
+
+struct Box {
+    Point corner;
+}
+
+Point fromReturn() {
+    return { x: 10, y: 20 };
+}
+
+scope Shapes {
+    public Point fromScopeMethod() {
+        return { x: 30, y: 40 };
+    }
+}
+
+Point atFileScope <- { x: 1, y: 2 };
+
+u32 main() {
+    // Declaration.
+    Point declared <- { x: 3, y: 4 };
+    if (declared.x != 3) return 1;
+    if (declared.y != 4) return 2;
+
+    // Assignment.
+    declared <- { x: 5, y: 6 };
+    if (declared.x != 5) return 3;
+
+    // Nested field.
+    Box box <- { corner: { x: 7, y: 8 } };
+    if (box.corner.y != 8) return 4;
+
+    // A call argument is deliberately NOT exercised here. It types correctly
+    // -- the two error fixtures use it as a control -- but the argument is
+    // emitted by value against ADR-006's pointer parameter and the C does not
+    // compile. That is #1530, an emission defect rather than a typing one, and
+    // an execution fixture is exactly what would fail on it. Covered there.
+
+    // File-scope initializer.
+    if (atFileScope.y != 2) return 6;
+
+    // #1277: a return statement.
+    Point r <- fromReturn();
+    if (r.x != 10) return 7;
+    if (r.y != 20) return 8;
+
+    // #1277: a return statement inside a scope method, where the return type
+    // was never recorded at all.
+    Point s <- Shapes.fromScopeMethod();
+    if (s.x != 30) return 9;
+    if (s.y != 40) return 10;
+
+    // #1277: a `for` header's declaration.
+    u32 total <- 0;
+    for (Point p <- { x: 2, y: 3 }; p.x < 4; p.x +<- 1) {
+        total <- total + p.y;
+    }
+    if (total != 6) return 11;
+
+    return 0;
+}

@@ -34,14 +34,14 @@ void updateContainer(PtrCast__Container& c, uint32_t newCount) {
 int main(void) {
     PtrCast__Data d = { .value = 100U, .flags = 0x0FU };
     modifyData(d);
-    if (d.value != 999) return 1;
-    if (d.flags != 0xFF) return 2;
+    if (d.value != 999) return 1U;
+    if (d.flags != 0xFF) return 2U;
     PtrCast__Data created = createData(42U, 0xABU);
-    if (created.value != 42) return 3;
-    if (created.flags != 0xAB) return 4;
+    if (created.value != 42) return 3U;
+    if (created.flags != 0xAB) return 4U;
     PtrCast__Container c = { .inner = { .value = 0U, .flags = 0U }, .count = 0U };
     updateContainer(c, 5U);
-    if (c.count != 5) return 5;
-    if (c.inner.value != 50) return 6;
-    return 0;
+    if (c.count != 5) return 5U;
+    if (c.inner.value != 50) return 6U;
+    return 0U;
 }

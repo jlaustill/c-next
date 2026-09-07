@@ -65,27 +65,27 @@ void testVeryLargeBinary(uint64_t val) {
 int main(void) {
     uint64_t v53 = 9007199254740992ULL;
     testLargeBinaryPrecision(v53);
-    if (result != 1) return 1;
+    if (result != 1) return 1U;
     uint64_t v53_1 = 9007199254740993ULL;
     testLargeBinaryPrecision(v53_1);
-    if (result != 2) return 2;
+    if (result != 2) return 2U;
     uint64_t v53_2 = 9007199254740994ULL;
     testLargeBinaryPrecision(v53_2);
-    if (result != 3) return 3;
+    if (result != 3) return 3U;
     uint64_t v53_3 = 9007199254740995ULL;
     testLargeBinaryPrecision(v53_3);
-    if (result != 4) return 4;
+    if (result != 4) return 4U;
     uint64_t vOther = 9007199254740990ULL;
     testLargeBinaryPrecision(vOther);
-    if (result != 99) return 5;
+    if (result != 99) return 5U;
     uint64_t v62 = 4611686018427387904ULL;
     testVeryLargeBinary(v62);
-    if (result != 10) return 6;
+    if (result != 10) return 6U;
     uint64_t v62_1 = 4611686018427387905ULL;
     testVeryLargeBinary(v62_1);
-    if (result != 11) return 7;
+    if (result != 11) return 7U;
     uint64_t v63m1 = 9223372036854775807ULL;
     testVeryLargeBinary(v63m1);
-    if (result != 12) return 8;
-    return 0;
+    if (result != 12) return 8U;
+    return 0U;
 }

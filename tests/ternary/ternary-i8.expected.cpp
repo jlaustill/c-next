@@ -29,53 +29,53 @@ int main(void) {
     int8_t d = -5;
     int8_t maxResult1 = getMax(a, b);
     if (maxResult1 != 20) {
-        return 1;
+        return 1U;
     }
     int8_t maxResult2 = getMax(c, d);
     if (maxResult2 != -5) {
-        return 2;
+        return 2U;
     }
     int8_t minResult1 = getMin(a, b);
     if (minResult1 != 10) {
-        return 3;
+        return 3U;
     }
     int8_t minResult2 = getMin(c, d);
     if (minResult2 != -30) {
-        return 4;
+        return 4U;
     }
     int8_t absResult1 = getAbs(c);
     if (absResult1 != 30) {
-        return 5;
+        return 5U;
     }
     int8_t absResult2 = getAbs(a);
     if (absResult2 != 10) {
-        return 6;
+        return 6U;
     }
     int8_t result = (a > c) ? a : c;
     if (result != 10) {
-        return 7;
+        return 7U;
     }
     int8_t max_val = 127;
     int8_t mid_val = 50;
     int8_t edge_result = (max_val > mid_val) ? max_val : mid_val;
     if (edge_result != 127) {
-        return 8;
+        return 8U;
     }
     int8_t min_val = -128;
     int8_t neg_mid = -50;
     int8_t min_result = (min_val < neg_mid) ? min_val : neg_mid;
     if (min_result != -128) {
-        return 9;
+        return 9U;
     }
     int8_t equal_test = (c == -30) ? 100 : -100;
     if (equal_test != 100) {
-        return 10;
+        return 10U;
     }
     int8_t neg = -10;
     int8_t pos = 10;
     int8_t zero_cross = (neg < 0) ? pos : neg;
     if (zero_cross != 10) {
-        return 11;
+        return 11U;
     }
-    return 0;
+    return 0U;
 }

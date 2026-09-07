@@ -18,10 +18,10 @@ int main(void) {
     arr8[1] = (uint8_t)(cnx_tmp0 >> 8U);
     arr8[2] = (uint8_t)(cnx_tmp0 >> 16U);
     arr8[3] = (uint8_t)(cnx_tmp0 >> 24U);
-    if (arr8[0U] != 0x44) return 1;
-    if (arr8[1U] != 0x33) return 2;
-    if (arr8[2U] != 0x22) return 3;
-    if (arr8[3U] != 0x11) return 4;
+    if (arr8[0U] != 0x44) return 1U;
+    if (arr8[1U] != 0x33) return 2U;
+    if (arr8[2U] != 0x22) return 3U;
+    if (arr8[3U] != 0x11) return 4U;
     uint16_t arr16[16] = {};
     uint64_t value2 = 0x0102030405060708ULL;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint16_t* vs uint64_t*). */
@@ -30,18 +30,18 @@ int main(void) {
     arr16[1] = (uint16_t)(cnx_tmp1 >> 16U);
     arr16[2] = (uint16_t)(cnx_tmp1 >> 32U);
     arr16[3] = (uint16_t)(cnx_tmp1 >> 48U);
-    if (arr16[0U] != 0x0708) return 5;
-    if (arr16[1U] != 0x0506) return 6;
-    if (arr16[2U] != 0x0304) return 7;
-    if (arr16[3U] != 0x0102) return 8;
+    if (arr16[0U] != 0x0708) return 5U;
+    if (arr16[1U] != 0x0506) return 6U;
+    if (arr16[2U] != 0x0304) return 7U;
+    if (arr16[3U] != 0x0102) return 8U;
     uint32_t arr32[16] = {};
     uint32_t value3 = 0xAABBCCDDU;
     arr32[0] = (uint32_t)(value3);
-    if (arr32[0U] != 0xAABBCCDD) return 9;
+    if (arr32[0U] != 0xAABBCCDD) return 9U;
     uint64_t arr64[8] = {};
     uint64_t value4 = 0x123456789ABCDEF0ULL;
     arr64[0] = (uint64_t)(value4);
-    if (arr64[0U] != 0x123456789ABCDEF0) return 10;
+    if (arr64[0U] != 0x123456789ABCDEF0) return 10U;
     uint8_t buffer[64] = {};
     uint32_t value5 = 0x55667788U;
     /* MISRA C:2012 Rule 21.15: slice copy unrolled to per-element writes (memcpy would pass incompatible pointer types: uint8_t* vs uint32_t*). */
@@ -50,10 +50,10 @@ int main(void) {
     buffer[1] = (uint8_t)(cnx_tmp2 >> 8U);
     buffer[2] = (uint8_t)(cnx_tmp2 >> 16U);
     buffer[3] = (uint8_t)(cnx_tmp2 >> 24U);
-    if (buffer[0U] != 0x88) return 11;
-    if (buffer[1U] != 0x77) return 12;
-    if (buffer[2U] != 0x66) return 13;
-    if (buffer[3U] != 0x55) return 14;
+    if (buffer[0U] != 0x88) return 11U;
+    if (buffer[1U] != 0x77) return 12U;
+    if (buffer[2U] != 0x66) return 13U;
+    if (buffer[3U] != 0x55) return 14U;
     uint8_t multiArr[32] = {};
     uint32_t val1 = 0x11111111U;
     uint32_t val2 = 0x22222222U;
@@ -76,8 +76,8 @@ int main(void) {
     multiArr[9] = (uint8_t)(cnx_tmp5 >> 8U);
     multiArr[10] = (uint8_t)(cnx_tmp5 >> 16U);
     multiArr[11] = (uint8_t)(cnx_tmp5 >> 24U);
-    if (multiArr[0U] != 0x11) return 15;
-    if (multiArr[4U] != 0x22) return 16;
-    if (multiArr[8U] != 0x33) return 17;
-    return 0;
+    if (multiArr[0U] != 0x11) return 15U;
+    if (multiArr[4U] != 0x22) return 16U;
+    if (multiArr[8U] != 0x33) return 17U;
+    return 0U;
 }

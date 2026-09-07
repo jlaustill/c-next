@@ -1,0 +1,74 @@
+// test-error
+// test-adr: 014
+// ADR-014: a struct literal with no written type must stand where one is
+// declared. A bare expression statement is the one shape in the language that
+// supplies nothing, and it is also the only place the old codegen throw was
+// ever right -- the three shapes it also rejected (a `return`, a `return` in a
+// scope method, a `for` header) are valid and now compile (#1277).
+
+struct Point {
+    i32 x;
+    i32 y;
+}
+
+struct Box {
+    Point c;
+}
+
+void takes(Point p) {}
+
+// NEGATIVE CONTROLS -- every position that DOES supply a type, including the
+// three #1277 restored. Each must stay silent.
+Point atFileScope <- { x: 1, y: 1 };
+
+Point returned() {
+    return { x: 2, y: 2 };
+}
+
+scope Shapes {
+    public Point make() {
+        return { x: 3, y: 3 };
+    }
+}
+
+void controls() {
+    Point local <- { x: 4, y: 4 };
+    local <- { x: 5, y: 5 };
+    takes({ x: 6, y: 6 });
+    for (Point p <- { x: 7, y: 7 }; p.x < 8; p.x +<- 1) {}
+    // Writing the type is how a bare statement is made legal, so this one is
+    // a control rather than an assertion.
+    Point {
+        x: 9,
+        y: 9
+    };
+
+    // CONTROL: an inferred initializer inside an EXPLICITLY typed one. The
+    // enclosing field is the only thing that types it -- there is no
+    // declaration above to fall back on -- so this is the shape that proves
+    // a field initializer establishes a type.
+    Box {
+        c: { x: 10, y: 10 }
+    };
+}
+
+// ASSERTION -- nothing here says which struct this is.
+void assertion() {
+    { x: 10, y: 10 };
+}
+
+// ASSERTION -- a subscript's expression. The declaration on the left supplies
+// a type for `v`, not for whatever sits inside the brackets, so the walk has
+// to stop at the subscript rather than climb past it.
+void inSubscript() {
+    u8[4] arr <- [1, 2, 3, 4];
+    u8 v <- arr[{ x: 11, y: 11 }];
+}
+
+scope Bare {
+    // CONTROL, then ASSERTION, inside a scope method.
+    public void go() {
+        Point ok <- { x: 11, y: 11 };
+        { x: 12, y: 12 };
+    }
+}

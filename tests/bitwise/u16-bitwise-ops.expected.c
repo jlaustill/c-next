@@ -26,8 +26,8 @@ int main(void) {
     uint16_t not_all = (uint16_t)~all_bits;
     if (and_result == 43520 && or_result == 65450 && xor_result == 21930 && not_result == 21845) {
         if (bin_and == 43520 && dec_and == 43520 && dec_or == 65450 && not_all == 0) {
-            return 0;
+            return 0U;
         }
     }
-    return 1;
+    return 1U;
 }

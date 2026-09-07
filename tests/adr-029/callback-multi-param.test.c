@@ -30,7 +30,7 @@ uint32_t addThree(uint32_t a, uint32_t b, uint32_t c) {
 // Mixed type two-parameter callback
 uint32_t mixedParams(uint32_t val, bool flag) {
     if (flag == true) {
-        return val * 2;
+        return val * 2U;
     }
     return val;
 }
@@ -58,23 +58,23 @@ int main(void) {
     TwoParamHandler tph = {0};
     tph.handler = addTwo;
     uint32_t result = tph.handler(10U, 20U);
-    if (result != 30) return 1;
+    if (result != 30) return 1U;
     result = tph.handler(1000U, 2000U);
-    if (result != 3000) return 2;
+    if (result != 3000) return 2U;
     tph.handler = multiplyTwo;
     result = tph.handler(6U, 7U);
-    if (result != 42) return 3;
+    if (result != 42) return 3U;
     ThreeParamHandler thph = {0};
     thph.handler = addThree;
     result = thph.handler(10U, 20U, 30U);
-    if (result != 60) return 4;
+    if (result != 60) return 4U;
     result = thph.handler(100U, 200U, 300U);
-    if (result != 600) return 5;
+    if (result != 600) return 5U;
     MixedHandler mh = {0};
     mh.handler = mixedParams;
     result = mh.handler(50U, true);
-    if (result != 100) return 6;
+    if (result != 100) return 6U;
     result = mh.handler(50U, false);
-    if (result != 50) return 7;
-    return 0;
+    if (result != 50) return 7U;
+    return 0U;
 }

@@ -28,12 +28,12 @@ void clearConfigName(void) {
 
 int main(void) {
     setConfigName();
-    if (strlen(config.name) != 10) return 1;
+    if (strlen(config.name) != 10) return 1U;
     updateConfigName();
-    if (strlen(config.name) != 7) return 2;
+    if (strlen(config.name) != 7) return 2U;
     clearConfigName();
-    if (strlen(config.name) != 0) return 3;
+    if (strlen(config.name) != 0) return 3U;
     (void) strncpy(config.name, "DirectAssign", 32); config.name[32] = '\0';
-    if (strlen(config.name) != 12) return 4;
-    return 0;
+    if (strlen(config.name) != 12) return 4U;
+    return 0U;
 }

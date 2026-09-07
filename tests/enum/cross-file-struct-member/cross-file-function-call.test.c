@@ -12,10 +12,10 @@
 
 int main(void) {
     uint32_t sum = MathUtils__add(10U, 20U);
-    if (sum != 30) return 1;
+    if (sum != 30) return 1U;
     uint32_t product = MathUtils__multiply(5U, 6U);
-    if (product != 30) return 2;
+    if (product != 30) return 2U;
     uint32_t combined = MathUtils__add(sum, product);
-    if (combined != 60) return 3;
-    return 0;
+    if (combined != 60) return 3U;
+    return 0U;
 }

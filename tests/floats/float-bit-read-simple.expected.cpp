@@ -15,6 +15,6 @@ int main(void) {
     union { float f; uint32_t u; } __bits_testVal;
     __bits_testVal.f = testVal;
     uint8_t byte3 = ((__bits_testVal.u >> 24U) & 0xFFU);
-    if (byte3 != 0x3F) return 1;
-    return 0;
+    if (byte3 != 0x3F) return 1U;
+    return 0U;
 }

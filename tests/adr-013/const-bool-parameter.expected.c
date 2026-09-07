@@ -28,16 +28,16 @@ uint32_t selectByBool(const bool flag, uint32_t ifTrue, uint32_t ifFalse) {
 
 int main(void) {
     bool result = readConstBool(true);
-    if (result == false) return 1;
+    if (result == false) return 1U;
     bool falseResult = readConstBool(false);
-    if (falseResult == true) return 2;
+    if (falseResult == true) return 2U;
     bool notTrue = notConstBool(true);
-    if (notTrue == true) return 3;
+    if (notTrue == true) return 3U;
     bool notFalse = notConstBool(false);
-    if (notFalse == false) return 4;
+    if (notFalse == false) return 4U;
     uint32_t selected = selectByBool(true, 100U, 200U);
-    if (selected != 100) return 5;
+    if (selected != 100) return 5U;
     uint32_t selected2 = selectByBool(false, 100U, 200U);
-    if (selected2 != 200) return 6;
-    return 0;
+    if (selected2 != 200) return 6U;
+    return 0U;
 }

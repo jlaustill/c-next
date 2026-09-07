@@ -18,6 +18,6 @@ int main(void) {
     uint8_t buffer[8] = {};
     buffer[0] = 0U;
     writeToSized(buffer, 0U, 42U);
-    if (buffer[0U] != 42) return 1;
-    return 0;
+    if (buffer[0U] != 42) return 1U;
+    return 0U;
 }

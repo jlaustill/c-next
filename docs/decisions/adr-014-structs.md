@@ -274,6 +274,52 @@ Rectangle r <- Rectangle {
 };
 ```
 
+## Diagnostics
+
+| Code  | Reported when                                                                           | Asserted by                                          |
+| ----- | --------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| E0356 | A struct initializer writes a type where the position it stands in already declares one | `tests/adr-014/struct-redundant-type-error.test.cnx` |
+| E0357 | A struct initializer writes no type and stands where no position declares one           | `tests/adr-014/struct-no-type-error.test.cnx`        |
+
+A struct literal has no type of its own. Either it writes one, or the position
+supplies one, and exactly one of those must hold. The positions that supply a
+type are a variable's declaration (including a `for` header's), an assignment
+target, a field of an enclosing initializer, a call argument, and a `return`
+statement, whose type is the enclosing function's declared return type. The
+only shape that supplies nothing is a bare expression statement.
+
+Both are decided during analysis, at the initializer's own position, and every
+offense in a file is reported.
+
+## Scope-Context Matrix (#1219)
+
+Severity follows the eslint model: `off` records that a cell **cannot exist**,
+`warn` that it should be covered and is not, `error` that it must be.
+
+<!-- MATRIX-SEVERITY -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| scope member       | same file           | error    |
+| top-level function | imported direct     | off      |
+| scope method       | imported direct     | off      |
+| global variable    | imported direct     | off      |
+| scope member       | imported direct     | off      |
+| top-level function | imported transitive | off      |
+| scope method       | imported transitive | off      |
+| global variable    | imported transitive | off      |
+| scope member       | imported transitive | off      |
+
+Both rules are decided entirely within the file that writes the initializer:
+whether a type is written is syntax, and whether the position supplies one is a
+question about that initializer's own ancestors. Nothing crosses an include, so
+the imported cells record that they cannot exist rather than that they are
+uncovered. The struct being initialized may of course be declared elsewhere --
+that is what makes it a struct, not what makes either rule fire.
+
 ## Implementation Notes
 
 ### Grammar Changes

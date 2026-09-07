@@ -15,18 +15,18 @@ uint64_t readConstU64(const uint64_t value) {
 }
 
 uint64_t halfConstU64(const uint64_t value) {
-    return value / 2;
+    return value / 2ULL;
 }
 
 int main(void) {
     uint64_t result = readConstU64(1000000ULL);
-    if (result != 1000000) return 1;
+    if (result != 1000000) return 1U;
     uint64_t largeResult = readConstU64(4294967296ULL);
-    if (largeResult != 4294967296) return 2;
+    if (largeResult != 4294967296) return 2U;
     uint64_t halved = halfConstU64(1000ULL);
-    if (halved != 500) return 3;
+    if (halved != 500) return 3U;
     uint64_t myValue = 9999999ULL;
     uint64_t readBack = readConstU64(myValue);
-    if (readBack != 9999999) return 4;
-    return 0;
+    if (readBack != 9999999) return 4U;
+    return 0U;
 }

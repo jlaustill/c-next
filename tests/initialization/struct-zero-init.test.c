@@ -20,8 +20,8 @@ ZeroInit__Config settings = {0};
 int main(void) {
     if (origin.x == 0 && origin.y == 0) {
         if (settings.baudRate == 0 && settings.dataBits == 0 && settings.enabled == false) {
-            return 0;
+            return 0U;
         }
     }
-    return 1;
+    return 1U;
 }

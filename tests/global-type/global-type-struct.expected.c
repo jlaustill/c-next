@@ -39,12 +39,12 @@ int main(void) {
     PointManager__setPoint(10, 20);
     int32_t x = PointManager__getX();
     int32_t y = PointManager__getY();
-    if (x != 10) return 1;
-    if (y != 20) return 2;
+    if (x != 10) return 1U;
+    if (y != 20) return 2U;
     Point2D p = PointManager__getPoint();
-    if (p.x != 10) return 3;
-    if (p.y != 20) return 4;
+    if (p.x != 10) return 3U;
+    if (p.y != 20) return 4U;
     int32_t total = PointManager__sum(&p);
-    if (total != 30) return 5;
-    return 0;
+    if (total != 30) return 5U;
+    return 0U;
 }

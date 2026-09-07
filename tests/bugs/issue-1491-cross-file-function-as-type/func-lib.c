@@ -11,7 +11,7 @@
 // declaration a TYPE, and draws no line at the include boundary. The fixture
 // includes this file, declares variables of these types, and calls through them.
 uint32_t sharedHelper(void) {
-    return 7;
+    return 7U;
 }
 
 void sharedNotify(void) {
@@ -22,5 +22,5 @@ void sharedNotify(void) {
 // function here takes none, so `symbol.parameters.map(...)` ran zero times and
 // the parameter half of the symbol path was never reached at all.
 uint32_t sharedWithCount(uint32_t n) {
-    return n + 1;
+    return n + 1U;
 }

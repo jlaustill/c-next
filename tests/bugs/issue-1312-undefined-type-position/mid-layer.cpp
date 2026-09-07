@@ -12,5 +12,5 @@
 #include <stdint.h>
 
 uint32_t midLayerFn(void) {
-    return 2;
+    return 2U;
 }

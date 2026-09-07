@@ -22,8 +22,8 @@ void Test__loadData(TransMutation__Data* d) {
 
 int main(void) {
     TransMutation__Data d = { .value = 0U };
-    if (d.value != 0) return 1;
+    if (d.value != 0) return 1U;
     Test__loadData(&d);
-    if (d.value != 42) return 2;
-    return 0;
+    if (d.value != 42) return 2U;
+    return 0U;
 }

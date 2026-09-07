@@ -38,7 +38,7 @@ int main(void) {
         i = cnx_clamp_add_u32(i, 1U);
     }
     if (eventCount == 5) {
-        return 0;
+        return 0U;
     }
-    return 1;
+    return 1U;
 }

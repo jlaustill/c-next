@@ -31,6 +31,6 @@ float TestCaller__test(void) {
 int main(void) {
     TestCaller__init();
     float result = TestCaller__test();
-    if (result != 4.0) return 1;
-    return 0;
+    if (result != 4.0) return 1U;
+    return 0U;
 }

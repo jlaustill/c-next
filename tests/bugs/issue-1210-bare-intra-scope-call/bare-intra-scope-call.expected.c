@@ -30,7 +30,7 @@
 /* Scope: Counter */
 
 uint8_t Counter__readOnly(uint8_t value) {
-    return value + 1;
+    return value + 1U;
 }
 
 uint8_t Counter__viaBare(uint8_t value) {
@@ -45,14 +45,14 @@ int main(void) {
     uint8_t start = 3U;
     uint8_t bare = Counter__viaBare(start);
     if (bare != 4) {
-        return 1;
+        return 1U;
     }
     uint8_t qualified = Counter__viaThis(start);
     if (qualified != 4) {
-        return 2;
+        return 2U;
     }
     if (start != 3) {
-        return 3;
+        return 3U;
     }
-    return 0;
+    return 0U;
 }

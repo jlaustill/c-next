@@ -11,5 +11,5 @@
 /* Scope: CanConfig */
 
 uint8_t CanConfig__bitRate(void) {
-    return 5;
+    return 5U;
 }

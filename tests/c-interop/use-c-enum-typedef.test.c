@@ -17,20 +17,20 @@ int main(void) {
     Priority med = PRIORITY_MEDIUM;
     Priority high = PRIORITY_HIGH;
     Priority crit = PRIORITY_CRITICAL;
-    if (low != 0) return 1;
-    if (med != 50) return 2;
-    if (high != 100) return 3;
-    if (crit != 255) return 4;
+    if (low != 0) return 1U;
+    if (med != 50) return 2U;
+    if (high != 100) return 3U;
+    if (crit != 255) return 4U;
     Priority p = PRIORITY_HIGH;
-    if (p != PRIORITY_HIGH) return 5;
-    if (p < PRIORITY_MEDIUM) return 6;
+    if (p != PRIORITY_HIGH) return 5U;
+    if (p < PRIORITY_MEDIUM) return 6U;
     Priority threshold = PRIORITY_MEDIUM;
     if (high > threshold) {
     } else {
-        return 7;
+        return 7U;
     }
     Permissions perm = FLAG_READ;
     perm = perm | FLAG_WRITE;
-    if (perm != 3) return 8;
-    return 0;
+    if (perm != 3) return 8U;
+    return 0U;
 }

@@ -41,7 +41,7 @@ int main(void) {
             }
         }
     }
-    if (result != 1) return 1;
+    if (result != 1) return 1U;
     b = false;
     result = 0U;
     if (a == true) {
@@ -51,7 +51,7 @@ int main(void) {
             }
         }
     }
-    if (result != 0) return 2;
+    if (result != 0) return 2U;
     a = true;
     b = false;
     c = true;
@@ -65,7 +65,7 @@ int main(void) {
             }
         }
     }
-    if (result != 11) return 3;
+    if (result != 11) return 3U;
     a = true;
     b = true;
     counter = 0U;
@@ -78,7 +78,7 @@ int main(void) {
             }
         }
     }
-    if (result != 30) return 4;
+    if (result != 30) return 4U;
     a = true;
     counter = 0U;
     result = 0U;
@@ -90,7 +90,7 @@ int main(void) {
             counter = cnx_clamp_add_u32(counter, 1U);
         }
     }
-    if (result != 100) return 5;
+    if (result != 100) return 5U;
     counter = 0U;
     result = 0U;
     while (counter < 4) {
@@ -101,7 +101,7 @@ int main(void) {
         }
         counter = cnx_clamp_add_u32(counter, 1U);
     }
-    if (result != 2) return 6;
+    if (result != 2) return 6U;
     uint32_t i = 0U;
     uint32_t j = 0U;
     uint32_t k = 0U;
@@ -118,27 +118,27 @@ int main(void) {
         }
         i = cnx_clamp_add_u32(i, 1U);
     }
-    if (counter != 8) return 7;
+    if (counter != 8) return 7U;
     result = 0U;
-    for (uint32_t x = 0; x < 5; x = x + 1) {
+    for (uint32_t x = 0U; x < 5; x = x + 1) {
         if (x > 1) {
             if (x < 4) {
                 result = cnx_clamp_add_u32(result, x);
             }
         }
     }
-    if (result != 5) return 8;
+    if (result != 5) return 8U;
     counter = 0U;
-    for (uint32_t p = 0; p < 2; p = p + 1) {
-        for (uint32_t q = 0; q < 2; q = q + 1) {
-            for (uint32_t r = 0; r < 2; r = r + 1) {
+    for (uint32_t p = 0U; p < 2; p = p + 1) {
+        for (uint32_t q = 0U; q < 2; q = q + 1) {
+            for (uint32_t r = 0U; r < 2; r = r + 1) {
                 counter = cnx_clamp_add_u32(counter, 1U);
             }
         }
     }
-    if (counter != 8) return 9;
+    if (counter != 8) return 9U;
     result = 0U;
-    for (uint32_t m = 0; m < 3; m = m + 1) {
+    for (uint32_t m = 0U; m < 3; m = m + 1) {
         uint32_t n = 0U;
         while (n < 2) {
             if (m == 1) {
@@ -147,11 +147,11 @@ int main(void) {
             n = cnx_clamp_add_u32(n, 1U);
         }
     }
-    if (result != 10) return 10;
+    if (result != 10) return 10U;
     a = true;
     result = 0U;
     if (a == true) {
-        for (uint32_t f = 0; f < 2; f = f + 1) {
+        for (uint32_t f = 0U; f < 2; f = f + 1) {
             uint32_t g = 0U;
             while (g < 3) {
                 result = cnx_clamp_add_u32(result, 1U);
@@ -159,18 +159,18 @@ int main(void) {
             }
         }
     }
-    if (result != 6) return 11;
+    if (result != 6) return 11U;
     counter = 0U;
     result = 0U;
     while (counter < 2) {
-        for (uint32_t h = 0; h < 3; h = h + 1) {
+        for (uint32_t h = 0U; h < 3; h = h + 1) {
             if (h == 1) {
                 result = cnx_clamp_add_u32(result, 7U);
             }
         }
         counter = cnx_clamp_add_u32(counter, 1U);
     }
-    if (result != 14) return 12;
+    if (result != 14) return 12U;
     a = true;
     b = true;
     uint32_t sel = 2U;
@@ -197,9 +197,9 @@ int main(void) {
             }
         }
     }
-    if (result != 102) return 13;
+    if (result != 102) return 13U;
     result = 0U;
-    for (uint32_t s = 0; s < 4; s = s + 1) {
+    for (uint32_t s = 0U; s < 4; s = s + 1) {
         if (s > 0 && s < 3) {
             switch (s) {
                         case 1: {
@@ -217,7 +217,7 @@ int main(void) {
             }
         }
     }
-    if (result != 30) return 14;
+    if (result != 30) return 14U;
     sel = 1U;
     a = true;
     b = true;
@@ -244,7 +244,7 @@ int main(void) {
             break;
         }
     }
-    if (result != 201) return 15;
+    if (result != 201) return 15U;
     a = true;
     counter = 0U;
     result = 0U;
@@ -267,26 +267,26 @@ int main(void) {
             counter = cnx_clamp_add_u32(counter, 1U);
         }
     }
-    if (result != 20) return 16;
+    if (result != 20) return 16U;
     counter = 0U;
-    for (uint32_t aa = 0; aa < 3; aa = aa + 1) {
-        for (uint32_t bb = 0; bb < 3; bb = bb + 1) {
-            for (uint32_t cc = 0; cc < 2; cc = cc + 1) {
+    for (uint32_t aa = 0U; aa < 3; aa = aa + 1) {
+        for (uint32_t bb = 0U; bb < 3; bb = bb + 1) {
+            for (uint32_t cc = 0U; cc < 2; cc = cc + 1) {
                 counter = cnx_clamp_add_u32(counter, 1U);
             }
         }
     }
-    if (counter != 18) return 17;
+    if (counter != 18) return 17U;
     result = 0U;
-    for (uint32_t dd = 0; dd < 2; dd = dd + 1) {
-        for (uint32_t ee = 0; ee < 2; ee = ee + 1) {
-            for (uint32_t ff = 0; ff < 3; ff = ff + 1) {
+    for (uint32_t dd = 0U; dd < 2; dd = dd + 1) {
+        for (uint32_t ee = 0U; ee < 2; ee = ee + 1) {
+            for (uint32_t ff = 0U; ff < 3; ff = ff + 1) {
                 if (ff != 1) {
                     result = cnx_clamp_add_u32(result, 1U);
                 }
             }
         }
     }
-    if (result != 8) return 18;
-    return 0;
+    if (result != 8) return 18U;
+    return 0U;
 }

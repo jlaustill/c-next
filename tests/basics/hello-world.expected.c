@@ -24,5 +24,5 @@ int main(int argc, char *argv[]) {
     }
     uint8_t whoAmIByte = argv[0U][0U];
     (void)printf("Hello from %s %s! Your special character is %c\n", argv[0U], userName, whoAmIByte);
-    return 0;
+    return 0U;
 }

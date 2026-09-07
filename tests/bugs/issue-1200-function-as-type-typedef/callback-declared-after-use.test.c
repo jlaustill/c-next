@@ -18,11 +18,11 @@ uint32_t callIt(tickSource_fp source) {
 }
 
 uint32_t tickSource(void) {
-    return 0;
+    return 0U;
 }
 
 uint32_t platformClock(void) {
-    return 12345;
+    return 12345U;
 }
 
 void demo(void) {

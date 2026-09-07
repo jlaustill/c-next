@@ -27,45 +27,45 @@ int main(void) {
     uint32_t sum = 0U;
     bool condition = true;
     if (condition == true) {
-        for (uint32_t i = 0; i < 5; i = i + 1) {
+        for (uint32_t i = 0U; i < 5; i = i + 1) {
             sum = cnx_clamp_add_u32(sum, i);
         }
     }
-    if (sum != 10) return 1;
+    if (sum != 10) return 1U;
     sum = 0U;
     condition = false;
     if (condition == true) {
         sum = 100U;
     } else {
-        for (uint32_t i = 0; i < 3; i = i + 1) {
+        for (uint32_t i = 0U; i < 3; i = i + 1) {
             sum = cnx_clamp_add_u32(sum, 10U);
         }
     }
-    if (sum != 30) return 2;
+    if (sum != 30) return 2U;
     uint32_t resultA = 0U;
     uint32_t resultB = 0U;
     bool flag = true;
     if (flag == true) {
-        for (uint32_t i = 0; i < 4; i = i + 1) {
+        for (uint32_t i = 0U; i < 4; i = i + 1) {
             resultA = cnx_clamp_add_u32(resultA, 1U);
         }
     } else {
-        for (uint32_t i = 0; i < 2; i = i + 1) {
+        for (uint32_t i = 0U; i < 2; i = i + 1) {
             resultB = cnx_clamp_add_u32(resultB, 1U);
         }
     }
-    if (resultA != 4) return 3;
-    if (resultB != 0) return 4;
+    if (resultA != 4) return 3U;
+    if (resultB != 0) return 4U;
     sum = 0U;
     condition = true;
     flag = true;
     if (condition == true) {
         if (flag == true) {
-            for (uint32_t i = 0; i < 5; i = i + 1) {
+            for (uint32_t i = 0U; i < 5; i = i + 1) {
                 sum = cnx_clamp_add_u32(sum, 2U);
             }
         }
     }
-    if (sum != 10) return 5;
-    return 0;
+    if (sum != 10) return 5U;
+    return 0U;
 }

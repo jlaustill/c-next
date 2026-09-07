@@ -16,19 +16,19 @@
 
 int main(void) {
     Point p = { .x = 10, .y = 20 };
-    if (p.x != 10) return 1;
-    if (p.y != 20) return 2;
+    if (p.x != 10) return 1U;
+    if (p.y != 20) return 2U;
     Rectangle rect = { .topLeft = { .x = 0, .y = 0 }, .bottomRight = { .x = 100, .y = 100 } };
-    if (rect.topLeft.x != 0) return 3;
-    if (rect.bottomRight.y != 100) return 4;
+    if (rect.topLeft.x != 0) return 3U;
+    if (rect.bottomRight.y != 100) return 4U;
     StructInit__Data d = { .id = 42U, .flags = 0xFFU, .count = 1000U };
-    if (d.id != 42) return 5;
-    if (d.flags != 0xFF) return 6;
-    if (d.count != 1000) return 7;
+    if (d.id != 42) return 5U;
+    if (d.flags != 0xFF) return 6U;
+    if (d.count != 1000) return 7U;
     Point p2 = {0};
     p2.x = 10;
     p2.y = 20;
-    if (p2.x != 10) return 8;
-    if (p2.y != 20) return 9;
-    return 0;
+    if (p2.x != 10) return 8U;
+    if (p2.y != 20) return 9U;
+    return 0U;
 }

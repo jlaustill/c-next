@@ -31,7 +31,7 @@ class StructInitializerType {
   ): string | null {
     const typeText =
       init.IDENTIFIER()?.getText() ??
-      StructInitializerType.expectedTypeText(init, frame, operands);
+      StructInitializerType.establishedTypeText(init, frame, operands);
     return typeText === null
       ? null
       : StructInitializerType.structNamed(typeText, frame.scopePath);
@@ -49,11 +49,56 @@ class StructInitializerType {
   }
 
   /**
+   * Whether ANY enclosing position supplies a type for this initializer,
+   * without asking what that type resolves to.
+   *
+   * ADR-014's two diagnostics need only this. Asking for the resolved NAME
+   * conflates "no position supplies a type" with "a position supplies one and
+   * this pass cannot name it", and those are opposite answers: the first is
+   * E0357, the second must stay silent. The distinction is not hypothetical --
+   * a field of a struct declared in an included C header resolves through the
+   * C symbols rather than the C-Next view, so `{ flag_a: 1 }` inside
+   * `SimpleConfig cfg <- { flags: { flag_a: 1 } }` has a position supplying a
+   * type that this pass cannot name, and nine `tests/interop` fixtures say so.
+   */
+  static hasEstablishingPosition(
+    init: Parser.StructInitializerContext,
+  ): boolean {
+    let cursor: ParserRuleContext | null = init.parent;
+    while (cursor) {
+      // A subscript's expression is reached before any declaration above it,
+      // and nothing there supplies a struct type.
+      if (cursor instanceof Parser.PostfixOpContext) return false;
+      if (
+        cursor instanceof Parser.VariableDeclarationContext ||
+        cursor instanceof Parser.ForVarDeclContext ||
+        cursor instanceof Parser.FieldInitializerContext ||
+        cursor instanceof Parser.AssignmentStatementContext ||
+        cursor instanceof Parser.ReturnStatementContext ||
+        cursor instanceof Parser.ArgumentListContext
+      ) {
+        return true;
+      }
+      cursor = cursor.parent;
+    }
+    return false;
+  }
+
+  /**
    * The type an inferred initializer must take, read off the nearest
    * establishing ancestor, or null when it stands somewhere no type reaches
    * it (a subscript, a bare expression statement).
+   *
+   * Public because ADR-014's two diagnostics ask exactly this and nothing
+   * else: a written type where a position already supplies one is redundant
+   * (E0356), and no written type where no position supplies one cannot be
+   * resolved (E0357). Codegen asks the same question by threading
+   * `expectedType` DOWN as it generates; this walks UP from the literal. Two
+   * mechanisms, one rule -- the boundary is stated at both ends, because the
+   * renderer may not import an analyzer and the analyzer must not read
+   * codegen state.
    */
-  private static expectedTypeText(
+  static establishedTypeText(
     init: Parser.StructInitializerContext,
     frame: IScopeFrame,
     operands: OperandTypeResolver,

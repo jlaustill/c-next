@@ -29,13 +29,13 @@ bool Motor__isOff(void) {
 
 int main(void) {
     EGlobalState state = EGlobalState__IDLE;
-    if (state != EGlobalState__IDLE) return 1;
+    if (state != EGlobalState__IDLE) return 1U;
     state = EGlobalState__RUNNING;
-    if (state != EGlobalState__RUNNING) return 2;
+    if (state != EGlobalState__RUNNING) return 2U;
     Motor__setMode(Motor__EMode__LOW);
     Motor__EMode motorMode = Motor__getMode();
-    if (motorMode != Motor__EMode__LOW) return 3;
+    if (motorMode != Motor__EMode__LOW) return 3U;
     bool isOff = Motor__isOff();
-    if (isOff == true) return 4;
-    return 0;
+    if (isOff == true) return 4U;
+    return 0U;
 }

@@ -17,16 +17,16 @@ int main(void) {
     float at_min = -128.0;
     float negative = -50.5;
     int8_t result = ((over) > ((float)INT8_MAX) ? static_cast<int8_t>(INT8_MAX) : (over) < ((float)INT8_MIN) ? static_cast<int8_t>(INT8_MIN) : static_cast<int8_t>((over)));
-    if (result != 127) return 1;
+    if (result != 127) return 1U;
     result = ((under) > ((float)INT8_MAX) ? static_cast<int8_t>(INT8_MAX) : (under) < ((float)INT8_MIN) ? static_cast<int8_t>(INT8_MIN) : static_cast<int8_t>((under)));
-    if (result != -128) return 2;
+    if (result != -128) return 2U;
     result = ((in_range) > ((float)INT8_MAX) ? static_cast<int8_t>(INT8_MAX) : (in_range) < ((float)INT8_MIN) ? static_cast<int8_t>(INT8_MIN) : static_cast<int8_t>((in_range)));
-    if (result != 50) return 3;
+    if (result != 50) return 3U;
     result = ((at_max) > ((float)INT8_MAX) ? static_cast<int8_t>(INT8_MAX) : (at_max) < ((float)INT8_MIN) ? static_cast<int8_t>(INT8_MIN) : static_cast<int8_t>((at_max)));
-    if (result != 127) return 4;
+    if (result != 127) return 4U;
     result = ((at_min) > ((float)INT8_MAX) ? static_cast<int8_t>(INT8_MAX) : (at_min) < ((float)INT8_MIN) ? static_cast<int8_t>(INT8_MIN) : static_cast<int8_t>((at_min)));
-    if (result != -128) return 5;
+    if (result != -128) return 5U;
     result = ((negative) > ((float)INT8_MAX) ? static_cast<int8_t>(INT8_MAX) : (negative) < ((float)INT8_MIN) ? static_cast<int8_t>(INT8_MIN) : static_cast<int8_t>((negative)));
-    if (result != -50) return 6;
-    return 0;
+    if (result != -50) return 6U;
+    return 0U;
 }

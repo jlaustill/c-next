@@ -16,10 +16,10 @@ const uint8_t HALF_CYCLE = 128U;
 
 int main(void) {
     uint8_t full = FULL_CYCLE;
-    if (full != 255) return 1;
+    if (full != 255) return 1U;
     uint8_t half = HALF_CYCLE;
-    if (half != 128) return 2;
+    if (half != 128) return 2U;
     uint8_t quarter = HALF_CYCLE / 2U;
-    if (quarter != 64) return 3;
-    return 0;
+    if (quarter != 64) return 3U;
+    return 0U;
 }

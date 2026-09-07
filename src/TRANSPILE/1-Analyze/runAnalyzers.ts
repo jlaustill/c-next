@@ -34,6 +34,7 @@ import BareEnumMemberAnalyzer from "./BareEnumMemberAnalyzer";
 import ArrayDeclarationAnalyzer from "./ArrayDeclarationAnalyzer";
 import ArrayIndexBoundsAnalyzer from "./ArrayIndexBoundsAnalyzer";
 import CallbackAssignmentAnalyzer from "./CallbackAssignmentAnalyzer";
+import StructLiteralAnalyzer from "./StructLiteralAnalyzer";
 import ConstAssignmentAnalyzer from "./ConstAssignmentAnalyzer";
 import LoopAnalyzer from "./LoopAnalyzer";
 import SliceAssignmentAnalyzer from "./SliceAssignmentAnalyzer";
@@ -329,6 +330,10 @@ function runAnalyzers(
     {
       label: "callback typing (ADR-029, E0879/E0880)",
       run: () => new CallbackAssignmentAnalyzer().analyze(tree),
+    },
+    {
+      label: "struct initializers (ADR-014, E0356/E0357)",
+      run: () => new StructLiteralAnalyzer().analyze(tree),
     },
     {
       // Last, and does not halt: comment findings are reported alongside

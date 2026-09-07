@@ -18,5 +18,5 @@
 uint32_t devices[DEVICE_COUNT] = {};
 
 int main(void) {
-    return 0;
+    return 0U;
 }

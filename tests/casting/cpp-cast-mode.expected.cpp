@@ -15,8 +15,8 @@
 
 int main(void) {
     uint32_t val = static_cast<uint32_t>(Priority__LOW);
-    if (val != 1) return 1;
+    if (val != 1) return 1U;
     uint32_t highVal = static_cast<uint32_t>(Priority__HIGH);
-    if (highVal != 10) return 2;
-    return 0;
+    if (highVal != 10) return 2U;
+    return 0U;
 }

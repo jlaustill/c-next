@@ -22,25 +22,25 @@ uint16_t magic[10] = {0xDEADU, 0xDEADU, 0xDEADU, 0xDEADU, 0xDEADU, 0xDEADU, 0xDE
 int32_t negatives[5] = {-1, -1, -1, -1, -1};
 
 int main(void) {
-    if (buffer[0U] != 0) return 1;
-    if (buffer[49U] != 0) return 2;
-    if (buffer[99U] != 0) return 3;
-    if (ones[0U] != 1) return 4;
-    if (ones[24U] != 1) return 5;
-    if (ones[49U] != 1) return 6;
-    if (magic[0U] != 0xDEAD) return 7;
-    if (magic[5U] != 0xDEAD) return 8;
-    if (magic[9U] != 0xDEAD) return 9;
-    if (negatives[0U] != -1) return 10;
-    if (negatives[2U] != -1) return 11;
-    if (negatives[4U] != -1) return 12;
+    if (buffer[0U] != 0) return 1U;
+    if (buffer[49U] != 0) return 2U;
+    if (buffer[99U] != 0) return 3U;
+    if (ones[0U] != 1) return 4U;
+    if (ones[24U] != 1) return 5U;
+    if (ones[49U] != 1) return 6U;
+    if (magic[0U] != 0xDEAD) return 7U;
+    if (magic[5U] != 0xDEAD) return 8U;
+    if (magic[9U] != 0xDEAD) return 9U;
+    if (negatives[0U] != -1) return 10U;
+    if (negatives[2U] != -1) return 11U;
+    if (negatives[4U] != -1) return 12U;
     buffer[50] = 42U;
-    if (buffer[50U] != 42) return 13;
-    if (buffer[49U] != 0) return 14;
-    if (buffer[51U] != 0) return 15;
+    if (buffer[50U] != 42) return 13U;
+    if (buffer[49U] != 0) return 14U;
+    if (buffer[51U] != 0) return 15U;
     ones[25] = 255U;
-    if (ones[25U] != 255) return 16;
-    if (ones[24U] != 1) return 17;
-    if (ones[26U] != 1) return 18;
-    return 0;
+    if (ones[25U] != 255) return 16U;
+    if (ones[24U] != 1) return 17U;
+    if (ones[26U] != 1) return 18U;
+    return 0U;
 }

@@ -30,8 +30,8 @@ int main(void) {
     int64_t small_and = small_a & small_b;
     if (small_and == 160 && not_minus_one == 0) {
         if (neg_and == -4294967296) {
-            return 0;
+            return 0U;
         }
     }
-    return 1;
+    return 1U;
 }

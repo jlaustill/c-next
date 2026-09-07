@@ -34,9 +34,9 @@ uint8_t A__readIt(void) {
 
 int main(void) {
     uint8_t fromA_B = A_B__readIt();
-    if (fromA_B != 11) return 1;
+    if (fromA_B != 11) return 1U;
     uint8_t fromA = A__readIt();
-    if (fromA != 22) return 2;
-    if (fromA_B == fromA) return 3;
-    return 0;
+    if (fromA != 22) return 2U;
+    if (fromA_B == fromA) return 3U;
+    return 0U;
 }

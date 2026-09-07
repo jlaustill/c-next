@@ -29,59 +29,59 @@ int main(void) {
     int16_t d = -50;
     int16_t maxResult1 = getMax(a, b);
     if (maxResult1 != 200) {
-        return 1;
+        return 1U;
     }
     int16_t maxResult2 = getMax(c, d);
     if (maxResult2 != -50) {
-        return 2;
+        return 2U;
     }
     int16_t minResult1 = getMin(a, b);
     if (minResult1 != 100) {
-        return 3;
+        return 3U;
     }
     int16_t minResult2 = getMin(c, d);
     if (minResult2 != -300) {
-        return 4;
+        return 4U;
     }
     int16_t absResult1 = getAbs(c);
     if (absResult1 != 300) {
-        return 5;
+        return 5U;
     }
     int16_t absResult2 = getAbs(a);
     if (absResult2 != 100) {
-        return 6;
+        return 6U;
     }
     int16_t result = (a > c) ? a : c;
     if (result != 100) {
-        return 7;
+        return 7U;
     }
     int16_t max_val = 32767;
     int16_t mid_val = 1000;
     int16_t edge_result = (max_val > mid_val) ? max_val : mid_val;
     if (edge_result != 32767) {
-        return 8;
+        return 8U;
     }
     int16_t min_val = -32768;
     int16_t neg_mid = -1000;
     int16_t min_result = (min_val < neg_mid) ? min_val : neg_mid;
     if (min_result != -32768) {
-        return 9;
+        return 9U;
     }
     int16_t equal_test = (c == -300) ? 1000 : -1000;
     if (equal_test != 1000) {
-        return 10;
+        return 10U;
     }
     int16_t neg = -1000;
     int16_t pos = 1000;
     int16_t zero_cross = (neg < 0) ? pos : neg;
     if (zero_cross != 1000) {
-        return 11;
+        return 11U;
     }
     int16_t large_neg = -30000;
     int16_t large_pos = 30000;
     int16_t large_result = (large_neg < large_pos) ? large_pos : large_neg;
     if (large_result != 30000) {
-        return 12;
+        return 12U;
     }
-    return 0;
+    return 0U;
 }

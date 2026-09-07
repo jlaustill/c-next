@@ -59,7 +59,7 @@ int main(void) {
     recordError();
     recordRetry();
     if (eventCount == 3 && errorCount == 2 && retryCount == 1) {
-        return 0;
+        return 0U;
     }
-    return 1;
+    return 1U;
 }

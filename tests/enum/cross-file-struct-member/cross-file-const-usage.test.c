@@ -30,12 +30,12 @@ static inline uint8_t cnx_clamp_mul_u8(uint8_t a, uint32_t b) {
 
 int main(void) {
     uint8_t doubled = cnx_clamp_mul_u8(COUNT, 2U);
-    if (doubled != 8) return 1;
-    if (COUNT != 4) return 2;
+    if (doubled != 8) return 1U;
+    if (COUNT != 4) return 2U;
     uint8_t sum = 0U;
-    for (uint8_t i = 0; i < COUNT; i += 1) {
+    for (uint8_t i = 0U; i < COUNT; i += 1) {
         sum = cnx_clamp_add_u8(sum, 1U);
     }
-    if (sum != 4) return 3;
-    return 0;
+    if (sum != 4) return 3U;
+    return 0U;
 }

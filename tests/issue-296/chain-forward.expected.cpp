@@ -40,15 +40,15 @@ int main(void) {
     Waypoint wp = { .position = dest, .id = 42U };
     Navigator__setDestination(wp);
     Waypoint retrieved = Navigator__getDestination();
-    if (retrieved.id != 42) return 1;
-    if (retrieved.position.x != 100) return 2;
-    if (retrieved.position.y != 200) return 3;
-    if (retrieved.position.z != 50) return 4;
+    if (retrieved.id != 42) return 1U;
+    if (retrieved.position.x != 100) return 2U;
+    if (retrieved.position.y != 200) return 3U;
+    if (retrieved.position.z != 50) return 4U;
     ChainTypesBase__Coordinate newPos = { .x = 10, .y = 20, .z = 5 };
     Navigator__moveTo(newPos);
     ChainTypesBase__Coordinate currentPos = Navigator__getCurrentPosition();
-    if (currentPos.x != 10) return 5;
-    if (currentPos.y != 20) return 6;
-    if (currentPos.z != 5) return 7;
-    return 0;
+    if (currentPos.x != 10) return 5U;
+    if (currentPos.y != 20) return 6U;
+    if (currentPos.z != 5) return 7U;
+    return 0U;
 }

@@ -32,12 +32,12 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 
 uint8_t CommandHandler__setValue(ConstCond__Config* cfg, uint32_t val) {
     cfg->value = val;
-    return 0;
+    return 0U;
 }
 
 uint8_t CommandHandler__enable(ConstCond__Config* cfg) {
     cfg->enabled = true;
-    return 0;
+    return 0U;
 }
 
 // BUG: Declaration first, reassignment with modifying call inside if
@@ -76,7 +76,7 @@ void handleWhileLoop(ConstCond__Config* config) {
 // Variant: reassignment inside for loop
 void handleForLoop(ConstCond__Config* config) {
     uint8_t errorCode = 0U;
-    for (uint32_t i = 0; i < 1; i = i + 1) {
+    for (uint32_t i = 0U; i < 1; i = i + 1) {
         errorCode = CommandHandler__setValue(config, 200U);
     }
 }
@@ -100,23 +100,23 @@ int main(void) {
     cfg.value = 0U;
     cfg.enabled = false;
     handleEnableSpn(&cfg);
-    if (cfg.value != 42) return 1;
+    if (cfg.value != 42) return 1U;
     cfg.value = 0U;
     cfg.enabled = false;
     handleElseBranch(&cfg);
-    if (cfg.enabled != true) return 2;
+    if (cfg.enabled != true) return 2U;
     cfg.value = 0U;
     cfg.enabled = false;
     handleWhileLoop(&cfg);
-    if (cfg.value != 100) return 3;
+    if (cfg.value != 100) return 3U;
     cfg.value = 0U;
     handleForLoop(&cfg);
-    if (cfg.value != 200) return 4;
+    if (cfg.value != 200) return 4U;
     cfg.value = 0U;
     handleDeclaration(&cfg);
-    if (cfg.value != 42) return 5;
+    if (cfg.value != 42) return 5U;
     cfg.value = 0U;
     handleTopLevel(&cfg);
-    if (cfg.value != 300) return 6;
-    return 0;
+    if (cfg.value != 300) return 6U;
+    return 0U;
 }

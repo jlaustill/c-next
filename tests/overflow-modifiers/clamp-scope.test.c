@@ -50,20 +50,20 @@ void ClampScope__reset(uint8_t value) {
 
 int main(void) {
     uint8_t val = ClampScope__getBrightness();
-    if (val != 200) return 1;
+    if (val != 200) return 1U;
     ClampScope__triggerOverflow();
     val = ClampScope__getBrightness();
-    if (val != 255) return 2;
+    if (val != 255) return 2U;
     ClampScope__reset(50U);
     ClampScope__triggerUnderflow();
     val = ClampScope__getBrightness();
-    if (val != 0) return 3;
+    if (val != 0) return 3U;
     ClampScope__reset(250U);
     ClampScope__triggerOverflow();
     val = ClampScope__getBrightness();
-    if (val != 255) return 4;
+    if (val != 255) return 4U;
     ClampScope__triggerUnderflow();
     val = ClampScope__getBrightness();
-    if (val != 0) return 5;
-    return 0;
+    if (val != 0) return 5U;
+    return 0U;
 }

@@ -56,7 +56,7 @@ Lib__Point Lib__makeOrigin(void) {
 uint8_t Lib__useFlags(void) {
     Lib__Flags f = 0;
     f = (f & ~(1U << 0)) | (1U << 0);
-    return ((f >> 1) & 0x7);
+    return (uint8_t)((f >> 1) & 0x7);
 }
 
 uint32_t Lib__runAll(void) {
@@ -74,6 +74,6 @@ uint32_t Lib__runAll(void) {
 
 int main(void) {
     uint32_t result = Lib__runAll();
-    if (result != 122) return 1;
-    return 0;
+    if (result != 122) return 1U;
+    return 0U;
 }

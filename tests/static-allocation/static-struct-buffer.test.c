@@ -35,7 +35,7 @@ int main(void) {
     addReading(idx1, ts2, val2, id2);
     addReading(idx2, ts3, val3, id1);
     if (readings[0U].value == 25 && readings[1U].value == 30 && readings[2U].value == -5) {
-        return 0;
+        return 0U;
     }
-    return 1;
+    return 1U;
 }

@@ -25,7 +25,7 @@ shared_point_t sharedOrigin = {};
 int main(void) {
     uint32_t limit = SHARED_LIMIT_MACRO;
     if (limit != 42) {
-        return 1;
+        return 1U;
     }
-    return 0;
+    return 0U;
 }

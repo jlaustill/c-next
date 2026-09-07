@@ -70,7 +70,7 @@ void LED__toggle(void) {
 }
 
 bool LED__isOn(void) {
-    return ((Teensy4__GPIO7__PadStatusRegister >> 3) & 1);
+    return ((((Teensy4__GPIO7__PadStatusRegister >> 3) & 1)) != 0U);
 }
 
 void LED__configureInterrupt(void) {

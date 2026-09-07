@@ -46,7 +46,7 @@ int main(void) {
                     if (lte1 == true && lte2 == true && lte3 == false) {
                         if (gte1 == true && gte2 == true && gte3 == false) {
                             if (max_gt_min == true && min_lt_max == true) {
-                                return 0;
+                                return 0U;
                             }
                         }
                     }
@@ -54,5 +54,5 @@ int main(void) {
             }
         }
     }
-    return 1;
+    return 1U;
 }
