@@ -356,7 +356,6 @@ function createMockOrchestrator(options?: {
     // "nothing shadowed, keep the source name".
     registerLocalVariable: vi.fn((name: string) => name),
     flushPendingTempDeclarations: vi.fn(() => options?.tempDeclarations ?? ""),
-    validateLoopConditionNotAlwaysTrue: vi.fn(),
     countStringLengthAccesses: vi.fn(() => new Map()),
     countBlockLengthAccesses: vi.fn(),
     setupLengthCache: vi.fn(() => options?.lengthCacheDecls ?? ""),
@@ -811,17 +810,6 @@ describe("ControlFlowGenerator", () => {
   // ========================================================================
 
   describe("generateFor", () => {
-    it("rejects an empty for(;;) header as a disguised infinite loop (ADR-068 / #1075, E0707)", () => {
-      const ctx = createMockForStatement(); // no controlling expression
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({ statementCode: "{ }" });
-
-      expect(() => generateFor(ctx, input, state, orchestrator)).toThrow(
-        /E0707: for-loop has no controlling expression/,
-      );
-    });
-
     it("generates for loop with all parts", () => {
       const ctx = createMockForStatement({
         init: createMockForInit({

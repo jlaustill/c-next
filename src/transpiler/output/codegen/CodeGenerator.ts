@@ -159,7 +159,6 @@ import type IRecordedRequirement from "../../types/IRecordedRequirement";
 import ToolchainRequirementUtils from "../../../utils/ToolchainRequirementUtils";
 import ScopeUtils from "../../../utils/ScopeUtils";
 import TypeBinding from "../../../PARSE/3-Declare/TypeBinding";
-import REJECTED_KEYWORDS from "../../constants/REJECTED_KEYWORDS";
 import type ITargetCapabilities from "../../types/ITargetCapabilities";
 import DEFAULT_TARGET from "../../constants/DEFAULT_TARGET";
 import TargetResolver from "../../../utils/TargetResolver";
@@ -1019,14 +1018,6 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * ADR-068 / #1075: reject an always-true literal loop condition (E0707).
-   * Part of IOrchestrator interface.
-   */
-  validateLoopConditionNotAlwaysTrue(ctx: Parser.ExpressionContext): void {
-    TypeValidator.validateLoopConditionNotAlwaysTrue(ctx);
-  }
-
-  /**
    * Generate an assignment target.
    * Part of IOrchestrator interface.
    * Issue #387: Unified postfix chain - all patterns now use IDENTIFIER postfixTargetOp*
@@ -1818,15 +1809,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     if (ctx.IDENTIFIER()) {
       const id = ctx.IDENTIFIER()!.getText();
-      // Issue #1011: break/continue are not part of C-Next - use structured conditions
-      // ADR-026 (Status: Rejected) explicitly excludes break/continue from the language
-      if (REJECTED_KEYWORDS.has(id)) {
-        const line = ctx.start?.line ?? 0;
-        const col = ctx.start?.column ?? 0;
-        throw new Error(
-          `${line}:${col} error[E0703]: '${id}' is not supported in C-Next - use structured conditions instead`,
-        );
-      }
+      // #1322: `break`/`continue` (ADR-026, E0703) are rejected in pass 2.1.
       return this._resolveIdentifierExpression(id, ctx.start?.line);
     }
     if (ctx.literal()) {

@@ -171,11 +171,6 @@ interface IOrchestrator {
   /** Get indentation string for current level */
   indent(text: string): string;
 
-  // === Statement Validation ===
-
-  /** Reject an always-true literal loop condition (ADR-068 / #1075, E0707) */
-  validateLoopConditionNotAlwaysTrue(ctx: Parser.ExpressionContext): void;
-
   // === Control Flow Helpers ===
 
   /** Generate an assignment target */

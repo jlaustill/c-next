@@ -14370,55 +14370,6 @@ describe("CodeGenerator", () => {
       });
     });
 
-    describe("break and continue rejection (Issue #1011)", () => {
-      it("should reject break - not part of C-Next spec", () => {
-        const source = `
-          void test() {
-            u32 i <- 0;
-            while (i < 10) {
-              break;
-            }
-          }
-        `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        expect(() =>
-          generator.generate(tree, tokenStream, {
-            symbolInfo: symbols,
-            sourcePath: "test.cnx",
-          }),
-        ).toThrow("'break' is not supported in C-Next");
-      });
-
-      it("should reject continue - not part of C-Next spec", () => {
-        const source = `
-          void test() {
-            u32 i <- 0;
-            while (i < 10) {
-              i +<- 1;
-              if (i = 5) {
-                continue;
-              }
-            }
-          }
-        `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        expect(() =>
-          generator.generate(tree, tokenStream, {
-            symbolInfo: symbols,
-            sourcePath: "test.cnx",
-          }),
-        ).toThrow("'continue' is not supported in C-Next");
-      });
-    });
-
     describe("function with parameters", () => {
       it("should generate function with multiple params", () => {
         const source = `

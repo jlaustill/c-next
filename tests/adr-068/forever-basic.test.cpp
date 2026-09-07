@@ -9,6 +9,7 @@
 
 // Coverage: ADR-068 - forever loop lowers to MISRA-compliant for(;;)
 // test-transpile-only
+// test-adr: 068
 void loopForever(void) {
     uint8_t state = 0U;
     /* MISRA C:2012 Rule 14.3: infinite loop written as `for (;;)` for C-Next `forever` (`while (1)` has a controlling expression with an invariant value, which the rule forbids). */

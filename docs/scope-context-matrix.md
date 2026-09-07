@@ -90,6 +90,15 @@ cell is declared by the ADR that owns it.
 | scope member       | -         | -      | -          | n/a         | n/a        |
 | scope method       | ok        | -      | -          | n/a         | n/a        |
 
+## ADR-026
+
+| Context            | same file | direct | transitive | from 1 away | thru chain |
+| ------------------ | --------- | ------ | ---------- | ----------- | ---------- |
+| global variable    | -         | -      | -          | n/a         | n/a        |
+| top-level function | ok        | -      | -          | n/a         | n/a        |
+| scope member       | -         | -      | -          | n/a         | n/a        |
+| scope method       | ok        | -      | -          | n/a         | n/a        |
+
 ## ADR-029
 
 | Context            | same file | direct | transitive | from 1 away | thru chain |
@@ -170,6 +179,19 @@ cell is declared by the ADR that owns it.
 
 - `adr-058/length-property-deprecated.test.cnx`
 - `adr-058/length-property-enum-and-bitmap.test.cnx`
+
+## ADR-068
+
+| Context            | same file | direct | transitive | from 1 away | thru chain |
+| ------------------ | --------- | ------ | ---------- | ----------- | ---------- |
+| global variable    | -         | -      | -          | n/a         | n/a        |
+| top-level function | ok        | -      | -          | n/a         | n/a        |
+| scope member       | -         | -      | -          | n/a         | n/a        |
+| scope method       | ok        | -      | -          | n/a         | n/a        |
+
+1 linked fixture with no derivable context:
+
+- `adr-068/forever-basic.test.cnx`
 
 ## ADR-070
 

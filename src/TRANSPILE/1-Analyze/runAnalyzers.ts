@@ -30,6 +30,7 @@ import CriticalSectionAnalyzer from "./CriticalSectionAnalyzer";
 import EnumTypeSafetyAnalyzer from "./EnumTypeSafetyAnalyzer";
 import ScopeAccessAnalyzer from "./ScopeAccessAnalyzer";
 import RegisterAccessAnalyzer from "./RegisterAccessAnalyzer";
+import LoopAnalyzer from "./LoopAnalyzer";
 import SliceAssignmentAnalyzer from "./SliceAssignmentAnalyzer";
 import ControllingExpressionAnalyzer from "./ControllingExpressionAnalyzer";
 import IntegerConversionAnalyzer from "./IntegerConversionAnalyzer";
@@ -291,6 +292,12 @@ function runAnalyzers(
     {
       label: "register access modifiers (ADR-004, E0870-E0872)",
       run: () => new RegisterAccessAnalyzer().analyze(tree),
+    },
+    {
+      // After controlling expressions: the always-true check assumes E0701
+      // already guaranteed a comparison, as it did in codegen.
+      label: "loops and break/continue (ADR-068/ADR-026, E0703/E0705/E0707)",
+      run: () => new LoopAnalyzer().analyze(tree),
     },
     {
       // Last, and does not halt: comment findings are reported alongside

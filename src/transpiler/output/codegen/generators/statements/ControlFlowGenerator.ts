@@ -157,11 +157,8 @@ const generateWhile = (
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
 
-  // #1322: the E0702 and E0701 checks that stood above are authored in pass
-  // 2.1, which halts before this runs -- so the condition reaching E0707 is
-  // still guaranteed to be a comparison, which is what that check assumes.
-  // ADR-068 / #1075: reject always-true literal condition (E0707)
-  orchestrator.validateLoopConditionNotAlwaysTrue(node.expression());
+  // #1322: E0701/E0702 and the always-true check (E0707) are authored in
+  // pass 2.1, which halts before this runs.
 
   const condition = orchestrator.generateExpression(node.expression());
 
@@ -190,9 +187,6 @@ const generateDoWhile = (
   orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
-
-  // ADR-068 / #1075: reject always-true literal condition (E0707)
-  orchestrator.validateLoopConditionNotAlwaysTrue(node.expression());
 
   const body = orchestrator.generateBlock(node.block());
   const condition = orchestrator.generateExpression(node.expression());
@@ -284,14 +278,8 @@ const generateFor = (
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
 
-  // ADR-068 / #1075 E0707: a for-loop with no controlling expression (`for (;;)`)
-  // is a disguised infinite loop. C-Next has one source form for that — `forever`.
-  if (!node.expression()) {
-    throw new Error(
-      "Error E0707: for-loop has no controlling expression (infinite loop)\n" +
-        "  help: write 'forever { ... }' for an intentional infinite loop",
-    );
-  }
+  // #1322: `for (;;)` and an always-true condition are E0707 in pass 2.1
+  // (ADR-068). A header with no condition never reaches this generator.
 
   let init = "";
   const forInit = node.forInit();
@@ -320,12 +308,9 @@ const generateFor = (
   // Issue #250: Flush temps from init before generating condition
   const initTemps = orchestrator.flushPendingTempDeclarations();
 
-  // The empty-header case (`for (;;)`) already threw E0707 above, so the
-  // controlling expression is guaranteed present here.
+  // `for (;;)` is E0707 in pass 2.1, so the controlling expression is
+  // guaranteed present here.
   const conditionExpr = node.expression()!;
-
-  // ADR-068 / #1075: reject always-true literal condition (E0707)
-  orchestrator.validateLoopConditionNotAlwaysTrue(conditionExpr);
 
   const condition = orchestrator.generateExpression(conditionExpr);
 
@@ -380,15 +365,7 @@ const generateForever = (
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
 
-  // ADR-068 E0705: forever is void-only.
-  const returnType = orchestrator.getCurrentFunctionReturnType();
-  if (returnType && returnType !== "void") {
-    throw new Error(
-      "Error E0705: forever loop in non-void function\n" +
-        "  help: a forever loop never returns a value; make the function return void, " +
-        "or use a while loop with an exit condition",
-    );
-  }
+  // #1322: `forever` in a non-void function is E0705 in pass 2.1 (ADR-068).
 
   const body = orchestrator.generateBlock(node.block());
   const comment = ComplianceAnnotations.render(

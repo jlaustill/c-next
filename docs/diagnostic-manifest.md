@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-349 fixture(s) assert a diagnostic; 284 carry a code.
+350 fixture(s) assert a diagnostic; 285 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -93,6 +93,8 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-025/switch-imported-direct-error.test.cnx                                              | E0714               |
 | tests/adr-025/switch-imported-transitive-error.test.cnx                                          | E0714               |
 | tests/adr-025/switch-in-scope-method-error.test.cnx                                              | E0714               |
+| tests/adr-026/break-rejected.test.cnx                                                            | E0703               |
+| tests/adr-026/continue-rejected.test.cnx                                                         | E0703               |
 | tests/adr-045/string-array-init-error-mismatch.test.cnx                                          | E0866               |
 | tests/adr-045/string-error-concat-global.test.cnx                                                | E0863               |
 | tests/adr-045/string-error-concat-overflow.test.cnx                                              | E0864               |
@@ -115,6 +117,14 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-058/length-property-imported-transitive-error.test.cnx                                 | E0867               |
 | tests/adr-058/length-property-in-scope-error.test.cnx                                            | E0867               |
 | tests/adr-058/length-property-wrong-type-error.test.cnx                                          | E0867               |
+| tests/adr-068/forever-disguised-dowhile.test.cnx                                                 | E0707               |
+| tests/adr-068/forever-disguised-for-cond.test.cnx                                                | E0707               |
+| tests/adr-068/forever-disguised-for-empty.test.cnx                                               | E0707               |
+| tests/adr-068/forever-disguised-while-bool.test.cnx                                              | E0707               |
+| tests/adr-068/forever-disguised-while-eq.test.cnx                                                | E0707               |
+| tests/adr-068/forever-disguised-while-rel.test.cnx                                               | E0707               |
+| tests/adr-068/forever-non-void-error.test.cnx                                                    | E0705               |
+| tests/adr-068/loops-in-scope-error.test.cnx                                                      | E0705, E0707        |
 | tests/analysis/division-by-const-zero.test.cnx                                                   | E0800               |
 | tests/analysis/division-by-zero.test.cnx                                                         | E0800               |
 | tests/analysis/enum-context/enum-bare-in-array-dim.test.cnx                                      | E0424               |
@@ -291,15 +301,6 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/constructor-syntax/error-literal-arg.test.cnx                                              | (uncoded)           |
 | tests/constructor-syntax/error-non-const-arg.test.cnx                                            | E0432               |
 | tests/constructor-syntax/error-undeclared-arg.test.cnx                                           | E0433               |
-| tests/control-flow/break-rejected.test.cnx                                                       | E0703               |
-| tests/control-flow/continue-rejected.test.cnx                                                    | E0703               |
-| tests/control-flow/forever-disguised-dowhile.test.cnx                                            | E0707               |
-| tests/control-flow/forever-disguised-for-cond.test.cnx                                           | E0707               |
-| tests/control-flow/forever-disguised-for-empty.test.cnx                                          | E0707               |
-| tests/control-flow/forever-disguised-while-bool.test.cnx                                         | E0707               |
-| tests/control-flow/forever-disguised-while-eq.test.cnx                                           | E0707               |
-| tests/control-flow/forever-disguised-while-rel.test.cnx                                          | E0707               |
-| tests/control-flow/forever-non-void-error.test.cnx                                               | E0705               |
 | tests/enum/enum-error-negative.test.cnx                                                          | (uncoded)           |
 | tests/external-types/cpp-class-global-error.test.cnx                                             | (uncoded)           |
 | tests/floats/float-const-zero-error.test.cnx                                                     | E0800               |

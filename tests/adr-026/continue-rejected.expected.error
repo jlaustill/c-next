@@ -1,0 +1,4 @@
+18:12 error[E0703]: 'continue' is not supported in C-Next - use structured conditions instead
+       help: ADR-026 rejects `break` and `continue`: an early exit hides the loop's real condition. Fold the exit into the loop condition, or split the body into a function that returns.
+27:16 error[E0703]: 'continue' is not supported in C-Next - use structured conditions instead
+       help: ADR-026 rejects `break` and `continue`: an early exit hides the loop's real condition. Fold the exit into the loop condition, or split the body into a function that returns.
