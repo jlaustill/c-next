@@ -134,6 +134,33 @@ uint32_t main(void) {
 
 This enables modular C-Next code while ensuring the generated C code includes the correct header files.
 
+### Diagnostics
+
+| Code  | Rejects                                                                    |
+| ----- | -------------------------------------------------------------------------- |
+| E0503 | `#include` of an implementation file (`.c`, `.cpp`, `.cc`, `.cxx`, `.c++`) |
+| E0504 | a header is included where its C-Next source exists                        |
+| E0506 | a quoted C-Next include names a file that is not there                     |
+
+All three are reported at the directive's own line and column.
+
+**Where each form is searched is part of the rule, not an implementation
+choice.** A quoted include is resolved relative to the file it appears in, so
+E0504 and E0506 look there and nowhere else. An angle include is searched along
+the run's include path — the including file's directory, the directories the
+invocation adds, and the project's own — so E0504 must consult the whole of it.
+A narrower search silently accepts the very case the rule exists to reject; that
+was live until #1322, where a header and its C-Next twin sitting together in an
+added include directory transpiled with no diagnostic while the same two files
+beside the source were rejected.
+
+**These three occupy no cell of the scope-context matrix, and that is a
+property of the construct rather than a coverage gap.** An `#include` is only
+grammatical before the first declaration, so it is enclosed by no scope, no
+function and no variable, and the matrix's context axis asks exactly that. This
+statement is scoped to these three codes; ADR-010's other decisions are about
+declarations and are not covered by it.
+
 ### What the emitted include names
 
 The examples above are flat: source and header sit at the same relative

@@ -1,0 +1,24 @@
+// ADR-010: a quoted C-Next include naming a file that is not there is E0506.
+//
+// #1322: this rule had NO fixture. It reached the user as
+// `1:0 Code generation failed: Error: Included C-Next file not found` -- no
+// code to look up, and the wrong line. It is also the only thing that fails
+// the build for this mistake: discovery warns about the same file and returns,
+// so the run would exit 0 without it.
+//
+// Three negative controls, each closing a different way to get this wrong:
+//   - a system header, which is not quoted and not C-Next;
+//   - a C-Next file that DOES exist beside this one, so a rule firing on
+//     `.cnx` rather than on absence would flag it;
+//   - a quoted HEADER that is missing, which is not this rule's business --
+//     discovery warns about it and the build continues. Without this line the
+//     extension test below is unobservable: mutating it away reddened nothing,
+//     because every other quoted include in the corpus names a file that is
+//     actually there.
+
+#include <stdint.h>
+#include "cnx-alt-helper.cnx"
+#include "no-such-header.h"
+#include "no-such-file.cnx"
+
+void test() {}

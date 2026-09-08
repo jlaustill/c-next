@@ -155,15 +155,15 @@ include-visibility is not derivable for a C or C++ name.
 
 ## E05xx — Include/Preprocessor
 
-| Code  | Message                                          | Help                                                                                                                                    | Source                                                  |
-| ----- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| E0501 | Function-like macro not allowed                  | Use inline functions instead                                                                                                            | `TRANSPILE/1-Analyze/DefineDirectiveAnalyzer.ts`        |
-| E0502 | `#define` with value not allowed                 | Use `const u32 NAME <- value;` instead                                                                                                  | `TRANSPILE/1-Analyze/DefineDirectiveAnalyzer.ts`        |
-| E0503 | Cannot `#include` implementation file            | Only `.h` and `.hpp` files are allowed                                                                                                  | `output/codegen/TypeValidator.ts`                       |
-| E0504 | `.cnx` alternative exists for included header    | Use `#include "file.cnx"` for the C-Next version                                                                                        | `output/codegen/TypeValidator.ts`                       |
-| E0505 | Header names a pointer typedef it cannot declare | Include the header that defines the type; a forward declaration cannot express a pointer typedef                                        | `output/headers/BaseHeaderGenerator.ts`                 |
-| E0506 | _(reserved)_ — included C-Next file not found    | Not yet implemented. Reserved by the #1321 throw audit (`docs/architecture/output-throw-classification.md`) so it is not assigned twice | `output/codegen/generators/support/IncludeGenerator.ts` |
-| E0507 | C++ header in a run that does not target C++     | Set `cppRequired: true` in the config, or pass `--cpp`                                                                                  | `Transpiler.ts`                                         |
+| Code  | Message                                          | Help                                                                                             | Source                                            |
+| ----- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------ | ------------------------------------------------- |
+| E0501 | Function-like macro not allowed                  | Use inline functions instead                                                                     | `TRANSPILE/1-Analyze/DefineDirectiveAnalyzer.ts`  |
+| E0502 | `#define` with value not allowed                 | Use `const u32 NAME <- value;` instead                                                           | `TRANSPILE/1-Analyze/DefineDirectiveAnalyzer.ts`  |
+| E0503 | Cannot `#include` implementation file            | Only `.h` and `.hpp` files are allowed                                                           | `TRANSPILE/1-Analyze/IncludeDirectiveAnalyzer.ts` |
+| E0504 | `.cnx` alternative exists for included header    | Use `#include "file.cnx"` for the C-Next version                                                 | `TRANSPILE/1-Analyze/IncludeDirectiveAnalyzer.ts` |
+| E0505 | Header names a pointer typedef it cannot declare | Include the header that defines the type; a forward declaration cannot express a pointer typedef | `output/headers/BaseHeaderGenerator.ts`           |
+| E0506 | Included C-Next file not found                   | A quoted include resolves relative to the file it appears in; check the spelling                 | `TRANSPILE/1-Analyze/IncludeDirectiveAnalyzer.ts` |
+| E0507 | C++ header in a run that does not target C++     | Set `cppRequired: true` in the config, or pass `--cpp`                                           | `Transpiler.ts`                                   |
 
 ---
 

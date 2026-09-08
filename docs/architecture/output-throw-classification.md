@@ -54,10 +54,10 @@ as counted at audit time" rather than a literal.
 
 | bucket | meaning                                                                        | count |
 | ------ | ------------------------------------------------------------------------------ | ----- |
-| **1**  | user-facing diagnostic — belongs in pass 2.1, needs a code and a real position | **6** |
+| **1**  | user-facing diagnostic — belongs in pass 2.1, needs a code and a real position | **2** |
 | **2**  | internal invariant — should never fire for valid input; becomes an assertion   | **0** |
 | **3**  | dead — unreachable or subsumed; delete                                         | **0** |
-|        | **total**                                                                      | **6** |
+|        | **total**                                                                      | **2** |
 
 **80% of `output/`'s throws are rejections.** That is the answer to open question 4: Render does
 not own nothing, it currently owns almost all of the rejection surface.
@@ -66,9 +66,9 @@ By area:
 
 | area                                                                | sites | b1  | b2  | b3  |
 | ------------------------------------------------------------------- | ----- | --- | --- | --- |
-| `codegen/` (root: `CodeGenerator`, `TypeValidator`, `TypeResolver`) | 3     | 3   | 0   | 0   |
+| `codegen/` (root: `CodeGenerator`, `TypeValidator`, `TypeResolver`) | 0     | 0   | 0   | 0   |
 | `codegen/helpers/`                                                  | 1     | 1   | 0   | 0   |
-| `codegen/generators/**`                                             | 1     | 1   | 0   | 0   |
+| `codegen/generators/**`                                             | 0     | 0   | 0   | 0   |
 | `codegen/subscript/`                                                | 0     | 0   | 0   | 0   |
 | `codegen/assignment/**`, `codegen/resolution/`, `headers/`          | 1     | 1   | 0   | 0   |
 
@@ -207,21 +207,34 @@ questions and only the first was asked.
   **parse error**, so it never reaches codegen at all. That leaves four live copies plus the
   factory, which is what makes unification tractable.
 
-## Bucket 1 — user-facing diagnostics (6)
+## Bucket 1 — user-facing diagnostics (2)
 
 Each needs a code and a real position in pass 2.1. `code` is the code it already carries, or
 **NEW** where one must be allocated. `position` names the node that is or would be in scope.
 
-### `codegen/` root — 3
+### `codegen/` root — 0
 
-| file:line              | anchor                                       | message                                            | code  | position source                                                     | fixture                                |
-| ---------------------- | -------------------------------------------- | -------------------------------------------------- | ----- | ------------------------------------------------------------------- | -------------------------------------- |
-| `TypeValidator.ts:54`  | `E0503: Cannot #include implementation file` | cannot `#include` an implementation file (ADR-010) | E0503 | `includeDir` (`IncludeDirectiveContext`) at `CodeGenerator.ts:2360` | `preprocessor/include-impl-file-error` |
-| `TypeValidator.ts:125` | `E0504: Found #include "`                    | `#include "p"` but `p.cnx` exists alongside        | E0504 | same `includeDir`, `CodeGenerator.ts:2369`                          | `include/cnx-alternative-error-quoted` |
-| `TypeValidator.ts:142` | `E0504: Found #include <`                    | angle-include twin of the above                    | E0504 | same                                                                | `include/cnx-alternative-error-angle`  |
+ADR-010's three include rows — E0503 in `validateIncludeNotImplementationFile`, and E0504's
+quoted and angle branches in `validateIncludeNoCnxAlternative` — are **relocated** to
+`IncludeDirectiveAnalyzer`, and `IncludeGenerator`'s missing-`.cnx` throw with them, as E0506.
+(Named by function rather than by line, because the lines no longer exist and this document's
+own gate reads a `file:line` in prose as a citation.) All four are now reported at the directive's own position; all four reported
+`1:0` before, three of them with the real line appended to the message as `Line N` and the
+fourth with no code at all.
 
-**13 of these 39 already carry a code**; 26 need one. **12 have no fixture at all.** Three emit a
-real position today -- the `${line}:${col} `-prefixed rows in the table below.
+Two things the relocation had to settle, both recorded because the row above could not say them:
+
+- **The angle branch's search path could not be re-derived.** Codegen built its own from the
+  source file's directory, where discovery had already built one that also carries the
+  invocation's added include directories. The two agreed only when nothing was added, so a
+  header and its C-Next twin sitting together in an added directory transpiled at exit 0
+  while the same two files beside the source were rejected. Discovery's list is recorded per
+  file now and read by the rule.
+- **The current source path is not readable from shared state at analyzer time.**
+  `CodeGenState.sourcePath` is written inside `CodeGenerator.generate()`, so it is `null` for a
+  run's first file and holds the previous file's path afterwards. It is handed to the analyzers
+  by their caller instead, as a required argument rather than an optional one — an optional
+  context would have made all three rules skippable with nothing failing.
 
 ### `codegen/helpers/` — 1
 
@@ -231,18 +244,15 @@ real position today -- the `${line}:${col} `-prefixed rows in the table below.
 | --------------------------- | ------------------ | ------------------------------------------ | ---- | -------------------------- | --------------------------------------- |
 | `VariableDeclHelper.ts:231` | `Error: C++ class` | C++ class with constructor at global scope | NEW  | `typeCtx.start` (in scope) | `external-types/cpp-class-global-error` |
 
-### `codegen/generators/**` — 1
+### `codegen/generators/**` — 0
 
-| file:line                        | anchor                                  | message                        | code      | position source                                                                         | fixture |
-| -------------------------------- | --------------------------------------- | ------------------------------ | --------- | --------------------------------------------------------------------------------------- | ------- |
-| `support/IncludeGenerator.ts:55` | `Error: Included C-Next file not found` | included C-Next file not found | NEW E0506 | `includeDir` at `CodeGenerator.ts:2282`; `.start.line` read there but never threaded in | none    |
-
-E0501 and E0502 were the other two rows in this file and are **relocated**: ADR-037's `#define`
-shape is a pure parse-tree question, decided in pass 2.1 at the directive's own position. The
-`Not the easy wins they look like` note in #1322's plan said these fired on a `#define` inside an
-included C header and so needed the preprocessor artifact. They did not: the C grammar sends
-`#`-lines to a hidden channel before parsing, so such a header transpiles untouched and always
-did. What reached these throws was only ever a directive in the C-Next tree.
+`IncludeGenerator`'s three rows are all relocated. E0501 and E0502 are ADR-037's `#define`
+shape, a pure parse-tree question decided in pass 2.1 at the directive's own position; the
+missing-`.cnx` check is E0506, above. The `Not the easy wins they look like` note in #1322's
+plan said the `#define` rules fired on a directive inside an included C header and so needed
+the preprocessor artifact. They did not: the C grammar sends `#`-lines to a hidden channel
+before parsing, so such a header transpiles untouched and always did. What reached those
+throws was only ever a directive in the C-Next tree.
 
 **32 of the 41 in this area are unpinned**, including all 23 ADR-058 property diagnostics except
 `:623`, the ADR-013 const rule, and all four `safe_div`/`safe_mod` checks.

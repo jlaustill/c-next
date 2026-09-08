@@ -2,9 +2,7 @@
  * Include directive and preprocessor handling.
  * Extracted from CodeGenerator.ts.
  */
-import * as path from "node:path";
 import * as Parser from "../../../../logic/parser/grammar/CNextParser";
-import CnxFileResolver from "../../../../data/CnxFileResolver";
 import IncludeRewriter from "../../../../data/IncludeRewriter";
 import type THeaderExtension from "../../../../types/THeaderExtension";
 import invariant from "../../../../../utils/invariant";
@@ -29,36 +27,17 @@ interface IIncludeTransformOptions {
   headerExtension: THeaderExtension;
 }
 
-/**
- * ADR-010: Validate that a quote-style include names a real `.cnx` file.
+/*
+ * ADR-010's `Included C-Next file not found` check stood here and is now
+ * E0506 in pass 2.1 (#1322). It reached the user as
+ * `1:0 Code generation failed: Error: …` -- no code to look up, and the wrong
+ * line. `IncludeDirectiveAnalyzer` reports it at the directive.
  *
- * Quote includes are resolved relative to the including file, so this can be
- * checked here; angle includes are searched along include directories and are
- * transformed without validation.
- *
- * `spec` carries its extension (`.cnx` or `.cnext`) -- Issue #1467 review: the
- * pattern that produces it lives in IncludeRewriter, so this module cannot
- * drift from the other producers on which extensions count.
+ * It was the ONLY thing failing the build for a missing quoted `.cnx`:
+ * discovery warns about the same file and returns, so the run would have
+ * exited 0 without it. That is why it moved rather than being deleted as
+ * subsumed by the warning.
  */
-const validateQuoteInclude = (
-  spec: string,
-  sourcePath: string | null,
-): void => {
-  if (!sourcePath) {
-    return;
-  }
-
-  const sourceDir = path.dirname(sourcePath);
-  const cnxPath = path.resolve(sourceDir, spec);
-
-  if (!CnxFileResolver.cnxFileExists(cnxPath)) {
-    throw new Error(
-      `Error: Included C-Next file not found: ${spec}\n` +
-        `  Searched at: ${cnxPath}\n` +
-        `  Referenced in: ${sourcePath}`,
-    );
-  }
-};
 
 /**
  * ADR-010: Transform #include directives, converting .cnx to .h or .hpp
@@ -76,11 +55,6 @@ const transformIncludeDirective = (
   includeText: string,
   options: IIncludeTransformOptions,
 ): string => {
-  const quotedSpec = IncludeRewriter.quotedCnxSpecOf(includeText);
-  if (quotedSpec) {
-    validateQuoteInclude(quotedSpec, options.sourcePath);
-  }
-
   return IncludeRewriter.rewrite(
     includeText,
     options.rewrites,

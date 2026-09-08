@@ -17,6 +17,7 @@ import { CNextListener } from "../../transpiler/logic/parser/grammar/CNextListen
 import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
 import INullCheckError from "../../transpiler/types/INullCheckError";
 import ParserUtils from "../../utils/ParserUtils";
+import IncludeDirective from "./helpers/IncludeDirective";
 
 /**
  * Metadata for C library functions that can return NULL
@@ -817,12 +818,11 @@ class NullCheckAnalyzer {
    * Collect included headers for context
    */
   private collectIncludes(tree: Parser.ProgramContext): void {
-    for (const include of tree.includeDirective()) {
-      const text = include.getText();
-      const match = /#include\s*[<"]([^>"]+)[>"]/.exec(text);
-      if (match) {
-        this.includedHeaders.add(match[1]);
-      }
+    // #1322: one parse, shared with ADR-010's own rules. The spelling that
+    // stood here matched the two delimiters independently, so `<foo.h"` read
+    // as an include.
+    for (const path of IncludeDirective.pathsIn(tree)) {
+      this.includedHeaders.add(path);
     }
   }
 

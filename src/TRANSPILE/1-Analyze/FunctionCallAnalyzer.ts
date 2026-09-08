@@ -23,6 +23,7 @@ import CalleeNameResolver from "./helpers/CalleeNameResolver";
 import EnclosingScope from "./helpers/EnclosingScope";
 import ScopeUtils from "../../utils/ScopeUtils";
 import SymbolRegistry from "../../transpiler/state/SymbolRegistry";
+import IncludeDirective from "./helpers/IncludeDirective";
 
 /**
  * C-Next built-in functions
@@ -314,13 +315,11 @@ class FunctionCallAnalyzer {
    * Collect included headers for stdlib function lookup
    */
   private collectIncludes(tree: Parser.ProgramContext): void {
-    for (const include of tree.includeDirective()) {
-      // Extract header name from #include <header.h> or #include "header.h"
-      const text = include.getText();
-      const match = /#include\s*[<"]([^>"]+)[>"]/.exec(text);
-      if (match) {
-        this.includedHeaders.add(match[1]);
-      }
+    // #1322: one parse, shared with ADR-010's own rules. The spelling that
+    // stood here matched the two delimiters independently, so `<foo.h"` read
+    // as an include.
+    for (const path of IncludeDirective.pathsIn(tree)) {
+      this.includedHeaders.add(path);
     }
   }
 

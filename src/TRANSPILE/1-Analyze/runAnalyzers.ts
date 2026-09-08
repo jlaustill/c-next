@@ -55,6 +55,8 @@ import CommentExtractor from "./CommentExtractor";
 import ITranspileError from "../../lib/types/ITranspileError";
 import SymbolTable from "../../transpiler/logic/symbols/SymbolTable";
 import CodeGenState from "../../transpiler/state/CodeGenState";
+import IncludeDirectiveAnalyzer from "./IncludeDirectiveAnalyzer";
+import IIncludeContext from "./types/IIncludeContext";
 
 /**
  * Options for running analyzers
@@ -66,6 +68,23 @@ interface IAnalyzerOptions {
    * Falls back to CodeGenState.symbolTable if not provided.
    */
   symbolTable?: SymbolTable;
+
+  /**
+   * #1322: the file being analyzed, and where its angle includes are searched.
+   *
+   * REQUIRED, and that is the point. Passed in rather than read off shared
+   * state, because the shared answer is WRONG at this moment:
+   * `CodeGenState.sourcePath` is written inside `CodeGenerator.generate()`,
+   * which runs after this, so an analyzer reading it sees `null` on the first
+   * file and the PREVIOUS file's path on every one after -- the
+   * order-dependent-diagnostic shape #1399 shipped. The caller holds both facts
+   * correctly, seventeen lines below the call.
+   *
+   * It is not optional-with-a-skip because that is a guard that cannot fire: a
+   * caller who forgot it would lose all three ADR-010 rules with nothing
+   * failing, which is the shape this card exists to remove.
+   */
+  readonly includes: IIncludeContext;
 }
 
 /**
@@ -144,7 +163,7 @@ interface IAnalyzerStep {
 function runAnalyzers(
   tree: ProgramContext,
   tokenStream: CommonTokenStream,
-  options?: IAnalyzerOptions,
+  options: IAnalyzerOptions,
 ): ITranspileError[] {
   const errors: ITranspileError[] = [];
   const formatWithCode = (e: IAnalyzerError) =>
@@ -152,14 +171,21 @@ function runAnalyzers(
 
   // External function definitions from C/C++ headers, for the two steps that
   // need them. Read from CodeGenState unless the caller supplied one.
-  const symbolTable = options?.symbolTable ?? CodeGenState.symbolTable;
+  const symbolTable = options.symbolTable ?? CodeGenState.symbolTable;
 
   const steps: readonly IAnalyzerStep[] = [
     {
-      // #1322: before anything reads a declaration. A file's `#define` lines
-      // precede every declaration in the grammar, so a bad directive is never
-      // a consequence of the code below it -- and reporting the code below it
-      // first would tell the author to fix the wrong line.
+      // #1322: before anything reads a declaration. A file's directives
+      // precede every declaration in the grammar, so a bad one is never a
+      // consequence of the code below it -- and reporting the code below it
+      // first would tell the author to fix the wrong line. Worse for includes
+      // specifically: including the wrong file changes which names exist, so
+      // every later step would be answering about a program the author did not
+      // write.
+      label: "#include targets (ADR-010: headers only, .cnx over .h)",
+      run: () => new IncludeDirectiveAnalyzer().analyze(tree, options.includes),
+    },
+    {
       label: "#define shape (ADR-037: flag-only defines)",
       run: () => new DefineDirectiveAnalyzer().analyze(tree),
     },

@@ -1919,7 +1919,13 @@ describe("CodeGenerator", () => {
       expect(code).toContain('#include "myheader.h"');
     });
 
-    it("should throw error for missing .cnx include", () => {
+    it("emits a missing .cnx include rather than rejecting it (E0506 is 2.1's)", () => {
+      // #1322: this asserted a codegen throw, which reported `1:0` with no
+      // code. `IncludeDirectiveAnalyzer` rejects it at the directive now, and
+      // codegen never touches the file system for an include -- so what is
+      // pinned here is that the rejection is GONE from this layer, not that it
+      // stopped happening. `tests/include/missing-cnx-include-error` asserts
+      // that it still does.
       const source = `
         #include "nonexistent.cnx"
         void main() { }
@@ -1929,12 +1935,12 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      expect(() =>
-        generator.generate(tree, tokenStream, {
-          symbolInfo: symbols,
-          sourcePath: "test.cnx",
-        }),
-      ).toThrow(/not found/);
+      const code = generator.generate(tree, tokenStream, {
+        symbolInfo: symbols,
+        sourcePath: "test.cnx",
+      });
+
+      expect(code).toContain('#include "nonexistent.h"');
     });
   });
 

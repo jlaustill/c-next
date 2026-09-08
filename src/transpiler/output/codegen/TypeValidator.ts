@@ -3,8 +3,6 @@
  * Static class using CodeGenState for all state access.
  * Issue #63: Validation logic separated for independent testing
  */
-import { existsSync } from "node:fs";
-import { dirname, resolve, join } from "node:path";
 import CodeGenState from "../../state/CodeGenState";
 import AdrProvenance from "../../state/AdrProvenance";
 // SonarCloud S3776: Extracted literal parsing to reduce complexity
@@ -12,140 +10,26 @@ import QualifiedCName from "../../../utils/QualifiedCName";
 import ScopeUtils from "../../../utils/ScopeUtils";
 
 /**
- * ADR-010: Implementation file extensions that should NOT be #included
- */
-const IMPLEMENTATION_EXTENSIONS = new Set([
-  ".c",
-  ".cpp",
-  ".cc",
-  ".cxx",
-  ".c++",
-]);
-
-/**
  * TypeValidator class - validates types, assignments, and control flow at compile time.
  * All methods are static - uses CodeGenState for state access.
  */
 class TypeValidator {
   // ========================================================================
-  // Include Validation (ADR-010)
+  // Include Validation (ADR-010) -- relocated to pass 2.1 (#1322)
   // ========================================================================
-
-  /**
-   * ADR-010: Validate that #include doesn't include implementation files
-   */
-  static validateIncludeNotImplementationFile(
-    includeText: string,
-    lineNumber: number,
-  ): void {
-    const angleMatch = /#\s*include\s*<([^>]+)>/.exec(includeText);
-    const quoteMatch = /#\s*include\s*"([^"]+)"/.exec(includeText);
-
-    const includePath = angleMatch?.[1] || quoteMatch?.[1];
-    if (!includePath) {
-      return;
-    }
-
-    const ext = includePath
-      .substring(includePath.lastIndexOf("."))
-      .toLowerCase();
-
-    if (IMPLEMENTATION_EXTENSIONS.has(ext)) {
-      throw new Error(
-        `E0503: Cannot #include implementation file '${includePath}'. ` +
-          `Only header files (.h, .hpp) are allowed. Line ${lineNumber}`,
-      );
-    }
-  }
-
-  /**
-   * E0504: Validate that a .cnx alternative doesn't exist for a .h/.hpp include
-   */
-  static validateIncludeNoCnxAlternative(
-    includeText: string,
-    lineNumber: number,
-    sourcePath: string | null,
-    includePaths: string[],
-    fileExists: (path: string) => boolean = existsSync,
-  ): void {
-    const parsed = TypeValidator._parseIncludeDirective(includeText);
-    if (!parsed) return;
-    if (parsed.path.endsWith(".cnx")) return;
-    if (!TypeValidator._isHeaderFile(parsed.path)) return;
-
-    const cnxPath = parsed.path.replace(/\.(h|hpp)$/i, ".cnx");
-
-    if (parsed.isQuoted) {
-      TypeValidator._checkQuotedIncludeForCnx(
-        parsed.path,
-        cnxPath,
-        sourcePath,
-        lineNumber,
-        fileExists,
-      );
-    } else {
-      TypeValidator._checkAngleIncludeForCnx(
-        parsed.path,
-        cnxPath,
-        includePaths,
-        lineNumber,
-        fileExists,
-      );
-    }
-  }
-
-  private static _parseIncludeDirective(
-    includeText: string,
-  ): { path: string; isQuoted: boolean } | null {
-    const angleMatch = /#\s*include\s*<([^>]+)>/.exec(includeText);
-    const quoteMatch = /#\s*include\s*"([^"]+)"/.exec(includeText);
-
-    if (quoteMatch) return { path: quoteMatch[1], isQuoted: true };
-    if (angleMatch) return { path: angleMatch[1], isQuoted: false };
-    return null;
-  }
-
-  private static _isHeaderFile(path: string): boolean {
-    const ext = path.substring(path.lastIndexOf(".")).toLowerCase();
-    return ext === ".h" || ext === ".hpp";
-  }
-
-  private static _checkQuotedIncludeForCnx(
-    includePath: string,
-    cnxPath: string,
-    sourcePath: string | null,
-    lineNumber: number,
-    fileExists: (path: string) => boolean,
-  ): void {
-    if (!sourcePath) return;
-
-    const sourceDir = dirname(sourcePath);
-    const fullCnxPath = resolve(sourceDir, cnxPath);
-    if (fileExists(fullCnxPath)) {
-      throw new Error(
-        `E0504: Found #include "${includePath}" but '${cnxPath}' exists at the same location.\n` +
-          `       Use #include "${cnxPath}" instead to use the C-Next version. Line ${lineNumber}`,
-      );
-    }
-  }
-
-  private static _checkAngleIncludeForCnx(
-    includePath: string,
-    cnxPath: string,
-    includePaths: string[],
-    lineNumber: number,
-    fileExists: (path: string) => boolean,
-  ): void {
-    for (const searchDir of includePaths) {
-      const fullCnxPath = join(searchDir, cnxPath);
-      if (fileExists(fullCnxPath)) {
-        throw new Error(
-          `E0504: Found #include <${includePath}> but '${cnxPath}' exists at the same location.\n` +
-            `       Use #include <${cnxPath}> instead to use the C-Next version. Line ${lineNumber}`,
-        );
-      }
-    }
-  }
+  //
+  // `validateIncludeNotImplementationFile` (E0503) and
+  // `validateIncludeNoCnxAlternative` (E0504, both its quoted and its angle
+  // branch) stood here, reached from `CodeGenerator.processIncludeDirectives`
+  // with a line number threaded in as a NUMBER, spent on `Line N` prose while
+  // the diagnostic itself reported `1:0`. `IncludeDirectiveAnalyzer` decides
+  // both at the directive's own position.
+  //
+  // The angle branch also took its search path from
+  // `IncludeDiscovery.discoverIncludePaths`, a SECOND derivation of a list
+  // discovery had already built with the `--include` directories in it. The
+  // two agreed only where `--include` was unused; 2.1 reads discovery's own
+  // list, so there is one derivation.
 
   // #1322: ADR-034's literal-overflow check is E0881 in pass 2.1.
   //

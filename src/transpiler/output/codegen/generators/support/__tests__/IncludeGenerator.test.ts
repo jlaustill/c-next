@@ -157,41 +157,11 @@ describe("IncludeGenerator", () => {
       expect(CnxFileResolver.cnxFileExists).not.toHaveBeenCalled();
     });
 
-    it("throws error when .cnx file not found", () => {
-      vi.mocked(CnxFileResolver.cnxFileExists).mockReturnValue(false);
-
-      expect(() =>
-        transformIncludeDirective('#include "missing.cnx"', {
-          headerExtension: ".h",
-          sourcePath: "/project/src/main.cnx",
-          rewrites: new Map(),
-        }),
-      ).toThrow(/Included C-Next file not found: missing.cnx/);
-    });
-
-    it("includes search path in error message", () => {
-      vi.mocked(CnxFileResolver.cnxFileExists).mockReturnValue(false);
-
-      expect(() =>
-        transformIncludeDirective('#include "missing.cnx"', {
-          headerExtension: ".h",
-          sourcePath: "/project/src/main.cnx",
-          rewrites: new Map(),
-        }),
-      ).toThrow(/Searched at:/);
-    });
-
-    it("includes source file in error message", () => {
-      vi.mocked(CnxFileResolver.cnxFileExists).mockReturnValue(false);
-
-      expect(() =>
-        transformIncludeDirective('#include "missing.cnx"', {
-          headerExtension: ".h",
-          sourcePath: "/project/src/main.cnx",
-          rewrites: new Map(),
-        }),
-      ).toThrow(/Referenced in:.*main\.cnx/);
-    });
+    // #1322: three cases pinning the `Included C-Next file not found` throw
+    // stood here. It is E0506 in pass 2.1 now, reported at the directive rather
+    // than as `1:0 Code generation failed: Error: …` with no code, and its
+    // cases live in `1-Analyze/__tests__/IncludeDirectiveAnalyzer.test.ts`.
+    // Transformation no longer consults the file system at all.
 
     it("transforms quoted .cnx include to .hpp in C++ mode", () => {
       vi.mocked(CnxFileResolver.cnxFileExists).mockReturnValue(true);

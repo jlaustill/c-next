@@ -12,7 +12,6 @@ import * as Parser from "../../logic/parser/grammar/CNextParser";
 import CommentScanner from "../../logic/parser/CommentScanner";
 import TypeRegistrationEngine from "./helpers/TypeRegistrationEngine";
 import CommentFormatter from "./CommentFormatter";
-import IncludeDiscovery from "../../data/IncludeDiscovery";
 import IComment from "../../types/IComment";
 import TYPE_WIDTH from "../../constants/TYPE_WIDTH";
 import TYPE_MAP from "./types/TYPE_MAP";
@@ -2271,25 +2270,15 @@ export default class CodeGenerator implements IOrchestrator {
     tree: Parser.ProgramContext,
     output: string[],
   ): void {
-    const includePaths = CodeGenState.sourcePath
-      ? IncludeDiscovery.discoverIncludePaths(CodeGenState.sourcePath)
-      : [];
-
+    // #1322: ADR-010's two rejections (E0503, E0504) used to run here, with a
+    // line number threaded in as a NUMBER and spent on `Line N` prose while the
+    // diagnostic reported `1:0`. Both are decided in pass 2.1, which also means
+    // the second derivation of the angle search path that stood on the line
+    // above -- narrower than the one discovery built, and blind to `--include`
+    // -- is gone rather than duplicated.
     for (const includeDir of tree.includeDirective()) {
       const leadingComments = this.getLeadingComments(includeDir);
       output.push(...this.formatLeadingComments(leadingComments));
-
-      const lineNumber = includeDir.start?.line ?? 0;
-      TypeValidator.validateIncludeNotImplementationFile(
-        includeDir.getText(),
-        lineNumber,
-      );
-      TypeValidator.validateIncludeNoCnxAlternative(
-        includeDir.getText(),
-        lineNumber,
-        CodeGenState.sourcePath,
-        includePaths,
-      );
 
       // Issue #850: Add MISRA suppression for banned headers
       const includeText = includeDir.getText();
