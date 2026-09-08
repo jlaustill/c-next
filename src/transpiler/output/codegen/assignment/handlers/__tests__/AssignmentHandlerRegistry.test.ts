@@ -24,7 +24,7 @@ describe("AssignmentHandlerRegistry", () => {
       const invalidKind = 9999 as AssignmentKind;
 
       expect(() => AssignmentHandlerRegistry.getHandler(invalidKind)).toThrow(
-        "No handler registered for assignment kind:",
+        "every AssignmentKind has a registered handler",
       );
     });
 

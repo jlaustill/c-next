@@ -22,24 +22,18 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
-import { dirname, join, sep } from "node:path";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import chalk from "chalk";
 
 import ThrowCitations from "./diagnostics/ThrowCitations";
+import OutputThrowSources from "./diagnostics/OutputThrowSources";
 import type IRevision from "./diagnostics/IRevision";
-import FileScanner from "./utils/FileScanner";
 
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..");
-const docPath = join(
-  rootDir,
-  "docs",
-  "architecture",
-  "output-throw-classification.md",
-);
-const outputDir = join(rootDir, "src", "transpiler", "output");
+const docPath = OutputThrowSources.docPath;
 
 /**
  * Every file under `output/` that differs from HEAD, with both revisions.
@@ -48,6 +42,23 @@ const outputDir = join(rootDir, "src", "transpiler", "output");
  * `codegen/CodeGenerator.ts`, others just `CodeGenerator.ts`, and the gate's
  * own `resolve` already treats the cited path as a suffix.
  */
+/** A file's text at HEAD, or null when it did not exist there. */
+function revisionAtHead(path: string): string | null {
+  try {
+    return execFileSync("git", ["show", `HEAD:${path}`], {
+      encoding: "utf-8",
+      cwd: rootDir,
+      maxBuffer: 32 * 1024 * 1024,
+      // git writes `fatal: path ... exists on disk, but not in HEAD` to stderr
+      // for a file added since HEAD. That is the expected answer here, not a
+      // failure, so it is not surfaced as one.
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+  } catch {
+    return null;
+  }
+}
+
 function changedRevisions(): Map<string, IRevision> {
   const changed = execFileSync(
     "git",
@@ -59,11 +70,18 @@ function changedRevisions(): Map<string, IRevision> {
 
   const revisions = new Map<string, IRevision>();
   for (const path of changed) {
-    const previous = execFileSync("git", ["show", `HEAD:${path}`], {
-      encoding: "utf-8",
-      cwd: rootDir,
-      maxBuffer: 32 * 1024 * 1024,
-    });
+    // `git diff --name-only` reports ADDED and DELETED files too, and this read
+    // both revisions of every one unconditionally -- so a file that moved threw
+    // ENOENT and took the whole run down. #1322 hit it merging main: #1449 had
+    // moved `generators/TIncludeHeader.ts` to `types/`.
+    //
+    // A file with only one revision has no mapping to offer: there is no "the
+    // Nth throw then" for a file that did not exist, and nothing to map to for
+    // one that no longer does. Skipping is not a silent loss -- a citation into
+    // either is exactly what `:check`'s invariants 1 and 2 report.
+    const previous = revisionAtHead(path);
+    if (previous === null) continue;
+    if (!existsSync(join(rootDir, path))) continue;
     const current = readFileSync(join(rootDir, path), "utf-8");
     revisions.set(path.slice(path.lastIndexOf("/") + 1), { previous, current });
   }
@@ -76,7 +94,12 @@ function write(): void {
   // running it twice would look up numbers that are already new and shift any
   // that happen to collide with an old one. Refusing to act on a document that
   // needs nothing removes that hazard entirely rather than detecting it.
-  if (ThrowCitations.check(readFileSync(docPath, "utf-8"), sources()).ok) {
+  if (
+    ThrowCitations.check(
+      readFileSync(docPath, "utf-8"),
+      OutputThrowSources.read(),
+    ).ok
+  ) {
     console.log("Citations already consistent; nothing to remap.");
     return;
   }
@@ -123,7 +146,10 @@ function write(): void {
   // Checking the candidate instead makes a failed remap a no-op, which is what
   // lets the idempotence guard above stay simple: the only states on disk are
   // "consistent" and "untouched since the last commit".
-  const rechecked = ThrowCitations.check(outcome.markdown, sources());
+  const rechecked = ThrowCitations.check(
+    outcome.markdown,
+    OutputThrowSources.read(),
+  );
   if (!rechecked.ok) {
     console.error(
       chalk.red(
@@ -144,25 +170,6 @@ function write(): void {
   );
 }
 
-/**
- * Every non-test source under `output/`, keyed by repo-relative path.
- *
- * FileScanner is the shared recursive walk this repo standardized on; two other
- * scripts carry a comment recording that a local copy was removed in favour of
- * it. The `__tests__` skip composes on top, and is what the document's own
- * command spells as `| grep -v __tests__`.
- */
-function sources(): Map<string, string> {
-  const collected = new Map<string, string>();
-  for (const full of FileScanner.findFiles(outputDir, ".ts")) {
-    if (full.includes(`${sep}__tests__${sep}`)) {
-      continue;
-    }
-    collected.set(full.slice(rootDir.length + 1), readFileSync(full, "utf-8"));
-  }
-  return collected;
-}
-
 function main(): void {
   if (process.argv.includes("--write")) {
     write();
@@ -171,7 +178,7 @@ function main(): void {
 
   const outcome = ThrowCitations.check(
     readFileSync(docPath, "utf-8"),
-    sources(),
+    OutputThrowSources.read(),
   );
 
   for (const line of outcome.info) {

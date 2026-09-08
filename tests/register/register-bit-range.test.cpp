@@ -9,15 +9,6 @@
 
 // test-coverage: 12-bit-range-access
 // Tests: Bit range access on register members using [start, width] syntax
-/* Register: TIMER @ 0x40010000 */
-#define TIMER__CTRL (*(volatile uint32_t*)(0x40010000 + 0x00))
-#define TIMER__PRESCALE (*(volatile uint32_t*)(0x40010000 + 0x04))
-#define TIMER__VALUE (*(volatile uint32_t const *)(0x40010000 + 0x08))
-
-/* Register: CONFIG @ 0x40020000 */
-#define CONFIG__MODE (*(volatile uint32_t*)(0x40020000 + 0x00))
-#define CONFIG__OPTIONS (*(volatile uint32_t*)(0x40020000 + 0x04))
-
 void setTimerPrescaler(uint8_t prescaler) {
     TIMER__PRESCALE = (TIMER__PRESCALE & ~(1U << 0)) | ((prescaler ? 1U : 0U) << 0);
 }

@@ -36,16 +36,14 @@ const generateFunction: TGeneratorFn<Parser.FunctionDeclarationContext> = (
   const returnType = orchestrator.generateType(node.type());
   const name = node.IDENTIFIER().getText();
 
-  // Issue #269: Set current function name for pass-by-value lookup
-  orchestrator.setCurrentFunctionName(name);
-  // Issue #477: Set return type for enum inference in return statements
-  orchestrator.setCurrentFunctionReturnType(node.type().getText());
-
-  // Track parameters for ADR-006 pointer semantics
-  orchestrator.setParameters(node.parameterList() ?? null);
-
-  // ADR-016: Clear local variables and mark that we're in a function body
-  orchestrator.enterFunctionBody();
+  // Issues #269/#477, ADR-016: name for pass-by-value lookup, return type for
+  // typing `return` expressions, parameters for ADR-006 pointer semantics, and
+  // the fresh local registers -- one call, shared with ScopeGenerator.
+  orchestrator.enterFunctionContext(
+    name,
+    node.type().getText(),
+    node.parameterList() ?? null,
+  );
 
   // Check for main function with args parameter (u8 args[][] or string args[])
   const isMainWithArgs = orchestrator.isMainFunctionWithArgs(
@@ -83,11 +81,7 @@ const generateFunction: TGeneratorFn<Parser.FunctionDeclarationContext> = (
       : "void";
   }
 
-  // ADR-016: Clear local variables and mark that we're no longer in a function body
-  orchestrator.exitFunctionBody();
-  orchestrator.setCurrentFunctionName(null); // Issue #269: Clear function name
-  orchestrator.setCurrentFunctionReturnType(null); // Issue #477: Clear return type
-  orchestrator.clearParameters();
+  orchestrator.exitFunctionContext();
 
   const functionCode = `${actualReturnType} ${name}(${params}) ${body}\n`;
 

@@ -10,5 +10,5 @@
 // Helper for two-consumers.test.cnx (#1491). Declares a function, which ADR-029
 // also makes a TYPE. Two separate consumers below name that type.
 uint32_t sharedWork(void) {
-    return 3;
+    return 3U;
 }

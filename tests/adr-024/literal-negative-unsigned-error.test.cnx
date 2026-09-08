@@ -1,0 +1,7 @@
+// ADR-024: Test that negative literals to unsigned types are caught
+// test-adr: 024
+// This should produce a compiler error
+void main() {
+    i8 signedMin <- -128; // NEGATIVE CONTROL -- a negative into a SIGNED type, at its bound
+    u8 negative <- -1; // ERROR: Negative value cannot be assigned to unsigned u8
+}

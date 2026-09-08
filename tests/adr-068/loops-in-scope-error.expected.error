@@ -1,0 +1,6 @@
+24:8 error[E0705]: forever loop in non-void function
+       help: a forever loop never returns a value; make the function return void, or use a while loop with an exit condition
+31:8 error[E0707]: for-loop has no controlling expression (infinite loop)
+       help: write 'forever { ... }' for an intentional infinite loop
+34:15 error[E0707]: loop condition '2>=1' is always true
+       help: write 'forever { ... }' for an intentional infinite loop

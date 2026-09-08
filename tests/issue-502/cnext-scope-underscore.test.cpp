@@ -22,12 +22,12 @@
 Sensor__Reading reading = { .motorState = { .position = 0, .running = false }, .value = 42 };
 
 int main(void) {
-    if (reading.value != 42) return 1;
-    if (reading.motorState.position != 0) return 2;
-    if (reading.motorState.running != false) return 3;
+    if (reading.value != 42) return 1U;
+    if (reading.motorState.position != 0) return 2U;
+    if (reading.motorState.running != false) return 3U;
     reading.motorState.position = 100;
     reading.motorState.running = true;
-    if (reading.motorState.position != 100) return 4;
-    if (reading.motorState.running != true) return 5;
-    return 0;
+    if (reading.motorState.position != 100) return 4U;
+    if (reading.motorState.running != true) return 5U;
+    return 0U;
 }

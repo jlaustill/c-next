@@ -1,0 +1,48 @@
+// test-error
+// test-adr: 017
+// E0428/E0434 across ONE include hop -- matrix cells: imported direct, in all
+// four contexts.
+//
+// The enum's type crosses the boundary, so this is where the rule has to keep
+// working: a resolver that only consulted this file's own declarations would
+// find no enum, and "no enum" reads as "rule does not apply".
+
+#include "enum-declarations.cnx"
+
+// NEGATIVE CONTROL -- the same imported enum used correctly, in the same four
+// contexts. If the fix for the assertions over-reached, these fail.
+Shared okGlobal <- Shared.A;
+
+Shared okFunction() {
+    Shared v <- Shared.B;
+    return v;
+}
+
+scope Ok {
+    Shared okMember <- Shared.A;
+
+    public Shared okMethod() {
+        Shared v <- Shared.B;
+        return v;
+    }
+}
+
+// THE ASSERTIONS -- one per context.
+Shared badGlobal <- 1;
+
+u32 badFunction() {
+    Shared v <- 2;
+    if (v = 0) {
+        return 1;
+    }
+    return 0;
+}
+
+scope Bad {
+    Shared badMember <- 3;
+
+    public u32 badMethod() {
+        Shared v <- 4;
+        return 0;
+    }
+}

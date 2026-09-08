@@ -200,6 +200,51 @@ If you want partial values with zero-fill, be explicit:
 u8[5] data <- [1, 2, 3, 0, 0];  // OK: all elements explicit
 ```
 
+## Diagnostics
+
+| Code  | Reported when                                                                           | Asserted by                               |
+| ----- | --------------------------------------------------------------------------------------- | ----------------------------------------- |
+| E0866 | An array's initializer is not a list, or a level of it has the wrong number of elements | `tests/adr-035/array-init-error.test.cnx` |
+| E0876 | The fill-all form `[v*]` initializes an array whose size is inferred (`u8[]`)           | `tests/adr-035/array-init-error.test.cnx` |
+
+The count is checked at every nesting level against the dimension it fills:
+`u8[2][2] m <- [[1, 2, 3], [4, 5]]` is rejected on the inner list. Until #1322
+only the outer list was counted, and the inner excess reached the generated C.
+A string literal is the one non-list initializer accepted, and only for a `u8`
+array (see "String Initialization" above); an array initialized from another
+array is rejected, since C has no such initializer and the generated code did
+not compile. Each rule is decided during analysis, at the initializer's own
+position, and every offense in a file is reported.
+
+## Scope-Context Matrix (#1219)
+
+Severity follows the eslint model: `off` records that a cell **cannot exist**,
+`warn` that it should be covered and is not, `error` that it must be.
+
+<!-- MATRIX-SEVERITY -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| scope member       | same file           | error    |
+| top-level function | imported direct     | off      |
+| scope method       | imported direct     | off      |
+| global variable    | imported direct     | off      |
+| scope member       | imported direct     | off      |
+| top-level function | imported transitive | off      |
+| scope method       | imported transitive | off      |
+| global variable    | imported transitive | off      |
+| scope member       | imported transitive | off      |
+
+An initializer sits on a declaration, which stands in every context, so the
+four same-file cells are `error`. Every fact the rules read -- the dimensions
+written on the type and the elements written in the list -- is in the file
+holding the declaration, so nothing crosses an include and the imported
+columns are `off`. (A dimension named by a const from an include is sized
+through the program's const table; the count itself is local.)
+
 ## References
 
 - [MISRA C:2023 Rule 9.3 - MathWorks](https://www.mathworks.com/help/bugfinder/ref/misrac2023rule9.3.html)

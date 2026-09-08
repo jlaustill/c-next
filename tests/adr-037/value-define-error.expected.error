@@ -1,0 +1,2 @@
+8:0 error[E0502]: #define with value 'BUFFER_SIZE' is not allowed. Use 'const' instead: const u32 BUFFER_SIZE <- value;
+       help: A `#define` has no type and no scope, so the compiler cannot check its use (ADR-037); a `const` has both.

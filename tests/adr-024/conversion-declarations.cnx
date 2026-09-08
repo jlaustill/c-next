@@ -1,0 +1,5 @@
+// Helper (not a test): the wide source the cross-file ADR-024 fixtures narrow
+// from. The rule asks the SOURCE's type, which lives here.
+u32 wideShared <- 1000;
+
+const u32 CONVERSION_MARKER <- 1;

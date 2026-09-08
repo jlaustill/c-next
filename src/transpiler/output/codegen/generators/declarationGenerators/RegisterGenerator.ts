@@ -21,6 +21,7 @@ import IGeneratorOutput from "../IGeneratorOutput";
 import IOrchestrator from "../IOrchestrator";
 import TGeneratorFn from "../TGeneratorFn";
 import generateRegisterMacros from "./RegisterMacroGenerator";
+import RegisterBlockPlacement from "./RegisterBlockPlacement";
 
 /**
  * Generate C #define macros from a C-Next register declaration.
@@ -49,7 +50,7 @@ const generateRegister: TGeneratorFn<Parser.RegisterDeclarationContext> = (
   ];
 
   return {
-    code: lines.join("\n"),
+    code: RegisterBlockPlacement.place(name, lines.join("\n")),
     effects: [],
   };
 };

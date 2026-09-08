@@ -3,7 +3,7 @@
  * Tests for C type generation from C-Next type contexts
  */
 
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import CNextSourceParser from "../../../../logic/parser/CNextSourceParser.js";
 import TypeGenerationHelper from "../TypeGenerationHelper.js";
 import * as Parser from "../../../../logic/parser/grammar/CNextParser.js";
@@ -73,11 +73,9 @@ describe("TypeGenerationHelper", () => {
       expect(result).toBe("Motor__State");
     });
 
-    it("throws when called outside scope", () => {
-      expect(() => {
-        TypeGenerationHelper.generateScopedType("State", "");
-      }).toThrow("Cannot use 'this.Type' outside of a scope");
-    });
+    // #1322: the "throws when called outside scope" case is deleted with the
+    // guard. `this` outside a scope is E0431 in pass 2.1, which halts before
+    // code generation, so the empty-scope call this asserted is unreachable.
   });
 
   describe("generateGlobalType", () => {
@@ -103,36 +101,6 @@ describe("TypeGenerationHelper", () => {
       );
       expect(result).toBe("Motor__State");
     });
-
-    it("validates visibility for 2-part C-Next types", () => {
-      const validateFn = vi.fn();
-      TypeGenerationHelper.generateQualifiedType(
-        ["Motor", "State"],
-        false,
-        validateFn,
-      );
-      expect(validateFn).toHaveBeenCalledWith("Motor", "State");
-    });
-
-    it("does not validate visibility for 3+ part types", () => {
-      const validateFn = vi.fn();
-      TypeGenerationHelper.generateQualifiedType(
-        ["A", "B", "C"],
-        false,
-        validateFn,
-      );
-      expect(validateFn).not.toHaveBeenCalled();
-    });
-
-    it("does not validate visibility for C++ namespaces", () => {
-      const validateFn = vi.fn();
-      TypeGenerationHelper.generateQualifiedType(
-        ["Lib", "Type"],
-        true,
-        validateFn,
-      );
-      expect(validateFn).not.toHaveBeenCalled();
-    });
   });
 
   describe("generateUserType", () => {
@@ -152,51 +120,6 @@ describe("TypeGenerationHelper", () => {
     });
   });
 
-  describe("generateArrayBaseType", () => {
-    it("maps primitive type to C type", () => {
-      const result = TypeGenerationHelper.generateArrayBaseType(
-        "u32",
-        null,
-        false,
-      );
-      expect(result).toBe("uint32_t");
-    });
-
-    it("returns unknown primitive type unchanged", () => {
-      // When primitive type is not in TYPE_MAP, return as-is
-      const result = TypeGenerationHelper.generateArrayBaseType(
-        "unknownType",
-        null,
-        false,
-      );
-      expect(result).toBe("unknownType");
-    });
-
-    it("returns user type unchanged", () => {
-      const result = TypeGenerationHelper.generateArrayBaseType(
-        null,
-        "MyType",
-        false,
-      );
-      expect(result).toBe("MyType");
-    });
-
-    it("adds struct keyword for user types when needed", () => {
-      const result = TypeGenerationHelper.generateArrayBaseType(
-        null,
-        "CStruct",
-        true,
-      );
-      expect(result).toBe("struct CStruct");
-    });
-
-    it("throws when neither primitive nor user type provided", () => {
-      expect(() => {
-        TypeGenerationHelper.generateArrayBaseType(null, null, false);
-      }).toThrow("Array type must have either primitive or user type");
-    });
-  });
-
   describe("generateStringType", () => {
     it("returns char for bounded strings", () => {
       const result = TypeGenerationHelper.generateStringType();
@@ -209,7 +132,6 @@ describe("TypeGenerationHelper", () => {
       currentScopePath: "",
       isCppScopeSymbol: () => false,
       checkNeedsStructKeyword: () => false,
-      validateCrossScopeVisibility: vi.fn(),
       isScopeType: () => false,
     };
 
@@ -234,13 +156,12 @@ describe("TypeGenerationHelper", () => {
       expect(result).toBe("Motor__State");
     });
 
-    it("throws for scoped type outside scope", () => {
-      const ctx = getTypeContext("this.State status;");
-      expect(ctx).not.toBeNull();
-      expect(() => {
-        TypeGenerationHelper.generate(ctx!, defaultDeps);
-      }).toThrow();
-    });
+    // #1322: this case asserted that `generate` throws for `this.Type` with no
+    // enclosing scope. The guard is deleted, not relocated -- `this` outside a
+    // scope is E0431 in pass 2.1, which reaches a TYPE position as well as a
+    // value one and halts before code generation. Verified on both shapes that
+    // reached this code: a file-scope declaration and a local one, each
+    // reporting E0431 at the `this` token.
 
     // The deps column keeps the two cases needing a non-default dependency in
     // the same table as the rest, rather than stranding them between merged
@@ -280,18 +201,6 @@ describe("TypeGenerationHelper", () => {
         ...depsOverride,
       });
       expect(result).toBe(expected);
-    });
-
-    it("generates array base type for primitive array", () => {
-      // Arrays in C-Next are declared with dimensions after name: u8 arr[10];
-      // The type context for arrays is handled separately (not in type context)
-      // This test verifies that primitive arrays work via generateArrayBaseType
-      const result = TypeGenerationHelper.generateArrayBaseType(
-        "u8",
-        null,
-        false,
-      );
-      expect(result).toBe("uint8_t");
     });
 
     it("generates array type with primitive via generate()", () => {

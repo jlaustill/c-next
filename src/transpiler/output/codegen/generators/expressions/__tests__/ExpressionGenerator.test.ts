@@ -84,9 +84,6 @@ function createMockOrchestrator(
     generateOrExpr: vi.fn((ctx: Parser.OrExpressionContext) => {
       return orExprResults.get(ctx) ?? ctx.getText();
     }),
-    validateTernaryCondition: vi.fn(),
-    validateNoNestedTernary: vi.fn(),
-    validateTernaryConditionNoFunctionCall: vi.fn(),
   } as unknown as IOrchestrator;
 }
 
@@ -176,11 +173,7 @@ describe("ExpressionGenerator", () => {
           orchestrator,
         );
 
-        expect(orchestrator.validateTernaryCondition).not.toHaveBeenCalled();
-        expect(orchestrator.validateNoNestedTernary).not.toHaveBeenCalled();
-        expect(
-          orchestrator.validateTernaryConditionNoFunctionCall,
-        ).not.toHaveBeenCalled();
+        expect(orchestrator.generateOrExpr).toHaveBeenCalled();
       });
     });
 
@@ -259,78 +252,19 @@ describe("ExpressionGenerator", () => {
           orchestrator,
         );
 
-        expect(orchestrator.validateTernaryCondition).toHaveBeenCalledWith(
-          condition,
-        );
+        expect(orchestrator.generateOrExpr).toHaveBeenCalledWith(condition);
       });
 
-      it("validates no nested ternary in true branch (ADR-022)", () => {
-        const condition = createMockOrExpr("x > 0");
-        const trueExpr = createMockOrExpr("a");
-        const falseExpr = createMockOrExpr("b");
-        const ctx = createMockTernaryContext([condition, trueExpr, falseExpr]);
-
-        const input = createMockInput();
-        const state = createMockState();
-        const orchestrator = createMockOrchestrator();
-
-        expressionGenerators.generateTernaryExpr(
-          ctx,
-          input,
-          state,
-          orchestrator,
-        );
-
-        expect(orchestrator.validateNoNestedTernary).toHaveBeenCalledWith(
-          trueExpr,
-          "true branch",
-        );
-      });
-
-      it("validates no nested ternary in false branch (ADR-022)", () => {
-        const condition = createMockOrExpr("x > 0");
-        const trueExpr = createMockOrExpr("a");
-        const falseExpr = createMockOrExpr("b");
-        const ctx = createMockTernaryContext([condition, trueExpr, falseExpr]);
-
-        const input = createMockInput();
-        const state = createMockState();
-        const orchestrator = createMockOrchestrator();
-
-        expressionGenerators.generateTernaryExpr(
-          ctx,
-          input,
-          state,
-          orchestrator,
-        );
-
-        expect(orchestrator.validateNoNestedTernary).toHaveBeenCalledWith(
-          falseExpr,
-          "false branch",
-        );
-      });
-
-      it("validates no function calls in condition (Issue #254, E0702)", () => {
-        const condition = createMockOrExpr("isReady()");
-        const trueExpr = createMockOrExpr("a");
-        const falseExpr = createMockOrExpr("b");
-        const ctx = createMockTernaryContext([condition, trueExpr, falseExpr]);
-
-        const input = createMockInput();
-        const state = createMockState();
-        const orchestrator = createMockOrchestrator();
-
-        expressionGenerators.generateTernaryExpr(
-          ctx,
-          input,
-          state,
-          orchestrator,
-        );
-
-        expect(
-          orchestrator.validateTernaryConditionNoFunctionCall,
-        ).toHaveBeenCalledWith(condition);
-      });
+      // #1322: the two "validates no nested ternary in <branch> branch" tests
+      // that stood here are gone with the call they asserted. Removing only
+      // their `expect` would have left two tests that run the generator and
+      // assert nothing -- green forever, whatever the generator did. ADR-022's
+      // rule is E0710 in `1-Analyze/__tests__/NestedTernaryAnalyzer.test.ts`.
+      // #1322: the E0702 delegation test that stood here is gone with the
+      // call. ADR-022's controlling-expression rules -- E0701 and E0702 -- are
+      // authored in pass 2.1, which halts before codegen runs. Deleted rather
+      // than emptied: an `it` that runs the generator and asserts nothing is
+      // green whatever the generator does.
 
       it("handles complex expressions in ternary branches", () => {
         const condition = createMockOrExpr("a + b > c * d");
@@ -358,90 +292,13 @@ describe("ExpressionGenerator", () => {
       });
     });
 
-    describe("validation error propagation", () => {
-      it("propagates error when validateTernaryCondition throws", () => {
-        const condition = createMockOrExpr("flag");
-        const trueExpr = createMockOrExpr("a");
-        const falseExpr = createMockOrExpr("b");
-        const ctx = createMockTernaryContext([condition, trueExpr, falseExpr]);
-
-        const input = createMockInput();
-        const state = createMockState();
-        const orchestrator = createMockOrchestrator();
-        (
-          orchestrator.validateTernaryCondition as ReturnType<typeof vi.fn>
-        ).mockImplementation(() => {
-          throw new Error("Error: Ternary condition must be a comparison");
-        });
-
-        expect(() =>
-          expressionGenerators.generateTernaryExpr(
-            ctx,
-            input,
-            state,
-            orchestrator,
-          ),
-        ).toThrow("Error: Ternary condition must be a comparison");
-      });
-
-      it("propagates error when validateNoNestedTernary throws", () => {
-        const condition = createMockOrExpr("x > 0");
-        const trueExpr = createMockOrExpr("nested ? a : b");
-        const falseExpr = createMockOrExpr("c");
-        const ctx = createMockTernaryContext([condition, trueExpr, falseExpr]);
-
-        const input = createMockInput();
-        const state = createMockState();
-        const orchestrator = createMockOrchestrator();
-        (
-          orchestrator.validateNoNestedTernary as ReturnType<typeof vi.fn>
-        ).mockImplementation((_expr, branch) => {
-          if (branch === "true branch") {
-            throw new Error("Error: Nested ternary not allowed in true branch");
-          }
-        });
-
-        expect(() =>
-          expressionGenerators.generateTernaryExpr(
-            ctx,
-            input,
-            state,
-            orchestrator,
-          ),
-        ).toThrow("Error: Nested ternary not allowed in true branch");
-      });
-
-      it("propagates error when validateTernaryConditionNoFunctionCall throws", () => {
-        const condition = createMockOrExpr("isReady()");
-        const trueExpr = createMockOrExpr("a");
-        const falseExpr = createMockOrExpr("b");
-        const ctx = createMockTernaryContext([condition, trueExpr, falseExpr]);
-
-        const input = createMockInput();
-        const state = createMockState();
-        const orchestrator = createMockOrchestrator();
-        (
-          orchestrator.validateTernaryConditionNoFunctionCall as ReturnType<
-            typeof vi.fn
-          >
-        ).mockImplementation(() => {
-          throw new Error(
-            "Error[E0702]: Function calls not allowed in ternary condition",
-          );
-        });
-
-        expect(() =>
-          expressionGenerators.generateTernaryExpr(
-            ctx,
-            input,
-            state,
-            orchestrator,
-          ),
-        ).toThrow(
-          "Error[E0702]: Function calls not allowed in ternary condition",
-        );
-      });
-    });
+    // #1322: the "validation error propagation" suite that stood here is gone.
+    // Its two cases asserted that `generateTernaryExpr` propagates a throw from
+    // `validateTernaryCondition` and from `validateTernaryConditionNoFunctionCall`;
+    // ADR-022's controlling-expression rules are E0701/E0702 in pass 2.1, which
+    // halts before codegen runs, so there is no throw left to propagate. The
+    // empty `describe` went too -- vitest fails a suite with no tests, which is
+    // the right answer to a container that asserts nothing.
 
     describe("inDeclarationInit clearing (Issue #992)", () => {
       beforeEach(() => {

@@ -1,0 +1,19 @@
+// test-error
+// test-adr: 016
+// E0436 across ONE include hop, from a TOP-LEVEL function -- matrix cell:
+// top-level function / imported direct. (#1190's fixtures cover the scope
+// method context; this one is the other context the rule reaches.)
+//
+// Visibility is recorded where the member is declared, so a check reading only
+// this file finds no scope and no visibility, and "not found" never rejects.
+
+#include "access-declarations.cnx"
+
+// NEGATIVE CONTROL -- the PUBLIC member of the same imported scope.
+u32 okPublic() {
+    return Config.BAUD;
+}
+
+u32 main() {
+    return Config.SECRET_BAUD;
+}

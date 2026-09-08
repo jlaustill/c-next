@@ -30,7 +30,7 @@ uint8_t sliceSourceCallCount = 0U;
 
 uint32_t nextSliceValue(void) {
     sliceSourceCallCount = cnx_clamp_add_u8(sliceSourceCallCount, 1U);
-    return 0x11223344;
+    return 0x11223344U;
 }
 
 int main(void) {
@@ -41,10 +41,10 @@ int main(void) {
     buffer[1] = (uint8_t)(cnx_tmp0 >> 8U);
     buffer[2] = (uint8_t)(cnx_tmp0 >> 16U);
     buffer[3] = (uint8_t)(cnx_tmp0 >> 24U);
-    if (buffer[0U] != 0x44) return 1;
-    if (buffer[1U] != 0x33) return 2;
-    if (buffer[2U] != 0x22) return 3;
-    if (buffer[3U] != 0x11) return 4;
-    if (sliceSourceCallCount != 1) return 5;
-    return 0;
+    if (buffer[0U] != 0x44) return 1U;
+    if (buffer[1U] != 0x33) return 2U;
+    if (buffer[2U] != 0x22) return 3U;
+    if (buffer[3U] != 0x11) return 4U;
+    if (sliceSourceCallCount != 1) return 5U;
+    return 0U;
 }

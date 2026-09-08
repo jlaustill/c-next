@@ -1,0 +1,2 @@
+12:0 error[E0874]: C-style array declaration is not allowed. Use 'u16[8] myArray' instead of 'u16 myArray[8]'
+       help: C-Next puts every array dimension in the type, before the name (ADR-036).

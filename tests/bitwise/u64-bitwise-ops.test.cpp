@@ -27,7 +27,7 @@ int main(void) {
     uint64_t mask32 = 0x00000000FFFFFFFFULL;
     uint64_t masked = lower32 & mask32;
     if (small_and == 160 && small_or == 65450 && not_all == 0 && masked == 0x12345678) {
-        return 0;
+        return 0U;
     }
-    return 1;
+    return 1U;
 }

@@ -140,13 +140,19 @@ async function transpileAndWriteCppSnapshot(
 ): Promise<IGenerationResult> {
   try {
     const pipeline = new Transpiler({
-      inputs: [],
+      input: cnxFile,
       includeDirs,
       noCache: true,
       cppRequired: true,
     });
 
-    const result = await pipeline.transpileSource(source, {
+    // `transpile()` is the single entry point; `{ kind: "source" }` is its API
+    // mode. This script named `inputs` and `transpileSource()`, neither of which
+    // has ever existed on these types -- it could not run, and nothing noticed
+    // because `scripts/` was outside `tsconfig.json`'s `include` (#1489).
+    const result = await pipeline.transpile({
+      kind: "source",
+      source,
       workingDir: dirname(cnxFile),
       sourcePath: cnxFile,
     });
@@ -163,10 +169,25 @@ async function transpileAndWriteCppSnapshot(
       };
     }
 
+    // `code`/`headerCode` are per-file and live on IFileResult, not on the
+    // aggregate. Source mode transpiles exactly one file, but an empty `files`
+    // is reported rather than silently writing nothing -- a snapshot generator
+    // that produces no snapshot and claims success is the failure this script
+    // would otherwise hide.
+    const [fileResult] = result.files;
+    if (!fileResult) {
+      return {
+        file: cnxFile,
+        generated: false,
+        skipped: false,
+        error: "Transpilation succeeded but produced no file result",
+      };
+    }
+
     if (!dryRun) {
-      writeFileSync(expectedCppFile, result.code);
-      if (result.headerCode) {
-        writeFileSync(expectedHppFile, result.headerCode);
+      writeFileSync(expectedCppFile, fileResult.code);
+      if (fileResult.headerCode) {
+        writeFileSync(expectedHppFile, fileResult.headerCode);
       }
     }
 

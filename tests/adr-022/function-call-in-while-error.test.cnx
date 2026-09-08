@@ -1,0 +1,19 @@
+// Issue #254: Function calls in while conditions are not allowed (E0702)
+// test-adr: 022
+// MISRA C:2012 Rule 13.5 - Short-circuit evaluation may skip function calls
+
+bool hasMore() {
+    return true;
+}
+
+// NEGATIVE CONTROL -- the same call, hoisted out of the condition.
+void okHoisted() {
+    bool more <- hasMore();
+    while (more = true) {}
+}
+
+void test() {
+    while (hasMore() = true) {
+        // body
+    }
+}

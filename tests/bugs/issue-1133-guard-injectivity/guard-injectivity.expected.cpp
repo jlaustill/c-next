@@ -27,7 +27,7 @@
 int main(void) {
     uint8_t small = AlphaModule__one();
     uint64_t large = BetaModule__big();
-    if (small != 1) return 1;
-    if (large != 4294967296) return 2;
-    return 0;
+    if (small != 1) return 1U;
+    if (large != 4294967296) return 2U;
+    return 0U;
 }

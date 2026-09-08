@@ -15,18 +15,12 @@ import StringUtils from "../../../../../utils/StringUtils";
 import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import CodeGenState from "../../../../state/CodeGenState";
+import invariant from "../../../../../utils/invariant";
 import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
 
-/**
- * Validate compound operators are not used with strings.
- */
-function validateNotCompound(ctx: IAssignmentContext): void {
-  if (ctx.isCompound) {
-    throw new Error(
-      `Error: Compound operators not supported for string assignment: ${ctx.cnextOp}`,
-    );
-  }
-}
+// #1322: `validateNotCompound` is gone -- E0857 in pass 2.1. It was defined
+// here AND in the sibling handler, verbatim: one rule, two copies, in a group
+// of six.
 
 /**
  * Common handler for simple string assignments (STRING_SIMPLE and STRING_GLOBAL).
@@ -34,8 +28,6 @@ function validateNotCompound(ctx: IAssignmentContext): void {
  * Gets capacity from typeRegistry and generates strncpy with null terminator.
  */
 function handleSimpleStringAssignment(ctx: IAssignmentContext): string {
-  validateNotCompound(ctx);
-
   const id = ctx.identifiers[0];
   const typeInfo = CodeGenState.getVariableTypeInfo(id);
   const capacity = typeInfo!.stringCapacity!;
@@ -56,22 +48,30 @@ function handleSimpleStringAssignment(ctx: IAssignmentContext): string {
 function getStructFieldType(structName: string, fieldName: string): string {
   // Issue #831: Use SymbolTable as single source of truth for struct fields
   const structTypeInfo = CodeGenState.getVariableTypeInfo(structName);
-  if (!structTypeInfo) {
-    throw new Error(
-      `Error: Unknown struct variable '${structName}' in string assignment`,
-    );
-  }
+  // #1322: classified "dead -- delete" by #1321's audit, and it is indeed
+  // unreachable: STRING_STRUCT_FIELD is produced only via
+  // `AssignmentClassifier._resolveStructType`, which runs the identical
+  // `getVariableTypeInfo` lookup and returns null when it misses. But deleting
+  // it yields `TS18048: possibly 'undefined'` on the next line -- the guard is
+  // doing type work as well as runtime work. Unreachable AND load-bearing is
+  // not dead; it is an invariant, so it says so.
+  invariant(
+    structTypeInfo,
+    "a classified struct assignment names a variable the symbol table knows",
+  );
 
   const structType = structTypeInfo.baseType;
   const fieldType = CodeGenState.symbolTable?.getStructFieldType(
     structType,
     fieldName,
   );
-  if (!fieldType) {
-    throw new Error(
-      `Error: Unknown field '${fieldName}' on struct '${structType}' in string assignment`,
-    );
-  }
+  // Same shape: the classifier already required `getStructFieldType` truthy
+  // and `TypeCheckUtils.isString` before producing this kind, so a miss here
+  // is the transpiler contradicting itself, not the author's program.
+  invariant(
+    fieldType,
+    "a classified string-field assignment names a field the struct declares",
+  );
 
   return fieldType;
 }
@@ -83,11 +83,17 @@ function getStructFieldType(structName: string, fieldName: string): string {
  */
 function getStructType(structName: string): string {
   const structTypeInfo = CodeGenState.getVariableTypeInfo(structName);
-  if (!structTypeInfo) {
-    throw new Error(
-      `Error: Unknown struct variable '${structName}' in string assignment`,
-    );
-  }
+  // #1322: classified "dead -- delete" by #1321's audit, and it is indeed
+  // unreachable: STRING_STRUCT_FIELD is produced only via
+  // `AssignmentClassifier._resolveStructType`, which runs the identical
+  // `getVariableTypeInfo` lookup and returns null when it misses. But deleting
+  // it yields `TS18048: possibly 'undefined'` on the next line -- the guard is
+  // doing type work as well as runtime work. Unreachable AND load-bearing is
+  // not dead; it is an invariant, so it says so.
+  invariant(
+    structTypeInfo,
+    "a classified struct assignment names a variable the symbol table knows",
+  );
   return structTypeInfo.baseType;
 }
 
@@ -95,12 +101,6 @@ function getStructType(structName: string): string {
  * Handle this.member string: this.name <- "value"
  */
 function handleStringThisMember(ctx: IAssignmentContext): string {
-  if (!CodeGenState.currentScopePath) {
-    throw new Error("Error: 'this' can only be used inside a scope");
-  }
-
-  validateNotCompound(ctx);
-
   const memberName = ctx.identifiers[0];
   // The key must match `_classifyThisMemberString`
   // (AssignmentClassifier.ts:846), which hits the same map to decide whether to
@@ -127,8 +127,6 @@ function handleStringThisMember(ctx: IAssignmentContext): string {
  * Handle struct.field string: person.name <- "Alice"
  */
 function handleStringStructField(ctx: IAssignmentContext): string {
-  validateNotCompound(ctx);
-
   const structName = ctx.identifiers[0];
   const fieldName = ctx.identifiers[1];
 
@@ -149,8 +147,6 @@ function handleStringStructField(ctx: IAssignmentContext): string {
  * Handle string array element: names[0] <- "first"
  */
 function handleStringArrayElement(ctx: IAssignmentContext): string {
-  validateNotCompound(ctx);
-
   const name = ctx.identifiers[0];
   const typeInfo = CodeGenState.getVariableTypeInfo(name);
   const capacity = typeInfo!.stringCapacity!;
@@ -172,8 +168,6 @@ function handleStringArrayElement(ctx: IAssignmentContext): string {
  * Handle struct field string array element: config.items[0] <- "value"
  */
 function handleStringStructArrayElement(ctx: IAssignmentContext): string {
-  validateNotCompound(ctx);
-
   const structName = ctx.identifiers[0];
   const fieldName = ctx.identifiers[1];
 
@@ -181,11 +175,12 @@ function handleStringStructArrayElement(ctx: IAssignmentContext): string {
   const dimensions =
     CodeGenState.symbols!.structFieldDimensions.get(structType)?.get(fieldName);
 
-  if (!dimensions || dimensions.length === 0) {
-    throw new Error(
-      `Error: Cannot determine string capacity for struct field '${structType}.${fieldName}'`,
-    );
-  }
+  // `_classifyStructArrayElementString` required `dimensions.length >= 1` from
+  // the same map with the same keys before producing this kind.
+  invariant(
+    dimensions && dimensions.length > 0,
+    "a classified struct-array string element has recorded dimensions",
+  );
 
   // String arrays: dimensions are [array_size, string_capacity+1]
   // -1 because we added +1 for null terminator during symbol collection.
@@ -197,12 +192,10 @@ function handleStringStructArrayElement(ctx: IAssignmentContext): string {
   // the string-array shape changed, and silently producing NaN capacity would
   // corrupt every strncpy bound generated from it.
   const rawCapacity = dimensions.at(-1);
-  if (typeof rawCapacity !== "number") {
-    throw new TypeError(
-      `Error: Cannot determine string capacity for struct field '${structType}.${fieldName}': ` +
-        `expected a numeric capacity, got '${String(rawCapacity)}'`,
-    );
-  }
+  invariant(
+    typeof rawCapacity === "number",
+    `a string<N> capacity is always numeric -- the grammar restricts that token to digits ('${structType}.${fieldName}' gave '${String(rawCapacity)}')`,
+  );
   const capacity = rawCapacity - 1;
 
   CodeGenState.requireInclude("string");

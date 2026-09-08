@@ -27,27 +27,27 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 int main(void) {
     DataBuffer buf = {0};
     buf.len = 4U;
-    for (uint32_t i = 0; i < buf.len; i += 1) {
+    for (uint32_t i = 0U; i < buf.len; i += 1) {
         buf.data[i] = i * 10U;
     }
-    if (buf.data[0U] != 0) return 1;
-    if (buf.data[1U] != 10) return 2;
-    if (buf.data[2U] != 20) return 3;
-    if (buf.data[3U] != 30) return 4;
+    if (buf.data[0U] != 0) return 1U;
+    if (buf.data[1U] != 10) return 2U;
+    if (buf.data[2U] != 20) return 3U;
+    if (buf.data[3U] != 30) return 4U;
     ValueArray va = {0};
     va.count = 8U;
-    for (uint32_t i = 0; i < va.count; i += 1) {
+    for (uint32_t i = 0U; i < va.count; i += 1) {
         va.values[i] = i * 100U;
     }
-    if (va.values[0U] != 0) return 5;
-    if (va.values[1U] != 100) return 6;
-    if (va.values[7U] != 700) return 7;
+    if (va.values[0U] != 0) return 5U;
+    if (va.values[1U] != 100) return 6U;
+    if (va.values[7U] != 700) return 7U;
     uint32_t sum = 0U;
-    for (uint32_t i = 0; i < va.count; i += 1) {
+    for (uint32_t i = 0U; i < va.count; i += 1) {
         sum = cnx_clamp_add_u32(sum, va.values[i]);
     }
-    if (sum != 2800) return 8;
-    if (8 != 8) return 9;
-    if (32 != 32) return 10;
-    return 0;
+    if (sum != 2800) return 8U;
+    if (8 != 8) return 9U;
+    if (32 != 32) return 10U;
+    return 0U;
 }

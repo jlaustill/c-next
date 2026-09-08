@@ -1,0 +1,6 @@
+// Helper (not a test): the buffer the cross-file slice fixtures target.
+// A slice's rules are checked against the DECLARATION -- element size, capacity
+// -- so when the declaration lives in another file the check has to reach it.
+u8[8] sharedBuf;
+
+const u32 SHARED_MARKER <- 1;

@@ -50,6 +50,6 @@ int main(void) {
     describe_fp viaInclude = describe;
     char text[9] = "abcd";
     uint32_t length = viaInclude(text);
-    if (length != 4) return 1;
-    return 0;
+    if (length != 4) return 1U;
+    return 0U;
 }

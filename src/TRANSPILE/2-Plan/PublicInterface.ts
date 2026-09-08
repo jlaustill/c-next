@@ -86,15 +86,14 @@ class PublicInterface {
     // "scope" because a scope is a container, not a declaration: its members
     // are collected as symbols in their own right.
     //
-    // "register" because `HeaderGeneratorUtils.groupSymbolsByKind` has no
-    // register bucket, so a register is emitted as `#define`s in the `.c`
-    // whether it is public or private. This predicate used to answer "yes, if
-    // public" while the emitter answered "never" -- one question, two answers,
-    // agreeing on outcome only because the symbol was dropped downstream. That
-    // is what made a register-only file emit an empty header. #1453 is the
-    // issue that makes a register reachable across an include boundary; when it
-    // lands, this is the line it changes.
-    if (symbol.kind === "scope" || symbol.kind === "register") {
+    // A register IS part of the interface (#1453): its accessor `#define`s are
+    // rendered into the header, which is the only file a `#define` can be
+    // exported from. Before #1453 this line excluded registers because no
+    // header path emitted one, so a board file declaring the hardware wrote an
+    // empty header and every consumer's `HW.CTRL` reached the C compiler as an
+    // undeclared name -- while E0427 reported "'HW' is not defined" for the
+    // file that had declared it one include away.
+    if (symbol.kind === "scope") {
       return false;
     }
 
@@ -250,6 +249,17 @@ class PublicInterface {
         // `uint8_t data[Internal__Size__COUNT]` with the enum defined in the
         // `.c` -- transpiler exit 0, header does not compile.
         collectDims(field.dimensions);
+      }
+    } else if (symbol.kind === "register") {
+      // #1453: a register's accessor casts to its member's type, so a bitmap a
+      // public register names must be defined by the header that exports the
+      // register. `bitmapType` is already the name the definer is keyed by --
+      // a file-scope bitmap's bare name, a scope bitmap's C name -- so it is
+      // matched directly rather than re-resolved.
+      for (const member of symbol.members.values()) {
+        if (member.bitmapType !== undefined) {
+          names.push(member.bitmapType);
+        }
       }
     }
 

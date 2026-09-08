@@ -1,0 +1,2 @@
+16:25 error[E0864]: String concatenation requires capacity 64, but the declaration is string<50>
+       help: Widen the declaration to string<64>, or shorten the operands.

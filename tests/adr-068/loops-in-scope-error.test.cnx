@@ -1,0 +1,38 @@
+// test-error
+// test-adr: 068
+// ADR-068's three rules inside a SCOPE METHOD -- the context the file-scope
+// fixtures cannot reach. E0705 reads the enclosing function's declared type,
+// which a scope method spells the same way; E0707 reads the header and the
+// literals. Codegen reached the method context through the same generators,
+// but nothing asserted it.
+scope Motor {
+    u32 ticks <- 0;
+
+    // NEGATIVE CONTROL -- a void method may loop forever, and a counted loop
+    // is fine anywhere.
+    public void spin() {
+        for (u32 i <- 0; i < 3; i +<- 1) {
+            this.ticks +<- 1;
+        }
+        forever {
+            this.ticks +<- 1;
+        }
+    }
+
+    // ASSERTION 1 -- E0705, non-void method.
+    public u32 wait() {
+        forever {
+            this.ticks +<- 1;
+        }
+    }
+
+    // ASSERTIONS 2-3 -- E0707, both forms, in a method.
+    public void poll() {
+        for (; ; ) {
+            this.ticks +<- 1;
+        }
+        while (2 >= 1) {
+            this.ticks +<- 1;
+        }
+    }
+}

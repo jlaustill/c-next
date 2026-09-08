@@ -1,0 +1,10 @@
+// Helper (not a test): the enum the cross-file switch fixtures switch on.
+// Exhaustiveness is counted against the enum's MEMBERS, so when the enum is
+// declared elsewhere the count has to reach across the include boundary.
+enum EShared {
+    A,
+    B,
+    C
+}
+
+const u32 SWITCH_MARKER <- 1;

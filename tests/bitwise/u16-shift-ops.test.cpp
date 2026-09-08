@@ -30,10 +30,10 @@ int main(void) {
         if (right1 == 16384 && right8 == 128 && right15 == 1) {
             if (left_var == 4080 && right_var == 15) {
                 if (shift_byte == 255 && multi_shift == 10920) {
-                    return 0;
+                    return 0U;
                 }
             }
         }
     }
-    return 1;
+    return 1U;
 }

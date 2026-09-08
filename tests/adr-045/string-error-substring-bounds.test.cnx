@@ -1,0 +1,15 @@
+// test-error
+// test-adr: 045
+// ADR-045: Test substring bounds error
+// Start position 60 + length 10 = 70, which exceeds source capacity of 64
+// NEGATIVE CONTROL -- bounds that reach exactly the end of the source.
+// 54 + 10 = 64 is the source's capacity, so it must be accepted.
+void okAtTheEnd() {
+    string<64> source <- "Hello, World!";
+    string<10> tail <- source[54, 10];
+}
+
+void test() {
+    string<64> source <- "Hello, World!";
+    string<10> invalid <- source[60, 10];
+}

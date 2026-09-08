@@ -1,0 +1,71 @@
+// test-error
+// test-adr: 024
+// ADR-024: a conversion is checked wherever a value meets a typed target --
+// the same rule in a declaration, in an assignment, and through a member or
+// element chain.
+//
+// #1322 relocated this rule and reproduced two holes codegen had, recording
+// them rather than closing them. Both are closed now, on the language owner's
+// decision that each is a bug:
+//
+//   (a) a COMPOSITE source (`a + b`) was typed on a declaration's initializer
+//       and never on an assignment statement, so `u8 s <- large + 1;` was
+//       rejected while `t <- large + 1;` was accepted;
+//   (b) an assignment was checked against the ROOT variable's declared type,
+//       so `c.col <- wide` -- a u32 into a u8 FIELD -- was never checked at
+//       all, because `c` is a struct. It emitted `c.col = wide;`, a silent
+//       truncation of exactly the kind this rule exists to prevent.
+//
+// Both now report E0869 and point at bit indexing, which is ADR-024's
+// sanctioned way to say which bits are meant.
+
+struct Cell {
+    u8 col;
+    u32 data;
+}
+
+u32 wide <- 1000;
+u8 byte <- 7;
+
+// NEGATIVE CONTROL -- a composite whose widest operand fits.
+u32 okWidth <- byte + 1;
+
+// NEGATIVE CONTROL -- a ternary source has literal branches and no declared
+// type; a `test-no-warnings` execution fixture asserts this form is fine.
+i32 okTernary <- (wide > 0) ? 1 : -1;
+
+// THE ASSERTION -- global variable context. A conversion happens wherever a
+// value meets a typed target, and an initializer at file scope is one.
+u8 narrowGlobal <- wide;
+
+u32 main() {
+    u8[4] cells;
+    Cell c;
+
+    // NEGATIVE CONTROL -- the explicit reinterpret ADR-024 sanctions. It must
+    // stay silent, or the rule would reject the remedy it recommends. Note
+    // this one does NOT discriminate the two changes above: a bit extraction
+    // is untyped by three independent mechanisms, so no single mutation of
+    // them reaches it. It guards the rule, not the change.
+    cells[1] <- (wide + 1)[0, 8];
+    c.col <- wide[0, 8];
+
+    // NEGATIVE CONTROL for the two changes -- a COMPOSITE reaching a FIELD
+    // that is wide enough. Both new behaviors are exercised here (the source
+    // is typed as a composite, and the target is resolved through the chain),
+    // and the answer is still "no conversion", so an over-enforcing version of
+    // either fails on this line.
+    c.data <- wide + 1;
+
+    // ASSERTION (a) -- the composite through an ASSIGNMENT, which codegen
+    // never typed.
+    cells[0] <- wide + 1;
+
+    // ASSERTION (b) -- a struct FIELD, which codegen never reached because it
+    // looked up `c` and stopped.
+    c.col <- wide;
+
+    // ASSERTION -- the composite in a declaration, which codegen did type.
+    u8 narrow <- wide + 1;
+    return narrow;
+}

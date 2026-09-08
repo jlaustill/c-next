@@ -12,10 +12,10 @@ int main(void) {
     uint32_t a = 10U;
     uint32_t b = 3U;
     uint32_t result = a % b;
-    if (result != 1) return 1;
+    if (result != 1) return 1U;
     int32_t c = 17;
     int32_t d = 5;
     int32_t result2 = c % d;
-    if (result2 != 2) return 2;
-    return 0;
+    if (result2 != 2) return 2U;
+    return 0U;
 }

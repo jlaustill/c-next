@@ -1,0 +1,28 @@
+// ADR-025: Error Test - Wrong Default Count
+// test-adr: 025
+// Should error: default(n) count doesn't match remaining variants
+enum EState {
+    IDLE,
+    RUNNING,
+    STOPPED,
+    ERROR
+}
+
+// NEGATIVE CONTROL -- the same enum with a `default(N)` whose count DOES add
+// up: 2 explicit + default(2) = 4 variants. The rule is arithmetic on the
+// count, so the correct arithmetic must pass.
+void okCountAddsUp(EState state) {
+    switch (state) {
+        case EState.IDLE {}
+        case EState.RUNNING {}
+        default(2) {}
+    }
+}
+
+void handleState(EState state) {
+    switch (state) {
+        case EState.IDLE {}
+        case EState.RUNNING {}
+        default(1) {}
+    }
+}

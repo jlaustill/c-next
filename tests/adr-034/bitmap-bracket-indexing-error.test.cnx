@@ -1,0 +1,46 @@
+// test-error
+// test-adr: 034
+// ADR-034: a bitmap is addressed by named field, never by bit index. Until
+// #1322 this check keyed on a map of REGISTER member types, so it could only
+// ever fire through a register -- indexing a bitmap VARIABLE was accepted and
+// emitted as a bit index. Both routes are asserted here.
+
+bitmap8 Flags {
+    Active[1],
+    Ready[1],
+    Level[3],
+    Reserved[3]
+}
+
+Flags loose <- 0;
+
+scope Timer {
+    bitmap8 ControlBits {
+        ENABLE[1],
+        TICKINT[1],
+        Reserved[6]
+    }
+
+    register SysTick @ 0xE000E010 {
+        CTRL: ControlBits rw @ 0x00,
+    }
+
+    public void test() {
+        // NEGATIVE CONTROLS -- the named-field form ADR-034 requires, through
+        // the register and through the variable, read and written.
+        bool ok <- this.SysTick.CTRL.ENABLE;
+        this.SysTick.CTRL.TICKINT <- true;
+        bool okLoose <- loose.Active;
+        loose.Ready <- true;
+
+        // ASSERTION 1 -- a register member typed by a bitmap, read.
+        bool enabled <- this.SysTick.CTRL[0];
+
+        // ASSERTION 2 -- the same, written.
+        this.SysTick.CTRL[1] <- true;
+
+        // ASSERTION 3 -- a bitmap VARIABLE, the route the old check could not
+        // see at all.
+        bool active <- loose[0];
+    }
+}

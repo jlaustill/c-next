@@ -197,6 +197,21 @@ export default class CodeGenState {
   static generatedStructInits: Set<string> = new Set();
 
   /**
+   * #1453 / ADR-004: the accessor `#define` blocks of every register this
+   * file's header defines, rendered by the `.c` generator and printed by the
+   * header verbatim.
+   *
+   * A `#define` cannot be exported from a `.c`, so a register reaches an
+   * including file only through the header. The text is rendered once, where
+   * the ADR-057 type qualification and the address expressions are available
+   * (the register generators), and handed over rather than re-derived from the
+   * symbol -- a header-side renderer would be a second copy of that
+   * resolution. Same shape as `generatedStructInits`: one fact, recorded by the
+   * `.c`, consulted by the `.h`. Cleared per file by `reset()`.
+   */
+  static exportedRegisterBlocks: string[] = [];
+
+  /**
    * ADR-029 / Issues #1200, #1201: every type name referenced by a field or a
    * parameter, wherever it appears -- top-level struct, scope-nested struct,
    * scope member, or function parameter.
@@ -584,6 +599,7 @@ export default class CodeGenState {
     this.callbackTypes = new Map();
     this.callbackFieldTypes = new Map();
     this.generatedStructInits = new Set();
+    this.exportedRegisterBlocks = [];
     this.callbackTypeReferences = new Set();
     this.publicCallbackTypeReferences = new Set();
     this.emittedCallbackTypedefs = new Set();
@@ -939,7 +955,17 @@ export default class CodeGenState {
    */
   static getCNextVariableTypeName(name: string): string | null {
     const symbol = this.getCNextVariableSymbol(name);
-    return symbol ? TypeResolver.getTypeName(symbol.type) : null;
+    if (!symbol) return null;
+    // #1322: WITH its dimensions. `IDeclaredVar.typeText` records `u32[4]` for
+    // a lexical declaration, and every chain walk reads array-ness off the type
+    // text, so the run-wide fallback has to say the same thing or an imported
+    // array reads as a scalar -- which is how `sharedArray.element_count`
+    // across an include was rejected while the same line in-file was accepted.
+    // The join matches the lexical spelling on purpose: one encoding, read by
+    // one `elementType`, whichever source answered.
+    const base = TypeResolver.getTypeName(symbol.type);
+    const dimensions = symbol.arrayDimensions ?? [];
+    return base + dimensions.map((d) => `[${d}]`).join("");
   }
 
   /**
@@ -1305,13 +1331,74 @@ export default class CodeGenState {
   }
 
   /**
+   * The key `ICodeGenSymbols.structFields` actually holds for a struct type,
+   * or undefined when nothing does.
+   *
+   * #1322. Those maps are keyed by the TRANSPILED C name, so a scope-declared
+   * struct is `S__Cfg` there while every declaration, parameter and field type
+   * reads `S.Cfg`. Callers passed the source spelling, the lookup missed, and
+   * the member chain became UNRESOLVABLE -- which no analyzer rejects, because
+   * declining to guess is the correct behavior for a name it cannot resolve.
+   *
+   * So MISRA C:2012 Rule 10.1 fired on a global struct's `bool` field and was
+   * silently absent on a scope-declared struct's, and the same held for the
+   * divide-by-zero, array-index and essential-category rules that follow the
+   * same chains. Four analyzers, one missing key derivation.
+   *
+   * It is resolved HERE, once, rather than at each call site: a fifth caller
+   * arriving later inherits the fix instead of re-deriving it, and
+   * `CompoundAssignmentAnalyzer` had already been forced to spell it out
+   * privately -- which is the duplicate-path shape, and is now deleted.
+   *
+   * The source spelling is tried FIRST, so this can only ADD resolutions.
+   * Nothing that resolved before resolves differently, which is what makes it
+   * safe to put under a caller in `output/` as well as the analyzers.
+   */
+  private static resolvedStructKey(structName: string): string | undefined {
+    const fields = this.symbols?.structFields;
+    if (fields === undefined) return undefined;
+    if (fields.has(structName)) return structName;
+
+    const cut = structName.lastIndexOf(".");
+    if (cut === -1) return undefined;
+    // Never spelled by hand -- `getTranspiledCName` is the single encoder
+    // (CLAUDE.md), and the whole PATH is the scope, not just its last segment.
+    const key = ScopeUtils.getTranspiledCName({
+      scopePath: structName.slice(0, cut),
+      name: structName.slice(cut + 1),
+    });
+    return fields.has(key) ? key : undefined;
+  }
+
+  /**
    * Get struct field type (simple lookup).
    */
   static getStructFieldType(
     structName: string,
     fieldName: string,
   ): string | undefined {
-    return this.symbols?.structFields.get(structName)?.get(fieldName);
+    const key = CodeGenState.resolvedStructKey(structName);
+    return key === undefined
+      ? undefined
+      : this.symbols?.structFields.get(key)?.get(fieldName);
+  }
+
+  /**
+   * A struct field's declared array dimensions, or undefined where the struct
+   * or the field is not established. An empty array means a declared scalar --
+   * a distinction its callers depend on, so it is not collapsed to undefined.
+   */
+  static getStructFieldDimensions(
+    structName: string,
+    fieldName: string,
+  ): readonly (number | string)[] | undefined {
+    const key = CodeGenState.resolvedStructKey(structName);
+    if (key === undefined) return undefined;
+    const dimensions = this.symbols?.structFieldDimensions
+      .get(key)
+      ?.get(fieldName);
+    if (dimensions !== undefined) return dimensions;
+    return this.symbols?.structFields.get(key)?.has(fieldName) ? [] : undefined;
   }
 
   /**
@@ -1333,13 +1420,16 @@ export default class CodeGenState {
       };
     }
 
-    // Fall back to local C-Next struct fields
-    const localFields = this.symbols?.structFields.get(structType);
-    if (localFields) {
-      const fieldType = localFields.get(fieldName);
+    // Fall back to local C-Next struct fields, under the resolved key (#1322 --
+    // this had the same scope-declared-struct miss as getStructFieldType).
+    const localKey = CodeGenState.resolvedStructKey(structType);
+    if (localKey !== undefined) {
+      const fieldType = this.symbols?.structFields
+        .get(localKey)
+        ?.get(fieldName);
       if (fieldType) {
         const fieldDimensions =
-          this.symbols?.structFieldDimensions.get(structType);
+          this.symbols?.structFieldDimensions.get(localKey);
         const dimensions = fieldDimensions?.get(fieldName);
         return {
           type: fieldType,

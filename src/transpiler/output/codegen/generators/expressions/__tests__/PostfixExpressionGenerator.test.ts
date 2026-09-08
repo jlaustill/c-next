@@ -113,7 +113,6 @@ function createMockOrchestrator(overrides?: {
     structType: string,
     memberName: string,
   ) => TTypeInfo | null;
-  validateCrossScopeVisibility?: (scope: string, member: string) => void;
   generateBitMask?: (width: string, is64?: boolean) => string;
   tryEvaluateConstant?: (ctx: unknown) => number | undefined;
   hasFloatBitShadow?: (name: string) => boolean;
@@ -144,17 +143,8 @@ function createMockOrchestrator(overrides?: {
     tryEvaluateConstant: overrides?.tryEvaluateConstant ?? vi.fn(),
     getZeroInitializer: vi.fn(),
     getExpressionEnumType: vi.fn(),
-    isIntegerExpression: vi.fn(),
     isStringExpression: vi.fn(),
-    getAdditiveExpressionType: vi.fn(),
     getOperatorsFromChildren: vi.fn(),
-    validateCrossScopeVisibility:
-      overrides?.validateCrossScopeVisibility ?? vi.fn(),
-    validateShiftAmount: vi.fn(),
-    validateTernaryCondition: vi.fn(),
-    validateNoNestedTernary: vi.fn(),
-    validateLiteralFitsType: vi.fn(),
-    validateTypeConversion: vi.fn(),
     getSimpleIdentifier: vi.fn(),
     generateFunctionArg: overrides?.generateFunctionArg ?? vi.fn(),
     isConstValue: vi.fn(),
@@ -167,11 +157,6 @@ function createMockOrchestrator(overrides?: {
     generateStatement: vi.fn(),
     flushPendingTempDeclarations: vi.fn(() => ""),
     indent: vi.fn((text) => text),
-    validateNoEarlyExits: vi.fn(),
-    validateSwitchStatement: vi.fn(),
-    validateConditionIsBoolean: vi.fn(),
-    validateConditionNoFunctionCall: vi.fn(),
-    validateTernaryConditionNoFunctionCall: vi.fn(),
     generateAssignmentTarget: vi.fn(),
     generateArrayDimensions: vi.fn(),
     generateArrayDimension: vi.fn(),
@@ -187,7 +172,6 @@ function createMockOrchestrator(overrides?: {
     getStringExprCapacity: vi.fn(),
     setParameters: vi.fn(),
     clearParameters: vi.fn(),
-    isCallbackTypeUsedAsFieldType: vi.fn(),
     setCurrentScope: vi.fn(),
     setCurrentFunctionName: vi.fn(),
     getCurrentFunctionReturnType: vi.fn(),
@@ -196,7 +180,6 @@ function createMockOrchestrator(overrides?: {
     exitFunctionBody: vi.fn(),
     setMainArgsName: vi.fn(),
     isMainFunctionWithArgs: vi.fn(),
-    generateCallbackTypedef: vi.fn(),
     updateFunctionParamsAutoConst: vi.fn(),
     markParameterModified: vi.fn(),
     isCalleeParameterModified: vi.fn(),
@@ -427,20 +410,15 @@ describe("PostfixExpressionGenerator", () => {
       expect(result.code).toBe("Motor__length");
     });
 
-    it("throws when using this outside a scope", () => {
-      const ctx = createMockPostfixExpressionContext("this", [
-        createMockPostfixOp({ identifier: "speed" }),
-      ]);
-      const input = createMockInput();
-      const state = createMockState({ currentScopePath: "" });
-      const orchestrator = createMockOrchestrator({
-        generatePrimaryExpr: () => "__THIS_SCOPE__",
-      });
-
-      expect(() =>
-        generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow("'this' can only be used inside a scope");
-    });
+    // #1322: the `this` outside a scope guard this asserted moved to pass 2.1 as
+    // E0431, where it carries a real position -- codegen reported it as `1:0`
+    // from four identical throws. Codegen is never reached with an empty
+    // `currentScopePath` now, because 2.1 halts the pipeline first, so this test
+    // drove a state production cannot produce.
+    //
+    // The rule is covered by `1-Analyze/__tests__/ThisOutsideScopeAnalyzer.test.ts`
+    // and by `tests/adr-016/this-outside-scope-error`, which asserts the real
+    // line and column and carries in-scope negative controls.
 
     it("resolves this.member to scope-prefixed name", () => {
       const ctx = createMockPostfixExpressionContext("this", [
@@ -591,7 +569,7 @@ describe("PostfixExpressionGenerator", () => {
 
       expect(() =>
         generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow("'.length' on 'val' is deprecated");
+      ).toThrow("E0886 rejects this in pass 2.1");
     });
   });
 
@@ -778,7 +756,7 @@ describe("PostfixExpressionGenerator", () => {
       expect(result.code).toBe("((status >> 0) & 1)");
     });
 
-    it("throws for unknown bitmap field", () => {
+    it("asserts the invariant for an unknown bitmap field", () => {
       const symbols = createMockSymbols({
         bitmapFields: new Map([["Status", new Map()]]),
       });
@@ -806,7 +784,7 @@ describe("PostfixExpressionGenerator", () => {
 
       expect(() =>
         generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow("Unknown bitmap field 'Unknown' on type 'Status'");
+      ).toThrow("E0882 rejects this in pass 2.1");
     });
   });
 
@@ -825,24 +803,6 @@ describe("PostfixExpressionGenerator", () => {
 
       const result = generatePostfixExpression(ctx, input, state, orchestrator);
       expect(result.code).toBe("LED__on");
-    });
-
-    it("throws when referencing own scope by name", () => {
-      const ctx = createMockPostfixExpressionContext("Motor", [
-        createMockPostfixOp({ identifier: "speed" }),
-      ]);
-      const input = createMockInput();
-      const state = createMockState({
-        currentScopePath: "Motor",
-      });
-      const orchestrator = createMockOrchestrator({
-        generatePrimaryExpr: () => "Motor",
-        isKnownScope: (name) => name === "Motor",
-      });
-
-      expect(() =>
-        generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow("Cannot reference own scope 'Motor' by name");
     });
 
     it("uses :: separator for C++ mode", () => {
@@ -882,29 +842,6 @@ describe("PostfixExpressionGenerator", () => {
       expect(result.code).toBe("Color__Red");
     });
 
-    it("throws when accessing enum with naming conflict inside scope", () => {
-      const symbols = createMockSymbols({
-        knownEnums: new Set(["Color"]),
-      });
-      const ctx = createMockPostfixExpressionContext("Color", [
-        createMockPostfixOp({ identifier: "Red" }),
-      ]);
-      const input = createMockInput({ symbols });
-      const scopeMembers = new Map([["Motor", new Set(["Color"])]]);
-      const state = createMockState({
-        currentScopePath: "Motor",
-        scopeMembers,
-      });
-      const orchestrator = createMockOrchestrator({
-        generatePrimaryExpr: () => "Color",
-        getScopeSeparator: () => "__",
-      });
-
-      expect(() =>
-        generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow("Use 'global.Color.Red' to access enum 'Color'");
-    });
-
     it("allows enum access without global prefix when no naming conflict", () => {
       const symbols = createMockSymbols({
         knownEnums: new Set(["Color"]),
@@ -926,32 +863,6 @@ describe("PostfixExpressionGenerator", () => {
       const result = generatePostfixExpression(ctx, input, state, orchestrator);
       expect(result.code).toBe("Color__Red");
     });
-
-    it("throws when scope member shadows global enum (resolved identifier differs)", () => {
-      const symbols = createMockSymbols({
-        knownEnums: new Set(["Color"]),
-      });
-      const ctx = createMockPostfixExpressionContext("Color", [
-        createMockPostfixOp({ identifier: "Red" }),
-      ]);
-      const input = createMockInput({ symbols });
-      const scopeMembers = new Map([["Motor", new Set(["Color"])]]);
-      const state = createMockState({
-        currentScopePath: "Motor",
-        scopeMembers,
-      });
-      const orchestrator = createMockOrchestrator({
-        // Simulates identifier resolution: Color -> Motor_Color (scope member)
-        generatePrimaryExpr: () => "Motor_Color",
-        getScopeSeparator: () => "__",
-      });
-
-      expect(() =>
-        generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow(
-        "Use 'global.Color.Red' to access enum 'Color' from inside scope 'Motor' (scope member 'Color' shadows the global enum)",
-      );
-    });
   });
 
   describe("register member access", () => {
@@ -970,47 +881,6 @@ describe("PostfixExpressionGenerator", () => {
 
       const result = generatePostfixExpression(ctx, input, state, orchestrator);
       expect(result.code).toBe("GPIO__PIN0");
-    });
-
-    it("throws for write-only register read", () => {
-      const symbols = createMockSymbols({
-        knownRegisters: new Set(["GPIO"]),
-        registerMemberAccess: new Map([["GPIO__DATA", "wo"]]),
-      });
-      const ctx = createMockPostfixExpressionContext("GPIO", [
-        createMockPostfixOp({ identifier: "DATA" }),
-      ]);
-      const input = createMockInput({ symbols });
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({
-        generatePrimaryExpr: () => "GPIO",
-      });
-
-      expect(() =>
-        generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow("cannot read from write-only register member 'DATA'");
-    });
-
-    it("throws when accessing register with naming conflict inside scope", () => {
-      const symbols = createMockSymbols({
-        knownRegisters: new Set(["GPIO"]),
-      });
-      const ctx = createMockPostfixExpressionContext("GPIO", [
-        createMockPostfixOp({ identifier: "PIN0" }),
-      ]);
-      const input = createMockInput({ symbols });
-      const scopeMembers = new Map([["Motor", new Set(["GPIO"])]]);
-      const state = createMockState({
-        currentScopePath: "Motor",
-        scopeMembers,
-      });
-      const orchestrator = createMockOrchestrator({
-        generatePrimaryExpr: () => "GPIO",
-      });
-
-      expect(() =>
-        generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow("Use 'global.GPIO.PIN0' to access register 'GPIO'");
     });
 
     it("allows register access without global prefix when no naming conflict", () => {
@@ -1180,12 +1050,18 @@ describe("PostfixExpressionGenerator", () => {
       expect(result.code).toBe("((GPIO) & 1)");
     });
 
-    it("throws for bracket indexing on bitmap type", () => {
-      // This test requires the registerMemberTypes to be set for the resolved
-      // member (result after member access), which is "GPIO__CTRL"
+    it("asserts the invariant for bracket indexing on a bitmap type", () => {
+      // #1322: ADR-034's rule is E0883 in pass 2.1; the invariant is what
+      // remains. It keys on the member's type being a KNOWN bitmap, so the
+      // mock now declares one -- a register member typed by a bitmap the
+      // symbols do not carry is a different fault, and conflating the two is
+      // how the old check ended up unable to see a bitmap variable at all.
       const symbols = createMockSymbols({
         knownRegisters: new Set(["GPIO"]),
         registerMemberTypes: new Map([["GPIO__CTRL", "CtrlBits"]]),
+        bitmapFields: new Map([
+          ["CtrlBits", new Map([["ENABLE", { offset: 0, width: 1 }]])],
+        ]),
       });
       const ctx = createMockPostfixExpressionContext("GPIO", [
         createMockPostfixOp({ identifier: "CTRL" }),
@@ -1200,7 +1076,7 @@ describe("PostfixExpressionGenerator", () => {
 
       expect(() =>
         generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow("Cannot use bracket indexing on bitmap type 'CtrlBits'");
+      ).toThrow("E0883 rejects this in pass 2.1");
     });
   });
 
@@ -1425,7 +1301,7 @@ describe("PostfixExpressionGenerator", () => {
 
       expect(() =>
         generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow("cannot be used at global scope");
+      ).toThrow("E0888 rejects this in pass 2.1");
     });
 
     it("uses union member when shadow is current (no re-assignment)", () => {
@@ -1636,20 +1512,15 @@ describe("PostfixExpressionGenerator", () => {
   });
 
   describe("this.length as scope member", () => {
-    it("throws when this.length used outside scope without length member", () => {
-      const ctx = createMockPostfixExpressionContext("this", [
-        createMockPostfixOp({ identifier: "length" }),
-      ]);
-      const input = createMockInput();
-      const state = createMockState({ currentScopePath: "" });
-      const orchestrator = createMockOrchestrator({
-        generatePrimaryExpr: () => "__THIS_SCOPE__",
-      });
-
-      expect(() =>
-        generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow("'this' can only be used inside a scope");
-    });
+    // #1322: the `this` outside a scope guard this asserted moved to pass 2.1 as
+    // E0431, where it carries a real position -- codegen reported it as `1:0`
+    // from four identical throws. Codegen is never reached with an empty
+    // `currentScopePath` now, because 2.1 halts the pipeline first, so this test
+    // drove a state production cannot produce.
+    //
+    // The rule is covered by `1-Analyze/__tests__/ThisOutsideScopeAnalyzer.test.ts`
+    // and by `tests/adr-016/this-outside-scope-error`, which asserts the real
+    // line and column and carries in-scope negative controls.
 
     it("resolves this.length to scope member when length is a struct type", () => {
       const typeRegistry = new Map<string, TTypeInfo>([
@@ -1710,7 +1581,7 @@ describe("PostfixExpressionGenerator", () => {
       expect(result.code).toBe("((MOTOR__CTRL >> 0) & 1)");
     });
 
-    it("throws for unknown field on register bitmap member", () => {
+    it("asserts the invariant for an unknown field on a register bitmap member", () => {
       const symbols = createMockSymbols({
         registerMemberTypes: new Map([["MOTOR__CTRL", "CtrlBits"]]),
         bitmapFields: new Map([["CtrlBits", new Map()]]),
@@ -1726,7 +1597,7 @@ describe("PostfixExpressionGenerator", () => {
 
       expect(() =>
         generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow("Unknown bitmap field 'Unknown' on register member");
+      ).toThrow("E0882 rejects this in pass 2.1");
     });
   });
 
@@ -1774,7 +1645,7 @@ describe("PostfixExpressionGenerator", () => {
       expect(result.code).toBe("((device.flags >> 0) & 1)");
     });
 
-    it("throws for unknown bitmap field on struct member", () => {
+    it("asserts the invariant for an unknown bitmap field on a struct member", () => {
       const symbols = createMockSymbols({
         bitmapFields: new Map([["StatusBits", new Map()]]),
       });
@@ -1813,7 +1684,7 @@ describe("PostfixExpressionGenerator", () => {
 
       expect(() =>
         generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow("Unknown bitmap field 'Unknown' on struct member");
+      ).toThrow("E0882 rejects this in pass 2.1");
     });
   });
 

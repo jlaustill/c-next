@@ -1,0 +1,26 @@
+// test-error
+// test-adr: 025
+// E0714 across ONE include hop -- matrix cell: imported direct.
+//
+// Exhaustiveness counts labels against the enum's MEMBERS. A check that read
+// only this file's declarations would find no members, and a variant count of
+// zero makes every switch look complete -- the rule would go quiet across an
+// include rather than fail.
+
+#include "switch-declarations.cnx"
+
+// NEGATIVE CONTROL -- the same imported enum, covered completely.
+void okExhaustive(EShared s) {
+    switch (s) {
+        case EShared.A {}
+        case EShared.B {}
+        case EShared.C {}
+    }
+}
+
+void missesOne(EShared s) {
+    switch (s) {
+        case EShared.A {}
+        case EShared.B {}
+    }
+}

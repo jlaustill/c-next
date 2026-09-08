@@ -60,12 +60,12 @@ uint32_t detached(void) {
 
 int main(void) {
     uint32_t smoothed = Filter__smooth(1U);
-    if (smoothed != 3) return 1;
+    if (smoothed != 3) return 1U;
     Report__add(2U);
     uint32_t tally = Report__readTally();
-    if (tally != 7) return 2;
+    if (tally != 7) return 2U;
     uint32_t detachedValue = detached();
-    if (detachedValue != 6) return 3;
-    if (spare != 40) return 4;
-    return 0;
+    if (detachedValue != 6) return 3U;
+    if (spare != 40) return 4U;
+    return 0U;
 }

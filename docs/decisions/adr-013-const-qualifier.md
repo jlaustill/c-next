@@ -326,7 +326,7 @@ void sumArray(const u8 data[], u32 size) {
 3. **Const array parameters** — neither the array nor its elements can be assigned
 4. **Const applies to the value**, not the storage (like C's `const int*` vs `int* const`)
 5. **Const propagates through member access** — `const Point p` means `p.x` is also const
-6. **ro register members are implicitly const** — cannot assign to read-only hardware registers
+6. **ro register members are implicitly const** — cannot assign to read-only hardware registers (E0871, owned by ADR-004)
 
 ### Error Messages
 
@@ -420,6 +420,51 @@ operators checked in eleven places is eleven chances for one to be forgotten, an
 forgotten one is silent.
 
 ---
+
+## Diagnostics
+
+| Code  | Reported when                                                                                                                    | Asserted by                                                                                          |
+| ----- | -------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| E0432 | A C++ constructor argument is not a `const` variable                                                                             | `tests/constructor-syntax/`                                                                          |
+| E0433 | A C++ constructor argument names nothing declared                                                                                | `tests/constructor-syntax/`                                                                          |
+| E0877 | An assignment -- any operator, in a statement or a `for` header -- targets a const binding, whole or through an element or field | `tests/adr-013/const-*-error.test.cnx`, `tests/adr-013/const-uncovered-arms-error.test.cnx`          |
+| E0878 | A const value is passed to a function's non-const parameter                                                                      | `tests/adr-013/const-uncovered-arms-error.test.cnx`, `tests/adr-013/const-imported-*-error.test.cnx` |
+
+The target's ROOT decides: `table[0] <- 1` and `cfg.x <- 2` are assignments
+through `table` and `cfg`, and it is their const-ness that is asked, once, for
+every assignment form -- the `for` header's initializer and update included
+(until #1322 those two never reached the check and the generated C assigned to
+a `const`). A const declared in an included file is as const as one declared
+beside the use. Each rule is decided during analysis, at the target's or
+argument's own position, and every offense in a file is reported.
+
+## Scope-Context Matrix (#1219)
+
+Severity follows the eslint model: `off` records that a cell **cannot exist**,
+`warn` that it should be covered and is not, `error` that it must be.
+
+<!-- MATRIX-SEVERITY -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| scope member       | same file           | error    |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | error    |
+
+An assignment is a statement, so E0877 occupies the two function contexts; a
+call is an expression, so E0878 reaches a declaration's initializer and
+occupies the other two. Const-ness is read from the declaration, which may sit
+in an included file, so every imported cell is `error` and asserted across one
+and two hops.
 
 ## Alternatives Considered
 

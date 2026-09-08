@@ -1,0 +1,6 @@
+42:9 error[E0428]: Cannot assign integer to State enum
+       help: ADR-017: an enum is its own type, not an integer. Assign one of its members, or convert explicitly with a cast.
+46:19 error[E0428]: Cannot assign integer to State enum
+       help: ADR-017: an enum is its own type, not an integer. Assign one of its members, or convert explicitly with a cast.
+50:23 error[E0428]: Cannot assign integer to State enum
+       help: ADR-017: an enum is its own type, not an integer. Assign one of its members, or convert explicitly with a cast.

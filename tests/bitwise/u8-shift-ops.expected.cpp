@@ -32,11 +32,11 @@ int main(void) {
             if (left_var == 60 && right_var == 3) {
                 if (left_zero == 170 && right_zero == 170) {
                     if (multi_shift == 126) {
-                        return 0;
+                        return 0U;
                     }
                 }
             }
         }
     }
-    return 1;
+    return 1U;
 }

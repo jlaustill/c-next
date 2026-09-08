@@ -1,0 +1,6 @@
+12:13 error[E0424]: 'SPN_CAT_TEMPERATURE' is not defined; did you mean 'ESpnCategory.SPN_CAT_TEMPERATURE'?
+       help: The switch is not on an enum, so a bare member names nothing here; qualify it, or switch on a value of the enum's type (ADR-017).
+13:13 error[E0424]: 'SPN_CAT_PRESSURE' is not defined; did you mean 'ESpnCategory.SPN_CAT_PRESSURE'?
+       help: The switch is not on an enum, so a bare member names nothing here; qualify it, or switch on a value of the enum's type (ADR-017).
+14:13 error[E0424]: 'SPN_CAT_UNKNOWN' is not defined; did you mean 'ESpnCategory.SPN_CAT_UNKNOWN'?
+       help: The switch is not on an enum, so a bare member names nothing here; qualify it, or switch on a value of the enum's type (ADR-017).

@@ -26,45 +26,45 @@ int main(void) {
     uint64_t d = 500ULL;
     uint64_t maxResult1 = getMax(a, b);
     if (maxResult1 != 2000) {
-        return 1;
+        return 1U;
     }
     uint64_t maxResult2 = getMax(c, d);
     if (maxResult2 != 3000) {
-        return 2;
+        return 2U;
     }
     uint64_t minResult1 = getMin(a, b);
     if (minResult1 != 1000) {
-        return 3;
+        return 3U;
     }
     uint64_t minResult2 = getMin(c, d);
     if (minResult2 != 500) {
-        return 4;
+        return 4U;
     }
     uint64_t result = (a > b) ? a : b;
     if (result != 2000) {
-        return 5;
+        return 5U;
     }
     uint64_t large_a = 1000000000000ULL;
     uint64_t large_b = 2000000000000ULL;
     uint64_t large_result = (large_a < large_b) ? large_a : large_b;
     if (large_result != 1000000000000) {
-        return 6;
+        return 6U;
     }
     uint64_t zero = 0ULL;
     uint64_t one = 1ULL;
     uint64_t zero_result = (zero < one) ? zero : one;
     if (zero_result != 0) {
-        return 7;
+        return 7U;
     }
     uint64_t equal_test = (a == 1000) ? 100000ULL : 200000ULL;
     if (equal_test != 100000) {
-        return 8;
+        return 8U;
     }
     uint64_t very_large_a = 9000000000000000000ULL;
     uint64_t very_large_b = 9000000000000000001ULL;
     uint64_t very_large_result = (very_large_a < very_large_b) ? very_large_a : very_large_b;
     if (very_large_result != 9000000000000000000) {
-        return 9;
+        return 9U;
     }
-    return 0;
+    return 0U;
 }

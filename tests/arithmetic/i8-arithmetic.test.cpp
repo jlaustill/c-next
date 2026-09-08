@@ -91,12 +91,12 @@ int main(void) {
                 if (quotient == 20 && quotient_neg == -20 && quotient_neg_div == -20) {
                     if (remainder == 3 && remainder_neg == -3) {
                         if (max_minus_one == 126 && min_plus_one == -127) {
-                            return 0;
+                            return 0U;
                         }
                     }
                 }
             }
         }
     }
-    return 1;
+    return 1U;
 }

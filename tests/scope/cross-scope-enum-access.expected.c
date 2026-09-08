@@ -20,7 +20,7 @@ GlobalState Motor__test(void) {
 int main(void) {
     GlobalState result = Motor__test();
     if (result != GlobalState__IDLE) {
-        return 1;
+        return 1U;
     }
-    return 0;
+    return 0U;
 }

@@ -1,0 +1,22 @@
+// test-error
+// test-adr: 024
+// E0869 across TWO include hops -- matrix cells: imported transitive, in the
+// global-variable and top-level-function contexts.
+//
+// The rule asks the SOURCE's type, and the source is declared elsewhere. A
+// check reading only this file finds no type for it, and untyped never rejects
+// -- so the rule would go quiet across an include rather than fail.
+
+#include "conversion-relay.cnx"
+
+// NEGATIVE CONTROL -- the imported source into a target wide enough for it.
+u32 okSameWidth <- wideShared;
+
+// ASSERTION -- global variable context.
+u8 narrowGlobal <- wideShared;
+
+u32 main() {
+    // ASSERTION -- top-level function context.
+    u8 narrowLocal <- wideShared;
+    return narrowLocal;
+}

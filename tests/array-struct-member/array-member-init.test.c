@@ -19,11 +19,11 @@ int main(void) {
     cfg.flags[1] = 0x02U;
     cfg.flags[2] = 0x04U;
     cfg.flags[3] = 0x08U;
-    if (cfg.version != 1) return 1;
-    if (cfg.flags[0U] != 0x01) return 2;
-    if (cfg.flags[1U] != 0x02) return 3;
-    if (cfg.flags[2U] != 0x04) return 4;
-    if (cfg.flags[3U] != 0x08) return 5;
+    if (cfg.version != 1) return 1U;
+    if (cfg.flags[0U] != 0x01) return 2U;
+    if (cfg.flags[1U] != 0x02) return 3U;
+    if (cfg.flags[2U] != 0x04) return 4U;
+    if (cfg.flags[3U] != 0x08) return 5U;
     ArrayMemberInit__Packet pkt = {0};
     pkt.checksum = 0U;
     pkt.header[0] = 0xAAU;
@@ -50,10 +50,10 @@ int main(void) {
     pkt.checksum += pkt.payload[5U];
     pkt.checksum += pkt.payload[6U];
     pkt.checksum += pkt.payload[7U];
-    if (pkt.header[0U] != 0xAA) return 6;
-    if (pkt.header[3U] != 0xDD) return 7;
-    if (pkt.payload[0U] != 1) return 8;
-    if (pkt.payload[7U] != 8) return 9;
-    if (pkt.checksum != 818) return 10;
-    return 0;
+    if (pkt.header[0U] != 0xAA) return 6U;
+    if (pkt.header[3U] != 0xDD) return 7U;
+    if (pkt.payload[0U] != 1) return 8U;
+    if (pkt.payload[7U] != 8) return 9U;
+    if (pkt.checksum != 818) return 10U;
+    return 0U;
 }

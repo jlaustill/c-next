@@ -15,16 +15,6 @@
 // 8-bit status bitmap
 // 16-bit configuration bitmap
 // Register using multiple bitmap types as members
-/* Register: UART @ 0x40010000 */
-#define UART__CTRL (*(volatile UARTControl*)(0x40010000 + 0x00))
-#define UART__STATUS (*(volatile UARTStatus const *)(0x40010000 + 0x04))
-#define UART__DATA (*(volatile uint8_t*)(0x40010000 + 0x08))
-
-/* Register: TIMER @ 0x40020000 */
-#define TIMER__CONFIG (*(volatile TimerConfig*)(0x40020000 + 0x00))
-#define TIMER__COUNT (*(volatile uint32_t const *)(0x40020000 + 0x04))
-#define TIMER__RELOAD (*(volatile uint32_t*)(0x40020000 + 0x08))
-
 void configureUART(void) {
     UART__CTRL = (UART__CTRL & ~(1U << 0)) | (1U << 0);
     UART__CTRL = (UART__CTRL & ~(1U << 1)) | (1U << 1);
@@ -33,7 +23,7 @@ void configureUART(void) {
 }
 
 bool isUARTReady(void) {
-    return ((UART__STATUS >> 0) & 1);
+    return ((((UART__STATUS >> 0) & 1)) != 0U);
 }
 
 void configureTimer(uint8_t prescale) {

@@ -285,6 +285,26 @@ CNX does not support:
 | f32 → u32 (reinterpret) | Use float bit indexing `floatVal[0, 32]` | Raw IEEE-754 access (ADR-007) |
 | int → pointer           | **Not supported**                        | Use `register` (ADR-004)      |
 
+### Where a conversion is checked
+
+**Wherever a value meets a typed target**, and the target is the one the value
+actually lands in — not the variable its name starts with. A declaration's
+initializer, an assignment statement, an element of an array, a field reached
+through a chain, and a cast are all conversions and all checked the same way.
+
+**A composite source (`a + b`) is typed** — category from the first integer
+operand, width from the widest — in every position except a cast, where writing
+`(u8)(a + b)` is the author stating the width they mean.
+
+Two exceptions to that were live until #1322 and are recorded because the code
+they permitted is the code this decision exists to reject:
+
+- a composite was typed on a declaration and not on an assignment, so
+  `u8 s <- large + 1;` was rejected while `t <- large + 1;` was accepted;
+- an assignment was checked against the ROOT name's declared type, so
+  `c.col <- wide` — a `u32` into a `u8` field — was never checked at all,
+  because `c` is a struct. It emitted `c.col = wide;`.
+
 ---
 
 ## Implementation Notes
@@ -355,6 +375,50 @@ ERROR: Cannot convert i32 to u32 (sign change)
 5. No pointer/address casts supported (use ADR-004 registers)
 
 ---
+
+## Scope-context matrix
+
+Declared for the integer-conversion rules #1322 moved out of codegen: a literal
+must fit its target's range, and a non-literal integer source must be neither
+wider than its target nor of the other signedness -- whether it reaches the
+target through a declaration, an assignment, or a cast.
+
+<!-- MATRIX-SEVERITY -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| scope member       | same file           | error    |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | off      |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | off      |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | off      |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | off      |
+
+A conversion happens wherever a value meets a typed target, so it reaches an
+initializer as well as a function body -- all four same-file contexts. The two
+scope contexts are where the rule had been SILENT: `u8 narrow <- this.wide;`
+inside a scope was accepted while the identical line at top level was not, and
+no fixture depended on that, so it is closed rather than reproduced.
+
+The imported columns matter because the rule asks the SOURCE's type, and the
+source may be declared in another file. A check reading only the file in front
+of it finds no type for it, and untyped never rejects -- the rule would go
+quiet across an include rather than fail. The scope contexts are `off` in those
+columns as a stated obligation, not a claim they cannot exist.
+
+**Two divergences preserved on purpose, both raised rather than decided.** The
+transpiler typed a composite source (`a + b`) on a declaration's initializer and
+never on an assignment statement, and it checked an assignment against the root
+variable's declared type -- so a u32 into a u8 FIELD reached through a chain was
+never checked at all. Twelve fixtures assert the lax paths. This ADR does not
+say how a composite is typed, and closing either gap is a behavior change on
+code the corpus treats as valid.
 
 ## References
 

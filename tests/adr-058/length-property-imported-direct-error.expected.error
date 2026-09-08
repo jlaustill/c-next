@@ -1,0 +1,4 @@
+15:29 error[E0867]: .element_count is only available on arrays, not on 'u32'
+       help: A scalar has one value; use .bit_length or .byte_length for its width.
+19:24 error[E0867]: .char_count is only available on strings, not on 'u32[4]'
+       help: Use .element_count for an array's length, or .bit_length for a scalar's width.

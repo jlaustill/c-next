@@ -1,0 +1,2 @@
+18:11 error[E0436]: Cannot access private member 'SECRET_BAUD' of scope 'Config' from outside the scope
+       help: Only public members are accessible outside their scope. Mark it `public`, or reach it through a public member.

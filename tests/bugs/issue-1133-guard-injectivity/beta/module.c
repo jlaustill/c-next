@@ -16,5 +16,5 @@
 /* Scope: BetaModule */
 
 uint64_t BetaModule__big(void) {
-    return 4294967296;
+    return 4294967296ULL;
 }

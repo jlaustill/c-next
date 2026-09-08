@@ -13,16 +13,16 @@
 
 uint32_t Test__checkRed(EColor c) {
     if (c == EColor__RED) {
-        return 1;
+        return 1U;
     }
-    return 0;
+    return 0U;
 }
 
 int main(void) {
     EColor c = EColor__RED;
     uint32_t result = Test__checkRed(c);
     if (result != 1) {
-        return 1;
+        return 1U;
     }
-    return 0;
+    return 0U;
 }

@@ -1,4 +1,5 @@
 // test-error
+// test-adr: 036
 // #1360 / ADR-036: a negative constant subscript in a VALUE position must be
 // rejected. Today it compiles at exit 0 and emits `arr[-1U]` -- the negative
 // literal also takes a `U` suffix, so the index is UINT32_MAX, not -1.

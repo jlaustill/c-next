@@ -16,13 +16,13 @@ int main(void) {
     no_return_no_params();
     set_global_flag(true);
     bool flag_val = get_global_flag();
-    if (flag_val != true) return 1;
+    if (flag_val != true) return 1U;
     set_global_flag(false);
     flag_val = get_global_flag();
-    if (flag_val != false) return 2;
+    if (flag_val != false) return 2U;
     int32_t constant = get_constant_42();
-    if (constant != 42) return 3;
+    if (constant != 42) return 3U;
     uint32_t magic = get_magic_number();
-    if (magic != 0xDEADBEEF) return 4;
-    return 0;
+    if (magic != 0xDEADBEEF) return 4U;
+    return 0U;
 }

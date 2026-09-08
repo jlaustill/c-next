@@ -1,0 +1,31 @@
+// test-error
+// test-c-only
+// test-adr: 050
+// ADR-050, E0853, inside a `scope` method.
+//
+// The same rule in the other context it is reachable from. A critical section
+// is a statement, so it appears in a function body -- either a top-level
+// function or a scope method -- and nowhere else. This fixture is what lets
+// ADR-050 declare the `scope method / same file` cell rather than leave it
+// undeclared, which reads as a claim that the cell cannot exist.
+
+scope Timer {
+    u32 ticks <- 0;
+
+    // NEGATIVE CONTROL -- a scope method whose critical block falls through.
+    // Declared first, so an over-broad check reports its trailing return and
+    // changes the message asserted below.
+    public u32 readSafely() {
+        u32 captured <- 0;
+        critical {
+            captured <- this.ticks;
+        }
+        return captured;
+    }
+
+    public u32 readBadly() {
+        critical {
+            return this.ticks;
+        }
+    }
+}

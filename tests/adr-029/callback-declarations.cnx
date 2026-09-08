@@ -1,0 +1,27 @@
+// Helper (not a test): the callback types and the struct that gives them their
+// nominal identity, for the cross-file ADR-029 fixtures. A function's identity
+// as a TYPE is a property of where it is declared and what names it as a field
+// type, so both facts have to reach across the include for the rule to fire.
+
+struct Pixel {
+    u32 v;
+}
+
+void onDown(const Pixel p) {}
+
+void onUp(const Pixel p) {}
+
+// Not used as anyone's field type -- the imported negative control.
+void plain(const Pixel p) {}
+
+// Differs in return type -- the imported E0879 control.
+u32 mismatched(const Pixel p) {
+    return 0;
+}
+
+struct Handler {
+    onDown down;
+    onUp up;
+}
+
+void takesDown(onDown cb) {}

@@ -36,10 +36,10 @@ int main(void) {
         if (toggle == 255 && toggle_back == 204 && extract_byte == 171) {
             if (mask == 32 && bit_test == 1 && check_bit == 1) {
                 if (nested == 0x00FFAA55) {
-                    return 0;
+                    return 0U;
                 }
             }
         }
     }
-    return 1;
+    return 1U;
 }

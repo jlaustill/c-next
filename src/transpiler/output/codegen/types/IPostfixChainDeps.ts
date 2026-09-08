@@ -6,11 +6,7 @@ interface IPostfixChainDeps {
   generateExpression(expr: unknown): string;
 
   /** Get separator for member access */
-  getSeparator(
-    isFirstOp: boolean,
-    identifierChain: string[],
-    memberName: string,
-  ): string;
+  getSeparator(isFirstOp: boolean, identifierChain: string[]): string;
 }
 
 export default IPostfixChainDeps;

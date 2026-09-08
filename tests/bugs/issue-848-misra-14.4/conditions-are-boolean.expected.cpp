@@ -51,7 +51,7 @@ uint32_t countDownWhile(uint32_t start) {
 
 uint32_t sumForLoop(uint32_t limit) {
     uint32_t total = 0U;
-    for (uint32_t i = 0; i < limit; i = i + 1) {
+    for (uint32_t i = 0U; i < limit; i = i + 1) {
         total = cnx_clamp_add_u32(total, i);
     }
     return total;
@@ -76,23 +76,23 @@ bool bothPositive(int32_t a, int32_t b) {
 int main(void) {
     uint32_t iterations = countDownWhile(5U);
     if (iterations != 5) {
-        return 1;
+        return 1U;
     }
     uint32_t total = sumForLoop(4U);
     if (total != 6) {
-        return 2;
+        return 2U;
     }
     uint32_t multiple = firstMultiple(7U);
     if (multiple != 7) {
-        return 3;
+        return 3U;
     }
     bool ok = bothPositive(3, 4);
     if (ok == false) {
-        return 4;
+        return 4U;
     }
     bool none = bothPositive(-1, 2);
     if (none == true) {
-        return 5;
+        return 5U;
     }
-    return 0;
+    return 0U;
 }

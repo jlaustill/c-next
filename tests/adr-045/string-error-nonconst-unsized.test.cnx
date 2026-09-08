@@ -1,0 +1,8 @@
+// ADR-045: Test error when non-const string has no capacity
+// test-adr: 045
+// NEGATIVE CONTROL -- the same declaration WITH a capacity, and an unsized
+// `const`, which may infer one. Only a non-const without a capacity is wrong.
+string<32> okSized;
+const string OK_INFERRED <- "x";
+
+string buffer;

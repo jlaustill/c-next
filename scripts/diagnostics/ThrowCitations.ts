@@ -3,7 +3,7 @@
  * line number decays silently.
  *
  * `docs/architecture/output-throw-classification.md` (#1321) is the input that
- * splits #1322. It names every `throw new` site in `output/` by file and
+ * splits #1322. It names every throw site in `output/` by file and
  * line. #1362 committed it with correct citations; #1363 then added 62 lines to
  * `TypeValidator.ts`, and 64 of the 180 citations silently began pointing at a
  * docstring or a closing brace. Each pull request was green on its own -- one
@@ -15,12 +15,13 @@
  * does not identify one. `file:line` is the only unique key, which is why this
  * gate verifies it rather than the doc trading it for something softer.
  *
- * Four invariants, all mechanical:
+ * Five invariants, all mechanical:
  *
- *   1. every cited `file:line` is exactly a line containing `throw new`
- *   2. every `throw new` under `output/` is cited exactly once
+ *   1. every cited `file:line` is exactly a line opening a throw statement
+ *   2. every throw under `output/` is cited exactly once
  *   3. every row's anchor is a substring of what the throw at its line says
  *   4. no two rows in one file could trade line numbers and keep 3 holding
+ *   5. a `file:line` written in PROSE lands on a throw too
  *
  * The second is the one that earns its keep beyond drift: it fails when a new
  * throw is added and nobody classifies it, which is how `output/` grows a
@@ -42,6 +43,15 @@
  * a pair could trade is directly computable from the rows of a file, so it
  * is computed -- the #1374 review found three such pairs by hand; this finds
  * them mechanically, and the next ones #1322 adds.
+ *
+ * The fifth is #1322, and it exists because the asymmetry was measurable: the
+ * 181 gated rows were at 0% drift while 14 of 59 PROSE citations had rotted,
+ * each short by the same few lines an intervening edit had added. The rows were
+ * accurate because something checked them; the prose was not because nothing
+ * did. That mattered beyond tidiness -- the tier tables and the split that
+ * sizes #1322's phases are prose, and the claim "only 2 of 181 sites emit a
+ * real position" (the true figure is 20, with 12 more computing a position and
+ * spending it on text) is what tier A was scoped from.
  */
 
 import LineMap from "./LineMap";
@@ -52,6 +62,9 @@ import type IRevision from "./IRevision";
  * corroborate every row in the document, the #1143 shape.
  */
 const MIN_ANCHOR_LENGTH = 8;
+
+/** Prefix on a prose-citation error, naming the line OF THE DOCUMENT. */
+const DOC_LINE_LABEL = "output-throw-classification.md:";
 
 interface IThrowCitation {
   readonly path: string;
@@ -115,9 +128,32 @@ class ThrowCitations {
       const before = ThrowCitations.throwLines(revision.previous);
       const after = ThrowCitations.throwLines(revision.current);
       if (before.length !== after.length) {
+        // #1322 folded the anchor fallback in here rather than shipping a
+        // second fixer beside this one. The objection this method's header
+        // records -- "which row means which is not arithmetic" -- is exactly
+        // right about ORDINALS, and #1374 is what changed the inputs: every row
+        // now carries an ANCHOR, a verbatim substring of what its throw says.
+        // Where an anchor identifies one throw there is still nothing to guess.
+        //
+        // It matters because a count change is not an edge case for this card:
+        // #1322 deletes 23 sites and relocates 145, so refusing on count change
+        // refuses on every commit it will make.
+        //
+        // Rows only. Prose in such a file keeps no mapping and is reported,
+        // because prose carries no anchor and there is nothing to re-find it by.
+        const [anchored, unplaced] = ThrowCitations.anchorPairs(
+          markdown,
+          basename,
+          revision.current,
+        );
+        if (anchored.size > 0) {
+          maps.set(basename, anchored);
+        }
         refusals.push(
-          `${basename}: \`throw new\` count changed ${before.length} -> ${after.length}; ` +
-            `a site was added or removed, so which row means which is not arithmetic`,
+          ...unplaced.map(
+            (why) =>
+              `${basename}: \`throw new\` count changed ${before.length} -> ${after.length}; ${why}`,
+          ),
         );
         continue;
       }
@@ -153,6 +189,78 @@ class ThrowCitations {
   }
 
   /**
+   * Old line -> new line for the rows of one file, matched by ANCHOR.
+   *
+   * Used when a file's throw count changed, so the ordinal pairing above cannot
+   * apply. Returns the pairs it is certain of, and a reason for every row it is
+   * not: a row whose anchor matches nothing, matches several throws its
+   * siblings do not account for, or carries no anchor at all.
+   *
+   * A group of N rows sharing an anchor pairs in ascending order against N
+   * candidates. That is a derivation, not a guess -- an edit elsewhere in the
+   * file shifts every survivor and cannot reorder them -- and its precondition
+   * is the equal counts. Unequal means one of the group was deleted and nothing
+   * says which, so the whole group is refused rather than silently shifted.
+   */
+  static anchorPairs(
+    markdown: string,
+    basename: string,
+    current: string,
+  ): [Map<number, number>, string[]] {
+    const rows = ThrowCitations.parse(markdown).filter(
+      (row) => row.path.slice(row.path.lastIndexOf("/") + 1) === basename,
+    );
+    const byAnchor = new Map<string, IThrowCitation[]>();
+    const pairs = new Map<number, number>();
+    const unplaced: string[] = [];
+
+    // File-level ordinal pairing, tried first. When the document holds exactly
+    // as many rows for a file as the file now has throws, the two lists are the
+    // same sites in the same order: a deletion removes a row AND its throw, and
+    // nothing an edit can do reorders the survivors.
+    //
+    // This is the same argument #1518 makes between two REVISIONS, applied
+    // between the document and the source -- which is what lets it work when a
+    // count changed, because the row count changed with it. It also avoids
+    // per-anchor whack-a-mole in files like `PostfixExpressionGenerator`, where
+    // a dozen messages differ only in an interpolated name and every anchor is
+    // one edit away from matching its neighbor.
+    const throwsNow = ThrowCitations.throwLines(current);
+    if (rows.length === throwsNow.length && rows.length > 0) {
+      const cited = rows.map((row) => row.line).sort((a, b) => a - b);
+      const actual = [...throwsNow].sort((a, b) => a - b);
+      cited.forEach((line, index) => pairs.set(line, actual[index]));
+      return [pairs, unplaced];
+    }
+
+    for (const row of rows) {
+      if (row.anchor === null) {
+        unplaced.push(`row at :${row.line} carries no anchor to re-find it by`);
+        continue;
+      }
+      byAnchor.set(row.anchor, [...(byAnchor.get(row.anchor) ?? []), row]);
+    }
+
+    for (const [anchor, group] of byAnchor) {
+      const candidates = ThrowCitations.throwLines(current).filter((line) => {
+        const argument = ThrowCitations.throwArgument(current, line);
+        return argument !== null && argument.includes(anchor);
+      });
+      if (candidates.length === group.length) {
+        const stale = group.map((row) => row.line).sort((a, b) => a - b);
+        const targets = [...candidates].sort((a, b) => a - b);
+        stale.forEach((line, index) => pairs.set(line, targets[index]));
+        continue;
+      }
+      unplaced.push(
+        `anchor \`${anchor}\` names ${group.length} row(s) and matches ` +
+          `${candidates.length} throw(s), so the group does not pair`,
+      );
+    }
+    return [pairs, unplaced];
+  }
+
+  /**
    * A citation is the first cell of a table row, `| \`Path.ts:123\` |`, and
    * its anchor is the second cell when that cell is nothing but a code span,
    * `| \`what the throw says\` |`.
@@ -180,7 +288,7 @@ class ThrowCitations {
   }
 
   /**
-   * 1-based line numbers of every `throw new` STATEMENT in a source file.
+   * 1-based line numbers of every throw STATEMENT in a source file.
    *
    * A raw substring test would count a comment or a string literal that merely
    * mentions `throw new`, and invariant 2 would then demand a classification
@@ -188,16 +296,34 @@ class ThrowCitations {
    * exists to protect. That is not hypothetical here: five bucket-2 sites carry
    * an in-file comment whose subject is throwing.
    *
-   * So the match is structural: a comment marker is stripped, and `throw new`
-   * must OPEN the statement rather than merely appear on the line. Every site
-   * in `output/` is a bare `throw new` statement, verified, so nothing is lost
-   * by requiring it.
+   * So the match is structural: the throw must OPEN the statement rather than
+   * merely appear on the line.
+   *
+   * #1322: this used to require the literal spelling `throw new`, on a comment
+   * that said "every site in `output/` is a bare `throw new` statement,
+   * verified". That was false, and the gate could not report it -- a site it
+   * does not count is also a site invariant 2 never demands a row for, so the
+   * hole was silent in both directions. `CodeGenErrors` builds its Errors with
+   * `return new Error(...)` and callers write `throw CodeGenErrors.x(...)`,
+   * hiding three production sites, one of them `SubscriptDepthValidator.ts:95`
+   * -- E0856, registered in `docs/error-codes.md` and asserted by two fixtures.
+   * A user-facing diagnostic the classifier cannot see is one #1322 cannot
+   * relocate.
+   *
+   * A factory call must open an argument list to count. That is what keeps a
+   * bare rethrow (`throw err;`) out: it carries no message, so there is nothing
+   * for an anchor to corroborate and no diagnostic to classify. `throw new` is
+   * still counted without one, so `throw new Error;` keeps reaching
+   * `throwArgument`'s null path rather than vanishing from the corpus.
    */
+  private static readonly THROW_STATEMENT =
+    /^throw\s+(?:new\b|[A-Za-z_$][\w$.]*\s*\()/;
+
   static throwLines(source: string): number[] {
     return source
       .split("\n")
       .map((text, index) => ({ text: text.trim(), line: index + 1 }))
-      .filter((entry) => entry.text.startsWith("throw new"))
+      .filter((entry) => ThrowCitations.THROW_STATEMENT.test(entry.text))
       .map((entry) => entry.line);
   }
 
@@ -232,9 +358,13 @@ class ThrowCitations {
       }
     }
     const statement = collected.join(" ").replace(/\s+/g, " ");
-    // `[^(]*` admits any constructor expression -- dotted, generic -- up to
-    // its argument list: the same breadth throwLines counts.
-    const opener = /^throw new\b[^(]*\(\s*/.exec(statement);
+    // `[^(]*` admits any constructor or factory expression -- dotted, generic
+    // -- up to its argument list: the same breadth throwLines counts. `new` is
+    // optional because a throw may name a factory instead (#1322); without the
+    // strip, `CodeGenErrors.tooManySubscripts(` would be a valid anchor for
+    // every site sharing that factory, which is the universally-true anchor
+    // this strip exists to prevent.
+    const opener = /^throw\s+(?:new\b)?[^(]*\(\s*/.exec(statement);
     return opener === null ? null : statement.slice(opener[0].length);
   }
 
@@ -353,7 +483,7 @@ class ThrowCitations {
       const claimed = rows.map((row) => row.line);
       for (const line of actual) {
         if (!claimed.includes(line)) {
-          errors.push(`${file}:${line} -- \`throw new\` is not classified`);
+          errors.push(`${file}:${line} -- throw statement is not classified`);
         }
       }
       const duplicates = claimed.filter(
@@ -365,15 +495,80 @@ class ThrowCitations {
       errors.push(...ThrowCitations.checkTradeable(file, rows, source));
     }
 
+    errors.push(...ThrowCitations.checkProse(markdown, sources));
     errors.push(...ThrowCitations.checkDeclaredCounts(markdown, cited.length));
 
     return {
       ok: errors.length === 0,
       errors,
       info: [
-        `${cited.length} citation(s) checked against ${total} \`throw new\` site(s) in output/.`,
+        `${cited.length} citation(s) checked against ${total} throw site(s) in output/.`,
       ],
     };
+  }
+
+  /**
+   * Invariant 5: a `file.ts:N` written in PROSE also lands on a throw.
+   *
+   * #1322. This gate used to defend table rows only, on the reasoning that
+   * prose is not a claim it has to keep. The measurement says otherwise: the
+   * 181 gated rows were at **0% drift**, and **14 of 59** prose citations had
+   * rotted -- every one short by the same 4-6 lines some intervening edit
+   * added, including a `4985-4767` that reads backwards. The rows were
+   * accurate precisely because something checked them.
+   *
+   * That asymmetry is not cosmetic here. The tier tables and the `## Proposed
+   * split` that sizes this card's phases are prose, so a stale prose citation
+   * mis-sizes the work rather than merely misdirecting a reader -- and the
+   * "only 2 of 181 sites emit a real position" claim, off by an order of
+   * magnitude, is what tier A was scoped from.
+   *
+   * A row's own line is skipped: `checkCitation` already holds it to an anchor,
+   * and reporting one drift twice adds nothing. The consequence of this
+   * invariant is that the document may not cite a NON-throw line by number at
+   * all -- name the file and the symbol instead. That is the intended
+   * restriction: a symbol name does not move when a line does.
+   */
+  static checkProse(
+    markdown: string,
+    sources: ReadonlyMap<string, string>,
+  ): string[] {
+    const files = [...sources.keys()];
+    const errors: string[] = [];
+    markdown.split("\n").forEach((text, index) => {
+      // A citation row is defended by invariants 1 and 3 already.
+      if (/^\| `[A-Za-z0-9_/….]+\.ts:\d+`/.test(text)) return;
+      // `Thing.ts:1`, `Thing.ts:1/2/3` and `Thing.ts:9-12` all appear in this
+      // document; reading only the first number is how a drifted list passes.
+      const pattern = /([A-Za-z0-9_]+\.ts):(\d+(?:[/-]\d+)*)/g;
+      let match = pattern.exec(text);
+      while (match !== null) {
+        const where = `${DOC_LINE_LABEL}${index + 1}: ${match[1]}`;
+        const lines = match[2].split(/[/-]/).map((n) => Number.parseInt(n, 10));
+        const file = ThrowCitations.resolve(match[1], files);
+        if (
+          match[2].includes("-") &&
+          lines.length === 2 &&
+          lines[1] < lines[0]
+        ) {
+          errors.push(`${where}:${match[2]} -- prose cites a descending range`);
+        } else if (file === null) {
+          errors.push(`${where} -- prose names no single file under output/`);
+        } else {
+          const source = sources.get(file)!;
+          const actual = ThrowCitations.throwLines(source);
+          for (const line of lines) {
+            if (!actual.includes(line)) {
+              errors.push(
+                `${where}:${line} -- prose cites a line that holds no throw`,
+              );
+            }
+          }
+        }
+        match = pattern.exec(text);
+      }
+    });
+    return errors;
   }
 
   /**

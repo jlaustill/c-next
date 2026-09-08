@@ -1,0 +1,2 @@
+16:12 error[E0712]: Switch requires at least 2 clauses
+       help: MISRA C:2012 Rule 16.6: a one-clause switch is an if statement written the long way.

@@ -20,7 +20,7 @@ void test_f32_array(void) {
     float second = samples_f32[1U];
     float sum = samples_f32[0U] + samples_f32[1U];
     samples_f32[3] = sum;
-    for (uint32_t i = 0; i < 10; i += 1) {
+    for (uint32_t i = 0U; i < 10; i += 1) {
         samples_f32[i] = i * 1.5;
     }
 }

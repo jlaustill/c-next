@@ -33,9 +33,9 @@ uint8_t Reg__readMember(void) {
 
 int main(void) {
     uint8_t fromGlobal = Reg__readBare();
-    if (fromGlobal != 99) return 1;
+    if (fromGlobal != 99) return 1U;
     uint8_t fromMember = Reg__readMember();
-    if (fromMember != 7) return 2;
-    if (fromGlobal == fromMember) return 3;
-    return 0;
+    if (fromMember != 7) return 2U;
+    if (fromGlobal == fromMember) return 3U;
+    return 0U;
 }

@@ -1,0 +1,10 @@
+53:16 error[E0424]: 'RED' is not defined; did you mean 'Color.RED'?
+       help: A bare enum member is accepted only where its enum is already named -- a declaration or assignment of that type, a return from a function of that type, a field of that type. Elsewhere, qualify it (ADR-017).
+58:22 error[E0424]: 'RED' is not defined; did you mean 'Color.RED'?
+       help: A bare enum member is accepted only where its enum is already named -- a declaration or assignment of that type, a return from a function of that type, a field of that type. Elsewhere, qualify it (ADR-017).
+61:19 error[E0424]: 'YELLOW' is not defined; did you mean 'Status.YELLOW'?
+       help: A bare enum member is accepted only where its enum is already named -- a declaration or assignment of that type, a return from a function of that type, a field of that type. Elsewhere, qualify it (ADR-017).
+65:20 error[E0424]: 'BLUE' is not defined; did you mean 'Color.BLUE'?
+       help: A bare enum member is accepted only where its enum is already named -- a declaration or assignment of that type, a return from a function of that type, a field of that type. Elsewhere, qualify it (ADR-017).
+72:32 error[E0424]: 'RED' is not defined; did you mean 'Color.RED'?
+       help: A bare enum member is accepted only where its enum is already named -- a declaration or assignment of that type, a return from a function of that type, a field of that type. Elsewhere, qualify it (ADR-017).

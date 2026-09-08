@@ -3,15 +3,12 @@
  * A safer C for embedded systems
  */
 
+#include "register-access-modifiers.test.hpp"
+
 #include <stdint.h>
 
 // ADR-004: Register access modifiers test
 // Tests: rw (read-write), ro (read-only), wo (write-only) modifiers
-/* Register: PERIPH @ 0x50000000 */
-#define PERIPH__CTRL (*(volatile uint32_t*)(0x50000000 + 0x00))
-#define PERIPH__STATUS (*(volatile uint32_t const *)(0x50000000 + 0x04))
-#define PERIPH__CMD (*(volatile uint32_t*)(0x50000000 + 0x08))
-
 int main(void) {
     PERIPH__CTRL = 0x01;
     uint32_t ctrl = PERIPH__CTRL;

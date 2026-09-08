@@ -22,10 +22,6 @@ import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
  */
 function handleRegisterBit(ctx: IAssignmentContext): string {
   // Issue #707: Use shared validation utility
-  AssignmentHandlerUtils.validateNoCompoundForBitAccess(
-    ctx.isCompound,
-    ctx.cnextOp,
-  );
 
   const { fullName } =
     AssignmentHandlerUtils.buildRegisterNameWithScopeDetection(
@@ -57,10 +53,6 @@ function handleRegisterBit(ctx: IAssignmentContext): string {
  */
 function handleRegisterBitRange(ctx: IAssignmentContext): string {
   // Issue #707: Use shared validation utility
-  AssignmentHandlerUtils.validateNoCompoundForBitAccess(
-    ctx.isCompound,
-    ctx.cnextOp,
-  );
 
   const { fullName, regName } =
     AssignmentHandlerUtils.buildRegisterNameWithScopeDetection(
@@ -116,11 +108,6 @@ function handleRegisterBitRange(ctx: IAssignmentContext): string {
  */
 function handleScopedRegisterBit(ctx: IAssignmentContext): string {
   // Issue #707: Use shared validation utilities
-  AssignmentHandlerUtils.validateScopeContext(CodeGenState.currentScopePath);
-  AssignmentHandlerUtils.validateNoCompoundForBitAccess(
-    ctx.isCompound,
-    ctx.cnextOp,
-  );
 
   // Build scoped name: Scope_Register_Member
   const regName = AssignmentHandlerUtils.buildScopedRegisterName(
@@ -153,11 +140,6 @@ function handleScopedRegisterBit(ctx: IAssignmentContext): string {
  */
 function handleScopedRegisterBitRange(ctx: IAssignmentContext): string {
   // Issue #707: Use shared validation utilities
-  AssignmentHandlerUtils.validateScopeContext(CodeGenState.currentScopePath);
-  AssignmentHandlerUtils.validateNoCompoundForBitAccess(
-    ctx.isCompound,
-    ctx.cnextOp,
-  );
 
   // #1298: `currentScopePath` IS the whole enclosing path. A scope's leaf name
   // discards every outer component -- the exact leaf-only encoder #1285 removed

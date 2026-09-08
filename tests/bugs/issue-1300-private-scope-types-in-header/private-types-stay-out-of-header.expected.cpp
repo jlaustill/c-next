@@ -43,7 +43,7 @@ uint32_t Internal__useHidden(void) {
     if (m == Internal__HiddenMode__ON) {
         return h.a;
     }
-    return 0;
+    return 0U;
 }
 
 uint32_t Internal__useShown(void) {

@@ -389,6 +389,44 @@ C-Next's `default(n)` syntax goes beyond MISRA by providing **compile-time valid
 - **Rust:** `_` wildcard is silent when enum grows
 - **C-Next:** `default(n)` forces explicit acknowledgment; enum growth breaks build
 
+## Scope-context matrix
+
+Declared for the switch rules #1322 moved out of codegen: no switch on a bool,
+at least two clauses, no duplicate case value, and clauses that account for an
+enum's variants exactly.
+
+<!-- MATRIX-SEVERITY -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | off      |
+| scope member       | same file           | off      |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | off      |
+| global variable    | imported direct     | off      |
+| scope member       | imported direct     | off      |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | off      |
+| global variable    | imported transitive | off      |
+| scope member       | imported transitive | off      |
+
+A switch is a **statement**. It appears in a function body and nowhere else, so
+the two declaration contexts cannot hold one and are `off`.
+
+The imported columns are `error` for a top-level function because exhaustiveness
+is counted against the enum's MEMBERS, which may be declared in another file. A
+check reading only the file in front of it finds no members there, and a variant
+count of zero makes every switch look complete -- so the rule would go quiet
+across an include rather than fail, which is the silence this matrix exists to
+make visible.
+
+`scope method` is `off` in the imported columns as a stated obligation, not a
+claim the cell cannot exist: a scope method can certainly switch on an imported
+enum. It is declared `off` so the table does not assert coverage no fixture
+provides.
+
 ## References
 
 - [MISRA-C Rule 16 Switch statements](https://hackmd.io/@IloveFSF/Hk9S6LNjK)

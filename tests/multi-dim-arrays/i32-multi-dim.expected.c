@@ -35,53 +35,53 @@ int main(void) {
     matrix2d[0][7] = 2147483647;
     matrix2d[1][3] = -1000000;
     matrix2d[3][7] = 1000000;
-    if (matrix2d[0U][0U] != (int32_t)INT32_MIN) return 1;
-    if (matrix2d[0U][7U] != 2147483647) return 2;
-    if (matrix2d[1U][3U] != -1000000) return 3;
-    if (matrix2d[3U][7U] != 1000000) return 4;
+    if (matrix2d[0U][0U] != (int32_t)INT32_MIN) return 1U;
+    if (matrix2d[0U][7U] != 2147483647) return 2U;
+    if (matrix2d[1U][3U] != -1000000) return 3U;
+    if (matrix2d[3U][7U] != 1000000) return 4U;
     cube3d[0][0][0] = -500000;
     cube3d[0][0][3] = -100000;
     cube3d[0][2][3] = 0;
     cube3d[1][0][0] = 500000;
     cube3d[1][2][3] = 2000000;
-    if (cube3d[0U][0U][0U] != -500000) return 5;
-    if (cube3d[0U][0U][3U] != -100000) return 6;
-    if (cube3d[0U][2U][3U] != 0) return 7;
-    if (cube3d[1U][0U][0U] != 500000) return 8;
-    if (cube3d[1U][2U][3U] != 2000000) return 9;
-    if (4 != 4) return 10;
-    if (8 != 8) return 11;
-    if (32 != 32) return 12;
-    if (2 != 2) return 13;
-    if (3 != 3) return 14;
-    if (4 != 4) return 15;
-    if (32 != 32) return 16;
-    for (uint32_t i = 0; i < 4; i += 1) {
-        for (uint32_t j = 0; j < 8; j += 1) {
-            matrix2d[i][j] = i * 1000 + j;
+    if (cube3d[0U][0U][0U] != -500000) return 5U;
+    if (cube3d[0U][0U][3U] != -100000) return 6U;
+    if (cube3d[0U][2U][3U] != 0) return 7U;
+    if (cube3d[1U][0U][0U] != 500000) return 8U;
+    if (cube3d[1U][2U][3U] != 2000000) return 9U;
+    if (4 != 4) return 10U;
+    if (8 != 8) return 11U;
+    if (32 != 32) return 12U;
+    if (2 != 2) return 13U;
+    if (3 != 3) return 14U;
+    if (4 != 4) return 15U;
+    if (32 != 32) return 16U;
+    for (uint32_t i = 0U; i < 4; i += 1) {
+        for (uint32_t j = 0U; j < 8; j += 1) {
+            matrix2d[i][j] = (((i * 1000 + j)) & 0xFFFFFFFFU);
         }
     }
-    if (matrix2d[0U][0U] != 0) return 17;
-    if (matrix2d[0U][7U] != 7) return 18;
-    if (matrix2d[1U][3U] != 1003) return 19;
-    if (matrix2d[3U][7U] != 3007) return 20;
+    if (matrix2d[0U][0U] != 0) return 17U;
+    if (matrix2d[0U][7U] != 7) return 18U;
+    if (matrix2d[1U][3U] != 1003) return 19U;
+    if (matrix2d[3U][7U] != 3007) return 20U;
     int64_t sum = 0;
-    for (uint32_t i = 0; i < 2; i += 1) {
-        for (uint32_t j = 0; j < 3; j += 1) {
-            for (uint32_t k = 0; k < 4; k += 1) {
-                cube3d[i][j][k] = i * 1000 + j * 100 + k;
+    for (uint32_t i = 0U; i < 2; i += 1) {
+        for (uint32_t j = 0U; j < 3; j += 1) {
+            for (uint32_t k = 0U; k < 4; k += 1) {
+                cube3d[i][j][k] = (((i * 1000 + j * 100 + k)) & 0xFFFFFFFFU);
                 sum = cnx_clamp_add_i64(sum, cube3d[i][j][k]);
             }
         }
     }
-    if (sum != 14436) return 21;
+    if (sum != 14436) return 21U;
     matrix2d[2][4] = (int32_t)INT32_MIN;
-    if (matrix2d[2U][4U] != (int32_t)INT32_MIN) return 22;
+    if (matrix2d[2U][4U] != (int32_t)INT32_MIN) return 22U;
     matrix2d[3][7] = -100000;
-    if (matrix2d[3U][7U] != -100000) return 23;
+    if (matrix2d[3U][7U] != -100000) return 23U;
     int32_t testArray[4][2] = {0};
-    for (uint32_t ti = 0; ti < 4; ti += 1) {
-        for (uint32_t tj = 0; tj < 2; tj += 1) {
+    for (uint32_t ti = 0U; ti < 4; ti += 1) {
+        for (uint32_t tj = 0U; tj < 2; tj += 1) {
             testArray[ti][tj] = 0;
         }
     }
@@ -91,15 +91,15 @@ int main(void) {
     testArray[1][1] = -1;
     testArray[2][0] = 1;
     testArray[3][1] = -1000000;
-    if (testArray[0U][0U] != (int32_t)INT32_MIN) return 24;
-    if (testArray[0U][1U] != 2147483647) return 25;
-    if (testArray[1U][0U] != 0) return 26;
-    if (testArray[1U][1U] != -1) return 27;
-    if (testArray[2U][0U] != 1) return 28;
-    if (testArray[3U][1U] != -1000000) return 29;
+    if (testArray[0U][0U] != (int32_t)INT32_MIN) return 24U;
+    if (testArray[0U][1U] != 2147483647) return 25U;
+    if (testArray[1U][0U] != 0) return 26U;
+    if (testArray[1U][1U] != -1) return 27U;
+    if (testArray[2U][0U] != 1) return 28U;
+    if (testArray[3U][1U] != -1000000) return 29U;
     int32_t balances[3][3] = {0};
-    for (uint32_t bi = 0; bi < 3; bi += 1) {
-        for (uint32_t bj = 0; bj < 3; bj += 1) {
+    for (uint32_t bi = 0U; bi < 3; bi += 1) {
+        for (uint32_t bj = 0U; bj < 3; bj += 1) {
             balances[bi][bj] = 0;
         }
     }
@@ -109,25 +109,25 @@ int main(void) {
     balances[1][1] = 1000000;
     balances[2][0] = -250000;
     balances[2][1] = 500000000;
-    if (balances[0U][0U] != -50000) return 30;
-    if (balances[0U][1U] != 100000) return 31;
-    if (balances[1U][0U] != 0) return 32;
-    if (balances[1U][1U] != 1000000) return 33;
-    if (balances[2U][0U] != -250000) return 34;
-    if (balances[2U][1U] != 500000000) return 35;
+    if (balances[0U][0U] != -50000) return 30U;
+    if (balances[0U][1U] != 100000) return 31U;
+    if (balances[1U][0U] != 0) return 32U;
+    if (balances[1U][1U] != 1000000) return 33U;
+    if (balances[2U][0U] != -250000) return 34U;
+    if (balances[2U][1U] != 500000000) return 35U;
     int32_t deltas[2][2] = {0};
-    for (uint32_t di = 0; di < 2; di += 1) {
-        for (uint32_t dj = 0; dj < 2; dj += 1) {
+    for (uint32_t di = 0U; di < 2; di += 1) {
+        for (uint32_t dj = 0U; dj < 2; dj += 1) {
             deltas[di][dj] = 0;
         }
     }
     deltas[0][0] = -1000000;
     deltas[0][1] = 750000;
     int64_t deltaSum = deltas[0U][0U] + deltas[0U][1U];
-    if (deltaSum != -250000) return 36;
+    if (deltaSum != -250000) return 36U;
     int32_t offsets[2][3] = {0};
-    for (uint32_t oi = 0; oi < 2; oi += 1) {
-        for (uint32_t oj = 0; oj < 3; oj += 1) {
+    for (uint32_t oi = 0U; oi < 2; oi += 1) {
+        for (uint32_t oj = 0U; oj < 3; oj += 1) {
             offsets[oi][oj] = 0;
         }
     }
@@ -137,9 +137,9 @@ int main(void) {
     offsets[1][0] = -2592000;
     offsets[1][1] = 3600;
     offsets[1][2] = 31536000;
-    if (offsets[0U][0U] != -86400) return 37;
-    if (offsets[0U][2U] != 86400) return 38;
-    if (offsets[1U][0U] != -2592000) return 39;
-    if (offsets[1U][2U] != 31536000) return 40;
-    return 0;
+    if (offsets[0U][0U] != -86400) return 37U;
+    if (offsets[0U][2U] != 86400) return 38U;
+    if (offsets[1U][0U] != -2592000) return 39U;
+    if (offsets[1U][2U] != 31536000) return 40U;
+    return 0U;
 }

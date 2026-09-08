@@ -1,0 +1,31 @@
+// test-error
+// test-adr: 025
+// E0714 inside a scope method -- matrix cell: scope method / same file.
+//
+// A switch is a statement, so a scope METHOD is the second and last context it
+// can appear in.
+
+enum EMode {
+    OFF,
+    LOW,
+    HIGH
+}
+
+scope Motor {
+    // NEGATIVE CONTROL -- the same enum, covered completely, in the same
+    // context as the assertion below.
+    public void okExhaustive(EMode m) {
+        switch (m) {
+            case EMode.OFF {}
+            case EMode.LOW {}
+            case EMode.HIGH {}
+        }
+    }
+
+    public void missesOne(EMode m) {
+        switch (m) {
+            case EMode.OFF {}
+            case EMode.LOW {}
+        }
+    }
+}

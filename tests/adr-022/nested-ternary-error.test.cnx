@@ -1,0 +1,71 @@
+// test-error
+// test-transpile-only
+// test-adr: 022
+// ADR-022, E0710: a ternary may not appear inside another ternary's branches.
+//
+// #1322 relocated this from `output/`, where it reported `1:0` AND was a
+// substring test on the branch's source text --
+// `text.includes("?") && text.includes(":")` -- so the controls below were
+// rejected as nested ternaries. A rule about syntax asking about characters.
+//
+// The four assertions are the four contexts ADR-022's matrix declares `error`.
+// A ternary is an EXPRESSION, so unlike a `critical` block it reaches an
+// initializer as well as a function body -- probed, not assumed.
+
+u32 n <- 1;
+
+// NEGATIVE CONTROL -- a TERNARY whose branch is a string containing `?` and
+// `:`. This is the regression, and it has to be a ternary: the substring check
+// only ever examined a ternary's branches, so a bare declaration holding the
+// same literal would never have reached it. An earlier version of this fixture
+// used exactly that, and the mutation check caught it -- reverting to the old
+// implementation left the fixture GREEN.
+//
+// Declared first, so an over-broad check reports it and changes the message the
+// assertions below expect.
+string<16> labelFor() {
+    return (n = 1) ? "a?b:c" : "plain";
+}
+
+// NEGATIVE CONTROL -- two ternaries that are siblings, not nested. Only nesting
+// is forbidden; a check that looked at the enclosing STATEMENT would reject
+// this.
+u32 siblings() {
+    u32 a <- (n = 1) ? 3 : 4;
+    u32 b <- (n = 2) ? 5 : 6;
+    return a + b;
+}
+
+// ASSERTION 1 -- global variable initializer.
+u32 globalNested <- (n = 1) ? ((n = 2) ? 3 : 4) : 5;
+
+// ASSERTION 2 -- top-level function.
+u32 nested() {
+    return (n = 1) ? ((n = 2) ? 3 : 4) : 5;
+}
+
+// ASSERTION 5 -- a ternary in the CONDITION. Codegen checked only the two
+// branches, so this compiled and emitted C; E0701 does not catch it either,
+// because the whole nest sits inside a comparison and a comparison is what
+// E0701 asks for. ADR-022 says no nesting, unqualified.
+u32 inCondition() {
+    return (((n = 1) ? 2 : 3) = 2) ? 4 : 5;
+}
+
+scope Board {
+    u32 m <- 1;
+
+    // NEGATIVE CONTROL, inside a scope -- the string-literal branch again, in
+    // the context the file-scope control cannot reach.
+    public string<16> label() {
+        return (this.m = 1) ? "x?y:z" : "plain";
+    }
+
+    // ASSERTION 3 -- scope member initializer.
+    u32 memberNested <- (this.m = 1) ? ((this.m = 2) ? 3 : 4) : 5;
+
+    // ASSERTION 4 -- scope method.
+    public u32 read() {
+        return (this.m = 1) ? ((this.m = 2) ? 3 : 4) : 5;
+    }
+}

@@ -60,6 +60,12 @@ interface IHeaderOptions {
    * locally would declare functions that are never defined.
    */
   readonly generatedStructInits?: ReadonlySet<string>;
+  /**
+   * #1453 / ADR-004: the accessor `#define` blocks of the registers this
+   * header defines, rendered by the `.c` generator. Same contract as
+   * `generatedStructInits`: captured, never read live.
+   */
+  readonly registerBlocks?: readonly string[];
 
   /**
    * Issue #1517: the system headers this header emits, decided by 2.2 Plan.

@@ -78,22 +78,22 @@ uint32_t withDefault(uint32_t val) {
 int main(void) {
     uint32_t result = 0U;
     result = getStatusCode(Status__OK);
-    if (result != 1) return 1;
+    if (result != 1) return 1U;
     result = getStatusCode(Status__ERROR);
-    if (result != 2) return 2;
+    if (result != 2) return 2U;
     result = getStatusCode(Status__PENDING);
-    if (result != 3) return 3;
+    if (result != 3) return 3U;
     result = mapValue(1U);
-    if (result != 10) return 4;
+    if (result != 10) return 4U;
     result = mapValue(2U);
-    if (result != 20) return 5;
+    if (result != 20) return 5U;
     result = mapValue(3U);
-    if (result != 30) return 6;
+    if (result != 30) return 6U;
     result = mapValue(999U);
-    if (result != 99) return 7;
+    if (result != 99) return 7U;
     result = withDefault(1U);
-    if (result != 100) return 8;
+    if (result != 100) return 8U;
     result = withDefault(5U);
-    if (result != 999) return 9;
-    return 0;
+    if (result != 999) return 9U;
+    return 0U;
 }

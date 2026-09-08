@@ -204,37 +204,6 @@ describe("ArrayHandlers", () => {
       expect(result).toBe("cube[x][y][z] = value;");
     });
 
-    it("performs bounds checking when type info available", () => {
-      HandlerTestUtils.setupMockTypeRegistry([
-        ["matrix", { arrayDimensions: [10, 10], baseType: "i32" }],
-      ]);
-      mockCheckArrayBounds.mockClear();
-      HandlerTestUtils.setupMockGenerator({
-        generateExpression: vi
-          .fn()
-          .mockReturnValueOnce("5")
-          .mockReturnValueOnce("3"),
-      });
-      const ctx = createMockContext({
-        identifiers: ["matrix"],
-        subscripts: [
-          { mockValue: "5", start: { line: 10 } } as never,
-          { mockValue: "3", start: { line: 10 } } as never,
-        ],
-      });
-
-      getHandler()!(ctx);
-
-      // #1360: dimensions are no longer passed in -- checkArrayBounds owns the
-      // whether-to-check decision, so every caller asks the same question.
-      expect(mockCheckArrayBounds).toHaveBeenCalledWith(
-        "matrix",
-        ctx.subscripts,
-        10,
-        expect.any(Function), // tryEvaluateConstant callback
-      );
-    });
-
     it("handles compound assignment", () => {
       HandlerTestUtils.setupMockGenerator({
         generateExpression: vi
@@ -260,6 +229,14 @@ describe("ArrayHandlers", () => {
     });
   });
 
+  // #1322: the twelve `throws ...` cases below now assert INVARIANTS, not
+  // diagnostics. ADR-052's slice rules are E0858-E0861 in pass 2.1, which halts
+  // before codegen runs, so a slice reaching this handler has already been
+  // checked. The assertion is the safety net for a DIVERGENCE between the two
+  // -- 2.1 accepting something this code cannot emit -- and these cases are
+  // what prove the net is there. Kept and re-aimed rather than deleted: they were the
+  // only coverage of these conditions, and an assertion nothing exercises is
+  // the guard-that-cannot-fail shape.
   describe("handleArraySlice (ARRAY_SLICE)", () => {
     const getHandler = () =>
       arrayHandlers.find(([kind]) => kind === AssignmentKind.ARRAY_SLICE)?.[1];
@@ -401,7 +378,7 @@ describe("ArrayHandlers", () => {
       expect(result).toBe("arr64[4] = (uint64_t)(value);");
     });
 
-    it("reports the element span (not bytes) in the out-of-bounds message", () => {
+    it("names the element span (not bytes) in the out-of-bounds invariant", () => {
       mockGetExpressionType.mockReturnValue("u64");
       HandlerTestUtils.setupMockTypeRegistry([
         ["arr16", { arrayDimensions: [4], baseType: "u16", bitWidth: 16 }],
@@ -423,7 +400,7 @@ describe("ArrayHandlers", () => {
 
       // offset 2 + (8 bytes / 2) = 6 elements > capacity 4.
       expect(() => getHandler()!(ctx)).toThrow(
-        "offset(2) + 4 element(s) = 6 exceeds buffer capacity(4)",
+        "a slice span fits its buffer -- E0860 rejects offset(2) + 4 against capacity(4)",
       );
     });
 
@@ -602,7 +579,7 @@ describe("ArrayHandlers", () => {
       );
     });
 
-    it("throws when slice length is not a multiple of the element size", () => {
+    it("asserts the invariant when slice length is not a multiple of the element size", () => {
       mockGetExpressionType.mockReturnValue("u64");
       HandlerTestUtils.setupMockTypeRegistry([
         ["arr16", { arrayDimensions: [16], baseType: "u16", bitWidth: 16 }],
@@ -623,11 +600,11 @@ describe("ArrayHandlers", () => {
       });
 
       expect(() => getHandler()!(ctx)).toThrow(
-        "must be a multiple of the element size",
+        "a slice length divides the element size",
       );
     });
 
-    it("throws when slice length exceeds the source value width", () => {
+    it("asserts the invariant when slice length exceeds the source value width", () => {
       mockGetExpressionType.mockReturnValue("u32"); // 4-byte source
       HandlerTestUtils.setupMockTypeRegistry([
         ["buffer", { arrayDimensions: [100], baseType: "u8", bitWidth: 8 }],
@@ -648,11 +625,11 @@ describe("ArrayHandlers", () => {
       });
 
       expect(() => getHandler()!(ctx)).toThrow(
-        "exceeds the source value width",
+        "a slice length fits its source width",
       );
     });
 
-    it("throws on a non-integer (float) slice source", () => {
+    it("asserts the invariant on a non-integer (float) slice source", () => {
       mockGetExpressionType.mockReturnValue("f32");
       HandlerTestUtils.setupMockTypeRegistry([
         ["buffer", { arrayDimensions: [100], baseType: "u8", bitWidth: 8 }],
@@ -672,12 +649,10 @@ describe("ArrayHandlers", () => {
         generatedValue: "fval",
       });
 
-      expect(() => getHandler()!(ctx)).toThrow(
-        "source must be an integer value",
-      );
+      expect(() => getHandler()!(ctx)).toThrow("a slice source is an integer");
     });
 
-    it("throws on slice assignment into a float array", () => {
+    it("asserts the invariant on slice assignment into a float array", () => {
       HandlerTestUtils.setupMockTypeRegistry([
         ["arrF", { arrayDimensions: [16], baseType: "f32", bitWidth: 32 }],
       ]);
@@ -697,7 +672,7 @@ describe("ArrayHandlers", () => {
       });
 
       expect(() => getHandler()!(ctx)).toThrow(
-        "Slice assignment is not supported for element type",
+        "a sliced buffer has an integer or string element type",
       );
     });
 
@@ -727,7 +702,7 @@ describe("ArrayHandlers", () => {
       });
 
       expect(() => getHandler()!(ctx)).toThrow(
-        "Slice assignment literal value (-300) does not fit in the 1-byte slice",
+        "a slice literal fits its byte width -- E0861 rejects -300 in a 1-byte slice",
       );
     });
 
@@ -767,31 +742,14 @@ describe("ArrayHandlers", () => {
       );
     });
 
-    it("throws on compound assignment", () => {
-      HandlerTestUtils.setupMockTypeRegistry([
-        ["buffer", { arrayDimensions: [100], baseType: "u8" }],
-      ]);
-      HandlerTestUtils.setupMockGenerator({
-        tryEvaluateConstant: vi
-          .fn()
-          .mockReturnValueOnce(0)
-          .mockReturnValueOnce(10),
-      });
-      const ctx = createMockContext({
-        isCompound: true,
-        cnextOp: "+<-",
-        subscripts: [
-          { mockValue: "0", start: { line: 1 } } as never,
-          { mockValue: "10", start: { line: 1 } } as never,
-        ],
-      });
+    // #1322: compound assignment on a bit index, bit range, slice, bitmap field
+    // or string is E0857 in pass 2.1 -- one decision where `output/` had six
+    // throws with four messages, and `validateNotCompound` defined twice verbatim.
+    // The pipeline halts before these handlers run. Covered by
+    // `1-Analyze/__tests__/CompoundAssignmentAnalyzer.test.ts` plus
+    // `tests/compound-assign/` and `tests/string-assignment/`.
 
-      expect(() => getHandler()!(ctx)).toThrow(
-        "Compound assignment operators not supported for slice assignment",
-      );
-    });
-
-    it("throws on multi-dimensional array", () => {
+    it("asserts the invariant on multi-dimensional array", () => {
       HandlerTestUtils.setupMockTypeRegistry([
         ["matrix", { arrayDimensions: [10, 10], baseType: "u8" }],
       ]);
@@ -804,11 +762,11 @@ describe("ArrayHandlers", () => {
       });
 
       expect(() => getHandler()!(ctx)).toThrow(
-        "Slice assignment is only valid on one-dimensional arrays",
+        "a sliced buffer is one-dimensional",
       );
     });
 
-    it("throws on non-constant offset", () => {
+    it("asserts the invariant on non-constant offset", () => {
       HandlerTestUtils.setupMockTypeRegistry([
         ["buffer", { arrayDimensions: [100], baseType: "u8" }],
       ]);
@@ -823,11 +781,11 @@ describe("ArrayHandlers", () => {
       });
 
       expect(() => getHandler()!(ctx)).toThrow(
-        "Slice assignment offset must be a compile-time constant",
+        "a slice offset folds at compile time",
       );
     });
 
-    it("throws on non-constant length", () => {
+    it("asserts the invariant on non-constant length", () => {
       HandlerTestUtils.setupMockTypeRegistry([
         ["buffer", { arrayDimensions: [100], baseType: "u8" }],
       ]);
@@ -845,11 +803,11 @@ describe("ArrayHandlers", () => {
       });
 
       expect(() => getHandler()!(ctx)).toThrow(
-        "Slice assignment length must be a compile-time constant",
+        "a slice length folds at compile time",
       );
     });
 
-    it("throws on out of bounds access", () => {
+    it("asserts the invariant on out of bounds access", () => {
       HandlerTestUtils.setupMockTypeRegistry([
         ["buffer", { arrayDimensions: [50], baseType: "u8", bitWidth: 8 }],
       ]);
@@ -867,12 +825,10 @@ describe("ArrayHandlers", () => {
         ],
       });
 
-      expect(() => getHandler()!(ctx)).toThrow(
-        "Slice assignment out of bounds",
-      );
+      expect(() => getHandler()!(ctx)).toThrow("a slice span fits its buffer");
     });
 
-    it("throws on negative offset", () => {
+    it("asserts the invariant on negative offset", () => {
       HandlerTestUtils.setupMockTypeRegistry([
         ["buffer", { arrayDimensions: [100], baseType: "u8" }],
       ]);
@@ -891,11 +847,11 @@ describe("ArrayHandlers", () => {
       });
 
       expect(() => getHandler()!(ctx)).toThrow(
-        "Slice assignment offset cannot be negative",
+        "a slice offset is not negative",
       );
     });
 
-    it("throws on zero length", () => {
+    it("asserts the invariant on zero length", () => {
       HandlerTestUtils.setupMockTypeRegistry([
         ["buffer", { arrayDimensions: [100], baseType: "u8" }],
       ]);
@@ -913,12 +869,10 @@ describe("ArrayHandlers", () => {
         ],
       });
 
-      expect(() => getHandler()!(ctx)).toThrow(
-        "Slice assignment length must be positive",
-      );
+      expect(() => getHandler()!(ctx)).toThrow("a slice length is positive");
     });
 
-    it("throws on negative length", () => {
+    it("asserts the invariant on negative length", () => {
       HandlerTestUtils.setupMockTypeRegistry([
         ["buffer", { arrayDimensions: [100], baseType: "u8" }],
       ]);
@@ -936,12 +890,10 @@ describe("ArrayHandlers", () => {
         ],
       });
 
-      expect(() => getHandler()!(ctx)).toThrow(
-        "Slice assignment length must be positive",
-      );
+      expect(() => getHandler()!(ctx)).toThrow("a slice length is positive");
     });
 
-    it("throws when buffer size cannot be determined", () => {
+    it("asserts the invariant when buffer size cannot be determined", () => {
       HandlerTestUtils.setupMockTypeRegistry([["unknown", { baseType: "u8" }]]);
       HandlerTestUtils.setupMockGenerator({
         tryEvaluateConstant: vi
@@ -957,7 +909,9 @@ describe("ArrayHandlers", () => {
         ],
       });
 
-      expect(() => getHandler()!(ctx)).toThrow("Cannot determine buffer size");
+      expect(() => getHandler()!(ctx)).toThrow(
+        "a sliced buffer has a foldable size",
+      );
     });
   });
 });

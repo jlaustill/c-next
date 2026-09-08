@@ -28,24 +28,24 @@ int main(void) {
     for (i = 0; i < 10; i += 1) {
         sum = cnx_clamp_add_u32(sum, i);
     }
-    if (sum != 45) return 1;
+    if (sum != 45) return 1U;
     sum = 0U;
     for (i = 0; i < 10; i += 2) {
         sum = cnx_clamp_add_u32(sum, i);
     }
-    if (sum != 20) return 2;
+    if (sum != 20) return 2U;
     sum = 0U;
     uint32_t count = 0U;
     for (i = 1; i < 100; i *= 2) {
         sum = cnx_clamp_add_u32(sum, i);
         count = cnx_clamp_add_u32(count, 1U);
     }
-    if (sum != 127) return 3;
-    if (count != 7) return 4;
+    if (sum != 127) return 3U;
+    if (count != 7) return 4U;
     sum = 0U;
     for (i = 10; i > 0; i -= 1) {
         sum = cnx_clamp_add_u32(sum, i);
     }
-    if (sum != 55) return 5;
-    return 0;
+    if (sum != 55) return 5U;
+    return 0U;
 }

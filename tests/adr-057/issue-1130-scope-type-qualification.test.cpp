@@ -36,9 +36,9 @@ uint8_t A__wrapperValue(const A__Wrapper& w) {
 uint8_t A__isBusy(A__B value) {
     A__B local = value;
     if (local == A__B__d) {
-        return 1;
+        return 1U;
     }
-    return 0;
+    return 0U;
 }
 
 uint8_t A__useGlobalConfig(const Config& cfg) {
@@ -52,21 +52,21 @@ uint8_t A__configValue(void) {
 int main(void) {
     A__S s = { .x = 42U, .kind = A__B__d };
     uint8_t structX = A__readStruct(s);
-    if (structX != 42) return 1;
+    if (structX != 42) return 1U;
     A__B picked = A__pick();
-    if (picked != A__B__d) return 2;
+    if (picked != A__B__d) return 2U;
     uint8_t isBusyResult = A__isBusy(A__B__d);
-    if (isBusyResult != 1) return 3;
+    if (isBusyResult != 1) return 3U;
     uint8_t isNotBusyResult = A__isBusy(A__B__c);
-    if (isNotBusyResult != 0) return 4;
+    if (isNotBusyResult != 0) return 4U;
     A__Wrapper w = { .mode = Mode__busy, .v = 9U };
     uint8_t wrapped = A__wrapperValue(w);
-    if (wrapped != 9) return 5;
+    if (wrapped != 9) return 5U;
     Config globalConfig = { .x = 5U };
     uint8_t configX = A__useGlobalConfig(globalConfig);
-    if (configX != 5) return 6;
+    if (configX != 5) return 6U;
     uint8_t scopeConfig = A__configValue();
-    if (scopeConfig != 7) return 7;
-    if (A__current != A__B__c) return 8;
-    return 0;
+    if (scopeConfig != 7) return 7U;
+    if (A__current != A__B__c) return 8U;
+    return 0U;
 }

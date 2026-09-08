@@ -45,8 +45,8 @@ UARTConfig config;
 
 // Initialization in init()
 void init() {
-    origin <- Point { x: 0, y: 0 };
-    config <- UARTConfig {
+    origin <- { x: 0, y: 0 };
+    config <- {
         baudRate: 115200,
         dataBits: 8,
         stopBits: 1,
@@ -58,7 +58,7 @@ void init() {
 ### Inline Initialization (for const structs)
 
 ```cnx
-const Point ORIGIN <- Point { x: 0, y: 0 };
+const Point ORIGIN <- { x: 0, y: 0 };
 ```
 
 ### Member Access
@@ -95,7 +95,7 @@ struct Point {
 }
 
 Point p;
-p <- Point { x: 10, y: 20 };
+p <- { x: 10, y: 20 };
 ```
 
 Generates:
@@ -159,8 +159,26 @@ class Circle {
 Use `{ field: value }` syntax (like Rust, Go, TypeScript):
 
 ```cnx
+Point p <- { x: 10, y: 20 };
+```
+
+The type is **not** repeated, and there is no syntax for repeating it. It is
+already declared to the left, and every position that declares a type behaves
+the same way: a variable's declaration, an assignment target, a field of an
+enclosing initializer, a call argument, and a `return` statement.
+
+```cnx
+// NOT SYNTAX -- `Point { ... }` does not parse
 Point p <- Point { x: 10, y: 20 };
 ```
+
+**This was a grammar alternative until #1322, and removing it followed from
+having no position left where it was useful.** It was rejected as redundant in
+every position that consumes a value, since all of them declare a type; the one
+place it parsed was a bare expression statement, where it built a compound
+literal and discarded it. A form legal only where it does nothing is not a form
+the language offers, so the alternative is gone and the diagnostic that rejected
+it (E0356) is retired rather than reassigned.
 
 **Literals are allowed** in struct initializers because initialization is not a function call — no pass-by-reference occurs. This is the same as `u8 flags <- 44;`.
 
@@ -268,11 +286,71 @@ struct Rectangle {
     Point bottomRight;
 }
 
-Rectangle r <- Rectangle {
-    topLeft: Point { x: 0, y: 0 },
-    bottomRight: Point { x: 100, y: 50 }
+Rectangle r <- {
+    topLeft: { x: 0, y: 0 },
+    bottomRight: { x: 100, y: 50 }
 };
 ```
+
+## Diagnostics
+
+| Code      | Reported when                                                                                                                                                                                                       | Asserted by                                                  |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| ~~E0356~~ | _Retired._ Was: a struct initializer writes a type where the position already declares one. The syntax it rejected is removed, so it is a parse error — `tests/adr-014/struct-written-type-rejected-error.test.cnx` |                                                              |
+| E0357     | A struct initializer writes no type and stands where no position declares one                                                                                                                                       | `tests/adr-014/struct-no-type-error.test.cnx`                |
+| E0508     | A C++ class with a constructor is initialized where no statement can follow it                                                                                                                                      | `tests/external-types/cpp-class-scope-member-error.test.cnx` |
+
+A struct literal has no type of its own, and the position it stands in gives it
+one. The positions that do are a variable's declaration (including a `for`
+header's), an assignment target, a field of an enclosing initializer, a call
+argument, and a `return` statement, whose type is the enclosing function's
+declared return type. Repeating the type in any of them is an error.
+
+Every position that carries a value is on that list, so the written form
+`Point { x: 1 }` is left legal only where nothing consumes it -- a bare
+expression statement. E0357's help therefore does not offer "write the type" as
+a remedy: it would name the other error.
+
+Both are decided during analysis, at the initializer's own position, and every
+offense in a file is reported.
+
+**E0508 is the one place this syntax depends on the target language.** A C++
+class with a user-defined constructor is not an aggregate, so the initializer
+cannot be a single expression: the fields are assigned one at a time, and
+assignments are statements. A declaration outside a function body has no
+statement position after it, and that is true of a **scope member** as much as
+of a global -- a scope member becomes a file-scope definition. So the rule is
+about where the initializer stands, not about what it initializes, which is why
+it lives beside E0357 rather than with the interop decisions.
+
+## Scope-Context Matrix (#1219)
+
+Severity follows the eslint model: `off` records that a cell **cannot exist**,
+`warn` that it should be covered and is not, `error` that it must be.
+
+<!-- MATRIX-SEVERITY -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| scope member       | same file           | error    |
+| top-level function | imported direct     | off      |
+| scope method       | imported direct     | off      |
+| global variable    | imported direct     | off      |
+| scope member       | imported direct     | off      |
+| top-level function | imported transitive | off      |
+| scope method       | imported transitive | off      |
+| global variable    | imported transitive | off      |
+| scope member       | imported transitive | off      |
+
+Both rules are decided entirely within the file that writes the initializer:
+whether a type is written is syntax, and whether the position supplies one is a
+question about that initializer's own ancestors. Nothing crosses an include, so
+the imported cells record that they cannot exist rather than that they are
+uncovered. The struct being initialized may of course be declared elsewhere --
+that is what makes it a struct, not what makes either rule fire.
 
 ## Implementation Notes
 

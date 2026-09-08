@@ -33,7 +33,7 @@ const searchPaths = [join(testsDir, "include")];
 async function render(): Promise<{
   document: string;
   declarations: Map<string, IMatrixDeclaration>;
-  occupancy: ReturnType<typeof FixtureOccupancy.build>;
+  occupancy: Awaited<ReturnType<typeof FixtureOccupancy.build>>;
   declarationErrors: string[];
 }> {
   const declarations = AdrDeclarationReader.read(decisionsDir);
@@ -78,7 +78,7 @@ function printViolations(
  */
 function printContextNotDerivableHint(
   errors: ReturnType<typeof MatrixReport.violations>,
-  occupancy: ReturnType<typeof FixtureOccupancy.build>,
+  occupancy: Awaited<ReturnType<typeof FixtureOccupancy.build>>,
 ): void {
   const affected = [
     ...new Set(errors.map((violation) => violation.adr)),

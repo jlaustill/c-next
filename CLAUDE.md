@@ -49,6 +49,34 @@ same PR is genuinely gated and fifteen have passed. Same string, opposite meanin
 merging on the first would have landed ADR-070's definition-of-done evidence on zero
 CI (#1269). Query the check-run rollup by head SHA, not the mergeable state.
 
+### Definition of Done — Tick Each Box As It Lands
+
+**An issue's `## Definition of done` is updated in the same commit-and-push cycle that makes
+a box true, never reviewed and ticked in a batch at the end.** The card is where the work is
+visible to everyone who is not reading the branch; a box left unchecked while its work is
+merged says the work was not done.
+
+- Tick a box **only** with evidence you can point at — a commit SHA, a command and its
+  output, a file that now exists. A box you believe is done but cannot evidence stays
+  unchecked, and you say on the issue what is missing.
+- A box that names a **number** ("the count falls from 136") is not satisfied by falling; it
+  is satisfied by falling _and_ the new number being written on the issue. Record the
+  measurement next to the tick.
+- When work spans sessions, comment the interim state as you go. A long-running card with no
+  comments is indistinguishable from an abandoned one.
+- Read and write the body through the API, since `gh issue view` is unreliable here:
+  `gh api repos/jlaustill/c-next/issues/<n> --jq .body` to read, and
+  `gh api -X PATCH repos/jlaustill/c-next/issues/<n> -F body=@<file>` to write. Change only
+  the checkbox characters and the recorded numbers — never reword a box to match what you
+  did, which is moving the goalposts rather than meeting them.
+
+**Why this is a rule and not a habit:** #1322 reached thirty-three commits, one hundred
+fifty-seven relocated diagnostics and two closed sub-issues with **zero** of its seven boxes
+checked and none of its measured numbers recorded, while every one of those numbers had been
+measured more than once during the work. The card read as untouched for a week. Nothing
+failed, because nothing checks this — the checkbox is the one artifact in this repository
+with no gate behind it, which is exactly why it has to be a discipline instead.
+
 ### No Duplicate Code Paths — ZERO EXCEPTIONS
 
 **NEVER create or perpetuate duplicate code paths.** If changing something in one place requires a corresponding change in another place, that is a bug in the architecture. Fix it immediately.
@@ -210,16 +238,16 @@ update step: an `--update` inside it could not fail on a mismatch. `npm run test
 regenerates every snapshot, `tests/bugs/` included (#1142); `npm run test:bugs:update` narrows
 it to the regression fixtures.
 
-**`test:all` is four checks of thirty — run `npm run test:gate` before pushing.**
-`test:all` is `build && unit && test:q && validate:c`. CI runs twenty-six more with no local
+**`test:all` is four checks of thirty-two — run `npm run test:gate` before pushing.**
+`test:all` is `build && unit && test:q && validate:c`. CI runs twenty-eight more with no local
 alias: the whole **`Static Analysis`** job (`prettier:check`, `plugin:test`, `test:hooks`,
 `cspell:check`, `oxlint:check`, `knip`, `depcruise`, `lint:test-location`,
 `analyze:duplication`, `docs:toolchain:check`, `coverage:matrix:check`,
-`diagnostics:manifest:check`, `docs:throw-citations:check`, `scope-joins:check`,
+`diagnostics:manifest:check`, `error-codes:check`, `docs:throw-citations:check`, `scope-joins:check`,
 `adr:independence:check`, `gh:pagination:check`, `gate:roster:check`), plus `typecheck`, `typecheck` for
-`prettier-plugin`, `test:cli`, `cli smoke`, `coverage:grammar:check`, `format:fidelity`,
-`headers:standalone:check`, `re-run warm`, and the `working tree clean` check that
-`Verify Clean` performs.
+`prettier-plugin`, `typecheck` for `scripts` (`typecheck:scripts`), `test:cli`, `cli smoke`,
+`coverage:grammar:check`, `format:fidelity`, `headers:standalone:check`, `re-run warm`, and the
+`working tree clean` check that `Verify Clean` performs.
 
 **This roster is no longer maintained by hand.** `npm run gate:roster:check` derives it: it
 counts `run_check` invocations in `scripts/gate.sh`, compares the npm scripts CI runs against

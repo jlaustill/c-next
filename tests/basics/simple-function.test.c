@@ -25,7 +25,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Demonstrates: void functions, return values, parameters
 // Simple function with no parameters
 uint32_t getFortyTwo(void) {
-    return 42;
+    return 42U;
 }
 
 // Function with parameters
@@ -53,18 +53,18 @@ uint32_t addThenDouble(uint32_t a, uint32_t b) {
 
 int main(void) {
     uint32_t result = getFortyTwo();
-    if (result != 42) return 1;
+    if (result != 42) return 1U;
     result = add(10U, 20U);
-    if (result != 30) return 2;
+    if (result != 30) return 2U;
     result = multiply(6U, 7U);
-    if (result != 42) return 3;
+    if (result != 42) return 3U;
     counter = 0U;
     incrementCounter();
-    if (counter != 1) return 4;
+    if (counter != 1) return 4U;
     incrementCounter();
     incrementCounter();
-    if (counter != 3) return 5;
+    if (counter != 3) return 5U;
     result = addThenDouble(5U, 10U);
-    if (result != 30) return 6;
-    return 0;
+    if (result != 30) return 6U;
+    return 0U;
 }

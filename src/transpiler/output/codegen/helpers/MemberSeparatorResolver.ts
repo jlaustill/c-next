@@ -63,7 +63,6 @@ class MemberSeparatorResolver {
       scopedRegName !== null && deps.isKnownRegister(scopedRegName);
 
     return {
-      hasGlobal,
       isCrossScope,
       isStructParam,
       isCppAccess,
@@ -78,7 +77,6 @@ class MemberSeparatorResolver {
    */
   static getFirstSeparator(
     identifierChain: string[],
-    memberName: string,
     ctx: ISeparatorContext,
     deps: IMemberSeparatorDeps,
   ): string {
@@ -103,27 +101,17 @@ class MemberSeparatorResolver {
 
     // Register member access: GPIO7.DR_SET -> GPIO7_DR_SET
     if (deps.isKnownRegister(identifierChain[0])) {
-      // Validate register access from inside scope requires global. prefix
-      deps.validateRegisterAccess(
-        identifierChain[0],
-        memberName,
-        ctx.hasGlobal,
-      );
+      // #1322: the shadowed-register check that stood here is E0437 in pass
+      // 2.1 (ADR-016); codegen only spells the C name.
       return QualifiedCName.SEPARATOR;
     }
 
     // Scope member access: Sensor.buffer -> Sensor_buffer
     // Works with or without global. prefix (both are valid syntax)
     if (deps.isKnownScope(identifierChain[0])) {
-      // Issue #779: Skip cross-scope validation for scoped register access
-      // Board.GPIO where Board_GPIO is a known register is valid
-      const scopedRegisterName = QualifiedCName.fromParts([
-        identifierChain[0],
-        memberName,
-      ]);
-      if (!deps.isKnownRegister(scopedRegisterName)) {
-        deps.validateCrossScopeVisibility(identifierChain[0], memberName);
-      }
+      // #1322: the cross-scope visibility check that stood here -- with its
+      // #779 exemption for a scoped register -- is E0435/E0436 in pass 2.1,
+      // where the same exemption is stated once for all three positions.
       return QualifiedCName.SEPARATOR;
     }
 
@@ -160,14 +148,12 @@ class MemberSeparatorResolver {
   static getSeparator(
     isFirstOp: boolean,
     identifierChain: string[],
-    memberName: string,
     ctx: ISeparatorContext,
     deps: IMemberSeparatorDeps,
   ): string {
     if (isFirstOp) {
       return MemberSeparatorResolver.getFirstSeparator(
         identifierChain,
-        memberName,
         ctx,
         deps,
       );

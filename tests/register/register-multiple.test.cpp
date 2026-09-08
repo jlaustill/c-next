@@ -3,22 +3,12 @@
  * A safer C for embedded systems
  */
 
+#include "register-multiple.test.hpp"
+
 #include <stdint.h>
 
 // ADR-004: Multiple registers in same file
 // Tests: defining and using multiple register blocks
-/* Register: GPIOA @ 0x40020000 */
-#define GPIOA__DR (*(volatile uint32_t*)(0x40020000 + 0x00))
-#define GPIOA__GDIR (*(volatile uint32_t*)(0x40020000 + 0x04))
-
-/* Register: GPIOB @ 0x40020400 */
-#define GPIOB__DR (*(volatile uint32_t*)(0x40020400 + 0x00))
-#define GPIOB__GDIR (*(volatile uint32_t*)(0x40020400 + 0x04))
-
-/* Register: TIMER @ 0x40000000 */
-#define TIMER__CR (*(volatile uint32_t*)(0x40000000 + 0x00))
-#define TIMER__CNT (*(volatile uint32_t const *)(0x40000000 + 0x04))
-
 int main(void) {
     GPIOA__GDIR = 0xFF;
     GPIOA__DR = 0x01;

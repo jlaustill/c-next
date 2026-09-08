@@ -27,7 +27,7 @@ int main(void) {
     uint64_t e = 0x0000FFFF0000FFFFULL;
     uint64_t multi_shift = (e >> 16ULL) << 8ULL;
     if (left1 == 2 && right63 == 1 && right_var == 65535) {
-        return 0;
+        return 0U;
     }
-    return 1;
+    return 1U;
 }

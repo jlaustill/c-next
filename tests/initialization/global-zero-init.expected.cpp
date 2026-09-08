@@ -21,7 +21,7 @@ uint8_t byte = 0;
 
 int main(void) {
     if (counter == 0 && offset == 0 && flag == false && byte == 0) {
-        return 0;
+        return 0U;
     }
-    return 1;
+    return 1U;
 }

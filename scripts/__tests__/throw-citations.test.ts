@@ -70,9 +70,13 @@ describe("ThrowCitations.parse", () => {
   });
 
   it("ignores a file:line mentioned in prose", () => {
-    // Only a row's first cell is a claim this gate defends. Prose citing
-    // `Sample.ts:99` is commentary, and failing on it would make the document
-    // impossible to write.
+    // Only a row's first cell is a CITATION -- prose carries no anchor and no
+    // bucket, so it is not a row. That is a statement about `parse`, not about
+    // whether prose is checked: since #1322 it is, by `checkProse`, which holds
+    // it to landing on a throw. The rationale here used to read "failing on it
+    // would make the document impossible to write", and the measurement
+    // disagreed -- 14 of 59 prose citations had rotted while the gated rows sat
+    // at 0% drift.
     expect(ThrowCitations.parse("See `Sample.ts:99` for context.")).toEqual([]);
   });
 });
@@ -84,6 +88,26 @@ describe("ThrowCitations.throwLines", () => {
 
   it("returns nothing for a file with no throws", () => {
     expect(ThrowCitations.throwLines("const x = 1;")).toEqual([]);
+  });
+
+  it("counts a throw whose Error comes from a factory, not from `new` (#1322)", () => {
+    // The corpus was believed to be uniformly `throw new`, and this method
+    // required that spelling. It is not: `CodeGenErrors` builds its Errors with
+    // `return new Error(...)` and callers write `throw CodeGenErrors.x(...)`, so
+    // three production sites in `output/` were invisible to every invariant this
+    // gate enforces -- including `SubscriptDepthValidator.ts:95`, which carries
+    // E0856 and is asserted by two fixtures. A diagnostic the classifier cannot
+    // see is one #1322 cannot relocate.
+    const source = [
+      "const x = 1;",
+      "throw CodeGenErrors.tooManySubscripts(line, varName);",
+      "throw new Error('ordinary');",
+    ].join("\n");
+    expect(ThrowCitations.throwLines(source)).toEqual([2, 3]);
+  });
+
+  it("does not count a bare rethrow, which opens no argument to anchor", () => {
+    expect(ThrowCitations.throwLines("throw err;")).toEqual([]);
   });
 });
 
@@ -125,6 +149,18 @@ describe("ThrowCitations.throwArgument", () => {
 
   it("returns null when the statement opens no argument", () => {
     expect(ThrowCitations.throwArgument("throw new Error;", 1)).toBeNull();
+  });
+
+  it("strips a factory call's opener, so its anchor is the message (#1322)", () => {
+    // Without `new`, the opener is `throw CodeGenErrors.tooManySubscripts(`.
+    // If it survived, it would be a valid anchor for every site that shares the
+    // factory -- the universally-true anchor the strip exists to prevent.
+    expect(
+      ThrowCitations.throwArgument(
+        'throw CodeGenErrors.tooManySubscripts("too many subscripts");',
+        1,
+      ),
+    ).toBe('"too many subscripts");');
   });
 });
 
@@ -382,6 +418,55 @@ describe("ThrowCitations.check", () => {
   });
 });
 
+describe("ThrowCitations.checkProse", () => {
+  // #1322: the gate defended table rows and left prose alone, on the reasoning
+  // that prose is not a claim. It is: 14 of 59 prose citations had drifted --
+  // every one of them short by the same 4-6 lines an intervening edit added --
+  // while the 181 gated rows were at 0% drift. The tier tables and the split
+  // that sizes this card's phases are built on that prose, so a stale prose
+  // number is not decoration; it mis-sizes the work.
+  const SOURCES = new Map([
+    [
+      "src/transpiler/output/codegen/Thing.ts",
+      'const a = 1;\nthrow new Error("boom");\n',
+    ],
+  ]);
+
+  it("fails a prose citation that does not land on a throw", () => {
+    const markdown = "Only `Thing.ts:1` still does this.\n";
+    const outcome = ThrowCitations.checkProse(markdown, SOURCES);
+    expect(outcome.some((e) => e.includes("prose"))).toBe(true);
+  });
+
+  it("accepts a prose citation that lands on a throw", () => {
+    expect(ThrowCitations.checkProse("See `Thing.ts:2`.\n", SOURCES)).toEqual(
+      [],
+    );
+  });
+
+  it("ignores a citation row, which the row invariants already defend", () => {
+    // A row's line is checked by invariant 1 with its anchor; re-checking it
+    // here would report one drift twice and say nothing new.
+    expect(
+      ThrowCitations.checkProse("| `Thing.ts:1` | `boom` | dead |\n", SOURCES),
+    ).toEqual([]);
+  });
+
+  it("reports every line in a slash-joined list, not only the first", () => {
+    // `Thing.ts:1/2` is the shape the drifted prose used, and a parser that
+    // reads only the first number would have called this document clean.
+    const outcome = ThrowCitations.checkProse("`Thing.ts:1/2`\n", SOURCES);
+    expect(outcome).toHaveLength(1);
+    expect(outcome[0]).toContain("Thing.ts:1");
+  });
+
+  it("fails a descending range, which cannot be a span", () => {
+    // The document carried `CodeGenerator.ts:4985-4767`.
+    const outcome = ThrowCitations.checkProse("`Thing.ts:9-2`\n", SOURCES);
+    expect(outcome.some((e) => e.includes("descending"))).toBe(true);
+  });
+});
+
 describe("ThrowCitations.checkDeclaredCounts", () => {
   // #1365 one layer up: the document's own totals are the same kind of claim a
   // citation is, so adding a throw and its row must not leave one reading the
@@ -486,7 +571,15 @@ describe("ThrowCitations.remap (#1518)", () => {
 
   // The case the original "no write mode" objection is right about: which row
   // means which is a judgement about content, so the tool declines it.
-  it("refuses a file whose throw count changed, and writes nothing for it", () => {
+  it("falls back to the anchor when the throw count changed (#1322)", () => {
+    // #1518 refused here, and was right that ORDINALS cannot decide a count
+    // change. #1374 had already changed the inputs though: every row carries an
+    // anchor, and `boom` names exactly one of the two throws below. Nothing is
+    // guessed, so nothing needs refusing.
+    //
+    // It matters because a count change is #1322's normal case, not an edge
+    // one: that card deletes 23 sites and relocates 145, so refusing on count
+    // change refuses on every commit it makes.
     const current = [
       "a",
       'throw new Error("added");',
@@ -500,9 +593,52 @@ describe("ThrowCitations.remap (#1518)", () => {
       new Map([["Gen.ts", { previous, current }]]),
     );
 
+    expect(outcome.markdown).toBe(doc(4));
+    expect(outcome.rewritten).toBe(1);
+    expect(outcome.refusals).toEqual([]);
+  });
+
+  it("still refuses a count change the anchor cannot decide", () => {
+    // Two throws now share the row's anchor, and only one row claims it. The
+    // group does not pair, so which one the row meant is a judgement about
+    // content -- exactly #1518's objection, and it survives intact for the case
+    // it was actually about.
+    const current = [
+      "a",
+      'throw new Error("boom");',
+      "b",
+      'throw new Error("boom");',
+      "c",
+    ].join("\n");
+
+    const outcome = ThrowCitations.remap(
+      doc(3),
+      new Map([["Gen.ts", { previous, current }]]),
+    );
+
     expect(outcome.refusals).toHaveLength(1);
     expect(outcome.refusals[0]).toContain("count changed 1 -> 2");
+    expect(outcome.refusals[0]).toContain("does not pair");
     expect(outcome.markdown).toBe(doc(3));
+    expect(outcome.rewritten).toBe(0);
+  });
+
+  it("refuses a row that carries no anchor to re-find it by", () => {
+    const current = [
+      "a",
+      'throw new Error("added");',
+      "b",
+      'throw new Error("boom");',
+      "c",
+    ].join("\n");
+
+    const outcome = ThrowCitations.remap(
+      "| `Gen.ts:3` | prose, not an anchor | why |\n",
+      new Map([["Gen.ts", { previous, current }]]),
+    );
+
+    expect(outcome.refusals).toHaveLength(1);
+    expect(outcome.refusals[0]).toContain("no anchor");
     expect(outcome.rewritten).toBe(0);
   });
 
@@ -519,7 +655,10 @@ describe("ThrowCitations.remap (#1518)", () => {
       ]),
     );
 
-    expect(outcome.refusals).toHaveLength(1);
+    // `Gen.ts` changed count, but its row's anchor `boom` still names one
+    // throw, so it is placed rather than refused; `Other.ts` moves by the line
+    // map as before. Neither file's outcome depends on the other's.
+    expect(outcome.refusals).toEqual([]);
     expect(outcome.markdown).toContain("Gen.ts:3");
     expect(outcome.markdown).toContain("Other.ts:3");
   });

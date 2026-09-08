@@ -30,6 +30,6 @@ void Motor__adjustLED(void) {
 int main(void) {
     Motor__adjustLED();
     uint8_t brightness = LED__getBrightness();
-    if (brightness != 50) return 1;
-    return 0;
+    if (brightness != 50) return 1U;
+    return 0U;
 }

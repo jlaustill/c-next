@@ -1,0 +1,66 @@
+// test-error
+// test-adr: 017
+// ADR-017, E0428: a member of a DIFFERENT enum is not assignable.
+//
+// The scope-local case is the one worth having: an enum declared inside a scope
+// is held under its transpiled name, so every spelling -- a bare `B` inside its
+// own scope, `this.B`, `A.B` from outside -- has to arrive at that one name. An
+// earlier version of this analyzer resolved only some of them, which inverted
+// the rule inside scopes: correct assignments were reported as non-enum values.
+
+enum Global {
+    ON,
+    OFF
+}
+
+scope Motor {
+    public enum Mode {
+        SLOW,
+        FAST
+    }
+
+    // NEGATIVE CONTROL -- the scope's own enum, written bare, written with
+    // `this.`, and the global one written with `global.`. All three spellings
+    // must resolve, or the rule fires on correct code.
+    public this.Mode bare() {
+        this.Mode m <- Mode.SLOW;
+        return m;
+    }
+
+    public this.Mode viaThis() {
+        this.Mode m <- this.Mode.FAST;
+        return m;
+    }
+
+    public Global viaGlobal() {
+        global.Global g <- global.Global.ON;
+        return g;
+    }
+
+    // THE ASSERTION, inside the scope: a global enum's member into the scope's
+    // own enum.
+    public this.Mode wrong() {
+        this.Mode m <- Global.ON;
+        return m;
+    }
+
+    // THE ASSERTION: `this.Global` names a member of THIS scope, and the scope
+    // has none called `Global` -- the global enum is reached with `global.`,
+    // not `this.`. The path names nothing, and nothing is not of any enum type.
+    //
+    // This is the only place the rule reports on a value it cannot resolve, and
+    // it is deliberate: a member PATH's type is settled entirely by
+    // declarations, so one that resolves to nothing names nothing. Probed
+    // before relying on it -- `this.missingName` in a non-enum position is
+    // accepted today, so without this the relocation would have turned a
+    // rejection into silence.
+    public this.Mode unresolvablePath() {
+        this.Mode m <- this.Global.ON;
+        return m;
+    }
+}
+
+void main() {
+    // THE ASSERTION, from outside: the scope's enum member into the global one.
+    Global g <- Motor.Mode.SLOW;
+}

@@ -36,11 +36,11 @@ static inline int32_t cnx_clamp_add_i32(int32_t a, int64_t b) {
 }
 
 uint32_t checkedDivision(void) {
-    return 100 / NONZERO;
+    return 100U / NONZERO;
 }
 
 uint32_t unsignedShift(void) {
-    return importedUnsignedValue >> 1;
+    return importedUnsignedValue >> 1U;
 }
 
 float floatDivision(void) {
@@ -55,5 +55,5 @@ uint32_t booleanCondition(void) {
     if (flagValue == true) {
         return RELAY_MARKER;
     }
-    return 0;
+    return 0U;
 }

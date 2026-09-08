@@ -48,7 +48,7 @@ u32 main() {
     // Nested loop iteration - populate 2D array
     for (u32 i <- 0; i < 4; i +<- 1) {
         for (u32 j <- 0; j < 8; j +<- 1) {
-            matrix2d[i][j] <- i * 1000 + j;
+            matrix2d[i][j] <- (i * 1000 + j)[0, 32];
         }
     }
 
@@ -63,7 +63,7 @@ u32 main() {
     for (u32 i <- 0; i < 2; i +<- 1) {
         for (u32 j <- 0; j < 3; j +<- 1) {
             for (u32 k <- 0; k < 4; k +<- 1) {
-                cube3d[i][j][k] <- i * 1000 + j * 100 + k;
+                cube3d[i][j][k] <- (i * 1000 + j * 100 + k)[0, 32];
                 sum +<- cube3d[i][j][k];
             }
         }

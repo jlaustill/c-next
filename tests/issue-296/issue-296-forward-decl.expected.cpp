@@ -31,7 +31,7 @@ int main(void) {
     AppData input = { .humidity = 65.5, .temperature = 22.3 };
     DataHandler__initialize(input);
     AppData output = DataHandler__getData();
-    if (output.humidity != 65.5) return 1;
-    if (output.temperature != 22.3) return 2;
-    return 0;
+    if (output.humidity != 65.5) return 1U;
+    if (output.temperature != 22.3) return 2U;
+    return 0U;
 }

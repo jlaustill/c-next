@@ -16,7 +16,7 @@ Motor__State Motor__current = Motor__State__IDLE;
 
 uint8_t Motor__start(void) {
     Motor__current = Motor__State__RUNNING;
-    return 1;
+    return 1U;
 }
 
 bool Motor__isRunning(void) {
@@ -28,8 +28,8 @@ bool Motor__isRunning(void) {
 
 int main(void) {
     (void)Motor__start();
-    if (Motor__current != Motor__State__RUNNING) return 1;
+    if (Motor__current != Motor__State__RUNNING) return 1U;
     bool running = Motor__isRunning();
-    if (running != true) return 2;
-    return 0;
+    if (running != true) return 2U;
+    return 0U;
 }

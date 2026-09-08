@@ -1,0 +1,68 @@
+// test-error
+// test-adr: 014
+// ADR-014: a struct literal with no written type must stand where one is
+// declared. A bare expression statement is the one shape in the language that
+// supplies nothing, and it is also the only place the old codegen throw was
+// ever right -- the three shapes it also rejected (a `return`, a `return` in a
+// scope method, a `for` header) are valid and now compile (#1277).
+
+struct Point {
+    i32 x;
+    i32 y;
+}
+
+struct Box {
+    Point c;
+}
+
+void takes(Point p) {}
+
+// NEGATIVE CONTROLS -- every position that DOES supply a type, including the
+// three #1277 restored. Each must stay silent.
+Point atFileScope <- { x: 1, y: 1 };
+
+Point returned() {
+    return { x: 2, y: 2 };
+}
+
+scope Shapes {
+    public Point make() {
+        return { x: 3, y: 3 };
+    }
+}
+
+void controls() {
+    Point local <- { x: 4, y: 4 };
+    local <- { x: 5, y: 5 };
+    takes({ x: 6, y: 6 });
+    for (Point p <- { x: 7, y: 7 }; p.x < 8; p.x +<- 1) {}
+    // #1322: two controls stood here, both written as `Point { ... }` and
+    // `Box { c: { ... } }`. That grammar alternative is removed, so neither
+    // shape exists any more -- a bare statement can no longer be made legal by
+    // writing the type, and an outer initializer always has a declaration above
+    // it. The claim the second one carried (a FIELD initializer establishes a
+    // type for what it contains) is now made by
+    // `struct-inferred-every-position`, where it compiles.
+    Box nested <- { c: { x: 10, y: 10 } };
+}
+
+// ASSERTION -- nothing here says which struct this is.
+void assertion() {
+    { x: 10, y: 10 };
+}
+
+// ASSERTION -- a subscript's expression. The declaration on the left supplies
+// a type for `v`, not for whatever sits inside the brackets, so the walk has
+// to stop at the subscript rather than climb past it.
+void inSubscript() {
+    u8[4] arr <- [1, 2, 3, 4];
+    u8 v <- arr[{ x: 11, y: 11 }];
+}
+
+scope Bare {
+    // CONTROL, then ASSERTION, inside a scope method.
+    public void go() {
+        Point ok <- { x: 11, y: 11 };
+        { x: 12, y: 12 };
+    }
+}

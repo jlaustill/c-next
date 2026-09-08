@@ -24,20 +24,20 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Tests: Comments within expressions
 int main(void) {
     uint32_t a = 10U + 20U;
-    if (a != 30) return 1;
+    if (a != 30) return 1U;
     uint32_t b = (5U * 4U) + 3U;
-    if (b != 23) return 2;
+    if (b != 23) return 2U;
     uint32_t c = cnx_clamp_add_u32(a, b);
-    if (c != 53) return 3;
+    if (c != 53) return 3U;
     uint32_t arr[5] = {0};
     arr[0] = 100U;
     arr[0] = 200U;
-    if (arr[0U] != 200) return 4;
+    if (arr[0U] != 200) return 4U;
     uint32_t d = (a > b) ? a : b;
-    if (d != 30) return 5;
+    if (d != 30) return 5U;
     bool test = a > b;
-    if (test != true) return 6;
+    if (test != true) return 6U;
     uint32_t e = 1U + 2U;
-    if (e != 3) return 7;
-    return 0;
+    if (e != 3) return 7U;
+    return 0U;
 }

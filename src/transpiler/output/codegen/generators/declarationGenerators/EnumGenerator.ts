@@ -12,6 +12,7 @@
  *       State_ERROR = 255
  *   } State;
  */
+import invariant from "../../../../../utils/invariant";
 import * as Parser from "../../../../logic/parser/grammar/CNextParser";
 import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
@@ -43,9 +44,10 @@ const generateEnum: TGeneratorFn<Parser.EnumDeclarationContext> = (
 
   // Look up enum members from symbols (collected by SymbolCollector)
   const members = input.symbols?.enumMembers.get(fullName);
-  if (!members) {
-    throw new Error(`Error: Enum ${fullName} not found in registry`);
-  }
+  invariant(
+    members,
+    `every enum declaration codegen visits was collected by the resolver, so its qualified name is in enumMembers (missing '${fullName}')`,
+  );
 
   const memberEntries = Array.from(members.entries());
 

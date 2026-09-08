@@ -437,9 +437,16 @@ castExpression
     ;
 
 // Struct initializer: Point { x: 10, y: 20 } or inferred { x: 10, y: 20 }
+// A struct literal takes its type from where it stands (ADR-014).
+//
+// #1322: an `IDENTIFIER '{' ... '}'` alternative stood here for a written type,
+// `Point { x: 10 }`. It was never valid C-Next: every position that consumes a
+// value already declares a type, so writing it again was rejected as redundant
+// in all of them. The one place it parsed was a bare expression statement,
+// where it built a compound literal and discarded it -- dead code the grammar
+// was keeping alive. Removed on the language owner's decision.
 structInitializer
-    : IDENTIFIER '{' fieldInitializerList? '}'    // Explicit type: Point { x: 10 }
-    | '{' fieldInitializerList '}'                // Inferred type: { x: 10 } (requires context)
+    : '{' fieldInitializerList '}'
     ;
 
 fieldInitializerList

@@ -79,45 +79,47 @@ describe("SubscriptDepthValidator.countLeadingSubscripts", () => {
 describe("SubscriptDepthValidator", () => {
   it("allows a single subscript (bit index) on a scalar integer", () => {
     expect(() =>
-      SubscriptDepthValidator.validate(scalar("u8"), 1, "flags", 1),
+      SubscriptDepthValidator.validate(scalar("u8"), 1, "flags"),
     ).not.toThrow();
   });
 
   it("rejects a second subscript on a scalar integer", () => {
     expect(() =>
-      SubscriptDepthValidator.validate(scalar("u8"), 2, "flags", 9),
-    ).toThrow(/too many subscripts on 'flags'.*is not an array/s);
+      SubscriptDepthValidator.validate(scalar("u8"), 2, "flags"),
+    ).toThrow("E0856 rejects this in pass 2.1");
   });
 
-  it("carries error code E0856 so the diagnostic stays traceable", () => {
-    // docs/error-codes.md is the authoritative registry; a coded diagnostic
-    // must keep its code or the registry entry silently goes stale.
+  it("names E0856 in the invariant so the assertion stays traceable", () => {
+    // #1322: the user-facing diagnostic is E0856 in pass 2.1. What survives
+    // here is the assertion that it ran, and it names the code for the same
+    // reason the throw did -- a reader hitting it needs to know which rule was
+    // supposed to have caught this.
     expect(() =>
-      SubscriptDepthValidator.validate(scalar("u8"), 2, "flags", 9),
-    ).toThrow(/^E0856:/);
+      SubscriptDepthValidator.validate(scalar("u8"), 2, "flags"),
+    ).toThrow("E0856 rejects this in pass 2.1");
   });
 
   it("rejects an over-deep chain on a scalar float", () => {
     expect(() =>
-      SubscriptDepthValidator.validate(scalar("f32"), 2, "value", 3),
-    ).toThrow(/too many subscripts/);
+      SubscriptDepthValidator.validate(scalar("f32"), 2, "value"),
+    ).toThrow("E0856 rejects this in pass 2.1");
   });
 
   it("allows arrayDimensions + 1 subscripts (element bit index)", () => {
     expect(() =>
-      SubscriptDepthValidator.validate(array("u8", [16]), 2, "buffer", 1),
+      SubscriptDepthValidator.validate(array("u8", [16]), 2, "buffer"),
     ).not.toThrow();
   });
 
   it("rejects more than arrayDimensions + 1 subscripts", () => {
     expect(() =>
-      SubscriptDepthValidator.validate(array("u8", [16]), 3, "buffer", 1),
-    ).toThrow(/1-dimensional 'u8' array/);
+      SubscriptDepthValidator.validate(array("u8", [16]), 3, "buffer"),
+    ).toThrow("E0856 rejects this in pass 2.1");
   });
 
   it("does not validate an unknown (undefined) type", () => {
     expect(() =>
-      SubscriptDepthValidator.validate(undefined, 5, "x", 1),
+      SubscriptDepthValidator.validate(undefined, 5, "x"),
     ).not.toThrow();
   });
 
@@ -131,7 +133,7 @@ describe("SubscriptDepthValidator", () => {
       stringCapacity: 32,
     };
     expect(() =>
-      SubscriptDepthValidator.validate(str, 3, "name", 1),
+      SubscriptDepthValidator.validate(str, 3, "name"),
     ).not.toThrow();
   });
 
@@ -145,13 +147,13 @@ describe("SubscriptDepthValidator", () => {
       bitmapTypeName: "Flags",
     };
     expect(() =>
-      SubscriptDepthValidator.validate(bitmap, 3, "f", 1),
+      SubscriptDepthValidator.validate(bitmap, 3, "f"),
     ).not.toThrow();
   });
 
   it("does not validate non-bit-indexable base types (e.g. structs)", () => {
     expect(() =>
-      SubscriptDepthValidator.validate(scalar("Point"), 3, "p", 1),
+      SubscriptDepthValidator.validate(scalar("Point"), 3, "p"),
     ).not.toThrow();
   });
 });

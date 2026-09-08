@@ -1,0 +1,33 @@
+// test-error
+// test-adr: 016
+// Tests: Private scoped structs should not be accessible from outside the scope
+
+scope Internal {
+    // Private struct - should not be accessible outside
+    private struct Secret {
+        u32 value;
+    }
+
+    public u32 getValue() {
+        this.Secret s;
+        s.value <- 42;
+        return s.value;
+    }
+}
+
+// NEGATIVE CONTROL -- a PUBLIC struct of the same scope as a type, same spelling.
+scope Open {
+    public struct Shape {
+        u32 w;
+    }
+}
+void okPublicType() {
+    Open.Shape s;
+    s.w <- 1;
+}
+
+void main() {
+    // This should fail - Secret is private
+    Internal.Secret s;
+    s.value <- 10;
+}

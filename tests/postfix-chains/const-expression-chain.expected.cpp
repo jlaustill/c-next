@@ -39,10 +39,6 @@ extern const uint32_t STATUS_BIT = 7U;
 
 ConstExprChain__Sensor sensors[4] = {};
 
-/* Register: GPIO @ 0x40000000 */
-#define GPIO__DR (*(volatile uint32_t*)(0x40000000 + 0x00))
-#define GPIO__DR_SET (*(volatile uint32_t*)(0x40000000 + 0x84))
-
 int main(void) {
     sensors[INDEX_0].id = 100U;
     sensors[INDEX_1].id = 200U;

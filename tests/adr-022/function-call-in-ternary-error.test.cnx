@@ -1,0 +1,19 @@
+// Issue #254: Function calls in ternary conditions are not allowed (E0702)
+// test-adr: 022
+// MISRA C:2012 Rule 13.5 - Short-circuit evaluation may skip function calls
+
+bool isValid() {
+    return true;
+}
+
+// NEGATIVE CONTROL -- the same call, hoisted into a variable and compared.
+// That is precisely what the diagnostic tells the author to write, so a rule
+// that rejected the CALL rather than the call IN A CONDITION would fail here.
+void okHoisted() {
+    bool ready <- isValid();
+    if (ready = true) {}
+}
+
+u32 test() {
+    return (isValid() = true) ? 1 : 0;
+}

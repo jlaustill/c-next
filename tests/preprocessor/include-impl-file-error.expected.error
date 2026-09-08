@@ -1,1 +1,2 @@
-1:0 Code generation failed: E0503: Cannot #include implementation file 'implementation.c'. Only header files (.h, .hpp) are allowed. Line 4
+4:0 error[E0503]: Cannot #include implementation file 'implementation.c'. Only header files (.h, .hpp) are allowed.
+       help: An implementation file defines its symbols, so including it defines them again in every includer (ADR-010); include the header instead.

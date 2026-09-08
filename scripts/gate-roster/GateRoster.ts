@@ -161,12 +161,35 @@ const ROSTER_START = "**`test:all` is ";
 const COUNT_SENTENCE = /`test:all` is four checks of ([a-z-]+)/;
 const REMAINDER_SENTENCE = /CI runs ([a-z-]+) more with no local/;
 
-/** The check name each `run_check` line declares, parenthetical stripped. */
-function gateCheckNames(shell: string): string[] {
-  const names: string[] = [];
+/**
+ * The check name each `run_check` line declares, as base plus optional
+ * parenthetical qualifier.
+ *
+ * #1322 review: this used to return `match[1].split(" (")[0]`, which reduced
+ * `typecheck (scripts)` to `typecheck` -- a name the paragraph already
+ * contained for a DIFFERENT check. So `roster-mismatch`, added by #1526 to
+ * catch "an added check that nobody mentioned", could not see the very next
+ * check that was added. A guard that passes by coincidence is the shape this
+ * file exists to remove, so the qualifier is kept and asked for separately.
+ */
+function gateCheckNames(shell: string): { base: string; qualifier: string }[] {
+  const names: { base: string; qualifier: string }[] = [];
   for (const line of gateInvocations(shell)) {
     const match = CHECK_NAME.exec(line);
-    if (match !== null) names.push(match[1].split(" (")[0].trim());
+    if (match === null) continue;
+    const declared = match[1].trim();
+    const open = declared.indexOf(" (");
+    names.push(
+      open === -1
+        ? { base: declared, qualifier: "" }
+        : {
+            base: declared.slice(0, open).trim(),
+            qualifier: declared
+              .slice(open + 2)
+              .replace(/\)$/, "")
+              .trim(),
+          },
+    );
   }
   return names;
 }
@@ -189,6 +212,10 @@ function rosterParagraph(claudeMd: string): string {
  * not that it reads well. A substring test cannot tell `test` from `test:cli`,
  * which is why it is scoped to catching an added check that nobody mentioned --
  * the drift that actually happened -- and not sold as proving the prose right.
+ *
+ * It asks for the parenthetical qualifier separately (#1322 review). Stripping
+ * it made `typecheck (scripts)` indistinguishable from `typecheck`, so the
+ * first check added after this guard shipped went unmentioned and unreported.
  */
 function evaluate(
   shell: string,
@@ -246,11 +273,18 @@ function evaluate(
     });
   }
 
-  for (const name of gateCheckNames(shell)) {
-    if (paragraph.includes(name)) continue;
+  for (const { base, qualifier } of gateCheckNames(shell)) {
+    // Both halves must appear. The base alone cannot distinguish two
+    // parenthetical variants of one check, which is how `typecheck (scripts)`
+    // went unmentioned while this rule reported clean.
+    const named =
+      paragraph.includes(base) &&
+      (qualifier === "" || paragraph.includes(qualifier));
+    if (named) continue;
+    const spelled = qualifier === "" ? base : `${base} (${qualifier})`;
     violations.push({
       kind: "roster-mismatch",
-      detail: `gate.sh runs \`${name}\`; CLAUDE.md's roster never names it`,
+      detail: `gate.sh runs \`${spelled}\`; CLAUDE.md's roster never names it`,
     });
   }
 

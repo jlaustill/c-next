@@ -15,12 +15,12 @@ int main(void) {
     header = (uint8_t)((header & ~(1U << 6)) | (1U << 6));
     header = (uint8_t)((header & ~(1U << 7)) | (0U << 7));
     uint8_t msgType = static_cast<uint8_t>(((header) & ((1U << 4U) - 1)));
-    if (msgType != 5) return 1;
+    if (msgType != 5) return 1U;
     uint8_t priority = static_cast<uint8_t>(((header >> 4U) & ((1U << 2U) - 1)));
-    if (priority != 2) return 2;
+    if (priority != 2) return 2U;
     bool encrypted = ((((header >> 6U) & 1)) != 0U);
-    if (encrypted != true) return 3;
+    if (encrypted != true) return 3U;
     bool compressed = ((((header >> 7U) & 1)) != 0U);
-    if (compressed != false) return 4;
-    return 0;
+    if (compressed != false) return 4U;
+    return 0U;
 }

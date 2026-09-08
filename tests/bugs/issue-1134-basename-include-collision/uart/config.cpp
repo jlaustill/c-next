@@ -11,5 +11,5 @@
 /* Scope: UartConfig */
 
 uint8_t UartConfig__baudRate(void) {
-    return 9;
+    return 9U;
 }

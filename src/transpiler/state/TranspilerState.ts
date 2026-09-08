@@ -41,6 +41,21 @@ class TranspilerState {
    */
   private readonly cnxIncludeRewrites = new Map<string, Map<string, string>>();
 
+  /**
+   * Issue #1322: per source file, the directories an angle include is searched
+   * along, in priority order, exactly as DISCOVERY built them.
+   *
+   * Recorded here because it cannot be re-derived. Discovery builds the list
+   * from the file's directory PLUS `--include` directories PLUS the config's,
+   * and codegen was re-deriving a narrower one from the file's directory alone
+   * -- so ADR-010's `.cnx`-alternative rule (E0504) was blind to any header
+   * reachable only through `--include`. Measured: with `ext.h` and `ext.cnx`
+   * side by side in an `--include` directory, `#include <ext.h>` transpiled at
+   * exit 0 with no diagnostic, while the same two files in the source's own
+   * directory reported E0504. One derivation, recorded once, read by the rule.
+   */
+  private readonly includeSearchPaths = new Map<string, readonly string[]>();
+
   // === Group 2: Symbol Resolution State ===
 
   /** Issue #465: Store ICodeGenSymbols per file during stage 3 for external enum resolution */
@@ -70,6 +85,7 @@ class TranspilerState {
     this.passByValueParams.clear();
     this.userIncludes.clear();
     this.cnxIncludeRewrites.clear();
+    this.includeSearchPaths.clear();
     this.symbolInfoByFile.clear();
     this.headerIncludeDirectives.clear();
     this.processedHeaders.clear();
@@ -160,6 +176,24 @@ class TranspilerState {
    */
   getCnxIncludeRewrites(filePath: string): ReadonlyMap<string, string> {
     return this.cnxIncludeRewrites.get(filePath) ?? new Map<string, string>();
+  }
+
+  /**
+   * Issue #1322: record the angle-include search path for `filePath`, as
+   * discovery built it. Written once per file, at the point the list exists.
+   */
+  setIncludeSearchPaths(filePath: string, paths: readonly string[]): void {
+    this.includeSearchPaths.set(filePath, [...paths]);
+  }
+
+  /**
+   * Issue #1322: where an angle include from `filePath` is searched. Empty when
+   * the file was never discovered -- which is a real answer, not a default: a
+   * file discovery never saw has no search path, and a rule that guessed one
+   * would report against directories the run does not use.
+   */
+  getIncludeSearchPaths(filePath: string): readonly string[] {
+    return this.includeSearchPaths.get(filePath) ?? [];
   }
 
   // === Symbol Info By File (Group 2) ===

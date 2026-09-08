@@ -1,0 +1,2 @@
+7:16 error[E0869]: Cannot cast u32 to u8 (narrowing)
+       help: Use bit indexing to say which bits you mean: expr[0, 8]

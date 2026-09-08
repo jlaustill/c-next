@@ -73,14 +73,15 @@ function getScopedName(
 }
 
 /**
- * Validate and resolve constructor arguments, ensuring each is const.
- * Returns array of scope-prefixed argument names.
+ * Resolve constructor arguments to their scope-prefixed names.
+ *
+ * #1322: it no longer VALIDATES. `line` and `orchestrator` were parameters only
+ * so it could report and so it could ask `isConstValue`; both rejections are
+ * authored in pass 2.1 now (E0432, E0433), which halts before codegen.
  */
 function resolveConstructorArgs(
   argIdentifiers: { getText(): string }[],
   declaringScopePath: string,
-  line: number,
-  orchestrator: IOrchestrator,
 ): string[] {
   const resolvedArgs: string[] = [];
 
@@ -92,13 +93,10 @@ function resolveConstructorArgs(
       argName,
     );
 
-    // Check if it's const using orchestrator
-    if (!orchestrator.isConstValue(scopedArgName)) {
-      throw new Error(
-        `Error at line ${line}: Constructor argument '${argName}' must be const. ` +
-          `C++ constructors in C-Next only accept const variables.`,
-      );
-    }
+    // #1322: the const check that stood here is E0432 in pass 2.1. It was the
+    // second of two implementations of one decision -- this one asked
+    // `orchestrator.isConstValue` on a scope-qualified name, the file-scope
+    // copy read the type registry directly.
 
     resolvedArgs.push(scopedArgName);
   }
@@ -178,12 +176,9 @@ function generateConstructorVariable(
 
   // Validate and resolve constructor arguments
   const argIdentifiers = constructorArgList.IDENTIFIER();
-  const line = varDecl.start?.line ?? 0;
   const resolvedArgs = resolveConstructorArgs(
     argIdentifiers,
     declaringScopePath,
-    line,
-    orchestrator,
   );
 
   return `${prefix}${type} ${fullName}(${resolvedArgs.join(", ")});`;
@@ -297,14 +292,15 @@ function generateScopeFunction(
   );
   const prefix = isPrivate ? "static " : "";
 
-  // Issue #269: Set current function name for pass-by-value lookup
-  orchestrator.setCurrentFunctionName(fullName);
-
-  // Track parameters for ADR-006 pointer semantics
-  orchestrator.setParameters(funcDecl.parameterList() ?? null);
-
-  // ADR-016: Enter function body context (also clears modifiedParameters for Issue #281)
-  orchestrator.enterFunctionBody();
+  // Issues #269/#477, ADR-016 (and #281's modifiedParameters clear): the same
+  // four facts a top-level function sets, through the same call. #1277: the
+  // return type was the one this copy omitted, so no `return` in a scope
+  // method knew its type.
+  orchestrator.enterFunctionContext(
+    fullName,
+    funcDecl.type().getText(),
+    funcDecl.parameterList() ?? null,
+  );
 
   // Issue #281: Generate body FIRST to track parameter modifications,
   // then generate parameter list using that tracking info
@@ -318,10 +314,7 @@ function generateScopeFunction(
     ? orchestrator.generateParameterList(funcDecl.parameterList()!)
     : "void";
 
-  // ADR-016: Exit function body context
-  orchestrator.exitFunctionBody();
-  orchestrator.setCurrentFunctionName(null); // Issue #269: Clear function name
-  orchestrator.clearParameters();
+  orchestrator.exitFunctionContext();
 
   const lines: string[] = [];
   lines.push("", `${prefix}${returnType} ${fullName}(${params}) ${body}`);

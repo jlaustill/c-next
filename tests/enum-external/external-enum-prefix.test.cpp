@@ -26,10 +26,10 @@ void setExplicit(ExtEnumPrefix__Config& config) {
 
 int main(void) {
     ExtEnumPrefix__Config cfg = { .pType = EPressureType__PRESSURE_TYPE_PSIA };
-    if (cfg.pType != EPressureType__PRESSURE_TYPE_PSIA) return 1;
+    if (cfg.pType != EPressureType__PRESSURE_TYPE_PSIA) return 1U;
     setDefault(cfg);
-    if (cfg.pType != EPressureType__PRESSURE_TYPE_PSIG) return 2;
+    if (cfg.pType != EPressureType__PRESSURE_TYPE_PSIG) return 2U;
     setExplicit(cfg);
-    if (cfg.pType != EPressureType__PRESSURE_TYPE_PSIA) return 3;
-    return 0;
+    if (cfg.pType != EPressureType__PRESSURE_TYPE_PSIA) return 3U;
+    return 0U;
 }

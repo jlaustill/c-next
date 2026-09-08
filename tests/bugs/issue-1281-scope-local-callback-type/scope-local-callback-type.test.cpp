@@ -32,7 +32,7 @@
 /* Scope: Timing */
 
 uint32_t Timing__tickSource(void) {
-    return 40;
+    return 40U;
 }
 
 uint32_t Timing__run(void) {
@@ -45,7 +45,7 @@ uint32_t Timing__run(void) {
 /* Scope: Later */
 
 uint32_t Later__producer(void) {
-    return 2;
+    return 2U;
 }
 
 uint32_t Later__run(void) {
@@ -71,7 +71,7 @@ uint32_t Later__run(void) {
 /* Scope: Shadow */
 
 uint32_t Shadow__Config(void) {
-    return 9;
+    return 9U;
 }
 
 uint32_t Shadow__run(void) {
@@ -95,12 +95,12 @@ uint32_t NoCapture__run(void) {
 
 int main(void) {
     uint32_t timing = Timing__run();
-    if (timing != 44) return 1;
+    if (timing != 44) return 1U;
     uint32_t later = Later__run();
-    if (later != 2) return 2;
+    if (later != 2) return 2U;
     uint32_t shadowed = Shadow__run();
-    if (shadowed != 9) return 3;
+    if (shadowed != 9) return 3U;
     uint32_t uncaptured = NoCapture__run();
-    if (uncaptured != 7) return 4;
-    return 0;
+    if (uncaptured != 7) return 4U;
+    return 0U;
 }

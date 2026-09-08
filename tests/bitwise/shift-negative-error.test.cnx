@@ -1,9 +1,13 @@
+// test-error
 // test-coverage: 5.5-shift-negative-error
-// Test negative shift amount - should be ERROR
+// Test negative shift amount - should be ERROR (MISRA C:2012 Rule 12.2, E0873)
 // Coverage: Section 5.5 error case - negative shift amount
+//
+// #1322 relocated this from `output/`, where it reported `1:0`.
 void testNegativeShift() {
     u32 a <- 255;
-
+    // NEGATIVE CONTROL -- a zero amount is the lower bound and is fine.
+    u32 ok <- a << 0;
     // Negative shift is undefined behavior
     u32 bad_shift <- a << -1; // ERROR: negative shift amount
 }

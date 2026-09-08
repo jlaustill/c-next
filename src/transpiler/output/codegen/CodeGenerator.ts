@@ -9,10 +9,9 @@ import ReservedCnxName from "../../../utils/ReservedCnxName";
 import { CommonTokenStream, ParserRuleContext } from "antlr4ng";
 import * as Parser from "../../logic/parser/grammar/CNextParser";
 
-import CommentExtractor from "../../logic/analysis/CommentExtractor";
+import CommentScanner from "../../logic/parser/CommentScanner";
 import TypeRegistrationEngine from "./helpers/TypeRegistrationEngine";
 import CommentFormatter from "./CommentFormatter";
-import IncludeDiscovery from "../../data/IncludeDiscovery";
 import IComment from "../../types/IComment";
 import TYPE_WIDTH from "../../constants/TYPE_WIDTH";
 import TYPE_MAP from "./types/TYPE_MAP";
@@ -63,8 +62,9 @@ import ExpressionUtils from "../../../utils/ExpressionUtils";
 import helperGenerators from "./generators/support/HelperGenerator";
 import includeGenerators from "./generators/support/IncludeGenerator";
 import commentUtils from "./generators/support/CommentUtils";
-// ADR-046: NullCheckAnalyzer for nullable C pointer type detection
-import NullCheckAnalyzer from "../../logic/analysis/NullCheckAnalyzer";
+// ADR-046: which nullable C functions return a struct pointer (#1322: a
+// constant lookup, not an analyzer -- see the module header)
+import STRUCT_POINTER_C_FUNCTIONS from "../../constants/STRUCT_POINTER_C_FUNCTIONS";
 // ADR-006: Helper for building member access chains with proper separators
 import memberAccessChain from "./memberAccessChain";
 // ADR-065: Assignment decomposition (Phase 2)
@@ -88,7 +88,6 @@ import FloatBitHelper from "./helpers/FloatBitHelper";
 // Issue #794: Argument generation helper for ADR-006 semantics
 import ArgumentGenerator from "./helpers/ArgumentGenerator";
 // Issue #644: Enum assignment validator for type-safe enum assignments
-import EnumAssignmentValidator from "./helpers/EnumAssignmentValidator";
 // Issue #644: Array initialization helper for size inference and fill-all
 // Note: ArrayInitHelper is now used via VariableDeclHelper
 // Issue #644: Assignment expected type resolution helper
@@ -99,13 +98,12 @@ import IPostfixOp from "./helpers/types/IPostfixOp";
 // PR #715: Boolean conversion helper for improved testability
 import BooleanHelper from "./helpers/BooleanHelper";
 // PR #715: C++ constructor detection helper for improved testability
-import CppConstructorHelper from "./helpers/CppConstructorHelper";
+import CppConstructorHelper from "../../../utils/CppConstructorHelper";
 // PR #715: Set/Map utilities for improved testability
 import SetMapHelper from "./helpers/SetMapHelper";
 // PR #715: Symbol lookup utilities for improved testability
 import SymbolLookupHelper from "./helpers/SymbolLookupHelper";
 // Issue #644: Assignment validation coordinator helper
-import AssignmentValidator from "./helpers/AssignmentValidator";
 // Issue #696: Variable modifier extraction helper
 // Note: VariableModifierBuilder is now used via VariableDeclHelper
 // Issue #792: Variable declaration helper
@@ -125,6 +123,7 @@ import IPostfixOperation from "./types/IPostfixOperation";
 // Issue #707: Expression unwrapping utility for reducing duplication
 import ExpressionUnwrapper from "../../../utils/ExpressionUnwrapper";
 // Stateless parser utilities extracted from CodeGenerator
+import ParserUtils from "../../../utils/ParserUtils";
 import CodegenParserUtils from "./utils/CodegenParserUtils";
 import IMemberSeparatorDeps from "./types/IMemberSeparatorDeps";
 import IParameterDereferenceDeps from "./types/IParameterDereferenceDeps";
@@ -137,12 +136,14 @@ import CastValidator from "./helpers/CastValidator";
 import FunctionContextManager from "./helpers/FunctionContextManager";
 import IFunctionContextCallbacks from "./types/IFunctionContextCallbacks";
 // Global state for code generation (simplifies debugging, eliminates DI complexity)
+import BitRangeHelper from "./helpers/BitRangeHelper";
 import CodeGenState from "../../state/CodeGenState";
+import invariant from "../../../utils/invariant";
 import AdrProvenance from "../../state/AdrProvenance";
 import SymbolRegistry from "../../state/SymbolRegistry";
 import CallbackTypedefFormatter from "./helpers/CallbackTypedefFormatter";
 // Issue #269: Pass-by-value analysis extracted from CodeGenerator
-import PassByValueAnalyzer from "../../logic/analysis/PassByValueAnalyzer";
+import PassByValueAnalyzer from "../../../TRANSPILE/2-Plan/PassByValueAnalyzer";
 // Unified parameter generation (Phase 1)
 import ParameterInputAdapter from "./helpers/ParameterInputAdapter";
 import ParameterSignatureBuilder from "./helpers/ParameterSignatureBuilder";
@@ -150,7 +151,6 @@ import ParameterSignatureBuilder from "./helpers/ParameterSignatureBuilder";
 // Extracted resolvers that use CodeGenState
 import SizeofResolver from "./resolution/SizeofResolver";
 import EnumTypeResolver from "./resolution/EnumTypeResolver";
-import ScopeResolver from "./resolution/ScopeResolver";
 // Issue #797: Centralized C-style name generation
 import QualifiedNameGenerator from "./utils/QualifiedNameGenerator";
 import MisraSuppressionUtils from "../MisraSuppressionUtils";
@@ -159,7 +159,6 @@ import type IRecordedRequirement from "../../types/IRecordedRequirement";
 import ToolchainRequirementUtils from "../../../utils/ToolchainRequirementUtils";
 import ScopeUtils from "../../../utils/ScopeUtils";
 import TypeBinding from "../../../PARSE/3-Declare/TypeBinding";
-import REJECTED_KEYWORDS from "../../constants/REJECTED_KEYWORDS";
 import type ITargetCapabilities from "../../types/ITargetCapabilities";
 import DEFAULT_TARGET from "../../constants/DEFAULT_TARGET";
 import TargetResolver from "../../../utils/TargetResolver";
@@ -186,22 +185,15 @@ const {
   formatLeadingComments: commentFormatLeadingComments,
 } = commentUtils;
 
-/**
- * Maps C-Next assignment operators to C assignment operators
+/*
+ * #1322: a second, byte-identical `ASSIGNMENT_OPERATOR_MAP` stood here as a
+ * file-local const while `utils/constants/OperatorMappings.ts` held the same
+ * eleven entries -- the one `AssignmentContextBuilder` and `ControlFlowGenerator`
+ * already import. Two copies of one table means adding an operator is two
+ * edits, and a divergence between them would be silent. The last reader of the
+ * local copy went with `AssignmentValidator`, so it is deleted rather than
+ * re-pointed: nothing here needs it now.
  */
-const ASSIGNMENT_OPERATOR_MAP: Record<string, string> = {
-  "<-": "=",
-  "+<-": "+=",
-  "-<-": "-=",
-  "*<-": "*=",
-  "/<-": "/=",
-  "%<-": "%=",
-  "&<-": "&=",
-  "|<-": "|=",
-  "^<-": "^=",
-  "<<<-": "<<=",
-  ">><-": ">>=",
-};
 
 /**
  * ADR-013: Function signature for const parameter tracking
@@ -234,7 +226,7 @@ export default class CodeGenerator implements IOrchestrator {
   /** Token stream for comment extraction (ADR-043) */
   private tokenStream: CommonTokenStream | null = null;
 
-  private commentExtractor: CommentExtractor | null = null;
+  private commentExtractor: CommentScanner | null = null;
 
   private readonly commentFormatter: CommentFormatter = new CommentFormatter();
 
@@ -350,9 +342,10 @@ export default class CodeGenerator implements IOrchestrator {
    */
   private invokeStatement(name: string, ctx: ParserRuleContext): string {
     const generator = this.registry.getStatement(name);
-    if (!generator) {
-      throw new Error(`${name} statement generator not registered`);
-    }
+    invariant(
+      generator,
+      `every statement name reaching invokeStatement was registered by initializeGenerators (got '${name}')`,
+    );
     const result = generator(ctx, this.getInput(), this.getState(), this);
     this.applyEffects(result.effects);
     return result.code;
@@ -364,9 +357,10 @@ export default class CodeGenerator implements IOrchestrator {
    */
   private invokeExpression(name: string, ctx: ParserRuleContext): string {
     const generator = this.registry.getExpression(name);
-    if (!generator) {
-      throw new Error(`${name} expression generator not registered`);
-    }
+    invariant(
+      generator,
+      `every expression name reaching invokeExpression was registered by initializeGenerators (got '${name}')`,
+    );
     const result = generator(ctx, this.getInput(), this.getState(), this);
     this.applyEffects(result.effects);
     return result.code;
@@ -587,8 +581,6 @@ export default class CodeGenerator implements IOrchestrator {
       isCppScopeSymbol: (name) => this.isCppScopeSymbol(name),
       checkNeedsStructKeyword: (name) =>
         CodeGenState.symbolTable.checkNeedsStructKeyword(name),
-      validateCrossScopeVisibility: (scope, member) =>
-        ScopeResolver.validateCrossScopeVisibility(scope, member),
       isScopeType: (qn) => CodeGenState.isScopeType(qn),
     });
   }
@@ -678,16 +670,6 @@ export default class CodeGenerator implements IOrchestrator {
     ctx: Parser.ExpressionContext | Parser.RelationalExpressionContext,
   ): string | null {
     return EnumTypeResolver.resolve(ctx);
-  }
-
-  /**
-   * Check if an expression is an integer literal or variable.
-   * Part of IOrchestrator interface - delegates to private implementation.
-   */
-  isIntegerExpression(
-    ctx: Parser.ExpressionContext | Parser.RelationalExpressionContext,
-  ): boolean {
-    return this._isIntegerExpression(ctx);
   }
 
   /**
@@ -829,16 +811,6 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Get type of additive expression.
-   * Part of IOrchestrator interface - delegates to private implementation.
-   */
-  getAdditiveExpressionType(
-    ctx: Parser.AdditiveExpressionContext,
-  ): string | null {
-    return this._getAdditiveExpressionType(ctx);
-  }
-
-  /**
    * Extract operators from parse tree children in correct order.
    * Part of IOrchestrator interface - delegates to CodegenParserUtils.
    */
@@ -847,54 +819,6 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   // === Validation ===
-
-  /**
-   * Validate cross-scope member visibility.
-   * Part of IOrchestrator interface - delegates to private implementation.
-   */
-  validateCrossScopeVisibility(
-    scopeName: string,
-    memberName: string,
-    isGlobalAccess: boolean = false,
-  ): void {
-    ScopeResolver.validateCrossScopeVisibility(
-      scopeName,
-      memberName,
-      isGlobalAccess,
-    );
-  }
-
-  /**
-   * Validate shift amount is within type bounds.
-   * Part of IOrchestrator interface - delegates to TypeValidator.
-   */
-  validateShiftAmount(
-    leftType: string,
-    rightExpr: Parser.AdditiveExpressionContext,
-    op: string,
-    ctx: Parser.ShiftExpressionContext,
-  ): void {
-    TypeValidator.validateShiftAmount(leftType, rightExpr, op, ctx);
-  }
-
-  /**
-   * Validate ternary condition is a comparison (ADR-022).
-   * Part of IOrchestrator interface - delegates to TypeValidator.
-   */
-  validateTernaryCondition(condition: Parser.OrExpressionContext): void {
-    TypeValidator.validateTernaryCondition(condition);
-  }
-
-  /**
-   * Validate no nested ternary expressions (ADR-022).
-   * Part of IOrchestrator interface - delegates to TypeValidator.
-   */
-  validateNoNestedTernary(
-    expr: Parser.OrExpressionContext,
-    branchName: string,
-  ): void {
-    TypeValidator.validateNoNestedTernary(expr, branchName);
-  }
 
   // === Function Call Helpers ===
 
@@ -922,14 +846,6 @@ export default class CodeGenerator implements IOrchestrator {
       isStringSubscriptAccess: (c) => this.isStringSubscriptAccess(c),
       generateExpression: (c) => this.generateExpression(c),
     });
-  }
-
-  /**
-   * Check if a value is const.
-   * Part of IOrchestrator interface - delegates to TypeValidator.
-   */
-  isConstValue(name: string): boolean {
-    return TypeValidator.isConstValue(name);
   }
 
   /**
@@ -997,14 +913,6 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Validate no early exits (return/break) in critical blocks.
-   * Part of IOrchestrator interface.
-   */
-  validateNoEarlyExits(ctx: Parser.BlockContext): void {
-    TypeValidator.validateNoEarlyExits(ctx);
-  }
-
-  /**
    * Generate a single statement.
    * Part of IOrchestrator interface.
    */
@@ -1069,57 +977,6 @@ export default class CodeGenerator implements IOrchestrator {
    */
   indent(text: string): string {
     return FormatUtils.indentAllLines(text, CodeGenState.indentLevel);
-  }
-
-  /**
-   * Validate switch statement.
-   * Part of IOrchestrator interface.
-   */
-  validateSwitchStatement(
-    ctx: Parser.SwitchStatementContext,
-    switchExpr: Parser.ExpressionContext,
-  ): void {
-    TypeValidator.validateSwitchStatement(ctx, switchExpr);
-  }
-
-  /**
-   * Validate condition is a boolean expression (ADR-027, Issue #884).
-   * Part of IOrchestrator interface.
-   */
-  validateConditionIsBoolean(
-    ctx: Parser.ExpressionContext,
-    conditionType: string,
-  ): void {
-    TypeValidator.validateConditionIsBoolean(ctx, conditionType);
-  }
-
-  /**
-   * ADR-068 / #1075: reject an always-true literal loop condition (E0707).
-   * Part of IOrchestrator interface.
-   */
-  validateLoopConditionNotAlwaysTrue(ctx: Parser.ExpressionContext): void {
-    TypeValidator.validateLoopConditionNotAlwaysTrue(ctx);
-  }
-
-  /**
-   * Issue #254: Validate no function calls in condition (E0702).
-   * Part of IOrchestrator interface.
-   */
-  validateConditionNoFunctionCall(
-    ctx: Parser.ExpressionContext,
-    conditionType: string,
-  ): void {
-    TypeValidator.validateConditionNoFunctionCall(ctx, conditionType);
-  }
-
-  /**
-   * Issue #254: Validate no function calls in ternary condition (E0702).
-   * Part of IOrchestrator interface.
-   */
-  validateTernaryConditionNoFunctionCall(
-    ctx: Parser.OrExpressionContext,
-  ): void {
-    TypeValidator.validateTernaryConditionNoFunctionCall(ctx);
   }
 
   /**
@@ -1392,17 +1249,9 @@ export default class CodeGenerator implements IOrchestrator {
     return "0";
   }
 
-  // === Validation (IOrchestrator A4) ===
-
-  /** Validate that a literal value fits in the target type */
-  validateLiteralFitsType(literal: string, typeName: string): void {
-    this._validateLiteralFitsType(literal, typeName);
-  }
-
-  /** Validate type conversion is allowed */
-  validateTypeConversion(targetType: string, sourceType: string | null): void {
-    this._validateTypeConversion(targetType, sourceType);
-  }
+  // #1322: the `Validation (IOrchestrator A4)` section that stood here held
+  // ADR-024's `validateLiteralFitsType` and `validateTypeConversion`. Both are
+  // E0868/E0869 in pass 2.1, and no generator asks the orchestrator for them.
 
   // === String Helpers (IOrchestrator A4) ===
 
@@ -1478,10 +1327,13 @@ export default class CodeGenerator implements IOrchestrator {
    * scope-nested struct fields, scope members and parameters, each of which
    * produced C that referenced a typedef nothing had emitted.
    *
-   * Deliberately separate from isCallbackTypeUsedAsFieldType below. The two
-   * answer different questions and only this one is about code generation.
-   * Merging them widened ADR-029's nominal-typing rule as a side effect,
-   * rejecting a callback assignment that transpiles on main.
+   * This is an EMISSION question -- "must a typedef be written?" -- and it is
+   * the only one left here. Its twin, ADR-029's nominal-typing question ("is
+   * this function used as a field TYPE?"), was next to it until #1322 moved
+   * that rule to pass 2.1 as E0880. The two were deliberately separate then
+   * and are separate now for the same reason: merging them once widened the
+   * nominal rule as a side effect and rejected a callback assignment that
+   * transpiles on main.
    */
   /**
    * ADR-029 + #1491: emit typedefs for callback types this file NAMES but does
@@ -1545,23 +1397,13 @@ export default class CodeGenerator implements IOrchestrator {
     return CodeGenState.callbackTypeReferences.has(funcName);
   }
 
-  /**
-   * ADR-029 nominal typing: is this function used as a STRUCT FIELD type?
-   *
-   * Every top-level function is registered in callbackTypes, so this narrower
-   * predicate is what separates "a plain function with a compatible signature"
-   * from "a function used as a type" when validating a callback assignment.
-   * Widening it changes what C-Next accepts, which needs an ADR, so it stays
-   * derived from callbackFieldTypes.
-   */
-  isCallbackTypeUsedAsFieldType(funcName: string): boolean {
-    for (const callbackType of CodeGenState.callbackFieldTypes.values()) {
-      if (callbackType === funcName) {
-        return true;
-      }
-    }
-    return false;
-  }
+  // #1322: `isCallbackTypeUsedAsFieldType` stood here, answering ADR-029's
+  // nominal-typing question by scanning `CodeGenState.callbackFieldTypes`.
+  // That map holds the structs emitted SO FAR in the current file, so a struct
+  // declared below the assignment, in an enclosing scope, or in an include did
+  // not count -- the identity of a type depending on emission order. Pass 2.1
+  // asks `CodeGenState.symbols.structFields`, the per-file view, which holds
+  // every struct the file can see before any code is generated.
 
   // === Scope Management (A4) ===
 
@@ -1592,7 +1434,29 @@ export default class CodeGenerator implements IOrchestrator {
    */
   setCurrentFunctionReturnType(returnType: string | null): void {
     CodeGenState.currentFunctionReturnType = returnType;
-    CodeGenState.currentFunctionReturnType = returnType;
+  }
+
+  /**
+   * #1277: the four facts a function body is generated against, set and
+   * cleared as one. See `IOrchestrator` for why this is a pair rather than
+   * four calls repeated at each site.
+   */
+  enterFunctionContext(
+    name: string,
+    returnTypeText: string,
+    parameterList: Parser.ParameterListContext | null,
+  ): void {
+    this.setCurrentFunctionName(name);
+    this.setCurrentFunctionReturnType(returnTypeText);
+    this.setParameters(parameterList);
+    this.enterFunctionBody();
+  }
+
+  exitFunctionContext(): void {
+    this.exitFunctionBody();
+    this.setCurrentFunctionName(null);
+    this.setCurrentFunctionReturnType(null);
+    this.clearParameters();
   }
 
   // === Function Body Management (A4) ===
@@ -1622,7 +1486,7 @@ export default class CodeGenerator implements IOrchestrator {
     name: string,
     paramList: Parser.ParameterListContext | null,
   ): boolean {
-    return CodegenParserUtils.isMainFunctionWithArgs(name, paramList);
+    return ParserUtils.isMainFunctionWithArgs(name, paramList);
   }
 
   /**
@@ -1922,15 +1786,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     if (ctx.IDENTIFIER()) {
       const id = ctx.IDENTIFIER()!.getText();
-      // Issue #1011: break/continue are not part of C-Next - use structured conditions
-      // ADR-026 (Status: Rejected) explicitly excludes break/continue from the language
-      if (REJECTED_KEYWORDS.has(id)) {
-        const line = ctx.start?.line ?? 0;
-        const col = ctx.start?.column ?? 0;
-        throw new Error(
-          `${line}:${col} error[E0703]: '${id}' is not supported in C-Next - use structured conditions instead`,
-        );
-      }
+      // #1322: `break`/`continue` (ADR-026, E0703) are rejected in pass 2.1.
       return this._resolveIdentifierExpression(id, ctx.start?.line);
     }
     if (ctx.literal()) {
@@ -2139,67 +1995,11 @@ export default class CodeGenerator implements IOrchestrator {
       isKnownScope: (name: string) => this.isKnownScope(name),
       isKnownRegister: (name: string) =>
         CodeGenState.symbols!.knownRegisters.has(name),
-      validateCrossScopeVisibility: (scopeName: string, memberName: string) =>
-        this.validateCrossScopeVisibility(scopeName, memberName),
-      validateRegisterAccess: (
-        registerName: string,
-        memberName: string,
-        hasGlobal: boolean,
-      ) => this._validateRegisterAccess(registerName, memberName, hasGlobal),
       getStructParamSeparator: () =>
         memberAccessChain.getStructParamSeparator({
           cppMode: CodeGenState.cppMode,
         }),
     };
-  }
-
-  /**
-   * Validate register access from inside a scope requires global. prefix.
-   *
-   * Issue #779: Use ambiguity-aware validation - only require global. when
-   * the register name is ACTUALLY shadowed by a local or scope member.
-   *
-   * Exceptions (no global. required):
-   * 1. Scoped registers defined within the current scope
-   * 2. Unambiguous access - no local/scope member with the same name
-   */
-  private _validateRegisterAccess(
-    registerName: string,
-    memberName: string,
-    hasGlobal: boolean,
-  ): void {
-    // Only validate when inside a scope and accessing without global. prefix
-    if (CodeGenState.currentScopePath && !hasGlobal) {
-      // Check if this is a scoped register (defined within the current scope)
-      // The registerName may already be the fully qualified name (e.g., "GPIO_PORTA")
-      // if accessed as PORTA from inside scope GPIO
-      if (
-        QualifiedCName.isInScope(
-          registerName,
-          ScopeUtils.leafOf(CodeGenState.currentScopePath),
-        )
-      ) {
-        // This is a scoped register - allow bare access
-        return;
-      }
-
-      // Issue #779: Ambiguity-aware validation
-      // Only require global. if the register name is shadowed by:
-      // 1. A local variable in the current function
-      // 2. A member of the current scope
-      const isShadowedByLocal = CodeGenState.localVariables.has(registerName);
-      const isShadowedByScope = CodeGenState.isCurrentScopeMember(registerName);
-
-      if (!isShadowedByLocal && !isShadowedByScope) {
-        // Unambiguous - allow bare access
-        return;
-      }
-
-      throw new Error(
-        `Error: Use 'global.${registerName}.${memberName}' to access register '${registerName}' ` +
-          `from inside scope '${CodeGenState.currentScopePath}'`,
-      );
-    }
   }
 
   /**
@@ -2274,11 +2074,10 @@ export default class CodeGenerator implements IOrchestrator {
     this.initializeGenerateOptions(options, tokenStream);
 
     // ADR-055: Use pre-collected symbolInfo from Pipeline (TSymbolInfoAdapter)
-    if (!options?.symbolInfo) {
-      throw new Error(
-        "symbolInfo is required - use CNextResolver + TSymbolInfoAdapter",
-      );
-    }
+    invariant(
+      options?.symbolInfo,
+      "the pipeline always supplies options.symbolInfo to generate(); its absence is a caller/API error, not a program error",
+    );
     CodeGenState.symbols = options.symbolInfo;
 
     // ADR-029 + #1491: register function-as-types reached through an include
@@ -2322,7 +2121,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     this.tokenStream = tokenStream ?? null;
     this.commentExtractor = this.tokenStream
-      ? new CommentExtractor(this.tokenStream)
+      ? new CommentScanner(this.tokenStream)
       : null;
   }
 
@@ -2471,25 +2270,15 @@ export default class CodeGenerator implements IOrchestrator {
     tree: Parser.ProgramContext,
     output: string[],
   ): void {
-    const includePaths = CodeGenState.sourcePath
-      ? IncludeDiscovery.discoverIncludePaths(CodeGenState.sourcePath)
-      : [];
-
+    // #1322: ADR-010's two rejections (E0503, E0504) used to run here, with a
+    // line number threaded in as a NUMBER and spent on `Line N` prose while the
+    // diagnostic reported `1:0`. Both are decided in pass 2.1, which also means
+    // the second derivation of the angle search path that stood on the line
+    // above -- narrower than the one discovery built, and blind to `--include`
+    // -- is gone rather than duplicated.
     for (const includeDir of tree.includeDirective()) {
       const leadingComments = this.getLeadingComments(includeDir);
       output.push(...this.formatLeadingComments(leadingComments));
-
-      const lineNumber = includeDir.start?.line ?? 0;
-      TypeValidator.validateIncludeNotImplementationFile(
-        includeDir.getText(),
-        lineNumber,
-      );
-      TypeValidator.validateIncludeNoCnxAlternative(
-        includeDir.getText(),
-        lineNumber,
-        CodeGenState.sourcePath,
-        includePaths,
-      );
 
       // Issue #850: Add MISRA suppression for banned headers
       const includeText = includeDir.getText();
@@ -3331,8 +3120,9 @@ export default class CodeGenerator implements IOrchestrator {
   /**
    * ADR-029: Check if a function is used as a callback type (field type in a struct)
    */
-  // Issue #63: validateCallbackAssignment, callbackSignaturesMatch, isConstValue,
-  //            and validateBareIdentifierInScope moved to TypeValidator
+  // Issue #63 moved validateCallbackAssignment and callbackSignaturesMatch to
+  // TypeValidator; #1322 deleted validateBareIdentifierInScope (no production
+  // caller) and moved the const rules (E0877/E0878) to pass 2.1.
 
   // EnumTypeResolver now handles: _getEnumTypeFromThisEnum, _getEnumTypeFromGlobalEnum,
   // _getEnumTypeFromThisVariable, _getEnumTypeFromScopedEnum, _getEnumTypeFromMemberAccess,
@@ -3341,11 +3131,6 @@ export default class CodeGenerator implements IOrchestrator {
    * ADR-017: Check if an expression represents an integer literal or numeric type.
    * Used to detect comparisons between enums and integers.
    */
-  private _isIntegerExpression(
-    ctx: Parser.ExpressionContext | Parser.RelationalExpressionContext,
-  ): boolean {
-    return EnumAssignmentValidator.isIntegerExpression(ctx);
-  }
 
   /**
    * ADR-045: Check if an expression is a string concatenation.
@@ -3406,19 +3191,6 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * ADR-024: Validate that a literal value fits within the target type's range.
-   * Throws an error if the value doesn't fit.
-   * @param literalText The literal text (e.g., "256", "-1", "0xFF")
-   * @param targetType The target type (e.g., "u8", "i32")
-   */
-  private _validateLiteralFitsType(
-    literalText: string,
-    targetType: string,
-  ): void {
-    TypeResolver.validateLiteralFitsType(literalText, targetType);
-  }
-
-  /**
    * ADR-024: Get the type of a unary expression (for cast validation).
    */
   private getUnaryExpressionType(
@@ -3426,19 +3198,6 @@ export default class CodeGenerator implements IOrchestrator {
   ): string | null {
     return TypeResolver.getUnaryExpressionType(ctx);
   }
-
-  /**
-   * ADR-024: Validate that a type conversion is allowed.
-   * Throws error for narrowing or sign-changing conversions.
-   */
-  private _validateTypeConversion(
-    targetType: string,
-    sourceType: string | null,
-  ): void {
-    TypeResolver.validateTypeConversion(targetType, sourceType);
-  }
-
-  // Issue #63: checkConstAssignment moved to TypeValidator
 
   /**
    * Check if an expression is an lvalue that needs & when passed to functions.
@@ -3685,11 +3444,10 @@ export default class CodeGenerator implements IOrchestrator {
     // was unreachable -- while still having to be kept in step by hand. A
     // missing generator is an internal invariant violation, not a second path.
     const generator = this.registry.getDeclaration("scope");
-    if (!generator) {
-      throw new Error(
-        "Internal: no 'scope' declaration generator is registered",
-      );
-    }
+    invariant(
+      generator,
+      'registerDeclaration("scope") is unconditional in the constructor',
+    );
     const result = generator(ctx, this.getInput(), this.getState(), this);
     this.applyEffects(result.effects);
     return result.code;
@@ -3717,11 +3475,10 @@ export default class CodeGenerator implements IOrchestrator {
     // was unreachable -- while still having to be kept in step by hand. A
     // missing generator is an internal invariant violation, not a second path.
     const generator = this.registry.getDeclaration("register");
-    if (!generator) {
-      throw new Error(
-        "Internal: no 'register' declaration generator is registered",
-      );
-    }
+    invariant(
+      generator,
+      'registerDeclaration("register") is unconditional in the constructor',
+    );
     const result = generator(ctx, this.getInput(), this.getState(), this);
     this.applyEffects(result.effects);
     return result.code;
@@ -3734,9 +3491,10 @@ export default class CodeGenerator implements IOrchestrator {
   private generateStruct(ctx: Parser.StructDeclarationContext): string {
     // Delegates to extracted StructGenerator
     const generator = this.registry.getDeclaration("struct");
-    if (!generator) {
-      throw new Error("Error: struct generator not registered");
-    }
+    invariant(
+      generator,
+      'registerDeclaration("struct") is unconditional in the constructor',
+    );
     const result = generator(ctx, this.getInput(), this.getState(), this);
     this.applyEffects(result.effects);
     return result.code;
@@ -3755,9 +3513,10 @@ export default class CodeGenerator implements IOrchestrator {
    */
   private generateEnum(ctx: Parser.EnumDeclarationContext): string {
     const generator = this.registry.getDeclaration("enum");
-    if (!generator) {
-      throw new Error("Error: enum generator not registered");
-    }
+    invariant(
+      generator,
+      'registerDeclaration("enum") is unconditional in the constructor',
+    );
     const result = generator(ctx, this.getInput(), this.getState(), this);
     this.applyEffects(result.effects);
     // Issues #369/#1164: the included header owns the definition. The generator
@@ -3780,11 +3539,10 @@ export default class CodeGenerator implements IOrchestrator {
     // was unreachable -- while still having to be kept in step by hand. A
     // missing generator is an internal invariant violation, not a second path.
     const generator = this.registry.getDeclaration("bitmap");
-    if (!generator) {
-      throw new Error(
-        "Internal: no 'bitmap' declaration generator is registered",
-      );
-    }
+    invariant(
+      generator,
+      'registerDeclaration("bitmap") is unconditional in the constructor',
+    );
     const result = generator(ctx, this.getInput(), this.getState(), this);
     this.applyEffects(result.effects);
     // Issues #369/#1164: the included header owns the definition.
@@ -3795,39 +3553,31 @@ export default class CodeGenerator implements IOrchestrator {
    * The struct type for an initializer: explicit if written, else inferred
    * from the expected type at this position.
    *
-   * Rejects a redundant explicit type, which is the case where both are
-   * present: `const Point p <- Point { x: 0 };` should be written
-   * `const Point p <- { x: 0 };`.
+   * #1322: an assertion now. ADR-014's rejection -- a literal no position can
+   * type -- is E0357 in pass 2.1, which halts before this runs. Its sibling
+   * E0356 (a redundant WRITTEN type) is gone with the grammar alternative it
+   * rejected, so this takes no node: there is one source for the type.
    */
-  private _resolveStructInitializerTypeName(
-    ctx: Parser.StructInitializerContext,
-  ): string {
-    const explicit = ctx.IDENTIFIER();
-    if (explicit && CodeGenState.expectedType) {
-      throw new Error(
-        `Redundant type '${explicit.getText()}' in struct initializer. ` +
-          `Use '{ field: value }' syntax when type is already declared.`,
-      );
-    }
-    if (explicit) return explicit.getText();
-    if (CodeGenState.expectedType) return CodeGenState.expectedType;
-    // This should not happen in valid code
-    throw new Error(
-      "Cannot infer struct type - no explicit type and no context",
+  private _resolveStructInitializerTypeName(): string {
+    invariant(
+      CodeGenState.expectedType,
+      "a struct initializer takes its type from its position -- E0357 " +
+        "rejects this in pass 2.1, before this runs",
     );
+    return CodeGenState.expectedType;
   }
 
   /**
    * ADR-014: Generate struct initializer
    * { x: 10, y: 20 } -> (Point){ .x = 10, .y = 20 } (type inferred from context)
    *
-   * Note: Explicit type syntax (Point { x: 10 }) is rejected as redundant
-   * when type is already declared on the left side of assignment.
+   * #1322: there is no explicit-type syntax. `Point { x: 10 }` was a grammar
+   * alternative that no position accepted, and it is removed.
    */
   private generateStructInitializer(
     ctx: Parser.StructInitializerContext,
   ): string {
-    const typeName = this._resolveStructInitializerTypeName(ctx);
+    const typeName = this._resolveStructInitializerTypeName();
     const fieldList = ctx.fieldInitializerList();
 
     // Issue #517: Check if this is a C++ class with a user-defined constructor.
@@ -3846,11 +3596,11 @@ export default class CodeGenerator implements IOrchestrator {
       needsStructKeyword,
     );
 
-    if (!fieldList) {
-      // Empty initializer: Point {} -> { 0 } in declaration context, (Point){ 0 } elsewhere
-      if (isCppClass) return "{}";
-      return CodeGenState.inDeclarationInit ? "{ 0 }" : `(${castType}){ 0 }`;
-    }
+    // #1322: an empty-initializer branch stood here, reachable only through the
+    // written form `Point {}` -- the inferred alternative has always required a
+    // field list. That alternative is removed, so `fieldInitializerList()` is
+    // non-nullable in the generated parser and `{}` is a parse error. The
+    // branch went with it rather than being left as a shape nothing can build.
 
     // Get field type info for nested initializers
     // Issue #831: SymbolTable is the single source of truth for struct fields
@@ -4002,11 +3752,10 @@ export default class CodeGenerator implements IOrchestrator {
     // was unreachable -- while still having to be kept in step by hand. A
     // missing generator is an internal invariant violation, not a second path.
     const generator = this.registry.getDeclaration("function");
-    if (!generator) {
-      throw new Error(
-        "Internal: no 'function' declaration generator is registered",
-      );
-    }
+    invariant(
+      generator,
+      'registerDeclaration("function") is unconditional in the constructor',
+    );
     const result = generator(ctx, this.getInput(), this.getState(), this);
     this.applyEffects(result.effects);
     return result.code;
@@ -4088,11 +3837,8 @@ export default class CodeGenerator implements IOrchestrator {
     const typeName = this.getTypeName(ctx.type());
     const name = ctx.IDENTIFIER().getText();
 
-    // Validate: Reject C-style array parameters
-    this._validateCStyleArrayParam(ctx, typeName, name);
-
-    // Validate: Reject unbounded array dimensions
-    this._validateUnboundedArrayParam(ctx);
+    // #1322: a C-style or unbounded array parameter is E0874/E0875 in pass
+    // 2.1 (ADR-036).
 
     // Pre-compute CodeGenState-dependent values
     const isModified = this._isCurrentParameterModified(name);
@@ -4139,49 +3885,6 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Use shared builder with C/C++ mode
     return ParameterSignatureBuilder.build(input, CppModeHelper.refOrPtr());
-  }
-
-  /**
-   * Validate: Reject C-style array parameters
-   * C-style: u8 data[8], u8 data[4][4], u8 data[]
-   * C-Next:  u8[8] data, u8[4][4] data, u8[] data
-   */
-  private _validateCStyleArrayParam(
-    ctx: Parser.ParameterContext,
-    typeName: string,
-    name: string,
-  ): void {
-    const dims = ctx.arrayDimension();
-    if (dims.length > 0) {
-      const dimensions = dims
-        .map((dim) => `[${dim.expression()?.getText() ?? ""}]`)
-        .join("");
-      const line = ctx.start?.line ?? 0;
-      const col = ctx.start?.column ?? 0;
-      throw new Error(
-        `${line}:${col} C-style array parameter is not allowed. ` +
-          `Use '${typeName}${dimensions} ${name}' instead of '${typeName} ${name}${dimensions}'`,
-      );
-    }
-  }
-
-  /**
-   * Validate: Reject unbounded array dimensions for memory safety
-   */
-  private _validateUnboundedArrayParam(ctx: Parser.ParameterContext): void {
-    const arrayTypeCtx = ctx.type().arrayType();
-    if (!arrayTypeCtx) return;
-
-    const allDims = arrayTypeCtx.arrayTypeDimension();
-    const hasUnboundedDim = allDims.some((d) => !d.expression());
-    if (hasUnboundedDim) {
-      const line = ctx.start?.line ?? 0;
-      const col = ctx.start?.column ?? 0;
-      throw new Error(
-        `${line}:${col} Unbounded array parameters are not allowed. ` +
-          `All dimensions must have explicit sizes for memory safety.`,
-      );
-    }
   }
 
   /**
@@ -4285,7 +3988,7 @@ export default class CodeGenerator implements IOrchestrator {
     // ADR-046: Handle nullable C pointer types (c_ prefix variables)
     if (name.startsWith("c_")) {
       const exprText = ctx.expression()!.getText();
-      for (const funcName of NullCheckAnalyzer.getStructPointerFunctions()) {
+      for (const funcName of STRUCT_POINTER_C_FUNCTIONS) {
         if (exprText.includes(`${funcName}(`)) {
           return `${type}*`;
         }
@@ -4463,7 +4166,7 @@ export default class CodeGenerator implements IOrchestrator {
 
   // Issue #792: Methods _handleArrayDeclaration, _getArrayTypeDimension, _parseArrayTypeDimension,
   // _parseFirstArrayDimension, _validateArrayDeclarationSyntax, _extractBaseTypeName,
-  // _generateVariableInitializer, _validateIntegerInitializer, _finalizeCppClassAssignments,
+  // _generateVariableInitializer, _finalizeCppClassAssignments,
   // and _generateConstructorDecl have been extracted to VariableDeclHelper.ts
 
   /**
@@ -4618,26 +4321,30 @@ export default class CodeGenerator implements IOrchestrator {
       CodeGenState.assignmentContext = savedAssignmentContext;
     }
 
-    // Get the assignment operator and map to C equivalent
-    const operatorCtx = ctx.assignmentOperator();
-    const cnextOp = operatorCtx.getText();
-    const cOp = ASSIGNMENT_OPERATOR_MAP[cnextOp] || "=";
-    const isCompound = cOp !== "=";
+    // #1322: the operator was mapped to its C form here and used for nothing
+    // but the `isCompound` flag that `AssignmentValidator` took. ADR-065's
+    // handlers do their own mapping from `ctx`, so both are gone with it.
 
-    // Issue #644: Validate assignment (const, enum, integer, array bounds, callbacks)
-    // Delegated to AssignmentValidator helper to reduce cognitive complexity
-    AssignmentValidator.validate(
-      targetCtx,
-      ctx.expression(),
-      isCompound,
-      ctx.start?.line ?? 0,
-      {
-        getExpressionType: (exprCtx) => this.getExpressionType(exprCtx),
-        tryEvaluateConstant: (exprCtx) => this.tryEvaluateConstant(exprCtx),
-        isCallbackTypeUsedAsFieldType: (name) =>
-          this.isCallbackTypeUsedAsFieldType(name),
-      },
-    );
+    // #1322: `AssignmentValidator.validate` was called here, and by the end of
+    // the relocation it validated nothing -- ADR-013's const rule is E0877,
+    // ADR-017's enum rule E0428, ADR-024's conversions E0868/E0869, ADR-036's
+    // bounds E0854, ADR-004's `ro` write E0871 and ADR-029's callback typing
+    // E0879/E0880, every one of them authored in pass 2.1 at the target's own
+    // position. What was left was this single line of emission bookkeeping
+    // wrapped in a class named for the job it no longer did, so the class is
+    // deleted rather than left as a misleading name over a side effect.
+    //
+    // Writing to a float invalidates its bit-shadow: the union copy is stale
+    // until the next read refreshes it. Only a whole-variable assignment does
+    // this -- writing THROUGH a member or an element does not rebind the float.
+    if (targetCtx.postfixTargetOp().length === 0) {
+      const assignedName = targetCtx.IDENTIFIER()?.getText();
+      if (assignedName !== undefined) {
+        CodeGenState.floatShadowCurrent.delete(
+          BitRangeHelper.getShadowVarName(assignedName),
+        );
+      }
+    }
 
     // ADR-065: Dispatch to assignment handlers
     // Build context, classify, and dispatch - all patterns handled by handlers
@@ -4745,22 +4452,18 @@ export default class CodeGenerator implements IOrchestrator {
     return {
       generateExpression: (expr: unknown) =>
         this.generateExpression(expr as Parser.ExpressionContext),
-      getSeparator: (
-        isFirstOp: boolean,
-        identifierChain: string[],
-        memberName: string,
-      ) =>
+      getSeparator: (isFirstOp: boolean, identifierChain: string[]) =>
         MemberSeparatorResolver.getSeparator(
           isFirstOp,
           identifierChain,
-          memberName,
           separatorCtx,
           separatorDeps,
         ),
     };
   }
 
-  // ADR-016: _validateCrossScopeVisibility moved to ScopeResolver
+  // #1322: ADR-016's access rules are E0435-E0437 in pass 2.1; `ScopeResolver`
+  // is gone with them.
 
   // Issue #387: Dead methods removed (generateGlobalMemberAccess, generateGlobalArrayAccess,
   // generateThisMemberAccess, generateThisArrayAccess) - now handled by unified doGenerateAssignmentTarget
@@ -4817,42 +4520,18 @@ export default class CodeGenerator implements IOrchestrator {
   // Expressions
   // ========================================================================
 
-  // Issue #63: validateShiftAmount, getTypeWidth, evaluateShiftAmount,
-  //            evaluateUnaryExpression moved to TypeValidator
-
-  /**
-   * Get the type of an additive expression.
-   */
-  private _getAdditiveExpressionType(
-    ctx: Parser.AdditiveExpressionContext,
-  ): string | null {
-    // For simple case, get type from first multiplicative expression
-    const multExprs = ctx.multiplicativeExpression();
-    if (multExprs.length === 0) return null;
-
-    return this.getMultiplicativeExpressionType(multExprs[0]);
-  }
-
-  /**
-   * Get the type of a multiplicative expression.
-   */
-  private getMultiplicativeExpressionType(
-    ctx: Parser.MultiplicativeExpressionContext,
-  ): string | null {
-    const unaryExprs = ctx.unaryExpression();
-    if (unaryExprs.length === 0) return null;
-
-    return this.getUnaryExpressionType(unaryExprs[0]);
-  }
+  // #1322: the shift-amount check (MISRA 12.2, E0873) that Issue #63 moved
+  // to TypeValidator is in pass 2.1, with the additive-type helpers that
+  // existed only to feed it.
 
   /**
    * Resolve 'this' keyword to scope marker
    * ADR-016: 'this' returns a marker that postfixOps will transform to Scope_member
    */
   private _resolveThisKeyword(): string {
-    if (!CodeGenState.currentScopePath) {
-      throw new Error("Error: 'this' can only be used inside a scope");
-    }
+    // #1322: the `!currentScopePath` guard that stood here is now E0431 in 2.1,
+    // with a real position. It threw the same string from four places in
+    // `output/`, and every one reached the user as `1:0`.
     return "__THIS_SCOPE__";
   }
 
@@ -4924,29 +4603,25 @@ export default class CodeGenerator implements IOrchestrator {
       if (members?.has(id)) {
         return `${CodeGenState.expectedType}${this.getScopeSeparator(false)}${id}`;
       }
-      return null;
+      // Not a member of the expected enum: falls through to the assertion
+      // below. Before #1322 this returned null and the bare name was emitted
+      // into C when another enum declared it.
     }
 
-    // No expected enum type - bare enum members are not allowed without context
+    // #1322: a bare member with no enum naming its position is E0424 in pass
+    // 2.1 (ADR-017). Reaching here with a match means the emission would put a
+    // bare `RED` into C, so it is asserted rather than guessed at.
     const matchingEnums: string[] = [];
     for (const [enumName, members] of CodeGenState.symbols!.enumMembers) {
       if (members.has(id)) {
         matchingEnums.push(enumName);
       }
     }
-
-    if (matchingEnums.length === 1) {
-      throw new Error(
-        `error[E0424]: '${id}' is not defined; did you mean '${matchingEnums[0]}.${id}'?`,
-      );
-    }
-    if (matchingEnums.length > 1) {
-      const suggestions = matchingEnums.map((e) => `'${e}.${id}'`).join(" or ");
-      throw new Error(
-        `error[E0424]: '${id}' is not defined; did you mean ${suggestions}?`,
-      );
-    }
-
+    invariant(
+      matchingEnums.length === 0,
+      `a bare enum member is resolved by its position -- E0424 rejects '${id}' ` +
+        `(declared by ${matchingEnums.join(", ")}) here in pass 2.1, before this runs`,
+    );
     return null;
   }
 
@@ -4976,26 +4651,8 @@ export default class CodeGenerator implements IOrchestrator {
     const targetType = this.generateType(ctx.type());
     const targetTypeName = ctx.type().getText();
 
-    // ADR-024: Validate integer casts for narrowing and sign conversion
-    if (this._isIntegerType(targetTypeName)) {
-      const sourceType = this.getUnaryExpressionType(ctx.unaryExpression());
-      if (sourceType && this._isIntegerType(sourceType)) {
-        if (this.isNarrowingConversion(sourceType, targetTypeName)) {
-          const targetWidth = TYPE_WIDTH[targetTypeName] || 0;
-          throw new Error(
-            `Error: Cannot cast ${sourceType} to ${targetTypeName} (narrowing). ` +
-              `Use bit indexing: expr[0, ${targetWidth}]`,
-          );
-        }
-        if (this.isSignConversion(sourceType, targetTypeName)) {
-          const targetWidth = TYPE_WIDTH[targetTypeName] || 0;
-          throw new Error(
-            `Error: Cannot cast ${sourceType} to ${targetTypeName} (sign change). ` +
-              `Use bit indexing: expr[0, ${targetWidth}]`,
-          );
-        }
-      }
-    }
+    // #1322: ADR-024's cast rules -- narrowing and sign change -- are E0869 in
+    // pass 2.1. They stood here as two throws that reached the user as `1:0`.
 
     const expr = this.generateUnaryExpr(ctx.unaryExpression());
 

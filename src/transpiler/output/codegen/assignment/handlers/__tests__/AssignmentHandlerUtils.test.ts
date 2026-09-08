@@ -8,37 +8,13 @@ import SymbolRegistry from "../../../../../state/SymbolRegistry";
 import ScopeUtils from "../../../../../../utils/ScopeUtils";
 
 describe("AssignmentHandlerUtils", () => {
-  describe("validateScopeContext", () => {
-    it("should not throw for valid scope", () => {
-      expect(() =>
-        AssignmentHandlerUtils.validateScopeContext("MyScope"),
-      ).not.toThrow();
-    });
+  // #1322: compound assignment on a bit index, bit range, slice or string is
+  // E0857 in pass 2.1 -- one decision where this was six throws with four
+  // messages, and where this helper was defined a second time, verbatim, in
+  // `BitAccessHandlers`. Covered by
+  // `1-Analyze/__tests__/CompoundAssignmentAnalyzer.test.ts`.
 
-    it("should throw for null scope", () => {
-      expect(() => AssignmentHandlerUtils.validateScopeContext("")).toThrow(
-        "Error: 'this' can only be used inside a scope",
-      );
-    });
-  });
-
-  describe("validateNoCompoundForBitAccess", () => {
-    it("should not throw for non-compound assignment", () => {
-      expect(() =>
-        AssignmentHandlerUtils.validateNoCompoundForBitAccess(false, "<-"),
-      ).not.toThrow();
-    });
-
-    it("should throw for compound assignment", () => {
-      expect(() =>
-        AssignmentHandlerUtils.validateNoCompoundForBitAccess(true, "+<-"),
-      ).toThrow(
-        "Compound assignment operators not supported for bit field access: +<-",
-      );
-    });
-  });
-
-  describe("validateWriteOnlyValue", () => {
+  describe("validateWriteOnlyValue (an assertion since #1322: E0872 owns the rule)", () => {
     describe("single bit access", () => {
       it("should not throw for true value", () => {
         expect(() =>
@@ -59,13 +35,13 @@ describe("AssignmentHandlerUtils", () => {
             "5",
             true,
           ),
-        ).toThrow("Cannot assign false to write-only register bit REG[5]");
+        ).toThrow("E0872 rejects");
       });
 
       it("should throw for 0 value", () => {
         expect(() =>
           AssignmentHandlerUtils.validateWriteOnlyValue("0", "REG", "5", true),
-        ).toThrow("Cannot assign false to write-only register bit REG[5]");
+        ).toThrow("E0872 rejects");
       });
     });
 
@@ -89,7 +65,7 @@ describe("AssignmentHandlerUtils", () => {
             "0, 8",
             false,
           ),
-        ).toThrow("Cannot assign 0 to write-only register bits REG[0, 8]");
+        ).toThrow("E0872 rejects");
       });
 
       it("should allow false for bit range (multi-bit)", () => {

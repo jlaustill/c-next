@@ -45,10 +45,10 @@ int main(void) {
     Worker__updateGlobal();
     Worker__updateGlobalArray();
     if (counter != 150) {
-        return 1;
+        return 1U;
     }
     if (values[0U] != 300) {
-        return 2;
+        return 2U;
     }
-    return 0;
+    return 0U;
 }

@@ -1,0 +1,24 @@
+// test-adr: 037
+// ADR-037: every #define form the language rejects, in one file, beside the
+// one it accepts.
+//
+// #1322: a throw aborted at the first offending directive, so a fixture could
+// only ever assert one. An analyzer reports all of them, which makes a dropped
+// rule a COUNT change here rather than a silent gap -- and the accepted forms
+// below are the negative control: a rule that fired on `#define` rather than on
+// its shape would flag them and fail this fixture.
+
+#define PLATFORM
+#  define SPACED_FLAG
+#define _GUARD_H
+
+#define BUFFER_SIZE 256
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#define VERSION 2
+
+#ifdef PLATFORM
+#endif
+
+const u32 LED_PIN <- 13;
+
+void setup() {}

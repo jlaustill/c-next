@@ -702,6 +702,53 @@ The two provider-side relationships carry no declaration: `.expected.error`
 holds no file path, so occupancy for them is not derivable and the report
 renders them `n/a` rather than counting them empty.
 
+## Diagnostics
+
+| Code  | Reported when                                                     | Asserted by                                        |
+| ----- | ----------------------------------------------------------------- | -------------------------------------------------- |
+| E0884 | `safe_div` or `safe_mod` is called with other than four arguments | `tests/adr-051/safe-division-shape-error.test.cnx` |
+| E0885 | The first argument is not a variable that can receive the result  | `tests/adr-051/safe-division-shape-error.test.cnx` |
+
+The result is written THROUGH the first argument, which is why it must be a
+variable rather than an expression: the generated helper takes its address. A
+name that resolves to nothing is not this rule's to report; a name that
+resolves to something other than a variable is.
+
+That the output is written through also makes a `const` there an assignment to
+a const, reported as E0877 under ADR-013 and asserted by
+`tests/adr-051/safe-division-const-output-error.test.cnx`. Until #1322 that was
+accepted, and the generated C passed the address of a `const` into a non-const
+pointer parameter.
+
+## Scope-Context Matrix (#1219)
+
+Severity follows the eslint model: `off` records that a cell **cannot exist**,
+`warn` that it should be covered and is not, `error` that it must be.
+
+<!-- MATRIX-SEVERITY -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | warn     |
+| global variable    | same file           | off      |
+| scope member       | same file           | off      |
+| top-level function | imported direct     | off      |
+| scope method       | imported direct     | off      |
+| global variable    | imported direct     | off      |
+| scope member       | imported direct     | off      |
+| top-level function | imported transitive | off      |
+| scope method       | imported transitive | off      |
+| global variable    | imported transitive | off      |
+| scope member       | imported transitive | off      |
+
+Both rules are about the call as written -- how many arguments it has, and
+whether its first is a variable -- so nothing crosses an include and the
+imported cells record that they cannot exist. The two variable-initializer
+contexts are `off` for the same reason a call cannot appear there: `safe_div`
+returns a status that must be bound, and a file-scope initializer is not a
+statement that can bind one.
+
 ## Implementation Plan
 
 ### Phase 1: Compile-Time Detection

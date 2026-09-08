@@ -1,0 +1,26 @@
+// test-error
+// test-adr: 017
+// Tests: Bare enum member in comparison should error (no expectedType)
+
+enum EPressureType {
+    PSIA <- 0,
+    PSIG <- 1
+}
+
+scope EnumBareCompare {
+    public struct Config {
+        EPressureType pType;
+    }
+}
+
+// NEGATIVE CONTROL -- a bare member assigned to a field of the enum's type
+// is resolved by the field; the comparison below has no such anchor.
+void okAssign(EnumBareCompare.Config cfg) {
+    cfg.pType <- PSIG;
+}
+
+u32 main() {
+    EnumBareCompare.Config cfg <- { pType: EPressureType.PSIA };
+    if (cfg.pType != PSIA) return 1;
+    return 0;
+}

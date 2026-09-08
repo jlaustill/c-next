@@ -34,9 +34,8 @@
 - **ternary-equality.test.cnx** - Equality comparison in conditions (a = 0)
 - **ternary-logical.test.cnx** - Logical operators in conditions (&&, ||)
 
-#### Error Validation Tests (3 tests)
+#### Error Validation Tests (2 tests)
 
-- **ternary-error-nested.test.cnx** - Nested ternary requires parentheses
 - **ternary-error-no-parens.test.cnx** - Condition must be in parentheses
 - **ternary-error-non-boolean.test.cnx** - Condition must be boolean expression
 
@@ -277,7 +276,6 @@ ternary-i64.expected.c
 ternary-basic.test.cnx          (u32, i32)
 ternary-equality.test.cnx       (equality patterns)
 ternary-logical.test.cnx        (&&, || patterns)
-ternary-error-nested.test.cnx
 ternary-error-no-parens.test.cnx
 ternary-error-non-boolean.test.cnx
 ```
@@ -290,7 +288,9 @@ While the current coverage is comprehensive (100% of integer types), future test
 
 1. **Float types** - f32, f64 ternary expressions
 2. **Boolean type** - Explicit bool type ternary (already tested via equality test)
-3. **Nested ternary** - Currently an error, but might be supported later
+3. **Nested ternary** - Rejected two ways, and both live in `tests/adr-022/`:
+   unparenthesized nesting is a grammar error, parenthesized nesting is E0710
+   in pass 2.1 (#1322)
 4. **Array element ternary** - `arr[i] <- (cond) ? val1 : val2`
 5. **Struct member ternary** - `s.field <- (cond) ? val1 : val2`
 6. **Mixed type ternary** - Different types in true/false branches (if supported)

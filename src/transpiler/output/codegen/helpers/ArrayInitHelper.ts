@@ -13,6 +13,7 @@
 
 import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
 import CodeGenState from "../../../state/CodeGenState.js";
+import invariant from "../../../../utils/invariant";
 
 /**
  * Result from processing array initialization.
@@ -125,11 +126,13 @@ class ArrayInitHelper {
    * Process size inference for empty array dimension (u8 data[] <- [1, 2, 3])
    */
   private static _processSizeInference(name: string): string {
-    if (CodeGenState.lastArrayFillValue !== undefined) {
-      throw new Error(
-        `Error: Fill-all syntax [${CodeGenState.lastArrayFillValue}*] requires explicit array size`,
-      );
-    }
+    // #1322: E0876 rejects the fill-all form on an inferred size in pass 2.1
+    // (ADR-035); the count below is the only size this path can infer.
+    invariant(
+      CodeGenState.lastArrayFillValue === undefined,
+      `an inferred array size comes from a list -- E0876 rejects the fill-all ` +
+        `form [${CodeGenState.lastArrayFillValue}*] on '${name}' in pass 2.1, before this runs`,
+    );
 
     // Update type registry with inferred size for .length support
     const existingType = CodeGenState.getVariableTypeInfo(name);
@@ -151,16 +154,16 @@ class ArrayInitHelper {
   ): string {
     const dimensionSuffix = callbacks.generateArrayDimensions(arrayDims);
 
-    // Validate size matches if not using fill-all
-    if (
-      declaredSize !== null &&
-      CodeGenState.lastArrayFillValue === undefined &&
-      CodeGenState.lastArrayInitCount !== declaredSize
-    ) {
-      throw new Error(
-        `Error: Array size mismatch - declared [${declaredSize}] but got ${CodeGenState.lastArrayInitCount} elements`,
-      );
-    }
+    // #1322: the element count is E0866's in pass 2.1 (ADR-035); an
+    // initializer shorter than the declaration would be emitted as C's
+    // partial initialization, which MISRA 9.3 forbids, so it is asserted.
+    invariant(
+      declaredSize === null ||
+        CodeGenState.lastArrayFillValue !== undefined ||
+        CodeGenState.lastArrayInitCount === declaredSize,
+      `an array initializer has the declared number of elements -- E0866 rejects ` +
+        `${CodeGenState.lastArrayInitCount} for [${declaredSize}] in pass 2.1, before this runs`,
+    );
 
     return dimensionSuffix;
   }

@@ -278,6 +278,47 @@ size_t arrSize = sizeof(buffer);
 1. **sizeof on expressions vs types?** - Both supported, same as C.
 2. **Compile-time only?** - Yes, sizeof is always compile-time (no VLAs).
 
+## Diagnostics
+
+| Code  | Reported when                                        | Asserted by                                           |
+| ----- | ---------------------------------------------------- | ----------------------------------------------------- |
+| E0601 | `sizeof` is applied to an array PARAMETER            | `tests/adr-023/sizeof-array-parameter-error.test.cnx` |
+| E0602 | The operand contains a call (MISRA C:2012 Rule 13.6) | `tests/adr-023/sizeof-side-effects-error.test.cnx`    |
+
+An array parameter is passed by reference (ADR-006), so its size is a
+pointer's. The identical spelling on a LOCAL array measures the array, which is
+why the rule asks where the name is declared rather than what its type is.
+
+`sizeof` never evaluates its operand, so a call inside one does not run. That
+is the only side effect an expression can have here: assignment is a statement.
+
+## Scope-Context Matrix (#1219)
+
+Severity follows the eslint model: `off` records that a cell **cannot exist**,
+`warn` that it should be covered and is not, `error` that it must be.
+
+<!-- MATRIX-SEVERITY -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | warn     |
+| global variable    | same file           | off      |
+| scope member       | same file           | off      |
+| top-level function | imported direct     | off      |
+| scope method       | imported direct     | off      |
+| global variable    | imported direct     | off      |
+| scope member       | imported direct     | off      |
+| top-level function | imported transitive | off      |
+| scope method       | imported transitive | off      |
+| global variable    | imported transitive | off      |
+| scope member       | imported transitive | off      |
+
+Both rules are decided inside the function that writes the `sizeof`: E0601 asks
+that function's own parameter list, and E0602 asks the operand's own shape.
+Nothing crosses an include, and a parameter cannot exist at file scope, so the
+variable contexts and every imported cell record that they cannot exist.
+
 ## References
 
 - [MISRA C:2012 Rule 13.6](https://pvs-studio.com/en/docs/warnings/v2557/) - sizeof operand side effects

@@ -181,14 +181,54 @@ module.exports = {
         "as directly (#1297).",
       severity: "error",
       from: {
-        path: [
-          "^src/transpiler/output/",
-          "^src/transpiler/logic/analysis/",
-          "^src/TRANSPILE/",
-        ],
+        // `^src/transpiler/logic/analysis/` was a third alternative here on
+        // main. It is gone rather than dropped: #1322 moved that directory
+        // whole to `src/TRANSPILE/1-Analyze/`, which the next pattern covers.
+        // A path matching nothing is a rule arm that cannot fire.
+        path: ["^src/transpiler/output/", "^src/TRANSPILE/"],
         pathNot: "__tests__",
       },
       to: { path: "^src/PARSE/4-Resolve/", reachable: true },
+    },
+    {
+      name: "analyze-cannot-import-plan",
+      comment:
+        "#1322: 2.1 Analyze answers *is this program legal?* and 2.2 Plan " +
+        "answers *what C should exist?*. The digit in the directory name is " +
+        "the claim; this is its gate. An import here would let a diagnostic " +
+        "depend on an emission decision, which is the pass order backwards " +
+        "and the reason `PassByValueAnalyzer` -- named Analyzer, filed under " +
+        "`analysis/`, never a `runAnalyzers` step -- moved to 2-Plan rather " +
+        "than staying put. `reachable` because a layer boundary is a claim " +
+        "about what a module can REACH (#1297).",
+      severity: "error",
+      from: { path: "^src/TRANSPILE/1-Analyze/", pathNot: "__tests__" },
+      to: { path: "^src/TRANSPILE/2-Plan/", reachable: true },
+    },
+    {
+      name: "analyze-cannot-import-render",
+      comment:
+        "#1322: `output/` is 2.2 Plan and 2.3 Render. 2.1 may not reach it -- " +
+        "a diagnostic that needs codegen to decide whether to fire is a " +
+        "diagnostic authored in the wrong pass. This is the constraint that " +
+        "shapes how the 145 relocated throws are written: 2.1 walks the parse " +
+        "tree itself rather than borrowing codegen's chain-walking.",
+      severity: "error",
+      from: { path: "^src/TRANSPILE/1-Analyze/", pathNot: "__tests__" },
+      to: { path: "^src/transpiler/output/", reachable: true },
+    },
+    {
+      name: "render-cannot-import-analyzers",
+      comment:
+        "#1322, and this is the rule that makes the move real rather than a " +
+        "rename. Without it codegen keeps reaching into 2.1 and the new " +
+        "directory is decoration -- `docs/architecture/README.md` principle 5 " +
+        "says a boundary nothing enforces does not count. It is what forces " +
+        "the remaining `output/ -> 1-Analyze` edges to be resolved rather " +
+        "than carried across at a new path.",
+      severity: "error",
+      from: { path: "^src/transpiler/output/", pathNot: "__tests__" },
+      to: { path: "^src/TRANSPILE/1-Analyze/", reachable: true },
     },
     {
       name: "no-circular",

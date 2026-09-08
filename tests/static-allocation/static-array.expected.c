@@ -38,7 +38,7 @@ void fillBuffer(void) {
 int main(void) {
     fillBuffer();
     if (rxBuffer[0U] == 0xAA && rxBuffer[255U] == 0xAA) {
-        return 0;
+        return 0U;
     }
-    return 1;
+    return 1U;
 }

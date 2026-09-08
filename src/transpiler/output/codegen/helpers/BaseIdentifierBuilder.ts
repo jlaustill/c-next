@@ -39,9 +39,8 @@ class BaseIdentifierBuilder {
     }
 
     if (hasThis) {
-      if (!currentScopePath) {
-        throw new Error("Error: 'this' can only be used inside a scope");
-      }
+      // #1322: `this` outside a scope is E0431 in 2.1, so codegen is never
+      // reached with an empty `currentScopePath` here.
       // this.x - prefix with current scope
       return {
         result: ScopeUtils.qualifyInScope(firstId, currentScopePath),

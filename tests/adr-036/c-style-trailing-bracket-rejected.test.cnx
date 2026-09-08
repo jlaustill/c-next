@@ -1,0 +1,10 @@
+// test-error
+// test-adr: 036
+// Bug #1014: C-style trailing brackets on multi-dim arrays should be rejected
+// u8 matrix[4][8] is C-style (all dimensions after name)
+// The canonical form is u8[4][8] matrix (all dimensions in type position)
+void demo() {
+    // NEGATIVE CONTROL -- the canonical form beside the rejected one.
+    u8[4][8] okMatrix;
+    u8 matrix[4][8]; // C-style - ALL dimensions after name - should error
+}

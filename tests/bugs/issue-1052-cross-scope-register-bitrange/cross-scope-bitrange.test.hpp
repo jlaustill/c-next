@@ -10,6 +10,10 @@
 extern "C" {
 #endif
 
+/* Registers (ADR-004) */
+/* Register: Hw__GPIO @ 0x40020000 */
+#define Hw__GPIO__Mode (*(volatile uint32_t*)(0x40020000 + 0x00))
+
 /* Function prototypes */
 void App__configure(void);
 void App__configureBareScope(void);

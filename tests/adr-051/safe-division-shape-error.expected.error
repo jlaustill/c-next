@@ -1,0 +1,8 @@
+24:11 error[E0884]: safe_div takes exactly 4 arguments (output, numerator, divisor, defaultValue), not 3
+       help: The result is written to the first argument and the fourth is used when the divisor is zero, so neither can be left out (ADR-051).
+25:11 error[E0884]: safe_mod takes exactly 4 arguments (output, numerator, divisor, defaultValue), not 5
+       help: The result is written to the first argument and the fourth is used when the divisor is zero, so neither can be left out (ADR-051).
+28:20 error[E0885]: safe_div writes its result to the first argument, so it must be a variable
+       help: The generated helper takes the output's address; an expression has none. Declare a variable and pass it (ADR-051).
+32:20 error[E0885]: safe_div writes its result to the first argument, and 'helper' is not a variable
+       help: The generated helper takes the output's address. Declare a variable of the result's type and pass that (ADR-051).

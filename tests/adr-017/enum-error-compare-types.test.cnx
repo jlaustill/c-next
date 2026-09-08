@@ -1,0 +1,31 @@
+// test-error
+// test-adr: 017
+// ADR-017, E0434: two different enum types may not be compared.
+//
+// #1322 moved this out of codegen, where it reported `1:0`.
+
+enum State {
+    IDLE,
+    RUNNING
+}
+enum Power {
+    OFF,
+    ON
+}
+
+// NEGATIVE CONTROL -- each enum compared to its OWN members. Both enums are in
+// scope here, so a rule that keyed on "more than one enum exists" rather than
+// on the two operands' types would reject these.
+bool eachToItsOwn() {
+    State s <- State.IDLE;
+    Power p <- Power.ON;
+    return (s = State.IDLE) && (p = Power.ON);
+}
+
+void main() {
+    State s <- State.IDLE;
+    Power p <- Power.ON;
+
+    // THE ASSERTION.
+    if (s = Power.ON) {}
+}

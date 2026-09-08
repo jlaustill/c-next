@@ -1,0 +1,64 @@
+// test-error
+// test-adr: 022
+// E0701 in EVERY production that carries a controlling expression.
+//
+// This fixture exists because the analyzer has to ENUMERATE those productions:
+// `if`, `while`, `do-while`, `for` and the ternary are five listener methods,
+// and there is no way to ask the grammar which rules have a controlling
+// expression. A sixth production added later would be silently unchecked --
+// which is exactly how E0853 came to miss `switch`.
+//
+// So the expected output carries FIVE diagnostics, one per kind. A kind that
+// stops being visited drops the count and fails this fixture, which is the
+// closest thing to a guard the enumeration can have.
+//
+// `forever` is deliberately absent: it has no controlling expression, which is
+// the whole point of it, and a rule that invented one for it would be wrong.
+
+u32 value <- 5;
+
+// NEGATIVE CONTROL -- all five kinds written correctly, so an over-broad rule
+// fails here before the assertions below are even reached.
+u32 allFiveCorrect() {
+    u32 total <- 0;
+    if (value > 0) {
+        total +<- 1;
+    }
+    while (total < 1) {
+        total +<- 1;
+    }
+    do {
+        total +<- 1;
+    } while (total < 2);
+    for (u32 i <- 0; i < 2; i +<- 1) {
+        total +<- i;
+    }
+    u32 pick <- (value > 0) ? 1 : 0;
+    return total + pick;
+}
+
+// NEGATIVE CONTROL -- `forever` carries no controlling expression.
+void spins() {
+    forever {
+        value <- 1;
+    }
+}
+
+// THE ASSERTIONS -- one per kind, each a bare value where a comparison belongs.
+u32 everyKind() {
+    u32 total <- 0;
+    if (value) {
+        total +<- 1;
+    }
+    while (value) {
+        total +<- 1;
+    }
+    do {
+        total +<- 1;
+    } while (value);
+    for (u32 i <- 0; value; i +<- 1) {
+        total +<- i;
+    }
+    u32 pick <- (value) ? 1 : 0;
+    return total + pick;
+}

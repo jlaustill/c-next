@@ -80,108 +80,14 @@ describe("VariableDeclHelper", () => {
     });
   });
 
-  describe("extractBaseTypeName", () => {
-    it("extracts primitive type name", () => {
-      const typeCtx = parseType("u8 x;");
-      expect(VariableDeclHelper.extractBaseTypeName(typeCtx)).toBe("u8");
-    });
-
-    it("extracts user type name", () => {
-      const typeCtx = parseType("MyStruct x;");
-      expect(VariableDeclHelper.extractBaseTypeName(typeCtx)).toBe("MyStruct");
-    });
-
-    it("extracts primitive from array type", () => {
-      const typeCtx = parseType("u16[8] x;");
-      expect(VariableDeclHelper.extractBaseTypeName(typeCtx)).toBe("u16");
-    });
-
-    it("extracts user type from array type", () => {
-      const typeCtx = parseType("Point[4] x;");
-      expect(VariableDeclHelper.extractBaseTypeName(typeCtx)).toBe("Point");
-    });
-  });
-
   // ========================================================================
   // Tier 2: Simple Operations
   // ========================================================================
 
-  describe("validateArrayDeclarationSyntax", () => {
-    const validateSyntax = (source: string, name: string): (() => void) => {
-      const varDecl = parseVarDecl(source);
-      return () =>
-        VariableDeclHelper.validateArrayDeclarationSyntax(
-          varDecl,
-          varDecl.type(),
-          name,
-        );
-    };
-
-    it.each([
-      ["C-Next style array syntax", "u8[10] arr;", "arr"],
-      [
-        "empty dimension for size inference in arrayType",
-        "u8[] arr <- [1, 2, 3];",
-        "arr",
-      ],
-      ["string type with arrayType syntax", "string<32>[4] names;", "names"],
-    ])("allows %s", (_label, source, name) => {
-      expect(validateSyntax(source, name)).not.toThrow();
-    });
-
-    // The final row previously asserted with /C-style array declaration is not
-    // allowed/ rather than the string. The pattern has no metacharacters, so
-    // regex match and substring match agree; normalized to the string form the
-    // other rows use.
-    it.each([
-      [
-        "empty dimension with C-style trailing brackets (Issue #1017)",
-        "u8 arr[] <- [1, 2, 3];",
-        "arr",
-      ],
-      ["multi-dimensional C-style (Issue #1014)", "u8 matrix[4][4];", "matrix"],
-      [
-        "string type with C-style trailing brackets (Issue #1016)",
-        "string<32> names[4];",
-        "names",
-      ],
-      ["C-style single dimension for primitives", "u8 arr[10];", "arr"],
-    ])("rejects %s", (_label, source, name) => {
-      expect(validateSyntax(source, name)).toThrow(
-        "C-style array declaration is not allowed",
-      );
-    });
-  });
-
-  describe("validateIntegerInitializer", () => {
-    it("does nothing for non-integer types", () => {
-      const varDecl = parseVarDecl("f32 x <- 1.5;");
-      // Should not throw
-      expect(() => {
-        VariableDeclHelper.validateIntegerInitializer(varDecl, "f32", {
-          getExpressionType: () => "f32",
-        });
-      }).not.toThrow();
-    });
-
-    it("accepts valid integer literal", () => {
-      const varDecl = parseVarDecl("u8 x <- 255;");
-      expect(() => {
-        VariableDeclHelper.validateIntegerInitializer(varDecl, "u8", {
-          getExpressionType: () => "u8",
-        });
-      }).not.toThrow();
-    });
-
-    it("throws for overflow in literal", () => {
-      const varDecl = parseVarDecl("u8 x <- 256;");
-      expect(() => {
-        VariableDeclHelper.validateIntegerInitializer(varDecl, "u8", {
-          getExpressionType: () => "u8",
-        });
-      }).toThrow();
-    });
-  });
+  // #1322: the `validateIntegerInitializer` suite that stood here is gone with the method. ADR-024's
+  // rules are E0868/E0869 in pass 2.1, covered by
+  // `1-Analyze/__tests__/IntegerConversionAnalyzer.test.ts` against real source
+  // rather than a text API.
 
   describe("finalizeCppClassAssignments", () => {
     beforeEach(() => {
@@ -189,12 +95,9 @@ describe("VariableDeclHelper", () => {
     });
 
     it("returns simple declaration with semicolon when no pending assignments", () => {
-      const typeCtx = parseType("MyClass x;");
       const result = VariableDeclHelper.finalizeCppClassAssignments(
-        typeCtx,
         "x",
         "MyClass x",
-        { getTypeName: () => "MyClass" },
       );
       expect(result).toBe("MyClass x;");
     });
@@ -203,31 +106,25 @@ describe("VariableDeclHelper", () => {
       CodeGenState.inFunctionBody = true;
       CodeGenState.pendingCppClassAssignments = ["field1 = value1"];
 
-      const typeCtx = parseType("MyClass x;");
       const result = VariableDeclHelper.finalizeCppClassAssignments(
-        typeCtx,
         "x",
         "MyClass x",
-        { getTypeName: () => "MyClass" },
       );
 
       expect(result).toBe("MyClass x;\nx.field1 = value1");
       expect(CodeGenState.pendingCppClassAssignments).toHaveLength(0);
     });
 
-    it("throws error at global scope with pending assignments", () => {
+    it("asserts a pending assignment outside a function body cannot reach here", () => {
+      // #1322: this asserted the E0508 rejection, which reported `1:0` against
+      // whichever declaration happened to drain the queue rather than the
+      // initializer that filled it. Pass 2.1 rejects it at the initializer.
       CodeGenState.inFunctionBody = false;
       CodeGenState.pendingCppClassAssignments = ["field1 = value1"];
 
-      const typeCtx = parseType("MyClass x;");
       expect(() => {
-        VariableDeclHelper.finalizeCppClassAssignments(
-          typeCtx,
-          "x",
-          "MyClass x",
-          { getTypeName: () => "MyClass" },
-        );
-      }).toThrow(/global scope/);
+        VariableDeclHelper.finalizeCppClassAssignments("x", "MyClass x");
+      }).toThrow("E0508 rejects this in pass 2.1");
     });
   });
 
@@ -390,35 +287,19 @@ describe("VariableDeclHelper", () => {
       expect(result).toBe("MAX31856 thermo(pinConst);");
     });
 
-    it("throws for undeclared constructor argument", () => {
-      const varDecl = parseVarDecl("MAX31856 thermo(unknownVar);");
-      const argListCtx = varDecl.constructorArgumentList()!;
+    // #1322: this drove codegen directly with an argument pass 2.1 now
+    // rejects (E0432 / E0433), so the pipeline halts before this code runs.
+    // The rule is covered by
+    // `1-Analyze/__tests__/ConstructorArgumentAnalyzer.test.ts` and by
+    // `tests/constructor-syntax/error-non-const-arg` and
+    // `error-undeclared-arg`, which now assert a real position.
 
-      expect(() => {
-        VariableDeclHelper.generateConstructorDecl(varDecl, argListCtx, {
-          generateType: () => "MAX31856",
-        });
-      }).toThrow(/not declared/);
-    });
-
-    it("throws for non-const constructor argument", () => {
-      CodeGenState.setVariableTypeInfo("nonConstVar", {
-        baseType: "u8",
-        bitWidth: 8,
-        isArray: false,
-        arrayDimensions: [],
-        isConst: false,
-      });
-
-      const varDecl = parseVarDecl("MAX31856 thermo(nonConstVar);");
-      const argListCtx = varDecl.constructorArgumentList()!;
-
-      expect(() => {
-        VariableDeclHelper.generateConstructorDecl(varDecl, argListCtx, {
-          generateType: () => "MAX31856",
-        });
-      }).toThrow(/must be const/);
-    });
+    // #1322: this drove codegen directly with an argument pass 2.1 now
+    // rejects (E0432 / E0433), so the pipeline halts before this code runs.
+    // The rule is covered by
+    // `1-Analyze/__tests__/ConstructorArgumentAnalyzer.test.ts` and by
+    // `tests/constructor-syntax/error-non-const-arg` and
+    // `error-undeclared-arg`, which now assert a real position.
 
     it("tracks the variable in type registry", () => {
       const varDecl = parseVarDecl("MAX31856 thermo(pinConst);");

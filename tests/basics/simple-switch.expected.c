@@ -54,18 +54,18 @@ uint32_t dayType(uint32_t day) {
 int main(void) {
     Color c = Color__RED;
     uint32_t val = colorToValue(c);
-    if (val != 1) return 1;
+    if (val != 1) return 1U;
     c = Color__GREEN;
     val = colorToValue(c);
-    if (val != 2) return 2;
+    if (val != 2) return 2U;
     c = Color__BLUE;
     val = colorToValue(c);
-    if (val != 3) return 3;
+    if (val != 3) return 3U;
     uint32_t result = dayType(0U);
-    if (result != 1) return 4;
+    if (result != 1) return 4U;
     result = dayType(6U);
-    if (result != 1) return 5;
+    if (result != 1) return 5U;
     result = dayType(3U);
-    if (result != 2) return 6;
-    return 0;
+    if (result != 2) return 6U;
+    return 0U;
 }

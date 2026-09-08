@@ -20,5 +20,5 @@ uint8_t readStructField(const Point& point) {
 }
 
 uint8_t addOne(uint8_t x) {
-    return x + 1;
+    return x + 1U;
 }

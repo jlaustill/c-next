@@ -76,4 +76,34 @@ describe("snapshots and generated files match their fixture's mode (#1149)", () 
 
     expect(orphans).toEqual([]);
   });
+
+  it("has no generated file whose fixture no longer exists (#1322)", () => {
+    // The check above returns early when it can find no source for an artifact,
+    // reading that as "hand-written, or vendored". A generated file whose
+    // fixture was DELETED or MOVED looks identical from there, so it was passed
+    // over -- and such a file is never regenerated and never compared, which is
+    // the same dead-snapshot state #1149 removed 90 of.
+    //
+    // It happened while moving fixtures into `tests/adr-017/`: two
+    // `.test.c`/`.test.h` pairs stayed behind in `tests/enum/` and were
+    // committed, with the suite green and no gate saying otherwise.
+    //
+    // The rule needs no mode reasoning: a file called `X.test.c` exists only
+    // because `X.test.cnx` was transpiled, so the fixture has to be there. A
+    // helper's artifact is `X.c` from `X.cnx` and is untouched by this.
+    const stranded = artifacts
+      .filter((artifact) => /\.test\.(c|h|cpp|hpp)$/.test(artifact))
+      .filter((artifact) => {
+        const fixture = artifact.replace(/\.test\.(c|h|cpp|hpp)$/, ".test.cnx");
+        try {
+          readSource(fixture);
+          return false;
+        } catch {
+          return true;
+        }
+      })
+      .map((artifact) => artifact.slice(rootDir.length + 1));
+
+    expect(stranded).toEqual([]);
+  });
 });

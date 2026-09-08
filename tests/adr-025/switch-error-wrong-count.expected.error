@@ -1,0 +1,2 @@
+23:12 error[E0714]: Switch covers 3 of 4 EState variants (2 explicit + default(1))
+       help: Every variant has to be accounted for exactly once. Expected 4.

@@ -1,0 +1,77 @@
+// test-error
+// test-adr: 029
+// ADR-029 in the four places a function name can land in a callback-typed
+// slot. Codegen checked exactly ONE of them -- an assignment whose target was
+// a variable's direct field -- so the other three reached C unchecked.
+//
+// Every slot is asserted in this one file deliberately: a slot dropped from
+// the walk becomes a change in the number of diagnostics, which the manifest
+// reports, rather than a silent gap that still looks covered.
+
+struct Pixel {
+    u32 v;
+}
+
+void onDown(const Pixel p) {}
+
+void onUp(const Pixel p) {}
+
+// NEGATIVE CONTROL -- same signature as both, used as nobody's field type, so
+// it may stand in anywhere. It appears in all four slots below and must stay
+// silent in every one of them.
+void plain(const Pixel p) {}
+
+struct Handler {
+    onDown down;
+    onUp up;
+}
+
+void takesDown(onDown cb) {}
+
+scope Widget {
+    public struct Slot {
+        onDown handler;
+    }
+
+    public void install(onDown cb) {}
+
+    // ---- CONTEXT: a scope MEMBER's initializer. Control first.
+    onDown okMember <- plain;
+    onDown badMember <- onUp;
+
+    // ---- CONTEXT: a scope METHOD.
+    public void wire() {
+        Handler h;
+        h.down <- plain;
+        h.down <- onUp;
+    }
+}
+
+// ---- CONTEXT: a GLOBAL variable's initializer. Control first.
+onDown okGlobal <- plain;
+onDown badGlobal <- onUp;
+
+void test() {
+    Handler h;
+
+    // ---- CONTROLS: `plain` in all four slots, and a type in its own slot.
+    h.down <- plain;
+    onDown ok <- plain;
+    Handler okInit <- { down: plain, up: plain };
+    takesDown(plain);
+    h.up <- onUp;
+
+    // ---- SLOT 1: an assignment target.
+    h.down <- onUp;
+
+    // ---- SLOT 2: a declaration's initializer.
+    onDown fromDecl <- onUp;
+
+    // ---- SLOT 3: a struct initializer's field.
+    Handler fromInit <- { down: onUp, up: onUp };
+
+    // ---- SLOT 4: a call argument. ADR-029's own example marks this a
+    // compile error, and codegen never looked at it.
+    takesDown(onUp);
+    Widget.install(onUp);
+}

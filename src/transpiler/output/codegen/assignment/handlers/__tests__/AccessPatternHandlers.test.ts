@@ -108,45 +108,6 @@ describe("AccessPatternHandlers", () => {
       expect(result).toBe("Counter__value = 5;");
     });
 
-    it("validates cross-scope visibility when first id is a scope", () => {
-      const validateCrossScopeVisibility = vi.fn();
-      HandlerTestUtils.setupMockGenerator({
-        generateAssignmentTarget: vi.fn().mockReturnValue("Motor__speed"),
-        validateCrossScopeVisibility,
-      });
-      HandlerTestUtils.setupMockSymbols({
-        knownScopes: new Set(["Motor"]),
-      });
-      const ctx = createMockContext({
-        identifiers: ["Motor", "speed"],
-      });
-
-      getHandler()!(ctx);
-
-      expect(validateCrossScopeVisibility).toHaveBeenCalledWith(
-        "Motor",
-        "speed",
-      );
-    });
-
-    it("does not validate when first id is not a scope", () => {
-      const validateCrossScopeVisibility = vi.fn();
-      HandlerTestUtils.setupMockGenerator({
-        generateAssignmentTarget: vi.fn().mockReturnValue("someVar"),
-        validateCrossScopeVisibility,
-      });
-      HandlerTestUtils.setupMockSymbols({
-        knownScopes: new Set(),
-      });
-      const ctx = createMockContext({
-        identifiers: ["someVar"],
-      });
-
-      getHandler()!(ctx);
-
-      expect(validateCrossScopeVisibility).not.toHaveBeenCalled();
-    });
-
     it("handles compound assignment", () => {
       HandlerTestUtils.setupMockGenerator({
         generateAssignmentTarget: vi.fn().mockReturnValue("Counter__value"),
@@ -206,14 +167,11 @@ describe("AccessPatternHandlers", () => {
       expect(result).toBe("Motor__speed = 5;");
     });
 
-    it("throws when used outside scope", () => {
-      CodeGenState.setCurrentScopeByPath(null);
-      const ctx = createMockContext({ hasThis: true, hasGlobal: false });
-
-      expect(() => getHandler()!(ctx)).toThrow(
-        "'this' can only be used inside a scope",
-      );
-    });
+    // #1322a: the `'this' outside a scope` guard this asserted is deleted. It
+    // was unreachable -- `this.x <- 5` at file scope is a PARSE error, so the
+    // assignment never reaches codegen -- and this test reached it only by
+    // calling the handler directly with state production cannot produce. A test
+    // that is a dead branch's only caller is what keeps the branch alive.
 
     it("handles compound assignment", () => {
       CodeGenState.setCurrentScopeByPath("Motor");
@@ -326,24 +284,12 @@ describe("AccessPatternHandlers", () => {
       expect(result).toContain("1ULL << bit");
     });
 
-    it("throws on compound assignment for bit access in member chain", () => {
-      HandlerTestUtils.setupMockGenerator({
-        analyzeMemberChainForBitAccess: vi.fn().mockReturnValue({
-          isBitAccess: true,
-          baseTarget: "data.flags",
-          bitIndex: "0",
-          baseType: "u32",
-        }),
-      });
-      const ctx = createMockContext({
-        isCompound: true,
-        cnextOp: "+<-",
-      });
-
-      expect(() => getHandler()!(ctx)).toThrow(
-        "Compound assignment operators not supported for bit field access",
-      );
-    });
+    // #1322: compound assignment on a bit index, bit range, slice, bitmap field
+    // or string is E0857 in pass 2.1 -- one decision where `output/` had six
+    // throws with four messages, and `validateNotCompound` defined twice verbatim.
+    // The pipeline halts before these handlers run. Covered by
+    // `1-Analyze/__tests__/CompoundAssignmentAnalyzer.test.ts` plus
+    // `tests/compound-assign/` and `tests/string-assignment/`.
 
     it("handles compound assignment for normal member chain", () => {
       HandlerTestUtils.setupMockGenerator({

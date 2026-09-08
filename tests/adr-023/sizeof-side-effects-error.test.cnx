@@ -1,0 +1,31 @@
+// test-error
+// test-adr: 023
+// MISRA C:2012 Rule 13.6: `sizeof` does not evaluate its operand, so a call
+// inside it never runs and the author's intent is lost silently.
+//
+// Consolidated from `tests/analysis/sizeof-side-effects` and
+// `tests/sizeof/side-effects-error`.
+
+u32 counter <- 0;
+
+u32 increment() {
+    counter <- counter + 1;
+    return counter;
+}
+
+u32 main() {
+    u32 v <- 5;
+    u8[4] arr;
+
+    // NEGATIVE CONTROLS -- operands with no call in them. Arithmetic, a
+    // subscript and a type all evaluate to nothing at runtime, which is what
+    // the rule is actually about.
+    u32 okArith <- sizeof(v + 1);
+    u32 okIndex <- sizeof(arr[0]);
+    u32 okType <- sizeof(u32);
+
+    // ASSERTIONS -- a call alone, and a call nested inside arithmetic.
+    u32 bad <- sizeof(increment());
+    u32 alsoBad <- sizeof(1 + increment());
+    return 0;
+}

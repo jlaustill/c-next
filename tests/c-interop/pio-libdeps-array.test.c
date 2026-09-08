@@ -30,7 +30,7 @@ static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
 
 void PioArrayTest__processBuffer(const uint8_t data[8], uint8_t len) {
     uint8_t sum = 0U;
-    for (uint8_t i = 0; i < len; i += 1) {
+    for (uint8_t i = 0U; i < len; i += 1) {
         sum = cnx_clamp_add_u8(sum, data[i]);
     }
 }

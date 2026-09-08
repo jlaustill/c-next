@@ -102,53 +102,11 @@ interface IOrchestrator {
     ctx: Parser.ExpressionContext | Parser.RelationalExpressionContext,
   ): string | null;
 
-  /** Check if an expression is an integer literal or variable */
-  isIntegerExpression(
-    ctx: Parser.ExpressionContext | Parser.RelationalExpressionContext,
-  ): boolean;
-
   /** Check if an expression is a string type */
   isStringExpression(ctx: Parser.RelationalExpressionContext): boolean;
 
-  /** Get type of additive expression for shift validation */
-  getAdditiveExpressionType(
-    ctx: Parser.AdditiveExpressionContext,
-  ): string | null;
-
   /** Extract operators from parse tree children in correct order */
   getOperatorsFromChildren(ctx: ParserRuleContext): string[];
-
-  // === Validation ===
-
-  /** Validate cross-scope member visibility (ADR-016) */
-  validateCrossScopeVisibility(
-    scopeName: string,
-    memberName: string,
-    isGlobalAccess?: boolean,
-  ): void;
-
-  /** Validate shift amount is within type bounds */
-  validateShiftAmount(
-    leftType: string,
-    rightExpr: Parser.AdditiveExpressionContext,
-    op: string,
-    ctx: Parser.ShiftExpressionContext,
-  ): void;
-
-  /** Validate ternary condition is a comparison (ADR-022) */
-  validateTernaryCondition(condition: Parser.OrExpressionContext): void;
-
-  /** Validate no nested ternary expressions (ADR-022) */
-  validateNoNestedTernary(
-    expr: Parser.OrExpressionContext,
-    branchName: string,
-  ): void;
-
-  /** Validate that a literal value fits in the target type */
-  validateLiteralFitsType(literal: string, typeName: string): void;
-
-  /** Validate type conversion is allowed */
-  validateTypeConversion(targetType: string, sourceType: string | null): void;
 
   // === Function Call Helpers ===
 
@@ -160,9 +118,6 @@ interface IOrchestrator {
     ctx: Parser.ExpressionContext,
     targetParamBaseType?: string,
   ): string;
-
-  /** Check if a value is const (for const-to-non-const validation) */
-  isConstValue(name: string): boolean;
 
   /** Get known enums set for pass-by-value detection */
   getKnownEnums(): ReadonlySet<string>;
@@ -197,35 +152,6 @@ interface IOrchestrator {
 
   /** Get indentation string for current level */
   indent(text: string): string;
-
-  // === Statement Validation ===
-
-  /** Validate no early exits (return/break) in critical blocks (ADR-050) */
-  validateNoEarlyExits(ctx: Parser.BlockContext): void;
-
-  /** Validate switch statement (ADR-025) */
-  validateSwitchStatement(
-    ctx: Parser.SwitchStatementContext,
-    switchExpr: Parser.ExpressionContext,
-  ): void;
-
-  /** Validate condition is a boolean expression (ADR-027, Issue #884) */
-  validateConditionIsBoolean(
-    ctx: Parser.ExpressionContext,
-    conditionType: string,
-  ): void;
-
-  /** Reject an always-true literal loop condition (ADR-068 / #1075, E0707) */
-  validateLoopConditionNotAlwaysTrue(ctx: Parser.ExpressionContext): void;
-
-  /** Validate no function calls in condition (Issue #254, E0702) */
-  validateConditionNoFunctionCall(
-    ctx: Parser.ExpressionContext,
-    conditionType: string,
-  ): void;
-
-  /** Validate no function calls in ternary condition (Issue #254, E0702) */
-  validateTernaryConditionNoFunctionCall(ctx: Parser.OrExpressionContext): void;
 
   // === Control Flow Helpers ===
 
@@ -318,9 +244,6 @@ interface IOrchestrator {
    */
   recordCallbackTypedef(funcName: string): void;
 
-  /** Check if a callback type is used as a struct field type */
-  isCallbackTypeUsedAsFieldType(funcName: string): boolean;
-
   // === Scope Management ===
 
   /** Set the current scope name for prefixing */
@@ -334,6 +257,25 @@ interface IOrchestrator {
 
   /** Issue #477: Set the current function's return type for enum inference */
   setCurrentFunctionReturnType(returnType: string | null): void;
+
+  /**
+   * #1277: enter/leave the context a function body is generated in -- its
+   * name, its declared return type, and its parameters.
+   *
+   * One pair rather than four calls at each site. `FunctionGenerator` and
+   * `ScopeGenerator` each open-coded the same four steps in the same order,
+   * and the scope copy was missing `setCurrentFunctionReturnType`, so no
+   * `return` inside a scope method knew what type it returned: a bare enum
+   * member could not resolve there and a struct literal could not be typed.
+   * A fifth fact is now one edit, not two that have to be remembered together.
+   */
+  enterFunctionContext(
+    name: string,
+    returnTypeText: string,
+    parameterList: Parser.ParameterListContext | null,
+  ): void;
+
+  exitFunctionContext(): void;
 
   // === Function Body Management ===
 

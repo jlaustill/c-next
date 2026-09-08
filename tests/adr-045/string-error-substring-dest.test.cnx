@@ -1,0 +1,14 @@
+// test-error
+// test-adr: 045
+// ADR-045: Test substring destination too small
+// Extracting 10 characters but destination can only hold 5
+// NEGATIVE CONTROL -- a length that exactly fills the destination.
+void okExactFit() {
+    string<64> source <- "Hello, World!";
+    string<10> fits <- source[0, 10];
+}
+
+void test() {
+    string<64> source <- "Hello, World!";
+    string<5> tooSmall <- source[0, 10];
+}

@@ -13,10 +13,10 @@ int main(void) {
     float negative = -100.0;
     float in_range = 1000000.0;
     uint32_t result = ((over) > ((float)UINT32_MAX) ? (uint32_t)UINT32_MAX : (over) < 0.0f ? (uint32_t)0 : (uint32_t)(over));
-    if (result != 4294967295) return 1;
+    if (result != 4294967295) return 1U;
     result = ((negative) > ((float)UINT32_MAX) ? (uint32_t)UINT32_MAX : (negative) < 0.0f ? (uint32_t)0 : (uint32_t)(negative));
-    if (result != 0) return 2;
+    if (result != 0) return 2U;
     result = ((in_range) > ((float)UINT32_MAX) ? (uint32_t)UINT32_MAX : (in_range) < 0.0f ? (uint32_t)0 : (uint32_t)(in_range));
-    if (result != 1000000) return 3;
-    return 0;
+    if (result != 1000000) return 3U;
+    return 0U;
 }

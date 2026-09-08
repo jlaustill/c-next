@@ -170,6 +170,20 @@ describe("Program", () => {
       expect(program.constValues().get("SIZE")).toBe(4);
     });
 
+    it("keys a scope's const by its C name as well as its bare name (#1322)", () => {
+      // `this.STEP` inside `Board` asks for `Board__STEP`; the bare `STEP` is
+      // what a dimension written as `STEP` inside the scope asks for. Two
+      // scopes declaring the same bare name must not share one slot.
+      const lib = declare(
+        `scope Board {\n    const u8 STEP <- 12;\n}\nscope Other {\n    const u8 STEP <- 3;\n}`,
+        "lib.cnx",
+      );
+      const program = Program.build([lib]);
+
+      expect(program.constValue("Board__STEP")).toBe(12);
+      expect(program.constValue("Other__STEP")).toBe(3);
+    });
+
     it("is undefined for a non-const and for an unknown name", () => {
       const lib = declare(`u32 mutable <- 4;`, "lib.cnx");
       const program = Program.build([lib]);
@@ -254,6 +268,7 @@ describe("Program", () => {
       expect(keys).toEqual([
         "constValue",
         "constValues",
+        "constValuesIn",
         "externalStructFields",
         "isScopeType",
         "knownEnums",

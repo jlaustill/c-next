@@ -3,28 +3,11 @@
  * Static class using CodeGenState for all state access.
  * Issue #63: Validation logic separated for independent testing
  */
-import { existsSync } from "node:fs";
-import { dirname, resolve, join } from "node:path";
-import * as Parser from "../../logic/parser/grammar/CNextParser";
 import CodeGenState from "../../state/CodeGenState";
 import AdrProvenance from "../../state/AdrProvenance";
-import TypeResolver from "./TypeResolver";
-import ExpressionUtils from "../../../utils/ExpressionUtils";
 // SonarCloud S3776: Extracted literal parsing to reduce complexity
-import LiteralEvaluator from "./helpers/LiteralEvaluator";
 import QualifiedCName from "../../../utils/QualifiedCName";
 import ScopeUtils from "../../../utils/ScopeUtils";
-
-/**
- * ADR-010: Implementation file extensions that should NOT be #included
- */
-const IMPLEMENTATION_EXTENSIONS = new Set([
-  ".c",
-  ".cpp",
-  ".cc",
-  ".cxx",
-  ".c++",
-]);
 
 /**
  * TypeValidator class - validates types, assignments, and control flow at compile time.
@@ -32,395 +15,58 @@ const IMPLEMENTATION_EXTENSIONS = new Set([
  */
 class TypeValidator {
   // ========================================================================
-  // Include Validation (ADR-010)
+  // Include Validation (ADR-010) -- relocated to pass 2.1 (#1322)
   // ========================================================================
+  //
+  // `validateIncludeNotImplementationFile` (E0503) and
+  // `validateIncludeNoCnxAlternative` (E0504, both its quoted and its angle
+  // branch) stood here, reached from `CodeGenerator.processIncludeDirectives`
+  // with a line number threaded in as a NUMBER, spent on `Line N` prose while
+  // the diagnostic itself reported `1:0`. `IncludeDirectiveAnalyzer` decides
+  // both at the directive's own position.
+  //
+  // The angle branch also took its search path from
+  // `IncludeDiscovery.discoverIncludePaths`, a SECOND derivation of a list
+  // discovery had already built with the `--include` directories in it. The
+  // two agreed only where `--include` was unused; 2.1 reads discovery's own
+  // list, so there is one derivation.
 
-  /**
-   * ADR-010: Validate that #include doesn't include implementation files
-   */
-  static validateIncludeNotImplementationFile(
-    includeText: string,
-    lineNumber: number,
-  ): void {
-    const angleMatch = /#\s*include\s*<([^>]+)>/.exec(includeText);
-    const quoteMatch = /#\s*include\s*"([^"]+)"/.exec(includeText);
-
-    const includePath = angleMatch?.[1] || quoteMatch?.[1];
-    if (!includePath) {
-      return;
-    }
-
-    const ext = includePath
-      .substring(includePath.lastIndexOf("."))
-      .toLowerCase();
-
-    if (IMPLEMENTATION_EXTENSIONS.has(ext)) {
-      throw new Error(
-        `E0503: Cannot #include implementation file '${includePath}'. ` +
-          `Only header files (.h, .hpp) are allowed. Line ${lineNumber}`,
-      );
-    }
-  }
-
-  /**
-   * E0504: Validate that a .cnx alternative doesn't exist for a .h/.hpp include
-   */
-  static validateIncludeNoCnxAlternative(
-    includeText: string,
-    lineNumber: number,
-    sourcePath: string | null,
-    includePaths: string[],
-    fileExists: (path: string) => boolean = existsSync,
-  ): void {
-    const parsed = TypeValidator._parseIncludeDirective(includeText);
-    if (!parsed) return;
-    if (parsed.path.endsWith(".cnx")) return;
-    if (!TypeValidator._isHeaderFile(parsed.path)) return;
-
-    const cnxPath = parsed.path.replace(/\.(h|hpp)$/i, ".cnx");
-
-    if (parsed.isQuoted) {
-      TypeValidator._checkQuotedIncludeForCnx(
-        parsed.path,
-        cnxPath,
-        sourcePath,
-        lineNumber,
-        fileExists,
-      );
-    } else {
-      TypeValidator._checkAngleIncludeForCnx(
-        parsed.path,
-        cnxPath,
-        includePaths,
-        lineNumber,
-        fileExists,
-      );
-    }
-  }
-
-  private static _parseIncludeDirective(
-    includeText: string,
-  ): { path: string; isQuoted: boolean } | null {
-    const angleMatch = /#\s*include\s*<([^>]+)>/.exec(includeText);
-    const quoteMatch = /#\s*include\s*"([^"]+)"/.exec(includeText);
-
-    if (quoteMatch) return { path: quoteMatch[1], isQuoted: true };
-    if (angleMatch) return { path: angleMatch[1], isQuoted: false };
-    return null;
-  }
-
-  private static _isHeaderFile(path: string): boolean {
-    const ext = path.substring(path.lastIndexOf(".")).toLowerCase();
-    return ext === ".h" || ext === ".hpp";
-  }
-
-  private static _checkQuotedIncludeForCnx(
-    includePath: string,
-    cnxPath: string,
-    sourcePath: string | null,
-    lineNumber: number,
-    fileExists: (path: string) => boolean,
-  ): void {
-    if (!sourcePath) return;
-
-    const sourceDir = dirname(sourcePath);
-    const fullCnxPath = resolve(sourceDir, cnxPath);
-    if (fileExists(fullCnxPath)) {
-      throw new Error(
-        `E0504: Found #include "${includePath}" but '${cnxPath}' exists at the same location.\n` +
-          `       Use #include "${cnxPath}" instead to use the C-Next version. Line ${lineNumber}`,
-      );
-    }
-  }
-
-  private static _checkAngleIncludeForCnx(
-    includePath: string,
-    cnxPath: string,
-    includePaths: string[],
-    lineNumber: number,
-    fileExists: (path: string) => boolean,
-  ): void {
-    for (const searchDir of includePaths) {
-      const fullCnxPath = join(searchDir, cnxPath);
-      if (fileExists(fullCnxPath)) {
-        throw new Error(
-          `E0504: Found #include <${includePath}> but '${cnxPath}' exists at the same location.\n` +
-            `       Use #include <${cnxPath}> instead to use the C-Next version. Line ${lineNumber}`,
-        );
-      }
-    }
-  }
-
-  // ========================================================================
-  // Bitmap Field Validation (ADR-034)
-  // ========================================================================
-
-  static validateBitmapFieldLiteral(
-    expr: Parser.ExpressionContext,
-    width: number,
-    fieldName: string,
-  ): void {
-    const text = expr.getText().trim();
-    const maxValue = (1 << width) - 1;
-
-    let value: number | null = null;
-
-    if (/^\d+$/.exec(text)) {
-      value = Number.parseInt(text, 10);
-    } else if (/^0[xX][0-9a-fA-F]+$/.exec(text)) {
-      value = Number.parseInt(text, 16);
-    } else if (/^0[bB][01]+$/.exec(text)) {
-      value = Number.parseInt(text.substring(2), 2);
-    }
-
-    if (value !== null && value > maxValue) {
-      throw new Error(
-        `Error: Value ${value} exceeds ${width}-bit field '${fieldName}' maximum of ${maxValue}`,
-      );
-    }
-  }
+  // #1322: ADR-034's literal-overflow check is E0881 in pass 2.1.
+  //
+  // `validateBitmapFieldLiteral` stood here and was reached only from the
+  // bitmap assignment handler, which had already resolved the field. The rule
+  // is about the VALUE and the field's width, both of which the parse tree and
+  // the per-file bitmap layouts carry, so it needs no handler to have run
+  // first -- and asking it there meant it could never see a write reached by
+  // any other path.
 
   // ========================================================================
   // Array Bounds Validation (ADR-036)
   // ========================================================================
 
-  /**
-   * ADR-036: compile-time bounds checking for a constant subscript.
-   *
-   * The whether-to-check decision lives HERE, not at each call site. Two
-   * callers used to guard on different predicates -- `isArray &&
-   * arrayDimensions` in `AssignmentValidator`, `arrayDimensions` alone in
-   * `ArrayHandlers` -- which agreed only because `arrayDimensions` is set "if
-   * isArray is true" by convention rather than by enforcement
-   * (`IVariableSymbol.ts:32`). #1360 added a third caller, and three places
-   * deciding whether a safety check happens is the divergence CLAUDE.md
-   * forbids. The surviving predicate is the broader one: dimensions present
-   * means there is a bound to check against, and unifying on the narrower one
-   * would have LOOSENED an existing check.
-   *
-   * Callers still supply the name, because resolving it legitimately differs
-   * by context -- a bare identifier on the declaration path, the
-   * scope-resolved one in `ArrayHandlers` (#1139).
-   *
-   * @param dimensionOffset Which dimension `indexExprs[0]` indexes. The read
-   *   path walks a postfix chain one subscript at a time, so it reports its
-   *   depth rather than slicing `arrayDimensions`. Slicing would shift every
-   *   later dimension and validate an index against the wrong bound -- e.g.
-   *   `u8[N][4] grid` checking `grid[i]` against 4 -- which is exactly the
-   *   defect `UNRESOLVED_DIMENSION` keeps a placeholder slot to prevent.
-   */
-  static checkArrayBounds(
-    arrayName: string,
-    indexExprs: Parser.ExpressionContext[],
-    line: number,
-    tryEvaluateConstant: (ctx: Parser.ExpressionContext) => number | undefined,
-    dimensionOffset = 0,
-  ): void {
-    const dimensions =
-      CodeGenState.getVariableTypeInfo(arrayName)?.arrayDimensions;
-    if (!dimensions) {
-      return;
-    }
-
-    for (let i = 0; i < indexExprs.length; i++) {
-      const dimension = dimensionOffset + i;
-      if (dimension >= dimensions.length) {
-        break;
-      }
-
-      const constValue = tryEvaluateConstant(indexExprs[i]);
-      if (constValue === undefined) {
-        continue;
-      }
-
-      if (constValue < 0) {
-        throw new Error(
-          `Array index out of bounds: ${constValue} is negative for '${arrayName}' dimension ${dimension + 1} (line ${line})`,
-        );
-      }
-
-      // A non-positive dimension is UNRESOLVED_DIMENSION -- size unknown,
-      // cannot validate -- never a real bound of zero.
-      if (dimensions[dimension] > 0 && constValue >= dimensions[dimension]) {
-        throw new Error(
-          `Array index out of bounds: ${constValue} >= ${dimensions[dimension]} for '${arrayName}' dimension ${dimension + 1} (line ${line})`,
-        );
-      }
-    }
-  }
-
-  // ========================================================================
-  // Callback Assignment Validation (ADR-029)
-  // ========================================================================
-
-  static validateCallbackAssignment(
-    expectedType: string,
-    valueExpr: Parser.ExpressionContext,
-    fieldName: string,
-    isCallbackTypeUsedAsFieldType: (funcName: string) => boolean,
-  ): void {
-    const valueText = valueExpr.getText();
-
-    if (!CodeGenState.knownFunctions.has(valueText)) {
-      return;
-    }
-
-    const expectedInfo = CodeGenState.callbackTypes.get(expectedType);
-    const valueInfo = CodeGenState.callbackTypes.get(valueText);
-
-    if (!expectedInfo || !valueInfo) {
-      return;
-    }
-
-    if (!TypeValidator.callbackSignaturesMatch(expectedInfo, valueInfo)) {
-      throw new Error(
-        `Error: Function '${valueText}' signature does not match callback type '${expectedType}'`,
-      );
-    }
-
-    if (
-      isCallbackTypeUsedAsFieldType(valueText) &&
-      valueText !== expectedType
-    ) {
-      throw new Error(
-        `Error: Cannot assign '${valueText}' to callback field '${fieldName}' ` +
-          `(expected ${expectedType} type, got ${valueText} type - nominal typing)`,
-      );
-    }
-  }
-
-  static callbackSignaturesMatch(
-    a: {
-      returnType: string;
-      parameters: {
-        type: string;
-        isConst: boolean;
-        isPointer: boolean;
-        isArray: boolean;
-      }[];
-    },
-    b: {
-      returnType: string;
-      parameters: {
-        type: string;
-        isConst: boolean;
-        isPointer: boolean;
-        isArray: boolean;
-      }[];
-    },
-  ): boolean {
-    if (a.returnType !== b.returnType) return false;
-    if (a.parameters.length !== b.parameters.length) return false;
-
-    for (let i = 0; i < a.parameters.length; i++) {
-      const pa = a.parameters[i];
-      const pb = b.parameters[i];
-      if (pa.type !== pb.type) return false;
-      if (pa.isConst !== pb.isConst) return false;
-      if (pa.isPointer !== pb.isPointer) return false;
-      if (pa.isArray !== pb.isArray) return false;
-    }
-
-    return true;
-  }
+  // #1322: ADR-036's constant index bounds check (E0854) is in pass 2.1,
+  // asked at every subscript of an expression or a target through one prefix
+  // walk. It was reached from three codegen paths that each resolved the
+  // array's name their own way, and a struct field's dimensions were never
+  // among them.
+  // #1322: ADR-029's callback rules are E0879 and E0880 in pass 2.1.
+  //
+  // `validateCallbackAssignment` and `callbackSignaturesMatch` stood here and
+  // compared `ICallbackTypeInfo`, whose `isConst` is `declared || inferred`.
+  // The inferred half is #268 auto-const -- a 2.2 Plan fact about whether a
+  // BODY modifies a parameter -- so the check could not move as written, and
+  // it protected nothing: it read `getUnmodifiedParameters()` before
+  // `modifiedParameters` was filled, so both sides came back "unmodified" and
+  // the const comparison was vacuous. 2.1 compares the DECLARED signature,
+  // which 1.4 Resolve settles onto the symbol.
 
   // ========================================================================
   // Const Assignment Validation (ADR-013)
   // ========================================================================
 
-  static checkConstAssignment(identifier: string): string | null {
-    const paramInfo = CodeGenState.currentParameters.get(identifier);
-    if (paramInfo?.isConst) {
-      return `cannot assign to const parameter '${identifier}'`;
-    }
-
-    const scopedName = CodeGenState.resolveIdentifier(identifier);
-
-    const typeInfo = CodeGenState.getVariableTypeInfo(scopedName);
-    if (typeInfo?.isConst) {
-      return `cannot assign to const variable '${identifier}'`;
-    }
-
-    return null;
-  }
-
-  static isConstValue(identifier: string): boolean {
-    const paramInfo = CodeGenState.currentParameters.get(identifier);
-    if (paramInfo?.isConst) {
-      return true;
-    }
-
-    const typeInfo = CodeGenState.getVariableTypeInfo(identifier);
-    if (typeInfo?.isConst) {
-      return true;
-    }
-
-    return false;
-  }
-
-  // ========================================================================
-  // Scope Identifier Validation (ADR-016)
-  // ========================================================================
-
-  static validateBareIdentifierInScope(
-    identifier: string,
-    isLocalVariable: boolean,
-    isKnownStruct: (name: string) => boolean,
-  ): void {
-    const currentScopePath = CodeGenState.currentScopePath;
-
-    if (!currentScopePath) {
-      return;
-    }
-
-    if (isLocalVariable) {
-      return;
-    }
-
-    const scopeMembers = CodeGenState.getScopeMembers(
-      ScopeUtils.leafOf(currentScopePath),
-    );
-    if (scopeMembers?.has(identifier)) {
-      throw new Error(
-        `Error: Use 'this.${identifier}' to access scope member '${identifier}' inside scope '${currentScopePath}'`,
-      );
-    }
-
-    if (CodeGenState.symbols!.knownRegisters.has(identifier)) {
-      throw new Error(
-        `Error: Use 'global.${identifier}' to access register '${identifier}' inside scope '${currentScopePath}'`,
-      );
-    }
-
-    if (
-      CodeGenState.knownFunctions.has(identifier) &&
-      !QualifiedCName.isInScope(identifier, ScopeUtils.leafOf(currentScopePath))
-    ) {
-      throw new Error(
-        `Error: Use 'global.${identifier}' to access global function '${identifier}' inside scope '${currentScopePath}'`,
-      );
-    }
-
-    if (CodeGenState.symbols!.knownEnums.has(identifier)) {
-      throw new Error(
-        `Error: Use 'global.${identifier}' to access global enum '${identifier}' inside scope '${currentScopePath}'`,
-      );
-    }
-
-    if (isKnownStruct(identifier)) {
-      throw new Error(
-        `Error: Use 'global.${identifier}' to access global struct '${identifier}' inside scope '${currentScopePath}'`,
-      );
-    }
-
-    const typeInfo = CodeGenState.getVariableTypeInfo(identifier);
-    if (typeInfo && !QualifiedCName.isQualified(identifier)) {
-      throw new Error(
-        `Error: Use 'global.${identifier}' to access global variable '${identifier}' inside scope '${currentScopePath}'`,
-      );
-    }
-  }
-
+  // #1322: ADR-013's `checkConstAssignment` and `isConstValue` are E0877 and
+  // E0878 in pass 2.1, decided once from the frames and the program's symbols
+  // rather than from `currentParameters` and the type registry.
   /**
    * @param line Source line of the reference, when the caller has one. Used only
    *   to record #1241 provenance: an ADR-057 resolution is invisible to the
@@ -532,610 +178,59 @@ class TypeValidator {
   // Critical Section Validation (ADR-050)
   // ========================================================================
 
-  static validateNoEarlyExits(ctx: Parser.BlockContext): void {
-    for (const stmt of ctx.statement()) {
-      TypeValidator._validateStatementForEarlyExit(stmt);
-    }
-  }
-
-  private static _validateStatementForEarlyExit(
-    stmt: Parser.StatementContext,
-  ): void {
-    if (stmt.returnStatement()) {
-      throw new Error(
-        `E0853: Cannot use 'return' inside critical section - would leave interrupts disabled`,
-      );
-    }
-
-    if (stmt.block()) {
-      TypeValidator.validateNoEarlyExits(stmt.block()!);
-    }
-
-    if (stmt.ifStatement()) {
-      TypeValidator._validateIfStatementForEarlyExit(stmt.ifStatement()!);
-    }
-
-    TypeValidator._validateLoopForEarlyExit(stmt);
-  }
-
-  private static _validateIfStatementForEarlyExit(
-    ifStmt: Parser.IfStatementContext,
-  ): void {
-    for (const innerStmt of ifStmt.statement()) {
-      if (innerStmt.returnStatement()) {
-        throw new Error(
-          `E0853: Cannot use 'return' inside critical section - would leave interrupts disabled`,
-        );
-      }
-      if (innerStmt.block()) {
-        TypeValidator.validateNoEarlyExits(innerStmt.block()!);
-      }
-    }
-  }
-
-  private static _validateLoopForEarlyExit(
-    stmt: Parser.StatementContext,
-  ): void {
-    if (stmt.whileStatement()) {
-      TypeValidator._checkLoopBodyForReturn(stmt.whileStatement()!.statement());
-    }
-    if (stmt.forStatement()) {
-      TypeValidator._checkLoopBodyForReturn(stmt.forStatement()!.statement());
-    }
-    if (stmt.doWhileStatement()) {
-      TypeValidator.validateNoEarlyExits(stmt.doWhileStatement()!.block());
-    }
-  }
-
-  private static _checkLoopBodyForReturn(
-    loopStmt: Parser.StatementContext,
-  ): void {
-    if (loopStmt.returnStatement()) {
-      throw new Error(
-        `E0853: Cannot use 'return' inside critical section - would leave interrupts disabled`,
-      );
-    }
-    if (loopStmt.block()) {
-      TypeValidator.validateNoEarlyExits(loopStmt.block()!);
-    }
-  }
+  // #1322: `validateNoEarlyExits` and its four private helpers are gone. The
+  // rule is E0853 in pass 2.1, where a tree walk reaches every statement the
+  // grammar can nest inside a `critical` block.
+  //
+  // The recursion here ENUMERATED the kinds it descended into -- return, if,
+  // while, for, do-while -- and omitted `switch`, so a `return` in a switch
+  // case compiled clean and emitted C that returns between
+  // `__cnx_disable_irq()` and `__cnx_set_PRIMASK()`. On device, interrupts stay
+  // off. A walk does not enumerate, so it cannot have that hole.
 
   // ========================================================================
   // Switch Statement Validation (ADR-025)
   // ========================================================================
 
-  static validateSwitchStatement(
-    ctx: Parser.SwitchStatementContext,
-    switchExpr: Parser.ExpressionContext,
-  ): void {
-    const cases = ctx.switchCase();
-    const defaultCase = ctx.defaultCase();
-    const totalClauses = cases.length + (defaultCase ? 1 : 0);
+  // #1322: ADR-025's switch rules are E0711-E0714 in pass 2.1 --
+  // `validateSwitchStatement` and the three helpers only it used are gone.
+  // All five throws reached the user as `1:0`, which seven fixtures under
+  // `tests/switch/` asserted verbatim. Nothing here needed a fact the
+  // analyzers could not already see: `knownEnums` and `enumMembers` are on the
+  // per-file symbol view, and the clause count, the labels and `default(N)`
+  // are in the parse tree. They lived here because this is where the switch
+  // was being WRITTEN, not because this is where the facts were.
 
-    const exprType = TypeResolver.getExpressionType(switchExpr);
-    if (exprType === "bool") {
-      throw new Error(
-        "Error: Cannot switch on boolean type (MISRA 16.7). Use if/else instead.",
-      );
-    }
+  // #1322: `validateNoNestedTernary` is gone. ADR-022's rule is E0710 in pass
+  // 2.1, asked of the parse tree.
+  //
+  // What stood here was a SUBSTRING TEST on the branch's source text --
+  // `text.includes("?") && text.includes(":")` -- which rejected
+  // `(n = 1) ? "a?b:c" : "plain"`, a legal ternary whose true branch is a
+  // string literal containing both characters. A rule about syntax asking
+  // about characters.
 
-    if (totalClauses < 2) {
-      throw new Error(
-        "Error: Switch requires at least 2 clauses (MISRA 16.6). Use if statement for single case.",
-      );
-    }
+  // #1322: ADR-022's controlling-expression rule is E0701/E0702 in pass 2.1.
+  // Eight methods stood here -- the boolean check, its three-level decomposition
+  // of `||`/`&&`, the help-text builder, and the two function-call checks. The
+  // rule is purely SYNTACTIC, so none of it needed anything codegen had; only
+  // the help text asked a type question, and 2.1 asks it of the lexical frames,
+  // which honour shadowing where a flat registry lookup does not.
 
-    const seenValues = new Set<string>();
-    for (const caseCtx of cases) {
-      for (const labelCtx of caseCtx.caseLabel()) {
-        const labelValue = TypeValidator.getCaseLabelValue(labelCtx);
-        if (seenValues.has(labelValue)) {
-          throw new Error(
-            `Error: Duplicate case value '${labelValue}' in switch statement.`,
-          );
-        }
-        seenValues.add(labelValue);
-      }
-    }
+  // #1322: ADR-068's always-true loop condition (E0707) is in pass 2.1, with
+  // `for (;;)` and E0705 beside it. Five methods stood here -- the literal
+  // slice's comparison reader, its number parser and the verdict -- all facts
+  // of the parse tree that never needed codegen.
 
-    if (exprType && CodeGenState.symbols!.knownEnums.has(exprType)) {
-      TypeValidator.validateEnumExhaustiveness(
-        ctx,
-        exprType,
-        cases,
-        defaultCase,
-      );
-    }
-  }
+  // #1322: MISRA 12.2's shift-amount rule (E0873) is in pass 2.1, beside the
+  // Rule 10.1 signed-operand rule it always belonged with. Five methods stood
+  // here -- the width table, the literal amount evaluator and the two throws --
+  // and the compound forms (`<<<-`, `>><-`) never reached them.
 
-  static validateEnumExhaustiveness(
-    ctx: Parser.SwitchStatementContext,
-    enumTypeName: string,
-    cases: Parser.SwitchCaseContext[],
-    defaultCase: Parser.DefaultCaseContext | null,
-  ): void {
-    const enumVariants = CodeGenState.symbols!.enumMembers.get(enumTypeName);
-    if (!enumVariants) return;
-
-    const totalVariants = enumVariants.size;
-
-    let explicitCaseCount = 0;
-    for (const caseCtx of cases) {
-      explicitCaseCount += caseCtx.caseLabel().length;
-    }
-
-    if (defaultCase) {
-      const defaultCount = TypeValidator.getDefaultCount(defaultCase);
-
-      if (defaultCount !== null) {
-        const covered = explicitCaseCount + defaultCount;
-        if (covered !== totalVariants) {
-          throw new Error(
-            `Error: switch covers ${covered} of ${totalVariants} ${enumTypeName} variants ` +
-              `(${explicitCaseCount} explicit + default(${defaultCount})). ` +
-              `Expected ${totalVariants}.`,
-          );
-        }
-      }
-    } else if (explicitCaseCount !== totalVariants) {
-      const missing = totalVariants - explicitCaseCount;
-      throw new Error(
-        `Error: Non-exhaustive switch on ${enumTypeName}: covers ${explicitCaseCount} of ${totalVariants} variants, missing ${missing}.`,
-      );
-    }
-  }
-
-  static getDefaultCount(ctx: Parser.DefaultCaseContext): number | null {
-    const intLiteral = ctx.INTEGER_LITERAL();
-    if (intLiteral) {
-      return Number.parseInt(intLiteral.getText(), 10);
-    }
-    return null;
-  }
-
-  static getCaseLabelValue(ctx: Parser.CaseLabelContext): string {
-    if (ctx.qualifiedType()) {
-      const qt = ctx.qualifiedType()!;
-      return qt
-        .IDENTIFIER()
-        .map((id) => id.getText())
-        .join(".");
-    }
-    if (ctx.IDENTIFIER()) {
-      return ctx.IDENTIFIER()!.getText();
-    }
-    if (ctx.INTEGER_LITERAL()) {
-      const num = ctx.INTEGER_LITERAL()!.getText();
-      const hasNeg = ctx.children && ctx.children[0]?.getText() === "-";
-      const value = BigInt(num);
-      return String(hasNeg ? -value : value);
-    }
-    if (ctx.HEX_LITERAL()) {
-      const hex = ctx.HEX_LITERAL()!.getText();
-      const hasNeg = ctx.children && ctx.children[0]?.getText() === "-";
-      const value = BigInt(hex);
-      return String(hasNeg ? -value : value);
-    }
-    if (ctx.BINARY_LITERAL()) {
-      const bin = ctx.BINARY_LITERAL()!.getText();
-      return String(BigInt(bin));
-    }
-    if (ctx.CHAR_LITERAL()) {
-      return ctx.CHAR_LITERAL()!.getText();
-    }
-    return "";
-  }
-
-  // ========================================================================
-  // Ternary Validation (ADR-022)
-  // ========================================================================
-
-  static validateTernaryCondition(ctx: Parser.OrExpressionContext): void {
-    TypeValidator._validateConditionOrExpression(ctx, "ternary");
-  }
-
-  static validateNoNestedTernary(
-    ctx: Parser.OrExpressionContext,
-    branchName: string,
-  ): void {
-    const text = ctx.getText();
-    if (text.includes("?") && text.includes(":")) {
-      throw new Error(
-        `Error: Nested ternary not allowed in ${branchName}. Use if/else instead.`,
-      );
-    }
-  }
-
-  // ========================================================================
-  // Condition Boolean Validation (ADR-027, Issue #884)
-  // ========================================================================
-
-  static validateConditionIsBoolean(
-    ctx: Parser.ExpressionContext,
-    conditionType: string,
-  ): void {
-    const ternaryExpr = ctx.ternaryExpression();
-    const orExprs = ternaryExpr.orExpression();
-
-    if (orExprs.length !== 1) {
-      throw new Error(
-        `Error E0701: ${conditionType} condition must be a boolean expression, not a ternary (MISRA C:2012 Rule 14.4)`,
-      );
-    }
-
-    TypeValidator._validateConditionOrExpression(orExprs[0], conditionType);
-  }
-
-  /**
-   * MISRA C:2012 Rule 14.4 (Issue #1042): a controlling expression must be an
-   * explicit comparison. Every leaf operand — after decomposing `||` and `&&` —
-   * must itself be an equality (`=`, `!=`) or relational (`<`, `>`, `<=`, `>=`)
-   * comparison. A bare value, a bare boolean (local, parameter, or `this.`/
-   * `global.` member), a literal, or a negation (`!x`) is rejected; use an
-   * explicit form such as `x = true`. This is the single decision point shared
-   * by `if`/`while`/`for`/`do-while` and ternary conditions.
-   */
-  private static _validateConditionOrExpression(
-    orExpr: Parser.OrExpressionContext,
-    conditionType: string,
-  ): void {
-    const andExprs = orExpr.andExpression();
-    if (andExprs.length === 0) {
-      TypeValidator._throwConditionNotBoolean(orExpr, conditionType);
-    }
-
-    for (const andExpr of andExprs) {
-      const equalityExprs = andExpr.equalityExpression();
-      if (equalityExprs.length === 0) {
-        TypeValidator._throwConditionNotBoolean(orExpr, conditionType);
-      }
-
-      for (const equalityExpr of equalityExprs) {
-        TypeValidator._validateConditionIsComparison(
-          equalityExpr,
-          orExpr,
-          conditionType,
-        );
-      }
-    }
-  }
-
-  private static _validateConditionIsComparison(
-    equalityExpr: Parser.EqualityExpressionContext,
-    orExpr: Parser.OrExpressionContext,
-    conditionType: string,
-  ): void {
-    // An equality operator (`=`, `!=`) makes this operand a comparison.
-    if (equalityExpr.relationalExpression().length > 1) {
-      return;
-    }
-
-    const relationalExpr = equalityExpr.relationalExpression(0);
-    if (!relationalExpr) {
-      TypeValidator._throwConditionNotBoolean(orExpr, conditionType);
-      return;
-    }
-
-    // A relational operator (`<`, `>`, `<=`, `>=`) makes this operand a comparison.
-    if (relationalExpr.bitwiseOrExpression().length > 1) {
-      return;
-    }
-
-    // No comparison operator: a bare value, bare boolean, literal, or negation.
-    TypeValidator._throwConditionNotBoolean(equalityExpr, conditionType);
-  }
-
-  private static _throwConditionNotBoolean(
-    node: Parser.OrExpressionContext | Parser.EqualityExpressionContext,
-    conditionType: string,
-  ): void {
-    const text = node.getText();
-    throw new Error(
-      `Error E0701: ${conditionType} condition must be a boolean expression (comparison or logical operation), not '${text}' (MISRA C:2012 Rule 14.4)\n  help: ${TypeValidator._conditionHelp(text)}`,
-    );
-  }
-
-  // ========================================================================
-  // Disguised Infinite Loop Validation (ADR-068 / #1075, E0707)
-  // ========================================================================
-
-  /**
-   * ADR-068 / #1075 (E0707): reject a loop whose controlling expression is an
-   * always-TRUE comparison of literal operands (`while (1 = 1)`, `5 > 3`,
-   * `true = true`). C-Next has one source form for an intentional infinite loop —
-   * `forever`. This is the v0.2.18 *literal* slice only: named constants and
-   * non-literal operands need symbol resolution (out of scope), and always-FALSE
-   * conditions are a separate MISRA 14.3 case — both tracked in #1076.
-   *
-   * Runs after the E0701 boolean check, so the condition is already a comparison.
-   */
-  static validateLoopConditionNotAlwaysTrue(
-    ctx: Parser.ExpressionContext,
-  ): void {
-    const comparison = TypeValidator._asSingleLiteralComparison(ctx);
-    if (comparison && TypeValidator._comparisonIsAlwaysTrue(comparison)) {
-      throw new Error(
-        `Error E0707: loop condition '${ctx.getText()}' is always true\n` +
-          "  help: write 'forever { ... }' for an intentional infinite loop",
-      );
-    }
-  }
-
-  /**
-   * If `ctx` is a single comparison of two literal operands (no `||`/`&&`, no
-   * ternary, no chaining), return its operator and the two literal values.
-   * Otherwise null — anything involving identifiers, floats, or sub-expressions
-   * is left to the full MISRA 14.3 effort (#1076).
-   */
-  private static _asSingleLiteralComparison(
-    ctx: Parser.ExpressionContext,
-  ): { operator: string; left: number; right: number } | null {
-    const orExprs = ctx.ternaryExpression().orExpression();
-    if (orExprs.length !== 1) return null;
-    const andExprs = orExprs[0].andExpression();
-    if (andExprs.length !== 1) return null;
-    const equalityExprs = andExprs[0].equalityExpression();
-    if (equalityExprs.length !== 1) return null;
-    const equalityExpr = equalityExprs[0];
-
-    const relationalExprs = equalityExpr.relationalExpression();
-    if (relationalExprs.length === 2) {
-      // Equality comparison: relExpr ('=' | '!=') relExpr
-      return TypeValidator._buildLiteralComparison(
-        equalityExpr.getChild(1)?.getText(),
-        relationalExprs[0].getText(),
-        relationalExprs[1].getText(),
-      );
-    }
-    if (relationalExprs.length === 1) {
-      const bitwiseOrExprs = relationalExprs[0].bitwiseOrExpression();
-      if (bitwiseOrExprs.length === 2) {
-        // Relational comparison: orExpr ('<' | '>' | '<=' | '>=') orExpr
-        return TypeValidator._buildLiteralComparison(
-          relationalExprs[0].getChild(1)?.getText(),
-          bitwiseOrExprs[0].getText(),
-          bitwiseOrExprs[1].getText(),
-        );
-      }
-    }
-    return null;
-  }
-
-  private static _buildLiteralComparison(
-    operator: string | undefined,
-    leftText: string,
-    rightText: string,
-  ): { operator: string; left: number; right: number } | null {
-    const left = TypeValidator._literalValue(leftText);
-    const right = TypeValidator._literalValue(rightText);
-    if (operator === undefined || left === null || right === null) return null;
-    return { operator, left, right };
-  }
-
-  /**
-   * Strict literal-to-number for the E0707 literal slice: integer literals
-   * (decimal/hex/binary, optional type suffix) and `true`/`false`. Floats,
-   * strings, chars, identifiers, and any compound text return null so they are
-   * not treated as compile-time-known.
-   */
-  private static _literalValue(text: string): number | null {
-    if (text === "true") return 1;
-    if (text === "false") return 0;
-    if (text.includes(".")) return null;
-    // A leading-zero integer (`0777`) is emitted verbatim and read by C as an
-    // OCTAL constant, so a decimal parse would diverge from the generated code's
-    // value. Skip it (defer to #1076) rather than risk a wrong verdict. `0x`/`0b`
-    // and a bare `0` are unambiguous and still handled.
-    if (/^0\d/.test(text)) return null;
-    if (/^(0[xX][\da-fA-F]+|0[bB][01]+|\d+)([uUiI]\d+)?$/.test(text)) {
-      return LiteralEvaluator.parseLiteral(text);
-    }
-    return null;
-  }
-
-  private static _comparisonIsAlwaysTrue(comparison: {
-    operator: string;
-    left: number;
-    right: number;
-  }): boolean {
-    switch (comparison.operator) {
-      case "=":
-        return comparison.left === comparison.right;
-      case "!=":
-        return comparison.left !== comparison.right;
-      case "<":
-        return comparison.left < comparison.right;
-      case ">":
-        return comparison.left > comparison.right;
-      case "<=":
-        return comparison.left <= comparison.right;
-      case ">=":
-        return comparison.left >= comparison.right;
-      default:
-        return false;
-    }
-  }
-
-  /**
-   * Builds a context-aware "help" suggestion for a rejected condition. For a
-   * boolean operand the correct explicit form is `flag = true` (or `flag = false`
-   * for a negated `!flag`), not a numeric `> 0` comparison. Non-boolean operands
-   * keep the generic `> 0 or != 0` guidance. A member access (`this.flag`) that
-   * does not resolve to a known type falls back to the generic form.
-   */
-  private static _conditionHelp(text: string): string {
-    const isNegated = text.startsWith("!");
-    const base = isNegated ? text.slice(1) : text;
-    const typeInfo = CodeGenState.getVariableTypeInfo(base);
-    if (typeInfo?.baseType === "bool") {
-      return `use explicit comparison: ${base} = ${isNegated ? "false" : "true"}`;
-    }
-    return `use explicit comparison: ${text} > 0 or ${text} != 0`;
-  }
-
-  // ========================================================================
-  // Function Call in Condition Validation (Issue #254)
-  // ========================================================================
-
-  static validateConditionNoFunctionCall(
-    ctx: Parser.ExpressionContext,
-    conditionType: string,
-  ): void {
-    if (ExpressionUtils.hasFunctionCall(ctx)) {
-      const text = ctx.getText();
-      throw new Error(
-        `Error E0702: Function call in '${conditionType}' condition is not allowed (MISRA C:2012 Rule 13.5)\n` +
-          `  expression: ${text}\n` +
-          `  help: store the function result in a variable first`,
-      );
-    }
-  }
-
-  static validateTernaryConditionNoFunctionCall(
-    ctx: Parser.OrExpressionContext,
-  ): void {
-    if (ExpressionUtils.hasFunctionCallInOr(ctx)) {
-      const text = ctx.getText();
-      throw new Error(
-        `Error E0702: Function call in 'ternary' condition is not allowed (MISRA C:2012 Rule 13.5)\n` +
-          `  expression: ${text}\n` +
-          `  help: store the function result in a variable first`,
-      );
-    }
-  }
-
-  // ========================================================================
-  // Shift Amount Validation (MISRA C:2012 Rule 12.2)
-  // ========================================================================
-
-  static validateShiftAmount(
-    leftType: string,
-    rightExpr: Parser.AdditiveExpressionContext,
-    op: string,
-    ctx: Parser.ShiftExpressionContext,
-  ): void {
-    const typeWidth = TypeValidator._getTypeWidth(leftType);
-    if (!typeWidth) return;
-
-    const shiftAmount = TypeValidator._evaluateShiftAmount(rightExpr);
-    if (shiftAmount === null) return;
-
-    if (shiftAmount < 0) {
-      throw new Error(
-        `Error: Negative shift amount (${shiftAmount}) is undefined behavior\n` +
-          `  Type: ${leftType}\n` +
-          `  Expression: ${ctx.getText()}\n` +
-          `  Shift amounts must be non-negative`,
-      );
-    }
-
-    if (shiftAmount >= typeWidth) {
-      throw new Error(
-        `Error: Shift amount (${shiftAmount}) exceeds type width (${typeWidth} bits) for type '${leftType}'\n` +
-          `  Expression: ${ctx.getText()}\n` +
-          `  Shift amount must be < ${typeWidth} for ${typeWidth}-bit types\n` +
-          `  This violates MISRA C:2012 Rule 12.2 and causes undefined behavior`,
-      );
-    }
-  }
-
-  private static _getTypeWidth(type: string): number | null {
-    switch (type) {
-      case "u8":
-      case "i8":
-        return 8;
-      case "u16":
-      case "i16":
-        return 16;
-      case "u32":
-      case "i32":
-        return 32;
-      case "u64":
-      case "i64":
-        return 64;
-      default:
-        return null;
-    }
-  }
-
-  private static _evaluateShiftAmount(
-    ctx: Parser.AdditiveExpressionContext,
-  ): number | null {
-    const multExprs = ctx.multiplicativeExpression();
-    if (multExprs.length !== 1) return null;
-
-    const multExpr = multExprs[0];
-    const unaryExprs = multExpr.unaryExpression();
-    if (unaryExprs.length !== 1) return null;
-
-    return TypeValidator._evaluateUnaryExpression(unaryExprs[0]);
-  }
-
-  private static _evaluateUnaryExpression(
-    ctx: Parser.UnaryExpressionContext,
-  ): number | null {
-    const unaryText = ctx.getText();
-    const isNegative = unaryText.startsWith("-");
-
-    const postfixExpr = ctx.postfixExpression();
-    if (postfixExpr) {
-      return TypeValidator._evaluateLiteralFromPostfix(postfixExpr, isNegative);
-    }
-
-    const nestedUnary = ctx.unaryExpression();
-    if (nestedUnary) {
-      const nestedValue = TypeValidator._evaluateUnaryExpression(nestedUnary);
-      return LiteralEvaluator.applySign(nestedValue, isNegative);
-    }
-
-    return null;
-  }
-
-  private static _evaluateLiteralFromPostfix(
-    postfixExpr: Parser.PostfixExpressionContext,
-    isNegative: boolean,
-  ): number | null {
-    const primaryExpr = postfixExpr.primaryExpression();
-    if (!primaryExpr) return null;
-
-    const literal = primaryExpr.literal();
-    if (!literal) return null;
-
-    const text = literal.getText();
-    const value = LiteralEvaluator.parseLiteral(text);
-    return LiteralEvaluator.applySign(value, isNegative);
-  }
-
-  // ========================================================================
-  // Integer Assignment Validation (ADR-024)
-  // ========================================================================
-
-  static validateIntegerAssignment(
-    targetType: string,
-    expressionText: string,
-    sourceType: string | null,
-    isCompound: boolean,
-  ): void {
-    if (isCompound) {
-      return;
-    }
-
-    if (!TypeResolver.isIntegerType(targetType)) {
-      return;
-    }
-
-    const trimmed = expressionText.trim();
-
-    const isDecimalLiteral = /^-?\d+$/.exec(trimmed);
-    const isHexLiteral = /^0[xX][0-9a-fA-F]+$/.exec(trimmed);
-    const isBinaryLiteral = /^0[bB][01]+$/.exec(trimmed);
-
-    if (isDecimalLiteral || isHexLiteral || isBinaryLiteral) {
-      TypeResolver.validateLiteralFitsType(trimmed, targetType);
-    } else {
-      TypeResolver.validateTypeConversion(targetType, sourceType);
-    }
-  }
+  // #1322: `validateIntegerAssignment` stood here -- ADR-024's literal-range,
+  // narrowing and sign-change rules, reached through `AssignmentValidator`,
+  // which caught the throw and prefixed `${line}:${col}` onto it. E0868/E0869
+  // in pass 2.1 now.
 }
 
 export default TypeValidator;

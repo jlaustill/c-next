@@ -4,7 +4,6 @@ import CnxFileResolver from "../../../../../data/CnxFileResolver";
 
 const {
   transformIncludeDirective,
-  extractDefineName,
   processDefineDirective,
   processConditionalDirective,
   processPreprocessorDirective,
@@ -23,56 +22,6 @@ describe("IncludeGenerator", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
-
-  // ==========================================================================
-  // extractDefineName
-  // ==========================================================================
-
-  describe("extractDefineName", () => {
-    it("extracts simple define name", () => {
-      expect(extractDefineName("#define FOO")).toBe("FOO");
-    });
-
-    it("extracts define name with underscore", () => {
-      expect(extractDefineName("#define _GUARD_H")).toBe("_GUARD_H");
-    });
-
-    it("extracts define name with numbers", () => {
-      expect(extractDefineName("#define VERSION_2")).toBe("VERSION_2");
-    });
-
-    it("handles whitespace after #", () => {
-      expect(extractDefineName("#  define MY_FLAG")).toBe("MY_FLAG");
-    });
-
-    it("handles extra whitespace before name", () => {
-      expect(extractDefineName("#define   SPACED")).toBe("SPACED");
-    });
-
-    it("extracts name from define with value", () => {
-      expect(extractDefineName("#define MAX_SIZE 100")).toBe("MAX_SIZE");
-    });
-
-    it("extracts name from function-like macro", () => {
-      expect(extractDefineName("#define ADD(a,b) ((a)+(b))")).toBe("ADD");
-    });
-
-    it("returns unknown for invalid define", () => {
-      expect(extractDefineName("not a define")).toBe("unknown");
-    });
-
-    it("returns unknown for empty string", () => {
-      expect(extractDefineName("")).toBe("unknown");
-    });
-
-    it("returns unknown for malformed define", () => {
-      expect(extractDefineName("#define 123invalid")).toBe("unknown");
-    });
-  });
-
-  // ==========================================================================
-  // transformIncludeDirective - angle bracket includes
-  // ==========================================================================
 
   describe("transformIncludeDirective - angle brackets", () => {
     // Issue #1467: `rewrites` is PathResolver's answer, arriving already
@@ -208,41 +157,11 @@ describe("IncludeGenerator", () => {
       expect(CnxFileResolver.cnxFileExists).not.toHaveBeenCalled();
     });
 
-    it("throws error when .cnx file not found", () => {
-      vi.mocked(CnxFileResolver.cnxFileExists).mockReturnValue(false);
-
-      expect(() =>
-        transformIncludeDirective('#include "missing.cnx"', {
-          headerExtension: ".h",
-          sourcePath: "/project/src/main.cnx",
-          rewrites: new Map(),
-        }),
-      ).toThrow(/Included C-Next file not found: missing.cnx/);
-    });
-
-    it("includes search path in error message", () => {
-      vi.mocked(CnxFileResolver.cnxFileExists).mockReturnValue(false);
-
-      expect(() =>
-        transformIncludeDirective('#include "missing.cnx"', {
-          headerExtension: ".h",
-          sourcePath: "/project/src/main.cnx",
-          rewrites: new Map(),
-        }),
-      ).toThrow(/Searched at:/);
-    });
-
-    it("includes source file in error message", () => {
-      vi.mocked(CnxFileResolver.cnxFileExists).mockReturnValue(false);
-
-      expect(() =>
-        transformIncludeDirective('#include "missing.cnx"', {
-          headerExtension: ".h",
-          sourcePath: "/project/src/main.cnx",
-          rewrites: new Map(),
-        }),
-      ).toThrow(/Referenced in:.*main\.cnx/);
-    });
+    // #1322: three cases pinning the `Included C-Next file not found` throw
+    // stood here. It is E0506 in pass 2.1 now, reported at the directive rather
+    // than as `1:0 Code generation failed: Error: …` with no code, and its
+    // cases live in `1-Analyze/__tests__/IncludeDirectiveAnalyzer.test.ts`.
+    // Transformation no longer consults the file system at all.
 
     it("transforms quoted .cnx include to .hpp in C++ mode", () => {
       vi.mocked(CnxFileResolver.cnxFileExists).mockReturnValue(true);
@@ -347,7 +266,11 @@ describe("IncludeGenerator", () => {
       expect(result).toBe("#define MY_FLAG");
     });
 
-    it("throws E0501 for function-like macro", () => {
+    // #1322: E0501 and E0502 are ADR-037 decisions and moved to pass 2.1's
+    // DefineDirectiveAnalyzer, which parses real source instead of the
+    // hand-built contexts these six tests mocked. What remains here is the
+    // invariant that says so.
+    it("asserts a function-like macro cannot reach codegen", () => {
       const mockCtx = {
         getText: () => "#define ADD(a,b) ((a)+(b))",
         DEFINE_FUNCTION: () => ({
@@ -358,36 +281,12 @@ describe("IncludeGenerator", () => {
         start: { line: 10 },
       };
 
-      expect(() => processDefineDirective(mockCtx as any)).toThrow(/E0501/);
-    });
-
-    it("includes macro name in E0501 error", () => {
-      const mockCtx = {
-        getText: () => "#define SQUARE(x) ((x)*(x))",
-        DEFINE_FUNCTION: () => ({ getText: () => "#define SQUARE(x)" }),
-        DEFINE_WITH_VALUE: () => null,
-        DEFINE_FLAG: () => null,
-        start: { line: 1 },
-      };
-
-      expect(() => processDefineDirective(mockCtx as any)).toThrow(/SQUARE/);
-    });
-
-    it("suggests inline functions for E0501", () => {
-      const mockCtx = {
-        getText: () => "#define MAX(a,b)",
-        DEFINE_FUNCTION: () => ({ getText: () => "#define MAX(a,b)" }),
-        DEFINE_WITH_VALUE: () => null,
-        DEFINE_FLAG: () => null,
-        start: { line: 1 },
-      };
-
       expect(() => processDefineDirective(mockCtx as any)).toThrow(
-        /inline functions/,
+        "E0501/E0502 reject this in pass 2.1",
       );
     });
 
-    it("throws E0502 for value define", () => {
+    it("asserts a value define cannot reach codegen", () => {
       const mockCtx = {
         getText: () => "#define MAX_SIZE 100",
         DEFINE_FUNCTION: () => null,
@@ -396,34 +295,8 @@ describe("IncludeGenerator", () => {
         start: { line: 15 },
       };
 
-      expect(() => processDefineDirective(mockCtx as any)).toThrow(/E0502/);
-    });
-
-    it("includes macro name in E0502 error", () => {
-      const mockCtx = {
-        getText: () => "#define BUFFER_SIZE 256",
-        DEFINE_FUNCTION: () => null,
-        DEFINE_WITH_VALUE: () => ({ getText: () => "#define BUFFER_SIZE 256" }),
-        DEFINE_FLAG: () => null,
-        start: { line: 1 },
-      };
-
       expect(() => processDefineDirective(mockCtx as any)).toThrow(
-        /BUFFER_SIZE/,
-      );
-    });
-
-    it("suggests const for E0502", () => {
-      const mockCtx = {
-        getText: () => "#define COUNT 10",
-        DEFINE_FUNCTION: () => null,
-        DEFINE_WITH_VALUE: () => ({ getText: () => "#define COUNT 10" }),
-        DEFINE_FLAG: () => null,
-        start: { line: 1 },
-      };
-
-      expect(() => processDefineDirective(mockCtx as any)).toThrow(
-        /const u32 COUNT/,
+        "E0501/E0502 reject this in pass 2.1",
       );
     });
 
@@ -438,18 +311,6 @@ describe("IncludeGenerator", () => {
 
       const result = processDefineDirective(mockCtx as any);
       expect(result).toBeNull();
-    });
-
-    it("handles missing start line gracefully", () => {
-      const mockCtx = {
-        getText: () => "#define MACRO(x)",
-        DEFINE_FUNCTION: () => ({ getText: () => "#define MACRO(x)" }),
-        DEFINE_WITH_VALUE: () => null,
-        DEFINE_FLAG: () => null,
-        start: null,
-      };
-
-      expect(() => processDefineDirective(mockCtx as any)).toThrow(/Line 0/);
     });
   });
 

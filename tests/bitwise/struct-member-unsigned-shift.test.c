@@ -13,9 +13,9 @@
 int main(void) {
     Data d = { .value = 1U };
     d.value <<= 2U;
-    if (d.value != 4) return 1;
+    if (d.value != 4) return 1U;
     d.value = 16U;
     d.value >>= 2U;
-    if (d.value != 4) return 2;
-    return 0;
+    if (d.value != 4) return 2U;
+    return 0U;
 }

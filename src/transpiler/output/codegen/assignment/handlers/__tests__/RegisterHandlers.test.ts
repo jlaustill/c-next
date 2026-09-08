@@ -111,9 +111,7 @@ describe("RegisterHandlers", () => {
       });
       const ctx = createMockContext({ generatedValue: "false" });
 
-      expect(() => getHandler()!(ctx)).toThrow(
-        "Cannot assign false to write-only register bit",
-      );
+      expect(() => getHandler()!(ctx)).toThrow("E0872 rejects");
     });
 
     it("throws on write-only register with 0 value", () => {
@@ -125,18 +123,15 @@ describe("RegisterHandlers", () => {
       });
       const ctx = createMockContext({ generatedValue: "0" });
 
-      expect(() => getHandler()!(ctx)).toThrow(
-        "Cannot assign false to write-only register bit",
-      );
+      expect(() => getHandler()!(ctx)).toThrow("E0872 rejects");
     });
 
-    it("throws on compound assignment", () => {
-      const ctx = createMockContext({ isCompound: true, cnextOp: "+<-" });
-
-      expect(() => getHandler()!(ctx)).toThrow(
-        "Compound assignment operators not supported for bit field access",
-      );
-    });
+    // #1322: compound assignment on a bit index, bit range, slice, bitmap field
+    // or string is E0857 in pass 2.1 -- one decision where `output/` had six
+    // throws with four messages, and `validateNotCompound` defined twice verbatim.
+    // The pipeline halts before these handlers run. Covered by
+    // `1-Analyze/__tests__/CompoundAssignmentAnalyzer.test.ts` plus
+    // `tests/compound-assign/` and `tests/string-assignment/`.
 
     it("handles scoped register prefix correctly", () => {
       HandlerTestUtils.setupMockGenerator({
@@ -217,9 +212,7 @@ describe("RegisterHandlers", () => {
         generatedValue: "0",
       });
 
-      expect(() => getHandler()!(ctx)).toThrow(
-        "Cannot assign 0 to write-only register bits",
-      );
+      expect(() => getHandler()!(ctx)).toThrow("E0872 rejects");
     });
 
     it("generates MMIO optimization for byte-aligned access", () => {
@@ -276,18 +269,6 @@ describe("RegisterHandlers", () => {
       expect(result).toContain("volatile uint16_t*");
       expect(result).toContain("0x04 + 1");
     });
-
-    it("throws on compound assignment", () => {
-      const ctx = createMockContext({
-        isCompound: true,
-        cnextOp: "+<-",
-        subscripts: [{ mockValue: "0" } as never, { mockValue: "8" } as never],
-      });
-
-      expect(() => getHandler()!(ctx)).toThrow(
-        "Compound assignment operators not supported for bit field access",
-      );
-    });
   });
 
   describe("handleScopedRegisterBit (SCOPED_REGISTER_BIT)", () => {
@@ -330,23 +311,11 @@ describe("RegisterHandlers", () => {
       expect(result).toBe("Motor__GPIO7__DR_SET = (1U << LED_BIT);");
     });
 
-    it("throws when used outside scope", () => {
-      CodeGenState.setCurrentScopeByPath(null);
-      const ctx = createMockContext({ hasThis: true });
-
-      expect(() => getHandler()!(ctx)).toThrow(
-        "'this' can only be used inside a scope",
-      );
-    });
-
-    it("throws on compound assignment", () => {
-      CodeGenState.setCurrentScopeByPath("Motor");
-      const ctx = createMockContext({ isCompound: true, cnextOp: "+<-" });
-
-      expect(() => getHandler()!(ctx)).toThrow(
-        "Compound assignment operators not supported for bit field access",
-      );
-    });
+    // #1322a: the `'this' outside a scope` guard this asserted is deleted. It
+    // was unreachable -- `this.x <- 5` at file scope is a PARSE error, so the
+    // assignment never reaches codegen -- and this test reached it only by
+    // calling the handler directly with state production cannot produce. A test
+    // that is a dead branch's only caller is what keeps the branch alive.
 
     it("throws on write-only register with false value", () => {
       CodeGenState.setCurrentScopeByPath("Motor");
@@ -362,9 +331,7 @@ describe("RegisterHandlers", () => {
         generatedValue: "false",
       });
 
-      expect(() => getHandler()!(ctx)).toThrow(
-        "Cannot assign false to write-only register bit",
-      );
+      expect(() => getHandler()!(ctx)).toThrow("E0872 rejects");
     });
   });
 
@@ -450,30 +417,11 @@ describe("RegisterHandlers", () => {
       expect(result).toContain("0x40000000");
     });
 
-    it("throws when used outside scope", () => {
-      CodeGenState.setCurrentScopeByPath(null);
-      const ctx = createMockContext({
-        subscripts: [{ mockValue: "6" } as never, { mockValue: "2" } as never],
-        hasThis: true,
-      });
-
-      expect(() => getHandler()!(ctx)).toThrow(
-        "'this' can only be used inside a scope",
-      );
-    });
-
-    it("throws on compound assignment", () => {
-      CodeGenState.setCurrentScopeByPath("Motor");
-      const ctx = createMockContext({
-        isCompound: true,
-        cnextOp: "+<-",
-        subscripts: [{ mockValue: "6" } as never, { mockValue: "2" } as never],
-      });
-
-      expect(() => getHandler()!(ctx)).toThrow(
-        "Compound assignment operators not supported for bit field access",
-      );
-    });
+    // #1322a: the `'this' outside a scope` guard this asserted is deleted. It
+    // was unreachable -- `this.x <- 5` at file scope is a PARSE error, so the
+    // assignment never reaches codegen -- and this test reached it only by
+    // calling the handler directly with state production cannot produce. A test
+    // that is a dead branch's only caller is what keeps the branch alive.
 
     it("throws on write-only bit range with 0 value", () => {
       CodeGenState.setCurrentScopeByPath("Motor");
@@ -493,9 +441,7 @@ describe("RegisterHandlers", () => {
         generatedValue: "0",
       });
 
-      expect(() => getHandler()!(ctx)).toThrow(
-        "Cannot assign 0 to write-only register bits",
-      );
+      expect(() => getHandler()!(ctx)).toThrow("E0872 rejects");
     });
   });
 });

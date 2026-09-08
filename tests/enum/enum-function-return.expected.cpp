@@ -48,25 +48,25 @@ TrafficLight colorToLight(Color c) {
 
 int main(void) {
     Color c = getColorByIndex(0U);
-    if (c != Color__RED) return 1;
+    if (c != Color__RED) return 1U;
     c = getColorByIndex(1U);
-    if (c != Color__GREEN) return 2;
+    if (c != Color__GREEN) return 2U;
     c = getColorByIndex(2U);
-    if (c != Color__BLUE) return 3;
+    if (c != Color__BLUE) return 3U;
     c = getColorByIndex(99U);
-    if (c != Color__YELLOW) return 4;
+    if (c != Color__YELLOW) return 4U;
     TrafficLight light = TrafficLight__STOP;
     light = getNextLight(light);
-    if (light != TrafficLight__GO) return 5;
+    if (light != TrafficLight__GO) return 5U;
     light = getNextLight(light);
-    if (light != TrafficLight__CAUTION) return 6;
+    if (light != TrafficLight__CAUTION) return 6U;
     light = getNextLight(light);
-    if (light != TrafficLight__STOP) return 7;
+    if (light != TrafficLight__STOP) return 7U;
     TrafficLight mapped = colorToLight(Color__RED);
-    if (mapped != TrafficLight__STOP) return 8;
+    if (mapped != TrafficLight__STOP) return 8U;
     mapped = colorToLight(Color__GREEN);
-    if (mapped != TrafficLight__GO) return 9;
+    if (mapped != TrafficLight__GO) return 9U;
     mapped = colorToLight(Color__BLUE);
-    if (mapped != TrafficLight__CAUTION) return 10;
-    return 0;
+    if (mapped != TrafficLight__CAUTION) return 10U;
+    return 0U;
 }

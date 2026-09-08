@@ -62,27 +62,27 @@ int32_t Temperature__getFahrenheit(void) {
 int main(void) {
     Counter__reset();
     uint32_t val = Counter__get();
-    if (val != 0) return 1;
+    if (val != 0) return 1U;
     Counter__increment();
     val = Counter__get();
-    if (val != 1) return 2;
+    if (val != 1) return 2U;
     Counter__increment();
     Counter__increment();
     val = Counter__get();
-    if (val != 3) return 3;
+    if (val != 3) return 3U;
     Counter__add(10U);
     val = Counter__get();
-    if (val != 13) return 4;
+    if (val != 13) return 4U;
     Counter__reset();
     val = Counter__get();
-    if (val != 0) return 5;
+    if (val != 0) return 5U;
     Temperature__set(25);
     int32_t celsius = Temperature__getCelsius();
-    if (celsius != 25) return 6;
+    if (celsius != 25) return 6U;
     int32_t fahrenheit = Temperature__getFahrenheit();
-    if (fahrenheit != 77) return 7;
+    if (fahrenheit != 77) return 7U;
     Temperature__set(0);
     fahrenheit = Temperature__getFahrenheit();
-    if (fahrenheit != 32) return 8;
-    return 0;
+    if (fahrenheit != 32) return 8U;
+    return 0U;
 }

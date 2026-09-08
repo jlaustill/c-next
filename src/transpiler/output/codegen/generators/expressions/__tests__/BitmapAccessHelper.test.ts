@@ -45,7 +45,10 @@ describe("BitmapAccessHelper", () => {
       expect(result.effects).toHaveLength(0);
     });
 
-    it("throws for unknown bitmap field with type context", () => {
+    // #1322: these three asserted the user-facing throw. ADR-034's unknown-field
+    // rule is E0882 in pass 2.1; what remains here is the invariant that says so,
+    // and they assert that instead of being deleted -- the guard still narrows.
+    it("asserts the invariant for an unknown bitmap field with type context", () => {
       const bitmapFields = new Map([["Status", new Map()]]);
 
       expect(() =>
@@ -56,10 +59,10 @@ describe("BitmapAccessHelper", () => {
           bitmapFields,
           "type 'Status'",
         ),
-      ).toThrow("Unknown bitmap field 'Unknown' on type 'Status'");
+      ).toThrow("E0882 rejects this in pass 2.1");
     });
 
-    it("throws for unknown bitmap field with register member context", () => {
+    it("asserts the invariant for an unknown field via a register member", () => {
       const bitmapFields = new Map([["CtrlBits", new Map()]]);
 
       expect(() =>
@@ -70,7 +73,7 @@ describe("BitmapAccessHelper", () => {
           bitmapFields,
           "register member 'MOTOR_CTRL' (bitmap type 'CtrlBits')",
         ),
-      ).toThrow("Unknown bitmap field 'Missing'");
+      ).toThrow("E0882 rejects this in pass 2.1");
       expect(() =>
         BitmapAccessHelper.generate(
           "MOTOR__CTRL",
@@ -96,7 +99,7 @@ describe("BitmapAccessHelper", () => {
       ).toThrow("struct member");
     });
 
-    it("handles bitmap type not in field map", () => {
+    it("asserts the invariant for a bitmap type not in the field map", () => {
       const bitmapFields = new Map<string, Map<string, IBitmapFieldLayout>>();
 
       expect(() =>
@@ -107,7 +110,7 @@ describe("BitmapAccessHelper", () => {
           bitmapFields,
           "type 'Unknown'",
         ),
-      ).toThrow("Unknown bitmap field 'Field' on type 'Unknown'");
+      ).toThrow("E0882 rejects this in pass 2.1");
     });
   });
 });

@@ -101,6 +101,40 @@ C-Next does not support `break` or `continue` statements. All loop exit conditio
 2. **MISRA's single-exit philosophy** - Reduces complexity and improves code analysis
 3. **ADR-025's switch design** - With no fallthrough, switches don't need break; this extends naturally to "break doesn't exist"
 
+## Diagnostics
+
+| Code  | Reported when                             | Asserted by                                                                         |
+| ----- | ----------------------------------------- | ----------------------------------------------------------------------------------- |
+| E0703 | `break` or `continue` is written anywhere | `tests/adr-026/break-rejected.test.cnx`, `tests/adr-026/continue-rejected.test.cnx` |
+
+The two words are not keywords -- they parse as ordinary identifiers -- so the
+rejection is a rule rather than a grammar error, and it names the position of
+the word. Since #1322 it is decided during analysis with the other loop rules
+(ADR-068), and every occurrence in a file is reported.
+
+## Scope-Context Matrix (#1219)
+
+<!-- MATRIX-SEVERITY -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | off      |
+| scope member       | same file           | off      |
+| top-level function | imported direct     | off      |
+| scope method       | imported direct     | off      |
+| global variable    | imported direct     | off      |
+| scope member       | imported direct     | off      |
+| top-level function | imported transitive | off      |
+| scope method       | imported transitive | off      |
+| global variable    | imported transitive | off      |
+| scope member       | imported transitive | off      |
+
+`break` and `continue` are statements inside a loop body, so the declaration
+contexts are `off`; the word itself is the whole fact, so nothing crosses an
+include and the imported columns are `off`.
+
 ## Proper Patterns
 
 Every use case for `break` and `continue` can be expressed with proper loop structure.

@@ -5,18 +5,10 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock TypeValidator before imports
-vi.mock("../../../TypeValidator", () => ({
-  default: {
-    validateBitmapFieldLiteral: vi.fn(),
-  },
-}));
-
 import bitmapHandlers from "../BitmapHandlers";
 import AssignmentKind from "../../AssignmentKind";
 import IAssignmentContext from "../../IAssignmentContext";
 import CodeGenState from "../../../../../state/CodeGenState";
-import TypeValidator from "../../../TypeValidator";
 import HandlerTestUtils from "./handlerTestUtils";
 
 /**
@@ -135,50 +127,22 @@ describe("BitmapHandlers", () => {
         identifiers: ["flags", "Unknown"],
       });
 
-      expect(() => getHandler()!(ctx)).toThrow(
-        "Unknown bitmap field 'Unknown' on type 'StatusFlags'",
-      );
+      expect(() => getHandler()!(ctx)).toThrow("agree on the bitmap field key");
     });
 
-    it("throws on compound assignment", () => {
-      HandlerTestUtils.setupMockTypeRegistry([
-        ["flags", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
-      ]);
-      HandlerTestUtils.setupMockSymbols({
-        bitmapFields: new Map([
-          ["StatusFlags", new Map([["Running", { offset: 0, width: 1 }]])],
-        ]),
-      });
-      const ctx = createMockContext({
-        isCompound: true,
-        cnextOp: "+<-",
-      });
+    // #1322: compound assignment on a bit index, bit range, slice, bitmap field
+    // or string is E0857 in pass 2.1 -- one decision where `output/` had six
+    // throws with four messages, and `validateNotCompound` defined twice verbatim.
+    // The pipeline halts before these handlers run. Covered by
+    // `1-Analyze/__tests__/CompoundAssignmentAnalyzer.test.ts` plus
+    // `tests/compound-assign/` and `tests/string-assignment/`.
 
-      expect(() => getHandler()!(ctx)).toThrow(
-        "Compound assignment operators not supported for bitmap field access",
-      );
-    });
-
-    it("validates bitmap field literal", () => {
-      HandlerTestUtils.setupMockTypeRegistry([
-        ["flags", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
-      ]);
-      HandlerTestUtils.setupMockSymbols({
-        bitmapFields: new Map([
-          ["StatusFlags", new Map([["Running", { offset: 0, width: 1 }]])],
-        ]),
-      });
-      const ctx = createMockContext();
-      vi.mocked(TypeValidator.validateBitmapFieldLiteral).mockClear();
-
-      getHandler()!(ctx);
-
-      expect(TypeValidator.validateBitmapFieldLiteral).toHaveBeenCalledWith(
-        ctx.valueCtx,
-        1,
-        "Running",
-      );
-    });
+    // #1322: "validates bitmap field literal" stood here and asserted the
+    // delegation to `TypeValidator.validateBitmapFieldLiteral`, which is
+    // deleted. ADR-034's overflow rule is E0881 in pass 2.1, decided from the
+    // bitmap's layouts and the value's own text rather than from a field this
+    // handler had already resolved. Deleted with its mock rather than left
+    // asserting a call that cannot happen.
   });
 
   describe("handleBitmapFieldMultiBit (BITMAP_FIELD_MULTI_BIT)", () => {
@@ -340,10 +304,7 @@ describe("BitmapHandlers", () => {
     });
 
     it("generates scope-prefixed register bitmap field", () => {
-      const validateCrossScopeVisibility = vi.fn();
-      HandlerTestUtils.setupMockGenerator({
-        validateCrossScopeVisibility,
-      });
+      HandlerTestUtils.setupMockGenerator({});
       HandlerTestUtils.setupMockSymbols({
         bitmapFields: new Map([
           ["ICR1Bits", new Map([["LED", { offset: 6, width: 2 }]])],
@@ -359,23 +320,13 @@ describe("BitmapHandlers", () => {
       const result = getHandler()!(ctx);
 
       expect(result).toContain("Motor__GPIO7__ICR1 =");
-      expect(validateCrossScopeVisibility).toHaveBeenCalledWith(
-        "Motor",
-        "GPIO7",
-      );
     });
 
-    it("throws when 'this' used outside scope", () => {
-      CodeGenState.setCurrentScopeByPath(null);
-      const ctx = createMockContext({
-        identifiers: ["GPIO7", "ICR1", "LED"],
-        hasThis: true,
-      });
-
-      expect(() => getHandler()!(ctx)).toThrow(
-        "'this' can only be used inside a scope",
-      );
-    });
+    // #1322a: the `'this' outside a scope` guard this asserted is deleted. It
+    // was unreachable -- `this.x <- 5` at file scope is a PARSE error, so the
+    // assignment never reaches codegen -- and this test reached it only by
+    // calling the handler directly with state production cannot produce. A test
+    // that is a dead branch's only caller is what keeps the branch alive.
 
     it("generates write-only pattern for wo register", () => {
       CodeGenState.setCurrentScopeByPath("Motor");

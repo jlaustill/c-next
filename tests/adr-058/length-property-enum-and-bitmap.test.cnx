@@ -1,0 +1,30 @@
+// test-execution
+// test-adr: 058
+// An enum and a bitmap both have a fixed width, so .bit_length and .byte_length
+// answer on them. The first version of the 2.1 rule sized only primitives and
+// rejected both; four fixtures caught it. This one is here so that cannot
+// silently return: it EXECUTES, and asserts the widths.
+
+enum Color {
+    RED,
+    GREEN
+}
+
+bitmap16 Flags {
+    Mode[4],
+    Status[4],
+    Counter[8]
+}
+
+u32 main() {
+    Color c <- Color.RED;
+    if (c.bit_length != 32) return 1;
+    if (c.byte_length != 4) return 2;
+
+    Flags f;
+    f.Mode <- 1;
+    if (f.bit_length != 16) return 3;
+    if (f.byte_length != 2) return 4;
+
+    return 0;
+}

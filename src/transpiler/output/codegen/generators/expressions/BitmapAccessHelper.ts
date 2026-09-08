@@ -10,6 +10,7 @@
 import type IBitmapFieldLayout from "../../../../types/IBitmapFieldLayout";
 import accessGenerators from "./AccessExprGenerator";
 import TGeneratorEffect from "../TGeneratorEffect";
+import invariant from "../../../../../utils/invariant";
 
 interface BitmapAccessResult {
   code: string;
@@ -39,16 +40,16 @@ class BitmapAccessHelper {
     errorDescriptor: string,
   ): BitmapAccessResult {
     const fieldInfo = bitmapFields.get(bitmapType)?.get(memberName);
-    if (fieldInfo) {
-      const bitmapResult = accessGenerators.generateBitmapFieldAccess(
-        result,
-        fieldInfo,
-      );
-      return { code: bitmapResult.code, effects: bitmapResult.effects };
-    }
-    throw new Error(
-      `Error: Unknown bitmap field '${memberName}' on ${errorDescriptor}`,
+    invariant(
+      fieldInfo,
+      `a bitmap member names a field the bitmap declares ('${memberName}' on ` +
+        `${errorDescriptor}) -- E0882 rejects this in pass 2.1, before this runs`,
     );
+    const bitmapResult = accessGenerators.generateBitmapFieldAccess(
+      result,
+      fieldInfo,
+    );
+    return { code: bitmapResult.code, effects: bitmapResult.effects };
   }
 }
 

@@ -51,6 +51,13 @@ const CONFIG_PATH = join(__dirname, "..", "..", ".dependency-cruiser.cjs");
  * Case matters: the filesystem is case-sensitive, `TRANSPILE` is a layer and
  * `transpiler` is the pre-move tree, and neither pattern matches the other.
  */
+// #1322 added `^src/TRANSPILE/`, and the omission was not cosmetic: with 2.1
+// Analyze standing up under it, `isLayerRule` stopped recognizing
+// `nothing-after-resolve-derives-cross-file-facts` the moment its `from` named
+// a TRANSPILE path, and the three new pass-ordering rules were never
+// recognized at all -- so all four could have shipped without `reachable: true`
+// while this file passed over them. That is the #1297 shape one level up, and
+// it is what these tests exist to catch.
 const LAYER_ROOTS = ["^src/transpiler/", "^src/PARSE/", "^src/TRANSPILE/"];
 
 interface IRuleEnd {
@@ -122,6 +129,8 @@ describe("dependency-cruiser layer rules (#1297)", () => {
     const names = layerRules().map((rule) => rule.name);
 
     expect(names.sort()).toEqual([
+      "analyze-cannot-import-plan",
+      "analyze-cannot-import-render",
       "data-cannot-import-logic",
       "data-cannot-import-output",
       "declare-cannot-import-resolve",
@@ -130,6 +139,7 @@ describe("dependency-cruiser layer rules (#1297)", () => {
       "parse-cannot-import-render",
       "parse-cannot-import-transpile",
       "plan-cannot-import-render",
+      "render-cannot-import-analyzers",
       "state-cannot-import-output",
     ]);
   });

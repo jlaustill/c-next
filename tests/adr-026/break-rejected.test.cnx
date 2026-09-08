@@ -1,0 +1,31 @@
+// test-error
+// test-adr: 026
+// Bug #1011: break is not part of C-Next — use structured conditions
+//
+// NEGATIVE CONTROL -- the structured form ADR-026 asks for, in a top-level
+// function; and `break` inside a scope method, the other context the rule
+// reaches.
+void structured() {
+    u32 i <- 0;
+    while (i < 10 && i != 5) {
+        i +<- 1;
+    }
+}
+
+void demo() {
+    for (u32 i <- 0; i < 10; i +<- 1) {
+        if (i = 5) {
+            break;
+        }
+    }
+}
+
+scope Worker {
+    public void run() {
+        for (u32 i <- 0; i < 10; i +<- 1) {
+            if (i = 5) {
+                break;
+            }
+        }
+    }
+}

@@ -18,6 +18,7 @@ import dimensionEvalOptions from "./dimensionEvalOptions";
 import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
 import StringUtils from "../../../../utils/StringUtils.js";
 import CodeGenState from "../../../state/CodeGenState.js";
+import invariant from "../../../../utils/invariant";
 
 /**
  * String concatenation operands extracted from expression.
@@ -150,8 +151,9 @@ class StringDeclHelper {
     const intLiteral = stringCtx.INTEGER_LITERAL();
     if (!intLiteral) {
       // Unsized string array - not supported
-      throw new Error(
-        "Error: String arrays require explicit capacity, e.g., string<64>[4]",
+      invariant(
+        false,
+        "a string array states its element capacity -- E0862 rejects an unsized one in pass 2.1",
       );
     }
 
@@ -215,8 +217,9 @@ class StringDeclHelper {
       CodeGenState.lastArrayFillValue !== undefined;
 
     if (!isArrayInit) {
-      throw new Error(
-        `Error: String array initialization from variables not supported`,
+      invariant(
+        false,
+        `a string array is initialized from literals -- E0866 rejects a variable initializer in pass 2.1`,
       );
     }
 
@@ -228,8 +231,9 @@ class StringDeclHelper {
       const elementCount = CodeGenState.lastArrayInitCount;
 
       if (!isFillAll && elementCount !== declaredSize) {
-        throw new Error(
-          `Error: Array size mismatch - declared [${declaredSize}] but got ${elementCount} elements`,
+        invariant(
+          false,
+          `a string array initializer matches its declared size -- E0866 rejects [${declaredSize}] against ${elementCount} element(s) in pass 2.1`,
         );
       }
     }
@@ -339,19 +343,6 @@ class StringDeclHelper {
       volatile: volatileMod,
     } = modifiers;
 
-    // String arrays: string<64> arr[4] -> char arr[4][65] = {0};
-    if (arrayDims.length > 0) {
-      return StringDeclHelper._generateStringArrayDecl(
-        name,
-        capacity,
-        expression,
-        arrayDims,
-        modifiers,
-        isConst,
-        callbacks,
-      );
-    }
-
     // Simple bounded string without initializer
     if (!expression) {
       // #1164: `atomic`/`volatile` were dropped here while every other string
@@ -427,9 +418,9 @@ class StringDeclHelper {
     // than an unbounded strcpy, which flawfinder flags as CWE-120.
     // Issue #1030: string-to-string initialization
     if (!CodeGenState.inFunctionBody) {
-      throw new Error(
-        `Error: String initialization from variable cannot be used at global scope. ` +
-          `Move the declaration inside a function, or use an empty initializer and assign later.`,
+      invariant(
+        false,
+        `a string at file scope is initialized by a literal -- E0863 rejects a copy from a variable in pass 2.1`,
       );
     }
 
@@ -457,8 +448,9 @@ class StringDeclHelper {
     if (exprText.startsWith('"') && exprText.endsWith('"')) {
       const content = StringUtils.literalLength(exprText);
       if (content > capacity) {
-        throw new Error(
-          `Error: String literal (${content} chars) exceeds string<${capacity}> capacity`,
+        invariant(
+          false,
+          `a string literal fits its declared capacity -- E0864 rejects ${content} chars in string<${capacity}> in pass 2.1`,
         );
       }
       return true; // Is a literal
@@ -467,139 +459,12 @@ class StringDeclHelper {
     // Check for string variable assignment
     const srcCapacity = callbacks.getStringExprCapacity(exprText);
     if (srcCapacity !== null && srcCapacity > capacity) {
-      throw new Error(
-        `Error: Cannot assign string<${srcCapacity}> to string<${capacity}> (potential truncation)`,
+      invariant(
+        false,
+        `a string source fits its destination -- E0864 rejects string<${srcCapacity}> into string<${capacity}> in pass 2.1`,
       );
     }
     return false; // Is a variable (not a literal)
-  }
-
-  /**
-   * Generate string array declaration.
-   */
-  private static _generateStringArrayDecl(
-    name: string,
-    capacity: number,
-    expression: Parser.ExpressionContext | null,
-    arrayDims: Parser.ArrayDimensionContext[],
-    modifiers: IStringDeclModifiers,
-    isConst: boolean,
-    callbacks: IStringDeclCallbacks,
-  ): IStringDeclResult {
-    const {
-      extern,
-      const: constMod,
-      atomic,
-      volatile: volatileMod,
-    } = modifiers;
-    let decl = `${extern}${constMod}${atomic}${volatileMod}char ${name}`;
-
-    // No initializer - zero-initialize
-    if (!expression) {
-      decl += callbacks.generateArrayDimensions(arrayDims);
-      decl += `[${capacity + 1}]`;
-      return { code: `${decl} = {0};`, handled: true };
-    }
-
-    // Reset array init tracking and generate initializer
-    CodeGenState.lastArrayInitCount = 0;
-    CodeGenState.lastArrayFillValue = undefined;
-    const initValue = callbacks.generateExpression(expression);
-
-    // Check if it was an array initializer
-    const isArrayInit =
-      CodeGenState.lastArrayInitCount > 0 ||
-      CodeGenState.lastArrayFillValue !== undefined;
-
-    if (!isArrayInit) {
-      throw new Error(
-        `Error: String array initialization from variables not supported`,
-      );
-    }
-
-    // Track as local array
-    // ADR-057: `name` is the EMITTED identifier; every registry keys on the
-    // source spelling, which is what references in the source say.
-    CodeGenState.localArrays.add(CodeGenState.sourceLocalName(name));
-
-    const hasEmptyArrayDim = arrayDims.some((dim) => !dim.expression());
-    if (hasEmptyArrayDim) {
-      decl += StringDeclHelper._handleSizeInference(name, capacity, isConst);
-    } else {
-      decl += StringDeclHelper._handleExplicitSize(arrayDims, callbacks);
-    }
-
-    decl += `[${capacity + 1}]`; // String capacity + null terminator
-
-    const finalInitValue = StringDeclHelper._expandFillAllIfNeeded(
-      initValue,
-      arrayDims,
-    );
-    // MISRA C:2012 Rules 9.3/9.4 - String literals don't fill all inner array bytes,
-    // but C standard guarantees zero-initialization of remaining elements
-    const suppression =
-      "// cppcheck-suppress misra-c2012-9.3\n// cppcheck-suppress misra-c2012-9.4\n";
-    return {
-      code: `${suppression}${decl} = ${finalInitValue};`,
-      handled: true,
-    };
-  }
-
-  /**
-   * Handle size inference for empty array dimension.
-   * Returns the dimension string to append to declaration.
-   */
-  private static _handleSizeInference(
-    name: string,
-    capacity: number,
-    isConst: boolean,
-  ): string {
-    const fillValue = CodeGenState.lastArrayFillValue;
-    if (fillValue !== undefined) {
-      throw new Error(
-        `Error: Fill-all syntax [${fillValue}*] requires explicit array size`,
-      );
-    }
-
-    const arraySize = CodeGenState.lastArrayInitCount;
-
-    // Update type registry with inferred size
-    CodeGenState.setVariableTypeInfo(CodeGenState.sourceLocalName(name), {
-      baseType: "char",
-      bitWidth: 8,
-      isArray: true,
-      arrayDimensions: [arraySize, capacity + 1],
-      isConst,
-      isString: true,
-      stringCapacity: capacity,
-    });
-
-    return `[${arraySize}]`;
-  }
-
-  /**
-   * Handle explicit array size with validation.
-   * Returns the dimension string to append to declaration.
-   */
-  private static _handleExplicitSize(
-    arrayDims: Parser.ArrayDimensionContext[],
-    callbacks: IStringDeclCallbacks,
-  ): string {
-    const declaredSize = StringDeclHelper._getFirstDimNumericSize(arrayDims);
-
-    // Validate element count matches declared size (only for non-fill-all)
-    if (declaredSize !== null) {
-      const isFillAll = CodeGenState.lastArrayFillValue !== undefined;
-      const elementCount = CodeGenState.lastArrayInitCount;
-
-      if (!isFillAll && elementCount !== declaredSize) {
-        throw new Error(
-          `Error: Array size mismatch - declared [${declaredSize}] but got ${elementCount} elements`,
-        );
-      }
-    }
-
-    return callbacks.generateArrayDimensions(arrayDims);
   }
 
   /**
@@ -638,17 +503,18 @@ class StringDeclHelper {
     // String concatenation requires runtime function calls (strncpy, strncat)
     // which cannot exist at global scope in C
     if (!CodeGenState.inFunctionBody) {
-      throw new Error(
-        `Error: String concatenation cannot be used at global scope. ` +
-          `Move the declaration inside a function.`,
+      invariant(
+        false,
+        `a string at file scope is initialized by a literal -- E0863 rejects a concatenation in pass 2.1`,
       );
     }
 
     // Validate capacity: dest >= left + right
     const requiredCapacity = concatOps.leftCapacity + concatOps.rightCapacity;
     if (requiredCapacity > capacity) {
-      throw new Error(
-        `Error: String concatenation requires capacity ${requiredCapacity}, but string<${capacity}> only has ${capacity}`,
+      invariant(
+        false,
+        `a concatenation fits its destination -- E0864 rejects ${requiredCapacity} into string<${capacity}> in pass 2.1`,
       );
     }
 
@@ -677,9 +543,9 @@ class StringDeclHelper {
     // Substring extraction requires runtime function calls (strncpy)
     // which cannot exist at global scope in C
     if (!CodeGenState.inFunctionBody) {
-      throw new Error(
-        `Error: Substring extraction cannot be used at global scope. ` +
-          `Move the declaration inside a function.`,
+      invariant(
+        false,
+        `a string at file scope is initialized by a literal -- E0863 rejects a substring in pass 2.1`,
       );
     }
 
@@ -691,16 +557,18 @@ class StringDeclHelper {
     if (!Number.isNaN(startNum) && !Number.isNaN(lengthNum)) {
       // Bounds check: start + length <= sourceCapacity
       if (startNum + lengthNum > substringOps.sourceCapacity) {
-        throw new Error(
-          `Error: Substring bounds [${startNum}, ${lengthNum}] exceed source string<${substringOps.sourceCapacity}> capacity`,
+        invariant(
+          false,
+          `substring bounds stay within the source -- E0865 rejects [${startNum}, ${lengthNum}] against string<${substringOps.sourceCapacity}> in pass 2.1`,
         );
       }
     }
 
     // Validate destination capacity can hold the substring
     if (!Number.isNaN(lengthNum) && lengthNum > capacity) {
-      throw new Error(
-        `Error: Substring length ${lengthNum} exceeds destination string<${capacity}> capacity`,
+      invariant(
+        false,
+        `a substring fits its destination -- E0864 rejects ${lengthNum} into string<${capacity}> in pass 2.1`,
       );
     }
 
@@ -731,21 +599,24 @@ class StringDeclHelper {
     callbacks: IStringDeclCallbacks,
   ): IStringDeclResult {
     if (!isConst) {
-      throw new Error(
-        "Error: Non-const string requires explicit capacity, e.g., string<64>",
+      invariant(
+        false,
+        "a non-const string states its capacity -- E0862 rejects an unsized one in pass 2.1",
       );
     }
 
     if (!expression) {
-      throw new Error(
-        "Error: const string requires initializer for capacity inference",
+      invariant(
+        false,
+        "an unsized const string has an initializer to infer from -- E0862 rejects one without in pass 2.1",
       );
     }
 
     const exprText = expression.getText();
     if (!exprText.startsWith('"') || !exprText.endsWith('"')) {
-      throw new Error(
-        "Error: const string requires string literal for capacity inference",
+      invariant(
+        false,
+        "an unsized const string infers from a LITERAL -- E0862 rejects any other initializer in pass 2.1",
       );
     }
 

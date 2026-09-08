@@ -12,24 +12,24 @@
 uint32_t getPriorityValue(EPriority p) {
     switch (p) {
         case EPriority__LOW: {
-            return 1;
+            return 1U;
             break;
         }
         case EPriority__MEDIUM: {
-            return 5;
+            return 5U;
             break;
         }
         case EPriority__HIGH: {
-            return 10;
+            return 10U;
             break;
         }
         case EPriority__CRITICAL: {
-            return 100;
+            return 100U;
             break;
         }
         default: {
             break;
         }
     }
-    return 0;
+    return 0U;
 }

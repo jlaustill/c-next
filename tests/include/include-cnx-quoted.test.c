@@ -13,5 +13,5 @@
 int main(void) {
     Point p = {0};
     p.x = 5;
-    return 0;
+    return 0U;
 }

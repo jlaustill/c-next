@@ -43,21 +43,21 @@ Geometry__Point createPoint(int32_t x, int32_t y) {
 
 int main(void) {
     Geometry__Point p1 = Geometry__makePoint(10, 20);
-    if (p1.x != 10) return 1;
-    if (p1.y != 20) return 2;
+    if (p1.x != 10) return 1U;
+    if (p1.y != 20) return 2U;
     Geometry__Point o = Geometry__origin();
-    if (o.x != 0) return 3;
-    if (o.y != 0) return 4;
+    if (o.x != 0) return 3U;
+    if (o.y != 0) return 4U;
     Geometry__Point p2 = Geometry__makePoint(20, 40);
     Geometry__Point mid = Geometry__midpoint(&p1, &p2);
-    if (mid.x != 15) return 5;
-    if (mid.y != 30) return 6;
+    if (mid.x != 15) return 5U;
+    if (mid.y != 30) return 6U;
     Geometry__Point p3 = Geometry__makePoint(5, 5);
     movePoint(&p3, 10, 20);
-    if (p3.x != 15) return 7;
-    if (p3.y != 25) return 8;
+    if (p3.x != 15) return 7U;
+    if (p3.y != 25) return 8U;
     Geometry__Point p4 = createPoint(100, 200);
-    if (p4.x != 100) return 9;
-    if (p4.y != 200) return 10;
-    return 0;
+    if (p4.x != 100) return 9U;
+    if (p4.y != 200) return 10U;
+    return 0U;
 }

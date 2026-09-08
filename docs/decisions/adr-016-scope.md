@@ -630,20 +630,38 @@ obligation.
 
 <!-- MATRIX-SEVERITY -->
 
-| Context      | Relationship        | Severity |
-| ------------ | ------------------- | -------- |
-| scope member | same file           | error    |
-| scope method | same file           | error    |
-| scope member | imported direct     | error    |
-| scope method | imported direct     | error    |
-| scope member | imported transitive | error    |
-| scope method | imported transitive | error    |
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| scope member       | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| top-level function | same file           | error    |
+| scope member       | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported direct     | off      |
+| top-level function | imported direct     | error    |
+| scope member       | imported transitive | error    |
+| scope method       | imported transitive | error    |
+| global variable    | imported transitive | off      |
+| top-level function | imported transitive | error    |
 
-`global variable` and `top-level function` are left undeclared, which reads as
-`off`, and that is a claim being made deliberately rather than an omission: scope
-composition is a property of a scope, so a declaration that is not inside one
-cannot occupy a cell of this rule. A global variable declared twice is an ordinary
-duplicate-definition error and belongs to whatever ADR governs that, not here.
+This ADR now owns two families of rules, and they reach different contexts.
+
+The **composition** rule -- a scope's members are declared once, inside it --
+is a property of a scope, so a declaration that is not inside one cannot occupy
+a cell of it. Those cells used to be left undeclared on that reasoning.
+
+The **access** rules moved here by #1322 -- E0435 (a scope's own member reached
+through the scope's name), E0436 (a private member reached from outside), E0437
+(a shadowed global enum or register reached bare) -- are properties of a
+REFERENCE, and a reference to a scope's member can stand anywhere: `Counter.x`
+in `main` is the canonical private-access violation, and a file-scope
+initializer can carry one too. So `top-level function` and `global variable`
+are `error` for the same-file column now, and `top-level function` in the
+imported columns as well, because the private member being reached may be
+declared in an included file -- two fixtures assert exactly that. The
+`global variable` imported cells are `off` as a stated obligation, not a claim
+they cannot exist.
 
 ## Diagnostics
 

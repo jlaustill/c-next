@@ -26,10 +26,10 @@ uint8_t Control__getFlags(void) {
 
 int main(void) {
     uint8_t val = Control__getFlags();
-    if (val != 0b11111111) return 1;
+    if (val != 0b11111111) return 1U;
     Control__setFlag();
     val = Control__getFlags();
-    if (val != 0b10101010) return 2;
-    if (globalFlags != 0) return 3;
-    return 0;
+    if (val != 0b10101010) return 2U;
+    if (globalFlags != 0) return 3U;
+    return 0U;
 }

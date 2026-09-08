@@ -20,8 +20,8 @@ import IOrchestrator from "../IOrchestrator";
 import accessGenerators from "./AccessExprGenerator";
 import generateFunctionCall from "./CallExprGenerator";
 import memberAccessChain from "../../memberAccessChain";
-import MemberAccessValidator from "../../helpers/MemberAccessValidator";
 import BitmapAccessHelper from "./BitmapAccessHelper";
+import BitRangeHelper from "../../helpers/BitRangeHelper";
 import NarrowingCastHelper from "../../helpers/NarrowingCastHelper";
 import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import SubscriptClassifier from "../../subscript/SubscriptClassifier";
@@ -32,7 +32,7 @@ import TTypeInfo from "../../../../types/TTypeInfo";
 import CodeGenState from "../../../../state/CodeGenState";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
-import TypeValidator from "../../TypeValidator";
+import invariant from "../../../../../utils/invariant";
 
 // ========================================================================
 // Tracking State
@@ -247,7 +247,6 @@ const generatePostfixExpression = (
         subscriptBase.opOffset,
       ),
       subscriptBase.displayName,
-      ctx.start?.line ?? 0,
     );
   }
 
@@ -467,9 +466,7 @@ const handleThisScopeLength = (
   if (tracking.result !== "__THIS_SCOPE__" || memberName !== "length") {
     return false;
   }
-  if (!state.currentScopePath) {
-    throw new Error("Error: 'this' can only be used inside a scope");
-  }
+  // #1322: `this` outside a scope is E0431 in 2.1.
   const members = state.scopeMembers.get(
     ScopeUtils.leafOf(state.currentScopePath),
   );
@@ -624,17 +621,13 @@ const tryPropertyAccess = (
   orchestrator: IOrchestrator,
   effects: TGeneratorEffect[],
 ): boolean => {
-  // ADR-058: .length is deprecated - use explicit properties instead
-  if (memberName === "length") {
-    throw new Error(
-      // ADR-057: report the name the author wrote. `tracking.result` is the
-      // generated identifier, and for a shadowing local that is a name they
-      // never typed (`S__f__msg`).
-      `Error: '.length' on '${CodeGenState.sourceLocalName(tracking.result)}' is deprecated. Use explicit properties: ` +
-        `.bit_length (bit width), .byte_length (byte size), ` +
-        `.element_count (array size), or .char_count (string length)`,
-    );
-  }
+  // #1322: ADR-058's deprecation of `.length` is E0886 in pass 2.1, which
+  // rejects the NAME wherever it appears and so needs no subject at all --
+  // this site had to resolve one just to name it in the message.
+  invariant(
+    memberName !== "length",
+    "`.length` is deprecated -- E0886 rejects this in pass 2.1, before this runs",
+  );
 
   // ADR-058: Explicit length properties
   const explicitProps = new Set([
@@ -741,8 +734,9 @@ const generateBitLengthProperty = (
 ): string | null => {
   // Special case: main function's args.bit_length -> not supported
   if (state.mainArgsName && ctx.rootIdentifier === state.mainArgsName) {
-    throw new Error(
-      `Error: .bit_length is not supported on 'args' parameter. Use .element_count for argc.`,
+    invariant(
+      false,
+      `E0867 rejects this in pass 2.1 -- .bit_length is not supported on 'args' parameter. Use .element_count for argc.`,
     );
   }
 
@@ -763,8 +757,9 @@ const generateBitLengthProperty = (
     : undefined;
 
   if (!typeInfo) {
-    throw new Error(
-      `Error: Cannot determine .bit_length for '${ctx.result}' - type not found in registry.`,
+    invariant(
+      false,
+      `E0867 rejects this in pass 2.1 -- Cannot determine .bit_length for '${ctx.result}' - type not found in registry.`,
     );
   }
 
@@ -845,8 +840,9 @@ const generateStructFieldBitLength = (
     return String(bitWidth);
   }
 
-  throw new Error(
-    `Error: Cannot determine .bit_length for unsupported type '${memberType}'.`,
+  invariant(
+    false,
+    `E0867 rejects this in pass 2.1 -- Cannot determine .bit_length for unsupported type '${memberType}'.`,
   );
 };
 
@@ -875,8 +871,9 @@ const generateScalarBitLength = (
   if (bitWidth > 0) {
     return String(bitWidth);
   }
-  throw new Error(
-    `Error: Cannot determine .bit_length for unsupported type '${typeInfo.baseType}'.`,
+  invariant(
+    false,
+    `E0867 rejects this in pass 2.1 -- Cannot determine .bit_length for unsupported type '${typeInfo.baseType}'.`,
   );
 };
 
@@ -916,15 +913,17 @@ const generateArrayBitLength = (
 ): string => {
   const dims = typeInfo.arrayDimensions;
   if (!dims || dims.length === 0) {
-    throw new Error(
-      `Error: Cannot determine .bit_length for array with unknown dimensions.`,
+    invariant(
+      false,
+      `E0867 rejects this in pass 2.1 -- Cannot determine .bit_length for array with unknown dimensions.`,
     );
   }
 
   const elementBitWidth = getArrayElementBitWidth(typeInfo, input);
   if (elementBitWidth === 0) {
-    throw new Error(
-      `Error: Cannot determine .bit_length for array with unsupported element type '${typeInfo.baseType}'.`,
+    invariant(
+      false,
+      `E0867 rejects this in pass 2.1 -- Cannot determine .bit_length for array with unsupported element type '${typeInfo.baseType}'.`,
     );
   }
 
@@ -959,8 +958,9 @@ const generateTypeInfoBitLength = (
     if (typeInfo.stringCapacity !== undefined) {
       return String((typeInfo.stringCapacity + 1) * 8);
     }
-    throw new Error(
-      `Error: Cannot determine .bit_length for string with unknown capacity.`,
+    invariant(
+      false,
+      `E0867 rejects this in pass 2.1 -- Cannot determine .bit_length for string with unknown capacity.`,
     );
   }
 
@@ -985,8 +985,9 @@ const generateByteLengthProperty = (
 ): string | null => {
   // Special case: main function's args
   if (state.mainArgsName && ctx.rootIdentifier === state.mainArgsName) {
-    throw new Error(
-      `Error: .byte_length is not supported on 'args' parameter. Use .element_count for argc.`,
+    invariant(
+      false,
+      `E0867 rejects this in pass 2.1 -- .byte_length is not supported on 'args' parameter. Use .element_count for argc.`,
     );
   }
 
@@ -1017,8 +1018,9 @@ const generateByteLengthProperty = (
     : undefined;
 
   if (!typeInfo) {
-    throw new Error(
-      `Error: Cannot determine .byte_length for '${ctx.result}' - type not found in registry.`,
+    invariant(
+      false,
+      `E0867 rejects this in pass 2.1 -- Cannot determine .byte_length for '${ctx.result}' - type not found in registry.`,
     );
   }
 
@@ -1069,8 +1071,9 @@ const generateStructFieldElementCount = (
   }
 
   // Non-array field - element_count not applicable
-  throw new Error(
-    `Error: .element_count is only available on arrays, not on '${fieldInfo?.type || ctx.previousMemberName}'.`,
+  invariant(
+    false,
+    `E0867 rejects this in pass 2.1 -- .element_count is only available on arrays, not on '${fieldInfo?.type || ctx.previousMemberName}'.`,
   );
 };
 
@@ -1086,21 +1089,24 @@ const generateTypeInfoElementCount = (
     : undefined;
 
   if (!typeInfo) {
-    throw new Error(
-      `Error: Cannot determine .element_count for '${ctx.result}' - type not found in registry.`,
+    invariant(
+      false,
+      `E0867 rejects this in pass 2.1 -- Cannot determine .element_count for '${ctx.result}' - type not found in registry.`,
     );
   }
 
   if (!typeInfo.isArray) {
-    throw new Error(
-      `Error: .element_count is only available on arrays, not on '${typeInfo.baseType}'.`,
+    invariant(
+      false,
+      `E0867 rejects this in pass 2.1 -- .element_count is only available on arrays, not on '${typeInfo.baseType}'.`,
     );
   }
 
   const dims = typeInfo.arrayDimensions;
   if (!dims || dims.length === 0) {
-    throw new Error(
-      `Error: Cannot determine .element_count for array with unknown dimensions.`,
+    invariant(
+      false,
+      `E0867 rejects this in pass 2.1 -- Cannot determine .element_count for array with unknown dimensions.`,
     );
   }
 
@@ -1108,8 +1114,9 @@ const generateTypeInfoElementCount = (
     return getDimensionAtDepth(dims, ctx.subscriptDepth);
   }
 
-  throw new Error(
-    `Error: .element_count is not available on array elements. Array is fully subscripted.`,
+  invariant(
+    false,
+    `E0867 rejects this in pass 2.1 -- .element_count is not available on array elements. Array is fully subscripted.`,
   );
 };
 
@@ -1155,8 +1162,9 @@ const generateCharCountProperty = (
 ): string | null => {
   // Special case: main function's args
   if (state.mainArgsName && ctx.rootIdentifier === state.mainArgsName) {
-    throw new Error(
-      `Error: .char_count is only available on strings, not on 'args'. Use .element_count for argc.`,
+    invariant(
+      false,
+      `E0867 rejects this in pass 2.1 -- .char_count is only available on strings, not on 'args'. Use .element_count for argc.`,
     );
   }
 
@@ -1171,8 +1179,9 @@ const generateCharCountProperty = (
       return `strlen(${ctx.result})`;
     }
     // Non-string field
-    throw new Error(
-      `Error: .char_count is only available on strings, not on '${fieldInfo?.type || ctx.previousMemberName}'.`,
+    invariant(
+      false,
+      `E0867 rejects this in pass 2.1 -- .char_count is only available on strings, not on '${fieldInfo?.type || ctx.previousMemberName}'.`,
     );
   }
 
@@ -1182,15 +1191,17 @@ const generateCharCountProperty = (
     : undefined;
 
   if (!typeInfo) {
-    throw new Error(
-      `Error: Cannot determine .char_count for '${ctx.result}' - type not found in registry.`,
+    invariant(
+      false,
+      `E0867 rejects this in pass 2.1 -- Cannot determine .char_count for '${ctx.result}' - type not found in registry.`,
     );
   }
 
   // Must be a string type
   if (!typeInfo.isString) {
-    throw new Error(
-      `Error: .char_count is only available on strings, not on '${typeInfo.baseType}'.`,
+    invariant(
+      false,
+      `E0867 rejects this in pass 2.1 -- .char_count is only available on strings, not on '${typeInfo.baseType}'.`,
     );
   }
 
@@ -1274,26 +1285,12 @@ const generateMemberAccess = (
   orchestrator: IOrchestrator,
   effects: TGeneratorEffect[],
 ): MemberAccessResult => {
-  // Check for enum shadowing before dispatch - catches case where identifier
-  // was resolved to a scope member that shadows a global enum
-  MemberAccessValidator.validateGlobalEntityAccess(
-    ctx.result,
-    ctx.memberName,
-    "enum",
-    state.currentScopePath,
-    ctx.isGlobalAccess,
-    {
-      rootIdentifier: ctx.rootIdentifier,
-      knownEnums: input.symbols!.knownEnums,
-    },
-  );
-
   return (
     tryBitmapFieldAccess(ctx, input, effects) ??
     tryScopeMemberAccess(ctx, input, state, orchestrator) ??
     tryKnownScopeAccess(ctx, input, state, orchestrator) ??
     tryEnumMemberAccess(ctx, input, state, orchestrator) ??
-    tryRegisterMemberAccess(ctx, input, state) ??
+    tryRegisterMemberAccess(ctx, input) ??
     tryStructParamAccess(ctx, orchestrator) ??
     tryRegisterBitmapAccess(ctx, input, effects) ??
     tryStructBitmapAccess(ctx, input, effects) ??
@@ -1346,10 +1343,7 @@ const tryScopeMemberAccess = (
   if (ctx.result !== "__THIS_SCOPE__") {
     return null;
   }
-  if (!state.currentScopePath) {
-    throw new Error("Error: 'this' can only be used inside a scope");
-  }
-
+  // #1322: `this` outside a scope is E0431 in 2.1.
   const output = initializeMemberOutput(ctx);
   const fullName = ScopeUtils.qualifyInScope(
     ctx.memberName,
@@ -1378,6 +1372,9 @@ const tryScopeMemberAccess = (
 /**
  * Check for known scope access (e.g., LED.on).
  */
+// #1322: ADR-016's access rules -- own scope by name, private from outside, a
+// shadowed global reached bare -- are E0435-E0437 in pass 2.1. Four call sites
+// stood in the handlers below, checking each position on its own path.
 const tryKnownScopeAccess = (
   ctx: IMemberAccessContext,
   input: IGeneratorInput,
@@ -1387,19 +1384,6 @@ const tryKnownScopeAccess = (
   if (!orchestrator.isKnownScope(ctx.result)) {
     return null;
   }
-
-  if (!ctx.isGlobalAccess) {
-    MemberAccessValidator.validateNotSelfScopeReference(
-      ctx.result,
-      ctx.memberName,
-      state.currentScopePath,
-    );
-  }
-  orchestrator.validateCrossScopeVisibility(
-    ctx.result,
-    ctx.memberName,
-    ctx.isGlobalAccess,
-  );
 
   const output = initializeMemberOutput(ctx);
   output.result = `${ctx.result}${orchestrator.getScopeSeparator(ctx.isCppAccessChain)}${ctx.memberName}`;
@@ -1427,17 +1411,6 @@ const tryEnumMemberAccess = (
     return null;
   }
 
-  // Shadowing check already done in generateMemberAccess; this catches
-  // direct conflicts where ctx.result is the enum name (no resolution happened)
-  MemberAccessValidator.validateGlobalEntityAccess(
-    ctx.result,
-    ctx.memberName,
-    "enum",
-    state.currentScopePath,
-    ctx.isGlobalAccess,
-    { scopeMembers: state.scopeMembers },
-  );
-
   const output = initializeMemberOutput(ctx);
   output.result = `${ctx.result}${orchestrator.getScopeSeparator(ctx.isCppAccessChain)}${ctx.memberName}`;
   return output;
@@ -1449,29 +1422,12 @@ const tryEnumMemberAccess = (
 const tryRegisterMemberAccess = (
   ctx: IMemberAccessContext,
   input: IGeneratorInput,
-  state: IGeneratorState,
 ): MemberAccessResult | null => {
   if (!input.symbols!.knownRegisters.has(ctx.result)) {
     return null;
   }
 
-  MemberAccessValidator.validateGlobalEntityAccess(
-    ctx.result,
-    ctx.memberName,
-    "register",
-    state.currentScopePath,
-    ctx.isGlobalAccess,
-    { scopeMembers: state.scopeMembers },
-  );
-
-  MemberAccessValidator.validateRegisterReadAccess(
-    QualifiedCName.fromParts([ctx.result, ctx.memberName]),
-    ctx.memberName,
-    `${ctx.result}.${ctx.memberName}`,
-    input.symbols!.registerMemberAccess,
-    false,
-  );
-
+  // #1322: a read of a `wo` member is E0870 in pass 2.1 (ADR-004).
   const output = initializeMemberOutput(ctx);
   output.result = QualifiedCName.fromParts([ctx.result, ctx.memberName]);
   output.isRegisterChain = true;
@@ -1702,32 +1658,8 @@ const handleSingleSubscript = (
     return output;
   }
 
-  // ADR-036 (#1360): a constant subscript in a VALUE position is bounds-checked
-  // exactly as in an assignment target. The ADR names CWE-125 ("Out-of-bounds
-  // Read") and claims "compile-time and runtime bounds checking prevents all
-  // out-of-bounds reads", but only the assignment paths asked -- so
-  // `arr[9] <- 1` was rejected while `u8 x <- arr[9]` was emitted as `arr[9U]`
-  // at exit 0, and `arr[-1]` as `arr[-1U]`, i.e. UINT32_MAX.
-  //
-  // Placed here, once, rather than in each of the array branches below:
-  // whether this subscript is an array index at all is checkArrayBounds's
-  // decision (no dimensions -> it returns), so bit indexing on a scalar and
-  // struct-member access reach it and are correctly ignored. Register bit
-  // extraction has already returned above.
-  //
-  // subscriptDepth is the dimension this subscript indexes -- both array
-  // branches increment it -- so the full dimension list is passed with an
-  // offset rather than sliced.
-  const boundsIdentifier = ctx.resolvedIdentifier || ctx.rootIdentifier;
-  if (boundsIdentifier) {
-    TypeValidator.checkArrayBounds(
-      boundsIdentifier,
-      [expr],
-      ctx.op.start?.line ?? 0,
-      (indexExpr) => orchestrator.tryEvaluateConstant(indexExpr),
-      ctx.subscriptDepth,
-    );
-  }
+  // #1322: constant index bounds (ADR-036, E0854) are checked in pass 2.1,
+  // in value position and in a target alike.
 
   // Member array access
   if (ctx.currentMemberIsArray) {
@@ -1786,10 +1718,10 @@ const validateNotBitmapMember = (
   if (!input.symbols!.registerMemberTypes.has(ctx.result)) return;
 
   const bitmapType = input.symbols!.registerMemberTypes.get(ctx.result)!;
-  const line = ctx.op.start?.line ?? 0;
-  throw new Error(
-    `Error at line ${line}: Cannot use bracket indexing on bitmap type '${bitmapType}'. ` +
-      `Use named field access instead (e.g., ${ctx.result.split("_").at(-1)}.FIELD_NAME).`,
+  invariant(
+    !input.symbols!.bitmapFields.has(bitmapType),
+    `a bitmap is addressed by named field, never by bit index ` +
+      `('${bitmapType}') -- E0883 rejects this in pass 2.1, before this runs`,
   );
 };
 
@@ -2003,18 +1935,20 @@ const handleFloatBitRange = (
   orchestrator: IOrchestrator,
   effects: TGeneratorEffect[],
 ): string => {
-  if (!state.inFunctionBody) {
-    throw new Error(
-      `Float bit indexing reads (${ctx.rootIdentifier}[${ctx.start}, ${ctx.width}]) cannot be used at global scope.`,
-    );
-  }
+  // #1322: ADR-007's file-scope restriction is E0888 in pass 2.1, which asks
+  // the parse tree whether a function encloses the read rather than reading a
+  // generator flag.
+  invariant(
+    state.inFunctionBody,
+    `a float bit range is read inside a function (${ctx.rootIdentifier}) -- E0888 rejects this in pass 2.1, before this runs`,
+  );
 
   effects.push({ type: "include", header: "float_static_assert" });
 
   const isF64 = ctx.baseType === "f64";
   const floatType = getFloatTypeName(ctx.baseType);
   const intType = isF64 ? "uint64_t" : "uint32_t";
-  const shadowName = `__bits_${ctx.rootIdentifier}`;
+  const shadowName = BitRangeHelper.getShadowVarName(ctx.rootIdentifier);
   const mask = orchestrator.generateBitMask(ctx.maskWidth, isF64);
 
   const needsDeclaration = !orchestrator.hasFloatBitShadow(shadowName);

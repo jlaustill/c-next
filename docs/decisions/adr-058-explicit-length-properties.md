@@ -474,6 +474,61 @@ error: `.length` is not a built-in property. Use explicit properties instead.
 
 ---
 
+## Diagnostics
+
+| Code  | Reported when                                                | Asserted by                                         |
+| ----- | ------------------------------------------------------------ | --------------------------------------------------- |
+| E0867 | A shape property is asked of a subject that cannot answer it | `tests/explicit-length/`, `tests/adr-058/`          |
+| E0886 | `.length` is used at all                                     | `tests/adr-058/length-property-deprecated.test.cnx` |
+
+`.length` is rejected by NAME and needs no subject: naming a different thing on
+a string, an array and a scalar is what these four properties replaced.
+
+A property name is only a property when it names nothing else. A scope variable
+may be called `length`, and `this.length` then reads it (#212) -- so a chain
+that resolves as a whole was a member access, and no property rule applies to
+it.
+
+## Scope-context matrix
+
+Declared for the rule #1322 moved out of codegen: a length property may only be
+asked of a type that can answer it -- `.element_count` of an array,
+`.char_count` of a string, `.bit_length` and `.byte_length` of a type with a
+known width.
+
+<!-- MATRIX-SEVERITY -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| scope member       | same file           | error    |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | off      |
+| global variable    | imported direct     | error    |
+| scope member       | imported direct     | off      |
+| top-level function | imported transitive | error    |
+| scope method       | imported transitive | off      |
+| global variable    | imported transitive | error    |
+| scope member       | imported transitive | off      |
+
+A length property is an EXPRESSION, so it reaches an initializer as well as a
+function body -- all four same-file contexts, probed rather than assumed.
+
+The imported columns matter because the rule asks the SUBJECT's type, and the
+subject may be declared in another file. A check reading only the file in front
+of it finds no type for it, and an unknown type never rejects -- so the rule
+would go quiet across an include rather than fail. The scope contexts are `off`
+in those columns as a stated obligation, not a claim they cannot exist.
+
+**A divergence this matrix does not cover.** The property table above gives
+structs `.bit_length`, `.byte_length` and `.element_count`, and the transpiler
+rejects all three. That is a spec/implementation divergence, and it is left
+open on purpose: closing it requires deciding what `.byte_length` on a struct
+means, and "with padding" does not say whose padding. It needs a decision, not
+a fixture.
+
 ## References
 
 ### Language Documentation

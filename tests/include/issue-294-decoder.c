@@ -35,5 +35,5 @@ uint8_t decoder__getByte(const uint8_t data[8], uint8_t index) {
 }
 
 uint8_t decoder__internalHelper(uint8_t val) {
-    return val + 1;
+    return val + 1U;
 }

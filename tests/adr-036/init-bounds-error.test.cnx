@@ -1,0 +1,15 @@
+// test-error
+// test-adr: 036
+// ADR-036: Compile-time bounds checking for single-dimensional arrays
+// Tests: Out of bounds access on 1D array with constant index (E0854)
+//
+// #1322 relocated this from `output/`, where it reported `1:0` with the line
+// in the message text.
+u8[5] arr;
+
+i32 main() {
+    // NEGATIVE CONTROL -- the last valid index.
+    arr[4] <- 1;
+    arr[5] <- 1; // Error: index 5 >= array size 5
+    return 0;
+}

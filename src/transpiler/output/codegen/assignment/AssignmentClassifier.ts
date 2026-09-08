@@ -713,7 +713,6 @@ class AssignmentClassifier {
         memberOpCount,
       ),
       displayName,
-      ctx.targetCtx.start?.line ?? 0,
     );
 
     // Use shared classifier for array vs bit access decision

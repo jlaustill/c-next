@@ -1,0 +1,7 @@
+// ADR-024: Test that literal overflow is caught
+// test-adr: 024
+// This should produce a compiler error
+void main() {
+    u8 exactlyFull <- 255; // NEGATIVE CONTROL -- the boundary the assertion is one past
+    u8 overflow <- 256; // ERROR: 256 exceeds u8 range (0-255)
+}

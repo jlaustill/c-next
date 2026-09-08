@@ -16,8 +16,8 @@
 int main(void) {
     Point point = { .value = 7U };
     uint8_t fromStruct = readStructField(&point);
-    if (fromStruct != 7) return 1;
+    if (fromStruct != 7) return 1U;
     uint8_t fromPrimitive = addOne(41U);
-    if (fromPrimitive != 42) return 2;
-    return 0;
+    if (fromPrimitive != 42) return 2U;
+    return 0U;
 }

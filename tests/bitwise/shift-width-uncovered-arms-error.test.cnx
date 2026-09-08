@@ -1,0 +1,82 @@
+// test-error
+// MISRA C:2012 Rule 12.2 (E0873) in the arms codegen did not reach, probed
+// before #1322: the compound forms `<<<-` / `>><-` never met the check, so
+// `a <<<- 9` on a u8 emitted `a = (uint8_t)(a << 9U)` at exit 0; and a
+// named const amount was never evaluated, so `a << N` with `const u8 N <- 9`
+// was accepted. Both are the same undefined behavior as the literal form.
+
+struct Data {
+    u8 value;
+}
+
+const u8 N <- 9;
+const u8 OK_AMOUNT <- 7;
+
+// NEGATIVE CONTROLS -- everything the rule must stay silent on: an amount
+// below the width in every form, a runtime amount, a literal left operand
+// (no declared width), and a composite left operand, which is untyped here as
+// it was in codegen.
+void controls(u8 p, u8 s) {
+    u8 a <- 1;
+    u8[4] arr <- [1, 2, 3, 4];
+    Data d <- { value: 1 };
+    a <<<- 7;
+    d.value >><- 2;
+    arr[1] <<<- OK_AMOUNT;
+    u8 b <- a << s;
+    u8 c <- 1 << 9;
+    u8 e <- (a + 1) << 9;
+    u8 f <- p << OK_AMOUNT;
+}
+
+void main() {
+    u8 a <- 1;
+    u8[4] arr <- [1, 2, 3, 4];
+    Data d <- { value: 1 };
+    // ASSERTIONS 1-3 -- compound forms on a variable, a struct member and an
+    // array element.
+    a <<<- 9;
+    d.value >><- 9;
+    arr[1] <<<- 9;
+    // ASSERTION 4 -- a named const amount.
+    u8 b <- a << N;
+    // ASSERTION 5 -- a parameter-typed operand through the const.
+    u8 c <- arr[0] << N;
+}
+
+scope Board {
+    u8 m <- 1;
+    const u8 STEP <- 12;
+
+    // ASSERTIONS 6-7 -- a scope member, expression and compound forms, and a
+    // scope-local const amount.
+    public void go() {
+        u8 b <- this.m << 8;
+        this.m <<<- this.STEP;
+    }
+}
+
+// Two scopes declaring the SAME const name, with different values. This is
+// what makes the bare-name search order observable: a lookup that consults
+// only the unqualified name finds whichever of the two the program's const
+// table happened to key there, so one of these two functions gets the other
+// scope's amount. `this.AMOUNT` would pass either way -- an explicit root
+// states where to look and admits one candidate.
+scope Narrow {
+    const u8 AMOUNT <- 7;
+
+    // CONTROL -- 7 fits a u8.
+    public u8 ok(u8 v) {
+        return v << AMOUNT;
+    }
+}
+
+scope Wide {
+    const u8 AMOUNT <- 40;
+
+    // ASSERTION -- 40 does not fit a u32, and is only knowable as 40 if the
+    // scope-qualified candidate is tried before the bare one.
+    public u32 tooWide(u32 v) {
+        return v << AMOUNT;
+    }
+}

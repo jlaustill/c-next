@@ -7,6 +7,7 @@ import { writeFileSync, mkdirSync, rmSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import Transpiler from "../Transpiler";
 import MockFileSystem from "./MockFileSystem";
+import ParserUtils from "../../utils/ParserUtils";
 
 describe("Transpiler", () => {
   describe("with MockFileSystem", () => {
@@ -127,25 +128,48 @@ describe("Transpiler", () => {
         expect(result.success).toBe(false);
         expect(result.errors).toHaveLength(1);
         expect(result.errors[0].line).toBe(3);
-        expect(result.errors[0].column).toBe(2);
+        // #1322: column 14 is `large`, the VALUE being narrowed. This used to
+        // assert column 2 -- the declaration's first character -- because the
+        // position was smuggled through the message by a rethrow wrapper that
+        // only knew where the statement began. E0869 in pass 2.1 points at
+        // the operand the message is about.
+        expect(result.errors[0].column).toBe(14);
+        expect(result.errors[0].message).toContain("E0869");
         expect(result.errors[0].message).toContain("narrowing");
       });
 
-      it("defaults to line 1 for errors without location info", async () => {
-        const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
+      it("defaults to line 1 for errors without location info", () => {
+        // #1322: this used to prove the fallback by transpiling
+        // `u32 r <- (x) ? 1 : 0;` and asserting the result came back at 1:0.
+        // That worked because ADR-022's controlling-expression rule threw from
+        // codegen with no position -- so the test was pinned to the DEFECT this
+        // card removes, and it broke the moment the rule moved to pass 2.1 and
+        // gained a real one.
+        //
+        // The fallback itself is still real: 98 throws in `output/` have no
+        // position yet. It is asserted directly now, against the parser that
+        // implements it, so it neither depends on which diagnostic happens to
+        // lack a position nor has to be rewritten each time one gains one.
+        // When the last throw is relocated this becomes dead and goes with it.
+        for (const message of [
+          "Code generation failed: something went wrong",
+          "no colon at all",
+          "notANumber:0 still not a location",
+          "12:notANumber also not one",
+        ]) {
+          const parsed = ParserUtils.parseErrorLocation(message);
+          expect(parsed.line).toBe(1);
+          expect(parsed.column).toBe(0);
+          expect(parsed.message).toBe(message);
+        }
+      });
 
-        // Ternary with bare variable produces error without line prefix
-        const result = (
-          await transpiler.transpile({
-            kind: "source",
-            source: `void test() { u32 x <- 5; u32 r <- (x) ? 1 : 0; }`,
-          })
-        ).files[0];
-
-        expect(result.success).toBe(false);
-        expect(result.errors[0].line).toBe(1);
-        expect(result.errors[0].column).toBe(0);
-        expect(result.errors[0].message).toContain("Code generation failed");
+      it("reads a location the message DOES carry", () => {
+        // The other half, without which the case above passes for a parser
+        // that always returns 1:0.
+        const parsed = ParserUtils.parseErrorLocation("12:4 something failed");
+        expect(parsed.line).toBe(12);
+        expect(parsed.column).toBe(4);
       });
 
       it("transpiles various C-Next types correctly", async () => {

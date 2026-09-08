@@ -10,7 +10,7 @@
 int main(void) {
     uint8_t buffer[16] = {};
     buffer[0] = 0U;
-    for (uint32_t i = 0; i < 16; i = i + 1) {
+    for (uint32_t i = 0U; i < 16; i = i + 1) {
         buffer[i] = 0U;
     }
 }

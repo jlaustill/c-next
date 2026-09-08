@@ -1,0 +1,37 @@
+// test-error
+// #1322 review: ADR-036's bounds check must use the const of the scope the
+// array is declared in, not whichever scope declared that name last.
+//
+// The program artifact keyed every const by BARE name, so two scopes each
+// declaring `N` shared one slot. `this.t[5]` on a `u8[N] t` inside `Small` was
+// then bounded by `Big.N` when `Big` happened to be derived later -- and by
+// `Small.N` when it did not. Swapping the two scope declarations turned E0854
+// on and off, which is the order-dependent diagnostic these analyzers' own
+// comments cite #1399 for, arriving through a different map.
+//
+// The PAIR is the assertion. This file declares `Small` first and its sibling
+// declares `Big` first; a lookup that still depends on order passes one and
+// fails the other, whichever way it leans. A single file could pass by luck.
+//
+// `test-error` rather than an execution fixture on purpose: the emitted array
+// SIZE is still taken from the collided key (#1538, which folds the dimension
+// at declare time, before the program artifact exists), so compiling code here
+// would assert C that is known wrong. An error fixture generates none.
+
+scope Small {
+    private const u8 N <- 2;
+    private u8[N] t;
+
+    public u8 read() {
+        return this.t[5];
+    }
+}
+
+scope Big {
+    private const u8 N <- 10;
+    private u8 unused <- 0;
+}
+
+u8 main() {
+    return Small.read();
+}

@@ -1,0 +1,37 @@
+/* test-error */
+// E0857 on a bit index into a SCALAR struct field.
+//
+// #1322 found this unguarded. The analyzer distinguishes three states after a
+// member step -- dimensions unknown (never reject), dimensions empty (a scalar,
+// so a subscript is a BIT index and is rejected), dimensions non-empty (an
+// array element, accepted). Mutating the field lookup to return "unknown"
+// reddened NOTHING, because every fixture covered the other two states.
+//
+// The struct is scope-declared on purpose: `structFieldDimensions` is keyed by
+// the transpiled C name, so this fixture also fails if that key derivation is
+// lost.
+
+scope Regs {
+    public struct Block {
+        u32 flags;
+        u8[4] data;
+    }
+}
+
+u32 main() {
+    Regs.Block b;
+    b.flags <- 0;
+    b.data[0] <- 1;
+
+    // NEGATIVE CONTROL -- the identical syntax on an ARRAY field. This is a
+    // real element, not a bit, so the compound operator is fine. A rule that
+    // keyed on the subscript alone, or that lost the field's dimensions, would
+    // reject this.
+    b.data[0] +<- 1;
+
+    // THE ASSERTION -- `flags` is a scalar, so `[0]` is a bit index (ADR-007)
+    // and a bit is not a location the read-modify-write can write back to.
+    b.flags[0] +<- 1;
+
+    return 0;
+}

@@ -28,42 +28,42 @@ int main(void) {
     uint64_t a = 1000000000000ULL;
     uint64_t b = 1000000000000ULL;
     uint64_t c = 2000000000000ULL;
-    if ((a == b) != true) return 1;
-    if ((a == c) != false) return 2;
-    if ((a != c) != true) return 3;
-    if ((a != b) != false) return 4;
+    if ((a == b) != true) return 1U;
+    if ((a == c) != false) return 2U;
+    if ((a != c) != true) return 3U;
+    if ((a != b) != false) return 4U;
     uint64_t zero = 0ULL;
-    if ((zero == 0) != true) return 5;
-    if ((zero != 1) != true) return 6;
+    if ((zero == 0) != true) return 5U;
+    if ((zero != 1) != true) return 6U;
     uint64_t small = 1000ULL;
     uint64_t large = 1000000000000ULL;
-    if ((small < large) != true) return 7;
-    if ((large < small) != false) return 8;
-    if ((small < small) != false) return 9;
-    if ((small <= large) != true) return 10;
-    if ((small <= small) != true) return 11;
-    if ((large <= small) != false) return 12;
-    if ((zero < 1) != true) return 13;
-    if ((zero <= 0) != true) return 14;
-    if ((large > small) != true) return 15;
-    if ((small > large) != false) return 16;
-    if ((small > small) != false) return 17;
-    if ((large >= small) != true) return 18;
-    if ((small >= small) != true) return 19;
-    if ((small >= large) != false) return 20;
-    if ((1 > zero) != true) return 21;
-    if ((zero >= 0) != true) return 22;
+    if ((small < large) != true) return 7U;
+    if ((large < small) != false) return 8U;
+    if ((small < small) != false) return 9U;
+    if ((small <= large) != true) return 10U;
+    if ((small <= small) != true) return 11U;
+    if ((large <= small) != false) return 12U;
+    if ((zero < 1) != true) return 13U;
+    if ((zero <= 0) != true) return 14U;
+    if ((large > small) != true) return 15U;
+    if ((small > large) != false) return 16U;
+    if ((small > small) != false) return 17U;
+    if ((large >= small) != true) return 18U;
+    if ((small >= small) != true) return 19U;
+    if ((small >= large) != false) return 20U;
+    if ((1 > zero) != true) return 21U;
+    if ((zero >= 0) != true) return 22U;
     uint64_t val = 1000000000000ULL;
-    if ((val == 1000000000000) != true) return 23;
-    if ((val != 1000000000000) != false) return 24;
-    if ((val < 2000000000000) != true) return 25;
-    if ((val < 500000000000) != false) return 26;
-    if ((val > 500000000000) != true) return 27;
-    if ((val > 2000000000000) != false) return 28;
-    if ((val <= 1000000000000) != true) return 29;
-    if ((val <= 2000000000000) != true) return 30;
-    if ((val >= 1000000000000) != true) return 31;
-    if ((val >= 500000000000) != true) return 32;
+    if ((val == 1000000000000) != true) return 23U;
+    if ((val != 1000000000000) != false) return 24U;
+    if ((val < 2000000000000) != true) return 25U;
+    if ((val < 500000000000) != false) return 26U;
+    if ((val > 500000000000) != true) return 27U;
+    if ((val > 2000000000000) != false) return 28U;
+    if ((val <= 1000000000000) != true) return 29U;
+    if ((val <= 2000000000000) != true) return 30U;
+    if ((val >= 1000000000000) != true) return 31U;
+    if ((val >= 500000000000) != true) return 32U;
     uint64_t counter = 0ULL;
     while (counter < 100) {
         counter = cnx_clamp_add_u64(counter, 1ULL);
@@ -71,7 +71,7 @@ int main(void) {
             counter = 100ULL;
         }
     }
-    if (counter != 100) return 33;
+    if (counter != 100) return 33U;
     uint64_t threshold = 1000000000ULL;
     bool nested_passed = false;
     if (counter > 0) {
@@ -79,22 +79,22 @@ int main(void) {
             nested_passed = true;
         }
     }
-    if (nested_passed != true) return 34;
-    if ((zero < 1) != true) return 35;
-    if ((zero == 0) != true) return 36;
-    if ((0 <= zero) != true) return 37;
+    if (nested_passed != true) return 34U;
+    if ((zero < 1) != true) return 35U;
+    if ((zero == 0) != true) return 36U;
+    if ((0 <= zero) != true) return 37U;
     uint64_t max = 18446744073709551615ULL;
     uint64_t near_max = 18446744073709551614ULL;
-    if ((zero < max) != true) return 38;
-    if ((max >= max) != true) return 39;
-    if ((max == max) != true) return 40;
-    if ((near_max < max) != true) return 41;
-    if ((near_max != max) != true) return 42;
-    if ((near_max <= max) != true) return 43;
+    if ((zero < max) != true) return 38U;
+    if ((max >= max) != true) return 39U;
+    if ((max == max) != true) return 40U;
+    if ((near_max < max) != true) return 41U;
+    if ((near_max != max) != true) return 42U;
+    if ((near_max <= max) != true) return 43U;
     uint64_t timestamp_2020 = 1577836800000ULL;
     uint64_t timestamp_2021 = 1609459200000ULL;
-    if ((timestamp_2021 > timestamp_2020) != true) return 44;
-    if ((timestamp_2021 != timestamp_2020) != true) return 45;
+    if ((timestamp_2021 > timestamp_2020) != true) return 44U;
+    if ((timestamp_2021 != timestamp_2020) != true) return 45U;
     uint64_t chain_a = 1000ULL;
     uint64_t chain_b = 5000ULL;
     uint64_t chain_c = 10000ULL;
@@ -104,11 +104,11 @@ int main(void) {
             chain_result = true;
         }
     }
-    if (chain_result != true) return 46;
+    if (chain_result != true) return 46U;
     bool less = (chain_a < chain_b);
     bool greater = (chain_c > chain_b);
-    if (less != true) return 47;
-    if (greater != true) return 48;
-    if ((chain_a < chain_b) != true) return 49;
-    return 0;
+    if (less != true) return 47U;
+    if (greater != true) return 48U;
+    if ((chain_a < chain_b) != true) return 49U;
+    return 0U;
 }

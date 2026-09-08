@@ -25,45 +25,45 @@ int main(void) {
     uint16_t d = 50U;
     uint16_t maxResult1 = getMax(a, b);
     if (maxResult1 != 200) {
-        return 1;
+        return 1U;
     }
     uint16_t maxResult2 = getMax(c, d);
     if (maxResult2 != 300) {
-        return 2;
+        return 2U;
     }
     uint16_t minResult1 = getMin(a, b);
     if (minResult1 != 100) {
-        return 3;
+        return 3U;
     }
     uint16_t minResult2 = getMin(c, d);
     if (minResult2 != 50) {
-        return 4;
+        return 4U;
     }
     uint16_t result = (a > b) ? a : b;
     if (result != 200) {
-        return 5;
+        return 5U;
     }
     uint16_t max_val = 65535U;
     uint16_t mid_val = 32767U;
     uint16_t edge_result = (max_val > mid_val) ? max_val : mid_val;
     if (edge_result != 65535) {
-        return 6;
+        return 6U;
     }
     uint16_t zero = 0U;
     uint16_t one = 1U;
     uint16_t zero_result = (zero < one) ? zero : one;
     if (zero_result != 0) {
-        return 7;
+        return 7U;
     }
     uint16_t equal_test = (a == 100) ? 1000U : 2000U;
     if (equal_test != 1000) {
-        return 8;
+        return 8U;
     }
     uint16_t large_a = 50000U;
     uint16_t large_b = 60000U;
     uint16_t large_result = (large_a < large_b) ? large_a : large_b;
     if (large_result != 50000) {
-        return 9;
+        return 9U;
     }
-    return 0;
+    return 0U;
 }

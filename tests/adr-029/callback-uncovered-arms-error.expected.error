@@ -1,0 +1,16 @@
+40:24 error[E0880]: Cannot assign 'onUp' to callback variable 'badMember' (expected onDown type, got onUp type - nominal typing)
+       help: A function used as a struct field's type is its own callback type; only a function that is not itself a type may stand in for another (ADR-029).
+46:18 error[E0880]: Cannot assign 'onUp' to callback field 'down' (expected onDown type, got onUp type - nominal typing)
+       help: A function used as a struct field's type is its own callback type; only a function that is not itself a type may stand in for another (ADR-029).
+52:20 error[E0880]: Cannot assign 'onUp' to callback variable 'badGlobal' (expected onDown type, got onUp type - nominal typing)
+       help: A function used as a struct field's type is its own callback type; only a function that is not itself a type may stand in for another (ADR-029).
+65:14 error[E0880]: Cannot assign 'onUp' to callback field 'down' (expected onDown type, got onUp type - nominal typing)
+       help: A function used as a struct field's type is its own callback type; only a function that is not itself a type may stand in for another (ADR-029).
+68:23 error[E0880]: Cannot assign 'onUp' to callback variable 'fromDecl' (expected onDown type, got onUp type - nominal typing)
+       help: A function used as a struct field's type is its own callback type; only a function that is not itself a type may stand in for another (ADR-029).
+71:32 error[E0880]: Cannot assign 'onUp' to callback field 'down' (expected onDown type, got onUp type - nominal typing)
+       help: A function used as a struct field's type is its own callback type; only a function that is not itself a type may stand in for another (ADR-029).
+75:14 error[E0880]: Cannot pass 'onUp' as parameter 'cb' of function 'takesDown' (expected onDown type, got onUp type - nominal typing)
+       help: A function used as a struct field's type is its own callback type; only a function that is not itself a type may stand in for another (ADR-029).
+76:19 error[E0880]: Cannot pass 'onUp' as parameter 'cb' of function 'install' (expected onDown type, got onUp type - nominal typing)
+       help: A function used as a struct field's type is its own callback type; only a function that is not itself a type may stand in for another (ADR-029).

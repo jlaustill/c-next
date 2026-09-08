@@ -17,33 +17,14 @@
 import ISubstringOps from "../types/ISubstringOps";
 import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
 import CodeGenState from "../../../state/CodeGenState.js";
-import TypeResolver from "../TypeResolver.js";
+import invariant from "../../../../utils/invariant";
 import ArrayInitHelper from "./ArrayInitHelper.js";
 import CppModeHelper from "./CppModeHelper.js";
-import EnumAssignmentValidator from "./EnumAssignmentValidator.js";
-import IntegerLiteralValidator from "./IntegerLiteralValidator.js";
 import NarrowingCastHelper from "./NarrowingCastHelper.js";
 import StringDeclHelper from "./StringDeclHelper.js";
 import VariableModifierBuilder from "./VariableModifierBuilder.js";
 import TYPE_MAP from "../types/TYPE_MAP.js";
-import ExpressionUnwrapper from "../../../../utils/ExpressionUnwrapper";
 import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
-
-/**
- * Callbacks for integer validation in variable declarations.
- */
-interface IIntegerValidationCallbacks {
-  /** Get expression type for validation */
-  getExpressionType: (ctx: Parser.ExpressionContext) => string | null;
-}
-
-/**
- * Callbacks for C++ class assignment finalization.
- */
-interface ICppAssignmentCallbacks {
-  /** Get type name from type context */
-  getTypeName: (ctx: Parser.TypeContext) => string;
-}
 
 /**
  * Callbacks for array type dimension generation.
@@ -204,172 +185,43 @@ class VariableDeclHelper {
     return null;
   }
 
-  /**
-   * Extract base type name from type context for error messages.
-   * Handles primitive types, user types, and array types.
-   *
-   * @param typeCtx - Type context
-   * @returns Base type name as string
-   */
-  static extractBaseTypeName(typeCtx: Parser.TypeContext): string {
-    if (typeCtx.primitiveType()) {
-      return typeCtx.primitiveType()!.getText();
-    }
-    if (typeCtx.userType()) {
-      return typeCtx.userType()!.getText();
-    }
-    if (typeCtx.arrayType()) {
-      const arrCtx = typeCtx.arrayType()!;
-      if (arrCtx.primitiveType()) {
-        return arrCtx.primitiveType()!.getText();
-      }
-      if (arrCtx.userType()) {
-        return arrCtx.userType()!.getText();
-      }
-    }
-    return typeCtx.getText();
-  }
-
   // ========================================================================
   // Tier 2: Simple Operations (CodeGenState + simple callbacks)
   // ========================================================================
 
   /**
-   * Validate array declaration syntax - reject C-style, require C-Next style.
-   * C-style: u16 arr[8] (all dimensions after identifier) - REJECTED
-   * C-Next style: u16[8] arr (first dimension in type) - REQUIRED
-   * Multi-dim C-Next: u16[4] arr[2] (first in type, rest after) - ALLOWED
-   *
-   * Exceptions (grammar limitations):
-   *   - Empty dimensions for size inference: u8 arr[] <- [...]
-   *   - Qualified types: SeaDash.Parse.Result arr[3] (no arrayType support)
-   *   - Scoped/global types: this.Type arr[3], global.Type arr[3]
-   *   - String types: string<N> arr[3]
-   *
-   * @param ctx - Variable declaration context
-   * @param typeCtx - Type context
-   * @param name - Variable name
-   * @throws Error if C-style array declaration detected
-   */
-  static validateArrayDeclarationSyntax(
-    ctx: Parser.VariableDeclarationContext,
-    typeCtx: Parser.TypeContext,
-    name: string,
-  ): void {
-    const arrayDims = ctx.arrayDimension();
-    if (arrayDims.length === 0) {
-      return; // Not an array declaration
-    }
-
-    // Issues #1014-#1017: ALL trailing brackets after the variable name are rejected.
-    // The only valid form is dimensions in type position: u8[4][8] matrix, string<32>[5] names
-    // No mixed forms (u8[4] matrix[8]), no C-style (u8 matrix[4][8]), no trailing inference (u8 arr[])
-    const baseType = VariableDeclHelper.extractBaseTypeName(typeCtx);
-    const existingDims = typeCtx.arrayType()
-      ? typeCtx
-          .arrayType()!
-          .arrayTypeDimension()
-          .map((d) => `[${d.expression()?.getText() ?? ""}]`)
-          .join("")
-      : "";
-    const trailingDims = arrayDims
-      .map((dim) => `[${dim.expression()?.getText() ?? ""}]`)
-      .join("");
-    const allDims = existingDims + trailingDims;
-    const line = ctx.start?.line ?? 0;
-    const col = ctx.start?.column ?? 0;
-
-    throw new Error(
-      `${line}:${col} C-style array declaration is not allowed. ` +
-        `Use '${baseType}${allDims} ${name}' instead of '${baseType}${existingDims} ${name}${trailingDims}'`,
-    );
-  }
-
-  /**
-   * Validate integer initializer using type validation helpers.
-   * Checks that literal values fit in target type and validates type conversions.
-   *
-   * Delegates to IntegerLiteralValidator for the actual validation logic.
-   *
-   * @param ctx - Variable declaration context (must have expression)
-   * @param typeName - Target type name
-   * @param callbacks - Callbacks for expression type resolution
-   * @throws Error if value doesn't fit in type or conversion is invalid
-   */
-  static validateIntegerInitializer(
-    ctx: Parser.VariableDeclarationContext,
-    typeName: string,
-    callbacks: IIntegerValidationCallbacks,
-  ): void {
-    const exprText = ctx.expression()!.getText();
-    const line = ctx.start?.line ?? 0;
-    const col = ctx.start?.column ?? 0;
-
-    const validator = new IntegerLiteralValidator({
-      isIntegerType: TypeResolver.isIntegerType,
-      validateLiteralFitsType: TypeResolver.validateLiteralFitsType,
-      getExpressionType: (_text: string) => {
-        // IntegerLiteralValidator passes text, but our callback uses the context
-        const direct = callbacks.getExpressionType(ctx.expression()!);
-        if (direct !== null) return direct;
-        // Issue #1152: getExpressionType returns null for a COMPOSITE
-        // expression (`a + b`), so every conversion rule keyed on the source
-        // type silently no-ops on exactly the expressions MISRA 10.8 is about.
-        // resolveCompositeIntegerType already types these correctly -- it was
-        // written for slice assignment and cites 10.8 -- so reuse it rather
-        // than leaving composites untyped here.
-        //
-        // Only for a genuine composite. A lone postfix that direct typing
-        // declined is a bit extraction (`x[0, 32]`), which ADR-024 defines as
-        // the EXPLICIT reinterpret -- typing it here would make the sanctioned
-        // escape hatch fail the very check it exists to satisfy.
-        if (ExpressionUnwrapper.getPostfixExpression(ctx.expression()!)) {
-          return null;
-        }
-        return TypeResolver.getIntegerExpressionType(ctx.expression()!);
-      },
-      validateTypeConversion: TypeResolver.validateTypeConversion,
-    });
-
-    validator.validateIntegerAssignment(typeName, exprText, line, col);
-  }
-
-  /**
    * Handle pending C++ class field assignments.
    * In function body, generates assignments after declaration.
-   * At global scope, throws error since assignments can't exist there.
    *
-   * @param typeCtx - Type context for error messages
+   * #1322: the rejection that stood at the end of this method is E0508 in pass
+   * 2.1, and it is not a transcription of what was here. This method DRAINS a
+   * queue another node filled, so the declaration it was reported against was
+   * not necessarily the one that filled it: a scope member pushed and was never
+   * drained (the initializer vanished at exit 0), and an unrelated global after
+   * one reported `C++ class 'u32' with constructor`. `CppClassInitializerAnalyzer`
+   * decides at the initializer itself.
+   *
+   * The queue can therefore no longer be non-empty here outside a function
+   * body, which is what the assertion says.
+   *
    * @param name - Variable name
    * @param decl - Current declaration string
-   * @param callbacks - Callbacks for type name generation
    * @returns Final declaration with semicolon and any pending assignments
-   * @throws Error if C++ class with constructor at global scope
    */
-  static finalizeCppClassAssignments(
-    typeCtx: Parser.TypeContext,
-    name: string,
-    decl: string,
-    callbacks: ICppAssignmentCallbacks,
-  ): string {
+  static finalizeCppClassAssignments(name: string, decl: string): string {
     if (CodeGenState.pendingCppClassAssignments.length === 0) {
       return `${decl};`;
     }
 
-    if (CodeGenState.inFunctionBody) {
-      const assignments = CodeGenState.pendingCppClassAssignments
-        .map((a) => `${name}.${a}`)
-        .join("\n");
-      CodeGenState.pendingCppClassAssignments = [];
-      return `${decl};\n${assignments}`;
-    }
-
-    // At global scope, we can't emit assignment statements.
-    CodeGenState.pendingCppClassAssignments = [];
-    throw new Error(
-      `Error: C++ class '${callbacks.getTypeName(typeCtx)}' with constructor cannot use struct initializer ` +
-        `syntax at global scope. Use constructor syntax or initialize fields separately.`,
+    invariant(
+      CodeGenState.inFunctionBody,
+      "E0508 rejects this in pass 2.1, before this runs",
     );
+    const assignments = CodeGenState.pendingCppClassAssignments
+      .map((a) => `${name}.${a}`)
+      .join("\n");
+    CodeGenState.pendingCppClassAssignments = [];
+    return `${decl};\n${assignments}`;
   }
 
   // ========================================================================
@@ -540,13 +392,7 @@ class VariableDeclHelper {
 
     const typeName = callbacks.getTypeName(typeCtx);
 
-    // ADR-017: Validate enum type for initialization
-    EnumAssignmentValidator.validateEnumAssignment(typeName, ctx.expression()!);
-
-    // ADR-024: Validate integer literals and type conversions
-    VariableDeclHelper.validateIntegerInitializer(ctx, typeName, {
-      getExpressionType: callbacks.getExpressionType,
-    });
+    // #1322: ADR-024's initializer rules are E0868/E0869 in pass 2.1.
 
     // Issue #872: Set expectedType for MISRA 7.2 U suffix compliance
     // MISRA 10.3: Also check for cross-type-category conversions (int <-> float)
@@ -631,8 +477,8 @@ class VariableDeclHelper {
     const name = ctx.IDENTIFIER().getText();
     const typeCtx = ctx.type();
 
-    // Reject C-style array declarations (u16 arr[8]) - require C-Next style (u16[8] arr)
-    VariableDeclHelper.validateArrayDeclarationSyntax(ctx, typeCtx, name);
+    // #1322: a C-style array declaration (u16 arr[8]) is E0874 in pass 2.1
+    // (ADR-036).
 
     const type = callbacks.inferVariableType(ctx, name);
 
@@ -717,9 +563,7 @@ class VariableDeclHelper {
     );
 
     // Handle pending C++ class field assignments
-    return VariableDeclHelper.finalizeCppClassAssignments(typeCtx, name, decl, {
-      getTypeName: callbacks.getTypeName,
-    });
+    return VariableDeclHelper.finalizeCppClassAssignments(name, decl);
   }
 
   /**
@@ -741,7 +585,6 @@ class VariableDeclHelper {
   ): string {
     const type = callbacks.generateType(ctx.type());
     const name = ctx.IDENTIFIER().getText();
-    const line = ctx.start?.line ?? 0;
 
     // Collect and validate all arguments
     const argIdentifiers = argListCtx.IDENTIFIER();
@@ -750,38 +593,25 @@ class VariableDeclHelper {
     for (const argNode of argIdentifiers) {
       const argName = argNode.getText();
 
-      // Check if it exists in type registry
-      const typeInfo = CodeGenState.getVariableTypeInfo(argName);
-
-      // Also check scoped variables if inside a scope
-      let scopedArgName = argName;
-      let scopedTypeInfo = typeInfo;
-      if (!typeInfo && CodeGenState.currentScopePath) {
-        scopedArgName = QualifiedNameGenerator.forMember(
-          CodeGenState.currentScopePath,
-          argName,
-        );
-        scopedTypeInfo = CodeGenState.getVariableTypeInfo(scopedArgName);
-      }
-
-      if (!typeInfo && !scopedTypeInfo) {
-        throw new Error(
-          `Error at line ${line}: Constructor argument '${argName}' is not declared`,
-        );
-      }
-
-      const finalTypeInfo = typeInfo ?? scopedTypeInfo!;
-      const finalArgName = typeInfo ? argName : scopedArgName;
-
-      // Check if it's const
-      if (!finalTypeInfo.isConst) {
-        throw new Error(
-          `Error at line ${line}: Constructor argument '${argName}' must be const. ` +
-            `C++ constructors in C-Next only accept const variables.`,
-        );
-      }
-
-      resolvedArgs.push(finalArgName);
+      // #1322: the "is not declared" (E0433) and "must be const" (E0432)
+      // rejections that stood here are authored in pass 2.1, which halts before
+      // codegen -- so an argument reaching this line is declared and const. The
+      // two copies of this rule also decided const-ness two different ways;
+      // `IDeclaredVar.isConst` is now the single answer.
+      //
+      // What survives is NAME resolution, which is codegen's own question: a
+      // scope member is emitted by its qualified C name. The type lookup that
+      // stood beside it existed only to answer the const question.
+      const isFileScope =
+        CodeGenState.getVariableTypeInfo(argName) !== undefined;
+      resolvedArgs.push(
+        isFileScope || !CodeGenState.currentScopePath
+          ? argName
+          : QualifiedNameGenerator.forMember(
+              CodeGenState.currentScopePath,
+              argName,
+            ),
+      );
     }
 
     // Track the variable in type registry (as an external C++ type)

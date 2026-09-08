@@ -1,0 +1,9 @@
+// Coverage: ADR-068 - forever loop lowers to MISRA-compliant for(;;)
+// test-transpile-only
+// test-adr: 068
+void loopForever() {
+    u8 state <- 0;
+    forever {
+        state <- 1;
+    }
+}

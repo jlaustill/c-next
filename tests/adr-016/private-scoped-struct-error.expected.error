@@ -1,0 +1,2 @@
+31:4 error[E0436]: Cannot access private member 'Secret' of scope 'Internal' from outside the scope
+       help: Only public members are accessible outside their scope. Mark it `public`, or reach it through a public member.

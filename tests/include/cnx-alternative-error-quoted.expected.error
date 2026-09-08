@@ -1,2 +1,3 @@
-1:0 Code generation failed: E0504: Found #include "cnx-alt-helper.h" but 'cnx-alt-helper.cnx' exists at the same location.
-       Use #include "cnx-alt-helper.cnx" instead to use the C-Next version. Line 4
+4:0 error[E0504]: Found #include "cnx-alt-helper.h" but 'cnx-alt-helper.cnx' exists at the same location.
+       Use #include "cnx-alt-helper.cnx" instead to use the C-Next version.
+       help: The generated header describes the interface; the C-Next source is what the transpiler can check calls against (ADR-010).

@@ -80,8 +80,8 @@ import IPipelineInput from "./types/IPipelineInput";
 import TTranspileInput from "./types/TTranspileInput";
 import ITranspileError from "../lib/types/ITranspileError";
 import TranspilerState from "./state/TranspilerState";
-import runAnalyzers from "./logic/analysis/runAnalyzers";
-import ModificationAnalyzer from "./logic/analysis/ModificationAnalyzer";
+import runAnalyzers from "../TRANSPILE/1-Analyze/runAnalyzers";
+import ModificationAnalyzer from "../TRANSPILE/2-Plan/ModificationAnalyzer";
 import CacheManager from "../utils/cache/CacheManager";
 import MapUtils from "../utils/MapUtils";
 import detectCppSyntax from "./logic/detectCppSyntax";
@@ -858,8 +858,18 @@ class Transpiler {
       CodeGenState.currentFileReachesForeignHeader =
         file.reachesForeignHeader ?? true;
 
-      // Run analyzers (reads symbols, externalStructFields, and symbolTable from CodeGenState)
-      const analyzerErrors = runAnalyzers(tree, tokenStream);
+      // Run analyzers (reads symbols, externalStructFields, and symbolTable from
+      // CodeGenState). #1322: the ADR-010 include facts are handed in rather
+      // than read off CodeGenState, whose `sourcePath` is not written until
+      // `generate()` below and so holds the previous file's value here.
+      const analyzerErrors = runAnalyzers(tree, tokenStream, {
+        cppMode: this.cppMode,
+        includes: {
+          sourcePath,
+          searchPaths: this.state.getIncludeSearchPaths(sourcePath),
+          fileExists: (candidate: string) => this.fs.exists(candidate),
+        },
+      });
       if (analyzerErrors.length > 0) {
         return this.buildErrorResult(
           sourcePath,
@@ -1010,6 +1020,8 @@ class Transpiler {
     this.warnings.push(...resolved.warnings);
     // Issue #1467: one resolution, read later by both the .c and the .h
     this.state.setCnxIncludeRewrites(sourcePath, resolved.cnextIncludeRewrites);
+    // Issue #1322: the same list ADR-010's E0504 asks about in pass 2.1
+    this.state.setIncludeSearchPaths(sourcePath, searchPaths);
 
     // Resolve C/C++ headers transitively
     const { headers: allHeaders, warnings: headerWarnings } =
@@ -1755,6 +1767,8 @@ class Transpiler {
       cnxFile.path,
       resolved.cnextIncludeRewrites,
     );
+    // Issue #1322: the same list ADR-010's E0504 asks about in pass 2.1
+    this.state.setIncludeSearchPaths(cnxFile.path, searchPaths);
 
     if (resolved.hasForeignInclude) {
       directForeignHeaderFiles.add(cnxPath);
@@ -2547,6 +2561,9 @@ class Transpiler {
         // enforces, so a live reference here would be correct only by
         // coincidence with reset()'s current implementation.
         generatedStructInits: new Set(CodeGenState.generatedStructInits),
+        // #1453: same contract, same reason -- copied at capture, never read
+        // live by the render.
+        registerBlocks: [...CodeGenState.exportedRegisterBlocks],
         externalTypeHeaders,
         cppMode: this.cppMode,
         // #1517: 2.2 Plan decides; the header generator prints. Possible only

@@ -1,0 +1,2 @@
+8:0 error[E0862]: A non-const string requires an explicit capacity
+       help: Write the capacity, e.g. string<64>. Only a `const` can have one inferred.

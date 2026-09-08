@@ -17,12 +17,12 @@ int main(void) {
     config.magic = 0x12345678U;
     config.version = 0x42U;
     uint32_t length = 32 / 8U;
-    if (length != 4) return 1;
+    if (length != 4) return 1U;
     length = 8 / 8U;
-    if (length != 1) return 2;
+    if (length != 1) return 2U;
     uint32_t bits = 32;
-    if (bits != 32) return 3;
+    if (bits != 32) return 3U;
     bits = 8;
-    if (bits != 8) return 4;
-    return 0;
+    if (bits != 8) return 4U;
+    return 0U;
 }

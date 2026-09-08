@@ -1,0 +1,2 @@
+13:26 error[E0864]: Substring length 10 exceeds destination string<5> capacity
+       help: Widen the declaration to string<10>, or take fewer characters.

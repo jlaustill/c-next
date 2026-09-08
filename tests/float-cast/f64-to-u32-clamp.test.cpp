@@ -13,10 +13,10 @@ int main(void) {
     double negative = -100.0;
     double in_range = 3000000000.0;
     uint32_t result = ((over) > ((double)UINT32_MAX) ? static_cast<uint32_t>(UINT32_MAX) : (over) < 0.0 ? static_cast<uint32_t>(0) : static_cast<uint32_t>((over)));
-    if (result != 4294967295) return 1;
+    if (result != 4294967295) return 1U;
     result = ((negative) > ((double)UINT32_MAX) ? static_cast<uint32_t>(UINT32_MAX) : (negative) < 0.0 ? static_cast<uint32_t>(0) : static_cast<uint32_t>((negative)));
-    if (result != 0) return 2;
+    if (result != 0) return 2U;
     result = ((in_range) > ((double)UINT32_MAX) ? static_cast<uint32_t>(UINT32_MAX) : (in_range) < 0.0 ? static_cast<uint32_t>(0) : static_cast<uint32_t>((in_range)));
-    if (result != 3000000000) return 3;
-    return 0;
+    if (result != 3000000000) return 3U;
+    return 0U;
 }

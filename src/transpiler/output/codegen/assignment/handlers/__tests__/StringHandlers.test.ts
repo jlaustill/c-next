@@ -86,20 +86,12 @@ describe("StringHandlers", () => {
       expect(CodeGenState.needsString).toBe(true);
     });
 
-    it("throws on compound assignment", () => {
-      HandlerTestUtils.setupMockTypeRegistry([
-        ["testVar", { stringCapacity: 32, baseType: "string" }],
-      ]);
-      const ctx = createMockContext({ isCompound: true, cnextOp: "+<-" });
-
-      const handler = stringHandlers.find(
-        ([kind]) => kind === AssignmentKind.STRING_SIMPLE,
-      )?.[1];
-
-      expect(() => handler!(ctx)).toThrow(
-        "Compound operators not supported for string assignment",
-      );
-    });
+    // #1322: compound assignment on a bit index, bit range, slice, bitmap field
+    // or string is E0857 in pass 2.1 -- one decision where `output/` had six
+    // throws with four messages, and `validateNotCompound` defined twice verbatim.
+    // The pipeline halts before these handlers run. Covered by
+    // `1-Analyze/__tests__/CompoundAssignmentAnalyzer.test.ts` plus
+    // `tests/compound-assign/` and `tests/string-assignment/`.
   });
 
   describe("handleStringThisMember (STRING_THIS_MEMBER)", () => {
@@ -164,18 +156,11 @@ describe("StringHandlers", () => {
       expect(handler!(ctx)).toContain("48");
     });
 
-    it("throws when used outside scope", () => {
-      CodeGenState.setCurrentScopeByPath(null);
-      const ctx = createMockContext();
-
-      const handler = stringHandlers.find(
-        ([kind]) => kind === AssignmentKind.STRING_THIS_MEMBER,
-      )?.[1];
-
-      expect(() => handler!(ctx)).toThrow(
-        "'this' can only be used inside a scope",
-      );
-    });
+    // #1322a: the `'this' outside a scope` guard this asserted is deleted. It
+    // was unreachable -- `this.x <- 5` at file scope is a PARSE error, so the
+    // assignment never reaches codegen -- and this test reached it only by
+    // calling the handler directly with state production cannot produce. A test
+    // that is a dead branch's only caller is what keeps the branch alive.
   });
 
   describe("handleStringStructField (STRING_STRUCT_FIELD)", () => {

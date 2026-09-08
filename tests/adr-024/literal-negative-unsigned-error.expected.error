@@ -1,0 +1,2 @@
+6:19 error[E0868]: Negative value -1 cannot be assigned to unsigned type u8
+       help: An unsigned type holds no negative values; use a signed type such as i8.

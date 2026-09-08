@@ -1,0 +1,2 @@
+9:18 error[E0863]: A string at file scope may only be initialized by a literal, not 'source[0,5]'
+       help: Copying, concatenating and extracting a substring all need runtime calls, which C cannot make before `main`. Move the declaration into a function, or initialize it empty and assign later.

@@ -33,50 +33,50 @@ int main(void) {
     matrix2d[0][7] = 2000000000000ULL;
     matrix2d[1][3] = 3000000000000ULL;
     matrix2d[3][7] = 4000000000000ULL;
-    if (matrix2d[0U][0U] != 1000000000000) return 1;
-    if (matrix2d[0U][7U] != 2000000000000) return 2;
-    if (matrix2d[1U][3U] != 3000000000000) return 3;
-    if (matrix2d[3U][7U] != 4000000000000) return 4;
+    if (matrix2d[0U][0U] != 1000000000000) return 1U;
+    if (matrix2d[0U][7U] != 2000000000000) return 2U;
+    if (matrix2d[1U][3U] != 3000000000000) return 3U;
+    if (matrix2d[3U][7U] != 4000000000000) return 4U;
     cube3d[0][0][0] = 100ULL;
     cube3d[0][0][3] = 200ULL;
     cube3d[0][2][3] = 300ULL;
     cube3d[1][0][0] = 999999999999ULL;
     cube3d[1][2][3] = 888888888888ULL;
-    if (cube3d[0U][0U][0U] != 100) return 5;
-    if (cube3d[0U][0U][3U] != 200) return 6;
-    if (cube3d[0U][2U][3U] != 300) return 7;
-    if (cube3d[1U][0U][0U] != 999999999999) return 8;
-    if (cube3d[1U][2U][3U] != 888888888888) return 9;
-    if (4 != 4) return 10;
-    if (8 != 8) return 11;
-    if (64 != 64) return 12;
-    if (2 != 2) return 13;
-    if (3 != 3) return 14;
-    if (4 != 4) return 15;
-    if (64 != 64) return 16;
-    for (uint32_t i = 0; i < 4; i += 1) {
-        for (uint32_t j = 0; j < 8; j += 1) {
-            matrix2d[i][j] = i * 100ULL + j;
+    if (cube3d[0U][0U][0U] != 100) return 5U;
+    if (cube3d[0U][0U][3U] != 200) return 6U;
+    if (cube3d[0U][2U][3U] != 300) return 7U;
+    if (cube3d[1U][0U][0U] != 999999999999) return 8U;
+    if (cube3d[1U][2U][3U] != 888888888888) return 9U;
+    if (4 != 4) return 10U;
+    if (8 != 8) return 11U;
+    if (64 != 64) return 12U;
+    if (2 != 2) return 13U;
+    if (3 != 3) return 14U;
+    if (4 != 4) return 15U;
+    if (64 != 64) return 16U;
+    for (uint32_t i = 0U; i < 4; i += 1) {
+        for (uint32_t j = 0U; j < 8; j += 1) {
+            matrix2d[i][j] = (((i * 100ULL + j)) & 0xFFFFFFFFFFFFFFFFULL);
         }
     }
-    if (matrix2d[0U][0U] != 0) return 17;
-    if (matrix2d[0U][7U] != 7) return 18;
-    if (matrix2d[1U][3U] != 103) return 19;
-    if (matrix2d[3U][7U] != 307) return 20;
+    if (matrix2d[0U][0U] != 0) return 17U;
+    if (matrix2d[0U][7U] != 7) return 18U;
+    if (matrix2d[1U][3U] != 103) return 19U;
+    if (matrix2d[3U][7U] != 307) return 20U;
     uint64_t sum = 0ULL;
-    for (uint32_t i = 0; i < 2; i += 1) {
-        for (uint32_t j = 0; j < 3; j += 1) {
-            for (uint32_t k = 0; k < 4; k += 1) {
-                cube3d[i][j][k] = i * 100ULL + j * 10ULL + k;
+    for (uint32_t i = 0U; i < 2; i += 1) {
+        for (uint32_t j = 0U; j < 3; j += 1) {
+            for (uint32_t k = 0U; k < 4; k += 1) {
+                cube3d[i][j][k] = (((i * 100ULL + j * 10ULL + k)) & 0xFFFFFFFFFFFFFFFFULL);
                 sum = cnx_clamp_add_u64(sum, cube3d[i][j][k]);
             }
         }
     }
-    if (sum != 1476) return 21;
+    if (sum != 1476) return 21U;
     matrix2d[2][4] = 9000000000000000000ULL;
-    if (matrix2d[2U][4U] != 9000000000000000000) return 22;
+    if (matrix2d[2U][4U] != 9000000000000000000) return 22U;
     matrix2d[3][7] = 555ULL;
-    if (matrix2d[3U][7U] != 555) return 23;
+    if (matrix2d[3U][7U] != 555) return 23U;
     uint64_t timestamps[3][2] = {};
     timestamps[0][0] = 1609459200000ULL;
     timestamps[0][1] = 1612137600000ULL;
@@ -84,9 +84,9 @@ int main(void) {
     timestamps[1][1] = 1617235200000ULL;
     timestamps[2][0] = 1619827200000ULL;
     timestamps[2][1] = 1622505600000ULL;
-    if (timestamps[0U][0U] != 1609459200000) return 24;
-    if (timestamps[2U][1U] != 1622505600000) return 25;
+    if (timestamps[0U][0U] != 1609459200000) return 24U;
+    if (timestamps[2U][1U] != 1622505600000) return 25U;
     uint64_t diff = timestamps[0U][1U] - timestamps[0U][0U];
-    if (diff != 2678400000) return 26;
-    return 0;
+    if (diff != 2678400000) return 26U;
+    return 0U;
 }

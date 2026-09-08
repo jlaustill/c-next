@@ -1,0 +1,2 @@
+16:21 error[E0702]: for condition may not call a function: 'i<getLimit()'
+       help: MISRA C:2012 Rule 13.5: Store the function result in a variable first.

@@ -1,4 +1,5 @@
 // test-error
+// test-adr: 036
 // #1360 / ADR-036: bounds checking across a file boundary, where the array's
 // first dimension is an unfoldable C macro.
 //

@@ -1,0 +1,22 @@
+// test-error
+// test-adr: 045
+// E0864 in a scope MEMBER and in a scope METHOD -- the two contexts the
+// file-scope and top-level-function fixtures never reach.
+
+scope Label {
+    // NEGATIVE CONTROL -- a literal that exactly fills the capacity, in the
+    // same context as the assertion below it.
+    string<5> okExact <- "Hello";
+
+    // ASSERTION -- scope member.
+    string<4> memberTooSmall <- "Hello";
+
+    public u32 read() {
+        // NEGATIVE CONTROL -- the same, inside the method.
+        string<5> okHere <- "World";
+
+        // ASSERTION -- scope method.
+        string<4> methodTooSmall <- "World";
+        return 0;
+    }
+}

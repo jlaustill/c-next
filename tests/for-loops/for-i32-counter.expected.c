@@ -33,43 +33,43 @@ int main(void) {
     for (int32_t i = 0; i < 10; i += 1) {
         sum = cnx_clamp_add_u32(sum, 1U);
     }
-    if (sum != 10) return 1;
+    if (sum != 10) return 1U;
     sum = 0U;
     for (int32_t j = 100; j < 110; j += 1) {
         sum = cnx_clamp_add_u32(sum, 1U);
     }
-    if (sum != 10) return 2;
+    if (sum != 10) return 2U;
     sum = 0U;
     for (int32_t k = 10; k > 0; k -= 1) {
         sum = cnx_clamp_add_u32(sum, 1U);
     }
-    if (sum != 10) return 3;
+    if (sum != 10) return 3U;
     sum = 0U;
     for (int32_t m = -5; m < 5; m += 1) {
         sum = cnx_clamp_add_u32(sum, 1U);
     }
-    if (sum != 10) return 4;
+    if (sum != 10) return 4U;
     int32_t cross_count = 0;
     for (int32_t n = -3; n <= 3; n += 1) {
         cross_count = cnx_clamp_add_i32(cross_count, 1);
     }
-    if (cross_count != 7) return 5;
+    if (cross_count != 7) return 5U;
     sum = 0U;
     for (int32_t p = 0; p < 20; p += 2) {
         sum = cnx_clamp_add_u32(sum, 1U);
     }
-    if (sum != 10) return 6;
+    if (sum != 10) return 6U;
     sum = 0U;
     for (int32_t outer = 0; outer < 3; outer += 1) {
         for (int32_t inner = 0; inner < 4; inner += 1) {
             sum = cnx_clamp_add_u32(sum, 1U);
         }
     }
-    if (sum != 12) return 7;
+    if (sum != 12) return 7U;
     int32_t calc_sum = 0;
     for (int32_t q = 1; q <= 5; q += 1) {
         calc_sum = cnx_clamp_add_i32(calc_sum, q);
     }
-    if (calc_sum != 15) return 8;
-    return 0;
+    if (calc_sum != 15) return 8U;
+    return 0U;
 }

@@ -1,0 +1,45 @@
+// test-error
+// test-adr: 045
+// ADR-045: `.capacity` is a string's declared `N`, `.size` that plus the null
+// terminator. Both describe a BUFFER, and nothing else has one. Until #1322
+// these were codegen throws reporting `1:0`.
+
+struct Holder {
+    string<8> name;
+}
+
+scope Store {
+    // NEGATIVE CONTROL -- a scope variable named `capacity`. A property name is
+    // only a property when it names nothing else.
+    u8 capacity <- 0;
+
+    public u8 readsTheVariable() {
+        return this.capacity;
+    }
+}
+
+void takesString(string<8> s) {
+    u32 c <- s.capacity;
+}
+
+void main() {
+    string<16> s <- "hi";
+    u8[4] arr <- [1, 2, 3, 4];
+    u32 x <- 5;
+    Holder h;
+    h.name <- "ok";
+
+    // NEGATIVE CONTROLS -- both properties on a string, declared and as a
+    // struct field, plus the array property that is the right answer for an
+    // array.
+    u32 cap <- s.capacity;
+    u32 size <- s.size;
+    u32 fieldCap <- h.name.capacity;
+    u32 count <- arr.element_count;
+
+    // ASSERTIONS -- both properties on the two kinds that have no buffer.
+    u32 a <- x.capacity;
+    u32 b <- x.size;
+    u32 c <- arr.capacity;
+    u32 d <- arr.size;
+}

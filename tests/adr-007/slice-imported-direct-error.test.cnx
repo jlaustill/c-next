@@ -1,0 +1,26 @@
+// test-error
+// test-adr: 007
+// E0860 across ONE include hop -- matrix cell: imported direct.
+//
+// The lexical scope frames hold only this file, so a buffer declared elsewhere
+// resolved to nothing and the slice was passed over entirely. With the codegen
+// checks now assertions, that surfaced as an INTERNAL error naming the broken
+// guarantee rather than as a diagnostic -- which is the assertion doing its
+// job, and still the wrong thing for the author to see.
+
+#include "slice-declarations.cnx"
+
+// NEGATIVE CONTROL -- the same imported buffer, sliced within its capacity.
+// The fallback that makes the assertion below reachable must not make this one
+// fire: 0 + 8 is exactly the capacity.
+u32 inBounds() {
+    u64 v <- 0xDEADBEEFDEADBEEF;
+    sharedBuf[0, 8] <- v;
+    return 0;
+}
+
+u32 main() {
+    u64 v <- 0xDEADBEEFDEADBEEF;
+    sharedBuf[4, 8] <- v;
+    return 0;
+}

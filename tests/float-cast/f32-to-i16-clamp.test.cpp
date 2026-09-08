@@ -13,10 +13,10 @@ int main(void) {
     float under = -40000.0;
     float in_range = 10000.0;
     int16_t result = ((over) > ((float)INT16_MAX) ? static_cast<int16_t>(INT16_MAX) : (over) < ((float)INT16_MIN) ? static_cast<int16_t>(INT16_MIN) : static_cast<int16_t>((over)));
-    if (result != 32767) return 1;
+    if (result != 32767) return 1U;
     result = ((under) > ((float)INT16_MAX) ? static_cast<int16_t>(INT16_MAX) : (under) < ((float)INT16_MIN) ? static_cast<int16_t>(INT16_MIN) : static_cast<int16_t>((under)));
-    if (result != -32768) return 2;
+    if (result != -32768) return 2U;
     result = ((in_range) > ((float)INT16_MAX) ? static_cast<int16_t>(INT16_MAX) : (in_range) < ((float)INT16_MIN) ? static_cast<int16_t>(INT16_MIN) : static_cast<int16_t>((in_range)));
-    if (result != 10000) return 3;
-    return 0;
+    if (result != 10000) return 3U;
+    return 0U;
 }

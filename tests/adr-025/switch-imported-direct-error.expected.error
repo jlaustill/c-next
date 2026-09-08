@@ -1,0 +1,2 @@
+22:12 error[E0714]: Non-exhaustive switch on EShared: covers 2 of 3 variants, missing 1
+       help: Add the missing cases, or a `default(N)` stating how many variants it absorbs.

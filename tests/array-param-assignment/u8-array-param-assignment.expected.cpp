@@ -31,11 +31,11 @@ int main(void) {
     buffer[0] = 0U;
     buffer[1] = 0U;
     writeAt(buffer, 0U, 42U);
-    if (buffer[0U] != 42) return 1;
+    if (buffer[0U] != 42) return 1U;
     writeAt(buffer, 1U, 99U);
-    if (buffer[1U] != 99) return 2;
+    if (buffer[1U] != 99) return 2U;
     writeFirst(buffer, 123U);
-    if (buffer[0U] != 123) return 3;
+    if (buffer[0U] != 123) return 3U;
     uint8_t source[4] = {};
     uint8_t dest[4] = {};
     source[0] = 0U;
@@ -48,6 +48,6 @@ int main(void) {
     dest[3] = 0U;
     source[2] = 200U;
     copyElement(source, dest, 2U);
-    if (dest[2U] != 200) return 4;
-    return 0;
+    if (dest[2U] != 200) return 4U;
+    return 0U;
 }

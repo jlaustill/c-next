@@ -1,0 +1,2 @@
+28:12 error[E0853]: Cannot use 'return' inside critical section - would leave interrupts disabled
+       help: The interrupt state is restored after the block; a `return` jumps past that restore. Assign the value to a variable inside the block and return it after the block closes.

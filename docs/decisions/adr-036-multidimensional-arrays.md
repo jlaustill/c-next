@@ -421,6 +421,58 @@ Compiler flags:
 - `--bounds-panic`: Abort on violation (development)
 - `--bounds-clamp`: Clamp to valid range (safety-critical)
 
+## Diagnostics
+
+| Code  | Reported when                                                                       | Asserted by                                                                                        |
+| ----- | ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| E0854 | A constant index is negative or not below the dimension it indexes, read or written | `tests/adr-036/bounds-error.test.cnx`, `tests/adr-036/array-bounds-uncovered-arms-error.test.cnx`  |
+| E0874 | A variable declaration or a parameter puts a dimension after the name (`u8 arr[4]`) | `tests/adr-036/c-style-error.test.cnx`, `tests/adr-036/c-style-trailing-bracket-rejected.test.cnx` |
+| E0875 | A parameter's array type leaves a dimension unbounded (`u8[] data`)                 | `tests/adr-036/array-shape-uncovered-arms-error.test.cnx`                                          |
+
+The bound is the dimension the subscript indexes: `grid[i][9]` is checked
+against `grid[i]`'s shape. A field of a struct is bounded like a variable
+(`s.data[9]` with `u8[4] data`); until #1322 only the root variable's
+dimensions were consulted, so a struct field was never checked. A runtime
+index, a dimension sized by a C macro, and a two-expression subscript (a slice
+or bit range, ADR-007) are not checked here.
+
+The C-style form is rejected on a variable declaration and on a parameter --
+the two places it was rejected before #1322. A scope member, a struct member
+and a `for` header's declaration still accept it: thirty-one fixtures use it
+there, so closing it is a language change for the ADR's owner to decide, and
+it is recorded rather than silently widened.
+
+## Scope-Context Matrix (#1219)
+
+Severity follows the eslint model: `off` records that a cell **cannot exist**,
+`warn` that it should be covered and is not, `error` that it must be.
+
+<!-- MATRIX-SEVERITY -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| scope member       | same file           | error    |
+| top-level function | imported direct     | error    |
+| scope method       | imported direct     | off      |
+| global variable    | imported direct     | off      |
+| scope member       | imported direct     | off      |
+| top-level function | imported transitive | off      |
+| scope method       | imported transitive | off      |
+| global variable    | imported transitive | off      |
+| scope member       | imported transitive | off      |
+
+A subscript is an expression, so it reaches an initializer as well as a
+function body; a C-style declaration stands at file scope; both occupy the
+four same-file cells. The bound of an array declared in an included file is
+read from that declaration, which the `imported direct` top-level cell asserts
+(`tests/bugs/issue-1360-read-path-bounds/cross-file-macro-dimension`). The
+other imported cells are `off`: a C-style declaration is judged where it is
+written, and no fixture yet reaches a bound two hops away -- an obligation to
+add with the first such fixture, not a claim that it cannot exist.
+
 ## Open Questions
 
 1. ~~Row-major vs column-major?~~ **Decided: Row-major (C compatible)**

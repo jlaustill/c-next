@@ -31,7 +31,7 @@ int main(void) {
         (void) strncpy(current, "Loop", 16); current[16] = '\0';
         count = cnx_clamp_add_u32(count, 1U);
     }
-    if (strlen(current) != 4) return 1;
+    if (strlen(current) != 4) return 1U;
     count = 0U;
     while (count < 2) {
         if (count == 0) {
@@ -41,6 +41,6 @@ int main(void) {
         }
         count = cnx_clamp_add_u32(count, 1U);
     }
-    if (strlen(current) != 6) return 2;
-    return 0;
+    if (strlen(current) != 6) return 2U;
+    return 0U;
 }

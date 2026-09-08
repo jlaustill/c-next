@@ -1,4 +1,2 @@
-1:0 Code generation failed: Error: Shift amount (8) exceeds type width (8 bits) for type 'u8'
-  Expression: a<<8
-  Shift amount must be < 8 for 8-bit types
-  This violates MISRA C:2012 Rule 12.2 and causes undefined behavior
+12:25 error[E0873]: Shift amount (8) exceeds type width (8 bits) for type 'u8' (expression: a<<8)
+       help: Shift amount must be < 8 for 8-bit types; shifting by the width or more is undefined behavior (MISRA C:2012 Rule 12.2).

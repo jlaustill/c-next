@@ -1,0 +1,58 @@
+// test-error
+// test-adr: 004
+// ADR-004, E0870/E0871/E0872 on a SCOPED register, in every spelling.
+//
+// These are the arms codegen did not reach. Its three rules each resolved the
+// register chain on their own: the ro-write check keyed on the FIRST TWO
+// identifiers, so `this.R.ST <- 1` looked up `R__ST` (absent) and passed,
+// emitting an assignment through a `volatile uint32_t const *` macro that the
+// C compiler rejected instead of C-Next. `R.SET +<- 1` on a wo member emitted
+// `R__SET += 1`, a read of a write-only register. Probed before #1322.
+
+scope Board {
+    public register R @ 0x40000000 {
+        ST: u32 ro @ 0x00,
+        SET: u32 wo @ 0x04,
+        CTRL: u32 rw @ 0x08,
+    }
+
+    // NEGATIVE CONTROL -- the rw member in every spelling the assertions use,
+    // and a read of the ro one.
+    public u32 okAccess() {
+        this.R.CTRL <- 1;
+        R.CTRL <- 2;
+        Board.R.CTRL[3] <- true;
+        this.R.CTRL +<- 1;
+        return this.R.ST;
+    }
+
+    // ASSERTION 1 -- scope member initializer, `this.` spelling (E0870).
+    u32 memberRead <- this.R.SET;
+
+    public void method() {
+        // ASSERTIONS 2-4 -- scope method: ro written via `this.`, bare, and
+        // through the scope's own name (E0871); a bit write is a write.
+        this.R.ST <- 1;
+        R.ST[3] <- true;
+        Board.R.ST[0, 4] <- 5;
+        // ASSERTION 5 -- compound on wo reads the target (E0870).
+        this.R.SET +<- 1;
+        // ASSERTION 6 -- zero to a scoped write-1 bit (E0872).
+        this.R.SET[3] <- 0x0;
+    }
+}
+
+// ASSERTION 7 -- global variable initializer, across the scope (E0870).
+u32 globalRead <- Board.R.SET;
+
+// ASSERTION 8 -- top-level function, across the scope (E0871).
+void main() {
+    Board.R.ST <- 1;
+}
+
+scope Other {
+    // ASSERTION 9 -- `global.Scope.R.M` from another scope (E0871).
+    public void go() {
+        global.Board.R.ST <- 1;
+    }
+}

@@ -1,0 +1,23 @@
+// ADR-025: Error Test - Duplicate Case
+// test-adr: 025
+// Should error: duplicate case values not allowed
+// NEGATIVE CONTROL -- distinct values, including one written in another base.
+// The check normalizes to a value, so it must not collapse different values.
+void okDistinct() {
+    u32 cmd <- 0;
+    switch (cmd) {
+        case 0 {}
+        case 0x1 {}
+        case 2 {}
+        default {}
+    }
+}
+
+void test() {
+    u32 cmd <- 0;
+    switch (cmd) {
+        case 0 {}
+        case 1 {}
+        case 0 {}
+    }
+}

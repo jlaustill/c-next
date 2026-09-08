@@ -12,5 +12,5 @@
 #include <stdint.h>
 
 uint32_t macroBridgeFn(void) {
-    return 1;
+    return 1U;
 }

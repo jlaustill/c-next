@@ -1,0 +1,10 @@
+// Helper (not a test): puts enum-declarations.cnx two hops from a consumer,
+// covering the `imported transitive` column.
+//
+// It declares something of its own deliberately: a .cnx that only re-exports
+// has no public interface, so no header is written while consumers still
+// include one (#1234).
+
+#include "enum-declarations.cnx"
+
+const u32 RELAY_MARKER <- 2;

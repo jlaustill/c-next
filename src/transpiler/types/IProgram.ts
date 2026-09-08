@@ -78,6 +78,18 @@ interface IProgram {
 
   /** Every const name to its integer value, keyed by bare name. */
   constValues(): ReadonlyMap<string, number>;
+
+  /**
+   * The same, as seen from inside `scopePath`: that scope's own consts shadow
+   * file-scope ones of the same name, in ADR-057's candidate order.
+   *
+   * #1322 review: asking `constValues()` from inside a scope is asking a
+   * question the flat map cannot answer. Two scopes each declaring `SIZE`
+   * share its bare key, so the answer is whichever was derived last -- which
+   * rejected a legal program and made ADR-036's bounds check order-dependent.
+   * A caller inside a scope asks with it.
+   */
+  constValuesIn(scopePath: string): ReadonlyMap<string, number>;
 }
 
 export default IProgram;

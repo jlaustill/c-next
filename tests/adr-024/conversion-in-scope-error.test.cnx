@@ -1,0 +1,27 @@
+// test-error
+// test-adr: 024
+// E0869 on a SCOPE MEMBER initializer -- a hole this relocation closes.
+//
+// `u8 narrow <- this.wide;` inside a scope compiled clean under codegen while
+// the identical line at top level was rejected: codegen's text-keyed lookup did
+// not resolve the `this.` spelling, so the source read as untyped, and untyped
+// never rejects. The lexical frames resolve it. Measured: no fixture in the
+// corpus relied on the gap, so it is closed rather than reproduced.
+
+scope Sensor {
+    u32 wide <- 1000;
+
+    // NEGATIVE CONTROLS -- the same source into a wide enough target, and the
+    // explicit reinterpret the message asks for.
+    u32 okSameWidth <- this.wide;
+    u8 okBits <- this.wide[0, 8];
+
+    // THE ASSERTION -- scope member.
+    u8 narrow <- this.wide;
+
+    public u8 read() {
+        // THE ASSERTION -- scope method.
+        u8 alsoNarrow <- this.wide;
+        return alsoNarrow;
+    }
+}

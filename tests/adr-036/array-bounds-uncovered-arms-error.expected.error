@@ -1,0 +1,18 @@
+34:21 error[E0854]: Array index out of bounds: 4 >= 4 for 'table' dimension 1
+       help: The last valid index is 3 (ADR-036).
+38:18 error[E0854]: Array index out of bounds: 9 >= 4 for 'f.data' dimension 1
+       help: The last valid index is 3 (ADR-036).
+40:10 error[E0854]: Array index out of bounds: 4 >= 4 for 'f.data' dimension 1
+       help: The last valid index is 3 (ADR-036).
+42:13 error[E0854]: Array index out of bounds: 3 >= 3 for 'f.grid[0]' dimension 2
+       help: The last valid index is 2 (ADR-036).
+44:17 error[E0854]: Array index out of bounds: 4 >= 4 for 'table' dimension 1
+       help: The last valid index is 3 (ADR-036).
+46:17 error[E0854]: Array index out of bounds: -1 is negative for 'table' dimension 1
+       help: An index counts from zero (ADR-036).
+53:28 error[E0854]: Array index out of bounds: 4 >= 4 for 'this.samples' dimension 1
+       help: The last valid index is 3 (ADR-036).
+57:28 error[E0854]: Array index out of bounds: 5 >= 4 for 'this.samples' dimension 1
+       help: The last valid index is 3 (ADR-036).
+58:15 error[E0854]: Array index out of bounds: 6 >= 4 for 'samples' dimension 1
+       help: The last valid index is 3 (ADR-036).

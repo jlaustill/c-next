@@ -64,7 +64,7 @@ int main(void) {
     data[2] = 0x56U;
     data[3] = 0x78U;
     uint32_t sum = sumFourBytes(data[0U], data[1U], data[2U], data[3U]);
-    if (sum != 276) return 1;
+    if (sum != 276) return 1U;
     DataResult result = {};
     result.errorCode = 0U;
     result.data[0] = 10U;
@@ -75,6 +75,6 @@ int main(void) {
     result.data[5] = 60U;
     result.dataLen = 6U;
     uint8_t total = sumArray(result.data, result.dataLen);
-    if (total != 210) return 2;
-    return 0;
+    if (total != 210) return 2U;
+    return 0U;
 }

@@ -7,6 +7,7 @@
  * - C function calls with pass-by-value semantics
  * - Const-to-non-const validation (ADR-013)
  */
+import invariant from "../../../../../utils/invariant";
 import {
   ArgumentListContext,
   ExpressionContext,
@@ -288,9 +289,8 @@ const generateFunctionCall = (
   }
 
   // Regular function call handling
-  // ADR-013: Check const-to-non-const before generating arguments
+  // #1322: a const argument to a non-const parameter is E0878 in pass 2.1.
   if (isCNextFunc) {
-    validateConstToNonConst(funcExpr, argExprs, input, orchestrator);
     // Issue #268: Track pass-through modifications for auto-const
     trackPassThroughModifications(funcExpr, argExprs, orchestrator);
   }
@@ -366,35 +366,35 @@ const generateSafeDivMod = (
   orchestrator: IOrchestrator,
   effects: TGeneratorEffect[],
 ): IGeneratorOutput => {
-  if (argExprs.length !== 4) {
-    throw new Error(
-      `${funcName} requires exactly 4 arguments: output, numerator, divisor, defaultValue`,
-    );
-  }
+  // #1322: ADR-051's call shape is E0884 (four arguments) and E0885 (the first
+  // is a variable to receive the result) in pass 2.1, and a `const` output is
+  // E0877 there -- that last one was accepted here and emitted `&K` into a
+  // non-const pointer parameter.
+  invariant(
+    argExprs.length === 4,
+    `${funcName} takes four arguments -- E0884 rejects this in pass 2.1, before this runs`,
+  );
 
   // Get the output parameter (first argument) to determine type
   const outputArgId = orchestrator.getSimpleIdentifier(argExprs[0]);
-  if (!outputArgId) {
-    throw new Error(
-      `${funcName} requires a variable as the first argument (output parameter)`,
-    );
-  }
+  invariant(
+    outputArgId,
+    `${funcName}'s first argument is a variable -- E0885 rejects this in pass 2.1, before this runs`,
+  );
 
   // Look up the type of the output parameter
   const typeInfo = CodeGenState.getVariableTypeInfo(outputArgId);
-  if (!typeInfo) {
-    throw new Error(
-      `Cannot determine type of output parameter '${outputArgId}' for ${funcName}`,
-    );
-  }
+  invariant(
+    typeInfo,
+    `${funcName}'s output parameter is a declared variable with a type -- E0885 rejects this in pass 2.1, before this runs`,
+  );
 
   // Map C-Next type to helper function suffix
   const cnxType = typeInfo.baseType;
-  if (!cnxType) {
-    throw new Error(
-      `Output parameter '${outputArgId}' has no C-Next type for ${funcName}`,
-    );
-  }
+  invariant(
+    cnxType,
+    `a registered variable always has a non-empty baseType (output parameter '${outputArgId}' of ${funcName})`,
+  );
 
   // Generate arguments: &output, numerator, divisor, defaultValue
   const outputArg = `&${orchestrator.generateExpression(argExprs[0])}`;
@@ -415,38 +415,6 @@ const generateSafeDivMod = (
     code: `${helperName}(${outputArg}, ${numeratorArg}, ${divisorArg}, ${defaultArg})`,
     effects,
   };
-};
-
-/**
- * Validate const-to-non-const parameter passing (ADR-013).
- *
- * Throws an error if a const value is passed to a non-const parameter.
- */
-const validateConstToNonConst = (
-  funcName: string,
-  argExprs: ExpressionContext[],
-  input: IGeneratorInput,
-  orchestrator: IOrchestrator,
-): void => {
-  const sig = input.functionSignatures.get(funcName);
-  if (!sig) return;
-
-  for (
-    let argIdx = 0;
-    argIdx < argExprs.length && argIdx < sig.parameters.length;
-    argIdx++
-  ) {
-    const argId = orchestrator.getSimpleIdentifier(argExprs[argIdx]);
-    if (argId && orchestrator.isConstValue(argId)) {
-      const param = sig.parameters[argIdx];
-      if (!param.isConst) {
-        throw new Error(
-          `cannot pass const '${argId}' to non-const parameter '${param.name}' ` +
-            `of function '${funcName}'`,
-        );
-      }
-    }
-  }
 };
 
 /**

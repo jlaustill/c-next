@@ -132,7 +132,7 @@ describe("CodeGenerator", () => {
         generator.generate(tree, tokenStream, {
           sourcePath: "test.cnx",
         } as never),
-      ).toThrow("symbolInfo is required");
+      ).toThrow("the pipeline always supplies options.symbolInfo");
     });
 
     it("should enable debug mode when specified", () => {
@@ -657,26 +657,6 @@ describe("CodeGenerator", () => {
 
         const knownEnums = generator.getKnownEnums();
         expect(knownEnums.has("Color")).toBe(true);
-      });
-    });
-
-    describe("isConstValue()", () => {
-      it("should return true for const variable", () => {
-        const generator = createMinimalGenerator(`
-          const u32 MAX_VALUE <- 100;
-          void foo() { }
-        `);
-
-        expect(generator.isConstValue("MAX_VALUE")).toBe(true);
-      });
-
-      it("should return false for non-const variable", () => {
-        const generator = createMinimalGenerator(`
-          u32 value;
-          void foo() { }
-        `);
-
-        expect(generator.isConstValue("value")).toBe(false);
       });
     });
 
@@ -1418,7 +1398,10 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      expect(code).toContain("return 42;");
+      // #1277: a `return` expression is typed by the declared return type, so
+      // an integer literal returned from an unsigned function now carries the
+      // MISRA C:2012 Rule 7.2 suffix it already had in `u32 x <- 42;`.
+      expect(code).toContain("return 42U;");
     });
   });
 
@@ -1936,7 +1919,13 @@ describe("CodeGenerator", () => {
       expect(code).toContain('#include "myheader.h"');
     });
 
-    it("should throw error for missing .cnx include", () => {
+    it("emits a missing .cnx include rather than rejecting it (E0506 is 2.1's)", () => {
+      // #1322: this asserted a codegen throw, which reported `1:0` with no
+      // code. `IncludeDirectiveAnalyzer` rejects it at the directive now, and
+      // codegen never touches the file system for an include -- so what is
+      // pinned here is that the rejection is GONE from this layer, not that it
+      // stopped happening. `tests/include/missing-cnx-include-error` asserts
+      // that it still does.
       const source = `
         #include "nonexistent.cnx"
         void main() { }
@@ -1946,12 +1935,12 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      expect(() =>
-        generator.generate(tree, tokenStream, {
-          symbolInfo: symbols,
-          sourcePath: "test.cnx",
-        }),
-      ).toThrow(/not found/);
+      const code = generator.generate(tree, tokenStream, {
+        symbolInfo: symbols,
+        sourcePath: "test.cnx",
+      });
+
+      expect(code).toContain('#include "nonexistent.h"');
     });
   });
 
@@ -1980,28 +1969,6 @@ describe("CodeGenerator", () => {
       });
 
       expect(code).toContain('#include "myfile.h"');
-    });
-  });
-
-  describe("Error handling", () => {
-    it("should throw on const assignment", () => {
-      const source = `
-        const u32 VALUE <- 10;
-        void main() {
-          VALUE <- 20;
-        }
-      `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
-      const tSymbols = declareAndResolve(tree);
-      const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-      expect(() =>
-        generator.generate(tree, tokenStream, {
-          symbolInfo: symbols,
-          sourcePath: "test.cnx",
-        }),
-      ).toThrow(/const/i);
     });
   });
 
@@ -2449,7 +2416,10 @@ describe("CodeGenerator", () => {
       });
 
       expect(code).toContain("int main(void)");
-      expect(code).toContain("return 0;");
+      // #1277: a `return` expression is typed by the declared return type, so
+      // an integer literal returned from an unsigned function now carries the
+      // MISRA C:2012 Rule 7.2 suffix it already had in `u32 x <- 42;`.
+      expect(code).toContain("return 0U;");
     });
   });
 
@@ -2900,31 +2870,6 @@ describe("CodeGenerator", () => {
       expect(code).toContain("&value");
     });
   });
-
-  describe("Error: private member access", () => {
-    it("should throw error when accessing private scope member", () => {
-      const source = `
-        scope Motor {
-          u32 speed;
-        }
-        void main() {
-          Motor.speed <- 100;
-        }
-      `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
-      const tSymbols = declareAndResolve(tree);
-      const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-      expect(() =>
-        generator.generate(tree, tokenStream, {
-          symbolInfo: symbols,
-          sourcePath: "test.cnx",
-        }),
-      ).toThrow(/private/i);
-    });
-  });
-
   describe("Wrap modifier", () => {
     it("should allow wrap integer overflow without clamping", () => {
       const source = `
@@ -3454,8 +3399,8 @@ describe("CodeGenerator", () => {
     });
   });
 
-  describe("validateCrossScopeVisibility()", () => {
-    it("should not throw for public member access", () => {
+  describe("Public scope member access", () => {
+    it("should generate a public member access from outside the scope", () => {
       const source = `
         scope Motor {
           public u32 speed;
@@ -3859,7 +3804,7 @@ describe("CodeGenerator", () => {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         }),
-      ).toThrow("Cannot use both 'atomic' and 'volatile' modifiers");
+      ).toThrow("E0889 rejects this in pass 2.1");
     });
   });
 
@@ -4261,6 +4206,11 @@ describe("CodeGenerator", () => {
     });
   });
 
+  // #1322: two cases here drove `generate()` on a narrowing declaration and a
+  // literal overflow and asserted a throw carrying a `line:column` prefix --
+  // the prefix a rethrow wrapper smuggled onto ADR-024's message. The
+  // generator no longer throws for either; E0868/E0869 are authored in pass
+  // 2.1, which halts before it runs. Deleted rather than emptied.
   describe("Cast expression", () => {
     it("should handle widening cast", () => {
       const source = `
@@ -4280,42 +4230,6 @@ describe("CodeGenerator", () => {
       // Should compile with the cast (implicit widening is allowed)
       expect(code).toContain("big =");
       expect(code).toContain("small");
-    });
-
-    it("should throw with line:column prefix for narrowing declaration", () => {
-      const source = `void test() {
-  u32 large <- 1000;
-  u8 small <- large;
-}`;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
-      const tSymbols = declareAndResolve(tree);
-      const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-      expect(() =>
-        generator.generate(tree, tokenStream, {
-          symbolInfo: symbols,
-          sourcePath: "test.cnx",
-        }),
-      ).toThrow(/^3:\d+ Error: Cannot assign u32 to u8 \(narrowing\)/);
-    });
-
-    it("should throw with line:column prefix for literal overflow", () => {
-      const source = `void test() {
-  u8 ok <- 200;
-  u8 overflow <- 300;
-}`;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
-      const tSymbols = declareAndResolve(tree);
-      const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-      expect(() =>
-        generator.generate(tree, tokenStream, {
-          symbolInfo: symbols,
-          sourcePath: "test.cnx",
-        }),
-      ).toThrow(/^3:\d+ Error: Value 300 exceeds u8 range/);
     });
 
     it("should generate bit extraction for narrowing", () => {
@@ -5232,73 +5146,10 @@ describe("CodeGenerator", () => {
     });
   });
 
-  describe("Error - this outside scope", () => {
-    it("should throw error for this keyword outside scope", () => {
-      const source = `
-        void main() {
-          this.foo <- 1;
-        }
-      `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
-      const tSymbols = declareAndResolve(tree);
-      const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-      expect(() =>
-        generator.generate(tree, tokenStream, {
-          symbolInfo: symbols,
-          sourcePath: "test.cnx",
-        }),
-      ).toThrow("'this' can only be used inside a scope");
-    });
-  });
-
-  describe("Const assignment error", () => {
-    it("should throw error when assigning to const variable", () => {
-      const source = `
-        const u32 MAX <- 100;
-        void main() {
-          MAX <- 200;
-        }
-      `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
-      const tSymbols = declareAndResolve(tree);
-      const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-      expect(() =>
-        generator.generate(tree, tokenStream, {
-          symbolInfo: symbols,
-          sourcePath: "test.cnx",
-        }),
-      ).toThrow("const");
-    });
-  });
-
-  describe("Private scope member access error", () => {
-    it("should throw error when accessing private member from outside", () => {
-      const source = `
-        scope Motor {
-          u32 internalState <- 0;
-        }
-        void main() {
-          Motor.internalState <- 5;
-        }
-      `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
-      const tSymbols = declareAndResolve(tree);
-      const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-      expect(() =>
-        generator.generate(tree, tokenStream, {
-          symbolInfo: symbols,
-          sourcePath: "test.cnx",
-        }),
-      ).toThrow(/private|not public|visibility/i);
-    });
-  });
-
+  // #1322: this suite held only the `this` outside a scope test. The rule
+  // is E0431 in pass 2.1 now, with a real position; codegen reported it as
+  // `1:0`. Covered by `1-Analyze/__tests__/ThisOutsideScopeAnalyzer.test.ts`
+  // and `tests/adr-016/this-outside-scope-error`.
   describe("Struct member initializer", () => {
     it("should generate designated initializer", () => {
       const source = `
@@ -5318,28 +5169,6 @@ describe("CodeGenerator", () => {
       expect(code).toContain(".x = 1");
       expect(code).toContain(".y = 2");
       expect(code).toContain(".z = 3");
-    });
-  });
-
-  describe("Array bounds checking", () => {
-    it("should throw error for out-of-bounds constant index", () => {
-      const source = `
-        u32[5] data;
-        void main() {
-          data[10] <- 1;
-        }
-      `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
-      const tSymbols = declareAndResolve(tree);
-      const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-      expect(() =>
-        generator.generate(tree, tokenStream, {
-          symbolInfo: symbols,
-          sourcePath: "test.cnx",
-        }),
-      ).toThrow(/bound|index|out of range/i);
     });
   });
 
@@ -6913,28 +6742,6 @@ describe("CodeGenerator", () => {
         expect(code).toContain("Sensor__value = 100");
       });
 
-      it("should throw on self-scope reference in assignment target", () => {
-        const source = `
-          scope Motor {
-              public u32 speed;
-              public void test() {
-                  Motor.speed <- 100;
-              }
-          }
-        `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        expect(() =>
-          generator.generate(tree, tokenStream, {
-            symbolInfo: symbols,
-            sourcePath: "test.cnx",
-          }),
-        ).toThrow("Cannot reference own scope 'Motor' by name");
-      });
-
       it("should generate struct-through-scope access", () => {
         const source = `
           struct Point { i32 x; i32 y; }
@@ -6983,28 +6790,6 @@ describe("CodeGenerator", () => {
     });
 
     describe("Scope member access with subscripts (assignment targets)", () => {
-      it("should throw on self-scope reference with subscript in assignment", () => {
-        const source = `
-          scope Motor {
-              public u32 speeds[4] <- [0, 0, 0, 0];
-              public void test() {
-                  Motor.speeds[0] <- 100;
-              }
-          }
-        `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        expect(() =>
-          generator.generate(tree, tokenStream, {
-            symbolInfo: symbols,
-            sourcePath: "test.cnx",
-          }),
-        ).toThrow("Cannot reference own scope 'Motor' by name");
-      });
-
       it("should generate cross-scope array member write", () => {
         const source = `
           scope Sensor {
@@ -7074,33 +6859,6 @@ describe("CodeGenerator", () => {
 
         expect(code).toContain("cfg.timeout = 1000");
         expect(code).toContain("cfg.enabled = true");
-      });
-
-      it("should throw when writing register from inside scope when SHADOWED without global prefix", () => {
-        // Issue #779: Ambiguity-aware validation - only require global. when shadowed
-        const source = `
-          register GPIO @ 0x40000000 {
-              DR: u32 rw @ 0x00,
-          }
-          scope Motor {
-              // Shadow the register name with a scope member
-              u32 GPIO <- 0;
-              public void init() {
-                  GPIO.DR <- 0xFF;
-              }
-          }
-        `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        expect(() =>
-          generator.generate(tree, tokenStream, {
-            symbolInfo: symbols,
-            sourcePath: "test.cnx",
-          }),
-        ).toThrow("Use 'global.GPIO.DR' to access register");
       });
 
       it("should allow bare register access from inside scope when NOT shadowed", () => {
@@ -7195,29 +6953,13 @@ describe("CodeGenerator", () => {
       });
     });
 
-    describe("'this' keyword error handling", () => {
-      it("should throw error when 'this' is used outside a scope", () => {
-        const source = `
-          void foo() {
-            u32 x <- this.value;
-          }
-        `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        expect(() =>
-          generator.generate(tree, tokenStream, {
-            symbolInfo: symbols,
-            sourcePath: "test.cnx",
-          }),
-        ).toThrow("'this' can only be used inside a scope");
-      });
-    });
+    // #1322: this suite held only the `this` outside a scope test. The rule
+    // is E0431 in pass 2.1 now, with a real position; codegen reported it as
+    // `1:0`. Covered by `1-Analyze/__tests__/ThisOutsideScopeAnalyzer.test.ts`
+    // and `tests/adr-016/this-outside-scope-error`.
 
     describe("ambiguous enum member error handling", () => {
-      it("should throw error for ambiguous unqualified enum member", () => {
+      it("asserts, since #1322, that an ambiguous bare member never reaches generation (E0424 owns it)", () => {
         const source = `
           enum Color { RED, GREEN }
           enum Status { RED, BLUE }
@@ -7235,9 +6977,7 @@ describe("CodeGenerator", () => {
             symbolInfo: symbols,
             sourcePath: "test.cnx",
           }),
-        ).toThrow(
-          "error[E0424]: 'RED' is not defined; did you mean 'Color.RED' or 'Status.RED'?",
-        );
+        ).toThrow("E0424 rejects 'RED' (declared by Color, Status)");
       });
     });
 
@@ -8058,7 +7798,7 @@ describe("CodeGenerator", () => {
             symbolInfo: symbols,
             sourcePath: "test.cnx",
           }),
-        ).toThrow("sizeof() on array parameter");
+        ).toThrow("E0601 rejects this in pass 2.1");
       });
 
       it("should handle sizeof on struct member", () => {
@@ -10374,7 +10114,7 @@ describe("CodeGenerator", () => {
             symbolInfo: symbols,
             sourcePath: "test.cnx",
           }),
-        ).toThrow(/E0601.*sizeof.*array parameter/);
+        ).toThrow(/E0601 rejects this in pass 2\.1/);
       });
 
       it("should handle sizeof on callback parameter", () => {
@@ -10938,47 +10678,6 @@ describe("CodeGenerator", () => {
         expect(code).toContain("BUFFER_SIZE");
       });
 
-      it("should reject C-style array declaration for primitive types", () => {
-        const source = `
-          void test() {
-            u8 buffer[10];
-          }
-        `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        expect(() => {
-          generator.generate(tree, tokenStream, {
-            symbolInfo: symbols,
-            sourcePath: "test.cnx",
-          });
-        }).toThrow(/C-style array declaration is not allowed/);
-      });
-
-      it("should reject C-style array declaration for user types", () => {
-        const source = `
-          struct Data {
-            u32 value;
-          }
-          void test() {
-            Data items[5];
-          }
-        `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        expect(() => {
-          generator.generate(tree, tokenStream, {
-            symbolInfo: symbols,
-            sourcePath: "test.cnx",
-          });
-        }).toThrow(/C-style array declaration is not allowed/);
-      });
-
       it("should allow empty brackets for size inference", () => {
         const source = `
           void test() {
@@ -10996,26 +10695,6 @@ describe("CodeGenerator", () => {
         });
 
         expect(code).toContain("uint8_t data[3]");
-      });
-
-      it("should reject multi-dimensional C-style arrays (Issue #1014)", () => {
-        const source = `
-          void test() {
-            u8 matrix[4][4];
-            matrix[0][0] <- 0;
-          }
-        `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        expect(() =>
-          generator.generate(tree, tokenStream, {
-            symbolInfo: symbols,
-            sourcePath: "test.cnx",
-          }),
-        ).toThrow("C-style array declaration is not allowed");
       });
 
       it("should allow multi-dimensional C-Next style arrays", () => {
@@ -11635,84 +11314,6 @@ describe("CodeGenerator", () => {
       });
     });
 
-    describe("C-style array parameter rejection", () => {
-      it("should reject C-style array parameter with single dimension", () => {
-        const source = `
-          void process(u8 data[8]) {
-            data[0] <- 0xFF;
-          }
-        `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        expect(() => {
-          generator.generate(tree, tokenStream, {
-            symbolInfo: symbols,
-            sourcePath: "test.cnx",
-          });
-        }).toThrow(/C-style array parameter is not allowed/);
-      });
-
-      it("should reject C-style array parameter with multiple dimensions", () => {
-        const source = `
-          void process(u32 matrix[3][3]) {
-            matrix[0][0] <- 1;
-          }
-        `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        expect(() => {
-          generator.generate(tree, tokenStream, {
-            symbolInfo: symbols,
-            sourcePath: "test.cnx",
-          });
-        }).toThrow(/C-style array parameter is not allowed/);
-      });
-
-      it("should reject C-style unsized array parameter", () => {
-        const source = `
-          void process(u8 data[]) {
-            data[0] <- 0xFF;
-          }
-        `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        expect(() => {
-          generator.generate(tree, tokenStream, {
-            symbolInfo: symbols,
-            sourcePath: "test.cnx",
-          });
-        }).toThrow(/C-style array parameter is not allowed/);
-      });
-
-      it("should suggest correct C-Next style syntax in error message", () => {
-        const source = `
-          void process(i32 values[10]) {
-            values[0] <- 1;
-          }
-        `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        expect(() => {
-          generator.generate(tree, tokenStream, {
-            symbolInfo: symbols,
-            sourcePath: "test.cnx",
-          });
-        }).toThrow(/Use 'i32\[10\] values' instead of 'i32 values\[10\]'/);
-      });
-    });
-
     describe("user type array parameters", () => {
       it("should handle struct array parameter with C-Next style", () => {
         const source = `
@@ -11793,44 +11394,6 @@ describe("CodeGenerator", () => {
         });
 
         expect(code).toContain("uint8_t cube[2][3][4]");
-      });
-
-      it("should reject unbounded array parameter for memory safety", () => {
-        const source = `
-          void processRows(u32[][4] rows, u32 count) {
-            rows[0][0] <- 1;
-          }
-        `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        expect(() => {
-          generator.generate(tree, tokenStream, {
-            symbolInfo: symbols,
-            sourcePath: "test.cnx",
-          });
-        }).toThrow(/Unbounded array parameters are not allowed/);
-      });
-
-      it("should reject simple unbounded array parameter", () => {
-        const source = `
-          void process(u8[] data) {
-            data[0] <- 0xFF;
-          }
-        `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        expect(() => {
-          generator.generate(tree, tokenStream, {
-            symbolInfo: symbols,
-            sourcePath: "test.cnx",
-          });
-        }).toThrow(/Unbounded array parameters are not allowed/);
       });
     });
 
@@ -14554,55 +14117,6 @@ describe("CodeGenerator", () => {
       });
     });
 
-    describe("break and continue rejection (Issue #1011)", () => {
-      it("should reject break - not part of C-Next spec", () => {
-        const source = `
-          void test() {
-            u32 i <- 0;
-            while (i < 10) {
-              break;
-            }
-          }
-        `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        expect(() =>
-          generator.generate(tree, tokenStream, {
-            symbolInfo: symbols,
-            sourcePath: "test.cnx",
-          }),
-        ).toThrow("'break' is not supported in C-Next");
-      });
-
-      it("should reject continue - not part of C-Next spec", () => {
-        const source = `
-          void test() {
-            u32 i <- 0;
-            while (i < 10) {
-              i +<- 1;
-              if (i = 5) {
-                continue;
-              }
-            }
-          }
-        `;
-        const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
-        const tSymbols = declareAndResolve(tree);
-        const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-        expect(() =>
-          generator.generate(tree, tokenStream, {
-            symbolInfo: symbols,
-            sourcePath: "test.cnx",
-          }),
-        ).toThrow("'continue' is not supported in C-Next");
-      });
-    });
-
     describe("function with parameters", () => {
       it("should generate function with multiple params", () => {
         const source = `
@@ -15066,7 +14580,7 @@ describe("CodeGenerator", () => {
       });
     });
 
-    describe("array access via ArrayAccessHelper", () => {
+    describe("array access", () => {
       it("should generate single-index array access", () => {
         const source = `
           u32[10] arr;
@@ -15262,7 +14776,7 @@ describe("CodeGenerator", () => {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
-      }).toThrow("Error: struct generator not registered");
+      }).toThrow('registerDeclaration("struct") is unconditional');
     });
 
     it("throws error when enum generator is not registered", () => {
@@ -15297,7 +14811,7 @@ describe("CodeGenerator", () => {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
-      }).toThrow("Error: enum generator not registered");
+      }).toThrow('registerDeclaration("enum") is unconditional');
     });
   });
 

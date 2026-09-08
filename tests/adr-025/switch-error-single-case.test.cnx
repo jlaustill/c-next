@@ -1,0 +1,19 @@
+// ADR-025: Error Test - Single Case
+// test-adr: 025
+// Should error: MISRA 16.6 requires at least 2 clauses
+// NEGATIVE CONTROL -- exactly two clauses, which is the boundary the rule is
+// one past. An off-by-one in the clause count fails here.
+void okTwoClauses() {
+    u32 cmd <- 0;
+    switch (cmd) {
+        case 0 {}
+        default {}
+    }
+}
+
+void test() {
+    u32 cmd <- 0;
+    switch (cmd) {
+        case 0 {}
+    }
+}

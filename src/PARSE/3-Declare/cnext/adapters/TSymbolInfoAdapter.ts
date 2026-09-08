@@ -66,6 +66,13 @@ interface IMergeAccumulator {
     Map<string, { readonly offset: number; readonly width: number }>
   >;
   readonly bitmapBackingType: Map<string, string>;
+  readonly knownRegisters: Set<string>;
+  readonly scopedRegisters: Map<string, string>;
+  readonly registerMemberAccess: Map<string, string>;
+  readonly registerMemberTypes: Map<string, string>;
+  readonly registerBaseAddresses: Map<string, string>;
+  readonly registerMemberOffsets: Map<string, string>;
+  readonly registerMemberCTypes: Map<string, string>;
   readonly bitmapBitWidth: Map<string, number>;
 }
 
@@ -653,6 +660,42 @@ class TSymbolInfoAdapter {
       external.functionReturnTypes,
       into.functionReturnTypes,
     );
+
+    // #1322: a register crosses on the same terms as every kind above. It never
+    // did -- a board file declaring `register HW @ ...` and an application
+    // file including it is ADR-004's whole use case, and the importer reported
+    // `'HW' is not defined` (E0427) because nothing carried the name across.
+    // Its detail travels with it, as the bitmap maps do: the access modifiers
+    // are what E0870-E0872 read, and the offsets, C types and base addresses
+    // are what codegen spells the access with.
+    TSymbolInfoAdapter._mergeNames(
+      external.knownRegisters,
+      into.knownRegisters,
+    );
+    TSymbolInfoAdapter._mergePreferringLocal(
+      external.scopedRegisters,
+      into.scopedRegisters,
+    );
+    TSymbolInfoAdapter._mergePreferringLocal(
+      external.registerMemberAccess,
+      into.registerMemberAccess,
+    );
+    TSymbolInfoAdapter._mergePreferringLocal(
+      external.registerMemberTypes,
+      into.registerMemberTypes,
+    );
+    TSymbolInfoAdapter._mergePreferringLocal(
+      external.registerBaseAddresses,
+      into.registerBaseAddresses,
+    );
+    TSymbolInfoAdapter._mergePreferringLocal(
+      external.registerMemberOffsets,
+      into.registerMemberOffsets,
+    );
+    TSymbolInfoAdapter._mergePreferringLocal(
+      external.registerMemberCTypes,
+      into.registerMemberCTypes,
+    );
   }
 
   /**
@@ -696,6 +739,13 @@ class TSymbolInfoAdapter {
     const mergedScopeMemberVisibility = this._copyScopeMemberVisibility(
       base.scopeMemberVisibility,
     );
+    const mergedKnownRegisters = new Set(base.knownRegisters);
+    const mergedScopedRegisters = new Map(base.scopedRegisters);
+    const mergedRegisterMemberAccess = new Map(base.registerMemberAccess);
+    const mergedRegisterMemberTypes = new Map(base.registerMemberTypes);
+    const mergedRegisterBaseAddresses = new Map(base.registerBaseAddresses);
+    const mergedRegisterMemberOffsets = new Map(base.registerMemberOffsets);
+    const mergedRegisterMemberCTypes = new Map(base.registerMemberCTypes);
 
     // Merge in external enum info, function return types, scopes and visibility
     for (const external of externalSources) {
@@ -711,6 +761,13 @@ class TSymbolInfoAdapter {
         bitmapBackingType: mergedBitmapBackingType,
         bitmapBitWidth: mergedBitmapBitWidth,
         knownVariables: mergedKnownVariables,
+        knownRegisters: mergedKnownRegisters,
+        scopedRegisters: mergedScopedRegisters,
+        registerMemberAccess: mergedRegisterMemberAccess,
+        registerMemberTypes: mergedRegisterMemberTypes,
+        registerBaseAddresses: mergedRegisterBaseAddresses,
+        registerMemberOffsets: mergedRegisterMemberOffsets,
+        registerMemberCTypes: mergedRegisterMemberCTypes,
       });
     }
 
@@ -728,6 +785,13 @@ class TSymbolInfoAdapter {
       functionReturnTypes: mergedFunctionReturnTypes,
       scopeMemberVisibility: mergedScopeMemberVisibility,
       knownVariables: mergedKnownVariables,
+      knownRegisters: mergedKnownRegisters,
+      scopedRegisters: mergedScopedRegisters,
+      registerMemberAccess: mergedRegisterMemberAccess,
+      registerMemberTypes: mergedRegisterMemberTypes,
+      registerBaseAddresses: mergedRegisterBaseAddresses,
+      registerMemberOffsets: mergedRegisterMemberOffsets,
+      registerMemberCTypes: mergedRegisterMemberCTypes,
     };
   }
 

@@ -9,13 +9,13 @@
  * - REGISTER_MEMBER_BITMAP_FIELD: MOTOR.CTRL.Running <- true
  * - SCOPED_REGISTER_MEMBER_BITMAP_FIELD: Scope.GPIO7.ICR1.LED <- value
  */
+import invariant from "../../../../../utils/invariant";
 import type IBitmapFieldLayout from "../../../../types/IBitmapFieldLayout";
 import AssignmentKind from "../AssignmentKind";
 import IAssignmentContext from "../IAssignmentContext";
 import BitUtils from "../../../../../utils/BitUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import CodeGenState from "../../../../state/CodeGenState";
-import TypeValidator from "../../TypeValidator";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
 
@@ -34,32 +34,26 @@ function calculateMask(width: number): { mask: number; maskHex: string } {
 function getBitmapFieldInfo(
   bitmapType: string,
   fieldName: string,
-  ctx: IAssignmentContext,
 ): IBitmapFieldLayout {
   const fields = CodeGenState.symbols!.bitmapFields.get(bitmapType);
-  if (!fields?.has(fieldName)) {
-    throw new Error(
-      `Error: Unknown bitmap field '${fieldName}' on type '${bitmapType}'`,
-    );
-  }
+  // Two statements, because `asserts condition` narrows a REFERENCE, not an
+  // arbitrary expression: asserting `fields?.has(...)` leaves `fields` itself
+  // possibly-undefined for the line below.
+  invariant(
+    fields,
+    `every bitmap the classifier routed here was collected by the resolver (missing type '${bitmapType}')`,
+  );
+  invariant(
+    fields.has(fieldName),
+    `the classifier and this handler agree on the bitmap field key ('${fieldName}' on '${bitmapType}')`,
+  );
 
   const fieldInfo = fields.get(fieldName)!;
 
-  // Validate compound operators not allowed
-  if (ctx.isCompound) {
-    throw new Error(
-      `Compound assignment operators not supported for bitmap field access: ${ctx.cnextOp}`,
-    );
-  }
-
-  // Validate compile-time literal overflow
-  if (ctx.valueCtx) {
-    TypeValidator.validateBitmapFieldLiteral(
-      ctx.valueCtx,
-      fieldInfo.width,
-      fieldName,
-    );
-  }
+  // #1322: compound assignment on this target is E0857 in pass 2.1, and a
+  // literal too wide for the field is E0881 -- decided from the bitmap's
+  // layouts and the value's own text, so it no longer waits for this handler
+  // to have resolved the field first.
 
   return fieldInfo;
 }
@@ -109,7 +103,7 @@ function handleBitmapFieldSingleBit(ctx: IAssignmentContext): string {
   const typeInfo = CodeGenState.getVariableTypeInfo(varName);
   const bitmapType = typeInfo!.bitmapTypeName!;
 
-  const fieldInfo = getBitmapFieldInfo(bitmapType, fieldName, ctx);
+  const fieldInfo = getBitmapFieldInfo(bitmapType, fieldName);
   return generateBitmapWrite(varName, fieldInfo, ctx.generatedValue);
 }
 
@@ -130,7 +124,7 @@ function handleBitmapArrayElementField(ctx: IAssignmentContext): string {
   const typeInfo = CodeGenState.getVariableTypeInfo(arrayName);
   const bitmapType = typeInfo!.bitmapTypeName!;
 
-  const fieldInfo = getBitmapFieldInfo(bitmapType, fieldName, ctx);
+  const fieldInfo = getBitmapFieldInfo(bitmapType, fieldName);
   const index = CodeGenState.requireGenerator().generateExpression(
     ctx.subscripts[0],
   );
@@ -154,7 +148,7 @@ function handleStructMemberBitmapField(ctx: IAssignmentContext): string {
   );
   const bitmapType = memberInfo!.baseType;
 
-  const fieldInfo = getBitmapFieldInfo(bitmapType, fieldName, ctx);
+  const fieldInfo = getBitmapFieldInfo(bitmapType, fieldName);
   const memberPath = `${structName}.${memberName}`;
 
   return generateBitmapWrite(memberPath, fieldInfo, ctx.generatedValue);
@@ -172,7 +166,7 @@ function handleRegisterMemberBitmapField(ctx: IAssignmentContext): string {
   const bitmapType =
     CodeGenState.symbols!.registerMemberTypes.get(fullRegMember)!;
 
-  const fieldInfo = getBitmapFieldInfo(bitmapType, fieldName, ctx);
+  const fieldInfo = getBitmapFieldInfo(bitmapType, fieldName);
   return generateBitmapWrite(fullRegMember, fieldInfo, ctx.generatedValue);
 }
 
@@ -196,9 +190,6 @@ function handleScopedRegisterMemberBitmapField(
 
   if (ctx.hasThis) {
     // this.REG.MEMBER.field - 3 identifiers
-    if (!CodeGenState.currentScopePath) {
-      throw new Error("Error: 'this' can only be used inside a scope");
-    }
     regName = ctx.identifiers[0];
     memberName = ctx.identifiers[1];
     fieldName = ctx.identifiers[2];
@@ -213,12 +204,6 @@ function handleScopedRegisterMemberBitmapField(
     memberName = ctx.identifiers[2];
     fieldName = ctx.identifiers[3];
 
-    // Validate cross-scope access
-    CodeGenState.requireGenerator().validateCrossScopeVisibility(
-      scopeName,
-      regName,
-    );
-
     fullRegName = QualifiedCName.fromParts([scopeName, regName]);
   }
 
@@ -227,7 +212,7 @@ function handleScopedRegisterMemberBitmapField(
   const bitmapType =
     CodeGenState.symbols!.registerMemberTypes.get(fullRegMember)!;
 
-  const fieldInfo = getBitmapFieldInfo(bitmapType, fieldName, ctx);
+  const fieldInfo = getBitmapFieldInfo(bitmapType, fieldName);
 
   // Check for write-only register (includes w1s, w1c)
   const accessMod =

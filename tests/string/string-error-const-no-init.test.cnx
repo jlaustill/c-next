@@ -1,2 +1,0 @@
-// ADR-045: Test error when const string has no initializer
-const string MISSING;

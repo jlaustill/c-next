@@ -48,13 +48,13 @@ uint8_t A__firstOrdinal(void) {
 
 int main(void) {
     uint8_t fromVariable = A__readVariable();
-    if (fromVariable != 7) return 1;
-    if (A__B_c != 7) return 2;
+    if (fromVariable != 7) return 1U;
+    if (A__B_c != 7) return 2U;
     uint8_t inScopeOrdinal = A__firstOrdinal();
-    if (inScopeOrdinal != 0) return 3;
+    if (inScopeOrdinal != 0) return 3U;
     A__B second = A__B__d;
     uint8_t secondOrdinal = (uint8_t)second;
-    if (secondOrdinal != 1) return 4;
-    if (A__B_c != 7) return 5;
-    return 0;
+    if (secondOrdinal != 1) return 4U;
+    if (A__B_c != 7) return 5U;
+    return 0U;
 }

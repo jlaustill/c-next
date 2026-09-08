@@ -18,7 +18,7 @@
 static Sensor__EUnit Logger__unit = Sensor__EUnit__CELSIUS;
 
 uint32_t Logger__count(void) {
-    return 7;
+    return 7U;
 }
 
 uint32_t Logger__reportedUnit(void) {

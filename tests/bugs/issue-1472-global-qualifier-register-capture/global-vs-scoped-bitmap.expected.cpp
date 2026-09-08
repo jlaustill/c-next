@@ -36,9 +36,6 @@
 // the type was still wrong, which is the "presence is not proof" trap (#1222).
 /* Scope: Chip */
 
-/* Register: Chip__CTRL @ 0x40000000 */
-#define Chip__CTRL__GLOBAL_STATUS (*(volatile Flags*)(0x40000000 + 0x00))
-#define Chip__CTRL__LOCAL_STATUS (*(volatile Chip__Flags*)(0x40000000 + 0x04))
 
 
 int main(void) {

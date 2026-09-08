@@ -119,54 +119,6 @@ describe("CastValidator", () => {
     });
   });
 
-  describe("validateIntegerCast", () => {
-    it("throws for narrowing conversion", () => {
-      expect(() => {
-        CastValidator.validateIntegerCast("u32", "u8");
-      }).toThrow(/Cannot cast u32 to u8 \(narrowing\)/);
-    });
-
-    it("throws for sign conversion", () => {
-      expect(() => {
-        CastValidator.validateIntegerCast("i32", "u32");
-      }).toThrow(/Cannot cast i32 to u32 \(sign change\)/);
-    });
-
-    it("suggests bit indexing in narrowing error", () => {
-      expect(() => {
-        CastValidator.validateIntegerCast("u32", "u8");
-      }).toThrow(/expr\[0, 8\]/);
-    });
-
-    it("suggests bit indexing in sign change error", () => {
-      expect(() => {
-        CastValidator.validateIntegerCast("i16", "u16");
-      }).toThrow(/expr\[0, 16\]/);
-    });
-
-    it("does not throw for valid widening cast", () => {
-      expect(() => {
-        CastValidator.validateIntegerCast("u8", "u32");
-      }).not.toThrow();
-    });
-
-    it("does not throw for same type cast", () => {
-      expect(() => {
-        CastValidator.validateIntegerCast("i32", "i32");
-      }).not.toThrow();
-    });
-
-    it("does not throw for non-integer types", () => {
-      // Float types should not trigger validation
-      expect(() => {
-        CastValidator.validateIntegerCast("f32", "i32");
-      }).not.toThrow();
-      expect(() => {
-        CastValidator.validateIntegerCast("i32", "f32");
-      }).not.toThrow();
-    });
-  });
-
   describe("requiresClampingCast", () => {
     it("returns true for float-to-integer", () => {
       expect(CastValidator.requiresClampingCast("f32", "i32")).toBe(true);

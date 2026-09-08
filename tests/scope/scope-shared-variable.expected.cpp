@@ -38,15 +38,15 @@ uint32_t SharedState__getCount(void) {
 
 int main(void) {
     uint32_t result1 = SharedState__getCount();
-    if (result1 != 0) return 1;
+    if (result1 != 0) return 1U;
     SharedState__increment();
     uint32_t result2 = SharedState__getCount();
-    if (result2 != 1) return 2;
+    if (result2 != 1) return 2U;
     SharedState__increment();
     uint32_t result3 = SharedState__getCount();
-    if (result3 != 2) return 3;
+    if (result3 != 2) return 3U;
     SharedState__increment();
     uint32_t result4 = SharedState__getCount();
-    if (result4 != 3) return 4;
-    return 0;
+    if (result4 != 3) return 4U;
+    return 0U;
 }

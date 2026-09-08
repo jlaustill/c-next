@@ -1,0 +1,20 @@
+// Issue #366: Deeply nested unary operators should still trigger E0702
+// test-adr: 022
+// Tests that recursion handles arbitrary nesting like !!isReady()
+// MISRA C:2012 Rule 13.5 - Short-circuit evaluation may skip function calls
+
+bool isReady() {
+    return true;
+}
+
+// NEGATIVE CONTROL -- the same call, hoisted out of the condition.
+void okHoisted() {
+    bool ready <- isReady();
+    if (ready = true) {}
+}
+
+void test() {
+    if (!!isReady()) {
+        // body
+    }
+}

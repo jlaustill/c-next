@@ -25,26 +25,26 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 // Coverage: Direct indexing, loop iteration, constant indices
 int main(void) {
     uint32_t arr[5] = {10U, 20U, 30U, 40U, 50U};
-    if (arr[0U] != 10) return 1;
-    if (arr[4U] != 50) return 2;
+    if (arr[0U] != 10) return 1U;
+    if (arr[4U] != 50) return 2U;
     uint32_t idx = 2U;
-    if (arr[idx] != 30) return 3;
+    if (arr[idx] != 30) return 3U;
     uint32_t sum = 0U;
     uint32_t i = 0U;
     while (i < 5) {
         sum = cnx_clamp_add_u32(sum, arr[i]);
         i = cnx_clamp_add_u32(i, 1U);
     }
-    if (sum != 150) return 4;
+    if (sum != 150) return 4U;
     uint32_t offset = 1U;
     uint32_t base = 2U;
-    if (arr[cnx_clamp_add_u32(base, offset)] != 40) return 5;
+    if (arr[cnx_clamp_add_u32(base, offset)] != 40) return 5U;
     uint32_t matrix[3][3] = {{1U, 2U, 3U}, {4U, 5U, 6U}, {7U, 8U, 9U}};
-    if (matrix[0U][0U] != 1) return 6;
-    if (matrix[2U][2U] != 9) return 7;
-    if (matrix[1U][1U] != 5) return 8;
+    if (matrix[0U][0U] != 1) return 6U;
+    if (matrix[2U][2U] != 9) return 7U;
+    if (matrix[1U][1U] != 5) return 8U;
     uint8_t tiny[2] = {100U, 200U};
-    if (tiny[0U] != 100) return 9;
-    if (tiny[1U] != 200) return 10;
-    return 0;
+    if (tiny[0U] != 100) return 9U;
+    if (tiny[1U] != 200) return 10U;
+    return 0U;
 }

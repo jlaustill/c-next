@@ -1,0 +1,10 @@
+20:22 error[E0878]: cannot pass const 'LIMIT' to non-const parameter 'v' of function 'consume'
+       help: The callee may write through that parameter; declare it `const` in the callee, or pass a mutable copy (ADR-013).
+24:4 error[E0877]: cannot assign to const variable 'LIMIT'
+       help: A const binding is read-only after its declaration (ADR-013); remove `const` if the value must change.
+25:4 error[E0877]: cannot assign to const variable 'TABLE' (array element)
+       help: A const binding is read-only after its declaration (ADR-013); remove `const` if the value must change.
+30:25 error[E0878]: cannot pass const 'LIMIT' to non-const parameter 'v' of function 'consume'
+       help: The callee may write through that parameter; declare it `const` in the callee, or pass a mutable copy (ADR-013).
+34:8 error[E0877]: cannot assign to const variable 'LIMIT'
+       help: A const binding is read-only after its declaration (ADR-013); remove `const` if the value must change.

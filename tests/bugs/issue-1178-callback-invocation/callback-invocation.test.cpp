@@ -51,17 +51,17 @@ int main(void) {
     uint8_t sent = 7U;
     viaParameter(record, sent);
     if (witness != 7) {
-        return 1;
+        return 1U;
     }
     if (sent != 7) {
-        return 2;
+        return 2U;
     }
     uint8_t echoed = Bus__publish(sent);
     if (echoed != 7) {
-        return 3;
+        return 3U;
     }
     if (sent != 7) {
-        return 4;
+        return 4U;
     }
-    return 0;
+    return 0U;
 }

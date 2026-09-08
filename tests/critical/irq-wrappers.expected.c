@@ -75,5 +75,5 @@ void enqueue(uint8_t data) {
 
 int main(void) {
     enqueue(42U);
-    return 0;
+    return 0U;
 }

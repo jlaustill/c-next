@@ -11,16 +11,6 @@
 // test-coverage: 12-w1s-access-modifier
 // Tests: Write-1-to-Set register access modifier
 // Writing 1 to a bit sets it, writing 0 has no effect
-/* Register: GPIO @ 0x40000000 */
-#define GPIO__DR (*(volatile uint32_t*)(0x40000000 + 0x00))
-#define GPIO__DR_SET (*(volatile uint32_t*)(0x40000000 + 0x84))
-#define GPIO__DR_CLEAR (*(volatile uint32_t*)(0x40000000 + 0x88))
-#define GPIO__DR_TOGGLE (*(volatile uint32_t*)(0x40000000 + 0x8C))
-
-/* Register: CTRL @ 0x40001000 */
-#define CTRL__ENABLE (*(volatile uint32_t*)(0x40001000 + 0x00))
-#define CTRL__FLAGS (*(volatile uint32_t*)(0x40001000 + 0x04))
-
 void setGpioBit(uint8_t pin) {
     GPIO__DR_SET = (1U << pin);
 }

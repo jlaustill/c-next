@@ -50,10 +50,7 @@ function setupMockGenerator(overrides: Record<string, unknown> = {}): void {
       .fn()
       .mockImplementation((ctx) => ctx?.mockValue ?? "0"),
     tryEvaluateConstant: vi.fn().mockReturnValue(undefined),
-    validateBitmapFieldLiteral: vi.fn(),
-    validateCrossScopeVisibility: vi.fn(),
     getMemberTypeInfo: vi.fn().mockReturnValue(null),
-    checkArrayBounds: vi.fn(),
     analyzeMemberChainForBitAccess: vi
       .fn()
       .mockReturnValue({ isBitAccess: false }),

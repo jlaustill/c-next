@@ -1,0 +1,2 @@
+20:4 error[E0877]: cannot assign to const variable 'DIVISOR'
+       help: A const binding is read-only after its declaration (ADR-013); remove `const` if the value must change.

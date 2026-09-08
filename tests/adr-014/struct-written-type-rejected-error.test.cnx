@@ -1,0 +1,23 @@
+// test-error
+// test-adr: 014
+// ADR-014 / #1322: `Point { x: 1 }` is not C-Next syntax.
+//
+// The grammar carried an `IDENTIFIER '{' ... '}'` alternative for a written
+// type. It was never usable: every position that consumes a value already
+// declares the type, so writing it again was rejected as redundant in all of
+// them, and the one place it parsed was a bare expression statement -- where it
+// built a compound literal and discarded it. The alternative is removed, so
+// this is a parse error rather than a diagnostic.
+//
+// The negative control is the line above each assertion: the inferred form in
+// the same position, which must still parse.
+
+struct Point {
+    i32 x;
+    i32 y;
+}
+
+void f() {
+    Point ok <- { x: 1, y: 1 };
+    Point bad <- Point { x: 1, y: 1 };
+}

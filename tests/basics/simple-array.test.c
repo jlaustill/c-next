@@ -29,27 +29,27 @@ int main(void) {
     numbers[2] = 30U;
     numbers[3] = 40U;
     numbers[4] = 50U;
-    if (numbers[0U] != 10) return 1;
-    if (numbers[2U] != 30) return 2;
-    if (numbers[4U] != 50) return 3;
+    if (numbers[0U] != 10) return 1U;
+    if (numbers[2U] != 30) return 2U;
+    if (numbers[4U] != 50) return 3U;
     uint8_t bytes[4] = {1U, 2U, 3U, 4U};
-    if (bytes[0U] != 1) return 4;
-    if (bytes[3U] != 4) return 5;
-    if (4 != 4) return 6;
-    if (5 != 5) return 7;
+    if (bytes[0U] != 1) return 4U;
+    if (bytes[3U] != 4) return 5U;
+    if (4 != 4) return 6U;
+    if (5 != 5) return 7U;
     uint32_t sum = 0U;
-    for (uint32_t i = 0; i < 5; i = i + 1) {
+    for (uint32_t i = 0U; i < 5; i = i + 1) {
         sum = cnx_clamp_add_u32(sum, numbers[i]);
     }
-    if (sum != 150) return 8;
+    if (sum != 150) return 8U;
     numbers[2] = 100U;
-    if (numbers[2U] != 100) return 9;
+    if (numbers[2U] != 100) return 9U;
     int32_t temps[3] = {-10, 0, 25};
-    if (temps[0U] != -10) return 10;
-    if (temps[1U] != 0) return 11;
-    if (temps[2U] != 25) return 12;
+    if (temps[0U] != -10) return 10U;
+    if (temps[1U] != 0) return 11U;
+    if (temps[2U] != 25) return 12U;
     bool flags[3] = {true, false, true};
-    if (flags[0U] != true) return 13;
-    if (flags[1U] != false) return 14;
-    return 0;
+    if (flags[0U] != true) return 13U;
+    if (flags[1U] != false) return 14U;
+    return 0U;
 }

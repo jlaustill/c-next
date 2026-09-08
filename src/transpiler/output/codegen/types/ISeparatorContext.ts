@@ -6,9 +6,6 @@
  * in member access chains.
  */
 interface ISeparatorContext {
-  /** Whether the access starts with `global.` prefix */
-  readonly hasGlobal: boolean;
-
   /** Whether this is a cross-scope access (global.Scope or global.Register) */
   readonly isCrossScope: boolean;
 

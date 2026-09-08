@@ -29,59 +29,59 @@ int main(void) {
     int64_t d = -500;
     int64_t maxResult1 = getMax(a, b);
     if (maxResult1 != 2000) {
-        return 1;
+        return 1U;
     }
     int64_t maxResult2 = getMax(c, d);
     if (maxResult2 != -500) {
-        return 2;
+        return 2U;
     }
     int64_t minResult1 = getMin(a, b);
     if (minResult1 != 1000) {
-        return 3;
+        return 3U;
     }
     int64_t minResult2 = getMin(c, d);
     if (minResult2 != -3000) {
-        return 4;
+        return 4U;
     }
     int64_t absResult1 = getAbs(c);
     if (absResult1 != 3000) {
-        return 5;
+        return 5U;
     }
     int64_t absResult2 = getAbs(a);
     if (absResult2 != 1000) {
-        return 6;
+        return 6U;
     }
     int64_t result = (a > c) ? a : c;
     if (result != 1000) {
-        return 7;
+        return 7U;
     }
     int64_t large_a = 1000000000000;
     int64_t large_b = 2000000000000;
     int64_t large_result = (large_a < large_b) ? large_a : large_b;
     if (large_result != 1000000000000) {
-        return 8;
+        return 8U;
     }
     int64_t large_neg_a = -1000000000000;
     int64_t large_neg_b = -2000000000000;
     int64_t large_neg_result = (large_neg_a > large_neg_b) ? large_neg_a : large_neg_b;
     if (large_neg_result != -1000000000000) {
-        return 9;
+        return 9U;
     }
     int64_t equal_test = (c == -3000) ? 100000 : -100000;
     if (equal_test != 100000) {
-        return 10;
+        return 10U;
     }
     int64_t neg = -1000000;
     int64_t pos = 1000000;
     int64_t zero_cross = (neg < 0) ? pos : neg;
     if (zero_cross != 1000000) {
-        return 11;
+        return 11U;
     }
     int64_t very_large_pos = 9000000000000000000;
     int64_t very_large_neg = -9000000000000000000;
     int64_t very_large_result = (very_large_pos > very_large_neg) ? very_large_pos : very_large_neg;
     if (very_large_result != 9000000000000000000) {
-        return 12;
+        return 12U;
     }
-    return 0;
+    return 0U;
 }

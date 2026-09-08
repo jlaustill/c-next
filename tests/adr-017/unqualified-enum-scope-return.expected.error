@@ -1,0 +1,2 @@
+14:15 error[E0424]: 'HIGH' is not defined; did you mean 'Level.HIGH'?
+       help: A bare enum member is accepted only where its enum is already named -- a declaration or assignment of that type, a return from a function of that type, a field of that type. Elsewhere, qualify it (ADR-017).

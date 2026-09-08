@@ -40,17 +40,17 @@ int main(void) {
     Flags__setReady();
     result = Flags__getStatus();
     if (result != 0x01) {
-        return 1;
+        return 1U;
     }
     Flags__setError();
     result = Flags__getStatus();
     if (result != 0x81) {
-        return 2;
+        return 2U;
     }
     Flags__clearReady();
     result = Flags__getStatus();
     if (result != 0x80) {
-        return 3;
+        return 3U;
     }
-    return 0;
+    return 0U;
 }

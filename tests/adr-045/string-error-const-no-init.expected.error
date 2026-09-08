@@ -1,0 +1,2 @@
+7:6 error[E0862]: A const string without a capacity requires an initializer to infer it from
+       help: Write the capacity, e.g. string<64>, or initialize it with a literal.

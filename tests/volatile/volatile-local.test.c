@@ -34,27 +34,27 @@ static inline uint32_t cnx_clamp_sub_u32(uint32_t a, uint64_t b) {
 // ADR-064: Volatile keyword for delay loops and optimization prevention
 int main(void) {
     volatile uint32_t counter = 0U;
-    if (counter != 0) return 1;
+    if (counter != 0) return 1U;
     counter = 100U;
-    if (counter != 100) return 2;
+    if (counter != 100) return 2U;
     volatile uint32_t i = 0U;
     while (i < 10) {
         i = cnx_clamp_add_u32(i, 1U);
     }
-    if (i != 10) return 3;
+    if (i != 10) return 3U;
     volatile uint32_t countdown = 5U;
     while (countdown > 0) {
         countdown = cnx_clamp_sub_u32(countdown, 1U);
     }
-    if (countdown != 0) return 4;
+    if (countdown != 0) return 4U;
     volatile uint8_t a = 10U;
     volatile uint8_t b = 20U;
     volatile uint8_t c = cnx_clamp_add_u8(a, b);
-    if (c != 30) return 5;
+    if (c != 30) return 5U;
     volatile uint32_t loop_count = 0U;
-    for (volatile uint32_t j = 0; j < 5; j += 1) {
+    for (volatile uint32_t j = 0U; j < 5; j += 1) {
         loop_count = cnx_clamp_add_u32(loop_count, 1U);
     }
-    if (loop_count != 5) return 6;
-    return 0;
+    if (loop_count != 5) return 6U;
+    return 0U;
 }

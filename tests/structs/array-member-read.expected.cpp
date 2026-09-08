@@ -34,7 +34,7 @@ int main(void) {
     cfg.items[1] = item1;
     cfg.items[2] = item2;
     uint32_t sum = 0U;
-    for (uint32_t i = 0; i < 3; i += 1) {
+    for (uint32_t i = 0U; i < 3; i += 1) {
         sum = cnx_clamp_add_u32(sum, cfg.items[i].value);
     }
     if (sum != 600) {

@@ -14,26 +14,50 @@ A `throw` in `output/` has no position to carry, which is why a fixture reports 
 
 ## Counts
 
-Measured on `main` @ `71fe06f4`:
+## How to recount
+
+Run these rather than restating the numbers below; a count in prose is the thing that goes
+stale, and this document has done it before.
 
 ```bash
-grep -rn 'throw new Error' src/transpiler/output --include='*.ts' | grep -v __tests__ | wc -l   # 180
-grep -rn 'throw new '      src/transpiler/output --include='*.ts' | grep -v __tests__ | wc -l   # 181
-grep -rn 'throw new Error' src/transpiler/logic  --include='*.ts' | grep -v __tests__ | wc -l   # 4
+# every throw STATEMENT in output/ -- the corpus this audit classifies (184)
+grep -rn '^\s*throw\b' src/transpiler/output --include='*.ts' | grep -v __tests__ | wc -l
+# the subset spelled `throw new` (181)
+grep -rn '^\s*throw new' src/transpiler/output --include='*.ts' | grep -v __tests__ | wc -l
+# and the authority: the gate agrees or fails
+npm run docs:throw-citations:check
 ```
 
-#1321 was filed against 177. `throw new Error` is **180**, and one further site throws a
-`TypeError` (`StringHandlers.ts:201`), so **181** sites are classified below — this audit covers
-every `throw new` in `output/`, not only the `Error` constructor. The number grows with ordinary
-work, which is why the acceptance criterion should read "every site as counted at audit time"
-rather than a literal.
+Measured on `fix/1322-diagnostics-into-pass-2-1` @ `8477f526`.
 
-| bucket | meaning                                                                        | count   |
-| ------ | ------------------------------------------------------------------------------ | ------- |
-| **1**  | user-facing diagnostic — belongs in pass 2.1, needs a code and a real position | **144** |
-| **2**  | internal invariant — should never fire for valid input; becomes an assertion   | **16**  |
-| **3**  | dead — unreachable or subsumed; delete                                         | **21**  |
-|        | **total**                                                                      | **181** |
+#1321 was filed against 177 and this audit first recorded 181, counting `throw new` only: 180
+`Error` plus one `TypeError` in `StringHandlers`.
+
+**That definition was too narrow, and the gate shared the blind spot (#1322).** A throw need not
+say `new`. `helpers/CodeGenErrors.ts` builds seven `Error`s with `return new Error(...)` and its
+callers write `throw CodeGenErrors.x(...)`, so **three further sites** were classified nowhere and
+demanded by nothing — invisible in both directions, because a site the gate does not count is also
+a site it never asks for a row for. One of them carried
+**E0856**: registered in `docs/error-codes.md` and asserted by two fixtures, which is the
+whole point -- a coded, covered diagnostic invisible to the audit. (#1322 has since moved
+it to pass 2.1, so the line it sat on no longer holds a throw and is not cited here.) A user-facing, coded, fixture-covered diagnostic sat outside the audit that
+exists to find exactly those.
+
+So the corpus was **184** when the gate was widened, and is **145** now that `ArrayAccessHelper`, `CodeGenErrors`, all 23 bucket-3 sites and all 16 invariants are gone. What remains is bucket 1 exactly. What this cost the anchors is the argument against the indirection, and it has now been paid: a
+factory throw's argument list is `(line, varName, …)`, not the message, so those rows had to be
+anchored on their **arguments** — the only honest key for a site whose text is written elsewhere.
+`CodeGenErrors` is deleted and E0856 is raised at its site, so its row is anchored on what it
+says, like every other.
+
+The number grows with ordinary work, which is why the acceptance criterion should read "every site
+as counted at audit time" rather than a literal.
+
+| bucket | meaning                                                                        | count |
+| ------ | ------------------------------------------------------------------------------ | ----- |
+| **1**  | user-facing diagnostic — belongs in pass 2.1, needs a code and a real position | **0** |
+| **2**  | internal invariant — should never fire for valid input; becomes an assertion   | **0** |
+| **3**  | dead — unreachable or subsumed; delete                                         | **0** |
+|        | **total**                                                                      | **0** |
 
 **80% of `output/`'s throws are rejections.** That is the answer to open question 4: Render does
 not own nothing, it currently owns almost all of the rejection surface.
@@ -42,43 +66,72 @@ By area:
 
 | area                                                                | sites | b1  | b2  | b3  |
 | ------------------------------------------------------------------- | ----- | --- | --- | --- |
-| `codegen/` (root: `CodeGenerator`, `TypeValidator`, `TypeResolver`) | 54    | 39  | 9   | 6   |
-| `codegen/helpers/`                                                  | 46    | 39  | 0   | 7   |
-| `codegen/generators/**`                                             | 44    | 41  | 3   | 0   |
-| `codegen/assignment/**`, `codegen/resolution/`, `headers/`          | 37    | 25  | 4   | 8   |
+| `codegen/` (root: `CodeGenerator`, `TypeValidator`, `TypeResolver`) | 0     | 0   | 0   | 0   |
+| `codegen/helpers/`                                                  | 0     | 0   | 0   | 0   |
+| `codegen/generators/**`                                             | 0     | 0   | 0   | 0   |
+| `codegen/subscript/`                                                | 0     | 0   | 0   | 0   |
+| `codegen/assignment/**`, `codegen/resolution/`, `headers/`          | 0     | 0   | 0   | 0   |
 
 ## Position availability — the finding that shapes #1322
 
-**Only 2 of 181 sites emit a real position.** `SwitchGenerator.ts:94` and
-`ControlFlowGenerator.ts:47` prefix `line:col ` into the message text, which
-`ParserUtils.parseErrorLocation` scrapes back out at `Transpiler.ts:450`/`:2282`, defaulting to
-`1:0`. That is why those two fixtures read `13:13` and `11:13` while nearly every other reads
-`1:0`.
+**32 of 184 sites already hold the line; 20 of them let the user see it.** An earlier version of
+this section said "only 2 of 181", which is wrong by an order of magnitude and sized tier A far too
+small. Measured mechanically -- a throw's statement is collected to its terminating `;` and matched
+for an interpolated line:
+
+| what the message does with the line                     | sites   | reaches the user?                                                   |
+| ------------------------------------------------------- | ------- | ------------------------------------------------------------------- |
+| opens with a `${line}:${col} ` prefix                   | **20**  | yes -- `ParserUtils.parseErrorLocation` scrapes the prefix back out |
+| names the line in prose (`Error at line 45:`, `Line 7`) | **12**  | no -- the number is computed and then spent on text                 |
+| carries no line at all                                  | **152** | no -- `parseErrorLocation` falls back to `1:0`                      |
+
+The 20 are the reason the corpus is not uniformly `1:0`: 176 of 312 `.expected.error` fixtures
+carry a real position. The 12 are tier A's core -- the position is in hand and thrown away, so
+relocating them adds no plumbing.
+
+Both forms are hacks around the same absence. A prefix parsed back out of a message is a position
+smuggled through a channel that does not carry one, which is precisely what a coded diagnostic in
+2.1 makes unnecessary.
 
 Sites divide into three tiers, and the tiers are the natural work split:
 
-| tier  | situation                                                                                           | sites                                                                                                                                                                                                                                                                               |
-| ----- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **A** | position already computed, then spent on prose (`Error at line 45:`, `Line 7`) or a hard-coded `:0` | `ScopeGenerator.ts:97`, `IncludeGenerator.ts:111/121`, `PostfixExpressionGenerator.ts:1757`, `VariableModifierBuilder.ts:82`, `VariableDeclHelper.ts:768/778`, and the 13 `ArrayHandlers` slice sites                                                                               |
-| **B** | an AST node is in scope and simply unused                                                           | every `assignment/handlers/` site (`ctx.statementCtx` / `targetCtx` / `valueCtx` / `subscripts[]`), plus `TypeValidator` and most of `CodeGenerator`                                                                                                                                |
-| **C** | no AST node anywhere; must be threaded from callers                                                 | `ScopeResolver.ts:37/53` (string-only signature, 4+ callers), `SizeofResolver.ts:154`, `TypeResolver.ts:153/159/822/830`, most of `PostfixExpressionGenerator` (`IPostfixContext`, `IExplicitLengthContext`, `IMemberAccessContext` and `IFloatBitRangeContext` carry only strings) |
+| tier  | situation                                                                                           | sites                                                                                                                                                                                                                                                    |
+| ----- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **A** | position already computed, then spent on prose (`Error at line 45:`, `Line 7`) or a hard-coded `:0` | the 12 prose-line sites above (`ScopeGenerator`, `IncludeGenerator` ×2, `PostfixExpressionGenerator`'s bitmap bracket-indexing throw, `VariableModifierBuilder`, `VariableDeclHelper` ×2, `TypeValidator` ×5) plus the 13 `ArrayHandlers` slice sites    |
+| **B** | an AST node is in scope and simply unused                                                           | every `assignment/handlers/` site (`ctx.statementCtx` / `targetCtx` / `valueCtx` / `subscripts[]`), plus `TypeValidator` and most of `CodeGenerator`                                                                                                     |
+| **C** | no AST node anywhere; must be threaded from callers                                                 | `ScopeResolver` (string-only signature, 4+ callers), `SizeofResolver`, `codegen/TypeResolver`, most of `PostfixExpressionGenerator` (`IPostfixContext`, `IExplicitLengthContext`, `IMemberAccessContext` and `IFloatBitRangeContext` carry only strings) |
 
 `ISubscriptAccessContext` is the sole context interface that already carries its node (`op:
 PostfixOpContext`) and is the model for tier C.
 
 ## Duplicate messages — text cannot identify a site
 
-Three messages are byte-identical across multiple throw sites, so any fixture-to-site mapping
-done by grepping message text is **wrong**. The `assignment/` audit established attribution by
-proxying `Error` construction and reading the constructing stack frame instead.
+Several messages are byte-identical across throw sites, so any fixture-to-site mapping done by
+grepping message text is **wrong**. The `assignment/` audit established attribution by proxying
+`Error` construction and reading the constructing stack frame instead.
 
-| message                                                            | sites                                                                                                                                                                                                                                                                     |
-| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Error: 'this' can only be used inside a scope`                    | **9** — `PostfixExpressionGenerator.ts:471`, `:1350`, `CodeGenerator.ts:4854`, `BaseIdentifierBuilder.ts:43`, `AssignmentHandlerUtils.ts:21`, `AccessPatternHandlers.ts:45`, `StringHandlers.ts:99`, `BitmapHandlers.ts:200`, plus `CodeGenErrors.scopedTypeOutsideScope` |
-| `Compound assignment operators not supported for bit field access` | 3 — `BitAccessHandlers.ts:21`, `AssignmentHandlerUtils.ts:37`, `AccessPatternHandlers.ts:73`                                                                                                                                                                              |
-| `Cannot reference own scope '<S>' by name`                         | 2 — `ScopeResolver.ts:41`, `MemberAccessValidator.ts:53`                                                                                                                                                                                                                  |
-| `Error: Unknown struct variable '<s>' in string assignment`        | 2 — `StringHandlers.ts:60`, `:87` (literal copies)                                                                                                                                                                                                                        |
-| `Error: Array size mismatch - declared [N] but got M elements`     | 3 — `StringDeclHelper.ts:231`, `:596`, `ArrayInitHelper.ts:160`                                                                                                                                                                                                           |
+Sites are named by file and message rather than by line: a line number here is a second,
+ungated copy of what the classification rows already hold, and this table's previous version
+had drifted (invariant 5, #1322).
+
+**Measured after 1322a**, by collecting each throw's statement to its terminating `;` and
+grouping on the result:
+
+**None remain.** The last group -- three copies of
+`Error: Cannot assign non-enum value to ${typeName} enum` in
+`EnumAssignmentValidator` -- went with the ADR-017 relocation. They were never
+three rules: each was reached by a different shape of dotted source text after
+the split failed to prove the value was an enum, and asking one question about a
+resolved type leaves one site.
+
+The first row was **9** before 1322a: four copies were bucket-3 deletions and the ninth was
+`CodeGenErrors.scopedTypeOutsideScope`, a factory with no caller at all. Deleting the dead
+copies first is what makes unification tractable, and is the argument for that ordering.
+
+Three groups here were **absent from this table's previous version** — the four
+`EnumAssignmentValidator` copies, the three `E0853` arms (since relocated) and the const-constructor pair — and
+one it listed (`Cannot reference own scope`) is not byte-identical after all. The table was
+written by reading; this one is generated by measuring, which is why it disagrees.
 
 Relocating these to 2.1 must **unify each into one decision point**, not port N copies
 (`CLAUDE.md`, no duplicate code paths).
@@ -94,260 +147,144 @@ carry anchors that each match the other's throw, so an anchor that stops just sh
 telling two different throws apart is reported, not left to review. When a row drifts, its anchor
 also says which throw it meant, so correcting the line is a lookup rather than a guess.
 
-## Bucket 2 — internal invariants (16)
+## Bucket 2 — internal invariants (0)
 
-Each becomes an assertion. The invariant is stated in words, as #1321 requires; firing means a
-transpiler defect, not user error.
+**All 16 are resolved (#1322b).** Each is now an `invariant(condition, statement)` assertion,
+so it no longer opens with `throw new` and has left this corpus.
 
-| file:line                                                | anchor                                           | invariant                                                                                                                                                                                                                                                                          |
-| -------------------------------------------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `codegen/CodeGenerator.ts:354`                           | `statement generator not registered`             | every statement name reaching `invokeStatement` was registered by `initializeGenerators()`; the 8 invoked names are a subset of the 8 registered                                                                                                                                   |
-| `codegen/CodeGenerator.ts:368`                           | `expression generator not registered`            | same for `invokeExpression`; the 3 invoked names are among the 14 registered                                                                                                                                                                                                       |
-| `codegen/CodeGenerator.ts:2278`                          | `symbolInfo is required - use CNextResolver`     | the pipeline always supplies `options.symbolInfo` to `generate()`; absence is a caller/API bug                                                                                                                                                                                     |
-| `codegen/CodeGenerator.ts:3689`                          | `Internal: no 'scope' declaration generator is`  | `registerDeclaration("scope")` is unconditional in the constructor                                                                                                                                                                                                                 |
-| `codegen/CodeGenerator.ts:3721`                          | `Internal: no 'register' declaration generator`  | `registerDeclaration("register")` is unconditional                                                                                                                                                                                                                                 |
-| `codegen/CodeGenerator.ts:3738`                          | `Error: struct generator not registered`         | `registerDeclaration("struct")` is unconditional                                                                                                                                                                                                                                   |
-| `codegen/CodeGenerator.ts:3759`                          | `Error: enum generator not registered`           | `registerDeclaration("enum")` is unconditional                                                                                                                                                                                                                                     |
-| `codegen/CodeGenerator.ts:3784`                          | `Internal: no 'bitmap' declaration generator is` | `registerDeclaration("bitmap")` is unconditional                                                                                                                                                                                                                                   |
-| `codegen/CodeGenerator.ts:4006`                          | `Internal: no 'function' declaration generator`  | `registerDeclaration("function")` is unconditional                                                                                                                                                                                                                                 |
-| `generators/declarationGenerators/EnumGenerator.ts:47`   | `Error: Enum`                                    | every enum declaration codegen visits was collected by the resolver, so its qualified name is in `enumMembers`                                                                                                                                                                     |
-| `generators/declarationGenerators/BitmapGenerator.ts:50` | `Error: Bitmap`                                  | same, for `bitmapBackingType`                                                                                                                                                                                                                                                      |
-| `generators/expressions/CallExprGenerator.ts:394`        | `Output parameter`                               | a registered variable always has a non-empty `baseType`; the guard at `:386` already proved `typeInfo` exists                                                                                                                                                                      |
-| `assignment/handlers/index.ts:48`                        | `No handler registered for assignment kind`      | every `AssignmentKind` has a registered handler — verified at runtime, all 31 members resolve                                                                                                                                                                                      |
-| `assignment/handlers/BitAccessHandlers.ts:150`           | `is not an array`                                | classifier and handler agree on the variable's array-ness; both ARRAY_ELEMENT_BIT sites require `arrayDimensions`                                                                                                                                                                  |
-| `assignment/handlers/BitmapHandlers.ts:41`               | `Error: Unknown bitmap field`                    | classifier and handler agree on the bitmap type key; all five bitmap kinds are classified only after `lookupBitmapFieldWidth` confirms the field                                                                                                                                   |
-| `assignment/handlers/StringHandlers.ts:201`              | `expected a numeric capacity, got`               | a `string<N>` capacity is always numeric — the grammar restricts that token to `[0-9]+`. The only site throwing a `TypeError` rather than an `Error`; its own comment records that coercing instead would yield a NaN capacity and corrupt every `strncpy` bound generated from it |
+The conversion did three things beyond changing the spelling.
 
-Five of these (`:3389`–`:3706`) already carry an in-file #1285 comment stating exactly this:
-_"a missing generator is an internal invariant violation, not a second path."_ Two of the same
-family (`:3438`, `:3459`) are spelled `Error: …` rather than `Internal: …`, which makes an
-assertion read as a user diagnostic — worth normalizing in the same change.
+It **normalized the family**. Six declaration-generator guards said the same thing two ways:
+four opened `Internal: no 'scope' declaration generator is registered`, two said
+`Error: struct generator not registered`. A reader could not tell an invariant from a user
+diagnostic by looking, and neither could this document — which is how two of them came to be
+classified alongside rejections in the first place.
 
-## Bucket 3 — dead (21)
+It **states the guarantee rather than the symptom**. `registerDeclaration("scope") is
+unconditional in the constructor` says what is promised; `no 'scope' declaration generator is
+registered` says only what was observed. The reader of a crash report needs the first — the
+stack trace already carries the second.
 
-Each carries evidence that it cannot be reached, not an assumption, as #1321 requires.
+And it **keeps the narrowing**. `invariant` is an `asserts condition` function, which is what
+lets an unreachable guard be converted without the following line losing its type. One site
+needed splitting in two: `asserts` narrows a reference, not an arbitrary expression, so
+asserting `fields?.has(name)` leaves `fields` itself possibly-undefined.
 
-| file:line                                          | anchor                                          | evidence                                                                                                                                                                                                                                                                                                                           |
-| -------------------------------------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `codegen/TypeValidator.ts:384`                     | `Error: Use 'this`                              | in `validateBareIdentifierInScope`, which has **zero production callers** — repo-wide grep returns its definition, its unit test, a stale comment at `CodeGenerator.ts:3335`, and a plan doc. Superseded by `resolveBareIdentifier` (ADR-057), which resolves rather than throws                                                   |
-| `codegen/TypeValidator.ts:390`                     | `to access register`                            | same function                                                                                                                                                                                                                                                                                                                      |
-| `codegen/TypeValidator.ts:399`                     | `to access global function`                     | same function                                                                                                                                                                                                                                                                                                                      |
-| `codegen/TypeValidator.ts:405`                     | `to access global enum`                         | same function                                                                                                                                                                                                                                                                                                                      |
-| `codegen/TypeValidator.ts:411`                     | `to access global struct`                       | same function                                                                                                                                                                                                                                                                                                                      |
-| `codegen/TypeValidator.ts:418`                     | `to access global variable`                     | same function                                                                                                                                                                                                                                                                                                                      |
-| `helpers/TypeGenerationHelper.ts:155`              | `Array type must have either primitive or user` | `generateArrayBaseType` has no caller in `src/` or `scripts/` — only its unit test. Live array-element typing goes through `dispatchTypeGeneration`, which returns `null` and falls back to `ctx.getText()`                                                                                                                        |
-| `helpers/EnumAssignmentValidator.ts:189`           | `Error: Cannot assign non-enum value to`        | reaching it needs `isKnownEnum(parts[1])` with `parts[0]==="global"` and `length>=3`. `EnumTypeResolver.getEnumTypeFromGlobalEnum:133-139` evaluates the identical predicate on the identical `getText()` earlier (`validateEnumAssignment:41`) and returns non-null, so `validateNonEnumExpression` is never entered in that case |
-| `helpers/StringDeclHelper.ts:515`                  | `Error: String array initialization from`       | in `_generateStringArrayDecl`, entered only when `arrayDims.length > 0`; `VariableDeclHelper.validateArrayDeclarationSyntax` (`:635`, before `StringDeclHelper` at `:655`) throws unconditionally on any trailing bracket. Confirmed: `string<8> items[3] <- [...]` yields the C-style-array error                                 |
-| `helpers/StringDeclHelper.ts:559`                  | `Error: Fill-all syntax`                        | `_handleSizeInference`'s sole call site is `_generateStringArrayDecl:527` — same unreachable branch                                                                                                                                                                                                                                |
-| `helpers/StringDeclHelper.ts:596`                  | `Error: Array size mismatch - declared`         | `_handleExplicitSize`'s sole call site is `_generateStringArrayDecl:529` — same branch                                                                                                                                                                                                                                             |
-| `helpers/CastValidator.ts:103`                     | `narrowing`                                     | `validateIntegerCast` has no production caller (grep: definition + unit test). `tests/casting/narrowing-cast-error` is produced by the live duplicate at `CodeGenerator.ts:4978`                                                                                                                                                   |
-| `helpers/CastValidator.ts:111`                     | `sign change`                                   | same; live copy at `CodeGenerator.ts:4985` pins `tests/casting/sign-cast-error`                                                                                                                                                                                                                                                    |
-| `assignment/handlers/StringHandlers.ts:60`         | `Error: Unknown struct variable`                | STRING_STRUCT_FIELD is produced only via `_resolveStructType` (`AssignmentClassifier.ts:876-883`), which runs the identical `getVariableTypeInfo(structName)` with the identical key and returns `null` on failure                                                                                                                 |
-| `assignment/handlers/StringHandlers.ts:71`         | `Error: Unknown field`                          | same path additionally requires `getStructFieldType` truthy and `TypeCheckUtils.isString` (`AssignmentClassifier.ts:906-925`)                                                                                                                                                                                                      |
-| `assignment/handlers/StringHandlers.ts:87`         | `Error: Unknown struct variable`                | only caller is `handleStringStructArrayElement`, gated by the same `_resolveStructType`. Also a literal duplicate of `:60`                                                                                                                                                                                                         |
-| `assignment/handlers/StringHandlers.ts:99`         | `Error: 'this' can only be used inside a scope` | two proofs: `_classifyThisMemberString` returns `null` when `!CodeGenState.currentScope` (`:845`), and `buildAssignmentContext` calls `generateAssignmentTarget` first, so `this.`-outside-scope throws at `BaseIdentifierBuilder.ts:43` — reproduced with `this.name <- "bob"`                                                    |
-| `assignment/handlers/StringHandlers.ts:185`        | `Error: Cannot determine string capacity for`   | `_classifyStructArrayElementString` requires `dimensions && dimensions.length >= 1` (`:958-963`) from the same map with the same keys; the handler rejects only `!dimensions \|\| length === 0`                                                                                                                                    |
-| `assignment/handlers/AssignmentHandlerUtils.ts:21` | `Error: 'this' can only be used inside a scope` | callers are `RegisterHandlers.ts:119/156`, produced solely by `classifyThisWithArrayAccess`, reached only after `classifyThisPrefix`'s `!currentScope` early return (`:585-588`). Reproduced: `this.HW.DR[3] <- true` at file scope lands on `BaseIdentifierBuilder.ts:43`                                                         |
-| `assignment/handlers/AccessPatternHandlers.ts:45`  | `Error: 'this' can only be used inside a scope` | same two proofs. Reproduced: `this.count <- 5` at file scope lands on `BaseIdentifierBuilder.ts:43`                                                                                                                                                                                                                                |
-| `assignment/handlers/BitmapHandlers.ts:200`        | `Error: 'this' can only be used inside a scope` | `SCOPED_REGISTER_MEMBER_BITMAP_FIELD` with `hasThis` comes only from `classifyThisPrefix:613`, past the `currentScope` guard at `:586`. Reproduced: `this.HW.CTRL.Run <- true` at file scope                                                                                                                                       |
+## Bucket 3 — dead (0)
 
-**`CastValidator.ts:103/111` is a duplicate code path, not merely dead** — identical message text
-and identical rules to the live logic inlined at `CodeGenerator.ts:4972-4732`. Deleting the
-unreachable copy is the correct resolution; leaving both is the anti-pattern `CLAUDE.md` forbids.
+**All 23 are resolved (#1322a).** Seventeen were deleted; four were not dead at all and are
+recorded below. The table is empty rather than removed: the section is what a later reader
+checks to see whether the audit's third bucket was ever discharged.
 
-Three bucket-3 calls are **conditional on current behavior** and must be revisited if it changes:
-`StringDeclHelper.ts:515/559/596` are dead only while `validateArrayDeclarationSyntax` rejects all
-trailing brackets (#1014–#1017), and the stale doc comment at `VariableDeclHelper.ts:243-247`
-still describes the relaxed behavior.
+### Four were misclassified, and the mistake is instructive
 
-## Bucket 1 — user-facing diagnostics (144)
+`StringHandlers`' guards on `structTypeInfo`, `fieldType` and `dimensions` were classified
+`dead — delete`. They are genuinely unreachable, exactly as the evidence said. They are also
+**load-bearing for the type system**: deleting them yields `TS18048: possibly 'undefined'` on
+the next line, because each guard narrows the value the following statement uses.
 
-Each needs a code and a real position in pass 2.1. `code` is the code it already carries, or
-**NEW** where one must be allocated. `position` names the node that is or would be in scope.
+Unreachable AND load-bearing is not dead. It is an internal invariant, so those four became
+`invariant(...)` assertions — which keep the narrowing, name the guarantee, and mark the
+failure `Internal:` so it is not read as a user diagnostic. The audit's evidence was right and
+its verdict was wrong, because "can this fire?" and "can this be removed?" are different
+questions and only the first was asked.
 
-### `codegen/` root — 39
+### What the deletions removed
 
-| file:line               | anchor                                            | message                                                           | code                     | position source                                                                                | fixture                                            |
-| ----------------------- | ------------------------------------------------- | ----------------------------------------------------------------- | ------------------------ | ---------------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| `TypeValidator.ts:58`   | `E0503: Cannot #include implementation file`      | cannot `#include` an implementation file (ADR-010)                | E0503                    | `includeDir` (`IncludeDirectiveContext`) at `CodeGenerator.ts:2478`                            | `preprocessor/include-impl-file-error`             |
-| `TypeValidator.ts:129`  | `E0504: Found #include "`                         | `#include "p"` but `p.cnx` exists alongside                       | E0504                    | same `includeDir`, `CodeGenerator.ts:2487`                                                     | `include/cnx-alternative-error-quoted`             |
-| `TypeValidator.ts:146`  | `E0504: Found #include <`                         | angle-include twin of the above                                   | E0504                    | same                                                                                           | `include/cnx-alternative-error-angle`              |
-| `TypeValidator.ts:177`  | `maximum of`                                      | value exceeds W-bit bitmap field maximum (ADR-034)                | NEW E08xx                | `expr` (`ExpressionContext`, a parameter)                                                      | `bitmap/bitmap-error-overflow`                     |
-| `TypeValidator.ts:237`  | `is negative for`                                 | array index is negative                                           | NEW — **E0854 reserved** | `indexExprs[i].start`                                                                          | none                                               |
-| `TypeValidator.ts:245`  | `Array index out of bounds`                       | array index `N >= D`                                              | NEW — E0854              | `indexExprs[i].start`                                                                          | `array-initializers/bounds-error` +3               |
-| `TypeValidator.ts:276`  | `Error: Function`                                 | function signature does not match callback type                   | NEW                      | `valueExpr.start`                                                                              | none                                               |
-| `TypeValidator.ts:285`  | `to callback field`                               | cannot assign function to callback field (ADR-029 nominal typing) | NEW                      | `valueExpr.start`                                                                              | `callbacks/callback-error-nominal`                 |
-| `TypeValidator.ts:545`  | `E0853: Cannot use 'return' inside critical`      | `return` inside `critical` (ADR-050)                              | E0853                    | `stmt.returnStatement()!.start`                                                                | `critical/return-error`                            |
-| `TypeValidator.ts:566`  | `E0853: Cannot use 'return' inside critical`      | same, if-branch copy                                              | E0853                    | `innerStmt.returnStatement()!.start`                                                           | none                                               |
-| `TypeValidator.ts:594`  | `E0853: Cannot use 'return' inside critical`      | same, loop-body copy                                              | E0853                    | `loopStmt.returnStatement()!.start`                                                            | none                                               |
-| `TypeValidator.ts:617`  | `Error: Cannot switch on boolean type (MISRA`     | cannot switch on boolean (MISRA 16.7, ADR-025)                    | NEW E07xx                | `switchExpr.start`                                                                             | `switch/switch-error-boolean`                      |
-| `TypeValidator.ts:623`  | `Error: Switch requires at least 2 clauses`       | switch needs >= 2 clauses (MISRA 16.6)                            | NEW E07xx                | `ctx.start`                                                                                    | `switch/switch-error-single-case`                  |
-| `TypeValidator.ts:633`  | `Error: Duplicate case value`                     | duplicate case value                                              | NEW E07xx                | `labelCtx.start`                                                                               | `switch/switch-error-duplicate-case` +2            |
-| `TypeValidator.ts:673`  | `Error: switch covers`                            | switch covers N of M variants (explicit + default)                | NEW E07xx                | `ctx.start` / `defaultCase.start`                                                              | `switch/switch-error-wrong-count`                  |
-| `TypeValidator.ts:682`  | `Error: Non-exhaustive switch on`                 | non-exhaustive switch                                             | NEW E07xx                | `ctx.start`                                                                                    | `switch/switch-error-non-exhaustive`               |
-| `TypeValidator.ts:743`  | `Error: Nested ternary not allowed in`            | nested ternary not allowed                                        | NEW E07xx                | `ctx.start` (`OrExpressionContext`)                                                            | none                                               |
-| `TypeValidator.ts:761`  | `condition must be a boolean expression, not a`   | condition must be boolean, not a ternary                          | E0701                    | `ctx.start`                                                                                    | none — untested arm                                |
-| `TypeValidator.ts:833`  | `Error E0701`                                     | condition must be boolean (MISRA 14.4)                            | E0701                    | `node.start` (already the precise operand)                                                     | `ternary/ternary-error-non-boolean` +7             |
-| `TypeValidator.ts:857`  | `Error E0707: loop condition`                     | loop condition is always true (ADR-068)                           | E0707                    | `ctx.start`                                                                                    | `control-flow/forever-disguised-*` (6)             |
-| `TypeValidator.ts:986`  | `Error E0702: Function call in`                   | function call in condition (MISRA 13.5)                           | E0702                    | `ctx.start`                                                                                    | `conditions/function-call-in-*-error`              |
-| `TypeValidator.ts:999`  | `Error E0702: Function call in 'ternary`          | function call in ternary condition                                | E0702                    | `ctx.start` (`OrExpressionContext`)                                                            | `conditions/function-call-in-ternary-error`        |
-| `TypeValidator.ts:1024` | `Error: Negative shift amount`                    | negative shift amount is undefined behavior                       | NEW E08xx                | `ctx.start` / `rightExpr.start`                                                                | `bitwise/shift-negative-error`                     |
-| `TypeValidator.ts:1033` | `Error: Shift amount`                             | shift exceeds type width (MISRA 12.2)                             | NEW E08xx                | `ctx.start`                                                                                    | `bitwise/shift-beyond-width-*` (4)                 |
-| `TypeResolver.ts:153`   | `Error: Negative value`                           | negative value to unsigned type (ADR-024)                         | NEW E08xx                | **none in scope** — `(literalText, targetType)`; thread from callers                           | `casting/literal-negative-unsigned-error`          |
-| `TypeResolver.ts:159`   | `Error: Value`                                    | value exceeds type range                                          | NEW E08xx                | same                                                                                           | `casting/literal-overflow-error` +2                |
-| `TypeResolver.ts:822`   | `narrowing`                                       | narrowing assignment                                              | NEW E08xx                | same                                                                                           | `casting/narrowing-assign-error`                   |
-| `TypeResolver.ts:830`   | `sign change`                                     | sign-change assignment                                            | NEW E08xx                | same                                                                                           | `casting/sign-assign-error`                        |
-| `CodeGenerator.ts:1930` | `error[E0703`                                     | `break`/`continue` unsupported (ADR-026)                          | E0703                    | **already emits `ctx.start.line/column`** — the model                                          | `control-flow/break-rejected`, `continue-rejected` |
-| `CodeGenerator.ts:2198` | `to access register`                              | use `global.R.m` for a register from inside a scope (ADR-016)     | NEW                      | none — via the `validateRegisterAccess` closure at `:2140`; thread from the member-access site | `scope/cross-scope-register-bare-error`            |
-| `CodeGenerator.ts:3807` | `Redundant type`                                  | redundant type in struct initializer (ADR-014)                    | NEW E03xx                | `explicit.symbol` / `ctx.start`                                                                | `structs/struct-redundant-type-error`              |
-| `CodeGenerator.ts:3815` | `Cannot infer struct type - no explicit type and` | cannot infer struct type — **fires on valid code, see #1277**     | NEW E03xx                | `ctx.start` (`StructInitializerContext`)                                                       | none                                               |
-| `CodeGenerator.ts:4161` | `C-style array parameter is not allowed`          | C-style array parameter                                           | NEW                      | **already positioned** via `ctx.start`                                                         | none                                               |
-| `CodeGenerator.ts:4180` | `Unbounded array parameters are not allowed`      | unbounded array parameter                                         | NEW                      | **already positioned** via `ctx.start`                                                         | none                                               |
-| `CodeGenerator.ts:4854` | `Error: 'this' can only be used inside a scope`   | `this` outside a scope                                            | NEW E04xx                | none — caller `generatePrimaryExpr(ctx)` at `:1911` has `ctx.start`                            | none                                               |
-| `CodeGenerator.ts:4939` | `is not defined; did you mean '`                  | `X` not defined; did you mean `E.X`                               | E0424                    | none — `generatePrimaryExpr(ctx)` has the node                                                 | `analysis/enum-context/enum-bare-in-comparison` +2 |
-| `CodeGenerator.ts:4945` | `is not defined; did you mean`                    | multi-match arm of the above                                      | E0424                    | same                                                                                           | none                                               |
-| `CodeGenerator.ts:4985` | `narrowing`                                       | narrowing cast (ADR-024)                                          | NEW E08xx                | `ctx.start` (`CastExpressionContext`) **is** in scope                                          | `casting/narrowing-cast-error`                     |
-| `CodeGenerator.ts:4992` | `sign change`                                     | sign-change cast                                                  | NEW E08xx                | `ctx.start`                                                                                    | `casting/sign-cast-error`                          |
+- `TypeValidator.validateBareIdentifierInScope` (6 throws) — zero production callers since
+  ADR-057 gave bare identifiers a resolver that resolves rather than throws.
+- `TypeGenerationHelper.generateArrayBaseType` (1) and `CastValidator.validateIntegerCast` (2)
+  — no callers; the cast pair duplicated live inline logic in `CodeGenerator` message for message.
+- `StringDeclHelper`'s C-style string-array path (3) — `_generateStringArrayDecl` and its two
+  helpers. Verified by probe, not by reading: all three routes in (`string<8> items[3]`,
+  `items[]`, and the fill-all form) are intercepted by
+  `VariableDeclHelper.validateArrayDeclarationSyntax` with the C-style-array error.
+- `EnumAssignmentValidator.validateGlobalEnumPattern` (1) — its only rejection was unreachable,
+  and with the throw gone the method did nothing.
+- Four copies of `'this' can only be used inside a scope` (`StringHandlers`,
+  `AssignmentHandlerUtils` — with the wrapper and both call sites —, `AccessPatternHandlers`,
+  `BitmapHandlers`). Stronger than the recorded reproduction: `this.x <- 5` at file scope is a
+  **parse error**, so it never reaches codegen at all. That leaves four live copies plus the
+  factory, which is what makes unification tractable.
 
-**13 of these 39 already carry a code**; 26 need one. **12 have no fixture at all.** Only
-`CodeGenerator.ts:1926/3862/3881` emit a real position today.
+## Bucket 1 — user-facing diagnostics (0)
 
-### `codegen/helpers/` — 39
+**Empty.** Every one of the 145 user-facing rejections `output/` held is authored in pass 2.1,
+with a code and the position of the construct it is about. `npm run docs:throw-citations:check`
+reports `0 throw site(s) in output/`, which is the falsifiable form of that sentence.
 
-**Zero carry a code today.** 25 of the 39 have no fixture.
+The sections below record what each area held and what settled it, because the relocation
+found things the rows could not say.
 
-| file:line                        | anchor                                            | message                                                                               | code      | position source                                                              | fixture                                     |
-| -------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------- | --------- | ---------------------------------------------------------------------------- | ------------------------------------------- |
-| `TypeGenerationHelper.ts:71`     | `Cannot use 'this.Type' outside of a scope`       | `this.Type` outside a scope                                                           | NEW E0426 | thread `accessors.scopedType()!.start` from `dispatchTypeGeneration`         | none                                        |
-| `EnumAssignmentValidator.ts:46`  | `Error: Cannot assign`                            | cannot assign enum of one type to another                                             | NEW E0427 | `expression.start` (in scope)                                                | none                                        |
-| `EnumAssignmentValidator.ts:53`  | `Error: Cannot assign integer to`                 | cannot assign integer to enum                                                         | NEW E0428 | `expression.start`                                                           | `enum/enum-error-assign-int`                |
-| `EnumAssignmentValidator.ts:127` | `Error: Cannot assign non-enum value to`          | non-enum value to enum (3+ parts)                                                     | NEW E0427 | thread `expression` into `validateNonEnumExpression` (takes only `exprText`) | none                                        |
-| `EnumAssignmentValidator.ts:140` | `Error: Cannot assign non-enum value to`          | non-enum value to enum (2 parts)                                                      | NEW E0427 | same                                                                         | none                                        |
-| `EnumAssignmentValidator.ts:154` | `Error: Cannot assign non-enum value to`          | non-enum value to enum — **message misreports; real fault is `this` outside a scope** | NEW E0426 | same                                                                         | none                                        |
-| `EnumAssignmentValidator.ts:163` | `Error: Cannot assign non-enum value to`          | non-enum value to enum (`this.cfg.v` in scope)                                        | NEW E0427 | same                                                                         | none                                        |
-| `ArrayInitHelper.ts:129`         | `Error: Fill-all syntax`                          | fill-all `[v*]` requires explicit array size                                          | NEW E0858 | thread `expression.start` from `processArrayInit`                            | none                                        |
-| `ArrayInitHelper.ts:160`         | `Error: Array size mismatch - declared`           | array size mismatch                                                                   | NEW E0857 | `expression.start`                                                           | **orphaned** — see #1361                    |
-| `StringDeclHelper.ts:153`        | `Error: String arrays require explicit capacity`  | string arrays require explicit capacity                                               | NEW       | `arrayTypeCtx.stringType()!.start` (in scope)                                | none                                        |
-| `StringDeclHelper.ts:218`        | `Error: String array initialization from`         | string array init from variables unsupported                                          | NEW       | `expression.start` (in scope)                                                | none                                        |
-| `StringDeclHelper.ts:231`        | `Error: Array size mismatch - declared`           | array size mismatch                                                                   | NEW E0857 | `expression.start`                                                           | **orphaned** — see #1361                    |
-| `StringDeclHelper.ts:430`        | `Error: String initialization from variable`      | string init from variable at global scope                                             | NEW       | `expression.start` (in scope)                                                | `string/string-error-init-global`           |
-| `StringDeclHelper.ts:460`        | `Error: String literal`                           | literal exceeds `string<C>` capacity                                                  | NEW       | thread `expression` from `_generateBoundedStringWithInit`                    | `string/string-error-overflow`              |
-| `StringDeclHelper.ts:470`        | `Error: Cannot assign string`                     | `string<S>` to `string<C>` truncation                                                 | NEW       | same                                                                         | none                                        |
-| `StringDeclHelper.ts:641`        | `Error: String concatenation cannot be used at`   | concatenation at global scope                                                         | NEW       | thread `expression`                                                          | `string/string-error-concat-global`         |
-| `StringDeclHelper.ts:650`        | `Error: String concatenation requires capacity`   | concatenation exceeds capacity                                                        | NEW       | same                                                                         | `string/string-error-concat-overflow`       |
-| `StringDeclHelper.ts:680`        | `Error: Substring extraction cannot be used at`   | substring at global scope                                                             | NEW       | same                                                                         | `string/string-error-substring-global`      |
-| `StringDeclHelper.ts:694`        | `Error: Substring bounds`                         | substring bounds exceed source                                                        | NEW       | same                                                                         | `string/string-error-substring-bounds`      |
-| `StringDeclHelper.ts:702`        | `Error: Substring length`                         | substring length exceeds destination                                                  | NEW       | same                                                                         | `string/string-error-substring-dest`        |
-| `StringDeclHelper.ts:734`        | `Error: Non-const string requires explicit`       | non-const string needs explicit capacity                                              | NEW       | `typeCtx.stringType()!.start` (`expression` may be null)                     | `string/string-error-nonconst-unsized`      |
-| `StringDeclHelper.ts:740`        | `Error: const string requires initializer for`    | const string needs initializer                                                        | NEW       | `stringCtx.start` (`expression` null by construction)                        | `string/string-error-const-no-init`         |
-| `StringDeclHelper.ts:747`        | `Error: const string requires string literal for` | const string needs a literal                                                          | NEW       | `expression.start` (non-null on this branch)                                 | none                                        |
-| `AssignmentValidator.ts:117`     | `constError`                                      | cannot assign to const variable/parameter                                             | NEW       | `targetCtx` (`AssignmentTargetContext`, in scope)                            | 26 fixtures under `tests/const/`            |
-| `AssignmentValidator.ts:153`     | `${errorLine}:${col} ${msg}`                      | ADR-024 conversion, assignment path                                                   | NEW       | **already carries a real position**                                          | none                                        |
-| `AssignmentValidator.ts:172`     | `array element`                                   | const assign, array element                                                           | NEW       | `subscriptExprs[0].start` (`line` already a parameter)                       | none                                        |
-| `AssignmentValidator.ts:203`     | `member access`                                   | const assign, member access                                                           | NEW       | thread `targetCtx`                                                           | none                                        |
-| `AssignmentValidator.ts:211`     | `cannot assign to read-only register member`      | write to a read-only (`ro`) register member                                           | NEW       | thread `targetCtx` / `postfixTargetOp`                                       | `register/register-write-ro-error`          |
-| `VariableModifierBuilder.ts:82`  | `Cannot use both 'atomic' and 'volatile`          | both `atomic` and `volatile`                                                          | NEW       | `ctx.start` — line already read, column discarded                            | `atomic/atomic-volatile-error`              |
-| `BaseIdentifierBuilder.ts:43`    | `Error: 'this' can only be used inside a scope`   | `this` outside a scope — **1 of 9 copies**                                            | NEW E0426 | caller `CodeGenerator.ts:1192` holds the target ctx                          | none                                        |
-| `VariableDeclHelper.ts:282`      | `C-style array declaration is not allowed`        | C-style array declaration                                                             | NEW E0859 | **already carries a real position** from `ctx.start`                         | `array-declaration-syntax/c-style-error` +1 |
-| `VariableDeclHelper.ts:369`      | `Error: C++ class`                                | C++ class with constructor at global scope                                            | NEW       | `typeCtx.start` (in scope)                                                   | `external-types/cpp-class-global-error`     |
-| `VariableDeclHelper.ts:768`      | `is not declared`                                 | constructor argument not declared                                                     | NEW       | `argNode.symbol.line/column` (a `TerminalNode` in the loop)                  | `constructor-syntax/error-undeclared-arg`   |
-| `VariableDeclHelper.ts:778`      | `must be const`                                   | constructor argument must be const                                                    | NEW       | same                                                                         | `constructor-syntax/error-non-const-arg`    |
-| `IntegerLiteralValidator.ts:88`  | `${line}:${col} ${msg}`                           | ADR-024, declaration path                                                             | NEW       | **already carries a real position** from `ctx.start`                         | `casting/literal-overflow-error` +5         |
-| `MemberAccessValidator.ts:34`    | `cannot read from write-only register member`     | read from a write-only (`wo`) register member                                         | NEW       | caller `PostfixExpressionGenerator.ts:1461` holds the ctx                    | `register/register-read-wo-error`           |
-| `MemberAccessValidator.ts:53`    | `by name. Use 'this`                              | cannot reference own scope by name (ADR-016)                                          | NEW       | caller `PostfixExpressionGenerator.ts:1391`                                  | `scope/self-scope-bare-error` +1            |
-| `MemberAccessValidator.ts:108`   | `to access enum`                                  | use `global.X.Y`; scope member shadows global enum                                    | NEW       | callers `PostfixExpressionGenerator.ts:1273/1426/1452`                       | `scope/scope-enum-naming-conflict`          |
-| `MemberAccessValidator.ts:129`   | `from inside scope`                               | use `global.X.Y` for enum/register from inside a scope                                | NEW       | same                                                                         | `scope/cross-scope-register-bare-error`     |
+### `codegen/` root — 0
 
-`VariableDeclHelper.ts:282`'s doc comment still lists "Exceptions (grammar limitations)" the code
-no longer honours — it throws unconditionally once `arrayDimension().length > 0` (#1014–#1017).
+ADR-010's three include rows — E0503 in `validateIncludeNotImplementationFile`, and E0504's
+quoted and angle branches in `validateIncludeNoCnxAlternative` — are **relocated** to
+`IncludeDirectiveAnalyzer`, and `IncludeGenerator`'s missing-`.cnx` throw with them, as E0506.
+(Named by function rather than by line, because the lines no longer exist and this document's
+own gate reads a `file:line` in prose as a citation.) All four are now reported at the directive's own position; all four reported
+`1:0` before, three of them with the real line appended to the message as `Line N` and the
+fourth with no code at all.
 
-### `codegen/generators/**` — 41
+Two things the relocation had to settle, both recorded because the row above could not say them:
 
-| file:line                                       | anchor                                             | message                                                                                       | code      | position source                                                                                              | fixture                                                 |
-| ----------------------------------------------- | -------------------------------------------------- | --------------------------------------------------------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
-| `declarationGenerators/ScopeGenerator.ts:97`    | `must be const`                                    | constructor argument must be const (C++)                                                      | NEW       | `varDecl.start` — line read at `:181`, inlined as prose                                                      | `constructor-syntax/error-non-const-arg`                |
-| `statements/SwitchGenerator.ts:94`              | `error[E0424`                                      | unqualified enum member in a case label                                                       | E0424     | **emits a real position** as a string prefix `ParserUtils` scrapes back                                      | `analysis/enum-context/unqualified-enum-switch-case` +1 |
-| `statements/ControlFlowGenerator.ts:47`         | `is not defined; did you mean`                     | unqualified enum member in a return                                                           | E0424     | same mechanism, `exprCtx.start`                                                                              | `analysis/enum-context/unqualified-enum-return-*` (5)   |
-| `statements/ControlFlowGenerator.ts:305`        | `Error E0707: for-loop has no controlling`         | `for (;;)` has no controlling expression (ADR-068)                                            | E0707     | `node.start` in scope, **unused**                                                                            | `control-flow/forever-disguised-for-empty`              |
-| `statements/ControlFlowGenerator.ts:407`        | `Error E0705: forever loop in non-void function`   | `forever` in a non-void function (ADR-068)                                                    | E0705     | `node.start` in scope, unused                                                                                | `control-flow/forever-non-void-error`                   |
-| `support/IncludeGenerator.ts:54`                | `Error: Included C-Next file not found`            | included C-Next file not found                                                                | NEW E0506 | `includeDir` at `CodeGenerator.ts:2478`; `.start.line` read at `:2488` but not threaded                      | none                                                    |
-| `support/IncludeGenerator.ts:111`               | `E0501: Function-like macro`                       | function-like macro not allowed                                                               | E0501     | `ctx` (`DefineDirectiveContext`) — line read, appended as `Line 7` prose                                     | `preprocessor/function-macro-error`                     |
-| `support/IncludeGenerator.ts:121`               | `E0502: #define with value`                        | `#define` with value not allowed                                                              | E0502     | same prose defect                                                                                            | `preprocessor/value-define-error`                       |
-| `expressions/BinaryExprUtils.ts:119`            | `Error: Cannot compare`                            | cannot compare enum to enum (ADR-017)                                                         | NEW E06xx | `node`/`exprs[]` exist at caller `BinaryExprGenerator.ts:144`, not passed in                                 | `enum/enum-error-compare-types`                         |
-| `expressions/BinaryExprUtils.ts:125`            | `enum to integer`                                  | cannot compare enum to integer                                                                | NEW E06xx | same                                                                                                         | `enum/enum-error-compare-int`                           |
-| `expressions/BinaryExprUtils.ts:129`            | `Error: Cannot compare integer to`                 | cannot compare integer to enum (reversed twin)                                                | NEW E06xx | same                                                                                                         | none                                                    |
-| `expressions/BitmapAccessHelper.ts:49`          | `Error: Unknown bitmap field`                      | unknown bitmap field                                                                          | NEW E0426 | none — `IMemberAccessContext` carries no node; thread the owning `PostfixOpContext`                          | none                                                    |
-| `expressions/AccessExprGenerator.ts:31`         | `Error: .capacity is only available on string`     | `.capacity` only on string types — **also fires when it _is_ a string with unknown capacity** | NEW E06xx | thread `PostfixOpContext` from `PostfixExpressionGenerator.ts:659`                                           | none                                                    |
-| `expressions/AccessExprGenerator.ts:46`         | `Error: .size is only available on string types`   | `.size` only on string types                                                                  | NEW E06xx | same, from `:672`                                                                                            | none                                                    |
-| `expressions/CallExprGenerator.ts:370`          | `requires exactly 4 arguments: output`             | `safe_div`/`safe_mod` needs exactly 4 arguments (ADR-051)                                     | NEW       | `argExprs[0].start`, or `ArgumentListContext` at `:268`                                                      | none                                                    |
-| `expressions/CallExprGenerator.ts:378`          | `requires a variable as the first argument`        | first argument must be a variable (output parameter)                                          | NEW       | `argExprs[0].start`                                                                                          | none                                                    |
-| `expressions/CallExprGenerator.ts:386`          | `Cannot determine type of output parameter`        | cannot determine output parameter type — **really an undeclared identifier**                  | NEW       | `argExprs[0].start`                                                                                          | none                                                    |
-| `expressions/CallExprGenerator.ts:443`          | `cannot pass const`                                | cannot pass const to a non-const parameter (ADR-013)                                          | NEW       | `argExprs[argIdx].start`                                                                                     | none                                                    |
-| `expressions/PostfixExpressionGenerator.ts:471` | `Error: 'this' can only be used inside a scope`    | `this` outside a scope — wins for member `length` only                                        | NEW E04xx | none — `IPostfixContext` carries no node                                                                     | none                                                    |
-| `…/PostfixExpressionGenerator.ts:629`           | `is deprecated. Use explicit properties`           | `.length` deprecated (ADR-058)                                                                | NEW E06xx | `PostfixOpContext` not threaded                                                                              | `errors/length-property-deprecated`                     |
-| `…/PostfixExpressionGenerator.ts:744`           | `Error: .bit_length is not supported on 'args`     | `.bit_length` unsupported on `args`                                                           | NEW E06xx | `IExplicitLengthContext` carries no node                                                                     | none                                                    |
-| `…/PostfixExpressionGenerator.ts:766`           | `type not found in registry`                       | `.bit_length` — type not in registry (**undeclared identifier**)                              | NEW E04xx | not threaded                                                                                                 | none                                                    |
-| `…/PostfixExpressionGenerator.ts:848`           | `unsupported type '${memberType}'`                 | `.bit_length` on an unsupported member type                                                   | NEW E06xx | not threaded                                                                                                 | none                                                    |
-| `…/PostfixExpressionGenerator.ts:878`           | `unsupported type '${typeInfo.baseType}'`          | `.bit_length` on an unsupported type                                                          | NEW E06xx | not threaded                                                                                                 | none                                                    |
-| `…/PostfixExpressionGenerator.ts:919`           | `.bit_length for array with unknown dimensions`    | `.bit_length` on an array of unknown dimensions                                               | NEW E06xx | not threaded                                                                                                 | none                                                    |
-| `…/PostfixExpressionGenerator.ts:926`           | `Error: Cannot determine .bit_length for array`    | `.bit_length` on an array of unsupported element type                                         | NEW E06xx | not threaded                                                                                                 | none                                                    |
-| `…/PostfixExpressionGenerator.ts:962`           | `Error: Cannot determine .bit_length for string`   | `.bit_length` on a string of unknown capacity                                                 | NEW E06xx | not threaded                                                                                                 | none                                                    |
-| `…/PostfixExpressionGenerator.ts:988`           | `Error: .byte_length is not supported on 'args`    | `.byte_length` unsupported on `args`                                                          | NEW E06xx | not threaded                                                                                                 | none                                                    |
-| `…/PostfixExpressionGenerator.ts:1020`          | `Error: Cannot determine .byte_length for`         | `.byte_length` — type not in registry (**undeclared identifier**)                             | NEW E04xx | not threaded                                                                                                 | none                                                    |
-| `…/PostfixExpressionGenerator.ts:1072`          | `arrays, not on '${fieldInfo`                      | `.element_count` on a non-array struct field                                                  | NEW E06xx | not threaded                                                                                                 | none                                                    |
-| `…/PostfixExpressionGenerator.ts:1089`          | `Error: Cannot determine .element_count for`       | `.element_count` — type not in registry (**undeclared identifier**)                           | NEW E04xx | not threaded                                                                                                 | none                                                    |
-| `…/PostfixExpressionGenerator.ts:1095`          | `arrays, not on '${typeInfo`                       | `.element_count` on a non-array variable                                                      | NEW E06xx | not threaded                                                                                                 | none                                                    |
-| `…/PostfixExpressionGenerator.ts:1102`          | `.element_count for array with unknown dimensions` | `.element_count` on an array of unknown dimensions                                            | NEW E06xx | not threaded                                                                                                 | none                                                    |
-| `…/PostfixExpressionGenerator.ts:1111`          | `Error: .element_count is not available on array`  | `.element_count` on a fully subscripted array                                                 | NEW E06xx | not threaded                                                                                                 | none                                                    |
-| `…/PostfixExpressionGenerator.ts:1158`          | `Use .element_count for argc`                      | `.char_count` on `args`                                                                       | NEW E06xx | not threaded                                                                                                 | none                                                    |
-| `…/PostfixExpressionGenerator.ts:1174`          | `strings, not on '${fieldInfo`                     | `.char_count` on a non-string struct field                                                    | NEW E06xx | not threaded                                                                                                 | none                                                    |
-| `…/PostfixExpressionGenerator.ts:1185`          | `Error: Cannot determine .char_count for`          | `.char_count` — type not in registry (**undeclared identifier**)                              | NEW E04xx | not threaded                                                                                                 | none                                                    |
-| `…/PostfixExpressionGenerator.ts:1192`          | `strings, not on '${typeInfo`                      | `.char_count` on a non-string variable                                                        | NEW E06xx | not threaded                                                                                                 | none                                                    |
-| `…/PostfixExpressionGenerator.ts:1350`          | `Error: 'this' can only be used inside a scope`    | `this` outside a scope — every member except `length`                                         | NEW E04xx | `IMemberAccessContext` carries no node                                                                       | none                                                    |
-| `…/PostfixExpressionGenerator.ts:1790`          | `Cannot use bracket indexing on bitmap type`       | bracket indexing on a bitmap (ADR-034)                                                        | NEW       | **`ctx.op.start` available and already read**, spent on `Error at line 45:` prose — cheapest site to convert | `bitmap/bitmap-bracket-indexing-error`                  |
-| `…/PostfixExpressionGenerator.ts:2007`          | `Float bit indexing reads`                         | float bit-range read at global scope                                                          | NEW E08xx | `IFloatBitRangeContext` carries no node; the subscript `op` is available upstream                            | none                                                    |
+- **The angle branch's search path could not be re-derived.** Codegen built its own from the
+  source file's directory, where discovery had already built one that also carries the
+  invocation's added include directories. The two agreed only when nothing was added, so a
+  header and its C-Next twin sitting together in an added directory transpiled at exit 0
+  while the same two files beside the source were rejected. Discovery's list is recorded per
+  file now and read by the rule.
+- **The current source path is not readable from shared state at analyzer time.**
+  `CodeGenState.sourcePath` is written inside `CodeGenerator.generate()`, so it is `null` for a
+  run's first file and holds the previous file's path afterwards. It is handed to the analyzers
+  by their caller instead, as a required argument rather than an optional one — an optional
+  context would have made all three rules skippable with nothing failing.
 
-**32 of 44 in this area are unpinned**, including all 23 ADR-058 property diagnostics except
+### `codegen/helpers/` — 0
+
+`VariableDeclHelper`'s C++-class rejection is **relocated** as E0508, and it is not a
+transcription of what stood there. That method DRAINS a queue another node filled, so the
+declaration it reported against was not necessarily the one that filled it. Two shapes made
+that observable:
+
+- a scope member pushed and was never drained —
+  `private CppTestClass inner <- { value: 5 }` emitted
+  `static CppTestClass Holder__inner = {};` at **exit 0**, the value silently dropped, no
+  diagnostic;
+- with an unrelated global after it, the drain fired against THAT declaration and reported
+  `C++ class 'u32' with constructor cannot use struct initializer syntax` — naming a type with
+  no constructor, three lines from the initializer that caused it.
+
+`CppClassInitializerAnalyzer` asks at the initializer instead: does a function body enclose it,
+and is its type a C++ class with a constructor? The first question closes the scope-member hole,
+because a scope member is emitted as a file-scope `static` and has no more room for a statement
+than a global does. What remains in codegen is an `invariant`.
+
+**32 of the 41 in this area are unpinned**, including all 23 ADR-058 property diagnostics except
 `:623`, the ADR-013 const rule, and all four `safe_div`/`safe_mod` checks.
 
-Five sites — `CallExprGenerator.ts:386` and `PostfixExpressionGenerator.ts:760/1014/1083/1179` —
+Five sites — one in `CallExprGenerator` and four in `PostfixExpressionGenerator` (their rows are
+the ones whose message names a property on an identifier that was never declared) —
 fire on an **undeclared identifier**, not on property misuse. The honest fix is one
 undefined-identifier diagnostic in symbol resolution; allocating five per-property codes would
 bake in a wrong diagnosis.
 
-### `codegen/assignment/**`, `codegen/resolution/`, `headers/` — 25
+### `codegen/assignment/**`, `codegen/resolution/`, `headers/` — 0
 
 Attribution here was established by proxying `Error` construction and reading the constructing
-stack frame, not by matching message text — necessary because three messages in this area are
+stack frame, not by matching message text — necessary because three messages in this area were
 byte-identical across sites.
 
-| file:line                               | anchor                                            | message                                                      | code      | position source                                                              | fixture                                             |
-| --------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------ | --------- | ---------------------------------------------------------------------------- | --------------------------------------------------- |
-| `headers/BaseHeaderGenerator.ts:79`     | `is a typedef of a pointer declared in another`   | typedef of a pointer declared in another header              | E0505     | `origin.sourceLine` (`IHeaderSymbol`) — no parse tree exists                 | none                                                |
-| `resolution/ScopeResolver.ts:41`        | `Error: Cannot reference own scope`               | cannot reference own scope by name (ADR-016)                 | NEW E04xx | **none** — `(scopeName, memberName, isGlobalAccess)`; thread from 4+ callers | `scope/self-scope-bare-error`                       |
-| `resolution/ScopeResolver.ts:58`        | `Cannot access private member`                    | cannot access a private member (ADR-016)                     | NEW E04xx | same                                                                         | `scope/private-var-access-error` +4                 |
-| `resolution/SizeofResolver.ts:154`      | `Error[E0601]: sizeof() on array parameter`       | `sizeof()` on an array parameter (ADR-023)                   | E0601     | none in `throwArrayParamSizeofError(varName)`; thread from `:172`            | `sizeof/array-param-error` +1                       |
-| `resolution/SizeofResolver.ts:178`      | `Error[E0602]: sizeof() operand must not have`    | `sizeof()` operand has side effects (MISRA 13.6)             | E0602     | `expr` **is already the parameter** — position available, unused             | `sizeof/side-effects-error` +1                      |
-| `handlers/BitAccessHandlers.ts:21`      | `Compound assignment operators not supported for` | compound operator on bit-field access                        | NEW E08xx | `ctx.statementCtx.assignmentOperator()`                                      | `compound-assign/bit-index-compound`                |
-| `handlers/ArrayHandlers.ts:120`         | `0 Error: Slice assignment is not supported for`  | slice assignment unsupported for element type                | NEW E08xx | `ctx.subscripts[0]` — line used, column hard-coded `0`                       | none                                                |
-| `handlers/ArrayHandlers.ts:234`         | `0 Error: Slice assignment source must be an`     | slice source must be an integer                              | NEW E08xx | `ctx.valueCtx`                                                               | none                                                |
-| `handlers/ArrayHandlers.ts:286`         | `0 Error: Slice assignment literal value`         | slice literal does not fit (ADR-052)                         | NEW E08xx | `ctx.valueCtx`                                                               | `slice-assignment/slice-literal-too-wide` +1        |
-| `handlers/ArrayHandlers.ts:321`         | `multiple of the element size`                    | slice length must be a multiple of element size              | NEW E08xx | `ctx.subscripts[1]`                                                          | none                                                |
-| `handlers/ArrayHandlers.ts:329`         | `0 Error: Slice assignment out of bounds`         | slice out of bounds                                          | NEW E08xx | `ctx.subscripts[0]`                                                          | `slice-assignment/slice-bounds-violation`           |
-| `handlers/ArrayHandlers.ts:340`         | `bytes) exceeds`                                  | slice length exceeds source width                            | NEW E08xx | `ctx.subscripts[1]` / `ctx.valueCtx`                                         | `slice-assignment/slice-length-exceeds-source`      |
-| `handlers/ArrayHandlers.ts:480`         | `Compound assignment operators not supported for` | compound operator on slice assignment                        | NEW E08xx | `ctx.statementCtx.assignmentOperator()`                                      | none                                                |
-| `handlers/ArrayHandlers.ts:496`         | `0 Error: Slice assignment is only valid on`      | slice only valid on 1-D arrays                               | NEW E08xx | `ctx.targetCtx` / `ctx.subscripts[0]`                                        | `multi-dim-arrays/slice-outer-dim-error`            |
-| `handlers/ArrayHandlers.ts:508`         | `0 Error: Slice assignment offset must be a`      | slice offset must be compile-time constant                   | NEW E08xx | `ctx.subscripts[0]`                                                          | `slice-assignment/slice-runtime-offsets` +2         |
-| `handlers/ArrayHandlers.ts:519`         | `0 Error: Slice assignment length must be a`      | slice length must be compile-time constant                   | NEW E08xx | `ctx.subscripts[1]`                                                          | none                                                |
-| `handlers/ArrayHandlers.ts:534`         | `0 Error: Cannot determine buffer size for`       | cannot determine buffer size at compile time                 | NEW E08xx | `ctx.targetCtx`                                                              | none                                                |
-| `handlers/ArrayHandlers.ts:540`         | `0 Error: Slice assignment offset cannot be`      | slice offset cannot be negative                              | NEW E08xx | `ctx.subscripts[0]`                                                          | none                                                |
-| `handlers/ArrayHandlers.ts:546`         | `0 Error: Slice assignment length must be`        | slice length must be positive                                | NEW E08xx | `ctx.subscripts[1]`                                                          | `slice-assignment/slice-zero-length`                |
-| `handlers/StringHandlers.ts:25`         | `Error: Compound operators not supported for`     | compound operator on string assignment (ADR-045)             | NEW       | `ctx.statementCtx.assignmentOperator()`                                      | `string-assignment/string-assign-error-compound` +2 |
-| `handlers/AssignmentHandlerUtils.ts:37` | `Compound assignment operators not supported for` | compound operator on bit-field access                        | NEW E08xx | thread `ctx` from `RegisterHandlers.ts:25/60/120/157`                        | none                                                |
-| `handlers/AssignmentHandlerUtils.ts:60` | `Cannot assign false to write-only register bit`  | cannot assign `false` to a write-only register bit (ADR-013) | NEW       | thread `ctx.valueCtx` from `RegisterHandlers.ts:43/78/139/184`               | `register/register-wo-set-false-error`              |
-| `handlers/AssignmentHandlerUtils.ts:66` | `Cannot assign 0 to write-only register bits`     | cannot assign `0` to write-only register bits                | NEW       | same                                                                         | none                                                |
-| `handlers/AccessPatternHandlers.ts:73`  | `Compound assignment operators not supported for` | compound operator on bit-field access                        | NEW E08xx | `ctx.statementCtx.assignmentOperator()`                                      | none                                                |
-| `handlers/BitmapHandlers.ts:50`         | `Compound assignment operators not supported for` | compound operator on bitmap field access                     | NEW E08xx | `ctx.statementCtx.assignmentOperator()`                                      | none                                                |
+`BaseHeaderGenerator`'s pointer-typedef rejection is the audit's **one reclassification into
+bucket 2**, and it is a subset argument rather than "nobody could reach it". `cHeadersIncluded`
+is true whenever any name the header-type enumeration yields is a pointer typedef; the check ran
+only when that was false, and looked for a pointer typedef among the external types of the _same_
+symbols. For it to fire, a name would have to be in the header's external types and absent from
+the enumeration those types are collected by — a transpiler defect, not a program a user can
+write. The method was already named `assertNoPointerTypedefs` and its own comment already said
+"normally unreachable … that is a transpiler defect"; only the mechanism disagreed. It is an
+`invariant` now, and **E0505 is retired rather than reassigned**, because a number in
+`docs/error-codes.md` is a promise that a user can be shown it.
 
 The 13 `ArrayHandlers` slice sites **already smuggle a position through the message string** as a
 `${line}:0` prefix that a downstream layer parses — which is why
@@ -356,29 +293,159 @@ The line is real, the column is a hard-coded `0`, and the mechanism is string fo
 than a carried node. Moving these to 2.1 **replaces an existing hack** rather than adding
 positions where none exist.
 
+### `codegen/subscript/` — 0
+
+| file:line | anchor | message | code | position source | fixture |
+| --------- | ------ | ------- | ---- | --------------- | ------- |
+
+**This row is why the gate was widened.** E0856 is registered, fixture-covered and user-facing, and
+it was absent from this audit because the throw named a factory rather than `new`. That indirection
+is gone: `helpers/CodeGenErrors.ts` is deleted and the message is built at the site, so the row is
+anchored on what the throw says. It remains tier A — the line is a parameter already, spent on
+`Error at line ${line}:` prose.
+
 ## Proposed split of #1322
 
 The last acceptance criterion of #1321 is that the relocation card becomes workable pieces. The
 position tiers above give the split, ordered so each piece is independently mergeable:
 
-| piece              | scope                                                                                 | why it is separable                                                                                                                             |
-| ------------------ | ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| **1322a — delete** | the 21 bucket-3 sites                                                                 | no diagnostic changes; pure removal, and it shrinks every later piece. `CastValidator.ts:103/111` also retires a duplicate code path            |
-| **1322b — assert** | the 15 bucket-2 sites                                                                 | converts to assertions and normalizes the `Error:`/`Internal:` split; no user-visible behavior                                                  |
-| **1322c — tier A** | ~20 sites already computing a position and spending it on prose or `:0`               | the position exists; this is moving it from the message into the diagnostic. Includes all 13 slice sites, which replaces the string-prefix hack |
-| **1322d — tier B** | the `assignment/handlers/` and `TypeValidator` sites with a node in scope             | mechanical: read `ctx.*.start` instead of discarding it                                                                                         |
-| **1322e — tier C** | sites with no node, needing threading from callers                                    | the real work: `ScopeResolver`, `SizeofResolver`, `TypeResolver`, and the `PostfixExpressionGenerator` context interfaces                       |
-| **1322f — unify**  | the 5 duplicated messages, notably the 9-way `'this' can only be used inside a scope` | must land as one decision point, not N ported copies                                                                                            |
+| piece              | scope                                                                                                       | why it is separable                                                                                                                                                                                                                                                                                                     |
+| ------------------ | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1322a — delete** | **done** — 17 deleted, 4 reclassified as invariants                                                         | no diagnostic changes; pure removal, and it shrinks every later piece. `CastValidator`'s pair also retires a duplicate code path. `ArrayAccessHelper` and its two types are already gone -- a wholly dead module with zero production importers, whose two throws duplicated live sites in `PostfixExpressionGenerator` |
+| **1322b — assert** | **done** — the 16 bucket-2 sites                                                                            | converts to assertions and normalizes the `Error:`/`Internal:` split; no user-visible behavior                                                                                                                                                                                                                          |
+| **1322c — tier A** | the 32 sites that already hold the line — 12 spending it on prose, 20 smuggling it through a message prefix | the position exists; this is moving it from the message into the diagnostic. Includes all 13 slice sites, which replaces the string-prefix hack                                                                                                                                                                         |
+| **1322d — tier B** | the `assignment/handlers/` and `TypeValidator` sites with a node in scope                                   | mechanical: read `ctx.*.start` instead of discarding it                                                                                                                                                                                                                                                                 |
+| **1322e — tier C** | sites with no node, needing threading from callers                                                          | the real work: `ScopeResolver`, `SizeofResolver`, `TypeResolver`, and the `PostfixExpressionGenerator` context interfaces                                                                                                                                                                                               |
+| **1322f — unify**  | the 5 duplicated messages, notably the 9-way `'this' can only be used inside a scope`                       | must land as one decision point, not N ported copies. **Not a final phase**: relocating a family and then merging the copies _is_ the N-ported-copies state, so unification is a constraint on every relocation commit — a family leaves `output/` whole or not at all                                                  |
 
 Piece **1322e** should also resolve the five sites that report a property error for what is
 actually an undeclared identifier, rather than allocating codes that record the wrong diagnosis.
 
 ## Cross-references
 
-- **#1361** — `ArrayInitHelper.ts:160` and `StringDeclHelper.ts:231` appear fixture-covered by
-  `tests/string-array-init/string-array-init-error-mismatch.expected.error`, which has no
-  `.test.cnx` and cannot run.
-- **#1277** — `CodeGenerator.ts:3815` fires on valid C-Next (`return { x: 1, y: 2 };` from a
-  struct-returning function). Whether it becomes a diagnostic or disappears is that issue's call.
-- **#1014–#1017** — `StringDeclHelper.ts:515/559/596` are dead only while trailing brackets are
-  rejected unconditionally.
+- **#1361 — fixed.** `ArrayInitHelper` and `StringDeclHelper`'s `Array size mismatch` throws
+  appeared fixture-covered by
+  `tests/string-array-init/string-array-init-error-mismatch.expected.error`, which had no
+  `.test.cnx` and could never run. The fixture is written and
+  `diagnostics:manifest:check` now fails on any orphaned assertion.
+- **#1277** — `CodeGenerator`'s `Cannot infer struct type` throw fires on valid C-Next
+  (`return { x: 1, y: 2 };` from a struct-returning function). Being fixed in this card: the
+  literal types from the declared return type and the throw disappears.
+- **ADR-022's nesting rule was enforced on two of a ternary's three children.**
+  `validateNoNestedTernary` was called on the true and false branches and never
+  on the condition, so `(((n = 1) ? 2 : 3) = 2) ? 4 : 5` compiled and emitted C.
+  E0701 does not catch it either: the condition as a whole _is_ a comparison,
+  which is what E0701 asks for. Found while relocating the family — the check
+  that replaced it reads the parse tree, and writing down which children it
+  visits is what exposed the missing one. A corpus scan of 1276 `.cnx` files
+  found zero conditions containing a ternary, so closing the hole regressed
+  nothing. Same shape as the E0853 `switch` miss: a rule stated once and
+  implemented over an enumerated subset of the places it applies.
+- **Struct fields of a scope-declared struct resolved to nothing, in four
+  analyzers at once.** `ICodeGenSymbols.structFields` is keyed by the transpiled
+  C name, so `S.Cfg` at a declaration is `S__Cfg` in the map. Every chain-
+  following analyzer passed the source spelling, missed, and treated the chain as
+  unresolvable -- and an unresolvable operand is correctly never rejected, so the
+  rules simply went quiet. MISRA C:2012 Rule 10.1 fired on a global struct's
+  `bool` field and not on a scope-declared struct's; the divide-by-zero,
+  array-index and essential-category rules followed the same chains and had the
+  same silence. The key is now derived once, inside the lookup, so the fifth
+  caller inherits it. `CompoundAssignmentAnalyzer` had been forced to spell the
+  derivation out privately, which is the duplicate-path shape; that copy is gone.
+  Found while relocating the enum type-safety family, which needs the same chain
+  resolution and would have inherited the same hole.
+- **ADR-017's enum rules were enforced on four value shapes and silent on the
+  rest.** The check split the value's SOURCE TEXT on `.` and matched the pieces
+  against patterns, so a bool, an f32, a call returning a non-enum, and
+  `1 + 1` were all assignable to an enum and emitted C. The last is the sharpest:
+  the ADR lists `s <- 1;` as an error, and the only reason `1 + 1` was not one is
+  that the pattern wanted a bare integer literal while constant folding happens
+  later, in codegen -- it emitted `State d = 2;`. Resolving the value's declared
+  type closes all four at once, because they were never four cases.
+  Verified against the corpus: 1182 fixtures, none of which relied on the gap.
+- **The twelve slice checks became ASSERTIONS rather than disappearing.** Every
+  other family in this card deletes its `output/` copy outright, because the
+  check was the only thing standing between the author and a diagnostic. These
+  twelve are different: they sit inside the code that EMITS the unrolled copy
+  and share its arithmetic -- the element stride, the element count, the
+  capacity -- so 2.1 must recompute what 2.3 also needs. If the two ever
+  disagree, deleting the checks would turn a rejection into wrong generated C.
+  They are `invariant()` calls now, each naming the E08xx code that owns the
+  case, so a divergence fails loudly instead. That is not a duplicate decision:
+  2.1 decides "reject", 2.3 decides "emit", and the assertion is the tripwire
+  between them. It fired for real during this work -- a slice whose buffer was
+  declared in an INCLUDED file resolved to nothing in the lexical frames, so 2.1
+  passed it over and the assertion caught it instead of the buffer overflowing.
+- **The switch family needed no fact codegen had and 2.1 lacked.** Five throws,
+  every one reported as `1:0`, and seven fixtures asserting that position
+  verbatim. `knownEnums` and `enumMembers` are on the per-file symbol view that
+  is populated before `runAnalyzers`; the clause count, the case labels and the
+  `default(N)` count are all in the parse tree. They lived in `TypeValidator`
+  because that is where the switch was being WRITTEN, not because that is where
+  the facts were -- which is worth recording, because it is the cheapest kind of
+  relocation in this audit and there are likely more of them.
+- **A unit test was pinned to the `1:0` defect.** `Transpiler.test.ts`'s
+  "defaults to line 1 for errors without location info" proved the fallback by
+  transpiling `u32 r <- (x) ? 1 : 0;` and asserting the result came back at
+  `1:0` -- which worked only because ADR-022's controlling-expression rule threw
+  from codegen with no position. It broke the moment that rule moved. The
+  fallback is still real (98 throws have no position yet), so it is asserted
+  against `ParserUtils.parseErrorLocation` directly now, with a companion case
+  proving the parser does NOT always answer `1:0`. It no longer depends on which
+  diagnostic happens to lack a position, and when the last throw is relocated it
+  becomes dead and goes with it.
+- **Three string messages were one rule, and a fourth message was wrong.** At
+  file scope a string may be initialized by a LITERAL and by nothing else -- C
+  cannot run `strncpy` or `strncat` before `main` -- so a copy from a variable,
+  a concatenation and a substring extraction all threw, with three different
+  messages, from three different generation paths. Asked once about the
+  initializer's FORM, they collapse. Separately, `String array initialization
+from variables not supported` was misleading: a LIST whose elements are
+  variables is a perfectly good array initializer, and what is rejected is an
+  initializer that is not a list at all. The first fixture written to the old
+  wording used `[a, a]` and did not fire, which is how the wording was caught.
+- **Four of `PostfixExpressionGenerator`'s length-property throws were never
+  diagnostics.** `Cannot determine .X for '<name>' - type not found in
+registry` appears once per property, and the audit classed all four as
+  user-facing. An undeclared name is E0427 in pass 2.1 before codegen runs --
+  probed: `undeclaredName.bit_length` reports E0427 at a real position -- so what
+  is left is a DECLARED name whose type codegen cannot find, which is the
+  transpiler being wrong, not the program. They are invariants, which is what
+  the plan's tier-C note predicted for the "wrong diagnosis" sites.
+- **ADR-058 is `Implemented` and the transpiler rejects what it documents.** The
+  ADR's property table gives structs `.bit_length`, `.byte_length` and
+  `.element_count`, with a worked `SensorReading` example. Codegen rejected all
+  three, and the relocation preserves that -- closing the divergence means
+  choosing what `.byte_length` on a struct MEANS, and the ADR says "with
+  padding" without saying whose. That is an ABI question the ADR does not
+  answer, so it is raised rather than decided here.
+- **ADR-024 was one rule reached three ways, and two of the ways carried a
+  position by smuggling.** Six rules in `TypeResolver` and `CodeGenerator`, fed
+  by a declaration's initializer, an assignment, or a cast -- and on the first
+  two paths a rethrow wrapper (`IntegerLiteralValidator`, `AssignmentValidator`)
+  caught the message and prefixed `${line}:${col}` onto it. That is why the
+  assignment fixtures already showed a real position while the identical cast
+  rule showed `1:0`. Relocating it found the codegen paths had DIVERGED: the
+  declaration path typed a composite source and the assignment path did not
+  (`u8 s <- large + 1` rejected, `cells[0] <- large + 1` accepted); the
+  assignment path checked against the ROOT variable's type, so a u32 into a u8
+  FIELD reached through a chain was never checked; and inside a scope the
+  `this.` spelling was untyped, so `u8 narrow <- this.wide` was accepted. Twelve
+  fixtures assert the first two, so both are reproduced in 2.1 -- in one flag
+  and one lookup, stated, not two rules -- and raised for a decision. No fixture
+  depended on the third, so it is closed.
+- **A duplicate the duplicate-message table missed.**
+  `ScopeResolver.validateCrossScopeVisibility` and
+  `MemberAccessValidator.validateNotSelfScopeReference` both rejected a scope's
+  own member reached through the scope's name, with the same words, decided in
+  two places -- and the table above grouped by throw text, which one of the two
+  prefixed with `Error:` and the other did not. ADR-016's access rules are
+  E0435-E0437 in pass 2.1, one decision each, asked once for the three
+  syntactic positions a `Scope.member` can stand in (an expression, an
+  assignment target, a type). Two codegen exemptions are reproduced rather than
+  closed: a register declared in a scope bypasses all three rules, and a struct
+  member's qualified type was never visibility-checked -- `S.onTick handler;`
+  with a private `onTick` compiles, and #1205's fixture depends on it.
+- **#1014–#1017 — resolved by deletion.** `StringDeclHelper`'s C-style string-array path was
+  dead only while trailing brackets are rejected unconditionally. They are, verified by probe
+  on all three routes in, so the path is gone (1322a) and the conditional dependency with it.

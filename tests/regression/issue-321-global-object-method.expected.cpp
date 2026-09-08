@@ -66,5 +66,5 @@ int main(void) {
     testNamespace();
     testObjectInstances();
     testMixedUsage();
-    return 0;
+    return 0U;
 }

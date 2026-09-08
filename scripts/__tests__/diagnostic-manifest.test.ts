@@ -181,6 +181,43 @@ describe("DiagnosticManifest.collect", () => {
   });
 });
 
+describe("DiagnosticManifest.orphans", () => {
+  // #1361: `tests/string-array-init/string-array-init-error-mismatch.expected.error`
+  // had no `.test.cnx` beside it, so it could never run -- while still holding a
+  // manifest row and appearing, in #1321's audit, to cover two `Array size
+  // mismatch` throws. Coverage that cannot execute is worse than none: the row
+  // reads as green, and the count it contributes to is the number this card's
+  // definition of done is measured against.
+  let tempDir: string;
+
+  beforeEach(() => {
+    tempDir = mkdtempSync(join(tmpdir(), "cnx-orphan-"));
+    mkdirSync(join(tempDir, "tests"), { recursive: true });
+  });
+
+  afterEach(() => {
+    rmSync(tempDir, { recursive: true, force: true });
+  });
+
+  it("names an .expected.error with no fixture beside it", () => {
+    writeFileSync(join(tempDir, "tests", "lonely.expected.error"), "1:0 x\n");
+    expect(DiagnosticManifest.orphans(tempDir)).toEqual([
+      "tests/lonely.expected.error",
+    ]);
+  });
+
+  it("accepts one whose .test.cnx exists", () => {
+    writeFileSync(join(tempDir, "tests", "paired.expected.error"), "1:0 x\n");
+    writeFileSync(join(tempDir, "tests", "paired.test.cnx"), "// test-error\n");
+    expect(DiagnosticManifest.orphans(tempDir)).toEqual([]);
+  });
+
+  it("returns nothing when there is no tests directory", () => {
+    rmSync(join(tempDir, "tests"), { recursive: true });
+    expect(DiagnosticManifest.orphans(tempDir)).toEqual([]);
+  });
+});
+
 describe("DiagnosticManifest render/parse roundtrip", () => {
   it("reads back exactly what it rendered", () => {
     // The gate compares a parsed committed manifest against a fresh collect, so
@@ -247,6 +284,97 @@ describe("DiagnosticManifest.checkOutcome", () => {
     expect(outcome.ok).toBe(true);
     expect(outcome.errors).toEqual([]);
     expect(outcome.info.join("\n")).toContain("1 fixture(s)");
+  });
+
+  it("fails on an orphaned .expected.error even when nothing shrank (#1361)", () => {
+    // The manifest is otherwise perfectly in sync -- this is the case that
+    // passed for as long as the orphan existed. It has to fail on its own,
+    // because a fixture that cannot run never shrinks and never grows.
+    const outcome = DiagnosticManifest.checkOutcome(
+      rendered,
+      [entry],
+      rendered,
+      [
+        "tests/string-array-init/string-array-init-error-mismatch.expected.error",
+      ],
+    );
+    expect(outcome.ok).toBe(false);
+    const text = outcome.errors.join("\n");
+    expect(text).toContain("string-array-init-error-mismatch");
+    expect(text).toContain("cannot run");
+  });
+
+  it("reports an orphan alongside a real shrinkage rather than hiding one behind the other", () => {
+    const outcome = DiagnosticManifest.checkOutcome(rendered, [], rendered, [
+      "tests/lonely.expected.error",
+    ]);
+    expect(outcome.ok).toBe(false);
+    const text = outcome.errors.join("\n");
+    expect(text).toContain("tests/a.test.cnx");
+    expect(text).toContain("tests/lonely.expected.error");
+  });
+});
+
+describe("DiagnosticManifest.compareToBase", () => {
+  // #1322 runs `--update` more than any change in this project's history: 136
+  // fixtures change position and 145 change message. `diagnostics:manifest:check`
+  // compares against HEAD only, so a commit that deletes a row AND its fixture
+  // passes -- correct per-commit, and useless as a guarantee across a migration.
+  //
+  // The comparison is deliberately over the SET OF CODES rather than over
+  // fixtures, because this card also moves fixtures into `tests/adr-NNN/`. A
+  // fixture-keyed check would report every one of those as a loss and would then
+  // be routinely overridden, which is worse than not having it.
+  const coded = (fixture: string, ...codes: string[]) => ({ fixture, codes });
+
+  it("passes when every code asserted at base is still asserted somewhere", () => {
+    const base = [coded("tests/a.test.cnx", "E0422", "E0500")];
+    const tip = [
+      coded("tests/adr-016/a.test.cnx", "E0422"),
+      coded("tests/b.test.cnx", "E0500"),
+    ];
+    expect(DiagnosticManifest.compareToBase(base, tip).lostCodes).toEqual([]);
+  });
+
+  it("names a code that no fixture asserts any more", () => {
+    const base = [coded("tests/a.test.cnx", "E0422", "E0500")];
+    const tip = [coded("tests/a.test.cnx", "E0422")];
+    expect(DiagnosticManifest.compareToBase(base, tip).lostCodes).toEqual([
+      "E0500",
+    ]);
+  });
+
+  it("is not fooled by a rename, which is the whole reason it is code-keyed", () => {
+    const base = [coded("tests/a.test.cnx", "E0422")];
+    const tip = [coded("tests/adr-057/a.test.cnx", "E0422")];
+    const result = DiagnosticManifest.compareToBase(base, tip);
+    expect(result.lostCodes).toEqual([]);
+    expect(result.movedFixtures).toEqual(["tests/a.test.cnx"]);
+  });
+
+  it("reports a fixture that vanished without its codes being re-asserted", () => {
+    const base = [coded("tests/a.test.cnx", "E0422")];
+    const result = DiagnosticManifest.compareToBase(base, []);
+    expect(result.lostCodes).toEqual(["E0422"]);
+    expect(result.movedFixtures).toEqual(["tests/a.test.cnx"]);
+  });
+
+  it("says nothing about growth", () => {
+    const base = [coded("tests/a.test.cnx", "E0422")];
+    const tip = [
+      coded("tests/a.test.cnx", "E0422"),
+      coded("tests/b.test.cnx", "E0999"),
+    ];
+    const result = DiagnosticManifest.compareToBase(base, tip);
+    expect(result.lostCodes).toEqual([]);
+    expect(result.movedFixtures).toEqual([]);
+  });
+
+  it("ignores an uncoded fixture, which asserts no code to lose", () => {
+    // An uncoded fixture still asserts a diagnostic, but this check is about
+    // codes; its disappearance is `assertion-removed`'s job, per commit.
+    const base = [coded("tests/a.test.cnx")];
+    expect(DiagnosticManifest.compareToBase(base, []).lostCodes).toEqual([]);
   });
 });
 

@@ -1,0 +1,19 @@
+// test-error
+// #1322 review: E0857 must see the file-scope `string<16>` that
+// `global.buf` names, not a local `u8` that shadows it. It was lost, and the
+// string reached `cnx_clamp_add_u8`, which gcc rejects.
+string<16> buf <- "hi";
+
+u8 go() {
+    // CONTROL: a whole-string assignment through `global.`, which is allowed.
+    global.buf <- "ok";
+
+    // The shadow, then the assertion.
+    u8 buf <- 1;
+    global.buf +<- " more";
+    return 0;
+}
+
+u8 main() {
+    return go();
+}

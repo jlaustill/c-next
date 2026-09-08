@@ -20,7 +20,7 @@
 
 uint8_t Handler__reset(Config& cfg) {
     Storage__loadDefaults(cfg);
-    return 0;
+    return 0U;
 }
 
 int main(void) {

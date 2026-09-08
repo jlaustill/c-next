@@ -1,0 +1,17 @@
+// ADR-027: Error - condition must be boolean expression (E0701)
+// test-adr: 022
+// Should error: integer used as condition
+// NEGATIVE CONTROL -- the explicit form of the same condition.
+void okComparison() {
+    u32 value <- 5;
+    do {
+        value <- 0;
+    } while (value > 0);
+}
+
+void test() {
+    u32 count <- 5;
+    do {
+        count -<- 1;
+    } while (count);
+}

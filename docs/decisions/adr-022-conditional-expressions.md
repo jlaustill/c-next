@@ -314,6 +314,63 @@ access did not resolve through the variable-type lookup that whitelisted bare
 booleans), while bare locals and parameters silently compiled — a divergent
 code path that this change unified.
 
+## Scope-context matrix
+
+Declared for the rules #1322 moved out of codegen into pass 2.1: **E0710**
+(no ternary inside a ternary), **E0701** (a controlling expression must be an
+explicit comparison, MISRA C:2012 Rule 14.4) and **E0702** (a controlling
+expression may not call a function, Rule 13.5).
+
+The cells are shared, because a matrix cell is a claim about where an ADR's
+rules are observable rather than about one code. All three are properties of an
+EXPRESSION, so all three reach the same four same-file contexts and none of them
+crosses a file boundary.
+
+**No nesting is rejected two different ways, and only one of them is E0710.**
+Written without parentheses, `(x > 0) ? 1 : (x < 0) ? -1 : 0` is a syntax error.
+Written with them, it parses and is reported as E0710. The matrix below
+describes the second mechanism only: a syntax error carries no code and no
+analyzable tree, so there is no cell for it to occupy. Both fixtures are kept
+side by side so the pair is visible.
+
+**"No nesting" covers the condition, not only the branches.** `(((x > 0) ? 1 :
+2) = 1) ? 3 : 4` nests a ternary inside the condition of another, and the
+condition as a whole is still a comparison, so the boolean-condition rule above
+is satisfied and does not reject it. It is rejected as nesting. This is not a
+new decision -- Part 2 states the constraint without qualifying it to the
+branches -- but the constraint went unenforced there until #1322, so it is
+written out here rather than left to be re-derived.
+
+<!-- MATRIX-SEVERITY -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| scope member       | same file           | error    |
+| top-level function | imported direct     | off      |
+| scope method       | imported direct     | off      |
+| global variable    | imported direct     | off      |
+| scope member       | imported direct     | off      |
+| top-level function | imported transitive | off      |
+| scope method       | imported transitive | off      |
+| global variable    | imported transitive | off      |
+| scope member       | imported transitive | off      |
+
+All four same-file cells are `error`, which is the way this rule differs from a
+statement-level one: a ternary is an **expression**, so it reaches an initializer
+as well as a function body. That was probed rather than assumed — a nested
+ternary in a file-scope initializer and in a scope-member initializer both
+report — and all four are occupied by `nested-ternary-error`.
+
+Every `imported` cell is `off`, and that is a claim about the rules rather than
+a gap in the corpus: nesting, being a comparison, and containing a call are all
+properties of one expression, written in one file.
+An include cannot introduce a ternary into another file's expression, so no
+cross-file arrangement can change the answer. Adding a fixture there would
+occupy a cell by transporting an unrelated include, not by testing anything.
+
 ## References
 
 - C conditional statements

@@ -1,0 +1,21 @@
+// Issue #254: Function calls in if conditions are not allowed (E0702)
+// test-adr: 022
+// MISRA C:2012 Rule 13.5 - Short-circuit evaluation may skip function calls
+
+u32 getValue() {
+    return 42;
+}
+
+// NEGATIVE CONTROL -- the same call, hoisted out of the condition. Note the
+// condition below IS a comparison, so E0701 is satisfied; what it violates is
+// the no-call rule, and the two must stay distinguishable.
+void okHoisted() {
+    u32 v <- getValue();
+    if (v > 0) {}
+}
+
+void test() {
+    if (getValue() > 0) {
+        // body
+    }
+}

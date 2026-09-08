@@ -7,22 +7,16 @@
  * - STRUCT_MEMBER_BIT: item.byte[7] <- true
  * - ARRAY_ELEMENT_BIT: matrix[i][j][FIELD_BIT] <- false
  */
+import invariant from "../../../../../utils/invariant";
 import AssignmentKind from "../AssignmentKind";
 import IAssignmentContext from "../IAssignmentContext";
 import BitUtils from "../../../../../utils/BitUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import CodeGenState from "../../../../state/CodeGenState";
 
-/**
- * Validate compound operators are not used with bit access.
- */
-function validateNotCompound(ctx: IAssignmentContext): void {
-  if (ctx.isCompound) {
-    throw new Error(
-      `Compound assignment operators not supported for bit field access: ${ctx.cnextOp}`,
-    );
-  }
-}
+// #1322: `validateNotCompound` is gone -- E0857 in pass 2.1. It was defined
+// here AND in the sibling handler, verbatim: one rule, two copies, in a group
+// of six.
 
 /**
  * Handle single bit on integer variable: flags[3] <- true
@@ -30,8 +24,6 @@ function validateNotCompound(ctx: IAssignmentContext): void {
  * Uses resolvedBaseIdentifier for proper scope prefix support.
  */
 function handleIntegerBit(ctx: IAssignmentContext): string {
-  validateNotCompound(ctx);
-
   // Use resolvedBaseIdentifier for type lookup and code generation
   // e.g., "ArrayBug_flags" instead of "flags"
   const name = ctx.resolvedBaseIdentifier;
@@ -69,8 +61,6 @@ function handleIntegerBit(ctx: IAssignmentContext): string {
  * Uses resolvedBaseIdentifier for proper scope prefix support.
  */
 function handleIntegerBitRange(ctx: IAssignmentContext): string {
-  validateNotCompound(ctx);
-
   // Use resolvedBaseIdentifier for type lookup and code generation
   const name = ctx.resolvedBaseIdentifier;
   const start = CodeGenState.requireGenerator().generateExpression(
@@ -110,8 +100,6 @@ function handleIntegerBitRange(ctx: IAssignmentContext): string {
  * This is handled through MEMBER_CHAIN with bit detection.
  */
 function handleStructMemberBit(ctx: IAssignmentContext): string {
-  validateNotCompound(ctx);
-
   // The target up to the last subscript is the struct member path
   // The last subscript is the bit index
   // This pattern is complex - the target needs to be built from the member chain
@@ -138,17 +126,14 @@ function handleStructMemberBit(ctx: IAssignmentContext): string {
  * Uses resolvedBaseIdentifier for proper scope prefix support.
  */
 function handleArrayElementBit(ctx: IAssignmentContext): string {
-  validateNotCompound(ctx);
-
   // Use resolvedBaseIdentifier for type lookup and code generation
   const arrayName = ctx.resolvedBaseIdentifier;
   const typeInfo = CodeGenState.getVariableTypeInfo(arrayName);
 
-  if (!typeInfo?.arrayDimensions) {
-    // Use raw identifier in error message for clarity
-    const rawName = ctx.identifiers[0];
-    throw new Error(`Error: ${rawName} is not an array`);
-  }
+  invariant(
+    typeInfo?.arrayDimensions,
+    `the classifier and this handler agree on a variable's array-ness; both ARRAY_ELEMENT_BIT sites read the same typeInfo ('${ctx.identifiers[0]}')`,
+  );
 
   const numDims = typeInfo.arrayDimensions.length;
 
@@ -178,8 +163,6 @@ function handleArrayElementBit(ctx: IAssignmentContext): string {
  * Uses resolvedBaseIdentifier for proper scope prefix support.
  */
 function handleStructChainBitRange(ctx: IAssignmentContext): string {
-  validateNotCompound(ctx);
-
   // Build the base target from postfixOps, excluding the last one (the bit range)
   // Use resolvedBaseIdentifier for the base to include scope prefix
   const baseId = ctx.resolvedBaseIdentifier;

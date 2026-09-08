@@ -23,7 +23,7 @@
 int main(void) {
     uint8_t canRate = CanConfig__bitRate();
     uint8_t uartRate = UartConfig__baudRate();
-    if (canRate != 5) return 1;
-    if (uartRate != 9) return 2;
-    return 0;
+    if (canRate != 5) return 1U;
+    if (uartRate != 9) return 2U;
+    return 0U;
 }

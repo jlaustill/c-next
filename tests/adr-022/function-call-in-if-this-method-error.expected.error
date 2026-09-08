@@ -1,0 +1,2 @@
+17:12 error[E0702]: if condition may not call a function: 'this.validateConfig()'
+       help: MISRA C:2012 Rule 13.5: Store the function result in a variable first.

@@ -353,6 +353,41 @@ full MISRA 14.3 effort (#1076). MISRA 14.3 moves Not Enforced → **Partial**. R
 zero pre-existing `for (;;)` or `while (1 = 1)` in source (only the one already migrated in #1074),
 so this breaking change flags nothing existing.
 
+## Scope-Context Matrix (#1219)
+
+Declared for the loop rules #1322 moved out of codegen: `forever` in a
+non-void function (E0705), `for (;;)` and an always-true literal condition
+(E0707). Severity follows the eslint model: `off` records that a cell **cannot
+exist**, `warn` that it should be covered and is not, `error` that it must be.
+
+<!-- MATRIX-SEVERITY -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | off      |
+| scope member       | same file           | off      |
+| top-level function | imported direct     | off      |
+| scope method       | imported direct     | off      |
+| global variable    | imported direct     | off      |
+| scope member       | imported direct     | off      |
+| top-level function | imported transitive | off      |
+| scope method       | imported transitive | off      |
+| global variable    | imported transitive | off      |
+| scope member       | imported transitive | off      |
+
+A loop is a **statement**: it stands in a function body and nowhere else, so the
+two declaration contexts are `off`. Every fact the rules read -- the keyword,
+the header's condition, the two literals, the enclosing function's declared
+type -- sits in the file holding the loop, so nothing crosses an include and the
+imported columns are `off` as well.
+
+Since #1322 the three rules are decided during analysis, each at the position
+of the loop or condition that commits it, and every offense in a file is
+reported. The always-true check is still the LITERAL slice described above;
+#1076 owns the rest.
+
 ## Remaining
 
 - **Back-reference ADR-067:** ADR-068 added to ADR-067's _Related ADRs_ (2026-06-27, on

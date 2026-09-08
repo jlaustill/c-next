@@ -43,21 +43,21 @@ int main(void) {
     if (check1 > 5) {
         result = 1U;
     }
-    if (result != 1) return 1;
+    if (result != 1) return 1U;
     uint8_t iterations = 0U;
     uint8_t limit = 2U;
     uint32_t check2 = checkValue(cnx_clamp_add_u8(limit, 1U));
     while (check2 > iterations) {
         iterations = cnx_clamp_add_u8(iterations, 1U);
-        if (iterations > 10) return 2;
+        if (iterations > 10) return 2U;
     }
-    if (iterations != 3) return 3;
+    if (iterations != 3) return 3U;
     uint32_t sum = 0U;
     uint8_t maxVal = 3U;
     uint32_t check3 = checkValue(cnx_clamp_add_u8(maxVal, 1U));
-    for (uint8_t i = 0; i < check3; i = i + 1) {
+    for (uint8_t i = 0U; i < check3; i = i + 1) {
         sum = cnx_clamp_add_u32(sum, 1U);
     }
-    if (sum != 4) return 4;
-    return 0;
+    if (sum != 4) return 4U;
+    return 0U;
 }

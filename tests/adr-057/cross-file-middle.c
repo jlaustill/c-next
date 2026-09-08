@@ -30,7 +30,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 static uint32_t Filter__window = 4U;
 
 uint32_t Filter__half(void) {
-    return Filter__window / 2;
+    return Filter__window / 2U;
 }
 
 uint32_t Filter__smooth(uint32_t sample) {

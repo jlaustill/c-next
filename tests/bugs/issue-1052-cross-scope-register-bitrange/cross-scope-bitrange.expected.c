@@ -13,8 +13,6 @@
 // literal `[start, width]` subscript (which is invalid C).
 /* Scope: Hw */
 
-/* Register: Hw__GPIO @ 0x40020000 */
-#define Hw__GPIO__Mode (*(volatile uint32_t*)(0x40020000 + 0x00))
 
 
 // Issue #1244: #1052 names BOTH the `global.Scope.REG.FIELD` and the bare

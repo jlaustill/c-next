@@ -1,0 +1,26 @@
+// test-adr: 004
+// A register declared in an INCLUDED file, used here. ADR-004's whole use case
+// is a board file declaring the hardware and application files including it,
+// and until #1322 the importer reported `'HW' is not defined` (E0427): every
+// other declared kind crossed the include boundary in the per-file view and a
+// register did not. Compiled in both modes, so the emitted access is checked
+// against a C compiler as well as against the snapshot.
+
+#include "register-declarations.cnx"
+
+void configure(u32 mode) {
+    HW.CTRL <- mode;
+    HW.CTRL[3] <- true;
+    HW.SET[0] <- true;
+    HW.COMMAND <- 0x42;
+}
+
+u32 poll() {
+    return HW.STATUS + HW.CTRL;
+}
+
+void main() {
+    configure(1);
+    u32 status <- poll();
+    HW.CTRL <- status;
+}

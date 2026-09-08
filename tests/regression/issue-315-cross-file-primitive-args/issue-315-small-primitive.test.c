@@ -31,6 +31,6 @@ uint8_t ByteCaller__test(void) {
 int main(void) {
     ByteCaller__init();
     uint8_t result = ByteCaller__test();
-    if (result != 35) return 1;
-    return 0;
+    if (result != 35) return 1U;
+    return 0U;
 }

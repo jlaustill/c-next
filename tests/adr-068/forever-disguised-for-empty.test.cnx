@@ -1,0 +1,14 @@
+// test-error
+// test-adr: 068
+// Coverage: ADR-068 / #1075 - empty for(;;) is forbidden, steered to forever (E0707)
+void run() {
+    u8 state <- 0;
+    // NEGATIVE CONTROL -- an empty init and update are fine when a condition
+    // is present.
+    for (; state < 3; ) {
+        state +<- 1;
+    }
+    for (; ; ) {
+        state <- 1;
+    }
+}

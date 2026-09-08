@@ -5,6 +5,7 @@
  * code generation. Each handler is responsible for generating the C
  * code for one specific kind of assignment.
  */
+import invariant from "../../../../../utils/invariant";
 import AssignmentKind from "../AssignmentKind";
 import TAssignmentHandler from "./TAssignmentHandler";
 
@@ -44,11 +45,10 @@ class AssignmentHandlerRegistry {
    */
   static getHandler(kind: AssignmentKind): TAssignmentHandler {
     const handler = AssignmentHandlerRegistry.handlers.get(kind);
-    if (!handler) {
-      throw new Error(
-        `No handler registered for assignment kind: ${AssignmentKind[kind]}`,
-      );
-    }
+    invariant(
+      handler,
+      `every AssignmentKind has a registered handler (missing '${AssignmentKind[kind]}')`,
+    );
     return handler;
   }
 }

@@ -17,7 +17,7 @@
  */
 import TTypeInfo from "../../../types/TTypeInfo";
 import TypeCheckUtils from "../../../../utils/TypeCheckUtils";
-import CodeGenErrors from "../helpers/CodeGenErrors";
+import invariant from "../../../../utils/invariant";
 
 /**
  * Structural shape common to `postfixOp` (read path) and `postfixTargetOp`
@@ -70,13 +70,13 @@ class SubscriptDepthValidator {
    * bitmaps reject bracket indexing elsewhere, and struct/other bases are
    * handled by the member-access paths — none are validated here.
    *
-   * @throws when the chain is deeper than `arrayDimensions + 1`.
+   * #1322: the `line` parameter went with the throw. It existed only to be
+   * spelled into the message, which is what a diagnostic's position is for.
    */
   static validate(
     typeInfo: TTypeInfo | undefined,
     subscriptOpCount: number,
     varName: string,
-    line: number,
   ): void {
     if (!typeInfo || typeInfo.isString || typeInfo.isBitmap) {
       return;
@@ -90,15 +90,14 @@ class SubscriptDepthValidator {
     }
 
     const arrayDimensions = typeInfo.arrayDimensions?.length ?? 0;
-    const maxDepth = arrayDimensions + 1;
-    if (subscriptOpCount > maxDepth) {
-      throw CodeGenErrors.tooManySubscripts(
-        line,
-        varName,
-        typeInfo.baseType,
-        arrayDimensions,
-      );
-    }
+    // #1322: ADR-036/ADR-007's depth limit is E0856 in pass 2.1, decided from
+    // the declaration's own dimensions. The throw here built `Error at line N:`
+    // into its message -- a position carried as prose, which is what the
+    // relocation removes.
+    invariant(
+      subscriptOpCount <= arrayDimensions + 1,
+      `'${varName}' is subscripted no deeper than its shape allows -- E0856 rejects this in pass 2.1, before this runs`,
+    );
   }
 }
 

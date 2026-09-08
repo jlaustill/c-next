@@ -1,0 +1,8 @@
+15:12 error[E0874]: C-style array parameter is not allowed. Use 'u8[8] data' instead of 'u8 data[8]'
+       help: C-Next puts every array dimension in the type, before the name (ADR-036).
+20:15 error[E0875]: Unbounded array parameters are not allowed. All dimensions must have explicit sizes for memory safety.
+       help: A parameter's dimensions are what the callee can trust; write the size, e.g. `u8[8] data` (ADR-036).
+27:8 error[E0874]: C-style array declaration is not allowed. Use 'u8[4] buf' instead of 'u8 buf[4]'
+       help: C-Next puts every array dimension in the type, before the name (ADR-036).
+32:21 error[E0874]: C-style array parameter is not allowed. Use 'u16[2] samples' instead of 'u16 samples[2]'
+       help: C-Next puts every array dimension in the type, before the name (ADR-036).

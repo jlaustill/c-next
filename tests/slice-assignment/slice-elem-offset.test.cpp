@@ -17,9 +17,9 @@ int main(void) {
     const uint32_t cnx_tmp0 = (uint32_t)(v);
     arr[2] = (uint16_t)(cnx_tmp0);
     arr[3] = (uint16_t)(cnx_tmp0 >> 16U);
-    if (arr[0U] != 0x0000) return 1;
-    if (arr[1U] != 0x0000) return 2;
-    if (arr[2U] != 0x3344) return 3;
-    if (arr[3U] != 0x1122) return 4;
-    return 0;
+    if (arr[0U] != 0x0000) return 1U;
+    if (arr[1U] != 0x0000) return 2U;
+    if (arr[2U] != 0x3344) return 3U;
+    if (arr[3U] != 0x1122) return 4U;
+    return 0U;
 }

@@ -1,0 +1,27 @@
+// test-error
+// test-adr: 013
+// ADR-013 at a site that is not an assignment. `safe_div`/`safe_mod` write
+// their result THROUGH the first argument, so a const there is written to
+// exactly as `K <- 1` writes to one.
+//
+// Accepted before #1322, because the const rule walks assignment targets and a
+// call argument is not one. The generated C passed `&K` into a non-const
+// pointer parameter, which the C compiler rejects with
+// `discards 'const' qualifier` -- at exit 0.
+
+const u32 LIMIT <- 5;
+
+void main() {
+    u32 q <- 0;
+    bool err <- false;
+
+    // NEGATIVE CONTROLS -- a mutable output, and the same const used where it
+    // is only READ. A rule that keyed on "the const appears in the call" would
+    // reject both.
+    err <- safe_div(q, 10, 2, 0);
+    err <- safe_div(q, LIMIT, 2, LIMIT);
+
+    // ASSERTIONS -- the const as the output parameter, for both builtins.
+    err <- safe_div(LIMIT, 10, 2, 0);
+    err <- safe_mod(LIMIT, 10, 3, 0);
+}

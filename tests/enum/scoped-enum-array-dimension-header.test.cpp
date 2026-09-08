@@ -27,10 +27,10 @@ int main(void) {
     Motor__fromScope[0] = 11;
     Motor__fromGlobal[0] = 22;
     Motor__viaThis[0] = 33;
-    if (Motor__fromScope[0U] != 11) return 1;
-    if (Motor__fromGlobal[0U] != 22) return 2;
-    if (Motor__viaThis[0U] != 33) return 3;
+    if (Motor__fromScope[0U] != 11) return 1U;
+    if (Motor__fromGlobal[0U] != 22) return 2U;
+    if (Motor__viaThis[0U] != 33) return 3U;
     Motor__fromScope[1] = 44;
-    if (Motor__fromScope[1U] != 44) return 4;
-    return 0;
+    if (Motor__fromScope[1U] != 44) return 4U;
+    return 0U;
 }

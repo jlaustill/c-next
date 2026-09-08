@@ -1,4 +1,2 @@
-1:0 Code generation failed: Error: Shift amount (64) exceeds type width (64 bits) for type 'u64'
-  Expression: a<<64
-  Shift amount must be < 64 for 64-bit types
-  This violates MISRA C:2012 Rule 12.2 and causes undefined behavior
+12:26 error[E0873]: Shift amount (64) exceeds type width (64 bits) for type 'u64' (expression: a<<64)
+       help: Shift amount must be < 64 for 64-bit types; shifting by the width or more is undefined behavior (MISRA C:2012 Rule 12.2).

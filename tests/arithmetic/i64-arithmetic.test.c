@@ -92,12 +92,12 @@ int main(void) {
                 if (quotient == 2000000000 && quotient_neg == -2000000000 && quotient_neg_div == -2000000000) {
                     if (remainder == 23 && remainder_neg == -23) {
                         if (max_minus_one == 9223372036854775806 && min_plus_one == -9223372036854775807) {
-                            return 0;
+                            return 0U;
                         }
                     }
                 }
             }
         }
     }
-    return 1;
+    return 1U;
 }

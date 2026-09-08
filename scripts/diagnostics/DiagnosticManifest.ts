@@ -93,6 +93,37 @@ class DiagnosticManifest {
       .sort((a, b) => a.fixture.localeCompare(b.fixture));
   }
 
+  /**
+   * `.expected.error` files with no `.test.cnx` beside them.
+   *
+   * Issue #1361. `runTest` decides a fixture is an error test by looking for an
+   * `.expected.error` NEXT TO a `.test.cnx`, so an assertion with no fixture is
+   * never dispatched -- it cannot pass and it cannot fail. It still occupies a
+   * manifest row, and #1321's audit read two `Array size mismatch` throws as
+   * fixture-covered on the strength of one.
+   *
+   * That is the worst state an assertion can be in: absent coverage is visible,
+   * and coverage that cannot execute reads as green. It also silently inflates
+   * the fixture count in this manifest's header, which is a number #1322's
+   * definition of done is measured against.
+   *
+   * This has to be its own failure rather than a case of `diff`, because an
+   * orphan neither shrinks nor grows: the manifest can be perfectly in sync
+   * with a corpus that contains one, which is exactly how it survived.
+   */
+  static orphans(rootDir: string): string[] {
+    const testsDir = join(rootDir, "tests");
+    if (!existsSync(testsDir)) {
+      return [];
+    }
+    return FileScanner.findFiles(testsDir, ".expected.error")
+      .filter(
+        (path) => !existsSync(path.replace(/\.expected\.error$/, ".test.cnx")),
+      )
+      .map((path) => relative(rootDir, path).split(sep).join("/"))
+      .sort((a, b) => a.localeCompare(b));
+  }
+
   /** The manifest as committed Markdown. Carries no timestamp, by #1150. */
   static render(entries: readonly IManifestEntry[]): string {
     const rows = entries.map(
@@ -149,16 +180,74 @@ class DiagnosticManifest {
     return [cells[0], cells[1]];
   }
 
+  /**
+   * What a whole migration lost, comparing a BASE manifest to the current one.
+   *
+   * `checkOutcome` compares against `HEAD`, which is right per commit and says
+   * nothing across a branch: a commit that deletes a row AND its fixture is
+   * self-consistent and passes. #1322's definition of done is the stronger
+   * claim -- that no diagnostic was lost anywhere between the merge base and
+   * the tip -- and nothing in the repo could express it.
+   *
+   * Keyed on the SET OF CODES, not on fixtures, and that choice is the whole
+   * design. #1322 also relocates fixtures into `tests/adr-NNN/`; a
+   * fixture-keyed comparison would report every one of those as a loss, would
+   * therefore be overridden as a matter of routine, and a check that is
+   * routinely overridden is worse than no check. A code asserted at base and
+   * asserted by SOME fixture at tip has not been lost, wherever it now lives.
+   *
+   * `movedFixtures` is reported, never failed on: it is the list a reviewer
+   * pairs up by eye to confirm each disappearance was a rename.
+   */
+  static compareToBase(
+    base: readonly IManifestEntry[],
+    current: readonly IManifestEntry[],
+  ): { lostCodes: string[]; movedFixtures: string[] } {
+    const asserted = new Set(current.flatMap((entry) => entry.codes));
+    const present = new Set(current.map((entry) => entry.fixture));
+    const lost = new Set<string>();
+    const moved: string[] = [];
+    for (const entry of base) {
+      for (const code of entry.codes) {
+        if (!asserted.has(code)) {
+          lost.add(code);
+        }
+      }
+      if (!present.has(entry.fixture)) {
+        moved.push(entry.fixture);
+      }
+    }
+    return {
+      lostCodes: [...lost].sort((a, b) => a.localeCompare(b)),
+      movedFixtures: moved.sort((a, b) => a.localeCompare(b)),
+    };
+  }
+
   /** Describes a `check` run without performing any of its I/O. */
   static checkOutcome(
     committedDocument: string | null,
     current: readonly IManifestEntry[],
     freshDocument: string,
+    orphans: readonly string[] = [],
   ): IManifestOutcome {
+    // Reported before anything else and independently of it: an orphan is not
+    // a shrinkage, so a corpus containing one can be in perfect sync (#1361).
+    // Collected rather than returned early, so a run that has both an orphan
+    // and a real loss reports both -- one failure hiding another is how the
+    // second gets fixed a release later.
+    const orphanErrors =
+      orphans.length === 0
+        ? []
+        : [
+            `${orphans.length} .expected.error file(s) have no .test.cnx and cannot run:`,
+            ...orphans.map((path) => `  ${path}`),
+            "Write the fixture, or delete the assertion and its manifest row.",
+          ];
     if (committedDocument === null) {
       return {
         ok: false,
         errors: [
+          ...orphanErrors,
           "docs/diagnostic-manifest.md is missing. Run: npm run diagnostics:manifest",
         ],
         warnings: [],
@@ -174,6 +263,7 @@ class DiagnosticManifest {
       return {
         ok: false,
         errors: [
+          ...orphanErrors,
           `${failures.length} fixture(s) no longer assert what the manifest records:`,
           ...failures.map(
             (failure) =>
@@ -203,6 +293,13 @@ class DiagnosticManifest {
         warnings: [],
         info: [],
       };
+    }
+
+    // An orphan reaches here on its own: the manifest is in sync, nothing
+    // shrank, and one assertion still cannot run. This is the state #1361 sat
+    // in, and it is the reason the check cannot be expressed as a diff.
+    if (orphanErrors.length > 0) {
+      return { ok: false, errors: orphanErrors, warnings: [], info: [] };
     }
 
     // Say what was enforced, not just that nothing failed. An identical line for

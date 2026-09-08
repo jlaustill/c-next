@@ -1,0 +1,21 @@
+// Test: Referencing own scope by name should error
+// test-adr: 016
+// ADR-016: Must use this. prefix for self-referential access
+
+scope Counter {
+    i32 value <- 100;
+
+    // NEGATIVE CONTROLS -- the two sanctioned spellings from inside the scope.
+    void okThis() {
+        this.value <- 1;
+    }
+    void okGlobal() {
+        global.Counter.value <- 2;
+    }
+    void test() {
+        // ERROR: Must use this.value instead of Counter.value
+        Counter.value <- 50;
+    }
+}
+
+void main() {}

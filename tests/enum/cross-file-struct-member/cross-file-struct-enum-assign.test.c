@@ -29,14 +29,14 @@ int main(void) {
     config.items[2].assigned = MyEnum__NONE;
     config.items[3].assigned = MyEnum__A;
     MyEnum val = config.items[0U].assigned;
-    if (val != MyEnum__A) return 1;
+    if (val != MyEnum__A) return 1U;
     uint8_t countAssigned = 0U;
-    for (uint8_t i = 0; i < COUNT; i += 1) {
+    for (uint8_t i = 0U; i < COUNT; i += 1) {
         MyEnum current = config.items[i].assigned;
         if (current != MyEnum__NONE) {
             countAssigned = cnx_clamp_add_u8(countAssigned, 1U);
         }
     }
-    if (countAssigned != 3) return 2;
-    return 0;
+    if (countAssigned != 3) return 2U;
+    return 0U;
 }

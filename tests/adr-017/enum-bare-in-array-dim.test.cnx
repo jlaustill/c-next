@@ -1,0 +1,22 @@
+// test-error
+// test-adr: 017
+// Tests: Bare enum member in array dimension should error
+
+enum EColor {
+    RED,
+    GREEN,
+    BLUE,
+    COUNT
+}
+
+// NEGATIVE CONTROL -- the element type names the enum, so the ELEMENTS may be
+// bare; only the dimension is unanchored.
+EColor[2] PALETTE <- [RED, GREEN];
+
+u8[COUNT] DATA <- [10, 20, 30];
+
+// A dimension is never anchored, even on an array OF the enum: the elements
+// below are bare and fine, the dimension beside them is not.
+EColor[COUNT] BY_INDEX <- [RED, GREEN, BLUE, RED];
+
+void main() {}

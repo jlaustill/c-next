@@ -18,7 +18,6 @@ import {
   ForeverStatementContext,
   ForVarDeclContext,
   ForAssignmentContext,
-  ExpressionContext,
 } from "../../../../logic/parser/grammar/CNextParser";
 import IGeneratorOutput from "../IGeneratorOutput";
 import TGeneratorEffect from "../TGeneratorEffect";
@@ -26,30 +25,7 @@ import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IOrchestrator from "../IOrchestrator";
 import VariableModifierBuilder from "../../helpers/VariableModifierBuilder";
-import ExpressionUtils from "../../../../../utils/ExpressionUtils";
 import ASSIGNMENT_OPERATOR_MAP from "../../../../../utils/constants/OperatorMappings";
-
-/**
- * Issue #477: Check if a simple identifier is an unqualified enum member.
- * Throws an error with helpful suggestion if found.
- */
-function rejectUnqualifiedEnumInReturn(
-  simpleId: string,
-  symbols: IGeneratorInput["symbols"],
-  exprCtx: ExpressionContext,
-): void {
-  if (!symbols) return;
-
-  for (const [enumName, members] of symbols.enumMembers) {
-    if (members.has(simpleId)) {
-      const line = exprCtx.start?.line ?? 0;
-      const col = exprCtx.start?.column ?? 0;
-      throw new Error(
-        `${line}:${col} error[E0424]: '${simpleId}' is not defined; did you mean '${enumName}.${simpleId}'?`,
-      );
-    }
-  }
-}
 
 /**
  * Generate C code for a return statement.
@@ -67,23 +43,35 @@ const generateReturn = (
     return { code: "return;", effects };
   }
 
-  // Issue #477: Get function return type for enum inference
+  // Issue #477 / #1277: a `return` expression is expected to be the function's
+  // declared return type, and that is the whole rule -- the type is threaded
+  // for EVERY return, not only an enum one.
+  //
+  // #1277: the enum-only condition that stood here is why
+  // `return { x: 1, y: 2 };` was rejected as "Cannot infer struct type" while
+  // the identical literal assigned to a local first compiled. A struct literal
+  // takes its type from the position it stands in, and a return statement is
+  // such a position; restricting the mechanism to enums made it one for enums
+  // only. `expectedType` means "what this position expects", so the condition
+  // was describing the consumers rather than the fact.
   const returnType = orchestrator.getCurrentFunctionReturnType();
   const exprCtx = node.expression()!;
-  const returnTypeIsEnum =
-    returnType && input.symbols?.knownEnums.has(returnType);
 
-  // Issue #477: Validate unqualified enum in non-enum return context
-  // Use ExpressionUtils to check for simple identifier (no binary ops, no postfix)
-  if (!returnTypeIsEnum) {
-    const simpleId = ExpressionUtils.extractIdentifier(exprCtx);
-    if (simpleId) {
-      rejectUnqualifiedEnumInReturn(simpleId, input.symbols, exprCtx);
-    }
-  }
-
-  // Set expectedType if return type is enum (enables unqualified enum returns)
-  const expr = returnTypeIsEnum
+  // #1322: a bare enum member returned from a non-enum function is E0424 in
+  // pass 2.1 (ADR-017), and a struct literal that no position types is E0357.
+  // Threaded for EVERY return type, not only the ones whose literals cannot be
+  // written without it. A `return` expression is expected to be the declared
+  // return type -- that is the fact, and `expectedType` is the mechanism that
+  // carries it. Restricting it to enums (which is what stood here) described
+  // the consumers rather than the fact, and that is why #1277 existed.
+  //
+  // The measured consequence is wider than #1277: `return 1;` from a function
+  // returning `u8` now emits `return 1U;`, the MISRA C:2012 Rule 7.2 suffix
+  // that the identical literal already received in `u8 x <- 1;`. The rule did
+  // not reach a return statement only because the type did not. 505 fixtures
+  // move, every one of them adding a suffix or a cast that the declaration
+  // form already had.
+  const expr = returnType
     ? orchestrator.generateExpressionWithExpectedType(exprCtx, returnType)
     : orchestrator.generateExpression(exprCtx);
 
@@ -116,12 +104,6 @@ const generateIf = (
 
   // Set up cache and generate declarations
   const cacheDecls = orchestrator.setupLengthCache(lengthCounts);
-
-  // Issue #254: Validate no function calls in condition (E0702)
-  orchestrator.validateConditionNoFunctionCall(node.expression(), "if");
-
-  // Issue #884: Validate condition is a boolean expression (E0701)
-  orchestrator.validateConditionIsBoolean(node.expression(), "if");
 
   // Generate with cache enabled
   const condition = orchestrator.generateExpression(node.expression());
@@ -163,14 +145,8 @@ const generateWhile = (
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
 
-  // Issue #254: Validate no function calls in condition (E0702)
-  orchestrator.validateConditionNoFunctionCall(node.expression(), "while");
-
-  // Issue #884: Validate condition is a boolean expression (E0701)
-  orchestrator.validateConditionIsBoolean(node.expression(), "while");
-
-  // ADR-068 / #1075: reject always-true literal condition (E0707)
-  orchestrator.validateLoopConditionNotAlwaysTrue(node.expression());
+  // #1322: E0701/E0702 and the always-true check (E0707) are authored in
+  // pass 2.1, which halts before this runs.
 
   const condition = orchestrator.generateExpression(node.expression());
 
@@ -199,15 +175,6 @@ const generateDoWhile = (
   orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
-
-  // Issue #254: Validate no function calls in condition (E0702)
-  orchestrator.validateConditionNoFunctionCall(node.expression(), "do-while");
-
-  // Issue #884: Validate condition is a boolean expression (E0701)
-  orchestrator.validateConditionIsBoolean(node.expression(), "do-while");
-
-  // ADR-068 / #1075: reject always-true literal condition (E0707)
-  orchestrator.validateLoopConditionNotAlwaysTrue(node.expression());
 
   const body = orchestrator.generateBlock(node.block());
   const condition = orchestrator.generateExpression(node.expression());
@@ -258,7 +225,14 @@ const generateForVarDecl = (
 
   // Handle initialization
   if (node.expression()) {
-    const value = orchestrator.generateExpression(node.expression()!);
+    // #1277: a `for` header declares a variable like any other, so its
+    // initializer is typed by the declared type through the same mechanism a
+    // block-level declaration uses. Without it a struct literal here was
+    // rejected as "Cannot infer struct type".
+    const value = orchestrator.generateExpressionWithExpectedType(
+      node.expression()!,
+      typeName,
+    );
     result += ` = ${value}`;
   }
 
@@ -299,14 +273,8 @@ const generateFor = (
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
 
-  // ADR-068 / #1075 E0707: a for-loop with no controlling expression (`for (;;)`)
-  // is a disguised infinite loop. C-Next has one source form for that — `forever`.
-  if (!node.expression()) {
-    throw new Error(
-      "Error E0707: for-loop has no controlling expression (infinite loop)\n" +
-        "  help: write 'forever { ... }' for an intentional infinite loop",
-    );
-  }
+  // #1322: `for (;;)` and an always-true condition are E0707 in pass 2.1
+  // (ADR-068). A header with no condition never reaches this generator.
 
   let init = "";
   const forInit = node.forInit();
@@ -335,18 +303,9 @@ const generateFor = (
   // Issue #250: Flush temps from init before generating condition
   const initTemps = orchestrator.flushPendingTempDeclarations();
 
-  // The empty-header case (`for (;;)`) already threw E0707 above, so the
-  // controlling expression is guaranteed present here.
+  // `for (;;)` is E0707 in pass 2.1, so the controlling expression is
+  // guaranteed present here.
   const conditionExpr = node.expression()!;
-
-  // Issue #254: Validate no function calls in condition (E0702)
-  orchestrator.validateConditionNoFunctionCall(conditionExpr, "for");
-
-  // Issue #884: Validate condition is a boolean expression (E0701)
-  orchestrator.validateConditionIsBoolean(conditionExpr, "for");
-
-  // ADR-068 / #1075: reject always-true literal condition (E0707)
-  orchestrator.validateLoopConditionNotAlwaysTrue(conditionExpr);
 
   const condition = orchestrator.generateExpression(conditionExpr);
 
@@ -401,15 +360,7 @@ const generateForever = (
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
 
-  // ADR-068 E0705: forever is void-only.
-  const returnType = orchestrator.getCurrentFunctionReturnType();
-  if (returnType && returnType !== "void") {
-    throw new Error(
-      "Error E0705: forever loop in non-void function\n" +
-        "  help: a forever loop never returns a value; make the function return void, " +
-        "or use a while loop with an exit condition",
-    );
-  }
+  // #1322: `forever` in a non-void function is E0705 in pass 2.1 (ADR-068).
 
   const body = orchestrator.generateBlock(node.block());
   const comment = ComplianceAnnotations.render(

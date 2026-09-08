@@ -39,17 +39,17 @@ uint8_t arrayReadOnly(uint8_t arr[4]) {
 int main(void) {
     uint32_t x = 10U;
     readOnly(x);
-    if (x != 10) return 1;
+    if (x != 10) return 1U;
     modified(&x);
     uint32_t a = 5U;
     uint32_t b = 0U;
     uint32_t result = mixedParams(a, &b);
-    if (result != 15) return 2;
+    if (result != 15) return 2U;
     uint8_t data[4] = {1U, 2U, 3U, 4U};
     arrayMod(data);
-    if (data[0U] != 99) return 3;
+    if (data[0U] != 99) return 3U;
     uint8_t data2[4] = {10U, 20U, 30U, 40U};
     uint8_t val = arrayReadOnly(data2);
-    if (val != 10) return 4;
-    return 0;
+    if (val != 10) return 4U;
+    return 0U;
 }

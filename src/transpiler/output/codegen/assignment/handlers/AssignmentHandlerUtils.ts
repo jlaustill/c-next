@@ -8,19 +8,7 @@
 import IRegisterNameResult from "./IRegisterNameResult";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
-
-/**
- * Validate that 'this' is being used within a scope context.
- * Throws if currentScopePath is not set.
- *
- * @param currentScopePath - Path of the enclosing scope; `""` at file scope
- * @throws Error if 'this' is used outside a scope
- */
-function validateScopeContext(currentScopePath: string): void {
-  if (!currentScopePath) {
-    throw new Error("Error: 'this' can only be used inside a scope");
-  }
-}
+import invariant from "../../../../../utils/invariant";
 
 /**
  * Validate that compound assignment operators are not used with bit field access.
@@ -29,26 +17,24 @@ function validateScopeContext(currentScopePath: string): void {
  * @param cnextOp - The C-Next operator being used
  * @throws Error if compound operator is used with bit fields
  */
-function validateNoCompoundForBitAccess(
-  isCompound: boolean,
-  cnextOp: string,
-): void {
-  if (isCompound) {
-    throw new Error(
-      `Compound assignment operators not supported for bit field access: ${cnextOp}`,
-    );
-  }
-}
+// #1322: `validateNoCompoundForBitAccess` is gone. Compound assignment on a
+// bit index, bit range, slice or string is E0857 in pass 2.1 -- one decision
+// where this was six throws with four message variants, and where this very
+// helper was defined a second time, verbatim, in `BitAccessHandlers`.
 
 /**
- * Validate write-only register assignment value.
- * Throws if trying to clear bits on a write-only register.
+ * A write-1 register bit is never assigned a zero here.
  *
- * @param value - The value being assigned
- * @param targetName - The full register name for error messages
- * @param bitIndex - The bit index expression for error messages
+ * #1322: E0872 rejects it in pass 2.1 (ADR-004), by VALUE -- `0x0` and a
+ * zero-valued const included, which the text comparison below let through and
+ * turned into a SET of the bit the author meant to clear. The generated form
+ * for a single bit is `REG = (1U << bit)`, so a zero reaching this point would
+ * be emitted as a set; the assertion holds the emission to the rule.
+ *
+ * @param value - The generated value being assigned
+ * @param targetName - The full register name, for the assertion's text
+ * @param bitIndex - The bit index expression, for the assertion's text
  * @param isSingleBit - True for single bit access, false for bit range
- * @throws Error if attempting to clear bits on write-only register
  */
 function validateWriteOnlyValue(
   value: string,
@@ -56,18 +42,12 @@ function validateWriteOnlyValue(
   bitIndex: string,
   isSingleBit: boolean,
 ): void {
-  if (isSingleBit && (value === "false" || value === "0")) {
-    throw new Error(
-      `Cannot assign false to write-only register bit ${targetName}[${bitIndex}]. ` +
-        `Use the corresponding CLEAR register to clear bits.`,
-    );
-  }
-  if (!isSingleBit && value === "0") {
-    throw new Error(
-      `Cannot assign 0 to write-only register bits ${targetName}[${bitIndex}]. ` +
-        `Use the corresponding CLEAR register to clear bits.`,
-    );
-  }
+  const zero = isSingleBit ? value === "false" || value === "0" : value === "0";
+  invariant(
+    !zero,
+    `a write-1 register bit takes a non-zero value -- E0872 rejects ` +
+      `'${value}' on ${targetName}[${bitIndex}] in pass 2.1, before this runs`,
+  );
 }
 
 /**
@@ -121,9 +101,6 @@ function buildRegisterNameWithScopeDetection(
  * Assignment Handler Utilities
  */
 class AssignmentHandlerUtils {
-  static readonly validateScopeContext = validateScopeContext;
-  static readonly validateNoCompoundForBitAccess =
-    validateNoCompoundForBitAccess;
   static readonly validateWriteOnlyValue = validateWriteOnlyValue;
   static readonly buildScopedRegisterName = buildScopedRegisterName;
   static readonly buildRegisterNameWithScopeDetection =

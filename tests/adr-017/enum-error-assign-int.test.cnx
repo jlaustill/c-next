@@ -1,0 +1,51 @@
+// test-error
+// test-adr: 017
+// ADR-017, E0428: an enum is its own type. Assigning an integer to one is an
+// error -- the ADR lists `s <- 1;` as exactly that.
+//
+// #1322 moved this out of codegen, where it reported `1:0` and decided by
+// regexing the expression's source text for a bare integer literal.
+
+enum State {
+    IDLE,
+    RUNNING
+}
+
+// NEGATIVE CONTROL -- the sanctioned way across the boundary. ADR-017 makes an
+// explicit cast the conversion, so this must stay accepted; a rule that typed a
+// cast by what is inside the parentheses would see the literal and reject it.
+State fromRaw() {
+    return (State)1;
+}
+
+// NEGATIVE CONTROL -- an ordinary integer variable getting an integer. The rule
+// is about the TARGET being an enum, not about integers being suspicious.
+u32 plainInteger() {
+    u32 n <- 1;
+    n <- 2;
+    return n;
+}
+
+// NEGATIVE CONTROL -- the two DECLARATION contexts, used correctly. An enum
+// value is an expression, so it reaches an initializer as well as a function
+// body; both spellings have to stay accepted.
+State okGlobal <- State.IDLE;
+
+scope Ok {
+    State okMember <- State.RUNNING;
+}
+
+void main() {
+    State s <- State.IDLE;
+
+    // THE ASSERTION, in a function body.
+    s <- 1;
+}
+
+// THE ASSERTION, in a global variable initializer.
+State badGlobal <- 1;
+
+scope Bad {
+    // THE ASSERTION, in a scope member initializer.
+    State badMember <- 2;
+}

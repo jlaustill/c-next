@@ -13,26 +13,26 @@
 int main(void) {
     Point p = { .x = 10, .y = 20 };
     if (p.x != 10) {
-        return 1;
+        return 1U;
     }
     if (p.y != 20) {
-        return 2;
+        return 2U;
     }
     p.x = 100;
     p.y = 200;
     if (p.x != 100) {
-        return 3;
+        return 3U;
     }
     if (p.y != 200) {
-        return 4;
+        return 4U;
     }
     p.x += 5;
     p.y -= 10;
     if (p.x != 105) {
-        return 5;
+        return 5U;
     }
     if (p.y != 190) {
-        return 6;
+        return 6U;
     }
-    return 0;
+    return 0U;
 }

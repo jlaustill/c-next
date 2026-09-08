@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
     if (argc > 2) {
         threshold = atoi(argv[2U]);
     }
-    for (uint8_t i = 0; i < iterations; i += 1) {
+    for (uint8_t i = 0U; i < iterations; i += 1) {
         f = (f & ~(1U << 0)) | (((i % 2) == 0 ? 1U : 0U) << 0);
         f = (f & ~(1U << 1)) | ((i > threshold ? 1U : 0U) << 1);
         if (((f >> 0) & 1) == true) {
@@ -55,13 +55,13 @@ int main(int argc, char *argv[]) {
             count = cnx_clamp_add_u8(count, 1U);
         }
     }
-    if (((f >> 0) & 1) != false) return 1;
-    if (((f >> 1) & 1) != true) return 2;
-    if (((f >> 2) & 1) != true) return 3;
-    if (count != (iterations / 2)) return 4;
+    if (((f >> 0) & 1) != false) return 1U;
+    if (((f >> 1) & 1) != true) return 2U;
+    if (((f >> 2) & 1) != true) return 3U;
+    if (count != (iterations / 2)) return 4U;
     f = (f & ~(1U << 5)) | (1U << 5);
     f = (f & ~(1U << 6)) | (0U << 6);
-    if (((f >> 5) & 1) != true) return 5;
-    if (((f >> 6) & 1) != false) return 6;
-    return 0;
+    if (((f >> 5) & 1) != true) return 5U;
+    if (((f >> 6) & 1) != false) return 6U;
+    return 0U;
 }

@@ -1,0 +1,6 @@
+31:14 error[E0886]: '.length' is deprecated
+       help: Use .char_count for a string's length, .element_count for an array's, or .bit_length / .byte_length for a width (ADR-058).
+32:16 error[E0886]: '.length' is deprecated
+       help: Use .char_count for a string's length, .element_count for an array's, or .bit_length / .byte_length for a width (ADR-058).
+33:14 error[E0886]: '.length' is deprecated
+       help: Use .char_count for a string's length, .element_count for an array's, or .bit_length / .byte_length for a width (ADR-058).

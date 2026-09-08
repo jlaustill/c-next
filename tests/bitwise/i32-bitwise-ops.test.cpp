@@ -31,9 +31,9 @@ int main(void) {
     if (and_result == 1431633920 && or_result == 2147439957) {
         if (not_pos == (int32_t)INT32_MIN && not_neg == 2147483647 && not_minus_one == 0) {
             if (neg_and == -65536 && small_and == 160) {
-                return 0;
+                return 0U;
             }
         }
     }
-    return 1;
+    return 1U;
 }

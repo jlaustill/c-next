@@ -32,7 +32,7 @@ int main(void) {
             result = 1U;
         }
     }
-    if (result != 1) return 1;
+    if (result != 1) return 1U;
     result = 0U;
     if (a > 5) {
         if (b > 25) {
@@ -41,7 +41,7 @@ int main(void) {
             result = 3U;
         }
     }
-    if (result != 3) return 2;
+    if (result != 3) return 2U;
     result = 0U;
     if (a == 10) {
         if (b == 20) {
@@ -50,7 +50,7 @@ int main(void) {
             }
         }
     }
-    if (result != 4) return 3;
+    if (result != 4) return 3U;
     result = 0U;
     if (a > 100) {
         result = 5U;
@@ -59,7 +59,7 @@ int main(void) {
             result = 6U;
         }
     }
-    if (result != 6) return 4;
+    if (result != 6) return 4U;
     result = 0U;
     if (a < b) {
         if (b < c) {
@@ -74,13 +74,13 @@ int main(void) {
             result = 10U;
         }
     }
-    if (result != 7) return 5;
+    if (result != 7) return 5U;
     result = 0U;
     if (a < b && b < c) {
         if (cnx_clamp_add_u32(a, b) < cnx_clamp_add_u32(c, 10)) {
             result = 11U;
         }
     }
-    if (result != 11) return 6;
-    return 0;
+    if (result != 11) return 6U;
+    return 0U;
 }

@@ -4,6 +4,8 @@
  */
 import { describe, it, expect } from "vitest";
 import ParserUtils from "../ParserUtils";
+import CNextSourceParser from "../../transpiler/logic/parser/CNextSourceParser";
+import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
 
 describe("ParserUtils", () => {
   describe("getPosition", () => {
@@ -306,6 +308,68 @@ describe("ParserUtils", () => {
       // member with no start token must not land on the start of the file.
       const span = ParserUtils.getSpanOr({}, FALLBACK);
       expect([span.line, span.column]).not.toEqual([0, 0]);
+    });
+  });
+
+  /**
+   * Helper to parse a function declaration and get its parameter list
+   */
+  function parseFunctionDeclaration(source: string): {
+    name: string;
+    paramList: Parser.ParameterListContext | null;
+  } {
+    const { tree, errors } = CNextSourceParser.parse(source);
+
+    if (errors.length > 0) {
+      throw new Error(
+        `Parse failed: ${errors.map((e) => e.message).join(", ")}`,
+      );
+    }
+
+    for (const decl of tree.declaration()) {
+      const funcDecl = decl.functionDeclaration();
+      if (funcDecl) {
+        return {
+          name: funcDecl.IDENTIFIER().getText(),
+          paramList: funcDecl.parameterList() ?? null,
+        };
+      }
+    }
+
+    throw new Error("Could not find function declaration in parsed tree");
+  }
+
+  describe("isMainFunctionWithArgs", () => {
+    it.each([
+      [
+        "returns true for main with string args[]",
+        "void main(string args[]) {}",
+      ],
+      ["returns true for main with u8 args[][]", "void main(u8 args[][]) {}"],
+      ["returns true for main with i8 args[][]", "void main(i8 args[][]) {}"],
+    ])("%s", (_label, source) => {
+      const { name, paramList } = parseFunctionDeclaration(source);
+      expect(ParserUtils.isMainFunctionWithArgs(name, paramList)).toBe(true);
+    });
+
+    it("returns false for main with no parameters", () => {
+      const { name, paramList } = parseFunctionDeclaration("void main() {}");
+      expect(ParserUtils.isMainFunctionWithArgs(name, paramList)).toBe(false);
+    });
+
+    it.each([
+      ["returns false for non-main function", "void foo(string args[]) {}"],
+      [
+        "returns false for main with wrong parameter type",
+        "void main(u32 count) {}",
+      ],
+      [
+        "returns false for main with multiple parameters",
+        "void main(string args[], u32 count) {}",
+      ],
+    ])("%s", (_label, source) => {
+      const { name, paramList } = parseFunctionDeclaration(source);
+      expect(ParserUtils.isMainFunctionWithArgs(name, paramList)).toBe(false);
     });
   });
 });

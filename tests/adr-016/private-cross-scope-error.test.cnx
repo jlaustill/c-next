@@ -1,0 +1,24 @@
+// Test: Accessing private scope variable from another scope should error
+// test-adr: 016
+// This should fail with a visibility error per ADR-016
+
+scope Counter {
+    i32 privateValue <- 100; // private by default
+}
+
+scope Manager {
+    public void test() {
+        global.Counter.privateValue <- 50; // ERROR: accessing private member
+    }
+}
+
+// NEGATIVE CONTROL -- a scope reading its OWN private member through `this.`,
+// which the private rule must not touch.
+scope Self {
+    i32 secret <- 1;
+    public i32 read() {
+        return this.secret;
+    }
+}
+
+void main() {}

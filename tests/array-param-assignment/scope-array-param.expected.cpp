@@ -25,9 +25,9 @@ int main(void) {
     buffer[1] = 0U;
     buffer[2] = 0U;
     Test__writeToArray(buffer, 42U);
-    if (buffer[0U] != 42) return 1;
+    if (buffer[0U] != 42) return 1U;
     Test__writeAtIndex(buffer, 1U, 99U);
-    if (buffer[1U] != 99) return 2;
-    if (buffer[2U] != 0) return 3;
-    return 0;
+    if (buffer[1U] != 99) return 2U;
+    if (buffer[2U] != 0) return 3U;
+    return 0U;
 }

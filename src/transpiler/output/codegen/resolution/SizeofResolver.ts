@@ -12,6 +12,7 @@
 import * as Parser from "../../../logic/parser/grammar/CNextParser";
 import CodeGenState from "../../../state/CodeGenState";
 import ExpressionUnwrapper from "../../../../utils/ExpressionUnwrapper";
+import invariant from "../../../../utils/invariant";
 
 /**
  * Callbacks for operations that require CodeGenerator context.
@@ -148,12 +149,15 @@ export default class SizeofResolver {
   }
 
   /**
-   * Throw E0601 error for sizeof on array parameter
+   * #1322: E0601 is a pass-2.1 diagnostic. What remains is the assertion that
+   * it ran -- and it also fixes the advice: the old message pointed at
+   * `.length`, which ADR-058 deprecated and E0886 now rejects, so following it
+   * produced a second error.
    */
   private static throwArrayParamSizeofError(varName: string): never {
-    throw new Error(
-      `Error[E0601]: sizeof() on array parameter '${varName}' returns pointer size. ` +
-        `Use ${varName}.length for element count or sizeof(elementType) * ${varName}.length for bytes`,
+    invariant(
+      false,
+      `sizeof() is not applied to an array parameter ('${varName}') -- E0601 rejects this in pass 2.1, before this runs`,
     );
   }
 
@@ -173,12 +177,14 @@ export default class SizeofResolver {
       }
     }
 
-    // E0602: Check for side effects
-    if (callbacks.hasSideEffects(expr)) {
-      throw new Error(
-        `Error[E0602]: sizeof() operand must not have side effects (MISRA C:2012 Rule 13.6)`,
-      );
-    }
+    // #1322: MISRA C:2012 Rule 13.6 is E0602 in pass 2.1, which asks the tree
+    // for a call. The predicate behind this also tested the operand's TEXT for
+    // eleven assignment operators, none of which can appear in an expression --
+    // assignment is a statement in this grammar.
+    invariant(
+      !callbacks.hasSideEffects(expr),
+      "sizeof()'s operand has no side effects -- E0602 rejects this in pass 2.1, before this runs",
+    );
 
     return `sizeof(${callbacks.generateExpression(expr)})`;
   }

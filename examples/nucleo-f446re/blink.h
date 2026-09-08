@@ -38,41 +38,6 @@ typedef enum {
 } STM32F446__GPIOPull;
 
 /* Bitmaps */
-/* Bitmap: SysTick__ControlBits
- *   ENABLE: bit 0
- *   TICKINT: bit 1
- *   CLKSOURCE: bit 2
- *   Reserved_3: bit 3
- *   Reserved_4: bit 4
- *   Reserved_5: bit 5
- *   Reserved_6: bit 6
- *   Reserved_7: bit 7
- *   Reserved_8: bit 8
- *   Reserved_9: bit 9
- *   Reserved_10: bit 10
- *   Reserved_11: bit 11
- *   Reserved_12: bit 12
- *   Reserved_13: bit 13
- *   Reserved_14: bit 14
- *   Reserved_15: bit 15
- *   COUNTFLAG: bit 16
- *   Reserved_17: bit 17
- *   Reserved_18: bit 18
- *   Reserved_19: bit 19
- *   Reserved_20: bit 20
- *   Reserved_21: bit 21
- *   Reserved_22: bit 22
- *   Reserved_23: bit 23
- *   Reserved_24: bit 24
- *   Reserved_25: bit 25
- *   Reserved_26: bit 26
- *   Reserved_27: bit 27
- *   Reserved_28: bit 28
- *   Reserved_29: bit 29
- *   Reserved_30: bit 30
- *   Reserved_31: bit 31
- */
-typedef uint32_t SysTick__ControlBits;
 /* Bitmap: RCC__AHB1Peripherals
  *   GPIOAEN: bit 0
  *   GPIOBEN: bit 1
@@ -144,6 +109,22 @@ typedef uint32_t RCC__AHB1Peripherals;
  */
 typedef uint32_t STM32F446__GPIOAPins;
 
+/* Registers (ADR-004) */
+/* Register: RCC__RCC @ 0x40023800 */
+#define RCC__RCC__AHB1ENR (*(volatile RCC__AHB1Peripherals*)(0x40023800 + 0x30))
+
+/* Register: STM32F446__GPIOA @ 0x40020000 */
+#define STM32F446__GPIOA__ModeRegister (*(volatile uint32_t*)(0x40020000 + 0x00))
+#define STM32F446__GPIOA__OutputTypeRegister (*(volatile STM32F446__GPIOAPins*)(0x40020000 + 0x04))
+#define STM32F446__GPIOA__OutputSpeedRegister (*(volatile uint32_t*)(0x40020000 + 0x08))
+#define STM32F446__GPIOA__PullUpDownRegister (*(volatile uint32_t*)(0x40020000 + 0x0C))
+#define STM32F446__GPIOA__InputData (*(volatile STM32F446__GPIOAPins const *)(0x40020000 + 0x10))
+#define STM32F446__GPIOA__OutputData (*(volatile STM32F446__GPIOAPins*)(0x40020000 + 0x14))
+#define STM32F446__GPIOA__BitSetReset (*(volatile STM32F446__GPIOAPins*)(0x40020000 + 0x18))
+#define STM32F446__GPIOA__LockRegister (*(volatile STM32F446__GPIOAPins*)(0x40020000 + 0x1C))
+#define STM32F446__GPIOA__AlternateFunctionLow (*(volatile uint32_t*)(0x40020000 + 0x20))
+#define STM32F446__GPIOA__AlternateFunctionHigh (*(volatile uint32_t*)(0x40020000 + 0x24))
+
 /* External variables */
 extern const uint32_t BLINK_DELAY_MS;
 extern volatile uint32_t tick_count;
@@ -155,6 +136,9 @@ void LED__on(void);
 void LED__off(void);
 void LED__toggle(void);
 bool LED__isOn(void);
+void SysTick_Handler(void);
+void setup(void);
+void loop(void);
 
 #ifdef __cplusplus
 }

@@ -1,0 +1,34 @@
+// test-error
+// test-adr: 058
+// ADR-058 deprecated `.length`: it named a different thing on a string, an
+// array and a scalar, and the four shape properties exist to say which was
+// meant.
+
+scope Buffer {
+    // NEGATIVE CONTROL -- a scope variable NAMED `length` (#212). `this.length`
+    // reads it, and a rule that rejected the name outright would break it. The
+    // first version of this rule did exactly that.
+    u8 length <- 0;
+
+    public u8 readsTheVariable() {
+        return this.length;
+    }
+}
+
+void main() {
+    string<16> s <- "hi";
+    u8[4] arr <- [1, 2, 3, 4];
+    u32 x <- 5;
+
+    // NEGATIVE CONTROLS -- the four properties that replaced it.
+    u32 chars <- s.char_count;
+    u32 count <- arr.element_count;
+    u32 bits <- x.bit_length;
+    u32 bytes <- x.byte_length;
+
+    // ASSERTIONS -- `.length` on each kind it used to mean something different
+    // for. No subject is resolved: the name is rejected wherever it appears.
+    u32 a <- s.length;
+    u32 b <- arr.length;
+    u32 c <- x.length;
+}

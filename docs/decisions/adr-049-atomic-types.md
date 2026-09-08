@@ -643,6 +643,45 @@ The compiler tracks ISR vs main access per-member, not per-scope, so mixed atomi
 
 ---
 
+## Diagnostics
+
+| Code  | Reported when                                      | Asserted by                                    |
+| ----- | -------------------------------------------------- | ---------------------------------------------- |
+| E0889 | A declaration carries both `atomic` and `volatile` | `tests/adr-049/atomic-volatile-error.test.cnx` |
+
+`atomic` is `volatile` plus the guarantee that a read or write cannot be torn,
+so writing both says one of two different things and the author has to be asked
+which. The rule is entirely syntactic -- two modifier tokens on one declaration
+-- so it needs no type, no scope and no symbols.
+
+## Scope-Context Matrix (#1219)
+
+Severity follows the eslint model: `off` records that a cell **cannot exist**,
+`warn` that it should be covered and is not, `error` that it must be.
+
+<!-- MATRIX-SEVERITY -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | warn     |
+| scope method       | same file           | warn     |
+| global variable    | same file           | error    |
+| scope member       | same file           | warn     |
+| top-level function | imported direct     | off      |
+| scope method       | imported direct     | off      |
+| global variable    | imported direct     | off      |
+| scope member       | imported direct     | off      |
+| top-level function | imported transitive | off      |
+| scope method       | imported transitive | off      |
+| global variable    | imported transitive | off      |
+| scope member       | imported transitive | off      |
+
+The modifiers are read off the declaration itself, so nothing crosses an
+include and every imported cell records that it cannot exist. A declaration can
+carry them in any of the four same-file contexts; only the file-scope one is
+covered today, and the other three are `warn` rather than `error` because this
+pass relocated the rule without widening it.
+
 ## References
 
 - [ADR-009: ISR Safety](adr-009-isr-safety.md) - Parent ADR

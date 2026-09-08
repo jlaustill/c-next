@@ -546,9 +546,17 @@ describe("CodeGenerator Coverage Tests", () => {
         }
       `;
       const { code } = setupGenerator(source);
-      expect(code).toContain("GPIO__PORTA");
+      // The member write lands in the .c; the accessor block itself is
+      // recorded for the header, which is the only file a #define can be
+      // exported from (#1453).
+      expect(code).toContain("GPIO__PORTA__DR = val");
+      expect(code).not.toContain("#define GPIO__PORTA__DR");
+      const block = CodeGenState.exportedRegisterBlocks.join("\n");
+      expect(block).toContain("/* Register: GPIO__PORTA @ 0x40000000 */");
       // Address format is 0x40000000 + 0x00
-      expect(code).toContain("0x40000000");
+      expect(block).toContain(
+        "#define GPIO__PORTA__DR (*(volatile uint32_t*)(0x40000000 + 0x00))",
+      );
     });
   });
 
@@ -672,34 +680,12 @@ describe("CodeGenerator Coverage Tests", () => {
       expect(code).toContain("(struct NamedPoint){ .x = 10, .y = 20 }");
     });
 
-    it("should include struct keyword in empty initializer via return statement", () => {
-      // Test the empty initializer path (line 3465) via return statement
-      // This is the only way to use explicit type syntax without expectedType context
-      const source = `
-        struct ReturnStruct { i32 value; }
-        ReturnStruct getEmpty() {
-          return ReturnStruct {};
-        }
-      `;
-      const { tree, tokenStream } = CNextSourceParser.parse(source);
-
-      const symbolTable = new SymbolTable();
-      symbolTable.markNeedsStructKeyword("ReturnStruct");
-
-      const tSymbols = CNextResolver.resolve(tree, "test.cnx").symbols;
-      const symbols = TSymbolInfoAdapter.convert(tSymbols);
-
-      const generator = new CodeGenerator();
-      CodeGenState.symbolTable = symbolTable;
-      const code = generator.generate(tree, tokenStream, {
-        symbolInfo: symbols,
-        sourcePath: "test.cnx",
-        cppMode: false,
-      });
-
-      // Empty initializer should have struct keyword: (struct ReturnStruct){ 0 }
-      expect(code).toContain("(struct ReturnStruct){ 0 }");
-    });
+    // #1322: a case reaching the empty-initializer path stood here, written as
+    // `ReturnStruct {};`. That path was reachable only through the written-type
+    // grammar alternative -- the inferred form has always required a field list
+    // -- and both the alternative and the codegen branch are removed. There is
+    // no source that constructs an empty struct initializer, so there is
+    // nothing left to cover.
 
     it("should NOT include struct keyword for typedef'd structs in assignment context", () => {
       // This tests the branch where checkNeedsStructKeyword returns false.

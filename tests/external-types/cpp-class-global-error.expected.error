@@ -1,1 +1,2 @@
-1:0 Code generation failed: Error: C++ class 'CppTestClass' with constructor cannot use struct initializer syntax at global scope. Use constructor syntax or initialize fields separately.
+11:26 error[E0508]: C++ class 'CppTestClass' has a constructor, so struct initializer syntax cannot be used outside a function body
+       help: A class with a constructor is not an aggregate, so the fields are assigned one at a time -- and a declaration outside a function body has no statement to assign them in. Initialize it inside a function, or use constructor syntax.

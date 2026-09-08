@@ -1,0 +1,8 @@
+// ADR-024: Test that sign-changing assignment produces error
+// test-adr: 024
+// Assigning i32 to u32 should produce a compiler error
+void main() {
+    i32 signed_val <- -5;
+    i32 sameSign <- signed_val; // NEGATIVE CONTROL -- same signedness
+    u32 unsigned_val <- signed_val; // ERROR: i32 to u32 is sign change
+}

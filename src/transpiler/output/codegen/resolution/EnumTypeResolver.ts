@@ -4,6 +4,28 @@
  * Extracted from CodeGenerator to reduce complexity.
  * Uses CodeGenState for all state access.
  *
+ * ## #1322: this no longer decides any rejection
+ *
+ * Every ADR-017 rejection it used to feed -- five throws in
+ * `EnumAssignmentValidator`, three in `BinaryExprUtils` -- is now E0428/E0434,
+ * authored in pass 2.1. What remains here has ONE caller, `SwitchGenerator`,
+ * and one job: qualifying a bare case label against the switch expression's
+ * enum type. That is a generation question, not a rejection.
+ *
+ * It is deliberately NOT shared with the 2.1 resolver, and the reason is that
+ * they ask from different symbol views. This one reads codegen's run-wide state
+ * and the `currentScopePath` cursor; 2.1 reads the file's own lexical frames,
+ * which is the only view populated before `runAnalyzers`. CLAUDE.md draws that
+ * same distinction: ask the per-file sets about a C-Next name and the run-wide
+ * table about a foreign one. Merging them would mean giving one of the two
+ * passes a view it must not have.
+ *
+ * What that costs is stated plainly: if the two ever disagree about whether an
+ * expression is an enum, 2.1 declines to reject and this qualifies a label
+ * anyway. Nothing detects that today. It is the reason to keep this file small
+ * and single-purpose rather than growing it back toward being a second rule
+ * engine.
+ *
  * ADR-017: Extract enum type from expressions for type-safe comparisons.
  * Handles patterns:
  * - Variable of enum type: `currentState` -> 'State'

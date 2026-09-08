@@ -1,0 +1,4 @@
+15:26 error[E0863]: A string at file scope may only be initialized by a literal, not 'wideShared'
+       help: Copying, concatenating and extracting a substring all need runtime calls, which C cannot make before `main`. Move the declaration into a function, or initialize it empty and assign later.
+25:29 error[E0864]: Cannot initialize string<8> from string<16> -- the source may not fit
+       help: Widen the declaration to string<16>, or extract a substring of the source.

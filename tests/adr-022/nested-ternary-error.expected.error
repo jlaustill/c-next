@@ -1,0 +1,10 @@
+40:30 error[E0710]: Nested ternary not allowed in true branch
+       help: A ternary inside a ternary is hard to read and hard to certify (ADR-022). Use if/else, or lift the inner expression into a named variable first.
+44:21 error[E0710]: Nested ternary not allowed in true branch
+       help: A ternary inside a ternary is hard to read and hard to certify (ADR-022). Use if/else, or lift the inner expression into a named variable first.
+52:12 error[E0710]: Nested ternary not allowed in condition
+       help: A ternary inside a ternary is hard to read and hard to certify (ADR-022). Use if/else, or lift the inner expression into a named variable first.
+65:39 error[E0710]: Nested ternary not allowed in true branch
+       help: A ternary inside a ternary is hard to read and hard to certify (ADR-022). Use if/else, or lift the inner expression into a named variable first.
+69:30 error[E0710]: Nested ternary not allowed in true branch
+       help: A ternary inside a ternary is hard to read and hard to certify (ADR-022). Use if/else, or lift the inner expression into a named variable first.

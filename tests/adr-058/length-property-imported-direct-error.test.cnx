@@ -1,0 +1,21 @@
+// test-error
+// test-adr: 058
+// E0867 across ONE include hop -- matrix cells: imported direct.
+//
+// The rule asks the SUBJECT's type, and the subject is declared elsewhere. A
+// check reading only this file finds no type for it, and an unknown type never
+// rejects -- so the rule would go quiet across an include rather than fail.
+
+#include "length-declarations.cnx"
+
+// NEGATIVE CONTROL -- the right property on the imported array.
+u32 okGlobal <- sharedArray.element_count;
+
+// ASSERTION -- global variable context.
+u32 badGlobal <- sharedScalar.element_count;
+
+u32 main() {
+    // ASSERTION -- top-level function context.
+    u32 n <- sharedArray.char_count;
+    return n;
+}

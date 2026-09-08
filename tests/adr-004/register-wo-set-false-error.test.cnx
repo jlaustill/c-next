@@ -1,0 +1,44 @@
+// test-error
+// test-adr: 004
+// ADR-004, E0872: a zero is assigned to a bit of a write-1 register member.
+// Coverage: Section 12 - Register Declaration (write-only validation)
+//
+// #1322 relocated this from `output/`, where it reported `1:0` and compared
+// the GENERATED TEXT against "false" and "0" -- so `0x0` and a zero-valued
+// const were accepted and emitted `GPIO__DR_SET = (1U << 3)`: the bit the
+// author meant to clear was set. The rule is about the value now.
+
+register GPIO @ 0x42000000 {
+    DR_SET: u32 wo @ 0x84,
+    DR_CLEAR: u32 wo @ 0x88,
+    DR: u32 rw @ 0x00,
+    INTSTAT: u32 w1c @ 0x10,
+}
+
+const u32 OFF <- 0;
+const bool DOWN <- false;
+
+// NEGATIVE CONTROL -- true, a non-zero range value, a runtime value, a zero to
+// the WHOLE member, a zero to an rw bit, and the CLEAR register itself.
+void okWrites(u32 n) {
+    GPIO.DR_SET[3] <- true;
+    GPIO.DR_SET[0, 4] <- 0xF;
+    GPIO.DR_SET[3] <- n;
+    GPIO.DR_SET <- 0;
+    GPIO.DR[3] <- false;
+    GPIO.DR_CLEAR[3] <- true;
+}
+
+void main() {
+    // ASSERTION 1 -- the original case.
+    GPIO.DR_SET[3] <- false; // ERROR: Use DR_CLEAR register to clear bits
+    // ASSERTION 2 -- a range.
+    GPIO.DR_SET[0, 4] <- 0;
+    // ASSERTIONS 3-6 -- the spellings codegen's text comparison let through.
+    GPIO.DR_SET[3] <- 0x0;
+    GPIO.DR_SET[3] <- 0b0;
+    GPIO.DR_SET[3] <- OFF;
+    GPIO.DR_SET[3] <- DOWN;
+    // ASSERTION 7 -- w1c is a write-1 member too.
+    GPIO.INTSTAT[3] <- false;
+}

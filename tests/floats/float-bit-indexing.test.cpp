@@ -30,22 +30,22 @@ float fromBytesLE(uint8_t b0, uint8_t b1, uint8_t b2, uint8_t b3) {
 
 int main(void) {
     float one = fromBytesLE(0x00U, 0x00U, 0x80U, 0x3FU);
-    if (one != 1.0) return 1;
+    if (one != 1.0) return 1U;
     float negOne = fromBytesLE(0x00U, 0x00U, 0x80U, 0xBFU);
-    if (negOne != -1.0) return 2;
+    if (negOne != -1.0) return 2U;
     float two = fromBytesLE(0x00U, 0x00U, 0x00U, 0x40U);
-    if (two != 2.0) return 3;
+    if (two != 2.0) return 3U;
     float testVal = 1.0;
     union { float f; uint32_t u; } __bits_testVal;
     __bits_testVal.f = testVal;
     uint8_t byte3 = ((__bits_testVal.u >> 24U) & 0xFFU);
-    if (byte3 != 0x3F) return 4;
+    if (byte3 != 0x3F) return 4U;
     uint8_t byte2 = ((__bits_testVal.u >> 16U) & 0xFFU);
-    if (byte2 != 0x80) return 5;
+    if (byte2 != 0x80) return 5U;
     uint8_t byte1 = ((__bits_testVal.u >> 8U) & 0xFFU);
-    if (byte1 != 0x00) return 6;
+    if (byte1 != 0x00) return 6U;
     uint8_t byte0 = (__bits_testVal.u & 0xFFU);
-    if (byte0 != 0x00) return 7;
+    if (byte0 != 0x00) return 7U;
     float val = 0.0;
     union { float f; uint32_t u; } __bits_val;
     __bits_val.f = val;
@@ -53,6 +53,6 @@ int main(void) {
     val = __bits_val.f;
     __bits_val.u = (__bits_val.u & ~(0xFFU << 16)) | (((uint32_t)0x80 & 0xFFU) << 16);
     val = __bits_val.f;
-    if (val != 1.0) return 8;
-    return 0;
+    if (val != 1.0) return 8U;
+    return 0U;
 }

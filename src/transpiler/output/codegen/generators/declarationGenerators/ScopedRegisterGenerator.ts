@@ -14,6 +14,7 @@ import IGeneratorState from "../IGeneratorState";
 import IGeneratorOutput from "../IGeneratorOutput";
 import IOrchestrator from "../IOrchestrator";
 import generateRegisterMacros from "./RegisterMacroGenerator";
+import RegisterBlockPlacement from "./RegisterBlockPlacement";
 import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
 
 /**
@@ -55,7 +56,7 @@ const generateScopedRegister = (
   ];
 
   return {
-    code: lines.join("\n"),
+    code: RegisterBlockPlacement.place(fullName, lines.join("\n")),
     effects: [],
   };
 };

@@ -1,0 +1,15 @@
+// test-error
+// test-adr: 068
+// Coverage: ADR-068 / #1075 - always-true literal while condition forbidden (E0707)
+//
+// #1322 relocated this from `output/`, where it reported `1:0`.
+void run() {
+    u8 state <- 0;
+    // NEGATIVE CONTROL -- a condition on a variable is not decidable here.
+    while (state < 10) {
+        state +<- 1;
+    }
+    while (1 = 1) {
+        state <- 1;
+    }
+}

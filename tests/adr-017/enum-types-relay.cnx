@@ -1,0 +1,7 @@
+// Helper (not a test): puts cross-file-types.cnx two hops away, covering
+// the `imported transitive` column for E0424. It declares something of its
+// own so a header is written for it (#1234).
+
+#include "cross-file-types.cnx"
+
+const u32 ENUM_RELAY_MARKER <- 2;

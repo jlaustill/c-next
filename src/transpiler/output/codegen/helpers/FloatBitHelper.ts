@@ -18,6 +18,7 @@
 
 import TTypeInfo from "../../../types/TTypeInfo.js";
 import TIncludeHeader from "../../../types/TIncludeHeader";
+import BitRangeHelper from "./BitRangeHelper";
 import CodeGenState from "../../../state/CodeGenState.js";
 
 /**
@@ -79,7 +80,7 @@ class FloatBitHelper {
     const isF64 = typeInfo.baseType === "f64";
     const floatType = getFloatTypeName(typeInfo.baseType);
     const intType = isF64 ? "uint64_t" : "uint32_t";
-    const shadowName = `__bits_${name}`;
+    const shadowName = BitRangeHelper.getShadowVarName(name);
     const maskSuffix = isF64 ? "ULL" : "U";
 
     // Check if shadow variable needs declaration

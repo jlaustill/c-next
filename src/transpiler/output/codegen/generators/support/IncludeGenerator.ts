@@ -2,11 +2,10 @@
  * Include directive and preprocessor handling.
  * Extracted from CodeGenerator.ts.
  */
-import * as path from "node:path";
 import * as Parser from "../../../../logic/parser/grammar/CNextParser";
-import CnxFileResolver from "../../../../data/CnxFileResolver";
 import IncludeRewriter from "../../../../data/IncludeRewriter";
 import type THeaderExtension from "../../../../types/THeaderExtension";
+import invariant from "../../../../../utils/invariant";
 
 /**
  * Issue #349, #1467: Options for include transformation
@@ -28,36 +27,17 @@ interface IIncludeTransformOptions {
   headerExtension: THeaderExtension;
 }
 
-/**
- * ADR-010: Validate that a quote-style include names a real `.cnx` file.
+/*
+ * ADR-010's `Included C-Next file not found` check stood here and is now
+ * E0506 in pass 2.1 (#1322). It reached the user as
+ * `1:0 Code generation failed: Error: …` -- no code to look up, and the wrong
+ * line. `IncludeDirectiveAnalyzer` reports it at the directive.
  *
- * Quote includes are resolved relative to the including file, so this can be
- * checked here; angle includes are searched along include directories and are
- * transformed without validation.
- *
- * `spec` carries its extension (`.cnx` or `.cnext`) -- Issue #1467 review: the
- * pattern that produces it lives in IncludeRewriter, so this module cannot
- * drift from the other producers on which extensions count.
+ * It was the ONLY thing failing the build for a missing quoted `.cnx`:
+ * discovery warns about the same file and returns, so the run would have
+ * exited 0 without it. That is why it moved rather than being deleted as
+ * subsumed by the warning.
  */
-const validateQuoteInclude = (
-  spec: string,
-  sourcePath: string | null,
-): void => {
-  if (!sourcePath) {
-    return;
-  }
-
-  const sourceDir = path.dirname(sourcePath);
-  const cnxPath = path.resolve(sourceDir, spec);
-
-  if (!CnxFileResolver.cnxFileExists(cnxPath)) {
-    throw new Error(
-      `Error: Included C-Next file not found: ${spec}\n` +
-        `  Searched at: ${cnxPath}\n` +
-        `  Referenced in: ${sourcePath}`,
-    );
-  }
-};
 
 /**
  * ADR-010: Transform #include directives, converting .cnx to .h or .hpp
@@ -75,11 +55,6 @@ const transformIncludeDirective = (
   includeText: string,
   options: IIncludeTransformOptions,
 ): string => {
-  const quotedSpec = IncludeRewriter.quotedCnxSpecOf(includeText);
-  if (quotedSpec) {
-    validateQuoteInclude(quotedSpec, options.sourcePath);
-  }
-
   return IncludeRewriter.rewrite(
     includeText,
     options.rewrites,
@@ -88,48 +63,22 @@ const transformIncludeDirective = (
 };
 
 /**
- * Extract the macro name from a #define directive
- */
-const extractDefineName = (text: string): string => {
-  const match = /#\s*define\s+([a-zA-Z_]\w*)/.exec(text);
-  return match ? match[1] : "unknown";
-};
-
-/**
- * Process a #define directive
- * Only flag-only defines are allowed; value and function macros produce errors
+ * Emit a #define directive.
+ *
+ * #1322: the two rejections that stood here (E0501 function-like, E0502 with a
+ * value) are ADR-037 decisions and moved to pass 2.1's DefineDirectiveAnalyzer,
+ * which reports them at the directive's own position instead of `1:0` with the
+ * line spelled out in the message. What is left is the emission: a flag-only
+ * define passes through, and nothing else can reach here.
  */
 const processDefineDirective = (
   ctx: Parser.DefineDirectiveContext,
 ): string | null => {
-  const text = ctx.getText();
-
-  // Check for function-like macro: #define NAME(
-  if (ctx.DEFINE_FUNCTION()) {
-    const name = extractDefineName(text);
-    const line = ctx.start?.line ?? 0;
-    throw new Error(
-      `E0501: Function-like macro '${name}' is not allowed. ` +
-        `Use inline functions instead. Line ${line}`,
-    );
-  }
-
-  // Check for value define: #define NAME value
-  if (ctx.DEFINE_WITH_VALUE()) {
-    const name = extractDefineName(text);
-    const line = ctx.start?.line ?? 0;
-    throw new Error(
-      `E0502: #define with value '${name}' is not allowed. ` +
-        `Use 'const' instead: const u32 ${name} <- value; Line ${line}`,
-    );
-  }
-
-  // Flag-only define: pass through
-  if (ctx.DEFINE_FLAG()) {
-    return text.trim();
-  }
-
-  return null;
+  invariant(
+    !ctx.DEFINE_FUNCTION() && !ctx.DEFINE_WITH_VALUE(),
+    "E0501/E0502 reject this in pass 2.1, before this runs",
+  );
+  return ctx.DEFINE_FLAG() ? ctx.getText().trim() : null;
 };
 
 /**
@@ -164,7 +113,6 @@ const processPreprocessorDirective = (
 // Export as an object for consistent module pattern
 const includeGenerators = {
   transformIncludeDirective,
-  extractDefineName,
   processDefineDirective,
   processConditionalDirective,
   processPreprocessorDirective,

@@ -20,10 +20,10 @@ void setHigh(NestedExtEnum__Config& cfg) {
 
 int main(void) {
     NestedExtEnum__Config cfg = { .level = ELevel__LEVEL_LOW };
-    if (cfg.level != ELevel__LEVEL_LOW) return 1;
+    if (cfg.level != ELevel__LEVEL_LOW) return 1U;
     cfg.level = ELevel__LEVEL_MEDIUM;
-    if (cfg.level != ELevel__LEVEL_MEDIUM) return 2;
+    if (cfg.level != ELevel__LEVEL_MEDIUM) return 2U;
     setHigh(cfg);
-    if (cfg.level != ELevel__LEVEL_HIGH) return 3;
-    return 0;
+    if (cfg.level != ELevel__LEVEL_HIGH) return 3U;
+    return 0U;
 }

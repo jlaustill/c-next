@@ -136,19 +136,11 @@ const generateEqualityExpr = (
     return generateRelationalExpr(exprs[0], input, state, orchestrator);
   }
 
-  // ADR-017: Validate enum type safety for comparisons
+  // #1322: ADR-017's comparison rule is E0434 in pass 2.1. It was three throws
+  // here, fed by an enum-type resolver and an integer test that split the
+  // operands' SOURCE TEXT -- so a bool, an f32 and a non-enum call all compared
+  // equal to an enum without complaint.
   if (exprs.length >= 2) {
-    const leftEnumType = orchestrator.getExpressionEnumType(exprs[0]);
-    const rightEnumType = orchestrator.getExpressionEnumType(exprs[1]);
-    const leftIsInteger = orchestrator.isIntegerExpression(exprs[0]);
-    const rightIsInteger = orchestrator.isIntegerExpression(exprs[1]);
-    BinaryExprUtils.validateEnumComparison(
-      leftEnumType,
-      rightEnumType,
-      leftIsInteger,
-      rightIsInteger,
-    );
-
     // ADR-045: Check for string comparison
     const leftIsString = orchestrator.isStringExpression(exprs[0]);
     const rightIsString = orchestrator.isStringExpression(exprs[1]);
@@ -339,16 +331,9 @@ const generateShiftExpr = (
   effects.push(...firstResult.effects);
   let result = firstResult.code;
 
-  // Get type of left operand for shift validation
-  const leftType = orchestrator.getAdditiveExpressionType(exprs[0]);
-
+  // #1322: the shift amount (MISRA 12.2, E0873) is checked in pass 2.1.
   for (let i = 1; i < exprs.length; i++) {
     const op = operators[i - 1] || "<<";
-
-    // Validate shift amount if we can determine the left operand type
-    if (leftType) {
-      orchestrator.validateShiftAmount(leftType, exprs[i], op, node);
-    }
 
     const exprResult = generateAdditiveExpr(
       exprs[i],

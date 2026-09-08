@@ -1,4 +1,5 @@
 // test-error
+// test-adr: 036
 // Issue #1159: same defect via binary notation — Number.parseInt("0b10000", 10)
 // is 0, so bounds checking was skipped for binary-sized arrays too.
 u8[0b10000] data;

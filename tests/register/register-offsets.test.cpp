@@ -3,17 +3,12 @@
  * A safer C for embedded systems
  */
 
+#include "register-offsets.test.hpp"
+
 #include <stdint.h>
 
 // ADR-004: Register offset calculation test
 // Tests: correct offset values in generated C macros
-/* Register: UART @ 0x40001000 */
-#define UART__CR (*(volatile uint32_t*)(0x40001000 + 0x00))
-#define UART__SR (*(volatile uint32_t const *)(0x40001000 + 0x04))
-#define UART__DR (*(volatile uint32_t*)(0x40001000 + 0x08))
-#define UART__BRR (*(volatile uint32_t*)(0x40001000 + 0x0C))
-#define UART__CR1 (*(volatile uint32_t*)(0x40001000 + 0x10))
-
 int main(void) {
     UART__CR = 0x01;
     UART__DR = 0x55;

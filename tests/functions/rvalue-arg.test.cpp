@@ -30,11 +30,11 @@ int main(void) {
     uint32_t value = 0x12345678U;
     uint32_t crc = 0U;
     crc = process(crc, value & 0xFFU);
-    if (crc != 0x78) return 1;
+    if (crc != 0x78) return 1U;
     uint8_t a = 10U;
     uint8_t b = 5U;
     crc = 0U;
     crc = process(crc, cnx_clamp_add_u8(a, b));
-    if (crc != 15) return 2;
-    return 0;
+    if (crc != 15) return 2U;
+    return 0U;
 }

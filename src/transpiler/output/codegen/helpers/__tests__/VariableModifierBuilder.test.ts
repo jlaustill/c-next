@@ -119,34 +119,19 @@ describe("VariableModifierBuilder", () => {
       };
 
       expect(() => VariableModifierBuilder.build(ctx, true)).toThrow(
-        "Cannot use both 'atomic' and 'volatile' modifiers",
+        "E0889 rejects this in pass 2.1",
       );
     });
 
-    it("includes line number in error when both modifiers specified", () => {
-      const ctx = {
-        constModifier: () => null,
-        atomicModifier: () => ({}),
-        volatileModifier: () => ({}),
-        start: { line: 42 },
-      };
+    // #1322: "includes line number in error when both modifiers specified" is
+    // deleted, not re-pointed. It asserted that the message carried a POSITION
+    // in its text -- which is exactly what the relocation removes. E0889 has a
+    // real line and column, and the assertion that survives here says only
+    // that the rule ran.
 
-      expect(() => VariableModifierBuilder.build(ctx, true)).toThrow(
-        "Error at line 42",
-      );
-    });
-
-    it("handles missing start in error case", () => {
-      const ctx = {
-        constModifier: () => null,
-        atomicModifier: () => ({}),
-        volatileModifier: () => ({}),
-      };
-
-      expect(() => VariableModifierBuilder.build(ctx, true)).toThrow(
-        "Error at line 0",
-      );
-    });
+    // #1322: "handles missing start in error case" went with it -- it asserted
+    // the `?? 0` fallback for a context with no position, which existed only
+    // because the message had to name a line. Nothing falls back now.
   });
 
   describe("buildSimple", () => {

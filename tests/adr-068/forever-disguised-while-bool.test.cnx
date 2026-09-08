@@ -1,0 +1,14 @@
+// test-error
+// test-adr: 068
+// Coverage: ADR-068 / #1075 - always-true boolean literal condition (E0707)
+void run() {
+    u8 state <- 0;
+    // NEGATIVE CONTROL -- `true != false` is also always true, and IS caught;
+    // `true = false` is always false and is left to #1076.
+    while (true = false) {
+        state <- 2;
+    }
+    while (true = true) {
+        state <- 1;
+    }
+}

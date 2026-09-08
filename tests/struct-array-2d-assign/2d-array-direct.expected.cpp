@@ -35,24 +35,24 @@ int main(void) {
     while (r < 3) {
         uint32_t c = 0U;
         while (c < 4) {
-            grid[r][c].row = r;
-            grid[r][c].col = c;
+            grid[r][c].row = static_cast<uint8_t>(((r) & 0xFFU));
+            grid[r][c].col = static_cast<uint8_t>(((c) & 0xFFU));
             grid[r][c].data = cnx_clamp_add_u32(cnx_clamp_mul_u32(r, 4U), c);
             c = cnx_clamp_add_u32(c, 1U);
         }
         r = cnx_clamp_add_u32(r, 1U);
     }
-    if (grid[0U][0U].data != 0) return 1;
-    if (grid[0U][3U].data != 3) return 2;
-    if (grid[2U][0U].data != 8) return 3;
-    if (grid[2U][3U].data != 11) return 4;
-    if (grid[1U][2U].row != 1) return 5;
-    if (grid[1U][2U].col != 2) return 6;
-    if (grid[1U][1U].data != 5) return 7;
-    if (grid[1U][2U].data != 6) return 8;
+    if (grid[0U][0U].data != 0) return 1U;
+    if (grid[0U][3U].data != 3) return 2U;
+    if (grid[2U][0U].data != 8) return 3U;
+    if (grid[2U][3U].data != 11) return 4U;
+    if (grid[1U][2U].row != 1) return 5U;
+    if (grid[1U][2U].col != 2) return 6U;
+    if (grid[1U][1U].data != 5) return 7U;
+    if (grid[1U][2U].data != 6) return 8U;
     grid[1][1].data = 999U;
-    if (grid[1U][1U].data != 999) return 9;
+    if (grid[1U][1U].data != 999) return 9U;
     grid[0][0].data += 100U;
-    if (grid[0U][0U].data != 100) return 10;
-    return 0;
+    if (grid[0U][0U].data != 100) return 10U;
+    return 0U;
 }

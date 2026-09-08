@@ -30,7 +30,6 @@ interface ITypeGenerationDeps {
   currentScopePath: string;
   isCppScopeSymbol: (name: string) => boolean;
   checkNeedsStructKeyword: (name: string) => boolean;
-  validateCrossScopeVisibility: (scope: string, member: string) => void;
   /**
    * Check if a *qualified* type name is a known type declared in the current
    * scope (ADR-057). Receives the already-joined C name (e.g. "A__B") so
@@ -60,16 +59,19 @@ class TypeGenerationHelper {
   }
 
   /**
-   * Generate C type for a scoped type (this.Type).
-   * Throws if called outside a scope context.
+   * Generate C type for a scoped type (`this.Type`).
+   *
+   * #1322: the empty-scope guard that stood here is deleted, not relocated.
+   * `this` outside a scope is E0431, authored in pass 2.1 and reached in EVERY
+   * position including a type -- verified on both the shapes that got here,
+   * a file-scope declaration and a local one, each reporting E0431 at the
+   * `this` token. Analysis halts before code generation, so no caller can
+   * arrive with an empty scope path.
    */
   static generateScopedType(
     typeName: string,
     currentScopePath: string,
   ): string {
-    if (!currentScopePath) {
-      throw new Error("Cannot use 'this.Type' outside of a scope");
-    }
     return ScopeUtils.qualifyInScope(typeName, currentScopePath);
   }
 
@@ -91,16 +93,14 @@ class TypeGenerationHelper {
   static generateQualifiedType(
     identifiers: string[],
     isCppNamespace: boolean,
-    validateVisibility?: (scope: string, member: string) => void,
   ): string {
     if (isCppNamespace) {
       return identifiers.join("::");
     }
 
     // C-Next scoped type - validate visibility for 2-part types
-    if (identifiers.length === 2 && validateVisibility) {
-      validateVisibility(identifiers[0], identifiers[1]);
-    }
+    // #1322: ADR-016's visibility check for a qualified type is E0435/E0436
+    // in pass 2.1.
 
     return QualifiedCName.fromParts(identifiers);
   }
@@ -126,33 +126,6 @@ class TypeGenerationHelper {
     }
 
     return typeName;
-  }
-
-  /**
-   * Generate base type for an array type.
-   *
-   * @param primitiveText - The primitive type text (if primitive)
-   * @param userTypeName - The user type name (if user type)
-   * @param needsStructKeyword - Whether to prefix with 'struct'
-   * @returns The C base type string
-   */
-  static generateArrayBaseType(
-    primitiveText: string | null,
-    userTypeName: string | null,
-    needsStructKeyword: boolean,
-  ): string {
-    if (primitiveText) {
-      return TYPE_MAP[primitiveText] || primitiveText;
-    }
-
-    if (userTypeName) {
-      if (needsStructKeyword) {
-        return `struct ${userTypeName}`;
-      }
-      return userTypeName;
-    }
-
-    throw new Error("Array type must have either primitive or user type");
   }
 
   /**
@@ -195,11 +168,7 @@ class TypeGenerationHelper {
       const identifiers = accessors.qualifiedType()!.IDENTIFIER();
       const identifierNames = identifiers.map((id) => id.getText());
       const isCpp = deps.isCppScopeSymbol(identifierNames[0]);
-      return TypeGenerationHelper.generateQualifiedType(
-        identifierNames,
-        isCpp,
-        deps.validateCrossScopeVisibility,
-      );
+      return TypeGenerationHelper.generateQualifiedType(identifierNames, isCpp);
     }
 
     if (accessors.primitiveType()) {

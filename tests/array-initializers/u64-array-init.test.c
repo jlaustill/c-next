@@ -40,51 +40,51 @@ uint64_t ones[50] = {1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL, 1ULL,
 const uint64_t factorials[10] = {1ULL, 1ULL, 2ULL, 6ULL, 24ULL, 120ULL, 720ULL, 5040ULL, 40320ULL, 362880ULL};
 
 int main(void) {
-    if (timestamps[0U] != 1000000000000) return 1;
-    if (timestamps[1U] != 2000000000000) return 2;
-    if (timestamps[2U] != 3000000000000) return 3;
-    if (timestamps[3U] != 4000000000000) return 4;
-    if (counters[0U] != 100) return 5;
-    if (counters[2U] != 300) return 6;
-    if (counters[4U] != 500) return 7;
-    if (buffer[0U] != 0) return 8;
-    if (buffer[50U] != 0) return 9;
-    if (buffer[99U] != 0) return 10;
-    if (ones[0U] != 1) return 11;
-    if (ones[25U] != 1) return 12;
-    if (ones[49U] != 1) return 13;
+    if (timestamps[0U] != 1000000000000) return 1U;
+    if (timestamps[1U] != 2000000000000) return 2U;
+    if (timestamps[2U] != 3000000000000) return 3U;
+    if (timestamps[3U] != 4000000000000) return 4U;
+    if (counters[0U] != 100) return 5U;
+    if (counters[2U] != 300) return 6U;
+    if (counters[4U] != 500) return 7U;
+    if (buffer[0U] != 0) return 8U;
+    if (buffer[50U] != 0) return 9U;
+    if (buffer[99U] != 0) return 10U;
+    if (ones[0U] != 1) return 11U;
+    if (ones[25U] != 1) return 12U;
+    if (ones[49U] != 1) return 13U;
     uint64_t mutableArr[5] = {10ULL, 20ULL, 30ULL, 40ULL, 50ULL};
     mutableArr[2] = 999ULL;
-    if (mutableArr[2U] != 999) return 14;
-    if (mutableArr[0U] != 10) return 15;
-    if (mutableArr[4U] != 50) return 16;
+    if (mutableArr[2U] != 999) return 14U;
+    if (mutableArr[0U] != 10) return 15U;
+    if (mutableArr[4U] != 50) return 16U;
     uint64_t sum = 0ULL;
-    for (uint32_t i = 0; i < 5; i += 1) {
+    for (uint32_t i = 0U; i < 5; i += 1) {
         sum = cnx_clamp_add_u64(sum, counters[i]);
     }
-    if (sum != 1500) return 17;
-    if (factorials[0U] != 1) return 18;
-    if (factorials[5U] != 120) return 19;
-    if (factorials[9U] != 362880) return 20;
+    if (sum != 1500) return 17U;
+    if (factorials[0U] != 1) return 18U;
+    if (factorials[5U] != 120) return 19U;
+    if (factorials[9U] != 362880) return 20U;
     uint64_t large_vals[3] = {9000000000000000000ULL, 8000000000000000000ULL, 7000000000000000000ULL};
-    if (large_vals[0U] != 9000000000000000000) return 21;
-    if (large_vals[2U] != 7000000000000000000) return 22;
+    if (large_vals[0U] != 9000000000000000000) return 21U;
+    if (large_vals[2U] != 7000000000000000000) return 22U;
     uint64_t sequence[10] = {0};
-    for (uint32_t i = 0; i < 10; i += 1) {
+    for (uint32_t i = 0U; i < 10; i += 1) {
         sequence[i] = i * 1000000ULL;
     }
-    if (sequence[0U] != 0) return 23;
-    if (sequence[5U] != 5000000) return 24;
-    if (sequence[9U] != 9000000) return 25;
-    if (4 != 4) return 26;
-    if (5 != 5) return 27;
-    if (100 != 100) return 28;
-    if (64 != 64) return 29;
-    if (64 != 64) return 30;
+    if (sequence[0U] != 0) return 23U;
+    if (sequence[5U] != 5000000) return 24U;
+    if (sequence[9U] != 9000000) return 25U;
+    if (4 != 4) return 26U;
+    if (5 != 5) return 27U;
+    if (100 != 100) return 28U;
+    if (64 != 64) return 29U;
+    if (64 != 64) return 30U;
     uint64_t computed[3] = {0};
     computed[0] = 1000ULL * 1000ULL;
     computed[1] = 1000ULL * 1000000ULL;
     computed[2] = computed[0U] + computed[1U];
-    if (computed[2U] != 1001000000) return 31;
-    return 0;
+    if (computed[2U] != 1001000000) return 31U;
+    return 0U;
 }

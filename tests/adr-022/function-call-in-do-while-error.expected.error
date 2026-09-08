@@ -1,0 +1,2 @@
+20:13 error[E0702]: do-while condition may not call a function: 'shouldContinue()=true'
+       help: MISRA C:2012 Rule 13.5: Store the function result in a variable first.

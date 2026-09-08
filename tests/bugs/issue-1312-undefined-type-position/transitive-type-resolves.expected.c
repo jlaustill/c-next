@@ -18,7 +18,7 @@ Depth reachedThroughChain = Depth__DEPTH_A;
 
 int main(void) {
     if (reachedThroughChain != Depth__DEPTH_A) {
-        return 1;
+        return 1U;
     }
-    return 0;
+    return 0U;
 }

@@ -1,1 +1,2 @@
-1:0 Code generation failed: Array index out of bounds: 5 >= 5 for 'arr' dimension 1 (line 13)
+14:25 error[E0854]: Array index out of bounds: 5 >= 5 for 'arr' dimension 1
+       help: The last valid index is 4 (ADR-036).

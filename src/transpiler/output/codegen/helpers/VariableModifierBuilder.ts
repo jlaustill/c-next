@@ -10,6 +10,8 @@
  * - Validation that atomic and volatile are not both specified
  */
 
+import invariant from "../../../../utils/invariant";
+
 /**
  * Result from building variable modifiers.
  */
@@ -76,15 +78,14 @@ class VariableModifierBuilder {
       hasConst && !inFunctionBody && (cppMode || !hasInitializer);
     const externMod = needsExtern ? "extern " : "";
 
-    // Validate: cannot use both atomic and volatile
-    if (ctx.atomicModifier() && ctx.volatileModifier()) {
-      const line = ctx.start?.line ?? 0;
-      throw new Error(
-        `Error at line ${line}: Cannot use both 'atomic' and 'volatile' modifiers. ` +
-          `Use 'atomic' for ISR-shared variables (includes volatile + atomicity), ` +
-          `or 'volatile' for hardware registers and delay loops.`,
-      );
-    }
+    // #1322: ADR-049's `atomic` + `volatile` rule is E0889 in pass 2.1. It is
+    // purely syntactic -- two modifier tokens on one declaration -- so it did
+    // not belong in the builder that also decides linkage, and its position no
+    // longer has to be spelled into the message.
+    invariant(
+      !(ctx.atomicModifier() && ctx.volatileModifier()),
+      "a declaration carries `atomic` or `volatile`, not both -- E0889 rejects this in pass 2.1, before this runs",
+    );
 
     return {
       const: constMod,

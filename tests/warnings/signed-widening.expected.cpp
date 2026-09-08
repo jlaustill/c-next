@@ -13,18 +13,18 @@
 int main(void) {
     int8_t small_pos = 127;
     int16_t medium_pos = small_pos;
-    if (medium_pos != 127) return 1;
+    if (medium_pos != 127) return 1U;
     int8_t small_neg = -128;
     int16_t medium_neg = small_neg;
-    if (medium_neg != -128) return 2;
+    if (medium_neg != -128) return 2U;
     int32_t large = medium_pos;
-    if (large != 127) return 3;
+    if (large != 127) return 3U;
     int64_t huge = large;
-    if (huge != 127) return 4;
+    if (huge != 127) return 4U;
     int64_t direct = small_neg;
-    if (direct != -128) return 5;
+    if (direct != -128) return 5U;
     int8_t neg_one = -1;
     int64_t extended = neg_one;
-    if (extended != -1) return 6;
-    return 0;
+    if (extended != -1) return 6U;
+    return 0U;
 }

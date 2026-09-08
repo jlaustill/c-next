@@ -221,41 +221,9 @@ describe("BinaryExprUtils", () => {
     });
   });
 
-  describe("validateEnumComparison", () => {
-    it("allows comparing same enum types", () => {
-      expect(() =>
-        BinaryExprUtils.validateEnumComparison("Color", "Color", false, false),
-      ).not.toThrow();
-    });
-
-    it("allows comparing non-enum values", () => {
-      expect(() =>
-        BinaryExprUtils.validateEnumComparison(null, null, true, true),
-      ).not.toThrow();
-    });
-
-    it("throws when comparing different enum types (ADR-017)", () => {
-      expect(() =>
-        BinaryExprUtils.validateEnumComparison("Color", "Size", false, false),
-      ).toThrow("Error: Cannot compare Color enum to Size enum");
-    });
-
-    it("throws when comparing enum to integer on left (ADR-017)", () => {
-      expect(() =>
-        BinaryExprUtils.validateEnumComparison("Color", null, false, true),
-      ).toThrow("Error: Cannot compare Color enum to integer");
-    });
-
-    it("throws when comparing enum to integer on right (ADR-017)", () => {
-      expect(() =>
-        BinaryExprUtils.validateEnumComparison(null, "Color", true, false),
-      ).toThrow("Error: Cannot compare integer to Color enum");
-    });
-
-    it("allows enum compared to non-integer non-enum", () => {
-      expect(() =>
-        BinaryExprUtils.validateEnumComparison("Color", null, false, false),
-      ).not.toThrow();
-    });
-  });
+  // #1322: the `validateEnumComparison` tests that stood here are gone with the
+  // method. ADR-017's comparison rule is E0434 in pass 2.1, asked of resolved
+  // types rather than of four booleans a caller had already computed by
+  // splitting the operands' source text. Covered by
+  // `1-Analyze/__tests__/EnumTypeSafetyAnalyzer.test.ts`.
 });

@@ -66,37 +66,6 @@ function tryResolveEnumMember(
 }
 
 /**
- * Issue #477: Check if identifier matches any enum member when switch is not on enum.
- * Throws error with helpful suggestion if found.
- */
-function rejectUnqualifiedEnumMember(
-  id: string,
-  symbols: IGeneratorInput["symbols"],
-  node: CaseLabelContext,
-): void {
-  if (!symbols) return;
-
-  const matchingEnums: string[] = [];
-  for (const [enumName, members] of symbols.enumMembers) {
-    if (members.has(id)) {
-      matchingEnums.push(enumName);
-    }
-  }
-
-  if (matchingEnums.length === 0) return;
-
-  const suggestion =
-    matchingEnums.length === 1
-      ? `did you mean '${matchingEnums[0]}.${id}'?`
-      : `exists in: ${matchingEnums.join(", ")}. Use qualified access.`;
-  const line = node.start?.line ?? 0;
-  const col = node.start?.column ?? 0;
-  throw new Error(
-    `${line}:${col} error[E0424]: '${id}' is not defined; ${suggestion}`,
-  );
-}
-
-/**
  * Generate code for a binary literal case label.
  * Converts binary to hex for cleaner C output.
  */
@@ -138,10 +107,9 @@ function generateIdentifierLabel(
   if (switchEnumType) {
     const resolved = tryResolveEnumMember(id, switchEnumType, input.symbols);
     if (resolved) return resolved;
-  } else {
-    // Issue #477: Reject unqualified enum members in non-enum switch context
-    rejectUnqualifiedEnumMember(id, input.symbols, node);
   }
+  // #1322: a bare member the switch's enum does not declare is E0424 in
+  // pass 2.1 (ADR-017); what remains here is a const label.
 
   return id;
 }
@@ -305,8 +273,7 @@ const generateSwitch = (
   const switchExpr = node.expression();
   const exprCode = orchestrator.generateExpression(switchExpr);
 
-  // ADR-025: Semantic validation
-  orchestrator.validateSwitchStatement(node, switchExpr);
+  // #1322: ADR-025's semantic validation is E0711-E0714 in pass 2.1.
 
   // Issue #471: Get the enum type of the switch expression for case label resolution
   const switchEnumType = orchestrator.getExpressionEnumType(switchExpr);

@@ -11,14 +11,6 @@
 // test-coverage: 12-w1c-access-modifier
 // Tests: Write-1-to-Clear register access modifier
 // Writing 1 to a bit clears it, writing 0 has no effect
-/* Register: INT @ 0x40001000 */
-#define INT__STATUS (*(volatile uint32_t*)(0x40001000 + 0x00))
-#define INT__PENDING (*(volatile uint32_t*)(0x40001000 + 0x04))
-
-/* Register: GPIO @ 0x40002000 */
-#define GPIO__DR (*(volatile uint32_t*)(0x40002000 + 0x00))
-#define GPIO__INTSTAT (*(volatile uint32_t*)(0x40002000 + 0x10))
-
 void clearInterrupt(uint32_t mask) {
     INT__STATUS = mask;
 }

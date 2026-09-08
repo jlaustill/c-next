@@ -383,6 +383,51 @@ uint8_t mode = ((status.flags >> 3) & 0x7);
 
 ---
 
+## Diagnostics
+
+| Code  | Reported when                                                             | Asserted by                                            |
+| ----- | ------------------------------------------------------------------------- | ------------------------------------------------------ |
+| E0881 | A value written to a bitmap field does not fit the field's declared width | `tests/adr-034/bitmap-error-overflow.test.cnx`         |
+| E0882 | A member access names something the bitmap does not declare               | `tests/adr-034/bitmap-unknown-field-error.test.cnx`    |
+| E0883 | A bitmap is addressed by bit index rather than by named field             | `tests/adr-034/bitmap-bracket-indexing-error.test.cnx` |
+
+A bitmap is reached two ways -- through a variable declared with a bitmap type,
+and through a register member typed by one -- and all three rules ask the same
+question of both. The distinction matters: bracket indexing was rejected only
+through a register until #1322, so indexing a bitmap variable was accepted and
+lowered to a bit index, which is the shape ADR-034 exists to replace.
+
+The four shape properties ADR-058 defines describe the type rather than name a
+field, so they are not unknown members.
+
+## Scope-Context Matrix (#1219)
+
+Severity follows the eslint model: `off` records that a cell **cannot exist**,
+`warn` that it should be covered and is not, `error` that it must be.
+
+<!-- MATRIX-SEVERITY -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| top-level function | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | same file           | error    |
+| scope member       | same file           | warn     |
+| top-level function | imported direct     | warn     |
+| scope method       | imported direct     | warn     |
+| global variable    | imported direct     | warn     |
+| scope member       | imported direct     | warn     |
+| top-level function | imported transitive | warn     |
+| scope method       | imported transitive | warn     |
+| global variable    | imported transitive | warn     |
+| scope member       | imported transitive | warn     |
+
+A bitmap's fields and a register member's type can both be declared in an
+included file, so every imported cell is reachable and none is `off`. They are
+`warn` rather than `error` because no fixture builds them yet: this pass
+relocated the rules and did not widen their coverage, and claiming `error`
+would record an obligation as met.
+
 ## Interim Pattern (Until Implementation)
 
 Until `bitmap` types are implemented, use the enum + ADR-007 pattern:

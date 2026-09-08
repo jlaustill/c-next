@@ -9,11 +9,11 @@
 
 // #1201: a function-as-type used as a parameter must emit the _fp typedef.
 uint32_t tickSource(void) {
-    return 0;
+    return 0U;
 }
 
 uint32_t platformClock(void) {
-    return 12345;
+    return 12345U;
 }
 
 uint32_t callIt(tickSource_fp source) {

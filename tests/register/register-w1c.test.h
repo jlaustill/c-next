@@ -12,6 +12,15 @@
 extern "C" {
 #endif
 
+/* Registers (ADR-004) */
+/* Register: INT @ 0x40001000 */
+#define INT__STATUS (*(volatile uint32_t*)(0x40001000 + 0x00))
+#define INT__PENDING (*(volatile uint32_t*)(0x40001000 + 0x04))
+
+/* Register: GPIO @ 0x40002000 */
+#define GPIO__DR (*(volatile uint32_t*)(0x40002000 + 0x00))
+#define GPIO__INTSTAT (*(volatile uint32_t*)(0x40002000 + 0x10))
+
 /* Function prototypes */
 void clearInterrupt(uint32_t mask);
 void clearPendingIRQ(uint8_t irqNum);

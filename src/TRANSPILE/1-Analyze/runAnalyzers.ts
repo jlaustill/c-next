@@ -1,0 +1,462 @@
+/**
+ * Pass 2.1: every rejection C-Next makes about a parsed program.
+ *
+ * The steps run in the order declared below, and the loop STOPS at the first
+ * non-advisory step that finds anything -- so a step's position is a decision
+ * about which diagnostic a program with several faults is shown, not a detail.
+ * Each entry carries a `label` saying why it sits where it does.
+ *
+ * The header used to say "All 14 analyzers (plus comment validation)", a count
+ * carried verbatim from the pre-#1322 path and wrong by a factor of three by
+ * the time it moved here. It is deliberately not replaced with a new number:
+ * a literal in a comment beside the table it describes is the doc-rot this
+ * card exists to remove, and `docs/error-codes.md` plus
+ * `docs/architecture/output-throw-classification.md` carry the counts that ARE
+ * gated.
+ */
+
+import { CommonTokenStream } from "antlr4ng";
+import { ProgramContext } from "../../transpiler/logic/parser/grammar/CNextParser";
+import CppClassInitializerAnalyzer from "./CppClassInitializerAnalyzer";
+import DefineDirectiveAnalyzer from "./DefineDirectiveAnalyzer";
+import IdentifierSyntaxAnalyzer from "./IdentifierSyntaxAnalyzer";
+import ParameterNamingAnalyzer from "./ParameterNamingAnalyzer";
+import StructFieldAnalyzer from "./StructFieldAnalyzer";
+import InitializationAnalyzer from "./InitializationAnalyzer";
+import FunctionCallAnalyzer from "./FunctionCallAnalyzer";
+import UndeclaredTypeAnalyzer from "./UndeclaredTypeAnalyzer";
+import UndeclaredValueAnalyzer from "./UndeclaredValueAnalyzer";
+import NullCheckAnalyzer from "./NullCheckAnalyzer";
+import DivisionByZeroAnalyzer from "./DivisionByZeroAnalyzer";
+import FloatModuloAnalyzer from "./FloatModuloAnalyzer";
+import ArrayIndexTypeAnalyzer from "./ArrayIndexTypeAnalyzer";
+import ShiftAnalyzer from "./ShiftAnalyzer";
+import BooleanOperandAnalyzer from "./BooleanOperandAnalyzer";
+import MixedTypeCategoryAnalyzer from "./MixedTypeCategoryAnalyzer";
+import ReturnPathAnalyzer from "./ReturnPathAnalyzer";
+import ReturnValueUseAnalyzer from "./ReturnValueUseAnalyzer";
+import CompoundAssignmentAnalyzer from "./CompoundAssignmentAnalyzer";
+import ConstructorArgumentAnalyzer from "./ConstructorArgumentAnalyzer";
+import CriticalSectionAnalyzer from "./CriticalSectionAnalyzer";
+import EnumTypeSafetyAnalyzer from "./EnumTypeSafetyAnalyzer";
+import ScopeAccessAnalyzer from "./ScopeAccessAnalyzer";
+import RegisterAccessAnalyzer from "./RegisterAccessAnalyzer";
+import BareEnumMemberAnalyzer from "./BareEnumMemberAnalyzer";
+import ArrayDeclarationAnalyzer from "./ArrayDeclarationAnalyzer";
+import ArrayIndexBoundsAnalyzer from "./ArrayIndexBoundsAnalyzer";
+import CallbackAssignmentAnalyzer from "./CallbackAssignmentAnalyzer";
+import BitmapAccessAnalyzer from "./BitmapAccessAnalyzer";
+import SafeDivisionAnalyzer from "./SafeDivisionAnalyzer";
+import BitAccessAnalyzer from "./BitAccessAnalyzer";
+import DeclarationModifierAnalyzer from "./DeclarationModifierAnalyzer";
+import SizeofAnalyzer from "./SizeofAnalyzer";
+import StructLiteralAnalyzer from "./StructLiteralAnalyzer";
+import ConstAssignmentAnalyzer from "./ConstAssignmentAnalyzer";
+import LoopAnalyzer from "./LoopAnalyzer";
+import SliceAssignmentAnalyzer from "./SliceAssignmentAnalyzer";
+import ControllingExpressionAnalyzer from "./ControllingExpressionAnalyzer";
+import IntegerConversionAnalyzer from "./IntegerConversionAnalyzer";
+import LengthPropertyAnalyzer from "./LengthPropertyAnalyzer";
+import StringDeclarationAnalyzer from "./StringDeclarationAnalyzer";
+import SwitchStatementAnalyzer from "./SwitchStatementAnalyzer";
+import NestedTernaryAnalyzer from "./NestedTernaryAnalyzer";
+import ThisOutsideScopeAnalyzer from "./ThisOutsideScopeAnalyzer";
+import CommentExtractor from "./CommentExtractor";
+import ITranspileError from "../../lib/types/ITranspileError";
+import SymbolTable from "../../transpiler/logic/symbols/SymbolTable";
+import CodeGenState from "../../transpiler/state/CodeGenState";
+import IncludeDirectiveAnalyzer from "./IncludeDirectiveAnalyzer";
+import IIncludeContext from "./types/IIncludeContext";
+
+/**
+ * Options for running analyzers
+ */
+interface IAnalyzerOptions {
+  /**
+   * Symbol table containing external function definitions from C/C++ headers
+   * Used by FunctionCallAnalyzer to recognize external functions.
+   * Falls back to CodeGenState.symbolTable if not provided.
+   */
+  symbolTable?: SymbolTable;
+
+  /**
+   * #1322: the file being analyzed, and where its angle includes are searched.
+   *
+   * REQUIRED, and that is the point. Passed in rather than read off shared
+   * state, because the shared answer is WRONG at this moment:
+   * `CodeGenState.sourcePath` is written inside `CodeGenerator.generate()`,
+   * which runs after this, so an analyzer reading it sees `null` on the first
+   * file and the PREVIOUS file's path on every one after -- the
+   * order-dependent-diagnostic shape #1399 shipped. The caller holds both facts
+   * correctly, seventeen lines below the call.
+   *
+   * It is not optional-with-a-skip because that is a guard that cannot fire: a
+   * caller who forgot it would lose all three ADR-010 rules with nothing
+   * failing, which is the shape this card exists to remove.
+   */
+  readonly includes: IIncludeContext;
+
+  /**
+   * #1322: whether this run emits C++.
+   *
+   * From `Transpiler.cppMode`, set once for the whole run, for the same reason
+   * as `includes`: `CodeGenState.cppMode` is written inside
+   * `CodeGenerator.generate()`. Measured at the first analyzer step, it is
+   * `false` for a run's first file and holds the PREVIOUS file's value for
+   * every file after -- so a rule copying codegen's guard would fire for files
+   * 2..N and stay silent for file 1, which is worse than never firing because
+   * it looks like it works.
+   */
+  readonly cppMode: boolean;
+}
+
+/**
+ * Generic analyzer error with common fields.
+ *
+ * Deliberately WIDER than `IBaseAnalysisError`, not a copy of it: `code` is
+ * optional and `rule` exists because this must also accept a step whose code is
+ * not an `E` number. `helpText` is here for the opposite reason -- it was absent,
+ * so every analyzer's suggested fix was silently discarded on the way through
+ * (#1306). A field missing from an accepting type drops data without failing.
+ */
+interface IAnalyzerError {
+  line: number;
+  column: number;
+  message: string;
+  code?: string;
+  rule?: string;
+  helpText?: string;
+}
+
+/**
+ * Convert analyzer errors to ITranspileError format and add to accumulator.
+ * Returns true if any errors were added (for early return logic).
+ */
+function collectErrors(
+  analyzerErrors: IAnalyzerError[],
+  target: ITranspileError[],
+  formatMessage?: (err: IAnalyzerError) => string,
+): boolean {
+  const formatter = formatMessage ?? ((e) => e.message);
+  for (const err of analyzerErrors) {
+    // #1306: `helpText` was set at 21 analyzer sites and read at none -- it was
+    // dropped here, so the "Help" column in docs/error-codes.md documented output
+    // that did not exist. Carrying it through moves 92 `.expected.error` files,
+    // which is the evidence the advice now reaches a user rather than a cost to
+    // route around.
+    target.push({
+      line: err.line,
+      column: err.column,
+      message: formatter(err),
+      severity: "error",
+      helpText: err.helpText,
+    });
+  }
+  return analyzerErrors.length > 0;
+}
+
+/**
+ * One analysis step.
+ *
+ * #1399 review: the body was fifteen repetitions of
+ * `if (collectErrors(x.analyze(tree), errors, fmt)) return errors;`, which is a
+ * table written as control flow -- cognitive complexity 16, over the 15 limit,
+ * and growing by one with every analyzer added. The ordering constraints were
+ * real but survived only as prose between the blocks; as entries they are data
+ * that moves with the step.
+ */
+interface IAnalyzerStep {
+  /** Why this step sits here, when its position matters. */
+  readonly label: string;
+  readonly run: () => IAnalyzerError[];
+  /** Defaults to the `error[CODE]: message` form. */
+  readonly format?: (err: IAnalyzerError) => string;
+  /** When true, findings are reported and later steps still run. */
+  readonly advisory?: boolean;
+}
+
+/**
+ * Run all semantic analyzers on a parsed program.
+ *
+ * @param tree - The parsed program AST
+ * @param tokenStream - Token stream for comment validation
+ * @param options - Optional configuration including external struct info
+ * @returns Array of errors (empty if all pass)
+ */
+function runAnalyzers(
+  tree: ProgramContext,
+  tokenStream: CommonTokenStream,
+  options: IAnalyzerOptions,
+): ITranspileError[] {
+  const errors: ITranspileError[] = [];
+  const formatWithCode = (e: IAnalyzerError) =>
+    `error[${e.code}]: ${e.message}`;
+
+  // External function definitions from C/C++ headers, for the two steps that
+  // need them. Read from CodeGenState unless the caller supplied one.
+  const symbolTable = options.symbolTable ?? CodeGenState.symbolTable;
+
+  const steps: readonly IAnalyzerStep[] = [
+    {
+      // #1322: before anything reads a declaration. A file's directives
+      // precede every declaration in the grammar, so a bad one is never a
+      // consequence of the code below it -- and reporting the code below it
+      // first would tell the author to fix the wrong line. Worse for includes
+      // specifically: including the wrong file changes which names exist, so
+      // every later step would be answering about a program the author did not
+      // write.
+      label: "#include targets (ADR-010: headers only, .cnx over .h)",
+      run: () => new IncludeDirectiveAnalyzer().analyze(tree, options.includes),
+    },
+    {
+      label: "#define shape (ADR-037: flag-only defines)",
+      run: () => new DefineDirectiveAnalyzer().analyze(tree),
+    },
+    {
+      // #1322: a C++ class initializer that has nowhere to put its
+      // assignments. Reads only the run's mode and the symbol table, both
+      // settled before this pass.
+      label:
+        "C++ class initializers (Issue #517: no statement position at file scope)",
+      run: () =>
+        new CppClassInitializerAnalyzer().analyze(
+          tree,
+          options.cppMode,
+          symbolTable,
+        ),
+    },
+    {
+      // A malformed identifier feeds a bad name into every later analysis.
+      label: "identifier syntax (ADR-063: no trailing or consecutive '_')",
+      run: () => new IdentifierSyntaxAnalyzer().analyze(tree),
+    },
+    {
+      label: "parameter naming (Issue #227: reserved naming patterns)",
+      run: () => new ParameterNamingAnalyzer().analyze(tree),
+      // Carries its own message text rather than a code.
+      format: (e) => e.message,
+    },
+    {
+      label: "struct fields (reserved field names like 'length')",
+      run: () => new StructFieldAnalyzer().analyze(tree),
+    },
+    {
+      label: "initialization (Rust-style use-before-init)",
+      run: () => new InitializationAnalyzer().analyze(tree, symbolTable),
+    },
+    {
+      // Before the call and essential-type analyses: a type that denotes
+      // nothing feeds an unknown type into every later question, so the
+      // diagnostics after it would name a consequence rather than the cause.
+      label: "undefined type references (#1312)",
+      run: () => new UndeclaredTypeAnalyzer().analyze(tree),
+    },
+    {
+      // After the type check, so a file whose type is undefined reports the
+      // type rather than every use of it.
+      label: "undefined value references (#1353)",
+      run: () => new UndeclaredValueAnalyzer().analyze(tree),
+    },
+    {
+      label: "call analysis (ADR-030: define-before-use)",
+      run: () => new FunctionCallAnalyzer().analyze(tree, symbolTable),
+    },
+    {
+      label: "NULL checks (ADR-047: C library interop)",
+      run: () => new NullCheckAnalyzer().analyze(tree),
+    },
+    {
+      label: "division by zero (ADR-051: compile-time detection)",
+      run: () => new DivisionByZeroAnalyzer().analyze(tree),
+    },
+    {
+      label: "float modulo (% with f32/f64)",
+      run: () => new FloatModuloAnalyzer().analyze(tree),
+    },
+    {
+      label: "array index type (ADR-054: unsigned indexes only)",
+      run: () => new ArrayIndexTypeAnalyzer().analyze(tree),
+    },
+    {
+      label:
+        "shift operands and amounts (MISRA C:2012 Rules 10.1 and 12.2, E0805/E0873)",
+      run: () => new ShiftAnalyzer().analyze(tree),
+    },
+    {
+      // Before the Rule 10.4 check, so a bool in an arithmetic expression is
+      // reported as "not a number" rather than as a category mismatch with
+      // whatever it was combined with.
+      label: "boolean operands (MISRA C:2012 Rule 10.1, Issue #1183)",
+      run: () => new BooleanOperandAnalyzer().analyze(tree),
+    },
+    {
+      label:
+        "mixed essential type category (MISRA C:2012 Rule 10.4, ADR-024 / Issue #1091)",
+      run: () => new MixedTypeCategoryAnalyzer().analyze(tree),
+    },
+    {
+      label: "return paths (ADR-067: non-void must return on all paths)",
+      run: () => new ReturnPathAnalyzer().analyze(tree),
+    },
+    {
+      label:
+        "return-value use (ADR-070 / MISRA C:2012 Rule 17.7 at source level)",
+      run: () => ReturnValueUseAnalyzer.analyze(tree),
+    },
+    // ---------------------------------------------------------------------
+    // #1322 relocations: appended as a BLOCK, never inserted among the steps
+    // above. The loop breaks at the first non-advisory step that finds
+    // anything, so where a step sits decides which diagnostic a file reports
+    // when two would fire. Appending is the only placement that CANNOT change
+    // what an existing fixture says -- every file that reaches an older
+    // analyzer today still reaches it first -- and a fixture that quietly
+    // starts reporting a different code is what
+    // `diagnostics:manifest:check` calls `code-removed`, which the suite
+    // stays green through.
+    //
+    // Order WITHIN this block is not load-bearing: no fixture triggers two of
+    // these rules, so no diagnostic depends on it. A later relocation that
+    // needs to preempt a step ABOVE the block states its
+    // cause-before-consequence reason at its own entry, as the pairs above do.
+    // ---------------------------------------------------------------------
+    {
+      label: "nested ternary in a condition or branch (ADR-022, E0710)",
+      run: () => new NestedTernaryAnalyzer().analyze(tree),
+    },
+    {
+      label:
+        "compound assignment needs a whole storage location (ADR-007, E0857)",
+      run: () => new CompoundAssignmentAnalyzer().analyze(tree),
+    },
+    {
+      label: "C++ constructor arguments must be declared const (ADR-013, #375)",
+      run: () => new ConstructorArgumentAnalyzer().analyze(tree),
+    },
+    {
+      label: "`return` inside a critical section (ADR-050, E0853)",
+      run: () => new CriticalSectionAnalyzer().analyze(tree),
+    },
+    {
+      label: "`this` outside a scope (ADR-016)",
+      run: () => new ThisOutsideScopeAnalyzer().analyze(tree),
+    },
+    {
+      // Before the enum type-safety step: `Color c <- YELLOW` with YELLOW
+      // declared by another enum is a bare member in the wrong place, and
+      // "did you mean 'Status.YELLOW'" is the useful answer; the type-safety
+      // step would call the same line a non-enum value.
+      label: "bare enum members (ADR-017, E0424)",
+      run: () => new BareEnumMemberAnalyzer().analyze(tree),
+    },
+    {
+      label: "enum type safety (ADR-017, E0428/E0434)",
+      run: () => new EnumTypeSafetyAnalyzer().analyze(tree),
+    },
+    {
+      label: "slice assignment (ADR-007, E0858-E0861)",
+      run: () => new SliceAssignmentAnalyzer().analyze(tree),
+    },
+    {
+      label: "switch statements (ADR-025, E0711-E0714)",
+      run: () => new SwitchStatementAnalyzer().analyze(tree),
+    },
+    {
+      label: "controlling expressions (ADR-022, MISRA 14.4/13.5, E0701/E0702)",
+      run: () => new ControllingExpressionAnalyzer().analyze(tree),
+    },
+    {
+      label: "string declarations (ADR-045, E0862-E0866)",
+      run: () => new StringDeclarationAnalyzer().analyze(tree),
+    },
+    {
+      label: "length properties (ADR-058, E0867)",
+      run: () => new LengthPropertyAnalyzer().analyze(tree),
+    },
+    {
+      label: "integer conversions (ADR-024, E0868/E0869)",
+      run: () => new IntegerConversionAnalyzer().analyze(tree),
+    },
+    {
+      label: "scope access (ADR-016, E0435-E0437)",
+      run: () => new ScopeAccessAnalyzer().analyze(tree),
+    },
+    {
+      label: "register access modifiers (ADR-004, E0870-E0872)",
+      run: () => new RegisterAccessAnalyzer().analyze(tree),
+    },
+    {
+      // After controlling expressions: the always-true check assumes E0701
+      // already guaranteed a comparison, as it did in codegen.
+      label: "loops and break/continue (ADR-068/ADR-026, E0703/E0705/E0707)",
+      run: () => new LoopAnalyzer().analyze(tree),
+    },
+    {
+      label:
+        "array declarations and initializers (ADR-035/036, E0866/E0874-E0876)",
+      run: () => new ArrayDeclarationAnalyzer().analyze(tree),
+    },
+    {
+      label: "constant array index bounds (ADR-036, E0854)",
+      run: () => new ArrayIndexBoundsAnalyzer().analyze(tree),
+    },
+    {
+      label: "const enforcement (ADR-013, E0877/E0878)",
+      run: () => new ConstAssignmentAnalyzer().analyze(tree),
+    },
+    {
+      label: "callback typing (ADR-029, E0879/E0880)",
+      run: () => new CallbackAssignmentAnalyzer().analyze(tree),
+    },
+    {
+      label: "struct initializers (ADR-014, E0356/E0357)",
+      run: () => new StructLiteralAnalyzer().analyze(tree),
+    },
+    {
+      label: "bitmap access (ADR-034, E0881-E0883)",
+      run: () => new BitmapAccessAnalyzer().analyze(tree),
+    },
+    {
+      label: "safe_div/safe_mod call shape (ADR-051, E0884/E0885)",
+      run: () => new SafeDivisionAnalyzer().analyze(tree),
+    },
+    {
+      label: "sizeof operands (ADR-023, E0601/E0602)",
+      run: () => new SizeofAnalyzer().analyze(tree),
+    },
+    {
+      label: "declaration modifiers (ADR-049, E0889)",
+      run: () => new DeclarationModifierAnalyzer().analyze(tree),
+    },
+    {
+      label: "bit indexing depth and scope (ADR-007/036, E0856/E0888)",
+      run: () => new BitAccessAnalyzer().analyze(tree),
+    },
+    {
+      // Last, and does not halt: comment findings are reported alongside
+      // whatever else the file produced.
+      label: "comment validation (MISRA C:2012 Rules 3.1, 3.2 -- ADR-043)",
+      run: () => new CommentExtractor(tokenStream).validate(),
+      format: (e) => `error[MISRA-${e.rule}]: ${e.message}`,
+      advisory: true,
+    },
+  ];
+
+  for (const step of steps) {
+    const found = collectErrors(
+      step.run(),
+      errors,
+      step.format ?? formatWithCode,
+    );
+    // `break`, not an early `return`: both exits hand back the same `errors`
+    // array, so returning from inside the loop reads as two exits with one
+    // value (S3516) when it is really one exit and a stopping condition. What
+    // varies is what `errors` CONTAINS, which no return statement expresses.
+    if (found && !step.advisory) {
+      break;
+    }
+  }
+
+  return errors;
+}
+
+export default runAnalyzers;

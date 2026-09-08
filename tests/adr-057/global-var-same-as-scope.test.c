@@ -47,6 +47,6 @@ uint32_t Motor__test(void) {
 
 int main(void) {
     uint32_t result = Motor__test();
-    if (result != 260) return 1;
-    return 0;
+    if (result != 260) return 1U;
+    return 0U;
 }

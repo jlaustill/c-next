@@ -449,6 +449,8 @@ function createMockOrchestrator(
     ),
     getZeroInitializer: vi.fn((typeCtx, isArray) => (isArray ? "{0}" : "0")),
     setCurrentFunctionName: vi.fn(),
+    enterFunctionContext: vi.fn(),
+    exitFunctionContext: vi.fn(),
     setParameters: vi.fn(),
     enterFunctionBody: vi.fn(),
     generateBlock: vi.fn(() => "{ }"),
@@ -456,11 +458,9 @@ function createMockOrchestrator(
     generateParameterList: vi.fn(() => "void"),
     exitFunctionBody: vi.fn(),
     clearParameters: vi.fn(),
-    isCallbackTypeUsedAsFieldType: vi.fn(() => false),
     recordCallbackTypedef: vi.fn(),
     getCallbackTypedefName: vi.fn(() => null),
     generateCallbackTypedef: vi.fn(() => null),
-    isConstValue: vi.fn(() => true),
     tryEvaluateConstant: vi.fn(() => undefined),
     // Issue #948: Opaque type helpers
     isOpaqueType: vi.fn(() => false),
@@ -891,7 +891,7 @@ describe("ScopeGenerator", () => {
       const orchestrator = createMockOrchestrator();
 
       expect(() => generateScope(ctx, input, state, orchestrator)).toThrow(
-        /Cannot use both 'atomic' and 'volatile' modifiers/,
+        "E0889 rejects this in pass 2.1",
       );
     });
   });
@@ -913,7 +913,6 @@ describe("ScopeGenerator", () => {
       const state = createMockState();
       const orchestrator = createMockOrchestrator({
         ...createMockOrchestrator(),
-        isConstValue: vi.fn(() => true),
       });
 
       const result = generateScope(ctx, input, state, orchestrator);
@@ -923,26 +922,12 @@ describe("ScopeGenerator", () => {
       );
     });
 
-    it("throws error for non-const constructor argument", () => {
-      const varDecl = createMockVariableDecl({
-        name: "obj",
-        type: "MyClass",
-        constructorArgs: ["nonConstArg"],
-        startLine: 42,
-      });
-      const member = createMockScopeMember({ variableDecl: varDecl });
-      const ctx = createMockScopeContext("Test", [member]);
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({
-        ...createMockOrchestrator(),
-        isConstValue: vi.fn(() => false),
-      });
-
-      expect(() => generateScope(ctx, input, state, orchestrator)).toThrow(
-        "Error at line 42: Constructor argument 'nonConstArg' must be const",
-      );
-    });
+    // #1322: this drove codegen directly with an argument pass 2.1 now
+    // rejects (E0432 / E0433), so the pipeline halts before this code runs.
+    // The rule is covered by
+    // `1-Analyze/__tests__/ConstructorArgumentAnalyzer.test.ts` and by
+    // `tests/constructor-syntax/error-non-const-arg` and
+    // `error-undeclared-arg`, which now assert a real position.
 
     it("generates public constructor without static", () => {
       const varDecl = createMockVariableDecl({
@@ -959,7 +944,6 @@ describe("ScopeGenerator", () => {
       const state = createMockState();
       const orchestrator = createMockOrchestrator({
         ...createMockOrchestrator(),
-        isConstValue: vi.fn(() => true),
       });
 
       const result = generateScope(ctx, input, state, orchestrator);
@@ -1052,21 +1036,21 @@ describe("ScopeGenerator", () => {
 
       generateScope(ctx, input, state, orchestrator);
 
-      // Verify call order
-      expect(orchestrator.setCurrentFunctionName).toHaveBeenCalledWith(
+      // Verify call order. #1277: the four separate context calls this used to
+      // assert are one pair now, shared with FunctionGenerator -- the scope
+      // copy had been missing the return type, so no `return` in a scope
+      // method knew its type. Asserting the pair is what makes a future
+      // divergence impossible rather than merely unlikely.
+      expect(orchestrator.enterFunctionContext).toHaveBeenCalledWith(
         "Test__test",
+        "void",
+        null,
       );
-      expect(orchestrator.setParameters).toHaveBeenCalled();
-      expect(orchestrator.enterFunctionBody).toHaveBeenCalled();
       expect(orchestrator.generateBlock).toHaveBeenCalled();
       expect(orchestrator.updateFunctionParamsAutoConst).toHaveBeenCalledWith(
         "Test__test",
       );
-      expect(orchestrator.exitFunctionBody).toHaveBeenCalled();
-      expect(orchestrator.setCurrentFunctionName).toHaveBeenLastCalledWith(
-        null,
-      );
-      expect(orchestrator.clearParameters).toHaveBeenCalled();
+      expect(orchestrator.exitFunctionContext).toHaveBeenCalled();
     });
 
     it("generates callback typedef when used as field type (ADR-029)", () => {
@@ -1087,7 +1071,6 @@ describe("ScopeGenerator", () => {
       const recordCallbackTypedef = vi.fn();
       const orchestrator = createMockOrchestrator({
         ...createMockOrchestrator(),
-        isCallbackTypeUsedAsFieldType: vi.fn(() => true),
         recordCallbackTypedef,
         getCallbackTypedefName: vi.fn(() => null),
       });

@@ -35,34 +35,34 @@ int main(void) {
     while (y < 4) {
         uint32_t x = 0U;
         while (x < 4) {
-            image[y][x].r = cnx_clamp_mul_u32(y, 64U);
-            image[y][x].g = cnx_clamp_mul_u32(x, 64U);
-            image[y][x].b = (cnx_clamp_add_u32(y, x)) * 32U;
+            image[y][x].r = (((cnx_clamp_mul_u32(y, 64U))) & 0xFFU);
+            image[y][x].g = (((cnx_clamp_mul_u32(x, 64U))) & 0xFFU);
+            image[y][x].b = ((((cnx_clamp_add_u32(y, x)) * 32U)) & 0xFFU);
             x = cnx_clamp_add_u32(x, 1U);
         }
         y = cnx_clamp_add_u32(y, 1U);
     }
     uint32_t testY = 2U;
     uint32_t testX = 3U;
-    if (image[testY][testX].r != 128) return 1;
-    if (image[testY][testX].g != 192) return 2;
-    if (image[testY][testX].b != 160) return 3;
-    if (image[0U][0U].r != 0) return 4;
-    if (image[0U][0U].g != 0) return 5;
-    if (image[0U][0U].b != 0) return 6;
-    if (image[3U][3U].r != 192) return 7;
-    if (image[3U][3U].g != 192) return 8;
-    if (image[3U][3U].b != 192) return 9;
+    if (image[testY][testX].r != 128) return 1U;
+    if (image[testY][testX].g != 192) return 2U;
+    if (image[testY][testX].b != 160) return 3U;
+    if (image[0U][0U].r != 0) return 4U;
+    if (image[0U][0U].g != 0) return 5U;
+    if (image[0U][0U].b != 0) return 6U;
+    if (image[3U][3U].r != 192) return 7U;
+    if (image[3U][3U].g != 192) return 8U;
+    if (image[3U][3U].b != 192) return 9U;
     uint32_t baseRow = 1U;
     uint32_t offset = 1U;
-    if (image[cnx_clamp_add_u32(baseRow, offset)][offset].r != 128) return 10;
+    if (image[cnx_clamp_add_u32(baseRow, offset)][offset].r != 128) return 10U;
     uint32_t targetRow = 2U;
     uint32_t targetCol = 2U;
     image[targetRow][targetCol].r = 255U;
     image[targetRow][targetCol].g = 255U;
     image[targetRow][targetCol].b = 255U;
-    if (image[2U][2U].r != 255) return 11;
-    if (image[2U][2U].g != 255) return 12;
-    if (image[2U][2U].b != 255) return 13;
-    return 0;
+    if (image[2U][2U].r != 255) return 11U;
+    if (image[2U][2U].g != 255) return 12U;
+    if (image[2U][2U].b != 255) return 13U;
+    return 0U;
 }

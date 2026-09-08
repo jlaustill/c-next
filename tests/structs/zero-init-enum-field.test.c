@@ -19,16 +19,16 @@ TInput inputs[2] = {0};
 
 int main(void) {
     if (input.assignedValue != EValueId__VALUE_A) {
-        return 1;
+        return 1U;
     }
     if (input.count != 0) {
-        return 2;
+        return 2U;
     }
     if (inputs[0U].assignedValue != EValueId__VALUE_A) {
-        return 3;
+        return 3U;
     }
     if (inputs[1U].assignedValue != EValueId__VALUE_A) {
-        return 4;
+        return 4U;
     }
-    return 0;
+    return 0U;
 }

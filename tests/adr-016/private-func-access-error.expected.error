@@ -1,0 +1,2 @@
+13:4 error[E0436]: Cannot access private member 'internalHelper' of scope 'Service' from outside the scope
+       help: Only public members are accessible outside their scope. Mark it `public`, or reach it through a public member.

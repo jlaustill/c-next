@@ -22,7 +22,7 @@
 /* Scope: Internal */
 
 static uint8_t Internal__helper(void) {
-    return 7;
+    return 7U;
 }
 
 uint8_t Internal__callHelper(void) {
@@ -31,6 +31,6 @@ uint8_t Internal__callHelper(void) {
 
 int main(void) {
     uint8_t result = Internal__callHelper();
-    if (result != 7) return 1;
-    return 0;
+    if (result != 7) return 1U;
+    return 0U;
 }

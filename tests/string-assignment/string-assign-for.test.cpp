@@ -17,7 +17,7 @@ int main(void) {
     for (i = 0; i < 3; i += 1) {
         (void) strncpy(result, "ForLoop", 16); result[16] = '\0';
     }
-    if (strlen(result) != 7) return 1;
+    if (strlen(result) != 7) return 1U;
     for (i = 0; i < 3; i += 1) {
         if (i == 0) {
             (void) strncpy(result, "Zero", 16); result[16] = '\0';
@@ -27,6 +27,6 @@ int main(void) {
             (void) strncpy(result, "Two", 16); result[16] = '\0';
         }
     }
-    if (strlen(result) != 3) return 2;
-    return 0;
+    if (strlen(result) != 3) return 2U;
+    return 0U;
 }

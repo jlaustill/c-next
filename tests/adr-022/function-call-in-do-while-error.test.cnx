@@ -1,0 +1,21 @@
+// Issue #254: Function calls in do-while conditions are not allowed (E0702)
+// test-adr: 022
+// MISRA C:2012 Rule 13.5 - Short-circuit evaluation may skip function calls
+
+bool shouldContinue() {
+    return true;
+}
+
+// NEGATIVE CONTROL -- the same call, hoisted out of the condition. That is
+// what the diagnostic tells the author to write, so a rule that rejected the
+// CALL rather than the call IN A CONDITION would fail here.
+void okHoisted() {
+    bool more <- shouldContinue();
+    do {} while (more = true);
+}
+
+void test() {
+    do {
+        // body
+    } while (shouldContinue() = true);
+}

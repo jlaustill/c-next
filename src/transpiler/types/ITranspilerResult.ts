@@ -1,5 +1,5 @@
 import ITranspileError from "../../lib/types/ITranspileError";
-import IGrammarCoverageReport from "../logic/analysis/types/IGrammarCoverageReport";
+import IGrammarCoverageReport from "../../TRANSPILE/1-Analyze/types/IGrammarCoverageReport";
 import IFileResult from "./IFileResult";
 import type IRecordedRequirement from "./IRecordedRequirement";
 import type IRecordedAdrSite from "./IRecordedAdrSite";

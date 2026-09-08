@@ -13,8 +13,8 @@ int main(void) {
     double in_range = 1000000000000.0;
     double negative = -500000000000.0;
     int64_t result = ((in_range) > ((double)INT64_MAX) ? (int64_t)INT64_MAX : (in_range) < ((double)INT64_MIN) ? (int64_t)INT64_MIN : (int64_t)(in_range));
-    if (result != 1000000000000) return 1;
+    if (result != 1000000000000) return 1U;
     result = ((negative) > ((double)INT64_MAX) ? (int64_t)INT64_MAX : (negative) < ((double)INT64_MIN) ? (int64_t)INT64_MIN : (int64_t)(negative));
-    if (result != -500000000000) return 2;
-    return 0;
+    if (result != -500000000000) return 2U;
+    return 0U;
 }
