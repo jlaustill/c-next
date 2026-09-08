@@ -1,4 +1,5 @@
 // test-execution
+// test-adr: 010
 // Issue #1134: two included .cnx files sharing a basename.
 //
 // Include resolution keyed on basename instead of the resolved path, so the

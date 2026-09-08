@@ -6,7 +6,7 @@
 #include "two-consumers.test.h"
 
 // test-execution
-// test-adr: 029
+// test-adr: 029, 010
 // Issue #1491, the duplicate half: two files that both name ONE included
 // function-as-type must not each export its `_fp` typedef.
 //

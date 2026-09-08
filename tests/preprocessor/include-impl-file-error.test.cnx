@@ -1,3 +1,4 @@
+// test-adr: 010
 // ADR-010: Including implementation files should produce E0503 error
 // This file should FAIL to transpile
 

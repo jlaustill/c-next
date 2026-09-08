@@ -7,6 +7,7 @@
 
 #include <stdint.h>
 
+// test-adr: 010
 // Issue #230: Self-include for extern "C" linkage
 // When a file has public functions, the generated .cpp/.c must include
 // its own header file to ensure extern "C" linkage from the header applies.

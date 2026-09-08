@@ -6,6 +6,7 @@
 #include "issue-332-cnx-struct-pointer.test.hpp"
 
 // test-cpp-only
+// test-adr: 010
 // Issue #332: Missing & for C-Next structs passed to external pointer parameters
 // When calling external C++ functions that expect pointer parameters,
 // the transpiler should add & for BOTH:

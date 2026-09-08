@@ -1,2 +1,2 @@
-22:0 error[E0506]: Included C-Next file not found: no-such-file.cnx
+23:0 error[E0506]: Included C-Next file not found: no-such-file.cnx
        help: A quoted include is resolved relative to the file it appears in (ADR-010); check the spelling and the path from this file's own directory.

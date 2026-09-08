@@ -5,6 +5,7 @@
 
 #include "external-struct-fields.test.hpp"
 
+// test-adr: 010
 // Tests: External struct types with multiple fields
 // Coverage: Using structs from external C headers
 #include "external-config.h"
