@@ -98,7 +98,7 @@ import IPostfixOp from "./helpers/types/IPostfixOp";
 // PR #715: Boolean conversion helper for improved testability
 import BooleanHelper from "./helpers/BooleanHelper";
 // PR #715: C++ constructor detection helper for improved testability
-import CppConstructorHelper from "./helpers/CppConstructorHelper";
+import CppConstructorHelper from "../../../utils/CppConstructorHelper";
 // PR #715: Set/Map utilities for improved testability
 import SetMapHelper from "./helpers/SetMapHelper";
 // PR #715: Symbol lookup utilities for improved testability

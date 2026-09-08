@@ -16,12 +16,12 @@ codes that already have a fixture.
 | E02xx     | Identifier/Param Naming | 5       |
 | E03xx     | Struct Fields/Init      | 4       |
 | E04xx     | Symbol Resolution       | 16      |
-| E05xx     | Include/Preprocessor    | 7       |
+| E05xx     | Include/Preprocessor    | 8       |
 | E06xx     | Sizeof Expressions      | 2       |
 | E07xx     | Control Flow            | 12      |
 | E08xx     | Arithmetic/Array Safety | 49      |
 | E09xx     | NULL Safety             | 8       |
-| **Total** |                         | **104** |
+| **Total** |                         | **105** |
 
 ---
 
@@ -155,15 +155,16 @@ include-visibility is not derivable for a C or C++ name.
 
 ## E05xx — Include/Preprocessor
 
-| Code  | Message                                          | Help                                                                                             | Source                                            |
-| ----- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------ | ------------------------------------------------- |
-| E0501 | Function-like macro not allowed                  | Use inline functions instead                                                                     | `TRANSPILE/1-Analyze/DefineDirectiveAnalyzer.ts`  |
-| E0502 | `#define` with value not allowed                 | Use `const u32 NAME <- value;` instead                                                           | `TRANSPILE/1-Analyze/DefineDirectiveAnalyzer.ts`  |
-| E0503 | Cannot `#include` implementation file            | Only `.h` and `.hpp` files are allowed                                                           | `TRANSPILE/1-Analyze/IncludeDirectiveAnalyzer.ts` |
-| E0504 | `.cnx` alternative exists for included header    | Use `#include "file.cnx"` for the C-Next version                                                 | `TRANSPILE/1-Analyze/IncludeDirectiveAnalyzer.ts` |
-| E0505 | Header names a pointer typedef it cannot declare | Include the header that defines the type; a forward declaration cannot express a pointer typedef | `output/headers/BaseHeaderGenerator.ts`           |
-| E0506 | Included C-Next file not found                   | A quoted include resolves relative to the file it appears in; check the spelling                 | `TRANSPILE/1-Analyze/IncludeDirectiveAnalyzer.ts` |
-| E0507 | C++ header in a run that does not target C++     | Set `cppRequired: true` in the config, or pass `--cpp`                                           | `Transpiler.ts`                                   |
+| Code  | Message                                                             | Help                                                                                                                                                                                                                                   | Source                                               |
+| ----- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| E0501 | Function-like macro not allowed                                     | Use inline functions instead                                                                                                                                                                                                           | `TRANSPILE/1-Analyze/DefineDirectiveAnalyzer.ts`     |
+| E0502 | `#define` with value not allowed                                    | Use `const u32 NAME <- value;` instead                                                                                                                                                                                                 | `TRANSPILE/1-Analyze/DefineDirectiveAnalyzer.ts`     |
+| E0503 | Cannot `#include` implementation file                               | Only `.h` and `.hpp` files are allowed                                                                                                                                                                                                 | `TRANSPILE/1-Analyze/IncludeDirectiveAnalyzer.ts`    |
+| E0504 | `.cnx` alternative exists for included header                       | Use `#include "file.cnx"` for the C-Next version                                                                                                                                                                                       | `TRANSPILE/1-Analyze/IncludeDirectiveAnalyzer.ts`    |
+| E0505 | _(retired)_ — was: header names a pointer typedef it cannot declare | Reclassified as an internal invariant by #1322: for it to fire, a name would have to be in a header's external types and absent from the enumeration those types are collected by — a transpiler defect, not a program. Not reassigned | `output/headers/BaseHeaderGenerator.ts`              |
+| E0506 | Included C-Next file not found                                      | A quoted include resolves relative to the file it appears in; check the spelling                                                                                                                                                       | `TRANSPILE/1-Analyze/IncludeDirectiveAnalyzer.ts`    |
+| E0507 | C++ header in a run that does not target C++                        | Set `cppRequired: true` in the config, or pass `--cpp`                                                                                                                                                                                 | `Transpiler.ts`                                      |
+| E0508 | C++ class with a constructor initialized outside a function body    | A class with a constructor is not an aggregate, so its fields are assigned one at a time, and a declaration outside a function body has no statement to assign them in                                                                 | `TRANSPILE/1-Analyze/CppClassInitializerAnalyzer.ts` |
 
 ---
 

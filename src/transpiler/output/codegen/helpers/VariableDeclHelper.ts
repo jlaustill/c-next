@@ -17,6 +17,7 @@
 import ISubstringOps from "../types/ISubstringOps";
 import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
 import CodeGenState from "../../../state/CodeGenState.js";
+import invariant from "../../../../utils/invariant";
 import ArrayInitHelper from "./ArrayInitHelper.js";
 import CppModeHelper from "./CppModeHelper.js";
 import NarrowingCastHelper from "./NarrowingCastHelper.js";
@@ -24,14 +25,6 @@ import StringDeclHelper from "./StringDeclHelper.js";
 import VariableModifierBuilder from "./VariableModifierBuilder.js";
 import TYPE_MAP from "../types/TYPE_MAP.js";
 import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
-
-/**
- * Callbacks for C++ class assignment finalization.
- */
-interface ICppAssignmentCallbacks {
-  /** Get type name from type context */
-  getTypeName: (ctx: Parser.TypeContext) => string;
-}
 
 /**
  * Callbacks for array type dimension generation.
@@ -199,39 +192,36 @@ class VariableDeclHelper {
   /**
    * Handle pending C++ class field assignments.
    * In function body, generates assignments after declaration.
-   * At global scope, throws error since assignments can't exist there.
    *
-   * @param typeCtx - Type context for error messages
+   * #1322: the rejection that stood at the end of this method is E0508 in pass
+   * 2.1, and it is not a transcription of what was here. This method DRAINS a
+   * queue another node filled, so the declaration it was reported against was
+   * not necessarily the one that filled it: a scope member pushed and was never
+   * drained (the initializer vanished at exit 0), and an unrelated global after
+   * one reported `C++ class 'u32' with constructor`. `CppClassInitializerAnalyzer`
+   * decides at the initializer itself.
+   *
+   * The queue can therefore no longer be non-empty here outside a function
+   * body, which is what the assertion says.
+   *
    * @param name - Variable name
    * @param decl - Current declaration string
-   * @param callbacks - Callbacks for type name generation
    * @returns Final declaration with semicolon and any pending assignments
-   * @throws Error if C++ class with constructor at global scope
    */
-  static finalizeCppClassAssignments(
-    typeCtx: Parser.TypeContext,
-    name: string,
-    decl: string,
-    callbacks: ICppAssignmentCallbacks,
-  ): string {
+  static finalizeCppClassAssignments(name: string, decl: string): string {
     if (CodeGenState.pendingCppClassAssignments.length === 0) {
       return `${decl};`;
     }
 
-    if (CodeGenState.inFunctionBody) {
-      const assignments = CodeGenState.pendingCppClassAssignments
-        .map((a) => `${name}.${a}`)
-        .join("\n");
-      CodeGenState.pendingCppClassAssignments = [];
-      return `${decl};\n${assignments}`;
-    }
-
-    // At global scope, we can't emit assignment statements.
-    CodeGenState.pendingCppClassAssignments = [];
-    throw new Error(
-      `Error: C++ class '${callbacks.getTypeName(typeCtx)}' with constructor cannot use struct initializer ` +
-        `syntax at global scope. Use constructor syntax or initialize fields separately.`,
+    invariant(
+      CodeGenState.inFunctionBody,
+      "E0508 rejects this in pass 2.1, before this runs",
     );
+    const assignments = CodeGenState.pendingCppClassAssignments
+      .map((a) => `${name}.${a}`)
+      .join("\n");
+    CodeGenState.pendingCppClassAssignments = [];
+    return `${decl};\n${assignments}`;
   }
 
   // ========================================================================
@@ -573,9 +563,7 @@ class VariableDeclHelper {
     );
 
     // Handle pending C++ class field assignments
-    return VariableDeclHelper.finalizeCppClassAssignments(typeCtx, name, decl, {
-      getTypeName: callbacks.getTypeName,
-    });
+    return VariableDeclHelper.finalizeCppClassAssignments(name, decl);
   }
 
   /**

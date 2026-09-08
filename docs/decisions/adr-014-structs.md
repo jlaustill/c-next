@@ -286,10 +286,11 @@ Rectangle r <- {
 
 ## Diagnostics
 
-| Code  | Reported when                                                                           | Asserted by                                          |
-| ----- | --------------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| E0356 | A struct initializer writes a type where the position it stands in already declares one | `tests/adr-014/struct-redundant-type-error.test.cnx` |
-| E0357 | A struct initializer writes no type and stands where no position declares one           | `tests/adr-014/struct-no-type-error.test.cnx`        |
+| Code  | Reported when                                                                           | Asserted by                                                  |
+| ----- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| E0356 | A struct initializer writes a type where the position it stands in already declares one | `tests/adr-014/struct-redundant-type-error.test.cnx`         |
+| E0357 | A struct initializer writes no type and stands where no position declares one           | `tests/adr-014/struct-no-type-error.test.cnx`                |
+| E0508 | A C++ class with a constructor is initialized where no statement can follow it          | `tests/external-types/cpp-class-scope-member-error.test.cnx` |
 
 A struct literal has no type of its own, and the position it stands in gives it
 one. The positions that do are a variable's declaration (including a `for`
@@ -302,8 +303,17 @@ Every position that carries a value is on that list, so the written form
 expression statement. E0357's help therefore does not offer "write the type" as
 a remedy: it would name the other error.
 
-Both are decided during analysis, at the initializer's own position, and every
-offense in a file is reported.
+All three are decided during analysis, at the initializer's own position, and
+every offense in a file is reported.
+
+**E0508 is the one place this syntax depends on the target language.** A C++
+class with a user-defined constructor is not an aggregate, so the initializer
+cannot be a single expression: the fields are assigned one at a time, and
+assignments are statements. A declaration outside a function body has no
+statement position after it, and that is true of a **scope member** as much as
+of a global -- a scope member becomes a file-scope definition. So the rule is
+about where the initializer stands, not about what it initializes, which is why
+it lives beside E0356 and E0357 rather than with the interop decisions.
 
 ## Scope-Context Matrix (#1219)
 

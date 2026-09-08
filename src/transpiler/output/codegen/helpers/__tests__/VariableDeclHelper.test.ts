@@ -95,12 +95,9 @@ describe("VariableDeclHelper", () => {
     });
 
     it("returns simple declaration with semicolon when no pending assignments", () => {
-      const typeCtx = parseType("MyClass x;");
       const result = VariableDeclHelper.finalizeCppClassAssignments(
-        typeCtx,
         "x",
         "MyClass x",
-        { getTypeName: () => "MyClass" },
       );
       expect(result).toBe("MyClass x;");
     });
@@ -109,31 +106,25 @@ describe("VariableDeclHelper", () => {
       CodeGenState.inFunctionBody = true;
       CodeGenState.pendingCppClassAssignments = ["field1 = value1"];
 
-      const typeCtx = parseType("MyClass x;");
       const result = VariableDeclHelper.finalizeCppClassAssignments(
-        typeCtx,
         "x",
         "MyClass x",
-        { getTypeName: () => "MyClass" },
       );
 
       expect(result).toBe("MyClass x;\nx.field1 = value1");
       expect(CodeGenState.pendingCppClassAssignments).toHaveLength(0);
     });
 
-    it("throws error at global scope with pending assignments", () => {
+    it("asserts a pending assignment outside a function body cannot reach here", () => {
+      // #1322: this asserted the E0508 rejection, which reported `1:0` against
+      // whichever declaration happened to drain the queue rather than the
+      // initializer that filled it. Pass 2.1 rejects it at the initializer.
       CodeGenState.inFunctionBody = false;
       CodeGenState.pendingCppClassAssignments = ["field1 = value1"];
 
-      const typeCtx = parseType("MyClass x;");
       expect(() => {
-        VariableDeclHelper.finalizeCppClassAssignments(
-          typeCtx,
-          "x",
-          "MyClass x",
-          { getTypeName: () => "MyClass" },
-        );
-      }).toThrow(/global scope/);
+        VariableDeclHelper.finalizeCppClassAssignments("x", "MyClass x");
+      }).toThrow("E0508 rejects this in pass 2.1");
     });
   });
 

@@ -4,10 +4,17 @@
  * Helper class for C++ constructor detection logic.
  * Issue #517: C++ classes with user-defined constructors are NOT aggregate types,
  * so designated initializers { .field = value } don't work with them.
+ *
+ * #1322: moved out of `output/codegen/helpers/` because both passes ask it.
+ * "Does this type have a constructor in the symbol table?" is a question about
+ * the SYMBOL MODEL, not about rendering -- it reads a lookup and a name
+ * spelling and nothing else -- and pass 2.1 may not import `output/`
+ * (`analyze-cannot-import-render`). Its location was the only thing making it
+ * a codegen fact.
  */
 
-import TSymbolKind from "../../../types/symbol-kinds/TSymbolKind.js";
-import QualifiedCName from "../../../../utils/QualifiedCName";
+import TSymbolKind from "../transpiler/types/symbol-kinds/TSymbolKind.js";
+import QualifiedCName from "./QualifiedCName";
 
 /**
  * Symbol lookup interface for constructor detection

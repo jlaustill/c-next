@@ -6,6 +6,7 @@
  * determine pointer (*) vs reference (&) semantics.
  */
 
+import invariant from "../../../utils/invariant";
 import headerCType from "../../../utils/headerCType";
 import IHeaderSymbol from "./types/IHeaderSymbol";
 import IParameterSymbol from "../../../utils/types/IParameterSymbol";
@@ -46,9 +47,17 @@ abstract class BaseHeaderGenerator {
    * looked like a filter and was not one, which invites the next reader to
    * preserve filtering that never existed.
    *
-   * Normally unreachable: `Transpiler._needsDefiningHeader` sets
-   * `cHeadersIncluded` for exactly these types, and the caller only invokes
-   * this when it is false.
+   * #1322 classifies this as an INVARIANT rather than a diagnostic, and the
+   * argument is a subset one rather than "I could not reach it":
+   * `cHeadersIncluded` is true whenever any name in `HeaderTypeNames.collect`
+   * satisfies `_needsDefiningHeader`, whose first clause is
+   * `isPointerTypedef`. This runs only when that is false, and looks for a
+   * pointer typedef among the external types of the SAME symbols. For it to
+   * find one, a name would have to be in the header's external types and
+   * absent from the enumeration those types are collected by -- which is a
+   * transpiler defect, not a program a user can write. It carried E0505; the
+   * code is retired rather than reassigned, because a number in
+   * `docs/error-codes.md` is a promise that a user can be shown it.
    */
   private static assertNoPointerTypedefs(
     externalTypes: string[],
@@ -76,13 +85,14 @@ abstract class BaseHeaderGenerator {
     const location =
       origin?.sourceLine === undefined ? "" : ` Line ${origin.sourceLine}`;
 
-    throw new Error(
-      `E0505: '${pointerTypedef}' is a typedef of a pointer declared in another ` +
+    invariant(
+      false,
+      `'${pointerTypedef}' is a typedef of a pointer declared in another ` +
         `header, and generated header '${headerName}' does not include that ` +
         `header.${declaredBy} A forward declaration cannot express a pointer ` +
         `typedef -- 'typedef struct ${pointerTypedef} ${pointerTypedef};' would ` +
-        `declare a different, incomplete type. The header that defines it must ` +
-        `be included.${location}`,
+        `declare a different, incomplete type. The include should have been ` +
+        `propagated by the header-needs-user-C-headers derivation.${location}`,
     );
   }
 

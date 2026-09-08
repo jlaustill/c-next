@@ -863,6 +863,7 @@ class Transpiler {
       // than read off CodeGenState, whose `sourcePath` is not written until
       // `generate()` below and so holds the previous file's value here.
       const analyzerErrors = runAnalyzers(tree, tokenStream, {
+        cppMode: this.cppMode,
         includes: {
           sourcePath,
           searchPaths: this.state.getIncludeSearchPaths(sourcePath),

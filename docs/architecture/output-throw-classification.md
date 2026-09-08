@@ -54,10 +54,10 @@ as counted at audit time" rather than a literal.
 
 | bucket | meaning                                                                        | count |
 | ------ | ------------------------------------------------------------------------------ | ----- |
-| **1**  | user-facing diagnostic — belongs in pass 2.1, needs a code and a real position | **2** |
+| **1**  | user-facing diagnostic — belongs in pass 2.1, needs a code and a real position | **0** |
 | **2**  | internal invariant — should never fire for valid input; becomes an assertion   | **0** |
 | **3**  | dead — unreachable or subsumed; delete                                         | **0** |
-|        | **total**                                                                      | **2** |
+|        | **total**                                                                      | **0** |
 
 **80% of `output/`'s throws are rejections.** That is the answer to open question 4: Render does
 not own nothing, it currently owns almost all of the rejection surface.
@@ -67,10 +67,10 @@ By area:
 | area                                                                | sites | b1  | b2  | b3  |
 | ------------------------------------------------------------------- | ----- | --- | --- | --- |
 | `codegen/` (root: `CodeGenerator`, `TypeValidator`, `TypeResolver`) | 0     | 0   | 0   | 0   |
-| `codegen/helpers/`                                                  | 1     | 1   | 0   | 0   |
+| `codegen/helpers/`                                                  | 0     | 0   | 0   | 0   |
 | `codegen/generators/**`                                             | 0     | 0   | 0   | 0   |
 | `codegen/subscript/`                                                | 0     | 0   | 0   | 0   |
-| `codegen/assignment/**`, `codegen/resolution/`, `headers/`          | 1     | 1   | 0   | 0   |
+| `codegen/assignment/**`, `codegen/resolution/`, `headers/`          | 0     | 0   | 0   | 0   |
 
 ## Position availability — the finding that shapes #1322
 
@@ -207,10 +207,14 @@ questions and only the first was asked.
   **parse error**, so it never reaches codegen at all. That leaves four live copies plus the
   factory, which is what makes unification tractable.
 
-## Bucket 1 — user-facing diagnostics (2)
+## Bucket 1 — user-facing diagnostics (0)
 
-Each needs a code and a real position in pass 2.1. `code` is the code it already carries, or
-**NEW** where one must be allocated. `position` names the node that is or would be in scope.
+**Empty.** Every one of the 145 user-facing rejections `output/` held is authored in pass 2.1,
+with a code and the position of the construct it is about. `npm run docs:throw-citations:check`
+reports `0 throw site(s) in output/`, which is the falsifiable form of that sentence.
+
+The sections below record what each area held and what settled it, because the relocation
+found things the rows could not say.
 
 ### `codegen/` root — 0
 
@@ -236,23 +240,25 @@ Two things the relocation had to settle, both recorded because the row above cou
   by their caller instead, as a required argument rather than an optional one — an optional
   context would have made all three rules skippable with nothing failing.
 
-### `codegen/helpers/` — 1
+### `codegen/helpers/` — 0
 
-**Zero carry a code today.** 25 of the 39 have no fixture.
+`VariableDeclHelper`'s C++-class rejection is **relocated** as E0508, and it is not a
+transcription of what stood there. That method DRAINS a queue another node filled, so the
+declaration it reported against was not necessarily the one that filled it. Two shapes made
+that observable:
 
-| file:line                   | anchor             | message                                    | code | position source            | fixture                                 |
-| --------------------------- | ------------------ | ------------------------------------------ | ---- | -------------------------- | --------------------------------------- |
-| `VariableDeclHelper.ts:231` | `Error: C++ class` | C++ class with constructor at global scope | NEW  | `typeCtx.start` (in scope) | `external-types/cpp-class-global-error` |
+- a scope member pushed and was never drained —
+  `private CppTestClass inner <- { value: 5 }` emitted
+  `static CppTestClass Holder__inner = {};` at **exit 0**, the value silently dropped, no
+  diagnostic;
+- with an unrelated global after it, the drain fired against THAT declaration and reported
+  `C++ class 'u32' with constructor cannot use struct initializer syntax` — naming a type with
+  no constructor, three lines from the initializer that caused it.
 
-### `codegen/generators/**` — 0
-
-`IncludeGenerator`'s three rows are all relocated. E0501 and E0502 are ADR-037's `#define`
-shape, a pure parse-tree question decided in pass 2.1 at the directive's own position; the
-missing-`.cnx` check is E0506, above. The `Not the easy wins they look like` note in #1322's
-plan said the `#define` rules fired on a directive inside an included C header and so needed
-the preprocessor artifact. They did not: the C grammar sends `#`-lines to a hidden channel
-before parsing, so such a header transpiles untouched and always did. What reached those
-throws was only ever a directive in the C-Next tree.
+`CppClassInitializerAnalyzer` asks at the initializer instead: does a function body enclose it,
+and is its type a C++ class with a constructor? The first question closes the scope-member hole,
+because a scope member is emitted as a file-scope `static` and has no more room for a statement
+than a global does. What remains in codegen is an `invariant`.
 
 **32 of the 41 in this area are unpinned**, including all 23 ADR-058 property diagnostics except
 `:623`, the ADR-013 const rule, and all four `safe_div`/`safe_mod` checks.
@@ -263,15 +269,22 @@ fire on an **undeclared identifier**, not on property misuse. The honest fix is 
 undefined-identifier diagnostic in symbol resolution; allocating five per-property codes would
 bake in a wrong diagnosis.
 
-### `codegen/assignment/**`, `codegen/resolution/`, `headers/` — 1
+### `codegen/assignment/**`, `codegen/resolution/`, `headers/` — 0
 
 Attribution here was established by proxying `Error` construction and reading the constructing
-stack frame, not by matching message text — necessary because three messages in this area are
+stack frame, not by matching message text — necessary because three messages in this area were
 byte-identical across sites.
 
-| file:line                           | anchor                                          | message                                         | code  | position source                                              | fixture |
-| ----------------------------------- | ----------------------------------------------- | ----------------------------------------------- | ----- | ------------------------------------------------------------ | ------- |
-| `headers/BaseHeaderGenerator.ts:79` | `is a typedef of a pointer declared in another` | typedef of a pointer declared in another header | E0505 | `origin.sourceLine` (`IHeaderSymbol`) — no parse tree exists | none    |
+`BaseHeaderGenerator`'s pointer-typedef rejection is the audit's **one reclassification into
+bucket 2**, and it is a subset argument rather than "nobody could reach it". `cHeadersIncluded`
+is true whenever any name the header-type enumeration yields is a pointer typedef; the check ran
+only when that was false, and looked for a pointer typedef among the external types of the _same_
+symbols. For it to fire, a name would have to be in the header's external types and absent from
+the enumeration those types are collected by — a transpiler defect, not a program a user can
+write. The method was already named `assertNoPointerTypedefs` and its own comment already said
+"normally unreachable … that is a transpiler defect"; only the mechanism disagreed. It is an
+`invariant` now, and **E0505 is retired rather than reassigned**, because a number in
+`docs/error-codes.md` is a promise that a user can be shown it.
 
 The 13 `ArrayHandlers` slice sites **already smuggle a position through the message string** as a
 `${line}:0` prefix that a downstream layer parses — which is why

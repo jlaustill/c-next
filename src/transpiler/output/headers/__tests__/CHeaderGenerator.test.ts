@@ -488,11 +488,19 @@ describe("CHeaderGenerator", () => {
       expect(result).toContain("typedef struct ExternalConfig ExternalConfig;");
     });
 
-    it("reports E0505 rather than guessing at a pointer typedef (#1225/#1238)", () => {
+    it("asserts rather than guessing at a pointer typedef (#1225/#1238)", () => {
       // `typedef struct opaque_t* handle_t` cannot be forward-declared:
       // `typedef struct handle_t handle_t;` is a different, incomplete type,
       // and an object of it cannot be declared at all. Silently omitting the
       // declaration is no safer -- it leaves the type undeclared.
+      //
+      // #1322 reclassified this from a user diagnostic (E0505, now retired) to
+      // an INVARIANT: `cHeadersIncluded` is true whenever any name the
+      // header-type enumeration yields is a pointer typedef, and this runs only
+      // when that is false over the same symbols -- so reaching it needs a name
+      // present in one derivation and absent from the other, which is a
+      // transpiler defect rather than a program. This test has to build that
+      // contradiction by hand, which is the evidence for the reclassification.
       const symbolTable = new SymbolTable();
       symbolTable.markPointerTypedef("handle_t");
 
@@ -505,7 +513,7 @@ describe("CHeaderGenerator", () => {
 
       expect(() =>
         generator.generate(symbols, "test.h", {}, typeInputWith(symbolTable)),
-      ).toThrow(/E0505.*handle_t/s);
+      ).toThrow(/Internal:.*handle_t/s);
     });
 
     it("names the declaration that pulled the type in, and its line (#1225 review)", () => {

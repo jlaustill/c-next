@@ -59,13 +59,19 @@ describe("runAnalyzers", () => {
           u32 y <- x + 3;
         }
       `);
-      const errors = runAnalyzers(tree, tokenStream, { includes: NO_INCLUDES });
+      const errors = runAnalyzers(tree, tokenStream, {
+        cppMode: false,
+        includes: NO_INCLUDES,
+      });
       expect(errors).toHaveLength(0);
     });
 
     it("should return no errors for empty program", () => {
       const { tree, tokenStream } = parseWithStream(``);
-      const errors = runAnalyzers(tree, tokenStream, { includes: NO_INCLUDES });
+      const errors = runAnalyzers(tree, tokenStream, {
+        cppMode: false,
+        includes: NO_INCLUDES,
+      });
       expect(errors).toHaveLength(0);
     });
   });
@@ -77,7 +83,10 @@ describe("runAnalyzers", () => {
   describe("phase 1 - identifier syntax", () => {
     it("should return early on a trailing-underscore identifier", () => {
       const { tree, tokenStream } = parseWithStream(`u8 value_ <- 1;`);
-      const errors = runAnalyzers(tree, tokenStream, { includes: NO_INCLUDES });
+      const errors = runAnalyzers(tree, tokenStream, {
+        cppMode: false,
+        includes: NO_INCLUDES,
+      });
 
       expect(errors.length).toBeGreaterThan(0);
       expect(errors[0].severity).toBe("error");
@@ -88,7 +97,10 @@ describe("runAnalyzers", () => {
 
     it("should return early on consecutive underscores", () => {
       const { tree, tokenStream } = parseWithStream(`u8 my__value <- 1;`);
-      const errors = runAnalyzers(tree, tokenStream, { includes: NO_INCLUDES });
+      const errors = runAnalyzers(tree, tokenStream, {
+        cppMode: false,
+        includes: NO_INCLUDES,
+      });
 
       expect(errors.length).toBeGreaterThan(0);
       expect(errors[0].message).toContain("error[E0201]");
@@ -101,7 +113,10 @@ describe("runAnalyzers", () => {
           u8 x <- _local;
         }
       `);
-      const errors = runAnalyzers(tree, tokenStream, { includes: NO_INCLUDES });
+      const errors = runAnalyzers(tree, tokenStream, {
+        cppMode: false,
+        includes: NO_INCLUDES,
+      });
 
       expect(errors).toHaveLength(0);
     });
@@ -118,7 +133,10 @@ describe("runAnalyzers", () => {
           u32 x <- process_data;
         }
       `);
-      const errors = runAnalyzers(tree, tokenStream, { includes: NO_INCLUDES });
+      const errors = runAnalyzers(tree, tokenStream, {
+        cppMode: false,
+        includes: NO_INCLUDES,
+      });
 
       expect(errors.length).toBeGreaterThan(0);
       expect(errors[0].severity).toBe("error");
@@ -145,7 +163,10 @@ describe("runAnalyzers", () => {
           u32 y <- x;
         }
       `);
-      const errors = runAnalyzers(tree, tokenStream, { includes: NO_INCLUDES });
+      const errors = runAnalyzers(tree, tokenStream, {
+        cppMode: false,
+        includes: NO_INCLUDES,
+      });
 
       expect(errors.length).toBeGreaterThan(0);
       expect(errors[0].severity).toBe("error");
@@ -168,7 +189,10 @@ describe("runAnalyzers", () => {
           u32 x <- 5;
         }
       `);
-      const errors = runAnalyzers(tree, tokenStream, { includes: NO_INCLUDES });
+      const errors = runAnalyzers(tree, tokenStream, {
+        cppMode: false,
+        includes: NO_INCLUDES,
+      });
 
       expect(errors.length).toBeGreaterThan(0);
       expect(errors[0].severity).toBe("error");
@@ -189,7 +213,10 @@ describe("runAnalyzers", () => {
           strchr(str, 'x');
         }
       `);
-      const errors = runAnalyzers(tree, tokenStream, { includes: NO_INCLUDES });
+      const errors = runAnalyzers(tree, tokenStream, {
+        cppMode: false,
+        includes: NO_INCLUDES,
+      });
 
       expect(errors.length).toBeGreaterThan(0);
       expect(errors[0].severity).toBe("error");
@@ -208,7 +235,10 @@ describe("runAnalyzers", () => {
           u32 x <- 10 / 0;
         }
       `);
-      const errors = runAnalyzers(tree, tokenStream, { includes: NO_INCLUDES });
+      const errors = runAnalyzers(tree, tokenStream, {
+        cppMode: false,
+        includes: NO_INCLUDES,
+      });
 
       expect(errors.length).toBeGreaterThan(0);
       expect(errors[0].severity).toBe("error");
@@ -228,7 +258,10 @@ describe("runAnalyzers", () => {
           f32 result <- x % 3;
         }
       `);
-      const errors = runAnalyzers(tree, tokenStream, { includes: NO_INCLUDES });
+      const errors = runAnalyzers(tree, tokenStream, {
+        cppMode: false,
+        includes: NO_INCLUDES,
+      });
 
       expect(errors.length).toBeGreaterThan(0);
       expect(errors[0].severity).toBe("error");
@@ -245,7 +278,10 @@ describe("runAnalyzers", () => {
       // MISRA 3.1: no nested comment start markers inside comments
       const code = "/* outer /* nested */ \nvoid main() { u32 x <- 1; }";
       const { tree, tokenStream } = parseWithStream(code);
-      const errors = runAnalyzers(tree, tokenStream, { includes: NO_INCLUDES });
+      const errors = runAnalyzers(tree, tokenStream, {
+        cppMode: false,
+        includes: NO_INCLUDES,
+      });
 
       expect(errors.length).toBeGreaterThan(0);
       expect(errors[0].severity).toBe("error");
@@ -283,7 +319,10 @@ describe("runAnalyzers", () => {
         CodeGenState.symbolTable.getAllStructFields(),
       );
 
-      const errors = runAnalyzers(tree, tokenStream, { includes: NO_INCLUDES });
+      const errors = runAnalyzers(tree, tokenStream, {
+        cppMode: false,
+        includes: NO_INCLUDES,
+      });
       expect(errors).toHaveLength(0);
     });
 
@@ -307,6 +346,7 @@ describe("runAnalyzers", () => {
 
       const errors = runAnalyzers(tree, tokenStream, {
         symbolTable,
+        cppMode: false,
         includes: NO_INCLUDES,
       });
       expect(errors).toHaveLength(0);
@@ -335,7 +375,10 @@ describe("runAnalyzers", () => {
       );
 
       // No options passed - should use CodeGenState.symbolTable
-      const errors = runAnalyzers(tree, tokenStream, { includes: NO_INCLUDES });
+      const errors = runAnalyzers(tree, tokenStream, {
+        cppMode: false,
+        includes: NO_INCLUDES,
+      });
       expect(errors).toHaveLength(0);
     });
   });
@@ -351,7 +394,10 @@ describe("runAnalyzers", () => {
           u32 x <- 10 / 0;
         }
       `);
-      const errors = runAnalyzers(tree, tokenStream, { includes: NO_INCLUDES });
+      const errors = runAnalyzers(tree, tokenStream, {
+        cppMode: false,
+        includes: NO_INCLUDES,
+      });
 
       for (const error of errors) {
         expect(error).toHaveProperty("line");

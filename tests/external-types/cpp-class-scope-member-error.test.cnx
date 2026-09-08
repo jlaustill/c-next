@@ -1,0 +1,35 @@
+// test-error
+// test-cpp-only
+// test-adr: 014
+// Issue #517 / #1322: a scope MEMBER has no more room for a statement than a
+// global does -- it is emitted as a file-scope `static` -- so a C++ class with
+// a constructor cannot be initialized there either.
+//
+// Codegen never checked this position. The initializer pushed its assignments
+// onto a queue that the scope-member path never drained, so
+// `static CppTestClass Holder__inner = {};` was emitted at exit 0 with the
+// value silently dropped -- no diagnostic and no assignment.
+//
+// Two negative controls, isolating the two halves of the rule:
+//   - `plain` is a C-Next struct initialized in the SAME position, so a rule
+//     firing on "an initializer outside a function body" rather than on "a C++
+//     class with a constructor" would flag it;
+//   - `inside` is the same C++ class initialized inside a method, where the
+//     assignments do have somewhere to go.
+
+#include "CppTestClass.hpp"
+
+struct Plain {
+    u32 value;
+}
+
+scope Holder {
+    private CppTestClass inner <- { value: 5 };
+    private Plain plain <- { value: 7 };
+
+    public void go() {
+        CppTestClass inside <- { value: 9 };
+    }
+}
+
+void main() {}

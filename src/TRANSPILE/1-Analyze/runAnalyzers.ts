@@ -8,6 +8,7 @@
 
 import { CommonTokenStream } from "antlr4ng";
 import { ProgramContext } from "../../transpiler/logic/parser/grammar/CNextParser";
+import CppClassInitializerAnalyzer from "./CppClassInitializerAnalyzer";
 import DefineDirectiveAnalyzer from "./DefineDirectiveAnalyzer";
 import IdentifierSyntaxAnalyzer from "./IdentifierSyntaxAnalyzer";
 import ParameterNamingAnalyzer from "./ParameterNamingAnalyzer";
@@ -85,6 +86,19 @@ interface IAnalyzerOptions {
    * failing, which is the shape this card exists to remove.
    */
   readonly includes: IIncludeContext;
+
+  /**
+   * #1322: whether this run emits C++.
+   *
+   * From `Transpiler.cppMode`, set once for the whole run, for the same reason
+   * as `includes`: `CodeGenState.cppMode` is written inside
+   * `CodeGenerator.generate()`. Measured at the first analyzer step, it is
+   * `false` for a run's first file and holds the PREVIOUS file's value for
+   * every file after -- so a rule copying codegen's guard would fire for files
+   * 2..N and stay silent for file 1, which is worse than never firing because
+   * it looks like it works.
+   */
+  readonly cppMode: boolean;
 }
 
 /**
@@ -188,6 +202,19 @@ function runAnalyzers(
     {
       label: "#define shape (ADR-037: flag-only defines)",
       run: () => new DefineDirectiveAnalyzer().analyze(tree),
+    },
+    {
+      // #1322: a C++ class initializer that has nowhere to put its
+      // assignments. Reads only the run's mode and the symbol table, both
+      // settled before this pass.
+      label:
+        "C++ class initializers (Issue #517: no statement position at file scope)",
+      run: () =>
+        new CppClassInitializerAnalyzer().analyze(
+          tree,
+          options.cppMode,
+          symbolTable,
+        ),
     },
     {
       // A malformed identifier feeds a bad name into every later analysis.
