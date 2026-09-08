@@ -1,4 +1,5 @@
 // test-error
+// test-adr: 007
 // test-transpile-only
 // A float bit-range READ needs a shadow variable, which needs function scope,
 // so it cannot appear in a file-scope initializer.
@@ -24,6 +25,12 @@ f32 other <- 2.5;
 u32 inFunction() {
     return other[4, 12];
 }
+
+// NEGATIVE CONTROL -- a single bit INDEX at file scope. A single bit is read
+// with a mask and a shift, not through a union, so it needs no statement and
+// no function to sit in. Only a RANGE is restricted. Without this line, a rule
+// that treated any subscript as a range passed every fixture.
+bool topBit <- value[31];
 
 // THE ASSERTION -- a float bit range at file scope.
 u32 bits <- value[0, 8];

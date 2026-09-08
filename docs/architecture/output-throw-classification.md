@@ -37,9 +37,10 @@ Measured on `fix/1322-diagnostics-into-pass-2-1` @ `8477f526`.
 say `new`. `helpers/CodeGenErrors.ts` builds seven `Error`s with `return new Error(...)` and its
 callers write `throw CodeGenErrors.x(...)`, so **three further sites** were classified nowhere and
 demanded by nothing — invisible in both directions, because a site the gate does not count is also
-a site it never asks for a row for. One of them, `subscript/SubscriptDepthValidator.ts:109`, carries
-**E0856**: registered in `docs/error-codes.md` and asserted by two fixtures under
-`tests/bit-indexing/`. A user-facing, coded, fixture-covered diagnostic sat outside the audit that
+a site it never asks for a row for. One of them carried
+**E0856**: registered in `docs/error-codes.md` and asserted by two fixtures, which is the
+whole point -- a coded, covered diagnostic invisible to the audit. (#1322 has since moved
+it to pass 2.1, so the line it sat on no longer holds a throw and is not cited here.) A user-facing, coded, fixture-covered diagnostic sat outside the audit that
 exists to find exactly those.
 
 So the corpus was **184** when the gate was widened, and is **145** now that `ArrayAccessHelper`, `CodeGenErrors`, all 23 bucket-3 sites and all 16 invariants are gone. What remains is bucket 1 exactly. What this cost the anchors is the argument against the indirection, and it has now been paid: a
@@ -51,12 +52,12 @@ says, like every other.
 The number grows with ordinary work, which is why the acceptance criterion should read "every site
 as counted at audit time" rather than a literal.
 
-| bucket | meaning                                                                        | count  |
-| ------ | ------------------------------------------------------------------------------ | ------ |
-| **1**  | user-facing diagnostic — belongs in pass 2.1, needs a code and a real position | **11** |
-| **2**  | internal invariant — should never fire for valid input; becomes an assertion   | **0**  |
-| **3**  | dead — unreachable or subsumed; delete                                         | **0**  |
-|        | **total**                                                                      | **11** |
+| bucket | meaning                                                                        | count |
+| ------ | ------------------------------------------------------------------------------ | ----- |
+| **1**  | user-facing diagnostic — belongs in pass 2.1, needs a code and a real position | **8** |
+| **2**  | internal invariant — should never fire for valid input; becomes an assertion   | **0** |
+| **3**  | dead — unreachable or subsumed; delete                                         | **0** |
+|        | **total**                                                                      | **8** |
 
 **80% of `output/`'s throws are rejections.** That is the answer to open question 4: Render does
 not own nothing, it currently owns almost all of the rejection surface.
@@ -66,9 +67,9 @@ By area:
 | area                                                                | sites | b1  | b2  | b3  |
 | ------------------------------------------------------------------- | ----- | --- | --- | --- |
 | `codegen/` (root: `CodeGenerator`, `TypeValidator`, `TypeResolver`) | 3     | 3   | 0   | 0   |
-| `codegen/helpers/`                                                  | 2     | 2   | 0   | 0   |
-| `codegen/generators/**`                                             | 4     | 4   | 0   | 0   |
-| `codegen/subscript/`                                                | 1     | 1   | 0   | 0   |
+| `codegen/helpers/`                                                  | 1     | 1   | 0   | 0   |
+| `codegen/generators/**`                                             | 3     | 3   | 0   | 0   |
+| `codegen/subscript/`                                                | 0     | 0   | 0   | 0   |
 | `codegen/assignment/**`, `codegen/resolution/`, `headers/`          | 1     | 1   | 0   | 0   |
 
 ## Position availability — the finding that shapes #1322
@@ -206,7 +207,7 @@ questions and only the first was asked.
   **parse error**, so it never reaches codegen at all. That leaves four live copies plus the
   factory, which is what makes unification tractable.
 
-## Bucket 1 — user-facing diagnostics (11)
+## Bucket 1 — user-facing diagnostics (8)
 
 Each needs a code and a real position in pass 2.1. `code` is the code it already carries, or
 **NEW** where one must be allocated. `position` names the node that is or would be in scope.
@@ -222,23 +223,21 @@ Each needs a code and a real position in pass 2.1. `code` is the code it already
 **13 of these 39 already carry a code**; 26 need one. **12 have no fixture at all.** Three emit a
 real position today -- the `${line}:${col} `-prefixed rows in the table below.
 
-### `codegen/helpers/` — 2
+### `codegen/helpers/` — 1
 
 **Zero carry a code today.** 25 of the 39 have no fixture.
 
-| file:line                       | anchor                                   | message                                    | code | position source                                   | fixture                                 |
-| ------------------------------- | ---------------------------------------- | ------------------------------------------ | ---- | ------------------------------------------------- | --------------------------------------- |
-| `VariableModifierBuilder.ts:82` | `Cannot use both 'atomic' and 'volatile` | both `atomic` and `volatile`               | NEW  | `ctx.start` — line already read, column discarded | `atomic/atomic-volatile-error`          |
-| `VariableDeclHelper.ts:231`     | `Error: C++ class`                       | C++ class with constructor at global scope | NEW  | `typeCtx.start` (in scope)                        | `external-types/cpp-class-global-error` |
+| file:line                   | anchor             | message                                    | code | position source            | fixture                                 |
+| --------------------------- | ------------------ | ------------------------------------------ | ---- | -------------------------- | --------------------------------------- |
+| `VariableDeclHelper.ts:231` | `Error: C++ class` | C++ class with constructor at global scope | NEW  | `typeCtx.start` (in scope) | `external-types/cpp-class-global-error` |
 
-### `codegen/generators/**` — 4
+### `codegen/generators/**` — 3
 
-| file:line                              | anchor                                  | message                              | code      | position source                                                                         | fixture                             |
-| -------------------------------------- | --------------------------------------- | ------------------------------------ | --------- | --------------------------------------------------------------------------------------- | ----------------------------------- |
-| `support/IncludeGenerator.ts:54`       | `Error: Included C-Next file not found` | included C-Next file not found       | NEW E0506 | `includeDir` at `CodeGenerator.ts:2360`; `.start.line` read at `:2488` but not threaded | none                                |
-| `support/IncludeGenerator.ts:111`      | `E0501: Function-like macro`            | function-like macro not allowed      | E0501     | `ctx` (`DefineDirectiveContext`) — line read, appended as `Line 7` prose                | `preprocessor/function-macro-error` |
-| `support/IncludeGenerator.ts:121`      | `E0502: #define with value`             | `#define` with value not allowed     | E0502     | same prose defect                                                                       | `preprocessor/value-define-error`   |
-| `…/PostfixExpressionGenerator.ts:1940` | `Float bit indexing reads`              | float bit-range read at global scope | NEW E08xx | `IFloatBitRangeContext` carries no node; the subscript `op` is available upstream       | none                                |
+| file:line                         | anchor                                  | message                          | code      | position source                                                                         | fixture                             |
+| --------------------------------- | --------------------------------------- | -------------------------------- | --------- | --------------------------------------------------------------------------------------- | ----------------------------------- |
+| `support/IncludeGenerator.ts:54`  | `Error: Included C-Next file not found` | included C-Next file not found   | NEW E0506 | `includeDir` at `CodeGenerator.ts:2360`; `.start.line` read at `:2488` but not threaded | none                                |
+| `support/IncludeGenerator.ts:111` | `E0501: Function-like macro`            | function-like macro not allowed  | E0501     | `ctx` (`DefineDirectiveContext`) — line read, appended as `Line 7` prose                | `preprocessor/function-macro-error` |
+| `support/IncludeGenerator.ts:121` | `E0502: #define with value`             | `#define` with value not allowed | E0502     | same prose defect                                                                       | `preprocessor/value-define-error`   |
 
 **32 of the 41 in this area are unpinned**, including all 23 ADR-058 property diagnostics except
 `:623`, the ADR-013 const rule, and all four `safe_div`/`safe_mod` checks.
@@ -266,11 +265,10 @@ The line is real, the column is a hard-coded `0`, and the mechanism is string fo
 than a carried node. Moving these to 2.1 **replaces an existing hack** rather than adding
 positions where none exist.
 
-### `codegen/subscript/` — 1
+### `codegen/subscript/` — 0
 
-| file:line                                  | anchor                   | message                                         | code      | position source                                                              | fixture                                                                         |
-| ------------------------------------------ | ------------------------ | ----------------------------------------------- | --------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `subscript/SubscriptDepthValidator.ts:109` | `too many subscripts on` | too many subscripts on a base (ADR-036/ADR-007) | **E0856** | `line` is already a parameter and is spent on `Error at line ${line}:` prose | `bit-indexing/scalar-over-subscript`, `bit-indexing/scalar-over-subscript-this` |
+| file:line | anchor | message | code | position source | fixture |
+| --------- | ------ | ------- | ---- | --------------- | ------- |
 
 **This row is why the gate was widened.** E0856 is registered, fixture-covered and user-facing, and
 it was absent from this audit because the throw named a factory rather than `new`. That indirection

@@ -1,4 +1,5 @@
 // Test that using both atomic and volatile modifiers together is rejected
+// test-adr: 049
 // Should error: Cannot use both 'atomic' and 'volatile' modifiers
 #pragma target stm32f4
 

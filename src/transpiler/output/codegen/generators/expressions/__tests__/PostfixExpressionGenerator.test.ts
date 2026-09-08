@@ -1301,7 +1301,7 @@ describe("PostfixExpressionGenerator", () => {
 
       expect(() =>
         generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow("cannot be used at global scope");
+      ).toThrow("E0888 rejects this in pass 2.1");
     });
 
     it("uses union member when shadow is current (no re-assignment)", () => {

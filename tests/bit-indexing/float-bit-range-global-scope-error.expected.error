@@ -1,1 +1,0 @@
-1:0 Code generation failed: Float bit indexing reads (value[0U, 8U]) cannot be used at global scope.

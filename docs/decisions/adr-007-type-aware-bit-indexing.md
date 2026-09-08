@@ -529,6 +529,27 @@ packetArray[OFFSET_FIELD3, 1] <- data.field3;
 
 ---
 
+## Diagnostics: bit access
+
+| Code  | Reported when                                      | Asserted by                                                 |
+| ----- | -------------------------------------------------- | ----------------------------------------------------------- |
+| E0856 | A base is subscripted deeper than its shape allows | `tests/adr-007/subscript-depth-*-error.test.cnx`            |
+| E0888 | A float bit RANGE is read at file scope            | `tests/adr-007/float-bit-range-global-scope-error.test.cnx` |
+
+An array takes one subscript per dimension (ADR-036) and a bit-indexable scalar
+element one more, for the bit. A third subscript on a one-dimensional array is
+therefore indexing a value that is not an array, and the spelling the author
+usually wanted is the bit range.
+
+Reading a float's bits copies it through a union, because MISRA C:2012 Rule
+21.15 forbids the pointer cast. A copy is a statement, and file scope has none
+-- which makes E0888 the one rule here about WHERE the access is written rather
+than what it is written on. A single bit index needs no union and is not
+restricted.
+
+Both are asked of an expression and of an assignment TARGET. They are different
+node types, and both fixtures for E0856 are writes.
+
 ## Scope-context matrix
 
 Declared for **array slice assignment** (the section above), whose rules #1322

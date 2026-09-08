@@ -17,6 +17,7 @@
  */
 import TTypeInfo from "../../../types/TTypeInfo";
 import TypeCheckUtils from "../../../../utils/TypeCheckUtils";
+import invariant from "../../../../utils/invariant";
 
 /**
  * Structural shape common to `postfixOp` (read path) and `postfixTargetOp`
@@ -69,13 +70,13 @@ class SubscriptDepthValidator {
    * bitmaps reject bracket indexing elsewhere, and struct/other bases are
    * handled by the member-access paths — none are validated here.
    *
-   * @throws when the chain is deeper than `arrayDimensions + 1`.
+   * #1322: the `line` parameter went with the throw. It existed only to be
+   * spelled into the message, which is what a diagnostic's position is for.
    */
   static validate(
     typeInfo: TTypeInfo | undefined,
     subscriptOpCount: number,
     varName: string,
-    line: number,
   ): void {
     if (!typeInfo || typeInfo.isString || typeInfo.isBitmap) {
       return;
@@ -89,31 +90,14 @@ class SubscriptDepthValidator {
     }
 
     const arrayDimensions = typeInfo.arrayDimensions?.length ?? 0;
-    const maxDepth = arrayDimensions + 1;
-    if (subscriptOpCount > maxDepth) {
-      // #1322: raised here rather than through a `CodeGenErrors` factory. The
-      // factory returned an Error for the caller to throw, so the line did not
-      // begin `throw new` -- and `docs:throw-citations:check` matched on that
-      // spelling, which made E0856 invisible to the audit that classifies every
-      // rejection in `output/`. A coded, fixture-covered, user-facing
-      // diagnostic that the classifier cannot see is one that cannot be
-      // relocated to 2.1. The gate has since been widened; the indirection is
-      // removed because it bought nothing and cost that.
-      const allowed = maxDepth;
-      const shape =
-        arrayDimensions === 0
-          ? `a scalar '${typeInfo.baseType}'`
-          : `a ${arrayDimensions}-dimensional '${typeInfo.baseType}' array`;
-      const plural = allowed === 1 ? "subscript" : "subscripts";
-      const dimensionWord = arrayDimensions === 1 ? "dimension" : "dimensions";
-      throw new Error(
-        `E0856: Error at line ${line}: too many subscripts on '${varName}'. ` +
-          `'${varName}' is ${shape}, so it allows at most ${allowed} ${plural} ` +
-          `(${arrayDimensions} for array ${dimensionWord} ` +
-          `plus one optional bit index — ADR-036/ADR-007). Indexing further indexes a ` +
-          `value that is not an array. Did you mean the bit range '${varName}[start, width]'?`,
-      );
-    }
+    // #1322: ADR-036/ADR-007's depth limit is E0856 in pass 2.1, decided from
+    // the declaration's own dimensions. The throw here built `Error at line N:`
+    // into its message -- a position carried as prose, which is what the
+    // relocation removes.
+    invariant(
+      subscriptOpCount <= arrayDimensions + 1,
+      `'${varName}' is subscripted no deeper than its shape allows -- E0856 rejects this in pass 2.1, before this runs`,
+    );
   }
 }
 

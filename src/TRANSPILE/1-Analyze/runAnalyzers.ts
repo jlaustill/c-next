@@ -36,6 +36,8 @@ import ArrayIndexBoundsAnalyzer from "./ArrayIndexBoundsAnalyzer";
 import CallbackAssignmentAnalyzer from "./CallbackAssignmentAnalyzer";
 import BitmapAccessAnalyzer from "./BitmapAccessAnalyzer";
 import SafeDivisionAnalyzer from "./SafeDivisionAnalyzer";
+import BitAccessAnalyzer from "./BitAccessAnalyzer";
+import DeclarationModifierAnalyzer from "./DeclarationModifierAnalyzer";
 import SizeofAnalyzer from "./SizeofAnalyzer";
 import StructLiteralAnalyzer from "./StructLiteralAnalyzer";
 import ConstAssignmentAnalyzer from "./ConstAssignmentAnalyzer";
@@ -349,6 +351,14 @@ function runAnalyzers(
     {
       label: "sizeof operands (ADR-023, E0601/E0602)",
       run: () => new SizeofAnalyzer().analyze(tree),
+    },
+    {
+      label: "declaration modifiers (ADR-049, E0889)",
+      run: () => new DeclarationModifierAnalyzer().analyze(tree),
+    },
+    {
+      label: "bit indexing depth and scope (ADR-007/036, E0856/E0888)",
+      run: () => new BitAccessAnalyzer().analyze(tree),
     },
     {
       // Last, and does not halt: comment findings are reported alongside

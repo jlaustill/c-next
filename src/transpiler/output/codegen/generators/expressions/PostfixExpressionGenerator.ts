@@ -247,7 +247,6 @@ const generatePostfixExpression = (
         subscriptBase.opOffset,
       ),
       subscriptBase.displayName,
-      ctx.start?.line ?? 0,
     );
   }
 
@@ -1936,11 +1935,13 @@ const handleFloatBitRange = (
   orchestrator: IOrchestrator,
   effects: TGeneratorEffect[],
 ): string => {
-  if (!state.inFunctionBody) {
-    throw new Error(
-      `Float bit indexing reads (${ctx.rootIdentifier}[${ctx.start}, ${ctx.width}]) cannot be used at global scope.`,
-    );
-  }
+  // #1322: ADR-007's file-scope restriction is E0888 in pass 2.1, which asks
+  // the parse tree whether a function encloses the read rather than reading a
+  // generator flag.
+  invariant(
+    state.inFunctionBody,
+    `a float bit range is read inside a function (${ctx.rootIdentifier}) -- E0888 rejects this in pass 2.1, before this runs`,
+  );
 
   effects.push({ type: "include", header: "float_static_assert" });
 

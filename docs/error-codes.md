@@ -19,9 +19,9 @@ codes that already have a fixture.
 | E05xx     | Include/Preprocessor    | 7       |
 | E06xx     | Sizeof Expressions      | 2       |
 | E07xx     | Control Flow            | 12      |
-| E08xx     | Arithmetic/Array Safety | 47      |
+| E08xx     | Arithmetic/Array Safety | 49      |
 | E09xx     | NULL Safety             | 8       |
-| **Total** |                         | **102** |
+| **Total** |                         | **104** |
 
 ---
 
@@ -241,22 +241,22 @@ include-visibility is not derivable for a C or C++ name.
 
 ### Subscript Depth (ADR-036 / ADR-007)
 
-| Code  | Message                                                                        | Help                                                                                                             | Source                                                |
-| ----- | ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| E0856 | Too many subscripts on a base                                                  | A base allows `arrayDimensions + 1` subscripts; for a bit field use `name[start, width]`                         | `output/codegen/subscript/SubscriptDepthValidator.ts` |
-| E0857 | Compound assignment on a target that is not a whole storage location           | A compound operator reads, modifies and writes back one location; write the read and write separately            | `TRANSPILE/1-Analyze/CompoundAssignmentAnalyzer.ts`   |
-| E0858 | Slice assignment target cannot be sliced (element type, dimensions, or size)   | Slice a one-dimensional integer or string buffer whose size folds at compile time                                | `TRANSPILE/1-Analyze/SliceAssignmentAnalyzer.ts`      |
-| E0859 | Slice assignment offset or length is not a compile-time constant               | Use a literal or a `const`; a runtime span cannot be bounds-checked                                              | `TRANSPILE/1-Analyze/SliceAssignmentAnalyzer.ts`      |
-| E0860 | Slice assignment span does not fit the buffer (bounds, alignment, or sign)     | Keep `offset + length / elementSize` within the capacity, and the length a positive multiple of the element size | `TRANSPILE/1-Analyze/SliceAssignmentAnalyzer.ts`      |
-| E0861 | Slice assignment source does not fit the slice (type, width, or literal range) | Assign an integer no wider than the slice, or widen the slice                                                    | `TRANSPILE/1-Analyze/SliceAssignmentAnalyzer.ts`      |
-| E0862 | String declaration does not state a capacity that can be determined            | Write the capacity, e.g. `string<64>`; only a `const` with a literal can have one inferred                       | `TRANSPILE/1-Analyze/StringDeclarationAnalyzer.ts`    |
-| E0863 | String at file scope is initialized by something other than a literal          | Move the declaration into a function, or initialize it empty and assign later                                    | `TRANSPILE/1-Analyze/StringDeclarationAnalyzer.ts`    |
-| E0864 | Value does not fit the declared string capacity                                | Widen the declaration, or shorten the value                                                                      | `TRANSPILE/1-Analyze/StringDeclarationAnalyzer.ts`    |
-| E0865 | Substring bounds exceed the source string                                      | Keep `start + length` within the source's capacity                                                               | `TRANSPILE/1-Analyze/StringDeclarationAnalyzer.ts`    |
-| E0866 | Array initializer does not match the declaration (ADR-035)                     | Give a bracketed list with one element per slot at every level, or the fill-all form                             | `TRANSPILE/1-Analyze/ArrayDeclarationAnalyzer.ts`     |
-| E0867 | Length property not available on this type (ADR-058)                           | `.element_count` needs an array, `.char_count` a string, `.bit_length`/`.byte_length` a sized type               | `TRANSPILE/1-Analyze/LengthPropertyAnalyzer.ts`       |
-| E0868 | Integer literal does not fit the target type's range (ADR-024)                 | Widen the target type, or narrow the value; an unsigned type holds no negative                                   | `TRANSPILE/1-Analyze/IntegerConversionAnalyzer.ts`    |
-| E0869 | Implicit narrowing or sign-changing integer conversion (ADR-024)               | Use bit indexing to say which bits you mean, e.g. `value[0, 8]`                                                  | `TRANSPILE/1-Analyze/IntegerConversionAnalyzer.ts`    |
+| Code  | Message                                                                        | Help                                                                                                             | Source                                              |
+| ----- | ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| E0856 | More subscripts than the base's shape allows                                   | One per array dimension plus one optional bit index (ADR-036/ADR-007)                                            | `TRANSPILE/1-Analyze/BitAccessAnalyzer.ts`          |
+| E0857 | Compound assignment on a target that is not a whole storage location           | A compound operator reads, modifies and writes back one location; write the read and write separately            | `TRANSPILE/1-Analyze/CompoundAssignmentAnalyzer.ts` |
+| E0858 | Slice assignment target cannot be sliced (element type, dimensions, or size)   | Slice a one-dimensional integer or string buffer whose size folds at compile time                                | `TRANSPILE/1-Analyze/SliceAssignmentAnalyzer.ts`    |
+| E0859 | Slice assignment offset or length is not a compile-time constant               | Use a literal or a `const`; a runtime span cannot be bounds-checked                                              | `TRANSPILE/1-Analyze/SliceAssignmentAnalyzer.ts`    |
+| E0860 | Slice assignment span does not fit the buffer (bounds, alignment, or sign)     | Keep `offset + length / elementSize` within the capacity, and the length a positive multiple of the element size | `TRANSPILE/1-Analyze/SliceAssignmentAnalyzer.ts`    |
+| E0861 | Slice assignment source does not fit the slice (type, width, or literal range) | Assign an integer no wider than the slice, or widen the slice                                                    | `TRANSPILE/1-Analyze/SliceAssignmentAnalyzer.ts`    |
+| E0862 | String declaration does not state a capacity that can be determined            | Write the capacity, e.g. `string<64>`; only a `const` with a literal can have one inferred                       | `TRANSPILE/1-Analyze/StringDeclarationAnalyzer.ts`  |
+| E0863 | String at file scope is initialized by something other than a literal          | Move the declaration into a function, or initialize it empty and assign later                                    | `TRANSPILE/1-Analyze/StringDeclarationAnalyzer.ts`  |
+| E0864 | Value does not fit the declared string capacity                                | Widen the declaration, or shorten the value                                                                      | `TRANSPILE/1-Analyze/StringDeclarationAnalyzer.ts`  |
+| E0865 | Substring bounds exceed the source string                                      | Keep `start + length` within the source's capacity                                                               | `TRANSPILE/1-Analyze/StringDeclarationAnalyzer.ts`  |
+| E0866 | Array initializer does not match the declaration (ADR-035)                     | Give a bracketed list with one element per slot at every level, or the fill-all form                             | `TRANSPILE/1-Analyze/ArrayDeclarationAnalyzer.ts`   |
+| E0867 | Length property not available on this type (ADR-058)                           | `.element_count` needs an array, `.char_count` a string, `.bit_length`/`.byte_length` a sized type               | `TRANSPILE/1-Analyze/LengthPropertyAnalyzer.ts`     |
+| E0868 | Integer literal does not fit the target type's range (ADR-024)                 | Widen the target type, or narrow the value; an unsigned type holds no negative                                   | `TRANSPILE/1-Analyze/IntegerConversionAnalyzer.ts`  |
+| E0869 | Implicit narrowing or sign-changing integer conversion (ADR-024)               | Use bit indexing to say which bits you mean, e.g. `value[0, 8]`                                                  | `TRANSPILE/1-Analyze/IntegerConversionAnalyzer.ts`  |
 
 ### Register Access Modifiers (ADR-004)
 
@@ -322,6 +322,13 @@ base: bare, `this.` and `global.`.
 | ----- | -------------------------------------------------- | ----------------------------------------------------------------------- | ----------------------------------------------- |
 | E0886 | `.length` is deprecated                            | Use `.char_count`, `.element_count`, `.bit_length` or `.byte_length`    | `TRANSPILE/1-Analyze/LengthPropertyAnalyzer.ts` |
 | E0887 | `.capacity` or `.size` on something with no buffer | Both describe a string's buffer; use `.element_count` or `.byte_length` | `TRANSPILE/1-Analyze/LengthPropertyAnalyzer.ts` |
+
+### Bit Access and Declaration Modifiers (ADR-007 / ADR-049)
+
+| Code  | Message                                         | Help                                                                  | Source                                               |
+| ----- | ----------------------------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------- |
+| E0888 | A float bit range read at file scope            | The union copy it lowers to is a statement; read it inside a function | `TRANSPILE/1-Analyze/BitAccessAnalyzer.ts`           |
+| E0889 | Both `atomic` and `volatile` on one declaration | `atomic` already implies `volatile`; choose one                       | `TRANSPILE/1-Analyze/DeclarationModifierAnalyzer.ts` |
 
 ## E09xx — NULL Safety (ADR-046)
 

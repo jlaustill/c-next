@@ -3798,7 +3798,7 @@ describe("CodeGenerator", () => {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         }),
-      ).toThrow("Cannot use both 'atomic' and 'volatile' modifiers");
+      ).toThrow("E0889 rejects this in pass 2.1");
     });
   });
 

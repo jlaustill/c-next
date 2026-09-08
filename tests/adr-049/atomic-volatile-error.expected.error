@@ -1,0 +1,2 @@
+7:0 error[E0889]: Cannot use both 'atomic' and 'volatile' on one declaration
+       help: `atomic` already implies `volatile`, and adds that a read or write cannot be torn. Use `atomic` for a variable an ISR shares, or `volatile` alone for a hardware register or a delay loop (ADR-049).

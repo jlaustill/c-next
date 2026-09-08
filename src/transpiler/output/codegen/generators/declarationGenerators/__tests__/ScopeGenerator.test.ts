@@ -891,7 +891,7 @@ describe("ScopeGenerator", () => {
       const orchestrator = createMockOrchestrator();
 
       expect(() => generateScope(ctx, input, state, orchestrator)).toThrow(
-        /Cannot use both 'atomic' and 'volatile' modifiers/,
+        "E0889 rejects this in pass 2.1",
       );
     });
   });

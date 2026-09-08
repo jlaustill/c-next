@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-366 fixture(s) assert a diagnostic; 349 carry a code.
+366 fixture(s) assert a diagnostic; 351 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -22,6 +22,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-004/register-read-wo-error.test.cnx                                                    | E0870               |
 | tests/adr-004/register-wo-set-false-error.test.cnx                                               | E0872               |
 | tests/adr-004/register-write-ro-error.test.cnx                                                   | E0871               |
+| tests/adr-007/float-bit-range-global-scope-error.test.cnx                                        | E0888               |
 | tests/adr-007/slice-bounds-violation.test.cnx                                                    | E0860               |
 | tests/adr-007/slice-imported-direct-error.test.cnx                                               | E0860               |
 | tests/adr-007/slice-imported-transitive-error.test.cnx                                           | E0860               |
@@ -34,6 +35,8 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-007/slice-silent-overflow.test.cnx                                                     | E0859               |
 | tests/adr-007/slice-wide-element-span-error.test.cnx                                             | E0860               |
 | tests/adr-007/slice-zero-length.test.cnx                                                         | E0860               |
+| tests/adr-007/subscript-depth-scalar-error.test.cnx                                              | E0856               |
+| tests/adr-007/subscript-depth-this-error.test.cnx                                                | E0856               |
 | tests/adr-013/const-assign-error.test.cnx                                                        | E0877               |
 | tests/adr-013/const-bool-assign-error.test.cnx                                                   | E0877               |
 | tests/adr-013/const-bool-param-assign-error.test.cnx                                             | E0877               |
@@ -170,6 +173,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-045/string-imported-direct-error.test.cnx                                              | E0863, E0864        |
 | tests/adr-045/string-imported-transitive-error.test.cnx                                          | E0863, E0864        |
 | tests/adr-045/string-storage-properties-error.test.cnx                                           | E0887               |
+| tests/adr-049/atomic-volatile-error.test.cnx                                                     | E0889               |
 | tests/adr-050/return-in-critical-error.test.cnx                                                  | E0853               |
 | tests/adr-050/return-in-critical-scope-method-error.test.cnx                                     | E0853               |
 | tests/adr-050/return-in-critical-switch-error.test.cnx                                           | E0853               |
@@ -214,10 +218,6 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/arithmetic/modulo-by-const-zero.test.cnx                                                   | E0802               |
 | tests/arithmetic/modulo-by-zero-literal.test.cnx                                                 | E0802               |
 | tests/atomic/atomic-struct-member.test.cnx                                                       | (uncoded)           |
-| tests/atomic/atomic-volatile-error.test.cnx                                                      | (uncoded)           |
-| tests/bit-indexing/float-bit-range-global-scope-error.test.cnx                                   | (uncoded)           |
-| tests/bit-indexing/scalar-over-subscript-this.test.cnx                                           | E0856               |
-| tests/bit-indexing/scalar-over-subscript.test.cnx                                                | E0856               |
 | tests/bitmap/bitmap-error-bits.test.cnx                                                          | (uncoded)           |
 | tests/bitwise/i16-compound-shift-assign.test.cnx                                                 | E0805               |
 | tests/bitwise/i16-shift-ops.test.cnx                                                             | E0805               |
