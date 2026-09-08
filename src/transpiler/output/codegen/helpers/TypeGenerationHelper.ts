@@ -36,6 +36,16 @@ interface ITypeGenerationDeps {
    * only actual enum/struct/bitmap declarations capture the name.
    */
   isScopeType: (qualifiedName: string) => boolean;
+  /**
+   * #1508 / ADR-010: does this settled type name refer to a declaration in a
+   * DIFFERENT file? Injected like `isScopeType` rather than read from global
+   * state, so this helper stays unit-testable.
+   *
+   * Required, not optional. An omitted predicate defaulting to "no" would make
+   * ADR-010 occupancy silently empty -- the `cppMode?: boolean` shape that let
+   * two sites emit the wrong header extension (#1319).
+   */
+  isCrossFileDeclaration: (typeName: string) => boolean;
 }
 
 class TypeGenerationHelper {
@@ -188,6 +198,19 @@ class TypeGenerationHelper {
         deps.currentScopePath,
         deps.isScopeType,
       );
+      // #1508: ADR-010's promise -- a type declared in an included file is
+      // usable where a local one is -- firing at a position.
+      //
+      // Recorded HERE, against the name this branch is about to emit, rather
+      // than against a second resolution performed by the caller. `generateType`
+      // used to call `getTypeName` purely for this, discarding the result: two
+      // resolvers, agreeing today with nothing asserting they must, and
+      // provenance attached to the one that is NOT emitted. Occupancy only ever
+      // reads as "a fixture reached this cell", so that divergence would have
+      // been silent.
+      if (deps.isCrossFileDeclaration(qualified)) {
+        AdrProvenance.record("010", accessors.userType()!.start?.line);
+      }
       if (qualified !== typeName) {
         // #1241: the enclosing scope captured a bare name -- ADR-057's rule
         // firing, observably, at a position. Recorded so a codegen-only fixture

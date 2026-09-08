@@ -133,6 +133,7 @@ describe("TypeGenerationHelper", () => {
       isCppScopeSymbol: () => false,
       checkNeedsStructKeyword: () => false,
       isScopeType: () => false,
+      isCrossFileDeclaration: () => false,
     };
 
     it.each([

@@ -1875,6 +1875,14 @@ class Transpiler {
     // error was buried doubly here, because a marker found with no source also
     // sets `noCNextFound`, so the run additionally printed the friendly
     // "To get started:" onboarding text at a user whose header path was wrong.
+    // The warnings are pushed BEFORE the throw, deliberately. The scan collects
+    // `#include "x.h" not found (from ...)` and `Could not read <path>`, and a
+    // missing C-Next source is very often downstream of exactly those -- so
+    // throwing first would report "that source is not there" while discarding
+    // the reason. `ResultPrinter` emits warnings above errors, so they land
+    // where a reader looks next.
+    this.warnings.push(...scanResult.warnings);
+
     if (scanResult.errors.length > 0) {
       throw new Error(
         `E0509: ${scanResult.errors.join("\n       ")}\n` +
@@ -1882,7 +1890,6 @@ class Transpiler {
           `  Check that source is present, and reachable from the include path.`,
       );
     }
-    this.warnings.push(...scanResult.warnings);
 
     if (scanResult.noCNextFound) {
       return { cnextFiles: [], headerFiles: [], writeOutputToDisk: true };

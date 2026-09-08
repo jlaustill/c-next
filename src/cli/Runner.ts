@@ -137,7 +137,14 @@ class Runner {
     // problem was a path, and the advice was to start over. Guarding only that
     // branch then sent the same run to the other one, which announced
     // `Found 0 C-Next source file(s): ` with an empty list.
-    if (result.errors.length > 0) {
+    //
+    // Both conditions, not `errors.length` alone. A PARTIAL failure -- three
+    // sources discovered, one of which fails to transpile -- must keep its
+    // summary: `ResultPrinter`'s failure branch prints only "Compilation
+    // failed" and no file list, so this is the only line naming the files that
+    // did process. Suppressing on errors alone would have described the one
+    // file that failed and nothing about the two that succeeded.
+    if (result.errors.length > 0 && result.filesProcessed === 0) {
       return;
     }
 

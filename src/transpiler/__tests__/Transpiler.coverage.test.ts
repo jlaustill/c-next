@@ -1375,6 +1375,38 @@ int main() { LED_on(); return 0; }`,
       expect(text).toContain("ghost.h");
     });
 
+    it("keeps the scan warnings that explain the error", async () => {
+      // #1540 review: the throw used to precede
+      // `this.warnings.push(...scanResult.warnings)`, making it unreachable on
+      // the very path where those warnings matter. A missing source is often
+      // downstream of a header that could not be read or found, and the reason
+      // was being discarded along with them.
+      // The unresolvable include goes in the ENTRY, not in the marker header:
+      // the scanner stops at a marker and never walks that header's own
+      // includes, so a missing include placed there produces no warning and
+      // the test could not tell the two orderings apart.
+      mockFs.addFile("/project/src/ghost.h", MARKER_HEADER("ghost.cnx"));
+      mockFs.addFile(
+        "/project/src/main.cpp",
+        '#include "absent.h"\n#include "ghost.h"\nint main() { return 0; }\n',
+      );
+
+      const result = await new Transpiler(
+        {
+          input: "/project/src/main.cpp",
+          outDir: "/project/build",
+          noCache: true,
+          cppRequired: true,
+        },
+        mockFs,
+      ).transpile({ kind: "files" });
+
+      expect(result.errors.map((e) => e.message).join("\n")).toContain("E0509");
+      // The reason, not just the symptom. Putting the throw back above the
+      // push makes this line unreachable and drops it.
+      expect(result.warnings.join("\n")).toContain("absent.h");
+    });
+
     it("stays silent when the referenced source exists", async () => {
       // Negative control for over-enforcement. Without it, a check that
       // rejected every marker header would pass all three assertions above.

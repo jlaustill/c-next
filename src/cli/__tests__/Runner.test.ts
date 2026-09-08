@@ -283,6 +283,32 @@ describe("Runner", () => {
         );
       });
 
+      it("keeps the file summary when the failure is only partial", async () => {
+        // #1540 review: the first version of the guard above suppressed on
+        // `errors.length > 0` alone, so a run where three sources were found
+        // and one failed lost the only line naming the two that succeeded --
+        // ResultPrinter's failure branch prints "Compilation failed" and no
+        // file list. The suppression is for a run that produced NOTHING.
+        mockTranspilerInstance.transpile.mockResolvedValue({
+          success: false,
+          outputFiles: ["/project/src/led.c"],
+          errors: [{ message: "E0602: something failed in motor.cnx" }],
+          filesProcessed: 2,
+          files: [
+            { sourcePath: "/project/src/led.cnx" },
+            { sourcePath: "/project/src/motor.cnx" },
+          ],
+        });
+
+        await expect(Runner.execute(mockConfig)).rejects.toThrow(
+          /process.exit/,
+        );
+
+        expect(consoleLogSpy).toHaveBeenCalledWith(
+          expect.stringContaining("Found 2 C-Next source file(s)"),
+        );
+      });
+
       it("still prints onboarding advice for a genuinely empty include tree", async () => {
         // Negative control: the advice is correct and wanted here. Without
         // this, suppressing it unconditionally would pass the test above.
