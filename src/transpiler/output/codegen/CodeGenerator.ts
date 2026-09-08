@@ -575,6 +575,17 @@ export default class CodeGenerator implements IOrchestrator {
       CodeGenState.requireInclude(requiredInclude);
     }
 
+    // #1508: ADR-010 provenance for a type NAMED here. Asked of `getTypeName`
+    // -- the one name resolver -- rather than repeated inline, because the two
+    // are different questions: this method returns the emitted C type, and
+    // `struct Reading` is not a symbol name to look up. Recording in only one
+    // of the two type entry points would leave the `global variable` contexts
+    // permanently unoccupied, since a global's type is emitted through here and
+    // never through `getTypeName`. Resolution is idempotent, so asking twice
+    // costs a lookup and records the same position twice, which occupancy
+    // dedupes.
+    this.getTypeName(ctx);
+
     // Generate the C type using the helper with dependencies
     return TypeGenerationHelper.generate(ctx, {
       currentScopePath: CodeGenState.currentScopePath,
@@ -1189,6 +1200,20 @@ export default class CodeGenerator implements IOrchestrator {
           this.resolveQualifiedType(identifiers),
       },
     );
+    // #1508: the other half of ADR-010's promise. A cross-file declaration is
+    // reached two ways -- it is CALLED, which the postfix generator records, or
+    // its TYPE is named, which is this. A global variable cannot call anything
+    // at file scope, so without this site the `global variable` contexts would
+    // be permanently unoccupiable and would have had to be declared `off` --
+    // recording a claim that an included type cannot be used for a global,
+    // which is false.
+    //
+    // Both sites are one mechanism (provenance at the point of resolution), not
+    // the two the matrix guidance warns against mixing: neither depends on a
+    // diagnostic, and a fixture is credited once per position either way.
+    if (resolved !== null && CodeGenState.isCrossFileDeclaration(resolved)) {
+      AdrProvenance.record("010", ctx.start?.line);
+    }
     return resolved ?? ctx.getText();
   }
 

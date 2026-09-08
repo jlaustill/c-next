@@ -195,6 +195,49 @@ Whether the guarantee belongs in the Decision itself is open.
 
 ---
 
+## Scope-context matrix
+
+<!-- MATRIX-SEVERITY -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | off      |
+| top-level function | same file           | off      |
+| scope member       | same file           | off      |
+| scope method       | same file           | off      |
+| global variable    | imported direct     | error    |
+| top-level function | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported transitive | error    |
+| top-level function | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| scope method       | imported transitive | error    |
+
+**Every `same file` cell is `off`, and that is a property of the decision rather
+than a coverage gap.** This ADR's subject is what one file may use from another;
+an include is cross-file by definition, so there is no same-file case to
+exercise. A reader who finds this row empty should not go looking for the
+fixture that is missing -- there is none to write.
+
+**The two remaining relationships are both `error` for all four contexts.** The
+promise this ADR makes is that a declaration reached through an include is
+usable wherever a local one would be, and "wherever" is precisely the context
+axis. A cell left undeclared would read as `off`, which would be the claim that
+an included symbol cannot be used in that position -- the opposite of what this
+ADR decides.
+
+**Where an include fixture occupies is the use site, never the directive.** The
+Diagnostics section above records that the three include diagnostics occupy no
+cell, because an `#include` is grammatical only before the first declaration and
+is therefore enclosed by no scope, function or variable. That is a statement
+about the directive. The decisions in this section are about the _symbol_ the
+directive makes available, and a symbol is used inside a declaration like any
+other -- so a fixture occupies through the call or type use it performs, and the
+rejection fixtures occupy nothing.
+
+---
+
 ## Known Limitations
 
 ### C Grammar

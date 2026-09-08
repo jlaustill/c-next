@@ -1,0 +1,39 @@
+// test-execution
+// test-adr: 010
+// ADR-010, the `imported direct` row of its scope-context matrix.
+//
+// One fixture, four contexts. ADR-010 promises a declaration reached through an
+// `#include` is usable wherever a local one would be, and "wherever" is exactly
+// what the context axis enumerates -- so the promise is only observed once all
+// four positions are exercised, not once one of them is.
+//
+//   global variable    `gReading`, whose TYPE comes from the include
+//   scope member       `Consumer.cached`, same
+//   scope method       `Consumer.read`, which CALLS across the include
+//   top-level function `main`, same
+//
+// The two ways a cross-file declaration is reached -- named as a type, and
+// called -- are both present on purpose. They are recorded at different points,
+// and a fixture exercising only calls would leave the two variable contexts
+// unoccupied while looking like full coverage.
+#include "direct-lib.cnx"
+
+Reading gReading;
+
+scope Consumer {
+    private Reading cached;
+
+    public u32 read() {
+        return readSensor();
+    }
+}
+
+u32 main() {
+    gReading.value <- readSensor();
+    if (gReading.value != 42) return 1;
+
+    u32 viaScope <- Consumer.read();
+    if (viaScope != 42) return 2;
+
+    return 0;
+}

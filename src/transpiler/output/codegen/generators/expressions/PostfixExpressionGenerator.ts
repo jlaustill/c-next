@@ -23,6 +23,7 @@ import memberAccessChain from "../../memberAccessChain";
 import BitmapAccessHelper from "./BitmapAccessHelper";
 import BitRangeHelper from "../../helpers/BitRangeHelper";
 import NarrowingCastHelper from "../../helpers/NarrowingCastHelper";
+import AdrProvenance from "../../../../state/AdrProvenance";
 import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import SubscriptClassifier from "../../subscript/SubscriptClassifier";
 import SubscriptDepthValidator from "../../subscript/SubscriptDepthValidator";
@@ -302,6 +303,16 @@ const generatePostfixExpression = (
       tracking.subscriptDepth =
         subscriptResult.subscriptDepth ?? tracking.subscriptDepth;
     } else {
+      // #1508: ADR-010's promise -- a declaration reached through an `#include`
+      // is callable exactly where a local one is -- firing, observably, at a
+      // position. Recorded at the CALL rather than at the directive: an
+      // `#include` is grammatical only before the first declaration, so it sits
+      // in no scope, function or variable and the matrix's context axis has
+      // nothing to ask it. The use site is enclosed by a declaration like any
+      // other expression, which is what makes the cell derivable at all.
+      if (CodeGenState.isCrossFileDeclaration(tracking.result)) {
+        AdrProvenance.record("010", op.start?.line);
+      }
       const callResult = generateFunctionCall(
         tracking.result,
         op.argumentList() || null,

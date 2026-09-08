@@ -862,6 +862,40 @@ export default class CodeGenState {
   }
 
   /**
+   * ADR-010: does this transpiled C name refer to a declaration that lives in
+   * a DIFFERENT file from the one being generated?
+   *
+   * #1508: ADR-010 promises that a declaration reached through an `#include` is
+   * usable wherever a local one would be. When that promise is KEPT nothing is
+   * diagnosed -- the code simply compiles -- so the matrix had no source
+   * position to derive occupancy from and every cross-file cell read as
+   * unoccupied however many fixtures exercised it. That is the observability
+   * gap #1241 describes, not a coverage gap.
+   *
+   * Asks the run-wide table, deliberately. The per-file `known*` sets carry
+   * names only, so they cannot answer "which file did this come from"; the
+   * run-wide table indexes symbols by their canonical C name and each symbol
+   * carries its own `sourceFile`. This is the "which symbol IS this?" question,
+   * which CLAUDE.md pairs with `getOverloadsByCName` rather than the bare-name
+   * index.
+   *
+   * `every` rather than `some`: a name that resolves to declarations in several
+   * files includes a local one, and a local declaration is what the caller
+   * actually binds to. Reporting that as cross-file would credit an include for
+   * a symbol the file defines itself.
+   */
+  static isCrossFileDeclaration(qualifiedCName: string): boolean {
+    const current = this.sourcePath;
+    if (!current) {
+      return false;
+    }
+    const found = this.symbolTable.getOverloadsByCName(qualifiedCName);
+    return (
+      found.length > 0 && found.every((symbol) => symbol.sourceFile !== current)
+    );
+  }
+
+  /**
    * ADR-057: qualify a bare type name against the scope being generated.
    *
    * Binds `QualifiedCName.qualifyScopeType()` to this state's current scope and
