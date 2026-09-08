@@ -162,15 +162,23 @@ Use `{ field: value }` syntax (like Rust, Go, TypeScript):
 Point p <- { x: 10, y: 20 };
 ```
 
-The type is **not** repeated. It is already declared to the left, and repeating
-it is an error (E0356). Every position that declares a type behaves the same
-way: a variable's declaration, an assignment target, a field of an enclosing
-initializer, a call argument, and a `return` statement.
+The type is **not** repeated, and there is no syntax for repeating it. It is
+already declared to the left, and every position that declares a type behaves
+the same way: a variable's declaration, an assignment target, a field of an
+enclosing initializer, a call argument, and a `return` statement.
 
 ```cnx
-// NOT SUPPORTED -- the type is already declared
+// NOT SYNTAX -- `Point { ... }` does not parse
 Point p <- Point { x: 10, y: 20 };
 ```
+
+**This was a grammar alternative until #1322, and removing it followed from
+having no position left where it was useful.** It was rejected as redundant in
+every position that consumes a value, since all of them declare a type; the one
+place it parsed was a bare expression statement, where it built a compound
+literal and discarded it. A form legal only where it does nothing is not a form
+the language offers, so the alternative is gone and the diagnostic that rejected
+it (E0356) is retired rather than reassigned.
 
 **Literals are allowed** in struct initializers because initialization is not a function call — no pass-by-reference occurs. This is the same as `u8 flags <- 44;`.
 
@@ -286,11 +294,11 @@ Rectangle r <- {
 
 ## Diagnostics
 
-| Code  | Reported when                                                                           | Asserted by                                                  |
-| ----- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| E0356 | A struct initializer writes a type where the position it stands in already declares one | `tests/adr-014/struct-redundant-type-error.test.cnx`         |
-| E0357 | A struct initializer writes no type and stands where no position declares one           | `tests/adr-014/struct-no-type-error.test.cnx`                |
-| E0508 | A C++ class with a constructor is initialized where no statement can follow it          | `tests/external-types/cpp-class-scope-member-error.test.cnx` |
+| Code      | Reported when                                                                                                                                                                                                       | Asserted by                                                  |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| ~~E0356~~ | _Retired._ Was: a struct initializer writes a type where the position already declares one. The syntax it rejected is removed, so it is a parse error — `tests/adr-014/struct-written-type-rejected-error.test.cnx` |                                                              |
+| E0357     | A struct initializer writes no type and stands where no position declares one                                                                                                                                       | `tests/adr-014/struct-no-type-error.test.cnx`                |
+| E0508     | A C++ class with a constructor is initialized where no statement can follow it                                                                                                                                      | `tests/external-types/cpp-class-scope-member-error.test.cnx` |
 
 A struct literal has no type of its own, and the position it stands in gives it
 one. The positions that do are a variable's declaration (including a `for`
@@ -303,8 +311,8 @@ Every position that carries a value is on that list, so the written form
 expression statement. E0357's help therefore does not offer "write the type" as
 a remedy: it would name the other error.
 
-All three are decided during analysis, at the initializer's own position, and
-every offense in a file is reported.
+Both are decided during analysis, at the initializer's own position, and every
+offense in a file is reported.
 
 **E0508 is the one place this syntax depends on the target language.** A C++
 class with a user-defined constructor is not an aggregate, so the initializer
@@ -313,7 +321,7 @@ assignments are statements. A declaration outside a function body has no
 statement position after it, and that is true of a **scope member** as much as
 of a global -- a scope member becomes a file-scope definition. So the rule is
 about where the initializer stands, not about what it initializes, which is why
-it lives beside E0356 and E0357 rather than with the interop decisions.
+it lives beside E0357 rather than with the interop decisions.
 
 ## Scope-Context Matrix (#1219)
 

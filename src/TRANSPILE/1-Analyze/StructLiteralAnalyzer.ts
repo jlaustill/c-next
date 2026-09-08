@@ -1,25 +1,30 @@
 /**
- * ADR-014 struct initializers: E0356, E0357.
+ * ADR-014 struct initializers: E0357.
  *
  * #1322. Two throws in `CodeGenerator._resolveStructInitializerTypeName`, both
  * reported as `1:0`, and one of them fired on valid code (#1277).
  *
  * ## One question, asked once
  *
- * A struct literal has no type of its own. Either it writes one
- * (`Point { x: 1 }`) or the position it stands in supplies one
- * (`Point p <- { x: 1 }`). Exactly one of those must hold:
+ * A struct literal has no type of its own; the position it stands in supplies
+ * one (`Point p <- { x: 1 }`). Where nothing does, nothing can say what struct
+ * this is -- E0357. A bare `{ x: 1, y: 2 };` as an expression statement is the
+ * only shape in the language that reaches it.
  *
- * - both -> the written type is redundant (E0356). ADR-014 makes
- *   `{ field: value }` the form, and repeating the type an error.
- * - neither -> nothing can say what struct this is (E0357). A bare
- *   `{ x: 1, y: 2 };` as an expression statement is the only shape in the
- *   language that reaches it.
+ * ## E0356 is retired, with the syntax it rejected
  *
- * E0357's help does NOT offer "write the type" as a remedy, though the grammar
- * allows it. Every position that carries a value declares a type, so writing
- * one there is E0356: the advice would name the other error. The only remedy
- * is to move the initializer somewhere a type is declared.
+ * A second rule stood here: a WRITTEN type (`Point { x: 1 }`) where the
+ * position already declared one was redundant. It had no reachable complement
+ * -- every position that consumes a value declares a type, so the written form
+ * was an error in all of them, and the one place it parsed was a bare
+ * expression statement, where it built a compound literal and discarded it.
+ * The grammar alternative is removed on the language owner's decision, which
+ * makes `Point { x: 1 }` a parse error and leaves this rule with one question
+ * rather than two.
+ *
+ * E0357's help therefore does not offer "write the type" as a remedy: there is
+ * no type to write. The only remedy is to move the initializer somewhere a
+ * type is declared.
  *
  * ## Why #1277 was a codegen bug and not this rule's business
  *
@@ -68,30 +73,17 @@ class StructLiteralListener extends CNextListener {
   override enterStructInitializer = (
     ctx: Parser.StructInitializerContext,
   ): void => {
-    const written = ctx.IDENTIFIER();
     // The STRUCTURAL question -- "does some enclosing position supply a type?"
     // -- and deliberately not "which type", which a C-header struct's field
     // cannot answer in this pass. See `hasEstablishingPosition`.
-    const established = StructInitializerType.hasEstablishingPosition(ctx);
+    if (StructInitializerType.hasEstablishingPosition(ctx)) return;
 
-    if (written !== null && established) {
-      this.report(
-        ctx,
-        "E0356",
-        `Redundant type '${written.getText()}' in struct initializer`,
-        `The type is already declared here, so write '{ field: value }' (ADR-014).`,
-      );
-      return;
-    }
-
-    if (written === null && !established) {
-      this.report(
-        ctx,
-        "E0357",
-        "Cannot infer struct type: nothing here says which struct this is",
-        "Put the initializer where a type is declared -- a variable, an assignment target, a field, an argument, or a return (ADR-014).",
-      );
-    }
+    this.report(
+      ctx,
+      "E0357",
+      "Cannot infer struct type: nothing here says which struct this is",
+      "Put the initializer where a type is declared -- a variable, an assignment target, a field, an argument, or a return (ADR-014).",
+    );
   };
 
   private report(

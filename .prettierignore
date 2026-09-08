@@ -26,6 +26,7 @@ tests/c-interop/use-c-union-basic.test.cnx
 tests/c-interop/use-c-union-typedef.test.cnx
 tests/constructor-syntax/error-literal-arg.test.cnx
 tests/null-check/null-in-ternary.test.cnx
+tests/adr-014/struct-written-type-rejected-error.test.cnx
 tests/adr-037/nested-ifdef.test.cnx
 tests/register/register-bits-syntax-error.test.cnx
 tests/scope/nested-scope-error.test.cnx

@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import CNextSourceParser from "../../../transpiler/logic/parser/CNextSourceParser";
+import CodeGenState from "../../../transpiler/state/CodeGenState";
 import IntegerConversionAnalyzer from "../IntegerConversionAnalyzer";
 
 /**
@@ -13,6 +14,35 @@ const errors = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
   return new IntegerConversionAnalyzer().analyze(tree);
 };
+
+/**
+ * A struct field's type comes from the per-file symbol view, which a unit test
+ * does not build. Reaching the chain-resolution arm therefore needs it set --
+ * without it the analyzer cannot type `p.col` and stays silent, which looks
+ * exactly like the rule not firing.
+ */
+const structs = (fields: Record<string, Record<string, string>>) => {
+  CodeGenState.symbols = {
+    knownStructs: new Set(Object.keys(fields)),
+    structFields: new Map(
+      Object.entries(fields).map(([name, f]) => [
+        name,
+        new Map(Object.entries(f)),
+      ]),
+    ),
+    structFieldDimensions: new Map(),
+    knownEnums: new Set<string>(),
+    knownScopes: new Set<string>(),
+    knownRegisters: new Set<string>(),
+    knownBitmaps: new Set<string>(),
+    functionReturnTypes: new Map(),
+    scopeMembers: new Map(),
+  } as unknown as typeof CodeGenState.symbols;
+};
+
+afterEach(() => {
+  CodeGenState.reset();
+});
 
 const inMain = (body: string): string =>
   `u32 wide <- 1000;\ni32 neg <- -5;\nu8 byte <- 7;\nu32 main() {\n${body}\n    return 0;\n}`;
@@ -103,28 +133,36 @@ describe("IntegerConversionAnalyzer", () => {
       expect(errors(inMain("    u32 x <- byte + 1;"))).toEqual([]);
     });
 
-    it("leaves a composite untyped through an assignment -- the divergence kept", () => {
-      // Codegen never typed a composite on this path and nine fixtures assert
-      // it. Reproduced in one flag, and raised rather than decided.
+    it("types a composite through an assignment too -- the divergence closed", () => {
+      // Codegen never typed a composite on this path, and #1322 reproduced
+      // that rather than closing it. Ruled a bug: the same operands convert the
+      // same way whichever side of a declaration they land on.
       expect(
         errors(inMain("    u8[4] cells;\n    cells[0] <- wide + 1;")),
-      ).toEqual([]);
+      ).toHaveLength(1);
     });
 
     it("leaves a ternary untyped: literal branches have no declared type", () => {
       expect(errors(inMain("    i32 s <- (wide > 0) ? 1 : -1;"))).toEqual([]);
     });
 
-    it("checks an assignment against the ROOT's element type, as codegen did", () => {
-      // `arr[i] <- wide` was checked against `arr`'s element type; a struct
-      // root was skipped entirely, so an integer FIELD reached through a chain
-      // was never checked. Kept, and raised.
+    it("checks an assignment against the type the value lands in, not the root's", () => {
+      // Codegen looked up `arr` / `p` and skipped anything whose declared base
+      // type was not an integer, so a struct root was never checked at all and
+      // `p.col <- wide` emitted a silent truncation. Ruled a bug and closed.
       expect(
         errors(inMain("    u8[4] arr;\n    arr[0] <- wide;")),
       ).toHaveLength(1);
+      structs({ P: { col: "u8", data: "u32" } });
       expect(
         errors(
-          "struct P { u8 col; }\nu32 wide <- 9;\nu32 main() {\n    P p;\n    p.col <- wide;\n    return 0;\n}",
+          "struct P { u8 col; u32 data; }\nu32 wide <- 9;\nu32 main() {\n    P p;\n    p.col <- wide;\n    return 0;\n}",
+        ),
+      ).toHaveLength(1);
+      // CONTROL: the same chain into a field wide enough for the value.
+      expect(
+        errors(
+          "struct P { u8 col; u32 data; }\nu32 wide <- 9;\nu32 main() {\n    P p;\n    p.data <- wide + 1;\n    return 0;\n}",
         ),
       ).toEqual([]);
     });

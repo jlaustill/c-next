@@ -29,9 +29,11 @@ class StructInitializerType {
     frame: IScopeFrame,
     operands: OperandTypeResolver,
   ): string | null {
-    const typeText =
-      init.IDENTIFIER()?.getText() ??
-      StructInitializerType.establishedTypeText(init, frame, operands);
+    const typeText = StructInitializerType.establishedTypeText(
+      init,
+      frame,
+      operands,
+    );
     return typeText === null
       ? null
       : StructInitializerType.structNamed(typeText, frame.scopePath);

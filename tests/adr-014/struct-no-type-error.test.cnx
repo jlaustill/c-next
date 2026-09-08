@@ -36,20 +36,14 @@ void controls() {
     local <- { x: 5, y: 5 };
     takes({ x: 6, y: 6 });
     for (Point p <- { x: 7, y: 7 }; p.x < 8; p.x +<- 1) {}
-    // Writing the type is how a bare statement is made legal, so this one is
-    // a control rather than an assertion.
-    Point {
-        x: 9,
-        y: 9
-    };
-
-    // CONTROL: an inferred initializer inside an EXPLICITLY typed one. The
-    // enclosing field is the only thing that types it -- there is no
-    // declaration above to fall back on -- so this is the shape that proves
-    // a field initializer establishes a type.
-    Box {
-        c: { x: 10, y: 10 }
-    };
+    // #1322: two controls stood here, both written as `Point { ... }` and
+    // `Box { c: { ... } }`. That grammar alternative is removed, so neither
+    // shape exists any more -- a bare statement can no longer be made legal by
+    // writing the type, and an outer initializer always has a declaration above
+    // it. The claim the second one carried (a FIELD initializer establishes a
+    // type for what it contains) is now made by
+    // `struct-inferred-every-position`, where it compiles.
+    Box nested <- { c: { x: 10, y: 10 } };
 }
 
 // ASSERTION -- nothing here says which struct this is.

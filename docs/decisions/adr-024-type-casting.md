@@ -285,6 +285,26 @@ CNX does not support:
 | f32 → u32 (reinterpret) | Use float bit indexing `floatVal[0, 32]` | Raw IEEE-754 access (ADR-007) |
 | int → pointer           | **Not supported**                        | Use `register` (ADR-004)      |
 
+### Where a conversion is checked
+
+**Wherever a value meets a typed target**, and the target is the one the value
+actually lands in — not the variable its name starts with. A declaration's
+initializer, an assignment statement, an element of an array, a field reached
+through a chain, and a cast are all conversions and all checked the same way.
+
+**A composite source (`a + b`) is typed** — category from the first integer
+operand, width from the widest — in every position except a cast, where writing
+`(u8)(a + b)` is the author stating the width they mean.
+
+Two exceptions to that were live until #1322 and are recorded because the code
+they permitted is the code this decision exists to reject:
+
+- a composite was typed on a declaration and not on an assignment, so
+  `u8 s <- large + 1;` was rejected while `t <- large + 1;` was accepted;
+- an assignment was checked against the ROOT name's declared type, so
+  `c.col <- wide` — a `u32` into a `u8` field — was never checked at all,
+  because `c` is a struct. It emitted `c.col = wide;`.
+
 ---
 
 ## Implementation Notes

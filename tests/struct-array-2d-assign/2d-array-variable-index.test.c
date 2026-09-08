@@ -35,9 +35,9 @@ int main(void) {
     while (y < 4) {
         uint32_t x = 0U;
         while (x < 4) {
-            image[y][x].r = cnx_clamp_mul_u32(y, 64U);
-            image[y][x].g = cnx_clamp_mul_u32(x, 64U);
-            image[y][x].b = (cnx_clamp_add_u32(y, x)) * 32U;
+            image[y][x].r = (((cnx_clamp_mul_u32(y, 64U))) & 0xFFU);
+            image[y][x].g = (((cnx_clamp_mul_u32(x, 64U))) & 0xFFU);
+            image[y][x].b = ((((cnx_clamp_add_u32(y, x)) * 32U)) & 0xFFU);
             x = cnx_clamp_add_u32(x, 1U);
         }
         y = cnx_clamp_add_u32(y, 1U);

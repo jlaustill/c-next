@@ -4,14 +4,17 @@ import CNextSourceParser from "../../../transpiler/logic/parser/CNextSourceParse
 import StructLiteralAnalyzer from "../StructLiteralAnalyzer";
 
 /**
- * #1322. ADR-014's two struct-initializer rules: E0356 (a type written where
- * the position already declares one) and E0357 (no type written and no
- * position declaring one).
+ * #1322. ADR-014's struct-initializer rule: E0357, no position declaring a
+ * type for the literal.
  *
- * Both are decided from the parse tree alone -- whether a type is written is
- * syntax, and whether a position supplies one is a question about the
- * initializer's own ancestors -- so unlike most of this card's analyzers these
- * are fully testable without a `Program`.
+ * Its sibling E0356 (a type written where the position already declares one)
+ * is retired with the grammar alternative it rejected -- `Point { x: 1 }` no
+ * longer parses -- so the cases below are the parse-error fixture's business
+ * now, not this analyzer's.
+ *
+ * The rule is decided from the parse tree alone -- whether a position supplies
+ * a type is a question about the initializer's own ancestors -- so unlike most
+ * of this card's analyzers it is fully testable without a `Program`.
  */
 const errors = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
@@ -19,41 +22,6 @@ const errors = (source: string) => {
 };
 
 const struct = "struct Point { u32 x; u32 y; }\n";
-
-describe("StructLiteralAnalyzer (E0356)", () => {
-  it("rejects a written type in each position that already declares one", () => {
-    const found = errors(
-      struct +
-        "struct Box { Point c; }\n" +
-        "void takes(Point p) { }\n" +
-        "void f() {\n" +
-        "    Point a <- Point { x: 1, y: 1 };\n" +
-        "    a <- Point { x: 2, y: 2 };\n" +
-        "    Box b <- { c: Point { x: 3, y: 3 } };\n" +
-        "    takes(Point { x: 4, y: 4 });\n" +
-        "}",
-    );
-    expect(found.map((e) => [e.code, e.line])).toEqual([
-      ["E0356", 5],
-      ["E0356", 6],
-      ["E0356", 7],
-      ["E0356", 8],
-    ]);
-    expect(found[0].message).toBe(
-      "Redundant type 'Point' in struct initializer",
-    );
-    expect(found[0].column).toBeGreaterThan(0);
-  });
-
-  it("accepts a written type where nothing else declares one", () => {
-    // The bare statement is the one position that supplies nothing, so writing
-    // the type there is required rather than redundant. This is the control
-    // that stops E0356 from becoming "never write a type".
-    expect(errors(struct + "void f() {\n    Point { x: 1, y: 1 };\n}")).toEqual(
-      [],
-    );
-  });
-});
 
 describe("StructLiteralAnalyzer (E0357)", () => {
   it("rejects an inferred initializer that no position types", () => {

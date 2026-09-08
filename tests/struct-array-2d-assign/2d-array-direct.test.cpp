@@ -35,8 +35,8 @@ int main(void) {
     while (r < 3) {
         uint32_t c = 0U;
         while (c < 4) {
-            grid[r][c].row = r;
-            grid[r][c].col = c;
+            grid[r][c].row = static_cast<uint8_t>(((r) & 0xFFU));
+            grid[r][c].col = static_cast<uint8_t>(((c) & 0xFFU));
             grid[r][c].data = cnx_clamp_add_u32(cnx_clamp_mul_u32(r, 4U), c);
             c = cnx_clamp_add_u32(c, 1U);
         }

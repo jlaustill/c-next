@@ -16,9 +16,9 @@ u32 main() {
     while (y < 4) {
         u32 x <- 0;
         while (x < 4) {
-            image[y][x].r <- y * 64;
-            image[y][x].g <- x * 64;
-            image[y][x].b <- (y + x) * 32;
+            image[y][x].r <- (y * 64)[0, 8];
+            image[y][x].g <- (x * 64)[0, 8];
+            image[y][x].b <- ((y + x) * 32)[0, 8];
             x +<- 1;
         }
         y +<- 1;

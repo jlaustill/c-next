@@ -1,6 +1,6 @@
-57:4 error[E0357]: Cannot infer struct type: nothing here says which struct this is
+51:4 error[E0357]: Cannot infer struct type: nothing here says which struct this is
        help: Put the initializer where a type is declared -- a variable, an assignment target, a field, an argument, or a return (ADR-014).
-65:16 error[E0357]: Cannot infer struct type: nothing here says which struct this is
+59:16 error[E0357]: Cannot infer struct type: nothing here says which struct this is
        help: Put the initializer where a type is declared -- a variable, an assignment target, a field, an argument, or a return (ADR-014).
-72:8 error[E0357]: Cannot infer struct type: nothing here says which struct this is
+66:8 error[E0357]: Cannot infer struct type: nothing here says which struct this is
        help: Put the initializer where a type is declared -- a variable, an assignment target, a field, an argument, or a return (ADR-014).

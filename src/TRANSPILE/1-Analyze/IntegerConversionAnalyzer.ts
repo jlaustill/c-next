@@ -24,7 +24,18 @@
  * three. A composite is typed the way codegen typed it: category from the first
  * integer operand, width from the widest.
  *
- * ## A hole this closes
+ * ## Two holes codegen had, both closed
+ *
+ * A COMPOSITE source was typed on a declaration and not on an assignment, and
+ * an assignment was checked against the ROOT variable's declared type rather
+ * than the type the value actually lands in. The second is the sharper one:
+ * `c.col <- wide` emitted `c.col = wide;`, a u32 truncated into a u8 field with
+ * no diagnostic, because the lookup found `c` -- a struct -- and skipped.
+ * Reading the chain to the field is what `typeOfAssignmentTarget` already did
+ * for ADR-036's bounds rule, so both holes closed by asking the question that
+ * was already being asked next door.
+ *
+ * ## A third hole this closes
  *
  * `u8 narrow <- this.wide;` inside a scope compiled clean, while the identical
  * line at top level was rejected -- codegen's text-keyed lookup did not resolve
@@ -41,6 +52,7 @@ import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
 import ParserUtils from "../../utils/ParserUtils";
 import TypeCheckUtils from "../../utils/TypeCheckUtils";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
+import TypeText from "./helpers/TypeText";
 import IIntegerConversionError from "./types/IIntegerConversionError";
 import IScopeFrame from "./types/IScopeFrame";
 import OperandTypeResolver from "./OperandTypeResolver";
@@ -88,36 +100,15 @@ class IntegerConversionListener extends CNextListener {
       return;
     }
     const frame = this.scopes.frameFor(ctx);
-    const targetType = this.rootElementType(target, frame);
-    if (targetType === null || !TypeCheckUtils.isInteger(targetType)) return;
-    this.check(targetType, value, "assign", frame, false);
-  };
-
-  /**
-   * The ROOT variable's declared type with its dimensions stripped -- which is
-   * what codegen checked an assignment against, and which reproduces a hole on
-   * purpose.
-   *
-   * Codegen looked up the root identifier and skipped anything whose declared
-   * base type was not an integer. So `arr[i] <- wide` was checked against
-   * `arr`'s element type, while `grid[r][c].col <- wide` -- a u32 into a u8
-   * FIELD -- was never checked at all, because `grid` is a struct. Three
-   * fixtures assert that. Resolving the chain to the field is one call away
-   * (`typeOfAssignmentTarget`), and doing it here would be a behavior change on
-   * code the corpus treats as valid; it is raised rather than made.
-   */
-  private rootElementType(
-    target: Parser.AssignmentTargetContext,
-    frame: IScopeFrame,
-  ): string | null {
-    const declared = this.scopes.typeOfName(
-      target.IDENTIFIER().getText(),
-      frame,
+    // The type the value actually lands in -- following the chain to the
+    // field or element, not the root variable's own type. See the class
+    // comment for what reading the root instead let through.
+    const targetType = TypeText.withoutDimensions(
+      this.types.typeOfAssignmentTarget(ctx.assignmentTarget(), frame) ?? "",
     );
-    if (declared === null) return null;
-    const open = declared.indexOf("[");
-    return (open === -1 ? declared : declared.slice(0, open)).trim();
-  }
+    if (!TypeCheckUtils.isInteger(targetType)) return;
+    this.check(targetType, value, "assign", frame, true);
+  };
 
   override enterCastExpression = (ctx: Parser.CastExpressionContext): void => {
     const target = ctx.type().getText();
@@ -134,16 +125,16 @@ class IntegerConversionListener extends CNextListener {
   // --- The one rule --------------------------------------------------------
 
   /**
-   * `typeComposites` reproduces a divergence codegen had, on purpose.
+   * `typeComposites` is `true` everywhere now, and the parameter survives only
+   * because a CAST still declines: `(u8)(a + b)` is the author saying which
+   * width they mean.
    *
-   * Codegen typed a composite source (`a + b` -- category from the first
-   * integer operand, width from the widest) on a DECLARATION's initializer and
-   * never on an assignment statement: `u8 s <- large + 1;` was rejected as
-   * narrowing while `cube3d[i][j][k] <- i * 100 + j;` was accepted. Nine
-   * fixtures assert the lax path. Closing it would be a behavior change on
-   * code the corpus treats as valid, and ADR-024 does not say how a composite
-   * is typed -- so the divergence is kept, in one flag rather than two rules,
-   * and raised rather than decided here.
+   * It existed to reproduce a divergence codegen had. A composite source
+   * (`a + b` -- category from the first integer operand, width from the widest)
+   * was typed on a DECLARATION's initializer and never on an assignment
+   * statement, so `u8 s <- large + 1;` was rejected while
+   * `matrix2d[i][j] <- i * 10 + j;` was accepted. #1322 preserved that and
+   * raised it; the language owner ruled it a bug, and it is closed.
    */
   private check(
     target: string,

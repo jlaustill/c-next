@@ -16,8 +16,8 @@ u32 main() {
     while (r < 3) {
         u32 c <- 0;
         while (c < 4) {
-            grid[r][c].row <- r;
-            grid[r][c].col <- c;
+            grid[r][c].row <- r[0, 8];
+            grid[r][c].col <- c[0, 8];
             grid[r][c].data <- r * 4 + c;
             c +<- 1;
         }

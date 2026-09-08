@@ -51,7 +51,7 @@ int main(void) {
     if (2 != 2) return 11U;
     for (uint32_t i = 0U; i < 4; i += 1) {
         for (uint32_t j = 0U; j < 8; j += 1) {
-            matrix2d[i][j] = i * 10U + j;
+            matrix2d[i][j] = (((i * 10U + j)) & 0xFFU);
         }
     }
     if (matrix2d[0U][0U] != 0) return 12U;
@@ -62,7 +62,7 @@ int main(void) {
     for (uint32_t i = 0U; i < 2; i += 1) {
         for (uint32_t j = 0U; j < 3; j += 1) {
             for (uint32_t k = 0U; k < 4; k += 1) {
-                cube3d[i][j][k] = i * 10U + j * 5U + k;
+                cube3d[i][j][k] = (((i * 10U + j * 5U + k)) & 0xFFU);
                 sum = cnx_clamp_add_u16(sum, cube3d[i][j][k]);
             }
         }

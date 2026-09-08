@@ -3553,24 +3553,16 @@ export default class CodeGenerator implements IOrchestrator {
    * The struct type for an initializer: explicit if written, else inferred
    * from the expected type at this position.
    *
-   * #1322: both arms are assertions now. ADR-014's two rejections -- a
-   * redundant written type, and a literal no position can type -- are E0356
-   * and E0357 in pass 2.1, which halts before this runs.
+   * #1322: an assertion now. ADR-014's rejection -- a literal no position can
+   * type -- is E0357 in pass 2.1, which halts before this runs. Its sibling
+   * E0356 (a redundant WRITTEN type) is gone with the grammar alternative it
+   * rejected, so this takes no node: there is one source for the type.
    */
-  private _resolveStructInitializerTypeName(
-    ctx: Parser.StructInitializerContext,
-  ): string {
-    const explicit = ctx.IDENTIFIER();
-    invariant(
-      !(explicit && CodeGenState.expectedType),
-      "a struct initializer states its type or takes it from its position, " +
-        "never both -- E0356 rejects this in pass 2.1, before this runs",
-    );
-    if (explicit) return explicit.getText();
+  private _resolveStructInitializerTypeName(): string {
     invariant(
       CodeGenState.expectedType,
-      "a struct initializer with no written type stands where one is " +
-        "declared -- E0357 rejects this in pass 2.1, before this runs",
+      "a struct initializer takes its type from its position -- E0357 " +
+        "rejects this in pass 2.1, before this runs",
     );
     return CodeGenState.expectedType;
   }
@@ -3579,13 +3571,13 @@ export default class CodeGenerator implements IOrchestrator {
    * ADR-014: Generate struct initializer
    * { x: 10, y: 20 } -> (Point){ .x = 10, .y = 20 } (type inferred from context)
    *
-   * Note: Explicit type syntax (Point { x: 10 }) is rejected as redundant
-   * when type is already declared on the left side of assignment.
+   * #1322: there is no explicit-type syntax. `Point { x: 10 }` was a grammar
+   * alternative that no position accepted, and it is removed.
    */
   private generateStructInitializer(
     ctx: Parser.StructInitializerContext,
   ): string {
-    const typeName = this._resolveStructInitializerTypeName(ctx);
+    const typeName = this._resolveStructInitializerTypeName();
     const fieldList = ctx.fieldInitializerList();
 
     // Issue #517: Check if this is a C++ class with a user-defined constructor.
@@ -3604,11 +3596,11 @@ export default class CodeGenerator implements IOrchestrator {
       needsStructKeyword,
     );
 
-    if (!fieldList) {
-      // Empty initializer: Point {} -> { 0 } in declaration context, (Point){ 0 } elsewhere
-      if (isCppClass) return "{}";
-      return CodeGenState.inDeclarationInit ? "{ 0 }" : `(${castType}){ 0 }`;
-    }
+    // #1322: an empty-initializer branch stood here, reachable only through the
+    // written form `Point {}` -- the inferred alternative has always required a
+    // field list. That alternative is removed, so `fieldInitializerList()` is
+    // non-nullable in the generated parser and `{}` is a parse error. The
+    // branch went with it rather than being left as a shape nothing can build.
 
     // Get field type info for nested initializers
     // Issue #831: SymbolTable is the single source of truth for struct fields

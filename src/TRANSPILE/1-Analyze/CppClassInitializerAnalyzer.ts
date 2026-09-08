@@ -76,9 +76,11 @@ class CppClassInitializerListener extends CNextListener {
     if (CppClassInitializerListener.insideFunctionBody(ctx)) return;
 
     const frame = this.scopes.frameFor(ctx);
-    const typeText =
-      ctx.IDENTIFIER()?.getText() ??
-      StructInitializerType.establishedTypeText(ctx, frame, this.operands);
+    const typeText = StructInitializerType.establishedTypeText(
+      ctx,
+      frame,
+      this.operands,
+    );
     if (typeText === null) return; // E0357's to report
 
     const cppClass = this.cppClassWithConstructor(typeText, frame.scopePath);

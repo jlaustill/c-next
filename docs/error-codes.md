@@ -89,11 +89,11 @@ second header and the program ran with a wrong value.
 
 ## E03xx — Struct Fields and Initializers
 
-| Code  | Message                                                                     | Help                                                                                                  | Source                                         |
-| ----- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| E0355 | Struct field uses a reserved property name                                  | Reserved names (e.g., `.length`). Use 'len', 'size', or 'count'                                       | `logic/analysis/StructFieldAnalyzer.ts`        |
-| E0356 | A struct initializer writes a type the position already declares            | Use `{ field: value }` once the type is declared (ADR-014)                                            | `TRANSPILE/1-Analyze/StructLiteralAnalyzer.ts` |
-| E0357 | A struct initializer with no written type, in a position that declares none | Move it where a type is declared: a variable, an assignment target, a field, an argument, or a return | `TRANSPILE/1-Analyze/StructLiteralAnalyzer.ts` |
+| Code  | Message                                                                     | Help                                                                                                                                                                                                             | Source                                         |
+| ----- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| E0355 | Struct field uses a reserved property name                                  | Reserved names (e.g., `.length`). Use 'len', 'size', or 'count'                                                                                                                                                  | `logic/analysis/StructFieldAnalyzer.ts`        |
+| E0356 | _(retired)_ — was: redundant type in a struct initializer                   | Removed with the grammar alternative it rejected (#1322): `Point { x: 1 }` was never valid C-Next, since every position that consumes a value already declares the type. It is a parse error now. Not reassigned | `TRANSPILE/1-Analyze/StructLiteralAnalyzer.ts` |
+| E0357 | A struct initializer with no written type, in a position that declares none | Move it where a type is declared: a variable, an assignment target, a field, an argument, or a return                                                                                                            | `TRANSPILE/1-Analyze/StructLiteralAnalyzer.ts` |
 
 ---
 

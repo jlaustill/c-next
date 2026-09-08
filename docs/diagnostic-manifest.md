@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-369 fixture(s) assert a diagnostic; 355 carry a code.
+369 fixture(s) assert a diagnostic; 354 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -67,7 +67,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-013/const-u64-param-assign-error.test.cnx                                              | E0877               |
 | tests/adr-013/const-uncovered-arms-error.test.cnx                                                | E0877, E0878        |
 | tests/adr-014/struct-no-type-error.test.cnx                                                      | E0357               |
-| tests/adr-014/struct-redundant-type-error.test.cnx                                               | E0356               |
+| tests/adr-014/struct-written-type-rejected-error.test.cnx                                        | (uncoded)           |
 | tests/adr-016/cross-scope-bare-error.test.cnx                                                    | E0436               |
 | tests/adr-016/cross-scope-register-bare-error.test.cnx                                           | E0437               |
 | tests/adr-016/mixed-access-ultimate-error.test.cnx                                               | E0435, E0436        |

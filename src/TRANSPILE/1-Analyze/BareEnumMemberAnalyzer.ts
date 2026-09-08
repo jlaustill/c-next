@@ -274,13 +274,15 @@ class BareEnumMemberListener extends CNextListener {
     return [text];
   }
 
-  /** The struct type an initializer builds: explicit, or from its position. */
+  /**
+   * The struct type an initializer builds, which is always the one its
+   * position declares -- #1322 removed the written-type alternative, so there
+   * is no second source to prefer over it.
+   */
   private structTypeOf(
     initializer: Parser.StructInitializerContext,
     frame: IScopeFrame,
   ): TExpected {
-    const explicit = initializer.IDENTIFIER()?.getText();
-    if (explicit !== undefined) return explicit;
     return this.expectedTypeText(initializer, frame);
   }
 
