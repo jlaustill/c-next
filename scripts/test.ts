@@ -540,10 +540,36 @@ async function main(): Promise<void> {
     }
   }
 
-  const filterPath = args.find(
+  // #1508 follow-up: every path argument, not just the first.
+  //
+  // This was `args.find(...)`, which took the first and dropped the rest in
+  // silence: `npm test -- dirA dirB` ran ONLY dirA and reported its result as
+  // the whole answer. Green then meant "the first path passed", which is
+  // indistinguishable from "both passed" and is the more reassuring reading.
+  //
+  // Refused rather than supported. Running several paths is a new capability
+  // with its own surface; refusing an ambiguous invocation is the removal of a
+  // wrong answer, and no caller in the repo passes more than one path.
+  const pathArgs = args.filter(
     (arg) =>
       !arg.startsWith("-") && (jobsIndex === -1 || arg !== args[jobsIndex + 1]), // Exclude the number after --jobs
   );
+
+  if (pathArgs.length > 1) {
+    console.error(
+      chalk.red(
+        `Error: expected at most one test path, got ${pathArgs.length}: ${pathArgs.join(", ")}`,
+      ),
+    );
+    console.error(
+      chalk.red(
+        "Only the first would have run, and its result would have been reported as the whole suite's.",
+      ),
+    );
+    process.exit(1);
+  }
+
+  const filterPath = pathArgs[0];
 
   // Determine test path (file or directory)
   let testPath = join(rootDir, "tests");
