@@ -366,27 +366,28 @@ const generateSafeDivMod = (
   orchestrator: IOrchestrator,
   effects: TGeneratorEffect[],
 ): IGeneratorOutput => {
-  if (argExprs.length !== 4) {
-    throw new Error(
-      `${funcName} requires exactly 4 arguments: output, numerator, divisor, defaultValue`,
-    );
-  }
+  // #1322: ADR-051's call shape is E0884 (four arguments) and E0885 (the first
+  // is a variable to receive the result) in pass 2.1, and a `const` output is
+  // E0877 there -- that last one was accepted here and emitted `&K` into a
+  // non-const pointer parameter.
+  invariant(
+    argExprs.length === 4,
+    `${funcName} takes four arguments -- E0884 rejects this in pass 2.1, before this runs`,
+  );
 
   // Get the output parameter (first argument) to determine type
   const outputArgId = orchestrator.getSimpleIdentifier(argExprs[0]);
-  if (!outputArgId) {
-    throw new Error(
-      `${funcName} requires a variable as the first argument (output parameter)`,
-    );
-  }
+  invariant(
+    outputArgId,
+    `${funcName}'s first argument is a variable -- E0885 rejects this in pass 2.1, before this runs`,
+  );
 
   // Look up the type of the output parameter
   const typeInfo = CodeGenState.getVariableTypeInfo(outputArgId);
-  if (!typeInfo) {
-    throw new Error(
-      `Cannot determine type of output parameter '${outputArgId}' for ${funcName}`,
-    );
-  }
+  invariant(
+    typeInfo,
+    `${funcName}'s output parameter is a declared variable with a type -- E0885 rejects this in pass 2.1, before this runs`,
+  );
 
   // Map C-Next type to helper function suffix
   const cnxType = typeInfo.baseType;

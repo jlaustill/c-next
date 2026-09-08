@@ -35,6 +35,7 @@ import ArrayDeclarationAnalyzer from "./ArrayDeclarationAnalyzer";
 import ArrayIndexBoundsAnalyzer from "./ArrayIndexBoundsAnalyzer";
 import CallbackAssignmentAnalyzer from "./CallbackAssignmentAnalyzer";
 import BitmapAccessAnalyzer from "./BitmapAccessAnalyzer";
+import SafeDivisionAnalyzer from "./SafeDivisionAnalyzer";
 import StructLiteralAnalyzer from "./StructLiteralAnalyzer";
 import ConstAssignmentAnalyzer from "./ConstAssignmentAnalyzer";
 import LoopAnalyzer from "./LoopAnalyzer";
@@ -339,6 +340,10 @@ function runAnalyzers(
     {
       label: "bitmap access (ADR-034, E0881-E0883)",
       run: () => new BitmapAccessAnalyzer().analyze(tree),
+    },
+    {
+      label: "safe_div/safe_mod call shape (ADR-051, E0884/E0885)",
+      run: () => new SafeDivisionAnalyzer().analyze(tree),
     },
     {
       // Last, and does not halt: comment findings are reported alongside

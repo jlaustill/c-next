@@ -1,0 +1,33 @@
+// test-error
+// test-adr: 051
+// ADR-051 fixes `safe_div`/`safe_mod` at four arguments, the first a variable
+// to receive the result. Until #1322 these were codegen throws reporting `1:0`
+// and no fixture asserted either of them.
+
+const u32 K <- 5;
+
+void helper() {}
+
+void main() {
+    u32 q <- 0;
+    u32 r <- 0;
+    bool err <- false;
+
+    // NEGATIVE CONTROLS -- declared before the assertions. The correct shape
+    // for both builtins, and a divisor that is a variable rather than a
+    // literal, which this rule must not judge.
+    err <- safe_div(q, 10, 2, 0);
+    err <- safe_mod(r, 10, 3, 0);
+    err <- safe_div(q, 10, q, 0);
+
+    // ASSERTIONS 1-2 -- too few and too many arguments.
+    err <- safe_div(q, 10, 2);
+    err <- safe_mod(r, 10, 3, 0, 1);
+
+    // ASSERTION 3 -- an expression has no address to write through.
+    err <- safe_div(1 + 1, 10, 2, 0);
+
+    // ASSERTION 4 -- a declared name that is not a variable. An UNDECLARED
+    // name is E0427's to report, not this rule's, so it is not asserted here.
+    err <- safe_div(helper, 10, 2, 0);
+}

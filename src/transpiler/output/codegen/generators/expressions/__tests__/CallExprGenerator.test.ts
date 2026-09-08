@@ -999,7 +999,11 @@ describe("CallExprGenerator", () => {
       ]);
     });
 
-    it("throws error when safe_div has wrong number of arguments", () => {
+    // #1322: these four asserted the user-facing throws. ADR-051's call shape
+    // is E0884/E0885 in pass 2.1, and a `const` output is E0877 there -- a case
+    // this file never had, because it was accepted. What remains here is the
+    // invariant, which these now assert: the guards still narrow.
+    it("asserts the invariant when safe_div has the wrong number of arguments", () => {
       const argExprs = [
         createMockExpressionContext("a"),
         createMockExpressionContext("b"),
@@ -1013,12 +1017,10 @@ describe("CallExprGenerator", () => {
 
       expect(() =>
         generateFunctionCall("safe_div", argCtx, input, state, orchestrator),
-      ).toThrow(
-        "safe_div requires exactly 4 arguments: output, numerator, divisor, defaultValue",
-      );
+      ).toThrow("E0884 rejects this in pass 2.1");
     });
 
-    it("throws error when safe_mod has wrong number of arguments", () => {
+    it("asserts the invariant when safe_mod has the wrong number of arguments", () => {
       const argExprs = [createMockExpressionContext("a")];
       const argCtx = createMockArgListContext(argExprs);
       const input = createMockInput();
@@ -1029,12 +1031,10 @@ describe("CallExprGenerator", () => {
 
       expect(() =>
         generateFunctionCall("safe_mod", argCtx, input, state, orchestrator),
-      ).toThrow(
-        "safe_mod requires exactly 4 arguments: output, numerator, divisor, defaultValue",
-      );
+      ).toThrow("E0884 rejects this in pass 2.1");
     });
 
-    it("throws error when first argument is not a simple identifier", () => {
+    it("asserts the invariant when the first argument is not an identifier", () => {
       const argExprs = [
         createMockExpressionContext("a + b"),
         createMockExpressionContext("x"),
@@ -1051,12 +1051,10 @@ describe("CallExprGenerator", () => {
 
       expect(() =>
         generateFunctionCall("safe_div", argCtx, input, state, orchestrator),
-      ).toThrow(
-        "safe_div requires a variable as the first argument (output parameter)",
-      );
+      ).toThrow("E0885 rejects this in pass 2.1");
     });
 
-    it("throws error when output parameter type cannot be determined", () => {
+    it("asserts the invariant when the output parameter has no type", () => {
       const argExprs = [
         createMockExpressionContext("unknownVar"),
         createMockExpressionContext("a"),
@@ -1073,9 +1071,7 @@ describe("CallExprGenerator", () => {
 
       expect(() =>
         generateFunctionCall("safe_div", argCtx, input, state, orchestrator),
-      ).toThrow(
-        "Cannot determine type of output parameter 'unknownVar' for safe_div",
-      );
+      ).toThrow("E0885 rejects this in pass 2.1");
     });
 
     it("throws error when output parameter has no baseType", () => {

@@ -35,6 +35,7 @@ import ParserUtils from "../../utils/ParserUtils";
 import ScopeUtils from "../../utils/ScopeUtils";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
 import FunctionReference from "./helpers/FunctionReference";
+import SafeDivision from "./helpers/SafeDivision";
 import IConstAssignmentError from "./types/IConstAssignmentError";
 import IScopeFrame from "./types/IScopeFrame";
 import ScopeFrameResolver from "./ScopeFrameResolver";
@@ -84,6 +85,36 @@ class ConstAssignmentListener extends CNextListener {
     return "";
   }
 
+  /**
+   * E0877 at a site that is not an assignment: ADR-051's `safe_div`/`safe_mod`
+   * write their result through the FIRST argument, so a const there is written
+   * to exactly as `K <- 1` writes to one.
+   *
+   * The const rule walks assignment targets and a call argument is not one, so
+   * this site was invisible to it: `safe_div(K, 10, 2, 0)` emitted `&K` into a
+   * non-const pointer parameter and reached the C compiler as
+   * `discards 'const' qualifier`, at exit 0. Which argument is the output is
+   * ADR-051's fact and is asked of `SafeDivision`, so this rule does not carry
+   * a second opinion about the builtins' signature.
+   */
+  private checkSafeDivisionOutput(
+    ctx: Parser.PostfixExpressionContext,
+    frame: IScopeFrame,
+  ): void {
+    const call = SafeDivision.callOf(ctx);
+    if (call === null) return;
+    const output = SafeDivision.outputName(call.args);
+    if (output === null) return; // not a variable at all -- E0885's to report
+    const kind = this.constKind(output, ctx, frame);
+    if (kind === null) return;
+    this.report(
+      call.args[0],
+      "E0877",
+      `cannot assign to const ${kind} '${output}' (${call.name} output)`,
+      `${call.name} writes its result through its first argument, so a const cannot receive it; remove \`const\`, or pass a mutable variable (ADR-013).`,
+    );
+  }
+
   /** E0878: a const value passed where the callee may write. */
   override enterPostfixExpression = (
     ctx: Parser.PostfixExpressionContext,
@@ -91,6 +122,7 @@ class ConstAssignmentListener extends CNextListener {
     const call = ctx.postfixOp().find((op) => op.LPAREN() !== null);
     if (call === undefined) return;
     const frame = this.scopes.frameFor(ctx);
+    this.checkSafeDivisionOutput(ctx, frame);
     const callee = FunctionReference.ofCall(ctx, frame.scopePath);
     if (callee === null) return;
     const args = call.argumentList()?.expression() ?? [];

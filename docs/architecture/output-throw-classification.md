@@ -53,10 +53,10 @@ as counted at audit time" rather than a literal.
 
 | bucket | meaning                                                                        | count  |
 | ------ | ------------------------------------------------------------------------------ | ------ |
-| **1**  | user-facing diagnostic — belongs in pass 2.1, needs a code and a real position | **19** |
+| **1**  | user-facing diagnostic — belongs in pass 2.1, needs a code and a real position | **16** |
 | **2**  | internal invariant — should never fire for valid input; becomes an assertion   | **0**  |
 | **3**  | dead — unreachable or subsumed; delete                                         | **0**  |
-|        | **total**                                                                      | **19** |
+|        | **total**                                                                      | **16** |
 
 **80% of `output/`'s throws are rejections.** That is the answer to open question 4: Render does
 not own nothing, it currently owns almost all of the rejection surface.
@@ -67,7 +67,7 @@ By area:
 | ------------------------------------------------------------------- | ----- | --- | --- | --- |
 | `codegen/` (root: `CodeGenerator`, `TypeValidator`, `TypeResolver`) | 3     | 3   | 0   | 0   |
 | `codegen/helpers/`                                                  | 2     | 2   | 0   | 0   |
-| `codegen/generators/**`                                             | 10    | 10  | 0   | 0   |
+| `codegen/generators/**`                                             | 7     | 7   | 0   | 0   |
 | `codegen/subscript/`                                                | 1     | 1   | 0   | 0   |
 | `codegen/assignment/**`, `codegen/resolution/`, `headers/`          | 3     | 3   | 0   | 0   |
 
@@ -206,7 +206,7 @@ questions and only the first was asked.
   **parse error**, so it never reaches codegen at all. That leaves four live copies plus the
   factory, which is what makes unification tractable.
 
-## Bucket 1 — user-facing diagnostics (19)
+## Bucket 1 — user-facing diagnostics (16)
 
 Each needs a code and a real position in pass 2.1. `code` is the code it already carries, or
 **NEW** where one must be allocated. `position` names the node that is or would be in scope.
@@ -231,7 +231,7 @@ real position today -- the `${line}:${col} `-prefixed rows in the table below.
 | `VariableModifierBuilder.ts:82` | `Cannot use both 'atomic' and 'volatile` | both `atomic` and `volatile`               | NEW  | `ctx.start` — line already read, column discarded | `atomic/atomic-volatile-error`          |
 | `VariableDeclHelper.ts:231`     | `Error: C++ class`                       | C++ class with constructor at global scope | NEW  | `typeCtx.start` (in scope)                        | `external-types/cpp-class-global-error` |
 
-### `codegen/generators/**` — 10
+### `codegen/generators/**` — 7
 
 | file:line                               | anchor                                           | message                                                                                       | code      | position source                                                                         | fixture                             |
 | --------------------------------------- | ------------------------------------------------ | --------------------------------------------------------------------------------------------- | --------- | --------------------------------------------------------------------------------------- | ----------------------------------- |
@@ -240,9 +240,6 @@ real position today -- the `${line}:${col} `-prefixed rows in the table below.
 | `support/IncludeGenerator.ts:121`       | `E0502: #define with value`                      | `#define` with value not allowed                                                              | E0502     | same prose defect                                                                       | `preprocessor/value-define-error`   |
 | `expressions/AccessExprGenerator.ts:31` | `Error: .capacity is only available on string`   | `.capacity` only on string types — **also fires when it _is_ a string with unknown capacity** | NEW E06xx | thread `PostfixOpContext` from `PostfixExpressionGenerator.ts:657`                      | none                                |
 | `expressions/AccessExprGenerator.ts:46` | `Error: .size is only available on string types` | `.size` only on string types                                                                  | NEW E06xx | same, from `:672`                                                                       | none                                |
-| `expressions/CallExprGenerator.ts:370`  | `requires exactly 4 arguments: output`           | `safe_div`/`safe_mod` needs exactly 4 arguments (ADR-051)                                     | NEW       | `argExprs[0].start`, or `ArgumentListContext` at `:268`                                 | none                                |
-| `expressions/CallExprGenerator.ts:378`  | `requires a variable as the first argument`      | first argument must be a variable (output parameter)                                          | NEW       | `argExprs[0].start`                                                                     | none                                |
-| `expressions/CallExprGenerator.ts:386`  | `Cannot determine type of output parameter`      | cannot determine output parameter type — **really an undeclared identifier**                  | NEW       | `argExprs[0].start`                                                                     | none                                |
 | `…/PostfixExpressionGenerator.ts:627`   | `is deprecated. Use explicit properties`         | `.length` deprecated (ADR-058)                                                                | NEW E06xx | `PostfixOpContext` not threaded                                                         | `errors/length-property-deprecated` |
 | `…/PostfixExpressionGenerator.ts:1944`  | `Float bit indexing reads`                       | float bit-range read at global scope                                                          | NEW E08xx | `IFloatBitRangeContext` carries no node; the subscript `op` is available upstream       | none                                |
 

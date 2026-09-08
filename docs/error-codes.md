@@ -10,18 +10,18 @@ codes that already have a fixture.
 
 ## Error Code Ranges
 
-| Range     | Category                | Count  |
-| --------- | ----------------------- | ------ |
-| E00xx     | Reserved/Test           | 1      |
-| E02xx     | Identifier/Param Naming | 5      |
-| E03xx     | Struct Fields/Init      | 4      |
-| E04xx     | Symbol Resolution       | 16     |
-| E05xx     | Include/Preprocessor    | 7      |
-| E06xx     | Sizeof Expressions      | 2      |
-| E07xx     | Control Flow            | 12     |
-| E08xx     | Arithmetic/Array Safety | 43     |
-| E09xx     | NULL Safety             | 8      |
-| **Total** |                         | **98** |
+| Range     | Category                | Count   |
+| --------- | ----------------------- | ------- |
+| E00xx     | Reserved/Test           | 1       |
+| E02xx     | Identifier/Param Naming | 5       |
+| E03xx     | Struct Fields/Init      | 4       |
+| E04xx     | Symbol Resolution       | 16      |
+| E05xx     | Include/Preprocessor    | 7       |
+| E06xx     | Sizeof Expressions      | 2       |
+| E07xx     | Control Flow            | 12      |
+| E08xx     | Arithmetic/Array Safety | 45      |
+| E09xx     | NULL Safety             | 8       |
+| **Total** |                         | **100** |
 
 ---
 
@@ -308,6 +308,13 @@ base: bare, `this.` and `global.`.
 | E0881 | A literal too wide for the bitmap field it is assigned to | Widen the field in the bitmap declaration, or write a value that fits | `TRANSPILE/1-Analyze/BitmapAccessAnalyzer.ts` |
 | E0882 | A member the bitmap does not declare                      | Use one of the bitmap's declared fields                               | `TRANSPILE/1-Analyze/BitmapAccessAnalyzer.ts` |
 | E0883 | Bracket indexing on a bitmap                              | A bitmap is addressed by named field, not by bit index                | `TRANSPILE/1-Analyze/BitmapAccessAnalyzer.ts` |
+
+### Safe Division Call Shape (ADR-051)
+
+| Code  | Message                                                     | Help                                                                        | Source                                        |
+| ----- | ----------------------------------------------------------- | --------------------------------------------------------------------------- | --------------------------------------------- |
+| E0884 | `safe_div`/`safe_mod` called with other than four arguments | Pass output, numerator, divisor and the value used when the divisor is zero | `TRANSPILE/1-Analyze/SafeDivisionAnalyzer.ts` |
+| E0885 | The first argument is not a variable to receive the result  | The helper takes the output's address; declare a variable and pass it       | `TRANSPILE/1-Analyze/SafeDivisionAnalyzer.ts` |
 
 ## E09xx — NULL Safety (ADR-046)
 
