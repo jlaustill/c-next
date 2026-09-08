@@ -44,7 +44,7 @@ describe("SizeofResolver", () => {
 
       expect(() =>
         SizeofResolver.generate(mockCtx as never, mockCallbacks),
-      ).toThrow("Error[E0601]");
+      ).toThrow("E0601 rejects this in pass 2.1");
     });
 
     it("generates dereference for pass-by-reference parameter", () => {

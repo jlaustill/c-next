@@ -1,0 +1,2 @@
+28:15 error[E0601]: sizeof() on array parameter 'data' measures a pointer, not the array
+       help: An array parameter is passed by reference (ADR-006), so its size is the pointer's. Use data.element_count for the count, or sizeof(elementType) * data.element_count for the bytes.

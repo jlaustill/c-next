@@ -1,0 +1,4 @@
+28:22 error[E0602]: sizeof() operand must not have side effects
+       help: MISRA C:2012 Rule 13.6: `sizeof` does not evaluate its operand, so a call inside it never runs. Compute the value first and take the size of that.
+29:26 error[E0602]: sizeof() operand must not have side effects
+       help: MISRA C:2012 Rule 13.6: `sizeof` does not evaluate its operand, so a call inside it never runs. Compute the value first and take the size of that.

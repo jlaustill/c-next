@@ -1,0 +1,35 @@
+// test-error
+// test-adr: 023
+// ADR-023 + ADR-006: an array PARAMETER is passed by reference, so `sizeof` on
+// it measures a pointer rather than the array. The same spelling on a local
+// array measures the array, which is why the rule is about where the name is
+// declared and not about its type.
+//
+// Consolidated from `tests/analysis/sizeof-array-param` and
+// `tests/sizeof/array-param-error`, which asserted the same rule twice with no
+// control between them.
+
+struct Frame {
+    u8 id;
+}
+
+void takesArray(u8[8] data, u8 count) {
+    // NEGATIVE CONTROLS -- declared before the assertion. A local array of the
+    // same shape, a scalar parameter, a struct parameter and a type: none of
+    // them is an array parameter, and a rule keying on "the operand is an
+    // array" or "the operand is a parameter" alone would reject one of them.
+    u8[8] local;
+    u32 okLocal <- sizeof(local);
+    u32 okScalar <- sizeof(count);
+    u32 okType <- sizeof(u32);
+    u32 okStruct <- sizeof(Frame);
+
+    // ASSERTION.
+    u32 bad <- sizeof(data);
+}
+
+u32 main() {
+    u8[8] buffer;
+    takesArray(buffer, 1);
+    return 0;
+}

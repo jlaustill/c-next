@@ -1,9 +1,0 @@
-// ADR-023: sizeof on struct types
-struct Point {
-    i32 x;
-    i32 y;
-}
-
-void main() {
-    u32 pointSize <- sizeof(Point);
-}

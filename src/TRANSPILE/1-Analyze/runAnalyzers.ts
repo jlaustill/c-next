@@ -36,6 +36,7 @@ import ArrayIndexBoundsAnalyzer from "./ArrayIndexBoundsAnalyzer";
 import CallbackAssignmentAnalyzer from "./CallbackAssignmentAnalyzer";
 import BitmapAccessAnalyzer from "./BitmapAccessAnalyzer";
 import SafeDivisionAnalyzer from "./SafeDivisionAnalyzer";
+import SizeofAnalyzer from "./SizeofAnalyzer";
 import StructLiteralAnalyzer from "./StructLiteralAnalyzer";
 import ConstAssignmentAnalyzer from "./ConstAssignmentAnalyzer";
 import LoopAnalyzer from "./LoopAnalyzer";
@@ -344,6 +345,10 @@ function runAnalyzers(
     {
       label: "safe_div/safe_mod call shape (ADR-051, E0884/E0885)",
       run: () => new SafeDivisionAnalyzer().analyze(tree),
+    },
+    {
+      label: "sizeof operands (ADR-023, E0601/E0602)",
+      run: () => new SizeofAnalyzer().analyze(tree),
     },
     {
       // Last, and does not halt: comment findings are reported alongside

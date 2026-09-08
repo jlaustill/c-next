@@ -94,6 +94,15 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | -      | -          | n/a         | n/a        |
 | scope method       | ok        | -      | -          | n/a         | n/a        |
 
+## ADR-023
+
+| Context            | same file | direct | transitive | from 1 away | thru chain |
+| ------------------ | --------- | ------ | ---------- | ----------- | ---------- |
+| global variable    | -         | -      | -          | n/a         | n/a        |
+| top-level function | ok        | -      | -          | n/a         | n/a        |
+| scope member       | -         | -      | -          | n/a         | n/a        |
+| scope method       | warn      | -      | -          | n/a         | n/a        |
+
 ## ADR-024
 
 | Context            | same file | direct | transitive | from 1 away | thru chain |

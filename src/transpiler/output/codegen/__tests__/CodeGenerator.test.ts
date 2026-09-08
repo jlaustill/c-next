@@ -7792,7 +7792,7 @@ describe("CodeGenerator", () => {
             symbolInfo: symbols,
             sourcePath: "test.cnx",
           }),
-        ).toThrow("sizeof() on array parameter");
+        ).toThrow("E0601 rejects this in pass 2.1");
       });
 
       it("should handle sizeof on struct member", () => {
@@ -10108,7 +10108,7 @@ describe("CodeGenerator", () => {
             symbolInfo: symbols,
             sourcePath: "test.cnx",
           }),
-        ).toThrow(/E0601.*sizeof.*array parameter/);
+        ).toThrow(/E0601 rejects this in pass 2\.1/);
       });
 
       it("should handle sizeof on callback parameter", () => {

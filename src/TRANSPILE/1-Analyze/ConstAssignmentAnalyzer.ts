@@ -34,6 +34,7 @@ import ExpressionUnwrapper from "../../utils/ExpressionUnwrapper";
 import ParserUtils from "../../utils/ParserUtils";
 import ScopeUtils from "../../utils/ScopeUtils";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
+import EnclosingFunction from "./helpers/EnclosingFunction";
 import FunctionReference from "./helpers/FunctionReference";
 import SafeDivision from "./helpers/SafeDivision";
 import IConstAssignmentError from "./types/IConstAssignmentError";
@@ -186,7 +187,7 @@ class ConstAssignmentListener extends CNextListener {
     const declared = this.scopes.declarationOfNameLexical(name, frame);
     if (declared !== null) {
       if (!declared.isConst) return null;
-      return ConstAssignmentListener.isParameterOf(name, at)
+      return EnclosingFunction.parameterOf(name, at) !== null
         ? "parameter"
         : "variable";
     }
@@ -216,23 +217,6 @@ class ConstAssignmentListener extends CNextListener {
         return symbol.isConst ? "variable" : null;
     }
     return null;
-  }
-
-  /** Whether `name` is a parameter of the function enclosing `at`. */
-  private static isParameterOf(name: string, at: ParserRuleContext): boolean {
-    let cursor: ParserRuleContext | null = at.parent;
-    while (cursor) {
-      if (cursor instanceof Parser.FunctionDeclarationContext) {
-        return (
-          cursor
-            .parameterList()
-            ?.parameter()
-            .some((p) => p.IDENTIFIER().getText() === name) ?? false
-        );
-      }
-      cursor = cursor.parent;
-    }
-    return false;
   }
 
   private report(

@@ -53,10 +53,10 @@ as counted at audit time" rather than a literal.
 
 | bucket | meaning                                                                        | count  |
 | ------ | ------------------------------------------------------------------------------ | ------ |
-| **1**  | user-facing diagnostic — belongs in pass 2.1, needs a code and a real position | **13** |
+| **1**  | user-facing diagnostic — belongs in pass 2.1, needs a code and a real position | **11** |
 | **2**  | internal invariant — should never fire for valid input; becomes an assertion   | **0**  |
 | **3**  | dead — unreachable or subsumed; delete                                         | **0**  |
-|        | **total**                                                                      | **13** |
+|        | **total**                                                                      | **11** |
 
 **80% of `output/`'s throws are rejections.** That is the answer to open question 4: Render does
 not own nothing, it currently owns almost all of the rejection surface.
@@ -69,7 +69,7 @@ By area:
 | `codegen/helpers/`                                                  | 2     | 2   | 0   | 0   |
 | `codegen/generators/**`                                             | 4     | 4   | 0   | 0   |
 | `codegen/subscript/`                                                | 1     | 1   | 0   | 0   |
-| `codegen/assignment/**`, `codegen/resolution/`, `headers/`          | 3     | 3   | 0   | 0   |
+| `codegen/assignment/**`, `codegen/resolution/`, `headers/`          | 1     | 1   | 0   | 0   |
 
 ## Position availability — the finding that shapes #1322
 
@@ -206,7 +206,7 @@ questions and only the first was asked.
   **parse error**, so it never reaches codegen at all. That leaves four live copies plus the
   factory, which is what makes unification tractable.
 
-## Bucket 1 — user-facing diagnostics (13)
+## Bucket 1 — user-facing diagnostics (11)
 
 Each needs a code and a real position in pass 2.1. `code` is the code it already carries, or
 **NEW** where one must be allocated. `position` names the node that is or would be in scope.
@@ -249,17 +249,15 @@ fire on an **undeclared identifier**, not on property misuse. The honest fix is 
 undefined-identifier diagnostic in symbol resolution; allocating five per-property codes would
 bake in a wrong diagnosis.
 
-### `codegen/assignment/**`, `codegen/resolution/`, `headers/` — 3
+### `codegen/assignment/**`, `codegen/resolution/`, `headers/` — 1
 
 Attribution here was established by proxying `Error` construction and reading the constructing
 stack frame, not by matching message text — necessary because three messages in this area are
 byte-identical across sites.
 
-| file:line                           | anchor                                          | message                                          | code  | position source                                                   | fixture                        |
-| ----------------------------------- | ----------------------------------------------- | ------------------------------------------------ | ----- | ----------------------------------------------------------------- | ------------------------------ |
-| `headers/BaseHeaderGenerator.ts:79` | `is a typedef of a pointer declared in another` | typedef of a pointer declared in another header  | E0505 | `origin.sourceLine` (`IHeaderSymbol`) — no parse tree exists      | none                           |
-| `resolution/SizeofResolver.ts:154`  | `Error[E0601]: sizeof() on array parameter`     | `sizeof()` on an array parameter (ADR-023)       | E0601 | none in `throwArrayParamSizeofError(varName)`; thread from `:172` | `sizeof/array-param-error` +1  |
-| `resolution/SizeofResolver.ts:178`  | `Error[E0602]: sizeof() operand must not have`  | `sizeof()` operand has side effects (MISRA 13.6) | E0602 | `expr` **is already the parameter** — position available, unused  | `sizeof/side-effects-error` +1 |
+| file:line                           | anchor                                          | message                                         | code  | position source                                              | fixture |
+| ----------------------------------- | ----------------------------------------------- | ----------------------------------------------- | ----- | ------------------------------------------------------------ | ------- |
+| `headers/BaseHeaderGenerator.ts:79` | `is a typedef of a pointer declared in another` | typedef of a pointer declared in another header | E0505 | `origin.sourceLine` (`IHeaderSymbol`) — no parse tree exists | none    |
 
 The 13 `ArrayHandlers` slice sites **already smuggle a position through the message string** as a
 `${line}:0` prefix that a downstream layer parses — which is why

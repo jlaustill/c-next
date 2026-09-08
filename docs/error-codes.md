@@ -169,10 +169,10 @@ include-visibility is not derivable for a C or C++ name.
 
 ## E06xx — Sizeof Expressions (ADR-023)
 
-| Code  | Message                                            | Help                                                                        | Source                                        |
-| ----- | -------------------------------------------------- | --------------------------------------------------------------------------- | --------------------------------------------- |
-| E0601 | `sizeof()` on array parameter returns pointer size | Use `varName.length` for count or `sizeof(type) * varName.length` for bytes | `output/codegen/resolution/SizeofResolver.ts` |
-| E0602 | `sizeof()` operand must not have side effects      | Remove side effects (MISRA C:2012 Rule 13.6)                                | `output/codegen/resolution/SizeofResolver.ts` |
+| Code  | Message                                                            | Help                                                                                           | Source                                  |
+| ----- | ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- | --------------------------------------- |
+| E0601 | `sizeof()` on an array parameter measures a pointer, not the array | Use `.element_count` for the count, or `sizeof(elementType) * .element_count` for the bytes    | `TRANSPILE/1-Analyze/SizeofAnalyzer.ts` |
+| E0602 | `sizeof()` operand must not have side effects                      | MISRA C:2012 Rule 13.6: `sizeof` never evaluates its operand, so a call inside it does not run | `TRANSPILE/1-Analyze/SizeofAnalyzer.ts` |
 
 ---
 

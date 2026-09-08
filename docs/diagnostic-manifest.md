@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-368 fixture(s) assert a diagnostic; 351 carry a code.
+366 fixture(s) assert a diagnostic; 349 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -114,6 +114,8 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-022/nested-ternary-unparenthesized-error.test.cnx                                      | (uncoded)           |
 | tests/adr-022/ternary-error-non-boolean.test.cnx                                                 | E0701               |
 | tests/adr-022/while-error-non-boolean.test.cnx                                                   | E0701               |
+| tests/adr-023/sizeof-array-parameter-error.test.cnx                                              | E0601               |
+| tests/adr-023/sizeof-side-effects-error.test.cnx                                                 | E0602               |
 | tests/adr-024/composite-narrowing-error.test.cnx                                                 | E0869               |
 | tests/adr-024/conversion-imported-direct-error.test.cnx                                          | E0869               |
 | tests/adr-024/conversion-imported-transitive-error.test.cnx                                      | E0869               |
@@ -204,8 +206,6 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/analysis/signed-arithmetic-index.test.cnx                                                  | E0850               |
 | tests/analysis/signed-array-index.test.cnx                                                       | E0850               |
 | tests/analysis/signed-bit-index.test.cnx                                                         | E0850               |
-| tests/analysis/sizeof-array-param.test.cnx                                                       | E0601               |
-| tests/analysis/sizeof-side-effects.test.cnx                                                      | E0602               |
 | tests/analysis/undefined-function.test.cnx                                                       | E0422               |
 | tests/analysis/uninitialized-variable.test.cnx                                                   | E0381               |
 | tests/arithmetic/division-by-const-zero.test.cnx                                                 | E0800               |
@@ -370,8 +370,6 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/scope/nested-scope-error.test.cnx                                                          | E0430               |
 | tests/scope/param-prefix-naming-error.test.cnx                                                   | (uncoded)           |
 | tests/scope/param-prefix-naming-scope-error.test.cnx                                             | (uncoded)           |
-| tests/sizeof/array-param-error.test.cnx                                                          | E0601               |
-| tests/sizeof/side-effects-error.test.cnx                                                         | E0602               |
 | tests/static-allocation/aligned-alloc-error.test.cnx                                             | E0902               |
 | tests/static-allocation/calloc-error.test.cnx                                                    | E0902               |
 | tests/static-allocation/free-error.test.cnx                                                      | E0902               |
