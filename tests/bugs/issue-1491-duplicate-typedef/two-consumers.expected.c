@@ -41,12 +41,13 @@
 // names it" it moves into `two-consumers.test.h` instead. Both files are
 // compared, so the regression reddens this fixture rather than only dirtying a
 // helper header.
-// `dup-lib.cnx` is included here as well so its object gets linked; the
-// harness links a fixture's DIRECT includes, and without this the two
-// consumers reference `sharedWork` with nothing defining it. It does not
-// weaken the test: the duplicate under test is between the two CONSUMER
-// headers, and this file names no callback type of its own.
-#include "dup-lib.h"
+// `dup-lib.cnx` is NOT included here. It used to be, purely so its object got
+// linked -- the harness linked a fixture's DIRECT includes only, so a symbol
+// reached through the consumers had nothing defining it at link time. That was
+// a workaround for #1508, recorded as one in this comment; the harness now
+// links the transitive closure and the redundant include is gone. `sharedWork`
+// still reaches this file through both consumers, which is the shape the
+// duplicate-typedef decision is actually about.
 #include "consumer-a.h"
 #include "consumer-b.h"
 

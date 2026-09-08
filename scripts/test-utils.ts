@@ -1496,7 +1496,17 @@ class TestUtils {
 
     // Determine which modes to run (default: BOTH C and C++)
     const modes = TestUtils.getTestModes(source);
-    const helperCnxFiles = TestUtils.findHelperCnxFiles(cnxFile, source);
+    // #1508: the TRANSITIVE closure, not the entry's direct includes. A fixture
+    // calling a function two hops away emitted correct C -- the three objects
+    // linked by hand -- and still died at `undefined reference`, because the
+    // file defining the symbol was never handed to the compiler.
+    //
+    // `helperClosure` is not a second walk: it is `findHelperCnxFiles` applied
+    // to fixpoint, and it already existed for the #1488 scheduler lock. Calling
+    // the direct form here made two callers walk one notion of "helper" to two
+    // different depths -- paths that agreed only while every helper happened to
+    // be one hop away, which is a latent divergence rather than a unified path.
+    const helperCnxFiles = TestUtils.helperClosure(cnxFile);
 
     // Error tests: single-mode, but NOT mode-independent any more. #1319 made
     // "does this run emit C++?" a declared fact with its own diagnostic

@@ -7,7 +7,6 @@
  */
 
 #include <stdint.h>
-#include "dup-lib.hpp"
 #include "consumer-a.hpp"
 #include "consumer-b.hpp"
 
