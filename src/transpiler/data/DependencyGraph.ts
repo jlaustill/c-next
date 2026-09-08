@@ -103,7 +103,7 @@ class DependencyGraph {
       // Cycle detected - return nodes in arbitrary order with warning
       const message = error instanceof Error ? error.message : "unknown error";
       this.warnings.push(
-        `Warning: Circular dependency detected in include graph (${message}). Files may be processed in incorrect order.`,
+        `Circular dependency detected in include graph (${message}). Files may be processed in incorrect order.`,
       );
       return [...this.dependencies.keys()];
     }

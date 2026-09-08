@@ -111,7 +111,7 @@ function getReservedFieldWarning(
   fieldName: string,
 ): string {
   return (
-    `Warning: ${language} header struct '${structName}' has field '${fieldName}' ` +
+    `${language} header struct '${structName}' has field '${fieldName}' ` +
     `which conflicts with C-Next's .${fieldName} property. ` +
     `Consider renaming the field or be aware that '${structName}.${fieldName}' ` +
     `may not work as expected in C-Next code.`
