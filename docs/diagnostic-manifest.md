@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-366 fixture(s) assert a diagnostic; 351 carry a code.
+367 fixture(s) assert a diagnostic; 352 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -158,6 +158,10 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-036/c-style-error.test.cnx                                                             | E0874               |
 | tests/adr-036/c-style-trailing-bracket-rejected.test.cnx                                         | E0874               |
 | tests/adr-036/init-bounds-error.test.cnx                                                         | E0854               |
+| tests/adr-037/define-every-rejected-form-error.test.cnx                                          | E0501, E0502        |
+| tests/adr-037/function-macro-error.test.cnx                                                      | E0501               |
+| tests/adr-037/nested-ifdef.test.cnx                                                              | (uncoded)           |
+| tests/adr-037/value-define-error.test.cnx                                                        | E0502               |
 | tests/adr-045/string-array-init-error-mismatch.test.cnx                                          | E0866               |
 | tests/adr-045/string-error-concat-global.test.cnx                                                | E0863               |
 | tests/adr-045/string-error-concat-overflow.test.cnx                                              | E0864               |
@@ -362,10 +366,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/null-check/null-in-ternary.test.cnx                                                        | (uncoded)           |
 | tests/null-check/null-neq-check.test.cnx                                                         | E0905, E0907        |
 | tests/null-check/valid-fgetc-check.test.cnx                                                      | E0905               |
-| tests/preprocessor/function-macro-error.test.cnx                                                 | E0501               |
 | tests/preprocessor/include-impl-file-error.test.cnx                                              | E0503               |
-| tests/preprocessor/nested-ifdef.test.cnx                                                         | (uncoded)           |
-| tests/preprocessor/value-define-error.test.cnx                                                   | E0502               |
 | tests/register/register-bits-syntax-error.test.cnx                                               | (uncoded)           |
 | tests/scope/nested-scope-error.test.cnx                                                          | E0430               |
 | tests/scope/param-prefix-naming-error.test.cnx                                                   | (uncoded)           |

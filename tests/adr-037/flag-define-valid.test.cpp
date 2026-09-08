@@ -5,6 +5,7 @@
 
 #include "flag-define-valid.test.hpp"
 
+// test-adr: 037
 // ADR-037: Valid flag-only defines
 // These should pass through to C unchanged
 // Note: Preprocessor directives must appear at top level before declarations

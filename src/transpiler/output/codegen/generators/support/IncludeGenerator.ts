@@ -7,6 +7,7 @@ import * as Parser from "../../../../logic/parser/grammar/CNextParser";
 import CnxFileResolver from "../../../../data/CnxFileResolver";
 import IncludeRewriter from "../../../../data/IncludeRewriter";
 import type THeaderExtension from "../../../../types/THeaderExtension";
+import invariant from "../../../../../utils/invariant";
 
 /**
  * Issue #349, #1467: Options for include transformation
@@ -88,48 +89,22 @@ const transformIncludeDirective = (
 };
 
 /**
- * Extract the macro name from a #define directive
- */
-const extractDefineName = (text: string): string => {
-  const match = /#\s*define\s+([a-zA-Z_]\w*)/.exec(text);
-  return match ? match[1] : "unknown";
-};
-
-/**
- * Process a #define directive
- * Only flag-only defines are allowed; value and function macros produce errors
+ * Emit a #define directive.
+ *
+ * #1322: the two rejections that stood here (E0501 function-like, E0502 with a
+ * value) are ADR-037 decisions and moved to pass 2.1's DefineDirectiveAnalyzer,
+ * which reports them at the directive's own position instead of `1:0` with the
+ * line spelled out in the message. What is left is the emission: a flag-only
+ * define passes through, and nothing else can reach here.
  */
 const processDefineDirective = (
   ctx: Parser.DefineDirectiveContext,
 ): string | null => {
-  const text = ctx.getText();
-
-  // Check for function-like macro: #define NAME(
-  if (ctx.DEFINE_FUNCTION()) {
-    const name = extractDefineName(text);
-    const line = ctx.start?.line ?? 0;
-    throw new Error(
-      `E0501: Function-like macro '${name}' is not allowed. ` +
-        `Use inline functions instead. Line ${line}`,
-    );
-  }
-
-  // Check for value define: #define NAME value
-  if (ctx.DEFINE_WITH_VALUE()) {
-    const name = extractDefineName(text);
-    const line = ctx.start?.line ?? 0;
-    throw new Error(
-      `E0502: #define with value '${name}' is not allowed. ` +
-        `Use 'const' instead: const u32 ${name} <- value; Line ${line}`,
-    );
-  }
-
-  // Flag-only define: pass through
-  if (ctx.DEFINE_FLAG()) {
-    return text.trim();
-  }
-
-  return null;
+  invariant(
+    !ctx.DEFINE_FUNCTION() && !ctx.DEFINE_WITH_VALUE(),
+    "E0501/E0502 reject this in pass 2.1, before this runs",
+  );
+  return ctx.DEFINE_FLAG() ? ctx.getText().trim() : null;
 };
 
 /**
@@ -164,7 +139,6 @@ const processPreprocessorDirective = (
 // Export as an object for consistent module pattern
 const includeGenerators = {
   transformIncludeDirective,
-  extractDefineName,
   processDefineDirective,
   processConditionalDirective,
   processPreprocessorDirective,

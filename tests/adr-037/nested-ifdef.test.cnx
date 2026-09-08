@@ -1,3 +1,4 @@
+// test-adr: 037
 // test-coverage: 24-nested-ifdef
 // Tests: Nested #ifdef preprocessor directives
 

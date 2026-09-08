@@ -1,3 +1,4 @@
+// test-adr: 037
 // ADR-037: Value defines should produce E0502 error
 // This file should FAIL to transpile
 

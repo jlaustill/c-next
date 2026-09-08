@@ -1,3 +1,4 @@
+// test-adr: 037
 // ADR-037: Function-like macros should produce E0501 error
 // This file should FAIL to transpile
 

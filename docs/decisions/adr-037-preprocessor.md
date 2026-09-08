@@ -150,6 +150,45 @@ inline u32 max(u32 a, u32 b) {
 | E0501 | Function-like macro `NAME` is not allowed. Use inline functions instead. |
 | E0502 | `#define` with value `NAME` is not allowed. Use `const` instead.         |
 
+Both are reported at the directive's own line and column. Until #1322 they were
+reported at `1:0` with the real line appended to the message as `Line N`, so a
+file whose offending `#define` sat on line 7 pointed the reader at line 1.
+
+### Scope-context matrix
+
+<!-- MATRIX-SEVERITY -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | off      |
+| top-level function | same file           | off      |
+| scope member       | same file           | off      |
+| scope method       | same file           | off      |
+| global variable    | imported direct     | off      |
+| top-level function | imported direct     | off      |
+| scope member       | imported direct     | off      |
+| scope method       | imported direct     | off      |
+| global variable    | imported transitive | off      |
+| top-level function | imported transitive | off      |
+| scope member       | imported transitive | off      |
+| scope method       | imported transitive | off      |
+
+**Every cell is `off`, and that is a claim rather than a gap.** A `#define` is
+only grammatical before the first declaration, so it is enclosed by no scope, no
+function and no variable — after a declaration, inside a `scope`, or inside a
+function body it is a syntax error, not an E0501 or E0502. The matrix's context
+axis asks which declaration encloses the diagnostic's line, and for these two the
+answer is "none" at every position the language admits. There is no fixture that
+could occupy a cell here, and declaring one `error` would be an obligation
+nothing can ever discharge.
+
+The relationship axis is likewise not reachable: an included `.cnx` is itself a
+compiled file whose own directives are checked and attributed to it, so a
+`#define` never produces a diagnostic _about another file_. A `#define` inside an
+included **C** header reaches neither rule at all — the C grammar discards
+`#`-lines to a hidden channel before parsing, so such a header transpiles
+untouched.
+
 ## Implementation
 
 ### Grammar (CNext.g4)
@@ -208,12 +247,16 @@ ENDIF_DIRECTIVE   : '#' [ \t]* 'endif' [ \t]* ;
 
 ## Test Files
 
-Located in `tests/preprocessor/`:
+Located in `tests/adr-037/`:
 
-- `flag-define-valid.cnx` — Valid flag-only defines
-- `value-define-error.cnx` — E0502 error case
-- `function-macro-error.cnx` — E0501 error case
-- `conditional-compilation.cnx` — Full conditionals example
+- `flag-define-valid.test.cnx` — valid flag-only defines
+- `value-define-error.test.cnx` — E0502 error case
+- `function-macro-error.test.cnx` — E0501 error case
+- `define-every-rejected-form-error.test.cnx` — both rejected forms and all
+  three accepted ones in one file, so dropping a rule is a count change and
+  widening one fails on the accepted forms
+- `conditional-compilation.test.cnx` — full conditionals example
+- `nested-ifdef.test.cnx` — nested conditionals are not in the grammar
 
 ## References
 

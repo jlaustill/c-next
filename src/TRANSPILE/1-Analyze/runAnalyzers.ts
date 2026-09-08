@@ -8,6 +8,7 @@
 
 import { CommonTokenStream } from "antlr4ng";
 import { ProgramContext } from "../../transpiler/logic/parser/grammar/CNextParser";
+import DefineDirectiveAnalyzer from "./DefineDirectiveAnalyzer";
 import IdentifierSyntaxAnalyzer from "./IdentifierSyntaxAnalyzer";
 import ParameterNamingAnalyzer from "./ParameterNamingAnalyzer";
 import StructFieldAnalyzer from "./StructFieldAnalyzer";
@@ -155,7 +156,15 @@ function runAnalyzers(
 
   const steps: readonly IAnalyzerStep[] = [
     {
-      // First: a malformed identifier feeds a bad name into every later analysis.
+      // #1322: before anything reads a declaration. A file's `#define` lines
+      // precede every declaration in the grammar, so a bad directive is never
+      // a consequence of the code below it -- and reporting the code below it
+      // first would tell the author to fix the wrong line.
+      label: "#define shape (ADR-037: flag-only defines)",
+      run: () => new DefineDirectiveAnalyzer().analyze(tree),
+    },
+    {
+      // A malformed identifier feeds a bad name into every later analysis.
       label: "identifier syntax (ADR-063: no trailing or consecutive '_')",
       run: () => new IdentifierSyntaxAnalyzer().analyze(tree),
     },

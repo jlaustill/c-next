@@ -3,8 +3,9 @@
  * A safer C for embedded systems
  */
 
-#include "flag-define-valid.test.hpp"
+#include "flag-define-valid.test.h"
 
+// test-adr: 037
 // ADR-037: Valid flag-only defines
 // These should pass through to C unchanged
 // Note: Preprocessor directives must appear at top level before declarations
@@ -15,9 +16,9 @@
 #define DEBUG
 
 // Const values (the safe way to define constants)
-extern const uint32_t LED_PIN = 13U;
+const uint32_t LED_PIN = 13U;
 
-extern const uint32_t ALT_PIN = 10U;
+const uint32_t ALT_PIN = 10U;
 
 void setup(void) {
 }

@@ -179,6 +179,24 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | -      | -          | n/a         | n/a        |
 | scope method       | ok        | -      | -          | n/a         | n/a        |
 
+## ADR-037
+
+| Context            | same file | direct | transitive | from 1 away | thru chain |
+| ------------------ | --------- | ------ | ---------- | ----------- | ---------- |
+| global variable    | -         | -      | -          | n/a         | n/a        |
+| top-level function | -         | -      | -          | n/a         | n/a        |
+| scope member       | -         | -      | -          | n/a         | n/a        |
+| scope method       | -         | -      | -          | n/a         | n/a        |
+
+6 linked fixtures with no derivable context:
+
+- `adr-037/conditional-compilation.test.cnx`
+- `adr-037/define-every-rejected-form-error.test.cnx`
+- `adr-037/flag-define-valid.test.cnx`
+- `adr-037/function-macro-error.test.cnx`
+- `adr-037/nested-ifdef.test.cnx`
+- `adr-037/value-define-error.test.cnx`
+
 ## ADR-044
 
 | Context            | same file | direct | transitive | from 1 away | thru chain |
