@@ -1857,10 +1857,30 @@ class Transpiler {
     const scanner = new CppEntryPointScanner(searchPaths, this.fs);
     const scanResult = scanner.scan(entryPath);
 
-    // Report errors and warnings
-    // Prefix errors to distinguish from informational warnings
-    for (const error of scanResult.errors) {
-      this.warnings.push(`Error: ${error}`);
+    // #1541: these are ERRORS, and they now behave like it.
+    //
+    // They were pushed onto `this.warnings` with a hand-written `Error: `
+    // prefix, which produced `Warning: Error: C-Next source not found: x.cnx`
+    // and, far worse, exit 0 with zero output files -- while the same fault
+    // reached through a quoted include is E0506 and exits 1. Two discovery
+    // routes, one class of fault, opposite outcomes.
+    //
+    // The comment that stood here said the prefix was "to distinguish from
+    // informational warnings", which states the conflation rather than
+    // resolving it: `IScanResult` already separates the two, and only this
+    // consumer merged them.
+    //
+    // This is the shape #1319 settled twice in the catches above -- a
+    // deliberate rejection propagates, an incidental failure degrades. The
+    // error was buried doubly here, because a marker found with no source also
+    // sets `noCNextFound`, so the run additionally printed the friendly
+    // "To get started:" onboarding text at a user whose header path was wrong.
+    if (scanResult.errors.length > 0) {
+      throw new Error(
+        `E0509: ${scanResult.errors.join("\n       ")}\n` +
+          `  A generated header records the C-Next source it was written from.\n` +
+          `  Check that source is present, and reachable from the include path.`,
+      );
     }
     this.warnings.push(...scanResult.warnings);
 

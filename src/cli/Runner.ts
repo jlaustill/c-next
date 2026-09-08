@@ -126,6 +126,21 @@ class Runner {
     result: ITranspilerResult,
     resolvedInput: string,
   ): void {
+    // #1541: this function summarizes a SUCCESSFUL scan. A failed one is
+    // described by its diagnostic, which `ResultPrinter` prints, so returning
+    // here hides nothing.
+    //
+    // Both branches below were wrong for a failed run, in different ways. The
+    // zero branch fired on `filesProcessed === 0` alone, so a run that failed
+    // with E0509 -- a generated header naming a source that is not there --
+    // was told "No C-Next files found ... 1. Create a .cnx file": the user's
+    // problem was a path, and the advice was to start over. Guarding only that
+    // branch then sent the same run to the other one, which announced
+    // `Found 0 C-Next source file(s): ` with an empty list.
+    if (result.errors.length > 0) {
+      return;
+    }
+
     if (result.filesProcessed === 0) {
       console.log("No C-Next files found in include tree. To get started:");
       console.log("  1. Create a .cnx file (e.g., led.cnx)");
