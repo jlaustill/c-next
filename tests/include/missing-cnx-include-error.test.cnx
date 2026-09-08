@@ -1,3 +1,4 @@
+// test-adr: 010
 // ADR-010: a quoted C-Next include naming a file that is not there is E0506.
 //
 // #1322: this rule had NO fixture. It reached the user as

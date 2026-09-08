@@ -4,6 +4,7 @@
  */
 
 // test-execution
+// test-adr: 010
 // ADR-010: C Interoperability - Include C-Next files with quotes
 // Tests: #include "file.cnx" transpiles to #include "file.h"
 #include "helper-types.hpp"

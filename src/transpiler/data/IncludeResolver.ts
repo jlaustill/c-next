@@ -265,7 +265,7 @@ class IncludeResolver {
 
     const fromFile = sourceFilePath ? ` (from ${sourceFilePath})` : "";
     warnings.push(
-      `Warning: #include "${includeInfo.path}" not found${fromFile}. ` +
+      `#include "${includeInfo.path}" not found${fromFile}. ` +
         `Struct field types from this header will not be detected.`,
     );
   }
@@ -316,7 +316,7 @@ class IncludeResolver {
     try {
       content = fs.readFile(file.path);
     } catch {
-      warnings.push(`Warning: Could not read header ${file.path}`);
+      warnings.push(`Could not read header ${file.path}`);
       return null;
     }
 
@@ -398,7 +398,7 @@ class IncludeResolver {
         if (!resolved) {
           if (includeInfo.isLocal) {
             warnings.push(
-              `Warning: #include "${includeInfo.path}" not found (from ${file.path}). ` +
+              `#include "${includeInfo.path}" not found (from ${file.path}). ` +
                 `Struct field types from this header will not be detected.`,
             );
           }

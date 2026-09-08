@@ -1,0 +1,13 @@
+// One hop from the entry, and the only file that includes `leaf.cnx`.
+#include "leaf.cnx"
+
+u32 viaMid() {
+    return leafValue();
+}
+
+// Defined here, needing nothing from `leaf.cnx`. `control.test.cnx` calls only
+// this, which is what makes it the negative control: `leaf.cnx` is still in its
+// include closure and still linked, while defining nothing the entry needs.
+u32 midOnly() {
+    return 7;
+}

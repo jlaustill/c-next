@@ -1,4 +1,5 @@
 // test-error
+// test-adr: 010
 // Issue #1133: the residual include-guard collision is diagnosed, not silent.
 //
 // Keying the guard on the relative path (ADR-063) separates same-basename files

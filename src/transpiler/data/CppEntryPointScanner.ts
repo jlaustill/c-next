@@ -73,7 +73,7 @@ class CppEntryPointScanner {
     try {
       content = this.fs.readFile(filePath);
     } catch {
-      this.warnings.push(`Warning: Could not read ${filePath}`);
+      this.warnings.push(`Could not read ${filePath}`);
       return;
     }
 
@@ -105,7 +105,7 @@ class CppEntryPointScanner {
       // System includes (like <stdio.h>) are expected to not be found
       if (includeInfo.isLocal) {
         this.warnings.push(
-          `Warning: #include "${includeInfo.path}" not found (from ${fromFile})`,
+          `#include "${includeInfo.path}" not found (from ${fromFile})`,
         );
       }
       return;

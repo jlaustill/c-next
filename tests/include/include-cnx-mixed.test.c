@@ -4,6 +4,7 @@
  */
 
 // test-execution
+// test-adr: 010
 // ADR-010: C Interoperability - Mixed includes
 // Tests: Mix of .cnx, .h, and standard library includes
 // cppcheck-suppress misra-c2012-21.6

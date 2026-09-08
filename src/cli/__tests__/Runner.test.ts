@@ -249,6 +249,86 @@ describe("Runner", () => {
         );
       });
 
+      /**
+       * #1541: the onboarding text is for an empty include tree, not a broken
+       * one. It fired on `filesProcessed === 0` alone, so a run that FAILED
+       * with E0509 -- a generated header naming a source that is not there --
+       * was told "No C-Next files found ... 1. Create a .cnx file". The user's
+       * problem is a path, and the advice was to start over.
+       *
+       * That is the second half of the burial: the error itself now exits 1,
+       * but printing this beside it still points the reader away from the
+       * cause.
+       */
+      it("does not print onboarding advice when the run failed", async () => {
+        mockTranspilerInstance.transpile.mockResolvedValue({
+          success: false,
+          outputFiles: [],
+          errors: [
+            {
+              message:
+                "E0509: C-Next source not found: ghost.cnx (referenced by ghost.h)",
+            },
+          ],
+          filesProcessed: 0,
+          files: [],
+        });
+
+        await expect(Runner.execute(mockConfig)).rejects.toThrow(
+          /process.exit/,
+        );
+
+        expect(consoleLogSpy).not.toHaveBeenCalledWith(
+          expect.stringContaining("To get started"),
+        );
+      });
+
+      it("keeps the file summary when the failure is only partial", async () => {
+        // #1540 review: the first version of the guard above suppressed on
+        // `errors.length > 0` alone, so a run where three sources were found
+        // and one failed lost the only line naming the two that succeeded --
+        // ResultPrinter's failure branch prints "Compilation failed" and no
+        // file list. The suppression is for a run that produced NOTHING.
+        mockTranspilerInstance.transpile.mockResolvedValue({
+          success: false,
+          outputFiles: ["/project/src/led.c"],
+          errors: [{ message: "E0602: something failed in motor.cnx" }],
+          filesProcessed: 2,
+          files: [
+            { sourcePath: "/project/src/led.cnx" },
+            { sourcePath: "/project/src/motor.cnx" },
+          ],
+        });
+
+        await expect(Runner.execute(mockConfig)).rejects.toThrow(
+          /process.exit/,
+        );
+
+        expect(consoleLogSpy).toHaveBeenCalledWith(
+          expect.stringContaining("Found 2 C-Next source file(s)"),
+        );
+      });
+
+      it("still prints onboarding advice for a genuinely empty include tree", async () => {
+        // Negative control: the advice is correct and wanted here. Without
+        // this, suppressing it unconditionally would pass the test above.
+        mockTranspilerInstance.transpile.mockResolvedValue({
+          success: true,
+          outputFiles: [],
+          errors: [],
+          filesProcessed: 0,
+          files: [],
+        });
+
+        await expect(Runner.execute(mockConfig)).rejects.toThrow(
+          /process.exit/,
+        );
+
+        expect(consoleLogSpy).toHaveBeenCalledWith(
+          expect.stringContaining("To get started"),
+        );
+      });
+
       it("prints found files when C-Next sources discovered", async () => {
         mockTranspilerInstance.transpile.mockResolvedValue({
           success: true,

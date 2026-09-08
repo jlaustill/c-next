@@ -582,6 +582,8 @@ export default class CodeGenerator implements IOrchestrator {
       checkNeedsStructKeyword: (name) =>
         CodeGenState.symbolTable.checkNeedsStructKeyword(name),
       isScopeType: (qn) => CodeGenState.isScopeType(qn),
+      isCrossFileDeclaration: (name) =>
+        CodeGenState.isCrossFileDeclaration(name),
     });
   }
 
@@ -1189,6 +1191,20 @@ export default class CodeGenerator implements IOrchestrator {
           this.resolveQualifiedType(identifiers),
       },
     );
+    // #1508: the other half of ADR-010's promise. A cross-file declaration is
+    // reached two ways -- it is CALLED, which the postfix generator records, or
+    // its TYPE is named, which is this. A global variable cannot call anything
+    // at file scope, so without this site the `global variable` contexts would
+    // be permanently unoccupiable and would have had to be declared `off` --
+    // recording a claim that an included type cannot be used for a global,
+    // which is false.
+    //
+    // Both sites are one mechanism (provenance at the point of resolution), not
+    // the two the matrix guidance warns against mixing: neither depends on a
+    // diagnostic, and a fixture is credited once per position either way.
+    if (resolved !== null && CodeGenState.isCrossFileDeclaration(resolved)) {
+      AdrProvenance.record("010", ctx.start?.line);
+    }
     return resolved ?? ctx.getText();
   }
 

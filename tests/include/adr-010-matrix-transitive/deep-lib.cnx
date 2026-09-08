@@ -1,0 +1,9 @@
+// Two hops from `deep-use.test.cnx`. Includes nothing itself, so the chain
+// depth of the fixture below is exactly 2 and its cells read `transitive`.
+struct DeepReading {
+    u32 value;
+}
+
+u32 deepValue() {
+    return 9;
+}

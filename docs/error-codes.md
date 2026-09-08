@@ -16,12 +16,12 @@ codes that already have a fixture.
 | E02xx     | Identifier/Param Naming | 5       |
 | E03xx     | Struct Fields/Init      | 4       |
 | E04xx     | Symbol Resolution       | 16      |
-| E05xx     | Include/Preprocessor    | 8       |
+| E05xx     | Include/Preprocessor    | 9       |
 | E06xx     | Sizeof Expressions      | 2       |
 | E07xx     | Control Flow            | 12      |
 | E08xx     | Arithmetic/Array Safety | 49      |
 | E09xx     | NULL Safety             | 8       |
-| **Total** |                         | **105** |
+| **Total** |                         | **106** |
 
 ---
 
@@ -165,6 +165,7 @@ include-visibility is not derivable for a C or C++ name.
 | E0506 | Included C-Next file not found                                      | A quoted include resolves relative to the file it appears in; check the spelling                                                                                                                                                       | `TRANSPILE/1-Analyze/IncludeDirectiveAnalyzer.ts`    |
 | E0507 | C++ header in a run that does not target C++                        | Set `cppRequired: true` in the config, or pass `--cpp`                                                                                                                                                                                 | `Transpiler.ts`                                      |
 | E0508 | C++ class with a constructor initialized outside a function body    | A class with a constructor is not an aggregate, so its fields are assigned one at a time, and a declaration outside a function body has no statement to assign them in                                                                 | `TRANSPILE/1-Analyze/CppClassInitializerAnalyzer.ts` |
+| E0509 | Generated header names a C-Next source that is not there            | A generated header records the source it was written from; check that source is present and reachable from the include path                                                                                                            | `Transpiler.ts`                                      |
 
 ---
 

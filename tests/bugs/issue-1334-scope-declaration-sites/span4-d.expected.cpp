@@ -8,7 +8,7 @@
 #include "span4-d.test.hpp"
 
 // test-execution
-// test-adr: 016
+// test-adr: 016, 010
 // Issue #1334: a scope spanning FOUR files.
 //
 // SymbolRegistry.getOrCreateScope caches a scope by path, and ScopeCollector used

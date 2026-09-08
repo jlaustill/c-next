@@ -141,8 +141,22 @@ This enables modular C-Next code while ensuring the generated C code includes th
 | E0503 | `#include` of an implementation file (`.c`, `.cpp`, `.cc`, `.cxx`, `.c++`) |
 | E0504 | a header is included where its C-Next source exists                        |
 | E0506 | a quoted C-Next include names a file that is not there                     |
+| E0509 | a generated header records a C-Next source that is not there               |
 
-All three are reported at the directive's own line and column.
+The first three are reported at the directive's own line and column.
+
+**E0509 has no directive to point at, and that is what it is about.** A
+generated header records the C-Next source it was written from, and a C or C++
+entry point is compiled by following those records rather than by reading any
+C-Next source. So the reference that fails is in generated output, not in
+anything the author wrote, and there is no C-Next position to name; the
+diagnostic names the missing source and the header that recorded it instead.
+
+The rule it restores is the one E0506 already states: **a C-Next source that is
+named but absent is an error.** Which route reached the name — a quoted include,
+or a generated header's record — does not change the answer. It used to: reached
+the second way the same fault was reported as a warning, and the run finished
+successfully having produced nothing.
 
 **Where each form is searched is part of the rule, not an implementation
 choice.** A quoted include is resolved relative to the file it appears in, so
@@ -154,11 +168,13 @@ was live until #1322, where a header and its C-Next twin sitting together in an
 added include directory transpiled with no diagnostic while the same two files
 beside the source were rejected.
 
-**These three occupy no cell of the scope-context matrix, and that is a
+**None of these four occupies a cell of the scope-context matrix, and that is a
 property of the construct rather than a coverage gap.** An `#include` is only
 grammatical before the first declaration, so it is enclosed by no scope, no
 function and no variable, and the matrix's context axis asks exactly that. This
-statement is scoped to these three codes; ADR-010's other decisions are about
+statement is scoped to these four codes — E0509 the most plainly, since the
+reference it rejects is not in C-Next source at all; ADR-010's other decisions
+are about
 declarations and are not covered by it.
 
 ### What the emitted include names
@@ -192,6 +208,49 @@ Findings recorded 2026-09-04 under [issue #1467](https://github.com/jlaustill/c-
 which fixed generated C that named a header C-Next had written elsewhere. This
 records the guarantee the fix restored; it does not revise the decision above.
 Whether the guarantee belongs in the Decision itself is open.
+
+---
+
+## Scope-context matrix
+
+<!-- MATRIX-SEVERITY -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | off      |
+| top-level function | same file           | off      |
+| scope member       | same file           | off      |
+| scope method       | same file           | off      |
+| global variable    | imported direct     | error    |
+| top-level function | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported transitive | error    |
+| top-level function | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| scope method       | imported transitive | error    |
+
+**Every `same file` cell is `off`, and that is a property of the decision rather
+than a coverage gap.** This ADR's subject is what one file may use from another;
+an include is cross-file by definition, so there is no same-file case to
+exercise. A reader who finds this row empty should not go looking for the
+fixture that is missing -- there is none to write.
+
+**The two remaining relationships are both `error` for all four contexts.** The
+promise this ADR makes is that a declaration reached through an include is
+usable wherever a local one would be, and "wherever" is precisely the context
+axis. A cell left undeclared would read as `off`, which would be the claim that
+an included symbol cannot be used in that position -- the opposite of what this
+ADR decides.
+
+**Where an include fixture occupies is the use site, never the directive.** The
+Diagnostics section above records that the three include diagnostics occupy no
+cell, because an `#include` is grammatical only before the first declaration and
+is therefore enclosed by no scope, function or variable. That is a statement
+about the directive. The decisions in this section are about the _symbol_ the
+directive makes available, and a symbol is used inside a declaration like any
+other -- so a fixture occupies through the call or type use it performs, and the
+rejection fixtures occupy nothing.
 
 ---
 

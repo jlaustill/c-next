@@ -1,3 +1,4 @@
+// test-adr: 010
 // E0507: a C++ header in a run that did not declare C++ mode.
 // This file should FAIL to transpile with E0507.
 //
