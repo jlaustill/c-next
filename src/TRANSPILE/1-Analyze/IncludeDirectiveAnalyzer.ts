@@ -61,7 +61,7 @@ const IMPLEMENTATION_EXTENSIONS = new Set([
 const HEADER_EXTENSIONS = new Set([".h", ".hpp"]);
 
 /** The C-Next spellings an include may name (Issue #1467's set, one copy). */
-const CNEXT_EXTENSIONS = [".cnx", ".cnext"];
+const CNEXT_EXTENSIONS = new Set([".cnx", ".cnext"]);
 
 const extensionOf = (path: string): string =>
   path.substring(path.lastIndexOf(".")).toLowerCase();
@@ -115,7 +115,7 @@ class IncludeDirectiveListener extends CNextListener {
     spec: IIncludeSpec,
   ): boolean {
     if (!spec.isQuoted) return false;
-    if (!CNEXT_EXTENSIONS.includes(extensionOf(spec.path))) return false;
+    if (!CNEXT_EXTENSIONS.has(extensionOf(spec.path))) return false;
 
     const target = resolve(dirname(this.context.sourcePath), spec.path);
     if (this.context.fileExists(target)) return false;
