@@ -13,19 +13,20 @@
  * file scope, so each root reads the chain from its own offset. A second copy
  * would be free to disagree about any of those, and a rule enforced on a
  * different register than the one written is worse than no rule.
+ *
+ * WHICH root a chain is written with is not a register question, so it is
+ * asked of `ChainRoot`. This file held two copies of it and `BitAccessAnalyzer`
+ * held two more.
  */
 
 import { ParserRuleContext } from "antlr4ng";
 
-import * as Parser from "../../../transpiler/logic/parser/grammar/CNextParser";
 import CodeGenState from "../../../transpiler/state/CodeGenState";
 import QualifiedCName from "../../../utils/QualifiedCName";
 import ScopeUtils from "../../../utils/ScopeUtils";
 import IRegisterMember from "../types/IRegisterMember";
+import TChainRoot from "../types/TChainRoot";
 import ScopeFrameResolver from "../ScopeFrameResolver";
-
-/** The chain's root keyword, or none. */
-type TRegisterRoot = "this" | "global" | null;
 
 class RegisterMemberReference {
   /**
@@ -42,20 +43,6 @@ class RegisterMemberReference {
       chain.push(name);
     }
     return chain;
-  }
-
-  /** The root keyword a postfix expression starts from. */
-  static rootOf(primary: Parser.PrimaryExpressionContext): TRegisterRoot {
-    if (primary.THIS()) return "this";
-    if (primary.GLOBAL()) return "global";
-    return null;
-  }
-
-  /** The same for an assignment target, whose keywords sit on the target. */
-  static rootOfTarget(target: Parser.AssignmentTargetContext): TRegisterRoot {
-    if (target.THIS()) return "this";
-    if (target.GLOBAL()) return "global";
-    return null;
   }
 
   /**
@@ -88,7 +75,7 @@ class RegisterMemberReference {
    * own, then another scope's through `S.R.M`.
    */
   private static searchCandidates(
-    root: TRegisterRoot,
+    root: TChainRoot,
     chain: string[],
     here: string,
     isShadowed: boolean,
@@ -130,7 +117,7 @@ class RegisterMemberReference {
    * these are two functions.
    */
   private static registerCandidates(
-    root: TRegisterRoot,
+    root: TChainRoot,
     chain: string[],
     here: string,
     isShadowed: boolean,
@@ -142,7 +129,7 @@ class RegisterMemberReference {
 
   /** The register member a chain names, or null when it names none. */
   static resolve(
-    root: TRegisterRoot,
+    root: TChainRoot,
     chain: string[],
     node: ParserRuleContext,
     scopes: ScopeFrameResolver,

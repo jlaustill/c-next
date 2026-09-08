@@ -49,13 +49,12 @@ import ArrayDimensionParser from "../../utils/ArrayDimensionParser";
 import ParserUtils from "../../utils/ParserUtils";
 import ScopeUtils from "../../utils/ScopeUtils";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
+import ChainRoot from "./helpers/ChainRoot";
 import RegisterMemberReference from "./helpers/RegisterMemberReference";
 import IRegisterMember from "./types/IRegisterMember";
 import IRegisterAccessError from "./types/IRegisterAccessError";
+import TChainRoot from "./types/TChainRoot";
 import ScopeFrameResolver from "./ScopeFrameResolver";
-
-/** The chain's root keyword, or none. */
-type TRoot = "this" | "global" | null;
 
 /** The write-1 modifiers, for which a zero bit write is meaningless. */
 const WRITE_ONE = new Set(["wo", "w1s", "w1c"]);
@@ -79,7 +78,7 @@ class RegisterAccessListener extends CNextListener {
   ): void => {
     const primary = ctx.primaryExpression();
     if (!primary) return;
-    const root: TRoot = RegisterMemberReference.rootOf(primary);
+    const root: TChainRoot = ChainRoot.ofPrimary(primary);
     const names = ctx
       .postfixOp()
       .map((op) => (op.DOT() !== null ? op.IDENTIFIER()!.getText() : null));
@@ -94,7 +93,7 @@ class RegisterAccessListener extends CNextListener {
     ctx: Parser.AssignmentStatementContext,
   ): void => {
     const target = ctx.assignmentTarget();
-    const root: TRoot = RegisterMemberReference.rootOfTarget(target);
+    const root: TChainRoot = ChainRoot.ofTarget(target);
     const ops = target.postfixTargetOp();
     const names = ops.map((op) =>
       op.DOT() !== null ? op.IDENTIFIER()!.getText() : null,
@@ -148,7 +147,7 @@ class RegisterAccessListener extends CNextListener {
    * to disagree about which register a spelling names.
    */
   private resolve(
-    root: TRoot,
+    root: TChainRoot,
     chain: string[],
     node: ParserRuleContext,
   ): IRegisterMember | null {

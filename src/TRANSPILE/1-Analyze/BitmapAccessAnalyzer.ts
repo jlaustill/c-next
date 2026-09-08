@@ -31,9 +31,11 @@ import LiteralUtils from "../../utils/LiteralUtils";
 import ParserUtils from "../../utils/ParserUtils";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
 import PROPERTY_NAMES from "./helpers/PROPERTY_NAMES";
+import ChainRoot from "./helpers/ChainRoot";
 import RegisterMemberReference from "./helpers/RegisterMemberReference";
 import IBitmapAccessError from "./types/IBitmapAccessError";
 import ScopeFrameResolver from "./ScopeFrameResolver";
+import TChainRoot from "./types/TChainRoot";
 
 class BitmapAccessListener extends CNextListener {
   private readonly found: IBitmapAccessError[] = [];
@@ -52,7 +54,7 @@ class BitmapAccessListener extends CNextListener {
   ): void => {
     const primary = ctx.primaryExpression();
     if (!primary) return;
-    const root = RegisterMemberReference.rootOf(primary);
+    const root = ChainRoot.ofPrimary(primary);
     const ops = ctx.postfixOp();
     const names = ops.map((op) =>
       op.DOT() !== null ? op.IDENTIFIER()!.getText() : null,
@@ -86,7 +88,7 @@ class BitmapAccessListener extends CNextListener {
     );
     const bitmapAt = this.checkChain(
       chain,
-      RegisterMemberReference.rootOfTarget(target),
+      ChainRoot.ofTarget(target),
       ops,
       target,
     );
@@ -116,7 +118,7 @@ class BitmapAccessListener extends CNextListener {
    */
   private checkChain(
     chain: string[],
-    root: "this" | "global" | null,
+    root: TChainRoot,
     ops: readonly (Parser.PostfixOpContext | Parser.PostfixTargetOpContext)[],
     node: ParserRuleContext,
   ): { bitmap: string; field: string } | null {
@@ -172,7 +174,7 @@ class BitmapAccessListener extends CNextListener {
    */
   private bitmapOf(
     chain: string[],
-    root: "this" | "global" | null,
+    root: TChainRoot,
     node: ParserRuleContext,
   ): { bitmap: string; at: number } | null {
     const symbols = CodeGenState.symbols;

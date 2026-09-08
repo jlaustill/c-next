@@ -19,6 +19,9 @@
  * they were pointed here: every one produced the identical list for all three
  * roots.
  */
+
+import TChainRoot from "../types/TChainRoot";
+
 class ScopeCandidates {
   /**
    * @param root the spelling's leading keyword, or null for a bare name
@@ -28,7 +31,7 @@ class ScopeCandidates {
    *   a caller accepts both a transpiled C name and the source-form path.
    */
   static forRoot(
-    root: "this" | "global" | null,
+    root: TChainRoot,
     scoped: string | null,
     unqualified: readonly string[],
   ): string[] {

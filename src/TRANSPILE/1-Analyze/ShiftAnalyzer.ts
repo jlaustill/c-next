@@ -51,6 +51,7 @@ import LiteralUtils from "../../utils/LiteralUtils";
 import ScopeCandidates from "./helpers/ScopeCandidates";
 import ScopeUtils from "../../utils/ScopeUtils";
 import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
+import TChainRoot from "./types/TChainRoot";
 
 /**
  * Second pass: Detect shift operations with signed operands
@@ -244,7 +245,7 @@ class ShiftListener extends CNextListener {
   private constValue(
     name: string,
     at: ParserRuleContext,
-    root: "this" | "global" | null,
+    root: TChainRoot,
   ): number | null {
     const here = this.scopes.frameFor(at).scopePath;
     const scoped =

@@ -32,10 +32,12 @@ import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
 import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
 import ParserUtils from "../../utils/ParserUtils";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
+import ChainRoot from "./helpers/ChainRoot";
 import EnclosingFunction from "./helpers/EnclosingFunction";
 import TypeText from "./helpers/TypeText";
 import IDeclaredVar from "./types/IDeclaredVar";
 import IBitAccessError from "./types/IBitAccessError";
+import TChainRoot from "./types/TChainRoot";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 
 /** The floats a bit range is lowered through a union for. */
@@ -61,25 +63,28 @@ class BitAccessListener extends CNextListener {
     // `this.x[…]` names the declaration in its first op; a bare `x[…]` in the
     // primary. Anything else is not a name this rule can measure.
     const ops = ctx.postfixOp();
-    const root = BitAccessListener.rootOf(primary);
-    const name =
-      root === null
-        ? primary.IDENTIFIER()?.getText()
-        : ops[0]?.DOT() !== null
-          ? ops[0]?.IDENTIFIER()?.getText()
-          : undefined;
+    const root = ChainRoot.ofPrimary(primary);
+    const name = BitAccessListener.nameOf(primary, ops, root);
     if (name === undefined) return;
 
     this.checkChain(name, ops.slice(root === null ? 0 : 1), ctx, root);
   };
 
-  /** The chain's root keyword, or null for a bare name. */
-  private static rootOf(
+  /**
+   * The declared name a postfix chain leads with. A rooted chain spends its
+   * primary on the keyword and puts the name in the first op, so the two
+   * shapes read from different offsets -- and a rooted chain whose first op is
+   * a subscript rather than a `.name` names nothing this rule can measure.
+   */
+  private static nameOf(
     primary: Parser.PrimaryExpressionContext,
-  ): "this" | "global" | null {
-    if (primary.THIS()) return "this";
-    if (primary.GLOBAL()) return "global";
-    return null;
+    ops: readonly Parser.PostfixOpContext[],
+    root: TChainRoot,
+  ): string | undefined {
+    if (root === null) return primary.IDENTIFIER()?.getText();
+    const first = ops[0];
+    if (first === undefined || first.DOT() === null) return undefined;
+    return first.IDENTIFIER()?.getText();
   }
 
   /**
@@ -96,8 +101,12 @@ class BitAccessListener extends CNextListener {
     if (name === undefined) return;
     // A target carries its root as its own token, so the name is always the
     // target's IDENTIFIER and no op is consumed.
-    const root = target.THIS() ? "this" : target.GLOBAL() ? "global" : null;
-    this.checkChain(name, target.postfixTargetOp(), target, root);
+    this.checkChain(
+      name,
+      target.postfixTargetOp(),
+      target,
+      ChainRoot.ofTarget(target),
+    );
   };
 
   private checkChain(
@@ -107,7 +116,7 @@ class BitAccessListener extends CNextListener {
       | Parser.PostfixTargetOpContext
     )[],
     at: ParserRuleContext,
-    root: "this" | "global" | null,
+    root: TChainRoot,
   ): void {
     const declared = this.declarationFor(name, at, root);
     if (declared === null) return; // not a declaration this pass can measure
@@ -132,7 +141,7 @@ class BitAccessListener extends CNextListener {
   private declarationFor(
     name: string,
     at: ParserRuleContext,
-    root: "this" | "global" | null,
+    root: TChainRoot,
   ): IDeclaredVar | null {
     const frame = this.scopes.frameFor(at);
     if (root !== "global") {

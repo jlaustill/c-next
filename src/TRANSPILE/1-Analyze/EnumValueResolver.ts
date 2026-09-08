@@ -24,6 +24,7 @@ import TypeCheckUtils from "../../utils/TypeCheckUtils";
 import IScopeFrame from "./types/IScopeFrame";
 import OperandTypeResolver from "./OperandTypeResolver";
 import ScopeFrameResolver from "./ScopeFrameResolver";
+import TChainRoot from "./types/TChainRoot";
 
 /** An expression's kind, as ADR-017's rules need to see it. */
 type TValueKind =
@@ -138,7 +139,7 @@ class EnumValueResolver {
     // qualifying by the enclosing scope. `this.` states the enclosing scope and
     // names no component either. Both are prefixes about WHERE to look, and
     // treating them as parts of the name was what produced `Motor__this.EMode`.
-    let rooted: "this" | "global" | null = null;
+    let rooted: TChainRoot = null;
     if (path.startsWith("this.")) {
       path = path.slice(5);
       rooted = "this";
