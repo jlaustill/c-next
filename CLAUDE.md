@@ -245,9 +245,9 @@ alias: the whole **`Static Analysis`** job (`prettier:check`, `plugin:test`, `te
 `analyze:duplication`, `docs:toolchain:check`, `coverage:matrix:check`,
 `diagnostics:manifest:check`, `error-codes:check`, `docs:throw-citations:check`, `scope-joins:check`,
 `adr:independence:check`, `gh:pagination:check`, `gate:roster:check`), plus `typecheck`, `typecheck` for
-`prettier-plugin`, `test:cli`, `cli smoke`, `coverage:grammar:check`, `format:fidelity`,
-`headers:standalone:check`, `re-run warm`, and the `working tree clean` check that
-`Verify Clean` performs.
+`prettier-plugin`, `typecheck` for `scripts` (`typecheck:scripts`), `test:cli`, `cli smoke`,
+`coverage:grammar:check`, `format:fidelity`, `headers:standalone:check`, `re-run warm`, and the
+`working tree clean` check that `Verify Clean` performs.
 
 **This roster is no longer maintained by hand.** `npm run gate:roster:check` derives it: it
 counts `run_check` invocations in `scripts/gate.sh`, compares the npm scripts CI runs against

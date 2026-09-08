@@ -40,7 +40,6 @@ import { CNextListener } from "../../transpiler/logic/parser/grammar/CNextListen
 import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
 import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
 import CodeGenState from "../../transpiler/state/CodeGenState";
-import ArrayDimensionParser from "../../utils/ArrayDimensionParser";
 import ParserUtils from "../../utils/ParserUtils";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
 import IDeclaredVar from "./types/IDeclaredVar";
@@ -48,6 +47,7 @@ import IScopeFrame from "./types/IScopeFrame";
 import ISliceAssignmentError from "./types/ISliceAssignmentError";
 import OperandTypeResolver from "./OperandTypeResolver";
 import ScopeFrameResolver from "./ScopeFrameResolver";
+import ConstantExpression from "./helpers/ConstantExpression";
 
 /** `string<N>` holds N characters plus the terminator. */
 const STRING_TERMINATOR_BYTES = 1;
@@ -138,7 +138,7 @@ class SliceAssignmentListener extends CNextListener {
     const destination = this.destinationOf(name, declared, subscripts[0]);
     if (destination === null) return;
 
-    const offset = SliceAssignmentListener.constantOf(subscripts[0]);
+    const offset = this.constantOf(subscripts[0]);
     if (offset === undefined) {
       this.report(
         subscripts[0],
@@ -149,7 +149,7 @@ class SliceAssignmentListener extends CNextListener {
       return;
     }
 
-    const length = SliceAssignmentListener.constantOf(subscripts[1]);
+    const length = this.constantOf(subscripts[1]);
     if (length === undefined) {
       this.report(
         subscripts[1],
@@ -279,7 +279,7 @@ class SliceAssignmentListener extends CNextListener {
     const value = ctx.expression();
     if (!value) return;
 
-    const literal = SliceAssignmentListener.constantOf(value);
+    const literal = this.constantOf(value);
     if (literal !== undefined) {
       // ADR-052 types the literal to the slice's byte width, so it has to be
       // representable there either unsigned or as two's complement. Guarding
@@ -345,13 +345,17 @@ class SliceAssignmentListener extends CNextListener {
    * bound here to the ORDER-INDEPENDENT const source rather than to
    * `CodeGenState.constValues`, which does not exist yet when this pass runs.
    */
-  private static constantOf(
-    expr: Parser.ExpressionContext,
-  ): number | undefined {
-    return ArrayDimensionParser.parseSingleDimension(expr, {
-      constValues: new Map(CodeGenState.program?.constValues() ?? []),
-      typeWidths: TYPE_WIDTH,
-    });
+  /**
+   * #1322 review: this asked the flat const map, whose bare key every scope
+   * declaring that name shares. A slice bound named by a scoped const was
+   * measured against whichever scope was derived last. `ConstantExpression`
+   * is the one evaluator now, and it asks from the enclosing scope.
+   */
+  private constantOf(expr: Parser.ExpressionContext): number | undefined {
+    return (
+      ConstantExpression.valueIn(expr, this.scopes.frameFor(expr).scopePath) ??
+      undefined
+    );
   }
 
   private report(

@@ -1,0 +1,20 @@
+// test-error
+// #1322 review: E0854 must bound `global.arr` by the file-scope `u8[4]`, not by
+// a larger local that shadows it. It was lost, and `arr[9] = 7U;` was emitted
+// against the four-element array -- an out-of-bounds WRITE at exit 0, which
+// `gcc -O2 -Warray-bounds` reports and the transpiler did not.
+u8[4] arr <- [0, 0, 0, 0];
+
+u8 go() {
+    // CONTROL: an in-bounds index through `global.`, which must stay silent.
+    global.arr[3] <- 1;
+
+    // The shadow, then the assertion.
+    u8[16] arr <- [0*];
+    global.arr[9] <- 7;
+    return 0;
+}
+
+u8 main() {
+    return go();
+}

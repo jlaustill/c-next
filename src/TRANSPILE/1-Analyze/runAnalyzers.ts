@@ -1,9 +1,18 @@
 /**
- * Run all semantic analyzers on a parsed C-Next program
+ * Pass 2.1: every rejection C-Next makes about a parsed program.
  *
- * Extracted from transpiler.ts for reuse in the unified pipeline.
- * All 14 analyzers (plus comment validation) run in sequence, each returning
- * errors that block compilation.
+ * The steps run in the order declared below, and the loop STOPS at the first
+ * non-advisory step that finds anything -- so a step's position is a decision
+ * about which diagnostic a program with several faults is shown, not a detail.
+ * Each entry carries a `label` saying why it sits where it does.
+ *
+ * The header used to say "All 14 analyzers (plus comment validation)", a count
+ * carried verbatim from the pre-#1322 path and wrong by a factor of three by
+ * the time it moved here. It is deliberately not replaced with a new number:
+ * a literal in a comment beside the table it describes is the doc-rot this
+ * card exists to remove, and `docs/error-codes.md` plus
+ * `docs/architecture/output-throw-classification.md` carry the counts that ARE
+ * gated.
  */
 
 import { CommonTokenStream } from "antlr4ng";

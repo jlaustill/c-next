@@ -44,18 +44,30 @@ import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../transpiler/logic/parser/grammar/CNextListener";
 import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
-import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
-import CodeGenState from "../../transpiler/state/CodeGenState";
-import ArrayDimensionParser from "../../utils/ArrayDimensionParser";
+import EnclosingScope from "./helpers/EnclosingScope";
 import TypeText from "./helpers/TypeText";
 import ParserUtils from "../../utils/ParserUtils";
 import IArrayDeclarationError from "./types/IArrayDeclarationError";
+import ConstantExpression from "./helpers/ConstantExpression";
 
 /** A declared dimension: its size when it can be known here, else null. */
 type TDimension = number | null;
 
 class ArrayDeclarationListener extends CNextListener {
   private readonly found: IArrayDeclarationError[] = [];
+
+  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
+  private readonly enclosing = new EnclosingScope();
+
+  override enterScopeDeclaration = (
+    ctx: Parser.ScopeDeclarationContext,
+  ): void => {
+    this.enclosing.enter(ctx.IDENTIFIER().getText());
+  };
+
+  override exitScopeDeclaration = (): void => {
+    this.enclosing.exit();
+  };
 
   public errors(): IArrayDeclarationError[] {
     return this.found;
@@ -89,7 +101,7 @@ class ArrayDeclarationListener extends CNextListener {
     const arrayType = typeCtx.arrayType();
     const expression = ctx.expression();
     if (!arrayType || !expression) return;
-    this.checkInitializer(arrayType, expression);
+    this.checkInitializer(arrayType, expression, this.enclosing.current());
   };
 
   override enterParameter = (ctx: Parser.ParameterContext): void => {
@@ -139,6 +151,7 @@ class ArrayDeclarationListener extends CNextListener {
   private checkInitializer(
     arrayType: Parser.ArrayTypeContext,
     expression: Parser.ExpressionContext,
+    scopePath: string,
   ): void {
     const dimensions = arrayType.arrayTypeDimension();
     const inferred = dimensions.some((d) => d.expression() === null);
@@ -169,7 +182,7 @@ class ArrayDeclarationListener extends CNextListener {
 
     const sizes: TDimension[] = dimensions.map((d) => {
       const expr = d.expression();
-      return expr === null ? null : ArrayDeclarationListener.constantOf(expr);
+      return expr === null ? null : ConstantExpression.valueIn(expr, scopePath);
     });
     this.checkLevel(initializer, sizes, 0);
   }
@@ -231,15 +244,6 @@ class ArrayDeclarationListener extends CNextListener {
     )[],
   ): string {
     return dims.map((d) => `[${d.expression()?.getText() ?? ""}]`).join("");
-  }
-
-  private static constantOf(expr: Parser.ExpressionContext): number | null {
-    return (
-      ArrayDimensionParser.parseSingleDimension(expr, {
-        constValues: new Map(CodeGenState.program?.constValues() ?? []),
-        typeWidths: TYPE_WIDTH,
-      }) ?? null
-    );
   }
 
   private report(

@@ -29,6 +29,7 @@ import type TSymbol from "../../transpiler/types/symbols/TSymbol";
 import DeferredTypes from "./DeferredTypes";
 import LiteralUtils from "../../utils/LiteralUtils";
 import type IVariableSymbol from "../../transpiler/types/symbols/IVariableSymbol";
+import IDerivedConsts from "./types/IDerivedConsts";
 
 class Program {
   /**
@@ -50,8 +51,14 @@ class Program {
     // both hard to follow and hard to change one part of.
     const isScopeType = Program.scopeTypeIndex(files);
     const settledByFile = Program.settleEveryFile(files, isScopeType);
-    const constValues = Program.deriveConstValues(settledByFile);
-    const symbolsByFile = Program.resolveDimensions(settledByFile, constValues);
+    const derivedConsts = Program.deriveConstValues(settledByFile);
+    const scopedViews = new Map<string, ReadonlyMap<string, number>>();
+    const constValues = derivedConsts.flat;
+    const symbolsByFile = Program.resolveDimensions(
+      settledByFile,
+      (scopePath: string) =>
+        Program.constValuesIn(derivedConsts, scopedViews, scopePath),
+    );
     const symbolsByCName = Program.indexByCName(symbolsByFile);
     const knownEnums = Program.deriveKnownEnums(symbolsByFile);
     const externalStructFields =
@@ -73,6 +80,8 @@ class Program {
         externalStructFields,
       constValue: (name: string): number | undefined => constValues.get(name),
       constValues: (): ReadonlyMap<string, number> => constValues,
+      constValuesIn: (scopePath: string): ReadonlyMap<string, number> =>
+        Program.constValuesIn(derivedConsts, scopedViews, scopePath),
     });
   }
 
@@ -150,33 +159,72 @@ class Program {
    */
   private static deriveConstValues(
     settledByFile: ReadonlyMap<string, ReadonlyArray<TSymbol>>,
-  ): Map<string, number> {
-    const constValues = new Map<string, number>();
+  ): IDerivedConsts {
+    const flat = new Map<string, number>();
+    const byScope = new Map<string, Map<string, number>>();
     for (const settled of settledByFile.values()) {
       for (const symbol of settled) {
         const value = Program.constValueOf(symbol);
-        if (value !== undefined) {
-          constValues.set(symbol.name, value);
-          if (symbol.scopePath !== "") {
-            constValues.set(symbol.fullyQualifiedCName, value);
-          }
-        }
+        if (value === undefined) continue;
+        flat.set(symbol.name, value);
+        if (symbol.scopePath === "") continue;
+        flat.set(symbol.fullyQualifiedCName, value);
+        // Recorded by SCOPE as well, so "what is SIZE worth inside Small?" has
+        // an answer that does not depend on which scope was derived last. The
+        // flat bare key keeps its meaning for a file-scope const and for the
+        // cross-file lookups #1220 added.
+        const own = byScope.get(symbol.scopePath) ?? new Map<string, number>();
+        own.set(symbol.name, value);
+        byScope.set(symbol.scopePath, own);
       }
     }
-    return constValues;
+    return { flat, byScope };
+  }
+
+  /**
+   * The const values visible from `scopePath`, in ADR-057's candidate order:
+   * the enclosing scope's own const shadows a file-scope one of the same name.
+   *
+   * #1322 review: the flat map is keyed by BARE name and also, for a scoped
+   * const, by its C name -- so two scopes each declaring `SIZE` shared the bare
+   * slot and the last one derived won. That made a legal program fail
+   * (`Small.table` sized by `Large.SIZE`) and made E0854 depend on declaration
+   * ORDER, which is the hazard #1399 named arriving through a different map.
+   * Asking with a scope is the same order `ConstAssignmentAnalyzer.constSymbol`,
+   * `RegisterAccessAnalyzer.isFalseConst` and `ShiftAnalyzer.constValue` each
+   * derived for themselves.
+   *
+   * Views are memoized per scope: a dimension is resolved once per declaration
+   * and there are few scopes, so this trades a small map per scope for not
+   * rebuilding one per lookup.
+   */
+  private static constValuesIn(
+    derived: IDerivedConsts,
+    cache: Map<string, ReadonlyMap<string, number>>,
+    scopePath: string,
+  ): ReadonlyMap<string, number> {
+    if (scopePath === "") return derived.flat;
+    const cached = cache.get(scopePath);
+    if (cached) return cached;
+
+    const own = derived.byScope.get(scopePath);
+    const view =
+      own === undefined ? derived.flat : new Map([...derived.flat, ...own]);
+    cache.set(scopePath, view);
+    return view;
   }
 
   /** Tier 2: resolved array dimensions, per file. */
   private static resolveDimensions(
     settledByFile: ReadonlyMap<string, ReadonlyArray<TSymbol>>,
-    constValues: ReadonlyMap<string, number>,
+    viewFor: (scopePath: string) => ReadonlyMap<string, number>,
   ): Map<string, ReadonlyArray<TSymbol>> {
     const symbolsByFile = new Map<string, ReadonlyArray<TSymbol>>();
     for (const [sourceFile, settled] of settledByFile) {
       symbolsByFile.set(
         sourceFile,
         settled.map((symbol) =>
-          Program.withResolvedDimensions(symbol, constValues),
+          Program.withResolvedDimensions(symbol, viewFor(symbol.scopePath)),
         ),
       );
     }

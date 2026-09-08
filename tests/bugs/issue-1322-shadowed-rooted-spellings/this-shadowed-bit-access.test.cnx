@@ -1,0 +1,24 @@
+// test-error
+// #1322 review: E0856 must measure the scope MEMBER `this.flags`, not a local
+// that shadows it. When it resolved lexically the diagnostic was lost, and the
+// `invariant()` that replaced codegen's throw then fired -- so the user was
+// shown `Internal: ... E0856 rejects this in pass 2.1` at `1:0`, an assertion
+// that this pass had rejected a program it had silently accepted.
+scope Board {
+    private u8 flags <- 0;
+
+    public u8 go() {
+        // CONTROL: the same rule on a local scalar, one subscript, valid.
+        u8 localFlags <- 0;
+        localFlags[1] <- true;
+
+        // The shadow, then the assertion.
+        u8[4][4] flags <- [[0*]*];
+        this.flags[1][2][3] <- 1;
+        return 0;
+    }
+}
+
+u8 main() {
+    return Board.go();
+}

@@ -34,11 +34,13 @@ import ExpressionUnwrapper from "../../utils/ExpressionUnwrapper";
 import ParserUtils from "../../utils/ParserUtils";
 import ScopeUtils from "../../utils/ScopeUtils";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
+import ChainRoot from "./helpers/ChainRoot";
 import EnclosingFunction from "./helpers/EnclosingFunction";
 import FunctionReference from "./helpers/FunctionReference";
 import SafeDivision from "./helpers/SafeDivision";
 import IConstAssignmentError from "./types/IConstAssignmentError";
 import IScopeFrame from "./types/IScopeFrame";
+import TChainRoot from "./types/TChainRoot";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 
 /** What kind of const binding a name is, or null when it is not const. */
@@ -61,9 +63,7 @@ class ConstAssignmentListener extends CNextListener {
   ): void => {
     const name = ctx.IDENTIFIER().getText();
     const frame = this.scopes.frameFor(ctx);
-    const kind = ctx.GLOBAL()
-      ? this.constKindAtFileScope(name, frame)
-      : this.constKind(name, ctx, frame);
+    const kind = this.constKind(ChainRoot.ofTarget(ctx), name, ctx, frame);
     if (kind === null) return;
 
     const suffix = ConstAssignmentListener.targetSuffix(ctx.postfixTargetOp());
@@ -106,7 +106,9 @@ class ConstAssignmentListener extends CNextListener {
     if (call === null) return;
     const output = SafeDivision.outputName(call.args);
     if (output === null) return; // not a variable at all -- E0885's to report
-    const kind = this.constKind(output, ctx, frame);
+    // Always a BARE name: `outputName` accepts only a plain identifier, so a
+    // `this.`-rooted first argument returns null above and is E0885's to report.
+    const kind = this.constKind(null, output, ctx, frame);
     if (kind === null) return;
     this.report(
       call.args[0],
@@ -153,7 +155,7 @@ class ConstAssignmentListener extends CNextListener {
   ): string | null {
     const bare = ExpressionUnwrapper.getSimpleIdentifier(arg);
     if (bare !== null) {
-      return this.constKind(bare, arg, frame) === null ? null : bare;
+      return this.constKind(null, bare, arg, frame) === null ? null : bare;
     }
     const postfix = ExpressionUnwrapper.getPostfixExpression(arg);
     const primary = postfix?.primaryExpression();
@@ -162,45 +164,46 @@ class ConstAssignmentListener extends CNextListener {
       return null;
     const name = ops[0].IDENTIFIER()?.getText();
     if (name === undefined) return null;
-    if (primary.THIS()) {
-      return this.constKind(name, arg, frame) === null ? null : `this.${name}`;
-    }
-    if (primary.GLOBAL()) {
-      return this.constKindAtFileScope(name, frame) === null
-        ? null
-        : `global.${name}`;
-    }
-    return null;
+    const root = ChainRoot.ofPrimary(primary);
+    if (root === null) return null;
+    return this.constKind(root, name, arg, frame) === null
+      ? null
+      : `${root}.${name}`;
   }
 
   /**
-   * Whether `name`, as seen from `at`, is a const parameter, a const variable,
-   * or neither. The frames answer first (a local shadows everything); a name
-   * they do not hold may be a const declared in another file, which the
-   * program's symbols answer.
+   * Whether the spelling `root.name`, as seen from `at`, is a const parameter,
+   * a const variable, or neither.
+   *
+   * Which declaration the spelling binds to is `ScopeFrameResolver`'s decision,
+   * not this rule's. #1322 review: this file had its own, and it had a
+   * `global.` arm and no `this.` arm -- so `this.STEP <- 5` with a local
+   * `STEP` shadowing the const member resolved to the local, lost E0877, and
+   * emitted `Board__STEP = 5U;` at exit 0 against a name gcc cannot even see.
+   *
+   * A name the frames do not hold may be a const declared in another file,
+   * which the program's symbols answer -- keyed by the enclosing scope for a
+   * bare or `this.` spelling, and at file scope for `global.`.
    */
   private constKind(
+    root: TChainRoot,
     name: string,
     at: ParserRuleContext,
     frame: IScopeFrame,
   ): TConstKind {
-    const declared = this.scopes.declarationOfNameLexical(name, frame);
+    const declared = this.scopes.declarationFor(root, name, frame);
     if (declared !== null) {
       if (!declared.isConst) return null;
-      return EnclosingFunction.parameterOf(name, at) !== null
+      // Only a bare spelling can name a parameter: `this.` and `global.` both
+      // state a scope, and a parameter belongs to neither.
+      return root === null && EnclosingFunction.parameterOf(name, at) !== null
         ? "parameter"
         : "variable";
     }
-    return ConstAssignmentListener.constSymbol(name, frame.scopePath);
-  }
-
-  /** `global.name`: the file-scope declaration only, never a scope member. */
-  private constKindAtFileScope(name: string, frame: IScopeFrame): TConstKind {
-    let root: IScopeFrame = frame;
-    while (root.parent !== null) root = root.parent;
-    const declared = root.vars.get(name);
-    if (declared !== undefined) return declared.isConst ? "variable" : null;
-    return ConstAssignmentListener.constSymbol(name, "");
+    return ConstAssignmentListener.constSymbol(
+      name,
+      root === "global" ? "" : frame.scopePath,
+    );
   }
 
   /** A const the program declares under this name -- here, or in an include. */

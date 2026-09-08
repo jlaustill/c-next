@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-369 fixture(s) assert a diagnostic; 354 carry a code.
+375 fixture(s) assert a diagnostic; 360 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -290,7 +290,13 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1312-undefined-type-position/order-lib-first.test.cnx                           | E0426               |
 | tests/bugs/issue-1312-undefined-type-position/undefined-type-same-file.test.cnx                  | E0426               |
 | tests/bugs/issue-1312-undefined-type-position/undefined-type-sibling.test.cnx                    | E0426               |
+| tests/bugs/issue-1322-scoped-const-collision/bounds-big-first-error.test.cnx                     | E0854               |
+| tests/bugs/issue-1322-scoped-const-collision/bounds-small-first-error.test.cnx                   | E0854               |
 | tests/bugs/issue-1322-scoped-struct-field-type/scoped-struct-bool-operand.test.cnx               | E0807               |
+| tests/bugs/issue-1322-shadowed-rooted-spellings/global-shadowed-bounds.test.cnx                  | E0854               |
+| tests/bugs/issue-1322-shadowed-rooted-spellings/global-shadowed-string.test.cnx                  | E0857               |
+| tests/bugs/issue-1322-shadowed-rooted-spellings/this-shadowed-bit-access.test.cnx                | E0856               |
+| tests/bugs/issue-1322-shadowed-rooted-spellings/this-shadowed-const.test.cnx                     | E0877               |
 | tests/bugs/issue-1333-scope-reopening/duplicate-member-reopened.test.cnx                         | E0425               |
 | tests/bugs/issue-1334-scope-declaration-sites/conflict-across-files.test.cnx                     | E0425               |
 | tests/bugs/issue-1334-scope-declaration-sites/cross-language-conflict.test.cnx                   | E0425               |

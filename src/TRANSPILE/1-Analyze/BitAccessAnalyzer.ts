@@ -134,22 +134,20 @@ class BitAccessListener extends CNextListener {
   }
 
   /**
-   * The declaration a spelling names. `global.x` STATES file scope and must not
-   * resolve to a local of the same name; a bare name and `this.x` search
-   * outward from where they stand.
+   * The declaration a spelling names.
+   *
+   * #1322 review: this had its own answer, and it was wrong for `this.`. It
+   * gave `global.` a file-scope arm and sent `this.` down the same outward walk
+   * as a bare name, so a local shadowing a scope member captured it -- and the
+   * `invariant()` that replaced codegen's throw then fired, telling the user
+   * 2.1 had rejected a program it had silently let through. One resolver now.
    */
   private declarationFor(
     name: string,
     at: ParserRuleContext,
     root: TChainRoot,
   ): IDeclaredVar | null {
-    const frame = this.scopes.frameFor(at);
-    if (root !== "global") {
-      return this.scopes.declarationOfNameLexical(name, frame);
-    }
-    let fileScope = frame;
-    while (fileScope.parent !== null) fileScope = fileScope.parent;
-    return fileScope.vars.get(name) ?? null;
+    return this.scopes.declarationFor(root, name, this.scopes.frameFor(at));
   }
 
   /**

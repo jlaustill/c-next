@@ -268,6 +268,7 @@ describe("Program", () => {
       expect(keys).toEqual([
         "constValue",
         "constValues",
+        "constValuesIn",
         "externalStructFields",
         "isScopeType",
         "knownEnums",

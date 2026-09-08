@@ -43,9 +43,7 @@ import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../transpiler/logic/parser/grammar/CNextListener";
 import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
-import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
 import CodeGenState from "../../transpiler/state/CodeGenState";
-import ArrayDimensionParser from "../../utils/ArrayDimensionParser";
 import ParserUtils from "../../utils/ParserUtils";
 import ScopeUtils from "../../utils/ScopeUtils";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
@@ -55,6 +53,7 @@ import IRegisterMember from "./types/IRegisterMember";
 import IRegisterAccessError from "./types/IRegisterAccessError";
 import TChainRoot from "./types/TChainRoot";
 import ScopeFrameResolver from "./ScopeFrameResolver";
+import ConstantExpression from "./helpers/ConstantExpression";
 
 /** The write-1 modifiers, for which a zero bit write is meaningless. */
 const WRITE_ONE = new Set(["wo", "w1s", "w1c"]);
@@ -160,11 +159,14 @@ class RegisterAccessListener extends CNextListener {
   ): boolean {
     const text = expr.getText().trim();
     if (text === "false") return true;
-    const value = ArrayDimensionParser.parseSingleDimension(expr, {
-      constValues: new Map(CodeGenState.program?.constValues() ?? []),
-      typeWidths: TYPE_WIDTH,
-    });
-    if (value !== undefined) return value === 0;
+    // #1322 review: the flat map again -- and this one decides whether a
+    // register write clears a `wo` bit, so the wrong scope's const changed
+    // which diagnostic fired. `isFalseConst` below was already scope-aware.
+    const value = ConstantExpression.valueIn(
+      expr,
+      this.scopes.frameFor(node).scopePath,
+    );
+    if (value !== null) return value === 0;
     return this.isFalseConst(text, node);
   }
 

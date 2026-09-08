@@ -31,9 +31,7 @@ import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../transpiler/logic/parser/grammar/CNextListener";
 import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
-import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
 import CodeGenState from "../../transpiler/state/CodeGenState";
-import ArrayDimensionParser from "../../utils/ArrayDimensionParser";
 import ExpressionUnwrapper from "../../utils/ExpressionUnwrapper";
 import ParserUtils from "../../utils/ParserUtils";
 import StringUtils from "../../utils/StringUtils";
@@ -41,6 +39,7 @@ import DeclarationScopeCollector from "./DeclarationScopeCollector";
 import IScopeFrame from "./types/IScopeFrame";
 import IStringDeclarationError from "./types/IStringDeclarationError";
 import ScopeFrameResolver from "./ScopeFrameResolver";
+import ConstantExpression from "./helpers/ConstantExpression";
 
 /** What a string-valued expression can hold, or null if it is not one. */
 interface IStringSource {
@@ -339,15 +338,15 @@ class StringDeclarationListener extends CNextListener {
     const subscripts = ops[0].expression();
     if (subscripts.length === 2) {
       return {
-        start: StringDeclarationListener.constantOf(subscripts[0]),
-        length: StringDeclarationListener.constantOf(subscripts[1]),
+        start: this.constantOf(subscripts[0]),
+        length: this.constantOf(subscripts[1]),
         sourceCapacity: capacity,
       };
     }
     if (subscripts.length === 1) {
       // `src[i]` is one character, which ADR-045 defines as `src[i, 1]`.
       return {
-        start: StringDeclarationListener.constantOf(subscripts[0]),
+        start: this.constantOf(subscripts[0]),
         length: 1,
         sourceCapacity: capacity,
       };
@@ -388,12 +387,15 @@ class StringDeclarationListener extends CNextListener {
     return false;
   }
 
-  private static constantOf(expr: Parser.ExpressionContext): number | null {
-    return (
-      ArrayDimensionParser.parseSingleDimension(expr, {
-        constValues: new Map(CodeGenState.program?.constValues() ?? []),
-        typeWidths: TYPE_WIDTH,
-      }) ?? null
+  /**
+   * #1322 review: the flat const map answers "whichever scope declared this
+   * name last". A string index or slice bound named by a scoped const was
+   * measured against the wrong one; `ConstantExpression` asks from here.
+   */
+  private constantOf(expr: Parser.ExpressionContext): number | null {
+    return ConstantExpression.valueIn(
+      expr,
+      this.scopes.frameFor(expr).scopePath,
     );
   }
 

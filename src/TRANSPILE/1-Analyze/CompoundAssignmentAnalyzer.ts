@@ -37,6 +37,7 @@ import CodeGenState from "../../transpiler/state/CodeGenState";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 import ICompoundAssignmentError from "./types/ICompoundAssignmentError";
+import ChainRoot from "./helpers/ChainRoot";
 
 /** What made a target unusable, in words the message can name. */
 type TRejection = "bit index" | "bit range or slice" | "string";
@@ -177,8 +178,16 @@ class CompoundAssignmentListener extends CNextListener {
     return CompoundAssignmentAnalyzer.isStringType(typeName) ? "string" : null;
   }
 
+  /**
+   * #1322 review: this read only `target.IDENTIFIER()`, so BOTH `this.` and
+   * `global.` were dropped and the base was always resolved lexically. With a
+   * shadowing local, `global.buf +<- " more"` on a file-scope `string<16>`
+   * reached C as `cnx_clamp_add_u8(buf, " more")` -- which gcc rejects -- at
+   * exit 0, because E0857 measured the local `u8` instead.
+   */
   private declaredBase(target: Parser.AssignmentTargetContext) {
-    return this.scopes.declarationOfNameLexical(
+    return this.scopes.declarationFor(
+      ChainRoot.ofTarget(target),
       target.IDENTIFIER().getText(),
       this.scopes.frameFor(target),
     );

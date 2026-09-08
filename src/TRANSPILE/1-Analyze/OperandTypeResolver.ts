@@ -25,6 +25,7 @@ import CodeGenState from "../../transpiler/state/CodeGenState";
 import TypeResolver from "../../utils/TypeResolver";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ScopeUtils from "../../utils/ScopeUtils";
+import ChainRoot from "./helpers/ChainRoot";
 
 /** One step of a member/subscript/call chain. */
 interface IChainStep {
@@ -221,9 +222,14 @@ class OperandTypeResolver {
 
   /**
    * Declared type of an assignment target, following `postfixTargetOp` steps.
-   * `global.x` and a bare `x` resolve the same way; `this.x` resolves `x`
-   * against the enclosing scope frame, which is where a scope member is
-   * recorded.
+   *
+   * #1322 review: this used to say "`global.x` and a bare `x` resolve the same
+   * way", and it did -- which cost ADR-036's bounds check an out-of-bounds
+   * WRITE. With a `u8[16]` shadowing a file-scope `u8[4]`, `global.arr[9] <- 7`
+   * was measured against the local, passed, and emitted `arr[9] = 7U;` against
+   * the four-element array. Every root now resolves through
+   * `ScopeFrameResolver.declarationFor`, which is the only place that decision
+   * is made.
    */
   public typeOfAssignmentTarget(
     ctx: Parser.AssignmentTargetContext,
@@ -257,7 +263,7 @@ class OperandTypeResolver {
     }));
 
     return this.applyChain(
-      this.scopes.typeOfName(baseName, frame),
+      this.scopes.typeOfNameFor(ChainRoot.ofTarget(ctx), baseName, frame),
       baseName,
       steps,
     );
@@ -296,17 +302,21 @@ class OperandTypeResolver {
     ops: Parser.PostfixOpContext[],
     frame: IScopeFrame,
   ): { base: string | null; baseName: string } | null {
-    if (primary.THIS() ?? primary.GLOBAL()) {
+    const root = ChainRoot.ofPrimary(primary);
+    if (root !== null) {
       // `this.member` / `global.member`: the first step names the declaration.
       const firstMember = ops.shift()?.IDENTIFIER()?.getText();
       if (!firstMember) return null;
       // `this.member()` transpiles to a scope-qualified C name, so the callee
       // key needs the enclosing scope. `global.` is deliberately not qualified.
       const baseName =
-        primary.THIS() !== null && frame.scopePath !== ""
+        root === "this" && frame.scopePath !== ""
           ? ScopeUtils.qualifyInScope(firstMember, frame.scopePath)
           : firstMember;
-      return { base: this.scopes.typeOfName(firstMember, frame), baseName };
+      return {
+        base: this.scopes.typeOfNameFor(root, firstMember, frame),
+        baseName,
+      };
     }
     const identifier = primary.IDENTIFIER()?.getText();
     if (!identifier) return null;

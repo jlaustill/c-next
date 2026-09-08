@@ -1,6 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
+import CNextResolver from "../../../PARSE/3-Declare/cnext";
 import CNextSourceParser from "../../../transpiler/logic/parser/CNextSourceParser";
+import CodeGenState from "../../../transpiler/state/CodeGenState";
+import Program from "../../../PARSE/4-Resolve/Program";
+import SymbolRegistry from "../../../transpiler/state/SymbolRegistry";
 import ArrayDeclarationAnalyzer from "../ArrayDeclarationAnalyzer";
 
 /**
@@ -15,6 +19,24 @@ const errors = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
   return new ArrayDeclarationAnalyzer().analyze(tree);
 };
+
+/**
+ * The same, with a real program artifact behind it, so a const DIMENSION
+ * resolves. Built rather than stubbed because the thing under test is which
+ * const a scoped dimension resolves to, and a stub would encode the answer.
+ */
+const errorsWithProgram = (source: string) => {
+  const { tree } = CNextSourceParser.parse(source);
+  SymbolRegistry.reset();
+  CodeGenState.program = Program.build([
+    CNextResolver.resolve(tree, "collide.cnx"),
+  ]);
+  return new ArrayDeclarationAnalyzer().analyze(tree);
+};
+
+afterEach(() => {
+  CodeGenState.reset();
+});
 
 describe("ArrayDeclarationAnalyzer", () => {
   describe("E0874 -- C-style declarations and parameters", () => {
@@ -57,6 +79,39 @@ describe("ArrayDeclarationAnalyzer", () => {
         "}",
       ].join("\n");
       expect(errors(source)).toEqual([]);
+    });
+  });
+
+  describe("E0866 -- a scoped const sizes its own scope's array", () => {
+    // #1322 review: the program artifact keyed every const by BARE name, so
+    // two scopes each declaring `SIZE` shared one slot and the last one derived
+    // won. This legal program was REJECTED, `declared [8] but the initializer
+    // has 2 element(s)`, against `Small.table` sized by `Large.SIZE`.
+    //
+    // Asserted here rather than as a fixture because the EMITTED array size
+    // still comes from the collided key (#1538, which folds the dimension at
+    // declare time), so compiling code in this shape would assert C the static
+    // analysis correctly rejects. See
+    // `tests/bugs/issue-1322-scoped-const-collision/README.md`.
+    const twoScopes = (first: string, second: string) =>
+      [
+        `scope ${first} { private const u8 SIZE <- ${first === "Small" ? 2 : 8}; public u8[SIZE] table <- [${first === "Small" ? "1, 2" : "1, 2, 3, 4, 5, 6, 7, 8"}]; }`,
+        `scope ${second} { private const u8 SIZE <- ${second === "Small" ? 2 : 8}; public u8[SIZE] table <- [${second === "Small" ? "1, 2" : "1, 2, 3, 4, 5, 6, 7, 8"}]; }`,
+      ].join("\n");
+
+    it("accepts both arrays whichever scope is declared first", () => {
+      expect(errorsWithProgram(twoScopes("Small", "Large"))).toEqual([]);
+      expect(errorsWithProgram(twoScopes("Large", "Small"))).toEqual([]);
+    });
+
+    it("still counts a genuine mismatch inside a scope", () => {
+      // The control: without it, "resolves to nothing" would pass this suite
+      // exactly as "resolves correctly" does.
+      const found = errorsWithProgram(
+        "scope Small { private const u8 SIZE <- 2; public u8[SIZE] table <- [1, 2, 3]; }",
+      );
+      expect(found.map((e) => e.code)).toEqual(["E0866"]);
+      expect(found[0].message).toContain("declared [2]");
     });
   });
 

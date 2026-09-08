@@ -33,9 +33,7 @@ import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../transpiler/logic/parser/grammar/CNextListener";
 import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
-import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
 import CodeGenState from "../../transpiler/state/CodeGenState";
-import ArrayDimensionParser from "../../utils/ArrayDimensionParser";
 import LiteralUtils from "../../utils/LiteralUtils";
 import ParserUtils from "../../utils/ParserUtils";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
@@ -43,6 +41,7 @@ import IArrayIndexBoundsError from "./types/IArrayIndexBoundsError";
 import OperandTypeResolver from "./OperandTypeResolver";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 import TypeText from "./helpers/TypeText";
+import ConstantExpression from "./helpers/ConstantExpression";
 
 /** One subscript in a chain: its expressions, and how many ops follow it. */
 interface ISubscript {
@@ -104,9 +103,20 @@ class ArrayIndexBoundsListener extends CNextListener {
     name: string,
   ): void {
     if (prefixType === null || subscript.expressions.length !== 1) return;
-    const bound = ArrayIndexBoundsListener.leadingDimension(prefixType);
+    // #1322 review: both lookups asked the flat const map, whose bare key is
+    // shared by every scope declaring that name -- so `this.t[5]` on a
+    // `u8[N] t` inside `Small` was bounded by whichever scope's `N` was
+    // derived LAST. Swapping two scope declarations flipped E0854 on and off.
+    const scopePath = this.scopes.frameFor(subscript.at).scopePath;
+    const bound = ArrayIndexBoundsListener.leadingDimension(
+      prefixType,
+      scopePath,
+    );
     if (bound === null) return;
-    const index = ArrayIndexBoundsListener.constantOf(subscript.expressions[0]);
+    const index = ConstantExpression.valueIn(
+      subscript.expressions[0],
+      scopePath,
+    );
     if (index === null) return;
     const { line, column } = ParserUtils.getPosition(subscript.at);
     if (index < 0) {
@@ -172,7 +182,10 @@ class ArrayIndexBoundsListener extends CNextListener {
   }
 
   /** The first `[N]` of a type text as a size, or null when not sizable here. */
-  private static leadingDimension(typeText: string): number | null {
+  private static leadingDimension(
+    typeText: string,
+    scopePath: string,
+  ): number | null {
     const inner = TypeText.firstDimension(typeText);
     if (inner === null) return null;
     if (inner === "") return null;
@@ -182,16 +195,7 @@ class ArrayIndexBoundsListener extends CNextListener {
     // UNRESOLVED_DIMENSION was.
     const literal = LiteralUtils.parseIntegerLiteral(inner);
     if (literal !== undefined) return literal;
-    return CodeGenState.program?.constValue(inner) ?? null;
-  }
-
-  private static constantOf(expr: Parser.ExpressionContext): number | null {
-    return (
-      ArrayDimensionParser.parseSingleDimension(expr, {
-        constValues: new Map(CodeGenState.program?.constValues() ?? []),
-        typeWidths: TYPE_WIDTH,
-      }) ?? null
-    );
+    return CodeGenState.program?.constValuesIn(scopePath).get(inner) ?? null;
   }
 }
 

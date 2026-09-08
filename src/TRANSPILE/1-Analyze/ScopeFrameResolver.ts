@@ -18,6 +18,7 @@ import { ParserRuleContext } from "antlr4ng";
 import IScopeFrame from "./types/IScopeFrame";
 import IDeclaredVar from "./types/IDeclaredVar";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
+import TChainRoot from "./types/TChainRoot";
 import CodeGenState from "../../transpiler/state/CodeGenState";
 
 class ScopeFrameResolver {
@@ -104,6 +105,82 @@ class ScopeFrameResolver {
       current = current.parent;
     }
     return null;
+  }
+
+  /**
+   * The declaration a SPELLING names -- the one question ADR-016's three roots
+   * ask, answered once.
+   *
+   * A bare name searches outward, so an inner declaration shadows an outer one.
+   * `global.x` and `this.x` do NOT search: each states where to look, and
+   * falling through to the outward walk is what made a shadowing local capture
+   * them.
+   *
+   * #1322 review: this existed four times with four different answers.
+   * `BitAccessAnalyzer` and `ConstAssignmentAnalyzer` gave `global.` its own
+   * arm and let `this.` fall through; `CompoundAssignmentAnalyzer` and
+   * `OperandTypeResolver` dropped both roots. Each divergence was observable,
+   * and three of them emitted broken C at exit 0 -- an out-of-bounds write
+   * (`global.arr[9]` against a `u8[4]` while a `u8[16]` shadowed it), a write
+   * to a const scope member, and a `strncpy` target fed to `cnx_clamp_add_u8`.
+   * A fourth turned a correct diagnostic into an `Internal:` assertion at
+   * `1:0`, because 2.1 said it had rejected a program it had not.
+   *
+   * `ChainRoot` answers WHICH spelling this is; this answers what that spelling
+   * BINDS TO. Sharing only the first is what CLAUDE.md's "single source of
+   * truth means the decision, not just the data" is about -- the four sites
+   * already agreed on the root and still disagreed on the declaration.
+   */
+  public declarationFor(
+    root: TChainRoot,
+    name: string,
+    frame: IScopeFrame,
+  ): IDeclaredVar | null {
+    if (root === null) return this.declarationOfNameLexical(name, frame);
+    if (root === "global") return this.globalFrame.vars.get(name) ?? null;
+    return ScopeFrameResolver.scopeFrameOf(frame)?.vars.get(name) ?? null;
+  }
+
+  /**
+   * `typeOfName` for a spelling that may carry a root.
+   *
+   * The run-wide fallback applies to a bare name and to `global.`, because
+   * either can name a file-scope declaration that arrived through an `#include`
+   * (#1220). It does NOT apply to `this.`: the fallback is keyed by BARE name
+   * and would answer with an unrelated file-scope declaration. A scope member
+   * needs no fallback anyway -- `this.` is only writable inside the scope's own
+   * body, which is in the file that declares it.
+   */
+  public typeOfNameFor(
+    root: TChainRoot,
+    name: string,
+    frame: IScopeFrame,
+  ): string | null {
+    const declared = this.declarationFor(root, name, frame)?.typeText ?? null;
+    if (declared !== null || root === "this") return declared;
+    return CodeGenState.getCNextVariableTypeName(name);
+  }
+
+  /**
+   * The frame that IS the enclosing `scope` -- the one holding its members --
+   * or null outside any scope, where `this.` is E0431's to reject.
+   *
+   * A scope's members live in the frame its declaration pushed; a method or
+   * block inside it pushes a child that INHERITS `scopePath`. So the scope's
+   * own frame is the outermost frame still carrying this `scopePath`, which is
+   * also correct for a scope declared inside another -- the outer scope's frame
+   * carries a different path and stops the walk.
+   */
+  private static scopeFrameOf(frame: IScopeFrame): IScopeFrame | null {
+    if (frame.scopePath === "") return null;
+    let current: IScopeFrame = frame;
+    while (
+      current.parent !== null &&
+      current.parent.scopePath === frame.scopePath
+    ) {
+      current = current.parent;
+    }
+    return current;
   }
 }
 

@@ -57,10 +57,11 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | -      | -          | n/a         | n/a        |
 | scope method       | ok        | -      | -          | n/a         | n/a        |
 
-3 linked fixtures with no derivable context:
+4 linked fixtures with no derivable context:
 
 - `adr-014/struct-inferred-every-position.test.cnx`
 - `adr-014/struct-literal-argument-transpile.test.cnx`
+- `adr-014/struct-literal-for-header.test.cnx`
 - `adr-014/struct-literal-positions.test.cnx`
 
 ## ADR-016
