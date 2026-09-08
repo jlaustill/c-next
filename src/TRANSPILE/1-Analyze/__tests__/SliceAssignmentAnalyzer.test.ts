@@ -27,31 +27,40 @@ afterEach(() => {
 
 describe("SliceAssignmentAnalyzer", () => {
   describe("E0858 -- what can be sliced at all", () => {
-    it("rejects a multi-dimensional buffer, naming the form that works", () => {
+    // Each row is a different reason the buffer cannot be sliced, and the
+    // `says` column is what distinguishes them -- asserting only the code
+    // would let any one of these stand in for the others.
+    it.each([
+      {
+        why: "more than one dimension",
+        body: "    u8[4][8] grid;\n    grid[0, 4] <- 1;",
+        says: "one-dimensional",
+      },
+      {
+        why: "a float element, which would need type punning",
+        body: "    f32[4] samples;\n    samples[0, 4] <- 1;",
+        says: "'f32'",
+      },
+      {
+        why: "a bool element, which has a width but no byte meaning",
+        body: "    bool[4] flags;\n    flags[0, 1] <- 1;",
+        says: "'bool'",
+      },
+      {
+        why: "a dimension that does not fold -- reporting a bound would invent one",
+        body: "    u8[BUFFER_SIZE] buf;\n    buf[0, 4] <- 1;",
+        says: "Cannot determine the size",
+      },
+    ])("rejects $why", ({ body, says }) => {
+      const [found] = errors(body);
+      expect(found.code).toBe("E0858");
+      expect(found.message).toContain(says);
+    });
+
+    it("names the working form when the buffer is multi-dimensional", () => {
+      // The help is the actionable half and is specific to this row.
       const [found] = errors("    u8[4][8] grid;\n    grid[0, 4] <- 1;");
-      expect(found.code).toBe("E0858");
-      expect(found.message).toContain("one-dimensional");
       expect(found.helpText).toContain("grid[index][offset, length]");
-    });
-
-    it("rejects a float element: byte chunks would need type punning", () => {
-      const [found] = errors("    f32[4] samples;\n    samples[0, 4] <- 1;");
-      expect(found.code).toBe("E0858");
-      expect(found.message).toContain("'f32'");
-    });
-
-    it("rejects a bool element, which has a width but no byte meaning", () => {
-      const [found] = errors("    bool[4] flags;\n    flags[0, 1] <- 1;");
-      expect(found.code).toBe("E0858");
-      expect(found.message).toContain("'bool'");
-    });
-
-    it("declines rather than guessing when the dimension does not fold", () => {
-      // A dimension naming a C macro this pass cannot see. Reporting a bounds
-      // error here would mean inventing the bound.
-      const [found] = errors("    u8[BUFFER_SIZE] buf;\n    buf[0, 4] <- 1;");
-      expect(found.code).toBe("E0858");
-      expect(found.message).toContain("Cannot determine the size");
     });
   });
 
