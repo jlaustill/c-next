@@ -30,7 +30,7 @@ import CodeGenState from "../../transpiler/state/CodeGenState";
 import LiteralUtils from "../../utils/LiteralUtils";
 import ParserUtils from "../../utils/ParserUtils";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
-import LENGTH_PROPERTIES from "./helpers/LENGTH_PROPERTIES";
+import PROPERTY_NAMES from "./helpers/PROPERTY_NAMES";
 import RegisterMemberReference from "./helpers/RegisterMemberReference";
 import IBitmapAccessError from "./types/IBitmapAccessError";
 import ScopeFrameResolver from "./ScopeFrameResolver";
@@ -145,7 +145,7 @@ class BitmapAccessListener extends CNextListener {
     if (field === undefined) return null;
     // ADR-058's properties describe the type's shape rather than name a field,
     // so they are not unknown fields. E0867 owns whether one is used correctly.
-    if (LENGTH_PROPERTIES.has(field)) return null;
+    if (PROPERTY_NAMES.has(field)) return null;
     if (!bitmaps.get(bitmap)?.has(field)) {
       const known = [...(bitmaps.get(bitmap)?.keys() ?? [])];
       const quoted = known.map((k) => `'${k}'`).join(", ");

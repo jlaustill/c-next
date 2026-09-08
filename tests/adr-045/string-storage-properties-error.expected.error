@@ -1,0 +1,8 @@
+41:14 error[E0887]: .capacity is only available on strings, not on 'u32'
+       help: Use .element_count for an array's length, or .byte_length for a value's size in bytes (ADR-045).
+42:14 error[E0887]: .size is only available on strings, not on 'u32'
+       help: Use .element_count for an array's length, or .byte_length for a value's size in bytes (ADR-045).
+43:16 error[E0887]: .capacity is only available on strings, not on 'u8[4]'
+       help: Use .element_count for an array's length, or .byte_length for a value's size in bytes (ADR-045).
+44:16 error[E0887]: .size is only available on strings, not on 'u8[4]'
+       help: Use .element_count for an array's length, or .byte_length for a value's size in bytes (ADR-045).

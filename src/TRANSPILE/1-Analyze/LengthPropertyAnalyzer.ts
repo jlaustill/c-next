@@ -46,7 +46,7 @@ import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
 import CodeGenState from "../../transpiler/state/CodeGenState";
 import ParserUtils from "../../utils/ParserUtils";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
-import LENGTH_PROPERTIES from "./helpers/LENGTH_PROPERTIES";
+import PROPERTY_NAMES from "./helpers/PROPERTY_NAMES";
 import ILengthPropertyError from "./types/ILengthPropertyError";
 import OperandTypeResolver from "./OperandTypeResolver";
 import ScopeFrameResolver from "./ScopeFrameResolver";
@@ -74,7 +74,7 @@ class LengthPropertyListener extends CNextListener {
     const last = ops.at(-1);
     if (last === undefined || last.DOT() === null) return;
     const property = last.IDENTIFIER()?.getText();
-    if (property === undefined || !LENGTH_PROPERTIES.has(property)) return;
+    if (property === undefined || !PROPERTY_NAMES.has(property)) return;
 
     const frame = this.scopes.frameFor(ctx);
 
@@ -88,6 +88,13 @@ class LengthPropertyListener extends CNextListener {
       }
       return;
     }
+
+    // A property name is only a property when it names nothing else. A scope
+    // variable may be called `length` (#212), and `this.length` then reads it
+    // -- so if the WHOLE chain resolves to a declared type, the last step was
+    // a member access and no property rule applies. Asked for every name in
+    // the set, not just `length`: `capacity` is as ordinary an identifier.
+    if (this.types.typeOfPostfixPrefix(ctx, frame, 0) !== null) return;
 
     // The subject is the chain WITHOUT the property step.
     const subject = this.types.typeOfPostfixPrefix(ctx, frame, 1);
@@ -105,6 +112,35 @@ class LengthPropertyListener extends CNextListener {
     const element = LengthPropertyListener.elementName(subject);
     // `string<N>` and the unsized `const string`, whose capacity is inferred.
     const isString = element === "string" || /^string\s*</.test(element);
+
+    // ADR-058 deprecated `.length` outright: it named a different thing on a
+    // string, an array and a scalar, and the four shape properties exist to
+    // say which was meant. Rejected wherever it appears, so there is no
+    // subject to judge.
+    if (property === "length") {
+      this.report(
+        at,
+        `'.length' is deprecated`,
+        "Use .char_count for a string's length, .element_count for an array's, or .bit_length / .byte_length for a width (ADR-058).",
+        "E0886",
+      );
+      return;
+    }
+
+    // ADR-045's storage properties describe a string's buffer: `.capacity` is
+    // the declared `N`, `.size` that plus the null terminator. Nothing else
+    // has a buffer.
+    if (property === "capacity" || property === "size") {
+      if (!isString) {
+        this.report(
+          at,
+          `.${property} is only available on strings, not on '${subject}'`,
+          "Use .element_count for an array's length, or .byte_length for a value's size in bytes (ADR-045).",
+          "E0887",
+        );
+      }
+      return;
+    }
 
     if (property === "element_count") {
       if (dimensions === 0) {
@@ -169,13 +205,21 @@ class LengthPropertyListener extends CNextListener {
     return (open === -1 ? typeText : typeText.slice(0, open)).trim();
   }
 
+  /**
+   * #1322: the code is a parameter now. This file owns three rules -- a shape
+   * property used where the subject has none (E0867), the deprecated `.length`
+   * (E0886), and a storage property off a string (E0887) -- because all three
+   * need the same subject, resolved by the same walk. Defaulting keeps the
+   * E0867 call sites reading as they did.
+   */
   private report(
     at: Parser.PostfixOpContext,
     message: string,
     helpText: string,
+    code = "E0867",
   ): void {
     const { line, column } = ParserUtils.getPosition(at);
-    this.found.push({ code: "E0867", line, column, message, helpText });
+    this.found.push({ code, line, column, message, helpText });
   }
 }
 

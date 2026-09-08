@@ -231,9 +231,8 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | -      | -          | n/a         | n/a        |
 | scope method       | ok        | -      | -          | n/a         | n/a        |
 
-2 linked fixtures with no derivable context:
+1 linked fixture with no derivable context:
 
-- `adr-058/length-property-deprecated.test.cnx`
 - `adr-058/length-property-enum-and-bitmap.test.cnx`
 
 ## ADR-068

@@ -53,10 +53,10 @@ as counted at audit time" rather than a literal.
 
 | bucket | meaning                                                                        | count  |
 | ------ | ------------------------------------------------------------------------------ | ------ |
-| **1**  | user-facing diagnostic — belongs in pass 2.1, needs a code and a real position | **16** |
+| **1**  | user-facing diagnostic — belongs in pass 2.1, needs a code and a real position | **13** |
 | **2**  | internal invariant — should never fire for valid input; becomes an assertion   | **0**  |
 | **3**  | dead — unreachable or subsumed; delete                                         | **0**  |
-|        | **total**                                                                      | **16** |
+|        | **total**                                                                      | **13** |
 
 **80% of `output/`'s throws are rejections.** That is the answer to open question 4: Render does
 not own nothing, it currently owns almost all of the rejection surface.
@@ -67,7 +67,7 @@ By area:
 | ------------------------------------------------------------------- | ----- | --- | --- | --- |
 | `codegen/` (root: `CodeGenerator`, `TypeValidator`, `TypeResolver`) | 3     | 3   | 0   | 0   |
 | `codegen/helpers/`                                                  | 2     | 2   | 0   | 0   |
-| `codegen/generators/**`                                             | 7     | 7   | 0   | 0   |
+| `codegen/generators/**`                                             | 4     | 4   | 0   | 0   |
 | `codegen/subscript/`                                                | 1     | 1   | 0   | 0   |
 | `codegen/assignment/**`, `codegen/resolution/`, `headers/`          | 3     | 3   | 0   | 0   |
 
@@ -206,7 +206,7 @@ questions and only the first was asked.
   **parse error**, so it never reaches codegen at all. That leaves four live copies plus the
   factory, which is what makes unification tractable.
 
-## Bucket 1 — user-facing diagnostics (16)
+## Bucket 1 — user-facing diagnostics (13)
 
 Each needs a code and a real position in pass 2.1. `code` is the code it already carries, or
 **NEW** where one must be allocated. `position` names the node that is or would be in scope.
@@ -231,17 +231,14 @@ real position today -- the `${line}:${col} `-prefixed rows in the table below.
 | `VariableModifierBuilder.ts:82` | `Cannot use both 'atomic' and 'volatile` | both `atomic` and `volatile`               | NEW  | `ctx.start` — line already read, column discarded | `atomic/atomic-volatile-error`          |
 | `VariableDeclHelper.ts:231`     | `Error: C++ class`                       | C++ class with constructor at global scope | NEW  | `typeCtx.start` (in scope)                        | `external-types/cpp-class-global-error` |
 
-### `codegen/generators/**` — 7
+### `codegen/generators/**` — 4
 
-| file:line                               | anchor                                           | message                                                                                       | code      | position source                                                                         | fixture                             |
-| --------------------------------------- | ------------------------------------------------ | --------------------------------------------------------------------------------------------- | --------- | --------------------------------------------------------------------------------------- | ----------------------------------- |
-| `support/IncludeGenerator.ts:54`        | `Error: Included C-Next file not found`          | included C-Next file not found                                                                | NEW E0506 | `includeDir` at `CodeGenerator.ts:2360`; `.start.line` read at `:2488` but not threaded | none                                |
-| `support/IncludeGenerator.ts:111`       | `E0501: Function-like macro`                     | function-like macro not allowed                                                               | E0501     | `ctx` (`DefineDirectiveContext`) — line read, appended as `Line 7` prose                | `preprocessor/function-macro-error` |
-| `support/IncludeGenerator.ts:121`       | `E0502: #define with value`                      | `#define` with value not allowed                                                              | E0502     | same prose defect                                                                       | `preprocessor/value-define-error`   |
-| `expressions/AccessExprGenerator.ts:31` | `Error: .capacity is only available on string`   | `.capacity` only on string types — **also fires when it _is_ a string with unknown capacity** | NEW E06xx | thread `PostfixOpContext` from `PostfixExpressionGenerator.ts:657`                      | none                                |
-| `expressions/AccessExprGenerator.ts:46` | `Error: .size is only available on string types` | `.size` only on string types                                                                  | NEW E06xx | same, from `:672`                                                                       | none                                |
-| `…/PostfixExpressionGenerator.ts:627`   | `is deprecated. Use explicit properties`         | `.length` deprecated (ADR-058)                                                                | NEW E06xx | `PostfixOpContext` not threaded                                                         | `errors/length-property-deprecated` |
-| `…/PostfixExpressionGenerator.ts:1944`  | `Float bit indexing reads`                       | float bit-range read at global scope                                                          | NEW E08xx | `IFloatBitRangeContext` carries no node; the subscript `op` is available upstream       | none                                |
+| file:line                              | anchor                                  | message                              | code      | position source                                                                         | fixture                             |
+| -------------------------------------- | --------------------------------------- | ------------------------------------ | --------- | --------------------------------------------------------------------------------------- | ----------------------------------- |
+| `support/IncludeGenerator.ts:54`       | `Error: Included C-Next file not found` | included C-Next file not found       | NEW E0506 | `includeDir` at `CodeGenerator.ts:2360`; `.start.line` read at `:2488` but not threaded | none                                |
+| `support/IncludeGenerator.ts:111`      | `E0501: Function-like macro`            | function-like macro not allowed      | E0501     | `ctx` (`DefineDirectiveContext`) — line read, appended as `Line 7` prose                | `preprocessor/function-macro-error` |
+| `support/IncludeGenerator.ts:121`      | `E0502: #define with value`             | `#define` with value not allowed     | E0502     | same prose defect                                                                       | `preprocessor/value-define-error`   |
+| `…/PostfixExpressionGenerator.ts:1940` | `Float bit indexing reads`              | float bit-range read at global scope | NEW E08xx | `IFloatBitRangeContext` carries no node; the subscript `op` is available upstream       | none                                |
 
 **32 of the 41 in this area are unpinned**, including all 23 ADR-058 property diagnostics except
 `:623`, the ADR-013 const rule, and all four `safe_div`/`safe_mod` checks.

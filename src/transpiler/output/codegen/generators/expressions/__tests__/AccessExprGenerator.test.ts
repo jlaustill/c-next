@@ -39,14 +39,14 @@ describe("AccessExprGenerator", () => {
         isConst: false,
       };
       expect(() => accessGenerators.generateCapacityProperty(typeInfo)).toThrow(
-        "Error: .capacity is only available on string types",
+        "E0887 rejects this in pass 2.1",
       );
     });
 
     it("throws error for undefined typeInfo", () => {
       expect(() =>
         accessGenerators.generateCapacityProperty(undefined),
-      ).toThrow("Error: .capacity is only available on string types");
+      ).toThrow("E0887 rejects this in pass 2.1");
     });
 
     it("throws error for string without capacity defined", () => {
@@ -58,7 +58,7 @@ describe("AccessExprGenerator", () => {
         isString: true,
       };
       expect(() => accessGenerators.generateCapacityProperty(typeInfo)).toThrow(
-        "Error: .capacity is only available on string types",
+        "E0887 rejects this in pass 2.1",
       );
     });
   });
@@ -99,13 +99,13 @@ describe("AccessExprGenerator", () => {
         isConst: false,
       };
       expect(() => accessGenerators.generateSizeProperty(typeInfo)).toThrow(
-        "Error: .size is only available on string types",
+        "E0887 rejects this in pass 2.1",
       );
     });
 
     it("throws error for undefined typeInfo", () => {
       expect(() => accessGenerators.generateSizeProperty(undefined)).toThrow(
-        "Error: .size is only available on string types",
+        "E0887 rejects this in pass 2.1",
       );
     });
 
@@ -118,7 +118,7 @@ describe("AccessExprGenerator", () => {
         isString: true,
       };
       expect(() => accessGenerators.generateSizeProperty(typeInfo)).toThrow(
-        "Error: .size is only available on string types",
+        "E0887 rejects this in pass 2.1",
       );
     });
   });

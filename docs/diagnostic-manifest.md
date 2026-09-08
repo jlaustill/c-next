@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-367 fixture(s) assert a diagnostic; 349 carry a code.
+368 fixture(s) assert a diagnostic; 351 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -167,12 +167,13 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/adr-045/string-error-uncovered-forms.test.cnx                                              | E0862, E0864        |
 | tests/adr-045/string-imported-direct-error.test.cnx                                              | E0863, E0864        |
 | tests/adr-045/string-imported-transitive-error.test.cnx                                          | E0863, E0864        |
+| tests/adr-045/string-storage-properties-error.test.cnx                                           | E0887               |
 | tests/adr-050/return-in-critical-error.test.cnx                                                  | E0853               |
 | tests/adr-050/return-in-critical-scope-method-error.test.cnx                                     | E0853               |
 | tests/adr-050/return-in-critical-switch-error.test.cnx                                           | E0853               |
 | tests/adr-051/safe-division-const-output-error.test.cnx                                          | E0877               |
 | tests/adr-051/safe-division-shape-error.test.cnx                                                 | E0884, E0885        |
-| tests/adr-058/length-property-deprecated.test.cnx                                                | (uncoded)           |
+| tests/adr-058/length-property-deprecated.test.cnx                                                | E0886               |
 | tests/adr-058/length-property-imported-direct-error.test.cnx                                     | E0867               |
 | tests/adr-058/length-property-imported-transitive-error.test.cnx                                 | E0867               |
 | tests/adr-058/length-property-in-scope-error.test.cnx                                            | E0867               |

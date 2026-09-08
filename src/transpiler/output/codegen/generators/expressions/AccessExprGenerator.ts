@@ -16,6 +16,7 @@ import IGeneratorOutput from "../IGeneratorOutput";
 import TTypeInfo from "../../../../types/TTypeInfo";
 import CodeGenState from "../../../../state/CodeGenState.js";
 import NarrowingCastHelper from "../../helpers/NarrowingCastHelper.js";
+import invariant from "../../../../../utils/invariant";
 
 /**
  * Generate code for .capacity property access.
@@ -28,7 +29,13 @@ const generateCapacityProperty = (
   if (typeInfo?.isString && typeInfo.stringCapacity !== undefined) {
     return { code: String(typeInfo.stringCapacity), effects: [] };
   }
-  throw new Error(`Error: .capacity is only available on string types`);
+  // #1322: ADR-045's storage properties are E0887 in pass 2.1, decided from
+  // the subject's declared type rather than from a type info this generator
+  // happens to hold.
+  invariant(
+    false,
+    `.capacity is read from a string -- E0887 rejects this in pass 2.1, before this runs`,
+  );
 };
 
 /**
@@ -43,7 +50,13 @@ const generateSizeProperty = (
   if (typeInfo?.isString && typeInfo.stringCapacity !== undefined) {
     return { code: String(typeInfo.stringCapacity + 1), effects: [] };
   }
-  throw new Error(`Error: .size is only available on string types`);
+  // #1322: ADR-045's storage properties are E0887 in pass 2.1, decided from
+  // the subject's declared type rather than from a type info this generator
+  // happens to hold.
+  invariant(
+    false,
+    `.size is read from a string -- E0887 rejects this in pass 2.1, before this runs`,
+  );
 };
 
 /**

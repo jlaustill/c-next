@@ -569,7 +569,7 @@ describe("PostfixExpressionGenerator", () => {
 
       expect(() =>
         generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow("'.length' on 'val' is deprecated");
+      ).toThrow("E0886 rejects this in pass 2.1");
     });
   });
 

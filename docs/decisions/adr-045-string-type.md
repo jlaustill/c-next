@@ -566,6 +566,20 @@ type
 
 ---
 
+## Diagnostics: the storage properties
+
+| Code  | Reported when                                               | Asserted by                                              |
+| ----- | ----------------------------------------------------------- | -------------------------------------------------------- |
+| E0887 | `.capacity` or `.size` is asked of something with no buffer | `tests/adr-045/string-storage-properties-error.test.cnx` |
+
+`.capacity` is the declared `N` and `.size` is that plus the null terminator.
+Both describe the BUFFER a string is, so neither has an answer for a scalar or
+an array -- an array's length is `.element_count`, and a value's size in bytes
+is `.byte_length` (ADR-058).
+
+As with those, the name is only a property when it names nothing else: a scope
+variable may be called `capacity`.
+
 ## Scope-context matrix
 
 Declared for the string DECLARATION rules #1322 moved out of codegen: the

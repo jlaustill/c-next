@@ -622,17 +622,13 @@ const tryPropertyAccess = (
   orchestrator: IOrchestrator,
   effects: TGeneratorEffect[],
 ): boolean => {
-  // ADR-058: .length is deprecated - use explicit properties instead
-  if (memberName === "length") {
-    throw new Error(
-      // ADR-057: report the name the author wrote. `tracking.result` is the
-      // generated identifier, and for a shadowing local that is a name they
-      // never typed (`S__f__msg`).
-      `Error: '.length' on '${CodeGenState.sourceLocalName(tracking.result)}' is deprecated. Use explicit properties: ` +
-        `.bit_length (bit width), .byte_length (byte size), ` +
-        `.element_count (array size), or .char_count (string length)`,
-    );
-  }
+  // #1322: ADR-058's deprecation of `.length` is E0886 in pass 2.1, which
+  // rejects the NAME wherever it appears and so needs no subject at all --
+  // this site had to resolve one just to name it in the message.
+  invariant(
+    memberName !== "length",
+    "`.length` is deprecated -- E0886 rejects this in pass 2.1, before this runs",
+  );
 
   // ADR-058: Explicit length properties
   const explicitProps = new Set([

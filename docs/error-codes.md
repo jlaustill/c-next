@@ -19,9 +19,9 @@ codes that already have a fixture.
 | E05xx     | Include/Preprocessor    | 7       |
 | E06xx     | Sizeof Expressions      | 2       |
 | E07xx     | Control Flow            | 12      |
-| E08xx     | Arithmetic/Array Safety | 45      |
+| E08xx     | Arithmetic/Array Safety | 47      |
 | E09xx     | NULL Safety             | 8       |
-| **Total** |                         | **100** |
+| **Total** |                         | **102** |
 
 ---
 
@@ -315,6 +315,13 @@ base: bare, `this.` and `global.`.
 | ----- | ----------------------------------------------------------- | --------------------------------------------------------------------------- | --------------------------------------------- |
 | E0884 | `safe_div`/`safe_mod` called with other than four arguments | Pass output, numerator, divisor and the value used when the divisor is zero | `TRANSPILE/1-Analyze/SafeDivisionAnalyzer.ts` |
 | E0885 | The first argument is not a variable to receive the result  | The helper takes the output's address; declare a variable and pass it       | `TRANSPILE/1-Analyze/SafeDivisionAnalyzer.ts` |
+
+### Value Properties (ADR-058 / ADR-045)
+
+| Code  | Message                                            | Help                                                                    | Source                                          |
+| ----- | -------------------------------------------------- | ----------------------------------------------------------------------- | ----------------------------------------------- |
+| E0886 | `.length` is deprecated                            | Use `.char_count`, `.element_count`, `.bit_length` or `.byte_length`    | `TRANSPILE/1-Analyze/LengthPropertyAnalyzer.ts` |
+| E0887 | `.capacity` or `.size` on something with no buffer | Both describe a string's buffer; use `.element_count` or `.byte_length` | `TRANSPILE/1-Analyze/LengthPropertyAnalyzer.ts` |
 
 ## E09xx — NULL Safety (ADR-046)
 

@@ -474,6 +474,21 @@ error: `.length` is not a built-in property. Use explicit properties instead.
 
 ---
 
+## Diagnostics
+
+| Code  | Reported when                                                | Asserted by                                         |
+| ----- | ------------------------------------------------------------ | --------------------------------------------------- |
+| E0867 | A shape property is asked of a subject that cannot answer it | `tests/explicit-length/`, `tests/adr-058/`          |
+| E0886 | `.length` is used at all                                     | `tests/adr-058/length-property-deprecated.test.cnx` |
+
+`.length` is rejected by NAME and needs no subject: naming a different thing on
+a string, an array and a scalar is what these four properties replaced.
+
+A property name is only a property when it names nothing else. A scope variable
+may be called `length`, and `this.length` then reads it (#212) -- so a chain
+that resolves as a whole was a member access, and no property rule applies to
+it.
+
 ## Scope-context matrix
 
 Declared for the rule #1322 moved out of codegen: a length property may only be
