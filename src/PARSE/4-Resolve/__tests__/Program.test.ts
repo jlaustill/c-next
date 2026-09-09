@@ -15,6 +15,15 @@ import type TCSymbol from "../../../transpiler/types/symbols/c/TCSymbol";
  * and a hand-written `IFileSymbols` would let the test agree with itself about
  * a shape Declare never emits.
  */
+/** A program with no headers behind it, for tests that vary one field. */
+const noForeign = {
+  c: [],
+  cpp: [],
+  opaqueTypedefs: new Set<string>(),
+  typedefToTag: new Map<string, string>(),
+  structTagsWithBodies: new Set<string>(),
+};
+
 describe("Program", () => {
   // CLAUDE.md, "Test isolation": CNextResolver writes to the SymbolRegistry.
   beforeEach(() => {
@@ -245,8 +254,8 @@ describe("Program", () => {
       kinds: ReadonlyArray<[string, string]>,
     ): ReadonlySet<string> =>
       Program.build([], new Map(), {
+        ...noForeign,
         c: kinds.map(([name, kind]) => cSymbol(name, kind)),
-        cpp: [],
       }).typesDeclaredIn("types.h");
 
     it.each([["struct"], ["type"], ["enum"], ["class"]])(
@@ -282,6 +291,67 @@ describe("Program", () => {
 
     it("is empty for a file the program never saw", () => {
       expect(Program.build([]).typesDeclaredIn("absent.h").size).toBe(0);
+    });
+  });
+
+  describe("isOpaqueType", () => {
+    // #1511: resolved once when the artifact is built, from the RAW bookkeeping
+    // the C collectors recorded. The rule itself is shared with SymbolTable via
+    // OpaqueTypeResolution, so these assert the artifact applies it, not a
+    // second copy of it.
+    const withOpacity = (
+      opaqueTypedefs: string[],
+      typedefToTag: Array<[string, string]>,
+      structTagsWithBodies: string[],
+    ) =>
+      Program.build([], new Map(), {
+        ...noForeign,
+        opaqueTypedefs: new Set(opaqueTypedefs),
+        typedefToTag: new Map(typedefToTag),
+        structTagsWithBodies: new Set(structTagsWithBodies),
+      });
+
+    it("is opaque when the tag never received a body", () => {
+      const program = withOpacity(
+        ["widget_t"],
+        [["widget_t", "_widget_t"]],
+        [],
+      );
+      expect(program.isOpaqueType("widget_t")).toBe(true);
+    });
+
+    it("is not opaque once a body arrives for its tag", () => {
+      // The cross-file case: the forward declaration and the definition can come
+      // from different headers, which is why this cannot be decided per file.
+      const program = withOpacity(
+        ["widget_t"],
+        [["widget_t", "_widget_t"]],
+        ["_widget_t"],
+      );
+      expect(program.isOpaqueType("widget_t")).toBe(false);
+    });
+
+    it("is not opaque for a typedef nothing declared opaque", () => {
+      expect(withOpacity([], [], []).isOpaqueType("widget_t")).toBe(false);
+    });
+
+    it("treats an empty tag as no tag, so a body cannot cancel it", () => {
+      // Negative control for the guard's shape: it is truthy, not an undefined
+      // check, so "" never matches a tag that has a body.
+      const program = withOpacity(["widget_t"], [["widget_t", ""]], [""]);
+      expect(program.isOpaqueType("widget_t")).toBe(true);
+    });
+
+    it("reports every resolved opaque typedef", () => {
+      const program = withOpacity(
+        ["widget_t", "obj_t"],
+        [
+          ["widget_t", "_widget_t"],
+          ["obj_t", "_obj_t"],
+        ],
+        ["_obj_t"],
+      );
+      expect([...program.opaqueTypes()]).toEqual(["widget_t"]);
     });
   });
 
@@ -331,8 +401,10 @@ describe("Program", () => {
         "constValues",
         "constValuesIn",
         "externalStructFields",
+        "isOpaqueType",
         "isScopeType",
         "knownEnums",
+        "opaqueTypes",
         "sourceFiles",
         "symbolByCName",
         "symbolsInFile",

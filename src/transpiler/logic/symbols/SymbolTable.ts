@@ -9,6 +9,7 @@
  */
 
 import DeclarationSite from "../../../utils/DeclarationSite";
+import OpaqueTypeResolution from "../../../utils/OpaqueTypeResolution";
 import { produce, enableMapSet } from "immer";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import IConflict from "../../types/IConflict";
@@ -1062,11 +1063,28 @@ class SymbolTable {
    * @returns true if the type is opaque (forward-declared with no body found)
    */
   isOpaqueType(typeName: string): boolean {
-    if (!this.structState.opaqueTypes.has(typeName)) return false;
-    // Resolve: if the underlying struct tag has a body, it's not truly opaque
-    const tag = this.structState.typedefToTag.get(typeName);
-    if (tag && this.structState.structTagsWithBodies.has(tag)) return false;
-    return true;
+    // #1511: the rule is shared with 1.4 Resolve, which authors this as a fact
+    // of the whole program. This instance method stays for the one caller that
+    // asks it of a DIFFERENT table -- #985 phantom-body recovery re-parses each
+    // header cleanly and consults that throwaway table's verdict.
+    return OpaqueTypeResolution.isOpaque(
+      typeName,
+      this.structState.opaqueTypes,
+      this.structState.typedefToTag,
+      this.structState.structTagsWithBodies,
+    );
+  }
+
+  /**
+   * Every typedef-to-struct-tag pairing, for whoever must resolve opacity.
+   *
+   * #1511: the resolution moved to 1.4 Resolve, which needs the mapping rather
+   * than one lookup at a time. Exposed as the pairs it is stored as, so the
+   * caller is not inverting `structTagAliases` and relying on the two staying
+   * reverses of one another.
+   */
+  getAllTypedefToTag(): Array<[string, string]> {
+    return [...this.structState.typedefToTag.entries()];
   }
 
   /**

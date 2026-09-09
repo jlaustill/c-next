@@ -112,6 +112,20 @@ interface IProgram {
    * the include order, so this answers only what each file declares (#1511).
    */
   typesDeclaredIn(sourceFile: string): ReadonlySet<string>;
+
+  /**
+   * Whether this typedef names a struct nothing in the program ever defines.
+   *
+   * Cross-file by nature: a header may forward-declare a struct and typedef it
+   * while the body arrives from another header entirely, so "opaque" is only
+   * decidable once every header has been read. Variables of such a type are
+   * generated as pointers (#948), which makes a wrong answer a codegen bug
+   * rather than a cosmetic one.
+   */
+  isOpaqueType(typeName: string): boolean;
+
+  /** Every truly opaque typedef, resolved. */
+  opaqueTypes(): ReadonlySet<string>;
 }
 
 export default IProgram;

@@ -28,11 +28,27 @@ import type IProgram from "../../transpiler/types/IProgram";
 import type TSymbol from "../../transpiler/types/symbols/TSymbol";
 import DeferredTypes from "./DeferredTypes";
 import LiteralUtils from "../../utils/LiteralUtils";
+import OpaqueTypeResolution from "../../utils/OpaqueTypeResolution";
 import type IVariableSymbol from "../../transpiler/types/symbols/IVariableSymbol";
 import IDerivedConsts from "./types/IDerivedConsts";
 
 /** Shared empty result, so a miss does not allocate. */
 const EMPTY_NAMES: ReadonlySet<string> = new Set<string>();
+
+/**
+ * A program with no C or C++ headers behind it.
+ *
+ * Spelled once rather than defaulted field-by-field: every field of
+ * `IForeignSymbols` is required so that a new one cannot be forgotten at a call
+ * site, and a literal here would defeat that the moment one is added.
+ */
+const NO_FOREIGN: IForeignSymbols = {
+  c: [],
+  cpp: [],
+  opaqueTypedefs: EMPTY_NAMES,
+  typedefToTag: new Map<string, string>(),
+  structTagsWithBodies: EMPTY_NAMES,
+};
 import ConflictDetector from "./ConflictDetector";
 import type IForeignSymbols from "../../transpiler/types/IForeignSymbols";
 import type IConflict from "../../transpiler/types/IConflict";
@@ -49,7 +65,7 @@ class Program {
       string,
       ReadonlyMap<string, IStructFieldInfo>
     > = new Map(),
-    foreign: IForeignSymbols = { c: [], cpp: [] },
+    foreign: IForeignSymbols = NO_FOREIGN,
   ): IProgram {
     // Each derivation is its own step, in dependency order: the scope-type
     // index settles the types, settled types yield const values, const values
@@ -76,6 +92,7 @@ class Program {
     // why it could not live here: the C-Next half was inserted after this point.
     // Flattened in file-declaration order so the report order is unchanged.
     const typesByFile = Program.deriveTypesByFile(symbolsByFile, foreign);
+    const opaqueTypes = Program.deriveOpaqueTypes(foreign);
     const conflicts = ConflictDetector.detect(
       [...symbolsByFile.values()].flat(),
       foreign.c,
@@ -102,6 +119,8 @@ class Program {
       conflicts: (): ReadonlyArray<IConflict> => conflicts,
       typesDeclaredIn: (sourceFile: string): ReadonlySet<string> =>
         typesByFile.get(sourceFile) ?? EMPTY_NAMES,
+      isOpaqueType: (typeName: string): boolean => opaqueTypes.has(typeName),
+      opaqueTypes: (): ReadonlySet<string> => opaqueTypes,
     });
   }
 
@@ -154,6 +173,30 @@ class Program {
     }
 
     return typesByFile;
+  }
+
+  /**
+   * The typedefs that are TRULY opaque.
+   *
+   * A header may forward-declare `struct _widget_t` and typedef it, then define
+   * the struct later -- in the same header or another one this program includes.
+   * The typedef is opaque only if no such body ever arrived, so this is a
+   * whole-program question and the raw "declared against a forward declaration"
+   * set is not the answer.
+   *
+   * Resolved once here rather than at each query, which is what makes it a fact
+   * of the artifact: the previous form recomputed it from a table that was still
+   * being filled, so the same name could answer differently depending on when it
+   * was asked (#948, #958, #1511).
+   */
+  private static deriveOpaqueTypes(
+    foreign: IForeignSymbols,
+  ): ReadonlySet<string> {
+    return OpaqueTypeResolution.resolveAll(
+      foreign.opaqueTypedefs,
+      foreign.typedefToTag,
+      foreign.structTagsWithBodies,
+    );
   }
 
   /**

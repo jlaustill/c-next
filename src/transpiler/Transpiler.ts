@@ -623,9 +623,18 @@ class Transpiler {
         // table by now -- Stage 2 put them there -- and the C-Next half is the
         // first argument, so `Program` can derive a fact that used to wait for
         // an accumulator to finish filling.
+        // #1511: everything the C/C++ headers contributed. The opacity inputs
+        // are the RAW bookkeeping, not the verdict -- `Program` resolves which
+        // typedefs never received a body. Read here because #985 phantom-body
+        // recovery has already run (Stage 2), so the state is final.
         {
           c: CodeGenState.symbolTable.getAllCSymbols(),
           cpp: CodeGenState.symbolTable.getAllCppSymbols(),
+          opaqueTypedefs: new Set(CodeGenState.symbolTable.getAllOpaqueTypes()),
+          typedefToTag: new Map(CodeGenState.symbolTable.getAllTypedefToTag()),
+          structTagsWithBodies: new Set(
+            CodeGenState.symbolTable.getAllStructTagsWithBodies(),
+          ),
         },
       );
       // Passes after 1.4 read cross-file facts from the artifact rather than
@@ -846,11 +855,10 @@ class Transpiler {
         );
       }
 
-      // Issue #948/#958: Merge truly opaque types from C/C++ headers
-      // Query-time resolution filters out types whose struct body has been found
-      const externalOpaqueTypes = CodeGenState.symbolTable
-        .getAllOpaqueTypes()
-        .filter((t) => CodeGenState.symbolTable.isOpaqueType(t));
+      // Issue #948/#958: Merge truly opaque types from C/C++ headers.
+      // #1511: the artifact already resolved which typedefs never received a
+      // body, so this no longer re-filters a table mid-run.
+      const externalOpaqueTypes = [...(this.program?.opaqueTypes() ?? [])];
       if (externalOpaqueTypes.length > 0) {
         symbolInfo = TSymbolInfoAdapter.mergeOpaqueTypes(
           symbolInfo,
@@ -2468,7 +2476,8 @@ class Transpiler {
     }
 
     return (
-      !CodeGenState.symbolTable.isOpaqueType(typeName) &&
+      // #1511: the artifact's verdict, not the table's.
+      !(CodeGenState.program?.isOpaqueType(typeName) ?? false) &&
       !declared.sourceFile.endsWith(".cnx")
     );
   }
