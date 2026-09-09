@@ -26,6 +26,7 @@ import type IFileSymbols from "../../transpiler/types/IFileSymbols";
 import type IStructFieldInfo from "../../transpiler/types/symbols/IStructFieldInfo";
 import type IProgram from "../../transpiler/types/IProgram";
 import type TSymbol from "../../transpiler/types/symbols/TSymbol";
+import type IParameterInfo from "../../transpiler/types/symbols/IParameterInfo";
 import DeferredTypes from "./DeferredTypes";
 import LiteralUtils from "../../utils/LiteralUtils";
 import OpaqueTypeResolution from "../../utils/OpaqueTypeResolution";
@@ -316,23 +317,42 @@ class Program {
     for (const symbols of symbolsByFile.values()) {
       for (const symbol of symbols) {
         if (!SymbolGuards.isFunction(symbol)) continue;
-        const modified =
-          modifiedParameters.get(symbol.fullyQualifiedCName) ?? new Set();
-        const eligible = new Set<string>();
-        for (const parameter of symbol.parameters) {
-          // An array parameter decays to a pointer whatever its element type,
-          // so ADR-006 never applies to one.
-          if (parameter.isArray) continue;
-          if (!SMALL_PRIMITIVES.has(TypeResolver.getTypeName(parameter.type))) {
-            continue;
-          }
-          if (modified.has(parameter.name)) continue;
-          eligible.add(parameter.name);
-        }
-        byFunction.set(symbol.fullyQualifiedCName, eligible);
+        byFunction.set(
+          symbol.fullyQualifiedCName,
+          Program.eligibleParameters(
+            symbol.parameters,
+            modifiedParameters.get(symbol.fullyQualifiedCName),
+          ),
+        );
       }
     }
     return byFunction;
+  }
+
+  /**
+   * The parameters of one function that ADR-006 lets pass by value.
+   *
+   * Split from the walk above rather than nested inside it: three levels of loop
+   * put `derivePassByValue` over SonarCloud's cognitive-complexity limit, and the
+   * per-parameter rule is the part worth reading on its own.
+   */
+  private static eligibleParameters(
+    parameters: ReadonlyArray<IParameterInfo>,
+    modified: ReadonlySet<string> | undefined,
+  ): ReadonlySet<string> {
+    const eligible = new Set<string>();
+    for (const parameter of parameters) {
+      // An array parameter decays to a pointer whatever its element type, so
+      // ADR-006 never applies to one.
+      const isEligible =
+        !parameter.isArray &&
+        SMALL_PRIMITIVES.has(TypeResolver.getTypeName(parameter.type)) &&
+        !(modified?.has(parameter.name) ?? false);
+      if (isEligible) {
+        eligible.add(parameter.name);
+      }
+    }
+    return eligible;
   }
 
   /**
