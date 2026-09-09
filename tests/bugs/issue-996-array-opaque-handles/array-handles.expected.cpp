@@ -6,6 +6,7 @@
 #include "array-handles.test.hpp"
 
 // test-transpile-only
+// test-adr: 030
 // Issue #996: Array of opaque handles
 //
 // A fixed-size array of opaque handles (widget_t[3]) must generate:

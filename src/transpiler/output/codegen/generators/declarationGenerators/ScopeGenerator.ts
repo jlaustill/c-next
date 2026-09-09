@@ -220,6 +220,15 @@ function generateRegularVariable(
   const isOpaque = orchestrator.isOpaqueType(type);
   const isExternalStruct = orchestrator.isTypedefStructType(type);
   if (isOpaque || isExternalStruct) {
+    // ADR-030 decided here: the type is incomplete, so the member is emitted as
+    // a pointer. Recorded at the DECLARATION's position, which is what puts this
+    // in the scope-member context rather than crediting the scope keyword's line.
+    // #1511: the opacity verdict is the artifact's, so this is the point where a
+    // cross-file fact changes generated shape -- and the only kind of site the
+    // matrix can derive an occupancy from, since ADR-030 raises no diagnostic.
+    if (isOpaque) {
+      AdrProvenance.record("030", varDecl.start?.line);
+    }
     type = `${type}*`;
     // Mark as "opaque" scope variable so CallExprGenerator knows this is already
     // a pointer and doesn't add '&' when passing to functions. The name is historical
