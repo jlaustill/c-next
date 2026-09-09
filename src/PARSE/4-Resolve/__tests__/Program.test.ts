@@ -397,6 +397,7 @@ describe("Program", () => {
 
       expect(keys).toEqual([
         "callGraph",
+        "codeGenSymbolsFor",
         "conflicts",
         "constValue",
         "constValues",

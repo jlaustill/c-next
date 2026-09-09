@@ -7,6 +7,7 @@
  */
 import { describe, expect, it } from "vitest";
 import VisibleSymbols from "../VisibleSymbols";
+import type IBitmapFieldLayout from "../../../transpiler/types/IBitmapFieldLayout";
 import TSymbolInfoAdapter from "../../3-Declare/cnext/adapters/TSymbolInfoAdapter";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import IBitmapSymbol from "../../../transpiler/types/symbols/IBitmapSymbol";

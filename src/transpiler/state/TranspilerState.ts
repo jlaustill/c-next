@@ -198,27 +198,6 @@ class TranspilerState {
 
   // === Symbol Info By File (Group 2) ===
 
-  /**
-   * Store ICodeGenSymbols for external enum resolution.
-   */
-  setFileSymbolInfo(filePath: string, info: ICodeGenSymbols): void {
-    this.symbolInfoByFile.set(filePath, info);
-  }
-
-  /**
-   * Get ICodeGenSymbols for external enum resolution.
-   */
-  getFileSymbolInfo(filePath: string): ICodeGenSymbols | undefined {
-    return this.symbolInfoByFile.get(filePath);
-  }
-
-  /**
-   * Get the entire symbolInfoByFile map (for context building).
-   */
-  getSymbolInfoByFileMap(): ReadonlyMap<string, ICodeGenSymbols> {
-    return this.symbolInfoByFile;
-  }
-
   // === Header Include Directives (Group 3) ===
 
   /**

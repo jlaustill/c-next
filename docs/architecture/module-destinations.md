@@ -56,19 +56,19 @@ from `awaiting` to a real path, never back.
 
 ### 1.3 Declare — `src/PARSE/3-Declare/`
 
-| module                                 | why                                                                                    |
-| -------------------------------------- | -------------------------------------------------------------------------------------- |
-| `cnext/index.ts`                       | `CNextResolver`: collects what ONE C-Next file declares                                |
-| `cnext/collectors/**`                  | each takes a single parse tree                                                         |
-| `cnext/utils/**`                       | type and expression helpers used while collecting one file                             |
-| `cnext/types/**`                       | the collectors' own result shape                                                       |
-| `cnext/adapters/TSymbolInfoAdapter.ts` | `convert()` is per-file — but see the split below                                      |
-| `c/**`, `cpp/**`                       | collect what one C or C++ header declares                                              |
-| `shared/**`                            | parameter extraction shared by the C and C++ collectors                                |
-| `TypeBinding.ts`                       | the one ladder from a type context to a name; reads the tree and an injected predicate |
-| `TYPE_FORMING_KINDS.ts`                | which kinds introduce a type name — a constant                                         |
-| `SymbolUtils.ts`                       | helpers for the C and C++ collectors, per declaration                                  |
-| `NameExistence.ts`                     | asks the PER-FILE view whether a name exists; its own header states that split         |
+| module                                 | why                                                                                                                                                                                       |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `cnext/index.ts`                       | `CNextResolver`: collects what ONE C-Next file declares                                                                                                                                   |
+| `cnext/collectors/**`                  | each takes a single parse tree                                                                                                                                                            |
+| `cnext/utils/**`                       | type and expression helpers used while collecting one file                                                                                                                                |
+| `cnext/types/**`                       | the collectors' own result shape                                                                                                                                                          |
+| `cnext/adapters/TSymbolInfoAdapter.ts` | **resolved** — `convert()` stays in 1.3; `mergeOpaqueTypes` deleted (the fact is `Program`'s, so there was nothing to merge); the visibility composition moved to 1.4 as `VisibleSymbols` | Was blocked on `ICodeGenSymbols` no longer being the per-file view codegen reads. It is not one now: 1.4 composes each file's VISIBLE view once, at build, and codegen reads that. The composition used to run per file while rendering, over a map the publish loop was still filling — #1301 is that bug (#1511) |
+| `c/**`, `cpp/**`                       | collect what one C or C++ header declares                                                                                                                                                 |
+| `shared/**`                            | parameter extraction shared by the C and C++ collectors                                                                                                                                   |
+| `TypeBinding.ts`                       | the one ladder from a type context to a name; reads the tree and an injected predicate                                                                                                    |
+| `TYPE_FORMING_KINDS.ts`                | which kinds introduce a type name — a constant                                                                                                                                            |
+| `SymbolUtils.ts`                       | helpers for the C and C++ collectors, per declaration                                                                                                                                     |
+| `NameExistence.ts`                     | asks the PER-FILE view whether a name exists; its own header states that split                                                                                                            |
 
 ### 1.4 Resolve — `src/PARSE/4-Resolve/`
 

@@ -37,7 +37,6 @@ import type ICallGraphEntry from "./types/ICallGraphEntry";
 import HeaderGeneratorUtils from "./output/headers/HeaderGeneratorUtils";
 import IHeaderEmissionFacts from "./output/headers/types/IHeaderEmissionFacts";
 import IHeaderCallbackType from "./types/IHeaderCallbackType";
-import type ITransitiveIncludes from "./types/ITransitiveIncludes";
 import IncludeExtractor from "./logic/IncludeExtractor";
 import SymbolTable from "./logic/symbols/SymbolTable";
 import ESourceLanguage from "../utils/types/ESourceLanguage";
@@ -45,7 +44,6 @@ import CNextResolver from "../PARSE/3-Declare/cnext/index";
 import SymbolRegistry from "./state/SymbolRegistry";
 import TSymbolInfoAdapter from "../PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
 import Program from "../PARSE/4-Resolve/Program";
-import VisibleSymbols from "./../PARSE/4-Resolve/VisibleSymbols";
 import type IProgram from "./types/IProgram";
 import type IFileSymbols from "./types/IFileSymbols";
 import type IParsedFile from "./types/IParsedFile";
@@ -90,7 +88,6 @@ import MapUtils from "../utils/MapUtils";
 import detectCppSyntax from "./logic/detectCppSyntax";
 import detectAssemblySyntax from "./logic/detectAssemblySyntax";
 import ExternalDeclarationOracle from "./logic/preprocessor/ExternalDeclarationOracle";
-import TransitiveEnumCollector from "../PARSE/4-Resolve/TransitiveEnumCollector";
 import TypedefParamParser from "./output/codegen/helpers/TypedefParamParser";
 import type IRecordedRequirement from "./types/IRecordedRequirement";
 import RequirementAggregator from "../utils/RequirementAggregator";
@@ -646,6 +643,14 @@ class Transpiler {
           ),
         },
         modifications,
+        {
+          includeDirs: this.config.includeDirs ?? [],
+          cnextIncludesByFile: new Map(
+            declared
+              .filter((entry) => entry.file.cnextIncludes !== undefined)
+              .map((entry) => [entry.file.path, entry.file.cnextIncludes!]),
+          ),
+        },
       );
       // Passes after 1.4 read cross-file facts from the artifact rather than
       // re-deriving them. Set once per run, not per file.
@@ -827,10 +832,6 @@ class Transpiler {
 
       // ADR-055 Phase 7: Store TSymbol directly in SymbolTable (no ISymbol conversion)
       CodeGenState.symbolTable.addTSymbols(tSymbols);
-
-      // Issue #465: Store ICodeGenSymbols for external enum resolution in stage 5
-      const symbolInfo = TSymbolInfoAdapter.convert(tSymbols);
-      this.state.setFileSymbolInfo(file.path, symbolInfo);
     } catch (err) {
       return [Transpiler._collectionError(err)];
     }
@@ -899,28 +900,14 @@ class Transpiler {
       // Build symbolInfo for code generation (before analyzers so they can read it)
       //
       // #1301 review: recomputed here rather than cached with the tree, because
-      // unlike the tree it is ORDER-SENSITIVE. `_collectExternalEnumSources` reads
-      // `state.getSymbolInfoByFileMap()`, which stage 3 fills incrementally, and
-      // `TransitiveEnumCollector` silently skips a file not yet in it. Under a
-      // cyclic include graph `DependencyGraph.getSortedFiles()` catches the
-      // toposort failure and returns insertion order with only a warning, so a
-      // file can be declared before the file defining the scope types it uses.
-      // Stage 5 runs after stage 3 has finished and the map is complete, so
-      // computing it here is what makes the answer whole -- the pass this issue
-      // removed was not only recomputing, it was repairing.
-      // Regression: tests/bugs/issue-1301-cyclic-include-enum-sources/.
-      const externalEnumSources = this._collectExternalEnumSources(
-        sourcePath,
-        file.cnextIncludes,
-      ).sources;
-      let symbolInfo = TSymbolInfoAdapter.convert(declared.symbols);
-
-      if (externalEnumSources.length > 0) {
-        symbolInfo = VisibleSymbols.mergeExternalSymbols(
-          symbolInfo,
-          externalEnumSources,
-        );
-      }
+      // #1511: composed once, when the whole program was in hand. This used to
+      // walk the include closure and merge here, per file, over a map the
+      // publish loop was still filling -- so the same file saw more or less
+      // depending on when it was rendered. The fallback is the pre-1.4 shape and
+      // is unreachable: stage 5 runs only after the artifact exists.
+      const symbolInfo =
+        this.program?.codeGenSymbolsFor(sourcePath) ??
+        TSymbolInfoAdapter.convert(declared.symbols);
 
       // Make symbols available to analyzers (CodeGenerator.generate() sets this too)
       CodeGenState.symbols = symbolInfo;
@@ -2750,32 +2737,6 @@ class Transpiler {
     const declared = CNextResolver.resolve(tree, sourcePath);
 
     return declared;
-  }
-
-  /**
-   * Collect external enum sources from included C-Next files.
-   */
-  private _collectExternalEnumSources(
-    sourcePath: string,
-    cnextIncludes?: ReadonlyArray<{ path: string }>,
-  ): ITransitiveIncludes {
-    const symbolInfoByFile = this.state.getSymbolInfoByFileMap();
-
-    if (cnextIncludes) {
-      // Standalone mode: use unified collectForStandalone method
-      return TransitiveEnumCollector.collectForStandalone(
-        cnextIncludes,
-        symbolInfoByFile,
-        this.config.includeDirs,
-      );
-    }
-
-    // run() mode: use TransitiveEnumCollector with pre-populated symbolInfoByFile
-    return TransitiveEnumCollector.collect(
-      sourcePath,
-      symbolInfoByFile,
-      this.config.includeDirs,
-    );
   }
 
   /**

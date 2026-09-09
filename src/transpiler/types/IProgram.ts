@@ -1,6 +1,7 @@
 import type TSymbol from "./symbols/TSymbol";
 import type IConflict from "./IConflict";
 import type ICallGraphEntry from "./ICallGraphEntry";
+import type ICodeGenSymbols from "./ICodeGenSymbols";
 
 /**
  * `Program` — the artifact 1.4 Resolve emits, and the only place a cross-file
@@ -143,6 +144,17 @@ interface IProgram {
 
   /** Who calls whom, as transitive modification propagation reads it. */
   callGraph(): ReadonlyMap<string, ReadonlyArray<ICallGraphEntry>>;
+
+  /**
+   * The symbol view a file's code generation reads: what it declares, plus
+   * everything its include closure reaches, with its own names shadowing.
+   *
+   * Composed here because it is a cross-file question. It was previously built
+   * per file and patched during rendering, from a map that filled as the run
+   * proceeded — so a file rendered early saw less than the same file rendered
+   * late (#1301, #1511).
+   */
+  codeGenSymbolsFor(sourceFile: string): ICodeGenSymbols | undefined;
 }
 
 export default IProgram;

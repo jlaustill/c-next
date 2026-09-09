@@ -43,6 +43,12 @@ const EMPTY_NAMES: ReadonlySet<string> = new Set<string>();
  * site, and a literal here would defeat that the moment one is added.
  */
 /** A program whose parameter-modification facts were not derived. */
+/** A program built without include information: nothing composes. */
+const NO_VISIBILITY: IVisibilityInput = {
+  includeDirs: [],
+  cnextIncludesByFile: new Map(),
+};
+
 const NO_MODIFICATIONS: IModificationFacts = {
   modifiedParameters: new Map<string, ReadonlySet<string>>(),
   functionParamLists: new Map<string, ReadonlyArray<string>>(),
@@ -61,6 +67,11 @@ import type IForeignSymbols from "../../transpiler/types/IForeignSymbols";
 import type IConflict from "../../transpiler/types/IConflict";
 import type IModificationFacts from "../../transpiler/types/IModificationFacts";
 import type ICallGraphEntry from "../../transpiler/types/ICallGraphEntry";
+import type ICodeGenSymbols from "../../transpiler/types/ICodeGenSymbols";
+import type IVisibilityInput from "../../transpiler/types/IVisibilityInput";
+import TSymbolInfoAdapter from "../3-Declare/cnext/adapters/TSymbolInfoAdapter";
+import TransitiveEnumCollector from "./TransitiveEnumCollector";
+import VisibleSymbols from "./VisibleSymbols";
 
 class Program {
   /**
@@ -76,6 +87,7 @@ class Program {
     > = new Map(),
     foreign: IForeignSymbols = NO_FOREIGN,
     modifications: IModificationFacts = NO_MODIFICATIONS,
+    visibility: IVisibilityInput = NO_VISIBILITY,
   ): IProgram {
     // Each derivation is its own step, in dependency order: the scope-type
     // index settles the types, settled types yield const values, const values
@@ -103,6 +115,10 @@ class Program {
     // Flattened in file-declaration order so the report order is unchanged.
     const typesByFile = Program.deriveTypesByFile(symbolsByFile, foreign);
     const opaqueTypes = Program.deriveOpaqueTypes(foreign);
+    const visibleByFile = Program.deriveVisibleSymbols(
+      symbolsByFile,
+      visibility,
+    );
     const conflicts = ConflictDetector.detect(
       [...symbolsByFile.values()].flat(),
       foreign.c,
@@ -137,6 +153,8 @@ class Program {
         modifications.functionParamLists,
       callGraph: (): ReadonlyMap<string, ReadonlyArray<ICallGraphEntry>> =>
         modifications.callGraph,
+      codeGenSymbolsFor: (sourceFile: string): ICodeGenSymbols | undefined =>
+        visibleByFile.get(sourceFile),
     });
   }
 
@@ -213,6 +231,56 @@ class Program {
       foreign.typedefToTag,
       foreign.structTagsWithBodies,
     );
+  }
+
+  /**
+   * What each file may SEE: its own declarations plus its include closure's.
+   *
+   * Composed for every file at once, which is the point. It used to run per file
+   * while that file was being rendered, over a map the publish loop was still
+   * filling -- and the collector silently skips a file it has not reached yet,
+   * so the answer depended on position in the run. #1301 is that bug: a cyclic
+   * include graph made the order arbitrary, and the fix was to compute it later
+   * still. Here there is no later: the whole program is in hand.
+   *
+   * The per-file views are built here rather than taken as an argument because
+   * they must come from the SETTLED symbols. Handing over Declare's provisional
+   * ones would put unsettled type names into the view codegen reads.
+   */
+  private static deriveVisibleSymbols(
+    symbolsByFile: ReadonlyMap<string, ReadonlyArray<TSymbol>>,
+    visibility: IVisibilityInput,
+  ): Map<string, ICodeGenSymbols> {
+    const ownView = new Map<string, ICodeGenSymbols>();
+    for (const [sourceFile, symbols] of symbolsByFile) {
+      ownView.set(sourceFile, TSymbolInfoAdapter.convert(symbols));
+    }
+
+    const visible = new Map<string, ICodeGenSymbols>();
+    for (const [sourceFile, own] of ownView) {
+      const declaredIncludes = visibility.cnextIncludesByFile.get(sourceFile);
+      // Two entry points, and which one applies is a property of how the file
+      // arrived: a standalone run states its includes, a discovered file has
+      // them on disk to walk from.
+      const sources = declaredIncludes
+        ? TransitiveEnumCollector.collectForStandalone(
+            declaredIncludes,
+            ownView,
+            visibility.includeDirs,
+          ).sources
+        : TransitiveEnumCollector.collect(
+            sourceFile,
+            ownView,
+            visibility.includeDirs,
+          ).sources;
+      visible.set(
+        sourceFile,
+        sources.length > 0
+          ? VisibleSymbols.mergeExternalSymbols(own, sources)
+          : own,
+      );
+    }
+    return visible;
   }
 
   /**

@@ -55,7 +55,6 @@ describe("TranspilerState", () => {
         new Map([["func", new Set(["param"])]]),
       );
       state.setUserIncludes("/path/file1.cnx", ['#include "types.h"']);
-      state.setFileSymbolInfo("/path/file2.cnx", createMockSymbolInfo("Enum2"));
       state.setHeaderDirective("/path/header.h", '#include "header.h"');
       state.markHeaderProcessed("/path/header.h");
 
@@ -63,7 +62,6 @@ describe("TranspilerState", () => {
       expect(state.getSymbolInfo("/path/file1.cnx")).toBeDefined();
       expect(state.getPassByValueParams("/path/file1.cnx")).toBeDefined();
       expect(state.getUserIncludes("/path/file1.cnx")).toHaveLength(1);
-      expect(state.getFileSymbolInfo("/path/file2.cnx")).toBeDefined();
       expect(state.getHeaderDirective("/path/header.h")).toBeDefined();
       expect(state.isHeaderProcessed("/path/header.h")).toBe(true);
 
@@ -74,7 +72,6 @@ describe("TranspilerState", () => {
       expect(state.getSymbolInfo("/path/file1.cnx")).toBeUndefined();
       expect(state.getPassByValueParams("/path/file1.cnx")).toBeUndefined();
       expect(state.getUserIncludes("/path/file1.cnx")).toHaveLength(0);
-      expect(state.getFileSymbolInfo("/path/file2.cnx")).toBeUndefined();
       expect(state.getHeaderDirective("/path/header.h")).toBeUndefined();
       expect(state.isHeaderProcessed("/path/header.h")).toBe(false);
     });
@@ -133,30 +130,6 @@ describe("TranspilerState", () => {
 
     it("should return empty array for missing includes", () => {
       expect(state.getUserIncludes("/nonexistent.cnx")).toEqual([]);
-    });
-  });
-
-  describe("Symbol Info By File (Group 2)", () => {
-    it("should store and retrieve file symbol info", () => {
-      const info = createMockSymbolInfo("ExternalEnum");
-      state.setFileSymbolInfo("/path/external.cnx", info);
-
-      const retrieved = state.getFileSymbolInfo("/path/external.cnx");
-      expect(retrieved).toBe(info);
-    });
-
-    it("should return undefined for missing file symbol info", () => {
-      expect(state.getFileSymbolInfo("/nonexistent.cnx")).toBeUndefined();
-    });
-
-    it("should expose the entire map via getSymbolInfoByFileMap", () => {
-      state.setFileSymbolInfo("/a.cnx", createMockSymbolInfo("A"));
-      state.setFileSymbolInfo("/b.cnx", createMockSymbolInfo("B"));
-
-      const map = state.getSymbolInfoByFileMap();
-      expect(map.size).toBe(2);
-      expect(map.has("/a.cnx")).toBe(true);
-      expect(map.has("/b.cnx")).toBe(true);
     });
   });
 
@@ -224,18 +197,15 @@ describe("TranspilerState", () => {
       // Set values in different groups with same key
       const key = "/same/path.cnx";
       state.setSymbolInfo(key, createMockSymbolInfo("A"));
-      state.setFileSymbolInfo(key, createMockSymbolInfo("B"));
       state.setUserIncludes(key, ['#include "test.h"']);
 
       // Each group should have its own value
       expect(state.getSymbolInfo(key)?.knownEnums.has("A")).toBe(true);
-      expect(state.getFileSymbolInfo(key)?.knownEnums.has("B")).toBe(true);
       expect(state.getUserIncludes(key)).toHaveLength(1);
 
       // Resetting clears all
       state.reset();
       expect(state.getSymbolInfo(key)).toBeUndefined();
-      expect(state.getFileSymbolInfo(key)).toBeUndefined();
       expect(state.getUserIncludes(key)).toHaveLength(0);
     });
   });
