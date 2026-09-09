@@ -274,6 +274,36 @@ const MOVES: readonly IMove[] = [
   },
 
   // --- shared contracts: named by more than one layer ---------------------
+  // --- test support: production path, test-only module ------------------
+  {
+    from: "src/utils/FunctionUtils.ts",
+    to: "src/tests/utils/FunctionUtils.ts",
+    because:
+      "#1511, recorded on #1418. The admission rule places a module in the " +
+      "pass that computes its fact; this one computes none, because nothing " +
+      "in production imports it -- `grep -rn FunctionUtils src --include=*.ts` " +
+      "outside `__tests__` and its own file returns nothing. Both members are " +
+      "reached only by tests (`create` 27 refs, `isInGlobalScope` 3), so knip " +
+      "counts test callers as usage and reads clean, which is #1418's whole " +
+      "mechanism. It is NOT deleted: it is the shared fixture factory for four " +
+      "test files, and inlining it would spell the symbol shape 27 times -- " +
+      "removing one field from `IFunctionSymbol` in this card was one edit " +
+      "here instead of 27. So the defect is the PATH, and the destination is " +
+      "the one that says test support out loud.",
+  },
+  {
+    from: "src/utils/__tests__/FunctionUtils.test.ts",
+    to: "src/tests/utils/__tests__/FunctionUtils.test.ts",
+    because:
+      "Follows its subject. Stays under a `__tests__/` directory because " +
+      "`npm run lint:test-location` requires every `src/**/*.test.ts` to sit " +
+      "in one. Verified before moving that vitest collects the new path: a " +
+      "deliberately failing probe at `src/tests/utils/__tests__/` failed the " +
+      "UNFILTERED `npm run unit` (334 files, up from 333), so the config's " +
+      '`exclude: ["tests/**"]` anchors at the repository root and does not ' +
+      "swallow `src/tests/`. A moved test that silently stops running is the " +
+      "failure this check exists to rule out.",
+  },
   {
     from: "src/transpiler/output/codegen/generators/TIncludeHeader.ts",
     to: "src/transpiler/types/TIncludeHeader.ts",

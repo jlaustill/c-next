@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import QualifiedNameGenerator from "../QualifiedNameGenerator";
 import SymbolRegistry from "../../../../state/SymbolRegistry";
-import FunctionUtils from "../../../../../utils/FunctionUtils";
+import FunctionUtils from "../../../../../tests/utils/FunctionUtils";
 import TTypeUtils from "../../../../../utils/TTypeUtils";
 import TestSourceSpan from "../../../../types/__testUtils__/testSourceSpan";
 
