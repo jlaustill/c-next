@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import EnumTypeResolver from "../EnumTypeResolver";
 import CodeGenState from "../../../../state/CodeGenState";
-import SymbolTable from "../../../../logic/symbols/SymbolTable";
+import SymbolTable from "../../../../state/SymbolTable";
 import createMockSymbols from "../../../../__tests__/codeGenSymbolsHelpers";
 
 describe("EnumTypeResolver", () => {

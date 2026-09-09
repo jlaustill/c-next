@@ -6,7 +6,7 @@
 import { describe, expect, it } from "vitest";
 import CResolver from "../index";
 import TestHelpers from "./testHelpers";
-import SymbolTable from "../../../../transpiler/logic/symbols/SymbolTable";
+import SymbolTable from "../../../../transpiler/state/SymbolTable";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 
 describe("CResolver - Basic Functionality", () => {

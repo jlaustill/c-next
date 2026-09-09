@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import CodeGenerator from "../CodeGenerator";
 import CNextSourceParser from "../../../logic/parser/CNextSourceParser";
 import * as Parser from "../../../logic/parser/grammar/CNextParser";
-import SymbolTable from "../../../logic/symbols/SymbolTable";
+import SymbolTable from "../../../state/SymbolTable";
 import CNextResolver from "../../../../PARSE/3-Declare/cnext/index";
 import TSymbolInfoAdapter from "../../../../PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
 import ICodeGenSymbols from "../../../types/ICodeGenSymbols";

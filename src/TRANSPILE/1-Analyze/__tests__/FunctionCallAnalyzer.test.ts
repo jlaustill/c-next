@@ -7,7 +7,7 @@ import { CharStream, CommonTokenStream } from "antlr4ng";
 import { CNextLexer } from "../../../transpiler/logic/parser/grammar/CNextLexer";
 import { CNextParser } from "../../../transpiler/logic/parser/grammar/CNextParser";
 import FunctionCallAnalyzer from "../FunctionCallAnalyzer";
-import SymbolTable from "../../../transpiler/logic/symbols/SymbolTable";
+import SymbolTable from "../../../transpiler/state/SymbolTable";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import TTypeUtils from "../../../utils/TTypeUtils";
 import type IFunctionSymbol from "../../../transpiler/types/symbols/IFunctionSymbol";

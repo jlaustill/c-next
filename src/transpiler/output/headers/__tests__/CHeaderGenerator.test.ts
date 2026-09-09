@@ -9,7 +9,7 @@ import CHeaderGenerator from "../CHeaderGenerator";
 import IHeaderSymbol from "../types/IHeaderSymbol";
 
 import IParameterSymbol from "../../../../utils/types/IParameterSymbol";
-import SymbolTable from "../../../logic/symbols/SymbolTable";
+import SymbolTable from "../../../state/SymbolTable";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
 

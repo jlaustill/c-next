@@ -21,7 +21,7 @@
  *   CodeGenState.symbolTable.clear() at the start of each run().
  */
 
-import SymbolTable from "../logic/symbols/SymbolTable";
+import SymbolTable from "./SymbolTable";
 import type IProgram from "../types/IProgram";
 import type ICallGraphEntry from "../types/ICallGraphEntry";
 import type TIncludeHeader from "../types/TIncludeHeader";

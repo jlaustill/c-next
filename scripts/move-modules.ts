@@ -274,6 +274,34 @@ const MOVES: readonly IMove[] = [
   },
 
   // --- shared contracts: named by more than one layer ---------------------
+  // --- the accumulator: state, not a pass ---------------------------------
+  {
+    from: "src/transpiler/logic/symbols/SymbolTable.ts",
+    to: "src/transpiler/state/SymbolTable.ts",
+    because:
+      "#1511, and the destination is NOT the one this file recorded. " +
+      "`module-destinations.md` said `awaiting 1.4 Resolve`; that is " +
+      "unreachable rather than pending. `output/` (6 modules) and " +
+      "`TRANSPILE/` (7) import the table, and " +
+      "`nothing-after-resolve-derives-cross-file-facts` forbids either from " +
+      "reaching `4-Resolve/` transitively -- no interface answers that, " +
+      "because the rule is about the destination and not the coupling. The " +
+      "admission rule places a module in the pass that computes its fact, and " +
+      "this computes none: it ACCUMULATES, filled from C/C++ headers in Stage " +
+      "2 and read by every later pass. That is what `state/` holds, alongside " +
+      "`CodeGenState` and `SymbolRegistry`. Checked before moving: it imports " +
+      "nothing from `output/` or `TRANSPILE/`, so `state-cannot-import-output` " +
+      "was already satisfied, and 1.3 Declare already imports `state/`, so the " +
+      "edge that blocked 4-Resolve does not arise. Changed with maintainer " +
+      "approval, since a decided destination is not a call to make in passing.",
+  },
+  {
+    from: "src/transpiler/logic/symbols/__tests__/SymbolTable.test.ts",
+    to: "src/transpiler/state/__tests__/SymbolTable.test.ts",
+    because:
+      "Follows its subject, and empties `logic/symbols/` -- which is the " +
+      "definition-of-done item: the directory ceases to exist.",
+  },
   // --- test support: production path, test-only module ------------------
   {
     from: "src/utils/FunctionUtils.ts",

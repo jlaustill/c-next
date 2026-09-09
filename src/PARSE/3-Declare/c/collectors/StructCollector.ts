@@ -8,7 +8,7 @@ import type { StructOrUnionSpecifierContext } from "../../../../transpiler/logic
 import type ICStructSymbol from "../../../../transpiler/types/symbols/c/ICStructSymbol";
 import type ICFieldInfo from "../../../../transpiler/types/symbols/c/ICFieldInfo";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
-import SymbolTable from "../../../../transpiler/logic/symbols/SymbolTable";
+import SymbolTable from "../../../../transpiler/state/SymbolTable";
 import SymbolUtils from "../../SymbolUtils";
 import DeclaratorUtils from "../utils/DeclaratorUtils";
 import type ISourceSpan from "../../../../transpiler/types/ISourceSpan";

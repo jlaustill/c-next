@@ -5,7 +5,7 @@
 import { describe, expect, it } from "vitest";
 import CResolver from "../index";
 import TestHelpers from "./testHelpers";
-import SymbolTable from "../../../../transpiler/logic/symbols/SymbolTable";
+import SymbolTable from "../../../../transpiler/state/SymbolTable";
 
 describe("Issue #957 - Pointer Typedef Detection", () => {
   it("should NOT mark pointer typedef as opaque", () => {

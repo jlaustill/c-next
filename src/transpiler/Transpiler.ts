@@ -38,7 +38,7 @@ import HeaderGeneratorUtils from "./output/headers/HeaderGeneratorUtils";
 import IHeaderEmissionFacts from "./output/headers/types/IHeaderEmissionFacts";
 import IHeaderCallbackType from "./types/IHeaderCallbackType";
 import IncludeExtractor from "./logic/IncludeExtractor";
-import SymbolTable from "./logic/symbols/SymbolTable";
+import SymbolTable from "./state/SymbolTable";
 import ESourceLanguage from "../utils/types/ESourceLanguage";
 import CNextResolver from "../PARSE/3-Declare/cnext/index";
 import SymbolRegistry from "./state/SymbolRegistry";

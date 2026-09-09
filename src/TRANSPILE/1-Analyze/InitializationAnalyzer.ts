@@ -20,7 +20,7 @@ import ScopeStack from "./ScopeStack";
 import ExpressionUtils from "../../utils/ExpressionUtils";
 import ParserUtils from "../../utils/ParserUtils";
 import analyzePostfixOps from "../../utils/PostfixAnalysisUtils";
-import SymbolTable from "../../transpiler/logic/symbols/SymbolTable";
+import SymbolTable from "../../transpiler/state/SymbolTable";
 import CodeGenState from "../../transpiler/state/CodeGenState";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
 import ScopeUtils from "../../utils/ScopeUtils";

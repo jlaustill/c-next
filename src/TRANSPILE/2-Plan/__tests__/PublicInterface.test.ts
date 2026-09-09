@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import SymbolTable from "../../../transpiler/logic/symbols/SymbolTable";
+import SymbolTable from "../../../transpiler/state/SymbolTable";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import PublicInterface from "../PublicInterface";
 import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";

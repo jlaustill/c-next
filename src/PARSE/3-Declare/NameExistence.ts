@@ -44,7 +44,7 @@
 
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
 import ICodeGenSymbols from "../../transpiler/types/ICodeGenSymbols";
-import SymbolTable from "../../transpiler/logic/symbols/SymbolTable";
+import SymbolTable from "../../transpiler/state/SymbolTable";
 
 class NameExistence {
   /**

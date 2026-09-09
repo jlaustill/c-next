@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import createMockSymbols from "../../../transpiler/__tests__/codeGenSymbolsHelpers";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import NameExistence from "../NameExistence";
-import SymbolTable from "../../../transpiler/logic/symbols/SymbolTable";
+import SymbolTable from "../../../transpiler/state/SymbolTable";
 
 /**
  * A SymbolTable stub answering only `getOverloadsByCName`, which is the single

@@ -63,7 +63,7 @@ import NestedTernaryAnalyzer from "./NestedTernaryAnalyzer";
 import ThisOutsideScopeAnalyzer from "./ThisOutsideScopeAnalyzer";
 import CommentExtractor from "./CommentExtractor";
 import ITranspileError from "../../lib/types/ITranspileError";
-import SymbolTable from "../../transpiler/logic/symbols/SymbolTable";
+import SymbolTable from "../../transpiler/state/SymbolTable";
 import CodeGenState from "../../transpiler/state/CodeGenState";
 import IncludeDirectiveAnalyzer from "./IncludeDirectiveAnalyzer";
 import IIncludeContext from "./types/IIncludeContext";

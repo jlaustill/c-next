@@ -10,7 +10,7 @@
 import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../transpiler/logic/parser/grammar/CNextListener";
 import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
-import SymbolTable from "../../transpiler/logic/symbols/SymbolTable";
+import SymbolTable from "../../transpiler/state/SymbolTable";
 import IFunctionCallError from "./types/IFunctionCallError";
 import ParserUtils from "../../utils/ParserUtils";
 import CodeGenState from "../../transpiler/state/CodeGenState";
