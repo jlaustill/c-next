@@ -1,4 +1,5 @@
 import type TSymbol from "./symbols/TSymbol";
+import type IConflict from "./IConflict";
 
 /**
  * `Program` — the artifact 1.4 Resolve emits, and the only place a cross-file
@@ -90,6 +91,17 @@ interface IProgram {
    * A caller inside a scope asks with it.
    */
   constValuesIn(scopePath: string): ReadonlyMap<string, number>;
+
+  /**
+   * Every symbol conflict in the program.
+   *
+   * Cross-file by construction — a conflict exists only when two files define
+   * the same name — and one of the three facts that also needs the C and C++
+   * header symbols, not just C-Next's. It was previously derived from an
+   * accumulator mid-run, so the answer depended on how much had been inserted
+   * when it was asked (#1511).
+   */
+  conflicts(): ReadonlyArray<IConflict>;
 }
 
 export default IProgram;

@@ -1025,7 +1025,6 @@ describe("CacheManager", () => {
         returnType: TTypeUtils.createPrimitive("void"),
         parameters: [],
         visibility: "public",
-        body: null,
       } as IFunctionSymbol);
 
       cacheManager.setSymbolsFromTable(headerFile, symbolTable);

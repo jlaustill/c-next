@@ -619,6 +619,14 @@ class Transpiler {
       this.program = Program.build(
         declared.map((entry) => entry.fileSymbols),
         CodeGenState.symbolTable.getAllStructFields(),
+        // #1511: the C and C++ halves of the conflict question. Both are in the
+        // table by now -- Stage 2 put them there -- and the C-Next half is the
+        // first argument, so `Program` can derive a fact that used to wait for
+        // an accumulator to finish filling.
+        {
+          c: CodeGenState.symbolTable.getAllCSymbols(),
+          cpp: CodeGenState.symbolTable.getAllCppSymbols(),
+        },
       );
       // Passes after 1.4 read cross-file facts from the artifact rather than
       // re-deriving them. Set once per run, not per file.
@@ -1419,7 +1427,10 @@ class Transpiler {
    * @returns true if no blocking conflicts, false otherwise
    */
   private _checkSymbolConflicts(result: ITranspilerResult): boolean {
-    const conflicts = CodeGenState.symbolTable.getConflicts();
+    // #1511: read from the artifact, not re-derived from the table. Stage 3
+    // built it; a null here would mean this ran before 1.4, which the stage
+    // order rules out.
+    const conflicts = this.program?.conflicts() ?? [];
     for (const conflict of conflicts) {
       // #1334: a conflict is an ordinary diagnostic. It used to reach the user
       // through a SECOND channel -- `result.conflicts`, printed by ResultPrinter

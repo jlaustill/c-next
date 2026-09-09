@@ -892,7 +892,6 @@ describe("TSymbolInfoAdapter", () => {
             sourceLanguage: ESourceLanguage.CNext,
             visibility: "public",
           }),
-          body: null,
           returnType: TypeResolver.resolve("void"),
           visibility: "public",
           parameters: [],

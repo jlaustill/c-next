@@ -704,7 +704,6 @@ describe("FunctionCallAnalyzer", () => {
         returnType: TTypeUtils.createPrimitive("void"),
         parameters: [],
         visibility: "public",
-        body: null,
       } as IFunctionSymbol);
 
       const analyzer = new FunctionCallAnalyzer();

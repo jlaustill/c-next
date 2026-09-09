@@ -30,6 +30,9 @@ import DeferredTypes from "./DeferredTypes";
 import LiteralUtils from "../../utils/LiteralUtils";
 import type IVariableSymbol from "../../transpiler/types/symbols/IVariableSymbol";
 import IDerivedConsts from "./types/IDerivedConsts";
+import ConflictDetector from "./ConflictDetector";
+import type IForeignSymbols from "../../transpiler/types/IForeignSymbols";
+import type IConflict from "../../transpiler/types/IConflict";
 
 class Program {
   /**
@@ -43,6 +46,7 @@ class Program {
       string,
       ReadonlyMap<string, IStructFieldInfo>
     > = new Map(),
+    foreign: IForeignSymbols = { c: [], cpp: [] },
   ): IProgram {
     // Each derivation is its own step, in dependency order: the scope-type
     // index settles the types, settled types yield const values, const values
@@ -64,6 +68,15 @@ class Program {
     const externalStructFields =
       Program.deriveExternalStructFields(headerStructFields);
     const sourceFiles = files.map((file) => file.sourceFile);
+    // Derived from the SETTLED symbols, and from every file at once. Detection
+    // used to run over whatever an accumulator held when it was asked, which is
+    // why it could not live here: the C-Next half was inserted after this point.
+    // Flattened in file-declaration order so the report order is unchanged.
+    const conflicts = ConflictDetector.detect(
+      [...symbolsByFile.values()].flat(),
+      foreign.c,
+      foreign.cpp,
+    );
 
     // The query surface. Every collection above stays in this closure and is
     // reachable only through the functions below, which is what makes
@@ -82,6 +95,7 @@ class Program {
       constValues: (): ReadonlyMap<string, number> => constValues,
       constValuesIn: (scopePath: string): ReadonlyMap<string, number> =>
         Program.constValuesIn(derivedConsts, scopedViews, scopePath),
+      conflicts: (): ReadonlyArray<IConflict> => conflicts,
     });
   }
 

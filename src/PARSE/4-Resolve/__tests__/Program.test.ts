@@ -266,6 +266,7 @@ describe("Program", () => {
       const keys = Object.keys(program).sort();
 
       expect(keys).toEqual([
+        "conflicts",
         "constValue",
         "constValues",
         "constValuesIn",
