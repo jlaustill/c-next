@@ -64,7 +64,6 @@ function setupStructFields(
       scopePrivateConstValues: new Map(),
       functionReturnTypes: new Map(),
       getSingleFunctionForVariable: () => null,
-      opaqueTypes: new Set(),
     };
   }
   (CodeGenState.symbols.knownStructs as Set<string>).add(structName);

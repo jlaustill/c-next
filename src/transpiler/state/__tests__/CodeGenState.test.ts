@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
+import type IProgram from "../../types/IProgram";
 import installMockSymbols from "../../__tests__/installMockSymbols";
 import CodeGenState from "../CodeGenState";
 import TTypeInfo from "../../types/TTypeInfo";
@@ -941,19 +942,25 @@ describe("CodeGenState", () => {
       expect(CodeGenState.isKnownScope("UnknownScope")).toBe(false);
     });
 
-    it("isOpaqueType returns false without symbols", () => {
-      CodeGenState.symbols = null;
+    it("isOpaqueType returns false without a program", () => {
+      CodeGenState.program = null;
       expect(CodeGenState.isOpaqueType("widget_t")).toBe(false);
     });
 
     it("isOpaqueType returns true for opaque type", () => {
-      installMockSymbols({
-        opaqueTypes: new Set(["widget_t", "display_t"]),
-      });
+      // #1511: read from the artifact. This used to install a per-file
+      // `ICodeGenSymbols.opaqueTypes` set that `mergeOpaqueTypes` patched the
+      // whole-program answer into; both are gone, so the question has one owner.
+      const opaque = new Set(["widget_t", "display_t"]);
+      CodeGenState.program = {
+        isOpaqueType: (name: string) => opaque.has(name),
+      } as unknown as IProgram;
 
       expect(CodeGenState.isOpaqueType("widget_t")).toBe(true);
       expect(CodeGenState.isOpaqueType("display_t")).toBe(true);
       expect(CodeGenState.isOpaqueType("Point")).toBe(false);
+
+      CodeGenState.program = null;
     });
   });
 

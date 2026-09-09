@@ -89,7 +89,7 @@ class NameExistence {
     symbolTable: SymbolTable,
   ): boolean {
     return (
-      NameExistence._isKnownCNextType(typeName, symbols) ||
+      NameExistence._isKnownCNextType(typeName, symbols, symbolTable) ||
       NameExistence._isKnownForeignName(typeName, symbolTable)
     );
   }
@@ -183,13 +183,17 @@ class NameExistence {
   private static _isKnownCNextType(
     typeName: string,
     symbols: ICodeGenSymbols,
+    symbolTable: SymbolTable,
   ): boolean {
     return (
       symbols.knownEnums.has(typeName) ||
       symbols.knownStructs.has(typeName) ||
       symbols.knownBitmaps.has(typeName) ||
       symbols.knownScopes.has(typeName) ||
-      symbols.opaqueTypes.has(typeName) ||
+      // #1511: from the table, which shares `OpaqueTypeResolution` with the
+      // artifact. `ICodeGenSymbols` carried a merged copy of this set purely so
+      // this line could read it per file; one decision, asked where it lives.
+      symbolTable.isOpaqueType(typeName) ||
       // ADR-029: a function definition creates a callback type, so every
       // function name is also a type name. `CodeGenState.callbackTypes` is
       // filled during codegen, which is after this runs, so the per-file

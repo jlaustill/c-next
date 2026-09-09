@@ -132,11 +132,6 @@ class TSymbolInfoAdapter {
     // === Function Return Types ===
     const functionReturnTypes = new Map<string, string>();
 
-    // === Issue #948: Opaque Types ===
-    // Note: Opaque types are populated from SymbolTable, not TSymbol[]
-    // This will be an empty set here; actual values come from Transpiler
-    const opaqueTypes = new Set<string>();
-
     // Process each symbol
     for (const symbol of symbols) {
       switch (symbol.kind) {
@@ -257,7 +252,6 @@ class TSymbolInfoAdapter {
       functionReturnTypes,
 
       // Issue #948: Opaque types
-      opaqueTypes,
 
       // Methods
       getSingleFunctionForVariable: (scopeName: string, varName: string) =>
@@ -793,37 +787,6 @@ class TSymbolInfoAdapter {
       registerMemberOffsets: mergedRegisterMemberOffsets,
       registerMemberCTypes: mergedRegisterMemberCTypes,
     };
-  }
-
-  /**
-   * Issue #948: Merge opaque types from an external source (e.g., SymbolTable)
-   * into an existing ICodeGenSymbols.
-   *
-   * Opaque types are forward-declared struct types (like `typedef struct _foo foo;`)
-   * that come from C headers and need to be tracked for correct scope variable
-   * generation (as pointers with NULL initialization).
-   *
-   * @param base The ICodeGenSymbols from the current file
-   * @param externalOpaqueTypes Array of opaque type names from external sources
-   * @returns New ICodeGenSymbols with merged opaque types
-   */
-  static mergeOpaqueTypes(
-    base: ICodeGenSymbols,
-    externalOpaqueTypes: string[],
-  ): ICodeGenSymbols {
-    // If no external opaque types, return base unchanged
-    if (externalOpaqueTypes.length === 0) {
-      return base;
-    }
-
-    // Create merged set with existing and external opaque types
-    const mergedOpaqueTypes = new Set(base.opaqueTypes);
-    for (const typeName of externalOpaqueTypes) {
-      mergedOpaqueTypes.add(typeName);
-    }
-
-    // Return new ICodeGenSymbols with merged opaque types
-    return { ...base, opaqueTypes: mergedOpaqueTypes };
   }
 }
 

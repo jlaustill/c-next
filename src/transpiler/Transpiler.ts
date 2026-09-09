@@ -921,17 +921,6 @@ class Transpiler {
         );
       }
 
-      // Issue #948/#958: Merge truly opaque types from C/C++ headers.
-      // #1511: the artifact already resolved which typedefs never received a
-      // body, so this no longer re-filters a table mid-run.
-      const externalOpaqueTypes = [...(this.program?.opaqueTypes() ?? [])];
-      if (externalOpaqueTypes.length > 0) {
-        symbolInfo = TSymbolInfoAdapter.mergeOpaqueTypes(
-          symbolInfo,
-          externalOpaqueTypes,
-        );
-      }
-
       // Make symbols available to analyzers (CodeGenerator.generate() sets this too)
       CodeGenState.symbols = symbolInfo;
 

@@ -918,7 +918,10 @@ export default class CodeGenState {
    * Example: `typedef struct _widget_t widget_t;` without a body makes `widget_t` opaque.
    */
   static isOpaqueType(typeName: string): boolean {
-    return this.symbols?.opaqueTypes.has(typeName) ?? false;
+    // #1511: the artifact resolved this once for the whole program. It used to
+    // read a per-file set that `mergeOpaqueTypes` patched the cross-file answer
+    // into, which made this a second place the question was answered.
+    return this.program?.isOpaqueType(typeName) ?? false;
   }
 
   /**

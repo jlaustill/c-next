@@ -36,7 +36,6 @@ function createMockSymbolInfo(enumName?: string): ICodeGenSymbols {
     scopePrivateConstValues: new Map(),
     functionReturnTypes: new Map(),
     getSingleFunctionForVariable: () => null,
-    opaqueTypes: new Set(),
   };
 }
 
