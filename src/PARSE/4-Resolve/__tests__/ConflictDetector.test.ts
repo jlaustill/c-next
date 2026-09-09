@@ -31,9 +31,25 @@ describe("ConflictDetector", () => {
     cpp = [];
   });
 
-  /** The detector's single-name query, over whatever this test has built. */
+  /**
+   * Whether `name` is in conflict, asked through `detect` — the one entry point
+   * production uses.
+   *
+   * A local helper rather than a method on the detector: nothing in production
+   * asks about a single name, and a production API reached only from tests is
+   * the #1418 shape this card already recorded evidence for. Routing through
+   * `detect` also means a break in it reddens these tests; when this wrapped a
+   * separate entry point, a mutation to `detect` left 12 of 13 green.
+   *
+   * Matches either side because a C-Next duplicate is reported under its
+   * `cnxScopedName` (`Lib.useIt`), not the bare name a caller asks about.
+   */
   const hasConflict = (name: string): boolean =>
-    ConflictDetector.hasConflict(name, cnext, c, cpp);
+    ConflictDetector.detect(cnext, c, cpp).some(
+      (conflict) =>
+        conflict.symbolName === name ||
+        conflict.definitions.some((definition) => definition.name === name),
+    );
 
   describe("hasConflict", () => {
     it("should detect cross-language conflicts between C-Next and C", () => {

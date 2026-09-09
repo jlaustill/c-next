@@ -68,33 +68,6 @@ class ConflictDetector {
     return conflicts;
   }
 
-  /**
-   * Whether this one name is in conflict.
-   *
-   * The same question `detect` answers, asked of a single name. Kept as its own
-   * entry point because a caller wanting yes/no should not have to know that a
-   * C-Next duplicate is reported under its `cnxScopedName` rather than under
-   * the name asked about.
-   */
-  static hasConflict(
-    name: string,
-    cnext: ReadonlyArray<TSymbol>,
-    c: ReadonlyArray<TCSymbol>,
-    cpp: ReadonlyArray<TCppSymbol>,
-  ): boolean {
-    const symbols = ConflictDetector.overloadsOf(
-      name,
-      ConflictDetector.indexByName(cnext),
-      ConflictDetector.indexByName(c),
-      ConflictDetector.indexByName(cpp),
-    );
-    if (symbols.length <= 1) {
-      return false;
-    }
-
-    return ConflictDetector.detectConflict(symbols) !== null;
-  }
-
   /** Every definition of one name, in C-Next, then C, then C++ order. */
   private static overloadsOf(
     name: string,
