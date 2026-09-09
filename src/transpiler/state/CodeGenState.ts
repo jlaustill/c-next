@@ -295,6 +295,16 @@ export default class CodeGenState {
    * Maps function name -> typedef name (e.g., "my_flush" -> "flush_cb_t")
    * Issue #895: We need the typedef name to look up parameter types.
    */
+  /**
+   * The ANALYZER'S OUTPUT CHANNEL for callback compatibility, not the answer.
+   *
+   * #1511: nothing reads this to decide anything. `FunctionCallAnalyzer` writes
+   * it as it walks a file, and `CallbackCompatibility.derive` harvests it once
+   * over every tree; consumers ask `Program`. It stayed a static because that is
+   * how the analyzer reports the fact, and giving it a second reader is what
+   * made the map order-dependent in the first place — a file rendered early saw
+   * only what had been analyzed so far.
+   */
   static callbackCompatibleFunctions: Map<string, string> = new Map();
 
   // ===========================================================================

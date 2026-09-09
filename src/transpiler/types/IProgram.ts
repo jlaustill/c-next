@@ -164,6 +164,17 @@ interface IProgram {
    * transpiled C name (#1511).
    */
   passByValueParams(): ReadonlyMap<string, ReadonlySet<string>>;
+
+  /**
+   * Functions used as an ADR-029 callback, to the typedef they are used as.
+   *
+   * A function assigned to a callback typedef must keep that typedef's parameter
+   * shape, so it takes neither auto-const nor pass-by-value. The use can sit in
+   * a different file from the declaration, which makes this cross-file — and it
+   * was previously accumulated as files rendered, so an early file decided its
+   * signatures on a partial answer (#1511).
+   */
+  callbackCompatibleFunctions(): ReadonlyMap<string, string>;
 }
 
 export default IProgram;

@@ -22,6 +22,7 @@ import HeaderParser from "./logic/parser/HeaderParser";
 import CodeGenerator from "./output/codegen/CodeGenerator";
 import CodeGenState from "./state/CodeGenState";
 import ModificationFacts from "./ModificationFacts";
+import CallbackCompatibility from "./CallbackCompatibility";
 import AdrProvenance from "./state/AdrProvenance";
 import CachedSymbolReader from "../utils/cache/CachedSymbolReader";
 import TJsonValue from "../utils/types/TJsonValue";
@@ -619,6 +620,12 @@ class Transpiler {
       // globals it clobbered -- so "does this callee modify its parameter?"
       // answered differently depending on how many files had gone before.
       const modifications = ModificationFacts.derive(declared);
+      // #1511: derived over every tree before anything renders. Accumulated
+      // during rendering, this map was partial for whichever file went first.
+      const callbackCompatible = CallbackCompatibility.derive(
+        declared,
+        CodeGenState.symbolTable,
+      );
 
       this.program = Program.build(
         declared.map((entry) => entry.fileSymbols),
@@ -649,6 +656,7 @@ class Transpiler {
               .map((entry) => [entry.file.path, entry.file.cnextIncludes!]),
           ),
         },
+        callbackCompatible,
       );
       // Passes after 1.4 read cross-file facts from the artifact rather than
       // re-deriving them. Set once per run, not per file.
@@ -2712,9 +2720,9 @@ class Transpiler {
       }
 
       // Issue #914: Resolve callback typedef type for callback-compatible functions
-      const typedefName = CodeGenState.callbackCompatibleFunctions.get(
-        headerSymbol.name,
-      );
+      const typedefName = CodeGenState.program
+        ?.callbackCompatibleFunctions()
+        .get(headerSymbol.name);
       const callbackTypedefType = typedefName
         ? CodeGenState.getTypedefType(typedefName)
         : undefined;

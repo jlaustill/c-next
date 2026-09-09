@@ -91,6 +91,7 @@ class Program {
     foreign: IForeignSymbols = NO_FOREIGN,
     modifications: IModificationFacts = NO_MODIFICATIONS,
     visibility: IVisibilityInput = NO_VISIBILITY,
+    callbackCompatibleFunctions: ReadonlyMap<string, string> = new Map(),
   ): IProgram {
     // Each derivation is its own step, in dependency order: the scope-type
     // index settles the types, settled types yield const values, const values
@@ -164,6 +165,8 @@ class Program {
         visibleByFile.get(sourceFile),
       passByValueParams: (): ReadonlyMap<string, ReadonlySet<string>> =>
         passByValueParams,
+      callbackCompatibleFunctions: (): ReadonlyMap<string, string> =>
+        callbackCompatibleFunctions,
     });
   }
 

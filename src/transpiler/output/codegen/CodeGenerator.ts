@@ -3839,9 +3839,9 @@ export default class CodeGenerator implements IOrchestrator {
     // A full fix requires parsing the typedef signature to determine which.
     if (
       CodeGenState.currentFunctionName &&
-      CodeGenState.callbackCompatibleFunctions.has(
-        CodeGenState.currentFunctionName,
-      ) &&
+      CodeGenState.program
+        ?.callbackCompatibleFunctions()
+        .has(CodeGenState.currentFunctionName) &&
       this.isKnownStruct(typeName)
     ) {
       return true;
