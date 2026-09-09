@@ -2058,7 +2058,36 @@ export default class CodeGenerator implements IOrchestrator {
   private initializeHelperObjects(tree: Parser.ProgramContext): void {
     // Collect function/callback information
     this.collectFunctionsAndCallbacks(tree);
-    PassByValueAnalyzer.analyze(tree);
+    CodeGenerator.seedWholeProgramFacts();
+  }
+
+  /**
+   * Take the parameter facts 1.4 Resolve authored.
+   *
+   * `PassByValueAnalyzer.analyze(tree)` used to stand here. It CLEARED these
+   * three maps and rebuilt them from one file plus whatever cross-file data had
+   * been injected — so the whole-program answer was thrown away once per file
+   * and approximated again. They are copied in now, because generation still
+   * adds to `modifiedParameters` as it walks a body; the copy is a working set,
+   * not a second derivation (#1511).
+   */
+  private static seedWholeProgramFacts(): void {
+    CodeGenState.modifiedParameters.clear();
+    CodeGenState.functionParamLists.clear();
+    CodeGenState.functionCallGraph.clear();
+
+    const program = CodeGenState.program;
+    if (!program) return;
+
+    for (const [funcName, params] of program.modifiedParameters()) {
+      CodeGenState.modifiedParameters.set(funcName, new Set(params));
+    }
+    for (const [funcName, params] of program.functionParamLists()) {
+      CodeGenState.functionParamLists.set(funcName, [...params]);
+    }
+    for (const [funcName, calls] of program.callGraph()) {
+      CodeGenState.functionCallGraph.set(funcName, [...calls]);
+    }
   }
 
   /**
@@ -2631,7 +2660,9 @@ export default class CodeGenerator implements IOrchestrator {
    * Used by HeaderGenerator to ensure header and implementation signatures match.
    */
   getPassByValueParams(): ReadonlyMap<string, ReadonlySet<string>> {
-    return CodeGenState.passByValueParams;
+    // #1511: the artifact's answer, so the `.h` this feeds and the `.c` this
+    // class emits cannot disagree -- they now read one derivation.
+    return CodeGenState.program?.passByValueParams() ?? new Map();
   }
 
   /**

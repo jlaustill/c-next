@@ -155,6 +155,15 @@ interface IProgram {
    * late (#1301, #1511).
    */
   codeGenSymbolsFor(sourceFile: string): ICodeGenSymbols | undefined;
+
+  /**
+   * Which parameters of each function may be passed by value (ADR-006).
+   *
+   * A fact with a truth value — is this parameter modified anywhere downstream?
+   * — and answering it needs the whole call chain, which crosses files. Keyed by
+   * transpiled C name (#1511).
+   */
+  passByValueParams(): ReadonlyMap<string, ReadonlySet<string>>;
 }
 
 export default IProgram;

@@ -35,50 +35,10 @@ import QualifiedCName from "../../utils/QualifiedCName";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
 
 /**
- * Small primitive types that are eligible for pass-by-value optimization.
- */
-const SMALL_PRIMITIVES = new Set([
-  "u8",
-  "i8",
-  "u16",
-  "i16",
-  "u32",
-  "i32",
-  "u64",
-  "i64",
-  "bool",
-]);
-
-/**
  * Static analyzer for determining pass-by-value eligibility.
  * All state is stored in CodeGenState - this class contains pure analysis logic.
  */
 class PassByValueAnalyzer {
-  /**
-   * Main entry point: Analyze a program tree to determine pass-by-value parameters.
-   * Updates CodeGenState with analysis results.
-   */
-  static analyze(tree: Parser.ProgramContext): void {
-    // Reset analysis state
-    CodeGenState.modifiedParameters.clear();
-    CodeGenState.passByValueParams.clear();
-    CodeGenState.functionCallGraph.clear();
-    CodeGenState.functionParamLists.clear();
-
-    // Phase 1: Collect function parameter lists and direct modifications
-    PassByValueAnalyzer.collectFunctionParametersAndModifications(tree);
-
-    // Issue #558: Inject cross-file data before transitive propagation
-    PassByValueAnalyzer.injectCrossFileModifications();
-    PassByValueAnalyzer.injectCrossFileParamLists();
-
-    // Phase 2: Fixed-point iteration for transitive modifications
-    PassByValueAnalyzer.propagateModifications();
-
-    // Phase 3: Determine which parameters can pass by value
-    PassByValueAnalyzer.computePassByValueParams();
-  }
-
   /**
    * Phase 2: run transitive modification propagation with the project's
    * standard callee resolver.
@@ -308,44 +268,6 @@ class PassByValueAnalyzer {
       if (typeof aliased === "string" && aliased.length > 0) return aliased;
     }
     return null;
-  }
-
-  /**
-   * Inject cross-file modification data into modifiedParameters.
-   * SonarCloud S3776: Extracted from analyze().
-   */
-  private static injectCrossFileModifications(): void {
-    if (!CodeGenState.pendingCrossFileModifications) return;
-
-    for (const [
-      funcName,
-      params,
-    ] of CodeGenState.pendingCrossFileModifications) {
-      const existing = CodeGenState.modifiedParameters.get(funcName);
-      if (existing) {
-        for (const param of params) {
-          existing.add(param);
-        }
-      } else {
-        CodeGenState.modifiedParameters.set(funcName, new Set(params));
-      }
-    }
-    CodeGenState.pendingCrossFileModifications = null; // Clear after use
-  }
-
-  /**
-   * Inject cross-file parameter lists into functionParamLists.
-   * SonarCloud S3776: Extracted from analyze().
-   */
-  private static injectCrossFileParamLists(): void {
-    if (!CodeGenState.pendingCrossFileParamLists) return;
-
-    for (const [funcName, params] of CodeGenState.pendingCrossFileParamLists) {
-      if (!CodeGenState.functionParamLists.has(funcName)) {
-        CodeGenState.functionParamLists.set(funcName, [...params]);
-      }
-    }
-    CodeGenState.pendingCrossFileParamLists = null; // Clear after use
   }
 
   /**
@@ -840,47 +762,6 @@ class PassByValueAnalyzer {
   }
 
   /**
-   * Phase 3: Determine which parameters can pass by value.
-   * A parameter passes by value if:
-   * 1. It's a small primitive type (u8, i8, u16, i16, u32, i32, u64, i64, bool)
-   * 2. It's not modified (directly or transitively)
-   * 3. It's not an array, struct, string, or callback
-   */
-  private static computePassByValueParams(): void {
-    for (const [funcName, paramNames] of CodeGenState.functionParamLists) {
-      const passByValue = new Set<string>();
-      const modified =
-        CodeGenState.modifiedParameters.get(funcName) ?? new Set();
-
-      // Get function declaration to check parameter types
-      const funcSig = CodeGenState.functionSignatures.get(funcName);
-      if (funcSig) {
-        for (let i = 0; i < paramNames.length; i++) {
-          const paramName = paramNames[i];
-          const paramSig = funcSig.parameters[i];
-
-          if (!paramSig) continue;
-
-          // Check if eligible for pass-by-value:
-          // - Is a small primitive type
-          // - Not an array (array parameters always decay to pointers, ADR-006)
-          // - Not modified (a subscripted bit-write, e.g. `x[4] <- true`, counts
-          //   as a modification and is already tracked in `modified` above)
-          const isSmallPrimitive = SMALL_PRIMITIVES.has(paramSig.baseType);
-          const isArray = paramSig.isArray ?? false;
-          const isModified = modified.has(paramName);
-
-          if (isSmallPrimitive && !isArray && !isModified) {
-            passByValue.add(paramName);
-          }
-        }
-      }
-
-      CodeGenState.passByValueParams.set(funcName, passByValue);
-    }
-  }
-
-  /**
    * Check if a parameter should be passed by value (by name).
    * Used internally during code generation.
    */
@@ -888,7 +769,12 @@ class PassByValueAnalyzer {
     funcName: string,
     paramName: string,
   ): boolean {
-    const passByValue = CodeGenState.passByValueParams.get(funcName);
+    // #1511: read, not recomputed. This used to consult a map that
+    // `analyze(tree)` rebuilt PER FILE -- clearing it first, so the whole-program
+    // answer was discarded and re-derived from one file plus whatever had been
+    // injected. Eligibility depends on whether anything downstream modifies the
+    // parameter, which is a property of the call chain and not of a file.
+    const passByValue = CodeGenState.program?.passByValueParams().get(funcName);
     return passByValue?.has(paramName) ?? false;
   }
 

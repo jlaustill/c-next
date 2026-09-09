@@ -21,6 +21,7 @@ import HeaderParser from "./logic/parser/HeaderParser";
 
 import CodeGenerator from "./output/codegen/CodeGenerator";
 import CodeGenState from "./state/CodeGenState";
+import ModificationFacts from "./ModificationFacts";
 import AdrProvenance from "./state/AdrProvenance";
 import CachedSymbolReader from "../utils/cache/CachedSymbolReader";
 import TJsonValue from "../utils/types/TJsonValue";
@@ -31,9 +32,6 @@ import HeaderTypeNames from "../TRANSPILE/2-Plan/HeaderTypeNames";
 import HeaderIncludes from "../TRANSPILE/2-Plan/HeaderIncludes";
 import QualifiedCName from "../utils/QualifiedCName";
 import ExternalTypeHeaderBuilder from "./output/headers/ExternalTypeHeaderBuilder";
-import PassByValueAnalyzer from "./../TRANSPILE/2-Plan/PassByValueAnalyzer";
-import type IModificationFacts from "./types/IModificationFacts";
-import type ICallGraphEntry from "./types/ICallGraphEntry";
 import HeaderGeneratorUtils from "./output/headers/HeaderGeneratorUtils";
 import IHeaderEmissionFacts from "./output/headers/types/IHeaderEmissionFacts";
 import IHeaderCallbackType from "./types/IHeaderCallbackType";
@@ -620,7 +618,7 @@ class Transpiler {
       // the running total, extracting its own contribution and restoring the
       // globals it clobbered -- so "does this callee modify its parameter?"
       // answered differently depending on how many files had gone before.
-      const modifications = Transpiler._deriveModificationFacts(declared);
+      const modifications = ModificationFacts.derive(declared);
 
       this.program = Program.build(
         declared.map((entry) => entry.fileSymbols),
@@ -674,75 +672,6 @@ class Transpiler {
     }
 
     return result.success;
-  }
-
-  /**
-   * Derive the parameter-modification facts for the WHOLE program.
-   *
-   * `PassByValueAnalyzer` collects per tree and propagates transitively through
-   * `CodeGenState`'s three maps, so this clears them once, collects from every
-   * tree, and propagates once -- which is what makes the result independent of
-   * file order. The analyzer stays in 2.2 Plan and is not moved: the
-   * orchestrator may import both layers, so no `PARSE -> TRANSPILE` edge is
-   * created, and relocating it would re-attribute its SonarCloud issues to
-   * whichever PR moved it (#1449 budgets separate cleanup PRs for exactly that).
-   *
-   * The maps are snapshotted because codegen goes on writing to them while it
-   * renders; the artifact must hold what the program said, not what the run has
-   * since accumulated.
-   */
-  private static _deriveModificationFacts(
-    declared: ReadonlyArray<{
-      readonly parsed: IParsedFile;
-      readonly fileSymbols: IFileSymbols;
-    }>,
-  ): IModificationFacts {
-    CodeGenState.modifiedParameters.clear();
-    CodeGenState.functionParamLists.clear();
-    CodeGenState.functionCallGraph.clear();
-
-    for (const entry of declared) {
-      PassByValueAnalyzer.collectFunctionParametersAndModifications(
-        entry.parsed.tree,
-      );
-    }
-
-    // The C-Next symbols are not in the table yet -- `_publishResolvedFile`
-    // puts them there, after this. Without them every scope field holding a
-    // callback reads as an undeclared function, so #1178's fail-safe fires on
-    // the very calls it exists to spare and the parameter is wrongly promoted
-    // to a pointer. They are in hand right here, so the predicate is supplied
-    // rather than left to depend on when a mutable table happens to be filled.
-    const cnextValueCNames = new Set<string>();
-    for (const entry of declared) {
-      for (const symbol of entry.fileSymbols.symbols) {
-        if (symbol.kind === "variable") {
-          cnextValueCNames.add(symbol.fullyQualifiedCName);
-        }
-      }
-    }
-    PassByValueAnalyzer.propagateModifications(
-      (name: string): boolean =>
-        cnextValueCNames.has(name) ||
-        CodeGenState.symbolTable
-          .getOverloadsByCName(name)
-          .some((symbol) => symbol.kind === "variable"),
-    );
-
-    const modifiedParameters = new Map<string, ReadonlySet<string>>();
-    for (const [name, params] of CodeGenState.modifiedParameters) {
-      modifiedParameters.set(name, new Set(params));
-    }
-    const functionParamLists = new Map<string, ReadonlyArray<string>>();
-    for (const [name, params] of CodeGenState.functionParamLists) {
-      functionParamLists.set(name, [...params]);
-    }
-    const callGraph = new Map<string, ReadonlyArray<ICallGraphEntry>>();
-    for (const [name, calls] of CodeGenState.functionCallGraph) {
-      callGraph.set(name, [...calls]);
-    }
-
-    return { modifiedParameters, functionParamLists, callGraph };
   }
 
   /**

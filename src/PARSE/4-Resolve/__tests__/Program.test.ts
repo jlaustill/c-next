@@ -409,6 +409,7 @@ describe("Program", () => {
         "knownEnums",
         "modifiedParameters",
         "opaqueTypes",
+        "passByValueParams",
         "sourceFiles",
         "symbolByCName",
         "symbolsInFile",

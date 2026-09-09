@@ -29,6 +29,9 @@ import type TSymbol from "../../transpiler/types/symbols/TSymbol";
 import DeferredTypes from "./DeferredTypes";
 import LiteralUtils from "../../utils/LiteralUtils";
 import OpaqueTypeResolution from "../../utils/OpaqueTypeResolution";
+import SMALL_PRIMITIVES from "../../transpiler/constants/SMALL_PRIMITIVES";
+import TypeResolver from "../../utils/TypeResolver";
+import SymbolGuards from "../../transpiler/types/symbols/SymbolGuards";
 import type IVariableSymbol from "../../transpiler/types/symbols/IVariableSymbol";
 import IDerivedConsts from "./types/IDerivedConsts";
 
@@ -119,6 +122,10 @@ class Program {
       symbolsByFile,
       visibility,
     );
+    const passByValueParams = Program.derivePassByValue(
+      symbolsByFile,
+      modifications.modifiedParameters,
+    );
     const conflicts = ConflictDetector.detect(
       [...symbolsByFile.values()].flat(),
       foreign.c,
@@ -155,6 +162,8 @@ class Program {
         modifications.callGraph,
       codeGenSymbolsFor: (sourceFile: string): ICodeGenSymbols | undefined =>
         visibleByFile.get(sourceFile),
+      passByValueParams: (): ReadonlyMap<string, ReadonlySet<string>> =>
+        passByValueParams,
     });
   }
 
@@ -281,6 +290,46 @@ class Program {
       );
     }
     return visible;
+  }
+
+  /**
+   * Which parameters may be passed by value (ADR-006).
+   *
+   * A FACT, not a preference: a parameter is eligible when it is a small
+   * primitive, is not an array, and nothing modifies it — and "nothing modifies
+   * it" is only answerable across the whole call chain, which routinely crosses
+   * files. That is why it is derived here and not where the signature is
+   * printed.
+   *
+   * Keyed by transpiled C name, the identity the symbol already carries, so this
+   * agrees with the modification facts by construction rather than by spelling
+   * the qualification a second time (#1139).
+   */
+  private static derivePassByValue(
+    symbolsByFile: ReadonlyMap<string, ReadonlyArray<TSymbol>>,
+    modifiedParameters: ReadonlyMap<string, ReadonlySet<string>>,
+  ): ReadonlyMap<string, ReadonlySet<string>> {
+    const byFunction = new Map<string, ReadonlySet<string>>();
+    for (const symbols of symbolsByFile.values()) {
+      for (const symbol of symbols) {
+        if (!SymbolGuards.isFunction(symbol)) continue;
+        const modified =
+          modifiedParameters.get(symbol.fullyQualifiedCName) ?? new Set();
+        const eligible = new Set<string>();
+        for (const parameter of symbol.parameters) {
+          // An array parameter decays to a pointer whatever its element type,
+          // so ADR-006 never applies to one.
+          if (parameter.isArray) continue;
+          if (!SMALL_PRIMITIVES.has(TypeResolver.getTypeName(parameter.type))) {
+            continue;
+          }
+          if (modified.has(parameter.name)) continue;
+          eligible.add(parameter.name);
+        }
+        byFunction.set(symbol.fullyQualifiedCName, eligible);
+      }
+    }
+    return byFunction;
   }
 
   /**

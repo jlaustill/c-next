@@ -305,7 +305,6 @@ export default class CodeGenState {
   static modifiedParameters: Map<string, Set<string>> = new Map();
 
   /** Parameters that should pass by value (small, unmodified primitives) */
-  static passByValueParams: Map<string, Set<string>> = new Map();
 
   /** Function call relationships for transitive modification analysis */
   static functionCallGraph: Map<string, ICallGraphEntry[]> = new Map();
@@ -602,7 +601,6 @@ export default class CodeGenState {
 
     // Pass-by-value analysis
     this.modifiedParameters = new Map();
-    this.passByValueParams = new Map();
     this.functionCallGraph = new Map();
     this.functionParamLists = new Map();
     // Note: pendingCrossFileModifications/ParamLists are set externally, not reset
@@ -1227,7 +1225,14 @@ export default class CodeGenState {
    * Check if a parameter should pass by value.
    */
   static isPassByValue(funcName: string, paramName: string): boolean {
-    return this.passByValueParams.get(funcName)?.has(paramName) ?? false;
+    // #1511: one owner. This map was filled by a per-file pass that cleared it
+    // first, while header generation read a SECOND copy on `TranspilerState` --
+    // so the `.c` and the `.h` could disagree about the same signature, which
+    // is what #1161's fixture caught when the per-file pass was removed.
+    return (
+      CodeGenState.program?.passByValueParams().get(funcName)?.has(paramName) ??
+      false
+    );
   }
 
   /**
