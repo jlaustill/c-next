@@ -45,6 +45,7 @@ import CNextResolver from "../PARSE/3-Declare/cnext/index";
 import SymbolRegistry from "./state/SymbolRegistry";
 import TSymbolInfoAdapter from "../PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
 import Program from "../PARSE/4-Resolve/Program";
+import VisibleSymbols from "./../PARSE/4-Resolve/VisibleSymbols";
 import type IProgram from "./types/IProgram";
 import type IFileSymbols from "./types/IFileSymbols";
 import type IParsedFile from "./types/IParsedFile";
@@ -915,7 +916,7 @@ class Transpiler {
       let symbolInfo = TSymbolInfoAdapter.convert(declared.symbols);
 
       if (externalEnumSources.length > 0) {
-        symbolInfo = TSymbolInfoAdapter.mergeExternalSymbols(
+        symbolInfo = VisibleSymbols.mergeExternalSymbols(
           symbolInfo,
           externalEnumSources,
         );
