@@ -428,14 +428,14 @@ export default new Registry();
 
 ### 4-Layer Structure (`src/transpiler/`)
 
-| Layer        | Path            | Purpose                                                      |
-| ------------ | --------------- | ------------------------------------------------------------ |
-| Data         | `data/`         | Discovery (FileDiscovery, IncludeResolver, DependencyGraph)  |
-| Logic        | `logic/`        | Business logic (parser/, symbols/, analysis/, preprocessor/) |
-| Output       | `output/`       | Generation (codegen/, headers/)                              |
-| State        | `state/`        | Global state (CodeGenState, SymbolRegistry)                  |
-| Constants    | `constants/`    | Runtime lookups (BITMAP_SIZE, BITMAP_BACKING_TYPE)           |
-| Orchestrator | `Transpiler.ts` | Coordinates all layers                                       |
+| Layer        | Path            | Purpose                                                                                         |
+| ------------ | --------------- | ----------------------------------------------------------------------------------------------- |
+| Data         | `data/`         | Discovery (FileDiscovery, IncludeResolver, DependencyGraph)                                     |
+| Logic        | `logic/`        | Business logic (parser/, preprocessor/) — `symbols/` and `analysis/` left under #1511 and #1322 |
+| Output       | `output/`       | Generation (codegen/, headers/)                                                                 |
+| State        | `state/`        | Global state (CodeGenState, SymbolRegistry)                                                     |
+| Constants    | `constants/`    | Runtime lookups (BITMAP_SIZE, BITMAP_BACKING_TYPE)                                              |
+| Orchestrator | `Transpiler.ts` | Coordinates all layers                                                                          |
 
 ### Utility Locations
 
