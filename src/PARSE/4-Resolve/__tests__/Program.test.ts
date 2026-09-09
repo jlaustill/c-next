@@ -7,6 +7,7 @@ import SymbolRegistry from "../../../transpiler/state/SymbolRegistry";
 import TypeResolver from "../../../utils/TypeResolver";
 import type IFileSymbols from "../../../transpiler/types/IFileSymbols";
 import type TSymbol from "../../../transpiler/types/symbols/TSymbol";
+import type TCSymbol from "../../../transpiler/types/symbols/c/TCSymbol";
 
 /**
  * 1.4 Resolve's artifact, built from real Declare output rather than hand-made
@@ -225,6 +226,65 @@ describe("Program", () => {
     });
   });
 
+  describe("typesDeclaredIn", () => {
+    // #1511: which kinds form a type used to be filtered inside
+    // ExternalTypeHeaderBuilder, over whole symbols it was handed. The rule
+    // moved here with the fact, so it is asserted here -- a mock at the old
+    // site would have re-applied the rule and passed whether or not production
+    // agreed with it.
+    const cSymbol = (name: string, kind: string): TCSymbol =>
+      ({
+        name,
+        kind,
+        sourceFile: "types.h",
+        span: { line: 1, column: 0 },
+        visibility: "public",
+      }) as unknown as TCSymbol;
+
+    const typesIn = (
+      kinds: ReadonlyArray<[string, string]>,
+    ): ReadonlySet<string> =>
+      Program.build([], new Map(), {
+        c: kinds.map(([name, kind]) => cSymbol(name, kind)),
+        cpp: [],
+      }).typesDeclaredIn("types.h");
+
+    it.each([["struct"], ["type"], ["enum"], ["class"]])(
+      "counts a %s as a type the header declares",
+      (kind) => {
+        expect(typesIn([["Named", kind]]).has("Named")).toBe(true);
+      },
+    );
+
+    it.each([["function"], ["variable"]])(
+      "does not count a %s as a type",
+      (kind) => {
+        expect(typesIn([["named", kind]]).has("named")).toBe(false);
+      },
+    );
+
+    it("is empty for a file that declares no types", () => {
+      expect(typesIn([["doSomething", "function"]]).size).toBe(0);
+    });
+
+    it("reports the types a C-Next file declares under its own path", () => {
+      const lib = declare(
+        `struct Point { u32 x; } enum Color { RED }`,
+        "lib.cnx",
+      );
+      const program = Program.build([lib]);
+
+      expect([...program.typesDeclaredIn("lib.cnx")].sort()).toEqual([
+        "Color",
+        "Point",
+      ]);
+    });
+
+    it("is empty for a file the program never saw", () => {
+      expect(Program.build([]).typesDeclaredIn("absent.h").size).toBe(0);
+    });
+  });
+
   describe("the query surface", () => {
     it("answers by canonical C name, by file, and lists its files", () => {
       const lib = declare(
@@ -276,6 +336,7 @@ describe("Program", () => {
         "sourceFiles",
         "symbolByCName",
         "symbolsInFile",
+        "typesDeclaredIn",
       ]);
     });
   });

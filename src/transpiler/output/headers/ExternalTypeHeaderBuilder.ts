@@ -8,13 +8,18 @@
  * ADR-055 Phase 7: Uses TAnySymbol instead of ISymbol.
  */
 
-import TAnySymbol from "../../types/symbols/TAnySymbol";
-
 /**
- * Interface for accessing symbols by file path
+ * What this builder needs to know about a file.
+ *
+ * #1511: it used to take the whole `SymbolTable` and filter symbols by kind
+ * here. The kinds that form a type are a property of the symbols, so that
+ * filter is now authored in `Program` and this asks for the answer — which is
+ * also why the parameter is this one method rather than `IProgram`: nothing
+ * here needs the rest of the artifact, and the narrow shape keeps the unit
+ * tests free of a whole program.
  */
-interface ISymbolSource {
-  getSymbolsByFile(filePath: string): TAnySymbol[];
+interface ITypeSource {
+  typesDeclaredIn(filePath: string): ReadonlySet<string>;
 }
 
 /**
@@ -28,32 +33,23 @@ class ExternalTypeHeaderBuilder {
    * generating conflicting forward declarations for types like anonymous struct typedefs.
    *
    * @param headerIncludeDirectives Map from header file paths to their include directives
-   * @param symbolSource Source for retrieving symbols by file path (typically SymbolTable)
+   * @param typeSource Answers which type names a file declares (`Program`)
    * @returns Map from type names to include directives (e.g., "MyStruct" -> '#include "mystruct.h"')
    */
   static build(
     headerIncludeDirectives: ReadonlyMap<string, string>,
-    symbolSource: ISymbolSource,
+    typeSource: ITypeSource,
   ): Map<string, string> {
     const typeHeaders = new Map<string, string>();
 
-    // Check each header we have an include directive for
+    // Which header wins is decided HERE, by the order of the include
+    // directives -- first one wins. That ordering is an include-resolution
+    // fact, not a symbol fact, which is why it stayed behind when the rest
+    // moved to `Program` (#1511).
     for (const [headerPath, directive] of headerIncludeDirectives) {
-      // Get all symbols defined in this header
-      const symbols = symbolSource.getSymbolsByFile(headerPath);
-
-      // Map each struct/type/enum name to the include directive
-      for (const sym of symbols) {
-        if (
-          sym.kind === "struct" ||
-          sym.kind === "type" ||
-          sym.kind === "enum" ||
-          sym.kind === "class"
-        ) {
-          // Only add if we don't already have a mapping (first include wins)
-          if (!typeHeaders.has(sym.name)) {
-            typeHeaders.set(sym.name, directive);
-          }
+      for (const typeName of typeSource.typesDeclaredIn(headerPath)) {
+        if (!typeHeaders.has(typeName)) {
+          typeHeaders.set(typeName, directive);
         }
       }
     }

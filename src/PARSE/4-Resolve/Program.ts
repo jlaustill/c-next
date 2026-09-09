@@ -30,6 +30,9 @@ import DeferredTypes from "./DeferredTypes";
 import LiteralUtils from "../../utils/LiteralUtils";
 import type IVariableSymbol from "../../transpiler/types/symbols/IVariableSymbol";
 import IDerivedConsts from "./types/IDerivedConsts";
+
+/** Shared empty result, so a miss does not allocate. */
+const EMPTY_NAMES: ReadonlySet<string> = new Set<string>();
 import ConflictDetector from "./ConflictDetector";
 import type IForeignSymbols from "../../transpiler/types/IForeignSymbols";
 import type IConflict from "../../transpiler/types/IConflict";
@@ -72,6 +75,7 @@ class Program {
     // used to run over whatever an accumulator held when it was asked, which is
     // why it could not live here: the C-Next half was inserted after this point.
     // Flattened in file-declaration order so the report order is unchanged.
+    const typesByFile = Program.deriveTypesByFile(symbolsByFile, foreign);
     const conflicts = ConflictDetector.detect(
       [...symbolsByFile.values()].flat(),
       foreign.c,
@@ -96,7 +100,60 @@ class Program {
       constValuesIn: (scopePath: string): ReadonlyMap<string, number> =>
         Program.constValuesIn(derivedConsts, scopedViews, scopePath),
       conflicts: (): ReadonlyArray<IConflict> => conflicts,
+      typesDeclaredIn: (sourceFile: string): ReadonlySet<string> =>
+        typesByFile.get(sourceFile) ?? EMPTY_NAMES,
     });
+  }
+
+  /**
+   * The type names each file declares — struct, type, enum and class.
+   *
+   * "Which header declares this type" asked the other way round, because that
+   * is the direction the fact is authored in: a symbol knows its `sourceFile`,
+   * so grouping by file is a read of the symbols, while the inverse would have
+   * to pick a winner among headers and that choice belongs to whoever holds the
+   * include order (#1511).
+   *
+   * Every language, in the order a per-file lookup used to return them —
+   * C-Next, then C, then C++ — so a name declared in two of them keeps the same
+   * precedence it had.
+   */
+  private static deriveTypesByFile(
+    symbolsByFile: ReadonlyMap<string, ReadonlyArray<TSymbol>>,
+    foreign: IForeignSymbols,
+  ): Map<string, Set<string>> {
+    const typesByFile = new Map<string, Set<string>>();
+
+    const record = (sourceFile: string, kind: string, name: string): void => {
+      if (
+        kind !== "struct" &&
+        kind !== "type" &&
+        kind !== "enum" &&
+        kind !== "class"
+      ) {
+        return;
+      }
+      const existing = typesByFile.get(sourceFile);
+      if (existing) {
+        existing.add(name);
+      } else {
+        typesByFile.set(sourceFile, new Set([name]));
+      }
+    };
+
+    for (const symbols of symbolsByFile.values()) {
+      for (const symbol of symbols) {
+        record(symbol.sourceFile, symbol.kind, symbol.name);
+      }
+    }
+    for (const symbol of foreign.c) {
+      record(symbol.sourceFile, symbol.kind, symbol.name);
+    }
+    for (const symbol of foreign.cpp) {
+      record(symbol.sourceFile, symbol.kind, symbol.name);
+    }
+
+    return typesByFile;
   }
 
   /**

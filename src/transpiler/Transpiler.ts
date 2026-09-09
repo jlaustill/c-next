@@ -2560,9 +2560,15 @@ class Transpiler {
     // is rendered, so this cannot depend on where in the run it is asked.
     const allKnownEnums = this.program?.knownEnums() ?? new Set<string>();
 
+    // #1511: which types a header declares comes from the artifact. The
+    // include ORDER stays here -- it decides which header wins, and that is not
+    // a symbol fact.
     const externalTypeHeaders = ExternalTypeHeaderBuilder.build(
       this.state.getAllHeaderDirectives(),
-      CodeGenState.symbolTable,
+      {
+        typesDeclaredIn: (file: string) =>
+          this.program?.typesDeclaredIn(file) ?? new Set<string>(),
+      },
     );
 
     // ADR-029: Convert callback types to header format

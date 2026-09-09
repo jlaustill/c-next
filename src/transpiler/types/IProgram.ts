@@ -102,6 +102,16 @@ interface IProgram {
    * when it was asked (#1511).
    */
   conflicts(): ReadonlyArray<IConflict>;
+
+  /**
+   * The type names a file declares — struct, type, enum and class.
+   *
+   * "Which C header declares this type", asked from the file's side. Header
+   * generation includes the header that defines a type rather than forward
+   * declaring it (#497), and picking WHICH header wins belongs to whoever holds
+   * the include order, so this answers only what each file declares (#1511).
+   */
+  typesDeclaredIn(sourceFile: string): ReadonlySet<string>;
 }
 
 export default IProgram;
