@@ -162,12 +162,10 @@ class ScopeCollector {
         addMember(funcName);
 
         // Use collectAndRegister to populate both memberSymbols and SymbolRegistry
-        const body = funcDecl.block();
         const funcSymbol = FunctionCollector.collectAndRegister(
           funcDecl,
           sourceFile,
           scopePath,
-          body,
           visibility,
           isScopeType,
         );

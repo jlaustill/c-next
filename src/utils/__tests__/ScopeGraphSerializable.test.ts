@@ -31,7 +31,6 @@ function makeInit(): ReturnType<typeof FunctionUtils.create> {
     parameters: [],
     returnType: TTypeUtils.createPrimitive("void"),
     visibility: "public",
-    body: null,
     sourceFile: "motor.cnx",
     span: TestSourceSpan.at(1),
   });

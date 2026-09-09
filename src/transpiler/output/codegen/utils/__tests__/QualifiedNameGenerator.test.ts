@@ -24,7 +24,6 @@ describe("QualifiedNameGenerator", () => {
         parameters: [],
         returnType: TTypeUtils.createPrimitive("i32"),
         visibility: "public",
-        body: null,
         sourceFile: "main.cnx",
         span: TestSourceSpan.at(1),
       });
@@ -40,7 +39,6 @@ describe("QualifiedNameGenerator", () => {
         parameters: [],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "private",
-        body: null,
         sourceFile: "test.cnx",
         span: TestSourceSpan.at(1),
       });
@@ -56,7 +54,6 @@ describe("QualifiedNameGenerator", () => {
         parameters: [],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "private",
-        body: null,
         sourceFile: "test.cnx",
         span: TestSourceSpan.at(1),
       });
@@ -74,7 +71,6 @@ describe("QualifiedNameGenerator", () => {
         parameters: [],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "public",
-        body: null,
         sourceFile: "test.cnx",
         span: TestSourceSpan.at(1),
       });
@@ -123,7 +119,6 @@ describe("QualifiedNameGenerator", () => {
         parameters: [],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "public",
-        body: null,
         sourceFile: "motor.cnx",
         span: TestSourceSpan.at(1),
       });

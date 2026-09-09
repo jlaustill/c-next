@@ -475,13 +475,11 @@ class CNextResolver {
     // Top-level functions
     if (decl.functionDeclaration()) {
       const funcDecl = decl.functionDeclaration()!;
-      const body = funcDecl.block();
       // Use collectAndRegister to populate both old symbols and SymbolRegistry
       const symbol = FunctionCollector.collectAndRegister(
         funcDecl,
         sourceFile,
         "",
-        body,
         // ADR-016 (#1161): not a literal that can drift from the ADR. #1300
         // renamed the rule -- a top-level declaration is public because it has
         // no enclosing scope, not because it is a function.

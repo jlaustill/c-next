@@ -66,7 +66,6 @@ describe("SymbolRegistry", () => {
         parameters: [],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "private",
-        body: null,
         sourceFile: "test.cnx",
         span: TestSourceSpan.at(1),
       });
@@ -91,7 +90,6 @@ describe("SymbolRegistry", () => {
           parameters: [],
           returnType: TTypeUtils.createPrimitive("void"),
           visibility: "private",
-          body: null,
           sourceFile: "test.cnx",
           span: TestSourceSpan.at(1),
         });
@@ -120,7 +118,6 @@ describe("SymbolRegistry", () => {
         parameters: [],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "public",
-        body: null,
         sourceFile: "a.cnx",
         span: TestSourceSpan.at(2),
       });
@@ -130,7 +127,6 @@ describe("SymbolRegistry", () => {
         parameters: [],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "public",
-        body: null,
         sourceFile: "b.cnx",
         span: TestSourceSpan.at(2),
       });
@@ -151,7 +147,6 @@ describe("SymbolRegistry", () => {
         parameters: [],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "private",
-        body: null,
         sourceFile: "test.cnx",
         span: TestSourceSpan.at(1),
       });
@@ -168,7 +163,6 @@ describe("SymbolRegistry", () => {
         parameters: [],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "public",
-        body: null,
         sourceFile: "test.cnx",
         span: TestSourceSpan.at(1),
       });
@@ -195,7 +189,6 @@ describe("SymbolRegistry", () => {
         parameters: [],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "private",
-        body: null,
         sourceFile: "test.cnx",
         span: TestSourceSpan.at(1),
       });
@@ -219,7 +212,6 @@ describe("SymbolRegistry", () => {
         parameters: [],
         returnType: TTypeUtils.createPrimitive("i32"),
         visibility: "public",
-        body: null,
         sourceFile: "main.cnx",
         span: TestSourceSpan.at(1),
       });
@@ -237,7 +229,6 @@ describe("SymbolRegistry", () => {
         parameters: [],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "private",
-        body: null,
         sourceFile: "test.cnx",
         span: TestSourceSpan.at(10),
       });
@@ -255,7 +246,6 @@ describe("SymbolRegistry", () => {
         parameters: [],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "private",
-        body: null,
         sourceFile: "test.cnx",
         span: TestSourceSpan.at(20),
       });
@@ -280,7 +270,6 @@ describe("SymbolRegistry", () => {
         parameters: [],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "public",
-        body: null,
         sourceFile: "motor.cnx",
         span: TestSourceSpan.at(5),
       });
@@ -298,7 +287,6 @@ describe("SymbolRegistry", () => {
         parameters: [],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "public",
-        body: null,
         sourceFile: "helpers.cnx",
         span: TestSourceSpan.at(1),
       });

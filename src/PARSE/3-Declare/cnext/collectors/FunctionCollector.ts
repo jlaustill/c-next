@@ -22,7 +22,6 @@ class FunctionCollector {
    * @param ctx The function declaration context
    * @param sourceFile Source file path
    * @param scopePath The path of the scope this function belongs to (dotted path, "" at file scope)
-   * @param body AST reference for the function body
    * @param visibility Required: #1161 — a default here is a third source
    *   of truth for ADR-016 and drifted from it. Callers pass
    *   ScopeUtils.getDefaultVisibility() or an explicit keyword.
@@ -33,7 +32,6 @@ class FunctionCollector {
     ctx: Parser.FunctionDeclarationContext,
     sourceFile: string,
     scopePath: string,
-    body: Parser.BlockContext | null,
     visibility: TVisibility,
     isScopeType?: (qualifiedName: string) => boolean,
   ): IFunctionSymbol {
@@ -72,7 +70,6 @@ class FunctionCollector {
       parameters,
       returnType,
       visibility,
-      body,
       sourceFile,
       span,
       sourceLanguage: ESourceLanguage.CNext,
@@ -90,7 +87,6 @@ class FunctionCollector {
    * @param ctx The function declaration context
    * @param sourceFile Source file path
    * @param scopePath Declaring scope path; carries every outer component
-   * @param body AST reference for the function body
    * @param visibility Required: #1161 — a default here is a third source
    *   of truth for ADR-016 and drifted from it. Callers pass
    *   ScopeUtils.getDefaultVisibility() or an explicit keyword.
@@ -101,7 +97,6 @@ class FunctionCollector {
     ctx: Parser.FunctionDeclarationContext,
     sourceFile: string,
     scopePath: string,
-    body: Parser.BlockContext,
     visibility: TVisibility,
     isScopeType?: (qualifiedName: string) => boolean,
   ): IFunctionSymbol {
@@ -112,7 +107,6 @@ class FunctionCollector {
       ctx,
       sourceFile,
       scopePath,
-      body,
       visibility,
       isScopeType,
     );

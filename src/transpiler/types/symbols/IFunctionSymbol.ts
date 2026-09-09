@@ -14,9 +14,6 @@ interface IFunctionSymbol extends IBaseSymbol {
 
   /** Return type */
   readonly returnType: TType;
-
-  /** AST reference for function body (unknown to avoid parser dependency) */
-  readonly body: unknown;
 }
 
 export default IFunctionSymbol;

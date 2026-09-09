@@ -21,7 +21,6 @@ interface IFunctionCreateOptions {
   parameters: ReadonlyArray<IParameterInfo>;
   returnType: TType;
   visibility: TVisibility;
-  body: unknown;
   sourceFile: string;
   span: ISourceSpan;
 }
@@ -49,7 +48,6 @@ class FunctionUtils {
       parameters: options.parameters,
       returnType: options.returnType,
       visibility: options.visibility,
-      body: options.body,
       sourceFile: options.sourceFile,
       span: options.span,
       sourceLanguage: ESourceLanguage.CNext,
