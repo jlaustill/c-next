@@ -1,5 +1,6 @@
 import type TSymbol from "./symbols/TSymbol";
 import type IConflict from "./IConflict";
+import type ICallGraphEntry from "./ICallGraphEntry";
 
 /**
  * `Program` — the artifact 1.4 Resolve emits, and the only place a cross-file
@@ -126,6 +127,22 @@ interface IProgram {
 
   /** Every truly opaque typedef, resolved. */
   opaqueTypes(): ReadonlySet<string>;
+
+  /**
+   * Which parameters each function modifies, direct and transitive.
+   *
+   * Decides whether a caller's argument may take ADR-013 auto-const, and the
+   * callee is routinely in another file. Derived once over every tree rather
+   * than accumulated file by file, so it no longer depends on how far the run
+   * has got (#1511).
+   */
+  modifiedParameters(): ReadonlyMap<string, ReadonlySet<string>>;
+
+  /** Each function's parameter names, in declaration order. */
+  functionParamLists(): ReadonlyMap<string, ReadonlyArray<string>>;
+
+  /** Who calls whom, as transitive modification propagation reads it. */
+  callGraph(): ReadonlyMap<string, ReadonlyArray<ICallGraphEntry>>;
 }
 
 export default IProgram;

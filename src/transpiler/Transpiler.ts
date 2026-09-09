@@ -31,6 +31,9 @@ import HeaderTypeNames from "../TRANSPILE/2-Plan/HeaderTypeNames";
 import HeaderIncludes from "../TRANSPILE/2-Plan/HeaderIncludes";
 import QualifiedCName from "../utils/QualifiedCName";
 import ExternalTypeHeaderBuilder from "./output/headers/ExternalTypeHeaderBuilder";
+import PassByValueAnalyzer from "./../TRANSPILE/2-Plan/PassByValueAnalyzer";
+import type IModificationFacts from "./types/IModificationFacts";
+import type ICallGraphEntry from "./types/ICallGraphEntry";
 import HeaderGeneratorUtils from "./output/headers/HeaderGeneratorUtils";
 import IHeaderEmissionFacts from "./output/headers/types/IHeaderEmissionFacts";
 import IHeaderCallbackType from "./types/IHeaderCallbackType";
@@ -81,7 +84,6 @@ import TTranspileInput from "./types/TTranspileInput";
 import ITranspileError from "../lib/types/ITranspileError";
 import TranspilerState from "./state/TranspilerState";
 import runAnalyzers from "../TRANSPILE/1-Analyze/runAnalyzers";
-import ModificationAnalyzer from "../TRANSPILE/2-Plan/ModificationAnalyzer";
 import CacheManager from "../utils/cache/CacheManager";
 import MapUtils from "../utils/MapUtils";
 import detectCppSyntax from "./logic/detectCppSyntax";
@@ -198,7 +200,6 @@ class Transpiler {
    * Issue #593: Centralized analyzer for cross-file const inference in C++ mode.
    * Accumulates parameter modifications and param lists across all processed files.
    */
-  private readonly modificationAnalyzer = new ModificationAnalyzer();
   /** Issue #586: Centralized path resolution for output files */
   private readonly pathResolver: PathResolver;
 
@@ -616,6 +617,13 @@ class Transpiler {
       // reading the set any earlier would drop it from `externalStructFields` --
       // silently exempting it from ADR-016 init-completeness checking, which is
       // the one consumer of the fact.
+      // #1511: one derivation over every tree, before the artifact exists.
+      // This used to run per file inside the loop below, each pass injecting
+      // the running total, extracting its own contribution and restoring the
+      // globals it clobbered -- so "does this callee modify its parameter?"
+      // answered differently depending on how many files had gone before.
+      const modifications = Transpiler._deriveModificationFacts(declared);
+
       this.program = Program.build(
         declared.map((entry) => entry.fileSymbols),
         CodeGenState.symbolTable.getAllStructFields(),
@@ -636,6 +644,7 @@ class Transpiler {
             CodeGenState.symbolTable.getAllStructTagsWithBodies(),
           ),
         },
+        modifications,
       );
       // Passes after 1.4 read cross-file facts from the artifact rather than
       // re-deriving them. Set once per run, not per file.
@@ -659,6 +668,75 @@ class Transpiler {
     }
 
     return result.success;
+  }
+
+  /**
+   * Derive the parameter-modification facts for the WHOLE program.
+   *
+   * `PassByValueAnalyzer` collects per tree and propagates transitively through
+   * `CodeGenState`'s three maps, so this clears them once, collects from every
+   * tree, and propagates once -- which is what makes the result independent of
+   * file order. The analyzer stays in 2.2 Plan and is not moved: the
+   * orchestrator may import both layers, so no `PARSE -> TRANSPILE` edge is
+   * created, and relocating it would re-attribute its SonarCloud issues to
+   * whichever PR moved it (#1449 budgets separate cleanup PRs for exactly that).
+   *
+   * The maps are snapshotted because codegen goes on writing to them while it
+   * renders; the artifact must hold what the program said, not what the run has
+   * since accumulated.
+   */
+  private static _deriveModificationFacts(
+    declared: ReadonlyArray<{
+      readonly parsed: IParsedFile;
+      readonly fileSymbols: IFileSymbols;
+    }>,
+  ): IModificationFacts {
+    CodeGenState.modifiedParameters.clear();
+    CodeGenState.functionParamLists.clear();
+    CodeGenState.functionCallGraph.clear();
+
+    for (const entry of declared) {
+      PassByValueAnalyzer.collectFunctionParametersAndModifications(
+        entry.parsed.tree,
+      );
+    }
+
+    // The C-Next symbols are not in the table yet -- `_publishResolvedFile`
+    // puts them there, after this. Without them every scope field holding a
+    // callback reads as an undeclared function, so #1178's fail-safe fires on
+    // the very calls it exists to spare and the parameter is wrongly promoted
+    // to a pointer. They are in hand right here, so the predicate is supplied
+    // rather than left to depend on when a mutable table happens to be filled.
+    const cnextValueCNames = new Set<string>();
+    for (const entry of declared) {
+      for (const symbol of entry.fileSymbols.symbols) {
+        if (symbol.kind === "variable") {
+          cnextValueCNames.add(symbol.fullyQualifiedCName);
+        }
+      }
+    }
+    PassByValueAnalyzer.propagateModifications(
+      (name: string): boolean =>
+        cnextValueCNames.has(name) ||
+        CodeGenState.symbolTable
+          .getOverloadsByCName(name)
+          .some((symbol) => symbol.kind === "variable"),
+    );
+
+    const modifiedParameters = new Map<string, ReadonlySet<string>>();
+    for (const [name, params] of CodeGenState.modifiedParameters) {
+      modifiedParameters.set(name, new Set(params));
+    }
+    const functionParamLists = new Map<string, ReadonlyArray<string>>();
+    for (const [name, params] of CodeGenState.functionParamLists) {
+      functionParamLists.set(name, [...params]);
+    }
+    const callGraph = new Map<string, ReadonlyArray<ICallGraphEntry>>();
+    for (const [name, calls] of CodeGenState.functionCallGraph) {
+      callGraph.set(name, [...calls]);
+    }
+
+    return { modifiedParameters, functionParamLists, callGraph };
   }
 
   /**
@@ -752,18 +830,6 @@ class Transpiler {
       // Issue #465: Store ICodeGenSymbols for external enum resolution in stage 5
       const symbolInfo = TSymbolInfoAdapter.convert(tSymbols);
       this.state.setFileSymbolInfo(file.path, symbolInfo);
-
-      // Issue #593: collect modification analysis.
-      // Issue #1171: this ran in C++ mode only, so "does this callee modify
-      // its parameter?" was answered from accumulated cross-file data in C++
-      // and from per-file data alone in C. The analysis itself is
-      // language-neutral, so both modes now share the one answer.
-      const results = this.codeGenerator.analyzeModificationsOnly(
-        parsed.tree,
-        this.modificationAnalyzer.getModifications(),
-        this.modificationAnalyzer.getParamLists(),
-      );
-      this.modificationAnalyzer.accumulateResults(results);
     } catch (err) {
       return [Transpiler._collectionError(err)];
     }
@@ -790,7 +856,7 @@ class Transpiler {
    * Stage 5: Transpile a single C-Next file.
    *
    * Assumes the symbol table is already populated (stages 2-3 complete).
-   * Directly updates this.state and this.modificationAnalyzer.
+   * Directly updates this.state.
    */
   private _transpileFile(file: IPipelineFile): IFileResult {
     const sourcePath = file.path;
@@ -940,7 +1006,6 @@ class Transpiler {
       this.state.setUserIncludes(sourcePath, [...userIncludes]);
 
       // Issue #1171: accumulate in both modes -- see the gate removed above.
-      this._accumulateFileModifications();
 
       // #1323: resolve this file's header-render input while its state is
       // warm (reads from state populated above), but do not render it here.
@@ -973,31 +1038,6 @@ class Transpiler {
     } catch (err) {
       return this.buildCatchResult(sourcePath, err);
     }
-  }
-
-  /**
-   * Accumulate cross-file modification data from the code generator into the
-   * centralized modification analyzer.
-   *
-   * Issue #1171: this runs in both C and C++ mode. The data feeds #268
-   * auto-const, which is wrong in either language if a parameter forwarded to
-   * a cross-file mutating callee is treated as unmodified.
-   */
-  private _accumulateFileModifications(): void {
-    const fileModifications = this.codeGenerator.getModifiedParameters();
-    const modifiedParameters = new Map<string, Set<string>>();
-    for (const [funcName, params] of fileModifications) {
-      modifiedParameters.set(funcName, new Set(params));
-    }
-
-    const fileParamLists = this.codeGenerator.getFunctionParamLists();
-    const functionParamLists = new Map<string, readonly string[]>();
-    for (const [funcName, params] of fileParamLists) {
-      functionParamLists.set(funcName, [...params]);
-    }
-
-    this.modificationAnalyzer.accumulateModifications(modifiedParameters);
-    this.modificationAnalyzer.accumulateParamLists(functionParamLists);
   }
 
   // ===========================================================================
@@ -1162,7 +1202,6 @@ class Transpiler {
       await this.cacheManager.initialize();
     }
     // Issue #593: Reset cross-file modification tracking for new run
-    this.modificationAnalyzer.clear();
     // Issue #587: Reset accumulated state for new run
     this.state.reset();
     // ADR-049: the previous run's targets must not decide this run's budget
@@ -2753,9 +2792,13 @@ class Transpiler {
    * Setup cross-file modification tracking for const inference.
    */
   private _setupCrossFileModifications(): void {
+    // #1511: from the artifact. These were accumulated as files were
+    // transpiled, so a file rendered early saw fewer of them than a file
+    // rendered late -- the same fact, answered differently by position.
     const accumulatedModifications =
-      this.modificationAnalyzer.getModifications();
-    const accumulatedParamLists = this.modificationAnalyzer.getParamLists();
+      this.program?.modifiedParameters() ?? new Map();
+    const accumulatedParamLists =
+      this.program?.functionParamLists() ?? new Map();
 
     // Issue #1171: no cppDetected gate -- C mode needs the same cross-file
     // modification data, or a parameter forwarded only to a cross-file

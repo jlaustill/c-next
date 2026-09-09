@@ -88,12 +88,22 @@ class PassByValueAnalyzer {
    * They share this one entry rather than each passing their own resolver --
    * two call sites that merely agree today are a latent divergence.
    */
-  static propagateModifications(): void {
+  static propagateModifications(
+    isValueSymbol: (
+      name: string,
+    ) => boolean = PassByValueAnalyzer.nameIsValueSymbol,
+  ): void {
     TransitiveModificationPropagator.propagate(
       CodeGenState.functionCallGraph,
       CodeGenState.functionParamLists,
       CodeGenState.modifiedParameters,
-      PassByValueAnalyzer.calleeMayMutateParameter,
+      (callerName: string, callee: string, paramIndex: number): boolean =>
+        PassByValueAnalyzer.calleeMayMutateParameter(
+          callerName,
+          callee,
+          paramIndex,
+          isValueSymbol,
+        ),
     );
   }
 
@@ -109,6 +119,7 @@ class PassByValueAnalyzer {
   private static calleeIsIndirectCall(
     callerName: string,
     callee: string,
+    isValueSymbol: (name: string) => boolean,
   ): boolean {
     const root = QualifiedCName.split(callee)[0];
     const callerParameters =
@@ -116,10 +127,7 @@ class PassByValueAnalyzer {
     if (callerParameters.includes(callee) || callerParameters.includes(root)) {
       return true;
     }
-    if (
-      PassByValueAnalyzer.nameIsValueSymbol(callee) ||
-      PassByValueAnalyzer.nameIsValueSymbol(root)
-    ) {
+    if (isValueSymbol(callee) || isValueSymbol(root)) {
       return true;
     }
 
@@ -135,14 +143,22 @@ class PassByValueAnalyzer {
     const parts = QualifiedCName.split(callerName);
     if (parts.length < 2) return false;
     parts[parts.length - 1] = root;
-    return PassByValueAnalyzer.nameIsValueSymbol(
-      QualifiedCName.fromParts(parts),
-    );
+    return isValueSymbol(QualifiedCName.fromParts(parts));
   }
 
   /**
    * Whether a name resolves to a variable rather than a function -- a scope
    * field or global holding a callback.
+   */
+  /**
+   * The default answer, read from the accumulated symbol table.
+   *
+   * #1511: injectable because the table is filled as files are PUBLISHED, and
+   * the whole-program derivation runs before that. Asking it early answers "no"
+   * for every C-Next scope field, which turns each callback into an
+   * unresolvable callee and fires #1178's fail-safe on exactly the calls #1178
+   * exists to spare -- a wrong answer produced by call ORDER, not by the
+   * program. A caller that already holds the symbols passes them instead.
    */
   private static nameIsValueSymbol(name: string): boolean {
     const symbols = CodeGenState.symbolTable?.getOverloadsByCName(name) ?? [];
@@ -163,6 +179,7 @@ class PassByValueAnalyzer {
     callerName: string,
     callee: string,
     paramIndex: number,
+    isValueSymbol: (name: string) => boolean,
   ): boolean {
     // ADR-029: an indirect call invokes a *value* -- a callback parameter, a
     // scope field, a struct field -- not a function name. Nothing will ever
@@ -170,7 +187,13 @@ class PassByValueAnalyzer {
     // one of its caller's parameters, by construction rather than by accident.
     // Keep the pre-#1178 answer there; resolving the callback's declared
     // target is tracked separately.
-    if (PassByValueAnalyzer.calleeIsIndirectCall(callerName, callee)) {
+    if (
+      PassByValueAnalyzer.calleeIsIndirectCall(
+        callerName,
+        callee,
+        isValueSymbol,
+      )
+    ) {
       return false;
     }
 

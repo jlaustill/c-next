@@ -42,6 +42,13 @@ const EMPTY_NAMES: ReadonlySet<string> = new Set<string>();
  * `IForeignSymbols` is required so that a new one cannot be forgotten at a call
  * site, and a literal here would defeat that the moment one is added.
  */
+/** A program whose parameter-modification facts were not derived. */
+const NO_MODIFICATIONS: IModificationFacts = {
+  modifiedParameters: new Map<string, ReadonlySet<string>>(),
+  functionParamLists: new Map<string, ReadonlyArray<string>>(),
+  callGraph: new Map<string, ReadonlyArray<ICallGraphEntry>>(),
+};
+
 const NO_FOREIGN: IForeignSymbols = {
   c: [],
   cpp: [],
@@ -52,6 +59,8 @@ const NO_FOREIGN: IForeignSymbols = {
 import ConflictDetector from "./ConflictDetector";
 import type IForeignSymbols from "../../transpiler/types/IForeignSymbols";
 import type IConflict from "../../transpiler/types/IConflict";
+import type IModificationFacts from "../../transpiler/types/IModificationFacts";
+import type ICallGraphEntry from "../../transpiler/types/ICallGraphEntry";
 
 class Program {
   /**
@@ -66,6 +75,7 @@ class Program {
       ReadonlyMap<string, IStructFieldInfo>
     > = new Map(),
     foreign: IForeignSymbols = NO_FOREIGN,
+    modifications: IModificationFacts = NO_MODIFICATIONS,
   ): IProgram {
     // Each derivation is its own step, in dependency order: the scope-type
     // index settles the types, settled types yield const values, const values
@@ -121,6 +131,12 @@ class Program {
         typesByFile.get(sourceFile) ?? EMPTY_NAMES,
       isOpaqueType: (typeName: string): boolean => opaqueTypes.has(typeName),
       opaqueTypes: (): ReadonlySet<string> => opaqueTypes,
+      modifiedParameters: (): ReadonlyMap<string, ReadonlySet<string>> =>
+        modifications.modifiedParameters,
+      functionParamLists: (): ReadonlyMap<string, ReadonlyArray<string>> =>
+        modifications.functionParamLists,
+      callGraph: (): ReadonlyMap<string, ReadonlyArray<ICallGraphEntry>> =>
+        modifications.callGraph,
     });
   }
 

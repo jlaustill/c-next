@@ -23,6 +23,7 @@
 
 import SymbolTable from "../logic/symbols/SymbolTable";
 import type IProgram from "../types/IProgram";
+import type ICallGraphEntry from "../types/ICallGraphEntry";
 import type TIncludeHeader from "../types/TIncludeHeader";
 import TYPE_FORMING_KINDS from "../../PARSE/3-Declare/TYPE_FORMING_KINDS";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
@@ -61,15 +62,6 @@ interface IAssignmentContext {
   targetName: string | null;
   targetType: string | null;
   overflowBehavior: TOverflowBehavior;
-}
-
-/**
- * Function call graph entry for transitive modification analysis
- */
-interface ICallGraphEntry {
-  callee: string;
-  paramIndex: number;
-  argParamName: string;
 }
 
 /**

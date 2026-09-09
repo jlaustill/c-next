@@ -1118,49 +1118,6 @@ describe("CodeGenerator", () => {
     });
   });
 
-  describe("analyzeModificationsOnly()", () => {
-    it("should analyze modifications without full generation", () => {
-      const source = `
-        void modify(u32 param) {
-          param <- 42;
-        }
-      `;
-      const { tree } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
-
-      const result = generator.analyzeModificationsOnly(tree);
-
-      expect(result.modifications).toBeInstanceOf(Map);
-      expect(result.paramLists).toBeInstanceOf(Map);
-      expect(result.modifications.get("modify")?.has("param")).toBe(true);
-    });
-
-    it("should accept cross-file data for transitive propagation", () => {
-      const source = `
-        void caller(u32 x) {
-          externalModify(x);
-        }
-      `;
-      const { tree } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
-
-      const crossFileModifications = new Map<string, ReadonlySet<string>>([
-        ["externalModify", new Set(["param"])],
-      ]);
-      const crossFileParamLists = new Map<string, readonly string[]>([
-        ["externalModify", ["param"]],
-      ]);
-
-      const result = generator.analyzeModificationsOnly(
-        tree,
-        crossFileModifications,
-        crossFileParamLists,
-      );
-
-      expect(result.modifications).toBeInstanceOf(Map);
-    });
-  });
-
   describe("setCrossFileModifications()", () => {
     it("should set cross-file modification data", () => {
       const generator = createMinimalGenerator(`void foo() { }`);

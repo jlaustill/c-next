@@ -396,14 +396,17 @@ describe("Program", () => {
       const keys = Object.keys(program).sort();
 
       expect(keys).toEqual([
+        "callGraph",
         "conflicts",
         "constValue",
         "constValues",
         "constValuesIn",
         "externalStructFields",
+        "functionParamLists",
         "isOpaqueType",
         "isScopeType",
         "knownEnums",
+        "modifiedParameters",
         "opaqueTypes",
         "sourceFiles",
         "symbolByCName",
