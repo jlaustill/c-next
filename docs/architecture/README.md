@@ -148,6 +148,17 @@ member's context is its name.
 the lifetime axis enforceable -- the tree is not reachable from any artifact a downstream
 pass holds, so a dependency rule is a backstop rather than the primary guard.
 
+The backstop now exists (#1317). `parse-tree-confined-to-parser` in
+`.dependency-cruiser.cjs` reports every module outside the parser that imports a generated
+context or the `antlr4ng` runtime, and `npm run parse-tree:check` holds that population to
+the baseline in [`parse-tree-sites.md`](parse-tree-sites.md). It is `warn`, not `error`,
+because the sentence above describes where the axis is going and not where it is: a
+substantial population holds a tree today, much of it in the render layer, which is how a
+diagnostic can originate there at all. The current count and its per-layer split are in
+that generated document, not quoted here -- a number in prose is an ungated reading and
+rots. What the gate forbids is that number RISING: a pass reaching for the tree to answer
+a question its own artifact should already answer.
+
 ### What a symbol carries
 
 #### Tier 1 -- authored in 1.3 Declare

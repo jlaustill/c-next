@@ -69,6 +69,7 @@ run_check "Static Analysis" "docs:throw-citations:check" npm run docs:throw-cita
 run_check "Static Analysis" "scope-joins:check"          npm run scope-joins:check
 run_check "Static Analysis" "adr:independence:check"     npm run adr:independence:check
 run_check "Static Analysis" "gh:pagination:check"        npm run gh:pagination:check
+run_check "Static Analysis" "parse-tree:check"           npm run parse-tree:check
 run_check "Static Analysis" "gate:roster:check"         npm run gate:roster:check
 
 echo -e "\n${YELLOW}Build${NC}"

@@ -545,13 +545,44 @@ class ScopeJoinSites {
     return lines.join("\n");
   }
 
-  /** Compare freshly-scanned sites against the committed document. */
-  static check(
-    committed: string,
+  /**
+   * Everything `check` mode concluded, as a value.
+   *
+   * Was `check(committed, sites, verdicts)` with the missing-file branch and the
+   * stale-vs-errors ordering left in the CLI's `main()`, where no test could
+   * reach either. `diagnostic-manifest.ts` had already settled the shape --
+   * "both modes decide in DiagnosticManifest and only print here, so the
+   * ordering ... is reachable from a test rather than buried in a CLI entry
+   * point" -- and #1317 copied THIS script instead, reproducing the gap and then
+   * diverging from it: the two spelled the ordering opposite ways and both
+   * exited 1, so nothing could fail on the difference. Brought onto the sibling's
+   * shape so there is one generator pattern rather than two.
+   *
+   * `committedDocument` is nullable: a missing document is a decision here, not
+   * an `existsSync` branch in the CLI.
+   *
+   * Behavior is unchanged -- same three outcomes, same messages, same exit
+   * codes. `verdicts` stays injectable so the existing tests exercise the
+   * MECHANISM rather than today's twelve sites.
+   */
+  static checkOutcome(
+    committedDocument: string | null,
     sites: readonly ISite[],
+    freshDocument: string,
     verdicts: readonly IAdjudication[] = ScopeJoinSites.ADJUDICATIONS,
   ): ICheckOutcome {
-    const errors: string[] = [];
+    const siteErrors: string[] = [];
+
+    if (committedDocument === null) {
+      return {
+        ok: false,
+        errors: [
+          "docs/architecture/scope-join-sites.md is missing. Run `npm run scope-joins`.",
+        ],
+        info: [],
+      };
+    }
+    const committed = committedDocument;
 
     // Tolerant of padding: the committed document is Prettier-formatted, which
     // pads table cells to a common width. A parser requiring single spaces
@@ -570,18 +601,20 @@ class ScopeJoinSites {
       const [file, element] = key.split("\u0000");
       const was = expected.get(key);
       if (was === undefined) {
-        errors.push(
+        siteErrors.push(
           `${file}: new scope-denoting call shape \`${element}\` (${n} site(s))`,
         );
       } else if (n > was) {
-        errors.push(`${file}: \`${element}\` grew from ${was} to ${n} site(s)`);
+        siteErrors.push(
+          `${file}: \`${element}\` grew from ${was} to ${n} site(s)`,
+        );
       }
     }
     for (const [key, was] of expected) {
       const [file, element] = key.split("\u0000");
       const now = actual.get(key) ?? 0;
       if (now < was) {
-        errors.push(
+        siteErrors.push(
           `${file}: \`${element}\` down from ${was} to ${now} -- run ` +
             "`npm run scope-joins` AND update its `ADJUDICATIONS` entry: drop " +
             "it if the site is gone, re-key it if the expression was renamed. " +
@@ -595,7 +628,7 @@ class ScopeJoinSites {
     // the prose promise it replaced.
     for (const row of sites) {
       if (!ScopeJoinSites.adjudicationFor(row.file, row.element, verdicts)) {
-        errors.push(
+        siteErrors.push(
           `${row.file}: \`${row.element}\` has no adjudication -- add one to ` +
             "`ScopeJoinSites.ADJUDICATIONS` saying which kind it is and why",
         );
@@ -606,11 +639,40 @@ class ScopeJoinSites {
         (row) => row.file === verdict.file && row.element === verdict.element,
       );
       if (!stillThere) {
-        errors.push(
+        siteErrors.push(
           `${verdict.file}: adjudication for \`${verdict.element}\` matches no ` +
             "site -- remove it, the judgement outlived its code",
         );
       }
+    }
+
+    // Staleness is an INDEPENDENT defect only when the counts agree: a moved
+    // population makes the document stale as a consequence, and "edited by hand"
+    // would name the wrong cause there. That conditional lived in `main()`, was
+    // unreachable from a test, and had already been spelled the opposite way
+    // round in the script that copied this one -- both exiting 1, so nothing
+    // could fail on the difference.
+    //
+    // The rows are not the whole document. Comparing only what the parser can
+    // read leaves the preamble, the header comment and the total row free to
+    // drift with the gate still green -- `diagnostic-manifest.ts` compares in
+    // full for that reason. `render` emits no timestamp and Prettier is
+    // deterministic, so equality holds.
+    //
+    // Framed here rather than in the CLI so the printed text is a property of
+    // the decision and stays byte-identical to what `main()` used to emit.
+    const errors: string[] = [];
+    if (siteErrors.length > 0) {
+      errors.push(
+        "docs/architecture/scope-join-sites.md is out of date:\n" +
+          siteErrors.map((error) => `  ${error}`).join("\n"),
+      );
+    } else if (freshDocument !== committed) {
+      errors.push(
+        `docs/architecture/scope-join-sites.md does not match what the ` +
+          "generator produces, though the counts agree -- prose or the total " +
+          "row was edited by hand. Run `npm run scope-joins`.",
+      );
     }
 
     const { total, files, moving } = ScopeJoinSites.summarize(sites, verdicts);

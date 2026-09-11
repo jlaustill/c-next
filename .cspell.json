@@ -367,6 +367,7 @@
     "OSSM",
     "oxlint",
     "Parasoft",
+    "parsetree",
     "pathlib",
     "pathnorm",
     "perror",

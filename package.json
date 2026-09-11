@@ -58,6 +58,8 @@
     "release:milestones:check": "tsx scripts/release-milestones.ts check",
     "scope-joins": "tsx scripts/scope-join-sites.ts write",
     "scope-joins:check": "tsx scripts/scope-join-sites.ts check",
+    "parse-tree": "tsx scripts/parse-tree-sites.ts write",
+    "parse-tree:check": "tsx scripts/parse-tree-sites.ts check",
     "coverage:matrix:gaps": "tsx scripts/adr-matrix.ts gaps",
     "coverage:matrix:console": "tsx scripts/adr-matrix.ts console",
     "coverage:grammar": "tsx scripts/grammar-coverage.ts report",

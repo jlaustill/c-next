@@ -280,17 +280,69 @@ describe("ScopeJoinSites", () => {
     ];
     const doc = ScopeJoinSites.render(population, verdicts);
 
+    it("reports a missing document as a decision, not a CLI branch", () => {
+      // `existsSync` used to sit in `main()`, so this branch was unreachable
+      // from a test. Brought here with #1317's review.
+      const outcome = ScopeJoinSites.checkOutcome(
+        null,
+        population,
+        doc,
+        verdicts,
+      );
+
+      expect(outcome.ok).toBe(false);
+      expect(outcome.errors.join("\n")).toContain("is missing");
+    });
+
+    it("blames a hand edit only when the counts agree", () => {
+      // THE ordering decision. It lived in `main()` as `stale && outcome.ok`,
+      // and the script that copied this one spelled it `!ok` then `stale` --
+      // both exiting 1, so nothing could fail on the difference.
+      const handEdited = doc.replace("Issue #1357.", "Issue #1357. Edited.");
+      const outcome = ScopeJoinSites.checkOutcome(
+        handEdited,
+        population,
+        doc,
+        verdicts,
+      );
+
+      expect(outcome.ok).toBe(false);
+      expect(outcome.errors.join("\n")).toContain("edited by hand");
+    });
+
+    it("does not blame a hand edit when the population moved", () => {
+      // The other half: a moved population makes the document stale as a
+      // CONSEQUENCE, so naming a hand edit there points at the wrong cause.
+      const moved = [
+        { file: "src/a.ts", element: "scopeName", count: 3 },
+        { file: "src/b.ts", element: "scopeName", count: 1 },
+      ];
+      const outcome = ScopeJoinSites.checkOutcome(
+        doc,
+        moved,
+        ScopeJoinSites.render(moved, verdicts),
+        verdicts,
+      );
+
+      expect(outcome.ok).toBe(false);
+      expect(outcome.errors.join("\n")).not.toContain("edited by hand");
+      expect(outcome.errors.join("\n")).toContain("grew from 2 to 3");
+    });
+
     it("passes when the population is unchanged", () => {
-      expect(ScopeJoinSites.check(doc, population, verdicts).ok).toBe(true);
+      expect(
+        ScopeJoinSites.checkOutcome(doc, population, doc, verdicts).ok,
+      ).toBe(true);
     });
 
     it("fails when a call shape gains an occurrence", () => {
-      const outcome = ScopeJoinSites.check(
+      const outcome = ScopeJoinSites.checkOutcome(
         doc,
         [
           { file: "src/a.ts", element: "scopeName", count: 3 },
           { file: "src/b.ts", element: "scopeName", count: 1 },
         ],
+        doc,
         verdicts,
       );
 
@@ -299,9 +351,10 @@ describe("ScopeJoinSites", () => {
     });
 
     it("fails when a file that had none gains one", () => {
-      const outcome = ScopeJoinSites.check(
+      const outcome = ScopeJoinSites.checkOutcome(
         doc,
         [...population, { file: "src/c.ts", element: "scopeName", count: 1 }],
+        doc,
         [
           ...verdicts,
           {
@@ -320,7 +373,9 @@ describe("ScopeJoinSites", () => {
     });
 
     it("fails as stale when sites are removed, so a win gets recorded", () => {
-      const outcome = ScopeJoinSites.check(doc, [population[0]], [verdicts[0]]);
+      const outcome = ScopeJoinSites.checkOutcome(doc, [population[0]], doc, [
+        verdicts[0],
+      ]);
 
       expect(outcome.ok).toBe(false);
       expect(outcome.errors[0]).toContain("down from 1 to 0");
@@ -330,7 +385,9 @@ describe("ScopeJoinSites", () => {
       // The point of the table. A new shape must be judged before it lands,
       // rather than joining an unlabeled population the next reader has to
       // re-derive -- which is how both #1295 claims went unchecked.
-      const outcome = ScopeJoinSites.check(doc, population, [verdicts[0]]);
+      const outcome = ScopeJoinSites.checkOutcome(doc, population, doc, [
+        verdicts[0],
+      ]);
 
       expect(outcome.ok).toBe(false);
       expect(outcome.errors.join("\n")).toContain("has no adjudication");
@@ -354,9 +411,12 @@ describe("ScopeJoinSites", () => {
       // `ADJUDICATIONS`, which is source code, and regenerating only rewrites
       // the row that reports the gap.
       const regenerated = ScopeJoinSites.render(population, [verdicts[0]]);
-      const outcome = ScopeJoinSites.check(regenerated, population, [
-        verdicts[0],
-      ]);
+      const outcome = ScopeJoinSites.checkOutcome(
+        regenerated,
+        population,
+        regenerated,
+        [verdicts[0]],
+      );
 
       expect(outcome.ok).toBe(false);
       expect(outcome.errors.join("\n")).toContain("has no adjudication");
@@ -365,7 +425,7 @@ describe("ScopeJoinSites", () => {
     it("fails on a judgement that outlived its code", () => {
       // Without this, a fixed site keeps its verdict forever and the checklist
       // rots into the prose promise it replaced.
-      const outcome = ScopeJoinSites.check(doc, population, [
+      const outcome = ScopeJoinSites.checkOutcome(doc, population, doc, [
         ...verdicts,
         {
           file: "src/gone.ts",
@@ -418,9 +478,10 @@ describe("ScopeJoinSites", () => {
       const formatted = await prettier.format(doc, { parser: "markdown" });
 
       expect(formatted).not.toBe(doc);
-      expect(ScopeJoinSites.check(formatted, population, verdicts).ok).toBe(
-        true,
-      );
+      expect(
+        ScopeJoinSites.checkOutcome(formatted, population, formatted, verdicts)
+          .ok,
+      ).toBe(true);
     });
   });
 });
