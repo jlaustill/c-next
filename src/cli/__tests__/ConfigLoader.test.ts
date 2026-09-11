@@ -10,6 +10,7 @@ import ConfigLoader from "../ConfigLoader";
 
 describe("ConfigLoader", () => {
   let tempDir: string;
+  const originalHome = process.env.HOME;
 
   beforeEach(() => {
     tempDir = mkdtempSync(join(tmpdir(), "configloader-test-"));
@@ -17,6 +18,7 @@ describe("ConfigLoader", () => {
 
   afterEach(() => {
     rmSync(tempDir, { recursive: true, force: true });
+    process.env.HOME = originalHome;
   });
 
   describe("load", () => {
@@ -211,6 +213,27 @@ describe("ConfigLoader", () => {
         ]);
       });
 
+      /**
+       * #1548 review: `output` and `headerOut` are truthiness-guarded because
+       * `resolve(configDir, "")` returns `configDir` -- an empty `output` would
+       * stop meaning "(same dir as input)". `include` needs the same guard for
+       * the same reason: before anchoring, an empty entry was dropped by
+       * `PathNormalizer.expandRecursive` (`fs.exists("")` is false); anchored
+       * unguarded, it would put the whole project root on the header search
+       * path. Both behaviors are silent, so a stray entry from a trailing
+       * comma changes header resolution with nothing reported.
+       */
+      it("drops an empty include entry instead of resolving it to the project root", () => {
+        writeFileSync(
+          join(tempDir, "cnext.config.json"),
+          JSON.stringify({ include: ["", "vendor"] }),
+        );
+
+        const config = ConfigLoader.load(tempDir);
+
+        expect(config.include).toEqual([join(tempDir, "vendor")]);
+      });
+
       it("leaves an absolute headerOut unchanged", () => {
         writeFileSync(
           join(tempDir, "cnext.config.json"),
@@ -223,7 +246,12 @@ describe("ConfigLoader", () => {
       });
 
       it("expands a leading ~ in headerOut instead of anchoring it", () => {
-        const home = process.env.HOME;
+        // #1548 review: set HOME rather than reading it. With an unset HOME,
+        // expandTilde falls through to returning the path unchanged while
+        // `join(undefined, ...)` throws -- the failure surfaces as a TypeError
+        // inside the expectation rather than as a readable assertion diff.
+        const home = "/home/testuser";
+        process.env.HOME = home;
         writeFileSync(
           join(tempDir, "cnext.config.json"),
           JSON.stringify({ headerOut: "~/generated" }),
@@ -231,7 +259,7 @@ describe("ConfigLoader", () => {
 
         const config = ConfigLoader.load(tempDir);
 
-        expect(config.headerOut).toBe(join(home!, "generated"));
+        expect(config.headerOut).toBe(join(home, "generated"));
       });
     });
   });

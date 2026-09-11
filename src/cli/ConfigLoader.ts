@@ -74,9 +74,14 @@ class ConfigLoader {
       config.headerOut = ConfigLoader.anchor(config.headerOut, configDir);
     }
     if (config.include) {
-      config.include = config.include.map((path) =>
-        ConfigLoader.anchor(path, configDir),
-      );
+      // Empty entries are filtered rather than anchored: `resolve(configDir, "")`
+      // is `configDir`, so anchoring one would silently put the whole project
+      // root on the header search path. Same reason `output` and `headerOut`
+      // above are guarded -- an empty `output` must keep meaning "(same dir as
+      // input)" rather than becoming the project root.
+      config.include = config.include
+        .filter(Boolean)
+        .map((path) => ConfigLoader.anchor(path, configDir));
     }
     return config;
   }
