@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, writeFileSync, rmSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import ConfigLoader from "../ConfigLoader";
@@ -148,9 +148,91 @@ describe("ConfigLoader", () => {
       expect(config.debugMode).toBe(true);
       expect(config.target).toBe("cortex-m4");
       expect(config.noCache).toBe(true);
-      expect(config.include).toEqual(["lib/", "vendor/"]);
-      expect(config.output).toBe("build/");
-      expect(config.headerOut).toBe("include/");
+      // Issue #1547: paths a config file declares come back anchored to that
+      // config file's directory, not left relative for the CWD to resolve.
+      expect(config.include).toEqual([
+        join(tempDir, "lib"),
+        join(tempDir, "vendor"),
+      ]);
+      expect(config.output).toBe(join(tempDir, "build"));
+      expect(config.headerOut).toBe(join(tempDir, "include"));
+    });
+    describe("path anchoring (issue #1547)", () => {
+      it("resolves headerOut against the config file's directory", () => {
+        writeFileSync(
+          join(tempDir, "cnext.config.json"),
+          JSON.stringify({ headerOut: "include" }),
+        );
+
+        const config = ConfigLoader.load(tempDir);
+
+        expect(config.headerOut).toBe(join(tempDir, "include"));
+      });
+
+      it("resolves headerOut to the same path when loaded from a nested directory", () => {
+        const subDir = join(tempDir, "src");
+        mkdirSync(subDir, { recursive: true });
+        writeFileSync(
+          join(tempDir, "cnext.config.json"),
+          JSON.stringify({ headerOut: "include" }),
+        );
+
+        const fromRoot = ConfigLoader.load(tempDir);
+        const fromSubDir = ConfigLoader.load(subDir);
+
+        expect(fromSubDir.headerOut).toBe(join(tempDir, "include"));
+        expect(fromSubDir.headerOut).toBe(fromRoot.headerOut);
+      });
+
+      it("resolves output against the config file's directory", () => {
+        writeFileSync(
+          join(tempDir, "cnext.config.json"),
+          JSON.stringify({ output: "build" }),
+        );
+
+        const config = ConfigLoader.load(tempDir);
+
+        expect(config.output).toBe(join(tempDir, "build"));
+      });
+
+      it("resolves include entries against the config file's directory", () => {
+        const subDir = join(tempDir, "src");
+        mkdirSync(subDir, { recursive: true });
+        writeFileSync(
+          join(tempDir, "cnext.config.json"),
+          JSON.stringify({ include: ["vendor", ".pio/libdeps"] }),
+        );
+
+        const config = ConfigLoader.load(subDir);
+
+        expect(config.include).toEqual([
+          join(tempDir, "vendor"),
+          join(tempDir, ".pio", "libdeps"),
+        ]);
+      });
+
+      it("leaves an absolute headerOut unchanged", () => {
+        writeFileSync(
+          join(tempDir, "cnext.config.json"),
+          JSON.stringify({ headerOut: "/opt/generated/include" }),
+        );
+
+        const config = ConfigLoader.load(tempDir);
+
+        expect(config.headerOut).toBe("/opt/generated/include");
+      });
+
+      it("expands a leading ~ in headerOut instead of anchoring it", () => {
+        const home = process.env.HOME;
+        writeFileSync(
+          join(tempDir, "cnext.config.json"),
+          JSON.stringify({ headerOut: "~/generated" }),
+        );
+
+        const config = ConfigLoader.load(tempDir);
+
+        expect(config.headerOut).toBe(join(home!, "generated"));
+      });
     });
   });
 });
