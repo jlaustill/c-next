@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-375 fixture(s) assert a diagnostic; 360 carry a code.
+376 fixture(s) assert a diagnostic; 361 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -290,6 +290,7 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1312-undefined-type-position/order-lib-first.test.cnx                           | E0426               |
 | tests/bugs/issue-1312-undefined-type-position/undefined-type-same-file.test.cnx                  | E0426               |
 | tests/bugs/issue-1312-undefined-type-position/undefined-type-sibling.test.cnx                    | E0426               |
+| tests/bugs/issue-1320-whole-program-analysis/two-files-two-diagnostics.test.cnx                  | E0427, E0800        |
 | tests/bugs/issue-1322-scoped-const-collision/bounds-big-first-error.test.cnx                     | E0854               |
 | tests/bugs/issue-1322-scoped-const-collision/bounds-small-first-error.test.cnx                   | E0854               |
 | tests/bugs/issue-1322-scoped-struct-field-type/scoped-struct-bool-operand.test.cnx               | E0807               |
