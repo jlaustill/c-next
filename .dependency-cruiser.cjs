@@ -257,7 +257,17 @@ module.exports = {
         "the pipeline -- the argument scripts/__tests__/layer-rules.test.ts " +
         "makes for its `collectors-build-names-from-scopes` control. " +
         "`warn`, and it stays `warn`: some holders are correct (IParsedFile " +
-        "IS 1.2's artifact). What must not happen is the count RISING, which " +
+        "IS 1.2's artifact). That is a CHOSEN cost, not an inherited one: at " +
+        "`warn` this rule prints every edge, so `npm run depcruise` went from " +
+        "`no dependency violations found` to ~255 lines, and `no-orphans` and " +
+        "`no-deprecated-core` -- also `warn`, also exit-0 -- now share that " +
+        "channel. Both report 0 today, so nothing is buried yet; a future one " +
+        'would be one line inside 255. `severity: "info"` still prints every ' +
+        "edge and dependency-cruiser has no per-rule reporter filter " +
+        "(`--include-only`, `--focus` and `--reaches` all select MODULES), so " +
+        "there is no knob short of hiding output, which is worse. Accepted " +
+        "because this rule is gated independently by `parse-tree:check`. " +
+        "What must not happen is the count RISING, which " +
         "`npm run parse-tree:check` gates against " +
         "docs/architecture/parse-tree-sites.md. Flipping this to `error` is " +
         "the last card of track D, not this one.",
@@ -266,7 +276,17 @@ module.exports = {
         path: "^src/",
         pathNot: [
           "^src/transpiler/logic/parser/",
+          // Tests and their helpers are excluded ON PURPOSE: a fixture builds a
+          // parse tree because that is what it is testing, and counting them
+          // would make the baseline move whenever the suite grows. It is a
+          // POLICY, not an oversight, so it is written down -- measured at 62
+          // modules hidden (203 -> 141), which is too large a clause to leave
+          // silent in a comment that spends four sentences on `antlr4ng`.
+          // `declare-cannot-import-resolve` documents its own carve-out for the
+          // same reason. `__testUtils__` is named because `__tests__/` does not
+          // match it.
           "__tests__/",
+          "__testUtils__/",
           "\\.test\\.ts$",
         ],
       },
@@ -274,6 +294,15 @@ module.exports = {
         path: [
           "^src/transpiler/logic/parser/.*grammar/",
           "node_modules/antlr4ng/",
+          // The sanctioned carriers. `IParsedFile` is documented as the way a
+          // pass takes the tree "instead of re-parsing", and `IParsedFile["tree"]`
+          // IS `ProgramContext` -- so a module reaches the tree through this hop
+          // while naming neither the grammar nor the runtime, and the count stays
+          // flat as the coupling grows. Measured: a probe in `state/` holding
+          // `IParsedFile["tree"]` left the gate at 141 and exit 0, while the same
+          // probe spelled `ParserRuleContext` failed loudly. The guard was
+          // catching the honest spelling and missing the recommended one.
+          "^src/transpiler/types/(IParsedFile|IDeclaredFile|ITypeAccessors)\\.ts$",
         ],
       },
     },
@@ -360,9 +389,11 @@ module.exports = {
     doNotFollow: {
       path: [
         "node_modules",
-        "src/transpiler/logic/parser/grammar/.*",
-        "src/transpiler/logic/parser/c/grammar/.*",
-        "src/transpiler/logic/parser/cpp/grammar/.*",
+        // Same shape the rule's `to` uses, not an enumeration of today's three.
+        // Enumerated, a FOURTH grammar directory would be matched by the rule
+        // and FOLLOWED by the cruise, re-admitting the generated-code noise this
+        // entry exists to keep out, with nothing saying so.
+        "^src/transpiler/logic/parser/.*grammar/",
       ],
     },
     tsPreCompilationDeps: true,
@@ -372,31 +403,25 @@ module.exports = {
       conditionNames: ["import", "require", "node", "default"],
       mainFields: ["main", "types", "typings"],
     },
-    reporterOptions: {
-      text: {
-        highlightFocused: true,
-      },
-    },
-    // All of `src/`. This was an enumerated list of pass roots
-    // (`^src/(PARSE|TRANSPILE|transpiler)/`), and an enumerated focus is a
-    // DENYLIST wearing an allowlist's clothes: whatever it does not name is
-    // dropped from the graph, so a rule covering that path cannot fire and
-    // reports clean.
-    //
-    // #1317 shipped exactly that for a few minutes. `src/cli/`, `src/lib/` and
-    // `src/index.ts` were outside the list, `parse-tree-confined-to-parser`
+    // NO `focus`. It was an enumerated list of pass roots, and an enumerated
+    // focus is a DENYLIST wearing an allowlist's clothes: whatever it does not
+    // name is dropped from the graph, so a rule covering that path cannot fire
+    // and reports clean. #1317 shipped exactly that -- `src/cli/`, `src/lib/`
+    // and `src/index.ts` were outside the list, `parse-tree-confined-to-parser`
     // could not fire in any of them, and the rule's own documentation said it
-    // covered them -- a guard with a hole is worse than no guard, because
-    // people trust it. Mutation-checking the paths the DOCUMENTATION claimed,
-    // rather than only the one the definition of done named, is what caught it.
+    // covered them.
     //
-    // The lesson it replaces is the same lesson: naming only `^src/transpiler/`
-    // here is how the pass move would have silently taken 63 modules out of
-    // every rule at once (#1297 one level up), and `TRANSPILE` had to be spelled
-    // out because the filesystem is case-sensitive and `transpiler` does not
-    // match it. `^src/` cannot acquire either failure -- there is nothing left
-    // to forget to add. Measured: 818 -> 877 modules, and no other rule gains a
-    // violation.
-    focus: "^src/",
+    // The first fix widened it to `^src/`, which is a NO-OP: `npm run depcruise`
+    // cruises `src`, so every module already matches. Measured -- with the key
+    // and with it deleted, both give 247 violations over 877 modules and the
+    // violation sets are byte-identical. Keeping it would have read as
+    // "correctly scoped" while meaning "does nothing", which is this file's own
+    // guard-passing-by-coincidence failure, and it would leave the affordance to
+    // narrow it again later.
+    //
+    // The lesson it replaces is the same one: naming only `^src/transpiler/`
+    // would have silently taken 63 modules out of every rule at once (#1297 one
+    // level up), and `TRANSPILE` had to be spelled out because the filesystem is
+    // case-sensitive. Cruising everything cannot acquire either failure.
   },
 };

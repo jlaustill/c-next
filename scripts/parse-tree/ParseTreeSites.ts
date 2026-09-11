@@ -62,9 +62,15 @@ class ParseTreeSites {
     "src/lib/",
   ];
 
-  /** Which dependency a violation edge points at, in the document's vocabulary. */
+  /**
+   * Which dependency a violation edge points at, in the document's vocabulary.
+   *
+   * Anchored rather than a substring test: `includes("antlr4ng")` would classify
+   * any future repo path containing that string as the runtime. The rule's `to`
+   * already states the exact shape, so matching it keeps the two in step.
+   */
   private static holdKind(to: string): string {
-    return to.includes("antlr4ng") ? "antlr4ng" : "grammar";
+    return to.startsWith("node_modules/antlr4ng/") ? "antlr4ng" : "grammar";
   }
 
   /** The layer heading a module sits under. */
@@ -118,6 +124,31 @@ class ParseTreeSites {
         (a, b) => b[1] - a[1] || a[0].localeCompare(b[0]),
       ),
     };
+  }
+
+  /**
+   * Why an empty population is a broken run rather than a clean one, or null.
+   *
+   * Returns instead of exiting, for the reason `GeneratedMarkdown.parseMode`
+   * gives about its own guard: "a guard that can only be observed by watching a
+   * process die is a guard nobody checks." It lived in the CLI's `main()` and
+   * was the one branch in #1317 no test could reach -- and `scripts/` sits
+   * outside vitest's coverage `include`, so nothing would have reported the gap
+   * either.
+   *
+   * That matters more here than for a typical guard: this is the guard against
+   * the whole gate going inert, which is the failure `options.exclude` actually
+   * caused on this branch -- the rule reported a clean zero against the entire
+   * population because its `to` named a path excluded from the graph.
+   */
+  static emptinessError(sites: readonly ISite[]): string | null {
+    if (sites.length > 0) return null;
+    return (
+      `No module violates \`${ParseTreeSites.RULE}\`. That rule is expected ` +
+      "to match the whole population, so an empty result means it stopped " +
+      "matching -- check that `.dependency-cruiser.cjs` still carries it " +
+      "and that the grammar is in `doNotFollow`, not `exclude`."
+    );
   }
 
   /** The committed document body. No timestamp: it would churn every run (#1150). */
@@ -174,21 +205,58 @@ class ParseTreeSites {
   }
 
   /**
-   * Compare a freshly-cruised population against the committed document.
+   * Everything `check` mode concluded, as a value.
    *
-   * Fails in BOTH directions, for the reason `diagnostic-manifest.ts` gives:
-   * growth is the defect this gate exists to catch, and shrinkage left
-   * unrecorded means the committed number stops being the number, so the next
-   * rise is measured against a baseline nobody re-derived.
+   * Follows `DiagnosticManifest.checkOutcome` rather than the older shape in
+   * `scope-join-sites.ts`: every decision is HERE and the CLI only prints, so
+   * the ordering between "the population moved" and "the document is stale" is
+   * reachable from a test instead of buried in an entry point. #1317 copied the
+   * older shape and the two had already drifted apart --
+   *
+   *     scope-join-sites.ts   if (stale && outcome.ok) ... ; if (!outcome.ok) ...
+   *     parse-tree-sites.ts   if (!outcome.ok) ... ;         if (stale) ...
+   *
+   * -- with the same exit code either way, so nothing could fail on the
+   * difference. That is agreeing by coincidence, and the repository had already
+   * decided against it one script over.
+   *
+   * Errors are COLLECTED, not returned early, for the reason the sibling gives:
+   * one failure hiding another is how the second gets fixed a release later.
+   *
+   * `committedDocument` is nullable so the missing-file case is a decision here
+   * too, rather than an `existsSync` branch in the CLI that no test can reach.
    */
-  static check(committed: string, sites: readonly ISite[]): ICheckOutcome {
+  static checkOutcome(
+    committedDocument: string | null,
+    sites: readonly ISite[],
+    freshDocument: string,
+  ): ICheckOutcome {
     const errors: string[] = [];
+
+    // First and independently: an empty population is a broken run, and it stays
+    // reportable alongside whatever else is wrong.
+    const empty = ParseTreeSites.emptinessError(sites);
+    if (empty !== null) errors.push(empty);
+
+    const { total, byLayer } = ParseTreeSites.summarize(sites);
+    const renderLayer =
+      byLayer.find(([layer]) => layer === "src/transpiler/output/")?.[1] ?? 0;
+    const info = [
+      `${total} module(s) hold a parse tree; ${renderLayer} in the render layer.`,
+    ];
+
+    if (committedDocument === null) {
+      errors.push(
+        "docs/architecture/parse-tree-sites.md is missing. Run `npm run parse-tree`.",
+      );
+      return { ok: false, errors, info };
+    }
 
     // Tolerant of padding: the committed document is Prettier-formatted, which
     // pads table cells to a common width. A parser requiring single spaces
     // fails against the very file the generator just wrote.
     const expected = new Set<string>();
-    for (const match of committed.matchAll(
+    for (const match of committedDocument.matchAll(
       /^\|\s*`(src\/[^`]+)`\s*\|\s*(?:grammar|antlr4ng)/gm,
     )) {
       expected.add(match[1]);
@@ -215,18 +283,19 @@ class ParseTreeSites {
       }
     }
 
-    const { total, byLayer } = ParseTreeSites.summarize(sites);
-    const render = byLayer.find(
-      ([layer]) => layer === "src/transpiler/output/",
-    );
-    return {
-      ok: errors.length === 0,
-      errors,
-      info: [
-        `${total} module(s) hold a parse tree; ${render?.[1] ?? 0} in the ` +
-          "render layer.",
-      ],
-    };
+    // Staleness is an INDEPENDENT defect only when the population agrees: a
+    // moved population makes the document stale as a consequence, and reporting
+    // "edited by hand" there would name the wrong cause. That conditional is the
+    // decision this method exists to make testable.
+    if (freshDocument !== committedDocument && errors.length === 0) {
+      errors.push(
+        "docs/architecture/parse-tree-sites.md does not match what the " +
+          "generator produces, though the module list agrees -- prose or the " +
+          "per-layer table was edited by hand. Run `npm run parse-tree`.",
+      );
+    }
+
+    return { ok: errors.length === 0, errors, info };
   }
 }
 

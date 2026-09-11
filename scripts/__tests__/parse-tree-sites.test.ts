@@ -41,6 +41,19 @@ describe("ParseTreeSites.sites", () => {
     expect(sites[0].holds).toEqual(["antlr4ng", "grammar"]);
   });
 
+  it("classifies the runtime by anchored path, not substring", () => {
+    // `includes("antlr4ng")` would classify any repo path containing that
+    // string as the runtime; the rule's `to` names the exact shape.
+    const decoy = ParseTreeSites.sites([
+      violation("src/utils/A.ts", "src/vendor/antlr4ng-shim/Thing.ts"),
+    ]);
+
+    expect(decoy[0].holds).toEqual(["grammar"]);
+    expect(
+      ParseTreeSites.sites([violation("src/utils/B.ts", RUNTIME)])[0].holds,
+    ).toEqual(["antlr4ng"]);
+  });
+
   it("sorts by module so the committed diff is stable", () => {
     const sites = ParseTreeSites.sites([
       violation("src/utils/B.ts", GRAMMAR),
@@ -72,6 +85,28 @@ describe("ParseTreeSites.layerOf", () => {
   });
 });
 
+describe("ParseTreeSites.emptinessError", () => {
+  it("is silent when the rule matched anything", () => {
+    expect(
+      ParseTreeSites.emptinessError(
+        ParseTreeSites.sites([violation("src/utils/A.ts", GRAMMAR)]),
+      ),
+    ).toBeNull();
+  });
+
+  it("fires on an empty population, naming the two ways the rule goes inert", () => {
+    // The guard against the whole gate going inert -- the failure
+    // `options.exclude` actually caused on this branch. It was unreachable from
+    // a test until it moved out of the CLI, which is the point of moving it.
+    const message = ParseTreeSites.emptinessError([]);
+
+    expect(message).not.toBeNull();
+    expect(message).toContain(ParseTreeSites.RULE);
+    expect(message).toContain("doNotFollow");
+    expect(message).toContain("exclude");
+  });
+});
+
 describe("ParseTreeSites.render", () => {
   const sites = ParseTreeSites.sites([
     violation("src/transpiler/output/A.ts", GRAMMAR),
@@ -91,7 +126,7 @@ describe("ParseTreeSites.render", () => {
   });
 });
 
-describe("ParseTreeSites.check", () => {
+describe("ParseTreeSites.checkOutcome", () => {
   const sites = ParseTreeSites.sites([
     violation("src/transpiler/output/A.ts", GRAMMAR),
     violation("src/utils/B.ts", RUNTIME),
@@ -99,7 +134,9 @@ describe("ParseTreeSites.check", () => {
   const committed = ParseTreeSites.render(sites);
 
   it("passes against the document the generator just produced", () => {
-    expect(ParseTreeSites.check(committed, sites).ok).toBe(true);
+    expect(ParseTreeSites.checkOutcome(committed, sites, committed).ok).toBe(
+      true,
+    );
   });
 
   it("tolerates Prettier's cell padding", () => {
@@ -111,7 +148,7 @@ describe("ParseTreeSites.check", () => {
       "| `src/utils/B.ts`   |   antlr4ng   |",
     );
 
-    expect(ParseTreeSites.check(padded, sites).ok).toBe(true);
+    expect(ParseTreeSites.checkOutcome(padded, sites, padded).ok).toBe(true);
   });
 
   it("fires when a module joins the population", () => {
@@ -120,7 +157,11 @@ describe("ParseTreeSites.check", () => {
       violation("src/utils/B.ts", RUNTIME),
       violation("src/TRANSPILE/2-Plan/New.ts", GRAMMAR),
     ]);
-    const outcome = ParseTreeSites.check(committed, grown);
+    const outcome = ParseTreeSites.checkOutcome(
+      committed,
+      grown,
+      ParseTreeSites.render(grown),
+    );
 
     expect(outcome.ok).toBe(false);
     expect(outcome.errors.join("\n")).toContain("src/TRANSPILE/2-Plan/New.ts");
@@ -133,15 +174,72 @@ describe("ParseTreeSites.check", () => {
     const shrunk = ParseTreeSites.sites([
       violation("src/transpiler/output/A.ts", GRAMMAR),
     ]);
-    const outcome = ParseTreeSites.check(committed, shrunk);
+    const outcome = ParseTreeSites.checkOutcome(
+      committed,
+      shrunk,
+      ParseTreeSites.render(shrunk),
+    );
 
     expect(outcome.ok).toBe(false);
     expect(outcome.errors.join("\n")).toContain("src/utils/B.ts");
   });
 
-  it("reports the render-layer count, not just the total", () => {
-    expect(ParseTreeSites.check(committed, sites).info.join()).toContain(
-      "1 in the render layer",
+  it("reports a missing document as a decision, not a CLI branch", () => {
+    // `committedDocument === null` used to be an `existsSync` branch in main()
+    // that no test could reach.
+    const outcome = ParseTreeSites.checkOutcome(null, sites, committed);
+
+    expect(outcome.ok).toBe(false);
+    expect(outcome.errors.join("\n")).toContain("is missing");
+  });
+
+  it("blames a hand edit only when the population agrees", () => {
+    // THE ordering decision. It lived in main(), had already diverged from
+    // scope-join-sites.ts, and both spellings exited 1 so nothing could fail on
+    // the difference. A hand-edited preamble with an intact module list is the
+    // only case where "edited by hand" is the right cause.
+    const handEdited = committed.replace(
+      "Issue #1317.",
+      "Issue #1317. Edited by a human.",
     );
+    const outcome = ParseTreeSites.checkOutcome(handEdited, sites, committed);
+
+    expect(outcome.ok).toBe(false);
+    expect(outcome.errors.join("\n")).toContain("edited by hand");
+  });
+
+  it("does not blame a hand edit when the population moved", () => {
+    // The other half, and the reason the conditional exists: a moved population
+    // makes the document stale as a CONSEQUENCE, so naming a hand edit there
+    // points the reader at the wrong cause.
+    const grown = ParseTreeSites.sites([
+      violation("src/transpiler/output/A.ts", GRAMMAR),
+      violation("src/utils/B.ts", RUNTIME),
+      violation("src/TRANSPILE/2-Plan/New.ts", GRAMMAR),
+    ]);
+    const outcome = ParseTreeSites.checkOutcome(
+      committed,
+      grown,
+      ParseTreeSites.render(grown),
+    );
+
+    expect(outcome.ok).toBe(false);
+    expect(outcome.errors.join("\n")).not.toContain("edited by hand");
+  });
+
+  it("reports the render-layer count, not just the total", () => {
+    expect(
+      ParseTreeSites.checkOutcome(committed, sites, committed).info.join(),
+    ).toContain("1 in the render layer");
+  });
+
+  it("reports an empty population alongside, not instead of, other errors", () => {
+    // Collected rather than early-returned: one failure hiding another is how
+    // the second gets fixed a release later.
+    const outcome = ParseTreeSites.checkOutcome(null, [], committed);
+
+    expect(outcome.errors.length).toBeGreaterThan(1);
+    expect(outcome.errors.join("\n")).toContain(ParseTreeSites.RULE);
+    expect(outcome.errors.join("\n")).toContain("is missing");
   });
 });

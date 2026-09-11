@@ -217,13 +217,6 @@ jobs:
         run: npm run scope-joins:check
         continue-on-error: true
 
-      # Issue #1526: the roster in CLAUDE.md is a list that reads as complete,
-      # and it drifted three times in silence. The command it offered as proof
-      # was itself wrong twice in ways that cancelled -- it matched the
-      # `run_check` function definition while missing the one check that
-      # open-coded its own bookkeeping. This derives the claim instead: it
-      # counts invocations, diffs the npm scripts CI runs against the ones the
-      # gate runs, and asserts the numerals in the paragraph.
       # Issue #1317: docs/architecture/README.md rests the AST's whole lifetime
       # axis on one rule -- 1.3 consumes ParsedFile and does not re-export it --
       # and nothing enforced it. The population and its per-layer split live in
@@ -238,6 +231,13 @@ jobs:
         run: npm run parse-tree:check
         continue-on-error: true
 
+      # Issue #1526: the roster in CLAUDE.md is a list that reads as complete,
+      # and it drifted three times in silence. The command it offered as proof
+      # was itself wrong twice in ways that cancelled -- it matched the
+      # `run_check` function definition while missing the one check that
+      # open-coded its own bookkeeping. This derives the claim instead: it
+      # counts invocations, diffs the npm scripts CI runs against the ones the
+      # gate runs, and asserts the numerals in the paragraph.
       - name: Check the gate roster matches what runs
         id: gateroster
         run: npm run gate:roster:check

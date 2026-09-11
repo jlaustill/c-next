@@ -68,70 +68,41 @@ async function main(): Promise<void> {
   const mode = GeneratedMarkdown.requireMode(process.argv[2]);
 
   const sites = ParseTreeSites.sites(violations());
-
-  if (sites.length === 0) {
-    // A zero here is far more likely to be the rule failing to match than the
-    // population genuinely emptying -- `options.exclude` hid the grammar from
-    // the graph entirely until this issue moved it to `doNotFollow`, and a rule
-    // whose `to` is excluded reports clean forever. Greening on that would
-    // license deleting the gate (#1143).
-    console.error(
-      chalk.red(
-        `No module violates \`${ParseTreeSites.RULE}\`. That rule is expected ` +
-          "to match the whole population, so an empty result means it stopped " +
-          "matching -- check that `.dependency-cruiser.cjs` still carries it " +
-          "and that the grammar is in `doNotFollow`, not `exclude`.",
-      ),
-    );
-    process.exit(1);
-  }
-
   const document = await GeneratedMarkdown.format(
     ParseTreeSites.render(sites),
     docPath,
   );
 
   if (mode === "write") {
+    // `write` still refuses to run on an empty population: regenerating a doc
+    // to zero rows is how a rule that stopped matching gets its baseline
+    // rewritten to agree with it, which would license deleting the gate.
+    const empty = ParseTreeSites.emptinessError(sites);
+    if (empty !== null) {
+      console.error(chalk.red(empty));
+      process.exit(1);
+    }
     writeFileSync(docPath, document);
     console.log(chalk.green(`Wrote ${docPath} (${sites.length} module(s))`));
     return;
   }
 
-  if (!existsSync(docPath)) {
-    console.error(
-      chalk.red(`${docPath} is missing. Run \`npm run parse-tree\`.`),
-    );
-    process.exit(1);
-  }
+  // Every decision -- emptiness, missing file, population drift, staleness and
+  // the ordering between them -- is made in `ParseTreeSites.checkOutcome` so a
+  // test can reach it. This function only prints and sets the exit code, which
+  // is the shape `diagnostic-manifest.ts` settled on and the one #1317 should
+  // have copied.
+  const outcome = ParseTreeSites.checkOutcome(
+    existsSync(docPath) ? readFileSync(docPath, "utf-8") : null,
+    sites,
+    document,
+  );
 
-  const committed = readFileSync(docPath, "utf-8");
-  const outcome = ParseTreeSites.check(committed, sites);
-  // The rows are not the whole document. Comparing only what the parser can
-  // read leaves the preamble, the per-layer table and the total free to drift
-  // from what the generator emits with the gate still green -- the sibling this
-  // follows (scope-join-sites.ts) compares in full for that reason. `render`
-  // emits no timestamp and Prettier is deterministic, so equality holds.
-  const stale = document !== committed;
   for (const line of outcome.info) {
     console.log(chalk.green(line));
   }
   if (!outcome.ok) {
-    console.error(
-      chalk.red(
-        "docs/architecture/parse-tree-sites.md is out of date:\n" +
-          outcome.errors.map((error) => `  ${error}`).join("\n"),
-      ),
-    );
-    process.exit(1);
-  }
-  if (stale) {
-    console.error(
-      chalk.red(
-        `${docPath} does not match what the generator produces, though the ` +
-          "module list agrees -- prose or the per-layer table was edited by " +
-          "hand. Run `npm run parse-tree`.",
-      ),
-    );
+    console.error(chalk.red(outcome.errors.join("\n")));
     process.exit(1);
   }
 }
