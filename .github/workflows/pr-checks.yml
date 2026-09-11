@@ -224,6 +224,19 @@ jobs:
       # open-coded its own bookkeeping. This derives the claim instead: it
       # counts invocations, diffs the npm scripts CI runs against the ones the
       # gate runs, and asserts the numerals in the paragraph.
+      # Issue #1317: docs/architecture/README.md rests the AST's whole lifetime
+      # axis on one rule -- 1.3 consumes ParsedFile and does not re-export it --
+      # and nothing enforced it, so 141 modules outside the parser hold a parse
+      # context, 44 of them in the render layer. The depcruise rule is `warn`
+      # because some holders are correct (IParsedFile IS 1.2's artifact); what
+      # must not happen is the count RISING, which is what this gates. The
+      # population is the rule's own violation set, so the rule and the baseline
+      # cannot drift apart into a module gated by neither.
+      - name: Check parse-tree confinement baseline
+        id: parsetree
+        run: npm run parse-tree:check
+        continue-on-error: true
+
       - name: Check the gate roster matches what runs
         id: gateroster
         run: npm run gate:roster:check
@@ -250,6 +263,7 @@ jobs:
           [ "${{ steps.errorcodes.outcome }}" != "success" ] && echo "❌ Error-code registry" && FAILED=1 || echo "✅ Error-code registry"
           [ "${{ steps.throwcitations.outcome }}" != "success" ] && echo "❌ Throw citations" && FAILED=1 || echo "✅ Throw citations"
           [ "${{ steps.scopejoins.outcome }}" != "success" ] && echo "❌ Scope-join sites" && FAILED=1 || echo "✅ Scope-join sites"
+          [ "${{ steps.parsetree.outcome }}" != "success" ] && echo "❌ Parse-tree baseline" && FAILED=1 || echo "✅ Parse-tree baseline"
           [ "${{ steps.gateroster.outcome }}" != "success" ] && echo "❌ Gate roster" && FAILED=1 || echo "✅ Gate roster"
           [ $FAILED -eq 1 ] && exit 1 || exit 0
 

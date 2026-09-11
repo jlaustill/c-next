@@ -231,6 +231,49 @@ module.exports = {
       to: { path: "^src/TRANSPILE/1-Analyze/", reachable: true },
     },
     {
+      name: "parse-tree-confined-to-parser",
+      comment:
+        "#1317: docs/architecture/README.md makes the AST Tier 1 with a short " +
+        "lifetime, and rests the whole lifetime axis on one rule -- 1.3 " +
+        "consumes ParsedFile and does not re-export it, so the tree is not " +
+        "reachable from any artifact a downstream pass holds. Nothing " +
+        "enforced it: 141 modules outside the parser hold a parse context, 44 " +
+        "of them in the render layer, which is how a diagnostic can originate " +
+        "there at all. " +
+        "`antlr4ng` is named alongside the generated grammars because " +
+        "ParserRuleContext is the BASE CLASS of every generated context: " +
+        "seven modules hold one without importing CNextParser, so a gate on " +
+        "the grammar path alone is satisfied by rewriting an import rather " +
+        "than removing the coupling. The C and C++ grammars are named for the " +
+        "same reason -- a foreign parse tree is still a parse tree. " +
+        "Direct, NOT `reachable`: the claim is that a pass's SOURCE must not " +
+        "name a parse-context type, which is a claim about authorship. " +
+        "Reachability is a different question here and answers `yes` for " +
+        "almost every module, since everything reaches the grammar through " +
+        "the pipeline -- the argument scripts/__tests__/layer-rules.test.ts " +
+        "makes for its `collectors-build-names-from-scopes` control. " +
+        "`warn`, and it stays `warn`: some holders are correct (IParsedFile " +
+        "IS 1.2's artifact). What must not happen is the count RISING, which " +
+        "`npm run parse-tree:check` gates against " +
+        "docs/architecture/parse-tree-sites.md. Flipping this to `error` is " +
+        "the last card of track D, not this one.",
+      severity: "warn",
+      from: {
+        path: "^src/",
+        pathNot: [
+          "^src/transpiler/logic/parser/",
+          "__tests__/",
+          "\\.test\\.ts$",
+        ],
+      },
+      to: {
+        path: [
+          "^src/transpiler/logic/parser/.*grammar/",
+          "node_modules/antlr4ng/",
+        ],
+      },
+    },
+    {
       name: "no-circular",
       comment: "No circular dependencies allowed",
       severity: "error",
@@ -298,8 +341,25 @@ module.exports = {
     },
   ],
   options: {
+    // The generated parser files were `exclude`d here, to keep their known
+    // issues out of the analysis. #1317: `exclude` drops a module from the
+    // GRAPH, so every edge pointing at it disappears too -- and a rule whose
+    // `to` names an excluded path can never fire. `parse-tree-confined-to-parser`
+    // reported a clean zero against 141 real holders, which is the inert-guard
+    // shape (#1143) at config level: nothing missing, nothing skipped, and the
+    // rule answering a question with no possible answer.
+    //
+    // `doNotFollow` keeps them as leaf NODES -- visible as dependency targets,
+    // with their own dependencies unanalyzed -- which is what the original
+    // comment actually wanted. Measured: 809 -> 818 modules, and the other
+    // rules stay at zero violations.
     doNotFollow: {
-      path: ["node_modules"],
+      path: [
+        "node_modules",
+        "src/transpiler/logic/parser/grammar/.*",
+        "src/transpiler/logic/parser/c/grammar/.*",
+        "src/transpiler/logic/parser/cpp/grammar/.*",
+      ],
     },
     tsPreCompilationDeps: true,
     tsConfig: { fileName: "tsconfig.json" },
@@ -313,12 +373,6 @@ module.exports = {
         highlightFocused: true,
       },
     },
-    // Exclude generated parser files from analysis (they have known issues)
-    exclude: [
-      "src/transpiler/logic/parser/grammar/.*",
-      "src/transpiler/logic/parser/c/grammar/.*",
-      "src/transpiler/logic/parser/cpp/grammar/.*",
-    ],
     // Focus on the pass tree AND what has not moved into it yet. Naming only
     // `^src/transpiler/` here is how the move would have silently taken 63
     // modules out of every rule at once: the checks stay green because
