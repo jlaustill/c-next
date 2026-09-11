@@ -152,10 +152,12 @@ The backstop now exists (#1317). `parse-tree-confined-to-parser` in
 `.dependency-cruiser.cjs` reports every module outside the parser that imports a generated
 context or the `antlr4ng` runtime, and `npm run parse-tree:check` holds that population to
 the baseline in [`parse-tree-sites.md`](parse-tree-sites.md). It is `warn`, not `error`,
-because the sentence above describes where the axis is going and not where it is: 141
-modules hold a tree today, 44 of them in the render layer, which is how a diagnostic can
-originate there at all. What the gate forbids is that number RISING -- a pass reaching for
-the tree to answer a question its own artifact should already answer.
+because the sentence above describes where the axis is going and not where it is: a
+substantial population holds a tree today, much of it in the render layer, which is how a
+diagnostic can originate there at all. The current count and its per-layer split are in
+that generated document, not quoted here -- a number in prose is an ungated reading and
+rots. What the gate forbids is that number RISING: a pass reaching for the tree to answer
+a question its own artifact should already answer.
 
 ### What a symbol carries
 

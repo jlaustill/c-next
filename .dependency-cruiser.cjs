@@ -237,9 +237,13 @@ module.exports = {
         "lifetime, and rests the whole lifetime axis on one rule -- 1.3 " +
         "consumes ParsedFile and does not re-export it, so the tree is not " +
         "reachable from any artifact a downstream pass holds. Nothing " +
-        "enforced it: 141 modules outside the parser hold a parse context, 44 " +
-        "of them in the render layer, which is how a diagnostic can originate " +
-        "there at all. " +
+        "enforced it. The population and its per-layer split live in " +
+        "docs/architecture/parse-tree-sites.md, which `npm run parse-tree` " +
+        "regenerates and `parse-tree:check` gates -- quoted here they would be " +
+        "an ungated reading that rots, which is the failure CLAUDE.md names as " +
+        "asserting the bound rather than recording the reading. The render " +
+        "layer's share is the one that matters: the render layer holding parse " +
+        "nodes is how a diagnostic can originate there at all. " +
         "`antlr4ng` is named alongside the generated grammars because " +
         "ParserRuleContext is the BASE CLASS of every generated context: " +
         "seven modules hold one without importing CNextParser, so a gate on " +
@@ -345,7 +349,7 @@ module.exports = {
     // issues out of the analysis. #1317: `exclude` drops a module from the
     // GRAPH, so every edge pointing at it disappears too -- and a rule whose
     // `to` names an excluded path can never fire. `parse-tree-confined-to-parser`
-    // reported a clean zero against 141 real holders, which is the inert-guard
+    // reported a clean zero against the entire population, the inert-guard
     // shape (#1143) at config level: nothing missing, nothing skipped, and the
     // rule answering a question with no possible answer.
     //
@@ -373,16 +377,26 @@ module.exports = {
         highlightFocused: true,
       },
     },
-    // Focus on the pass tree AND what has not moved into it yet. Naming only
-    // `^src/transpiler/` here is how the move would have silently taken 63
-    // modules out of every rule at once: the checks stay green because
-    // nothing is analyzed, which is the shape of #1297 one level up.
+    // All of `src/`. This was an enumerated list of pass roots
+    // (`^src/(PARSE|TRANSPILE|transpiler)/`), and an enumerated focus is a
+    // DENYLIST wearing an allowlist's clothes: whatever it does not name is
+    // dropped from the graph, so a rule covering that path cannot fire and
+    // reports clean.
     //
-    // `TRANSPILE` is spelled out rather than folded into a case-insensitive
-    // pattern: the filesystem is case-sensitive, `transpiler` does not match
-    // `TRANSPILE`, and #1449 created `src/TRANSPILE/2-Plan/` -- which the two
-    // named alternatives would have left outside every rule on the same day
-    // the rules for it were written.
-    focus: "^src/(PARSE|TRANSPILE|transpiler)/",
+    // #1317 shipped exactly that for a few minutes. `src/cli/`, `src/lib/` and
+    // `src/index.ts` were outside the list, `parse-tree-confined-to-parser`
+    // could not fire in any of them, and the rule's own documentation said it
+    // covered them -- a guard with a hole is worse than no guard, because
+    // people trust it. Mutation-checking the paths the DOCUMENTATION claimed,
+    // rather than only the one the definition of done named, is what caught it.
+    //
+    // The lesson it replaces is the same lesson: naming only `^src/transpiler/`
+    // here is how the pass move would have silently taken 63 modules out of
+    // every rule at once (#1297 one level up), and `TRANSPILE` had to be spelled
+    // out because the filesystem is case-sensitive and `transpiler` does not
+    // match it. `^src/` cannot acquire either failure -- there is nothing left
+    // to forget to add. Measured: 818 -> 877 modules, and no other rule gains a
+    // violation.
+    focus: "^src/",
   },
 };
