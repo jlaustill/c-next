@@ -43,7 +43,7 @@ whole point -- a coded, covered diagnostic invisible to the audit. (#1322 has si
 it to pass 2.1, so the line it sat on no longer holds a throw and is not cited here.) A user-facing, coded, fixture-covered diagnostic sat outside the audit that
 exists to find exactly those.
 
-So the corpus was **184** when the gate was widened, and is **145** now that `ArrayAccessHelper`, `CodeGenErrors`, all 23 bucket-3 sites and all 16 invariants are gone. What remains is bucket 1 exactly. What this cost the anchors is the argument against the indirection, and it has now been paid: a
+So the corpus was **184** when the gate was widened, and fell to **145** once `ArrayAccessHelper`, `CodeGenErrors`, all 23 bucket-3 sites and all 16 invariants were gone — bucket 1 exactly. #1322 has since relocated bucket 1 as well, so the corpus is now empty. Those are both historical readings: the table below and `npm run docs:throw-citations:check` are the live counts, not this sentence. What this cost the anchors is the argument against the indirection, and it has now been paid: a
 factory throw's argument list is `(line, varName, …)`, not the message, so those rows had to be
 anchored on their **arguments** — the only honest key for a site whose text is written elsewhere.
 `CodeGenErrors` is deleted and E0856 is raised at its site, so its row is anchored on what it
