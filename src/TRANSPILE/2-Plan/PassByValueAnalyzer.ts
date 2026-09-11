@@ -3,17 +3,17 @@
  *
  * Extracted from CodeGenerator.ts (Issue #269, #558, #566, #579)
  *
- * Performs three-phase analysis to determine which function parameters
- * can be passed by value (as opposed to pointer):
+ * Collects the modification facts ADR-006 eligibility is decided from:
  *
  * Phase 1: Collect function parameter lists and direct modifications
  * Phase 2: Transitive modification propagation (via TransitiveModificationPropagator)
- * Phase 3: Determine which parameters can pass by value
  *
- * A parameter can pass by value if:
- * 1. It's a small primitive type (u8, i8, u16, i16, u32, i32, u64, i64, bool)
- * 2. It's not modified (directly or transitively)
- * 3. It's not an array, struct, string, or callback
+ * #1511: eligibility itself is derived ONCE, in `Program.eligibleParameters`,
+ * because "is this parameter modified anywhere downstream" needs the whole call
+ * chain and that crosses files. The third phase that used to live here is gone.
+ * The rule is deliberately NOT restated here — it was a prose copy of that
+ * derivation, nine type names included, and `SMALL_PRIMITIVES` was extracted to
+ * stop exactly that duplication.
  *
  * Issue #1100: Subscript access no longer forces pointer semantics on its
  * own. A scalar parameter subscripted with a single index is bit-indexing
@@ -35,7 +35,8 @@ import QualifiedCName from "../../utils/QualifiedCName";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
 
 /**
- * Static analyzer for determining pass-by-value eligibility.
+ * Collects parameter-modification facts and reads the eligibility verdict from
+ * the artifact; it no longer decides eligibility itself (#1511).
  * All state is stored in CodeGenState - this class contains pure analysis logic.
  */
 class PassByValueAnalyzer {
@@ -43,10 +44,12 @@ class PassByValueAnalyzer {
    * Phase 2: run transitive modification propagation with the project's
    * standard callee resolver.
    *
-   * Both this analyzer and CodeGenerator.analyzeModificationsOnly propagate,
-   * and both must answer "does this callee modify its parameter?" the same way.
-   * They share this one entry rather than each passing their own resolver --
-   * two call sites that merely agree today are a latent divergence.
+   * #1511: `CodeGenerator.analyzeModificationsOnly` was the second propagator
+   * and is deleted, so the "two callers must agree" reason for this shared entry
+   * point is gone. The entry point stays, and so does the injectable
+   * `isValueSymbol`, for the reason given at its own call site below: the symbol
+   * table is not filled until publish, so the whole-program caller supplies the
+   * predicate rather than depending on when a mutable table happens to fill.
    */
   static propagateModifications(
     isValueSymbol: (
@@ -276,8 +279,8 @@ class PassByValueAnalyzer {
    * - Direct modifications (param <- value)
    * - Function calls where params are passed as arguments
    *
-   * Exposed as public for use by CodeGenerator.analyzeModificationsOnly()
-   * which needs to run just this phase for cross-file analysis.
+   * Public for `ModificationFacts.derive`, which runs just this phase over every
+   * tree to derive the whole-program facts (#1511).
    */
   static collectFunctionParametersAndModifications(
     tree: Parser.ProgramContext,

@@ -41,7 +41,6 @@ import SymbolTable from "./state/SymbolTable";
 import ESourceLanguage from "../utils/types/ESourceLanguage";
 import CNextResolver from "../PARSE/3-Declare/cnext/index";
 import SymbolRegistry from "./state/SymbolRegistry";
-import TSymbolInfoAdapter from "../PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
 import Program from "../PARSE/4-Resolve/Program";
 import type IProgram from "./types/IProgram";
 import type IFileSymbols from "./types/IFileSymbols";
@@ -840,11 +839,23 @@ class Transpiler {
       // #1511: composed once, when the whole program was in hand. This used to
       // walk the include closure and merge here, per file, over a map the
       // publish loop was still filling -- so the same file saw more or less
-      // depending on when it was rendered. The fallback is the pre-1.4 shape and
-      // is unreachable: stage 5 runs only after the artifact exists.
-      const symbolInfo =
-        this.program?.codeGenSymbolsFor(sourcePath) ??
-        TSymbolInfoAdapter.convert(declared.symbols);
+      // depending on when it was rendered.
+      //
+      // Asserted rather than defaulted. A per-file view would be the pre-#1301
+      // shape -- no cross-file enums, no #1333 struct qualification, no #1398
+      // const names -- and codegen would emit subtly wrong C with no diagnostic.
+      // The guarantee that this is present is a key-provenance argument two call
+      // sites apart (`Program.build` keys on `IFileSymbols.sourceFile`, set from
+      // `file.path`, and this reads the same `file.path`), so it is the kind of
+      // invariant that should fail loudly if it ever stops holding. Same
+      // treatment as `Program.settleEveryFile`'s deferred-type check.
+      const symbolInfo = this.program?.codeGenSymbolsFor(sourcePath);
+      if (!symbolInfo) {
+        throw new Error(
+          `Internal error: no visible symbol view for ${sourcePath}; ` +
+            `1.4 Resolve must run before stage 5`,
+        );
+      }
 
       // Make symbols available to analyzers (CodeGenerator.generate() sets this too)
       CodeGenState.symbols = symbolInfo;
@@ -918,8 +929,6 @@ class Transpiler {
       this.state.setSymbolInfo(sourcePath, symbolInfo);
       this.state.setPassByValueParams(sourcePath, passByValueCopy);
       this.state.setUserIncludes(sourcePath, [...userIncludes]);
-
-      // Issue #1171: accumulate in both modes -- see the gate removed above.
 
       // #1323: resolve this file's header-render input while its state is
       // warm (reads from state populated above), but do not render it here.
@@ -1115,7 +1124,6 @@ class Transpiler {
     if (this.cacheManager) {
       await this.cacheManager.initialize();
     }
-    // Issue #593: Reset cross-file modification tracking for new run
     // Issue #587: Reset accumulated state for new run
     this.state.reset();
     // ADR-049: the previous run's targets must not decide this run's budget
@@ -1391,7 +1399,15 @@ class Transpiler {
     // #1511: read from the artifact, not re-derived from the table. Stage 3
     // built it; a null here would mean this ran before 1.4, which the stage
     // order rules out.
-    const conflicts = this.program?.conflicts() ?? [];
+    // #1511: asserted, not defaulted -- a missing artifact would report zero
+    // conflicts and pass the check. Stage 3 returns false on a build failure
+    // before this runs, so reaching here without one is a broken stage order.
+    if (!this.program) {
+      throw new Error(
+        "Internal error: symbol-conflict check ran before 1.4 Resolve built Program",
+      );
+    }
+    const conflicts = this.program.conflicts();
     for (const conflict of conflicts) {
       // #1334: a conflict is an ordinary diagnostic. It used to reach the user
       // through a SECOND channel -- `result.conflicts`, printed by ResultPrinter

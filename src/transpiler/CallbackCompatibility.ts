@@ -16,11 +16,22 @@
  * Derived here over every tree before anything renders. The analyzer is run
  * rather than re-implemented: it is the single owner of the two recognition
  * rules, and a second copy would be free to drift from the one that reports the
- * diagnostics. Its diagnostics are discarded on this pass — the per-file run
- * still reports them, with the per-file context they need — and that is safe
- * because populating this map is its ONLY global side effect. Verified, not
- * assumed: `CodeGenState.<x> =`, `.set(`, `.add(`, `.clear(` and `.delete(`
- * across `FunctionCallAnalyzer` match exactly the two writes to this map.
+ * diagnostics.
+ *
+ * The analyzer has three global writes, and this pass keeps exactly one of
+ * them. The callback map is what it is run for. `SymbolRegistry.getOrCreateScope`
+ * is idempotent, so calling it earlier only moves when the scope object is
+ * built. `AdrProvenance.record("057", …)` is the one that would matter, and it
+ * is suppressed BY THE BRACKET BELOW rather than by call order: it currently
+ * no-ops only because `beginFile` is first called in stage 5, which is a
+ * coincidence of ordering and not a property. Were provenance ever begun
+ * earlier — to attribute declare-stage diagnostics, say — this pass would
+ * record ADR-057 sites under whatever path was last begun, moving matrix
+ * occupancy with nothing failing.
+ *
+ * So: the only global write that OUTLIVES this pass is the callback map.
+ * Diagnostics and provenance are both discarded here, and the per-file run
+ * reports them with the per-file context they need.
  *
  * What this does NOT change is which functions are recognized. Both recognition
  * rules gate on the functions the USING file declares, so a callback target in
@@ -29,6 +40,7 @@
  */
 
 import FunctionCallAnalyzer from "../TRANSPILE/1-Analyze/FunctionCallAnalyzer";
+import AdrProvenance from "./state/AdrProvenance";
 import CodeGenState from "./state/CodeGenState";
 import type SymbolTable from "./state/SymbolTable";
 import type IParsedFile from "./types/IParsedFile";
@@ -44,6 +56,10 @@ class CallbackCompatibility {
     symbolTable: SymbolTable,
   ): ReadonlyMap<string, string> {
     CodeGenState.callbackCompatibleFunctions = new Map();
+    // Asserted, not inherited from call order: nothing this pass walks is
+    // attributable to a file. No restore is needed because every file's render
+    // opens with its own `beginFile(sourcePath)`.
+    AdrProvenance.beginFile(null);
     for (const entry of declared) {
       // Diagnostics discarded: the per-file run reports them.
       new FunctionCallAnalyzer().analyze(entry.parsed.tree, symbolTable);

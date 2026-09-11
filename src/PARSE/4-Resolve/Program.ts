@@ -35,6 +35,16 @@ import TypeResolver from "../../utils/TypeResolver";
 import SymbolGuards from "../../transpiler/types/symbols/SymbolGuards";
 import type IVariableSymbol from "../../transpiler/types/symbols/IVariableSymbol";
 import IDerivedConsts from "./types/IDerivedConsts";
+import ConflictDetector from "./ConflictDetector";
+import type IForeignSymbols from "../../transpiler/types/IForeignSymbols";
+import type IConflict from "../../transpiler/types/IConflict";
+import type IModificationFacts from "../../transpiler/types/IModificationFacts";
+import type ICallGraphEntry from "../../transpiler/types/ICallGraphEntry";
+import type ICodeGenSymbols from "../../transpiler/types/ICodeGenSymbols";
+import type IVisibilityInput from "../../transpiler/types/IVisibilityInput";
+import TSymbolInfoAdapter from "../3-Declare/cnext/adapters/TSymbolInfoAdapter";
+import TransitiveEnumCollector from "./TransitiveEnumCollector";
+import VisibleSymbols from "./VisibleSymbols";
 
 /** Shared empty result, so a miss does not allocate. */
 const EMPTY_NAMES: ReadonlySet<string> = new Set<string>();
@@ -46,19 +56,6 @@ const EMPTY_NAMES: ReadonlySet<string> = new Set<string>();
  * `IForeignSymbols` is required so that a new one cannot be forgotten at a call
  * site, and a literal here would defeat that the moment one is added.
  */
-/** A program whose parameter-modification facts were not derived. */
-/** A program built without include information: nothing composes. */
-const NO_VISIBILITY: IVisibilityInput = {
-  includeDirs: [],
-  cnextIncludesByFile: new Map(),
-};
-
-const NO_MODIFICATIONS: IModificationFacts = {
-  modifiedParameters: new Map<string, ReadonlySet<string>>(),
-  functionParamLists: new Map<string, ReadonlyArray<string>>(),
-  callGraph: new Map<string, ReadonlyArray<ICallGraphEntry>>(),
-};
-
 const NO_FOREIGN: IForeignSymbols = {
   c: [],
   cpp: [],
@@ -66,16 +63,19 @@ const NO_FOREIGN: IForeignSymbols = {
   typedefToTag: new Map<string, string>(),
   structTagsWithBodies: EMPTY_NAMES,
 };
-import ConflictDetector from "./ConflictDetector";
-import type IForeignSymbols from "../../transpiler/types/IForeignSymbols";
-import type IConflict from "../../transpiler/types/IConflict";
-import type IModificationFacts from "../../transpiler/types/IModificationFacts";
-import type ICallGraphEntry from "../../transpiler/types/ICallGraphEntry";
-import type ICodeGenSymbols from "../../transpiler/types/ICodeGenSymbols";
-import type IVisibilityInput from "../../transpiler/types/IVisibilityInput";
-import TSymbolInfoAdapter from "../3-Declare/cnext/adapters/TSymbolInfoAdapter";
-import TransitiveEnumCollector from "./TransitiveEnumCollector";
-import VisibleSymbols from "./VisibleSymbols";
+
+/** A program whose parameter-modification facts were not derived. */
+const NO_MODIFICATIONS: IModificationFacts = {
+  modifiedParameters: new Map<string, ReadonlySet<string>>(),
+  functionParamLists: new Map<string, ReadonlyArray<string>>(),
+  callGraph: new Map<string, ReadonlyArray<ICallGraphEntry>>(),
+};
+
+/** A program built without include information: nothing composes. */
+const NO_VISIBILITY: IVisibilityInput = {
+  includeDirs: [],
+  cnextIncludesByFile: new Map(),
+};
 
 class Program {
   /**
