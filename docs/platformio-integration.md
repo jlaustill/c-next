@@ -30,6 +30,12 @@ root. `--pio-install` writes a working default; the fields you'll touch most:
 | `noCache`     | Disable the `.cnx/` symbol cache.                                                                                                                                                                            |
 | `cppRequired` | Emit C++ (`.cpp`/`.hpp`) instead of C. Required for any project that includes C++ headers — see below.                                                                                                       |
 
+Relative paths in `cnext.config.json` resolve against the directory holding the
+config file. Paths passed as CLI flags (`-o`, `--header-out`, `-I`) resolve
+against the current working directory. So `"headerOut": "include"` names the same
+directory whether you run `cnext` from the project root or from `src/`, while
+`--header-out include` follows your shell.
+
 Example (Teensy + a C++ library such as FlexCAN_T4):
 
 ```json

@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join, relative, resolve } from "node:path";
 import PathResolver from "../PathResolver";
 import IDiscoveredFile from "../types/IDiscoveredFile";
 import EFileType from "../types/EFileType";
@@ -248,24 +248,141 @@ describe("PathResolver", () => {
       expect(result).toBe(join(otherDir, "external.h"));
     });
 
-    it("uses headerOutDir with CWD-relative path for single file input", () => {
-      // This tests the case where file is not under input dirs but headerOutDir is set
-      // and file is under CWD
+    /**
+     * Issue #1548 review: this assertion used to be `toContain("standalone.h")`,
+     * which holds under the CWD-relative branch AND the basename branch alike --
+     * so it could not detect which one ran, and its comment claimed basename
+     * while the code took the CWD-relative path. Asserting the whole path makes
+     * it a test of the decision rather than of the filename.
+     *
+     * With no projectRoot the CWD is the base, which is the layout issue #1467
+     * pins: no project root means no config file, so headerOutDir can only have
+     * come from `--header-out`, and a flag is relative to the shell.
+     */
+    it("keeps structure relative to the CWD when no projectRoot is given", () => {
       const resolver = new PathResolver({
         inputs: [srcDir],
         outDir,
         headerOutDir: headerDir,
       });
 
-      // Create file in testDir (not under srcDir input)
+      // Create file in testDir (not under srcDir input, but under the CWD)
       const filePath = join(testDir, "standalone.cnx");
       writeFileSync(filePath, "");
       const file = createFile(filePath);
 
       const result = resolver.getHeaderOutputPath(file, ".h");
 
-      // Should use basename since file is not under any input
-      expect(result).toContain("standalone.h");
+      expect(result).toBe(
+        join(headerDir, relative(process.cwd(), testDir), "standalone.h"),
+      );
+    });
+
+    /**
+     * Issue #1547 / #1548 review: anchoring headerOut itself fixed the header
+     * ROOT, but the path built inside that root was still derived from
+     * `process.cwd()` for any file not under the entry's directory -- i.e. any
+     * `#include` reaching sideways or upward. The destination, and the
+     * `#include` emitted into the generated .c, therefore still slid with the
+     * shell. These pin the subpath to the project root instead.
+     */
+    describe("projectRoot anchoring (issue #1547)", () => {
+      it("derives the header subpath from projectRoot, not the cwd", () => {
+        const libDir = join(testDir, "lib");
+        mkdirSync(libDir, { recursive: true });
+        const filePath = join(libDir, "util.cnx");
+        writeFileSync(filePath, "");
+
+        const resolver = new PathResolver({
+          inputs: [srcDir],
+          outDir,
+          headerOutDir: headerDir,
+          projectRoot: testDir,
+        });
+
+        const result = resolver.getHeaderOutputPath(createFile(filePath), ".h");
+
+        expect(result).toBe(join(headerDir, "lib", "util.h"));
+      });
+
+      it("derives the same header path regardless of the cwd the run starts in", () => {
+        const libDir = join(testDir, "lib");
+        mkdirSync(libDir, { recursive: true });
+        const filePath = join(libDir, "util.cnx");
+        writeFileSync(filePath, "");
+
+        const build = () =>
+          new PathResolver({
+            inputs: [srcDir],
+            outDir,
+            headerOutDir: headerDir,
+            projectRoot: testDir,
+          }).getHeaderOutputPath(createFile(filePath), ".h");
+
+        const originalCwd = process.cwd();
+        try {
+          process.chdir(testDir);
+          const fromRoot = build();
+          process.chdir(srcDir);
+          const fromSrcDir = build();
+          process.chdir(libDir);
+          const fromLibDir = build();
+
+          expect(fromSrcDir).toBe(fromRoot);
+          expect(fromLibDir).toBe(fromRoot);
+          expect(fromRoot).toBe(join(headerDir, "lib", "util.h"));
+        } finally {
+          process.chdir(originalCwd);
+        }
+      });
+
+      it("emits a CWD-independent include path for a file outside the entry directory", () => {
+        const libDir = join(testDir, "lib");
+        mkdirSync(libDir, { recursive: true });
+        const filePath = join(libDir, "util.cnx");
+        writeFileSync(filePath, "");
+
+        const build = () =>
+          new PathResolver({
+            inputs: [srcDir],
+            outDir,
+            headerOutDir: headerDir,
+            projectRoot: testDir,
+          }).getHeaderIncludePath(filePath, ".h");
+
+        const originalCwd = process.cwd();
+        try {
+          process.chdir(testDir);
+          const fromRoot = build();
+          process.chdir(srcDir);
+          const fromSrcDir = build();
+
+          expect(fromRoot).toBe("lib/util.h");
+          expect(fromSrcDir).toBe(fromRoot);
+        } finally {
+          process.chdir(originalCwd);
+        }
+      });
+
+      it("falls back to the basename for a file outside the project root", () => {
+        const outsideDir = join(testDir, "..", "path-resolver-outside-tmp");
+        mkdirSync(outsideDir, { recursive: true });
+        const filePath = join(outsideDir, "stray.cnx");
+        writeFileSync(filePath, "");
+
+        const resolver = new PathResolver({
+          inputs: [srcDir],
+          outDir,
+          headerOutDir: headerDir,
+          projectRoot: testDir,
+        });
+
+        const result = resolver.getHeaderOutputPath(createFile(filePath), ".h");
+
+        expect(result).toBe(join(headerDir, "stray.h"));
+
+        rmSync(outsideDir, { recursive: true, force: true });
+      });
     });
 
     // Issue #933: Test C++ mode header extension

@@ -71,6 +71,53 @@ describe("Cli path normalization (integration)", () => {
     );
   });
 
+  /**
+   * Issue #1547: the counterpart to config-path anchoring. A path typed at the
+   * shell is relative to the shell, so `--header-out` must NOT be anchored to
+   * the config file's directory the way `headerOut` in the config file is.
+   *
+   * Negative control: this passes before the #1547 fix as well as after. Its
+   * job is to fail if anchoring is ever widened to cover CLI flags, which is
+   * the obvious over-correction and the one the fix has to not make.
+   */
+  it("does not anchor a CLI --header-out path to the config file directory", () => {
+    writeFileSync(
+      join(tempDir, "cnext.config.json"),
+      JSON.stringify({ headerOut: "include" }),
+    );
+    writeFileSync(join(tempDir, "test.cnx"), "void main() {}");
+
+    process.argv = [
+      "node",
+      "cnext",
+      join(tempDir, "test.cnx"),
+      "--header-out",
+      "cli-headers",
+    ];
+
+    const result = Cli.run();
+
+    // The flag wins, and it stays exactly as typed -- relative to the CWD.
+    expect(result.config?.headerOutDir).toBe("cli-headers");
+    expect(result.config?.headerOutDir).not.toBe(join(tempDir, "cli-headers"));
+  });
+
+  it("anchors a config-file headerOut to the config file directory", () => {
+    const srcDir = join(tempDir, "src");
+    mkdirSync(srcDir, { recursive: true });
+    writeFileSync(
+      join(tempDir, "cnext.config.json"),
+      JSON.stringify({ headerOut: "include" }),
+    );
+    writeFileSync(join(srcDir, "test.cnx"), "void main() {}");
+
+    process.argv = ["node", "cnext", join(srcDir, "test.cnx")];
+
+    const result = Cli.run();
+
+    expect(result.config?.headerOutDir).toBe(join(tempDir, "include"));
+  });
+
   it("expands tilde in CLI --include paths", () => {
     // Create a real home directory structure to verify tilde expansion
     const homeDir = mkdtempSync(join(tmpdir(), "home-"));

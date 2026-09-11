@@ -27,6 +27,15 @@ interface IPathResolverConfig {
   outDir: string;
   /** Optional separate output directory for headers */
   headerOutDir?: string;
+  /**
+   * Issue #1547: the base that a discovered file's path is made relative to
+   * when it falls outside every input directory. Derived by
+   * `Transpiler.determineProjectRoot()` -- which looks for `cnext.config.json`
+   * first, so it lands on the directory cosmiconfig found -- never read from
+   * the process. Absent means "no stable base", and the header is placed by
+   * basename rather than against a base that would vary per run.
+   */
+  projectRoot?: string;
 }
 
 /**
@@ -182,19 +191,36 @@ class PathResolver {
       return join(headerDir, relativePath.replace(/\.cnx$|\.cnext$/, ext));
     }
 
-    // Issue #489: If headerOutDir is explicitly set, use it with relative path from CWD
-    // This handles single-file inputs like "cnext src/AppConfig.cnx" with headerOut config
+    // Issue #489: a file outside every input directory still has to land
+    // somewhere under an explicit headerOutDir, keeping its directory structure.
+    //
+    // Issue #1547: that structure is measured from the PROJECT ROOT, not from
+    // `process.cwd()`. Anchoring headerOutDir alone fixed only the header root;
+    // the subpath built inside it was still derived from wherever the shell
+    // happened to be, so a sideways or upward `#include` -- any file not under
+    // the entry's own directory -- wrote its header to a different place per
+    // run, and `getHeaderIncludePath` derives from this method, so the
+    // `#include` emitted into the generated .c moved with it. Two runs of the
+    // same project differed only by CWD and both exited 0.
+    //
+    // With no project root the CWD remains the base, and that is not a
+    // leftover: no project root means no config file was found, so an explicit
+    // headerOutDir can only have come from `--header-out` -- a path typed at
+    // the shell, which the CWD is the correct base for. Issue #1467 pins that
+    // layout (a shared tree inside the CWD nests its header).
     if (this.config.headerOutDir) {
-      const relativeFromCwd = relative(process.cwd(), cnxPath);
-      // Only use CWD-relative path if file is under CWD (not starting with ..)
-      if (relativeFromCwd && !relativeFromCwd.startsWith("..")) {
+      const base = this.config.projectRoot ?? process.cwd();
+      const relativeFromBase = relative(resolve(base), resolve(cnxPath));
+
+      // Only keep the structure when the file really is under the base.
+      if (relativeFromBase && !relativeFromBase.startsWith("..")) {
         return join(
           this.config.headerOutDir,
-          relativeFromCwd.replace(/\.cnx$|\.cnext$/, ext),
+          relativeFromBase.replace(/\.cnx$|\.cnext$/, ext),
         );
       }
 
-      // File outside CWD: put in headerOutDir with just basename
+      // File outside the base: place by basename.
       return join(
         this.config.headerOutDir,
         basename(cnxPath).replace(/\.cnx$|\.cnext$/, ext),

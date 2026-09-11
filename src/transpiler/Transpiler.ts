@@ -275,6 +275,11 @@ class Transpiler {
         inputs: [dirname(resolve(this.config.input))],
         outDir: this.config.outDir,
         headerOutDir: this.config.headerOutDir,
+        // Issue #1547: the stable base for files outside the entry's directory.
+        // Same value `_guardIdentity` already measures include-guard identity
+        // against, so a file's guard and its header path can no longer disagree
+        // about where it sits purely because the shell moved.
+        projectRoot,
       },
       this.fs,
     );
