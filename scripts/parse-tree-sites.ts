@@ -21,6 +21,7 @@ import { fileURLToPath } from "node:url";
 import chalk from "chalk";
 
 import ParseTreeSites from "./parse-tree/ParseTreeSites";
+import type IDepcruiseViolation from "./types/IDepcruiseViolation";
 import GeneratedMarkdown from "./utils/GeneratedMarkdown";
 
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -36,11 +37,7 @@ const docPath = join(rootDir, "docs", "architecture", "parse-tree-sites.md");
  * full graph is several megabytes and the default 1MB truncates it into a parse
  * error that reads like a depcruise bug.
  */
-function violations(): readonly {
-  from: string;
-  to: string;
-  rule?: { name?: string };
-}[] {
+function violations(): readonly IDepcruiseViolation[] {
   const bin = join(rootDir, "node_modules", ".bin", "depcruise");
   let stdout: string;
   try {
@@ -64,11 +61,7 @@ function violations(): readonly {
         "shape changed, or the run produced no output",
     );
   }
-  return summary.violations as readonly {
-    from: string;
-    to: string;
-    rule?: { name?: string };
-  }[];
+  return summary.violations as readonly IDepcruiseViolation[];
 }
 
 async function main(): Promise<void> {

@@ -21,6 +21,8 @@
  * silent drift.
  */
 
+import type IDepcruiseViolation from "../types/IDepcruiseViolation";
+
 /** One module outside the parser that holds a parse context, and what from. */
 interface ISite {
   readonly module: string;
@@ -33,13 +35,6 @@ interface ICheckOutcome {
   readonly ok: boolean;
   readonly errors: readonly string[];
   readonly info: readonly string[];
-}
-
-/** One violation edge as dependency-cruiser reports it. */
-interface IViolation {
-  readonly from: string;
-  readonly to: string;
-  readonly rule?: { readonly name?: string };
 }
 
 class ParseTreeSites {
@@ -89,7 +84,7 @@ class ParseTreeSites {
    * is a claim about. Edge counts would move when an import is split across two
    * statements, which is not the coupling changing.
    */
-  static sites(violations: readonly IViolation[]): readonly ISite[] {
+  static sites(violations: readonly IDepcruiseViolation[]): readonly ISite[] {
     const holdsByModule = new Map<string, Set<string>>();
     for (const violation of violations) {
       if (violation.rule?.name !== ParseTreeSites.RULE) continue;
