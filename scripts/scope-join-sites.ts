@@ -55,41 +55,21 @@ async function main(): Promise<void> {
     return;
   }
 
-  if (!existsSync(docPath)) {
-    console.error(
-      chalk.red(`${docPath} is missing. Run \`npm run scope-joins\`.`),
-    );
-    process.exit(1);
-  }
+  // Every decision -- the missing document, the population diffs, the
+  // adjudication checks, staleness, and the ordering between them -- is made in
+  // `ScopeJoinSites.checkOutcome`. This function prints and sets the exit code,
+  // which is the shape `diagnostic-manifest.ts` settled on.
+  const outcome = ScopeJoinSites.checkOutcome(
+    existsSync(docPath) ? readFileSync(docPath, "utf-8") : null,
+    sites,
+    document,
+  );
 
-  const committed = readFileSync(docPath, "utf-8");
-  const outcome = ScopeJoinSites.check(committed, sites);
-  // The rows are not the whole document. Comparing only what the parser can
-  // read leaves the preamble, the header comment and the total row free to drift
-  // from what the generator emits, with the gate still green -- the sibling this
-  // script follows (diagnostic-manifest.ts) compares in full for that reason.
-  // `render` emits no timestamp and Prettier is deterministic, so equality holds.
-  const stale = document !== committed;
   for (const line of outcome.info) {
     console.log(chalk.green(line));
   }
-  if (stale && outcome.ok) {
-    console.error(
-      chalk.red(
-        `${docPath} does not match what the generator produces, though the ` +
-          "counts agree -- prose or the total row was edited by hand. Run " +
-          "`npm run scope-joins`.",
-      ),
-    );
-    process.exit(1);
-  }
   if (!outcome.ok) {
-    console.error(
-      chalk.red(
-        "docs/architecture/scope-join-sites.md is out of date:\n" +
-          outcome.errors.map((error) => `  ${error}`).join("\n"),
-      ),
-    );
+    console.error(chalk.red(outcome.errors.join("\n")));
     process.exit(1);
   }
 }
