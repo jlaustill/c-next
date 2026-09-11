@@ -18,7 +18,7 @@ import CacheKeyGenerator from "./CacheKeyGenerator";
 import JsonCodec from "./JsonCodec";
 import CachedSymbolReader from "./CachedSymbolReader";
 import IStructFieldInfo from "../../transpiler/types/symbols/IStructFieldInfo";
-import SymbolTable from "../../transpiler/logic/symbols/SymbolTable";
+import SymbolTable from "../../transpiler/state/SymbolTable";
 import ICacheConfig from "../../transpiler/types/ICacheConfig";
 import ICachedFileEntry from "../../transpiler/types/ICachedFileEntry";
 import IStructSymbolState from "../../transpiler/types/symbols/IStructSymbolState";

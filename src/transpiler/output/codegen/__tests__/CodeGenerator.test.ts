@@ -3,11 +3,13 @@
  * Tests the IOrchestrator interface and internal methods.
  */
 import PublicInterface from "../../../../TRANSPILE/2-Plan/PublicInterface";
+import Program from "../../../../PARSE/4-Resolve/Program";
+import ModificationFacts from "../../../ModificationFacts";
 import { describe, it, expect, beforeEach } from "vitest";
 import CodeGenerator from "../CodeGenerator";
 import CNextSourceParser from "../../../logic/parser/CNextSourceParser";
 import * as Parser from "../../../logic/parser/grammar/CNextParser";
-import SymbolTable from "../../../logic/symbols/SymbolTable";
+import SymbolTable from "../../../state/SymbolTable";
 import CNextResolver from "../../../../PARSE/3-Declare/cnext/index";
 import TSymbolInfoAdapter from "../../../../PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
 import ICodeGenSymbols from "../../../types/ICodeGenSymbols";
@@ -62,8 +64,12 @@ function setupGenerator(source: string): {
   const generator = new CodeGenerator();
   // Set symbolTable in CodeGenState before generate (CodeGenState owns SymbolTable)
   CodeGenState.symbolTable = symbolTable;
+  // #1511: the whole-program facts codegen reads. Without them every small
+  // primitive parameter looks ineligible for pass-by-value and comes out a
+  // pointer.
+  installProgramFor(tree);
   // Generate to initialize the generator state
-  generator.generate(tree, tokenStream, {
+  generateWithProgram(generator, tree, tokenStream, {
     symbolInfo: symbols,
     sourcePath: "test.cnx",
   });
@@ -77,6 +83,52 @@ function setupGenerator(source: string): {
 function createMinimalGenerator(source: string): CodeGenerator {
   const { generator } = setupGenerator(source);
   return generator;
+}
+
+/**
+ * Install the artifact these tests now depend on.
+ *
+ * #1511: pass-by-value eligibility is a whole-program fact — is this parameter
+ * modified anywhere down the call chain? — so a generator with no `Program`
+ * behind it answers "not eligible" for everything and emits pointers where the
+ * real run emits values. Built from the real resolver output and through the
+ * same `ModificationFacts.derive` production uses, so a single-file test agrees
+ * with a real run rather than approximating one.
+ */
+function installProgramFor(
+  tree: Parser.ProgramContext,
+  sourcePath = "test.cnx",
+): void {
+  const declared = CNextResolver.resolve(tree, sourcePath);
+  const modifications = ModificationFacts.derive([
+    { parsed: { tree } as never, fileSymbols: declared },
+  ]);
+  CodeGenState.program = Program.build(
+    [declared],
+    new Map(),
+    undefined,
+    modifications,
+  );
+}
+
+/**
+ * Generate with the whole-program artifact in place.
+ *
+ * Every test here builds one file and calls `generate` directly, which no longer
+ * suffices: pass-by-value eligibility is a `Program` fact since #1511, and
+ * without one every small primitive parameter is reported ineligible and comes
+ * out a pointer. Wrapping the call keeps that setup in one place instead of at
+ * six hundred call sites, and installs it from the tree actually being
+ * generated, so it cannot go stale between tests.
+ */
+function generateWithProgram(
+  generator: CodeGenerator,
+  tree: Parser.ProgramContext,
+  tokenStream: Parameters<CodeGenerator["generate"]>[1],
+  options: Parameters<CodeGenerator["generate"]>[2],
+): ReturnType<CodeGenerator["generate"]> {
+  installProgramFor(tree, options?.sourcePath ?? "test.cnx");
+  return generator.generate(tree, tokenStream, options);
 }
 
 describe("CodeGenerator", () => {
@@ -98,7 +150,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -115,7 +167,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -129,7 +181,7 @@ describe("CodeGenerator", () => {
       const generator = new CodeGenerator();
 
       expect(() =>
-        generator.generate(tree, tokenStream, {
+        generateWithProgram(generator, tree, tokenStream, {
           sourcePath: "test.cnx",
         } as never),
       ).toThrow("the pipeline always supplies options.symbolInfo");
@@ -147,7 +199,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
         debugMode: true,
@@ -166,7 +218,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
         cppMode: true,
@@ -186,7 +238,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
         cnxIncludeRewrites: new Map([["utils.cnx", "Display/utils.h"]]),
@@ -202,7 +254,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "led.cnx",
       });
@@ -977,7 +1029,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1009,7 +1061,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1034,7 +1086,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1059,7 +1111,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1083,7 +1135,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1108,56 +1160,13 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
 
       expect(code).toContain("cnx_clamp_add_u8");
       expect(code).toContain("cnx_clamp_add_u8(value, 100U)");
-    });
-  });
-
-  describe("analyzeModificationsOnly()", () => {
-    it("should analyze modifications without full generation", () => {
-      const source = `
-        void modify(u32 param) {
-          param <- 42;
-        }
-      `;
-      const { tree } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
-
-      const result = generator.analyzeModificationsOnly(tree);
-
-      expect(result.modifications).toBeInstanceOf(Map);
-      expect(result.paramLists).toBeInstanceOf(Map);
-      expect(result.modifications.get("modify")?.has("param")).toBe(true);
-    });
-
-    it("should accept cross-file data for transitive propagation", () => {
-      const source = `
-        void caller(u32 x) {
-          externalModify(x);
-        }
-      `;
-      const { tree } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
-
-      const crossFileModifications = new Map<string, ReadonlySet<string>>([
-        ["externalModify", new Set(["param"])],
-      ]);
-      const crossFileParamLists = new Map<string, readonly string[]>([
-        ["externalModify", ["param"]],
-      ]);
-
-      const result = generator.analyzeModificationsOnly(
-        tree,
-        crossFileModifications,
-        crossFileParamLists,
-      );
-
-      expect(result.modifications).toBeInstanceOf(Map);
     });
   });
 
@@ -1190,7 +1199,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      generator.generate(tree, tokenStream, {
+      generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1206,7 +1215,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      generator.generate(tree, tokenStream, {
+      generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
         target: "teensy41",
@@ -1225,7 +1234,7 @@ describe("CodeGenerator", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       // Should not throw, just warn and use default
-      generator.generate(tree, tokenStream, {
+      generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
         target: "unknown-target",
@@ -1251,7 +1260,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1276,7 +1285,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1299,7 +1308,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1321,7 +1330,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1344,7 +1353,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1370,7 +1379,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1393,7 +1402,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1416,7 +1425,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1434,7 +1443,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1453,7 +1462,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1472,7 +1481,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1494,7 +1503,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1512,7 +1521,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1536,7 +1545,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1561,7 +1570,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1588,7 +1597,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1615,7 +1624,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1640,7 +1649,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1663,7 +1672,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1685,7 +1694,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1710,7 +1719,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1730,7 +1739,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1754,7 +1763,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1774,7 +1783,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1796,7 +1805,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1821,7 +1830,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1846,7 +1855,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1868,7 +1877,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1889,7 +1898,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1910,7 +1919,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1935,7 +1944,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -1957,7 +1966,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "myfile.cnx",
         sourceRelativePath: "myfile.cnx",
@@ -2062,7 +2071,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2085,7 +2094,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2111,7 +2120,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2136,7 +2145,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2164,7 +2173,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2190,7 +2199,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2213,7 +2222,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2241,7 +2250,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2266,7 +2275,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2289,7 +2298,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2310,7 +2319,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2332,7 +2341,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2353,7 +2362,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2371,7 +2380,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2391,7 +2400,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2410,7 +2419,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2439,7 +2448,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2462,7 +2471,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2483,7 +2492,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2507,7 +2516,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2531,7 +2540,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2562,7 +2571,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2584,7 +2593,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2605,7 +2614,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2626,7 +2635,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2651,7 +2660,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2673,7 +2682,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2698,7 +2707,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2722,7 +2731,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2746,7 +2755,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2769,7 +2778,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2796,7 +2805,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2819,7 +2828,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2840,7 +2849,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2862,7 +2871,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2883,7 +2892,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2917,7 +2926,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2939,7 +2948,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2966,7 +2975,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -2991,7 +3000,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3016,7 +3025,7 @@ describe("CodeGenerator", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       expect(() =>
-        generator.generate(tree, tokenStream, {
+        generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         }),
@@ -3033,7 +3042,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3056,7 +3065,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3081,7 +3090,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3105,7 +3114,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3128,7 +3137,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3158,7 +3167,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3178,7 +3187,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3200,7 +3209,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3224,7 +3233,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3247,7 +3256,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3271,7 +3280,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3297,7 +3306,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3325,7 +3334,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3353,7 +3362,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3377,7 +3386,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3415,7 +3424,7 @@ describe("CodeGenerator", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       // Should not throw
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3435,7 +3444,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3454,7 +3463,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3477,7 +3486,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3498,7 +3507,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3520,7 +3529,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3543,7 +3552,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3563,7 +3572,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3581,7 +3590,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3601,7 +3610,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3621,7 +3630,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3639,7 +3648,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3654,7 +3663,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3669,7 +3678,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3693,7 +3702,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3718,7 +3727,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3740,7 +3749,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3759,7 +3768,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3779,7 +3788,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3800,7 +3809,7 @@ describe("CodeGenerator", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       expect(() =>
-        generator.generate(tree, tokenStream, {
+        generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         }),
@@ -3828,7 +3837,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3857,7 +3866,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3879,7 +3888,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3899,7 +3908,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3921,7 +3930,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3946,7 +3955,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3967,7 +3976,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -3985,7 +3994,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4003,7 +4012,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4024,7 +4033,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4043,7 +4052,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4062,7 +4071,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4080,7 +4089,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4098,7 +4107,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4119,7 +4128,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4138,7 +4147,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4159,7 +4168,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4178,7 +4187,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4197,7 +4206,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4222,7 +4231,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4242,7 +4251,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4262,7 +4271,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4285,7 +4294,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4309,7 +4318,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4332,7 +4341,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4355,7 +4364,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4372,7 +4381,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4390,7 +4399,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4410,7 +4419,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4434,7 +4443,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4453,7 +4462,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4473,7 +4482,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4491,7 +4500,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4511,7 +4520,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4529,7 +4538,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4544,7 +4553,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4562,7 +4571,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4584,7 +4593,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4609,7 +4618,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4630,7 +4639,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4651,7 +4660,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4675,7 +4684,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4695,7 +4704,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4715,7 +4724,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4735,7 +4744,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4755,7 +4764,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4775,7 +4784,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4795,7 +4804,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4815,7 +4824,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4837,7 +4846,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4859,7 +4868,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4881,7 +4890,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4904,7 +4913,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4929,7 +4938,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4947,7 +4956,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4969,7 +4978,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -4992,7 +5001,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5012,7 +5021,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5029,7 +5038,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5044,7 +5053,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5061,7 +5070,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5076,7 +5085,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5097,7 +5106,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5117,7 +5126,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5137,7 +5146,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5161,7 +5170,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5185,7 +5194,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5208,7 +5217,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5231,7 +5240,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5252,7 +5261,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
         cppMode: false,
@@ -5272,7 +5281,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
         cppMode: true,
@@ -5291,7 +5300,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5312,7 +5321,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5338,7 +5347,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5358,7 +5367,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5378,7 +5387,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5401,7 +5410,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5425,7 +5434,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5448,7 +5457,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5469,7 +5478,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5488,7 +5497,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5514,7 +5523,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5537,7 +5546,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5566,7 +5575,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5589,7 +5598,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5613,7 +5622,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5632,7 +5641,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5657,7 +5666,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5683,7 +5692,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5704,7 +5713,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5722,7 +5731,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5744,7 +5753,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5765,7 +5774,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5787,7 +5796,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5806,7 +5815,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5828,7 +5837,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5850,7 +5859,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5870,7 +5879,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5892,7 +5901,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5913,7 +5922,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5936,7 +5945,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5960,7 +5969,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -5982,7 +5991,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6004,7 +6013,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6027,7 +6036,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6044,7 +6053,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6064,7 +6073,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6081,7 +6090,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6098,7 +6107,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6115,7 +6124,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6132,7 +6141,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6155,7 +6164,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -6178,7 +6187,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -6197,7 +6206,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -6216,7 +6225,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -6235,7 +6244,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -6257,7 +6266,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -6279,7 +6288,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -6301,7 +6310,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -6323,7 +6332,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -6346,7 +6355,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -6368,7 +6377,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -6390,7 +6399,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -6411,7 +6420,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -6431,7 +6440,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -6452,7 +6461,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -6474,7 +6483,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -6500,7 +6509,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -6523,7 +6532,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -6545,7 +6554,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -6566,7 +6575,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -6588,7 +6597,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -6610,7 +6619,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -6639,7 +6648,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -6662,7 +6671,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -6686,7 +6695,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -6708,7 +6717,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -6734,7 +6743,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -6757,7 +6766,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -6780,7 +6789,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -6806,7 +6815,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -6830,7 +6839,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -6852,7 +6861,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -6877,7 +6886,7 @@ describe("CodeGenerator", () => {
         const generator = new CodeGenerator();
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -6900,7 +6909,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -6924,7 +6933,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -6944,7 +6953,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -6973,7 +6982,7 @@ describe("CodeGenerator", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         expect(() =>
-          generator.generate(tree, tokenStream, {
+          generateWithProgram(generator, tree, tokenStream, {
             symbolInfo: symbols,
             sourcePath: "test.cnx",
           }),
@@ -6997,7 +7006,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7020,7 +7029,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7043,7 +7052,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7065,7 +7074,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7091,7 +7100,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7116,7 +7125,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7141,7 +7150,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7163,7 +7172,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7186,7 +7195,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7209,7 +7218,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7231,7 +7240,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7256,7 +7265,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7282,7 +7291,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7303,7 +7312,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7324,7 +7333,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7345,7 +7354,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7368,7 +7377,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7390,7 +7399,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7411,7 +7420,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7431,7 +7440,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7452,7 +7461,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7474,7 +7483,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7494,7 +7503,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7515,7 +7524,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7535,7 +7544,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7556,7 +7565,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -7578,7 +7587,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7597,7 +7606,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7617,7 +7626,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7636,7 +7645,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7655,7 +7664,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7674,7 +7683,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7693,7 +7702,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7713,7 +7722,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7734,7 +7743,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7754,7 +7763,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7774,7 +7783,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7794,7 +7803,7 @@ describe("CodeGenerator", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         expect(() =>
-          generator.generate(tree, tokenStream, {
+          generateWithProgram(generator, tree, tokenStream, {
             symbolInfo: symbols,
             sourcePath: "test.cnx",
           }),
@@ -7814,7 +7823,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7836,7 +7845,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7856,7 +7865,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7876,7 +7885,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7907,7 +7916,7 @@ describe("CodeGenerator", () => {
         symbolTable.addTSymbols(tSymbols);
         CodeGenState.symbolTable = symbolTable;
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7927,7 +7936,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -7948,7 +7957,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7969,7 +7978,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -7988,7 +7997,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8018,7 +8027,7 @@ describe("CodeGenerator", () => {
         CodeGenState.symbolTable.addTSymbols(tSymbols);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8041,7 +8050,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -8064,7 +8073,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8084,7 +8093,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -8110,7 +8119,7 @@ describe("CodeGenerator", () => {
         CodeGenState.symbolTable = symbolTable;
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -8132,7 +8141,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8153,7 +8162,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8174,7 +8183,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8193,7 +8202,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8212,7 +8221,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8231,7 +8240,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8250,7 +8259,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8273,7 +8282,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8295,7 +8304,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8319,7 +8328,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8339,7 +8348,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8361,7 +8370,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8381,7 +8390,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8402,7 +8411,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8428,7 +8437,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8456,7 +8465,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8478,7 +8487,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8501,7 +8510,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8526,7 +8535,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8546,7 +8555,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8568,7 +8577,7 @@ describe("CodeGenerator", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         // Generate to initialize state
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8591,7 +8600,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8615,7 +8624,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8638,7 +8647,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8659,7 +8668,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -8682,7 +8691,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8705,7 +8714,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8738,7 +8747,7 @@ describe("CodeGenerator", () => {
         CodeGenState.symbolTable.addTSymbols(tSymbols);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8763,7 +8772,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8788,7 +8797,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8811,7 +8820,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8837,7 +8846,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8862,7 +8871,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8885,7 +8894,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8910,7 +8919,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8931,7 +8940,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8954,7 +8963,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8975,7 +8984,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -8998,7 +9007,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9018,7 +9027,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9040,7 +9049,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9065,7 +9074,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9086,7 +9095,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9108,7 +9117,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9129,7 +9138,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9149,7 +9158,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9168,7 +9177,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9187,7 +9196,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9206,7 +9215,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9227,7 +9236,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9249,7 +9258,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9276,7 +9285,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9300,7 +9309,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9322,7 +9331,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9346,7 +9355,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9366,7 +9375,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9389,7 +9398,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -9411,7 +9420,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -9436,7 +9445,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9459,7 +9468,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9479,7 +9488,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9501,7 +9510,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9522,7 +9531,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9543,7 +9552,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9562,7 +9571,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9587,7 +9596,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9610,7 +9619,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9632,7 +9641,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9662,7 +9671,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9687,7 +9696,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9712,7 +9721,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9734,7 +9743,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9756,7 +9765,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9781,7 +9790,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9803,7 +9812,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -9831,7 +9840,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9852,7 +9861,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9871,7 +9880,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9897,7 +9906,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9918,7 +9927,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9938,7 +9947,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9961,7 +9970,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -9985,7 +9994,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -10008,7 +10017,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10028,7 +10037,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10050,7 +10059,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10070,7 +10079,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10089,7 +10098,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10110,7 +10119,7 @@ describe("CodeGenerator", () => {
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         expect(() =>
-          generator.generate(tree, tokenStream, {
+          generateWithProgram(generator, tree, tokenStream, {
             symbolInfo: symbols,
             sourcePath: "test.cnx",
           }),
@@ -10129,7 +10138,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10150,7 +10159,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10170,7 +10179,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10192,7 +10201,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10213,7 +10222,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10236,7 +10245,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10258,7 +10267,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10284,7 +10293,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10305,7 +10314,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10330,7 +10339,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10355,7 +10364,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10382,7 +10391,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10406,7 +10415,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10430,7 +10439,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10459,7 +10468,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10484,7 +10493,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10504,7 +10513,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10527,7 +10536,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10553,7 +10562,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10577,7 +10586,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10602,7 +10611,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10627,7 +10636,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10649,7 +10658,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10670,7 +10679,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10689,7 +10698,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10709,7 +10718,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10731,7 +10740,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10752,7 +10761,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10775,7 +10784,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10798,7 +10807,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10826,7 +10835,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10848,7 +10857,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10871,7 +10880,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10892,7 +10901,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10917,7 +10926,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10941,7 +10950,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10963,7 +10972,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -10985,7 +10994,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11006,7 +11015,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11031,7 +11040,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11056,7 +11065,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11081,7 +11090,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11103,7 +11112,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11125,7 +11134,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11145,7 +11154,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11164,7 +11173,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11190,7 +11199,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11213,7 +11222,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11235,7 +11244,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11260,7 +11269,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11283,7 +11292,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11305,7 +11314,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11327,7 +11336,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11347,7 +11356,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11369,7 +11378,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11388,7 +11397,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11409,7 +11418,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11429,7 +11438,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11450,7 +11459,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11470,7 +11479,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11492,7 +11501,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11512,7 +11521,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11532,7 +11541,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11554,7 +11563,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11576,7 +11585,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11596,7 +11605,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11620,7 +11629,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11642,7 +11651,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11664,7 +11673,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11686,7 +11695,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11707,7 +11716,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11728,7 +11737,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11754,7 +11763,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11781,7 +11790,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11804,7 +11813,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11827,7 +11836,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11852,7 +11861,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11875,7 +11884,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11898,7 +11907,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -11921,7 +11930,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -11947,7 +11956,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11972,7 +11981,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -11997,7 +12006,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12018,7 +12027,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12037,7 +12046,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12056,7 +12065,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12078,7 +12087,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12102,7 +12111,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12130,7 +12139,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12157,7 +12166,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12179,7 +12188,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12203,7 +12212,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12226,7 +12235,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12250,7 +12259,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12276,7 +12285,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12300,7 +12309,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12321,7 +12330,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12342,7 +12351,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12360,7 +12369,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12378,7 +12387,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12403,7 +12412,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12424,7 +12433,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12447,7 +12456,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12470,7 +12479,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12497,7 +12506,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12519,7 +12528,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12540,7 +12549,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12560,7 +12569,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12583,7 +12592,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12603,7 +12612,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12623,7 +12632,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12645,7 +12654,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12664,7 +12673,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12687,7 +12696,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12709,7 +12718,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12730,7 +12739,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12754,7 +12763,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12776,7 +12785,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12797,7 +12806,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12817,7 +12826,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12837,7 +12846,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12859,7 +12868,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12880,7 +12889,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12907,7 +12916,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12930,7 +12939,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12952,7 +12961,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -12976,7 +12985,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13000,7 +13009,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13026,7 +13035,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13048,7 +13057,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13069,7 +13078,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13097,7 +13106,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13122,7 +13131,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13146,7 +13155,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13173,7 +13182,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13196,7 +13205,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13217,7 +13226,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13237,7 +13246,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13259,7 +13268,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13280,7 +13289,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13302,7 +13311,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13324,7 +13333,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13347,7 +13356,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13367,7 +13376,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13387,7 +13396,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13406,7 +13415,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13430,7 +13439,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13459,7 +13468,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13486,7 +13495,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13507,7 +13516,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13532,7 +13541,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -13557,7 +13566,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -13581,7 +13590,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: false,
@@ -13606,7 +13615,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
           cppMode: true,
@@ -13630,7 +13639,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13652,7 +13661,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13677,7 +13686,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13701,7 +13710,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13724,7 +13733,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13747,7 +13756,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13767,7 +13776,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13787,7 +13796,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13805,7 +13814,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13827,7 +13836,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13849,7 +13858,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13870,7 +13879,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13892,7 +13901,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13912,7 +13921,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13933,7 +13942,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13958,7 +13967,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -13980,7 +13989,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14006,7 +14015,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14033,7 +14042,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14058,7 +14067,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14081,7 +14090,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14107,7 +14116,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14129,7 +14138,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14149,7 +14158,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14168,7 +14177,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14186,7 +14195,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14209,7 +14218,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14232,7 +14241,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14256,7 +14265,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14281,7 +14290,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14302,7 +14311,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14324,7 +14333,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14349,7 +14358,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14369,7 +14378,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14401,7 +14410,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14425,7 +14434,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14449,7 +14458,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14470,7 +14479,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14493,7 +14502,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14515,7 +14524,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14541,7 +14550,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14566,7 +14575,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14593,7 +14602,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14613,7 +14622,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14633,7 +14642,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14654,7 +14663,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14677,7 +14686,7 @@ describe("CodeGenerator", () => {
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-        const code = generator.generate(tree, tokenStream, {
+        const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14706,7 +14715,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -14732,7 +14741,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -14752,7 +14761,7 @@ describe("CodeGenerator", () => {
       const generator = new CodeGenerator();
       const initTSymbols = declareAndResolveAs(initTree, "init.cnx");
       const initSymbols = TSymbolInfoAdapter.convert(initTSymbols);
-      generator.generate(initTree, initTokenStream, {
+      generateWithProgram(generator, initTree, initTokenStream, {
         symbolInfo: initSymbols,
         sourcePath: "init.cnx",
       });
@@ -14772,7 +14781,7 @@ describe("CodeGenerator", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       expect(() => {
-        generator.generate(tree, tokenStream, {
+        generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14787,7 +14796,7 @@ describe("CodeGenerator", () => {
       const generator = new CodeGenerator();
       const initTSymbols = declareAndResolveAs(initTree, "init.cnx");
       const initSymbols = TSymbolInfoAdapter.convert(initTSymbols);
-      generator.generate(initTree, initTokenStream, {
+      generateWithProgram(generator, initTree, initTokenStream, {
         symbolInfo: initSymbols,
         sourcePath: "init.cnx",
       });
@@ -14807,7 +14816,7 @@ describe("CodeGenerator", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       expect(() => {
-        generator.generate(tree, tokenStream, {
+        generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
           sourcePath: "test.cnx",
         });
@@ -14826,7 +14835,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -14849,7 +14858,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -14869,7 +14878,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });
@@ -14895,7 +14904,7 @@ describe("CodeGenerator", () => {
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
       });

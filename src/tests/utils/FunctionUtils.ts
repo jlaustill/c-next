@@ -4,13 +4,13 @@
  * Provides utilities for creating and inspecting C-Next functions.
  * Scope-qualified C names come from ScopeUtils.getTranspiledCName.
  */
-import type IFunctionSymbol from "../transpiler/types/symbols/IFunctionSymbol";
-import type TVisibility from "../transpiler/types/TVisibility";
-import type IParameterInfo from "../transpiler/types/symbols/IParameterInfo";
-import type TType from "../transpiler/types/TType";
-import ESourceLanguage from "./types/ESourceLanguage";
-import ScopeUtils from "./ScopeUtils";
-import type ISourceSpan from "../transpiler/types/ISourceSpan";
+import type IFunctionSymbol from "../../transpiler/types/symbols/IFunctionSymbol";
+import type TVisibility from "../../transpiler/types/TVisibility";
+import type IParameterInfo from "../../transpiler/types/symbols/IParameterInfo";
+import type TType from "../../transpiler/types/TType";
+import ESourceLanguage from "../../utils/types/ESourceLanguage";
+import ScopeUtils from "../../utils/ScopeUtils";
+import type ISourceSpan from "../../transpiler/types/ISourceSpan";
 
 /**
  * Options for creating a function symbol
@@ -21,7 +21,6 @@ interface IFunctionCreateOptions {
   parameters: ReadonlyArray<IParameterInfo>;
   returnType: TType;
   visibility: TVisibility;
-  body: unknown;
   sourceFile: string;
   span: ISourceSpan;
 }
@@ -49,7 +48,6 @@ class FunctionUtils {
       parameters: options.parameters,
       returnType: options.returnType,
       visibility: options.visibility,
-      body: options.body,
       sourceFile: options.sourceFile,
       span: options.span,
       sourceLanguage: ESourceLanguage.CNext,

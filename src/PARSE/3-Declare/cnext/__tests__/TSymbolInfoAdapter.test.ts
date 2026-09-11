@@ -6,7 +6,6 @@
  * discriminated union symbols into the flat map format expected by CodeGenerator.
  */
 
-import type IBitmapFieldLayout from "../../../../transpiler/types/IBitmapFieldLayout";
 import { describe, expect, it } from "vitest";
 import TSymbolInfoAdapter from "../adapters/TSymbolInfoAdapter";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
@@ -734,103 +733,6 @@ describe("TSymbolInfoAdapter", () => {
     });
   });
 
-  describe("mergeOpaqueTypes (Issue #948)", () => {
-    it("should return base unchanged when no external opaque types", () => {
-      const base = TSymbolInfoAdapter.convert([]);
-
-      const result = TSymbolInfoAdapter.mergeOpaqueTypes(base, []);
-
-      expect(result).toBe(base);
-    });
-
-    it("should add external opaque types to opaqueTypes set", () => {
-      const base = TSymbolInfoAdapter.convert([]);
-
-      const result = TSymbolInfoAdapter.mergeOpaqueTypes(base, [
-        "widget_t",
-        "display_t",
-      ]);
-
-      expect(result.opaqueTypes.has("widget_t")).toBe(true);
-      expect(result.opaqueTypes.has("display_t")).toBe(true);
-      expect(result.opaqueTypes.size).toBe(2);
-    });
-
-    it("should preserve existing opaque types when merging", () => {
-      // Create base with existing opaque type
-      const base = TSymbolInfoAdapter.convert([]);
-      // Manually create a symbols object with existing opaque types
-      const withExisting = TSymbolInfoAdapter.mergeOpaqueTypes(base, [
-        "existing_t",
-      ]);
-
-      // Merge additional opaque types
-      const result = TSymbolInfoAdapter.mergeOpaqueTypes(withExisting, [
-        "widget_t",
-      ]);
-
-      expect(result.opaqueTypes.has("existing_t")).toBe(true);
-      expect(result.opaqueTypes.has("widget_t")).toBe(true);
-      expect(result.opaqueTypes.size).toBe(2);
-    });
-
-    it("should handle duplicate opaque types gracefully", () => {
-      const base = TSymbolInfoAdapter.convert([]);
-      const withWidget = TSymbolInfoAdapter.mergeOpaqueTypes(base, [
-        "widget_t",
-      ]);
-
-      // Try to add the same opaque type again
-      const result = TSymbolInfoAdapter.mergeOpaqueTypes(withWidget, [
-        "widget_t",
-      ]);
-
-      expect(result.opaqueTypes.has("widget_t")).toBe(true);
-      expect(result.opaqueTypes.size).toBe(1);
-    });
-
-    it("should preserve all other fields unchanged", () => {
-      const struct: IStructSymbol = {
-        ...TestSymbolUtils.base({
-          kind: "struct",
-          name: "Point",
-          scopePath: "",
-          sourceFile: "test.cnx",
-          span: TestSourceSpan.at(1),
-          sourceLanguage: ESourceLanguage.CNext,
-          visibility: "public",
-        }),
-        fields: TestMembers.asStructFields(
-          "Point",
-          new Map([
-            [
-              "x",
-              {
-                name: "x",
-                type: TypeResolver.resolve("i32"),
-                isArray: false,
-                isConst: false,
-                isAtomic: false,
-                isVolatile: false,
-                overflowBehavior: "clamp",
-              },
-            ],
-          ]),
-        ),
-      };
-
-      const base = TSymbolInfoAdapter.convert([struct]);
-      const result = TSymbolInfoAdapter.mergeOpaqueTypes(base, ["widget_t"]);
-
-      // Verify struct info preserved
-      expect(result.knownStructs.has("Point")).toBe(true);
-      expect(result.structFields.get("Point")?.get("x")).toBe("i32");
-
-      // Verify opaque type added
-      expect(result.opaqueTypes.has("widget_t")).toBe(true);
-    });
-  });
-
   describe("mixed symbols", () => {
     it("should handle array of different symbol types", () => {
       const motorScope = TestScopeUtils.createMockScope("Motor");
@@ -892,7 +794,6 @@ describe("TSymbolInfoAdapter", () => {
             sourceLanguage: ESourceLanguage.CNext,
             visibility: "public",
           }),
-          body: null,
           returnType: TypeResolver.resolve("void"),
           visibility: "public",
           parameters: [],
@@ -915,131 +816,6 @@ describe("TSymbolInfoAdapter", () => {
   //
   // Covered here rather than only in tests/bugs/issue-1333-scope-reopening/
   // because integration fixtures do not feed the coverage metric.
-  describe("mergeExternalSymbols — bitmap detail maps", () => {
-    const makeBitmap = (
-      name: string,
-      fields: Map<string, IBitmapFieldLayout> = new Map([
-        ["Ready", { offset: 0, width: 1 }],
-        ["Mode", { offset: 1, width: 3 }],
-      ]),
-    ): IBitmapSymbol => ({
-      ...TestSymbolUtils.base({
-        kind: "bitmap",
-        name,
-        scopePath: "",
-        sourceFile: "lib.cnx",
-        span: TestSourceSpan.at(1),
-        sourceLanguage: ESourceLanguage.CNext,
-        visibility: "public",
-      }),
-      backingType: "uint8_t",
-      bitWidth: 8,
-      // #1318: lift at the USE site -- the factory's parameter stays the plain
-      // offset/width record its callers pass, so only this line knows fields
-      // are symbols now.
-      fields: TestMembers.asBitmapFields(name, fields),
-    });
-
-    it("carries a bitmap's fields, backing type and bit width across the boundary", () => {
-      const base = TSymbolInfoAdapter.convert([]);
-      const external = TSymbolInfoAdapter.convert([makeBitmap("Flags")]);
-
-      const merged = TSymbolInfoAdapter.mergeExternalSymbols(base, [external]);
-
-      expect(merged.knownBitmaps.has("Flags")).toBe(true);
-      // The name alone is what used to cross; these three are the fix.
-      expect(merged.bitmapFields.get("Flags")?.get("Mode")).toEqual({
-        offset: 1,
-        width: 3,
-      });
-      expect(merged.bitmapBackingType.get("Flags")).toBe("uint8_t");
-      expect(merged.bitmapBitWidth.get("Flags")).toBe(8);
-    });
-
-    it("keeps the local definition when both files declare the same bitmap", () => {
-      const local = makeBitmap(
-        "Flags",
-        new Map([["Ready", { offset: 7, width: 1 }]]),
-      );
-
-      const base = TSymbolInfoAdapter.convert([local]);
-      const external = TSymbolInfoAdapter.convert([makeBitmap("Flags")]);
-
-      const merged = TSymbolInfoAdapter.mergeExternalSymbols(base, [external]);
-
-      // Local takes precedence, matching how enumMembers already merges.
-      expect(merged.bitmapFields.get("Flags")?.get("Ready")).toEqual({
-        offset: 7,
-        width: 1,
-      });
-      expect(merged.bitmapFields.get("Flags")?.has("Mode")).toBe(false);
-    });
-
-    it("returns the base unchanged when there are no external sources", () => {
-      const base = TSymbolInfoAdapter.convert([makeBitmap("Flags")]);
-
-      expect(TSymbolInfoAdapter.mergeExternalSymbols(base, [])).toBe(base);
-    });
-  });
-
-  describe("mergeExternalSymbols — file-scope value names (#1398)", () => {
-    const makeFileScopeConst = (name: string): IVariableSymbol => ({
-      ...TestSymbolUtils.base({
-        kind: "variable",
-        name,
-        scopePath: "",
-        sourceFile: "lib.cnx",
-        span: TestSourceSpan.at(1),
-        sourceLanguage: ESourceLanguage.CNext,
-        visibility: "public",
-      }),
-      type: TypeResolver.resolve("u32"),
-      isConst: true,
-      isAtomic: false,
-      isVolatile: false,
-      overflowBehavior: "clamp",
-      isArray: false,
-      initialValue: "42",
-    });
-
-    /**
-     * The value-axis twin of the bitmap test above. #1333 fixed this same
-     * asymmetry between two kinds of TYPE in this same function; #1398 is the
-     * kind of asymmetry one axis over -- a type declared in an included file
-     * crossed and a const beside it did not, so E0426 fired across a file
-     * boundary and E0427 could not.
-     *
-     * Asserted here rather than only through `declared-value-resolves` because
-     * the integration control reaches this line by traversal: deleting the
-     * `_mergeNames` call reddens a `.cnx` fixture three layers away, and per
-     * CLAUDE.md's "presence is not proof", an assertion beside the line is the
-     * one that cannot be satisfied by accident.
-     */
-    it("carries a file-scope value name across the boundary", () => {
-      const base = TSymbolInfoAdapter.convert([]);
-      const external = TSymbolInfoAdapter.convert([
-        makeFileScopeConst("SHARED_LIMIT"),
-      ]);
-
-      const merged = TSymbolInfoAdapter.mergeExternalSymbols(base, [external]);
-
-      expect(merged.knownVariables.has("SHARED_LIMIT")).toBe(true);
-    });
-
-    it("keeps the local file's own value names when merging", () => {
-      const base = TSymbolInfoAdapter.convert([
-        makeFileScopeConst("OWN_LIMIT"),
-      ]);
-      const external = TSymbolInfoAdapter.convert([
-        makeFileScopeConst("SHARED_LIMIT"),
-      ]);
-
-      const merged = TSymbolInfoAdapter.mergeExternalSymbols(base, [external]);
-
-      expect(merged.knownVariables.has("OWN_LIMIT")).toBe(true);
-      expect(merged.knownVariables.has("SHARED_LIMIT")).toBe(true);
-    });
-  });
 
   describe("#1301: convert() must not read arrayDimensions", () => {
     /**

@@ -1,4 +1,4 @@
-import type SymbolTable from "../../transpiler/logic/symbols/SymbolTable";
+import type SymbolTable from "../../transpiler/state/SymbolTable";
 import type TSymbol from "../../transpiler/types/symbols/TSymbol";
 import type TType from "../../transpiler/types/TType";
 import QualifiedCName from "../../utils/QualifiedCName";

@@ -28,7 +28,6 @@ describe("SymbolGuards", () => {
       parameters: [],
       returnType: { kind: "primitive", primitive: "void" },
       visibility: "public",
-      body: null,
     } as IFunctionSymbol;
 
     expect(SymbolGuards.isFunction(funcSymbol)).toBe(true);

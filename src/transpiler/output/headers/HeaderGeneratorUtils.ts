@@ -6,7 +6,7 @@
  */
 
 import IHeaderSymbol from "./types/IHeaderSymbol";
-import SymbolTable from "../../logic/symbols/SymbolTable";
+import SymbolTable from "../../state/SymbolTable";
 import CppNamespaceUtils from "../../../utils/CppNamespaceUtils";
 import typeUtils from "../../../utils/mapType";
 import IGroupedSymbols from "./types/IGroupedSymbols";

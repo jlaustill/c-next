@@ -27,7 +27,7 @@
  * prefer over a text scan that could only ever over-include.
  */
 
-import type SymbolTable from "../../transpiler/logic/symbols/SymbolTable";
+import type SymbolTable from "../../transpiler/state/SymbolTable";
 import type TSymbol from "../../transpiler/types/symbols/TSymbol";
 import SYSTEM_INCLUDE_TARGETS from "../../transpiler/constants/SYSTEM_INCLUDE_TARGETS";
 import headerCType from "../../utils/headerCType";

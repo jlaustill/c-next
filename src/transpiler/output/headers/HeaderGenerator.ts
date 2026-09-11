@@ -6,7 +6,7 @@
  */
 
 import IHeaderSymbol from "./types/IHeaderSymbol";
-import SymbolTable from "../../logic/symbols/SymbolTable";
+import SymbolTable from "../../state/SymbolTable";
 import HeaderSymbolAdapter from "./adapters/HeaderSymbolAdapter";
 import IHeaderOptions from "../codegen/types/IHeaderOptions";
 import IHeaderTypeInput from "./generators/IHeaderTypeInput";

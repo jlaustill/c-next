@@ -4,7 +4,7 @@
  */
 import TYPE_MAP from "../../types/TYPE_MAP";
 import IFunctionSignature from "../../../../types/IFunctionSignature";
-import SymbolTable from "../../../../logic/symbols/SymbolTable";
+import SymbolTable from "../../../../state/SymbolTable";
 import TypeResolver from "../../../../../utils/TypeResolver";
 
 /**

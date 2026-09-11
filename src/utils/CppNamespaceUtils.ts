@@ -9,7 +9,7 @@
  * - generateStructHeader.ts (isCppNamespace, convertToCppNamespaceIfNeeded)
  */
 
-import SymbolTable from "../transpiler/logic/symbols/SymbolTable";
+import SymbolTable from "../transpiler/state/SymbolTable";
 import ESourceLanguage from "./types/ESourceLanguage";
 import QualifiedCName from "./QualifiedCName";
 

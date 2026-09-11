@@ -9,7 +9,7 @@
 import { describe, it, expect } from "vitest";
 import CachedSymbolReader from "../CachedSymbolReader";
 import JsonCodec from "../JsonCodec";
-import SymbolTable from "../../../transpiler/logic/symbols/SymbolTable";
+import SymbolTable from "../../../transpiler/state/SymbolTable";
 import ESourceLanguage from "../../types/ESourceLanguage";
 import TJsonValue from "../../types/TJsonValue";
 import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";

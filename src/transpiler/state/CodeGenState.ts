@@ -21,8 +21,9 @@
  *   CodeGenState.symbolTable.clear() at the start of each run().
  */
 
-import SymbolTable from "../logic/symbols/SymbolTable";
+import SymbolTable from "./SymbolTable";
 import type IProgram from "../types/IProgram";
+import type ICallGraphEntry from "../types/ICallGraphEntry";
 import type TIncludeHeader from "../types/TIncludeHeader";
 import TYPE_FORMING_KINDS from "../../PARSE/3-Declare/TYPE_FORMING_KINDS";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
@@ -61,15 +62,6 @@ interface IAssignmentContext {
   targetName: string | null;
   targetType: string | null;
   overflowBehavior: TOverflowBehavior;
-}
-
-/**
- * Function call graph entry for transitive modification analysis
- */
-interface ICallGraphEntry {
-  callee: string;
-  paramIndex: number;
-  argParamName: string;
 }
 
 /**
@@ -303,6 +295,16 @@ export default class CodeGenState {
    * Maps function name -> typedef name (e.g., "my_flush" -> "flush_cb_t")
    * Issue #895: We need the typedef name to look up parameter types.
    */
+  /**
+   * The ANALYZER'S OUTPUT CHANNEL for callback compatibility, not the answer.
+   *
+   * #1511: nothing reads this to decide anything. `FunctionCallAnalyzer` writes
+   * it as it walks a file, and `CallbackCompatibility.derive` harvests it once
+   * over every tree; consumers ask `Program`. It stayed a static because that is
+   * how the analyzer reports the fact, and giving it a second reader is what
+   * made the map order-dependent in the first place — a file rendered early saw
+   * only what had been analyzed so far.
+   */
   static callbackCompatibleFunctions: Map<string, string> = new Map();
 
   // ===========================================================================
@@ -313,7 +315,6 @@ export default class CodeGenState {
   static modifiedParameters: Map<string, Set<string>> = new Map();
 
   /** Parameters that should pass by value (small, unmodified primitives) */
-  static passByValueParams: Map<string, Set<string>> = new Map();
 
   /** Function call relationships for transitive modification analysis */
   static functionCallGraph: Map<string, ICallGraphEntry[]> = new Map();
@@ -610,7 +611,6 @@ export default class CodeGenState {
 
     // Pass-by-value analysis
     this.modifiedParameters = new Map();
-    this.passByValueParams = new Map();
     this.functionCallGraph = new Map();
     this.functionParamLists = new Map();
     // Note: pendingCrossFileModifications/ParamLists are set externally, not reset
@@ -926,7 +926,10 @@ export default class CodeGenState {
    * Example: `typedef struct _widget_t widget_t;` without a body makes `widget_t` opaque.
    */
   static isOpaqueType(typeName: string): boolean {
-    return this.symbols?.opaqueTypes.has(typeName) ?? false;
+    // #1511: the artifact resolved this once for the whole program. It used to
+    // read a per-file set that `mergeOpaqueTypes` patched the cross-file answer
+    // into, which made this a second place the question was answered.
+    return this.program?.isOpaqueType(typeName) ?? false;
   }
 
   /**
@@ -1232,7 +1235,14 @@ export default class CodeGenState {
    * Check if a parameter should pass by value.
    */
   static isPassByValue(funcName: string, paramName: string): boolean {
-    return this.passByValueParams.get(funcName)?.has(paramName) ?? false;
+    // #1511: one owner. This map was filled by a per-file pass that cleared it
+    // first, while header generation read a SECOND copy on `TranspilerState` --
+    // so the `.c` and the `.h` could disagree about the same signature, which
+    // is what #1161's fixture caught when the per-file pass was removed.
+    return (
+      CodeGenState.program?.passByValueParams().get(funcName)?.has(paramName) ??
+      false
+    );
   }
 
   /**

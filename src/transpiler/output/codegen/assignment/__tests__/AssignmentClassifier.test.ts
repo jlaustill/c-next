@@ -4,7 +4,7 @@ import AssignmentClassifier from "../AssignmentClassifier";
 import AssignmentKind from "../AssignmentKind";
 import IAssignmentContext from "../IAssignmentContext";
 import CodeGenState from "../../../../state/CodeGenState";
-import SymbolTable from "../../../../logic/symbols/SymbolTable";
+import SymbolTable from "../../../../state/SymbolTable";
 import TTypeInfo from "../../../../types/TTypeInfo";
 
 // ========================================================================
@@ -122,7 +122,6 @@ function setupSymbols(
     scopePrivateConstValues: new Map(),
     functionReturnTypes: new Map(),
     getSingleFunctionForVariable: () => null,
-    opaqueTypes: new Set(),
   };
 }
 

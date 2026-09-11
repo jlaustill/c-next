@@ -5,50 +5,31 @@
 import { describe, it, expect } from "vitest";
 import ExternalTypeHeaderBuilder from "../ExternalTypeHeaderBuilder";
 
-import TSymbolKind from "../../../types/symbol-kinds/TSymbolKind";
-import TAnySymbol from "../../../types/symbols/TAnySymbol";
-import TCSymbol from "../../../types/symbols/c/TCSymbol";
-import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
-
 /**
- * Create a minimal test symbol (using C symbol for simplicity)
+ * Stands in for `Program`, which answers which type names a file declares.
+ *
+ * #1511: this used to hand over whole symbols and the builder filtered them by
+ * kind. That filter is authored in `Program` now, so which kinds form a type is
+ * asserted in `Program.test.ts` — a mock here that re-applied it would be a
+ * second copy of the rule, and would pass whether or not production agreed.
  */
-function createSymbol(
-  name: string,
-  kind: TSymbolKind,
-  sourceFile: string,
-): TCSymbol {
-  return {
-    name,
-    kind,
-    sourceFile,
-    span: TestSourceSpan.at(1),
-    visibility: "public",
-  } as TCSymbol;
-}
+class MockTypeSource {
+  private typesByFile: Map<string, Set<string>> = new Map();
 
-/**
- * Mock symbol source for testing
- */
-class MockSymbolSource {
-  private symbolsByFile: Map<string, TAnySymbol[]> = new Map();
-
-  addSymbols(filePath: string, symbols: TAnySymbol[]): void {
-    this.symbolsByFile.set(filePath, symbols);
+  addTypes(filePath: string, typeNames: string[]): void {
+    this.typesByFile.set(filePath, new Set(typeNames));
   }
 
-  getSymbolsByFile(filePath: string): TAnySymbol[] {
-    return this.symbolsByFile.get(filePath) ?? [];
+  typesDeclaredIn(filePath: string): ReadonlySet<string> {
+    return this.typesByFile.get(filePath) ?? new Set<string>();
   }
 }
 
 describe("ExternalTypeHeaderBuilder", () => {
   describe("build", () => {
     it("maps struct types to their include directives", () => {
-      const source = new MockSymbolSource();
-      source.addSymbols("/path/to/types.h", [
-        createSymbol("MyStruct", "struct", "/path/to/types.h"),
-      ]);
+      const source = new MockTypeSource();
+      source.addTypes("/path/to/types.h", ["MyStruct"]);
 
       const headerDirectives = new Map([
         ["/path/to/types.h", '#include "types.h"'],
@@ -60,10 +41,8 @@ describe("ExternalTypeHeaderBuilder", () => {
     });
 
     it("maps enum types to their include directives", () => {
-      const source = new MockSymbolSource();
-      source.addSymbols("/path/to/enums.h", [
-        createSymbol("Status", "enum", "/path/to/enums.h"),
-      ]);
+      const source = new MockTypeSource();
+      source.addTypes("/path/to/enums.h", ["Status"]);
 
       const headerDirectives = new Map([
         ["/path/to/enums.h", '#include "enums.h"'],
@@ -75,10 +54,8 @@ describe("ExternalTypeHeaderBuilder", () => {
     });
 
     it("maps typedef types to their include directives", () => {
-      const source = new MockSymbolSource();
-      source.addSymbols("/path/to/types.h", [
-        createSymbol("size_t", "type", "/path/to/types.h"),
-      ]);
+      const source = new MockTypeSource();
+      source.addTypes("/path/to/types.h", ["size_t"]);
 
       const headerDirectives = new Map([
         ["/path/to/types.h", '#include "types.h"'],
@@ -90,10 +67,8 @@ describe("ExternalTypeHeaderBuilder", () => {
     });
 
     it("maps class types to their include directives", () => {
-      const source = new MockSymbolSource();
-      source.addSymbols("/path/to/serial.hpp", [
-        createSymbol("Serial", "class", "/path/to/serial.hpp"),
-      ]);
+      const source = new MockTypeSource();
+      source.addTypes("/path/to/serial.hpp", ["Serial"]);
 
       const headerDirectives = new Map([
         ["/path/to/serial.hpp", '#include "serial.hpp"'],
@@ -104,44 +79,10 @@ describe("ExternalTypeHeaderBuilder", () => {
       expect(result.get("Serial")).toBe('#include "serial.hpp"');
     });
 
-    it("ignores function symbols", () => {
-      const source = new MockSymbolSource();
-      source.addSymbols("/path/to/funcs.h", [
-        createSymbol("doSomething", "function", "/path/to/funcs.h"),
-      ]);
-
-      const headerDirectives = new Map([
-        ["/path/to/funcs.h", '#include "funcs.h"'],
-      ]);
-
-      const result = ExternalTypeHeaderBuilder.build(headerDirectives, source);
-
-      expect(result.has("doSomething")).toBe(false);
-    });
-
-    it("ignores variable symbols", () => {
-      const source = new MockSymbolSource();
-      source.addSymbols("/path/to/vars.h", [
-        createSymbol("globalVar", "variable", "/path/to/vars.h"),
-      ]);
-
-      const headerDirectives = new Map([
-        ["/path/to/vars.h", '#include "vars.h"'],
-      ]);
-
-      const result = ExternalTypeHeaderBuilder.build(headerDirectives, source);
-
-      expect(result.has("globalVar")).toBe(false);
-    });
-
     it("first include wins for duplicate type names", () => {
-      const source = new MockSymbolSource();
-      source.addSymbols("/path/to/first.h", [
-        createSymbol("DuplicateType", "struct", "/path/to/first.h"),
-      ]);
-      source.addSymbols("/path/to/second.h", [
-        createSymbol("DuplicateType", "struct", "/path/to/second.h"),
-      ]);
+      const source = new MockTypeSource();
+      source.addTypes("/path/to/first.h", ["DuplicateType"]);
+      source.addTypes("/path/to/second.h", ["DuplicateType"]);
 
       const headerDirectives = new Map([
         ["/path/to/first.h", '#include "first.h"'],
@@ -154,12 +95,8 @@ describe("ExternalTypeHeaderBuilder", () => {
     });
 
     it("handles multiple types from same header", () => {
-      const source = new MockSymbolSource();
-      source.addSymbols("/path/to/types.h", [
-        createSymbol("StructA", "struct", "/path/to/types.h"),
-        createSymbol("EnumB", "enum", "/path/to/types.h"),
-        createSymbol("TypeC", "type", "/path/to/types.h"),
-      ]);
+      const source = new MockTypeSource();
+      source.addTypes("/path/to/types.h", ["StructA", "EnumB", "TypeC"]);
 
       const headerDirectives = new Map([
         ["/path/to/types.h", '#include "types.h"'],
@@ -173,13 +110,9 @@ describe("ExternalTypeHeaderBuilder", () => {
     });
 
     it("handles multiple headers", () => {
-      const source = new MockSymbolSource();
-      source.addSymbols("/path/to/a.h", [
-        createSymbol("TypeA", "struct", "/path/to/a.h"),
-      ]);
-      source.addSymbols("/path/to/b.h", [
-        createSymbol("TypeB", "enum", "/path/to/b.h"),
-      ]);
+      const source = new MockTypeSource();
+      source.addTypes("/path/to/a.h", ["TypeA"]);
+      source.addTypes("/path/to/b.h", ["TypeB"]);
 
       const headerDirectives = new Map([
         ["/path/to/a.h", '#include "a.h"'],
@@ -193,24 +126,8 @@ describe("ExternalTypeHeaderBuilder", () => {
     });
 
     it("returns empty map when no headers", () => {
-      const source = new MockSymbolSource();
+      const source = new MockTypeSource();
       const headerDirectives = new Map<string, string>();
-
-      const result = ExternalTypeHeaderBuilder.build(headerDirectives, source);
-
-      expect(result.size).toBe(0);
-    });
-
-    it("returns empty map when headers have no type symbols", () => {
-      const source = new MockSymbolSource();
-      source.addSymbols("/path/to/funcs.h", [
-        createSymbol("func1", "function", "/path/to/funcs.h"),
-        createSymbol("func2", "function", "/path/to/funcs.h"),
-      ]);
-
-      const headerDirectives = new Map([
-        ["/path/to/funcs.h", '#include "funcs.h"'],
-      ]);
 
       const result = ExternalTypeHeaderBuilder.build(headerDirectives, source);
 

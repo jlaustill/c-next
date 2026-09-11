@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import QualifiedNameGenerator from "../QualifiedNameGenerator";
 import SymbolRegistry from "../../../../state/SymbolRegistry";
-import FunctionUtils from "../../../../../utils/FunctionUtils";
+import FunctionUtils from "../../../../../tests/utils/FunctionUtils";
 import TTypeUtils from "../../../../../utils/TTypeUtils";
 import TestSourceSpan from "../../../../types/__testUtils__/testSourceSpan";
 
@@ -24,7 +24,6 @@ describe("QualifiedNameGenerator", () => {
         parameters: [],
         returnType: TTypeUtils.createPrimitive("i32"),
         visibility: "public",
-        body: null,
         sourceFile: "main.cnx",
         span: TestSourceSpan.at(1),
       });
@@ -40,7 +39,6 @@ describe("QualifiedNameGenerator", () => {
         parameters: [],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "private",
-        body: null,
         sourceFile: "test.cnx",
         span: TestSourceSpan.at(1),
       });
@@ -56,7 +54,6 @@ describe("QualifiedNameGenerator", () => {
         parameters: [],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "private",
-        body: null,
         sourceFile: "test.cnx",
         span: TestSourceSpan.at(1),
       });
@@ -74,7 +71,6 @@ describe("QualifiedNameGenerator", () => {
         parameters: [],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "public",
-        body: null,
         sourceFile: "test.cnx",
         span: TestSourceSpan.at(1),
       });
@@ -123,7 +119,6 @@ describe("QualifiedNameGenerator", () => {
         parameters: [],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "public",
-        body: null,
         sourceFile: "motor.cnx",
         span: TestSourceSpan.at(1),
       });

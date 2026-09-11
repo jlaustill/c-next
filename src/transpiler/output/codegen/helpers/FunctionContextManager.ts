@@ -402,9 +402,9 @@ class FunctionContextManager {
   ): { shouldBePointer: boolean; shouldBeConst: boolean } | null {
     if (CodeGenState.currentFunctionName === null) return null;
 
-    const typedefName = CodeGenState.callbackCompatibleFunctions.get(
-      CodeGenState.currentFunctionName,
-    );
+    const typedefName = CodeGenState.program
+      ?.callbackCompatibleFunctions()
+      .get(CodeGenState.currentFunctionName);
     if (!typedefName) return null;
 
     const typedefType = CodeGenState.getTypedefType(typedefName);

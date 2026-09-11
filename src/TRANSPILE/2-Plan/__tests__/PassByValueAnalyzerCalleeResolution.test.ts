@@ -13,7 +13,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import PassByValueAnalyzer from "../PassByValueAnalyzer";
 import CodeGenState from "../../../transpiler/state/CodeGenState";
-import SymbolTable from "../../../transpiler/logic/symbols/SymbolTable";
+import SymbolTable from "../../../transpiler/state/SymbolTable";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import type TCSymbol from "../../../transpiler/types/symbols/c/TCSymbol";
 import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";

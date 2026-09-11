@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import createMockSymbols from "../../../transpiler/__tests__/codeGenSymbolsHelpers";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import NameExistence from "../NameExistence";
-import SymbolTable from "../../../transpiler/logic/symbols/SymbolTable";
+import SymbolTable from "../../../transpiler/state/SymbolTable";
 
 /**
  * A SymbolTable stub answering only `getOverloadsByCName`, which is the single
@@ -11,24 +11,41 @@ import SymbolTable from "../../../transpiler/logic/symbols/SymbolTable";
  */
 function tableWith(
   entries: ReadonlyArray<{ name: string; language: ESourceLanguage }>,
+  opaque: ReadonlyArray<string> = [],
 ): SymbolTable {
   return {
     getOverloadsByCName: (name: string) =>
       entries
         .filter((e) => e.name === name)
         .map((e) => ({ sourceLanguage: e.language })),
+    // #1511: opacity is asked of the table now, not of the per-file view --
+    // `ICodeGenSymbols` carried a merged copy of the set only so this could be
+    // read per file, and the merge is gone.
+    isOpaqueType: (name: string) => opaque.includes(name),
   } as unknown as SymbolTable;
 }
 
 const EMPTY_TABLE = tableWith([]);
 
 describe("NameExistence.isTypeName", () => {
+  it("accepts an opaque type, which the table answers for", () => {
+    // #1511: this used to be one row of the parameterized set above, reading
+    // `ICodeGenSymbols.opaqueTypes`. That field was a per-file copy of a
+    // whole-program fact, merged in by `mergeOpaqueTypes`; both are gone, and
+    // the question is asked where the answer is derived.
+    expect(
+      NameExistence.isTypeName(
+        "widget_t",
+        createMockSymbols(),
+        tableWith([], ["widget_t"]),
+      ),
+    ).toBe(true);
+  });
   it.each([
     ["knownEnums", "EColor"],
     ["knownStructs", "Point"],
     ["knownBitmaps", "Flags"],
     ["knownScopes", "Motor"],
-    ["opaqueTypes", "widget_t"],
   ] as const)("accepts a name present in %s", (field, name) => {
     const symbols = createMockSymbols({ [field]: new Set([name]) });
     expect(NameExistence.isTypeName(name, symbols, EMPTY_TABLE)).toBe(true);

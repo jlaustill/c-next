@@ -9,6 +9,7 @@
  */
 
 import * as Parser from "../../../logic/parser/grammar/CNextParser";
+import AdrProvenance from "../../../state/AdrProvenance";
 import IParameterInput from "../types/IParameterInput";
 import IParameterSymbol from "../../../../utils/types/IParameterSymbol";
 import ICallbackTypeInfo from "../../../types/ICallbackTypeInfo";
@@ -153,6 +154,14 @@ class ParameterInputAdapter {
     const isTypedefStruct = deps.isTypedefStructType(typeName);
     // Issue #995: Detect opaque handles — rule applied in ParameterSignatureBuilder
     const isOpaque = deps.isOpaqueType?.(typeName) ?? false;
+    if (isOpaque) {
+      // ADR-030 decided here: an incomplete type can only be handled through a
+      // pointer, which is why #995's `const T*` was wrong. Recorded at the
+      // PARAMETER's position so the matrix sees the enclosing function's
+      // context; ADR-030 raises no diagnostic, so a provenance site is the only
+      // thing an occupancy can be derived from (#1511).
+      AdrProvenance.record("030", ctx.start?.line);
+    }
     // Issue #895: Don't add auto-const for callback-compatible functions
     // because it would change the signature and break typedef compatibility
     const isAutoConst =

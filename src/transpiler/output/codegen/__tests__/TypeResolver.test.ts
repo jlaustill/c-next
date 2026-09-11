@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { CharStream, CommonTokenStream } from "antlr4ng";
 import TypeResolver from "../TypeResolver";
-import SymbolTable from "../../../logic/symbols/SymbolTable";
+import SymbolTable from "../../../state/SymbolTable";
 import CodeGenState from "../../../state/CodeGenState";
 import TTypeInfo from "../../../types/TTypeInfo";
 import { CNextLexer } from "../../../logic/parser/grammar/CNextLexer";

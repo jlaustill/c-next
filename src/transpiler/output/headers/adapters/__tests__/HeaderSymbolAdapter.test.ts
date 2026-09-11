@@ -144,7 +144,6 @@ describe("HeaderSymbolAdapter", () => {
         parameters: [],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "public",
-        body: null,
       };
 
       const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);
@@ -177,7 +176,6 @@ describe("HeaderSymbolAdapter", () => {
         ],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "public",
-        body: null,
       };
 
       const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);
@@ -213,7 +211,6 @@ describe("HeaderSymbolAdapter", () => {
         ],
         returnType: TTypeUtils.createPrimitive("i32"),
         visibility: "public",
-        body: null,
       };
 
       const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);
@@ -515,7 +512,6 @@ describe("HeaderSymbolAdapter", () => {
           parameters: [],
           returnType: TTypeUtils.createPrimitive("void"),
           visibility: "public" as const,
-          body: null,
         },
       ];
 
@@ -669,7 +665,6 @@ describe("HeaderSymbolAdapter", () => {
         ],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "public",
-        body: null,
       };
 
       const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);

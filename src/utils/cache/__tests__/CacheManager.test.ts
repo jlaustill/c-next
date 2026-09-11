@@ -22,7 +22,7 @@ import TCppSymbol from "../../../transpiler/types/symbols/cpp/TCppSymbol";
 import ICFunctionSymbol from "../../../transpiler/types/symbols/c/ICFunctionSymbol";
 import ESourceLanguage from "../../types/ESourceLanguage";
 import IStructFieldInfo from "../../../transpiler/types/symbols/IStructFieldInfo";
-import SymbolTable from "../../../transpiler/logic/symbols/SymbolTable";
+import SymbolTable from "../../../transpiler/state/SymbolTable";
 import MockFileSystem from "../../../transpiler/__tests__/MockFileSystem";
 import TTypeUtils from "../../TTypeUtils";
 import type IFunctionSymbol from "../../../transpiler/types/symbols/IFunctionSymbol";
@@ -1025,7 +1025,6 @@ describe("CacheManager", () => {
         returnType: TTypeUtils.createPrimitive("void"),
         parameters: [],
         visibility: "public",
-        body: null,
       } as IFunctionSymbol);
 
       cacheManager.setSymbolsFromTable(headerFile, symbolTable);

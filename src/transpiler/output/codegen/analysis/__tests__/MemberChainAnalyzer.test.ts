@@ -9,7 +9,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import MemberChainAnalyzer from "../MemberChainAnalyzer.js";
 import CodeGenState from "../../../../state/CodeGenState.js";
-import SymbolTable from "../../../../logic/symbols/SymbolTable.js";
+import SymbolTable from "../../../../state/SymbolTable";
 import type * as Parser from "../../../../logic/parser/grammar/CNextParser.js";
 
 /** Mock type for PostfixTargetOpContext */
@@ -123,7 +123,6 @@ describe("MemberChainAnalyzer", () => {
         scopePrivateConstValues: new Map(),
         functionReturnTypes: new Map(),
         getSingleFunctionForVariable: () => null,
-        opaqueTypes: new Set(),
       };
     }
     (CodeGenState.symbols.knownStructs as Set<string>).add(structName);

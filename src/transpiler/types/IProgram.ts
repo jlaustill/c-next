@@ -1,4 +1,7 @@
 import type TSymbol from "./symbols/TSymbol";
+import type IConflict from "./IConflict";
+import type ICallGraphEntry from "./ICallGraphEntry";
+import type ICodeGenSymbols from "./ICodeGenSymbols";
 
 /**
  * `Program` — the artifact 1.4 Resolve emits, and the only place a cross-file
@@ -90,6 +93,88 @@ interface IProgram {
    * A caller inside a scope asks with it.
    */
   constValuesIn(scopePath: string): ReadonlyMap<string, number>;
+
+  /**
+   * Every symbol conflict in the program.
+   *
+   * Cross-file by construction — a conflict exists only when two files define
+   * the same name — and one of the three facts that also needs the C and C++
+   * header symbols, not just C-Next's. It was previously derived from an
+   * accumulator mid-run, so the answer depended on how much had been inserted
+   * when it was asked (#1511).
+   */
+  conflicts(): ReadonlyArray<IConflict>;
+
+  /**
+   * The type names a file declares — struct, type, enum and class.
+   *
+   * "Which C header declares this type", asked from the file's side. Header
+   * generation includes the header that defines a type rather than forward
+   * declaring it (#497), and picking WHICH header wins belongs to whoever holds
+   * the include order, so this answers only what each file declares (#1511).
+   */
+  typesDeclaredIn(sourceFile: string): ReadonlySet<string>;
+
+  /**
+   * Whether this typedef names a struct nothing in the program ever defines.
+   *
+   * Cross-file by nature: a header may forward-declare a struct and typedef it
+   * while the body arrives from another header entirely, so "opaque" is only
+   * decidable once every header has been read. Variables of such a type are
+   * generated as pointers (#948), which makes a wrong answer a codegen bug
+   * rather than a cosmetic one.
+   */
+  isOpaqueType(typeName: string): boolean;
+
+  /** Every truly opaque typedef, resolved. */
+  opaqueTypes(): ReadonlySet<string>;
+
+  /**
+   * Which parameters each function modifies, direct and transitive.
+   *
+   * Decides whether a caller's argument may take ADR-013 auto-const, and the
+   * callee is routinely in another file. Derived once over every tree rather
+   * than accumulated file by file, so it no longer depends on how far the run
+   * has got (#1511).
+   */
+  modifiedParameters(): ReadonlyMap<string, ReadonlySet<string>>;
+
+  /** Each function's parameter names, in declaration order. */
+  functionParamLists(): ReadonlyMap<string, ReadonlyArray<string>>;
+
+  /** Who calls whom, as transitive modification propagation reads it. */
+  callGraph(): ReadonlyMap<string, ReadonlyArray<ICallGraphEntry>>;
+
+  /**
+   * The symbol view a file's code generation reads: what it declares, plus
+   * everything its include closure reaches, with its own names shadowing.
+   *
+   * Composed here because it is a cross-file question. It was previously built
+   * per file and patched during rendering, from a map that filled as the run
+   * proceeded — so a file rendered early saw less than the same file rendered
+   * late (#1301, #1511).
+   */
+  codeGenSymbolsFor(sourceFile: string): ICodeGenSymbols | undefined;
+
+  /**
+   * Which parameters of each function may be passed by value (ADR-006).
+   *
+   * A fact with a truth value — is this parameter modified anywhere downstream?
+   * — and answering it needs the whole call chain, which crosses files. Keyed by
+   * transpiled C name (#1511).
+   */
+  passByValueParams(): ReadonlyMap<string, ReadonlySet<string>>;
+
+  /**
+   * Functions used as an ADR-029 callback, to the typedef they are used as.
+   *
+   * A function assigned to a callback typedef must keep that typedef's parameter
+   * shape, so it takes neither auto-const nor pass-by-value. The use can sit in
+   * a different file from the declaration, which makes this cross-file — and it
+   * was previously accumulated as files rendered, so an early file decided its
+   * signatures on a partial answer (#1511).
+   */
+  callbackCompatibleFunctions(): ReadonlyMap<string, string>;
 }
 
 export default IProgram;

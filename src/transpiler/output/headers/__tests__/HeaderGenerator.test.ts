@@ -8,7 +8,7 @@ import { describe, it, expect } from "vitest";
 import HeaderGenerator from "../HeaderGenerator";
 
 import IHeaderSymbol from "../types/IHeaderSymbol";
-import SymbolTable from "../../../logic/symbols/SymbolTable";
+import SymbolTable from "../../../state/SymbolTable";
 import IHeaderTypeInput from "../generators/IHeaderTypeInput";
 import TTypeUtils from "../../../../utils/TTypeUtils";
 import type IFunctionSymbol from "../../../types/symbols/IFunctionSymbol";
@@ -367,7 +367,6 @@ describe("HeaderGenerator", () => {
         returnType: TTypeUtils.createPrimitive("void"),
         parameters: [],
         visibility: "public",
-        body: null,
       } as IFunctionSymbol);
       symbolTable.addTSymbol({
         ...TestSymbolUtils.base({
@@ -382,7 +381,6 @@ describe("HeaderGenerator", () => {
         returnType: TTypeUtils.createPrimitive("void"),
         parameters: [],
         visibility: "public",
-        body: null,
       } as IFunctionSymbol);
 
       const header = generator.generateFromSymbolTable(
@@ -411,7 +409,6 @@ describe("HeaderGenerator", () => {
         returnType: TTypeUtils.createPrimitive("void"),
         parameters: [],
         visibility: "public",
-        body: null,
       } as IFunctionSymbol);
 
       const header = generator.generateFromSymbolTable(
@@ -441,7 +438,6 @@ describe("HeaderGenerator", () => {
         returnType: TTypeUtils.createPrimitive("void"),
         parameters: [],
         visibility: "public",
-        body: null,
       } as IFunctionSymbol);
       symbolTable.addCppSymbol({
         kind: "function",
@@ -484,7 +480,6 @@ describe("HeaderGenerator", () => {
         returnType: TTypeUtils.createPrimitive("void"),
         parameters: [],
         visibility: "public",
-        body: null,
       } as IFunctionSymbol);
 
       const header = generator.generateCNextHeader(symbolTable, "custom_api.h");

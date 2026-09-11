@@ -44,7 +44,7 @@ import EnclosingScope from "./helpers/EnclosingScope";
 import ICodeGenSymbols from "../../transpiler/types/ICodeGenSymbols";
 import IUndeclaredTypeError from "./types/IUndeclaredTypeError";
 import NameExistence from "../../PARSE/3-Declare/NameExistence";
-import SymbolTable from "../../transpiler/logic/symbols/SymbolTable";
+import SymbolTable from "../../transpiler/state/SymbolTable";
 import ParserUtils from "../../utils/ParserUtils";
 import ScopeUtils from "../../utils/ScopeUtils";
 

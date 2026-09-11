@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import CNextSourceParser from "../../../transpiler/logic/parser/CNextSourceParser";
 import CodeGenState from "../../../transpiler/state/CodeGenState";
-import SymbolTable from "../../../transpiler/logic/symbols/SymbolTable";
+import SymbolTable from "../../../transpiler/state/SymbolTable";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
 import CppClassInitializerAnalyzer from "../CppClassInitializerAnalyzer";

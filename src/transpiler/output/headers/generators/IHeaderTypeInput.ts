@@ -1,5 +1,5 @@
 import type IBitmapFieldLayout from "../../../types/IBitmapFieldLayout";
-import SymbolTable from "../../../logic/symbols/SymbolTable";
+import SymbolTable from "../../../state/SymbolTable";
 import IHeaderCallbackType from "../../../types/IHeaderCallbackType";
 
 /**

@@ -45,7 +45,7 @@ import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../transpiler/logic/parser/grammar/CNextListener";
 import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
-import SymbolTable from "../../transpiler/logic/symbols/SymbolTable";
+import SymbolTable from "../../transpiler/state/SymbolTable";
 import CppConstructorHelper from "../../utils/CppConstructorHelper";
 import ParserUtils from "../../utils/ParserUtils";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";

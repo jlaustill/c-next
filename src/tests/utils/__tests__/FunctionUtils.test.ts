@@ -3,10 +3,10 @@
  */
 import { describe, it, expect } from "vitest";
 import FunctionUtils from "../FunctionUtils";
-import ScopeUtils from "../ScopeUtils";
-import ParameterUtils from "../ParameterUtils";
-import TTypeUtils from "../TTypeUtils";
-import TestSourceSpan from "../../transpiler/types/__testUtils__/testSourceSpan";
+import ScopeUtils from "../../../utils/ScopeUtils";
+import ParameterUtils from "../../../utils/ParameterUtils";
+import TTypeUtils from "../../../utils/TTypeUtils";
+import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
 
 describe("IFunctionSymbol", () => {
   describe("FunctionUtils.create", () => {
@@ -24,7 +24,6 @@ describe("IFunctionSymbol", () => {
         ],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "private",
-        body: null,
         sourceFile: "test.cnx",
         span: TestSourceSpan.at(10),
       });
@@ -47,7 +46,6 @@ describe("IFunctionSymbol", () => {
         parameters: [],
         returnType: TTypeUtils.createPrimitive("i32"),
         visibility: "public",
-        body: null,
         sourceFile: "main.cnx",
         span: TestSourceSpan.at(1),
       });
@@ -84,7 +82,6 @@ describe("IFunctionSymbol", () => {
         ],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "public",
-        body: null,
         sourceFile: "calc.cnx",
         span: TestSourceSpan.at(5),
       });
@@ -115,7 +112,6 @@ describe("IFunctionSymbol", () => {
         ],
         returnType: TTypeUtils.createStruct("Point"),
         visibility: "public",
-        body: null,
         sourceFile: "point.cnx",
         span: TestSourceSpan.at(10),
       });
@@ -124,23 +120,6 @@ describe("IFunctionSymbol", () => {
       if (func.returnType.kind === "struct") {
         expect(func.returnType.name).toBe("Point");
       }
-    });
-
-    it("creates function with body reference", () => {
-      const mockBody = { type: "block", statements: [] };
-
-      const func = FunctionUtils.create({
-        name: "doSomething",
-        scopePath: "",
-        parameters: [],
-        returnType: TTypeUtils.createPrimitive("void"),
-        visibility: "public",
-        body: mockBody,
-        sourceFile: "example.cnx",
-        span: TestSourceSpan.at(15),
-      });
-
-      expect(func.body).toBe(mockBody);
     });
   });
 
@@ -152,7 +131,6 @@ describe("IFunctionSymbol", () => {
         parameters: [],
         returnType: TTypeUtils.createPrimitive("i32"),
         visibility: "public",
-        body: null,
         sourceFile: "main.cnx",
         span: TestSourceSpan.at(1),
       });
@@ -167,7 +145,6 @@ describe("IFunctionSymbol", () => {
         parameters: [],
         returnType: TTypeUtils.createPrimitive("void"),
         visibility: "private",
-        body: null,
         sourceFile: "test.cnx",
         span: TestSourceSpan.at(5),
       });

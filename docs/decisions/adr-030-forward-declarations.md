@@ -268,6 +268,58 @@ Could generate prototypes at top of `.c` file to allow any order.
 - Encourages poor code organization
 - Doesn't catch typos in function names until link time
 
+---
+
+## Scope-context matrix
+
+<!-- MATRIX-SEVERITY -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | warn     |
+| top-level function | same file           | warn     |
+| scope member       | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | imported direct     | warn     |
+| top-level function | imported direct     | warn     |
+| scope member       | imported direct     | warn     |
+| scope method       | imported direct     | warn     |
+| global variable    | imported transitive | warn     |
+| top-level function | imported transitive | warn     |
+| scope member       | imported transitive | warn     |
+| scope method       | imported transitive | warn     |
+
+**`same file` is where this fact is observable, which is not obvious and was got
+wrong once here.** The relationship axis counts C-Next include hops. An opaque
+type arrives from a C header — `#include "fake_lib.h"` — and a C header is not a
+hop on that axis, so a fixture using an opaque handle records at `same file` no
+matter how many headers it includes. An earlier version of this table declared
+every `same file` cell `off`, reasoning that C-Next cannot declare a type it does
+not define. That reasoning is true and the conclusion drawn from it was false:
+the cell is not about where the type is DECLARED, it is about how far the C-Next
+program reaches to USE it, and the answer for a C header is zero.
+
+The two `error` cells are the ones a fixture reaches:
+`tests/bugs/issue-995-opaque-param-const/` passes an opaque handle as a scope
+method's parameter, and `tests/bugs/issue-996-array-opaque-handles/` stores an
+array of them as a scope member.
+
+Everything else is `warn`. A global variable or a top-level function can hold an
+opaque handle, and the declaring C header can arrive through a C-Next include
+chain, so `off` would be a false claim that they cannot exist. No fixture
+exercises them today, so `error` would be an obligation nothing meets. `warn`
+records the obligation without asserting an occupancy that is not there.
+
+ADR-030 raises no diagnostic — it shapes generated code — so a cell here is
+occupied by recording where the decision was applied, rather than by where an
+error was reported. The two points that record it are the ones where an
+incomplete type forces a pointer: a scope variable's declaration, and a
+parameter's.
+
+The `transitive` row is newly reachable rather than newly interesting: a fixture
+whose opaque handle arrives two include hops away could not link until #1508
+made the harness link the include closure.
+
 ## References
 
 ### Security & Standards

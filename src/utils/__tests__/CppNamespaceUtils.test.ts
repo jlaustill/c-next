@@ -4,7 +4,7 @@
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import CppNamespaceUtils from "../CppNamespaceUtils";
-import SymbolTable from "../../transpiler/logic/symbols/SymbolTable";
+import SymbolTable from "../../transpiler/state/SymbolTable";
 import ESourceLanguage from "../types/ESourceLanguage";
 import ScopeUtils from "../ScopeUtils";
 import type TCppSymbol from "../../transpiler/types/symbols/cpp/TCppSymbol";

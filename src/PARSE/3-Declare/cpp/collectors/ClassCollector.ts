@@ -11,7 +11,7 @@ import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import ICppClassSymbol from "../../../../transpiler/types/symbols/cpp/ICppClassSymbol";
 import ICppFunctionSymbol from "../../../../transpiler/types/symbols/cpp/ICppFunctionSymbol";
 import ICppFieldInfo from "../../../../transpiler/types/symbols/cpp/ICppFieldInfo";
-import SymbolTable from "../../../../transpiler/logic/symbols/SymbolTable";
+import SymbolTable from "../../../../transpiler/state/SymbolTable";
 import SymbolUtils from "../../SymbolUtils";
 import DeclaratorUtils from "../utils/DeclaratorUtils";
 import FunctionCollector from "./FunctionCollector";

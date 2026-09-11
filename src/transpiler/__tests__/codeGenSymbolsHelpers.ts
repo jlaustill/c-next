@@ -66,7 +66,6 @@ function createMockSymbols(
 
     // Methods and flags
     getSingleFunctionForVariable: () => null,
-    opaqueTypes: new Set(),
 
     ...overrides,
   };

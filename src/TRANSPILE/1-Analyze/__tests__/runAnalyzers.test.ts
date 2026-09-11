@@ -7,7 +7,7 @@ import { CharStream, CommonTokenStream } from "antlr4ng";
 import { CNextLexer } from "../../../transpiler/logic/parser/grammar/CNextLexer";
 import { CNextParser } from "../../../transpiler/logic/parser/grammar/CNextParser";
 import runAnalyzers from "../runAnalyzers";
-import SymbolTable from "../../../transpiler/logic/symbols/SymbolTable";
+import SymbolTable from "../../../transpiler/state/SymbolTable";
 import CodeGenState from "../../../transpiler/state/CodeGenState";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";

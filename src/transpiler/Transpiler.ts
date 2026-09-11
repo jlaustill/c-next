@@ -21,6 +21,8 @@ import HeaderParser from "./logic/parser/HeaderParser";
 
 import CodeGenerator from "./output/codegen/CodeGenerator";
 import CodeGenState from "./state/CodeGenState";
+import ModificationFacts from "./ModificationFacts";
+import CallbackCompatibility from "./CallbackCompatibility";
 import AdrProvenance from "./state/AdrProvenance";
 import CachedSymbolReader from "../utils/cache/CachedSymbolReader";
 import TJsonValue from "../utils/types/TJsonValue";
@@ -34,13 +36,11 @@ import ExternalTypeHeaderBuilder from "./output/headers/ExternalTypeHeaderBuilde
 import HeaderGeneratorUtils from "./output/headers/HeaderGeneratorUtils";
 import IHeaderEmissionFacts from "./output/headers/types/IHeaderEmissionFacts";
 import IHeaderCallbackType from "./types/IHeaderCallbackType";
-import type ITransitiveIncludes from "./types/ITransitiveIncludes";
 import IncludeExtractor from "./logic/IncludeExtractor";
-import SymbolTable from "./logic/symbols/SymbolTable";
+import SymbolTable from "./state/SymbolTable";
 import ESourceLanguage from "../utils/types/ESourceLanguage";
 import CNextResolver from "../PARSE/3-Declare/cnext/index";
 import SymbolRegistry from "./state/SymbolRegistry";
-import TSymbolInfoAdapter from "../PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
 import Program from "../PARSE/4-Resolve/Program";
 import type IProgram from "./types/IProgram";
 import type IFileSymbols from "./types/IFileSymbols";
@@ -81,13 +81,11 @@ import TTranspileInput from "./types/TTranspileInput";
 import ITranspileError from "../lib/types/ITranspileError";
 import TranspilerState from "./state/TranspilerState";
 import runAnalyzers from "../TRANSPILE/1-Analyze/runAnalyzers";
-import ModificationAnalyzer from "../TRANSPILE/2-Plan/ModificationAnalyzer";
 import CacheManager from "../utils/cache/CacheManager";
 import MapUtils from "../utils/MapUtils";
 import detectCppSyntax from "./logic/detectCppSyntax";
 import detectAssemblySyntax from "./logic/detectAssemblySyntax";
 import ExternalDeclarationOracle from "./logic/preprocessor/ExternalDeclarationOracle";
-import TransitiveEnumCollector from "../PARSE/4-Resolve/TransitiveEnumCollector";
 import TypedefParamParser from "./output/codegen/helpers/TypedefParamParser";
 import type IRecordedRequirement from "./types/IRecordedRequirement";
 import RequirementAggregator from "../utils/RequirementAggregator";
@@ -198,7 +196,6 @@ class Transpiler {
    * Issue #593: Centralized analyzer for cross-file const inference in C++ mode.
    * Accumulates parameter modifications and param lists across all processed files.
    */
-  private readonly modificationAnalyzer = new ModificationAnalyzer();
   /** Issue #586: Centralized path resolution for output files */
   private readonly pathResolver: PathResolver;
 
@@ -616,9 +613,49 @@ class Transpiler {
       // reading the set any earlier would drop it from `externalStructFields` --
       // silently exempting it from ADR-016 init-completeness checking, which is
       // the one consumer of the fact.
+      // #1511: one derivation over every tree, before the artifact exists.
+      // This used to run per file inside the loop below, each pass injecting
+      // the running total, extracting its own contribution and restoring the
+      // globals it clobbered -- so "does this callee modify its parameter?"
+      // answered differently depending on how many files had gone before.
+      const modifications = ModificationFacts.derive(declared);
+      // #1511: derived over every tree before anything renders. Accumulated
+      // during rendering, this map was partial for whichever file went first.
+      const callbackCompatible = CallbackCompatibility.derive(
+        declared,
+        CodeGenState.symbolTable,
+      );
+
       this.program = Program.build(
         declared.map((entry) => entry.fileSymbols),
         CodeGenState.symbolTable.getAllStructFields(),
+        // #1511: the C and C++ halves of the conflict question. Both are in the
+        // table by now -- Stage 2 put them there -- and the C-Next half is the
+        // first argument, so `Program` can derive a fact that used to wait for
+        // an accumulator to finish filling.
+        // #1511: everything the C/C++ headers contributed. The opacity inputs
+        // are the RAW bookkeeping, not the verdict -- `Program` resolves which
+        // typedefs never received a body. Read here because #985 phantom-body
+        // recovery has already run (Stage 2), so the state is final.
+        {
+          c: CodeGenState.symbolTable.getAllCSymbols(),
+          cpp: CodeGenState.symbolTable.getAllCppSymbols(),
+          opaqueTypedefs: new Set(CodeGenState.symbolTable.getAllOpaqueTypes()),
+          typedefToTag: new Map(CodeGenState.symbolTable.getAllTypedefToTag()),
+          structTagsWithBodies: new Set(
+            CodeGenState.symbolTable.getAllStructTagsWithBodies(),
+          ),
+        },
+        modifications,
+        {
+          includeDirs: this.config.includeDirs ?? [],
+          cnextIncludesByFile: new Map(
+            declared
+              .filter((entry) => entry.file.cnextIncludes !== undefined)
+              .map((entry) => [entry.file.path, entry.file.cnextIncludes!]),
+          ),
+        },
+        callbackCompatible,
       );
       // Passes after 1.4 read cross-file facts from the artifact rather than
       // re-deriving them. Set once per run, not per file.
@@ -731,22 +768,6 @@ class Transpiler {
 
       // ADR-055 Phase 7: Store TSymbol directly in SymbolTable (no ISymbol conversion)
       CodeGenState.symbolTable.addTSymbols(tSymbols);
-
-      // Issue #465: Store ICodeGenSymbols for external enum resolution in stage 5
-      const symbolInfo = TSymbolInfoAdapter.convert(tSymbols);
-      this.state.setFileSymbolInfo(file.path, symbolInfo);
-
-      // Issue #593: collect modification analysis.
-      // Issue #1171: this ran in C++ mode only, so "does this callee modify
-      // its parameter?" was answered from accumulated cross-file data in C++
-      // and from per-file data alone in C. The analysis itself is
-      // language-neutral, so both modes now share the one answer.
-      const results = this.codeGenerator.analyzeModificationsOnly(
-        parsed.tree,
-        this.modificationAnalyzer.getModifications(),
-        this.modificationAnalyzer.getParamLists(),
-      );
-      this.modificationAnalyzer.accumulateResults(results);
     } catch (err) {
       return [Transpiler._collectionError(err)];
     }
@@ -773,7 +794,7 @@ class Transpiler {
    * Stage 5: Transpile a single C-Next file.
    *
    * Assumes the symbol table is already populated (stages 2-3 complete).
-   * Directly updates this.state and this.modificationAnalyzer.
+   * Directly updates this.state.
    */
   private _transpileFile(file: IPipelineFile): IFileResult {
     const sourcePath = file.path;
@@ -815,38 +836,24 @@ class Transpiler {
       // Build symbolInfo for code generation (before analyzers so they can read it)
       //
       // #1301 review: recomputed here rather than cached with the tree, because
-      // unlike the tree it is ORDER-SENSITIVE. `_collectExternalEnumSources` reads
-      // `state.getSymbolInfoByFileMap()`, which stage 3 fills incrementally, and
-      // `TransitiveEnumCollector` silently skips a file not yet in it. Under a
-      // cyclic include graph `DependencyGraph.getSortedFiles()` catches the
-      // toposort failure and returns insertion order with only a warning, so a
-      // file can be declared before the file defining the scope types it uses.
-      // Stage 5 runs after stage 3 has finished and the map is complete, so
-      // computing it here is what makes the answer whole -- the pass this issue
-      // removed was not only recomputing, it was repairing.
-      // Regression: tests/bugs/issue-1301-cyclic-include-enum-sources/.
-      const externalEnumSources = this._collectExternalEnumSources(
-        sourcePath,
-        file.cnextIncludes,
-      ).sources;
-      let symbolInfo = TSymbolInfoAdapter.convert(declared.symbols);
-
-      if (externalEnumSources.length > 0) {
-        symbolInfo = TSymbolInfoAdapter.mergeExternalSymbols(
-          symbolInfo,
-          externalEnumSources,
-        );
-      }
-
-      // Issue #948/#958: Merge truly opaque types from C/C++ headers
-      // Query-time resolution filters out types whose struct body has been found
-      const externalOpaqueTypes = CodeGenState.symbolTable
-        .getAllOpaqueTypes()
-        .filter((t) => CodeGenState.symbolTable.isOpaqueType(t));
-      if (externalOpaqueTypes.length > 0) {
-        symbolInfo = TSymbolInfoAdapter.mergeOpaqueTypes(
-          symbolInfo,
-          externalOpaqueTypes,
+      // #1511: composed once, when the whole program was in hand. This used to
+      // walk the include closure and merge here, per file, over a map the
+      // publish loop was still filling -- so the same file saw more or less
+      // depending on when it was rendered.
+      //
+      // Asserted rather than defaulted. A per-file view would be the pre-#1301
+      // shape -- no cross-file enums, no #1333 struct qualification, no #1398
+      // const names -- and codegen would emit subtly wrong C with no diagnostic.
+      // The guarantee that this is present is a key-provenance argument two call
+      // sites apart (`Program.build` keys on `IFileSymbols.sourceFile`, set from
+      // `file.path`, and this reads the same `file.path`), so it is the kind of
+      // invariant that should fail loudly if it ever stops holding. Same
+      // treatment as `Program.settleEveryFile`'s deferred-type check.
+      const symbolInfo = this.program?.codeGenSymbolsFor(sourcePath);
+      if (!symbolInfo) {
+        throw new Error(
+          `Internal error: no visible symbol view for ${sourcePath}; ` +
+            `1.4 Resolve must run before stage 5`,
         );
       }
 
@@ -923,9 +930,6 @@ class Transpiler {
       this.state.setPassByValueParams(sourcePath, passByValueCopy);
       this.state.setUserIncludes(sourcePath, [...userIncludes]);
 
-      // Issue #1171: accumulate in both modes -- see the gate removed above.
-      this._accumulateFileModifications();
-
       // #1323: resolve this file's header-render input while its state is
       // warm (reads from state populated above), but do not render it here.
       // HeaderRenderer renders every file's header in one step, after
@@ -957,31 +961,6 @@ class Transpiler {
     } catch (err) {
       return this.buildCatchResult(sourcePath, err);
     }
-  }
-
-  /**
-   * Accumulate cross-file modification data from the code generator into the
-   * centralized modification analyzer.
-   *
-   * Issue #1171: this runs in both C and C++ mode. The data feeds #268
-   * auto-const, which is wrong in either language if a parameter forwarded to
-   * a cross-file mutating callee is treated as unmodified.
-   */
-  private _accumulateFileModifications(): void {
-    const fileModifications = this.codeGenerator.getModifiedParameters();
-    const modifiedParameters = new Map<string, Set<string>>();
-    for (const [funcName, params] of fileModifications) {
-      modifiedParameters.set(funcName, new Set(params));
-    }
-
-    const fileParamLists = this.codeGenerator.getFunctionParamLists();
-    const functionParamLists = new Map<string, readonly string[]>();
-    for (const [funcName, params] of fileParamLists) {
-      functionParamLists.set(funcName, [...params]);
-    }
-
-    this.modificationAnalyzer.accumulateModifications(modifiedParameters);
-    this.modificationAnalyzer.accumulateParamLists(functionParamLists);
   }
 
   // ===========================================================================
@@ -1145,8 +1124,6 @@ class Transpiler {
     if (this.cacheManager) {
       await this.cacheManager.initialize();
     }
-    // Issue #593: Reset cross-file modification tracking for new run
-    this.modificationAnalyzer.clear();
     // Issue #587: Reset accumulated state for new run
     this.state.reset();
     // ADR-049: the previous run's targets must not decide this run's budget
@@ -1419,7 +1396,18 @@ class Transpiler {
    * @returns true if no blocking conflicts, false otherwise
    */
   private _checkSymbolConflicts(result: ITranspilerResult): boolean {
-    const conflicts = CodeGenState.symbolTable.getConflicts();
+    // #1511: read from the artifact, not re-derived from the table. Stage 3
+    // built it; a null here would mean this ran before 1.4, which the stage
+    // order rules out.
+    // #1511: asserted, not defaulted -- a missing artifact would report zero
+    // conflicts and pass the check. Stage 3 returns false on a build failure
+    // before this runs, so reaching here without one is a broken stage order.
+    if (!this.program) {
+      throw new Error(
+        "Internal error: symbol-conflict check ran before 1.4 Resolve built Program",
+      );
+    }
+    const conflicts = this.program.conflicts();
     for (const conflict of conflicts) {
       // #1334: a conflict is an ordinary diagnostic. It used to reach the user
       // through a SECOND channel -- `result.conflicts`, printed by ResultPrinter
@@ -2457,7 +2445,8 @@ class Transpiler {
     }
 
     return (
-      !CodeGenState.symbolTable.isOpaqueType(typeName) &&
+      // #1511: the artifact's verdict, not the table's.
+      !(CodeGenState.program?.isOpaqueType(typeName) ?? false) &&
       !declared.sourceFile.endsWith(".cnx")
     );
   }
@@ -2549,9 +2538,15 @@ class Transpiler {
     // is rendered, so this cannot depend on where in the run it is asked.
     const allKnownEnums = this.program?.knownEnums() ?? new Set<string>();
 
+    // #1511: which types a header declares comes from the artifact. The
+    // include ORDER stays here -- it decides which header wins, and that is not
+    // a symbol fact.
     const externalTypeHeaders = ExternalTypeHeaderBuilder.build(
       this.state.getAllHeaderDirectives(),
-      CodeGenState.symbolTable,
+      {
+        typesDeclaredIn: (file: string) =>
+          this.program?.typesDeclaredIn(file) ?? new Set<string>(),
+      },
     );
 
     // ADR-029: Convert callback types to header format
@@ -2698,38 +2693,16 @@ class Transpiler {
   }
 
   /**
-   * Collect external enum sources from included C-Next files.
-   */
-  private _collectExternalEnumSources(
-    sourcePath: string,
-    cnextIncludes?: ReadonlyArray<{ path: string }>,
-  ): ITransitiveIncludes {
-    const symbolInfoByFile = this.state.getSymbolInfoByFileMap();
-
-    if (cnextIncludes) {
-      // Standalone mode: use unified collectForStandalone method
-      return TransitiveEnumCollector.collectForStandalone(
-        cnextIncludes,
-        symbolInfoByFile,
-        this.config.includeDirs,
-      );
-    }
-
-    // run() mode: use TransitiveEnumCollector with pre-populated symbolInfoByFile
-    return TransitiveEnumCollector.collect(
-      sourcePath,
-      symbolInfoByFile,
-      this.config.includeDirs,
-    );
-  }
-
-  /**
    * Setup cross-file modification tracking for const inference.
    */
   private _setupCrossFileModifications(): void {
+    // #1511: from the artifact. These were accumulated as files were
+    // transpiled, so a file rendered early saw fewer of them than a file
+    // rendered late -- the same fact, answered differently by position.
     const accumulatedModifications =
-      this.modificationAnalyzer.getModifications();
-    const accumulatedParamLists = this.modificationAnalyzer.getParamLists();
+      this.program?.modifiedParameters() ?? new Map();
+    const accumulatedParamLists =
+      this.program?.functionParamLists() ?? new Map();
 
     // Issue #1171: no cppDetected gate -- C mode needs the same cross-file
     // modification data, or a parameter forwarded only to a cross-file
@@ -2763,9 +2736,9 @@ class Transpiler {
       }
 
       // Issue #914: Resolve callback typedef type for callback-compatible functions
-      const typedefName = CodeGenState.callbackCompatibleFunctions.get(
-        headerSymbol.name,
-      );
+      const typedefName = CodeGenState.program
+        ?.callbackCompatibleFunctions()
+        .get(headerSymbol.name);
       const callbackTypedefType = typedefName
         ? CodeGenState.getTypedefType(typedefName)
         : undefined;

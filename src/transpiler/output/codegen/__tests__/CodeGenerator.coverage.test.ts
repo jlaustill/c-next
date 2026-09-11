@@ -10,10 +10,12 @@
  * - Lines 5154-5275: Function/array generation
  */
 import { describe, it, expect, beforeEach } from "vitest";
+import Program from "../../../../PARSE/4-Resolve/Program";
+import ModificationFacts from "../../../ModificationFacts";
 import CodeGenerator from "../CodeGenerator";
 import CNextSourceParser from "../../../logic/parser/CNextSourceParser";
 import * as Parser from "../../../logic/parser/grammar/CNextParser";
-import SymbolTable from "../../../logic/symbols/SymbolTable";
+import SymbolTable from "../../../state/SymbolTable";
 import CNextResolver from "../../../../PARSE/3-Declare/cnext/index";
 import SymbolRegistry from "../../../state/SymbolRegistry";
 import TSymbolInfoAdapter from "../../../../PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
@@ -45,13 +47,50 @@ function setupGenerator(
 
   const generator = new CodeGenerator();
   CodeGenState.symbolTable = symbolTable;
-  const code = generator.generate(tree, tokenStream, {
+  const code = generateWithProgram(generator, tree, tokenStream, {
     symbolInfo: symbols,
     sourcePath: "test.cnx",
     cppMode: options.cppMode ?? false,
   });
 
   return { tree, generator, code };
+}
+
+/**
+ * Install the artifact these tests now depend on.
+ *
+ * #1511: pass-by-value eligibility is a whole-program fact — is this parameter
+ * modified anywhere down the call chain? — so a generator with no `Program`
+ * behind it answers "not eligible" for everything and emits pointers where the
+ * real run emits values. Built from the real resolver output and through the
+ * same `ModificationFacts.derive` production uses, so a single-file test agrees
+ * with a real run rather than approximating one.
+ */
+function installProgramFor(
+  tree: Parser.ProgramContext,
+  sourcePath = "test.cnx",
+): void {
+  const declared = CNextResolver.resolve(tree, sourcePath);
+  const modifications = ModificationFacts.derive([
+    { parsed: { tree } as never, fileSymbols: declared },
+  ]);
+  CodeGenState.program = Program.build(
+    [declared],
+    new Map(),
+    undefined,
+    modifications,
+  );
+}
+
+/** Generate with the whole-program artifact in place — see #1511. */
+function generateWithProgram(
+  generator: CodeGenerator,
+  tree: Parser.ProgramContext,
+  tokenStream: Parameters<CodeGenerator["generate"]>[1],
+  options: Parameters<CodeGenerator["generate"]>[2],
+): ReturnType<CodeGenerator["generate"]> {
+  installProgramFor(tree, options?.sourcePath ?? "test.cnx");
+  return generator.generate(tree, tokenStream, options);
 }
 
 describe("CodeGenerator Coverage Tests", () => {
@@ -668,7 +707,7 @@ describe("CodeGenerator Coverage Tests", () => {
 
       const generator = new CodeGenerator();
       CodeGenState.symbolTable = symbolTable;
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
         cppMode: false,
@@ -707,7 +746,7 @@ describe("CodeGenerator Coverage Tests", () => {
 
       const generator = new CodeGenerator();
       CodeGenState.symbolTable = symbolTable;
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
         cppMode: false,
@@ -737,7 +776,7 @@ describe("CodeGenerator Coverage Tests", () => {
 
       const generator = new CodeGenerator();
       CodeGenState.symbolTable = symbolTable;
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
         cppMode: true,
@@ -1226,7 +1265,7 @@ describe("CodeGenerator Coverage Tests", () => {
       const generator = new CodeGenerator();
       CodeGenState.symbolTable = symbolTable;
 
-      return generator.generate(tree, tokenStream, {
+      return generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
         cppMode: false,
@@ -1415,7 +1454,7 @@ describe("CodeGenerator Coverage Tests", () => {
 
       const generator = new CodeGenerator();
       CodeGenState.symbolTable = symbolTable;
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
         cppMode: false,
@@ -1445,7 +1484,7 @@ describe("CodeGenerator Coverage Tests", () => {
 
       const generator = new CodeGenerator();
       CodeGenState.symbolTable = symbolTable;
-      const code = generator.generate(tree, tokenStream, {
+      const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
         cppMode: false,

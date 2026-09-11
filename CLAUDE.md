@@ -149,7 +149,7 @@ When in doubt: **ASK.** Syntax changes require ADR discussion and user approval.
 | Generate snapshots     | `npm test -- <path> --update`           |
 | ANTLR regenerate       | `npm run antlr`                         |
 
-**GitHub CLI**: `gh issue view` may fail — use `gh api repos/jlaustill/c-next/issues/<number>` instead. The project board (`/issue-check`
+**GitHub CLI**: `gh issue view` may fail — use `gh api repos/jlaustill/c-next/issues/<number>` instead. `gh pr edit` fails here on a Projects-classic GraphQL deprecation — use `gh api -X PATCH repos/jlaustill/c-next/pulls/<n> -F body=@<file>`, then re-read the body to confirm; it errors on stderr, so an `&&` chain hides it and the body silently keeps its old text. The project board (`/issue-check`
 Phase 1d) needs `gh auth refresh -s read:project`; **writing** a board field needs
 `-s project` — `read:project` is not enough and the mutation fails with
 `INSUFFICIENT_SCOPES`, not a permission message. Both are interactive, so the user runs
@@ -262,6 +262,15 @@ ever prompts anyone to look** — which is the whole argument for deriving the c
 asserting it. `scripts/gate.sh` runs all of them, reports each against the CI job that owns it,
 and does **not** stop at the first failure.
 
+**Run the gate ALONE, from a committed tree.** Its last two checks assert over the whole
+working directory (`git diff --exit-code tests/`, `working tree clean`), so a second gate
+running beside it — or any uncommitted change — fails them for reasons that read exactly like
+real defects: #1511 nearly went hunting for a warm-cache divergence that was its own
+concurrent run. A process search for `gate.sh` also matches the command asking, so filter on
+an elapsed time above a few seconds. **Never pipe it**: `npm run test:gate | tail` reports
+`tail`'s status, not the gate's. Redirect to a file and capture `$?`, or read the printed
+`All N checks passed` line.
+
 The one npm script CI runs that the gate deliberately skips (`antlr:all`) is listed in `gate.sh`'s header
 as a `# not-in-gate:` line with its reason, and `gate:roster:check` fails on any script that
 is neither run nor listed — in either direction, so an exclusion CI stopped running also fails. Sonar and Deploy Coverage need tokens and run no npm script, so they
@@ -316,6 +325,20 @@ curl -s "https://sonarcloud.io/api/issues/search?componentKeys=jlaustill_c-next&
 
 # and the gate, which is necessary but NOT sufficient
 curl -s "https://sonarcloud.io/api/qualitygates/project_status?projectKey=jlaustill_c-next&pullRequest=<PR>"
+```
+
+**`&files=<path>` is IGNORED by this endpoint.** It returns the project-wide list whatever
+you pass, so a "per-file count" is the project count. Three modules each reporting exactly
+`2` is the tell — that was one project total read three times and summed to "6", and it was
+cited to justify a scope decision before anyone checked (#1511). Filter on `.component`
+client-side instead.
+
+**A `0` from a commit Sonar has not analyzed yet is not a pass.** Confirm the analysis actually ran on the
+head SHA before believing the count:
+
+```
+gh api --paginate repos/jlaustill/c-next/commits/<sha>/check-runs \
+  --jq '.check_runs[]|select(.name|test("Sonar"))|"\(.conclusion) \(.completed_at)"'
 ```
 
 **A moved file re-attributes its issues to the mover.** Relocating a file makes
@@ -405,14 +428,14 @@ export default new Registry();
 
 ### 4-Layer Structure (`src/transpiler/`)
 
-| Layer        | Path            | Purpose                                                      |
-| ------------ | --------------- | ------------------------------------------------------------ |
-| Data         | `data/`         | Discovery (FileDiscovery, IncludeResolver, DependencyGraph)  |
-| Logic        | `logic/`        | Business logic (parser/, symbols/, analysis/, preprocessor/) |
-| Output       | `output/`       | Generation (codegen/, headers/)                              |
-| State        | `state/`        | Global state (CodeGenState, SymbolRegistry)                  |
-| Constants    | `constants/`    | Runtime lookups (BITMAP_SIZE, BITMAP_BACKING_TYPE)           |
-| Orchestrator | `Transpiler.ts` | Coordinates all layers                                       |
+| Layer        | Path            | Purpose                                                                                         |
+| ------------ | --------------- | ----------------------------------------------------------------------------------------------- |
+| Data         | `data/`         | Discovery (FileDiscovery, IncludeResolver, DependencyGraph)                                     |
+| Logic        | `logic/`        | Business logic (parser/, preprocessor/) — `symbols/` and `analysis/` left under #1511 and #1322 |
+| Output       | `output/`       | Generation (codegen/, headers/)                                                                 |
+| State        | `state/`        | Global state (CodeGenState, SymbolRegistry)                                                     |
+| Constants    | `constants/`    | Runtime lookups (BITMAP_SIZE, BITMAP_BACKING_TYPE)                                              |
+| Orchestrator | `Transpiler.ts` | Coordinates all layers                                                                          |
 
 ### Utility Locations
 
@@ -559,6 +582,13 @@ foo.expected.error    # Expected error (if test-error)
   cannot appear in a file-scope initializer), which is why exemptions live in the ADR where
   they get reviewed. `npm run coverage:matrix:check` gates in the `lint` job and fails on an
   unoccupied `error` cell or a stale `docs/scope-context-matrix.md`
+- **The relationship axis counts C-NEXT include hops.** A C header is not a hop, so a fact
+  about a foreign type occupies `same file` however many headers the fixture includes: the
+  cell is about how far the C-Next program reaches to USE a name, not where the name is
+  declared. #1511 declared ADR-030's `same file` cells `off` on the opposite reading, with a
+  plausible justification, and `npm run coverage:matrix` disproved it on the first run.
+  Adding `// test-adr: NNN` also changes generated output — ADR-043 carries a fixture's
+  comments into it — so marking fixtures needs `npm run test:update` and a re-run after
 - **Matrix limits, and what #1241 already fixed**: #1241 landed 2026-08-29 (`6192279d`,
   `bc3a2ad4`). A codegen-only fixture **can** now occupy a cell, so an ADR governing
   generated-code shape can declare `error` — occupancy derives from diagnostic positions

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import AssignmentExpectedTypeResolver from "../AssignmentExpectedTypeResolver.js";
 import CNextSourceParser from "../../../../logic/parser/CNextSourceParser.js";
 import CodeGenState from "../../../../state/CodeGenState.js";
-import SymbolTable from "../../../../logic/symbols/SymbolTable.js";
+import SymbolTable from "../../../../state/SymbolTable";
 
 /**
  * Create a mock assignment target context by parsing a minimal assignment statement.
@@ -64,7 +64,6 @@ function setupStructFields(
       scopePrivateConstValues: new Map(),
       functionReturnTypes: new Map(),
       getSingleFunctionForVariable: () => null,
-      opaqueTypes: new Set(),
     };
   }
   (CodeGenState.symbols.knownStructs as Set<string>).add(structName);

@@ -6,6 +6,7 @@
 #include "array-handles-cnext-call.test.hpp"
 
 // test-transpile-only
+// test-adr: 030
 // Issue #996: Array of opaque handles — C-Next function call path.
 //
 // Guard against silent divergence between the two argument-generation paths.

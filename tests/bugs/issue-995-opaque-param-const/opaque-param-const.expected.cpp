@@ -6,6 +6,7 @@
 #include "opaque-param-const.test.hpp"
 
 // test-execution
+// test-adr: 030
 // test-link: fake_lib.c
 // Issue #995: Opaque-handle function parameters generate `const T*`,
 // breaking calls to mutating C APIs.

@@ -26,10 +26,56 @@ import type IFileSymbols from "../../transpiler/types/IFileSymbols";
 import type IStructFieldInfo from "../../transpiler/types/symbols/IStructFieldInfo";
 import type IProgram from "../../transpiler/types/IProgram";
 import type TSymbol from "../../transpiler/types/symbols/TSymbol";
+import type IParameterInfo from "../../transpiler/types/symbols/IParameterInfo";
 import DeferredTypes from "./DeferredTypes";
 import LiteralUtils from "../../utils/LiteralUtils";
+import OpaqueTypeResolution from "../../utils/OpaqueTypeResolution";
+import SMALL_PRIMITIVES from "../../transpiler/constants/SMALL_PRIMITIVES";
+import TypeResolver from "../../utils/TypeResolver";
+import SymbolGuards from "../../transpiler/types/symbols/SymbolGuards";
 import type IVariableSymbol from "../../transpiler/types/symbols/IVariableSymbol";
 import IDerivedConsts from "./types/IDerivedConsts";
+import ConflictDetector from "./ConflictDetector";
+import type IForeignSymbols from "../../transpiler/types/IForeignSymbols";
+import type IConflict from "../../transpiler/types/IConflict";
+import type IModificationFacts from "../../transpiler/types/IModificationFacts";
+import type ICallGraphEntry from "../../transpiler/types/ICallGraphEntry";
+import type ICodeGenSymbols from "../../transpiler/types/ICodeGenSymbols";
+import type IVisibilityInput from "../../transpiler/types/IVisibilityInput";
+import TSymbolInfoAdapter from "../3-Declare/cnext/adapters/TSymbolInfoAdapter";
+import TransitiveEnumCollector from "./TransitiveEnumCollector";
+import VisibleSymbols from "./VisibleSymbols";
+
+/** Shared empty result, so a miss does not allocate. */
+const EMPTY_NAMES: ReadonlySet<string> = new Set<string>();
+
+/**
+ * A program with no C or C++ headers behind it.
+ *
+ * Spelled once rather than defaulted field-by-field: every field of
+ * `IForeignSymbols` is required so that a new one cannot be forgotten at a call
+ * site, and a literal here would defeat that the moment one is added.
+ */
+const NO_FOREIGN: IForeignSymbols = {
+  c: [],
+  cpp: [],
+  opaqueTypedefs: EMPTY_NAMES,
+  typedefToTag: new Map<string, string>(),
+  structTagsWithBodies: EMPTY_NAMES,
+};
+
+/** A program whose parameter-modification facts were not derived. */
+const NO_MODIFICATIONS: IModificationFacts = {
+  modifiedParameters: new Map<string, ReadonlySet<string>>(),
+  functionParamLists: new Map<string, ReadonlyArray<string>>(),
+  callGraph: new Map<string, ReadonlyArray<ICallGraphEntry>>(),
+};
+
+/** A program built without include information: nothing composes. */
+const NO_VISIBILITY: IVisibilityInput = {
+  includeDirs: [],
+  cnextIncludesByFile: new Map(),
+};
 
 class Program {
   /**
@@ -43,6 +89,10 @@ class Program {
       string,
       ReadonlyMap<string, IStructFieldInfo>
     > = new Map(),
+    foreign: IForeignSymbols = NO_FOREIGN,
+    modifications: IModificationFacts = NO_MODIFICATIONS,
+    visibility: IVisibilityInput = NO_VISIBILITY,
+    callbackCompatibleFunctions: ReadonlyMap<string, string> = new Map(),
   ): IProgram {
     // Each derivation is its own step, in dependency order: the scope-type
     // index settles the types, settled types yield const values, const values
@@ -64,6 +114,25 @@ class Program {
     const externalStructFields =
       Program.deriveExternalStructFields(headerStructFields);
     const sourceFiles = files.map((file) => file.sourceFile);
+    // Derived from the SETTLED symbols, and from every file at once. Detection
+    // used to run over whatever an accumulator held when it was asked, which is
+    // why it could not live here: the C-Next half was inserted after this point.
+    // Flattened in file-declaration order so the report order is unchanged.
+    const typesByFile = Program.deriveTypesByFile(symbolsByFile, foreign);
+    const opaqueTypes = Program.deriveOpaqueTypes(foreign);
+    const visibleByFile = Program.deriveVisibleSymbols(
+      symbolsByFile,
+      visibility,
+    );
+    const passByValueParams = Program.derivePassByValue(
+      symbolsByFile,
+      modifications.modifiedParameters,
+    );
+    const conflicts = ConflictDetector.detect(
+      [...symbolsByFile.values()].flat(),
+      foreign.c,
+      foreign.cpp,
+    );
 
     // The query surface. Every collection above stays in this closure and is
     // reachable only through the functions below, which is what makes
@@ -82,7 +151,208 @@ class Program {
       constValues: (): ReadonlyMap<string, number> => constValues,
       constValuesIn: (scopePath: string): ReadonlyMap<string, number> =>
         Program.constValuesIn(derivedConsts, scopedViews, scopePath),
+      conflicts: (): ReadonlyArray<IConflict> => conflicts,
+      typesDeclaredIn: (sourceFile: string): ReadonlySet<string> =>
+        typesByFile.get(sourceFile) ?? EMPTY_NAMES,
+      isOpaqueType: (typeName: string): boolean => opaqueTypes.has(typeName),
+      opaqueTypes: (): ReadonlySet<string> => opaqueTypes,
+      modifiedParameters: (): ReadonlyMap<string, ReadonlySet<string>> =>
+        modifications.modifiedParameters,
+      functionParamLists: (): ReadonlyMap<string, ReadonlyArray<string>> =>
+        modifications.functionParamLists,
+      callGraph: (): ReadonlyMap<string, ReadonlyArray<ICallGraphEntry>> =>
+        modifications.callGraph,
+      codeGenSymbolsFor: (sourceFile: string): ICodeGenSymbols | undefined =>
+        visibleByFile.get(sourceFile),
+      passByValueParams: (): ReadonlyMap<string, ReadonlySet<string>> =>
+        passByValueParams,
+      callbackCompatibleFunctions: (): ReadonlyMap<string, string> =>
+        callbackCompatibleFunctions,
     });
+  }
+
+  /**
+   * The type names each file declares — struct, type, enum and class.
+   *
+   * "Which header declares this type" asked the other way round, because that
+   * is the direction the fact is authored in: a symbol knows its `sourceFile`,
+   * so grouping by file is a read of the symbols, while the inverse would have
+   * to pick a winner among headers and that choice belongs to whoever holds the
+   * include order (#1511).
+   *
+   * Every language, in the order a per-file lookup used to return them —
+   * C-Next, then C, then C++ — so a name declared in two of them keeps the same
+   * precedence it had.
+   */
+  private static deriveTypesByFile(
+    symbolsByFile: ReadonlyMap<string, ReadonlyArray<TSymbol>>,
+    foreign: IForeignSymbols,
+  ): Map<string, Set<string>> {
+    const typesByFile = new Map<string, Set<string>>();
+
+    const record = (sourceFile: string, kind: string, name: string): void => {
+      if (
+        kind !== "struct" &&
+        kind !== "type" &&
+        kind !== "enum" &&
+        kind !== "class"
+      ) {
+        return;
+      }
+      const existing = typesByFile.get(sourceFile);
+      if (existing) {
+        existing.add(name);
+      } else {
+        typesByFile.set(sourceFile, new Set([name]));
+      }
+    };
+
+    for (const symbols of symbolsByFile.values()) {
+      for (const symbol of symbols) {
+        record(symbol.sourceFile, symbol.kind, symbol.name);
+      }
+    }
+    for (const symbol of foreign.c) {
+      record(symbol.sourceFile, symbol.kind, symbol.name);
+    }
+    for (const symbol of foreign.cpp) {
+      record(symbol.sourceFile, symbol.kind, symbol.name);
+    }
+
+    return typesByFile;
+  }
+
+  /**
+   * The typedefs that are TRULY opaque.
+   *
+   * A header may forward-declare `struct _widget_t` and typedef it, then define
+   * the struct later -- in the same header or another one this program includes.
+   * The typedef is opaque only if no such body ever arrived, so this is a
+   * whole-program question and the raw "declared against a forward declaration"
+   * set is not the answer.
+   *
+   * Resolved once here rather than at each query, which is what makes it a fact
+   * of the artifact: the previous form recomputed it from a table that was still
+   * being filled, so the same name could answer differently depending on when it
+   * was asked (#948, #958, #1511).
+   */
+  private static deriveOpaqueTypes(
+    foreign: IForeignSymbols,
+  ): ReadonlySet<string> {
+    return OpaqueTypeResolution.resolveAll(
+      foreign.opaqueTypedefs,
+      foreign.typedefToTag,
+      foreign.structTagsWithBodies,
+    );
+  }
+
+  /**
+   * What each file may SEE: its own declarations plus its include closure's.
+   *
+   * Composed for every file at once, which is the point. It used to run per file
+   * while that file was being rendered, over a map the publish loop was still
+   * filling -- and the collector silently skips a file it has not reached yet,
+   * so the answer depended on position in the run. #1301 is that bug: a cyclic
+   * include graph made the order arbitrary, and the fix was to compute it later
+   * still. Here there is no later: the whole program is in hand.
+   *
+   * The per-file views are built here rather than taken as an argument because
+   * they must come from the SETTLED symbols. Handing over Declare's provisional
+   * ones would put unsettled type names into the view codegen reads.
+   */
+  private static deriveVisibleSymbols(
+    symbolsByFile: ReadonlyMap<string, ReadonlyArray<TSymbol>>,
+    visibility: IVisibilityInput,
+  ): Map<string, ICodeGenSymbols> {
+    const ownView = new Map<string, ICodeGenSymbols>();
+    for (const [sourceFile, symbols] of symbolsByFile) {
+      ownView.set(sourceFile, TSymbolInfoAdapter.convert(symbols));
+    }
+
+    const visible = new Map<string, ICodeGenSymbols>();
+    for (const [sourceFile, own] of ownView) {
+      const declaredIncludes = visibility.cnextIncludesByFile.get(sourceFile);
+      // Two entry points, and which one applies is a property of how the file
+      // arrived: a standalone run states its includes, a discovered file has
+      // them on disk to walk from.
+      const sources = declaredIncludes
+        ? TransitiveEnumCollector.collectForStandalone(
+            declaredIncludes,
+            ownView,
+            visibility.includeDirs,
+          ).sources
+        : TransitiveEnumCollector.collect(
+            sourceFile,
+            ownView,
+            visibility.includeDirs,
+          ).sources;
+      visible.set(
+        sourceFile,
+        sources.length > 0
+          ? VisibleSymbols.mergeExternalSymbols(own, sources)
+          : own,
+      );
+    }
+    return visible;
+  }
+
+  /**
+   * Which parameters may be passed by value (ADR-006).
+   *
+   * A FACT, not a preference: a parameter is eligible when it is a small
+   * primitive, is not an array, and nothing modifies it — and "nothing modifies
+   * it" is only answerable across the whole call chain, which routinely crosses
+   * files. That is why it is derived here and not where the signature is
+   * printed.
+   *
+   * Keyed by transpiled C name, the identity the symbol already carries, so this
+   * agrees with the modification facts by construction rather than by spelling
+   * the qualification a second time (#1139).
+   */
+  private static derivePassByValue(
+    symbolsByFile: ReadonlyMap<string, ReadonlyArray<TSymbol>>,
+    modifiedParameters: ReadonlyMap<string, ReadonlySet<string>>,
+  ): ReadonlyMap<string, ReadonlySet<string>> {
+    const byFunction = new Map<string, ReadonlySet<string>>();
+    for (const symbols of symbolsByFile.values()) {
+      for (const symbol of symbols) {
+        if (!SymbolGuards.isFunction(symbol)) continue;
+        byFunction.set(
+          symbol.fullyQualifiedCName,
+          Program.eligibleParameters(
+            symbol.parameters,
+            modifiedParameters.get(symbol.fullyQualifiedCName),
+          ),
+        );
+      }
+    }
+    return byFunction;
+  }
+
+  /**
+   * The parameters of one function that ADR-006 lets pass by value.
+   *
+   * Split from the walk above rather than nested inside it: three levels of loop
+   * put `derivePassByValue` over SonarCloud's cognitive-complexity limit, and the
+   * per-parameter rule is the part worth reading on its own.
+   */
+  private static eligibleParameters(
+    parameters: ReadonlyArray<IParameterInfo>,
+    modified: ReadonlySet<string> | undefined,
+  ): ReadonlySet<string> {
+    const eligible = new Set<string>();
+    for (const parameter of parameters) {
+      // An array parameter decays to a pointer whatever its element type, so
+      // ADR-006 never applies to one.
+      const isEligible =
+        !parameter.isArray &&
+        SMALL_PRIMITIVES.has(TypeResolver.getTypeName(parameter.type)) &&
+        !(modified?.has(parameter.name) ?? false);
+      if (isEligible) {
+        eligible.add(parameter.name);
+      }
+    }
+    return eligible;
   }
 
   /**
