@@ -9,7 +9,7 @@
  *
  * ## Why this is a structural gate and not a fixture
  *
- * A behavioural fixture cannot hold this property. Measured on `381e4a85`:
+ * A behavioral fixture cannot hold this property. Measured on `381e4a85`:
  * reversing the file walk order reddens NOTHING across the whole integration
  * suite, because there is no analyzer read of codegen-filled `CodeGenState`
  * left for the order to affect -- `typeRegistry`, `constValues`,
