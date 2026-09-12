@@ -1,0 +1,9 @@
+// Helper for #1553. Transpiles to lib.h, which the entry includes as <lib.h> --
+// the sibling-header shape that validateNoWarnings could not resolve.
+//
+// Deliberately warning-free at -O3 -Wall -Wextra -Werror: the point of this
+// fixture is that the marker now REACHES the compile, so anything it reports
+// must be a real warning rather than a missing header.
+u32 doubled(u32 value) {
+    return value * 2;
+}

@@ -644,6 +644,14 @@ class TestUtils {
           "-Wno-main",
           "-I",
           join(rootDir, "tests/include"),
+          // Issue #1553: the file's own directory, matching the compile+link
+          // path below. A generated header includes its siblings as <name.h>,
+          // which searches the include path and not the file's directory, so
+          // without this a multi-file fixture failed on a missing header
+          // rather than on warnings -- and /* test-no-warnings */ could not be
+          // used on one at all.
+          "-I",
+          dirname(cFile),
           cFile,
         ],
         { encoding: "utf-8", timeout: 10000, stdio: "pipe" },
