@@ -1,9 +1,15 @@
 # Keeps the C-Next project board in step with issue and PR events (Issue #1247).
 #
 # GitHub has no built-in workflow for "pull request opened", and none for
-# "issue assigned", so those two transitions live here. What the built-ins do
-# well -- item closed, pull request merged -- is left to them and is absent from
-# this file.
+# "issue assigned" or "issue unassigned", so those three transitions live here.
+# What the built-ins do well -- item closed, pull request merged -- is left to
+# them and is absent from this file.
+#
+# Unassigning is how a card is PAUSED: picked up, found blocked, set down with
+# nothing committed. `WIP` means "this is actively being worked on" -- the
+# option's own description -- so a paused card must not sit there. Until #1572
+# no transition moved one back, and #1448 read as active work for 9h52m after
+# its work stopped. Unassigning is now the whole gesture; the board follows.
 #
 # PR reopening is handled here rather than by the built-in "Item reopened", which
 # fires on issues and pull requests alike: it would send a reopened PR to Backlog
@@ -28,7 +34,7 @@ name: Project sync
 
 on:
   issues:
-    types: [opened, assigned]
+    types: [opened, assigned, unassigned]
   pull_request:
     types: [opened, reopened, ready_for_review]
   workflow_call:
@@ -53,6 +59,12 @@ jobs:
       GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
       PROJECT_OWNER: jlaustill
       PROJECT_TITLE: C-Next
+      # `unassigned` fires once per assignee REMOVED, and this list is the state
+      # after that removal -- empty only when the last one has gone. Taken from
+      # the payload rather than re-queried: a re-query reads whoever is assigned
+      # when it runs, which a rapid unassign-then-reassign turns into the wrong
+      # answer, and the built-in serialization is per item, not per event.
+      REMAINING_ASSIGNEES: ${{ join(github.event.issue.assignees.*.login, ',') }}
     steps:
       - name: Sync item status
         # Pull requests from forks receive no secrets. Skip cleanly rather than
@@ -64,6 +76,16 @@ jobs:
           case "${{ github.event_name }}.${{ github.event.action }}" in
             issues.opened)                  TARGET="Grooming";   OVERWRITE="unset" ;;
             issues.assigned)                TARGET="WIP";        OVERWRITE="unset|Grooming|Backlog" ;;
+            issues.unassigned)
+              # One event per assignee removed: a card someone else is still on
+              # is still being worked on, not paused.
+              if [ -n "$REMAINING_ASSIGNEES" ]; then
+                echo "Still assigned to ${REMAINING_ASSIGNEES}; leaving status alone."
+                exit 0
+              fi
+              # OVERWRITE="WIP" and nothing else. Stepping off a card in review,
+              # or one already Done, says nothing about where it belongs.
+              TARGET="Backlog";    OVERWRITE="WIP" ;;
             pull_request.opened)            TARGET="PR Review";  OVERWRITE="unset" ;;
             pull_request.reopened)          TARGET="PR Review";  OVERWRITE="any" ;;
             pull_request.ready_for_review)  TARGET="PR Review";  OVERWRITE="unset|Backlog" ;;

@@ -340,9 +340,11 @@ has been committed yet:
   3. DELETE the unused branch. A branch created and deleted unused is a recognized
      not-startable signal in this repo, which is why recording it is worth the line.
 
-  4. KEEP THE ASSIGNMENT. `project-sync.yml` fires on `issues: [opened, assigned]` and
-     has no `unassigned` transition, so removing the assignee strands the card in `WIP` with
-     nobody on it. Never write `Status` by hand to express a pause.
+  4. UNASSIGN YOURSELF. That IS the pause: `project-sync.yml` moves the card
+     `WIP` -> `Backlog` when the last assignee leaves (#1572), so the column stops
+     claiming active work. Do not write `Status` by hand -- the transition is automatic
+     and a hand-written one races it. RE-QUERY the board and report the status you read,
+     exactly as Phase 2 does for the assign.
 
   5. FIND OTHER WORK — re-run `/issue-check`, or take the next unblocked runner-up it
      already ranked, and re-run its startability gate before starting.
@@ -388,9 +390,9 @@ THROUGHOUT the work:
   mutation-checked
 - **DO NOT** implement the achievable subset of a card whose definition of done cannot be
   satisfied as written, and **DO NOT** reword the box. Pause per Phase 7c: append the
-  blocker, record the measurements, delete the branch, keep the assignment, take other work
-- **DO NOT** unassign a paused card. `project-sync.yml` has no `unassigned` transition, so
-  it strands the card in `WIP` with nobody on it
+  blocker, record the measurements, delete the branch, unassign yourself, take other work
+- **DO NOT** leave a paused card assigned. `WIP` means someone is on it, and unassigning
+  is what returns it to `Backlog` for whoever picks it up next (#1572)
 - **DO NOT** work around a c-next bug downstream — fix it upstream in the transpiler
 - **DO NOT** change C-Next syntax/behavior or an ADR's Status without explicit approval
 - **DO NOT** copy these phases back into `issue-check`. It delegates here on purpose

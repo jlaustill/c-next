@@ -97,12 +97,22 @@ anyway: **#1398 closed 2026-09-05 via PR #1502, a week before the hoist landed**
 issues being _closed_ is what made every existing check pass. Verify what the box asserts —
 the causal claim, the artifact, the number — not merely the state of the issue it cites.
 
-**Paused is not unassigned.** `project-sync.yml` fires on `issues: [opened, assigned]` and has
-no `unassigned` transition, so removing the assignee leaves a paused card sitting in `WIP` with
-nobody on it — indistinguishable from active work, and the state #1445 is in. Keep the
-assignment: the appended `Blocked by` and the comment carry the pause, and `/issue-check`'s
-assignee-based in-flight filter is then what stops the card being recommended again. Never
-write the board's `Status` field by hand to express this.
+**Pausing a card is unassigning it.** Unassign yourself and `project-sync.yml` moves it
+`WIP` → `Backlog` (#1572) — only when the **last** assignee leaves, and only from `WIP`, so
+stepping off a shared card or one in review changes nothing. The appended `Blocked by` and the
+comment carry _why_ it paused; the column carries _that_ it did, which is the part the next
+person reads. Do not write `Status` by hand: not because it is forbidden, but because the
+transition is automatic and a hand-written one races it.
+
+**A rule derived under a constraint that does not exist reads as principled indefinitely.**
+The predecessor of this rule said to _keep_ the assignment, because unassigning strands the card
+in `WIP` with nobody on it. That inference was sound and its premise was false — the same rule
+also forbade writing `Status`, having assumed the board unwritable, when `PROJECT_TOKEN` carries
+the `project` scope. Doing **both** was never considered, and strands nothing. Nothing failed in
+between: #1448 sat in `WIP` for **9h52m** after its work stopped, while #1445 — the single card
+the rule named as stranded — had itself been moved to `Backlog` by hand at `2026-09-12T13:49:37Z`,
+so the rule's one worked example was refuting it. Check a rule's premise when its conclusion is a
+choice between two bad states; that shape usually means an option was ruled out too early.
 
 ### No Duplicate Code Paths — ZERO EXCEPTIONS
 

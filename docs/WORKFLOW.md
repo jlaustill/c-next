@@ -73,6 +73,7 @@ This replaced the old `status: blocked` label.
 | _(nothing)_ → **Grooming**            | Issue opened                   | `project-sync.yml`             |
 | **Grooming** → **Backlog**            | Triaged and agreed             | **Manual**                     |
 | **Grooming** or **Backlog** → **WIP** | You assign yourself the issue  | `project-sync.yml`             |
+| **WIP** → **Backlog**                 | You unassign yourself          | `project-sync.yml`             |
 | _(nothing)_ → **PR Review**           | PR opened, reopened, or ready  | `project-sync.yml`             |
 | **PR Review** → **Changes Needed**    | Review found something         | **Manual**                     |
 | **Changes Needed** → **PR Review**    | You pushed the fix             | **Manual**                     |
@@ -82,6 +83,15 @@ This replaced the old `status: blocked` label.
 
 There is deliberately no row for a reopened issue. See
 [Closed is closed](#closed-is-closed).
+
+**Unassigning yourself is how you pause a card.** `WIP`'s option description is
+_"This is actively being worked on"_, so a card picked up and then set down — found
+blocked, nothing committed — cannot stay there. Unassign, and the board follows; the
+appended `Blocked by` and your comment say _why_, the column says _that_. The transition
+fires only when the **last** assignee leaves, so stepping off a card someone else is also
+on changes nothing, and only from `WIP`, so unassigning during review or after `Done`
+changes nothing either. Until #1572 there was no such transition and #1448 read as active
+work for 9h52m after its work stopped.
 
 **Assigning yourself is the only thing that fills `WIP`,** and for the life of the board
 nothing did it: until #1423 there were zero assigned open issues and zero cards in that
