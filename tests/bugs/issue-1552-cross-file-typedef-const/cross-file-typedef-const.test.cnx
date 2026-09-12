@@ -1,0 +1,27 @@
+/* test-no-warnings */
+// test-adr: 029
+// #1552: an ADR-029 `_fp` typedef emitted by a file that USES a
+// function-as-type lost the const the DECLARING file computed, so one
+// translation unit held two incompatible definitions of one typedef name and
+// gcc rejected it with `error: conflicting types` -- at transpile exit 0.
+//
+// `record` only reads its parameter, so the declaring file emits
+// `const Sample*`; the using file had no access to that body's modification
+// facts and emitted `Sample*`. `mutate` is the negative control: its body DOES
+// modify, so BOTH files must keep the non-const form -- the two directions
+// together are what rule out "make every typedef parameter const".
+#include <typedef-const-lib.cnx>
+
+struct CrossFileHandlers {
+    record onRecord;
+    mutate onMutate;
+    u8 tag;
+}
+
+u8 crossFileTag(CrossFileHandlers handlers) {
+    return handlers.tag;
+}
+
+u32 main() {
+    return 0;
+}

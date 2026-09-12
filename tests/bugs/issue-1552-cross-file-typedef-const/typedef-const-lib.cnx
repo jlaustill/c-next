@@ -1,0 +1,36 @@
+// Helper for #1552. Declares two function-as-type candidates whose auto-const
+// answers DIFFER, and names both as struct field types so this file emits both
+// `_fp` typedefs -- the collision needs two emitters, and the
+// const-disagreement needs a parameter shape auto-const can actually qualify
+// (a struct, not a scalar).
+//
+// A struct field is ADR-029's canonical use and keeps this fixture on the one
+// property it tests. Calling a callback-typed parameter would pin an unrelated
+// pre-existing defect here instead.
+struct Sample {
+    u8 value;
+}
+
+u8 witness <- 0;
+
+// Body READS but never modifies `s`, so #268 auto-const gives `const Sample*`.
+void record(Sample s) {
+    witness <- s.value;
+}
+
+// NEGATIVE CONTROL: body DOES modify `s`, so auto-const must NOT apply and
+// both files must emit the non-const form. A fix that simply made every
+// typedef parameter const would pass `record` and fail this one.
+void mutate(Sample s) {
+    s.value <- 7;
+}
+
+struct LocalHandlers {
+    record onRecord;
+    mutate onMutate;
+    u8 tag;
+}
+
+u8 localTag(LocalHandlers handlers) {
+    return handlers.tag;
+}

@@ -1170,27 +1170,6 @@ describe("CodeGenerator", () => {
     });
   });
 
-  describe("setCrossFileModifications()", () => {
-    it("should set cross-file modification data", () => {
-      const generator = createMinimalGenerator(`void foo() { }`);
-
-      const modifications = new Map<string, ReadonlySet<string>>([
-        ["externalFunc", new Set(["param"])],
-      ]);
-      const paramLists = new Map<string, readonly string[]>([
-        ["externalFunc", ["param"]],
-      ]);
-
-      // Verify modifications can be set without throwing
-      expect(() =>
-        generator.setCrossFileModifications(modifications, paramLists),
-      ).not.toThrow();
-
-      // Verify generator state is still valid
-      expect(generator.getState()).toBeDefined();
-    });
-  });
-
   describe("Target capabilities", () => {
     it("should use default capabilities when no target specified", () => {
       const source = `void foo() { }`;

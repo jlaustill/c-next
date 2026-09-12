@@ -1029,9 +1029,6 @@ class Transpiler {
       // still established per file -- it is `generate()`'s input, not analysis's.
       const symbolInfo = this._establishPerFileCodeGenState(file, sourcePath);
 
-      // Inject cross-file modification data for const inference
-      this._setupCrossFileModifications();
-
       // Generate code
       // Use file's sourceRelativePath (source mode) or compute from PathResolver (files mode)
       const sourceRelativePath =
@@ -2834,29 +2831,6 @@ class Transpiler {
     const declared = CNextResolver.resolve(tree, sourcePath);
 
     return declared;
-  }
-
-  /**
-   * Setup cross-file modification tracking for const inference.
-   */
-  private _setupCrossFileModifications(): void {
-    // #1511: from the artifact. These were accumulated as files were
-    // transpiled, so a file rendered early saw fewer of them than a file
-    // rendered late -- the same fact, answered differently by position.
-    const accumulatedModifications =
-      this.program?.modifiedParameters() ?? new Map();
-    const accumulatedParamLists =
-      this.program?.functionParamLists() ?? new Map();
-
-    // Issue #1171: no cppDetected gate -- C mode needs the same cross-file
-    // modification data, or a parameter forwarded only to a cross-file
-    // mutating callee wrongly receives #268 auto-const.
-    if (accumulatedModifications.size > 0) {
-      this.codeGenerator.setCrossFileModifications(
-        accumulatedModifications,
-        accumulatedParamLists,
-      );
-    }
   }
 
   /**
