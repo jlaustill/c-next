@@ -22,7 +22,7 @@ static void S__onTick(const Message& m) {
 }
 
 Controller Controller_init(void) {
-    return (Controller){
-        .handler = S__onTick
-    };
+    Controller value = {};
+    value.handler = S__onTick;
+    return value;
 }

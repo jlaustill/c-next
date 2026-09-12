@@ -37,27 +37,27 @@ int32_t getSignedValue(uint32_t input) {
 
 // Structs to hold callbacks
 U32Returner U32Returner_init(void) {
-    return (U32Returner){
-        .handler = getU32Value
-    };
+    U32Returner value = {};
+    value.handler = getU32Value;
+    return value;
 }
 
 U8Returner U8Returner_init(void) {
-    return (U8Returner){
-        .handler = getU8Value
-    };
+    U8Returner value = {};
+    value.handler = getU8Value;
+    return value;
 }
 
 BoolReturner BoolReturner_init(void) {
-    return (BoolReturner){
-        .handler = checkThreshold
-    };
+    BoolReturner value = {};
+    value.handler = checkThreshold;
+    return value;
 }
 
 I32Returner I32Returner_init(void) {
-    return (I32Returner){
-        .handler = getSignedValue
-    };
+    I32Returner value = {};
+    value.handler = getSignedValue;
+    return value;
 }
 
 int main(void) {

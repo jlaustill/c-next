@@ -458,13 +458,33 @@ class TestUtils {
   }
 
   /**
-   * Get compiler and flags for a given mode
+   * Which language does this corpus compile one fixture translation unit as?
+   *
+   * Issue #1557: this was decided in three places by three different rules --
+   * the ordinary compile check took the mode as authoritative and fell back to
+   * sniffing the file, the no-warnings compile sniffed and ignored the mode
+   * entirely, and this function took the mode and was called by nobody. The
+   * middle one is why a fixture's C++ output was compiled and never
+   * warning-checked: the marker ran in C mode only, and had the gate simply been
+   * removed, 11 of the 17 marker-carrying fixtures generate a `.cpp` that trips
+   * none of the sniffer's patterns and would have been handed to `gcc -std=c99`.
+   *
+   * The mode is what the harness is actually doing, so it wins. The sniff stays
+   * as the C-mode fallback because a generated `.c` can legitimately need `g++`
+   * -- C++ interop headers pull in classes, namespaces and templates (#267,
+   * #291, #322, #375) -- and nothing but the file's contents says so.
+   *
+   * @param mode - The mode the harness is compiling this fixture in
+   * @param translationUnit - The .c/.cpp file, read only for the C-mode fallback
    */
-  static getCompilerConfig(mode: TTestMode): {
+  static getCompilerConfig(
+    mode: TTestMode,
+    translationUnit: string,
+  ): {
     compiler: string;
     stdFlag: string;
   } {
-    if (mode === "cpp") {
+    if (mode === "cpp" || TestUtils.requiresCpp14(translationUnit)) {
       return { compiler: "g++", stdFlag: "-std=c++14" };
     }
     return { compiler: "gcc", stdFlag: "-std=c99" };
@@ -634,16 +654,20 @@ class TestUtils {
    *
    * @param tuFile - The .c/.cpp file to compile
    * @param rootDir - Project root directory for include paths
+   * @param mode - The mode the harness is compiling this fixture in (#1557)
    */
   static compileTranslationUnitWithoutWarnings(
     tuFile: string,
     rootDir: string,
+    mode: TTestMode,
   ): IValidationResult {
     try {
-      // Auto-detect C++14 headers and use g++ when needed
-      const useCpp = TestUtils.requiresCpp14(tuFile);
-      const compiler = useCpp ? "g++" : "gcc";
-      const stdFlag = useCpp ? "-std=c++14" : "-std=c99";
+      // Issue #1557: the mode is the authoritative answer and this site used to
+      // re-derive it from the file's contents, so a `.cpp` tripping none of the
+      // sniffer's patterns was handed to `gcc -std=c99`.
+      const compilerConfig = TestUtils.getCompilerConfig(mode, tuFile);
+      const compiler = compilerConfig.compiler;
+      const stdFlag = compilerConfig.stdFlag;
 
       // Compile with -Werror to treat warnings as errors.
       // Issue #1143: -Wstringop-overflow / -Warray-bounds are middle-end
@@ -706,17 +730,20 @@ class TestUtils {
    *
    * @param cFile - Path to the entry C file
    * @param rootDir - Project root directory for include paths
+   * @param mode - The mode the harness is compiling this fixture in (#1557)
    * @param helperImplFiles - Helper implementations the fixture also generates
    */
   static validateNoWarnings(
     cFile: string,
     rootDir: string,
+    mode: TTestMode,
     helperImplFiles: string[] = [],
   ): IValidationResult {
     for (const translationUnit of [cFile, ...helperImplFiles]) {
       const result = TestUtils.compileTranslationUnitWithoutWarnings(
         translationUnit,
         rootDir,
+        mode,
       );
       if (!result.valid) return result;
     }
@@ -1273,12 +1300,13 @@ class TestUtils {
       return result;
     }
 
-    // Compile with mode-specific compiler
-    // Auto-detect C++ features in included headers and use g++ when needed
-    const needsCppCompiler =
-      mode === "cpp" || TestUtils.requiresCpp14(expectedImplPath);
-    const actualCompiler = needsCppCompiler ? "g++" : "gcc";
-    const actualStdFlag = needsCppCompiler ? "-std=c++14" : "-std=c99";
+    // Compile with mode-specific compiler. Issue #1557: the same decision the
+    // no-warnings compile asks, from the same function -- this site and that one
+    // used to spell the rule differently, and the no-warnings copy left out the
+    // mode entirely.
+    const compileConfig = TestUtils.getCompilerConfig(mode, expectedImplPath);
+    const actualCompiler = compileConfig.compiler;
+    const actualStdFlag = compileConfig.stdFlag;
 
     if (tools.gcc) {
       try {
@@ -1322,10 +1350,15 @@ class TestUtils {
     // already available and is fast (syntax-only check).
     // Issue #1553: the helpers are passed too -- the entry alone is not the
     // fixture, and a warning in a helper's implementation was invisible.
-    if (mode === "c" && TestUtils.hasNoWarningsMarker(source)) {
+    // Issue #1557: every mode the fixture is compiled in, not C alone. The
+    // fixture's C++ output was produced, compiled, and never warning-checked --
+    // the marker read as "this fixture is warning-clean" and meant "this
+    // fixture's C output is warning-clean".
+    if (TestUtils.hasNoWarningsMarker(source)) {
       const noWarningsResult = TestUtils.validateNoWarnings(
         expectedImplPath,
         rootDir,
+        mode,
         helperImplFiles,
       );
       if (!noWarningsResult.valid) {

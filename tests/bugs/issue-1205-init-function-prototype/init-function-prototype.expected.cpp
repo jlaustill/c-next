@@ -15,9 +15,9 @@ void onSample(const Reading& r) {
 
 // Sampler has a callback field, so it gets a generated Sampler_init().
 Sampler Sampler_init(void) {
-    return (Sampler){
-        .handler = onSample
-    };
+    Sampler value = {};
+    value.handler = onSample;
+    return value;
 }
 
 // Negative controls: neither struct has a callback field, so neither gets an

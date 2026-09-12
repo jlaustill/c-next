@@ -106,6 +106,9 @@ function createMockOrchestrator(typeMap: Map<string, string>): IOrchestrator {
     generateArrayDimensions: (dims: Array<{ __mockDim: string }>) => {
       return dims.map((d) => `[${d.__mockDim}]`).join("");
     },
+    // #1568: the ADR-029 init function zeroes the aggregate before assigning
+    // the fields whose value is not zero. `{0}` is the C spelling.
+    getAggregateZeroInitBrace: () => "{0}",
   } as unknown as IOrchestrator;
 }
 
@@ -270,9 +273,15 @@ describe("StructGenerator", () => {
 
       const result = generateStruct(ctx, input, state, orchestrator);
 
+      // #1568: the aggregate is zeroed first, then the callback assigned. The
+      // compound literal this replaces named every field with a per-type zero,
+      // which is invalid in a designated-initializer position for an array or a
+      // scalar typedef.
       expect(result.code).toContain("Handler Handler_init(void) {");
-      expect(result.code).toContain("return (Handler){");
-      expect(result.code).toContain(".callback = MyCallback");
+      expect(result.code).toContain("Handler value = {0};");
+      expect(result.code).toContain("value.callback = MyCallback;");
+      expect(result.code).toContain("return value;");
+      expect(result.code).not.toContain("return (Handler){");
     });
 
     it("generates init function with multiple callbacks", () => {
@@ -300,8 +309,13 @@ describe("StructGenerator", () => {
 
       const result = generateStruct(ctx, input, state, orchestrator);
 
-      expect(result.code).toContain(".onStart = StartCallback,");
-      expect(result.code).toContain(".onStop = StopCallback");
+      expect(result.code).toContain("EventManager value = {0};");
+      expect(result.code).toContain("value.onStart = StartCallback;");
+      expect(result.code).toContain("value.onStop = StopCallback;");
+      // ADR-029 "Never Null": every callback field is assigned, not just the first
+      expect(result.code.indexOf("value.onStart")).toBeLessThan(
+        result.code.indexOf("value.onStop"),
+      );
     });
 
     it("generates callback array field", () => {
