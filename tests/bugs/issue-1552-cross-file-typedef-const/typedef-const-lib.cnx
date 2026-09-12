@@ -28,9 +28,20 @@ void mutate(Sample s) {
     s.value <- 7;
 }
 
+// The SECOND TYPE SHAPE, same file and no include. `record`/`mutate` are both
+// struct-shaped, and a struct and a `string<N>` reach the typedef's `const`
+// through different branches of the one formatter -- so a struct-only fixture
+// leaves the `string<N>` branch unwatched. It was: this parameter's typedef
+// disagreed with its own prototype in a single file, `(char*)` against
+// `(const char*)`, at transpile exit 0.
+void describeLocal(string<8> label) {
+    witness <- label[0];
+}
+
 struct LocalHandlers {
     record onRecord;
     mutate onMutate;
+    describeLocal onDescribeLocal;
     u8 tag;
 }
 

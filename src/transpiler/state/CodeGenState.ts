@@ -1220,8 +1220,13 @@ export default class CodeGenState {
    * modified, so auto-const applies. Reading the absent case the other way is
    * what made one expression wrong in both directions at once.
    *
-   * The per-file fallback serves callers with no `Program` -- single-source
-   * transpilation and unit tests that drive codegen directly.
+   * The per-file fallback serves unit tests that drive codegen directly, which
+   * are the only callers with no `Program`. NOT single-source transpilation:
+   * `transpile({ kind: "source" })` and `{ kind: "files" }` share one
+   * `_executePipeline`, so `Program.build` runs and this field is set for both.
+   * Naming single-source here would be the kind of claim that survives by
+   * never being checked -- a later reader would preserve the branch for a
+   * production caller that does not exist.
    */
   static isParameterModifiedAnywhere(
     funcName: string,

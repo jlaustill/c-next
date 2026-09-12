@@ -2770,16 +2770,14 @@ class Transpiler {
         result.set(funcName, {
           typedefName: cbInfo.typedefName,
           returnType: cbInfo.returnType,
-          // #1164: pass the parameter through whole. Dropping isConst/isArray
-          // here is what made the header's typedef disagree with the .c's.
-          parameters: cbInfo.parameters.map((p) => ({
-            type: p.type,
-            isStruct: p.isStruct,
-            isConst: p.isConst,
-            isArray: p.isArray,
-            arrayDims: p.arrayDims,
-            name: p.name,
-          })),
+          // #1164/#1552: pass the parameter through WHOLE. This used to say so
+          // while enumerating six of the seven fields below it, and the one it
+          // left out was `isString` -- so the formatter's `string<N>` branch
+          // never fired and the header's typedef disagreed with its own
+          // prototype in a single file. Naming no fields is what makes the
+          // comment true; `IHeaderCallbackType` now names the formatter's own
+          // parameter type, so a new field cannot go missing here again.
+          parameters: cbInfo.parameters,
         });
       }
     }

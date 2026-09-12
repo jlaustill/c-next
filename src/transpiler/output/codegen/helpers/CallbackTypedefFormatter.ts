@@ -12,7 +12,7 @@
  * typedef look like?" rather than two that happened to agree for simple cases.
  */
 
-import type ICallbackTypedefParameter from "../types/ICallbackTypedefParameter";
+import type ICallbackTypedefParameter from "../../../types/ICallbackTypedefParameter";
 
 class CallbackTypedefFormatter {
   /**

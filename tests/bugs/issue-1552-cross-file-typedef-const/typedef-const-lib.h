@@ -17,6 +17,7 @@ typedef struct Sample Sample;
 /* Callback typedefs */
 typedef void (*record_fp)(const Sample*);
 typedef void (*mutate_fp)(Sample*);
+typedef void (*describeLocal_fp)(const char*);
 
 /* Struct definitions */
 typedef struct Sample {
@@ -25,6 +26,7 @@ typedef struct Sample {
 typedef struct LocalHandlers {
     record_fp onRecord;
     mutate_fp onMutate;
+    describeLocal_fp onDescribeLocal;
     uint8_t tag;
 } LocalHandlers;
 
@@ -34,6 +36,7 @@ extern uint8_t witness;
 /* Function prototypes */
 void record(const Sample* s);
 void mutate(Sample* s);
+void describeLocal(const char* label);
 uint8_t localTag(const LocalHandlers* handlers);
 /* MISRA C:2012 Rule 8.4: declaration for the ADR-029 generated init function (the definition has external linkage and would otherwise be undeclared). */
 LocalHandlers LocalHandlers_init(void);

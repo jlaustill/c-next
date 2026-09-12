@@ -6,6 +6,7 @@
 #include "typedef-const-lib.h"
 
 #include <stdint.h>
+#include <string.h>
 
 // Helper for #1552. Declares two function-as-type candidates whose auto-const
 // answers DIFFER, and names both as struct field types so this file emits both
@@ -33,10 +34,21 @@ void mutate(Sample* s) {
     s->value = 7U;
 }
 
+// The SECOND TYPE SHAPE, same file and no include. `record`/`mutate` are both
+// struct-shaped, and a struct and a `string<N>` reach the typedef's `const`
+// through different branches of the one formatter -- so a struct-only fixture
+// leaves the `string<N>` branch unwatched. It was: this parameter's typedef
+// disagreed with its own prototype in a single file, `(char*)` against
+// `(const char*)`, at transpile exit 0.
+void describeLocal(const char* label) {
+    witness = label[0U];
+}
+
 LocalHandlers LocalHandlers_init(void) {
     return (LocalHandlers){
         .onRecord = record,
-        .onMutate = mutate
+        .onMutate = mutate,
+        .onDescribeLocal = describeLocal
     };
 }
 

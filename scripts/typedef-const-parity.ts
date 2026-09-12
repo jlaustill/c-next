@@ -212,8 +212,19 @@ function collectFrom(file: string): {
   return { typedefs, prototypes };
 }
 
+/** What was actually compared, so a skip cannot read as a pass. */
+interface ITally {
+  typedefs: number;
+  compared: number;
+  readonly unpaired: ISignature[];
+  readonly arity: ISignature[];
+}
+
 /** Pair typedefs with prototypes within one fixture directory. */
-function disagreementsIn(files: readonly string[]): IDisagreement[] {
+function disagreementsIn(
+  files: readonly string[],
+  tally: ITally,
+): IDisagreement[] {
   const typedefs: ISignature[] = [];
   const prototypesByName = new Map<string, ISignature>();
 
@@ -228,17 +239,21 @@ function disagreementsIn(files: readonly string[]): IDisagreement[] {
   }
 
   const disagreements: IDisagreement[] = [];
+  tally.typedefs += typedefs.length;
   for (const typedef of typedefs) {
     const prototype = prototypesByName.get(typedef.functionName);
     // A typedef whose function has no prototype in this fixture is not a
     // disagreement: the prototype is what it must match, and there is none to
     // contradict. `main` is the common case -- it emits no header prototype.
     if (!prototype) {
+      tally.unpaired.push(typedef);
       continue;
     }
     if (prototype.constFlags.length !== typedef.constFlags.length) {
+      tally.arity.push(typedef);
       continue;
     }
+    tally.compared += 1;
     typedef.constFlags.forEach((isConst, parameterIndex) => {
       if (isConst !== prototype.constFlags[parameterIndex]) {
         disagreements.push({
@@ -256,15 +271,25 @@ function disagreementsIn(files: readonly string[]): IDisagreement[] {
 function main(): void {
   const check = process.argv.includes("check");
 
-  const headers = [
+  // Both roots, and BOTH extensions. A typedef lands in the `.c` whenever
+  // `headerOwnsCallbackTypedef` is false, and 22 of the corpus's 94 sit there --
+  // including `issue-1491-cross-file-function-as-type/cross-file-string-param.test.c`,
+  // the `typedef uint32_t (*describe_fp)(const char*)` #1552 restores. Reading
+  // headers alone, this gate could not see the typedef it exists for: reverting
+  // that `const` by hand still printed `0 disagree`.
+  const generated = [
     ...FileScanner.findFiles(join(rootDir, "tests"), ".h"),
     ...FileScanner.findFiles(join(rootDir, "tests"), ".hpp"),
+    ...FileScanner.findFiles(join(rootDir, "tests"), ".c"),
+    ...FileScanner.findFiles(join(rootDir, "tests"), ".cpp"),
     ...FileScanner.findFiles(join(rootDir, "examples"), ".h"),
     ...FileScanner.findFiles(join(rootDir, "examples"), ".hpp"),
+    ...FileScanner.findFiles(join(rootDir, "examples"), ".c"),
+    ...FileScanner.findFiles(join(rootDir, "examples"), ".cpp"),
   ].filter((file) => !file.includes(".expected."));
 
   const byDirectory = new Map<string, string[]>();
-  for (const header of headers) {
+  for (const header of generated) {
     const directory = dirname(header);
     const group = byDirectory.get(directory);
     if (group) {
@@ -274,19 +299,45 @@ function main(): void {
     }
   }
 
-  let typedefCount = 0;
+  const tally: ITally = { typedefs: 0, compared: 0, unpaired: [], arity: [] };
   const disagreements: IDisagreement[] = [];
   for (const files of byDirectory.values()) {
-    for (const file of files) {
-      typedefCount += collectFrom(file).typedefs.length;
-    }
-    disagreements.push(...disagreementsIn(files));
+    disagreements.push(...disagreementsIn(files, tally));
   }
 
+  // The headline counts COMPARISONS, not typedefs found. A typedef with no
+  // prototype in its directory and one whose arity disagrees are both skipped,
+  // and in a count of "typedefs checked" a skip is indistinguishable from a
+  // pass -- the shape this gate exists to remove, reappearing in its own
+  // output.
   console.log(
-    `Checked ${typedefCount} \`_fp\` typedef(s) across ${byDirectory.size} ` +
-      `directory/directories; ${disagreements.length} disagree with their prototype.`,
+    `Compared ${tally.compared} of ${tally.typedefs} \`_fp\` typedef(s) across ` +
+      `${byDirectory.size} directory/directories ` +
+      `(${tally.unpaired.length} unpaired, ${tally.arity.length} arity-skipped); ` +
+      `${disagreements.length} disagree with their prototype.`,
   );
+
+  for (const signature of tally.unpaired) {
+    console.log(
+      chalk.dim(
+        `  unpaired (no prototype in its directory): ${signature.functionName} ` +
+          `-- ${relative(rootDir, signature.file)}:${signature.line}`,
+      ),
+    );
+  }
+
+  // An arity mismatch between a typedef and its own prototype is itself a
+  // defect, so it is named rather than silently continued past. It does not
+  // fail the gate: this gate's claim is about const-ness, and failing it on a
+  // different property would make a red run ambiguous.
+  for (const signature of tally.arity) {
+    console.log(
+      chalk.yellow(
+        `  arity mismatch with its prototype: ${signature.functionName} ` +
+          `-- ${relative(rootDir, signature.file)}:${signature.line}`,
+      ),
+    );
+  }
 
   for (const disagreement of disagreements) {
     const { typedef, prototype, functionName, parameterIndex } = disagreement;
