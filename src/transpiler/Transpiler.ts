@@ -81,6 +81,9 @@ import TTranspileInput from "./types/TTranspileInput";
 import ITranspileError from "../lib/types/ITranspileError";
 import TranspilerState from "./state/TranspilerState";
 import runAnalyzers from "../TRANSPILE/1-Analyze/runAnalyzers";
+import Diagnostics from "../TRANSPILE/1-Analyze/Diagnostics";
+import type IDiagnostics from "./types/IDiagnostics";
+import type ICodeGenSymbols from "./types/ICodeGenSymbols";
 import CacheManager from "../utils/cache/CacheManager";
 import MapUtils from "../utils/MapUtils";
 import detectCppSyntax from "./logic/detectCppSyntax";
@@ -454,7 +457,14 @@ class Transpiler {
       return;
     }
 
-    // Stage 5: Analyze and transpile each C-Next file
+    // Stage 4d: 2.1 Analyze -- EVERY file, before ANY file is planned (#1320).
+    // This is the whole point of the stage existing separately: analysis used
+    // to run inside the loop below, so file N was analyzed after files 1..N-1
+    // had already been emitted, and an analyzer reading state codegen fills saw
+    // the PREVIOUS file's data (#1430).
+    const diagnostics = this._analyzeProgram(input);
+
+    // Stage 5: Plan and Render each C-Next file
     //
     // #1233: the .c of a file that succeeded is NOT written as we go. A later
     // file can still fail the run, and Stage 6 gates headers on
@@ -462,13 +472,22 @@ class Transpiler {
     // header the same run refused to write -- output that cannot compile on a
     // clean tree and silently compiles against a stale header on a dirty one.
     // Deferring puts the .c under the same gate the .h already had.
+    //
+    // #1320: a program 2.1 rejected is NOT planned. The loop still runs, so
+    // every file still gets a result recorded through the one recording path,
+    // but it reports what 2.1 found instead of generating. Disk output is
+    // unchanged either way -- both `pendingWrites` and Stage 6 are already
+    // gated on `result.success`.
+    const rejected = diagnostics.hasErrors();
     const pendingWrites: { path: string; content: string }[] = [];
     for (const file of input.cnextFiles) {
       if (!Transpiler._producesOutput(file)) {
         continue;
       }
 
-      const fileResult = this._transpileFile(file);
+      const fileResult = rejected
+        ? this._rejectedFileResult(file, diagnostics)
+        : this._transpileFile(file);
       this._recordFileResult(
         file.discoveredFile,
         fileResult,
@@ -482,6 +501,13 @@ class Transpiler {
     // now that the loop above is done. Unconditional -- result.files[].headerCode
     // is part of the public ITranspilerResult contract for BOTH 'files' and
     // 'source' input, not only when writeOutputToDisk. See _renderHeaders.
+    //
+    // #1320: that promise is about a file that reached Plan/Render, not about
+    // every `success: true` file. A file 2.1 found clean but that never ran
+    // through `_transpileFile` -- because a SIBLING was rejected -- has no
+    // captured header input to render either, same as parse-only mode.
+    // `_renderHeaders` already treats a missing capture as "no header for this
+    // file" rather than an error, so this is a silent no-op for it, not a bug.
     this._renderHeaders(result);
 
     if (result.success && input.writeOutputToDisk) {
@@ -796,85 +822,66 @@ class Transpiler {
   }
 
   /**
-   * Stage 5: Transpile a single C-Next file.
+   * Stage 4d: 2.1 Analyze, over the WHOLE program (#1320).
    *
-   * Assumes the symbol table is already populated (stages 2-3 complete).
-   * Directly updates this.state.
+   * Every file is analyzed here, before Stage 5 plans any of them. That order
+   * is the pass boundary `docs/architecture/README.md` specifies -- "After
+   * **1.4**, nothing may compute a cross-file fact. A pass that needs one reads
+   * it from `Program`, which is complete before 2.1 begins."
+   *
+   * Analysis used to be the first half of `_transpileFile`, which meant file N
+   * was analyzed after files 1..N-1 had been emitted. Nothing made that visible,
+   * and #1430 is what it cost: an analyzer read a map codegen fills, so it held
+   * the PREVIOUS file's names and `E0427` fired or not depending on include
+   * order. Hoisting removes the window rather than the one read that used it.
+   *
+   * Parse-only mode analyzes nothing, exactly as before: `_transpileFile`
+   * returned its parse-only result before reaching the analyzers, so running
+   * them here would be new work on a path that asked for none.
    */
-  private _transpileFile(file: IPipelineFile): IFileResult {
+  private _analyzeProgram(input: IPipelineInput): IDiagnostics {
+    const byFile = new Map<string, readonly ITranspileError[]>();
+
+    if (this.config.parseOnly) {
+      return Diagnostics.build(byFile);
+    }
+
+    for (const file of input.cnextFiles) {
+      if (!Transpiler._producesOutput(file)) {
+        continue;
+      }
+      byFile.set(file.path, this._analyzeFile(file));
+    }
+
+    return Diagnostics.build(byFile);
+  }
+
+  /**
+   * Run 2.1's analyzers over one file and return what they rejected.
+   *
+   * The per-file `CodeGenState` an analyzer reads is established here, the same
+   * way and from the same source as before the hoist -- `symbols` is a view of
+   * `Program`, which 1.4 completed, so it does not depend on any file having
+   * been emitted.
+   */
+  private _analyzeFile(file: IPipelineFile): readonly ITranspileError[] {
     const sourcePath = file.path;
 
-    // #1241: attribute ADR provenance from here, not from codegen. Analyzers run
-    // before the generator is initialized, so a rule firing in `runAnalyzers`
-    // would otherwise be credited to the PREVIOUS file -- or dropped on the
-    // first, which reads identically to "this rule never fires".
+    // #1241: attribute ADR provenance to the file being analyzed. Analysis runs
+    // before the generator exists, so a rule firing in `runAnalyzers` would
+    // otherwise be credited to whichever file was begun last -- or dropped on
+    // the first, which reads identically to "this rule never fires".
     AdrProvenance.beginFile(sourcePath);
 
     try {
-      // #1301: the parse and the declare Stage 3 already performed for this file.
-      // There is no parse-if-absent fallback on purpose -- that fallback is the
-      // duplicate path this removes. Stage 5 walks a subset of the same
-      // `input.cnextFiles` Stage 3 walked, and Stage 3 aborts the run on a parse
-      // error before Stage 5 begins, so a miss means the pipeline ran out of
-      // order and must say so rather than quietly reparse.
-      const declared = this.declaredFiles.get(sourcePath);
-      // This branch is an ASSERTION, not a covered path, and is deliberately left
-      // uncovered: `_transpileFile` has one caller, downstream of a stage 3 that
-      // aborts the run on any error, so nothing reachable through the public API
-      // can miss. It cannot be mutation-checked either -- mis-keying the cache
-      // returns a WRONG entry, never `undefined`, so that mutation exercises the
-      // key rather than this guard. It surfaces as a user-facing
-      // `Code generation failed: ...` at line 1 via `buildCatchResult`, since the
-      // message carries no `N:M` prefix for `parseErrorLocation` to find.
-      if (!declared) {
-        throw new Error(
-          `${sourcePath} reached code generation without being declared`,
-        );
-      }
-      const { tree, tokenStream, declarationCount } = declared;
+      const declared = this._requireDeclared(sourcePath);
 
-      // Parse only mode
-      if (this.config.parseOnly) {
-        return this.buildParseOnlyResult(sourcePath, declarationCount);
-      }
+      this._establishPerFileCodeGenState(file, sourcePath);
 
-      // Build symbolInfo for code generation (before analyzers so they can read it)
-      //
-      // #1301 review: recomputed here rather than cached with the tree, because
-      // #1511: composed once, when the whole program was in hand. This used to
-      // walk the include closure and merge here, per file, over a map the
-      // publish loop was still filling -- so the same file saw more or less
-      // depending on when it was rendered.
-      //
-      // Asserted rather than defaulted. A per-file view would be the pre-#1301
-      // shape -- no cross-file enums, no #1333 struct qualification, no #1398
-      // const names -- and codegen would emit subtly wrong C with no diagnostic.
-      // The guarantee that this is present is a key-provenance argument two call
-      // sites apart (`Program.build` keys on `IFileSymbols.sourceFile`, set from
-      // `file.path`, and this reads the same `file.path`), so it is the kind of
-      // invariant that should fail loudly if it ever stops holding. Same
-      // treatment as `Program.settleEveryFile`'s deferred-type check.
-      const symbolInfo = this.program?.codeGenSymbolsFor(sourcePath);
-      if (!symbolInfo) {
-        throw new Error(
-          `Internal error: no visible symbol view for ${sourcePath}; ` +
-            `1.4 Resolve must run before stage 5`,
-        );
-      }
-
-      // Make symbols available to analyzers (CodeGenerator.generate() sets this too)
-      CodeGenState.symbols = symbolInfo;
-
-      // #1399 review: computed during discovery from the resolver's own
-      // categorization, not re-derived from `#include` token text here.
-      CodeGenState.currentFileReachesForeignHeader =
-        file.reachesForeignHeader ?? true;
-
-      // Run analyzers (reads symbols, externalStructFields, and symbolTable from
-      // CodeGenState). #1322: the ADR-010 include facts are handed in rather
-      // than read off CodeGenState, whose `sourcePath` is not written until
-      // `generate()` below and so holds the previous file's value here.
-      const analyzerErrors = runAnalyzers(tree, tokenStream, {
+      // #1322: the ADR-010 include facts are handed in rather than read off
+      // CodeGenState, whose `sourcePath` is not written until `generate()` and
+      // so holds another file's value here.
+      return runAnalyzers(declared.tree, declared.tokenStream, {
         cppMode: this.cppMode,
         includes: {
           sourcePath,
@@ -882,13 +889,145 @@ class Transpiler {
           fileExists: (candidate: string) => this.fs.exists(candidate),
         },
       });
-      if (analyzerErrors.length > 0) {
-        return this.buildErrorResult(
-          sourcePath,
-          analyzerErrors,
-          declarationCount,
-        );
+    } catch (err) {
+      return [Transpiler._collectionError(err)];
+    }
+  }
+
+  /**
+   * The result for one file of a program 2.1 rejected (#1320).
+   *
+   * Reports what 2.1 found and generates nothing. A file 2.1 found nothing
+   * wrong with is NOT marked failed -- it carries no errors and no code, which
+   * is the honest statement that it was never planned. `_recordFileResult`
+   * queues no write for it either way, since its `code` is empty.
+   */
+  private _rejectedFileResult(
+    file: IPipelineFile,
+    diagnostics: IDiagnostics,
+  ): IFileResult {
+    const sourcePath = file.path;
+    const errors = diagnostics.forFile(sourcePath);
+    const declarationCount =
+      this.declaredFiles.get(sourcePath)?.declarationCount ?? 0;
+
+    return errors.length > 0
+      ? this.buildErrorResult(sourcePath, [...errors], declarationCount)
+      : this.buildParseOnlyResult(sourcePath, declarationCount);
+  }
+
+  /**
+   * The parse and declare Stage 3 already performed for this file (#1301).
+   *
+   * There is no parse-if-absent fallback on purpose -- that fallback is the
+   * duplicate path #1301 removed. Stages 4d and 5 walk a subset of the same
+   * `input.cnextFiles` Stage 3 walked, and Stage 3 aborts the run on a parse
+   * error before either begins, so a miss means the pipeline ran out of order
+   * and must say so rather than quietly reparse.
+   *
+   * This branch is an ASSERTION, not a covered path, and is deliberately left
+   * uncovered: every caller is downstream of a stage 3 that aborts the run on
+   * any error, so nothing reachable through the public API can miss. It cannot
+   * be mutation-checked either -- mis-keying the cache returns a WRONG entry,
+   * never `undefined`, so that mutation exercises the key rather than this
+   * guard. It surfaces as a user-facing `Code generation failed: ...` at line 1,
+   * since the message carries no `N:M` prefix for `parseErrorLocation` to find.
+   */
+  private _requireDeclared(sourcePath: string): IDeclaredFile {
+    const declared = this.declaredFiles.get(sourcePath);
+    if (!declared) {
+      throw new Error(
+        `${sourcePath} reached code generation without being declared`,
+      );
+    }
+    return declared;
+  }
+
+  /**
+   * This file's view of the resolved program.
+   *
+   * #1511: composed once, when the whole program was in hand. This used to walk
+   * the include closure and merge per file, over a map the publish loop was
+   * still filling -- so the same file saw more or less depending on when it was
+   * rendered.
+   *
+   * Asserted rather than defaulted. A per-file view would be the pre-#1301
+   * shape -- no cross-file enums, no #1333 struct qualification, no #1398 const
+   * names -- and codegen would emit subtly wrong C with no diagnostic. The
+   * guarantee that this is present is a key-provenance argument two call sites
+   * apart (`Program.build` keys on `IFileSymbols.sourceFile`, set from
+   * `file.path`, and this reads the same `file.path`), so it is the kind of
+   * invariant that should fail loudly if it ever stops holding. Same treatment
+   * as `Program.settleEveryFile`'s deferred-type check.
+   */
+  private _requireSymbolInfo(sourcePath: string): ICodeGenSymbols {
+    const symbolInfo = this.program?.codeGenSymbolsFor(sourcePath);
+    if (!symbolInfo) {
+      throw new Error(
+        `Internal error: no visible symbol view for ${sourcePath}; ` +
+          `1.4 Resolve must run before stage 5`,
+      );
+    }
+    return symbolInfo;
+  }
+
+  /**
+   * Establish the per-file `CodeGenState` a pass is about to read.
+   *
+   * `_analyzeFile` and `_transpileFile` each read this same pair of facts
+   * immediately before their own pass runs -- one during Stage 4d's whole-
+   * program analysis, the other during Stage 5's per-file emission. Sharing
+   * the call site's neighbor (`_requireSymbolInfo`) but re-deriving these two
+   * lines at each site is the shape #1430 was: a per-file fact established
+   * twice, with nothing forcing the two copies to agree if either ever
+   * changes. Extracted so there is exactly one place that establishes it.
+   */
+  private _establishPerFileCodeGenState(
+    file: IPipelineFile,
+    sourcePath: string,
+  ): ICodeGenSymbols {
+    const symbolInfo = this._requireSymbolInfo(sourcePath);
+    CodeGenState.symbols = symbolInfo;
+
+    // #1399 review: computed during discovery from the resolver's own
+    // categorization, not re-derived from `#include` token text here.
+    CodeGenState.currentFileReachesForeignHeader =
+      file.reachesForeignHeader ?? true;
+
+    return symbolInfo;
+  }
+
+  /**
+   * Stage 5: Plan and Render a single C-Next file.
+   *
+   * Assumes the symbol table is already populated (stages 2-3 complete) and
+   * that 2.1 Analyze has already accepted the whole program -- #1320 moved
+   * analysis to Stage 4d, so by here the question "is this program legal?" has
+   * been answered for EVERY file, not just the ones walked so far.
+   */
+  private _transpileFile(file: IPipelineFile): IFileResult {
+    const sourcePath = file.path;
+
+    // #1241: attribute ADR provenance from here, not from codegen. A rule firing
+    // during header capture below would otherwise be credited to whichever file
+    // was begun last -- or dropped on the first, which reads identically to
+    // "this rule never fires". Stage 4d begins each file for its own analysis;
+    // this re-begins the file for the emission half.
+    AdrProvenance.beginFile(sourcePath);
+
+    try {
+      const declared = this._requireDeclared(sourcePath);
+      const { tree, tokenStream, declarationCount } = declared;
+
+      // Parse only mode
+      if (this.config.parseOnly) {
+        return this.buildParseOnlyResult(sourcePath, declarationCount);
       }
+
+      // #1320: 2.1 Analyze already ran, whole-program, in Stage 4d. What is left
+      // here is 2.2 Plan and 2.3 Render. The per-file state codegen reads is
+      // still established per file -- it is `generate()`'s input, not analysis's.
+      const symbolInfo = this._establishPerFileCodeGenState(file, sourcePath);
 
       // Inject cross-file modification data for const inference
       this._setupCrossFileModifications();
@@ -2882,21 +3021,14 @@ class Transpiler {
    * Build a catch/exception result.
    */
   private buildCatchResult(sourcePath: string, err: unknown): IFileResult {
-    const rawMessage = err instanceof Error ? err.message : String(err);
-    const parsed = ParserUtils.parseErrorLocation(rawMessage);
-
+    // #1320: formatted by `_collectionError`, not re-spelled here. How a thrown
+    // error becomes a diagnostic is ONE decision; it used to be written out in
+    // both places, so changing the wording meant editing two.
     return {
       sourcePath,
       code: "",
       success: false,
-      errors: [
-        {
-          line: parsed.line,
-          column: parsed.column,
-          message: `Code generation failed: ${parsed.message}`,
-          severity: "error",
-        },
-      ],
+      errors: [Transpiler._collectionError(err)],
       declarationCount: 0,
     };
   }

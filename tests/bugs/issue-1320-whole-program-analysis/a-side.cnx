@@ -1,0 +1,21 @@
+// Helper for #1320. Contributes ONE diagnostic, of a different code and from a
+// different file than b-side.cnx, so the entry asserts two DISTINCT diagnostics
+// rather than the same one reported twice.
+
+u32 declaredHere() {
+    return 3;
+}
+
+// Control, must stay SILENT: `declaredHere` is declared in this very file, so a
+// value reference to it is defined, which is all E0427 asks. Without this, an
+// analyzer that rejected every function-as-value would still pass the
+// assertion below. It takes the function-body form because that is the
+// spelling that also compiles (ADR-029, and #1497/#1498 for the file-scope
+// form).
+u32 useLocal() {
+    declaredHere ownRef <- declaredHere;
+    return ownRef();
+}
+
+// The defect this half contributes: declared in no file at all.
+u32 fromNowhere <- neverDeclaredInA;

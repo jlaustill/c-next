@@ -1,0 +1,15 @@
+// Helper for #1320. Contributes a diagnostic with a DIFFERENT code than
+// a-side.cnx, so "each file has a distinct diagnostic" is asserted by the codes
+// and not only by the line numbers.
+
+// Control, must stay SILENT: dividing by a non-zero literal is fine. Without
+// this, an analyzer that rejected every division would still pass the
+// assertion below.
+u32 safeDivide() {
+    return 10 / 2;
+}
+
+// The defect this half contributes.
+u32 byZero() {
+    return 10 / 0;
+}

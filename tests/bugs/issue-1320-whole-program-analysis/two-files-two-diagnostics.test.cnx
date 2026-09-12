@@ -1,0 +1,19 @@
+// test-error
+// #1320: analysis is whole-program, so a diagnostic in a-side.cnx and a
+// DIFFERENT diagnostic in b-side.cnx are both reported in ONE run.
+//
+// This passed before the hoist too, because the per-file loop recorded each
+// file's result and kept walking. It is asserted here because the hoist is what
+// makes it STRUCTURAL rather than incidental: 2.1 Analyze now runs over every
+// file before any file is planned, so "both are reported" no longer depends on
+// how far the emission loop got before the first rejection.
+//
+// The regression it catches is an analysis pass that stops at the first file it
+// rejects -- which is what "analysis is a pass" invites and what the per-file
+// early return used to do for the REST of that file's diagnostics.
+#include <a-side.cnx>
+#include <b-side.cnx>
+
+u32 main() {
+    return 0;
+}
