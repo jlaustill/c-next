@@ -14,8 +14,11 @@
 // (a struct, not a scalar).
 //
 // A struct field is ADR-029's canonical use and keeps this fixture on the one
-// property it tests. Calling a callback-typed parameter would pin an unrelated
-// pre-existing defect here instead.
+// property it tests. The two shapes it avoids are separate pre-existing
+// defects, each with its own card and its own minimal reproduction: calling a
+// callback-typed parameter dereferences what the typedef wants as a pointer
+// (#1561), and a file-scope variable of a function-as-type gets one type in the
+// .c and another in the .h (#1562). Either would be pinned here instead.
 uint8_t witness = 0U;
 
 // Body READS but never modifies `s`, so #268 auto-const gives `const Sample*`.

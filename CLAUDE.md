@@ -238,13 +238,14 @@ update step: an `--update` inside it could not fail on a mismatch. `npm run test
 regenerates every snapshot, `tests/bugs/` included (#1142); `npm run test:bugs:update` narrows
 it to the regression fixtures.
 
-**`test:all` is four checks of thirty-three — run `npm run test:gate` before pushing.**
-`test:all` is `build && unit && test:q && validate:c`. CI runs twenty-nine more with no local
+**`test:all` is four checks of thirty-four — run `npm run test:gate` before pushing.**
+`test:all` is `build && unit && test:q && validate:c`. CI runs thirty more with no local
 alias: the whole **`Static Analysis`** job (`prettier:check`, `plugin:test`, `test:hooks`,
 `cspell:check`, `oxlint:check`, `knip`, `depcruise`, `lint:test-location`,
 `analyze:duplication`, `docs:toolchain:check`, `coverage:matrix:check`,
 `diagnostics:manifest:check`, `error-codes:check`, `docs:throw-citations:check`, `scope-joins:check`,
-`adr:independence:check`, `gh:pagination:check`, `parse-tree:check`, `gate:roster:check`), plus `typecheck`, `typecheck` for
+`adr:independence:check`, `gh:pagination:check`, `parse-tree:check`, `typedef-const:parity:check`,
+`gate:roster:check`), plus `typecheck`, `typecheck` for
 `prettier-plugin`, `typecheck` for `scripts` (`typecheck:scripts`), `test:cli`, `cli smoke`,
 `coverage:grammar:check`, `format:fidelity`, `headers:standalone:check`, `re-run warm`, and the
 `working tree clean` check that `Verify Clean` performs.

@@ -231,6 +231,18 @@ jobs:
         run: npm run parse-tree:check
         continue-on-error: true
 
+      # Issue #1552: an ADR-029 `_fp` typedef must carry the same const its
+      # function's prototype carries, or the two are incompatible pointer types
+      # -- and when a declaring and a using file disagree, one translation unit
+      # holds two definitions of one name and cc rejects it at transpile exit 0.
+      # Fixtures could not see this: the contexts were occupied while the
+      # property was untested, because the fixture holding them took no
+      # parameters and its two typedefs were byte-identical.
+      - name: Check `_fp` typedef const matches its prototype
+        id: typedefconst
+        run: npm run typedef-const:parity:check
+        continue-on-error: true
+
       # Issue #1526: the roster in CLAUDE.md is a list that reads as complete,
       # and it drifted three times in silence. The command it offered as proof
       # was itself wrong twice in ways that cancelled -- it matched the
@@ -265,6 +277,7 @@ jobs:
           [ "${{ steps.throwcitations.outcome }}" != "success" ] && echo "❌ Throw citations" && FAILED=1 || echo "✅ Throw citations"
           [ "${{ steps.scopejoins.outcome }}" != "success" ] && echo "❌ Scope-join sites" && FAILED=1 || echo "✅ Scope-join sites"
           [ "${{ steps.parsetree.outcome }}" != "success" ] && echo "❌ Parse-tree baseline" && FAILED=1 || echo "✅ Parse-tree baseline"
+          [ "${{ steps.typedefconst.outcome }}" != "success" ] && echo "❌ Typedef const parity" && FAILED=1 || echo "✅ Typedef const parity"
           [ "${{ steps.gateroster.outcome }}" != "success" ] && echo "❌ Gate roster" && FAILED=1 || echo "✅ Gate roster"
           [ $FAILED -eq 1 ] && exit 1 || exit 0
 

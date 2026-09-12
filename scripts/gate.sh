@@ -70,6 +70,7 @@ run_check "Static Analysis" "scope-joins:check"          npm run scope-joins:che
 run_check "Static Analysis" "adr:independence:check"     npm run adr:independence:check
 run_check "Static Analysis" "gh:pagination:check"        npm run gh:pagination:check
 run_check "Static Analysis" "parse-tree:check"           npm run parse-tree:check
+run_check "Static Analysis" "typedef-const:parity:check" npm run typedef-const:parity:check
 run_check "Static Analysis" "gate:roster:check"         npm run gate:roster:check
 
 echo -e "\n${YELLOW}Build${NC}"
