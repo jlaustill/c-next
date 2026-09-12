@@ -501,6 +501,13 @@ class Transpiler {
     // now that the loop above is done. Unconditional -- result.files[].headerCode
     // is part of the public ITranspilerResult contract for BOTH 'files' and
     // 'source' input, not only when writeOutputToDisk. See _renderHeaders.
+    //
+    // #1320: that promise is about a file that reached Plan/Render, not about
+    // every `success: true` file. A file 2.1 found clean but that never ran
+    // through `_transpileFile` -- because a SIBLING was rejected -- has no
+    // captured header input to render either, same as parse-only mode.
+    // `_renderHeaders` already treats a missing capture as "no header for this
+    // file" rather than an error, so this is a silent no-op for it, not a bug.
     this._renderHeaders(result);
 
     if (result.success && input.writeOutputToDisk) {
@@ -869,12 +876,7 @@ class Transpiler {
     try {
       const declared = this._requireDeclared(sourcePath);
 
-      CodeGenState.symbols = this._requireSymbolInfo(sourcePath);
-
-      // #1399 review: computed during discovery from the resolver's own
-      // categorization, not re-derived from `#include` token text here.
-      CodeGenState.currentFileReachesForeignHeader =
-        file.reachesForeignHeader ?? true;
+      this._establishPerFileCodeGenState(file, sourcePath);
 
       // #1322: the ADR-010 include facts are handed in rather than read off
       // CodeGenState, whose `sourcePath` is not written until `generate()` and
@@ -970,6 +972,32 @@ class Transpiler {
   }
 
   /**
+   * Establish the per-file `CodeGenState` a pass is about to read.
+   *
+   * `_analyzeFile` and `_transpileFile` each read this same pair of facts
+   * immediately before their own pass runs -- one during Stage 4d's whole-
+   * program analysis, the other during Stage 5's per-file emission. Sharing
+   * the call site's neighbor (`_requireSymbolInfo`) but re-deriving these two
+   * lines at each site is the shape #1430 was: a per-file fact established
+   * twice, with nothing forcing the two copies to agree if either ever
+   * changes. Extracted so there is exactly one place that establishes it.
+   */
+  private _establishPerFileCodeGenState(
+    file: IPipelineFile,
+    sourcePath: string,
+  ): ICodeGenSymbols {
+    const symbolInfo = this._requireSymbolInfo(sourcePath);
+    CodeGenState.symbols = symbolInfo;
+
+    // #1399 review: computed during discovery from the resolver's own
+    // categorization, not re-derived from `#include` token text here.
+    CodeGenState.currentFileReachesForeignHeader =
+      file.reachesForeignHeader ?? true;
+
+    return symbolInfo;
+  }
+
+  /**
    * Stage 5: Plan and Render a single C-Next file.
    *
    * Assumes the symbol table is already populated (stages 2-3 complete) and
@@ -999,13 +1027,7 @@ class Transpiler {
       // #1320: 2.1 Analyze already ran, whole-program, in Stage 4d. What is left
       // here is 2.2 Plan and 2.3 Render. The per-file state codegen reads is
       // still established per file -- it is `generate()`'s input, not analysis's.
-      const symbolInfo = this._requireSymbolInfo(sourcePath);
-      CodeGenState.symbols = symbolInfo;
-
-      // #1399 review: computed during discovery from the resolver's own
-      // categorization, not re-derived from `#include` token text here.
-      CodeGenState.currentFileReachesForeignHeader =
-        file.reachesForeignHeader ?? true;
+      const symbolInfo = this._establishPerFileCodeGenState(file, sourcePath);
 
       // Inject cross-file modification data for const inference
       this._setupCrossFileModifications();

@@ -8,10 +8,22 @@ interface IFileResult {
   /** Source file path */
   sourcePath: string;
 
-  /** Generated C code (empty if failed) */
+  /**
+   * Generated C code.
+   *
+   * Empty whenever this file was never planned, which is not the same as
+   * `success` being `false`: parse-only mode, and #1320 (another file in the
+   * same program was rejected by 2.1 Analyze, so nothing is planned for ANY
+   * file -- including one 2.1 found clean) both report `success: true` here.
+   * A non-empty string is the only sign real codegen ran for this file.
+   */
   code: string;
 
-  /** Generated header code (empty if headers not requested or failed) */
+  /**
+   * Generated header code. Undefined for every reason `code` is empty (see
+   * above), and also when this file's public interface has no header content
+   * of its own to emit.
+   */
   headerCode?: string;
 
   /** Output file path (if written to disk) */
