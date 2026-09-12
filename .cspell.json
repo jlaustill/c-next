@@ -539,6 +539,7 @@
     "tsmorph",
     "twai",
     "typecheck",
+    "typedefconst",
     "Typesafe",
     "uart",
     "UFCS",

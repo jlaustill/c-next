@@ -154,7 +154,7 @@ const PROTOTYPE_PATTERN =
 /**
  * Collect every `_fp` typedef and every function prototype in one header.
  *
- * A typedef line is recognised first: `typedef void (*record_fp)(...)` also
+ * A typedef line is recognized first: `typedef void (*record_fp)(...)` also
  * matches the prototype shape, and classifying it as a prototype would compare
  * the typedef against itself and always agree.
  */
