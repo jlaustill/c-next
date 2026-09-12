@@ -31,7 +31,7 @@ describe("StructInitFunction", () => {
   describe("definition", () => {
     it("assigns each callback field its default function", () => {
       const code = StructInitFunction.definition("Controller", [
-        { fieldName: "_handler", callbackType: "onReceive" },
+        { fieldName: "_handler", initializer: "onReceive" },
       ]);
 
       expect(code).toContain("Controller Controller_init(void) {");
@@ -41,9 +41,9 @@ describe("StructInitFunction", () => {
 
     it("separates fields with commas and omits the trailing one", () => {
       const code = StructInitFunction.definition("Multi", [
-        { fieldName: "a", callbackType: "onA" },
-        { fieldName: "b", callbackType: "onB" },
-        { fieldName: "c", callbackType: "onC" },
+        { fieldName: "a", initializer: "onA" },
+        { fieldName: "b", initializer: "onB" },
+        { fieldName: "c", initializer: "onC" },
       ]);
 
       expect(code).toContain(".a = onA,");
@@ -92,7 +92,7 @@ describe("StructInitFunction", () => {
     it("declares exactly what the definition defines", () => {
       const signature = StructInitFunction.signature("Sampler");
       const definition = StructInitFunction.definition("Sampler", [
-        { fieldName: "handler", callbackType: "onSample" },
+        { fieldName: "handler", initializer: "onSample" },
       ]);
       const [, prototype] = StructInitFunction.prototypeLines(["Sampler"]);
 

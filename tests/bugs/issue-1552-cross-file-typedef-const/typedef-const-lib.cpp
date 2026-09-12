@@ -48,7 +48,8 @@ LocalHandlers LocalHandlers_init(void) {
     return (LocalHandlers){
         .onRecord = record,
         .onMutate = mutate,
-        .onDescribeLocal = describeLocal
+        .onDescribeLocal = describeLocal,
+        .tag = 0
     };
 }
 

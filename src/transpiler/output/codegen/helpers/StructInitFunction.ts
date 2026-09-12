@@ -17,7 +17,7 @@
  * everywhere else; only the spelling lives in this module.
  */
 import ComplianceAnnotations from "../../../../TRANSPILE/2-Plan/ComplianceAnnotations";
-import ICallbackFieldInit from "../types/ICallbackFieldInit";
+import IStructFieldInit from "../types/IStructFieldInit";
 
 /**
  * Compliance annotation for the emitted declarations (C-Next standard: codegen
@@ -45,22 +45,28 @@ class StructInitFunction {
   }
 
   /**
-   * The `.c` definition: returns a compound literal with every callback field
-   * set to the function its type was defined from.
+   * The `.c` definition: returns a compound literal naming EVERY field --
+   * each callback set to the function its type was defined from, each other
+   * field set to its type's zero value.
+   *
+   * #1557: this named the callback fields alone. C zero-fills the omitted ones
+   * and warns about nothing, so the partial literal was invisible until the
+   * no-warnings check started running in C++ mode, where the same construct is
+   * `-Wmissing-field-initializers`.
    */
   static definition(
     structName: string,
-    callbackFields: readonly ICallbackFieldInit[],
+    fields: readonly IStructFieldInit[],
   ): string {
     const lines: string[] = [
       `${StructInitFunction.signature(structName)} {`,
       `    return (${structName}){`,
     ];
 
-    for (let i = 0; i < callbackFields.length; i++) {
-      const field = callbackFields[i];
-      const comma = i < callbackFields.length - 1 ? "," : "";
-      lines.push(`        .${field.fieldName} = ${field.callbackType}${comma}`);
+    for (let i = 0; i < fields.length; i++) {
+      const field = fields[i];
+      const comma = i < fields.length - 1 ? "," : "";
+      lines.push(`        .${field.fieldName} = ${field.initializer}${comma}`);
     }
 
     lines.push(`    };`, `}`, "");

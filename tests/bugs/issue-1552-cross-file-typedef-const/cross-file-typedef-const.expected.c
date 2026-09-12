@@ -24,7 +24,8 @@
 CrossFileHandlers CrossFileHandlers_init(void) {
     return (CrossFileHandlers){
         .onRecord = record,
-        .onMutate = mutate
+        .onMutate = mutate,
+        .tag = 0
     };
 }
 

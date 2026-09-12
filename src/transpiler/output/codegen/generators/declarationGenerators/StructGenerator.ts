@@ -23,7 +23,7 @@ import TGeneratorFn from "../TGeneratorFn";
 import TGeneratorEffect from "../TGeneratorEffect";
 import ICodeGenSymbols from "../../../../types/ICodeGenSymbols";
 import ArrayDimensionUtils from "./ArrayDimensionUtils";
-import ICallbackFieldInit from "../../types/ICallbackFieldInit";
+import IStructFieldInit from "../../types/IStructFieldInit";
 import StructInitFunction from "../../helpers/StructInitFunction";
 
 /**
@@ -121,7 +121,19 @@ const generateStruct: TGeneratorFn<Parser.StructDeclarationContext> = (
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
   const name = node.IDENTIFIER().getText();
-  const callbackFields: ICallbackFieldInit[] = [];
+  // ADR-029 gives a struct an init function only if it has a callback field.
+  // Asked up front because it decides whether the OTHER fields need an
+  // initializer resolved at all -- most structs have no callback, generate no
+  // init function, and must not pay for one.
+  const hasCallbackField = node
+    .structMember()
+    .some((structMember) =>
+      input.callbackTypes.has(orchestrator.getTypeName(structMember.type())),
+    );
+
+  // #1566: every field the init function initializes, in declaration order --
+  // callbacks and plain fields alike. Empty when no init function is emitted.
+  const fieldInits: IStructFieldInit[] = [];
 
   const lines: string[] = [];
   // Issue #296: Use named struct for forward declaration compatibility
@@ -137,7 +149,12 @@ const generateStruct: TGeneratorFn<Parser.StructDeclarationContext> = (
     // ADR-029: Check if this is a callback type field
     if (input.callbackTypes.has(typeName)) {
       const callbackInfo = input.callbackTypes.get(typeName)!;
-      callbackFields.push({ fieldName, callbackType: typeName });
+      // ADR-029 "Never Null": a callback field initializes to the function its
+      // type was defined from. #1565: for an ARRAY of a callback type this
+      // initializes element 0 only and leaves the rest null, which that
+      // guarantee forbids -- filed, not fixed here, and unreachable from the
+      // corpus today.
+      fieldInits.push({ fieldName, initializer: typeName });
 
       // Track callback field for assignment validation via effect
       effects.push({
@@ -156,6 +173,18 @@ const generateStruct: TGeneratorFn<Parser.StructDeclarationContext> = (
         ),
       );
     } else {
+      // #1566: every other field initializes to its type's zero, from the one
+      // helper every zero-initialization site in codegen already asks. A
+      // literal `0` is not an alternative -- for an enum field it is `invalid
+      // conversion from 'int'` in C++, and zero-filling leaves the field
+      // holding a value outside its own type.
+      if (hasCallbackField) {
+        fieldInits.push({
+          fieldName,
+          initializer: orchestrator.getZeroInitializer(member.type(), isArray),
+        });
+      }
+
       // Regular field handling
       lines.push(
         generateRegularField(
@@ -183,8 +212,8 @@ const generateStruct: TGeneratorFn<Parser.StructDeclarationContext> = (
   // header is told which structs got one rather than working it out again --
   // see StructInitFunction for why re-deriving it there is wrong.
   const initFunction: string[] = [];
-  if (callbackFields.length > 0) {
-    initFunction.push(StructInitFunction.definition(name, callbackFields));
+  if (hasCallbackField) {
+    initFunction.push(StructInitFunction.definition(name, fieldInits));
     effects.push({ type: "register-struct-init", structName: name });
   }
 
