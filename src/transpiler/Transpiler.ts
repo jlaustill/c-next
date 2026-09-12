@@ -1029,9 +1029,6 @@ class Transpiler {
       // still established per file -- it is `generate()`'s input, not analysis's.
       const symbolInfo = this._establishPerFileCodeGenState(file, sourcePath);
 
-      // Inject cross-file modification data for const inference
-      this._setupCrossFileModifications();
-
       // Generate code
       // Use file's sourceRelativePath (source mode) or compute from PathResolver (files mode)
       const sourceRelativePath =
@@ -2773,16 +2770,14 @@ class Transpiler {
         result.set(funcName, {
           typedefName: cbInfo.typedefName,
           returnType: cbInfo.returnType,
-          // #1164: pass the parameter through whole. Dropping isConst/isArray
-          // here is what made the header's typedef disagree with the .c's.
-          parameters: cbInfo.parameters.map((p) => ({
-            type: p.type,
-            isStruct: p.isStruct,
-            isConst: p.isConst,
-            isArray: p.isArray,
-            arrayDims: p.arrayDims,
-            name: p.name,
-          })),
+          // #1164/#1552: pass the parameter through WHOLE. This used to say so
+          // while enumerating six of the seven fields below it, and the one it
+          // left out was `isString` -- so the formatter's `string<N>` branch
+          // never fired and the header's typedef disagreed with its own
+          // prototype in a single file. Naming no fields is what makes the
+          // comment true; `IHeaderCallbackType` now names the formatter's own
+          // parameter type, so a new field cannot go missing here again.
+          parameters: cbInfo.parameters,
         });
       }
     }
@@ -2834,29 +2829,6 @@ class Transpiler {
     const declared = CNextResolver.resolve(tree, sourcePath);
 
     return declared;
-  }
-
-  /**
-   * Setup cross-file modification tracking for const inference.
-   */
-  private _setupCrossFileModifications(): void {
-    // #1511: from the artifact. These were accumulated as files were
-    // transpiled, so a file rendered early saw fewer of them than a file
-    // rendered late -- the same fact, answered differently by position.
-    const accumulatedModifications =
-      this.program?.modifiedParameters() ?? new Map();
-    const accumulatedParamLists =
-      this.program?.functionParamLists() ?? new Map();
-
-    // Issue #1171: no cppDetected gate -- C mode needs the same cross-file
-    // modification data, or a parameter forwarded only to a cross-file
-    // mutating callee wrongly receives #268 auto-const.
-    if (accumulatedModifications.size > 0) {
-      this.codeGenerator.setCrossFileModifications(
-        accumulatedModifications,
-        accumulatedParamLists,
-      );
-    }
   }
 
   /**

@@ -1173,6 +1173,76 @@ describe("CodeGenState", () => {
     });
   });
 
+  describe("isParameterModifiedAnywhere (#1552, #1529)", () => {
+    // The one modification fact behind every auto-const decision. Two callers
+    // used to answer it separately with OPPOSITE defaults on a missing entry,
+    // which is how a single fact produced a `const` the prototype lacked
+    // (#1529) and dropped one the prototype had (#1552). The polarity assertion
+    // below is the contract, not a detail.
+    const programWith = (modified: ReadonlyMap<string, ReadonlySet<string>>) =>
+      ({ modifiedParameters: () => modified }) as unknown as IProgram;
+
+    it("reads the whole-program fact when a Program is present", () => {
+      CodeGenState.program = programWith(new Map([["mutate", new Set(["s"])]]));
+      // Contradict the per-file accumulator, so a pass cannot come from it.
+      CodeGenState.modifiedParameters = new Map();
+
+      expect(CodeGenState.isParameterModifiedAnywhere("mutate", "s")).toBe(
+        true,
+      );
+
+      CodeGenState.program = null;
+    });
+
+    it("treats a function absent from the program as NOT modified", () => {
+      // The polarity that matters: an absent entry means auto-const APPLIES,
+      // matching what the prototype does. Reading it the other way is what made
+      // an included function-as-type lose its const (#1552).
+      CodeGenState.program = programWith(new Map());
+
+      expect(CodeGenState.isParameterModifiedAnywhere("record", "s")).toBe(
+        false,
+      );
+
+      CodeGenState.program = null;
+    });
+
+    it("treats a known function's unlisted parameter as NOT modified", () => {
+      CodeGenState.program = programWith(
+        new Map([["partly", new Set(["written"])]]),
+      );
+
+      expect(
+        CodeGenState.isParameterModifiedAnywhere("partly", "written"),
+      ).toBe(true);
+      expect(CodeGenState.isParameterModifiedAnywhere("partly", "read")).toBe(
+        false,
+      );
+
+      CodeGenState.program = null;
+    });
+
+    it("falls back to the per-file map when there is no Program", () => {
+      // The only callers with no Program are unit tests driving codegen
+      // directly -- `transpile()` builds one for both input kinds. This asserts
+      // the branch those callers land on rather than leaving it to be assumed.
+      CodeGenState.program = null;
+      CodeGenState.modifiedParameters = new Map([
+        ["localOnly", new Set(["target"])],
+      ]);
+
+      expect(
+        CodeGenState.isParameterModifiedAnywhere("localOnly", "target"),
+      ).toBe(true);
+      expect(
+        CodeGenState.isParameterModifiedAnywhere("localOnly", "other"),
+      ).toBe(false);
+      expect(
+        CodeGenState.isParameterModifiedAnywhere("unknownFn", "target"),
+      ).toBe(false);
+    });
+  });
+
   describe("Opaque Scope Variable Helpers (Issue #948)", () => {
     it("markOpaqueScopeVariable adds to opaqueScopeVariables", () => {
       CodeGenState.markOpaqueScopeVariable("MyScope_widget");

@@ -1584,18 +1584,6 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Issue #558: Set cross-file modification data to inject during analyzePassByValue.
-   * Called by Pipeline before generate() to share modifications from previously processed files.
-   */
-  setCrossFileModifications(
-    modifications: ReadonlyMap<string, ReadonlySet<string>>,
-    paramLists: ReadonlyMap<string, readonly string[]>,
-  ): void {
-    CodeGenState.pendingCrossFileModifications = modifications;
-    CodeGenState.pendingCrossFileParamLists = paramLists;
-  }
-
-  /**
    * Issue #558: Get the function parameter lists for cross-file propagation.
    */
   getFunctionParamLists(): ReadonlyMap<string, string[]> {
@@ -2926,7 +2914,13 @@ export default class CodeGenerator implements IOrchestrator {
         return {
           name: param.name,
           type,
-          isConst: param.isConst || (param.isAutoConst ?? false),
+          isConst: CodeGenerator.typedefParamIsConst(
+            cName,
+            param.name,
+            param.isConst,
+            isStruct,
+            isString,
+          ),
           isPointer,
           isStruct,
           isString,
@@ -2941,6 +2935,44 @@ export default class CodeGenerator implements IOrchestrator {
       }),
       typedefName: CodeGenerator.callbackTypedefName(cName),
     };
+  }
+
+  /**
+   * ADR-029: is this `_fp` typedef parameter const?
+   *
+   * THE decision for both typedef emitters -- the local one below, which reads
+   * a parse tree, and `callbackInfoFromSymbol`, which reads a resolved symbol
+   * for a function reached through an include. They already shared the
+   * parameter SHAPE via `callbackParamShape`; sharing the shape while each
+   * re-derived the const is what let them disagree with the prototype, and
+   * with each other, at the same time:
+   *
+   * - the local path asked the per-file accumulator during the declaration
+   *   walk, before any body had filled it, so a modifying body read as
+   *   unmodified and the typedef gained a `const` the prototype lacked (#1529)
+   * - the included path asked the symbol's `isAutoConst`, which only ever gets
+   *   set on the header's own copy of a parameter, so it was absent and the
+   *   typedef LOST a `const` the declaring file had emitted (#1552). Both files
+   *   then defined one typedef name incompatibly -- a hard `error: conflicting
+   *   types`, not a warning, at transpile exit 0
+   *
+   * Auto-const (#268) qualifies only what the prototype renders as a pointer,
+   * which for a typedef parameter is a struct or a string.
+   */
+  private static typedefParamIsConst(
+    funcName: string,
+    paramName: string,
+    isExplicitConst: boolean,
+    isStruct: boolean,
+    isString: boolean,
+  ): boolean {
+    if (isExplicitConst) {
+      return true;
+    }
+    if (!isStruct && !isString) {
+      return false;
+    }
+    return !CodeGenState.isParameterModifiedAnywhere(funcName, paramName);
   }
 
   /**
@@ -2983,14 +3015,17 @@ export default class CodeGenerator implements IOrchestrator {
 
         // The typedef must carry the SAME const the prototype carries, or the
         // two are incompatible pointer types and every assignment of the
-        // function to a variable of its own type warns. The prototype's const
-        // on a string or struct parameter comes from auto-const (#268), so the
-        // typedef reads that same fact rather than explicit `const` alone.
-        const isEffectivelyConst =
-          isConst ||
-          ((isString || isStruct) &&
-            CodeGenState.getUnmodifiedParameters().get(name)?.has(paramName) ===
-              true);
+        // function to a variable of its own type warns. One decision, shared
+        // with the included-function path below -- #1529 and #1552 were this
+        // expression and its twin disagreeing with the prototype in OPPOSITE
+        // directions, which is what a second derivation of one fact buys.
+        const isEffectivelyConst = CodeGenerator.typedefParamIsConst(
+          name,
+          paramName,
+          isConst,
+          isStruct,
+          isString,
+        );
 
         let arrayDims: string;
         if (dims.length > 0) {

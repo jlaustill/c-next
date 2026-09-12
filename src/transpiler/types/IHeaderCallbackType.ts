@@ -10,17 +10,23 @@
  * wider object it actually built was assigned through a `.map()` call rather
  * than as a literal at the declaration site.
  */
+import type ICallbackTypedefParameter from "./ICallbackTypedefParameter";
+
 interface IHeaderCallbackType {
   readonly typedefName: string;
   readonly returnType: string;
-  readonly parameters: ReadonlyArray<{
-    readonly type: string;
-    readonly isStruct: boolean;
-    readonly isConst?: boolean;
-    readonly isArray?: boolean;
-    readonly arrayDims?: string;
-    readonly name?: string;
-  }>;
+  /**
+   * Exactly what `CallbackTypedefFormatter` consumes, not a copy of it.
+   *
+   * The inline shape this replaced listed six of the seven fields and omitted
+   * `isString`, so a `string<N>` parameter reached the formatter with the flag
+   * undefined, fell past the branch that adds its `const`, and produced
+   * `(char*)` against a `(const char*)` prototype in the SAME file at exit 0.
+   * That is the identical defect the 2-field version caused (#1164), one field
+   * later -- which is the argument for naming the formatter's own type rather
+   * than re-listing its fields a third time.
+   */
+  readonly parameters: ReadonlyArray<ICallbackTypedefParameter>;
 }
 
 export default IHeaderCallbackType;

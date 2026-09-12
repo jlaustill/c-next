@@ -96,7 +96,9 @@
     "plugin:test": "npm --prefix prettier-plugin test",
     "test:hooks": "bash .claude/hooks/__tests__/start-issue-assign-reminder.test.sh",
     "plugin:build": "npm --prefix prettier-plugin run build",
-    "move:modules": "tsx scripts/move-modules.ts"
+    "move:modules": "tsx scripts/move-modules.ts",
+    "typedef-const:parity": "tsx scripts/typedef-const-parity.ts",
+    "typedef-const:parity:check": "tsx scripts/typedef-const-parity.ts check"
   },
   "keywords": [
     "c",

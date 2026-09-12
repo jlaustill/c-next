@@ -322,18 +322,6 @@ export default class CodeGenState {
   /** Function parameter lists for call graph analysis */
   static functionParamLists: Map<string, string[]> = new Map();
 
-  /** Issue #558: Cross-file modifications to inject */
-  static pendingCrossFileModifications: ReadonlyMap<
-    string,
-    ReadonlySet<string>
-  > | null = null;
-
-  /** Issue #558: Cross-file parameter lists to inject */
-  static pendingCrossFileParamLists: ReadonlyMap<
-    string,
-    readonly string[]
-  > | null = null;
-
   // ===========================================================================
   // OVERFLOW & DIVISION HELPERS (ADR-044, ADR-051)
   // ===========================================================================
@@ -613,7 +601,6 @@ export default class CodeGenState {
     this.modifiedParameters = new Map();
     this.functionCallGraph = new Map();
     this.functionParamLists = new Map();
-    // Note: pendingCrossFileModifications/ParamLists are set externally, not reset
 
     // Overflow & division helpers
     this.usedClampOps = new Set();
@@ -1209,6 +1196,47 @@ export default class CodeGenState {
    */
   static isParameterModified(funcName: string, paramName: string): boolean {
     return this.modifiedParameters.get(funcName)?.has(paramName) ?? false;
+  }
+
+  /**
+   * #1552/#1529: does this parameter get modified ANYWHERE in the program?
+   *
+   * The one modification fact behind every auto-const decision. `Program` owns
+   * it -- 1.4 Resolve settles it for the whole run before any file is planned,
+   * so the answer does not depend on which file is being rendered or on how
+   * far through a file the walk has reached.
+   *
+   * Both properties are load-bearing, and each one was a bug:
+   *
+   * - The per-file accumulator below is EMPTY while declarations are still
+   *   being walked, so a typedef built at that moment saw a modifying body as
+   *   unmodified and emitted `const` where the prototype emitted none (#1529).
+   * - A function reached through an include is never walked here at all, so the
+   *   fact was absent rather than false, and an included function-as-type lost
+   *   the const its declaring file computed (#1552). Two files then defined one
+   *   typedef name incompatibly, which gcc rejects outright.
+   *
+   * Polarity matches the prototype's (`?? false`): an absent entry means NOT
+   * modified, so auto-const applies. Reading the absent case the other way is
+   * what made one expression wrong in both directions at once.
+   *
+   * The per-file fallback serves unit tests that drive codegen directly, which
+   * are the only callers with no `Program`. NOT single-source transpilation:
+   * `transpile({ kind: "source" })` and `{ kind: "files" }` share one
+   * `_executePipeline`, so `Program.build` runs and this field is set for both.
+   * Naming single-source here would be the kind of claim that survives by
+   * never being checked -- a later reader would preserve the branch for a
+   * production caller that does not exist.
+   */
+  static isParameterModifiedAnywhere(
+    funcName: string,
+    paramName: string,
+  ): boolean {
+    const programWide = this.program?.modifiedParameters().get(funcName);
+    if (programWide) {
+      return programWide.has(paramName);
+    }
+    return this.isParameterModified(funcName, paramName);
   }
 
   /**
