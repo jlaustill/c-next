@@ -5,17 +5,30 @@
 
 // test-execution
 /* test-no-warnings */
-// #1553: validateNoWarnings compiled with only -I <root>/tests/include, so the
-// generated #include <lib.h> below could not be resolved and the check failed
-// with "fatal error: lib.h: No such file or directory" -- on a missing file
-// rather than on warnings. The marker was therefore unusable on any multi-file
-// fixture, and no fixture combined the two, so nothing noticed.
+// #1553: the no-warnings check answered two questions wrongly for a
+// multi-file fixture.
 //
-// This is the negative control for the fix at the integration level: it is
-// warning-free, so it must stay GREEN. Test 3 of
-// scripts/__tests__/no-warnings-include-path.test.ts covers the other
-// direction -- that a real warning is still reported, and reported AS the
-// warning rather than as a missing include.
+// 1. It compiled with only -I <root>/tests/include, so the generated
+//    #include <lib.h> below was not found and the check failed with
+//    "fatal error: lib.h: No such file or directory" -- on a missing file
+//    rather than on warnings.
+// 2. It compiled the ENTRY translation unit alone, so a warning in lib.c was
+//    invisible: that file reaches a compiler only at the execution link step,
+//    which passes neither -Wall nor -Werror.
+//
+// The angle-bracket form is what makes (1) bite. A QUOTED include resolves
+// relative to the includer's own directory and needs no -I, which is why
+// tests/bugs/issue-1171-cross-file-auto-const-c-mode has carried this marker
+// on a multi-file fixture since it landed without ever hitting this: its
+// helper sits in a subdirectory and its generated include is "lib/sensors.h".
+// So the fixture that was missing was not "multi-file" -- 15 fixtures carried
+// the marker and one of them was already multi-file -- it was this shape, the
+// marker combined with an angle-bracket sibling include.
+//
+// This fixture is warning-free, so it must stay GREEN. The other direction is
+// covered by scripts/__tests__/no-warnings-include-path.test.ts: that a real
+// warning is still reported, that it is reported AS the warning rather than as
+// a missing include, and that a helper implementation is compiled at all.
 #include <lib.h>
 
 #include <stdint.h>

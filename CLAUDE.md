@@ -616,10 +616,17 @@ foo.expected.error    # Expected error (if test-error)
   and is a claim, so give it a sentence), the fixtures that exercise it gain
   `// test-adr: NNN` or get written, `npm run coverage:matrix` regenerates with
   `coverage:matrix:check` green for the declared rows, and the mutation check names the
-  `transitive` cell it reddens. Measured 2026-09-05: five ADRs have a table (016, 044,
-  051, 057, 070) and only 016 owns any of the twelve cross-file Tier 2 facts, so most
-  cross-file work today lands on an ADR with no rows and "mutation-checked" has nothing
-  cross-file to redden until the PR adds them. #1508 §2–4 is the worked example
+  `transitive` cell it reddens. **Adoption is in progress, and which ADRs
+  have a table is deliberately not recorded here** — it is one command,
+  `grep -l MATRIX-SEVERITY docs/decisions/adr-*.md`, and what those declared cells
+  actually occupy is `docs/scope-context-matrix.md`, which is generated. A count in prose
+  is an ungated reading and rots, which this sentence demonstrated on itself: it named
+  five ADRs as of 2026-09-05 and was short by twenty-two six days later, and the
+  conclusion it drew from that count — that most cross-file work lands on an ADR with no
+  rows, so "mutation-checked" has nothing cross-file to redden — had **inverted** rather
+  than merely drifted. Ask the command, not the paragraph: if the ADR you are touching
+  declares no rows, you are the PR that adds them for the behavior you touch; if it
+  declares some, check the cells you are about to change. #1508 §2–4 is the worked example
   (ADR-010's include patterns); #1511 carries the per-PR rule for the Tier 2 moves
 - **String comparison vs indexing**: `a = b` / `a != b` on whole `string<N>` values compiles to `strcmp` (value comparison, ADR-045). Indexing a string (`s[i]`) yields a `char` and compares as a `char` — e.g. `s[0] != 'H'` generates `s[0] != 'H'`, not `strcmp`. (Verified 2026-06-26; the prior note claiming `str[0]` generates `strcmp` was stale.)
 - **Array declarations**: use prefix syntax `u32[N] arr` — C-style `u32 arr[N]` is rejected. `N` may be a literal or a `const`; the transpiler resolves consts to their value (no C VLA), so const-sized arrays are fine
@@ -651,7 +658,7 @@ foo.expected.error    # Expected error (if test-error)
   something other than the entry. CLAUDE.md's own "create `.expected.h` to prevent test framework
   cleanup" is what made them look like snapshots; the harness stopped cleaning helper files, so
   they are assertions now instead
-- **`/* test-no-warnings */`** compiles `-c -O3` (`TestUtils.validateNoWarnings`). `-Wstringop-overflow`/`-Warray-bounds` are middle-end diagnostics — under the previous `-fsyntax-only` with no `-O` they could never fire, so the marker was inert (#1143)
+- **`/* test-no-warnings */`** compiles `-c -O3` (`TestUtils.validateNoWarnings`). `-Wstringop-overflow`/`-Warray-bounds` are middle-end diagnostics — under the previous `-fsyntax-only` with no `-O` they could never fire, so the marker was inert (#1143). It compiles **every translation unit the fixture generates**, entry and helpers: until #1553 it compiled the entry alone, so a warning in a helper's implementation was invisible — that file reaches a compiler only at the execution link step, which passes neither `-Wall` nor `-Werror`. #1553 also passes the fixture's own directory on the include path, without which a generated `#include <sibling.h>` is not found and the check fails on a missing header rather than on warnings; a **quoted** include resolves relative to the includer and never needed it, which is why one multi-file fixture carried the marker for months without hitting it. **Block form only** — a `// test-no-warnings` line comment is silently not checked (#1555)
 
 ### Transpiler Entry Point
 

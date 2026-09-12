@@ -605,16 +605,43 @@ class TestUtils {
   }
 
   /**
-   * Validate that a C file compiles without any warnings
-   * Uses gcc with -Werror to treat all warnings as errors
+   * How this corpus compiles one fixture translation unit: the warnings it
+   * suppresses by convention, then where its headers live.
    *
-   * @param cFile - Path to the C file
+   * Issue #1553: this set was spelled out at four sites and two had drifted --
+   * the no-warnings compile passed only the shared corpus directory, so a
+   * generated header including a sibling as <name.h> was not found. Copying
+   * the missing flag into the fourth would have left the mechanism intact: the
+   * next flag added re-opens the same defect in whichever copy is forgotten.
+   *
+   * The suppressions travel with the include path rather than beside it,
+   * because they are the same decision -- "how does this corpus compile a
+   * fixture?" -- and splitting them would leave three copies of half of it.
+   */
+  static fixtureCompileFlags(cFile: string, rootDir: string): string[] {
+    return [
+      "-Wno-unused-variable",
+      "-Wno-main",
+      "-I",
+      join(rootDir, "tests/include"),
+      "-I",
+      dirname(cFile),
+    ];
+  }
+
+  /**
+   * Compile ONE translation unit and report any warning as a failure.
+   *
+   * @param tuFile - The .c/.cpp file to compile
    * @param rootDir - Project root directory for include paths
    */
-  static validateNoWarnings(cFile: string, rootDir: string): IValidationResult {
+  static compileTranslationUnitWithoutWarnings(
+    tuFile: string,
+    rootDir: string,
+  ): IValidationResult {
     try {
       // Auto-detect C++14 headers and use g++ when needed
-      const useCpp = TestUtils.requiresCpp14(cFile);
+      const useCpp = TestUtils.requiresCpp14(tuFile);
       const compiler = useCpp ? "g++" : "gcc";
       const stdFlag = useCpp ? "-std=c++14" : "-std=c99";
 
@@ -640,19 +667,8 @@ class TestUtils {
           "-Wall",
           "-Wextra",
           "-Werror",
-          "-Wno-unused-variable",
-          "-Wno-main",
-          "-I",
-          join(rootDir, "tests/include"),
-          // Issue #1553: the file's own directory, matching the compile+link
-          // path below. A generated header includes its siblings as <name.h>,
-          // which searches the include path and not the file's directory, so
-          // without this a multi-file fixture failed on a missing header
-          // rather than on warnings -- and /* test-no-warnings */ could not be
-          // used on one at all.
-          "-I",
-          dirname(cFile),
-          cFile,
+          ...TestUtils.fixtureCompileFlags(tuFile, rootDir),
+          tuFile,
         ],
         { encoding: "utf-8", timeout: 10000, stdio: "pipe" },
       );
@@ -668,14 +684,43 @@ class TestUtils {
       const warnings = output
         .split("\n")
         .filter((line) => line.includes("warning:") || line.includes("error:"))
-        .map((line) => line.replace(cFile + ":", ""))
+        .map((line) => line.replace(tuFile + ":", ""))
         .slice(0, 5)
         .join("\n");
       return {
         valid: false,
-        message: warnings || "Compilation produced warnings",
+        message: `${basename(tuFile)}: ${warnings || "Compilation produced warnings"}`,
       };
     }
+  }
+
+  /**
+   * Validate that a fixture's translation units compile without any warnings.
+   *
+   * Issue #1553: the entry alone is not the fixture. `-c` compiles one
+   * translation unit, so a helper's implementation reached a compiler only at
+   * the execution link step -- which passes neither -Wall nor -Werror -- and
+   * the marker reported success over files it had never compiled. That is the
+   * #1143 shape: a guard green on a check that does not run. Every unit the
+   * fixture generates is compiled here, under identical flags.
+   *
+   * @param cFile - Path to the entry C file
+   * @param rootDir - Project root directory for include paths
+   * @param helperImplFiles - Helper implementations the fixture also generates
+   */
+  static validateNoWarnings(
+    cFile: string,
+    rootDir: string,
+    helperImplFiles: string[] = [],
+  ): IValidationResult {
+    for (const translationUnit of [cFile, ...helperImplFiles]) {
+      const result = TestUtils.compileTranslationUnitWithoutWarnings(
+        translationUnit,
+        rootDir,
+      );
+      if (!result.valid) return result;
+    }
+    return { valid: true };
   }
 
   /**
@@ -756,102 +801,6 @@ class TestUtils {
     }
 
     return linkedFiles;
-  }
-
-  /**
-   * Compile and execute a C file, validating exit code
-   *
-   * @param cFile - Path to the C file
-   * @param rootDir - Project root directory for include paths
-   * @param expectedExitCode - Expected exit code (default: 0)
-   * @param additionalCFiles - Additional C files to compile and link (for cross-file tests)
-   */
-  static executeTest(
-    cFile: string,
-    rootDir: string,
-    expectedExitCode: number = 0,
-    additionalCFiles: string[] = [],
-  ): IValidationResult & { stdout?: string } {
-    const execPath = TestUtils.getExecutablePath(cFile);
-
-    // Auto-detect C++14 headers and use g++ when needed
-    const useCpp = TestUtils.requiresCpp14(cFile);
-    const compiler = useCpp ? "g++" : "gcc";
-    const stdFlag = useCpp ? "-std=c++14" : "-std=c99";
-
-    // Issue #315: Include the C file's directory for local headers
-    const cFileDir = dirname(cFile);
-
-    // All source files to compile (main + helpers)
-    const sourceFiles = [cFile, ...additionalCFiles];
-
-    try {
-      // Compile to executable
-      execFileSync(
-        compiler,
-        [
-          stdFlag,
-          "-Wno-unused-variable",
-          "-Wno-main",
-          "-I",
-          join(rootDir, "tests/include"),
-          "-I",
-          cFileDir,
-          "-o",
-          execPath,
-          ...sourceFiles,
-        ],
-        { encoding: "utf-8", timeout: 30000, stdio: "pipe" },
-      );
-
-      // Execute the compiled program
-      try {
-        const stdout = execFileSync(execPath, [], {
-          encoding: "utf-8",
-          timeout: 5000,
-          stdio: "pipe",
-        });
-
-        // Program exited with 0
-        if (expectedExitCode !== 0) {
-          return {
-            valid: false,
-            message: `Expected exit ${expectedExitCode}, got 0`,
-            stdout,
-          };
-        }
-        return { valid: true, stdout };
-      } catch (execError: unknown) {
-        const err = execError as { status?: number; stdout?: string };
-        const actualCode = err.status || 1;
-
-        if (actualCode === expectedExitCode) {
-          return { valid: true, stdout: err.stdout };
-        }
-
-        return {
-          valid: false,
-          message: `Expected exit 0, got ${actualCode}`,
-          stdout: err.stdout,
-        };
-      }
-    } catch (compileError: unknown) {
-      const err = compileError as { stderr?: string; message: string };
-      const output = err.stderr || err.message;
-      return {
-        valid: false,
-        message: `Compile failed: ${output.split("\n")[0]}`,
-      };
-    } finally {
-      // Clean up executable
-      try {
-        if (existsSync(execPath)) {
-          unlinkSync(execPath);
-        }
-      } catch {
-        // Ignore cleanup errors
-      }
-    }
   }
 
   /**
@@ -1333,18 +1282,12 @@ class TestUtils {
 
     if (tools.gcc) {
       try {
-        const cFileDir = dirname(expectedImplPath);
         execFileSync(
           actualCompiler,
           [
             "-fsyntax-only",
             actualStdFlag,
-            "-Wno-unused-variable",
-            "-Wno-main",
-            "-I",
-            join(rootDir, "tests/include"),
-            "-I",
-            cFileDir,
+            ...TestUtils.fixtureCompileFlags(expectedImplPath, rootDir),
             expectedImplPath,
           ],
           { encoding: "utf-8", timeout: 10000, stdio: "pipe" },
@@ -1376,11 +1319,14 @@ class TestUtils {
     // and ensures local + CI behavior are identical.
 
     // No-warnings check runs inline since it uses the same gcc compiler
-    // already available and is fast (syntax-only check)
+    // already available and is fast (syntax-only check).
+    // Issue #1553: the helpers are passed too -- the entry alone is not the
+    // fixture, and a warning in a helper's implementation was invisible.
     if (mode === "c" && TestUtils.hasNoWarningsMarker(source)) {
       const noWarningsResult = TestUtils.validateNoWarnings(
         expectedImplPath,
         rootDir,
+        helperImplFiles,
       );
       if (!noWarningsResult.valid) {
         result.error = `No-warnings check failed: ${noWarningsResult.message}`;
@@ -1410,17 +1356,11 @@ class TestUtils {
 
       try {
         // Compile to executable (reuse auto-detected compiler from above)
-        const cFileDir = dirname(expectedImplPath);
         execFileSync(
           actualCompiler,
           [
             actualStdFlag,
-            "-Wno-unused-variable",
-            "-Wno-main",
-            "-I",
-            join(rootDir, "tests/include"),
-            "-I",
-            cFileDir,
+            ...TestUtils.fixtureCompileFlags(expectedImplPath, rootDir),
             "-o",
             execPath,
             ...sourceFiles,
