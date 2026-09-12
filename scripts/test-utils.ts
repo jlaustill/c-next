@@ -1442,13 +1442,13 @@ class TestUtils {
     // harness does not read. #322 guarded exactly one marker in exactly one
     // wrong spelling; the vocabulary knows every marker, so the check is now
     // "is this line trying to be a marker, and is it spelled like one".
-    const misspelled = TestMarkers.findUnrecognisedSpellings(source);
+    const misspelled = TestMarkers.findUnrecognizedSpellings(source);
     if (misspelled.length > 0) {
       const first = misspelled[0];
       return {
         passed: false,
         message:
-          `Unrecognised spelling of "${first.marker}" at line ${first.line}: ` +
+          `Unrecognized spelling of "${first.marker}" at line ${first.line}: ` +
           `${first.text} -- markers are line comments, e.g. "// ${first.marker}"`,
       };
     }

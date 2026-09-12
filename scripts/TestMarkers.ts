@@ -7,7 +7,7 @@
  * written in a form no site read and nothing said anything.
  *
  * That silence is the shape behind five separate issues -- #1143 (the marker
- * compiled with no optimiser, so it could not emit the diagnostic it guarded),
+ * compiled with no optimizer, so it could not emit the diagnostic it guarded),
  * #1379 (`test-error` is read in no spelling at all), #1553 (wrong include
  * path, then entry-only), #1555 (block form only), #1557 (C mode only). Each
  * was fixed where it was found; each site kept its own copy of the question.
@@ -106,8 +106,8 @@ class TestMarkers {
    * one line and incorrectly on another must not have the good line mask the
    * bad one.
    */
-  static findUnrecognisedSpellings(source: string): IMarkerSpelling[] {
-    const offences: IMarkerSpelling[] = [];
+  static findUnrecognizedSpellings(source: string): IMarkerSpelling[] {
+    const offenses: IMarkerSpelling[] = [];
 
     source.split("\n").forEach((line, index) => {
       const shaped = MARKER_SHAPED.exec(line);
@@ -117,10 +117,10 @@ class TestMarkers {
       if (!TestMarkers.SPELLINGS.has(marker)) return; // not a marker we know
       if (TestMarkers.spellingOf(marker).test(line)) return;
 
-      offences.push({ marker, line: index + 1, text: line.trim() });
+      offenses.push({ marker, line: index + 1, text: line.trim() });
     });
 
-    return offences;
+    return offenses;
   }
 }
 

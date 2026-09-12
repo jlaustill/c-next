@@ -1,12 +1,12 @@
 /**
  * #1555: no fixture writes a marker in a spelling the harness does not read.
  *
- * The no-warnings marker was recognised in block form only, so a fixture
+ * The no-warnings marker was recognized in block form only, so a fixture
  * spelling it as a line comment -- the way every other marker is written --
  * asked for the warning check and silently did not get one.
  *
  * This is the fifth route to one class: #1143 (the marker compiled with no
- * optimiser, so it could not emit the diagnostic it guarded), #1379
+ * optimizer, so it could not emit the diagnostic it guarded), #1379
  * (`test-error` is read in no spelling at all), #1553 (wrong include path,
  * then entry-only), #1557 (C mode only). Markers reporting success on a check
  * that never ran.
@@ -49,17 +49,17 @@ describe("fixture markers are written in a spelling the harness reads (#1555)", 
     ]);
   });
 
-  it("has no marker line in an unrecognised spelling", () => {
-    const offences: string[] = [];
+  it("has no marker line in an unrecognized spelling", () => {
+    const offenses: string[] = [];
 
     for (const file of found) {
-      for (const bad of TestMarkers.findUnrecognisedSpellings(
+      for (const bad of TestMarkers.findUnrecognizedSpellings(
         readFileSync(file, "utf-8"),
       )) {
-        offences.push(`${relative(rootDir, file)}:${bad.line}: ${bad.text}`);
+        offenses.push(`${relative(rootDir, file)}:${bad.line}: ${bad.text}`);
       }
     }
 
-    expect(offences).toEqual([]);
+    expect(offenses).toEqual([]);
   });
 });
