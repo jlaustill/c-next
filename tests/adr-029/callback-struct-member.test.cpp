@@ -23,10 +23,9 @@ uint32_t tripleValue(uint32_t input) {
 
 // Struct with callback member
 Processor Processor_init(void) {
-    return (Processor){
-        .handler = computeValue,
-        .baseValue = 0
-    };
+    Processor value = {};
+    value.handler = computeValue;
+    return value;
 }
 
 int main(void) {

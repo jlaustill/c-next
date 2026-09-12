@@ -1229,7 +1229,7 @@ export default class CodeGenerator implements IOrchestrator {
     // Issue #379 / #1004: arrays zero-init with the aggregate brace ({} in
     // C++, {0} in C) regardless of element type.
     if (isArray) {
-      return this._getAggregateZeroInitBrace();
+      return this.getAggregateZeroInitBrace();
     }
 
     // Handle named types (scoped, global, qualified, user)
@@ -1242,7 +1242,7 @@ export default class CodeGenerator implements IOrchestrator {
       // Issue #1004: struct/class zero-init. C++ value-initialization ({})
       // works for every aggregate (including ones whose first field is an
       // enum, where {0} is an invalid int->enum narrowing); C uses {0}.
-      return this._getAggregateZeroInitBrace();
+      return this.getAggregateZeroInitBrace();
     }
 
     // Issue #295: C++ template types use value initialization {}
@@ -4135,7 +4135,7 @@ export default class CodeGenerator implements IOrchestrator {
    * any aggregate element type (POD, struct, class) including enum-first
    * structs where {0} is an invalid int->enum narrowing; C uses {0}.
    */
-  private _getAggregateZeroInitBrace(): string {
+  getAggregateZeroInitBrace(): string {
     return CodeGenState.cppMode ? "{}" : "{0}";
   }
 

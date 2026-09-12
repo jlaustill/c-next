@@ -95,6 +95,13 @@ interface IOrchestrator {
   /** Get zero initializer for a type (e.g., "0", "{0}", "false") */
   getZeroInitializer(typeCtx: Parser.TypeContext, isArray: boolean): string;
 
+  /**
+   * Brace that zero-initializes a whole aggregate -- `{}` in C++, `{0}` in C.
+   * #1568: the ADR-029 init function needs it for the struct as a whole, and
+   * this is the one place that decision is made.
+   */
+  getAggregateZeroInitBrace(): string;
+
   // === Expression Analysis ===
 
   /** Get the enum type of an expression, if any */

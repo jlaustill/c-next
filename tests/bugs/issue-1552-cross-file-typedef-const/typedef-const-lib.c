@@ -45,12 +45,11 @@ void describeLocal(const char* label) {
 }
 
 LocalHandlers LocalHandlers_init(void) {
-    return (LocalHandlers){
-        .onRecord = record,
-        .onMutate = mutate,
-        .onDescribeLocal = describeLocal,
-        .tag = 0
-    };
+    LocalHandlers value = {0};
+    value.onRecord = record;
+    value.onMutate = mutate;
+    value.onDescribeLocal = describeLocal;
+    return value;
 }
 
 uint8_t localTag(const LocalHandlers* handlers) {

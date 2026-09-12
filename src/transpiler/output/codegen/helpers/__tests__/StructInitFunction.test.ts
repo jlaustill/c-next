@@ -30,26 +30,57 @@ describe("StructInitFunction", () => {
 
   describe("definition", () => {
     it("assigns each callback field its default function", () => {
-      const code = StructInitFunction.definition("Controller", [
+      const code = StructInitFunction.definition("Controller", "{0}", [
         { fieldName: "_handler", initializer: "onReceive" },
       ]);
 
       expect(code).toContain("Controller Controller_init(void) {");
-      expect(code).toContain("return (Controller){");
-      expect(code).toContain("._handler = onReceive");
+      expect(code).toContain("Controller value = {0};");
+      expect(code).toContain("value._handler = onReceive;");
+      expect(code).toContain("return value;");
     });
 
-    it("separates fields with commas and omits the trailing one", () => {
-      const code = StructInitFunction.definition("Multi", [
+    it("takes the aggregate zero from its caller, so C and C++ differ", () => {
+      // #1568: `{0}` is the C spelling and `{}` the C++ one -- a struct whose
+      // first member is an enum rejects `{0}` as an int->enum narrowing in C++.
+      // The decision lives in one place and arrives here as a parameter.
+      const cpp = StructInitFunction.definition("Controller", "{}", [
+        { fieldName: "_handler", initializer: "onReceive" },
+      ]);
+
+      expect(cpp).toContain("Controller value = {};");
+      expect(cpp).not.toContain("{0}");
+    });
+
+    it("assigns every field it is given, in the order given", () => {
+      const code = StructInitFunction.definition("Multi", "{0}", [
         { fieldName: "a", initializer: "onA" },
         { fieldName: "b", initializer: "onB" },
         { fieldName: "c", initializer: "onC" },
       ]);
 
-      expect(code).toContain(".a = onA,");
-      expect(code).toContain(".b = onB,");
-      expect(code).toContain(".c = onC\n");
-      expect(code).not.toContain(".c = onC,");
+      expect(code).toContain("value.a = onA;");
+      expect(code).toContain("value.b = onB;");
+      expect(code).toContain("value.c = onC;");
+      expect(code.indexOf("value.a")).toBeLessThan(code.indexOf("value.b"));
+      expect(code.indexOf("value.b")).toBeLessThan(code.indexOf("value.c"));
+    });
+
+    it("names no field it was not given, so zeroing covers the rest", () => {
+      // #1568: the regression this replaces named EVERY field with a per-type
+      // zero, which is wrong in a designated-initializer position -- an array
+      // field got `.data = 0` (-Wmissing-braces) and a scalar typedef from a C
+      // header got `.ticks = {0}` (braces around scalar initializer). Fields
+      // whose value is zero must not appear at all.
+      const code = StructInitFunction.definition("Device", "{0}", [
+        { fieldName: "handler", initializer: "onSample" },
+      ]);
+
+      expect(code).toContain("value.handler = onSample;");
+      expect(code).not.toContain("value.data");
+      expect(code).not.toContain("value.ticks");
+      // and never the compound-literal form that caused it
+      expect(code).not.toContain("return (Device){");
     });
   });
 
@@ -91,7 +122,7 @@ describe("StructInitFunction", () => {
     // construction, which is what MISRA C:2012 Rule 8.4 asks for.
     it("declares exactly what the definition defines", () => {
       const signature = StructInitFunction.signature("Sampler");
-      const definition = StructInitFunction.definition("Sampler", [
+      const definition = StructInitFunction.definition("Sampler", "{0}", [
         { fieldName: "handler", initializer: "onSample" },
       ]);
       const [, prototype] = StructInitFunction.prototypeLines(["Sampler"]);

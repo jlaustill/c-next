@@ -30,11 +30,10 @@ uint32_t onSample(uint32_t input) {
 }
 
 Device Device_init(void) {
-    return (Device){
-        .handler = onSample,
-        .mode = Mode__IDLE,
-        .tag = 0
-    };
+    Device value = {};
+    value.handler = onSample;
+    value.mode = Mode__IDLE;
+    return value;
 }
 
 int main(void) {

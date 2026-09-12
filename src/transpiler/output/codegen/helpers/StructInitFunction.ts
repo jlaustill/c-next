@@ -45,31 +45,43 @@ class StructInitFunction {
   }
 
   /**
-   * The `.c` definition: returns a compound literal naming EVERY field --
-   * each callback set to the function its type was defined from, each other
-   * field set to its type's zero value.
+   * The `.c` definition: zero the whole struct, then assign only the fields
+   * whose correct value is not zero.
    *
-   * #1557: this named the callback fields alone. C zero-fills the omitted ones
-   * and warns about nothing, so the partial literal was invisible until the
-   * no-warnings check started running in C++ mode, where the same construct is
-   * `-Wmissing-field-initializers`.
+   * #1568: this was a compound literal naming each field with that type's zero
+   * initializer, and the zero came from the helper that answers for a
+   * *declaration* position. A designated initializer is a stricter position in
+   * both directions -- `.data = 0` for an array is
+   * `-Wmissing-braces`, and `.ticks = {0}` for a scalar typedef from a C header
+   * is `braces around scalar initializer`. Neither shape exists in the corpus,
+   * so both compiled green.
+   *
+   * Zeroing the aggregate once removes the question instead of answering it per
+   * field: arrays, foreign typedefs and nested structs are all covered by the
+   * one brace, and no array-ness has to be re-derived here. That matters beyond
+   * the bug -- the field declaration reads array-ness from three sources, so a
+   * per-field initializer would have had to re-derive all three and drift from
+   * them.
+   *
+   * @param structName - The struct being initialized
+   * @param zeroBrace - Aggregate zero for the current mode, from the orchestrator
+   * @param assignments - Fields whose value is not zero, in declaration order
    */
   static definition(
     structName: string,
-    fields: readonly IStructFieldInit[],
+    zeroBrace: string,
+    assignments: readonly IStructFieldInit[],
   ): string {
     const lines: string[] = [
       `${StructInitFunction.signature(structName)} {`,
-      `    return (${structName}){`,
+      `    ${structName} value = ${zeroBrace};`,
     ];
 
-    for (let i = 0; i < fields.length; i++) {
-      const field = fields[i];
-      const comma = i < fields.length - 1 ? "," : "";
-      lines.push(`        .${field.fieldName} = ${field.initializer}${comma}`);
+    for (const field of assignments) {
+      lines.push(`    value.${field.fieldName} = ${field.initializer};`);
     }
 
-    lines.push(`    };`, `}`, "");
+    lines.push(`    return value;`, `}`, "");
 
     return lines.join("\n");
   }

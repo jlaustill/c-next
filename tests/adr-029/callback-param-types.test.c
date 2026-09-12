@@ -46,27 +46,27 @@ uint32_t processPoint(const CallbackParamType__Point* p) {
 
 // Structs to hold callbacks
 U8Handler U8Handler_init(void) {
-    return (U8Handler){
-        .handler = processU8
-    };
+    U8Handler value = {0};
+    value.handler = processU8;
+    return value;
 }
 
 U32Handler U32Handler_init(void) {
-    return (U32Handler){
-        .handler = processU32
-    };
+    U32Handler value = {0};
+    value.handler = processU32;
+    return value;
 }
 
 BoolHandler BoolHandler_init(void) {
-    return (BoolHandler){
-        .handler = processBool
-    };
+    BoolHandler value = {0};
+    value.handler = processBool;
+    return value;
 }
 
 PointHandler PointHandler_init(void) {
-    return (PointHandler){
-        .handler = processPoint
-    };
+    PointHandler value = {0};
+    value.handler = processPoint;
+    return value;
 }
 
 int main(void) {

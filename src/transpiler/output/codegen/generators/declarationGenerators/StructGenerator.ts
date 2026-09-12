@@ -121,19 +121,17 @@ const generateStruct: TGeneratorFn<Parser.StructDeclarationContext> = (
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
   const name = node.IDENTIFIER().getText();
-  // ADR-029 gives a struct an init function only if it has a callback field.
-  // Asked up front because it decides whether the OTHER fields need an
-  // initializer resolved at all -- most structs have no callback, generate no
-  // init function, and must not pay for one.
-  const hasCallbackField = node
-    .structMember()
-    .some((structMember) =>
-      input.callbackTypes.has(orchestrator.getTypeName(structMember.type())),
-    );
-
-  // #1566: every field the init function initializes, in declaration order --
-  // callbacks and plain fields alike. Empty when no init function is emitted.
-  const fieldInits: IStructFieldInit[] = [];
+  // #1566: the fields the ADR-029 init function assigns, in declaration order.
+  // Only the ones whose correct value is NOT zero -- everything else is covered
+  // by zeroing the aggregate once, so no array-ness is re-derived here.
+  //
+  // #1568: `hasCallbackField` is set in the loop below rather than by a second
+  // pass applying the same predicate. Two copies agree only while their text is
+  // identical: if callback detection gained a case and one copy learned it, the
+  // loop would collect fields while the flag reported no init function, and the
+  // header would declare nothing for a struct whose fields were still assigned.
+  const assignments: IStructFieldInit[] = [];
+  let hasCallbackField = false;
 
   const lines: string[] = [];
   // Issue #296: Use named struct for forward declaration compatibility
@@ -149,12 +147,12 @@ const generateStruct: TGeneratorFn<Parser.StructDeclarationContext> = (
     // ADR-029: Check if this is a callback type field
     if (input.callbackTypes.has(typeName)) {
       const callbackInfo = input.callbackTypes.get(typeName)!;
+      hasCallbackField = true;
       // ADR-029 "Never Null": a callback field initializes to the function its
       // type was defined from. #1565: for an ARRAY of a callback type this
-      // initializes element 0 only and leaves the rest null, which that
-      // guarantee forbids -- filed, not fixed here, and unreachable from the
-      // corpus today.
-      fieldInits.push({ fieldName, initializer: typeName });
+      // assigns element 0 only and leaves the rest null, which that guarantee
+      // forbids -- filed, not fixed here, and unreachable from the corpus.
+      assignments.push({ fieldName, initializer: typeName });
 
       // Track callback field for assignment validation via effect
       effects.push({
@@ -173,15 +171,17 @@ const generateStruct: TGeneratorFn<Parser.StructDeclarationContext> = (
         ),
       );
     } else {
-      // #1566: every other field initializes to its type's zero, from the one
-      // helper every zero-initialization site in codegen already asks. A
-      // literal `0` is not an alternative -- for an enum field it is `invalid
-      // conversion from 'int'` in C++, and zero-filling leaves the field
-      // holding a value outside its own type.
-      if (hasCallbackField) {
-        fieldInits.push({
+      // An enum is the one non-callback field whose zero is not the aggregate's
+      // zero: `enum Mode { IDLE <- 5, RUNNING }` has no enumerator 0, so zeroing
+      // leaves the field holding a value outside its own type. Assigning a
+      // literal 0 is not the alternative -- that is `invalid conversion from
+      // 'int' to 'Mode'` in C++ -- so the value comes from the per-type zero,
+      // which resolves an enum to a real enumerator. Every other field is
+      // correctly covered by the aggregate zero and gets no assignment.
+      if (input.symbols?.knownEnums.has(typeName) === true) {
+        assignments.push({
           fieldName,
-          initializer: orchestrator.getZeroInitializer(member.type(), isArray),
+          initializer: orchestrator.getZeroInitializer(member.type(), false),
         });
       }
 
@@ -213,7 +213,13 @@ const generateStruct: TGeneratorFn<Parser.StructDeclarationContext> = (
   // see StructInitFunction for why re-deriving it there is wrong.
   const initFunction: string[] = [];
   if (hasCallbackField) {
-    initFunction.push(StructInitFunction.definition(name, fieldInits));
+    initFunction.push(
+      StructInitFunction.definition(
+        name,
+        orchestrator.getAggregateZeroInitBrace(),
+        assignments,
+      ),
+    );
     effects.push({ type: "register-struct-init", structName: name });
   }
 

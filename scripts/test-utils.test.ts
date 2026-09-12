@@ -860,8 +860,20 @@ describe("getCompilerConfig is the one language decision (#1557)", () => {
     rmSync(tempDir, { recursive: true, force: true });
   });
 
-  it("is the single decision both compile sites ask", () => {
-    expect(typeof TestUtils.getCompilerConfig).toBe("function");
+  it("is what the no-warnings compile asks, rather than sniffing itself", () => {
+    // This used to assert only that the function EXISTS, which passes unchanged
+    // if both compile sites revert to their own inline
+    // `mode === "cpp" || requiresCpp14(...)` -- the state this fix exists to
+    // end. A guard that cannot fail on the property its name claims is
+    // decoration; assert the call instead.
+    const spy = vi.spyOn(TestUtils, "getCompilerConfig");
+    const tuFile = join(tempDir, "plain.test.c");
+    writeFileSync(tuFile, "int main(void) { return 0; }\n");
+
+    TestUtils.compileTranslationUnitWithoutWarnings(tuFile, tempDir, "c");
+
+    expect(spy).toHaveBeenCalledWith("c", tuFile);
+    spy.mockRestore();
   });
 
   it("treats cpp mode as authoritative when the file sniffs as C", () => {
