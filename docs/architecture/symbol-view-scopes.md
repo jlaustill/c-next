@@ -262,7 +262,7 @@ noted in the table; the rows otherwise stand as they were measured.
 | [#1435](https://github.com/jlaustill/c-next/issues/1435) | three derivations answer "what can this file see?", with different search paths and opposite cycle rules                            |
 | [#1436](https://github.com/jlaustill/c-next/issues/1436) | cross-file struct fields never reach `structFields`; E0805/E0806/E0850 go silent                                                    |
 | [#1437](https://github.com/jlaustill/c-next/issues/1437) | init-completeness is off for every qualified type form and every cross-file struct                                                  |
-| [#1438](https://github.com/jlaustill/c-next/issues/1438) | `scopeVariableUsage` never written — leftover scaffolding, not a missing optimisation; deleted in #1394                             |
+| [#1438](https://github.com/jlaustill/c-next/issues/1438) | `scopeVariableUsage` never written — leftover scaffolding, not a missing optimization; deleted in #1394                             |
 | [#1439](https://github.com/jlaustill/c-next/issues/1439) | `collectGrammarCoverage` stored and never read                                                                                      |
 | [#1440](https://github.com/jlaustill/c-next/issues/1440) | dead accessors `knip` cannot see; two stale ignore globs                                                                            |
 
