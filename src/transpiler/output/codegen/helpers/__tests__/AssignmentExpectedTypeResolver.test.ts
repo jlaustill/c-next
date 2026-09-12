@@ -60,10 +60,8 @@ function setupStructFields(
       registerBaseAddresses: new Map(),
       registerMemberOffsets: new Map(),
       registerMemberCTypes: new Map(),
-      scopeVariableUsage: new Map(),
       scopePrivateConstValues: new Map(),
       functionReturnTypes: new Map(),
-      getSingleFunctionForVariable: () => null,
     };
   }
   (CodeGenState.symbols.knownStructs as Set<string>).add(structName);

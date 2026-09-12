@@ -58,14 +58,10 @@ function createMockSymbols(
     registerMemberCTypes: new Map(),
 
     // Scope variable analysis
-    scopeVariableUsage: new Map(),
     scopePrivateConstValues: new Map(),
 
     // Function return types
     functionReturnTypes: new Map(),
-
-    // Methods and flags
-    getSingleFunctionForVariable: () => null,
 
     ...overrides,
   };

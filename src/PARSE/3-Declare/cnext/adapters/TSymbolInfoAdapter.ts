@@ -65,7 +65,6 @@ class TSymbolInfoAdapter {
       string,
       Map<string, "public" | "private">
     >();
-    const scopeVariableUsage = new Map<string, Set<string>>();
 
     // === Struct Information ===
     const structFields = new Map<string, Map<string, string>>();
@@ -187,7 +186,6 @@ class TSymbolInfoAdapter {
       // Scope info
       scopeMembers,
       scopeMemberVisibility,
-      scopeVariableUsage,
 
       // Struct info
       structFields,
@@ -217,14 +215,6 @@ class TSymbolInfoAdapter {
       functionReturnTypes,
 
       // Issue #948: Opaque types
-
-      // Methods
-      getSingleFunctionForVariable: (scopeName: string, varName: string) =>
-        TSymbolInfoAdapter.getSingleFunctionForVariable(
-          scopeVariableUsage,
-          scopeName,
-          varName,
-        ),
     };
 
     return result;
@@ -465,24 +455,6 @@ class TSymbolInfoAdapter {
 
   private static cnextTypeToCType(typeName: string): string {
     return CNEXT_TO_C_TYPE_MAP[typeName] || typeName;
-  }
-
-  private static getSingleFunctionForVariable(
-    scopeVariableUsage: Map<string, Set<string>>,
-    scopeName: string,
-    varName: string,
-  ): string | null {
-    // #1295: scopeVariableUsage is populated with leaf-built keys, so this
-    // lookup matches it. Both move together or neither does.
-    const fullVarName = QualifiedCName.fromParts([scopeName, varName]);
-    const usedIn = scopeVariableUsage.get(fullVarName);
-
-    if (usedIn?.size !== 1) {
-      return null;
-    }
-
-    // Extract the single element from the Set (we know it exists since size === 1)
-    return [...usedIn][0];
   }
 
   /**
