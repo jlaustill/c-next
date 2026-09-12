@@ -5,7 +5,7 @@
 
 #include "cross-file-typedef-const.test.h"
 
-/* test-no-warnings */
+// test-no-warnings
 // test-adr: 029
 // #1552: an ADR-029 `_fp` typedef emitted by a file that USES a
 // function-as-type lost the const the DECLARING file computed, so one

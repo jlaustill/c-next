@@ -75,18 +75,23 @@ describe("normalize", () => {
 });
 
 describe("hasNoWarningsMarker", () => {
-  it("should return true for source with /* test-no-warnings */ marker", () => {
-    const source = "/* test-no-warnings */\nvoid main() {}";
+  it("should return true for source with // test-no-warnings marker", () => {
+    const source = "// test-no-warnings\nvoid main() {}";
     expect(TestUtils.hasNoWarningsMarker(source)).toBe(true);
   });
 
   it("should return true with extra whitespace in marker", () => {
-    const source = "/*   test-no-warnings   */\nvoid main() {}";
+    const source = "//   test-no-warnings   \nvoid main() {}";
+    expect(TestUtils.hasNoWarningsMarker(source)).toBe(true);
+  });
+
+  it("should return true when the marker is indented", () => {
+    const source = "code();\n    // test-no-warnings\nvoid main() {}";
     expect(TestUtils.hasNoWarningsMarker(source)).toBe(true);
   });
 
   it("should be case insensitive", () => {
-    const source = "/* TEST-NO-WARNINGS */\nvoid main() {}";
+    const source = "// TEST-NO-WARNINGS\nvoid main() {}";
     expect(TestUtils.hasNoWarningsMarker(source)).toBe(true);
   });
 
@@ -95,9 +100,24 @@ describe("hasNoWarningsMarker", () => {
     expect(TestUtils.hasNoWarningsMarker(source)).toBe(false);
   });
 
-  it("should return false for line comment marker", () => {
-    // Only block comments should count
-    const source = "// test-no-warnings\nvoid main() {}";
+  it("should return false for the block form (#1555)", () => {
+    // Reversed deliberately. The block form was the ONLY spelling read, which
+    // predates #239's extraction and was pinned afterwards by a
+    // characterization test of what that extraction found -- never a decision.
+    // Every other marker is a line comment, and the corpus had settled it 954
+    // to 17, so the line form is canonical and this spelling is now rejected.
+    // A fixture still carrying it is caught by marker-spellings.test.ts, not
+    // ignored.
+    const source = "/* test-no-warnings */\nvoid main() {}";
+    expect(TestUtils.hasNoWarningsMarker(source)).toBe(false);
+  });
+
+  it("should return false for prose that merely mentions the marker", () => {
+    // Negative control. The check above catches under-recognition; this one
+    // catches over-recognition, which a looser regex would have introduced --
+    // three of the guard's first six hits were prose exactly like this.
+    const source =
+      "// This fixture is test-no-warnings rather than test-execution\nvoid main() {}";
     expect(TestUtils.hasNoWarningsMarker(source)).toBe(false);
   });
 });

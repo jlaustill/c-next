@@ -40,7 +40,7 @@ static inline uint32_t cnx_clamp_sub_u32(uint32_t a, uint64_t b) {
     return (uint32_t)(a - (uint32_t)b);
 }
 
-/* test-no-warnings */
+// test-no-warnings
 // test-execution
 // Tests: GCC -Wstringop-overflow false positive with clamp helpers (Issue #231)
 // Validates: a clamp-derived offset used to index a buffer must not trigger

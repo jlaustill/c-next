@@ -28,7 +28,7 @@ static inline uint8_t cnx_clamp_mul_u8(uint8_t a, uint32_t b) {
     return (uint8_t)(a * (uint8_t)b);
 }
 
-/* test-no-warnings */
+// test-no-warnings
 // test-execution
 // Tests: Integer promotion in expressions should not trigger warnings
 // Validates: Arithmetic on smaller types promotes correctly without warnings

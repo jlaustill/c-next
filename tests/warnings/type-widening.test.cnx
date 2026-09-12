@@ -1,4 +1,4 @@
-/* test-no-warnings */
+// test-no-warnings
 // test-execution
 // Tests: Type widening conversions should not trigger -Wconversion warnings
 // Validates: Implicit widening from smaller to larger unsigned types is safe

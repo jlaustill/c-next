@@ -1,4 +1,4 @@
-/* test-no-warnings */
+// test-no-warnings
 // test-execution
 // Tests: GCC -Wstringop-overflow false positive with clamp helpers (Issue #231)
 // Validates: a clamp-derived offset used to index a buffer must not trigger

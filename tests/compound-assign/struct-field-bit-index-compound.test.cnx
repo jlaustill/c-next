@@ -1,4 +1,4 @@
-/* test-error */
+// test-error
 // E0857 on a bit index into a SCALAR struct field.
 //
 // #1322 found this unguarded. The analyzer distinguishes three states after a

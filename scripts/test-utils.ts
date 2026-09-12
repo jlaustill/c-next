@@ -28,6 +28,7 @@ import ITestResult from "./types/ITestResult";
 import type TTestMode from "./types/TTestMode";
 import type IModeResult from "./types/ITestMode";
 import detectCppSyntax from "../src/transpiler/logic/detectCppSyntax";
+import TestMarkers from "./TestMarkers";
 
 // Project root for CLI invocation (this file is in /workspace/scripts/)
 const PROJECT_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -401,10 +402,14 @@ class TestUtils {
   }
 
   /**
-   * Check if source has test-no-warnings marker in block comment
+   * Check if source has the test-no-warnings marker
+   *
+   * Issue #1555: read in BLOCK form only until this fixed it, so a fixture
+   * spelling it as a line comment -- the way every other marker is written --
+   * asked for the warning check and silently did not get one.
    */
   static hasNoWarningsMarker(source: string): boolean {
-    return /\/\*\s*test-no-warnings\s*\*\//i.test(source);
+    return TestMarkers.has("test-no-warnings", source);
   }
 
   /**
@@ -412,7 +417,7 @@ class TestUtils {
    * Tests with this marker skip GCC compilation (e.g., C++ interop tests)
    */
   static hasTranspileOnlyMarker(source: string): boolean {
-    return /\/\/\s*test-transpile-only/i.test(source);
+    return TestMarkers.has("test-transpile-only", source);
   }
 
   /**
@@ -420,7 +425,7 @@ class TestUtils {
    * Tests with this marker run ONLY in C mode (e.g., MISRA-specific tests)
    */
   static hasCOnlyMarker(source: string): boolean {
-    return /\/\/\s*test-c-only/i.test(source);
+    return TestMarkers.has("test-c-only", source);
   }
 
   /**
@@ -428,7 +433,7 @@ class TestUtils {
    * Tests with this marker run ONLY in C++ mode (e.g., C++ template interop tests)
    */
   static hasCppOnlyMarker(source: string): boolean {
-    return /\/\/\s*test-cpp-only/i.test(source);
+    return TestMarkers.has("test-cpp-only", source);
   }
 
   /**
@@ -767,7 +772,10 @@ class TestUtils {
    * @returns zero-padded three-digit ADR numbers, deduplicated, in source order
    */
   static findAdrReferences(source: string): string[] {
-    const adrRegex: RegExp = /^\s*\/\/\s*test-adr:\s*(.+)$/gim;
+    // The spelling is the vocabulary's; only the argument parsing is this
+    // function's. A global copy is built here because a shared /g regex
+    // carries lastIndex between calls (#1555).
+    const adrRegex: RegExp = TestMarkers.globalSpellingOf("test-adr");
     const found: string[] = [];
     let match: RegExpExecArray | null;
 
@@ -790,7 +798,7 @@ class TestUtils {
   static findLinkedSourceFiles(testFile: string, source: string): string[] {
     const testDir: string = dirname(testFile);
     const linkedFiles: string[] = [];
-    const linkRegex: RegExp = /^\s*\/\/\s*test-link:\s*(.+)$/gim;
+    const linkRegex: RegExp = TestMarkers.globalSpellingOf("test-link");
     let match: RegExpExecArray | null;
 
     while ((match = linkRegex.exec(source)) !== null) {
@@ -1336,7 +1344,7 @@ class TestUtils {
     }
 
     // Execute test-execution tests, unless the generated code needs an ARM runtime
-    if (/^\s*\/\/\s*test-execution\s*$/m.test(source)) {
+    if (TestMarkers.has("test-execution", source)) {
       // Read freshly generated code to check for ARM runtime requirements
       const existingCode = readFileSync(expectedImplPath, "utf-8");
       if (TestUtils.requiresArmRuntime(existingCode)) {
@@ -1430,12 +1438,18 @@ class TestUtils {
   ): Promise<ITestResult> {
     const source = readFileSync(cnxFile, "utf-8");
 
-    // Check for incorrect test-execution marker format (Issue #322)
-    if (/\/\*\s*test-execution\s*\*\//.test(source)) {
+    // Issue #322, generalized by #1555: a marker written in a spelling the
+    // harness does not read. #322 guarded exactly one marker in exactly one
+    // wrong spelling; the vocabulary knows every marker, so the check is now
+    // "is this line trying to be a marker, and is it spelled like one".
+    const misspelled = TestMarkers.findUnrecognisedSpellings(source);
+    if (misspelled.length > 0) {
+      const first = misspelled[0];
       return {
         passed: false,
         message:
-          'Invalid test-execution marker: use "// test-execution" not "/* test-execution */"',
+          `Unrecognised spelling of "${first.marker}" at line ${first.line}: ` +
+          `${first.text} -- markers are line comments, e.g. "// ${first.marker}"`,
       };
     }
 
