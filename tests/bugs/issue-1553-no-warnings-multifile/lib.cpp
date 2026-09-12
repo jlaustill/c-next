@@ -8,11 +8,15 @@
 #include <stdint.h>
 
 // Helper for #1553. Transpiles to lib.h, which the entry includes as <lib.h> --
-// the sibling-header shape that validateNoWarnings could not resolve.
+// the angle-bracket sibling shape that validateNoWarnings could not resolve --
+// and to lib.c, which it did not compile at all.
 //
-// Deliberately warning-free at -O3 -Wall -Wextra -Werror: the point of this
-// fixture is that the marker now REACHES the compile, so anything it reports
-// must be a real warning rather than a missing header.
+// Both halves are guarded now. This file's header is checked because the entry
+// includes it; this file's IMPLEMENTATION is checked because the helper
+// translation units are compiled under the same flags. Before #1553 an unused
+// parameter added here left the no-warnings compile at exit 0: lib.c reached a
+// compiler only at the execution link step, which passes neither -Wall nor
+// -Werror.
 uint32_t doubled(uint32_t value) {
     return value * 2U;
 }

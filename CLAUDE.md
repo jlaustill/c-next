@@ -651,7 +651,7 @@ foo.expected.error    # Expected error (if test-error)
   something other than the entry. CLAUDE.md's own "create `.expected.h` to prevent test framework
   cleanup" is what made them look like snapshots; the harness stopped cleaning helper files, so
   they are assertions now instead
-- **`/* test-no-warnings */`** compiles `-c -O3` (`TestUtils.validateNoWarnings`). `-Wstringop-overflow`/`-Warray-bounds` are middle-end diagnostics — under the previous `-fsyntax-only` with no `-O` they could never fire, so the marker was inert (#1143)
+- **`/* test-no-warnings */`** compiles `-c -O3` (`TestUtils.validateNoWarnings`). `-Wstringop-overflow`/`-Warray-bounds` are middle-end diagnostics — under the previous `-fsyntax-only` with no `-O` they could never fire, so the marker was inert (#1143). It compiles **every translation unit the fixture generates**, entry and helpers: until #1553 it compiled the entry alone, so a warning in a helper's implementation was invisible — that file reaches a compiler only at the execution link step, which passes neither `-Wall` nor `-Werror`. #1553 also passes the fixture's own directory on the include path, without which a generated `#include <sibling.h>` is not found and the check fails on a missing header rather than on warnings; a **quoted** include resolves relative to the includer and never needed it, which is why one multi-file fixture carried the marker for months without hitting it. **Block form only** — a `// test-no-warnings` line comment is silently not checked (#1555)
 
 ### Transpiler Entry Point
 
