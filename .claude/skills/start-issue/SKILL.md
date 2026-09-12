@@ -308,6 +308,49 @@ FOR non-bug issues, research first (CLAUDE.md "Workflow: Research First"):
 
 ---
 
+#### 7c: If Analysis Reveals a Blocker — Pause, Do Not Work Around
+
+Phase 3 reads the `Blocked by` field. Phases 5 and 7 read the card itself, and that is
+where the blockers no field carries turn up — most often a definition-of-done box that
+cannot be satisfied as written.
+
+```
+IF analysis shows a definition-of-done box cannot be satisfied as written, AND nothing
+has been committed yet:
+
+  STOP. Do not implement the achievable subset, do not reword the box, do not narrow
+  the card. CLAUDE.md: "never reword a box to match what you did, which is moving the
+  goalposts rather than meeting them."
+
+  1. APPEND the derived blocker to `Blocked by` — never replace or clear what it holds.
+     Read it, then write old + new. Requires the `project` scope, not `read:project`.
+
+       gh api graphql -f query='
+       mutation($p:ID!,$i:ID!,$f:ID!,$v:String!){
+         updateProjectV2ItemFieldValue(input:{
+           projectId:$p,itemId:$i,fieldId:$f,value:{text:$v}}){ projectV2Item { id } } }' \
+         -f p=<PROJECT_ID> -f i=<ITEM_ID> -f f=<BLOCKED_BY_FIELD_ID> -f v="<old>; <new>"
+
+     THEN re-read the field and report the value it returned — not the mutation's success.
+
+  2. COMMENT the measurements that establish the blocker, and what would unblock it.
+     Record boxes that are already true but unchecked; do NOT tick them if another card
+     made them true — "this is not my commit-and-push cycle" is the established form.
+
+  3. DELETE the unused branch. A branch created and deleted unused is a recognized
+     not-startable signal in this repo, which is why recording it is worth the line.
+
+  4. KEEP THE ASSIGNMENT. `project-sync.yml` fires on `issues: [opened, assigned]` and
+     has no `unassigned` transition, so removing the assignee strands the card in `WIP` with
+     nobody on it. Never write `Status` by hand to express a pause.
+
+  5. FIND OTHER WORK — re-run `/issue-check`, or take the next unblocked runner-up it
+     already ranked, and re-run its startability gate before starting.
+```
+
+---
+
+
 ### Phase 8: Announce on the Issue
 
 ```bash
@@ -343,6 +386,11 @@ THROUGHOUT the work:
 - **DO NOT** skip the dedup gate — issues are sometimes already resolved
 - **DO NOT** skip the failing-test step for bugs, or accept a fixture you have not
   mutation-checked
+- **DO NOT** implement the achievable subset of a card whose definition of done cannot be
+  satisfied as written, and **DO NOT** reword the box. Pause per Phase 7c: append the
+  blocker, record the measurements, delete the branch, keep the assignment, take other work
+- **DO NOT** unassign a paused card. `project-sync.yml` has no `unassigned` transition, so
+  it strands the card in `WIP` with nobody on it
 - **DO NOT** work around a c-next bug downstream — fix it upstream in the transpiler
 - **DO NOT** change C-Next syntax/behavior or an ADR's Status without explicit approval
 - **DO NOT** copy these phases back into `issue-check`. It delegates here on purpose
