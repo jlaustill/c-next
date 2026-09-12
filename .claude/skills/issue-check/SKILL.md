@@ -358,13 +358,35 @@ FOR each of the top 5 ranked candidates:
      directory, `test -f` the document, `grep` for the symbol — rather than assuming in
      either direction.
 
-  A card failing ANY of the three is NOT STARTABLE: drop it from the recommendation,
+  4. CROSS-ISSUE CLAIMS IN THE DoD — a box that NAMES another issue is ASSERTING
+     something about it, and `.state` is not that assertion. Check the claim, not the
+     state. This is the check the other three cannot make: they all pass when the named
+     issue is cleanly closed, which is exactly when the claim is most likely to be wrong.
+       gh api repos/jlaustill/c-next/issues/<n> --jq '.body' \
+         | grep -nE "#[0-9]{3,4}" | grep -iE "fixed|landed|by the|subsumed|requires"
+
+     For each such box, resolve WHEN and BY WHAT the named issue closed — a close date
+     alone settles it in most cases:
+       gh api repos/jlaustill/c-next/issues/<named> --jq '{state, closed_at}'
+       gh api --paginate 'repos/jlaustill/c-next/issues/<named>/timeline?per_page=100' \
+         --jq '.[] | select(.event=="closed" or .event=="cross-referenced")
+               | "\(.event) \(.created_at) \(.commit_id // .source.issue.number // "-")"'
+
+     A box reading "#A and #B are fixed BY <the change this card makes>" is FALSE for #B
+     if #B closed BEFORE that change landed — however cleanly #B is closed. #1448 is the
+     worked example: its `Blocked by` named #1320, #1322 and #1447, all three closed, so
+     the field, the board and checks 1-3 all said available and it ranked top. Box 3
+     claimed the hoist fixed #1430 **and #1398**; #1398 had closed a week earlier via
+     PR #1502, with no fixture anywhere in `tests/`. The box was unsatisfiable as
+     written and the card could not close.
+
+  A card failing ANY of the four is NOT STARTABLE: drop it from the recommendation,
   report it under "Not Recommended Yet" with reason `Not startable` and the evidence,
   and re-rank without it.
 
-  A card passing all three: SAY WHAT YOU CHECKED when recommending it. "startable: no
-  set-aside comment, parent places it in wave 1, DoD has no unbuilt-artifact item" is an
-  artifact a reader can check. "Unblocked" is not.
+  A card passing all four: SAY WHAT YOU CHECKED when recommending it. "startable: no
+  set-aside comment, parent places it in wave 1, DoD has no unbuilt-artifact item, and
+  its cross-issue claims hold" is an artifact a reader can check. "Unblocked" is not.
 ```
 
 **A card's own claim about its readiness is not evidence.** #1444's body says _"which is
@@ -593,6 +615,10 @@ IF no open issues exist:
 - **DO NOT** quote a card's own claim that it is ready ("this card is first: it has no
   open blocker") as evidence that it is. That sentence is written at filing; the
   sequencing that invalidates it lands later, in the parent. Check the parent
+- **DO NOT** accept a definition-of-done box that names another issue on the strength of
+  that issue's `.state`. A box claiming "#A and #B are fixed by this change" is false for
+  any of them that closed BEFORE the change landed, and a cleanly-closed issue is exactly
+  when checks 1-3 all pass — #1448 ranked top that way
 - **DO NOT** skip reading the top candidate's comments. #1444 carried an explicit
   "Set aside — this card is wave 5, not wave 1" for 13 hours and was still recommended
   as the top pick, because no phase read comments

@@ -77,6 +77,33 @@ measured more than once during the work. The card read as untouched for a week. 
 failed, because nothing checks this — the checkbox is the one artifact in this repository
 with no gate behind it, which is exactly why it has to be a discipline instead.
 
+### A Card That Turns Out Blocked Is Paused, Not Worked Around
+
+**When a picked-up issue turns out to be blocked and nothing has been committed yet, stop
+and pick different work.** Append the blocker to `Blocked by`, comment the measurements that
+establish it, delete the unused branch, and choose another card. Do **not** reword the box to
+something achievable, do not quietly narrow the card, and do not ship the achievable subset
+and call the card done — #1285 closed _"with 2 of 7 items unlanded and untracked, which is why
+#1357 existed"_.
+
+**A definition-of-done box that names another issue is a claim about that issue, and
+open-or-closed is not the claim.** This is the check every blocked-gate misses, because every
+blocked-gate asks the wrong question. #1448's box 3 reads _"#1430 and #1398 are fixed **by the
+hoist**, with fixtures that fail if it is reverted"_. Its `Blocked by` named #1320, #1322 and
+#1447 — all three closed — so the field said available, the board said available, and
+`/issue-check`'s startability gate passed it as the top pick. The box was unsatisfiable
+anyway: **#1398 closed 2026-09-05 via PR #1502, a week before the hoist landed** (#1320,
+`2026-09-12T03:29:14Z`), so it was not fixed by the hoist and has no fixture. Both named
+issues being _closed_ is what made every existing check pass. Verify what the box asserts —
+the causal claim, the artifact, the number — not merely the state of the issue it cites.
+
+**Paused is not unassigned.** `project-sync.yml` fires on `issues: [opened, assigned]` and has
+no `unassigned` transition, so removing the assignee leaves a paused card sitting in `WIP` with
+nobody on it — indistinguishable from active work, and the state #1445 is in. Keep the
+assignment: the appended `Blocked by` and the comment carry the pause, and `/issue-check`'s
+assignee-based in-flight filter is then what stops the card being recommended again. Never
+write the board's `Status` field by hand to express this.
+
 ### No Duplicate Code Paths — ZERO EXCEPTIONS
 
 **NEVER create or perpetuate duplicate code paths.** If changing something in one place requires a corresponding change in another place, that is a bug in the architecture. Fix it immediately.
