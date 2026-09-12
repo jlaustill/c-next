@@ -837,3 +837,125 @@ describe("runTest on an error fixture that stopped erroring (#1316)", () => {
     expect(existsSync(expectedErrorFile)).toBe(true);
   });
 });
+
+/**
+ * Issue #1557: the no-warnings check ran in C mode only, and chose its compiler
+ * by sniffing the translation unit's contents while the harness already knew the
+ * mode. Two derivations of one fact -- the ordinary compile at the mode-aware
+ * site treats `mode === "cpp"` as authoritative and falls back to sniffing, the
+ * no-warnings compile sniffed and ignored the mode entirely.
+ *
+ * Measured before the fix: 11 of the 17 marker-carrying fixtures generate a
+ * `.cpp` that trips none of the sniffer's patterns, so each would have been
+ * handed to `gcc -std=c99` -- which rejects the option outright for a C++ file.
+ */
+describe("getCompilerConfig is the one language decision (#1557)", () => {
+  let tempDir: string;
+
+  beforeEach(() => {
+    tempDir = mkdtempSync(join(tmpdir(), "cnx-1557-"));
+  });
+
+  afterEach(() => {
+    rmSync(tempDir, { recursive: true, force: true });
+  });
+
+  it("is the single decision both compile sites ask", () => {
+    expect(typeof TestUtils.getCompilerConfig).toBe("function");
+  });
+
+  it("treats cpp mode as authoritative when the file sniffs as C", () => {
+    // Function overloading: valid C++, invalid C99, and trips none of the
+    // sniffer's patterns (no ::, no casts, no templates, no reference params).
+    const tuFile = join(tempDir, "overload.test.cpp");
+    writeFileSync(
+      tuFile,
+      "int twice(int value) { return value * 2; }\n" +
+        "long twice(long value) { return value * 2L; }\n" +
+        "int main(void) { return twice(1) == 2 ? 0 : 1; }\n",
+    );
+
+    expect(TestUtils.requiresCpp14(tuFile)).toBe(false);
+    expect(TestUtils.getCompilerConfig("cpp", tuFile)).toEqual({
+      compiler: "g++",
+      stdFlag: "-std=c++14",
+    });
+  });
+
+  it("falls back to sniffing in c mode, so C++ interop keeps its g++", () => {
+    const tuFile = join(tempDir, "interop.test.c");
+    writeFileSync(tuFile, "int value = static_cast<int>(0);\n");
+
+    expect(TestUtils.getCompilerConfig("c", tuFile)).toEqual({
+      compiler: "g++",
+      stdFlag: "-std=c++14",
+    });
+  });
+
+  it("chooses gcc for a plain C translation unit in c mode", () => {
+    const tuFile = join(tempDir, "plain.test.c");
+    writeFileSync(tuFile, "int main(void) { return 0; }\n");
+
+    expect(TestUtils.getCompilerConfig("c", tuFile)).toEqual({
+      compiler: "gcc",
+      stdFlag: "-std=c99",
+    });
+  });
+});
+
+describe("no-warnings check honours the harness mode (#1557)", () => {
+  let tempDir: string;
+
+  beforeEach(() => {
+    tempDir = mkdtempSync(join(tmpdir(), "cnx-1557-nw-"));
+  });
+
+  afterEach(() => {
+    rmSync(tempDir, { recursive: true, force: true });
+  });
+
+  it("compiles a C++-only translation unit as C++ in cpp mode", () => {
+    const tuFile = join(tempDir, "overload.test.cpp");
+    writeFileSync(
+      tuFile,
+      "int twice(int value) { return value * 2; }\n" +
+        "long twice(long value) { return value * 2L; }\n" +
+        "int main(void) { return twice(1) == 2 ? 0 : 1; }\n",
+    );
+
+    const result: IValidationResult =
+      TestUtils.compileTranslationUnitWithoutWarnings(tuFile, tempDir, "cpp");
+
+    expect(result.valid).toBe(true);
+  });
+
+  it("still reports a genuine C++ warning in cpp mode", () => {
+    // Negative control: the check above must not pass by compiling nothing.
+    //
+    // It asserts the MESSAGE, not just `valid === false`. Before the fix this
+    // compile failed for an unrelated reason -- `gcc` rejecting `-std=c99` for a
+    // C++ file -- so a bare `valid === false` passed while nothing was being
+    // warning-checked, which is the #1143 shape this issue is one more case of.
+    //
+    // `-Wunused-parameter` (from -Wextra) is used rather than an unused local:
+    // `fixtureCompileFlags` passes `-Wno-unused-variable`, so the local form is
+    // suppressed and compiles clean, and the control would assert nothing.
+    const tuFile = join(tempDir, "warns.test.cpp");
+    writeFileSync(
+      tuFile,
+      "int helper(int used, int ignored) { return used; }\n" +
+        "int main(void) { return helper(0, 1); }\n",
+    );
+
+    const result: IValidationResult =
+      TestUtils.compileTranslationUnitWithoutWarnings(tuFile, tempDir, "cpp");
+
+    expect(result.valid).toBe(false);
+    expect(result.message).toContain("unused parameter");
+    // ...and for THIS reason alone. Before the fix `gcc` was handed the `.cpp`,
+    // and `cc1plus` reported the rejected `-std=c99` alongside the real warning
+    // -- so asserting only the warning passed while the language was still being
+    // re-derived from the file's contents.
+    expect(result.message).not.toContain("-std=c99");
+  });
+});
