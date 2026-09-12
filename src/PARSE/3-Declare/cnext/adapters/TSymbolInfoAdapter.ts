@@ -213,8 +213,6 @@ class TSymbolInfoAdapter {
 
       // Function return types
       functionReturnTypes,
-
-      // Issue #948: Opaque types
     };
 
     return result;
@@ -456,10 +454,6 @@ class TSymbolInfoAdapter {
   private static cnextTypeToCType(typeName: string): string {
     return CNEXT_TO_C_TYPE_MAP[typeName] || typeName;
   }
-
-  /**
-   * Merge a single external source into the merged data structures
-   */
 }
 
 export default TSymbolInfoAdapter;
