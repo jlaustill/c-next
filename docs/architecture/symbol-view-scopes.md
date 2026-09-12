@@ -249,9 +249,10 @@ than the accessors, so a read is observed regardless of who makes it.
 
 ## Defects found on the way
 
-Ten, all reproduced and none fixed — a measurement that also changes behavior measures
-nothing. Three were more serious than the reading that prompted them, which is the argument for
-requiring a reproduction rather than a confident note.
+Ten, all reproduced and none fixed at the time — a measurement that also changes behavior
+measures nothing. Three were more serious than the reading that prompted them, which is the
+argument for requiring a reproduction rather than a confident note. Dispositions since are
+noted in the table; the rows otherwise stand as they were measured.
 
 | issue                                                    | what                                                                                                                                |
 | -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
@@ -261,7 +262,7 @@ requiring a reproduction rather than a confident note.
 | [#1435](https://github.com/jlaustill/c-next/issues/1435) | three derivations answer "what can this file see?", with different search paths and opposite cycle rules                            |
 | [#1436](https://github.com/jlaustill/c-next/issues/1436) | cross-file struct fields never reach `structFields`; E0805/E0806/E0850 go silent                                                    |
 | [#1437](https://github.com/jlaustill/c-next/issues/1437) | init-completeness is off for every qualified type form and every cross-file struct                                                  |
-| [#1438](https://github.com/jlaustill/c-next/issues/1438) | `scopeVariableUsage` never written; #232's optimization has never fired                                                             |
+| [#1438](https://github.com/jlaustill/c-next/issues/1438) | `scopeVariableUsage` never written — leftover scaffolding, not a missing optimisation; deleted in #1394                             |
 | [#1439](https://github.com/jlaustill/c-next/issues/1439) | `collectGrammarCoverage` stored and never read                                                                                      |
 | [#1440](https://github.com/jlaustill/c-next/issues/1440) | dead accessors `knip` cannot see; two stale ignore globs                                                                            |
 
