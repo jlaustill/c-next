@@ -710,29 +710,6 @@ describe("TSymbolInfoAdapter", () => {
     });
   });
 
-  describe("getSingleFunctionForVariable", () => {
-    it("should return null when scopeVariableUsage is empty", () => {
-      const info = TSymbolInfoAdapter.convert([]);
-
-      expect(info.getSingleFunctionForVariable("Motor", "counter")).toBeNull();
-    });
-
-    // Note: scopeVariableUsage requires function body analysis
-    // which isn't done by the current collectors
-    it("should return null for unknown variables", () => {
-      const motorScope = TestScopeUtils.createMockScope("Motor");
-      (motorScope.members as string[]).push("counter");
-      (motorScope.memberVisibility as Map<string, string>).set(
-        "counter",
-        "private",
-      );
-
-      const info = TSymbolInfoAdapter.convert([motorScope]);
-
-      expect(info.getSingleFunctionForVariable("Motor", "counter")).toBeNull();
-    });
-  });
-
   describe("mixed symbols", () => {
     it("should handle array of different symbol types", () => {
       const motorScope = TestScopeUtils.createMockScope("Motor");

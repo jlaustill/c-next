@@ -115,14 +115,6 @@ interface ICodeGenSymbols {
   /** Register member C types: "reg_member" -> C type (e.g., "uint32_t") */
   readonly registerMemberCTypes: ReadonlyMap<string, string>;
 
-  // === Issue #232: Scope Variable Usage Analysis ===
-
-  /**
-   * Scope variable usage: "Scope_varName" -> Set of function names that use it.
-   * Used to determine if a variable is single-function (can be local).
-   */
-  readonly scopeVariableUsage: ReadonlyMap<string, ReadonlySet<string>>;
-
   // === Issue #282: Scope Private Const Inlining ===
 
   /**
@@ -139,15 +131,6 @@ interface ICodeGenSymbols {
    * Keys are full function names (e.g., "Motor_getMode" for scope methods, "getState" for globals).
    */
   readonly functionReturnTypes: ReadonlyMap<string, string>;
-
-  /**
-   * Check if a scope variable is used in only one function.
-   * Returns the function name if single-function, null otherwise.
-   */
-  getSingleFunctionForVariable(
-    scopeName: string,
-    varName: string,
-  ): string | null;
 
   /*
    * `hasPublicInterface` was here, computed by 1.3 Declare (#1515).

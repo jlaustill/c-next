@@ -40,10 +40,8 @@ describe("TransitiveEnumCollector", () => {
       registerBaseAddresses: new Map(),
       registerMemberOffsets: new Map(),
       registerMemberCTypes: new Map(),
-      scopeVariableUsage: new Map(),
       scopePrivateConstValues: new Map(),
       functionReturnTypes: new Map(),
-      getSingleFunctionForVariable: () => null,
     };
   }
 
