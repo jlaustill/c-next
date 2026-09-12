@@ -605,18 +605,28 @@ class TestUtils {
   }
 
   /**
-   * Where a fixture's headers live: the shared corpus, then the file's own
-   * directory.
+   * How this corpus compiles one fixture translation unit: the warnings it
+   * suppresses by convention, then where its headers live.
    *
-   * Issue #1553: this pair was spelled out at four sites and two of them had
-   * drifted -- the no-warnings compile passed only the first, so a generated
-   * header including a sibling as <name.h> was not found. Copying the missing
-   * flag into the fourth would have left the mechanism intact: the next flag
-   * added re-opens the same defect in whichever copy is forgotten. One
-   * encoder, so the question has one answer.
+   * Issue #1553: this set was spelled out at four sites and two had drifted --
+   * the no-warnings compile passed only the shared corpus directory, so a
+   * generated header including a sibling as <name.h> was not found. Copying
+   * the missing flag into the fourth would have left the mechanism intact: the
+   * next flag added re-opens the same defect in whichever copy is forgotten.
+   *
+   * The suppressions travel with the include path rather than beside it,
+   * because they are the same decision -- "how does this corpus compile a
+   * fixture?" -- and splitting them would leave three copies of half of it.
    */
-  static fixtureIncludeFlags(cFile: string, rootDir: string): string[] {
-    return ["-I", join(rootDir, "tests/include"), "-I", dirname(cFile)];
+  static fixtureCompileFlags(cFile: string, rootDir: string): string[] {
+    return [
+      "-Wno-unused-variable",
+      "-Wno-main",
+      "-I",
+      join(rootDir, "tests/include"),
+      "-I",
+      dirname(cFile),
+    ];
   }
 
   /**
@@ -657,9 +667,7 @@ class TestUtils {
           "-Wall",
           "-Wextra",
           "-Werror",
-          "-Wno-unused-variable",
-          "-Wno-main",
-          ...TestUtils.fixtureIncludeFlags(tuFile, rootDir),
+          ...TestUtils.fixtureCompileFlags(tuFile, rootDir),
           tuFile,
         ],
         { encoding: "utf-8", timeout: 10000, stdio: "pipe" },
@@ -1279,9 +1287,7 @@ class TestUtils {
           [
             "-fsyntax-only",
             actualStdFlag,
-            "-Wno-unused-variable",
-            "-Wno-main",
-            ...TestUtils.fixtureIncludeFlags(expectedImplPath, rootDir),
+            ...TestUtils.fixtureCompileFlags(expectedImplPath, rootDir),
             expectedImplPath,
           ],
           { encoding: "utf-8", timeout: 10000, stdio: "pipe" },
@@ -1354,9 +1360,7 @@ class TestUtils {
           actualCompiler,
           [
             actualStdFlag,
-            "-Wno-unused-variable",
-            "-Wno-main",
-            ...TestUtils.fixtureIncludeFlags(expectedImplPath, rootDir),
+            ...TestUtils.fixtureCompileFlags(expectedImplPath, rootDir),
             "-o",
             execPath,
             ...sourceFiles,
