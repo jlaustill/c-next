@@ -118,6 +118,29 @@ describe("the // test-error marker decides, and disagreement is loud (#1379)", (
     expect(result.message).toContain("does not declare");
   });
 
+  it("reports a committed C++ snapshot rather than silently cleaning it", async () => {
+    // #1555 review, found auditing this PR: `runErrorTest` cleans files at the
+    // start of a run, and it was hand-extended with the C++ pair on the belief
+    // that this closed the orphan gap. It could not -- the forbidden-artifact
+    // guard runs FIRST in `runTest` and returns, so the cleanup never sees
+    // them, and the additions were dead the moment they were written.
+    //
+    // This asserts the behavior that actually matters, not which list holds
+    // the entry: a committed snapshot beside an error fixture is REPORTED, so
+    // an author deletes it deliberately. Silently cleaning it would rewrite the
+    // working tree during a test run and leave nothing to explain why.
+    const file = fixture(`// test-error\n${REJECTED}`);
+    await TestUtils.runTest(file, true, TOOLS, rootDir, {});
+    const orphan = join(dir, "probe.expected.cpp");
+    writeFileSync(orphan, "/* a snapshot nothing regenerates or compares */\n");
+
+    const result = await TestUtils.runTest(file, false, TOOLS, rootDir, {});
+
+    expect(result.passed).toBe(false);
+    expect(result.message).toContain("stale generated artifacts");
+    expect(existsSync(orphan)).toBe(true); // reported, not deleted
+  });
+
   it("passes when the marker and the assertion agree", async () => {
     // Negative control: the 376 fixtures in this state must stay green, or the
     // four assertions above would be satisfied by a runner that fails on

@@ -28,7 +28,7 @@ const testsDir = join(rootDir, "tests");
 describe("fixture markers are written in a spelling the harness reads (#1555)", () => {
   // Every `.cnx`, not just `*.test.cnx`: `generate-cpp-snapshots.ts` asks the
   // vocabulary about HELPER sources too, inside `generateHelperCppSnapshot`.
-  // 126 helpers exist and 14 carry `// test-cpp-only`; all are spelled
+  // 125 helpers exist and 14 carry `// test-cpp-only`; all are spelled
   // correctly today, so this closes a latent gap rather than a live break --
   // but it is the exact failure this module exists to prevent. A helper
   // writing `/* test-c-only */` would be read by no site AND flagged by no

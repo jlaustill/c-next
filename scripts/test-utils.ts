@@ -1749,7 +1749,6 @@ class TestUtils {
   ): Promise<ITestResult> {
     const expectedCFile = basePath + ".expected.c";
     const expectedHFile = basePath + ".expected.h";
-    const headerFile = basePath + ".test.h";
 
     // #1379: absent when the fixture declares `// test-error` and its
     // assertion has not been created yet -- the ordinary TDD order. Read as
@@ -1761,13 +1760,20 @@ class TestUtils {
       : "";
 
     // Clean up stale success test artifacts
-    for (const staleFile of [
-      expectedCFile,
-      expectedHFile,
-      headerFile,
-      basePath + ".expected.cpp",
-      basePath + ".expected.hpp",
-    ]) {
+    // These two ONLY, and the reason is an invariant rather than a preference:
+    // `checkForStaleErrorTestArtifacts` runs first in `runTest` and returns on
+    // anything in ERROR_TEST_FORBIDDEN_EXTENSIONS, so every other output kind
+    // has already been reported by the time control reaches here. `.expected.c`
+    // and `.expected.h` are exactly the kinds that list deliberately omits, so
+    // they are exactly the kinds that can still arrive.
+    //
+    // This list previously also named `.test.h` (unreachable -- forbidden), and
+    // #1555 hand-extended it with the C++ pair believing that closed the orphan
+    // gap. It did not: those are forbidden too, so the additions were dead the
+    // moment they were written, and the forbidden list is what actually caught
+    // the one orphaned fixture. Deleting them rather than leaving code that
+    // reads like a second safety net and is not one.
+    for (const staleFile of [expectedCFile, expectedHFile]) {
       if (existsSync(staleFile)) {
         try {
           unlinkSync(staleFile);
