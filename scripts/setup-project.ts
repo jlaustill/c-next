@@ -25,18 +25,14 @@
  * an option in the UI preserves its ID; this script only reads them.
  */
 
-import { execFileSync } from "node:child_process";
 import chalk from "chalk";
 
+import ProjectBoard from "./utils/ProjectBoard";
 import Repo from "./utils/Repo";
 
-const PROJECT_TITLE = "C-Next";
 const PROJECT_DESCRIPTION =
   "Issue, PR and release tracking for C-Next. Workflow: docs/WORKFLOW.md";
 const LINKED_REPOSITORIES = ["c-next", "vscode-c-next"] as const;
-
-const STATUS_FIELD = "Status";
-const BLOCKED_FIELD = "Blocked by";
 
 const GROOMING = "Grooming";
 const BACKLOG = "Backlog";
@@ -56,7 +52,7 @@ const STATUS_OPTIONS = [
 const RUNBOOK = `
 Finish the UI-only setup first (docs/WORKFLOW.md "Board setup"):
 
-  1. Open the project's Settings, and under the ${STATUS_FIELD} field:
+  1. Open the project's Settings, and under the ${ProjectBoard.STATUS_FIELD} field:
        rename "Todo"        -> "${BACKLOG}"
        rename "In Progress" -> "WIP"
      ${GROOMING} is a new option, not a rename -- add it in step 2.
@@ -64,7 +60,7 @@ Finish the UI-only setup first (docs/WORKFLOW.md "Board setup"):
      ID, which is what the built-in workflows are bound to.
   2. Add the missing options so the full list, in board order, reads:
        ${STATUS_OPTIONS.join(" | ")}
-  3. Create a board view grouped by ${STATUS_FIELD}.
+  3. Create a board view grouped by ${ProjectBoard.STATUS_FIELD}.
 
 Then re-run this script.
 `;
@@ -97,46 +93,6 @@ class SetupProject {
 
   private static dryRun = false;
 
-  /** Runs a GraphQL document through the authenticated gh CLI. */
-  private static graphql(
-    query: string,
-    variables: Record<string, string> = {},
-  ): Record<string, never> {
-    const args = ["api", "graphql", "-f", `query=${query}`];
-    for (const [name, value] of Object.entries(variables)) {
-      args.push("-f", `${name}=${value}`);
-    }
-    let raw: string;
-    try {
-      raw = execFileSync("gh", args, {
-        encoding: "utf-8",
-        maxBuffer: 64 * 1024 * 1024,
-      });
-    } catch (error) {
-      const details = error instanceof Error ? error.message : String(error);
-      if (details.includes("INSUFFICIENT_SCOPES")) {
-        throw new Error(
-          "The gh token cannot read Projects.\n\n  Run: gh auth refresh -s project\n",
-          { cause: error },
-        );
-      }
-      throw new Error(`GraphQL call failed:\n${details}`, { cause: error });
-    }
-    const parsed = JSON.parse(raw) as {
-      data?: Record<string, never>;
-      errors?: { message: string }[];
-    };
-    if (parsed.errors !== undefined && parsed.errors.length > 0) {
-      throw new Error(
-        `GraphQL errors:\n${parsed.errors.map((e) => `  ${e.message}`).join("\n")}`,
-      );
-    }
-    if (parsed.data === undefined) {
-      throw new Error("GraphQL response carried no data");
-    }
-    return parsed.data;
-  }
-
   private static record(change: string): void {
     SetupProject.changes.push(change);
     console.log(chalk.green(`  + ${change}`));
@@ -148,7 +104,7 @@ class SetupProject {
 
   /** Finds the project by title, creating it only when absent. */
   private static resolveProject(): { id: string; number: number; url: string } {
-    const data = SetupProject.graphql(`
+    const data = ProjectBoard.graphql(`
       query {
         viewer {
           id
@@ -167,18 +123,20 @@ class SetupProject {
     };
 
     const existing = data.viewer.projectsV2.nodes.find(
-      (node) => node.title === PROJECT_TITLE,
+      (node) => node.title === ProjectBoard.TITLE,
     );
     if (existing !== undefined) {
-      SetupProject.skip(`project "${PROJECT_TITLE}" exists (${existing.url})`);
+      SetupProject.skip(
+        `project "${ProjectBoard.TITLE}" exists (${existing.url})`,
+      );
       return existing;
     }
 
     if (SetupProject.dryRun) {
-      throw new Error(`Project "${PROJECT_TITLE}" does not exist yet.`);
+      throw new Error(`Project "${ProjectBoard.TITLE}" does not exist yet.`);
     }
 
-    const created = SetupProject.graphql(
+    const created = ProjectBoard.graphql(
       `
       mutation($ownerId: ID!, $title: String!) {
         createProjectV2(input: { ownerId: $ownerId, title: $title }) {
@@ -186,20 +144,20 @@ class SetupProject {
         }
       }
     `,
-      { ownerId: data.viewer.id, title: PROJECT_TITLE },
+      { ownerId: data.viewer.id, title: ProjectBoard.TITLE },
     ) as unknown as {
       createProjectV2: {
         projectV2: { id: string; number: number; url: string };
       };
     };
 
-    SetupProject.record(`created project "${PROJECT_TITLE}"`);
+    SetupProject.record(`created project "${ProjectBoard.TITLE}"`);
     return created.createProjectV2.projectV2;
   }
 
   /** Makes the project public and gives it a description. */
   private static configureProject(projectId: string): void {
-    const current = SetupProject.graphql(
+    const current = ProjectBoard.graphql(
       `
       query($projectId: ID!) {
         node(id: $projectId) {
@@ -224,7 +182,7 @@ class SetupProject {
       return;
     }
 
-    SetupProject.graphql(
+    ProjectBoard.graphql(
       `
       mutation($projectId: ID!, $description: String!) {
         updateProjectV2(
@@ -244,7 +202,7 @@ class SetupProject {
   /** Links the project to every repository whose work it tracks. */
   private static linkRepositories(projectId: string): void {
     for (const name of LINKED_REPOSITORIES) {
-      const repository = SetupProject.graphql(
+      const repository = ProjectBoard.graphql(
         `
         query($owner: String!, $name: String!) {
           repository(owner: $owner, name: $name) {
@@ -270,7 +228,7 @@ class SetupProject {
         continue;
       }
 
-      SetupProject.graphql(
+      ProjectBoard.graphql(
         `
         mutation($projectId: ID!, $repositoryId: ID!) {
           linkProjectV2ToRepository(
@@ -286,7 +244,7 @@ class SetupProject {
 
   /** Reads the field set, asserting the Status options the board depends on. */
   private static resolveFields(projectId: string): IProjectFields {
-    const data = SetupProject.graphql(
+    const data = ProjectBoard.graphql(
       `
       query($projectId: ID!) {
         node(id: $projectId) {
@@ -318,17 +276,21 @@ class SetupProject {
     };
 
     const fields = data.node.fields.nodes;
-    const status = fields.find((field) => field.name === STATUS_FIELD);
+    const status = fields.find(
+      (field) => field.name === ProjectBoard.STATUS_FIELD,
+    );
     if (status?.options === undefined) {
       throw new Error(
-        `The project has no ${STATUS_FIELD} single-select field.`,
+        `The project has no ${ProjectBoard.STATUS_FIELD} single-select field.`,
       );
     }
 
     return {
       statusFieldId: status.id,
       statusOptions: status.options,
-      blockedFieldId: fields.find((field) => field.name === BLOCKED_FIELD)?.id,
+      blockedFieldId: fields.find(
+        (field) => field.name === ProjectBoard.BLOCKED_FIELD,
+      )?.id,
     };
   }
 
@@ -342,12 +304,12 @@ class SetupProject {
     const missing = STATUS_OPTIONS.filter((name) => !present.includes(name));
     if (missing.length > 0) {
       throw new Error(
-        `${STATUS_FIELD} is missing: ${missing.join(", ")}\n` +
+        `${ProjectBoard.STATUS_FIELD} is missing: ${missing.join(", ")}\n` +
           `  (it currently has: ${present.join(", ")})\n${RUNBOOK}`,
       );
     }
     SetupProject.skip(
-      `${STATUS_FIELD} has all ${STATUS_OPTIONS.length} options`,
+      `${ProjectBoard.STATUS_FIELD} has all ${STATUS_OPTIONS.length} options`,
     );
   }
 
@@ -357,14 +319,16 @@ class SetupProject {
     existingId: string | undefined,
   ): void {
     if (existingId !== undefined) {
-      SetupProject.skip(`"${BLOCKED_FIELD}" field exists`);
+      SetupProject.skip(`"${ProjectBoard.BLOCKED_FIELD}" field exists`);
       return;
     }
     if (SetupProject.dryRun) {
-      SetupProject.record(`would create "${BLOCKED_FIELD}" text field`);
+      SetupProject.record(
+        `would create "${ProjectBoard.BLOCKED_FIELD}" text field`,
+      );
       return;
     }
-    SetupProject.graphql(
+    ProjectBoard.graphql(
       `
       mutation($projectId: ID!, $name: String!) {
         createProjectV2Field(
@@ -372,9 +336,9 @@ class SetupProject {
         ) { projectV2Field { ... on ProjectV2Field { id } } }
       }
     `,
-      { projectId, name: BLOCKED_FIELD },
+      { projectId, name: ProjectBoard.BLOCKED_FIELD },
     );
-    SetupProject.record(`created "${BLOCKED_FIELD}" text field`);
+    SetupProject.record(`created "${ProjectBoard.BLOCKED_FIELD}" text field`);
   }
 
   /** Every open issue and PR across the linked repositories. */
@@ -384,7 +348,7 @@ class SetupProject {
       for (const kind of ["issue", "pr"] as const) {
         let cursor = "";
         for (;;) {
-          const page = SetupProject.graphql(
+          const page = ProjectBoard.graphql(
             `
             query($owner: String!, $name: String!, $cursor: String) {
               repository(owner: $owner, name: $name) {
@@ -437,7 +401,7 @@ class SetupProject {
     const existing = new Map<string, IExistingItem>();
     let cursor = "";
     for (;;) {
-      const page = SetupProject.graphql(
+      const page = ProjectBoard.graphql(
         `
         query($projectId: ID!, $cursor: String) {
           node(id: $projectId) {
@@ -450,7 +414,7 @@ class SetupProject {
                     ... on Issue { id }
                     ... on PullRequest { id }
                   }
-                  fieldValueByName(name: "${STATUS_FIELD}") {
+                  fieldValueByName(name: "${ProjectBoard.STATUS_FIELD}") {
                     ... on ProjectV2ItemFieldSingleSelectValue { name }
                   }
                 }
@@ -497,7 +461,9 @@ class SetupProject {
     const optionId = (name: string): string => {
       const option = fields.statusOptions.find((entry) => entry.name === name);
       if (option === undefined) {
-        throw new Error(`${STATUS_FIELD} option "${name}" vanished mid-run`);
+        throw new Error(
+          `${ProjectBoard.STATUS_FIELD} option "${name}" vanished mid-run`,
+        );
       }
       return option.id;
     };
@@ -518,7 +484,7 @@ class SetupProject {
           added += 1;
           continue;
         }
-        const result = SetupProject.graphql(
+        const result = ProjectBoard.graphql(
           `
           mutation($projectId: ID!, $contentId: ID!) {
             addProjectV2ItemById(
@@ -546,7 +512,7 @@ class SetupProject {
         continue;
       }
 
-      SetupProject.graphql(
+      ProjectBoard.graphql(
         `
         mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
           updateProjectV2ItemFieldValue(

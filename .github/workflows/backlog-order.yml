@@ -1,0 +1,67 @@
+# Keeps the Backlog column ordered so a card sits below everything blocking it
+# (Issue #1575). The order is derived from the `Blocked by` field every run and
+# never recorded anywhere -- see scripts/order-backlog.ts.
+#
+# GitHub has NO Actions trigger for Projects v2. `projects_v2_item` is an
+# organization webhook, and `project_card`/`project_column` were classic
+# Projects only, so nothing can fire when someone edits `Blocked by`. That is
+# why this is a cron and not an event handler. The other two triggers cover
+# what a cron is slow at:
+#
+#   schedule          the only thing that catches a `Blocked by` edit
+#   workflow_run      a card entering or leaving the column via Project sync
+#   workflow_dispatch "I just edited the field, re-sort now"
+#
+# A card triaged Grooming -> Backlog by hand fires nothing at all, so the cron
+# is what eventually places it. That gap is GitHub's, not a choice here.
+name: Backlog order
+
+on:
+  schedule:
+    # Off the hour: a cron at :00 queues behind everyone else's.
+    - cron: "17 */6 * * *"
+  workflow_run:
+    workflows: ["Project sync"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  # Cancel-in-progress, the OPPOSITE of project-sync.yml, and deliberately: this
+  # job derives the whole column from current state, so a later run subsumes an
+  # earlier one entirely. project-sync writes one field for one item, where a
+  # half-written status is worse than a slow one; here there is nothing to half
+  # write -- every run either finds the column correct or repairs it.
+  group: backlog-order
+  cancel-in-progress: true
+
+jobs:
+  order:
+    name: Order Backlog by Blocked by
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Volta
+        uses: volta-cli/action@v4
+
+      - name: Cache npm dependencies
+        if: runner.environment == 'github-hosted'
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
+          restore-keys: ${{ runner.os }}-npm-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Order the Backlog column
+        # Skips cleanly rather than failing when the secret is absent, matching
+        # project-sync.yml: a fork's scheduled run receives no secrets.
+        if: env.GH_TOKEN != ''
+        run: npm run backlog:order
