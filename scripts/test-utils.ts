@@ -1084,7 +1084,7 @@ class TestUtils {
     // does mean is that a helper's generated files belong to the program that
     // included them, so a helper shared by two fixtures whose programs
     // disagree would flip on disk between runs and fail `working tree clean`
-    // nondeterministically. No helper does today. The scheduler already
+    // depending on which ran last. No helper does today. The scheduler already
     // serializes fixtures sharing a helper closure (#1488), so such a flip
     // would be ordered rather than torn -- ordered and still wrong. A helper
     // whose output depends on its includer needs one owning fixture, not two.
