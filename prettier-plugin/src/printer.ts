@@ -952,6 +952,22 @@ class CNextPrinter {
   ): Doc {
     return printNode(path, options, printChildNode);
   }
+
+  /**
+   * Every grammar rule index this printer can lay out.
+   *
+   * Derived from the dispatcher, never hand-listed: a hand-listed copy is the
+   * same second model of the grammar that let the previous plugin rot.
+   */
+  static handledRuleIndices(): Set<number> {
+    return new Set<number>([
+      ...CONCATENATED_RULES,
+      ...DELEGATING_RULES,
+      ...BINARY_CHAIN_RULES,
+      ...COMMA_LIST_RULES,
+      ...RULE_LAYOUTS.keys(),
+    ]);
+  }
 }
 
 export default CNextPrinter;

@@ -3,9 +3,15 @@
   "entry": [
     "src/lib/parseWithSymbols.ts",
     "scripts/*.ts",
-    "prettier-plugin/src/index.ts"
+    "prettier-plugin/src/index.ts",
+    "prettier-plugin/tests/**/*.test.ts"
   ],
-  "project": ["src/**/*.ts", "scripts/**/*.ts", "prettier-plugin/src/**/*.ts"],
+  "project": [
+    "src/**/*.ts",
+    "scripts/**/*.ts",
+    "prettier-plugin/src/**/*.ts",
+    "prettier-plugin/tests/**/*.ts"
+  ],
   "ignore": [
     "tests/**",
     "src/transpiler/logic/parser/grammar/**",
