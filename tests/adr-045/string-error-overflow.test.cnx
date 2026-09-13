@@ -1,3 +1,4 @@
+// test-error
 // ADR-045: Test string literal overflow error
 // test-adr: 045
 // "Hello" is 5 chars, but capacity is only 4

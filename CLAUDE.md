@@ -262,7 +262,7 @@ go in `transpiler/types/`, which every layer may depend on. Until #1297 these ma
 edges only, so `logic/ -> state/ -> output/` was live through `CodeGenState` while CI printed
 `no dependency violations found` — ten analyzers coupled to codegen's type vocabulary with the
 guard green. A rule that cannot fail on the case it exists to catch is the
-`/* test-no-warnings */` shape (#1143) at the architecture level, so the property is asserted
+`// test-no-warnings` shape (#1143) at the architecture level, so the property is asserted
 rather than remembered: `scripts/__tests__/layer-rules.test.ts` requires every rule whose
 `from` and `to` are both transpiler paths to carry `reachable: true`. It keys on that shape
 because transitivity is wrong for the other rules — `collectors-build-names-from-scopes` names
@@ -592,6 +592,7 @@ export default new Registry();
 | `// test-execution`      | Execute and validate (MUST use `if (x != y) return N;`) |
 | `// test-error`          | Expect compile error (create `.expected.error`)         |
 | `// test-transpile-only` | Skip compilation entirely                               |
+| `// test-no-warnings`    | Compile `-O3 -Wall -Wextra -Werror` (every TU)          |
 
 **Execution tests MUST validate every result** with unique return codes (1, 2, 3...). Return 0 only if ALL pass.
 
@@ -708,7 +709,7 @@ foo.expected.error    # Expected error (if test-error)
   something other than the entry. CLAUDE.md's own "create `.expected.h` to prevent test framework
   cleanup" is what made them look like snapshots; the harness stopped cleaning helper files, so
   they are assertions now instead
-- **`/* test-no-warnings */`** compiles `-c -O3` (`TestUtils.validateNoWarnings`). `-Wstringop-overflow`/`-Warray-bounds` are middle-end diagnostics — under the previous `-fsyntax-only` with no `-O` they could never fire, so the marker was inert (#1143). It compiles **every translation unit the fixture generates**, entry and helpers: until #1553 it compiled the entry alone, so a warning in a helper's implementation was invisible — that file reaches a compiler only at the execution link step, which passes neither `-Wall` nor `-Werror`. #1553 also passes the fixture's own directory on the include path, without which a generated `#include <sibling.h>` is not found and the check fails on a missing header rather than on warnings; a **quoted** include resolves relative to the includer and never needed it, which is why one multi-file fixture carried the marker for months without hitting it. **Block form only** — a `// test-no-warnings` line comment is silently not checked (#1555)
+- **`// test-no-warnings`** compiles `-c -O3` (`TestUtils.validateNoWarnings`). `-Wstringop-overflow`/`-Warray-bounds` are middle-end diagnostics — under the previous `-fsyntax-only` with no `-O` they could never fire, so the marker was inert (#1143). It compiles **every translation unit the fixture generates**, entry and helpers: until #1553 it compiled the entry alone, so a warning in a helper's implementation was invisible — that file reaches a compiler only at the execution link step, which passes neither `-Wall` nor `-Werror`. #1553 also passes the fixture's own directory on the include path, without which a generated `#include <sibling.h>` is not found and the check fails on a missing header rather than on warnings; a **quoted** include resolves relative to the includer and never needed it, which is why one multi-file fixture carried the marker for months without hitting it. **Line form only**, like every other marker. It was read in _block_ form only until #1555 — a spelling nothing decided (`7bd86291` glossed it "marker in block comment"; #239's extraction pinned it as a characterization test) and the corpus had already voted against, 954 line-form markers to 17. One fixture asked for the check and silently never got it. The block form is now **rejected loudly** by `scripts/__tests__/marker-spellings.test.ts`, which asks `scripts/TestMarkers.ts` — the one vocabulary naming every marker and its single spelling, and the thing to extend rather than re-deriving a regex at a sixth site
 
 ### Transpiler Entry Point
 

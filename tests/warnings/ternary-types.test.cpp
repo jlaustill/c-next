@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-no-warnings */
+// test-no-warnings
 // test-execution
 // Tests: Ternary expressions should not trigger type mismatch warnings
 // Validates: Ternary operator with consistent types is warning-free

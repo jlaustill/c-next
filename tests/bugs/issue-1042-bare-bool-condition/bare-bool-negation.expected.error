@@ -1,2 +1,2 @@
-4:8 error[E0701]: if condition must be a comparison, not '!flag'
+5:8 error[E0701]: if condition must be a comparison, not '!flag'
        help: MISRA C:2012 Rule 14.4: write it out, e.g. flag = false

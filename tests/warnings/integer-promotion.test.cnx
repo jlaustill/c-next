@@ -1,4 +1,4 @@
-/* test-no-warnings */
+// test-no-warnings
 // test-execution
 // Tests: Integer promotion in expressions should not trigger warnings
 // Validates: Arithmetic on smaller types promotes correctly without warnings

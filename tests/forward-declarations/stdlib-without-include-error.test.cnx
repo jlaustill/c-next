@@ -1,3 +1,4 @@
+// test-error
 // ADR-030: Error - using stdlib function without include
 // Tests: printf without stdio.h produces error
 void main() {

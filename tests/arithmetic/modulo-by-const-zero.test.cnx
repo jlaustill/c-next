@@ -1,3 +1,4 @@
+// test-error
 // ADR-051 Phase 3: Modulo by const zero
 // Should fail at compile time
 const u32 ZERO <- 0;

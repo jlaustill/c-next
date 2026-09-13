@@ -1,3 +1,4 @@
+// test-error
 // Issue #107: Error Test - Duplicate Negative Case
 // test-adr: 025
 // Should error: duplicate negative case values not allowed

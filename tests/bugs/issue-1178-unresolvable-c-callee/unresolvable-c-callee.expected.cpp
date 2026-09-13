@@ -5,7 +5,7 @@
 
 #include "unresolvable-c-callee.test.hpp"
 
-/* test-no-warnings */
+// test-no-warnings
 // Issue #1178: TransitiveModificationPropagator treated a callee it could not
 // resolve as pure.
 //

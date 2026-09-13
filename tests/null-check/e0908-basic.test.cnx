@@ -1,3 +1,4 @@
+// test-error
 // E0908: Nullable variable used without NULL check
 #include <stdio.h>
 

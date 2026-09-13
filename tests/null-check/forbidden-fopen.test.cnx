@@ -1,3 +1,4 @@
+// test-error
 // ADR-047: fopen is NULLABLE, not forbidden. It returns a pointer that may be
 // NULL, so it requires a check (E0901). "Forbidden" is E0902 and covers dynamic
 // allocation only -- malloc, calloc, realloc, free (ADR-003). The .expected.error

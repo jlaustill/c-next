@@ -1,3 +1,4 @@
+// test-error
 // test-adr: 037
 // ADR-037: every #define form the language rejects, in one file, beside the
 // one it accepts.

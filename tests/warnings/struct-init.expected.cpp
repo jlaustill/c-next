@@ -9,7 +9,7 @@
 
 #include <stdint.h>
 
-/* test-no-warnings */
+// test-no-warnings
 // test-execution
 // Tests: Struct initialization should not trigger GCC warnings
 // Validates: Struct initializers are complete and warning-free

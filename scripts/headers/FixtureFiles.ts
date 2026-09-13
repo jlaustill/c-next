@@ -16,6 +16,8 @@
  * Nine such files were being compiled and reported as generated headers. They
  * happened to compile, so nothing said otherwise.
  */
+import TestMarkers from "../TestMarkers";
+
 class FixtureFiles {
   /**
    * The `.cnx` a generated header came from, or null when it came from none.
@@ -71,11 +73,22 @@ class FixtureFiles {
    * A `.h` beside a `// test-cpp-only` fixture is never regenerated and never
    * compared; it preserves a dead codegen shape. Compiling one reports a defect
    * in output nothing produces any more, which is worse than not checking it.
+   *
+   * #1555: this asked `sourceText.includes(...)` -- looser than every regex
+   * that issue unified, and the one marker site it missed. A bare substring
+   * reads PROSE as a marker, and #1555 explicitly blessed prose that mentions
+   * one. Measured: adding
+   * `// This fixture is test-c-only rather than test-cpp-only in spirit` to a
+   * dual-mode fixture left `marker-spellings.test.ts` green and turned
+   * `snapshot-modes.test.ts` red, reporting four live, actively-compared
+   * artifacts as orphans to delete -- naming neither markers nor prose, so the
+   * obvious reading was "delete these four", which is #1149's damage in
+   * reverse.
    */
   static isModeOrphan(path: string, sourceText: string): boolean {
     return FixtureFiles.modeOf(path) === "cpp"
-      ? sourceText.includes("test-c-only")
-      : sourceText.includes("test-cpp-only");
+      ? TestMarkers.has("test-c-only", sourceText)
+      : TestMarkers.has("test-cpp-only", sourceText);
   }
 }
 

@@ -18,7 +18,7 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
     return (uint32_t)(a + (uint32_t)b);
 }
 
-/* test-no-warnings */
+// test-no-warnings
 // test-execution
 // Tests: Array access patterns should not trigger -Warray-bounds warnings
 // Validates: Array indexing and iteration generate bounds-safe code

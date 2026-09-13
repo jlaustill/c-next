@@ -1,3 +1,4 @@
+// test-error
 // Test: Referencing own scope by name should error
 // test-adr: 016
 // ADR-016: Must use this. prefix for self-referential access

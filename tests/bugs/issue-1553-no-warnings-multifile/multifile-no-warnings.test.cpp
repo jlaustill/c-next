@@ -4,7 +4,7 @@
  */
 
 // test-execution
-/* test-no-warnings */
+// test-no-warnings
 // #1553: the no-warnings check answered two questions wrongly for a
 // multi-file fixture.
 //

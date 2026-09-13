@@ -1,3 +1,4 @@
+// test-error
 // Coverage: Section 7.2 - while loop non-boolean condition error
 // test-adr: 022
 // Tests: Error when using non-boolean expression as while condition

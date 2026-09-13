@@ -1,1 +1,1 @@
-5:4 error[E0422]: function 'second' called before definition
+6:4 error[E0422]: function 'second' called before definition

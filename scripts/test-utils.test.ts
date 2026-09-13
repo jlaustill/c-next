@@ -14,6 +14,7 @@ import TestUtils from "./test-utils";
 import ITools from "./types/ITools";
 import ITestResult from "./types/ITestResult";
 import IValidationResult from "./types/IValidationResult";
+import TestMarkers from "./TestMarkers";
 
 describe("test-utils exports", () => {
   it("should export ITools interface", () => {
@@ -75,19 +76,38 @@ describe("normalize", () => {
 });
 
 describe("hasNoWarningsMarker", () => {
-  it("should return true for source with /* test-no-warnings */ marker", () => {
-    const source = "/* test-no-warnings */\nvoid main() {}";
+  it("should return true for source with // test-no-warnings marker", () => {
+    const source = "// test-no-warnings\nvoid main() {}";
     expect(TestUtils.hasNoWarningsMarker(source)).toBe(true);
   });
 
   it("should return true with extra whitespace in marker", () => {
-    const source = "/*   test-no-warnings   */\nvoid main() {}";
+    const source = "//   test-no-warnings   \nvoid main() {}";
     expect(TestUtils.hasNoWarningsMarker(source)).toBe(true);
   });
 
-  it("should be case insensitive", () => {
-    const source = "/* TEST-NO-WARNINGS */\nvoid main() {}";
+  it("should return true when the marker is indented", () => {
+    const source = "code();\n    // test-no-warnings\nvoid main() {}";
     expect(TestUtils.hasNoWarningsMarker(source)).toBe(true);
+  });
+
+  it("should be case sensitive, and say so loudly (#1555 review)", () => {
+    // Reversed deliberately. Seven marker rows carried `i` and
+    // `test-execution` did not, so `// TEST-ERROR` was a valid marker while
+    // `// TEST-EXECUTION` was a hard error -- two spelling policies in a table
+    // promising one spelling each. Settled strict: that is what the promise
+    // means, and it is free, since all 1492 marker lines in the corpus are
+    // lowercase.
+    const source = "// TEST-NO-WARNINGS\nvoid main() {}";
+    expect(TestUtils.hasNoWarningsMarker(source)).toBe(false);
+
+    // Not ignored, though -- which is the half that matters. `MARKER_SHAPED`
+    // keeps its `i`, so the wrong case is caught as an ATTEMPT at a marker and
+    // reported, rather than silently doing nothing. Without this the change
+    // above would trade one silence for another.
+    expect(TestMarkers.findUnrecognizedSpellings(source)).toEqual([
+      { marker: "test-no-warnings", line: 1, text: "// TEST-NO-WARNINGS" },
+    ]);
   });
 
   it("should return false for source without marker", () => {
@@ -95,9 +115,24 @@ describe("hasNoWarningsMarker", () => {
     expect(TestUtils.hasNoWarningsMarker(source)).toBe(false);
   });
 
-  it("should return false for line comment marker", () => {
-    // Only block comments should count
-    const source = "// test-no-warnings\nvoid main() {}";
+  it("should return false for the block form (#1555)", () => {
+    // Reversed deliberately. The block form was the ONLY spelling read, which
+    // predates #239's extraction and was pinned afterwards by a
+    // characterization test of what that extraction found -- never a decision.
+    // Every other marker is a line comment, and the corpus had settled it 954
+    // to 17, so the line form is canonical and this spelling is now rejected.
+    // A fixture still carrying it is caught by marker-spellings.test.ts, not
+    // ignored.
+    const source = "/* test-no-warnings */\nvoid main() {}";
+    expect(TestUtils.hasNoWarningsMarker(source)).toBe(false);
+  });
+
+  it("should return false for prose that merely mentions the marker", () => {
+    // Negative control. The check above catches under-recognition; this one
+    // catches over-recognition, which a looser regex would have introduced --
+    // three of the guard's first six hits were prose exactly like this.
+    const source =
+      "// This fixture is test-no-warnings rather than test-execution\nvoid main() {}";
     expect(TestUtils.hasNoWarningsMarker(source)).toBe(false);
   });
 });
@@ -752,7 +787,11 @@ describe("runTest on an error fixture that stopped erroring (#1316)", () => {
 
   it("does not report success under --update", async () => {
     const cnxFile = join(tempDir, "lost.test.cnx");
-    writeFileSync(cnxFile, "u32 testVar;\n");
+    // #1379: the marker is read now, so a fixture asserting a diagnostic must
+    // declare itself one. Without it these reach the "has a .expected.error but
+    // does not declare // test-error" branch and never exercise #1316 at all --
+    // two of these four were passing on that instead of on what they assert.
+    writeFileSync(cnxFile, "// test-error\nu32 testVar;\n");
     writeFileSync(
       join(tempDir, "lost.expected.error"),
       "1:0 E0001 a diagnostic this fixture exists to assert\n",
@@ -766,7 +805,11 @@ describe("runTest on an error fixture that stopped erroring (#1316)", () => {
 
   it("keeps the .expected.error under --update", async () => {
     const cnxFile = join(tempDir, "lost.test.cnx");
-    writeFileSync(cnxFile, "u32 testVar;\n");
+    // #1379: the marker is read now, so a fixture asserting a diagnostic must
+    // declare itself one. Without it these reach the "has a .expected.error but
+    // does not declare // test-error" branch and never exercise #1316 at all --
+    // two of these four were passing on that instead of on what they assert.
+    writeFileSync(cnxFile, "// test-error\nu32 testVar;\n");
     const expectedErrorFile = join(tempDir, "lost.expected.error");
     writeFileSync(
       expectedErrorFile,
@@ -784,7 +827,11 @@ describe("runTest on an error fixture that stopped erroring (#1316)", () => {
     // remove the diagnostic still needs to see what the fixture now generates.
     // A fix that simply stopped writing anything would pass the two tests above.
     const cnxFile = join(tempDir, "lost.test.cnx");
-    writeFileSync(cnxFile, "u32 testVar;\n");
+    // #1379: the marker is read now, so a fixture asserting a diagnostic must
+    // declare itself one. Without it these reach the "has a .expected.error but
+    // does not declare // test-error" branch and never exercise #1316 at all --
+    // two of these four were passing on that instead of on what they assert.
+    writeFileSync(cnxFile, "// test-error\nu32 testVar;\n");
     writeFileSync(
       join(tempDir, "lost.expected.error"),
       "1:0 E0001 a diagnostic this fixture exists to assert\n",
@@ -803,7 +850,11 @@ describe("runTest on an error fixture that stopped erroring (#1316)", () => {
     // files this run just wrote, instead of that a diagnostic went missing.
     // Re-running to confirm a failure is the first thing anyone does.
     const cnxFile = join(tempDir, "lost.test.cnx");
-    writeFileSync(cnxFile, "u32 testVar;\n");
+    // #1379: the marker is read now, so a fixture asserting a diagnostic must
+    // declare itself one. Without it these reach the "has a .expected.error but
+    // does not declare // test-error" branch and never exercise #1316 at all --
+    // two of these four were passing on that instead of on what they assert.
+    writeFileSync(cnxFile, "// test-error\nu32 testVar;\n");
     writeFileSync(
       join(tempDir, "lost.expected.error"),
       "1:0 E0001 a diagnostic this fixture exists to assert\n",
@@ -824,7 +875,7 @@ describe("runTest on an error fixture that stopped erroring (#1316)", () => {
     const cnxFile = join(tempDir, "kept.test.cnx");
     writeFileSync(
       cnxFile,
-      "void shiftTooFar() {\n  u8 value <- 1;\n  value <- value << 8;\n}\n",
+      "// test-error\nvoid shiftTooFar() {\n  u8 value <- 1;\n  value <- value << 8;\n}\n",
     );
     const expectedErrorFile = join(tempDir, "kept.expected.error");
     writeFileSync(expectedErrorFile, "0:0 stale text to be refreshed\n");
