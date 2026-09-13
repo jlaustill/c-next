@@ -647,10 +647,10 @@ class TestUtils {
    * #1544: the include path is the fixture's SOURCE ROOT -- the entry's
    * directory -- and is the same for every translation unit in the fixture,
    * which is why this takes that directory rather than the file being
-   * compiled. Taking a directory is what makes the wrong argument unspellable:
-   * the previous signature took a file whose only use was `dirname()`, so
-   * passing the unit being compiled type-checked and was wrong for every unit
-   * except the entry. A
+   * compiled. Taking a directory is what leaves the wrong argument no way to
+   * be written: the previous signature took a file whose only use was
+   * `dirname()`, so passing the unit being compiled type-checked and was wrong
+   * for every unit except the entry. A
    * generated file's self-include is source-root-relative by #339's decision,
    * so `lib/sensors.c` includes `"lib/sensors.h"` in order that two helpers
    * both named `config.cnx` cannot collide on `"config.h"` (#1134). Passing
