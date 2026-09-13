@@ -1,5 +1,6 @@
 // test-execution
 /* test-no-warnings */
+// test-adr: 029
 // #1544: a function used as a callback is recognised only when the wiring sits
 // in the SAME FILE as the declaration, so a function wired from another file
 // keeps ordinary parameter rules and its emitted signature stops matching the
