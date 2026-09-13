@@ -99,7 +99,6 @@ import BooleanHelper from "./helpers/BooleanHelper";
 // PR #715: C++ constructor detection helper for improved testability
 import CppConstructorHelper from "../../../utils/CppConstructorHelper";
 // PR #715: Set/Map utilities for improved testability
-import SetMapHelper from "./helpers/SetMapHelper";
 // PR #715: Symbol lookup utilities for improved testability
 import SymbolLookupHelper from "./helpers/SymbolLookupHelper";
 // Issue #644: Assignment validation coordinator helper
@@ -1581,23 +1580,6 @@ export default class CodeGenerator implements IOrchestrator {
    */
   getFunctionParamLists(): ReadonlyMap<string, string[]> {
     return CodeGenState.functionParamLists;
-  }
-
-  /**
-   * Find params that are in current set but not in injected set.
-   */
-  private findNewParams(
-    params: Set<string>,
-    injectedParams: ReadonlySet<string>,
-  ): Set<string> {
-    return SetMapHelper.findNewItems(params, injectedParams);
-  }
-
-  /**
-   * Restore a map's state by clearing and repopulating from saved data.
-   */
-  private restoreMapState<K, V>(target: Map<K, V>, saved: Map<K, V>): void {
-    SetMapHelper.restoreMapState(target, saved);
   }
 
   /**
@@ -3116,31 +3098,9 @@ export default class CodeGenerator implements IOrchestrator {
 
   // NOTE: Public isIntegerType and isFloatType moved to IOrchestrator interface
   // Private versions kept for internal use
-  private _isIntegerType(typeName: string): boolean {
-    return TypeResolver.isIntegerType(typeName);
-  }
 
   private _isFloatType(typeName: string): boolean {
     return TypeResolver.isFloatType(typeName);
-  }
-
-  /**
-   * ADR-024: Check if conversion from sourceType to targetType is narrowing
-   * Narrowing occurs when target type has fewer bits than source type
-   */
-  private isNarrowingConversion(
-    sourceType: string,
-    targetType: string,
-  ): boolean {
-    return TypeResolver.isNarrowingConversion(sourceType, targetType);
-  }
-
-  /**
-   * ADR-024: Check if conversion involves a sign change
-   * Sign change occurs when converting between signed and unsigned types
-   */
-  private isSignConversion(sourceType: string, targetType: string): boolean {
-    return TypeResolver.isSignConversion(sourceType, targetType);
   }
 
   /**
@@ -3404,17 +3364,6 @@ export default class CodeGenerator implements IOrchestrator {
     const result = generator(ctx, this.getInput(), this.getState(), this);
     this.applyEffects(result.effects);
     return result.code;
-  }
-
-  /**
-   * Get string capacity dimension if type is string<N>
-   */
-  private _getStringCapacityDimension(typeCtx: Parser.TypeContext): string {
-    if (!typeCtx.stringType()) return "";
-    const intLiteral = typeCtx.stringType()!.INTEGER_LITERAL();
-    if (!intLiteral) return "";
-    const capacity = Number.parseInt(intLiteral.getText(), 10);
-    return `[${capacity + 1}]`;
   }
 
   // ========================================================================
@@ -3715,21 +3664,6 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Set up context for function generation.
-   * Issue #793: Delegates to FunctionContextManager.
-   */
-  private _setupFunctionContext(
-    name: string,
-    ctx: Parser.FunctionDeclarationContext,
-  ): void {
-    FunctionContextManager.setupFunctionContext(
-      name,
-      ctx,
-      this._getFunctionContextCallbacks(),
-    );
-  }
-
-  /**
    * Issue #793: Create callbacks for FunctionContextManager.
    */
   private _getFunctionContextCallbacks(): IFunctionContextCallbacks {
@@ -3740,47 +3674,6 @@ export default class CodeGenerator implements IOrchestrator {
       isTypedefStructType: (t: string) =>
         CodeGenState.symbolTable?.isTypedefStructType(t) ?? false,
     };
-  }
-
-  /**
-   * Resolve return type and initial params for function.
-   * Issue #793: Delegates to FunctionContextManager.
-   */
-  private _resolveReturnTypeAndParams(
-    name: string,
-    returnType: string,
-    isMainWithArgs: boolean,
-    ctx: Parser.FunctionDeclarationContext,
-  ): { actualReturnType: string; initialParams: string } {
-    return FunctionContextManager.resolveReturnTypeAndParams(
-      name,
-      returnType,
-      isMainWithArgs,
-      ctx,
-    );
-  }
-
-  /**
-   * Clean up context after function generation.
-   * Issue #793: Delegates to FunctionContextManager.
-   */
-  private _cleanupFunctionContext(): void {
-    FunctionContextManager.cleanupFunctionContext();
-  }
-
-  /**
-   * Append callback typedef if function is used as a field type
-   */
-  private _appendCallbackTypedefIfNeeded(
-    name: string,
-    functionCode: string,
-  ): string {
-    if (name === "main") {
-      return functionCode;
-    }
-
-    this.recordCallbackTypedef(name);
-    return functionCode;
   }
 
   private generateParameter(

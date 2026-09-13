@@ -231,6 +231,15 @@ jobs:
         run: npm run parse-tree:check
         continue-on-error: true
 
+      # Issue #1556: `noUnusedLocals` cannot live in tsconfig.json -- ANTLR's
+      # committed parsers carry unused locals and must not be hand-edited, and
+      # TypeScript has no per-directory flag. The check runs the compiler with
+      # the flag and drops generated output from the result.
+      - name: Check for unused declarations in authored code
+        id: unusedcode
+        run: npm run unused-code:check
+        continue-on-error: true
+
       # Issue #1552: an ADR-029 `_fp` typedef must carry the same const its
       # function's prototype carries, or the two are incompatible pointer types
       # -- and when a declaring and a using file disagree, one translation unit
@@ -277,6 +286,7 @@ jobs:
           [ "${{ steps.throwcitations.outcome }}" != "success" ] && echo "❌ Throw citations" && FAILED=1 || echo "✅ Throw citations"
           [ "${{ steps.scopejoins.outcome }}" != "success" ] && echo "❌ Scope-join sites" && FAILED=1 || echo "✅ Scope-join sites"
           [ "${{ steps.parsetree.outcome }}" != "success" ] && echo "❌ Parse-tree baseline" && FAILED=1 || echo "✅ Parse-tree baseline"
+          [ "${{ steps.unusedcode.outcome }}" != "success" ] && echo "❌ Unused declarations" && FAILED=1 || echo "✅ Unused declarations"
           [ "${{ steps.typedefconst.outcome }}" != "success" ] && echo "❌ Typedef const parity" && FAILED=1 || echo "✅ Typedef const parity"
           [ "${{ steps.gateroster.outcome }}" != "success" ] && echo "❌ Gate roster" && FAILED=1 || echo "✅ Gate roster"
           [ $FAILED -eq 1 ] && exit 1 || exit 0

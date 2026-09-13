@@ -35,18 +35,15 @@ import ParserUtils from "../../utils/ParserUtils";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
 import IControllingExpressionError from "./types/IControllingExpressionError";
 import IScopeFrame from "./types/IScopeFrame";
-import OperandTypeResolver from "./OperandTypeResolver";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 
 const CALL_HELP = "Store the function result in a variable first.";
 
 class ControllingExpressionListener extends CNextListener {
   private readonly found: IControllingExpressionError[] = [];
-  private readonly types: OperandTypeResolver;
 
   public constructor(private readonly scopes: ScopeFrameResolver) {
     super();
-    this.types = new OperandTypeResolver(scopes);
   }
 
   public errors(): IControllingExpressionError[] {

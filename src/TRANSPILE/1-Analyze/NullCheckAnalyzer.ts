@@ -196,13 +196,6 @@ class NullCheckListener extends CNextListener {
 
   /** Whether we're currently inside an equality comparison (= or !=) */
   private inEqualityComparison = false;
-
-  /** Track the function name in the current equality comparison (if any) */
-  private equalityComparisonFuncName: string | null = null;
-
-  /** Track if the current equality comparison contains NULL */
-  private equalityComparisonHasNull = false;
-
   /** Track variable names in the current equality comparison */
   private equalityComparisonVarNames: string[] = [];
 
@@ -222,10 +215,6 @@ class NullCheckListener extends CNextListener {
     isNullCheck: boolean;
     hasReturn: boolean;
   }> = [];
-
-  /** Track if we're in the body of an if statement (first statement) */
-  private readonly inIfBody = false;
-
   /** Track the current if-statement context for body detection */
   private currentIfCtx: Parser.IfStatementContext | null = null;
 
@@ -508,8 +497,6 @@ class NullCheckListener extends CNextListener {
       const text = child.getText();
       if (text === "=" || text === "!=") {
         this.inEqualityComparison = true;
-        this.equalityComparisonFuncName = null;
-        this.equalityComparisonHasNull = false;
         // Extract variable names from the comparison
         this.equalityComparisonVarNames = this.extractVariableNames(ctx);
         return;
@@ -554,8 +541,6 @@ class NullCheckListener extends CNextListener {
       // If we had a stream function in this comparison, it's OK
       // (the function was used correctly in a NULL check)
       this.inEqualityComparison = false;
-      this.equalityComparisonFuncName = null;
-      this.equalityComparisonHasNull = false;
       this.equalityComparisonVarNames = [];
     }
   };
@@ -593,7 +578,6 @@ class NullCheckListener extends CNextListener {
     if (NULLABLE_C_FUNCTIONS.has(funcName)) {
       if (this.inEqualityComparison) {
         // Track that we found a stream function in this comparison
-        this.equalityComparisonFuncName = funcName;
       } else if (this.inVariableDeclarationWithNullable) {
         // Inside a variable declaration - E0905 or valid c_ prefix already handled
         // Don't also report E0901
@@ -670,7 +654,6 @@ class NullCheckListener extends CNextListener {
           }
         }
         // NULL in comparison context - OK (for c_ prefixed variables or functions)
-        this.equalityComparisonHasNull = true;
       } else {
         // NULL outside comparison - error
         this.analyzer.reportInvalidNullUsage(line, column);

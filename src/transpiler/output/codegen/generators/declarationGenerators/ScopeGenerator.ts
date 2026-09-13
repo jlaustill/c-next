@@ -552,29 +552,4 @@ const generateScope: TGeneratorFn<Parser.ScopeDeclarationContext> = (
     effects: [],
   };
 };
-
-/**
- * Resolve bitmap backing type from symbols or keyword
- */
-function _getBitmapBackingType(
-  fullName: string,
-  node: Parser.BitmapDeclarationContext,
-  input: IGeneratorInput,
-): string {
-  const symbolType = input.symbols?.bitmapBackingType.get(fullName);
-  if (symbolType) return symbolType;
-
-  const bitmapKeyword = node.getChild(0)?.getText() || "bitmap32";
-  switch (bitmapKeyword) {
-    case "bitmap8":
-      return "uint8_t";
-    case "bitmap16":
-      return "uint16_t";
-    case "bitmap64":
-      return "uint64_t";
-    default:
-      return "uint32_t";
-  }
-}
-
 export default generateScope;

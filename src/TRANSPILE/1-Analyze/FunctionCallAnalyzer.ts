@@ -222,21 +222,6 @@ class FunctionCallListener extends CNextListener {
       (name) => this.analyzer.isScope(name),
     );
   }
-
-  /**
-   * Resolve member access pattern. Returns new name or null if not a C-Next function.
-   */
-  private resolveMemberAccess(
-    resolvedName: string,
-    op: Parser.PostfixOpContext,
-  ): string | null {
-    return CalleeNameResolver.resolveMemberAccess(
-      resolvedName,
-      op,
-      this.enclosing.current(),
-      (name) => this.analyzer.isScope(name),
-    );
-  }
 }
 
 /**

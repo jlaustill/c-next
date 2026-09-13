@@ -468,30 +468,6 @@ class StringDeclHelper {
   }
 
   /**
-   * Expand fill-all syntax if needed.
-   * ["Hello"*] with size 3 -> {"Hello", "Hello", "Hello"}
-   * Delegates to the common fill-all expansion logic with size from arrayDimension.
-   */
-  private static _expandFillAllIfNeeded(
-    initValue: string,
-    arrayDims: Parser.ArrayDimensionContext[],
-  ): string {
-    const declaredSize = StringDeclHelper._getFirstDimNumericSize(arrayDims);
-    return StringDeclHelper._expandFillAll(initValue, declaredSize);
-  }
-
-  /**
-   * Get the numeric size from the first array dimension, or null if not numeric.
-   * Used by arrayDimension-based string arrays (string<N> arr[M]).
-   */
-  private static _getFirstDimNumericSize(
-    arrayDims: Parser.ArrayDimensionContext[],
-  ): number | null {
-    const firstDimExpr = arrayDims[0]?.expression();
-    return StringDeclHelper._parseNumericSize(firstDimExpr);
-  }
-
-  /**
    * Generate string concatenation declaration.
    */
   private static _generateConcatDecl(

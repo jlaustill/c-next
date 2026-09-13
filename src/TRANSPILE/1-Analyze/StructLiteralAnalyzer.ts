@@ -52,17 +52,12 @@ import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
 import ParserUtils from "../../utils/ParserUtils";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
 import StructInitializerType from "./helpers/StructInitializerType";
-import OperandTypeResolver from "./OperandTypeResolver";
-import ScopeFrameResolver from "./ScopeFrameResolver";
 import IStructLiteralError from "./types/IStructLiteralError";
 
 class StructLiteralListener extends CNextListener {
   private readonly found: IStructLiteralError[] = [];
 
-  public constructor(
-    private readonly scopes: ScopeFrameResolver,
-    private readonly operands: OperandTypeResolver,
-  ) {
+  public constructor() {
     super();
   }
 
@@ -101,11 +96,7 @@ class StructLiteralAnalyzer {
   public analyze(tree: Parser.ProgramContext): IStructLiteralError[] {
     const declarations = new DeclarationScopeCollector();
     ParseTreeWalker.DEFAULT.walk(declarations, tree);
-    const scopes = new ScopeFrameResolver(declarations);
-    const listener = new StructLiteralListener(
-      scopes,
-      new OperandTypeResolver(scopes),
-    );
+    const listener = new StructLiteralListener();
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();
   }
