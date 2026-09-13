@@ -136,7 +136,6 @@ const _resolveArgType = (
 const _generateCFunctionArg = (
   e: ExpressionContext,
   targetParam: IResolvedParam["param"],
-  input: IGeneratorInput,
   orchestrator: IOrchestrator,
 ): string => {
   // Issue #937: Check if argument is a callback-promoted parameter (already a pointer)
@@ -285,7 +284,7 @@ const generateFunctionCall = (
 
   // ADR-051: Handle safe_div() and safe_mod() built-in functions
   if (funcExpr === "safe_div" || funcExpr === "safe_mod") {
-    return generateSafeDivMod(funcExpr, argExprs, input, orchestrator, effects);
+    return generateSafeDivMod(funcExpr, argExprs, orchestrator, effects);
   }
 
   // Regular function call handling
@@ -314,7 +313,7 @@ const generateFunctionCall = (
 
         // C/C++ function: use pass-by-value semantics
         if (!isCNextFunc) {
-          return _generateCFunctionArg(e, targetParam, input, orchestrator);
+          return _generateCFunctionArg(e, targetParam, orchestrator);
         }
 
         // C-Next function: check if target parameter should be passed by value
@@ -362,7 +361,6 @@ const generateFunctionCall = (
 const generateSafeDivMod = (
   funcName: string,
   argExprs: ExpressionContext[],
-  input: IGeneratorInput,
   orchestrator: IOrchestrator,
   effects: TGeneratorEffect[],
 ): IGeneratorOutput => {

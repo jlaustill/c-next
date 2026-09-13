@@ -2,8 +2,15 @@
 /**
  * #1556: fail when authored code declares something it never reads.
  *
- * Runs `tsc --noUnusedLocals` over both programs and reports every finding
- * outside ANTLR's generated output. See `scripts/unused-code/UnusedCode.ts`
+ * Runs `tsc --noUnusedLocals --noUnusedParameters` over every TypeScript
+ * program and reports each finding outside ANTLR's generated output.
+ *
+ * `--noUnusedParameters` honours a leading underscore as "intentionally
+ * unused", which is the escape hatch for a parameter a SIGNATURE requires --
+ * a `TGeneratorFn` implementation, a positional callback. It is not an escape
+ * hatch for a parameter nothing requires: 18 of the 20 found when this flag
+ * was turned on were removable, and removing them took their arguments with
+ * them. See `scripts/unused-code/UnusedCode.ts`
  * for why the flag cannot simply live in `tsconfig.json`.
  */
 
@@ -57,7 +64,14 @@ function tscOutput(project: string): string {
   try {
     execFileSync(
       "npx",
-      ["tsc", "--noEmit", "--noUnusedLocals", "-p", project],
+      [
+        "tsc",
+        "--noEmit",
+        "--noUnusedLocals",
+        "--noUnusedParameters",
+        "-p",
+        project,
+      ],
       { cwd: rootDir, encoding: "utf-8", stdio: "pipe" },
     );
     return "";
@@ -94,7 +108,9 @@ function main(): void {
 
   if (seen.size === 0) {
     console.log(
-      chalk.green("No unused declarations outside generated output."),
+      chalk.green(
+        "No unused declarations or parameters outside generated output.",
+      ),
     );
     return;
   }
@@ -107,7 +123,7 @@ function main(): void {
   }
   console.error(
     chalk.yellow(
-      "Remove them. A write-only field needs its assignments removed too.",
+      "Remove them, taking their arguments and assignments with them. Prefix with `_` ONLY when a signature requires the parameter.",
     ),
   );
   process.exit(1);

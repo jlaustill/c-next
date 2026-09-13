@@ -512,7 +512,6 @@ const handleThisScopeLength = (
 const resolveStringTypeInfo = (
   tracking: ITrackingState,
   rootIdentifier: string | undefined,
-  input: IGeneratorInput,
   orchestrator: IOrchestrator,
 ): TTypeInfo | undefined => {
   const identifier = tracking.resolvedIdentifier ?? rootIdentifier;
@@ -600,13 +599,7 @@ const tryExplicitLengthProperty = (
       result = generateElementCountProperty(ctx, input, state, orchestrator);
       break;
     case "char_count":
-      result = generateCharCountProperty(
-        ctx,
-        input,
-        state,
-        orchestrator,
-        effects,
-      );
+      result = generateCharCountProperty(ctx, state, orchestrator, effects);
       break;
   }
 
@@ -663,7 +656,6 @@ const tryPropertyAccess = (
     const typeInfo = resolveStringTypeInfo(
       tracking,
       rootIdentifier,
-      input,
       orchestrator,
     );
     const capResult = accessGenerators.generateCapacityProperty(typeInfo);
@@ -676,7 +668,6 @@ const tryPropertyAccess = (
     const typeInfo = resolveStringTypeInfo(
       tracking,
       rootIdentifier,
-      input,
       orchestrator,
     );
     const sizeResult = accessGenerators.generateSizeProperty(typeInfo);
@@ -1166,7 +1157,6 @@ const generateElementCountProperty = (
  */
 const generateCharCountProperty = (
   ctx: IExplicitLengthContext,
-  input: IGeneratorInput,
   state: IGeneratorState,
   orchestrator: IOrchestrator,
   effects: TGeneratorEffect[],
@@ -1299,8 +1289,8 @@ const generateMemberAccess = (
   return (
     tryBitmapFieldAccess(ctx, input, effects) ??
     tryScopeMemberAccess(ctx, input, state, orchestrator) ??
-    tryKnownScopeAccess(ctx, input, state, orchestrator) ??
-    tryEnumMemberAccess(ctx, input, state, orchestrator) ??
+    tryKnownScopeAccess(ctx, orchestrator) ??
+    tryEnumMemberAccess(ctx, input, orchestrator) ??
     tryRegisterMemberAccess(ctx, input) ??
     tryStructParamAccess(ctx, orchestrator) ??
     tryRegisterBitmapAccess(ctx, input, effects) ??
@@ -1388,8 +1378,6 @@ const tryScopeMemberAccess = (
 // stood in the handlers below, checking each position on its own path.
 const tryKnownScopeAccess = (
   ctx: IMemberAccessContext,
-  input: IGeneratorInput,
-  state: IGeneratorState,
   orchestrator: IOrchestrator,
 ): MemberAccessResult | null => {
   if (!orchestrator.isKnownScope(ctx.result)) {
@@ -1415,7 +1403,6 @@ const tryKnownScopeAccess = (
 const tryEnumMemberAccess = (
   ctx: IMemberAccessContext,
   input: IGeneratorInput,
-  state: IGeneratorState,
   orchestrator: IOrchestrator,
 ): MemberAccessResult | null => {
   if (!input.symbols!.knownEnums.has(ctx.result)) {
@@ -1620,7 +1607,6 @@ const generateSubscriptAccess = (
     return handleBitRangeSubscript(
       ctx,
       exprs,
-      input,
       state,
       orchestrator,
       effects,
@@ -1842,7 +1828,6 @@ const handleDefaultSubscript = (
 const handleBitRangeSubscript = (
   ctx: ISubscriptAccessContext,
   exprs: Parser.ExpressionContext[],
-  input: IGeneratorInput,
   state: IGeneratorState,
   orchestrator: IOrchestrator,
   effects: TGeneratorEffect[],

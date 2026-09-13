@@ -98,7 +98,6 @@ class StringDeclHelper {
         expression,
         arrayDims,
         modifiers,
-        isConst,
         callbacks,
       );
     }
@@ -117,9 +116,7 @@ class StringDeclHelper {
         name,
         capacity,
         expression,
-        arrayDims,
         modifiers,
-        isConst,
         callbacks,
       );
     } else {
@@ -144,7 +141,6 @@ class StringDeclHelper {
     expression: Parser.ExpressionContext | null,
     trailingArrayDims: Parser.ArrayDimensionContext[],
     modifiers: IStringDeclModifiers,
-    isConst: boolean,
     callbacks: IStringDeclCallbacks,
   ): IStringDeclResult {
     const stringCtx = arrayTypeCtx.stringType()!;
@@ -331,9 +327,7 @@ class StringDeclHelper {
     name: string,
     capacity: number,
     expression: Parser.ExpressionContext | null,
-    arrayDims: Parser.ArrayDimensionContext[],
     modifiers: IStringDeclModifiers,
-    isConst: boolean,
     callbacks: IStringDeclCallbacks,
   ): IStringDeclResult {
     const {

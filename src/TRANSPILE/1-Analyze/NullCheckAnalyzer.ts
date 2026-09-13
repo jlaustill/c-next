@@ -592,14 +592,13 @@ class NullCheckListener extends CNextListener {
     }
 
     // E0908: Check for unchecked c_ variables passed as function arguments
-    this.checkFunctionArgumentsForUncheckedVariables(ctx, ops, line);
+    this.checkFunctionArgumentsForUncheckedVariables(ops, line);
   };
 
   /**
    * Check if any c_ prefixed variables in function arguments are unchecked (E0908)
    */
   private checkFunctionArgumentsForUncheckedVariables(
-    ctx: Parser.PostfixExpressionContext,
     ops: Parser.PostfixOpContext[],
     line: number,
   ): void {
@@ -622,7 +621,6 @@ class NullCheckListener extends CNextListener {
             const argColumn = arg.start?.column ?? 0;
             this.analyzer.reportMissingNullCheckBeforeUse(
               argText,
-              varState.typeName,
               argLine,
               argColumn,
             );
@@ -933,7 +931,6 @@ class NullCheckAnalyzer {
    */
   public reportMissingNullCheckBeforeUse(
     varName: string,
-    typeName: string,
     line: number,
     column: number,
   ): void {

@@ -33,7 +33,7 @@ import ASSIGNMENT_OPERATOR_MAP from "../../../../../utils/constants/OperatorMapp
  */
 const generateReturn = (
   node: ReturnStatementContext,
-  input: IGeneratorInput,
+  _input: IGeneratorInput,
   _state: IGeneratorState,
   orchestrator: IOrchestrator,
 ): IGeneratorOutput => {

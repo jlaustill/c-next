@@ -73,7 +73,6 @@ class StringDeclarationListener extends CNextListener {
 
     if (
       !this.checkCapacityIsStated(
-        ctx,
         stringCtx,
         declared,
         isArray,
@@ -104,7 +103,6 @@ class StringDeclarationListener extends CNextListener {
    * one from. Four throws, one question.
    */
   private checkCapacityIsStated(
-    ctx: Parser.VariableDeclarationContext,
     stringCtx: Parser.StringTypeContext,
     declared: unknown,
     isArray: boolean,
