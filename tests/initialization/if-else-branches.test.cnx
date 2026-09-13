@@ -1,3 +1,4 @@
+// test-error
 // Test: If/else branch analysis
 void testBothBranches() {
     u32 x;

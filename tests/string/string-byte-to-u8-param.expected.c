@@ -9,7 +9,7 @@
 #include <string.h>
 
 // test-execution
-/* test-no-warnings */
+// test-no-warnings
 // Regression test for Issue #246 - string<N> byte indexing to u8 parameters
 // Verifies passing buf[0] to u8 parameter generates correct types
 // (was generating char* instead of uint8_t*)

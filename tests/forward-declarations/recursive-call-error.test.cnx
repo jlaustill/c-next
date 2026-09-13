@@ -1,3 +1,4 @@
+// test-error
 // ADR-030: Self-recursion is forbidden per MISRA C:2012 Rule 17.2
 // A function cannot call itself, directly or indirectly
 void countdown(u32 n) {

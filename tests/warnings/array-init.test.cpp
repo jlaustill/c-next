@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-no-warnings */
+// test-no-warnings
 // test-execution
 // Tests: Array initialization should not trigger GCC warnings
 // Validates: Array initializers with various types are warning-free

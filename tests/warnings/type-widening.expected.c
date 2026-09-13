@@ -18,7 +18,7 @@ static inline uint16_t cnx_clamp_add_u16(uint16_t a, uint32_t b) {
     return (uint16_t)(a + (uint16_t)b);
 }
 
-/* test-no-warnings */
+// test-no-warnings
 // test-execution
 // Tests: Type widening conversions should not trigger -Wconversion warnings
 // Validates: Implicit widening from smaller to larger unsigned types is safe

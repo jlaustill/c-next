@@ -1,3 +1,4 @@
+// test-error
 // ADR-046: Invalid c_ prefix on non-nullable type
 #include <stdio.h>
 

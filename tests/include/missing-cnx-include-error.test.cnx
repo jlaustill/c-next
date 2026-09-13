@@ -1,3 +1,4 @@
+// test-error
 // test-adr: 010
 // ADR-010: a quoted C-Next include naming a file that is not there is E0506.
 //

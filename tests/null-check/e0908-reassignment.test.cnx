@@ -1,3 +1,4 @@
+// test-error
 // E0908: Reassignment resets NULL check state
 #include <stdio.h>
 

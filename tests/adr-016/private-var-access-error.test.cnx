@@ -1,3 +1,4 @@
+// test-error
 // Test: Accessing private scope variable from outside should error
 // test-adr: 016
 // This should fail with a visibility error per ADR-016

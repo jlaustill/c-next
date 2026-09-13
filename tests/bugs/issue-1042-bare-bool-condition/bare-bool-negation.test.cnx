@@ -1,3 +1,4 @@
+// test-error
 // Issue #1042: a negated bare boolean is not a comparison; must be rejected (E0701).
 // Use an explicit comparison instead: if (flag = false).
 bool h(bool flag) {

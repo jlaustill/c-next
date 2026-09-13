@@ -1,3 +1,4 @@
+// test-error
 // Issue #375: Error - non-const variable argument
 // test-cpp-only
 #include "constructor-stubs.h"

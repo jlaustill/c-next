@@ -1,3 +1,4 @@
+// test-error
 // Test: bits[start..end] syntax should produce a parse error
 // This syntax is NOT valid C-Next. Use bitmap types instead.
 

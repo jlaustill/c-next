@@ -1,4 +1,4 @@
-/* test-no-warnings */
+// test-no-warnings
 // test-execution
 // Tests: Array access patterns should not trigger -Warray-bounds warnings
 // Validates: Array indexing and iteration generate bounds-safe code

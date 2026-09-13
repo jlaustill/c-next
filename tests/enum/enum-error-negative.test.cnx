@@ -1,3 +1,4 @@
+// test-error
 // ADR-017: Type safety test - should fail
 // Error: Negative values not allowed in enum
 enum BadEnum {

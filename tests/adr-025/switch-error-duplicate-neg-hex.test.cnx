@@ -1,3 +1,4 @@
+// test-error
 // Issue #107: Error Test - Duplicate Negative Hex/Decimal
 // test-adr: 025
 // Should error: -128 and -0x80 are the same value

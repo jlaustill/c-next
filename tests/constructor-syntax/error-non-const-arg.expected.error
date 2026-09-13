@@ -1,2 +1,2 @@
-6:0 error[E0432]: Constructor argument 'mutablePin' must be const
+7:0 error[E0432]: Constructor argument 'mutablePin' must be const
        help: A C++ constructor runs during static initialization, before main, so it may only read a value fixed at compile time. Declare the argument `const`.

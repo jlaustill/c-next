@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-no-warnings */
+// test-no-warnings
 // test-execution
 // Tests: Signed type widening should not trigger -Wconversion warnings
 // Validates: Implicit widening from smaller to larger signed types is safe

@@ -1,3 +1,4 @@
+// test-error
 // ADR-047: Valid NULL check pattern for fgetc
 #include <stdio.h>
 

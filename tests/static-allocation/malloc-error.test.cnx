@@ -1,3 +1,4 @@
+// test-error
 // ADR-003: malloc is forbidden
 // Tests: dynamic allocation not allowed
 #include <stdlib.h>

@@ -25,6 +25,7 @@ import { fileURLToPath } from "node:url";
 import Transpiler from "../src/transpiler/Transpiler";
 import IncludeDiscovery from "../src/transpiler/data/IncludeDiscovery";
 import FileScanner from "./utils/FileScanner";
+import TestMarkers from "./TestMarkers";
 import chalk from "chalk";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -37,21 +38,6 @@ interface IGenerationResult {
   skipped: boolean;
   reason?: string;
   error?: string;
-}
-
-/**
- * Check if source has test-c-only marker (skip C++ generation)
- */
-function hasCOnlyMarker(source: string): boolean {
-  return /\/\/\s*test-c-only/i.test(source);
-}
-
-/**
- * Check if source has test-cpp-only marker
- * (these already run in C++ mode, don't need separate C++ snapshots)
- */
-function isCppOnlyTest(source: string): boolean {
-  return /\/\/\s*test-cpp-only/i.test(source);
 }
 
 // Use shared FileScanner.findTestFiles instead of local implementation
@@ -246,7 +232,7 @@ async function generateHelperCppSnapshot(
   const source = readFileSync(cnxFile, "utf-8");
 
   // Skip helpers with C-only marker
-  if (hasCOnlyMarker(source)) {
+  if (TestMarkers.has("test-c-only", source)) {
     return {
       file: cnxFile,
       generated: false,
@@ -291,7 +277,7 @@ async function generateCppSnapshot(
   const source = readFileSync(cnxFile, "utf-8");
 
   // Skip tests with C-only marker
-  if (hasCOnlyMarker(source)) {
+  if (TestMarkers.has("test-c-only", source)) {
     return {
       file: cnxFile,
       generated: false,
@@ -301,7 +287,7 @@ async function generateCppSnapshot(
   }
 
   // Skip tests that are already C++ only (they use .expected.c for C++ output)
-  if (isCppOnlyTest(source)) {
+  if (TestMarkers.has("test-cpp-only", source)) {
     return {
       file: cnxFile,
       generated: false,

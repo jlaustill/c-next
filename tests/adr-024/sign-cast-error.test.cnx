@@ -1,3 +1,4 @@
+// test-error
 // ADR-024: Test that sign-changing cast produces error
 // test-adr: 024
 // (u32)i32_value should produce a compiler error
