@@ -267,6 +267,24 @@ class FunctionCallAnalyzer {
   private callableVariables: Set<string> = new Set();
 
   /**
+   * #1544: every function the PROGRAM declares, for the callback writers only.
+   *
+   * Empty for a per-file run, which is correct: the whole-program pass is the
+   * one that owns the callback map, and a per-file run's writes to it are not
+   * read by anything (`Program` holds the copy taken when it was derived).
+   */
+  private readonly programFunctions: ReadonlySet<string>;
+
+  /**
+   * @param programFunctions every function declared anywhere in the program,
+   *        supplied by the whole-program callback pass. Omitted for a per-file
+   *        run -- see the field.
+   */
+  public constructor(programFunctions: ReadonlySet<string> = new Set()) {
+    this.programFunctions = programFunctions;
+  }
+
+  /**
    * Analyze a parsed program for function call errors
    * @param tree The parsed program AST
    * @param symbolTable Optional symbol table for external function lookup
@@ -346,11 +364,29 @@ class FunctionCallAnalyzer {
    * and cross-file functions from includes (allowed without local definition).
    */
   private collectAllLocalFunctions(tree: Parser.ProgramContext): void {
+    for (const name of FunctionCallAnalyzer.declaredFunctionNames(tree)) {
+      this.allLocalFunctions.add(name);
+    }
+  }
+
+  /**
+   * The functions ONE FILE declares, keyed as the callback writers look them up.
+   *
+   * #1544: static and returning the set, so the per-file set and the
+   * program-wide union are built by the SAME encoder rather than by two
+   * spellings of one rule. A second derivation of these keys could only ever
+   * agree with this one by coincidence, which is the failure #1472 already
+   * found in this file: the set that preceded `allLocalFunctions` walked
+   * `tree.declaration()` separately and silently omitted every scope member.
+   */
+  public static declaredFunctionNames(
+    tree: Parser.ProgramContext,
+  ): Set<string> {
+    const names = new Set<string>();
     for (const decl of tree.declaration()) {
       // Standalone functions
       if (decl.functionDeclaration()) {
-        const name = decl.functionDeclaration()!.IDENTIFIER().getText();
-        this.allLocalFunctions.add(name);
+        names.add(decl.functionDeclaration()!.IDENTIFIER().getText());
       }
       // Scope member functions
       if (decl.scopeDeclaration()) {
@@ -364,13 +400,12 @@ class FunctionCallAnalyzer {
               .functionDeclaration()!
               .IDENTIFIER()
               .getText();
-            this.allLocalFunctions.add(
-              ScopeUtils.qualifyInScope(funcName, scopePath),
-            );
+            names.add(ScopeUtils.qualifyInScope(funcName, scopePath));
           }
         }
       }
     }
+    return names;
   }
 
   /**
@@ -591,15 +626,48 @@ class FunctionCallAnalyzer {
     const funcRef = this.extractFunctionReference(expr);
     if (!funcRef) return;
 
-    // Scope-qualified names use dot in source (MyScope.handler) but
-    // allLocalFunctions stores them with underscore (MyScope_handler)
+    this.recordCallbackCompatible(funcRef, typeName);
+  }
+
+  /**
+   * Record that `funcRef` is assigned to the C callback typedef `typedefName`,
+   * so its emitted signature keeps the typedef's parameter shape instead of
+   * taking #268 auto-const and ADR-006 pass-by-reference.
+   *
+   * #1544, two changes that belong together:
+   *
+   * The two callers -- a variable declaration and a call argument -- held
+   * byte-identical copies of the key derivation and the gate. One decision
+   * spelled twice must agree by construction rather than by inspection, and a
+   * fix applied to one copy and not the other is precisely the divergence the
+   * duplicate-path rule exists for. There is now one place to change.
+   *
+   * The gate asks TWO sets, and that distinction IS the defect.
+   * `allLocalFunctions` exists to EXCLUDE cross-file functions, because ADR-030
+   * define-before-use (#786) needs exactly that -- it answers "is this ordered
+   * correctly here?", never "does this function exist?". Asking it the second
+   * question dropped every function wired from a file other than the one
+   * declaring it: the emitted signature stopped matching the typedef it was
+   * assigned to, and gcc reported an incompatible pointer type while the
+   * transpiler exited 0. `programFunctions` answers the existence question at
+   * the scope the fact actually has -- the map decides a signature, and the
+   * wiring may sit in any file. `allLocalFunctions` is left untouched and keeps
+   * answering the ordering question it exists for, the same discipline
+   * `isCallbackType` follows for #1491.
+   */
+  private recordCallbackCompatible(funcRef: string, typedefName: string): void {
+    // Scope-qualified names use dot in source (MyScope.handler) but the
+    // declared-function sets store them joined (MyScope__handler).
     const lookupName = funcRef.includes(".")
       ? QualifiedCName.fromParts([funcRef])
       : funcRef;
 
-    if (this.allLocalFunctions.has(lookupName)) {
+    if (
+      this.allLocalFunctions.has(lookupName) ||
+      this.programFunctions.has(lookupName)
+    ) {
       // Store function name -> typedef name mapping
-      CodeGenState.callbackCompatibleFunctions.set(lookupName, typeName);
+      CodeGenState.callbackCompatibleFunctions.set(lookupName, typedefName);
     }
   }
 
@@ -675,16 +743,7 @@ class FunctionCallAnalyzer {
       const funcRef = this.extractFunctionReference(callInfo.args[i]);
       if (!funcRef) continue;
 
-      // Normalize scope-qualified names
-      const lookupName = funcRef.includes(".")
-        ? QualifiedCName.fromParts([funcRef])
-        : funcRef;
-
-      // Mark as callback-compatible if it's a local C-Next function
-      if (this.allLocalFunctions.has(lookupName)) {
-        // Store function name -> typedef name mapping
-        CodeGenState.callbackCompatibleFunctions.set(lookupName, param.type);
-      }
+      this.recordCallbackCompatible(funcRef, param.type);
     }
   }
 

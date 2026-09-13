@@ -1,0 +1,53 @@
+// test-execution
+/* test-no-warnings */
+// #1544: a function used as a callback is recognised only when the wiring sits
+// in the SAME FILE as the declaration, so a function wired from another file
+// keeps ordinary parameter rules and its emitted signature stops matching the
+// typedef it is assigned to.
+//
+// `callbackCompatibleFunctions` is written behind two gates. The first -- the
+// type must be a C function-pointer typedef -- is what bounds the defect to C
+// interop, and is correct. The second asks `allLocalFunctions`, the set
+// documented at its other consumer as existing to EXCLUDE cross-file
+// functions because ADR-030 define-before-use needs that distinction. Asking
+// it "is this function visible here?" asks one set two questions.
+//
+// Why this fixture needs a compiler and not just a snapshot: the C symptom is
+// a WARNING, so gcc exits 0 and the suite stays green. The no-warnings marker
+// above is what fails it, and it is written in BLOCK form deliberately -- the
+// line-comment spelling is silently never checked (#1555). Before the fix:
+//
+//   error: passing argument 1 of 'register_reading_handler' from incompatible
+//   pointer type [-Werror=incompatible-pointer-types]
+//     void (*)(const SensorReading *)  vs  void (*)(SensorReading *)
+//
+// C++ mode is stronger still -- `const SensorReading&` is a reference, so it
+// is a hard `invalid conversion` error rather than a warning.
+#include <reading-handlers.cnx>
+#include "sensor_api.h"
+
+// The cross-file wiring. `onEventCrossFile` is declared in reading-handlers.cnx
+// and named here, which is the single difference this fixture turns on.
+void wireAcrossFiles() {
+    register_reading_handler(onEventCrossFile);
+}
+
+u32 main() {
+    // Each handler writes the reading it is given into `witness`, and
+    // register_reading_handler always supplies 5. Checking the witness after
+    // each wiring proves the callback actually fired through the typedef,
+    // rather than only that the prototypes agreed at compile time.
+    witness <- 0;
+    wireAcrossFiles();
+    if (witness != 5) {
+        return 1;
+    }
+
+    witness <- 0;
+    wireLocally();
+    if (witness != 5) {
+        return 2;
+    }
+
+    return 0;
+}
