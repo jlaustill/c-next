@@ -1,9 +1,15 @@
 # Keeps the C-Next project board in step with issue and PR events (Issue #1247).
 #
 # GitHub has no built-in workflow for "pull request opened", and none for
-# "issue assigned", so those two transitions live here. What the built-ins do
-# well -- item closed, pull request merged -- is left to them and is absent from
-# this file.
+# "issue assigned" or "issue unassigned", so those three transitions live here.
+# What the built-ins do well -- item closed, pull request merged -- is left to
+# them and is absent from this file.
+#
+# Unassigning is how a card is PAUSED: picked up, found blocked, set down with
+# nothing committed. `WIP` means "this is actively being worked on" -- the
+# option's own description -- so a paused card must not sit there. Until #1572
+# no transition moved one back, and #1448 read as active work for 9h52m after
+# its work stopped. Unassigning is now the whole gesture; the board follows.
 #
 # PR reopening is handled here rather than by the built-in "Item reopened", which
 # fires on issues and pull requests alike: it would send a reopened PR to Backlog
@@ -28,7 +34,7 @@ name: Project sync
 
 on:
   issues:
-    types: [opened, assigned]
+    types: [opened, assigned, unassigned]
   pull_request:
     types: [opened, reopened, ready_for_review]
   workflow_call:
@@ -53,6 +59,21 @@ jobs:
       GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
       PROJECT_OWNER: jlaustill
       PROJECT_TITLE: C-Next
+      # `unassigned` fires once per assignee REMOVED. Whether `issue.assignees`
+      # is the list BEFORE or AFTER that removal is not documented by GitHub, and
+      # the guard below is load-bearing: on the pre-removal list the final
+      # unassign would see one name left, take the `exit 0`, and leave the card in
+      # WIP while reporting success -- the #1572 symptom, logged as a decision.
+      #
+      # So do not depend on it. `github.event.assignee` is the user just removed;
+      # filtering that name out is correct under EITHER semantics, which is why
+      # the two are read separately here.
+      #
+      # From the payload rather than re-queried: a re-query reads whoever is
+      # assigned when it RUNS, which a rapid unassign-then-reassign turns into the
+      # wrong answer, and the concurrency group serializes per item, not per event.
+      ALL_ASSIGNEES: ${{ join(github.event.issue.assignees.*.login, ',') }}
+      REMOVED_ASSIGNEE: ${{ github.event.assignee.login }}
     steps:
       - name: Sync item status
         # Pull requests from forks receive no secrets. Skip cleanly rather than
@@ -64,6 +85,24 @@ jobs:
           case "${{ github.event_name }}.${{ github.event.action }}" in
             issues.opened)                  TARGET="Grooming";   OVERWRITE="unset" ;;
             issues.assigned)                TARGET="WIP";        OVERWRITE="unset|Grooming|Backlog" ;;
+            issues.unassigned)
+              # One event per assignee removed: a card someone else is still on is
+              # still being worked on, not paused. Dropping the removed name makes
+              # this independent of whether the payload list is pre- or
+              # post-removal (see ALL_ASSIGNEES above). `|| true` is inside the
+              # group so `pipefail` does not see grep's "no lines left" as failure
+              # -- that case is exactly the one that must proceed.
+              REMAINING=$(printf '%s' "$ALL_ASSIGNEES" | tr ',' '\n' \
+                | { grep -vxF "$REMOVED_ASSIGNEE" || true; } | paste -sd, -)
+              if [ -n "$REMAINING" ]; then
+                echo "Still assigned to ${REMAINING}; leaving status alone."
+                exit 0
+              fi
+              # OVERWRITE="WIP" and nothing else: a card in Grooming, Backlog or
+              # Done is not paused work. Those are an ISSUE card's only other
+              # statuses -- a pull request gets its OWN card, so PR Review and
+              # Changes Needed are unreachable here and are not what this guards.
+              TARGET="Backlog";    OVERWRITE="WIP" ;;
             pull_request.opened)            TARGET="PR Review";  OVERWRITE="unset" ;;
             pull_request.reopened)          TARGET="PR Review";  OVERWRITE="any" ;;
             pull_request.ready_for_review)  TARGET="PR Review";  OVERWRITE="unset|Backlog" ;;
@@ -146,9 +185,13 @@ jobs:
               }
             }' --jq '.data.node.fieldValueByName.name // "unset"')
 
-          # Never drag a card backwards. A status someone has already advanced is
-          # theirs, not ours -- "Changes Needed" and "Ready to Merge" are moved by
-          # hand and must survive a reopen or a ready-for-review.
+          # OVERWRITE is a membership test and is indifferent to DIRECTION: it
+          # names the statuses a transition may write over, whichever way along
+          # the column that lands. Every arm advances a card except
+          # issues.unassigned, which is the file's one retreat (WIP -> Backlog,
+          # #1572). What the test protects either way is a status someone set by
+          # hand -- "Changes Needed" and "Ready to Merge" must survive a reopen
+          # or a ready-for-review.
           if [ "$OVERWRITE" != "any" ] && [[ ! "$CURRENT" =~ ^(${OVERWRITE})$ ]]; then
             echo "Leaving ${CONTENT_ID} at '${CURRENT}' (would have set '${TARGET}')."
             exit 0

@@ -73,6 +73,7 @@ This replaced the old `status: blocked` label.
 | _(nothing)_ → **Grooming**            | Issue opened                   | `project-sync.yml`             |
 | **Grooming** → **Backlog**            | Triaged and agreed             | **Manual**                     |
 | **Grooming** or **Backlog** → **WIP** | You assign yourself the issue  | `project-sync.yml`             |
+| **WIP** → **Backlog**                 | You unassign yourself          | `project-sync.yml`             |
 | _(nothing)_ → **PR Review**           | PR opened, reopened, or ready  | `project-sync.yml`             |
 | **PR Review** → **Changes Needed**    | Review found something         | **Manual**                     |
 | **Changes Needed** → **PR Review**    | You pushed the fix             | **Manual**                     |
@@ -82,6 +83,20 @@ This replaced the old `status: blocked` label.
 
 There is deliberately no row for a reopened issue. See
 [Closed is closed](#closed-is-closed).
+
+**Unassigning yourself is how you pause a card.** `WIP`'s option description is
+_"This is actively being worked on"_, so a card picked up and then set down — found
+blocked, nothing committed — cannot stay there. Unassign, and the board follows; the
+appended `Blocked by` and your comment say _why_, the column says _that_. The transition
+fires only when the **last** assignee leaves, so stepping off a card someone else is also
+on changes nothing, and only from `WIP`, so unassigning a card already in `Grooming`,
+`Backlog` or `Done` changes nothing either. Until #1572 there was no such transition and
+#1448 read as active work for 9h52m after its work stopped.
+
+Be clear about what `only from WIP` does **not** protect. An issue whose pull request is in
+review is sitting in `WIP` — the pull request gets its own card, and the built-in that would
+move the issue is deliberately disabled — so unassigning yourself mid-review **does** return
+the issue to `Backlog`. Whether it should is open; today it does.
 
 **Assigning yourself is the only thing that fills `WIP`,** and for the life of the board
 nothing did it: until #1423 there were zero assigned open issues and zero cards in that
@@ -93,9 +108,11 @@ the issue and then blocks until it has re-read the board and seen `WIP`. A
 Nothing else may write the `Status` field. `project-sync.yml` owns that transition, and
 a second writer would both duplicate it and hide it failing.
 
-Automation never drags a card backwards. `project-sync.yml` writes a status only
-when the current one is unset or is the status it expects to advance from, so a
-card you have moved by hand survives a ready-for-review.
+Automation writes a status only when the current one is unset, or is one the
+transition names as safe to overwrite — so a card you have moved by hand survives a
+ready-for-review. That is usually the status it advances _from_. `WIP` → `Backlog`
+(#1572) is the one transition that moves a card back, and it overwrites `WIP` and
+nothing else.
 
 ## Closed is closed
 
@@ -294,7 +311,7 @@ rather than copying it:
 name: Project sync
 on:
   issues:
-    types: [opened, assigned]
+    types: [opened, assigned, unassigned]
   pull_request:
     types: [opened, reopened, ready_for_review]
 jobs:
@@ -302,6 +319,16 @@ jobs:
     uses: jlaustill/c-next/.github/workflows/project-sync.yml@main
     secrets: inherit
 ```
+
+**A reusable workflow does not inherit the caller's `on:`** — the caller's own `types:`
+decides which events ever reach it, so this list is a second copy and it rots. Measured
+2026-09-12, the live caller carried `[opened, assigned, reopened]` while this block said
+`[opened, assigned]`: already disagreeing, with `reopened` subscribed there and refused
+here, and neither carrying `unassigned`. Tracked as jlaustill/vscode-c-next#11.
+
+Subscribe the caller to the **union** of what the shared file handles and let its `case`
+statement be the only thing that decides — otherwise a new transition is three edits across
+two repositories rather than one.
 
 ---
 
