@@ -67,6 +67,8 @@
     "coverage:grammar:console": "tsx scripts/grammar-coverage.ts console",
     "project:setup": "tsx scripts/setup-project.ts setup",
     "project:check": "tsx scripts/setup-project.ts check",
+    "backlog:order": "tsx scripts/order-backlog.ts",
+    "backlog:order:check": "tsx scripts/order-backlog.ts check",
     "docs:toolchain": "tsx scripts/toolchain-requirements.ts write",
     "docs:toolchain:check": "tsx scripts/toolchain-requirements.ts check",
     "unit": "vitest run",
