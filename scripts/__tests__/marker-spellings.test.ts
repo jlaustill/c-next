@@ -26,7 +26,15 @@ const rootDir = join(__dirname, "..", "..");
 const testsDir = join(rootDir, "tests");
 
 describe("fixture markers are written in a spelling the harness reads (#1555)", () => {
-  const found = FileScanner.findFiles(testsDir, ".test.cnx");
+  // Every `.cnx`, not just `*.test.cnx`: `generate-cpp-snapshots.ts` asks the
+  // vocabulary about HELPER sources too, inside `generateHelperCppSnapshot`.
+  // 126 helpers exist and 14 carry `// test-cpp-only`; all are spelled
+  // correctly today, so this closes a latent gap rather than a live break --
+  // but it is the exact failure this module exists to prevent. A helper
+  // writing `/* test-c-only */` would be read by no site AND flagged by no
+  // guard, so it would silently receive a C++ snapshot it asked not to have,
+  // and a wrong snapshot there is compared forever after.
+  const found = FileScanner.findFiles(testsDir, ".cnx");
 
   it("finds the fixtures at all", () => {
     // Guards the selector. If the walk returns nothing the assertion below

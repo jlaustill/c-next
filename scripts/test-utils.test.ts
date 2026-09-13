@@ -14,6 +14,7 @@ import TestUtils from "./test-utils";
 import ITools from "./types/ITools";
 import ITestResult from "./types/ITestResult";
 import IValidationResult from "./types/IValidationResult";
+import TestMarkers from "./TestMarkers";
 
 describe("test-utils exports", () => {
   it("should export ITools interface", () => {
@@ -90,9 +91,23 @@ describe("hasNoWarningsMarker", () => {
     expect(TestUtils.hasNoWarningsMarker(source)).toBe(true);
   });
 
-  it("should be case insensitive", () => {
+  it("should be case sensitive, and say so loudly (#1555 review)", () => {
+    // Reversed deliberately. Seven marker rows carried `i` and
+    // `test-execution` did not, so `// TEST-ERROR` was a valid marker while
+    // `// TEST-EXECUTION` was a hard error -- two spelling policies in a table
+    // promising one spelling each. Settled strict: that is what the promise
+    // means, and it is free, since all 1492 marker lines in the corpus are
+    // lowercase.
     const source = "// TEST-NO-WARNINGS\nvoid main() {}";
-    expect(TestUtils.hasNoWarningsMarker(source)).toBe(true);
+    expect(TestUtils.hasNoWarningsMarker(source)).toBe(false);
+
+    // Not ignored, though -- which is the half that matters. `MARKER_SHAPED`
+    // keeps its `i`, so the wrong case is caught as an ATTEMPT at a marker and
+    // reported, rather than silently doing nothing. Without this the change
+    // above would trade one silence for another.
+    expect(TestMarkers.findUnrecognizedSpellings(source)).toEqual([
+      { marker: "test-no-warnings", line: 1, text: "// TEST-NO-WARNINGS" },
+    ]);
   });
 
   it("should return false for source without marker", () => {

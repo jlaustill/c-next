@@ -68,6 +68,23 @@ describe("FixtureFiles.isModeOrphan (#1149)", () => {
       false,
     ],
     [".h beside an unmarked fixture", "x.test.h", "u32 a;\n", false],
+    // #1555: the regression. A bare `includes()` read this prose as BOTH
+    // markers, so a dual-mode fixture's live snapshots were reported as
+    // orphans of whichever mode was asked about -- four actively-compared
+    // files, named for deletion, by a message mentioning neither markers nor
+    // prose. Marker-ness is anchored now, so prose is prose.
+    [
+      ".h beside prose that merely mentions both markers",
+      "x.test.h",
+      "// This fixture is test-c-only rather than test-cpp-only in spirit.\nu32 a;\n",
+      false,
+    ],
+    [
+      ".hpp beside prose that merely mentions both markers",
+      "x.test.hpp",
+      "// This fixture is test-c-only rather than test-cpp-only in spirit.\nu32 a;\n",
+      false,
+    ],
     [".hpp beside an unmarked fixture", "x.test.hpp", "u32 a;\n", false],
   ])("%s -> %s", (_label, header, source, expected) => {
     expect(FixtureFiles.isModeOrphan(header, source)).toBe(expected);

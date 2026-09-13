@@ -47,16 +47,32 @@ class TestMarkers {
    * global copy build one from `.source` and `.flags`.
    *
    * Arg-bearing markers capture their argument list in group 1.
+   *
+   * Case-SENSITIVE, all eight, deliberately. Seven rows carried `i` and
+   * `test-execution` did not, so `// TEST-ERROR` was a valid marker while
+   * `// TEST-EXECUTION` was a hard error -- a second spelling policy inside a
+   * table whose whole promise is "one spelling each", which the next reader
+   * would have either "fixed" or copied.
+   *
+   * Settled toward the strict side because that is what the promise means, and
+   * it is free: all 1492 marker lines in the corpus are lowercase, so no
+   * fixture changes either way. `MARKER_SHAPED` keeps its `i` on purpose -- the
+   * pair is lenient about what LOOKS like a marker and strict about what one
+   * IS, so `// TEST-C-ONLY` is caught as an attempt and then reported as a
+   * misspelling rather than silently accepted or silently ignored.
+   *
+   * Deciding it rather than preserving it is the point: an unstated rule that
+   * merely happens to hold is the shape #1555 exists to remove.
    */
   private static readonly SPELLINGS: ReadonlyMap<string, RegExp> = new Map([
     ["test-execution", /^[ \t]*\/\/[ \t]*test-execution[ \t]*$/m],
-    ["test-error", /^[ \t]*\/\/[ \t]*test-error[ \t]*$/im],
-    ["test-c-only", /^[ \t]*\/\/[ \t]*test-c-only[ \t]*$/im],
-    ["test-cpp-only", /^[ \t]*\/\/[ \t]*test-cpp-only[ \t]*$/im],
-    ["test-transpile-only", /^[ \t]*\/\/[ \t]*test-transpile-only[ \t]*$/im],
-    ["test-no-warnings", /^[ \t]*\/\/[ \t]*test-no-warnings[ \t]*$/im],
-    ["test-adr", /^[ \t]*\/\/[ \t]*test-adr:[ \t]*(.+)$/im],
-    ["test-link", /^[ \t]*\/\/[ \t]*test-link:[ \t]*(.+)$/im],
+    ["test-error", /^[ \t]*\/\/[ \t]*test-error[ \t]*$/m],
+    ["test-c-only", /^[ \t]*\/\/[ \t]*test-c-only[ \t]*$/m],
+    ["test-cpp-only", /^[ \t]*\/\/[ \t]*test-cpp-only[ \t]*$/m],
+    ["test-transpile-only", /^[ \t]*\/\/[ \t]*test-transpile-only[ \t]*$/m],
+    ["test-no-warnings", /^[ \t]*\/\/[ \t]*test-no-warnings[ \t]*$/m],
+    ["test-adr", /^[ \t]*\/\/[ \t]*test-adr:[ \t]*(.+)$/m],
+    ["test-link", /^[ \t]*\/\/[ \t]*test-link:[ \t]*(.+)$/m],
   ]);
 
   /**
@@ -109,7 +125,15 @@ class TestMarkers {
   static findUnrecognizedSpellings(source: string): IMarkerSpelling[] {
     const offenses: IMarkerSpelling[] = [];
 
-    source.split("\n").forEach((line, index) => {
+    // `\r?` matters: `MARKER_SHAPED` has no `m`, so its `$` is end-of-STRING
+    // and a trailing `\r` defeats it, while `spellingOf`'s `/m` `$` matches
+    // before a `\r` and does not. On a CRLF checkout the two halves of this
+    // module would disagree, and a block-form marker would be neither read by
+    // the harness nor flagged here -- #1555's exact silence, reappearing
+    // inside the guard built to remove it. No fixture has a `\r` today and
+    // `.gitattributes` sets no `text=auto`, so a `core.autocrlf=true` checkout
+    // is the whole exposure -- and it would produce no error anywhere.
+    source.split(/\r?\n/).forEach((line, index) => {
       const shaped = MARKER_SHAPED.exec(line);
       if (shaped === null) return;
 
