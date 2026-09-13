@@ -9,19 +9,51 @@
 
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import chalk from "chalk";
 
+import FileScanner from "./utils/FileScanner";
 import UnusedCode from "./unused-code/UnusedCode";
 
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 
-/** Both programs: `tsconfig.json` covers src, `tsconfig.scripts.json` scripts. */
-const PROJECTS = ["tsconfig.json", "tsconfig.scripts.json"];
+/**
+ * Every TypeScript program in the repo, discovered rather than listed.
+ *
+ * CI typechecks three -- `tsconfig.json`, `tsconfig.scripts.json` and
+ * `prettier-plugin/tsconfig.json` -- and a hand-written copy here was already
+ * short the third, so the detector never ran on the plugin at all. That is the
+ * file this PR deleted 45 dead lines from (#1580 review).
+ *
+ * Reading them off disk means a fourth program is covered the day it is added,
+ * where a fourth entry in a list is remembered or it is not.
+ */
+function projects(): string[] {
+  const found = [
+    ...FileScanner.findFiles(rootDir, ".json").filter((f) =>
+      /(^|[/\\])tsconfig[^/\\]*\.json$/.test(f),
+    ),
+  ]
+    .filter((f) => !f.includes(`${sep}node_modules${sep}`))
+    .map((f) =>
+      f
+        .slice(rootDir.length + 1)
+        .split(sep)
+        .join("/"),
+    )
+    .sort();
+  if (found.length === 0) {
+    throw new Error(
+      "No tsconfig found: the check would silently cover nothing.",
+    );
+  }
+  return found;
+}
 
 function tscOutput(project: string): string {
+  let output: string;
   try {
     execFileSync(
       "npx",
@@ -32,19 +64,26 @@ function tscOutput(project: string): string {
   } catch (error: unknown) {
     // A non-zero exit is the normal path -- tsc reports findings on stdout.
     const err = error as { stdout?: string; stderr?: string; message: string };
-    return err.stdout ?? err.stderr ?? err.message;
+    output = err.stdout ?? err.stderr ?? err.message;
   }
+  // ...but a non-zero exit with no positioned diagnostic means the compiler
+  // never ran: a bad `-p`, a missing binary, no inputs. Returning it would
+  // report a clean codebase forever.
+  if (!UnusedCode.ranAtAll(output)) {
+    throw new Error(`tsc did not run for ${project}:\n${output}`);
+  }
+  return output;
 }
 
 function main(): void {
-  const antlrScript = (
+  const scripts = (
     JSON.parse(readFileSync(join(rootDir, "package.json"), "utf-8")) as {
       scripts: Record<string, string>;
     }
-  ).scripts.antlr;
+  ).scripts;
 
-  const findings = PROJECTS.flatMap((project) =>
-    UnusedCode.authored(tscOutput(project), antlrScript),
+  const findings = projects().flatMap((project) =>
+    UnusedCode.authored(tscOutput(project), scripts),
   );
 
   // Deduplicate: the two programs overlap, since scripts/ imports from src/.

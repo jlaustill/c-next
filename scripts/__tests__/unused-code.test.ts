@@ -8,31 +8,74 @@
 
 import UnusedCode from "../unused-code/UnusedCode";
 
-const ANTLR =
-  "antlr4ng -Dlanguage=TypeScript -visitor -listener -o src/transpiler/logic/parser grammar/CNext.g4";
+/** The real shape: three distinct `-o` roots across four antlr scripts. */
+const SCRIPTS: Record<string, string> = {
+  antlr: "antlr4ng -o src/transpiler/logic/parser grammar/CNext.g4",
+  "antlr:c": "antlr4ng -o src/transpiler/logic/parser/c grammar/C.g4",
+  "antlr:cpp:lexer":
+    "antlr4ng -o src/transpiler/logic/parser/cpp grammar/CPP14Lexer.g4",
+  "antlr:cpp": "npm run antlr:cpp:lexer && npm run antlr:cpp:parser",
+  build: "esbuild src/index.ts",
+};
 
-describe("UnusedCode.generatedRoot (#1556)", () => {
-  it("takes the root from the antlr script's own -o", () => {
-    expect(UnusedCode.generatedRoot(ANTLR)).toBe("src/transpiler/logic/parser");
+describe("UnusedCode.generatedRoots (#1556)", () => {
+  it("collects EVERY antlr script's -o, not just the first", () => {
+    // The C and C++ roots nest under the C-Next one, so reading only `antlr`
+    // covered them by accident. Move either out and the accident stops
+    // holding -- a dozen generated findings become "authored dead code" with
+    // nothing pointing at the cause (#1580 review).
+    expect(UnusedCode.generatedRoots(SCRIPTS)).toEqual([
+      "src/transpiler/logic/parser",
+      "src/transpiler/logic/parser/c",
+      "src/transpiler/logic/parser/cpp",
+    ]);
   });
 
-  it("follows the -o when it moves, rather than a copied path", () => {
-    expect(UnusedCode.generatedRoot("antlr4ng -o build/gen x.g4")).toBe(
-      "build/gen",
-    );
+  it("ignores scripts that are not antlr, and antlr scripts with no -o", () => {
+    // Negative control: `build` must not contribute a root, and `antlr:cpp`
+    // delegates without an -o of its own.
+    expect(UnusedCode.generatedRoots(SCRIPTS)).not.toContain("src/index.ts");
+    expect(UnusedCode.generatedRoots(SCRIPTS)).toHaveLength(3);
   });
 
-  it("throws rather than defaulting when there is no -o", () => {
-    // A silent fallback would make the check pass over generated files it no
-    // longer recognizes -- failing open, which is the defect #1556 is about.
-    expect(() => UnusedCode.generatedRoot("antlr4ng x.g4")).toThrow(
-      /no -o argument/,
+  it("throws rather than defaulting when no antlr script has an -o", () => {
+    // A silent fallback would pass over generated files it no longer
+    // recognizes -- failing open, which is the defect #1556 is about.
+    expect(() => UnusedCode.generatedRoots({ antlr: "antlr4ng x.g4" })).toThrow(
+      /no `antlr\*` script has an -o/,
     );
   });
 });
 
+describe("UnusedCode.ranAtAll (#1580 review)", () => {
+  it.each([
+    [
+      "a config error",
+      "error TS5058: The specified path does not exist: 'nope.json'.",
+    ],
+    ["a spawn failure", "spawnSync npx ENOENT"],
+    ["empty output", ""],
+  ])("reports that tsc did not run for %s", (_label, output) => {
+    // Each of these exits non-zero and carries no positioned diagnostic, so
+    // `parse()` drops it and the finding list is empty. Treated as success the
+    // gate prints "No unused declarations" and exits 0 -- indistinguishable
+    // from a clean codebase.
+    expect(UnusedCode.ranAtAll(output)).toBe(false);
+  });
+
+  it("reports that tsc ran when a positioned diagnostic is present", () => {
+    // Control: the check must not reject real output, or it fails closed on
+    // every run and is just as useless in the other direction.
+    expect(
+      UnusedCode.ranAtAll(
+        "src/x.ts(9,1): error TS6133: 'a' is declared but its value is never read.",
+      ),
+    ).toBe(true);
+  });
+});
+
 describe("UnusedCode.isGenerated (#1556)", () => {
-  const root = "src/transpiler/logic/parser";
+  const root = UnusedCode.generatedRoots(SCRIPTS);
 
   it.each([
     ["src/transpiler/logic/parser/grammar/CNextParser.ts", true],
@@ -65,7 +108,7 @@ describe("UnusedCode.authored (#1556)", () => {
   ].join("\n");
 
   it("keeps authored findings and drops generated ones", () => {
-    const found = UnusedCode.authored(output, ANTLR);
+    const found = UnusedCode.authored(output, SCRIPTS);
     expect(found.map((f) => f.file)).toEqual([
       "src/transpiler/state/CodeGenState.ts",
       "src/utils/TTypeUtils.ts",
@@ -77,20 +120,20 @@ describe("UnusedCode.authored (#1556)", () => {
     // Negative control on the code filter: TS2304 above is a real error and
     // must not be reported here, or this check would duplicate `typecheck`.
     expect(
-      UnusedCode.authored(output, ANTLR).some((f) =>
+      UnusedCode.authored(output, SCRIPTS).some((f) =>
         f.message.includes("Cannot find name"),
       ),
     ).toBe(false);
   });
 
   it("reports position and message, not just the file", () => {
-    const first = UnusedCode.authored(output, ANTLR)[0];
+    const first = UnusedCode.authored(output, SCRIPTS)[0];
     expect(first.line).toBe(906);
     expect(first.column).toBe(10);
     expect(first.message).toContain("isKnownRegister");
   });
 
   it("finds nothing in empty output", () => {
-    expect(UnusedCode.authored("", ANTLR)).toEqual([]);
+    expect(UnusedCode.authored("", SCRIPTS)).toEqual([]);
   });
 });

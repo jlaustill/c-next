@@ -577,7 +577,11 @@ class NullCheckListener extends CNextListener {
     // Check nullable C functions
     if (NULLABLE_C_FUNCTIONS.has(funcName)) {
       if (this.inEqualityComparison) {
-        // Track that we found a stream function in this comparison
+        // Used correctly inside a NULL comparison -- nothing to report.
+        // This branch must stay: it is what keeps the cases below from firing
+        // for a nullable C function that IS being NULL-checked. It read as an
+        // oversight once the assignment it used to hold was removed with the
+        // write-only field it wrote to (#1556).
       } else if (this.inVariableDeclarationWithNullable) {
         // Inside a variable declaration - E0905 or valid c_ prefix already handled
         // Don't also report E0901

@@ -3,8 +3,8 @@
   "entry": [
     "src/lib/parseWithSymbols.ts",
     "scripts/*.ts",
-    "prettier-plugin/src/index.ts",
-    "prettier-plugin/tests/**/*.test.ts"
+    "prettier-plugin/tests/**/*.test.ts",
+    "prettier-plugin/src/index.ts"
   ],
   "project": [
     "src/**/*.ts",
@@ -20,16 +20,9 @@
     "src/transpiler/output/codegen/generators/expressions/PostfixExpressionGenerator.ts",
     "src/transpiler/output/codegen/helpers/CppModeHelper.ts",
     "src/transpiler/output/codegen/analysis/StringLengthCounter.ts",
-    "src/transpiler/output/headers/types/IHeaderSymbol.ts",
-    "prettier-plugin/src/index.ts"
+    "src/transpiler/output/headers/types/IHeaderSymbol.ts"
   ],
   "ignoreBinaries": ["jscpd", "jq", "dot"],
   "include": ["classMembers"],
-  "ignoreMembers": [
-    "generateAtomicRMW",
-    "generateFloatBitWrite",
-    "analyzeMemberChainForBitAccess",
-    "getSymbol"
-  ],
   "includeEntryExports": true
 }

@@ -50,16 +50,11 @@ import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../transpiler/logic/parser/grammar/CNextListener";
 import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
 import ParserUtils from "../../utils/ParserUtils";
-import DeclarationScopeCollector from "./DeclarationScopeCollector";
 import StructInitializerType from "./helpers/StructInitializerType";
 import IStructLiteralError from "./types/IStructLiteralError";
 
 class StructLiteralListener extends CNextListener {
   private readonly found: IStructLiteralError[] = [];
-
-  public constructor() {
-    super();
-  }
 
   public errors(): IStructLiteralError[] {
     return this.found;
@@ -94,8 +89,6 @@ class StructLiteralListener extends CNextListener {
 
 class StructLiteralAnalyzer {
   public analyze(tree: Parser.ProgramContext): IStructLiteralError[] {
-    const declarations = new DeclarationScopeCollector();
-    ParseTreeWalker.DEFAULT.walk(declarations, tree);
     const listener = new StructLiteralListener();
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();

@@ -454,6 +454,13 @@ class SymbolTable {
    * Searches TSymbol, then C, then C++ collections.
    * Used by ISymbolLookup interface for constructor detection.
    */
+  /**
+   * Supplied to `ISymbolLookup` by STRUCTURAL conformance -- `SymbolTable` is
+   * passed where that interface is expected, so this is used without ever
+   * being named. `tsc` enforces it; knip cannot see it.
+   *
+   * @public
+   */
   getSymbol(name: string): TAnySymbol | undefined {
     return (
       this.getTSymbol(name) ?? this.getCSymbol(name) ?? this.getCppSymbol(name)

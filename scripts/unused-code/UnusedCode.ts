@@ -25,26 +25,38 @@ class UnusedCode {
   private static readonly UNUSED_CODES = ["TS6133", "TS6138", "TS6196"];
 
   /**
-   * The directory ANTLR writes into, taken from the `antlr` script's `-o`.
+   * Every directory ANTLR writes into, taken from the `antlr*` scripts' `-o`.
+   *
+   * Plural because there are three roots, not one: `antlr`, `antlr:c` and the
+   * two `antlr:cpp:*` scripts each carry their own `-o`. Reading only the first
+   * covered the other two by accident -- their paths happen to nest under the
+   * C-Next one, so a `startsWith` test caught them. Moving either output out
+   * from under `logic/parser` would have turned a dozen generated findings into
+   * "authored dead code" with nothing pointing at the cause (#1580 review).
    *
    * Throws rather than defaulting: a silent fallback would make the check pass
-   * over generated files it no longer recognizes, which is the failure this
-   * module exists to prevent.
+   * over generated files it no longer recognizes, which is failing open -- the
+   * defect this module exists to prevent.
    */
-  static generatedRoot(antlrScript: string): string {
-    const match = /-o\s+(\S+)/.exec(antlrScript);
-    if (match === null) {
+  static generatedRoots(scripts: Record<string, string>): string[] {
+    const roots = Object.entries(scripts)
+      .filter(([name]) => name === "antlr" || name.startsWith("antlr:"))
+      .map(([, script]) => /-o\s+(\S+)/.exec(script)?.[1])
+      .filter((root): root is string => root !== undefined);
+    if (roots.length === 0) {
       throw new Error(
-        `Cannot derive the generated-parser root: the "antlr" script has no -o argument.\n  script: ${antlrScript}`,
+        "Cannot derive the generated-parser roots: no `antlr*` script has an -o argument.",
       );
     }
-    return match[1];
+    return [...new Set(roots)];
   }
 
   /** Whether a path is ANTLR output rather than authored source. */
-  static isGenerated(file: string, generatedRoot: string): boolean {
+  static isGenerated(file: string, generatedRoots: string[]): boolean {
     const path = file.split("\\").join("/");
-    return path.startsWith(generatedRoot) && path.includes("/grammar/");
+    return generatedRoots.some(
+      (root) => path.startsWith(root) && path.includes("/grammar/"),
+    );
   }
 
   /** Parse `tsc` output, keeping only unused-declaration findings. */
@@ -67,11 +79,28 @@ class UnusedCode {
   }
 
   /** The findings a human must act on: everything outside generated output. */
-  static authored(tscOutput: string, antlrScript: string): IUnusedFinding[] {
-    const root = UnusedCode.generatedRoot(antlrScript);
+  static authored(
+    tscOutput: string,
+    scripts: Record<string, string>,
+  ): IUnusedFinding[] {
+    const roots = UnusedCode.generatedRoots(scripts);
     return UnusedCode.parse(tscOutput).filter(
-      (f) => !UnusedCode.isGenerated(f.file, root),
+      (f) => !UnusedCode.isGenerated(f.file, roots),
     );
+  }
+
+  /**
+   * Whether `tsc` output carries at least one positioned diagnostic.
+   *
+   * A non-zero exit alone proves nothing: `error TS5058: The specified path
+   * does not exist` and a spawn failure both exit non-zero and carry no
+   * `file(line,col)` prefix, so `parse()` drops them, the finding list is empty
+   * and the gate reports a clean codebase. That is the same failing-open shape
+   * `generatedRoots` throws to avoid, one level up, and it is the worse of the
+   * two because it looks identical to success (#1580 review).
+   */
+  static ranAtAll(tscOutput: string): boolean {
+    return /^.+\(\d+,\d+\): error TS\d+:/m.test(tscOutput);
   }
 }
 

@@ -4103,6 +4103,12 @@ export default class CodeGenerator implements IOrchestrator {
    * Issue #644: Delegates to MemberChainAnalyzer.
    */
   /** Public for handler access via CodeGenState.generator */
+  /**
+   * Dispatched through `ICodeGenApi` via `CodeGenState.requireGenerator()`, so
+   * no call site ever names this class. knip cannot follow that indirection.
+   *
+   * @public
+   */
   analyzeMemberChainForBitAccess(targetCtx: Parser.AssignmentTargetContext): {
     isBitAccess: boolean;
     baseTarget?: string;
@@ -4120,6 +4126,12 @@ export default class CodeGenerator implements IOrchestrator {
    * Issue #644: Delegates to FloatBitHelper.
    */
   /** Public for handler access via CodeGenState.generator */
+  /**
+   * Dispatched through `ICodeGenApi` via `CodeGenState.requireGenerator()`, so
+   * no call site ever names this class. knip cannot follow that indirection.
+   *
+   * @public
+   */
   generateFloatBitWrite(
     name: string,
     typeInfo: TTypeInfo,
@@ -4213,6 +4225,12 @@ export default class CodeGenerator implements IOrchestrator {
    * Uses LDREX/STREX on platforms that support it, otherwise PRIMASK
    */
   /** Public for handler access via CodeGenState.generator */
+  /**
+   * Dispatched through `ICodeGenApi` via `CodeGenState.requireGenerator()`, so
+   * no call site ever names this class. knip cannot follow that indirection.
+   *
+   * @public
+   */
   generateAtomicRMW(
     target: string,
     cOp: string,
