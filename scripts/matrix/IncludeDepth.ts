@@ -124,8 +124,6 @@ function maxDepth(
 }
 
 class IncludeDepth {
-  static resolveCnxInclude = resolveCnxInclude;
-  static directIncludes = directIncludes;
   static maxDepth = maxDepth;
 }
 

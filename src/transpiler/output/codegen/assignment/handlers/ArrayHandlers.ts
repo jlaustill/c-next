@@ -80,7 +80,6 @@ function handleMultiDimArrayElement(ctx: IAssignmentContext): string {
  */
 function resolveSliceElement(
   typeInfo: TTypeInfo | undefined,
-  line: number,
   rawName: string,
 ): { bytes: number; cType: string; wrap: (chunk: string) => string } {
   if (typeInfo?.isString) {
@@ -174,7 +173,6 @@ function foldContextuallyTypedLiteral(
  */
 function resolveSliceSource(
   ctx: IAssignmentContext,
-  line: number,
   rawName: string,
   lengthValue: number,
 ): {
@@ -202,7 +200,7 @@ function resolveSliceSource(
   // keeps that type and is not folded here.
   const literalValue = foldContextuallyTypedLiteral(directType, ctx.valueCtx);
   if (literalValue !== undefined) {
-    return resolveLiteralSliceSource(ctx, line, rawName, lengthValue);
+    return resolveLiteralSliceSource(ctx, rawName, lengthValue);
   }
 
   const sourceType =
@@ -250,7 +248,6 @@ function resolveSliceSource(
  */
 function resolveLiteralSliceSource(
   ctx: IAssignmentContext,
-  line: number,
   rawName: string,
   lengthValue: number,
 ): {
@@ -306,7 +303,6 @@ function validateSliceSpan(
   offsetValue: number,
   lengthValue: number,
   capacity: number,
-  line: number,
   rawName: string,
 ): number {
   if (lengthValue % dest.bytes !== 0) {
@@ -406,18 +402,16 @@ function buildSliceWrites(
   ctx: IAssignmentContext,
   typeInfo: TTypeInfo | undefined,
   geometry: ISliceGeometry,
-  line: number,
   rawName: string,
 ): string {
-  const dest = resolveSliceElement(typeInfo, line, rawName);
-  const src = resolveSliceSource(ctx, line, rawName, geometry.lengthValue);
+  const dest = resolveSliceElement(typeInfo, rawName);
+  const src = resolveSliceSource(ctx, rawName, geometry.lengthValue);
   const elementCount = validateSliceSpan(
     dest,
     src,
     geometry.offsetValue,
     geometry.lengthValue,
     geometry.capacity,
-    line,
     rawName,
   );
 
@@ -474,9 +468,6 @@ function handleArraySlice(ctx: IAssignmentContext): string {
   // Use resolvedBaseIdentifier for type lookup (includes scope prefix)
   const name = ctx.resolvedBaseIdentifier;
   const typeInfo = CodeGenState.getVariableTypeInfo(name);
-
-  // Get line number for error messages
-  const line = ctx.subscripts[0].start?.line ?? 0;
 
   // Validate 1D array only
   if (typeInfo?.arrayDimensions && typeInfo.arrayDimensions.length > 1) {
@@ -552,7 +543,6 @@ function handleArraySlice(ctx: IAssignmentContext): string {
     ctx,
     typeInfo,
     { offsetValue, lengthValue, capacity },
-    line,
     ctx.identifiers[0],
   );
 }

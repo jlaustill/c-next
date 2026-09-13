@@ -145,13 +145,6 @@ class FloatModuloAnalyzer {
         "The % operator only works with integer types. Use fmod() from <math.h> for floating-point remainder.",
     });
   }
-
-  /**
-   * Get all detected errors
-   */
-  public getErrors(): IFloatModuloError[] {
-    return this.errors;
-  }
 }
 
 export default FloatModuloAnalyzer;

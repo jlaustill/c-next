@@ -43,7 +43,7 @@ const INTEGER_LITERAL = /^-?(?:\d+|0[xX][0-9a-fA-F]+|0[bB][01]+)$/;
 class EnumValueResolver {
   private readonly types: OperandTypeResolver;
 
-  public constructor(private readonly scopes: ScopeFrameResolver) {
+  public constructor(scopes: ScopeFrameResolver) {
     this.types = new OperandTypeResolver(scopes);
   }
 

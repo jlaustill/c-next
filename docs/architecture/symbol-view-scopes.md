@@ -216,6 +216,12 @@ The probe hooks accessors. Two of them — `isKnownBitmap` and `isKnownRegister`
 asked** across 1143 fixtures. `isKnownBitmap` is dead. `isKnownRegister` is not: its concept is
 used constantly, and the canonical accessor is simply bypassed.
 
+> **Settled since (#1556).** `CodeGenState.isKnownRegister` was removed as unreferenced: every
+> caller asks an injected `deps.isKnownRegister` declared by `IMemberSeparatorDeps`, and the two
+> providers build that predicate inline from `knownRegisters` rather than passing the accessor.
+> So the bypass this paragraph measures is now the only path, and the open question of whether
+> the accessor should be reached is closed by there no longer being one.
+
 Measured across the symbol surface:
 
 | collection            | direct reads, bypassing any accessor | canonical accessor calls |

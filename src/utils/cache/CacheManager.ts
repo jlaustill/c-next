@@ -63,7 +63,6 @@ const STRUCT_STATE_SHAPE = SymbolTable.structStateKeys().join(",");
  * Manages symbol cache for faster incremental builds
  */
 class CacheManager {
-  private readonly projectRoot: string;
   private readonly cacheDir: string;
   private readonly cacheSubdir: string;
   private readonly configPath: string;
@@ -76,7 +75,6 @@ class CacheManager {
   private dirty = false;
 
   constructor(projectRoot: string, fs: IFileSystem = defaultFs) {
-    this.projectRoot = projectRoot;
     this.fs = fs;
     this.cacheDir = join(projectRoot, ".cnx");
     this.cacheSubdir = join(this.cacheDir, "cache");

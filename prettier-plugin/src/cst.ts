@@ -77,51 +77,6 @@ class Cst {
     return (node.children ?? []) as TCstNode[];
   }
 
-  /**
-   * Indices into `children` of every child matching `ruleIndex`.
-   *
-   * Indices rather than nodes because Prettier navigates by property path:
-   * `path.call(print, "children", index)`.
-   */
-  static childIndicesByRule(node: TCstNode, ruleIndex: number): number[] {
-    const indices: number[] = [];
-    const children = Cst.childrenOf(node);
-    for (let index = 0; index < children.length; index += 1) {
-      if (Cst.ruleIndexOf(children[index]) === ruleIndex) indices.push(index);
-    }
-    return indices;
-  }
-
-  /** Index of the first child matching `ruleIndex`, or null. */
-  static firstChildIndexByRule(
-    node: TCstNode,
-    ruleIndex: number,
-  ): number | null {
-    return Cst.childIndicesByRule(node, ruleIndex)[0] ?? null;
-  }
-
-  /** Indices of every child that is a rule context, skipping punctuation. */
-  static ruleChildIndices(node: TCstNode): number[] {
-    const indices: number[] = [];
-    const children = Cst.childrenOf(node);
-    for (let index = 0; index < children.length; index += 1) {
-      if (Cst.ruleIndexOf(children[index]) !== null) indices.push(index);
-    }
-    return indices;
-  }
-
-  /** Texts of every direct token child, in order. */
-  static terminalTexts(node: TCstNode): string[] {
-    return Cst.childrenOf(node)
-      .filter((child) => Cst.isTerminal(child))
-      .map((child) => Cst.textOf(child));
-  }
-
-  /** True when the context has a direct token child with this exact text. */
-  static hasTerminal(node: TCstNode, text: string): boolean {
-    return Cst.terminalTexts(node).includes(text);
-  }
-
   /** 1-based line of the node's first token, or null when unavailable. */
   static startLineOf(node: TCstNode): number | null {
     if (Cst.isTerminal(node)) return node.symbol.line;

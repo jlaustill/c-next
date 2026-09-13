@@ -88,7 +88,6 @@ function relationshipForDepth(depth: number): TMatrixRelationship {
 class MatrixCell {
   static readonly CONTEXTS = CONTEXTS;
   static readonly RELATIONSHIPS = RELATIONSHIPS;
-  static readonly DERIVABLE_RELATIONSHIPS = DERIVABLE_RELATIONSHIPS;
   static key = key;
   static all = all;
   static isDerivable = isDerivable;

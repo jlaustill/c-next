@@ -113,7 +113,6 @@ function createMockParam(
  * Helper to create a mock function declaration context.
  */
 function createMockFunctionDecl(
-  name: string,
   returnType: string,
   params: never[] = [],
 ): never {
@@ -139,7 +138,7 @@ describe("FunctionContextManager", () => {
   describe("setupFunctionContext", () => {
     it("sets current function name without scope", () => {
       const callbacks = createMockCallbacks();
-      const ctx = createMockFunctionDecl("myFunc", "void");
+      const ctx = createMockFunctionDecl("void");
 
       FunctionContextManager.setupFunctionContext("myFunc", ctx, callbacks);
 
@@ -149,7 +148,7 @@ describe("FunctionContextManager", () => {
     it("sets current function name with scope prefix", () => {
       CodeGenState.setCurrentScopeByPath("MyScope");
       const callbacks = createMockCallbacks();
-      const ctx = createMockFunctionDecl("myFunc", "void");
+      const ctx = createMockFunctionDecl("void");
 
       FunctionContextManager.setupFunctionContext("myFunc", ctx, callbacks);
 
@@ -158,7 +157,7 @@ describe("FunctionContextManager", () => {
 
     it("sets current function return type", () => {
       const callbacks = createMockCallbacks();
-      const ctx = createMockFunctionDecl("myFunc", "u32");
+      const ctx = createMockFunctionDecl("u32");
 
       FunctionContextManager.setupFunctionContext("myFunc", ctx, callbacks);
 
@@ -167,7 +166,7 @@ describe("FunctionContextManager", () => {
 
     it("sets inFunctionBody to true", () => {
       const callbacks = createMockCallbacks();
-      const ctx = createMockFunctionDecl("myFunc", "void");
+      const ctx = createMockFunctionDecl("void");
 
       FunctionContextManager.setupFunctionContext("myFunc", ctx, callbacks);
 
@@ -177,7 +176,7 @@ describe("FunctionContextManager", () => {
     it("clears local variables", () => {
       CodeGenState.localVariables.add("existingVar");
       const callbacks = createMockCallbacks();
-      const ctx = createMockFunctionDecl("myFunc", "void");
+      const ctx = createMockFunctionDecl("void");
 
       FunctionContextManager.setupFunctionContext("myFunc", ctx, callbacks);
 
@@ -187,7 +186,7 @@ describe("FunctionContextManager", () => {
     it("processes parameters when present", () => {
       const callbacks = createMockCallbacks();
       const params = [createMockParam("x", "u32", { isPrimitive: true })];
-      const ctx = createMockFunctionDecl("myFunc", "void", params);
+      const ctx = createMockFunctionDecl("void", params);
 
       FunctionContextManager.setupFunctionContext("myFunc", ctx, callbacks);
 
@@ -264,7 +263,7 @@ describe("FunctionContextManager", () => {
   describe("resolveReturnTypeAndParams", () => {
     it("returns int for main with args", () => {
       const params = [createMockParam("args", "u8", { isArray: true })];
-      const ctx = createMockFunctionDecl("main", "void", params);
+      const ctx = createMockFunctionDecl("void", params);
 
       const result = FunctionContextManager.resolveReturnTypeAndParams(
         "main",
@@ -279,7 +278,7 @@ describe("FunctionContextManager", () => {
     });
 
     it("returns int for main without args", () => {
-      const ctx = createMockFunctionDecl("main", "void");
+      const ctx = createMockFunctionDecl("void");
 
       const result = FunctionContextManager.resolveReturnTypeAndParams(
         "main",
@@ -293,7 +292,7 @@ describe("FunctionContextManager", () => {
     });
 
     it("preserves return type for non-main functions", () => {
-      const ctx = createMockFunctionDecl("myFunc", "u32");
+      const ctx = createMockFunctionDecl("u32");
 
       const result = FunctionContextManager.resolveReturnTypeAndParams(
         "myFunc",

@@ -72,6 +72,16 @@ const defaultOptions = {
   useTabs: false,
 };
 
+/**
+ * The plugin object Prettier loads by name at runtime.
+ *
+ * No file in this repo imports it, so every static analysis calls it unused.
+ * Tagged rather than configured: an `ignore` entry would silence everything
+ * else in the plugin's real entry point too, including dead code added later
+ * (#1580 review).
+ *
+ * @public
+ */
 export default {
   languages,
   parsers,

@@ -73,12 +73,6 @@ function contextsAt(
   return contexts;
 }
 
-/** Contexts a fixture's diagnostics resolve to. Empty when none can be. */
-function contextsOf(fixturePath: string, source: string): TMatrixContext[] {
-  const expectedError = fixturePath.replace(/\.test\.cnx$/, ".expected.error");
-  return contextsAt(source, diagnosticLines(expectedError));
-}
-
 /**
  * Fold one fixture into the per-ADR occupancy maps.
  */
@@ -181,9 +175,6 @@ async function build(
 }
 
 class FixtureOccupancy {
-  static diagnosticLines = diagnosticLines;
-  static contextsOf = contextsOf;
-  static contextsAt = contextsAt;
   static build = build;
 }
 

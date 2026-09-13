@@ -447,7 +447,7 @@ function createMockOrchestrator(
     generateArrayDimensions: vi.fn((dims) =>
       dims.map((d: { getText: () => string }) => d.getText()).join(""),
     ),
-    getZeroInitializer: vi.fn((typeCtx, isArray) => (isArray ? "{0}" : "0")),
+    getZeroInitializer: vi.fn((_typeCtx, isArray) => (isArray ? "{0}" : "0")),
     setCurrentFunctionName: vi.fn(),
     enterFunctionContext: vi.fn(),
     exitFunctionContext: vi.fn(),
