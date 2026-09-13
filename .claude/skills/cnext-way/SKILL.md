@@ -115,7 +115,7 @@ decoration.
 
 Three real instances, all in one week:
 
-- `/* test-no-warnings */` compiled `-fsyntax-only` with no `-O`. It was added
+- `// test-no-warnings` compiled `-fsyntax-only` with no `-O`. It was added
   specifically to guard a `-Wstringop-overflow` — a middle-end diagnostic that
   **cannot fire** without optimization. A guaranteed 32-byte overflow into an
   8-byte buffer passed it silently, for its entire life.

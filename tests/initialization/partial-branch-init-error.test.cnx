@@ -1,3 +1,4 @@
+// test-error
 // test-coverage: 26-partial-branch-init
 // Tests: Error when variable only initialized in some branches
 // Should produce an error for using potentially uninitialized variable

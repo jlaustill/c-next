@@ -1,3 +1,4 @@
+// test-error
 // ADR-027: Error - condition must be boolean expression (E0701)
 // test-adr: 022
 // Should error: integer used as condition

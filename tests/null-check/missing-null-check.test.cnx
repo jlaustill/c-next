@@ -1,3 +1,4 @@
+// test-error
 // ADR-047: Missing NULL check should be an error
 #include <stdio.h>
 

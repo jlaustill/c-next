@@ -1,3 +1,4 @@
+// test-error
 // ADR-045: Test error when non-const string has no capacity
 // test-adr: 045
 // NEGATIVE CONTROL -- the same declaration WITH a capacity, and an unsized

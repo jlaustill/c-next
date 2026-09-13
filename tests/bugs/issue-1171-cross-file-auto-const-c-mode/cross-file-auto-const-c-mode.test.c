@@ -5,7 +5,7 @@
 
 #include "cross-file-auto-const-c-mode.test.h"
 
-/* test-no-warnings */
+// test-no-warnings
 // Issue #1171: cross-file modification tracking was gated on cppDetected, so
 // in C mode a parameter that is only ever forwarded to a cross-file *mutating*
 // callee still received #268 auto-const.

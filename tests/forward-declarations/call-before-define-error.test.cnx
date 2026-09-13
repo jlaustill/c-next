@@ -1,3 +1,4 @@
+// test-error
 // ADR-030: Error - call before definition
 // Tests: calling function before it's defined produces error
 

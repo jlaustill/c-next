@@ -9,7 +9,7 @@
 
 #include <stdint.h>
 
-/* test-no-warnings */
+// test-no-warnings
 // test-execution
 // Tests: Struct pass-by-reference should not trigger pointer warnings
 // Validates: Implicit pointer handling is warning-free

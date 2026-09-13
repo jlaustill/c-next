@@ -1,4 +1,4 @@
-/* test-no-warnings */
+// test-no-warnings
 // test-adr: 029
 // #1566: the ADR-029 init function named only the CALLBACK fields, so a struct
 // that also has data fields got a partial compound literal. C zero-fills the

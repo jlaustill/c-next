@@ -1,6 +1,6 @@
 // test-cpp-only
 // test-execution
-/* test-no-warnings */
+// test-no-warnings
 // Tests: Issue #267 - reinterpret_cast for string-to-pointer in C++ mode
 // When cppMode is enabled, passing string bytes to u8 parameters should
 // use reinterpret_cast<uint8_t*> instead of C-style (uint8_t*) cast

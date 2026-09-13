@@ -1,3 +1,4 @@
+// test-error
 // ADR-025: Error Test - Duplicate Case
 // test-adr: 025
 // Should error: duplicate case values not allowed

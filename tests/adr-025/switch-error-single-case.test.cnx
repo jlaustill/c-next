@@ -1,3 +1,4 @@
+// test-error
 // ADR-025: Error Test - Single Case
 // test-adr: 025
 // Should error: MISRA 16.6 requires at least 2 clauses

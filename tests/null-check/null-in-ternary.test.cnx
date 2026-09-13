@@ -1,3 +1,4 @@
+// test-error
 // test-coverage: 28-null-in-ternary
 // Tests: NULL check in ternary condition with c_ prefix pattern (ADR-046)
 #include <stdio.h>

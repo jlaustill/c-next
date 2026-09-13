@@ -1,3 +1,4 @@
+// test-error
 // ADR-022: Error - condition is not boolean expression
 // test-adr: 022
 // Should error: condition must be comparison or logical

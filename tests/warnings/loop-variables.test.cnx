@@ -1,4 +1,4 @@
-/* test-no-warnings */
+// test-no-warnings
 // test-execution
 // Tests: Loop variable usage should not trigger unused variable warnings
 // Validates: Loop counters and accumulators are properly used

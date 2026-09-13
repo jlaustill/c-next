@@ -1,3 +1,4 @@
+// test-error
 // Issue #366: !this.method() calls in if conditions should trigger E0702
 // test-adr: 022
 // This is the exact bug case from the issue report

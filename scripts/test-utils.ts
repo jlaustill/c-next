@@ -28,6 +28,7 @@ import ITestResult from "./types/ITestResult";
 import type TTestMode from "./types/TTestMode";
 import type IModeResult from "./types/ITestMode";
 import detectCppSyntax from "../src/transpiler/logic/detectCppSyntax";
+import TestMarkers from "./TestMarkers";
 
 // Project root for CLI invocation (this file is in /workspace/scripts/)
 const PROJECT_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -401,10 +402,14 @@ class TestUtils {
   }
 
   /**
-   * Check if source has test-no-warnings marker in block comment
+   * Check if source has the test-no-warnings marker
+   *
+   * Issue #1555: read in BLOCK form only until this fixed it, so a fixture
+   * spelling it as a line comment -- the way every other marker is written --
+   * asked for the warning check and silently did not get one.
    */
   static hasNoWarningsMarker(source: string): boolean {
-    return /\/\*\s*test-no-warnings\s*\*\//i.test(source);
+    return TestMarkers.has("test-no-warnings", source);
   }
 
   /**
@@ -412,7 +417,7 @@ class TestUtils {
    * Tests with this marker skip GCC compilation (e.g., C++ interop tests)
    */
   static hasTranspileOnlyMarker(source: string): boolean {
-    return /\/\/\s*test-transpile-only/i.test(source);
+    return TestMarkers.has("test-transpile-only", source);
   }
 
   /**
@@ -420,7 +425,7 @@ class TestUtils {
    * Tests with this marker run ONLY in C mode (e.g., MISRA-specific tests)
    */
   static hasCOnlyMarker(source: string): boolean {
-    return /\/\/\s*test-c-only/i.test(source);
+    return TestMarkers.has("test-c-only", source);
   }
 
   /**
@@ -428,7 +433,7 @@ class TestUtils {
    * Tests with this marker run ONLY in C++ mode (e.g., C++ template interop tests)
    */
   static hasCppOnlyMarker(source: string): boolean {
-    return /\/\/\s*test-cpp-only/i.test(source);
+    return TestMarkers.has("test-cpp-only", source);
   }
 
   /**
@@ -794,7 +799,10 @@ class TestUtils {
    * @returns zero-padded three-digit ADR numbers, deduplicated, in source order
    */
   static findAdrReferences(source: string): string[] {
-    const adrRegex: RegExp = /^\s*\/\/\s*test-adr:\s*(.+)$/gim;
+    // The spelling is the vocabulary's; only the argument parsing is this
+    // function's. A global copy is built here because a shared /g regex
+    // carries lastIndex between calls (#1555).
+    const adrRegex: RegExp = TestMarkers.globalSpellingOf("test-adr");
     const found: string[] = [];
     let match: RegExpExecArray | null;
 
@@ -817,7 +825,7 @@ class TestUtils {
   static findLinkedSourceFiles(testFile: string, source: string): string[] {
     const testDir: string = dirname(testFile);
     const linkedFiles: string[] = [];
-    const linkRegex: RegExp = /^\s*\/\/\s*test-link:\s*(.+)$/gim;
+    const linkRegex: RegExp = TestMarkers.globalSpellingOf("test-link");
     let match: RegExpExecArray | null;
 
     while ((match = linkRegex.exec(source)) !== null) {
@@ -1369,7 +1377,7 @@ class TestUtils {
     }
 
     // Execute test-execution tests, unless the generated code needs an ARM runtime
-    if (/^\s*\/\/\s*test-execution\s*$/m.test(source)) {
+    if (TestMarkers.has("test-execution", source)) {
       // Read freshly generated code to check for ARM runtime requirements
       const existingCode = readFileSync(expectedImplPath, "utf-8");
       if (TestUtils.requiresArmRuntime(existingCode)) {
@@ -1463,12 +1471,18 @@ class TestUtils {
   ): Promise<ITestResult> {
     const source = readFileSync(cnxFile, "utf-8");
 
-    // Check for incorrect test-execution marker format (Issue #322)
-    if (/\/\*\s*test-execution\s*\*\//.test(source)) {
+    // Issue #322, generalized by #1555: a marker written in a spelling the
+    // harness does not read. #322 guarded exactly one marker in exactly one
+    // wrong spelling; the vocabulary knows every marker, so the check is now
+    // "is this line trying to be a marker, and is it spelled like one".
+    const misspelled = TestMarkers.findUnrecognizedSpellings(source);
+    if (misspelled.length > 0) {
+      const first = misspelled[0];
       return {
         passed: false,
         message:
-          'Invalid test-execution marker: use "// test-execution" not "/* test-execution */"',
+          `Unrecognized spelling of "${first.marker}" at line ${first.line}: ` +
+          `${first.text} -- markers are line comments, e.g. "// ${first.marker}"`,
       };
     }
 
@@ -1494,7 +1508,35 @@ class TestUtils {
     // (E0507), so a fixture whose error needs a C++ context must be run in C++
     // mode or it reports E0507 instead of the error it asserts. The mode marker
     // is what says which, so it is honoured here rather than assumed to be C.
-    if (existsSync(expectedErrorFile)) {
+    // #1379: the marker is READ, not decoration. The runner used to decide
+    // "is this an error fixture?" from the `.expected.error` file alone, so a
+    // fixture declaring `// test-error` whose diagnostic did not fire was
+    // snapshotted as an ordinary passing fixture -- `.expected.c` written, run
+    // reported green. That is the documented TDD order for a diagnostic (write
+    // the fixture, watch it fail, implement), and step two silently succeeded.
+    //
+    // #1316 fixed the TRANSITION -- an existing `.expected.error` unlinked and
+    // rewritten as a `.expected.c`. It cannot fire here, because there was
+    // never an `.expected.error` to transition away from.
+    //
+    // The marker and the file are two assertions of ONE fact, so they must
+    // agree and disagreement is loud in both directions. Failing open in
+    // either is a fixture that asserts nothing while looking like it does.
+    const declaresError = TestMarkers.has("test-error", source);
+    const hasErrorAssertion = existsSync(expectedErrorFile);
+
+    if (!declaresError && hasErrorAssertion) {
+      return {
+        passed: false,
+        message:
+          "has a .expected.error but does not declare `// test-error` -- the " +
+          "marker is what says the fixture is an error case; add it",
+        expected: "// test-error",
+        actual: "(marker absent)",
+      };
+    }
+
+    if (declaresError || hasErrorAssertion) {
       // Guard: test-error cases must not have committed .test.* artifacts
       const staleArtifactCheck =
         TestUtils.checkForStaleErrorTestArtifacts(basePath);
@@ -1543,11 +1585,53 @@ class TestUtils {
    * Read by the stale-artifact guard and by the `--update` cleanup below, so
    * "which files does a test-error fixture produce?" is answered in one place.
    */
-  private static readonly ERROR_TEST_ARTIFACT_EXTENSIONS = [
+  /**
+   * What a *run* of an error fixture writes to disk, and therefore what the
+   * #1316 update path removes after keeping the `.expected.error`.
+   *
+   * Deliberately NOT the snapshots. The #1316 branch writes a `.expected.c`
+   * for inspection, so cleaning `expected.*` here would delete the file that
+   * branch exists to produce.
+   */
+  private static readonly ERROR_TEST_RUN_OUTPUT_EXTENSIONS = [
     "test.c",
     "test.cpp",
     "test.h",
     "test.hpp",
+  ];
+
+  /**
+   * What may not be COMMITTED beside an error fixture (#1379).
+   *
+   * The run outputs, plus the snapshots -- the same argument covers both and
+   * the list used to make it about half. An error fixture stops at the
+   * diagnostic and emits no generated output, so a `.expected.cpp` beside one
+   * is compared against nothing and regenerated by nothing: it preserves
+   * whatever codegen produced the day it was written, which is #1149's shape
+   * where `snapshot-modes.test.ts` cannot see it -- that guard reasons about a
+   * fixture's MODE and an error fixture has no mode to contradict.
+   *
+   * `expected.c` and `expected.h` are deliberately NOT here, and the asymmetry
+   * is the whole point. `runErrorTest` deletes both at the start of every run,
+   * so neither can survive as an orphan -- and #1316 writes the `.expected.c`
+   * on purpose, for an author removing a diagnostic to inspect. Forbidding it
+   * would fire on the very next run and report that file as stale, masking
+   * #1316's message with an unrelated one on the re-run an author reaches for
+   * immediately.
+   *
+   * The C++ pair had neither protection: nothing cleaned them and nothing
+   * forbade them, which is why exactly one fixture in the corpus carried a
+   * `.expected.cpp` and `.expected.hpp` that nothing regenerated or compared.
+   * Both halves are fixed -- the cleanup covers them now, and this list catches
+   * one already committed.
+   *
+   * Built from the run outputs rather than relisting them, so the two cannot
+   * drift apart on the four they share.
+   */
+  private static readonly ERROR_TEST_FORBIDDEN_EXTENSIONS = [
+    ...TestUtils.ERROR_TEST_RUN_OUTPUT_EXTENSIONS,
+    "expected.cpp",
+    "expected.hpp",
   ];
 
   /**
@@ -1562,7 +1646,7 @@ class TestUtils {
   static checkForStaleErrorTestArtifacts(basePath: string): ITestResult | null {
     const staleFiles: string[] = [];
 
-    for (const ext of TestUtils.ERROR_TEST_ARTIFACT_EXTENSIONS) {
+    for (const ext of TestUtils.ERROR_TEST_FORBIDDEN_EXTENSIONS) {
       const artifactPath = `${basePath}.${ext}`;
       if (existsSync(artifactPath)) {
         staleFiles.push(artifactPath);
@@ -1665,12 +1749,31 @@ class TestUtils {
   ): Promise<ITestResult> {
     const expectedCFile = basePath + ".expected.c";
     const expectedHFile = basePath + ".expected.h";
-    const headerFile = basePath + ".test.h";
 
-    const expectedErrors = readFileSync(expectedErrorFile, "utf-8").trim();
+    // #1379: absent when the fixture declares `// test-error` and its
+    // assertion has not been created yet -- the ordinary TDD order. Read as
+    // empty rather than throwing, so the branches below can bootstrap it under
+    // --update or say what is missing without it.
+    const hasAssertion = existsSync(expectedErrorFile);
+    const expectedErrors = hasAssertion
+      ? readFileSync(expectedErrorFile, "utf-8").trim()
+      : "";
 
     // Clean up stale success test artifacts
-    for (const staleFile of [expectedCFile, expectedHFile, headerFile]) {
+    // These two ONLY, and the reason is an invariant rather than a preference:
+    // `checkForStaleErrorTestArtifacts` runs first in `runTest` and returns on
+    // anything in ERROR_TEST_FORBIDDEN_EXTENSIONS, so every other output kind
+    // has already been reported by the time control reaches here. `.expected.c`
+    // and `.expected.h` are exactly the kinds that list deliberately omits, so
+    // they are exactly the kinds that can still arrive.
+    //
+    // This list previously also named `.test.h` (unreachable -- forbidden), and
+    // #1555 hand-extended it with the C++ pair believing that closed the orphan
+    // gap. It did not: those are forbidden too, so the additions were dead the
+    // moment they were written, and the forbidden list is what actually caught
+    // the one orphaned fixture. Deleting them rather than leaving code that
+    // reads like a second safety net and is not one.
+    for (const staleFile of [expectedCFile, expectedHFile]) {
       if (existsSync(staleFile)) {
         try {
           unlinkSync(staleFile);
@@ -1695,14 +1798,21 @@ class TestUtils {
       // an author who meant to remove the diagnostic can see the new output;
       // removing the assertion stays their explicit act, made by deleting the
       // .expected.error and its docs/diagnostic-manifest.md row in the same commit.
+      // #1379: only for the #1316 case, where an assertion EXISTS and stopped
+      // matching -- there the author may be removing a diagnostic on purpose
+      // and wants to see the new output. With no assertion there is nothing to
+      // have changed, and writing one would leave a `.expected.c` beside a
+      // `// test-error` fixture for the forbidden-artifact guard to flag next
+      // run, reporting a file this run just wrote.
       if (updateMode) {
-        writeFileSync(expectedCFile, result.code);
+        // The inspection snapshot is #1316's, and only for the case it names.
+        if (hasAssertion) writeFileSync(expectedCFile, result.code);
         // Keeping the .expected.error means transpileViaCli's own output stays
         // on disk, so the stale-artifact guard would fire first on the next run
         // and report "git rm" for files this run just wrote -- masking the
         // message above with an unrelated one, on the re-run an author reaches
         // for immediately. These are this run's output, not committed artifacts.
-        for (const ext of TestUtils.ERROR_TEST_ARTIFACT_EXTENSIONS) {
+        for (const ext of TestUtils.ERROR_TEST_RUN_OUTPUT_EXTENSIONS) {
           const artifactPath = `${basePath}.${ext}`;
           if (existsSync(artifactPath)) {
             try {
@@ -1715,9 +1825,15 @@ class TestUtils {
       }
       return {
         passed: false,
-        message: updateMode
-          ? `test-error fixture no longer errors: .expected.error kept, wrote ${basename(expectedCFile)} for inspection. If intentional, delete the .expected.error and its docs/diagnostic-manifest.md row in the same commit.`
-          : "Expected errors but transpilation succeeded",
+        message: !hasAssertion
+          ? // #1379: the fixture declares `// test-error` and produced no
+            // diagnostic. This used to be snapshotted green, which is how a
+            // fixture could be committed asserting nothing -- green whether or
+            // not the diagnostic was ever implemented.
+            "declares `// test-error` but produced no diagnostic -- nothing was asserted. Implement the diagnostic, or remove the marker if this fixture is not an error case."
+          : updateMode
+            ? `test-error fixture no longer errors: .expected.error kept, wrote ${basename(expectedCFile)} for inspection. If intentional, delete the .expected.error and its docs/diagnostic-manifest.md row in the same commit.`
+            : "Expected errors but transpilation succeeded",
         expected: expectedErrors,
         actual: "(no errors)",
       };
@@ -1743,6 +1859,17 @@ class TestUtils {
       TestUtils.normalize(actualErrors) === TestUtils.normalize(expectedErrors)
     ) {
       return { passed: true };
+    }
+
+    if (!hasAssertion) {
+      // #1379: the diagnostic fires and the assertion has not been written.
+      // The TDD bootstrap -- `--update` above creates it from this output.
+      return {
+        passed: false,
+        message: `declares \`// test-error\` and has no ${basename(expectedErrorFile)} -- re-run with --update to create it from the diagnostic below`,
+        expected: `(no ${basename(expectedErrorFile)})`,
+        actual: actualErrors,
+      };
     }
 
     return {

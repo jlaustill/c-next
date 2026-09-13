@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-/* test-no-warnings */
+// test-no-warnings
 // test-execution
 // Tests: Comparison operations should not trigger -Wsign-compare warnings
 // Validates: Same-type comparisons are warning-free

@@ -1,3 +1,4 @@
+// test-error
 // ADR-024: Test that negative literals to unsigned types are caught
 // test-adr: 024
 // This should produce a compiler error

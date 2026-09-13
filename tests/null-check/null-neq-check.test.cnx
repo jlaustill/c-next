@@ -1,3 +1,4 @@
+// test-error
 // ADR-047: NULL check with != operator
 // Tests: checking for non-NULL before using result
 #include <stdio.h>

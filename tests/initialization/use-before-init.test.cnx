@@ -1,3 +1,4 @@
+// test-error
 // Test: Use before initialization should be an error
 // This file intentionally has initialization errors
 void main() {
