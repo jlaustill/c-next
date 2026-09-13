@@ -284,9 +284,9 @@ async function runTestsParallel(
     const readyWorkers = new Set<ChildProcess>();
     let completedCount = 0;
 
-    // Issue #1488: the harness re-transpiles every helper `.cnx` IN PLACE, so
-    // two fixtures sharing one write the same generated `.h` at once and
-    // findHelperHeaderDivergence reads a file mid-rewrite -- the same commit
+    // Issue #1488: a fixture's run writes its dependencies' generated files in
+    // place, so two fixtures sharing one write the same generated `.h` at once
+    // and the snapshot comparison reads a file mid-rewrite -- the same commit
     // failing on CI and passing on re-run. A fixture's include closure acts as
     // a lock: it starts only when no in-flight fixture holds a file in it.
     // Fixtures that share nothing -- the overwhelming majority -- are

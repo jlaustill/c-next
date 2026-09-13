@@ -16,7 +16,7 @@ import {
   statSync,
   readdirSync,
 } from "node:fs";
-import { join, dirname, basename, relative } from "node:path";
+import { join, dirname, basename } from "node:path";
 import { execFileSync, spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { randomBytes } from "node:crypto";
@@ -123,7 +123,8 @@ interface ICliTranspileResult {
    * the "Generated N output files:" block after the impl files. For a multi-file
    * pipeline run this includes every dependency's header, direct or
    * transitive, not just the ones a caller's own `.cnx` list happens to name.
-   * See TestUtils.findHelperHeaderDivergence.
+   * That transitivity is what lets the harness take a fixture's dependency
+   * artifacts from this report alone (#1544).
    */
   generatedHeaderPaths: string[];
   /**
@@ -637,15 +638,26 @@ class TestUtils {
    * The suppressions travel with the include path rather than beside it,
    * because they are the same decision -- "how does this corpus compile a
    * fixture?" -- and splitting them would leave three copies of half of it.
+   *
+   * #1544: the include path is the fixture's SOURCE ROOT -- the entry's
+   * directory -- and is the same for every translation unit in the fixture,
+   * which is why this takes the entry rather than the file being compiled. A
+   * generated file's self-include is source-root-relative by #339's decision,
+   * so `lib/sensors.c` includes `"lib/sensors.h"` in order that two helpers
+   * both named `config.cnx` cannot collide on `"config.h"` (#1134). Passing
+   * each unit its OWN directory resolved that for the entry and for nothing
+   * else: a helper in a subdirectory looked for `lib/sensors.h` inside `lib/`
+   * and the compile died on a missing header. The generated code was right; it
+   * was being compiled against an include path its own contract does not use.
    */
-  static fixtureCompileFlags(cFile: string, rootDir: string): string[] {
+  static fixtureCompileFlags(entryImplFile: string, rootDir: string): string[] {
     return [
       "-Wno-unused-variable",
       "-Wno-main",
       "-I",
       join(rootDir, "tests/include"),
       "-I",
-      dirname(cFile),
+      dirname(entryImplFile),
     ];
   }
 
@@ -653,11 +665,14 @@ class TestUtils {
    * Compile ONE translation unit and report any warning as a failure.
    *
    * @param tuFile - The .c/.cpp file to compile
+   * @param entryImplFile - The fixture's ENTRY impl file, whose directory is
+   *        the source root every unit's self-include is relative to (#1544)
    * @param rootDir - Project root directory for include paths
    * @param mode - The mode the harness is compiling this fixture in (#1557)
    */
   static compileTranslationUnitWithoutWarnings(
     tuFile: string,
+    entryImplFile: string,
     rootDir: string,
     mode: TTestMode,
   ): IValidationResult {
@@ -691,7 +706,7 @@ class TestUtils {
           "-Wall",
           "-Wextra",
           "-Werror",
-          ...TestUtils.fixtureCompileFlags(tuFile, rootDir),
+          ...TestUtils.fixtureCompileFlags(entryImplFile, rootDir),
           tuFile,
         ],
         { encoding: "utf-8", timeout: 10000, stdio: "pipe" },
@@ -742,6 +757,7 @@ class TestUtils {
     for (const translationUnit of [cFile, ...helperImplFiles]) {
       const result = TestUtils.compileTranslationUnitWithoutWarnings(
         translationUnit,
+        cFile,
         rootDir,
         mode,
       );
@@ -834,12 +850,16 @@ class TestUtils {
    * Issue #1488: every `.cnx` this fixture's run will read or rewrite --
    * its helpers, and their helpers, transitively.
    *
-   * The harness re-transpiles each direct helper IN PLACE after the entry's
-   * pipeline run, so two fixtures sharing any of these files write the same
-   * generated `.h` at once. `findHelperHeaderDivergence` then reads a file
-   * mid-rewrite and reports a divergence that does not exist -- the same commit
-   * failing on CI and passing on re-run, with the blame landing on whichever
-   * pull request happened to be running.
+   * A fixture's entry run writes its dependencies' generated files in place, so
+   * two fixtures sharing any of these write the same generated `.h` at once.
+   * The snapshot comparison and the compile then read a file mid-rewrite -- the
+   * same commit failing on CI and passing on re-run, with the blame landing on
+   * whichever pull request happened to be running.
+   *
+   * #1544 removed the standalone helper re-transpile this used to name as the
+   * second writer. That halved the writers per file and did not remove the
+   * race: a shared helper is still written by every fixture that includes it,
+   * once per mode, and the lock is still what orders them.
    *
    * The scheduler treats this set as a lock: a fixture starts only when no
    * in-flight fixture holds a file in it. Answering too narrowly lets the race
@@ -877,43 +897,6 @@ class TestUtils {
     return [...seen];
   }
 
-  /**
-   * Issue #1470: a helper's header is written twice per mode -- once by the
-   * entry file's multi-file pipeline run, and again by the single-file run this
-   * harness performs on the helper itself, which overwrites it. Only the second
-   * reaches the compiler and the working-tree check, so a header the multi-file
-   * pipeline gets WRONG is invisible: a single-file run cannot exhibit a
-   * cross-file ordering defect, because "the only file is also the last one"
-   * (issue #1139, whose regression fixture this silence had made unable to fail).
-   *
-   * `captured` is built from `generatedHeaderPaths` on the ENTRY's own CLI
-   * result -- every header that run reported writing -- not from a path
-   * guessed per direct helper. So a transitive dependency's header (included
-   * by a helper rather than by the fixture's own entry file) is covered the
-   * same way a direct helper's is: `findHelperCnxFiles` never lists it, but
-   * the entry's pipeline still writes its header and the helper that includes
-   * it still overwrites that header when the standalone loop re-transpiles it.
-   *
-   * The two must therefore agree. Compared byte-for-byte rather than through
-   * `normalize()`: both files are written by the same transpiler in the same
-   * pass, so any difference at all is a real divergence and not formatting.
-   *
-   * Scope: headers only. The same overwrite also hides a helper's `.c`/`.cpp`,
-   * which diverges TODAY for a separate, live reason -- a dependency's
-   * self-include path depends on which file was its entry (issue #1473) --
-   * so comparing impl files here would fail immediately on that, unrelated to any
-   * pipeline-ordering defect. Left to whichever change resolves #1473; #1160
-   * is the general form of this harness defect across all four extensions.
-   *
-   * Race note, resolved: a helper shared by more than one fixture used to have
-   * its header captured by one fixture's worker while another was re-transpiling
-   * that same file, so this comparison read a file mid-rewrite and reported a
-   * divergence that did not exist -- the same commit failing on CI and passing on
-   * re-run (#1488). The scheduler now locks a fixture's include closure
-   * (`helperClosure`) for the duration of its run, so no two fixtures sharing a
-   * helper are in flight at once and a difference seen here is a real one. The
-   * compile step no longer races either, for the same reason.
-   */
   /**
    * A dependency's generated file paired with the snapshot beside it.
    *
@@ -981,38 +964,6 @@ class TestUtils {
     return null;
   }
 
-  static findHelperHeaderDivergence(
-    captured: { path: string; content: string | null }[],
-    mode: TTestMode,
-    rootDir: string,
-  ): { error: string; expected: string; actual: string } | null {
-    for (const { path, content } of captured) {
-      const afterHelperRun = existsSync(path)
-        ? readFileSync(path, "utf-8")
-        : null;
-      if (afterHelperRun === content) {
-        continue;
-      }
-
-      const shown = relative(rootDir, path);
-      const absent = "<no header emitted>";
-      const expected = content ?? absent;
-      const actual = afterHelperRun ?? absent;
-      return {
-        error:
-          `${mode.toUpperCase()} helper header divergence: ${shown} differs ` +
-          `between the multi-file pipeline run and the single-file helper run, ` +
-          `so the header this fixture compiles is not the one the pipeline ` +
-          `produces. The two runs disagree, which is a transpiler defect -- ` +
-          `see issue #1470 for why.` +
-          TestUtils.describeFirstDifference(expected, actual),
-        expected,
-        actual,
-      };
-    }
-    return null;
-  }
-
   /**
    * Run a test in a single mode (C or C++)
    *
@@ -1025,7 +976,6 @@ class TestUtils {
    * @param updateMode - Whether to update snapshots
    * @param tools - Available validation tools
    * @param rootDir - Project root directory
-   * @param helperCnxFiles - Helper .cnx files to also transpile
    * @param options - Test execution options (transpileOnly)
    */
   static async runTestMode(
@@ -1035,7 +985,6 @@ class TestUtils {
     updateMode: boolean,
     tools: ITools,
     rootDir: string,
-    helperCnxFiles: string[],
     options: ITestOptions = {},
   ): Promise<IModeResult> {
     const basePath = cnxFile.replace(/\.test\.cnx$/, "");
@@ -1105,22 +1054,43 @@ class TestUtils {
       }
     }
 
-    // Issue #1470: capture every header the entry's OWN multi-file pipeline
-    // run just reported writing, as it left them, BEFORE the single-file
-    // helper runs below overwrite them. This is the entry's own reported
-    // list (transpileResult.generatedHeaderPaths), not one derived from
-    // helperCnxFiles, so a transitive dependency's header is captured the
-    // same way a direct helper's is. The entry's own header is excluded --
-    // nothing in the loop below can overwrite it. See
-    // findHelperHeaderDivergence for why the rest must agree, and for what
-    // this deliberately does not cover.
+    // Every header this run wrote for something OTHER than the entry. The
+    // entry's own is excluded because the code below already compares it.
     const dependencyHeaderPaths = transpileResult.generatedHeaderPaths.filter(
       (path) => path !== transpileResult.headerPath,
     );
-    const dependencyHeadersFromPipeline = dependencyHeaderPaths.map((path) => ({
-      path,
-      content: existsSync(path) ? readFileSync(path, "utf-8") : null,
-    }));
+
+    // #1544: the entry's run is the ONLY writer of a dependency's generated
+    // files, and the impl paths below are what it reported writing.
+    //
+    // This harness used to re-transpile every helper `.cnx` standalone,
+    // afterwards and to the same paths. Both runs emit correct output -- but
+    // for DIFFERENT programs, and a generated signature can legitimately
+    // depend on which program its file belongs to. A function wired to a C
+    // callback typedef in another file keeps the typedef's parameter shape;
+    // compiled alone, nothing wires it, so #268 auto-const applies and the
+    // shape differs. Both headers are right. Only one path holds them.
+    //
+    // The standalone run went second, so the fixture compiled the entry's `.c`
+    // from the multi-file program against the helper's `.h` from the
+    // single-file one -- a pair no single transpile ever produced, failing on
+    // an incompatible pointer type that neither program has. #1470 saw the two
+    // runs disagree and reported it as a transpiler defect; the disagreement
+    // was real and expected, and the defect was pairing them. Its comparison
+    // goes with the second run, having nothing left to compare.
+    //
+    // Dropping that pass loses no coverage -- the entry's run already writes
+    // every dependency's `.c` and `.h`, which is what these paths are. What it
+    // does mean is that a helper's generated files belong to the program that
+    // included them, so a helper shared by two fixtures whose programs
+    // disagree would flip on disk between runs and fail `working tree clean`
+    // nondeterministically. No helper does today. The scheduler already
+    // serializes fixtures sharing a helper closure (#1488), so such a flip
+    // would be ordered rather than torn -- ordered and still wrong. A helper
+    // whose output depends on its includer needs one owning fixture, not two.
+    helperImplFiles = transpileResult.generatedImplPaths.filter(
+      (path) => path !== expectedImplPath && path !== paths.tempImpl,
+    );
 
     // #1521: every file this run generated for something OTHER than the entry.
     // The entry's own two are excluded because the code below already compares
@@ -1128,58 +1098,8 @@ class TestUtils {
     // ways to report the same failure.
     const dependencySnapshotPaths = [
       ...dependencyHeaderPaths,
-      ...transpileResult.generatedImplPaths.filter(
-        (path) => path !== expectedImplPath && path !== paths.tempImpl,
-      ),
+      ...helperImplFiles,
     ];
-
-    // Transpile helper files via CLI
-    // NOTE: Don't use -o flag here. The CLI's -o flag causes a rename operation
-    // that would move tracked helper files to temp locations. Instead, let
-    // helpers generate in place (they're tracked in git anyway).
-    for (const helperCnx of helperCnxFiles) {
-      const helperBaseName = basename(helperCnx, ".cnx");
-      const implExt = mode === "cpp" ? "cpp" : "c";
-
-      // The helper file will be generated at the default location
-      const helperImplFile = join(
-        dirname(helperCnx),
-        `${helperBaseName}.${implExt}`,
-      );
-
-      // Transpile WITHOUT -o to avoid renaming tracked files
-      const helperResult = transpileViaCli(helperCnx, rootDir, mode === "cpp");
-
-      if (helperResult.success) {
-        // Same fact, same source: ask the CLI which impl it wrote for this helper
-        // rather than re-deriving it from the mode we asked for, three lines from
-        // the call that already returns the truth. A helper that includes a `.hpp`
-        // auto-switches to C++, and pushing the guessed `helper.c` would hand a
-        // stale file to the compiler for test-execution runs -- #1314's exact shape.
-        const reported = helperResult.generatedImplPaths.find((implPath) =>
-          basename(implPath).startsWith(`${helperBaseName}.`),
-        );
-        helperImplFiles.push(reported ?? helperImplFile);
-      }
-    }
-
-    // No cleanup needed - helper files are tracked in git and should persist
-
-    // Issue #1470: checked BEFORE the update branch below. A divergence is a
-    // transpiler defect, not a snapshot that needs refreshing, so `--update`
-    // must not be able to absorb it -- the same reason #1316 made `--update`
-    // fail on a fixture that stops erroring instead of rewriting its snapshot.
-    const helperHeaderDivergence = TestUtils.findHelperHeaderDivergence(
-      dependencyHeadersFromPipeline,
-      mode,
-      rootDir,
-    );
-    if (helperHeaderDivergence) {
-      result.error = helperHeaderDivergence.error;
-      result.expected = helperHeaderDivergence.expected;
-      result.actual = helperHeaderDivergence.actual;
-      return result;
-    }
 
     // Update mode: create/update snapshots, then validate them like any other run.
     //
@@ -1477,17 +1397,18 @@ class TestUtils {
 
     // Determine which modes to run (default: BOTH C and C++)
     const modes = TestUtils.getTestModes(source);
-    // #1508: the TRANSITIVE closure, not the entry's direct includes. A fixture
-    // calling a function two hops away emitted correct C -- the three objects
-    // linked by hand -- and still died at `undefined reference`, because the
-    // file defining the symbol was never handed to the compiler.
+    // #1508 needed the TRANSITIVE closure here, not the entry's direct
+    // includes: a fixture calling a function two hops away emitted correct C
+    // and still died at `undefined reference`, because the file defining the
+    // symbol was never handed to the compiler. #1544 removed the walk rather
+    // than the requirement -- the compiler now receives what the entry's own
+    // run reported writing, which is transitive by construction because the
+    // pipeline compiled those files. One fact, reported by the pass that knows
+    // it, instead of a second walk that had to be kept in step.
     //
-    // `helperClosure` is not a second walk: it is `findHelperCnxFiles` applied
-    // to fixpoint, and it already existed for the #1488 scheduler lock. Calling
-    // the direct form here made two callers walk one notion of "helper" to two
-    // different depths -- paths that agreed only while every helper happened to
-    // be one hop away, which is a latent divergence rather than a unified path.
-    const helperCnxFiles = TestUtils.helperClosure(cnxFile);
+    // `helperClosure` itself remains: the #1488 scheduler lock in test.ts is
+    // its caller, and locking still needs the closure as a SET of paths rather
+    // than as generated output.
 
     // Error tests: single-mode, but NOT mode-independent any more. #1319 made
     // "does this run emit C++?" a declared fact with its own diagnostic
@@ -1523,7 +1444,6 @@ class TestUtils {
         updateMode,
         tools,
         rootDir,
-        helperCnxFiles,
         options,
       );
       modeResults.push(modeResult);
@@ -1623,8 +1543,8 @@ class TestUtils {
    * Header files (`.h` / `.hpp`) named in the CLI's "Generated N output files:"
    * block -- every header the run actually wrote, direct dependency or
    * transitive, in the run's own words rather than a path guessed from a
-   * `.cnx` list the caller happens to have. See
-   * TestUtils.findHelperHeaderDivergence, the caller this exists for.
+   * `.cnx` list the caller happens to have -- which is what lets a fixture's
+   * dependency headers be read from one run instead of re-derived (#1544).
    *
    * Unlike parseGeneratedImplPaths, this does not stop at the first impl
    * line: impl files lead the block and headers trail it, so a scan looking
