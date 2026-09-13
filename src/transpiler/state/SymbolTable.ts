@@ -23,7 +23,6 @@ import TAnySymbol from "../types/symbols/TAnySymbol";
 import IStructSymbol from "../types/symbols/IStructSymbol";
 import IEnumSymbol from "../types/symbols/IEnumSymbol";
 import IFunctionSymbol from "../types/symbols/IFunctionSymbol";
-import IVariableSymbol from "../types/symbols/IVariableSymbol";
 import TypeResolver from "../../utils/TypeResolver";
 import type ITargetCapabilities from "../types/ITargetCapabilities";
 
@@ -275,45 +274,6 @@ class SymbolTable {
   }
 
   /**
-   * Get all variable symbols (type-safe filtering)
-   */
-  getVariableSymbols(): IVariableSymbol[] {
-    return this.getAllTSymbols().filter(
-      (s): s is IVariableSymbol => s.kind === "variable",
-    );
-  }
-
-  /**
-   * Get struct field type directly from TSymbol storage.
-   * This method queries IStructSymbol.fields directly, eliminating the need
-   * for the separate structFields Map for C-Next symbols.
-   *
-   * @param structName Name of the struct
-   * @param fieldName Name of the field
-   * @returns Field type string or undefined if not found
-   */
-  getTStructFieldType(
-    structName: string,
-    fieldName: string,
-  ): string | undefined {
-    const struct = this.getTOverloads(structName).find(
-      (s): s is IStructSymbol => s.kind === "struct",
-    );
-    if (!struct) {
-      return undefined;
-    }
-    const field = struct.fields.get(fieldName);
-    return field ? TypeResolver.getTypeName(field.type) : undefined;
-  }
-
-  /**
-   * Check if a TSymbol exists by name
-   */
-  hasTSymbol(name: string): boolean {
-    return this.tSymbols.has(name);
-  }
-
-  /**
    * Get TSymbol count
    */
   getTSize(): number {
@@ -553,31 +513,6 @@ class SymbolTable {
       ...this.getCSymbolsByFile(file),
       ...this.getCppSymbolsByFile(file),
     ];
-  }
-
-  /**
-   * Get symbols by source language
-   */
-  getSymbolsByLanguage(lang: ESourceLanguage): TAnySymbol[] {
-    switch (lang) {
-      case ESourceLanguage.CNext:
-        return this.getAllTSymbols();
-      case ESourceLanguage.C:
-        return this.getAllCSymbols();
-      case ESourceLanguage.Cpp:
-        return this.getAllCppSymbols();
-    }
-  }
-
-  /**
-   * Check if a symbol exists in any language
-   */
-  hasSymbol(name: string): boolean {
-    return (
-      this.tSymbols.has(name) ||
-      this.cSymbols.has(name) ||
-      this.cppSymbols.has(name)
-    );
   }
 
   /**

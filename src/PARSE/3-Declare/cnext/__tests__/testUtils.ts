@@ -19,25 +19,10 @@ import IScopeSymbol from "../../../../transpiler/types/symbols/IScopeSymbol";
  */
 class TestScopeUtils {
   /**
-   * Create the global scope singleton for tests.
-   */
-  static createMockGlobalScope(): IScopeSymbol {
-    return ScopeUtils.createGlobalScope();
-  }
-
-  /**
    * Create a named scope for tests.
    */
   static createMockScope(name: string, parentPath = ""): IScopeSymbol {
     return ScopeUtils.createScope(name, parentPath);
-  }
-
-  /**
-   * Get a fresh global scope instance.
-   * Returns a new instance each time to avoid test pollution.
-   */
-  static getGlobalScope(): IScopeSymbol {
-    return ScopeUtils.createGlobalScope();
   }
 
   /**

@@ -21,7 +21,6 @@ import TTypeInfo from "../../types/TTypeInfo";
 import TParameterInfo from "../../types/TParameterInfo";
 import ICodeGeneratorOptions from "./types/ICodeGeneratorOptions";
 import TypeResolver from "./TypeResolver";
-import ICodeGenSymbols from "../../types/ICodeGenSymbols";
 import TypeValidator from "./TypeValidator";
 import IOrchestrator from "./generators/IOrchestrator";
 import IGeneratorInput from "./generators/IGeneratorInput";
@@ -229,12 +228,6 @@ export default class CodeGenerator implements IOrchestrator {
   private commentExtractor: CommentScanner | null = null;
 
   private readonly commentFormatter: CommentFormatter = new CommentFormatter();
-
-  /** Type resolution and classification - now a static class, no instance needed */
-
-  /** Symbol collection - ADR-055: Now uses ISymbolInfo from TSymbolInfoAdapter */
-  public symbols: ICodeGenSymbols | null = null;
-
   /** Issue #644: String declaration helper for bounded/array/concat strings */
 
   /** Issue #644: Array initialization helper for size inference and fill-all */

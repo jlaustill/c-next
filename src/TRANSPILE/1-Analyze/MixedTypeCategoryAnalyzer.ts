@@ -233,13 +233,6 @@ class MixedTypeCategoryAnalyzer {
         "Reinterpret one operand's bits to match the other with bit indexing, e.g. value[0, 32] (ADR-007/ADR-024).",
     });
   }
-
-  /**
-   * Get all detected errors.
-   */
-  public getErrors(): IMixedTypeCategoryError[] {
-    return this.errors;
-  }
 }
 
 export default MixedTypeCategoryAnalyzer;

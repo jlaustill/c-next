@@ -228,13 +228,6 @@ class BooleanOperandAnalyzer {
       helpText: `MISRA C:2012 Rule 10.1: a bool is not a number. To flip it, use '${target} <- !${target}'.`,
     });
   }
-
-  /**
-   * Get all detected errors.
-   */
-  public getErrors(): IBooleanOperandError[] {
-    return this.errors;
-  }
 }
 
 export default BooleanOperandAnalyzer;

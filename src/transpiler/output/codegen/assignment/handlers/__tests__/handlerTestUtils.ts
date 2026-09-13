@@ -62,18 +62,6 @@ function setupMockGenerator(overrides: Record<string, unknown> = {}): void {
   } as unknown as ICodeGenApi;
 }
 
-/**
- * Combined setup for both symbols and generator.
- * Convenience function for tests that need both.
- */
-function setupMockState(
-  symbolOverrides: Partial<ICodeGenSymbols> = {},
-  generatorOverrides: Record<string, unknown> = {},
-): void {
-  setupMockSymbols(symbolOverrides);
-  setupMockGenerator(generatorOverrides);
-}
-
 /** Common type bit widths for test mocks */
 const TYPE_BIT_WIDTHS: Record<string, number> = {
   u8: 8,
@@ -121,7 +109,5 @@ function setupMockTypeRegistry(
 export default class HandlerTestUtils {
   static readonly setupMockSymbols = setupMockSymbols;
   static readonly setupMockGenerator = setupMockGenerator;
-  static readonly setupMockState = setupMockState;
-  static readonly createTypeInfo = createTypeInfo;
   static readonly setupMockTypeRegistry = setupMockTypeRegistry;
 }

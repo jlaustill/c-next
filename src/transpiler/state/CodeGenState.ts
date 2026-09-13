@@ -901,13 +901,6 @@ export default class CodeGenState {
   }
 
   /**
-   * Check if a type name is a known register.
-   */
-  static isKnownRegister(name: string): boolean {
-    return this.symbols?.knownRegisters.has(name) ?? false;
-  }
-
-  /**
    * Issue #948: Check if a type name is an opaque (forward-declared) struct type.
    * Opaque types are incomplete types that can only be used as pointers.
    * Example: `typedef struct _widget_t widget_t;` without a body makes `widget_t` opaque.
@@ -1260,34 +1253,6 @@ export default class CodeGenState {
   }
 
   /**
-   * Check if a parameter should pass by value.
-   */
-  static isPassByValue(funcName: string, paramName: string): boolean {
-    // #1511: one owner. This map was filled by a per-file pass that cleared it
-    // first, while header generation read a SECOND copy on `TranspilerState` --
-    // so the `.c` and the `.h` could disagree about the same signature, which
-    // is what #1161's fixture caught when the per-file pass was removed.
-    return (
-      CodeGenState.program?.passByValueParams().get(funcName)?.has(paramName) ??
-      false
-    );
-  }
-
-  /**
-   * Get the function signature for a function.
-   */
-  static getFunctionSignature(name: string): IFunctionSignature | undefined {
-    return this.functionSignatures.get(name);
-  }
-
-  /**
-   * Get callback type info for a function name.
-   */
-  static getCallbackType(name: string): ICallbackTypeInfo | undefined {
-    return this.callbackTypes.get(name);
-  }
-
-  /**
    * Issue #895: Get the typedef type string for a C typedef by name.
    * Used to look up function pointer typedef signatures for callback-compatible functions.
    *
@@ -1300,34 +1265,6 @@ export default class CodeGenState {
       return symbol.type;
     }
     return undefined;
-  }
-
-  /**
-   * Check if a type name is a known C-Next function.
-   */
-  static isCNextFunction(name: string): boolean {
-    return this.knownFunctions.has(name);
-  }
-
-  /**
-   * Check if a name is a compile-time const value.
-   */
-  static isConstValue(name: string): boolean {
-    return this.constValues.has(name);
-  }
-
-  /**
-   * Get the compile-time value of a const.
-   */
-  static getConstValue(name: string): number | undefined {
-    return this.constValues.get(name);
-  }
-
-  /**
-   * Get parameter info from current function context.
-   */
-  static getParameterInfo(name: string): TParameterInfo | undefined {
-    return this.currentParameters.get(name);
   }
 
   /**

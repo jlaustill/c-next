@@ -485,13 +485,6 @@ class ShiftAnalyzer {
   ): void {
     this.errors.push({ code: "E0873", line, column, message, helpText });
   }
-
-  /**
-   * Get all detected errors
-   */
-  public getErrors(): IShiftError[] {
-    return this.errors;
-  }
 }
 
 export default ShiftAnalyzer;

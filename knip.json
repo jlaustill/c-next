@@ -8,12 +8,22 @@
   "project": ["src/**/*.ts", "scripts/**/*.ts", "prettier-plugin/src/**/*.ts"],
   "ignore": [
     "tests/**",
-    "src/parser/grammar/**",
-    "src/codegen/assignment/AssignmentContextBuilder.ts",
+    "src/transpiler/logic/parser/grammar/**",
+    "src/transpiler/logic/parser/c/grammar/**",
+    "src/transpiler/logic/parser/cpp/grammar/**",
     "src/transpiler/output/codegen/generators/expressions/PostfixExpressionGenerator.ts",
     "src/transpiler/output/codegen/helpers/CppModeHelper.ts",
     "src/transpiler/output/codegen/analysis/StringLengthCounter.ts",
-    "src/transpiler/output/headers/types/IHeaderSymbol.ts"
+    "src/transpiler/output/headers/types/IHeaderSymbol.ts",
+    "prettier-plugin/src/index.ts"
   ],
-  "ignoreBinaries": ["jscpd", "jq", "dot"]
+  "ignoreBinaries": ["jscpd", "jq", "dot"],
+  "include": ["classMembers"],
+  "ignoreMembers": [
+    "generateAtomicRMW",
+    "generateFloatBitWrite",
+    "analyzeMemberChainForBitAccess",
+    "getSymbol"
+  ],
+  "includeEntryExports": true
 }

@@ -158,14 +158,6 @@ class TTypeUtils {
     return t.kind === "register";
   }
 
-  /**
-   * Check if type is external
-   */
-  /** Is this a bare name 1.3 Declare left for 1.4 Resolve to settle? */
-  static isDeferred(t: TType): t is TDeferredType {
-    return t.kind === "deferred";
-  }
-
   static isExternal(t: TType): t is TExternalType {
     return t.kind === "external";
   }

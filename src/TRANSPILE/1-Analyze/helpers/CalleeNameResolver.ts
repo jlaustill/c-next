@@ -147,20 +147,6 @@ class CalleeNameResolver {
   }
 
   /**
-   * The callee's qualified name, or null when this is not a named call.
-   */
-  static resolve(
-    postfix: Parser.PostfixExpressionContext,
-    currentScopePath: string,
-    isScope: (name: string) => boolean,
-  ): string | null {
-    return (
-      CalleeNameResolver.resolveDetailed(postfix, currentScopePath, isScope)
-        ?.name ?? null
-    );
-  }
-
-  /**
    * ADR-057: inside a scope, a bare `read()` may mean `this.read()`. The name
    * a caller should retry its lookup against, or null when the fallback does
    * not apply.

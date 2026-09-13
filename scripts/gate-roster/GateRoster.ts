@@ -301,11 +301,7 @@ function evaluate(
 export default class GateRoster {
   static numeralToInt = numeralToInt;
   static scriptsIn = scriptsIn;
-  static logicalLines = logicalLines;
   static gateInvocations = gateInvocations;
-  static gateExclusions = gateExclusions;
   static workflowScripts = workflowScripts;
-  static gateCheckNames = gateCheckNames;
-  static rosterParagraph = rosterParagraph;
   static evaluate = evaluate;
 }

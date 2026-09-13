@@ -466,6 +466,29 @@ class Registry { private map = new Map(); register() { ... } }
 export default new Registry();
 ```
 
+**That rationale is only true because #1556 made it true.** knip does not analyze class
+members by default, so for the life of this rule a static class's unused methods were
+reported clean too — the very detectability the pattern is chosen for.
+`TestUtils.executeTest` sat with no caller at all, green, until it was deleted by hand in
+#1554. Three separate settings were needed, and two of them fail **silently** when wrong:
+
+- `include: ["classMembers"]` — the analysis itself, off by default.
+- `includeEntryExports: true` — without it a member of an **entry** file is exempt, and
+  `scripts/*.ts` is an entry pattern, so the exact file the rule is illustrated with was
+  the one it could not check. Fixing only the first setting still leaves the card's own
+  reproduction passing; the mutation check is what catches that.
+- `ignore` pointing at directories that **exist** — `src/parser/grammar/**` had not
+  existed for some time, so 3300 generated findings drowned the real ones.
+
+`ignore` removes a file from the graph, not just from the report, so ignoring a directory
+stops it counting as a _user_ — over-ignoring invents dead code rather than hiding it.
+`ignoreMembers` carries the four knip cannot see: three dispatched through `ICodeGenApi`
+via `requireGenerator()`, and `getSymbol`, which `SymbolTable` supplies to `ISymbolLookup`
+by **structural** conformance and is therefore used without ever being named.
+
+Mutation-checked, and the check is the point: add a static method nothing calls and
+`npx knip` must exit non-zero naming it, while a class of used methods stays silent.
+
 ### Common Gotchas
 
 - **`replace_all` tool**: Iterative replacement can cause double-substitution

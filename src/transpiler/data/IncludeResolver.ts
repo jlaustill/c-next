@@ -81,12 +81,6 @@ interface IResolvedIncludes {
  * // result.headers contains resolved header files
  */
 class IncludeResolver {
-  /**
-   * Type helper for accessing IResolvedIncludes externally.
-   * Use: `type IResolvedIncludes = ReturnType<InstanceType<typeof IncludeResolver>["resolve"]>`
-   */
-  static readonly _resolvedIncludesType: IResolvedIncludes = undefined as never;
-
   private readonly resolvedPaths: Set<string> = new Set();
   private readonly fs: IFileSystem;
   private readonly headerExtension: THeaderExtension | null;
@@ -275,13 +269,6 @@ class IncludeResolver {
    */
   reset(): void {
     this.resolvedPaths.clear();
-  }
-
-  /**
-   * Get the set of resolved paths (for deduplication across resolver instances)
-   */
-  getResolvedPaths(): ReadonlySet<string> {
-    return this.resolvedPaths;
   }
 
   /**

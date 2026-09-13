@@ -99,17 +99,6 @@ class MockFileSystem implements IFileSystem {
   }
 
   /**
-   * Clear all files, directories, and logs
-   */
-  reset(): void {
-    this.files.clear();
-    this.fileMtimes.clear();
-    this.directories.clear();
-    this.writeLog = [];
-    this.mkdirLog = [];
-  }
-
-  /**
    * Clear just the write log (for testing multiple runs)
    */
   clearWriteLog(): void {
