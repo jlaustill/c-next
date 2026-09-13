@@ -26,7 +26,7 @@ class MockFileSystem implements IFileSystem {
   private writeLog: Array<{ path: string; content: string }> = [];
 
   /** Track mkdir operations for assertions */
-  private mkdirLog: Array<{ path: string; recursive?: boolean }> = [];
+  private readonly mkdirLog: Array<{ path: string; recursive?: boolean }> = [];
 
   /**
    * Normalize path by removing trailing slashes (except for root "/")
