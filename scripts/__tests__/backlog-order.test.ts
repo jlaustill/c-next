@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import BacklogOrder from "../backlog/BacklogOrder";
 import type IBacklogCard from "../types/IBacklogCard";
+import type IBacklogMove from "../types/IBacklogMove";
 
 /** A column, written top-to-bottom as `[issue, "blocked by text"]`. */
 function column(...rows: [number, string][]): IBacklogCard[] {
@@ -87,5 +88,67 @@ describe("BacklogOrder.derive", () => {
     expect(() =>
       BacklogOrder.derive(column([1, "#2"], [2, "#3"], [3, "#2"])),
     ).toThrow(/cycle/);
+  });
+});
+
+/** Applies a plan the way the board would, so the plan can be checked by result. */
+function replay(current: IBacklogCard[], moves: IBacklogMove[]): number[] {
+  const model = [...current];
+  for (const move of moves) {
+    const card = model.find((entry) => entry.itemId === move.itemId);
+    const above = model.find((entry) => entry.itemId === move.afterId);
+    if (card === undefined || above === undefined) {
+      throw new Error(`plan names an item not in the column: ${move.itemId}`);
+    }
+    model.splice(model.indexOf(card), 1);
+    model.splice(model.indexOf(above) + 1, 0, card);
+  }
+  return model.map((card) => card.number);
+}
+
+describe("BacklogOrder.plan", () => {
+  it("plans nothing when the column is already in order", () => {
+    const cards = column([3, ""], [1, "#3"], [2, "#1"]);
+    const outcome = BacklogOrder.derive(cards);
+    expect(outcome.moved).toEqual([]);
+    expect(BacklogOrder.plan(cards, outcome.order)).toEqual([]);
+  });
+
+  it("names the card and where it must land", () => {
+    const cards = column([1, "#2"], [2, ""]);
+    const moves = BacklogOrder.plan(cards, BacklogOrder.derive(cards).order);
+    // #1 sinks below #2; moving the blocked card is one write, not two.
+    expect(moves).toEqual([{ itemId: "item-1", afterId: "item-2", number: 1 }]);
+  });
+
+  it.each([
+    ["a blocker at the bottom", column([1, "#4"], [2, ""], [3, ""], [4, ""])],
+    ["a chain in reverse", column([1, "#2"], [2, "#3"], [3, "#4"], [4, ""])],
+    [
+      "one card far out of place",
+      column([9, "#1, #2, #3"], [1, ""], [2, ""], [3, ""]),
+    ],
+    ["a column needing no change", column([1, ""], [2, "#1"], [3, "#2"])],
+  ])("replays to exactly the derived order: %s", (_label, cards) => {
+    const outcome = BacklogOrder.derive(cards);
+    const moves = BacklogOrder.plan(cards, outcome.order);
+    expect(replay(cards, moves)).toEqual(outcome.order.map((c) => c.number));
+  });
+
+  it("costs one write when the misplaced card is at the head", () => {
+    const cards = column([9, "#1, #2, #3"], [1, ""], [2, ""], [3, ""]);
+    const moves = BacklogOrder.plan(cards, BacklogOrder.derive(cards).order);
+    expect(moves.map((move) => move.number)).toEqual([9]);
+  });
+
+  it("costs a write per card passed when the misplaced card is mid-column", () => {
+    // The plan is NOT a minimum move set, and the cost is asymmetric: a card
+    // that must sink from the head is one write, but one sitting between the
+    // correct prefix and the rest makes every later card hop over it. Pinned so
+    // the difference is a recorded property, not a surprise in a run log --
+    // this is the shape that cost 13 writes repairing #1443 on the real board.
+    const cards = column([1, ""], [9, "#2, #3, #4"], [2, ""], [3, ""], [4, ""]);
+    const moves = BacklogOrder.plan(cards, BacklogOrder.derive(cards).order);
+    expect(moves.map((move) => move.number)).toEqual([2, 3, 4]);
   });
 });

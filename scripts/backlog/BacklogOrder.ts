@@ -1,4 +1,5 @@
 import type IBacklogCard from "../types/IBacklogCard";
+import type IBacklogMove from "../types/IBacklogMove";
 import type IBacklogOrderOutcome from "../types/IBacklogOrderOutcome";
 
 import BlockedByField from "./BlockedByField";
@@ -92,6 +93,47 @@ class BacklogOrder {
     return { order, moved, constraints };
   }
 
+  /**
+   * The writes that turn `current` into `order`, in the sequence to apply them.
+   *
+   * Pure, and separate from performing them, so the decision is testable
+   * without a board: the walk keeps a local model of the column and emits a
+   * move only where a card is not already directly below its predecessor. A
+   * column already in order therefore plans NOTHING, which is what most
+   * scheduled runs find.
+   *
+   * The plan is not a minimum move set, and its cost is ASYMMETRIC. A card that
+   * must sink from the head of the column is one write. A card sitting between
+   * the already-correct prefix and the rest makes every later card hop over it,
+   * one write each -- that shape cost 13 writes repairing #1443 on the real
+   * board where relocating one card would have done.
+   *
+   * Left greedy deliberately. The minimum set is a longest-increasing-
+   * subsequence problem, and it would buy fewer API calls only in the rare
+   * drift case: the common case is a column already in order, which plans
+   * nothing either way. A scrambled board is a worse failure than a chatty
+   * repair, so the simpler walk keeps the risk down.
+   */
+  static plan(current: IBacklogCard[], order: IBacklogCard[]): IBacklogMove[] {
+    const model = [...current];
+    const moves: IBacklogMove[] = [];
+    for (let index = 1; index < order.length; index += 1) {
+      const card = order[index] as IBacklogCard;
+      const above = order[index - 1] as IBacklogCard;
+      if (model.indexOf(card) === model.indexOf(above) + 1) {
+        continue;
+      }
+      moves.push({
+        itemId: card.itemId,
+        afterId: above.itemId,
+        number: card.number,
+      });
+      model.splice(model.indexOf(card), 1);
+      model.splice(model.indexOf(above) + 1, 0, card);
+    }
+    return moves;
+  }
+
   /** One concrete cycle among the cards Kahn's algorithm could not place. */
   private static describeCycle(
     stuck: number[],
@@ -106,6 +148,10 @@ class BacklogOrder {
         inCycle.has(issue),
       );
       if (next === undefined) {
+        // Unreachable: a card is stuck only while a blocker of it is unplaced,
+        // and every unplaced card is in `stuck`, so the find always hits. Kept
+        // as a terminating guard rather than asserted away -- if that invariant
+        // ever stops holding, this ends the walk instead of spinning.
         break;
       }
       current = next;
