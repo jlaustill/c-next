@@ -1,4 +1,4 @@
-/* test-no-warnings */
+// test-no-warnings
 // test-adr: 029
 // #1568: the ADR-029 init function named every field with that field type's
 // zero initializer, taken from the helper that answers for a DECLARATION
