@@ -6,7 +6,7 @@
 #include "cross-file-callback.test.h"
 
 // test-execution
-/* test-no-warnings */
+// test-no-warnings
 // test-adr: 029
 // #1544: a function used as a callback is recognised only when the wiring sits
 // in the SAME FILE as the declaration, so a function wired from another file
@@ -22,8 +22,10 @@
 //
 // Why this fixture needs a compiler and not just a snapshot: the C symptom is
 // a WARNING, so gcc exits 0 and the suite stays green. The no-warnings marker
-// above is what fails it, and it is written in BLOCK form deliberately -- the
-// line-comment spelling is silently never checked (#1555). Before the fix:
+// above is what fails it. #1544 was written when that marker was read in block
+// form only, and named the block spelling for that reason; #1555 made the line
+// comment the one spelling every marker uses, so it is written that way here.
+// Before the fix:
 //
 //   error: passing argument 1 of 'register_reading_handler' from incompatible
 //   pointer type [-Werror=incompatible-pointer-types]

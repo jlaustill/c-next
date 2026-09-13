@@ -19,7 +19,7 @@ import {
 import { join, dirname, basename } from "node:path";
 import { execFileSync, spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
-import { randomBytes } from "node:crypto";
+import { randomBytes, createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import ITools from "./types/ITools";
 import ITestOptions from "./types/ITestOptions";
@@ -646,7 +646,11 @@ class TestUtils {
    *
    * #1544: the include path is the fixture's SOURCE ROOT -- the entry's
    * directory -- and is the same for every translation unit in the fixture,
-   * which is why this takes the entry rather than the file being compiled. A
+   * which is why this takes that directory rather than the file being
+   * compiled. Taking a directory is what makes the wrong argument unspellable:
+   * the previous signature took a file whose only use was `dirname()`, so
+   * passing the unit being compiled type-checked and was wrong for every unit
+   * except the entry. A
    * generated file's self-include is source-root-relative by #339's decision,
    * so `lib/sensors.c` includes `"lib/sensors.h"` in order that two helpers
    * both named `config.cnx` cannot collide on `"config.h"` (#1134). Passing
@@ -655,14 +659,14 @@ class TestUtils {
    * and the compile died on a missing header. The generated code was right; it
    * was being compiled against an include path its own contract does not use.
    */
-  static fixtureCompileFlags(entryImplFile: string, rootDir: string): string[] {
+  static fixtureCompileFlags(sourceRootDir: string, rootDir: string): string[] {
     return [
       "-Wno-unused-variable",
       "-Wno-main",
       "-I",
       join(rootDir, "tests/include"),
       "-I",
-      dirname(entryImplFile),
+      sourceRootDir,
     ];
   }
 
@@ -670,14 +674,15 @@ class TestUtils {
    * Compile ONE translation unit and report any warning as a failure.
    *
    * @param tuFile - The .c/.cpp file to compile
-   * @param entryImplFile - The fixture's ENTRY impl file, whose directory is
-   *        the source root every unit's self-include is relative to (#1544)
+   * @param sourceRootDir - The fixture's source root: the directory every
+   *        unit's self-include is relative to, which is the ENTRY's directory
+   *        and the same for every unit in the fixture (#1544)
    * @param rootDir - Project root directory for include paths
    * @param mode - The mode the harness is compiling this fixture in (#1557)
    */
   static compileTranslationUnitWithoutWarnings(
     tuFile: string,
-    entryImplFile: string,
+    sourceRootDir: string,
     rootDir: string,
     mode: TTestMode,
   ): IValidationResult {
@@ -711,7 +716,7 @@ class TestUtils {
           "-Wall",
           "-Wextra",
           "-Werror",
-          ...TestUtils.fixtureCompileFlags(entryImplFile, rootDir),
+          ...TestUtils.fixtureCompileFlags(sourceRootDir, rootDir),
           tuFile,
         ],
         { encoding: "utf-8", timeout: 10000, stdio: "pipe" },
@@ -759,10 +764,13 @@ class TestUtils {
     mode: TTestMode,
     helperImplFiles: string[] = [],
   ): IValidationResult {
+    // The source root is the ENTRY's directory -- `cFile` is the entry, and
+    // every unit's self-include is relative to that one directory (#1544).
+    const sourceRootDir = dirname(cFile);
     for (const translationUnit of [cFile, ...helperImplFiles]) {
       const result = TestUtils.compileTranslationUnitWithoutWarnings(
         translationUnit,
-        cFile,
+        sourceRootDir,
         rootDir,
         mode,
       );
@@ -941,6 +949,61 @@ class TestUtils {
   }
 
   /**
+   * `absolute path -> sha256` for each path that exists (#1544).
+   *
+   * A path that was reported but is absent is simply omitted rather than
+   * recorded as empty: "this run wrote nothing here" and "this run wrote an
+   * empty file" are different claims, and only the second is a disagreement
+   * worth failing on.
+   */
+  static digestFiles(paths: readonly string[]): Record<string, string> {
+    const digests: Record<string, string> = {};
+    for (const path of paths) {
+      if (!existsSync(path)) continue;
+      digests[path] = createHash("sha256")
+        .update(readFileSync(path))
+        .digest("hex");
+    }
+    return digests;
+  }
+
+  /**
+   * The first dependency two fixtures disagree about (#1544).
+   *
+   * `seen` maps a dependency's path to the fixture that wrote it and what it
+   * wrote. A helper shared by two entries must generate identical bytes for
+   * both, because only one file survives on disk: whichever ran last is what
+   * gets committed, and the other fixture is then validated against output its
+   * own program did not produce.
+   *
+   * Both fixtures are named. Reporting only the second is the #1488 shape --
+   * the failure lands on whichever the scheduler happened to run later, which
+   * is the one piece of information that does not identify the defect.
+   */
+  static findDependencyDisagreement(
+    fixture: string,
+    digests: Record<string, string>,
+    seen: Map<string, { fixture: string; digest: string }>,
+  ): string | null {
+    for (const [path, digest] of Object.entries(digests)) {
+      const previous = seen.get(path);
+      if (!previous) {
+        seen.set(path, { fixture, digest });
+        continue;
+      }
+      if (previous.digest === digest) continue;
+      return (
+        `Dependency disagreement: ${basename(path)} is generated differently ` +
+        `by two fixtures that share it -- ${basename(previous.fixture)} and ` +
+        `${basename(fixture)}. Only one file survives on disk, so whichever ` +
+        `runs last is what gets committed. A helper whose output depends on ` +
+        `its includer needs one owning fixture, not two.`
+      );
+    }
+    return null;
+  }
+
+  /**
    * The first dependency whose snapshot disagrees with what was generated.
    *
    * Reported like any other snapshot mismatch, because that is what it is --
@@ -1011,9 +1074,6 @@ class TestUtils {
     // Expected file paths
     const expectedImplPath = paths.expectedImpl;
     const expectedHeaderPath = paths.expectedHeader;
-
-    // Helper implementation files (built up during transpilation)
-    let helperImplFiles: string[] = [];
 
     // Always transpile via CLI: every test is re-transpiled in the same pass
     // that compiles and executes it, so a stale .cnx can never be silently
@@ -1092,11 +1152,20 @@ class TestUtils {
     // does mean is that a helper's generated files belong to the program that
     // included them, so a helper shared by two fixtures whose programs
     // disagree would flip on disk between runs and fail `working tree clean`
-    // depending on which ran last. No helper does today. The scheduler already
-    // serializes fixtures sharing a helper closure (#1488), so such a flip
-    // would be ordered rather than torn -- ordered and still wrong. A helper
-    // whose output depends on its includer needs one owning fixture, not two.
-    helperImplFiles = transpileResult.generatedImplPaths.filter(
+    // depending on which ran last. The scheduler already serializes fixtures
+    // sharing a helper closure (#1488), so such a flip would be ordered rather
+    // than torn -- ordered and still wrong.
+    //
+    // 29 helpers are shared by two or more entries today and none of them
+    // diverges -- measured by transpiling each includer into a clean copy and
+    // comparing the helper's generated bytes, with committed artifacts purged
+    // first so an aborted `test-error` transpile could not be hashed instead.
+    // That is a property of today's corpus, not of the design, so it is
+    // asserted rather than remembered: `dependencyDigests` records what this
+    // run wrote for each dependency, and the parent fails the suite if two
+    // fixtures disagree about one. A helper whose output depends on its
+    // includer needs one owning fixture, not two.
+    const helperImplFiles = transpileResult.generatedImplPaths.filter(
       (path) => path !== expectedImplPath && path !== paths.tempImpl,
     );
 
@@ -1108,6 +1177,12 @@ class TestUtils {
       ...dependencyHeaderPaths,
       ...helperImplFiles,
     ];
+
+    // #1544: read back what this run wrote for each dependency. Hashed here,
+    // where the paths are already known and the bytes are this fixture's --
+    // the scheduler holds the closure lock for the whole run, so nothing else
+    // can have rewritten them in between.
+    result.dependencyDigests = TestUtils.digestFiles(dependencySnapshotPaths);
 
     // Update mode: create/update snapshots, then validate them like any other run.
     //
@@ -1243,7 +1318,10 @@ class TestUtils {
           [
             "-fsyntax-only",
             actualStdFlag,
-            ...TestUtils.fixtureCompileFlags(expectedImplPath, rootDir),
+            ...TestUtils.fixtureCompileFlags(
+              dirname(expectedImplPath),
+              rootDir,
+            ),
             expectedImplPath,
           ],
           { encoding: "utf-8", timeout: 10000, stdio: "pipe" },
@@ -1321,7 +1399,10 @@ class TestUtils {
           actualCompiler,
           [
             actualStdFlag,
-            ...TestUtils.fixtureCompileFlags(expectedImplPath, rootDir),
+            ...TestUtils.fixtureCompileFlags(
+              dirname(expectedImplPath),
+              rootDir,
+            ),
             "-o",
             execPath,
             ...sourceFiles,
@@ -1893,6 +1974,17 @@ class TestUtils {
         );
         testResult.message = "Parity mismatch: C and C++ outputs differ";
       }
+    }
+
+    // #1544: both modes' dependency digests, merged. The two modes write
+    // different extensions (`.c`/`.h` against `.cpp`/`.hpp`), so their key sets
+    // are disjoint and neither can overwrite the other.
+    const dependencyDigests: Record<string, string> = {};
+    for (const modeResult of results) {
+      Object.assign(dependencyDigests, modeResult.dependencyDigests ?? {});
+    }
+    if (Object.keys(dependencyDigests).length > 0) {
+      testResult.dependencyDigests = dependencyDigests;
     }
 
     return testResult;

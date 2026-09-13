@@ -6,7 +6,7 @@
  */
 
 import { mkdtempSync, writeFileSync, rmSync, existsSync } from "node:fs";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import TestUtils from "./test-utils";
 
@@ -923,7 +923,7 @@ describe("getCompilerConfig is the one language decision (#1557)", () => {
 
     TestUtils.compileTranslationUnitWithoutWarnings(
       tuFile,
-      tuFile,
+      dirname(tuFile),
       tempDir,
       "c",
     );
@@ -994,7 +994,7 @@ describe("no-warnings check honours the harness mode (#1557)", () => {
     const result: IValidationResult =
       TestUtils.compileTranslationUnitWithoutWarnings(
         tuFile,
-        tuFile,
+        dirname(tuFile),
         tempDir,
         "cpp",
       );
@@ -1023,7 +1023,7 @@ describe("no-warnings check honours the harness mode (#1557)", () => {
     const result: IValidationResult =
       TestUtils.compileTranslationUnitWithoutWarnings(
         tuFile,
-        tuFile,
+        dirname(tuFile),
         tempDir,
         "cpp",
       );

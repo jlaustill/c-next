@@ -654,6 +654,36 @@ class FunctionCallAnalyzer {
    * wiring may sit in any file. `allLocalFunctions` is left untouched and keeps
    * answering the ordering question it exists for, the same discipline
    * `isCallbackType` follows for #1491.
+   *
+   * ## Why the `||` survives, given one side is the defective rule
+   *
+   * The two sides never both decide. Under `CallbackCompatibility.derive`,
+   * `programFunctions` is the union of `declaredFunctionNames` over the very
+   * files each analyzer is then run on, so it is a strict SUPERSET of every
+   * file's `allLocalFunctions` and the disjunction reduces to
+   * `programFunctions.has()`. Under a per-file run `programFunctions` is empty
+   * by the constructor default and it reduces to `allLocalFunctions.has()` --
+   * the pre-#1544 rule, still reachable.
+   *
+   * That narrower answer is dead by construction rather than by design: the
+   * whole-program pass owns this map, and a per-file run's writes to it are
+   * read by nobody, because all three readers go through
+   * `CodeGenState.program?.callbackCompatibleFunctions()` and none falls back
+   * to the static map. What keeps the per-file branch alive is the unit tests
+   * that construct a bare `FunctionCallAnalyzer` and assert on a map
+   * production never consults, which is why removing it is not a one-line
+   * change and is not attempted here.
+   *
+   * ## Not the same set `isCallbackType` uses, forty lines up
+   *
+   * That method answers with the per-file VISIBLE set; this one answers with
+   * the whole-program DECLARED set. CLAUDE.md names exactly that disagreement
+   * as #1312 -- a sibling never included is absent from the first and present
+   * in the second. The visible set is genuinely unavailable at this call site:
+   * it is published from `Program`, and this pass runs before the `Program` it
+   * is an input to. Declared-anywhere is sound here because gate 1 has already
+   * established the target is a C typedef and the argument named a function
+   * the using file could resolve.
    */
   private recordCallbackCompatible(funcRef: string, typedefName: string): void {
     // Scope-qualified names use dot in source (MyScope.handler) but the

@@ -299,6 +299,14 @@ async function runTestsParallel(
 
     // Results are stored and printed in order for consistent output
     const results = new Map<string, ITestResult>();
+
+    // #1544: which fixture wrote each dependency's generated file, and what it
+    // wrote. Accumulated across the whole run so the second writer of a shared
+    // helper can be compared against the first.
+    const dependencyWriters = new Map<
+      string,
+      { fixture: string; digest: string }
+    >();
     let nextToPrint = 0;
 
     const workerPath = join(__dirname, "test-worker.ts");
@@ -345,6 +353,22 @@ async function runTestsParallel(
           message.cnxFile &&
           message.result
         ) {
+          // #1544: a dependency's generated files belong to the program that
+          // included them, so two fixtures sharing a helper must agree on its
+          // bytes -- only one file survives on disk. Checked here because the
+          // parent is the only participant that sees more than one fixture;
+          // the worker cannot know it is the second writer. Folded into the
+          // fixture's own result so it prints and counts like any failure.
+          const disagreement = TestUtils.findDependencyDisagreement(
+            message.cnxFile,
+            message.result.dependencyDigests ?? {},
+            dependencyWriters,
+          );
+          if (disagreement && message.result.passed) {
+            message.result.passed = false;
+            message.result.message = disagreement;
+          }
+
           // Store result
           results.set(message.cnxFile, message.result);
           releaseHelpers(activeWorkers.get(worker));
