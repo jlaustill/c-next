@@ -41,7 +41,7 @@ describe.skipIf(!gccAvailable)("TestUtils.validateNoWarnings", () => {
       "#include <helper.h>\n\nint entryValue(void) {\n    return helperValue();\n}\n",
     );
 
-    const result = TestUtils.validateNoWarnings(cFile, process.cwd());
+    const result = TestUtils.validateNoWarnings(cFile, process.cwd(), "c");
 
     expect(result.valid).toBe(true);
   });
@@ -53,7 +53,7 @@ describe.skipIf(!gccAvailable)("TestUtils.validateNoWarnings", () => {
       "int withUnusedParam(int unusedValue) {\n    return 0;\n}\n",
     );
 
-    const result = TestUtils.validateNoWarnings(cFile, process.cwd());
+    const result = TestUtils.validateNoWarnings(cFile, process.cwd(), "c");
 
     expect(result.valid).toBe(false);
     expect(result.message).toContain("unused parameter");
@@ -68,7 +68,7 @@ describe.skipIf(!gccAvailable)("TestUtils.validateNoWarnings", () => {
         "int withUnusedParam(int unusedValue) {\n    return helperValue();\n}\n",
     );
 
-    const result = TestUtils.validateNoWarnings(cFile, process.cwd());
+    const result = TestUtils.validateNoWarnings(cFile, process.cwd(), "c");
 
     expect(result.valid).toBe(false);
     expect(result.message).toContain("unused parameter");
@@ -85,10 +85,10 @@ describe.skipIf(!gccAvailable)("TestUtils.validateNoWarnings", () => {
     );
 
     // The entry alone is clean, so this passes iff the helper is compiled too.
-    const entryOnly = TestUtils.validateNoWarnings(cFile, process.cwd());
+    const entryOnly = TestUtils.validateNoWarnings(cFile, process.cwd(), "c");
     expect(entryOnly.valid).toBe(true);
 
-    const withHelper = TestUtils.validateNoWarnings(cFile, process.cwd(), [
+    const withHelper = TestUtils.validateNoWarnings(cFile, process.cwd(), "c", [
       helperImpl,
     ]);
 

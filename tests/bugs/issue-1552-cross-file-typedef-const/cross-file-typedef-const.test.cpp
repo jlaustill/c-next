@@ -22,10 +22,10 @@
 #include <stdint.h>
 
 CrossFileHandlers CrossFileHandlers_init(void) {
-    return (CrossFileHandlers){
-        .onRecord = record,
-        .onMutate = mutate
-    };
+    CrossFileHandlers value = {};
+    value.onRecord = record;
+    value.onMutate = mutate;
+    return value;
 }
 
 uint8_t crossFileTag(const CrossFileHandlers& handlers) {

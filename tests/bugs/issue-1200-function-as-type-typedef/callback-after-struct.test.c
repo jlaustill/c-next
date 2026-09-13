@@ -14,9 +14,9 @@ void onReceive(const Message* msg) {
 }
 
 Controller Controller_init(void) {
-    return (Controller){
-        .handler = onReceive
-    };
+    Controller value = {0};
+    value.handler = onReceive;
+    return value;
 }
 
 void demo(void) {

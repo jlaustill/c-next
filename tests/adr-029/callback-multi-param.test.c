@@ -37,21 +37,21 @@ uint32_t mixedParams(uint32_t val, bool flag) {
 
 // Structs to hold callbacks
 TwoParamHandler TwoParamHandler_init(void) {
-    return (TwoParamHandler){
-        .handler = addTwo
-    };
+    TwoParamHandler value = {0};
+    value.handler = addTwo;
+    return value;
 }
 
 ThreeParamHandler ThreeParamHandler_init(void) {
-    return (ThreeParamHandler){
-        .handler = addThree
-    };
+    ThreeParamHandler value = {0};
+    value.handler = addThree;
+    return value;
 }
 
 MixedHandler MixedHandler_init(void) {
-    return (MixedHandler){
-        .handler = mixedParams
-    };
+    MixedHandler value = {0};
+    value.handler = mixedParams;
+    return value;
 }
 
 int main(void) {

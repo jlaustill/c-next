@@ -17,7 +17,7 @@
  * everywhere else; only the spelling lives in this module.
  */
 import ComplianceAnnotations from "../../../../TRANSPILE/2-Plan/ComplianceAnnotations";
-import ICallbackFieldInit from "../types/ICallbackFieldInit";
+import IStructFieldInit from "../types/IStructFieldInit";
 
 /**
  * Compliance annotation for the emitted declarations (C-Next standard: codegen
@@ -45,25 +45,43 @@ class StructInitFunction {
   }
 
   /**
-   * The `.c` definition: returns a compound literal with every callback field
-   * set to the function its type was defined from.
+   * The `.c` definition: zero the whole struct, then assign only the fields
+   * whose correct value is not zero.
+   *
+   * #1568: this was a compound literal naming each field with that type's zero
+   * initializer, and the zero came from the helper that answers for a
+   * *declaration* position. A designated initializer is a stricter position in
+   * both directions -- `.data = 0` for an array is
+   * `-Wmissing-braces`, and `.ticks = {0}` for a scalar typedef from a C header
+   * is `braces around scalar initializer`. Neither shape exists in the corpus,
+   * so both compiled green.
+   *
+   * Zeroing the aggregate once removes the question instead of answering it per
+   * field: arrays, foreign typedefs and nested structs are all covered by the
+   * one brace, and no array-ness has to be re-derived here. That matters beyond
+   * the bug -- the field declaration reads array-ness from three sources, so a
+   * per-field initializer would have had to re-derive all three and drift from
+   * them.
+   *
+   * @param structName - The struct being initialized
+   * @param zeroBrace - Aggregate zero for the current mode, from the orchestrator
+   * @param assignments - Fields whose value is not zero, in declaration order
    */
   static definition(
     structName: string,
-    callbackFields: readonly ICallbackFieldInit[],
+    zeroBrace: string,
+    assignments: readonly IStructFieldInit[],
   ): string {
     const lines: string[] = [
       `${StructInitFunction.signature(structName)} {`,
-      `    return (${structName}){`,
+      `    ${structName} value = ${zeroBrace};`,
     ];
 
-    for (let i = 0; i < callbackFields.length; i++) {
-      const field = callbackFields[i];
-      const comma = i < callbackFields.length - 1 ? "," : "";
-      lines.push(`        .${field.fieldName} = ${field.callbackType}${comma}`);
+    for (const field of assignments) {
+      lines.push(`    value.${field.fieldName} = ${field.initializer};`);
     }
 
-    lines.push(`    };`, `}`, "");
+    lines.push(`    return value;`, `}`, "");
 
     return lines.join("\n");
   }
