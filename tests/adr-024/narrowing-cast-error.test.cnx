@@ -1,3 +1,4 @@
+// test-error
 // ADR-024: Test that narrowing cast produces error
 // test-adr: 024
 // (u8)u32_value should produce a compiler error

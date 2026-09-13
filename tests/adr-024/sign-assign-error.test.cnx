@@ -1,3 +1,4 @@
+// test-error
 // ADR-024: Test that sign-changing assignment produces error
 // test-adr: 024
 // Assigning i32 to u32 should produce a compiler error

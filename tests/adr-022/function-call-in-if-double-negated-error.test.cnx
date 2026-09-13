@@ -1,3 +1,4 @@
+// test-error
 // Issue #366: Deeply nested unary operators should still trigger E0702
 // test-adr: 022
 // Tests that recursion handles arbitrary nesting like !!isReady()

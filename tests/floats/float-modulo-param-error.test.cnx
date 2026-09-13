@@ -1,3 +1,4 @@
+// test-error
 // Tests: Float function parameter modulo should be detected as error
 // Parameters with float types using % should fail
 void compute(f32 value) {

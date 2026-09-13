@@ -772,7 +772,11 @@ describe("runTest on an error fixture that stopped erroring (#1316)", () => {
 
   it("does not report success under --update", async () => {
     const cnxFile = join(tempDir, "lost.test.cnx");
-    writeFileSync(cnxFile, "u32 testVar;\n");
+    // #1379: the marker is read now, so a fixture asserting a diagnostic must
+    // declare itself one. Without it these reach the "has a .expected.error but
+    // does not declare // test-error" branch and never exercise #1316 at all --
+    // two of these four were passing on that instead of on what they assert.
+    writeFileSync(cnxFile, "// test-error\nu32 testVar;\n");
     writeFileSync(
       join(tempDir, "lost.expected.error"),
       "1:0 E0001 a diagnostic this fixture exists to assert\n",
@@ -786,7 +790,11 @@ describe("runTest on an error fixture that stopped erroring (#1316)", () => {
 
   it("keeps the .expected.error under --update", async () => {
     const cnxFile = join(tempDir, "lost.test.cnx");
-    writeFileSync(cnxFile, "u32 testVar;\n");
+    // #1379: the marker is read now, so a fixture asserting a diagnostic must
+    // declare itself one. Without it these reach the "has a .expected.error but
+    // does not declare // test-error" branch and never exercise #1316 at all --
+    // two of these four were passing on that instead of on what they assert.
+    writeFileSync(cnxFile, "// test-error\nu32 testVar;\n");
     const expectedErrorFile = join(tempDir, "lost.expected.error");
     writeFileSync(
       expectedErrorFile,
@@ -804,7 +812,11 @@ describe("runTest on an error fixture that stopped erroring (#1316)", () => {
     // remove the diagnostic still needs to see what the fixture now generates.
     // A fix that simply stopped writing anything would pass the two tests above.
     const cnxFile = join(tempDir, "lost.test.cnx");
-    writeFileSync(cnxFile, "u32 testVar;\n");
+    // #1379: the marker is read now, so a fixture asserting a diagnostic must
+    // declare itself one. Without it these reach the "has a .expected.error but
+    // does not declare // test-error" branch and never exercise #1316 at all --
+    // two of these four were passing on that instead of on what they assert.
+    writeFileSync(cnxFile, "// test-error\nu32 testVar;\n");
     writeFileSync(
       join(tempDir, "lost.expected.error"),
       "1:0 E0001 a diagnostic this fixture exists to assert\n",
@@ -823,7 +835,11 @@ describe("runTest on an error fixture that stopped erroring (#1316)", () => {
     // files this run just wrote, instead of that a diagnostic went missing.
     // Re-running to confirm a failure is the first thing anyone does.
     const cnxFile = join(tempDir, "lost.test.cnx");
-    writeFileSync(cnxFile, "u32 testVar;\n");
+    // #1379: the marker is read now, so a fixture asserting a diagnostic must
+    // declare itself one. Without it these reach the "has a .expected.error but
+    // does not declare // test-error" branch and never exercise #1316 at all --
+    // two of these four were passing on that instead of on what they assert.
+    writeFileSync(cnxFile, "// test-error\nu32 testVar;\n");
     writeFileSync(
       join(tempDir, "lost.expected.error"),
       "1:0 E0001 a diagnostic this fixture exists to assert\n",
@@ -844,7 +860,7 @@ describe("runTest on an error fixture that stopped erroring (#1316)", () => {
     const cnxFile = join(tempDir, "kept.test.cnx");
     writeFileSync(
       cnxFile,
-      "void shiftTooFar() {\n  u8 value <- 1;\n  value <- value << 8;\n}\n",
+      "// test-error\nvoid shiftTooFar() {\n  u8 value <- 1;\n  value <- value << 8;\n}\n",
     );
     const expectedErrorFile = join(tempDir, "kept.expected.error");
     writeFileSync(expectedErrorFile, "0:0 stale text to be refreshed\n");

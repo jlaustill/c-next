@@ -1,3 +1,4 @@
+// test-error
 // ADR-022: Error - missing parentheses around condition
 // Should error: parentheses are required
 

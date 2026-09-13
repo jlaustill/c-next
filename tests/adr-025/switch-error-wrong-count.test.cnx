@@ -1,3 +1,4 @@
+// test-error
 // ADR-025: Error Test - Wrong Default Count
 // test-adr: 025
 // Should error: default(n) count doesn't match remaining variants

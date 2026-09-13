@@ -1,3 +1,4 @@
+// test-error
 // Issue #139: Test that compound operators are rejected for string assignment
 // Compound operators like +<- are not supported for strings
 string<64> msg <- "Hello";

@@ -1,3 +1,4 @@
+// test-error
 // ADR-003: free is forbidden
 // Tests: dynamic allocation not allowed
 #include <stdlib.h>

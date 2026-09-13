@@ -1,3 +1,4 @@
+// test-error
 // MISRA 3.2 Test - Line comment ending with backslash
 // This should produce an error
 #include <stdint.h>

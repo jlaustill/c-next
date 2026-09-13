@@ -1,3 +1,4 @@
+// test-error
 // ADR-025: Error Test - Non-Exhaustive Enum Switch
 // test-adr: 025
 // Should error: missing enum variants without default

@@ -1,3 +1,4 @@
+// test-error
 // Test: Function parameters cannot start with function name prefix
 // Issue #227: Edge case where parameter named {functionName}_* bypasses conflict filtering
 //

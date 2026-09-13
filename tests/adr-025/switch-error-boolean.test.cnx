@@ -1,3 +1,4 @@
+// test-error
 // ADR-025: Error Test - Boolean Switch
 // test-adr: 025
 // Should error: MISRA 16.7 prohibits switch on boolean expression

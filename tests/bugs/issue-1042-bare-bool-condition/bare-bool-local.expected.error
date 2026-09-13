@@ -1,2 +1,2 @@
-5:8 error[E0701]: if condition must be a comparison, not 'b'
+6:8 error[E0701]: if condition must be a comparison, not 'b'
        help: MISRA C:2012 Rule 14.4: write it out, e.g. b = true

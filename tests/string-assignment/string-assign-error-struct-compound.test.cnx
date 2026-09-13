@@ -1,3 +1,4 @@
+// test-error
 // Issue #139: Test that compound operators are rejected for struct.field string assignment
 scope StrCompoundErr {
     public struct Config {

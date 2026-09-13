@@ -1,3 +1,4 @@
+// test-error
 // Tests: f64 modulo should also be detected as error
 // The % operator is only valid for integer types
 void main() {

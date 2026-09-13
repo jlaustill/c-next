@@ -1,3 +1,4 @@
+// test-error
 // ADR-046: NULL comparison on non-c_ variable
 #include <stdio.h>
 
