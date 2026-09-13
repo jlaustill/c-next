@@ -45,14 +45,14 @@ void wireAcrossFiles(void) {
 }
 
 int main(void) {
-    witness = 0U;
+    global_witness = 0U;
     wireAcrossFiles();
-    if (witness != 5) {
+    if (global_witness != 5) {
         return 1U;
     }
-    witness = 0U;
+    global_witness = 0U;
     wireLocally();
-    if (witness != 5) {
+    if (global_witness != 5) {
         return 2U;
     }
     return 0U;

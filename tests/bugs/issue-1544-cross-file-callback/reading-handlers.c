@@ -22,26 +22,26 @@
 
 #include <stdint.h>
 
-uint16_t witness = 0U;
+uint16_t global_witness = 0U;
 
 // THE DEFECT: wired in the entry file, so #1544 does not recognise it here and
 // #268 auto-const gives `const SensorReading*` -- which does not match
 // ReadingHandler.
 void onEventCrossFile(SensorReading* reading) {
-    witness = reading->value;
+    global_witness = reading->value;
 }
 
 // PAIRED CASE: identical body, wired in THIS file, so it is recognised today
 // and keeps `SensorReading*`. A fix that recognises nothing fails here.
 void onEventSameFile(SensorReading* reading) {
-    witness = reading->value;
+    global_witness = reading->value;
 }
 
 // NEGATIVE CONTROL: identical body, never used as a callback anywhere, so
 // ordinary C-Next parameter rules apply and the `const` must STAY. A fix that
 // marks every function callback-compatible fails here.
 void neverWired(const SensorReading* reading) {
-    witness = reading->value;
+    global_witness = reading->value;
 }
 
 void wireLocally(void) {

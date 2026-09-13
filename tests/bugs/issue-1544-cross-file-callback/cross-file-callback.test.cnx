@@ -36,19 +36,32 @@ void wireAcrossFiles() {
 }
 
 u32 main() {
-    // Each handler writes the reading it is given into `witness`, and
-    // register_reading_handler always supplies 5. Checking the witness after
-    // each wiring proves the callback actually fired through the typedef,
-    // rather than only that the prototypes agreed at compile time.
-    witness <- 0;
+    // `global_witness` is declared at FILE SCOPE in reading-handlers.cnx, which
+    // is why this function can reset it: it is a global, not a local of main's
+    // that a no-argument call is somehow reaching. The name says so because the
+    // bare spelling read as the latter, and a fixture whose point is parameter
+    // shape should not make a reader stop and check that first.
+    //
+    // Each handler writes the reading it is given into it, and
+    // register_reading_handler always supplies 5, so a non-zero value after
+    // each wiring proves the callback fired THROUGH the typedef rather than
+    // only that the prototypes agreed at compile time.
+    //
+    // This check does NOT catch #1544, and is not what guards it. `const` is a
+    // type-level fact, so the pointer handed to the handler is identical
+    // whether or not the signature matches -- run with the defect present, the
+    // program still exits 0. The no-warnings compile above is what fails: in C
+    // an incompatible pointer type promoted by -Werror, in C++ a hard
+    // `invalid conversion`, because `const SensorReading&` is a reference.
+    global_witness <- 0;
     wireAcrossFiles();
-    if (witness != 5) {
+    if (global_witness != 5) {
         return 1;
     }
 
-    witness <- 0;
+    global_witness <- 0;
     wireLocally();
-    if (witness != 5) {
+    if (global_witness != 5) {
         return 2;
     }
 

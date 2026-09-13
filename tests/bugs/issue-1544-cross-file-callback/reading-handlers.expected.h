@@ -14,7 +14,7 @@ extern "C" {
 #endif
 
 /* External variables */
-extern uint16_t witness;
+extern uint16_t global_witness;
 
 /* Function prototypes */
 void onEventCrossFile(SensorReading* reading);
