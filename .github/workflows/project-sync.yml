@@ -59,12 +59,21 @@ jobs:
       GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
       PROJECT_OWNER: jlaustill
       PROJECT_TITLE: C-Next
-      # `unassigned` fires once per assignee REMOVED, and this list is the state
-      # after that removal -- empty only when the last one has gone. Taken from
-      # the payload rather than re-queried: a re-query reads whoever is assigned
-      # when it runs, which a rapid unassign-then-reassign turns into the wrong
-      # answer, and the built-in serialization is per item, not per event.
-      REMAINING_ASSIGNEES: ${{ join(github.event.issue.assignees.*.login, ',') }}
+      # `unassigned` fires once per assignee REMOVED. Whether `issue.assignees`
+      # is the list BEFORE or AFTER that removal is not documented by GitHub, and
+      # the guard below is load-bearing: on the pre-removal list the final
+      # unassign would see one name left, take the `exit 0`, and leave the card in
+      # WIP while reporting success -- the #1572 symptom, logged as a decision.
+      #
+      # So do not depend on it. `github.event.assignee` is the user just removed;
+      # filtering that name out is correct under EITHER semantics, which is why
+      # the two are read separately here.
+      #
+      # From the payload rather than re-queried: a re-query reads whoever is
+      # assigned when it RUNS, which a rapid unassign-then-reassign turns into the
+      # wrong answer, and the concurrency group serializes per item, not per event.
+      ALL_ASSIGNEES: ${{ join(github.event.issue.assignees.*.login, ',') }}
+      REMOVED_ASSIGNEE: ${{ github.event.assignee.login }}
     steps:
       - name: Sync item status
         # Pull requests from forks receive no secrets. Skip cleanly rather than
@@ -77,14 +86,22 @@ jobs:
             issues.opened)                  TARGET="Grooming";   OVERWRITE="unset" ;;
             issues.assigned)                TARGET="WIP";        OVERWRITE="unset|Grooming|Backlog" ;;
             issues.unassigned)
-              # One event per assignee removed: a card someone else is still on
-              # is still being worked on, not paused.
-              if [ -n "$REMAINING_ASSIGNEES" ]; then
-                echo "Still assigned to ${REMAINING_ASSIGNEES}; leaving status alone."
+              # One event per assignee removed: a card someone else is still on is
+              # still being worked on, not paused. Dropping the removed name makes
+              # this independent of whether the payload list is pre- or
+              # post-removal (see ALL_ASSIGNEES above). `|| true` is inside the
+              # group so `pipefail` does not see grep's "no lines left" as failure
+              # -- that case is exactly the one that must proceed.
+              REMAINING=$(printf '%s' "$ALL_ASSIGNEES" | tr ',' '\n' \
+                | { grep -vxF "$REMOVED_ASSIGNEE" || true; } | paste -sd, -)
+              if [ -n "$REMAINING" ]; then
+                echo "Still assigned to ${REMAINING}; leaving status alone."
                 exit 0
               fi
-              # OVERWRITE="WIP" and nothing else. Stepping off a card in review,
-              # or one already Done, says nothing about where it belongs.
+              # OVERWRITE="WIP" and nothing else: a card in Grooming, Backlog or
+              # Done is not paused work. Those are an ISSUE card's only other
+              # statuses -- a pull request gets its OWN card, so PR Review and
+              # Changes Needed are unreachable here and are not what this guards.
               TARGET="Backlog";    OVERWRITE="WIP" ;;
             pull_request.opened)            TARGET="PR Review";  OVERWRITE="unset" ;;
             pull_request.reopened)          TARGET="PR Review";  OVERWRITE="any" ;;
@@ -168,9 +185,13 @@ jobs:
               }
             }' --jq '.data.node.fieldValueByName.name // "unset"')
 
-          # Never drag a card backwards. A status someone has already advanced is
-          # theirs, not ours -- "Changes Needed" and "Ready to Merge" are moved by
-          # hand and must survive a reopen or a ready-for-review.
+          # OVERWRITE is a membership test and is indifferent to DIRECTION: it
+          # names the statuses a transition may write over, whichever way along
+          # the column that lands. Every arm advances a card except
+          # issues.unassigned, which is the file's one retreat (WIP -> Backlog,
+          # #1572). What the test protects either way is a status someone set by
+          # hand -- "Changes Needed" and "Ready to Merge" must survive a reopen
+          # or a ready-for-review.
           if [ "$OVERWRITE" != "any" ] && [[ ! "$CURRENT" =~ ^(${OVERWRITE})$ ]]; then
             echo "Leaving ${CONTENT_ID} at '${CURRENT}' (would have set '${TARGET}')."
             exit 0

@@ -99,10 +99,22 @@ the causal claim, the artifact, the number — not merely the state of the issue
 
 **Pausing a card is unassigning it.** Unassign yourself and `project-sync.yml` moves it
 `WIP` → `Backlog` (#1572) — only when the **last** assignee leaves, and only from `WIP`, so
-stepping off a shared card or one in review changes nothing. The appended `Blocked by` and the
-comment carry _why_ it paused; the column carries _that_ it did, which is the part the next
-person reads. Do not write `Status` by hand: not because it is forbidden, but because the
-transition is automatic and a hand-written one races it.
+stepping off a shared card changes nothing, and neither does unassigning one already in
+`Grooming`, `Backlog` or `Done`. Note what that does _not_ cover: an issue whose pull request
+is in review is still in `WIP`, because the pull request has its own card — so unassigning
+yourself then does return the issue to `Backlog`. The appended `Blocked by` and the comment
+carry _why_ it paused; the column carries _that_ it did, which is the part the next person
+reads. Do not write `Status` by hand — `docs/WORKFLOW.md` gives `project-sync.yml` sole
+ownership of that field, and a second writer both duplicates the transition and hides it
+failing.
+
+**What keeps a paused card out of `/issue-check` is now its `Blocked by` (Phase 1d), not its
+assignee.** The rule this replaces leaned on the assignee-based in-flight filter, which is
+unconditional: assigned meant never recommended. The `Blocked by` exclusion is unconditional
+too, but only once Phase 7c **step 1** has actually appended the blocker — so step 4 depends
+on step 1 in a way neither step says. A pause for any other reason — context switch, handoff,
+end of day — returns the card to `Backlog` with a clean `Blocked by` and nothing holding it
+back. That is right for those pauses and wrong for a blocked card whose step 1 was skipped.
 
 **A rule derived under a constraint that does not exist reads as principled indefinitely.**
 The predecessor of this rule said to _keep_ the assignment, because unassigning strands the card

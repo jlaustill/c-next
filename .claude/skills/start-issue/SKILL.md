@@ -342,9 +342,15 @@ has been committed yet:
 
   4. UNASSIGN YOURSELF. That IS the pause: `project-sync.yml` moves the card
      `WIP` -> `Backlog` when the last assignee leaves (#1572), so the column stops
-     claiming active work. Do not write `Status` by hand -- the transition is automatic
-     and a hand-written one races it. RE-QUERY the board and report the status you read,
-     exactly as Phase 2 does for the assign.
+     claiming active work. Do not write `Status` by hand -- `docs/WORKFLOW.md` gives
+     project-sync.yml sole ownership of that field. RE-QUERY the board and report the
+     status you read, exactly as Phase 2 does for the assign.
+
+     THIS STEP DEPENDS ON STEP 1, and nothing enforces the order. Unassigning drops the
+     card back into the recommendable pool; what keeps a blocked one from being picked
+     straight back up is `/issue-check` Phase 1d reading the `Blocked by` that step 1
+     appended. Unassign without it and the card can be recommended again with no record of
+     why it was set down. If step 1 did not happen, do it before this one.
 
   5. FIND OTHER WORK — re-run `/issue-check`, or take the next unblocked runner-up it
      already ranked, and re-run its startability gate before starting.
