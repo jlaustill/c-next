@@ -12,12 +12,44 @@
  * The fix is not "read the flag in fewer places", it is that a renderer must
  * not read the flag AT ALL: it reads `IEmissionPlan`, which holds the strings
  * to emit. So the property with teeth is about WHERE a `needs*` flag may be
- * read, and there is exactly one such place -- the capture that freezes the
- * questions for the plan to answer.
+ * read, and there are exactly two such places -- the captures that freeze the
+ * questions for the plan to answer, one per emitted artifact.
  *
  * This is the `layer-rules.test.ts` shape: a claim a comment cannot hold,
  * because the next person to add an include flag will reach for the pattern
  * they find, and what they find is what this file constrains.
+ *
+ * ## Why this file covers five categories and not one
+ *
+ * #1449's definition of done says every "does this file need X?" decision is
+ * made in 2.2 Plan exactly once, and names five: includes, helpers, MISRA
+ * annotations, declaration order, and toolchain requirements. That box sat
+ * unchecked with the reason on it -- "**exactly once** is a completeness claim
+ * over all of `output/`, and nothing gates it yet". This file used to gate two
+ * of the five (includes and helpers, both `CodeGenState` reads) over `output/`
+ * alone, which is why the box could not be ticked from it.
+ *
+ * The three additions close that, each against the mutation that would
+ * reintroduce the original defect:
+ *
+ * - **Scope.** The scan root was `src/transpiler/output/`, so the `needsISR`
+ *   read in `Transpiler._captureHeaderEmissionFacts` -- a legitimate capture,
+ *   but the SECOND one -- was outside the guard's view entirely. A new reader
+ *   added beside it would have been invisible. The root is now `src/`, and
+ *   both captures are named.
+ * - **Toolchain requirements** need no separate assertion: `needsISR`,
+ *   `needsIrqWrappers` and `needsFloatStaticAssert` ARE `needs*` flags, so the
+ *   widened read rule is what covers them. Recorded here because "it is already
+ *   covered" is exactly the claim a later reader would otherwise re-derive.
+ * - **MISRA annotations** are text emitted INTO the generated C, so the
+ *   authorship rule is about who may write that text. Note the discriminator:
+ *   not the word "MISRA", which appears in two dozen legitimate *diagnostic*
+ *   messages under `1-Analyze/`, but a `/*` comment opener naming a standard.
+ *   A guard keyed on the word would fire on the wrong population.
+ * - **Declaration order** is gated at the import, not the expression. The
+ *   decider is four lines and has one caller, so a body-shaped check would only
+ *   catch one spelling of an inlining. What generalizes is that a third module
+ *   has started reasoning about declaration kinds at all.
  */
 
 import { readFileSync } from "node:fs";
@@ -26,10 +58,26 @@ import { join, sep } from "node:path";
 import FileScanner from "../utils/FileScanner";
 
 const rootDir = join(__dirname, "..", "..");
-const outputDir = join(rootDir, "src", "transpiler", "output");
+const srcDir = join(rootDir, "src");
 
-/** The one method allowed to read the flags, and the reason it exists. */
-const CAPTURE = "private captureEmissionFacts(";
+/**
+ * The methods allowed to read the flags, and the reason each exists.
+ *
+ * Two, not one: the `.c` and the `.h` are separate artifacts with separate
+ * emission facts, and each freezes the warm per-file state at the one moment
+ * it is correct for that file (#1323). Everything downstream of both reads the
+ * captured record instead -- see `IEmissionPlan` and `IHeaderEmissionFacts`.
+ */
+const CAPTURES = [
+  {
+    file: join("src", "transpiler", "output", "codegen", "CodeGenerator.ts"),
+    needle: "private captureEmissionFacts(",
+  },
+  {
+    file: join("src", "transpiler", "Transpiler.ts"),
+    needle: "private _captureHeaderEmissionFacts(",
+  },
+] as const;
 
 /**
  * A decision read off `CodeGenState`: an include flag, or a helper-op set.
@@ -48,39 +96,82 @@ const CAPTURE = "private captureEmissionFacts(";
 const FLAG_READ =
   /CodeGenState\.(?:needs[A-Z]\w*|usedClampOps|usedSafeDivOps)(?!\.add\()/g;
 
-interface IRead {
+/**
+ * A compliance comment as it appears in the GENERATED C: a `/*` opener naming
+ * a safety standard, either literally or through the owner's `STANDARD`.
+ *
+ * CLAUDE.md ("Compliance Annotations -- C-Next STANDARD") requires the
+ * `/* <Standard> Rule <N>: <what> (<why>). *\/` form for every construct whose
+ * shape a standard dictated. One module owns that form; a site hand-writing it
+ * is a second author of the same decision.
+ */
+const ANNOTATION_TEXT =
+  /\/\*\s*(?:\$\{[^}]*STANDARD[^}]*\}|MISRA|DO-178C?|CERT|AUTOSAR)/g;
+
+/** The single author of generated-code compliance annotations. */
+const ANNOTATION_OWNER = join(
+  "src",
+  "TRANSPILE",
+  "2-Plan",
+  "ComplianceAnnotations.ts",
+);
+
+/** Declaration-order reasoning: the decider, and the type it decides over. */
+const KIND_TYPE = "TDeclarationKind";
+const KIND_DECLARATION = join(
+  "src",
+  "transpiler",
+  "types",
+  "TDeclarationKind.ts",
+);
+
+interface IHit {
   readonly file: string;
   readonly offset: number;
   readonly text: string;
 }
 
-/** Every `needs*` read under `output/`, excluding tests. */
-function flagReads(): IRead[] {
-  const reads: IRead[] = [];
-  for (const full of FileScanner.findFiles(outputDir, ".ts")) {
-    if (full.includes(`${sep}__tests__${sep}`)) continue;
+/** Every source file under `src/`, excluding tests. */
+function sourceFiles(): string[] {
+  return FileScanner.findFiles(srcDir, ".ts").filter(
+    (full) => !full.includes(`${sep}__tests__${sep}`),
+  );
+}
+
+/** True when the match sits on a line that is itself a comment. */
+function inComment(source: string, index: number): boolean {
+  const lineStart = source.lastIndexOf("\n", index) + 1;
+  const lineEnd = source.indexOf("\n", index);
+  const line = source.slice(lineStart, lineEnd === -1 ? undefined : lineEnd);
+  return /^\s*(\*|\/\/)/.test(line);
+}
+
+/** Every match of `pattern` under `src/`, excluding mentions in comments. */
+function scan(pattern: RegExp): IHit[] {
+  const hits: IHit[] = [];
+  for (const full of sourceFiles()) {
     const source = readFileSync(full, "utf-8");
-    for (const match of source.matchAll(FLAG_READ)) {
-      // A mention inside a comment is documentation, not a read.
-      const lineStart = source.lastIndexOf("\n", match.index) + 1;
-      const line = source.slice(lineStart, source.indexOf("\n", match.index));
-      if (/^\s*(\*|\/\/)/.test(line)) continue;
-      reads.push({
+    for (const match of source.matchAll(pattern)) {
+      if (inComment(source, match.index)) continue;
+      hits.push({
         file: full.slice(rootDir.length + 1),
         offset: match.index,
         text: match[0],
       });
     }
   }
-  return reads;
+  return hits;
 }
 
-/** Byte range of the one method permitted to read them. */
-function captureRange(source: string): { start: number; end: number } {
-  const start = source.indexOf(CAPTURE);
+/** Byte range of one permitted capture method. */
+function captureRange(
+  source: string,
+  needle: string,
+): { start: number; end: number } {
+  const start = source.indexOf(needle);
   if (start === -1) {
     throw new Error(
-      `${CAPTURE} not found -- if the capture was renamed, rename it here too ` +
+      `${needle} not found -- if the capture was renamed, rename it here too ` +
         `rather than deleting this guard, which would pass over everything.`,
     );
   }
@@ -98,25 +189,61 @@ describe("2.3 Render decides nothing (#1449)", () => {
   it("finds the reads at all", () => {
     // Guards the selector. If the regex stops matching, every assertion below
     // passes over an empty list -- #1297's shape, one level up.
-    expect(flagReads().length).toBeGreaterThan(0);
+    expect(scan(FLAG_READ).length).toBeGreaterThan(0);
   });
 
-  it("reads a decision off CodeGenState in exactly one file under output/", () => {
-    const files = [...new Set(flagReads().map((read) => read.file))].sort();
+  it("reads a decision off CodeGenState in exactly the two capture files", () => {
+    const files = [...new Set(scan(FLAG_READ).map((hit) => hit.file))].sort();
 
-    expect(files).toEqual(["src/transpiler/output/codegen/CodeGenerator.ts"]);
+    expect(files).toEqual(CAPTURES.map((c) => c.file).sort());
   });
 
-  it("reads them only inside the capture, never at an emission site", () => {
-    const path = join(outputDir, "codegen", "CodeGenerator.ts");
-    const source = readFileSync(path, "utf-8");
-    const { start, end } = captureRange(source);
+  it("reads them only inside a capture, never at an emission site", () => {
+    const outside: string[] = [];
 
-    const outside = flagReads()
-      .filter((read) => read.file.endsWith("CodeGenerator.ts"))
-      .filter((read) => read.offset < start || read.offset > end)
-      .map((read) => read.text);
+    for (const capture of CAPTURES) {
+      const source = readFileSync(join(rootDir, capture.file), "utf-8");
+      const { start, end } = captureRange(source, capture.needle);
+
+      outside.push(
+        ...scan(FLAG_READ)
+          .filter((hit) => hit.file === capture.file)
+          .filter((hit) => hit.offset < start || hit.offset > end)
+          .map((hit) => `${hit.file}: ${hit.text}`),
+      );
+    }
 
     expect(outside).toEqual([]);
+  });
+
+  it("finds the compliance annotations at all", () => {
+    // Same selector guard: an annotation form that stopped matching would make
+    // the authorship assertion below vacuously true.
+    expect(scan(ANNOTATION_TEXT).length).toBeGreaterThan(0);
+  });
+
+  it("has one author for generated-code compliance annotations", () => {
+    const files = [
+      ...new Set(scan(ANNOTATION_TEXT).map((hit) => hit.file)),
+    ].sort();
+
+    expect(files).toEqual([ANNOTATION_OWNER]);
+  });
+
+  it("reasons about declaration kinds only in the decider and the classifier", () => {
+    const importers = sourceFiles()
+      .filter((full) => readFileSync(full, "utf-8").includes(KIND_TYPE))
+      .map((full) => full.slice(rootDir.length + 1))
+      .filter((file) => file !== KIND_DECLARATION)
+      .sort();
+
+    // `DeclarationOrder` decides where the block goes; `CodeGenerator`
+    // classifies each declaration into a kind and asks. Render says what the
+    // file looks like, Plan says where the block goes -- a third module here
+    // means a second answer to the same question.
+    expect(importers).toEqual([
+      join("src", "TRANSPILE", "2-Plan", "DeclarationOrder.ts"),
+      join("src", "transpiler", "output", "codegen", "CodeGenerator.ts"),
+    ]);
   });
 });
