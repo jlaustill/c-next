@@ -7,6 +7,7 @@
  */
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -15,8 +16,8 @@ extern "C" {
 /* External variables */
 extern const uint8_t FIVE;
 extern const uint8_t ALSO_FIVE;
-extern uint8_t gEqual;
-extern uint8_t Cfg__mEqual;
+extern bool gEqual;
+extern bool Cfg__mEqual;
 
 /* Function prototypes */
 uint32_t Cfg__check(void);

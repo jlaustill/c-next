@@ -251,7 +251,11 @@ const generateForAssignment = (
   const effects: TGeneratorEffect[] = [];
   const target = orchestrator.generateAssignmentTarget(node.assignmentTarget());
   const value = orchestrator.generateExpression(node.expression());
-  const cOp = AssignmentOperatorMapper.toCOperator(node.assignmentOperator());
+  const operatorCtx = node.assignmentOperator();
+  const cOp = AssignmentOperatorMapper.toCOperator(
+    operatorCtx.getText(),
+    operatorCtx.start?.line,
+  );
   return { code: `${target} ${cOp} ${value}`, effects };
 };
 
@@ -317,8 +321,10 @@ const generateFor = (
       forUpdate.assignmentTarget(),
     );
     const value = orchestrator.generateExpression(forUpdate.expression());
+    const operatorCtx = forUpdate.assignmentOperator();
     const cOp = AssignmentOperatorMapper.toCOperator(
-      forUpdate.assignmentOperator(),
+      operatorCtx.getText(),
+      operatorCtx.start?.line,
     );
     update = `${target} ${cOp} ${value}`;
   }

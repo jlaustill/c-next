@@ -13,11 +13,11 @@ const u8 ALSO_FIVE <- 5;
 
 // global-variable context: the comparison is decided inside a file-scope
 // variable declaration.
-u8 gEqual <- FIVE = ALSO_FIVE;
+bool gEqual <- FIVE = ALSO_FIVE;
 
 scope Cfg {
     // scope-member context: the same decision, inside a member declaration.
-    public u8 mEqual <- FIVE = ALSO_FIVE;
+    public bool mEqual <- FIVE = ALSO_FIVE;
 
     // scope-method context.
     public u32 check() {
@@ -39,8 +39,8 @@ u32 main() {
     count <- count + 1;
     count +<- 1;
 
-    if (gEqual != 1) return 1;
-    if (Cfg.mEqual != 1) return 2;
+    if (gEqual != true) return 1;
+    if (Cfg.mEqual != true) return 2;
 
     if (count = 3) return 3;
     if (count != 2) return 4;

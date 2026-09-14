@@ -17,18 +17,23 @@
  * admits only the eleven operators the map holds, so it is unreachable today;
  * turning it into a throw is a behavior change this card has no mandate for.
  */
-import * as Parser from "../../../logic/parser/grammar/CNextParser";
 import AdrProvenance from "../../../state/AdrProvenance";
 import ASSIGNMENT_OPERATOR_MAP from "../../../../utils/constants/OperatorMappings";
 
 class AssignmentOperatorMapper {
   /**
-   * The C operator for `operatorCtx`, recording that ADR-001's rule fired
-   * there so the scope-context matrix can derive which cell it occupied.
+   * The C operator for `cnextOp`, recording that ADR-001's rule fired at
+   * `line` so the scope-context matrix can derive which cell it occupied.
+   *
+   * Takes the operator's TEXT and LINE rather than its parse context on
+   * purpose. Accepting the context reads better at the three call sites, and
+   * `npm run parse-tree:check` rejected it: #1317 gates the population of
+   * modules holding a parse tree and forbids it growing, and this one has no
+   * question for the tree that a string and a number cannot answer.
    */
-  static toCOperator(operatorCtx: Parser.AssignmentOperatorContext): string {
-    AdrProvenance.record("001", operatorCtx.start?.line);
-    return ASSIGNMENT_OPERATOR_MAP[operatorCtx.getText()] || "=";
+  static toCOperator(cnextOp: string, line: number | undefined): string {
+    AdrProvenance.record("001", line);
+    return ASSIGNMENT_OPERATOR_MAP[cnextOp] || "=";
   }
 }
 

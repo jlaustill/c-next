@@ -134,7 +134,10 @@ function buildAssignmentContext(
   // Extract operator info
   const operatorCtx = ctx.assignmentOperator();
   const cnextOp = operatorCtx.getText();
-  const cOp = AssignmentOperatorMapper.toCOperator(operatorCtx);
+  const cOp = AssignmentOperatorMapper.toCOperator(
+    cnextOp,
+    operatorCtx.start?.line,
+  );
   const isCompound = cOp !== "=";
 
   // Generate value expression

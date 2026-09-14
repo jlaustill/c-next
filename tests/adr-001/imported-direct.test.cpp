@@ -17,6 +17,7 @@
 #include "adr-001-consts.hpp"
 
 #include <stdint.h>
+#include <stdbool.h>
 
 // ADR-044: Overflow helper functions
 #include <limits.h>
@@ -41,10 +42,10 @@ extern const uint8_t LOCAL_FIVE = 5U;
 extern const uint8_t LOCAL_ALSO_FIVE = 5U;
 
 // global-variable context.
-uint8_t gEqual = LOCAL_FIVE == LOCAL_ALSO_FIVE;
+bool gEqual = LOCAL_FIVE == LOCAL_ALSO_FIVE;
 
 /* Scope: Cfg */
-uint8_t Cfg__mEqual = LOCAL_FIVE == LOCAL_ALSO_FIVE;
+bool Cfg__mEqual = LOCAL_FIVE == LOCAL_ALSO_FIVE;
 
 uint32_t Cfg__check(void) {
     uint8_t seen = 0U;
@@ -63,8 +64,8 @@ int main(void) {
     uint8_t count = 0U;
     count = ALSO_FIVE;
     count = cnx_clamp_add_u8(count, ALSO_FIVE);
-    if (gEqual != 1) return 1U;
-    if (Cfg__mEqual != 1) return 2U;
+    if (gEqual != true) return 1U;
+    if (Cfg__mEqual != true) return 2U;
     if (count == 6) return 3U;
     if (count != 10) return 4U;
     uint32_t checked = Cfg__check();

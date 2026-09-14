@@ -6,6 +6,7 @@
 #include "same-file.test.hpp"
 
 #include <stdint.h>
+#include <stdbool.h>
 
 // ADR-044: Overflow helper functions
 #include <limits.h>
@@ -35,10 +36,10 @@ extern const uint8_t ALSO_FIVE = 5U;
 
 // global-variable context: the comparison is decided inside a file-scope
 // variable declaration.
-uint8_t gEqual = FIVE == ALSO_FIVE;
+bool gEqual = FIVE == ALSO_FIVE;
 
 /* Scope: Cfg */
-uint8_t Cfg__mEqual = FIVE == ALSO_FIVE;
+bool Cfg__mEqual = FIVE == ALSO_FIVE;
 
 uint32_t Cfg__check(void) {
     uint8_t seen = 0U;
@@ -57,8 +58,8 @@ int main(void) {
     uint8_t count = 0U;
     count = cnx_clamp_add_u8(count, 1U);
     count = cnx_clamp_add_u8(count, 1U);
-    if (gEqual != 1) return 1U;
-    if (Cfg__mEqual != 1) return 2U;
+    if (gEqual != true) return 1U;
+    if (Cfg__mEqual != true) return 2U;
     if (count == 3) return 3U;
     if (count != 2) return 4U;
     uint32_t checked = Cfg__check();
