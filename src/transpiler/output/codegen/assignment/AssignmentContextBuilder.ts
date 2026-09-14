@@ -7,7 +7,7 @@
 import * as Parser from "../../../logic/parser/grammar/CNextParser";
 import IAssignmentContext from "./IAssignmentContext";
 import TTypeInfo from "../../../types/TTypeInfo";
-import ASSIGNMENT_OPERATOR_MAP from "../../../../utils/constants/OperatorMappings";
+import AssignmentOperatorMapper from "../helpers/AssignmentOperatorMapper";
 
 /**
  * Dependencies for building context.
@@ -134,7 +134,7 @@ function buildAssignmentContext(
   // Extract operator info
   const operatorCtx = ctx.assignmentOperator();
   const cnextOp = operatorCtx.getText();
-  const cOp = ASSIGNMENT_OPERATOR_MAP[cnextOp] || "=";
+  const cOp = AssignmentOperatorMapper.toCOperator(operatorCtx);
   const isCompound = cOp !== "=";
 
   // Generate value expression

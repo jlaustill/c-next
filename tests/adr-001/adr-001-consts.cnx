@@ -1,0 +1,5 @@
+// Helper for the ADR-001 scope-context matrix fixtures. Holds the constants the
+// cross-file fixtures compare against, so the `=` decision is exercised on a
+// value that crossed a file boundary rather than a local one.
+const u8 FIVE <- 5;
+const u8 ALSO_FIVE <- 5;

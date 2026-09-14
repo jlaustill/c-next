@@ -1,0 +1,46 @@
+// test-execution
+// test-adr: 001
+// ADR-001: `<-` assigns and `=` compares. Exercised in all four structural
+// contexts of the scope-context matrix, at include depth 0 (same file).
+//
+// Falsifiability: every `=` below is a comparison that must evaluate FALSE, and
+// each is followed by a check that its left operand is unchanged. Were `=` left
+// as C's assignment, the branch would be truthy AND would overwrite the target,
+// so a regression fails these two ways rather than reading as a passing test.
+
+const u8 FIVE <- 5;
+const u8 ALSO_FIVE <- 5;
+
+// global-variable context: the comparison is decided inside a file-scope
+// variable declaration.
+u8 gEqual <- FIVE = ALSO_FIVE;
+
+scope Cfg {
+    // scope-member context: the same decision, inside a member declaration.
+    public u8 mEqual <- FIVE = ALSO_FIVE;
+
+    // scope-method context.
+    public u32 check() {
+        u8 seen <- 0;
+        seen <- seen + 1;
+        if (seen = 2) return 8;
+        if (seen != 1) return 9;
+        return 0;
+    }
+}
+
+// top-level-function context.
+u32 main() {
+    u8 count <- 0;
+    count <- count + 1;
+
+    if (gEqual != 1) return 1;
+    if (Cfg.mEqual != 1) return 2;
+
+    if (count = 2) return 3;
+    if (count != 1) return 4;
+
+    u32 checked <- Cfg.check();
+    if (checked != 0) return 5;
+    return 0;
+}

@@ -181,6 +181,49 @@ The transpiler converts:
 
 This is a simple token substitution with no semantic complexity.
 
+## Scope-Context Matrix (#1219)
+
+`<-` and `=` are not features that appear in one kind of program position. Every
+context in which C-Next code can be written is a context in which a value is
+assigned or compared, so every cell below is `error`: there is no position where
+this decision is permitted not to hold.
+
+That is a stronger claim than most ADRs make, and it is the right one here
+_because_ the substitution looks trivial. A rule that is hard to get wrong is
+not the same as a rule that is checked. Before this declaration no fixture was
+linked to this ADR at all, so the mapping could have been lost in any one
+context with nothing in the corpus going red.
+
+<!-- MATRIX-SEVERITY -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | error    |
+| top-level function | same file           | error    |
+| scope member       | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | imported direct     | error    |
+| top-level function | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported transitive | error    |
+| top-level function | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| scope method       | imported transitive | error    |
+
+All twelve are occupied — see `docs/scope-context-matrix.md`.
+
+In the two `global variable` rows that cross a file boundary, the comparison is
+written over constants declared in the consuming file rather than imported ones.
+That is not a gap in this decision: a `const` imported from another file becomes
+an external declaration in the generated C, which C does not accept in a
+file-scope initializer, so such a program fails to compile for a reason that has
+nothing to do with `=` (#1218). The imported values are compared inside function
+bodies of the same fixtures, where C permits it.
+
+The two provider-side relationships carry no declaration: occupancy for them is
+not derivable, and the report renders them `n/a` rather than counting them empty.
+
 ## References
 
 ### Safety Standards

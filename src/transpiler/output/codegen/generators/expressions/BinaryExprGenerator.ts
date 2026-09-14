@@ -136,6 +136,28 @@ const generateEqualityExpr = (
     return generateRelationalExpr(exprs[0], input, state, orchestrator);
   }
 
+  // #1302: read the operator from the parse tree, not from the text of the
+  // whole comparison. `node.getText()` includes both operands, so a string
+  // literal CONTAINING "!=" selected inequality -- `t = "a!=b"` generated
+  // `strcmp(t, "a!=b") != 0`, compiling clean with the condition inverted.
+  //
+  // Issue #152: extracted in order, so index N is the operator between operand
+  // N and N+1.
+  const operators = orchestrator.getOperatorsFromChildren(node);
+
+  // ADR-001 (#1585): `=` means equality -- the decision this ADR exists for.
+  // Recorded once, ABOVE the string/non-string split, because both branches
+  // below render that one decision: `strcmp(...) == 0` and `==`. Recording in
+  // each would be two sites for one decision, which is what the assignment
+  // half needed `AssignmentOperatorMapper` to stop doing.
+  //
+  // `!=` is unchanged from C and is not ADR-001's doing, so an expression
+  // using only `!=` records nothing -- occupancy must not be invented for a
+  // cell where this ADR's rule never fired.
+  if (operators.includes("=")) {
+    AdrProvenance.record("001", node.start?.line);
+  }
+
   // #1322: ADR-017's comparison rule is E0434 in pass 2.1. It was three throws
   // here, fed by an enum-type resolver and an integer test that split the
   // operands' SOURCE TEXT -- so a bool, an f32 and a non-enum call all compared
@@ -159,15 +181,8 @@ const generateEqualityExpr = (
       ]);
       effects.push(...leftResult.effects, ...rightResult.effects);
 
-      // #1302: read the operator from the parse tree, not from the text of the
-      // whole comparison. `node.getText()` includes both operands, so a string
-      // literal CONTAINING "!=" selected inequality -- `t = "a!=b"` generated
-      // `strcmp(t, "a!=b") != 0`, compiling clean with the condition inverted.
-      //
-      // This is the mechanism the non-string path below already uses (#152);
-      // asking it here means one decision about what the operator is, rather
-      // than two that agree only while no literal happens to contain "!=".
-      const operators = orchestrator.getOperatorsFromChildren(node);
+      // #1302: the operator comes from the parse tree (hoisted above), never
+      // from `node.getText()`, which includes both operands.
       const isNotEqual = operators[0] === "!=";
 
       return {
@@ -181,11 +196,7 @@ const generateEqualityExpr = (
     }
   }
 
-  // Build the expression, transforming = to ==
-  // Issue #152: Extract operators in order from parse tree children
   // ADR-001: C-Next uses = for equality, transpile to ==
-  const operators = orchestrator.getOperatorsFromChildren(node);
-
   // Issue #1032: Clear expectedType for equality comparisons.
   // The U suffix for MISRA 7.2 compliance applies to assignments, not comparisons.
   // Use CodeGenState.withoutExpectedType() to clear the global state that
