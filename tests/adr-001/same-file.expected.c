@@ -43,8 +43,12 @@ uint8_t Cfg__mEqual = FIVE == ALSO_FIVE;
 uint32_t Cfg__check(void) {
     uint8_t seen = 0U;
     seen = cnx_clamp_add_u8(seen, 1U);
-    if (seen == 2) return 8U;
-    if (seen != 1) return 9U;
+    uint32_t i = 0U;
+    for (i = 0; i < 1; i += 1) {
+        seen = cnx_clamp_add_u8(seen, 1U);
+    }
+    if (seen == 3) return 8U;
+    if (seen != 2) return 9U;
     return 0U;
 }
 
@@ -52,10 +56,11 @@ uint32_t Cfg__check(void) {
 int main(void) {
     uint8_t count = 0U;
     count = cnx_clamp_add_u8(count, 1U);
+    count = cnx_clamp_add_u8(count, 1U);
     if (gEqual != 1) return 1U;
     if (Cfg__mEqual != 1) return 2U;
-    if (count == 2) return 3U;
-    if (count != 1) return 4U;
+    if (count == 3) return 3U;
+    if (count != 2) return 4U;
     uint32_t checked = Cfg__check();
     if (checked != 0) return 5U;
     return 0U;

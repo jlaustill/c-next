@@ -18,6 +18,19 @@
 
 #include <stdint.h>
 
+// ADR-044: Overflow helper functions
+#include <limits.h>
+
+/* ADR-044 / Issue #94: the second parameter is the WIDER type, not the value type.
+   Narrowing it first would let an out-of-range operand truncate INTO range and defeat
+   the check: cnx_clamp_add_u8(0, 256) must saturate to 255, but (uint8_t)256 is 0, so a
+   uint8_t parameter would return 0 -- the opposite of saturation. */
+
+static inline uint8_t cnx_clamp_add_u8(uint8_t a, uint32_t b) {
+    if (b > (uint32_t)(UINT8_MAX - a)) return UINT8_MAX;
+    return (uint8_t)(a + (uint8_t)b);
+}
+
 // The two file-scope initializers below use a LOCAL pair, not the imported one.
 // A cross-file const emits `extern const`, which is not a constant expression
 // in C, so a file-scope initializer built from it does not compile (#1218).
@@ -36,8 +49,12 @@ uint8_t Cfg__mEqual = LOCAL_FIVE == LOCAL_ALSO_FIVE;
 uint32_t Cfg__check(void) {
     uint8_t seen = 0U;
     seen = FIVE;
+    uint32_t i = 0U;
+    for (i = 0; i < 1; i += 1) {
+        seen = cnx_clamp_add_u8(seen, FIVE);
+    }
     if (seen == SIX) return 8U;
-    if (seen != 5) return 9U;
+    if (seen != 10) return 9U;
     return 0U;
 }
 
@@ -45,10 +62,11 @@ uint32_t Cfg__check(void) {
 int main(void) {
     uint8_t count = 0U;
     count = ALSO_FIVE;
+    count = cnx_clamp_add_u8(count, ALSO_FIVE);
     if (gEqual != 1) return 1U;
     if (Cfg__mEqual != 1) return 2U;
     if (count == SIX) return 3U;
-    if (count != 5) return 4U;
+    if (count != 10) return 4U;
     uint32_t checked = Cfg__check();
     if (checked != 0) return 5U;
     return 0U;

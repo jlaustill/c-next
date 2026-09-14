@@ -29,8 +29,12 @@ scope Cfg {
     public u32 check() {
         u8 seen <- 0;
         seen <- FIVE;
+        u32 i <- 0;
+        for (i <- 0; i < 1; i +<- 1) {
+            seen <- seen + FIVE;
+        }
         if (seen = SIX) return 8;
-        if (seen != 5) return 9;
+        if (seen != 10) return 9;
         return 0;
     }
 }
@@ -39,12 +43,13 @@ scope Cfg {
 u32 main() {
     u8 count <- 0;
     count <- ALSO_FIVE;
+    count +<- ALSO_FIVE;
 
     if (gEqual != 1) return 1;
     if (Cfg.mEqual != 1) return 2;
 
     if (count = SIX) return 3;
-    if (count != 5) return 4;
+    if (count != 10) return 4;
 
     u32 checked <- Cfg.check();
     if (checked != 0) return 5;
