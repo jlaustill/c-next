@@ -2,12 +2,15 @@
  * Issue #1488: hands out fixtures so that no two sharing a helper `.cnx` run at
  * the same time.
  *
- * The harness re-transpiles every helper IN PLACE after a fixture's pipeline
- * run, so two fixtures sharing one write the same generated `.h` concurrently.
- * `findHelperHeaderDivergence` then reads a file mid-rewrite and reports a
- * divergence that does not exist -- the same commit failing on CI and passing on
- * re-run, with the blame landing on whichever pull request happened to be
- * running.
+ * A fixture's pipeline run writes its dependencies' generated files in place,
+ * so two fixtures sharing one write the same generated `.h` concurrently. The
+ * snapshot comparison then reads a file mid-rewrite and reports a mismatch that
+ * does not exist -- the same commit failing on CI and passing on re-run, with
+ * the blame landing on whichever pull request happened to be running.
+ *
+ * #1544 removed the standalone helper re-transpile that used to be the second
+ * writer. One writer per fixture remains, so a shared helper is still written
+ * once per fixture per mode and the lock is still what orders them.
  *
  * A fixture's include closure acts as a lock. Fixtures that share nothing -- the
  * overwhelming majority -- are unconstrained and still run fully parallel.

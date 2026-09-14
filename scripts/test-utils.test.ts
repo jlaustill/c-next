@@ -6,7 +6,7 @@
  */
 
 import { mkdtempSync, writeFileSync, rmSync, existsSync } from "node:fs";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 import TestUtils from "./test-utils";
 
@@ -921,7 +921,12 @@ describe("getCompilerConfig is the one language decision (#1557)", () => {
     const tuFile = join(tempDir, "plain.test.c");
     writeFileSync(tuFile, "int main(void) { return 0; }\n");
 
-    TestUtils.compileTranslationUnitWithoutWarnings(tuFile, tempDir, "c");
+    TestUtils.compileTranslationUnitWithoutWarnings(
+      tuFile,
+      dirname(tuFile),
+      tempDir,
+      "c",
+    );
 
     expect(spy).toHaveBeenCalledWith("c", tuFile);
     spy.mockRestore();
@@ -987,7 +992,12 @@ describe("no-warnings check honours the harness mode (#1557)", () => {
     );
 
     const result: IValidationResult =
-      TestUtils.compileTranslationUnitWithoutWarnings(tuFile, tempDir, "cpp");
+      TestUtils.compileTranslationUnitWithoutWarnings(
+        tuFile,
+        dirname(tuFile),
+        tempDir,
+        "cpp",
+      );
 
     expect(result.valid).toBe(true);
   });
@@ -1011,7 +1021,12 @@ describe("no-warnings check honours the harness mode (#1557)", () => {
     );
 
     const result: IValidationResult =
-      TestUtils.compileTranslationUnitWithoutWarnings(tuFile, tempDir, "cpp");
+      TestUtils.compileTranslationUnitWithoutWarnings(
+        tuFile,
+        dirname(tuFile),
+        tempDir,
+        "cpp",
+      );
 
     expect(result.valid).toBe(false);
     expect(result.message).toContain("unused parameter");

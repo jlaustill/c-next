@@ -19,6 +19,12 @@ interface ITestResult {
   noSnapshot?: boolean;
   execError?: string;
   warningError?: string;
+  /**
+   * #1544: `absolute path -> sha256` for every file this fixture's run
+   * generated for a DEPENDENCY, merged across the modes that ran. The parent
+   * compares these across fixtures -- see `IModeResult.dependencyDigests`.
+   */
+  dependencyDigests?: Record<string, string>;
 
   // Dual-mode result tracking
   /** Results for C mode (if run) */

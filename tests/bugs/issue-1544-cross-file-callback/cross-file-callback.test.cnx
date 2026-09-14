@@ -1,0 +1,69 @@
+// test-execution
+// test-no-warnings
+// test-adr: 029
+// #1544: a function used as a callback is recognised only when the wiring sits
+// in the SAME FILE as the declaration, so a function wired from another file
+// keeps ordinary parameter rules and its emitted signature stops matching the
+// typedef it is assigned to.
+//
+// `callbackCompatibleFunctions` is written behind two gates. The first -- the
+// type must be a C function-pointer typedef -- is what bounds the defect to C
+// interop, and is correct. The second asks `allLocalFunctions`, the set
+// documented at its other consumer as existing to EXCLUDE cross-file
+// functions because ADR-030 define-before-use needs that distinction. Asking
+// it "is this function visible here?" asks one set two questions.
+//
+// Why this fixture needs a compiler and not just a snapshot: the C symptom is
+// a WARNING, so gcc exits 0 and the suite stays green. The no-warnings marker
+// above is what fails it. #1544 was written when that marker was read in block
+// form only, and named the block spelling for that reason; #1555 made the line
+// comment the one spelling every marker uses, so it is written that way here.
+// Before the fix:
+//
+//   error: passing argument 1 of 'register_reading_handler' from incompatible
+//   pointer type [-Werror=incompatible-pointer-types]
+//     void (*)(const SensorReading *)  vs  void (*)(SensorReading *)
+//
+// C++ mode is stronger still -- `const SensorReading&` is a reference, so it
+// is a hard `invalid conversion` error rather than a warning.
+#include <reading-handlers.cnx>
+#include "sensor_api.h"
+
+// The cross-file wiring. `onEventCrossFile` is declared in reading-handlers.cnx
+// and named here, which is the single difference this fixture turns on.
+void wireAcrossFiles() {
+    register_reading_handler(onEventCrossFile);
+}
+
+u32 main() {
+    // `global_witness` is declared at FILE SCOPE in reading-handlers.cnx, which
+    // is why this function can reset it: it is a global, not a local of main's
+    // that a no-argument call is somehow reaching. The name says so because the
+    // bare spelling read as the latter, and a fixture whose point is parameter
+    // shape should not make a reader stop and check that first.
+    //
+    // Each handler writes the reading it is given into it, and
+    // register_reading_handler always supplies 5, so a non-zero value after
+    // each wiring proves the callback fired THROUGH the typedef rather than
+    // only that the prototypes agreed at compile time.
+    //
+    // This check does NOT catch #1544, and is not what guards it. `const` is a
+    // type-level fact, so the pointer handed to the handler is identical
+    // whether or not the signature matches -- run with the defect present, the
+    // program still exits 0. The no-warnings compile above is what fails: in C
+    // an incompatible pointer type promoted by -Werror, in C++ a hard
+    // `invalid conversion`, because `const SensorReading&` is a reference.
+    global_witness <- 0;
+    wireAcrossFiles();
+    if (global_witness != 5) {
+        return 1;
+    }
+
+    global_witness <- 0;
+    wireLocally();
+    if (global_witness != 5) {
+        return 2;
+    }
+
+    return 0;
+}

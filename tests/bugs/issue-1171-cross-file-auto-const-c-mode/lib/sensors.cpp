@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "sensors.hpp"
+#include "lib/sensors.hpp"
 
 #include <stdint.h>
 

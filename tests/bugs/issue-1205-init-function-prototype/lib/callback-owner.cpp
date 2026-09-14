@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "callback-owner.hpp"
+#include "lib/callback-owner.hpp"
 
 #include <stdint.h>
 

@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "AppData.hpp"
+#include "Display/AppData.hpp"
 
 #include <stdint.h>
 

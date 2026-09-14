@@ -3,7 +3,7 @@
  * A safer C for embedded systems
  */
 
-#include "config.hpp"
+#include "uart/config.hpp"
 
 #include <stdint.h>
 

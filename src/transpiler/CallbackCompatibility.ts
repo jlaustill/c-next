@@ -33,10 +33,13 @@
  * Diagnostics and provenance are both discarded here, and the per-file run
  * reports them with the per-file context they need.
  *
- * What this does NOT change is which functions are recognized. Both recognition
- * rules gate on the functions the USING file declares, so a callback target in
- * another file is still missed; that is a semantic change with its own fixtures
- * and is tracked as #1544.
+ * #1544 changed which functions are recognized, which this pass had explicitly
+ * left alone. Both recognition rules gated on the functions the USING file
+ * declares, so a callback target in another file was missed and took ordinary
+ * parameter rules -- emitting a signature that no longer matched the typedef it
+ * was assigned to, at transpile exit 0. The first pass below derives what the
+ * whole program declares and the writers consult it, so a function is
+ * recognized wherever it is declared.
  */
 
 import FunctionCallAnalyzer from "../TRANSPILE/1-Analyze/FunctionCallAnalyzer";
@@ -60,9 +63,27 @@ class CallbackCompatibility {
     // attributable to a file. No restore is needed because every file's render
     // opens with its own `beginFile(sourcePath)`.
     AdrProvenance.beginFile(null);
+    // #1544 first pass: what the PROGRAM declares. The map decides a generated
+    // signature and the wiring may sit in any file, so recognition needs the
+    // same whole-program scope the fact has -- gating it on the using file's
+    // own declarations is what made a cross-file callback keep ordinary
+    // parameter rules. Built with the analyzer's own encoder, so these keys
+    // cannot drift from the ones its writers look up.
+    const programFunctions = new Set<string>();
+    for (const entry of declared) {
+      for (const name of FunctionCallAnalyzer.declaredFunctionNames(
+        entry.parsed.tree,
+      )) {
+        programFunctions.add(name);
+      }
+    }
+
     for (const entry of declared) {
       // Diagnostics discarded: the per-file run reports them.
-      new FunctionCallAnalyzer().analyze(entry.parsed.tree, symbolTable);
+      new FunctionCallAnalyzer(programFunctions).analyze(
+        entry.parsed.tree,
+        symbolTable,
+      );
     }
     return new Map(CodeGenState.callbackCompatibleFunctions);
   }
