@@ -13,12 +13,22 @@
  * half, and adding one to each of three sites would have been a fourth thing
  * to keep in step. One decision, one recording.
  *
- * The `|| "="` fallback is preserved exactly rather than tightened. The grammar
- * admits only the eleven operators the map holds, so it is unreachable today;
- * turning it into a throw is a behavior change this card has no mandate for.
+ * #1588: a lookup miss is an INVARIANT, not a fallback. `|| "="` returned a
+ * wrong answer rather than a missing one -- `i +<- 1` became `i = 1`, which in
+ * a `for` update is an infinite loop in generated firmware, emitted at exit 0
+ * with no diagnostic.
+ *
+ * It is `invariant()` and not `throw new`, per #1322b: the map and the grammar
+ * are two halves of one fact, so a miss means the transpiler is wrong, not the
+ * author's program. A `throw new` here would also rejoin the `output/` corpus
+ * that #1322 emptied -- bucket 2 of `output-throw-classification.md` is exactly
+ * this shape, and all sixteen of its sites became assertions for that reason.
+ * `scripts/__tests__/assignment-operator-parity.test.ts` catches the divergence
+ * at its source; this catches it at the point of use.
  */
 import AdrProvenance from "../../../state/AdrProvenance";
 import ASSIGNMENT_OPERATOR_MAP from "../../../../utils/constants/OperatorMappings";
+import invariant from "../../../../utils/invariant";
 
 class AssignmentOperatorMapper {
   /**
@@ -33,7 +43,12 @@ class AssignmentOperatorMapper {
    */
   static toCOperator(cnextOp: string, line: number | undefined): string {
     AdrProvenance.record("001", line);
-    return ASSIGNMENT_OPERATOR_MAP[cnextOp] || "=";
+    const cOp = ASSIGNMENT_OPERATOR_MAP[cnextOp];
+    invariant(
+      cOp !== undefined,
+      `every assignmentOperator alternative in the grammar has an ASSIGNMENT_OPERATOR_MAP entry (missing '${cnextOp}')`,
+    );
+    return cOp;
   }
 }
 
