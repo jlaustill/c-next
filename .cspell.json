@@ -641,7 +641,8 @@
     "grammar/**",
     "docs/diagnostic-manifest.md",
     "GRAMMAR-COVERAGE.md",
-    ".idea/**"
+    ".idea/**",
+    ".claude/settings.local.json"
   ],
   "enableFiletypes": ["typescript", "markdown", "json"],
   "dictionaries": ["typescript", "node", "npm", "softwareTerms"]
