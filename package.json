@@ -32,7 +32,7 @@
     "clean": "rm -rf dist src/transpiler/logic/parser/grammar src/transpiler/logic/parser/c/grammar src/transpiler/logic/parser/cpp/grammar",
     "prettier:check": "prettier --check .",
     "prettier:fix": "prettier --write .",
-    "cspell:check": "cspell . \".claude/**\" \".github/**\" \".husky/**\"",
+    "cspell:check": "cspell . \".claude/**\" \".github/**\" \".husky/**\" \".vscode/**\"",
     "oxlint:check": "oxlint src/ scripts/ prettier-plugin/src/ --ignore-pattern '**/parser/grammar/**' --ignore-pattern '**/parser/c/grammar/**' --ignore-pattern '**/parser/cpp/grammar/**'",
     "oxlint:fix": "npm run oxlint:check -- --fix",
     "lint:test-location": "! find src -name '*.test.ts' | grep -qv '__tests__' || (echo 'Error: .test.ts files must be in __tests__ directories' && exit 1)",

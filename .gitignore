@@ -119,3 +119,22 @@ temp.cnx
 # `git add -A` commits one (caught in #1399).
 cppcheck-addon-ctu-file-list*
 .cspellcache
+
+# Visual Studio Code
+# NOT a blanket ignore, unlike the JetBrains block above. VS Code writes far
+# less machine state than the IntelliJ family, and the few files it does write
+# are mostly shared project configuration: which extensions this project wants,
+# how to build it, how to debug it. Those are worth committing, so the
+# directory is ignored and they are allowed back -- the pattern GitHub's own
+# VS Code template uses.
+#
+# A file allowed back must hold nothing true of only one machine. That is the
+# test `settings.json` has to keep passing: it arrived carrying an absolute
+# `/home/<user>/...` path, and is committed here only once rewritten with
+# `${workspaceFolder}`.
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
