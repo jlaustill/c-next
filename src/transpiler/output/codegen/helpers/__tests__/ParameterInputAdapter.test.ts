@@ -387,23 +387,62 @@ describe("ParameterInputAdapter", () => {
       expect(result.isAutoConst).toBe(false);
     });
 
-    it("sets auto-const for unmodified non-const parameter", () => {
-      const ctx = getParameterContext("void foo(u32 value) {}");
-      const deps = createDefaultASTDeps({ isModified: false });
+    /**
+     * Auto-const is ONE derivation over three inputs -- the parameter's type,
+     * whether the body modifies it, and what `isOpaqueType` says -- so it is
+     * one table. Written out as four separate `it`s, three of them read as an
+     * S5976 cluster; the table is also the clearer form, because the two
+     * Issue #995 rows exist precisely to pin the two ways `isOpaqueType` can
+     * be absent AGAINST the ordinary case, which is a comparison a reader can
+     * only make when the rows sit together.
+     */
+    it.each<
+      [
+        string,
+        string,
+        boolean,
+        { isOpaqueType?: (typeName: string) => boolean },
+        boolean,
+      ]
+    >([
+      [
+        "unmodified non-const parameter",
+        "void foo(u32 value) {}",
+        false,
+        {},
+        true,
+      ],
+      ["modified parameter", "void foo(u32 value) {}", true, {}, false],
+      // Issue #995: a non-opaque type still gets auto-const ...
+      [
+        "non-opaque type, isOpaqueType returns false",
+        "void foo(Point p) {}",
+        false,
+        { isOpaqueType: () => false },
+        true,
+      ],
+      // ... and so does one whose deps supply no `isOpaqueType` at all.
+      [
+        "user type, isOpaqueType not provided",
+        "void foo(Point p) {}",
+        false,
+        {},
+        true,
+      ],
+    ])(
+      "derives isAutoConst for %s",
+      (_label, source, isModified, depsOverride, expected) => {
+        const ctx = getParameterContext(source);
+        const deps = {
+          ...createDefaultASTDeps({ isModified }),
+          ...depsOverride,
+        };
 
-      const result = ParameterInputAdapter.fromAST(ctx, deps);
+        const result = ParameterInputAdapter.fromAST(ctx, deps);
 
-      expect(result.isAutoConst).toBe(true);
-    });
-
-    it("does not set auto-const for modified parameter", () => {
-      const ctx = getParameterContext("void foo(u32 value) {}");
-      const deps = createDefaultASTDeps({ isModified: true });
-
-      const result = ParameterInputAdapter.fromAST(ctx, deps);
-
-      expect(result.isAutoConst).toBe(false);
-    });
+        expect(result.isAutoConst).toBe(expected);
+      },
+    );
 
     it("converts array parameter with dimension", () => {
       const ctx = getParameterContext("void foo(u32[10] arr) {}");
@@ -575,29 +614,6 @@ describe("ParameterInputAdapter", () => {
       // (builder uses isOpaqueHandle instead)
       expect(result.forcePointerSyntax).toBeUndefined();
       expect(result.isOpaqueHandle).toBe(true);
-    });
-
-    // Issue #995: Verify non-opaque types still get auto-const
-    it("sets auto-const for non-opaque type when isOpaqueType returns false", () => {
-      const ctx = getParameterContext("void foo(Point p) {}");
-      const deps = {
-        ...createDefaultASTDeps({ isModified: false }),
-        isOpaqueType: () => false,
-      };
-
-      const result = ParameterInputAdapter.fromAST(ctx, deps);
-
-      expect(result.isAutoConst).toBe(true);
-    });
-
-    // Issue #995: When isOpaqueType is not provided, auto-const still works
-    it("sets auto-const when isOpaqueType is not provided", () => {
-      const ctx = getParameterContext("void foo(Point p) {}");
-      const deps = createDefaultASTDeps({ isModified: false });
-
-      const result = ParameterInputAdapter.fromAST(ctx, deps);
-
-      expect(result.isAutoConst).toBe(true);
     });
   });
 });
