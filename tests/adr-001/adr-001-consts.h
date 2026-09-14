@@ -13,6 +13,7 @@ extern "C" {
 #endif
 
 /* External variables */
+extern char GREETING[17];
 extern const uint8_t FIVE;
 extern const uint8_t ALSO_FIVE;
 

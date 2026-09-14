@@ -214,12 +214,17 @@ context with nothing in the corpus going red.
 All twelve are occupied — see `docs/scope-context-matrix.md`.
 
 In the two `global variable` rows that cross a file boundary, the comparison is
-written over constants declared in the consuming file rather than imported ones.
-That is not a gap in this decision: a `const` imported from another file becomes
-an external declaration in the generated C, which C does not accept in a
-file-scope initializer, so such a program fails to compile for a reason that has
-nothing to do with `=` (#1218). The imported values are compared inside function
-bodies of the same fixtures, where C permits it.
+written over constants declared in the consuming file rather than imported ones,
+for a reason that has nothing to do with `=`; the fixtures record which one.
+
+The function-body contexts of those same fixtures compare a value that did cross
+the boundary, and compare a `string` among them deliberately. Comparing two
+integers is decided by the operator alone, so it cannot distinguish a row that
+crosses a file boundary from one that does not. Comparing strings is decided by
+knowing an operand _is_ a string — a fact that has to reach the comparison from
+wherever the declaration lives — so it is the form of this decision under which
+the `imported direct` and `imported transitive` rows can fail where `same file`
+succeeds. That is what those two rows are for.
 
 The two provider-side relationships carry no declaration: occupancy for them is
 not derivable, and the report renders them `n/a` rather than counting them empty.

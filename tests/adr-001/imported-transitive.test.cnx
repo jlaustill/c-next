@@ -35,6 +35,11 @@ scope Cfg {
         }
         if (seen = SIX) return 8;
         if (seen != 10) return 9;
+
+        // `=` on an imported string: strcmp, decided from a type that
+        // crossed the include boundary.
+        if (GREETING = "world") return 10;
+        if (GREETING != "hello") return 11;
         return 0;
     }
 }
@@ -50,6 +55,9 @@ u32 main() {
 
     if (count = SIX) return 3;
     if (count != 10) return 4;
+
+    if (GREETING = "world") return 6;
+    if (GREETING != "hello") return 7;
 
     u32 checked <- Cfg.check();
     if (checked != 0) return 5;

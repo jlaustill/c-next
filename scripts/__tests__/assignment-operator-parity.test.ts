@@ -43,6 +43,22 @@ function mapOperators(): string[] {
   return Object.keys(ASSIGNMENT_OPERATOR_MAP).sort();
 }
 
+/**
+ * The comparison itself, so the assertion and its control cannot drift apart.
+ *
+ * Both cases below go through this. The first version of the control did not:
+ * it compared the grammar list against itself-minus-one and never called
+ * `mapOperators()`, so it asserted a property of `filter` and could not go red
+ * for any state of the map -- a control that reads as a second guard and is not
+ * one, which is the shape this whole file exists to forbid.
+ */
+function parity(mapKeys: readonly string[]): {
+  actual: string[];
+  expected: string[];
+} {
+  return { actual: [...mapKeys].sort(), expected: grammarOperators() };
+}
+
 describe("assignment operator parity (#1588)", () => {
   // Guards the selector, so the assertion below cannot pass over an empty list
   // -- a regex that silently matched nothing would otherwise read as agreement.
@@ -51,14 +67,18 @@ describe("assignment operator parity (#1588)", () => {
   });
 
   it("maps exactly the operators the grammar admits", () => {
-    expect(mapOperators()).toEqual(grammarOperators());
+    const { actual, expected } = parity(mapOperators());
+    expect(actual).toEqual(expected);
   });
 
   // The negative control. Agreement must not be reachable by the comparison
-  // being vacuous: a map missing one operator has to fail.
+  // being vacuous, so this drives the SAME comparison with a real map that has
+  // had one operator removed -- exercising both operands, not just one.
   it("fails when the map is missing an operator the grammar admits", () => {
-    const grammar = grammarOperators();
-    const diverged = grammar.filter((op) => op !== grammar[0]);
-    expect(diverged).not.toEqual(grammar);
+    const dropped = grammarOperators()[0];
+    const { actual, expected } = parity(
+      mapOperators().filter((op) => op !== dropped),
+    );
+    expect(actual).not.toEqual(expected);
   });
 });

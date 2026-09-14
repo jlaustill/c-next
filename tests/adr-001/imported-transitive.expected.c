@@ -18,6 +18,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <string.h>
 
 // ADR-044: Overflow helper functions
 #include <limits.h>
@@ -56,6 +57,8 @@ uint32_t Cfg__check(void) {
     }
     if (seen == SIX) return 8U;
     if (seen != 10) return 9U;
+    if (strcmp(GREETING, "world") == 0) return 10U;
+    if (strcmp(GREETING, "hello") != 0) return 11U;
     return 0U;
 }
 
@@ -68,6 +71,8 @@ int main(void) {
     if (Cfg__mEqual != true) return 2U;
     if (count == SIX) return 3U;
     if (count != 10) return 4U;
+    if (strcmp(GREETING, "world") == 0) return 6U;
+    if (strcmp(GREETING, "hello") != 0) return 7U;
     uint32_t checked = Cfg__check();
     if (checked != 0) return 5U;
     return 0U;
