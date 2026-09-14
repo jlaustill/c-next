@@ -25,31 +25,41 @@
  * made in 2.2 Plan exactly once, and names five: includes, helpers, MISRA
  * annotations, declaration order, and toolchain requirements. That box sat
  * unchecked with the reason on it -- "**exactly once** is a completeness claim
- * over all of `output/`, and nothing gates it yet". This file used to gate two
- * of the five (includes and helpers, both `CodeGenState` reads) over `output/`
- * alone, which is why the box could not be ticked from it.
- *
- * The three additions close that, each against the mutation that would
- * reintroduce the original defect:
+ * over all of `output/`, and nothing gates it yet".
  *
  * - **Scope.** The scan root was `src/transpiler/output/`, so the `needsISR`
  *   read in `Transpiler._captureHeaderEmissionFacts` -- a legitimate capture,
- *   but the SECOND one -- was outside the guard's view entirely. A new reader
- *   added beside it would have been invisible. The root is now `src/`, and
- *   both captures are named.
+ *   but the SECOND one -- was outside the guard's view entirely. The root is
+ *   now `src/`, and both captures are named.
  * - **Toolchain requirements** need no separate assertion: `needsISR`,
  *   `needsIrqWrappers` and `needsFloatStaticAssert` ARE `needs*` flags, so the
  *   widened read rule is what covers them. Recorded here because "it is already
  *   covered" is exactly the claim a later reader would otherwise re-derive.
- * - **MISRA annotations** are text emitted INTO the generated C, so the
- *   authorship rule is about who may write that text. Note the discriminator:
- *   not the word "MISRA", which appears in two dozen legitimate *diagnostic*
- *   messages under `1-Analyze/`, but a `/*` comment opener naming a standard.
- *   A guard keyed on the word would fire on the wrong population.
- * - **Declaration order** is gated at the import, not the expression. The
- *   decider is four lines and has one caller, so a body-shaped check would only
- *   catch one spelling of an inlining. What generalizes is that a third module
- *   has started reasoning about declaration kinds at all.
+ * - **MISRA annotations** and **declaration order** get one check each, below.
+ *
+ * ## The two shapes, and why each category gets the one it does (#1583 review)
+ *
+ * The first version of this file had them backwards, and both errors were
+ * demonstrated rather than argued:
+ *
+ * - Annotations were keyed on the standard's NAME (`MISRA|DO-178C?|…`, or an
+ *   interpolation spelled `STANDARD`). A second author defeated that by
+ *   renaming one constant -- `const spec = "MISRA C:2012"` in a template
+ *   literal passed all six assertions. Name-keyed is not rename-proof, and the
+ *   mutation that "proved" it wrote the standard LITERALLY, which is the one
+ *   case the regex did catch. The mutation was too easy and the table read
+ *   stronger than the guard.
+ * - Declaration order was a substring match over whole file contents, so a
+ *   COMMENT mentioning `TDeclarationKind` reddened it -- contradicting both
+ *   this file's own "a mention inside a comment is documentation, not a read"
+ *   and the claim that it gated the import.
+ *
+ * So: declaration order is import-shaped, and annotations get BOTH shapes,
+ * because neither alone is sufficient. The import check is rename-proof but
+ * blind to a fully hand-rolled string; the form check catches the hand-rolled
+ * string but must be kept off the wrong population -- `1-Analyze/` writes
+ * "(MISRA C:2012 Rule 3.1)" into DIAGNOSTIC text, which is not an emitted
+ * annotation and never reaches generated C, because that layer generates none.
  */
 
 import { readFileSync } from "node:fs";
@@ -97,32 +107,40 @@ const FLAG_READ =
   /CodeGenState\.(?:needs[A-Z]\w*|usedClampOps|usedSafeDivOps)(?!\.add\()/g;
 
 /**
- * A compliance comment as it appears in the GENERATED C: a `/*` opener naming
- * a safety standard, either literally or through the owner's `STANDARD`.
- *
- * CLAUDE.md ("Compliance Annotations -- C-Next STANDARD") requires the
- * `/* <Standard> Rule <N>: <what> (<why>). *\/` form for every construct whose
- * shape a standard dictated. One module owns that form; a site hand-writing it
- * is a second author of the same decision.
+ * The house form of a compliance annotation, keyed on its SHAPE: a C comment
+ * opener and a cited rule. Deliberately not keyed on the standard's name --
+ * see the header. `[^*\n]` stops the match at the comment's own `*\/`, so this
+ * cannot span two unrelated comments on one line.
  */
-const ANNOTATION_TEXT =
-  /\/\*\s*(?:\$\{[^}]*STANDARD[^}]*\}|MISRA|DO-178C?|CERT|AUTOSAR)/g;
+const ANNOTATION_FORM = /\/\*[^*\n]{0,80}\bRule\b/g;
 
-/** The single author of generated-code compliance annotations. */
+/** An import of a named module, however its path is spelled. */
+const importOf = (name: string): RegExp =>
+  new RegExp(`from\\s+"[^"]*${name}"`, "g");
+
+/**
+ * Diagnostic text cites rules too, and is not an emitted annotation.
+ *
+ * `1-Analyze` reports problems; it generates no C, so a rule citation there
+ * cannot reach the certification artifact. This is the population the header
+ * warns about, and the reason the form check is scoped rather than the reason
+ * it is name-keyed.
+ */
+const DIAGNOSTIC_LAYER = join("src", "TRANSPILE", "1-Analyze") + sep;
+
 const ANNOTATION_OWNER = join(
   "src",
   "TRANSPILE",
   "2-Plan",
   "ComplianceAnnotations.ts",
 );
-
-/** Declaration-order reasoning: the decider, and the type it decides over. */
-const KIND_TYPE = "TDeclarationKind";
-const KIND_DECLARATION = join(
+const ORDER_DECIDER = join("src", "TRANSPILE", "2-Plan", "DeclarationOrder.ts");
+const ORDER_CLASSIFIER = join(
   "src",
   "transpiler",
-  "types",
-  "TDeclarationKind.ts",
+  "output",
+  "codegen",
+  "CodeGenerator.ts",
 );
 
 interface IHit {
@@ -138,12 +156,22 @@ function sourceFiles(): string[] {
   );
 }
 
-/** True when the match sits on a line that is itself a comment. */
+/**
+ * True when the match sits on a line that is itself a comment.
+ *
+ * Recognizes the three openers this corpus uses: a JSDoc continuation, a line
+ * comment, and a bare single-line block -- the last added in the #1583 review,
+ * because `/* MISRA C:2012 Rule 8.4 applies here *\/` written as documentation
+ * was classified as code and would have failed the authorship assertion. House
+ * style is JSDoc, so it was latent rather than live, but this function's reach
+ * widened from `output/` to all of `src/`, where the population it screens is
+ * much less uniform.
+ */
 function inComment(source: string, index: number): boolean {
   const lineStart = source.lastIndexOf("\n", index) + 1;
   const lineEnd = source.indexOf("\n", index);
   const line = source.slice(lineStart, lineEnd === -1 ? undefined : lineEnd);
-  return /^\s*(\*|\/\/)/.test(line);
+  return /^\s*(\*|\/\/|\/\*)/.test(line);
 }
 
 /** Every match of `pattern` under `src/`, excluding mentions in comments. */
@@ -162,6 +190,10 @@ function scan(pattern: RegExp): IHit[] {
   }
   return hits;
 }
+
+/** The distinct files a pattern matches in, sorted. */
+const filesMatching = (pattern: RegExp): string[] =>
+  [...new Set(scan(pattern).map((hit) => hit.file))].sort();
 
 /** Byte range of one permitted capture method. */
 function captureRange(
@@ -193,12 +225,15 @@ describe("2.3 Render decides nothing (#1449)", () => {
   });
 
   it("reads a decision off CodeGenState in exactly the two capture files", () => {
-    const files = [...new Set(scan(FLAG_READ).map((hit) => hit.file))].sort();
-
-    expect(files).toEqual(CAPTURES.map((c) => c.file).sort());
+    expect(filesMatching(FLAG_READ)).toEqual(
+      CAPTURES.map((capture) => capture.file).sort(),
+    );
   });
 
   it("reads them only inside a capture, never at an emission site", () => {
+    // One shared list the two captures filter, rather than each scanning all
+    // of `src/` (#1583 review).
+    const reads = scan(FLAG_READ);
     const outside: string[] = [];
 
     for (const capture of CAPTURES) {
@@ -206,7 +241,7 @@ describe("2.3 Render decides nothing (#1449)", () => {
       const { start, end } = captureRange(source, capture.needle);
 
       outside.push(
-        ...scan(FLAG_READ)
+        ...reads
           .filter((hit) => hit.file === capture.file)
           .filter((hit) => hit.offset < start || hit.offset > end)
           .map((hit) => `${hit.file}: ${hit.text}`),
@@ -216,34 +251,29 @@ describe("2.3 Render decides nothing (#1449)", () => {
     expect(outside).toEqual([]);
   });
 
-  it("finds the compliance annotations at all", () => {
-    // Same selector guard: an annotation form that stopped matching would make
-    // the authorship assertion below vacuously true.
-    expect(scan(ANNOTATION_TEXT).length).toBeGreaterThan(0);
+  it("has one author for the compliance-annotation TYPE", () => {
+    // Rename-proof: a second author building on the shape has to obtain an
+    // `IComplianceAnnotation`, whatever it or the standard gets renamed to.
+    expect(filesMatching(importOf("IComplianceAnnotation"))).toEqual([
+      ANNOTATION_OWNER,
+    ]);
   });
 
-  it("has one author for generated-code compliance annotations", () => {
-    const files = [
-      ...new Set(scan(ANNOTATION_TEXT).map((hit) => hit.file)),
-    ].sort();
-
-    expect(files).toEqual([ANNOTATION_OWNER]);
+  it("has one author for the compliance-annotation FORM", () => {
+    // Catches the hand-rolled string the type check cannot see. Empty would
+    // fail this too, so the selector cannot go vacuous.
+    expect(
+      filesMatching(ANNOTATION_FORM).filter(
+        (file) => !file.startsWith(DIAGNOSTIC_LAYER),
+      ),
+    ).toEqual([ANNOTATION_OWNER]);
   });
 
   it("reasons about declaration kinds only in the decider and the classifier", () => {
-    const importers = sourceFiles()
-      .filter((full) => readFileSync(full, "utf-8").includes(KIND_TYPE))
-      .map((full) => full.slice(rootDir.length + 1))
-      .filter((file) => file !== KIND_DECLARATION)
-      .sort();
-
-    // `DeclarationOrder` decides where the block goes; `CodeGenerator`
-    // classifies each declaration into a kind and asks. Render says what the
-    // file looks like, Plan says where the block goes -- a third module here
-    // means a second answer to the same question.
-    expect(importers).toEqual([
-      join("src", "TRANSPILE", "2-Plan", "DeclarationOrder.ts"),
-      join("src", "transpiler", "output", "codegen", "CodeGenerator.ts"),
-    ]);
+    // Import-shaped, so documenting the Plan/Render split in a third module is
+    // not reported as adding a second decider (#1583 review).
+    expect(filesMatching(importOf("TDeclarationKind"))).toEqual(
+      [ORDER_DECIDER, ORDER_CLASSIFIER].sort(),
+    );
   });
 });
