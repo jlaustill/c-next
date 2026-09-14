@@ -181,6 +181,54 @@ The transpiler converts:
 
 This is a simple token substitution with no semantic complexity.
 
+## Scope-Context Matrix (#1219)
+
+`<-` and `=` are not features that appear in one kind of program position. Every
+context in which C-Next code can be written is a context in which a value is
+assigned or compared, so every cell below is `error`: there is no position where
+this decision is permitted not to hold.
+
+That is a stronger claim than most ADRs make, and it is the right one here
+_because_ the substitution looks trivial. A rule that is hard to get wrong is
+not the same as a rule that is checked. Before this declaration no fixture was
+linked to this ADR at all, so the mapping could have been lost in any one
+context with nothing in the corpus going red.
+
+<!-- MATRIX-SEVERITY -->
+
+| Context            | Relationship        | Severity |
+| ------------------ | ------------------- | -------- |
+| global variable    | same file           | error    |
+| top-level function | same file           | error    |
+| scope member       | same file           | error    |
+| scope method       | same file           | error    |
+| global variable    | imported direct     | error    |
+| top-level function | imported direct     | error    |
+| scope member       | imported direct     | error    |
+| scope method       | imported direct     | error    |
+| global variable    | imported transitive | error    |
+| top-level function | imported transitive | error    |
+| scope member       | imported transitive | error    |
+| scope method       | imported transitive | error    |
+
+All twelve are occupied — see `docs/scope-context-matrix.md`.
+
+In the two `global variable` rows that cross a file boundary, the comparison is
+written over constants declared in the consuming file rather than imported ones,
+for a reason that has nothing to do with `=`; the fixtures record which one.
+
+The function-body contexts of those same fixtures compare a value that did cross
+the boundary, and compare a `string` among them deliberately. Comparing two
+integers is decided by the operator alone, so it cannot distinguish a row that
+crosses a file boundary from one that does not. Comparing strings is decided by
+knowing an operand _is_ a string — a fact that has to reach the comparison from
+wherever the declaration lives — so it is the form of this decision under which
+the `imported direct` and `imported transitive` rows can fail where `same file`
+succeeds. That is what those two rows are for.
+
+The two provider-side relationships carry no declaration: occupancy for them is
+not derivable, and the report renders them `n/a` rather than counting them empty.
+
 ## References
 
 ### Safety Standards

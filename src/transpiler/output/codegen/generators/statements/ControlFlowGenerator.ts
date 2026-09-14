@@ -25,7 +25,7 @@ import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IOrchestrator from "../IOrchestrator";
 import VariableModifierBuilder from "../../helpers/VariableModifierBuilder";
-import ASSIGNMENT_OPERATOR_MAP from "../../../../../utils/constants/OperatorMappings";
+import AssignmentOperatorMapper from "../../helpers/AssignmentOperatorMapper";
 
 /**
  * Generate C code for a return statement.
@@ -252,8 +252,10 @@ const generateForAssignment = (
   const target = orchestrator.generateAssignmentTarget(node.assignmentTarget());
   const value = orchestrator.generateExpression(node.expression());
   const operatorCtx = node.assignmentOperator();
-  const cnextOp = operatorCtx.getText();
-  const cOp = ASSIGNMENT_OPERATOR_MAP[cnextOp] || "=";
+  const cOp = AssignmentOperatorMapper.toCOperator(
+    operatorCtx.getText(),
+    operatorCtx.start?.line,
+  );
   return { code: `${target} ${cOp} ${value}`, effects };
 };
 
@@ -320,8 +322,10 @@ const generateFor = (
     );
     const value = orchestrator.generateExpression(forUpdate.expression());
     const operatorCtx = forUpdate.assignmentOperator();
-    const cnextOp = operatorCtx.getText();
-    const cOp = ASSIGNMENT_OPERATOR_MAP[cnextOp] || "=";
+    const cOp = AssignmentOperatorMapper.toCOperator(
+      operatorCtx.getText(),
+      operatorCtx.start?.line,
+    );
     update = `${target} ${cOp} ${value}`;
   }
 

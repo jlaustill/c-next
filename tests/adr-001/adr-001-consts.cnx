@@ -1,0 +1,11 @@
+// Helper for the ADR-001 scope-context matrix fixtures. Holds the constants the
+// cross-file fixtures compare against, so the `=` decision is exercised on a
+// value that crossed a file boundary rather than a local one.
+// The type-dependent half of ADR-001: `=` on a `string<N>` lowers to strcmp,
+// which needs to KNOW the operand is a string. That knowledge is what degrades
+// across a file boundary, so it is the half whose cross-file cells can fail for
+// a reason the same-file cells cannot.
+string<16> GREETING <- "hello";
+
+const u8 FIVE <- 5;
+const u8 ALSO_FIVE <- 5;

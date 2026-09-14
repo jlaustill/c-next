@@ -138,3 +138,10 @@ cppcheck-addon-ctu-file-list*
 !.vscode/launch.json
 !.vscode/extensions.json
 !.vscode/*.code-snippets
+
+# Claude Code per-machine settings. Holds captured permission entries, which are
+# arbitrary snippets of whatever commands were approved on that machine -- not
+# shareable, and not reviewable. The tracked .claude/ files (skills, hooks,
+# settings.json) stay committed. `.cspell.json` ignores this path too, so the
+# spell checker stays quiet for contributors whose git has no global rule.
+.claude/settings.local.json
