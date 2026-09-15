@@ -27,31 +27,16 @@
  * in exactly those two places, both verified as corrections rather than
  * regressions before their snapshots were regenerated.
  *
- * Lives in `logic/symbols/` so both the symbols layer and codegen can reach it:
- * `logic/` may not import `output/`, and the predicates are injected rather than
- * read from CodeGenState so nothing here depends on codegen state.
+ * Lives in 1.3 Declare so both the symbols layer and codegen can reach it, and
+ * the predicates are injected rather than read from CodeGenState so nothing
+ * here depends on codegen state.
  */
 
 import ITypeAccessors from "../../transpiler/types/ITypeAccessors";
+import type ITypeBindingDeps from "../../transpiler/types/ITypeBindingDeps";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ScopeUtils from "../../utils/ScopeUtils";
 import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
-
-interface ITypeBindingDeps {
-  /**
-   * ADR-057: whether a QUALIFIED name is a type declared in the current scope.
-   * Consulted only for a bare `userType()` -- `this.T`, `global.T` and `Scope.T`
-   * state their answer in the syntax and must keep their own branches, because
-   * once a name is a string `global.Mode` and a bare `Mode` are identical.
-   */
-  readonly isScopeType?: (qualifiedName: string) => boolean;
-
-  /**
-   * C++ namespace-aware resolution for `Scope.Type` (Issue #388). Injected
-   * because it is a codegen concern; without it the components are joined.
-   */
-  readonly resolveQualifiedType?: (identifiers: string[]) => string;
-}
 
 /**
  * Which syntactic branch answered, what was written, and what it resolved to.

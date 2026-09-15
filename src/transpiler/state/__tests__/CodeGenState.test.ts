@@ -18,6 +18,18 @@ import createMockSymbols from "../../__tests__/codeGenSymbolsHelpers";
 import UNRESOLVED_DIMENSION from "../../constants/UNRESOLVED_DIMENSION";
 import TestSourceSpan from "../../types/__testUtils__/testSourceSpan";
 import Program from "../../../PARSE/4-Resolve/Program";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { dirname, join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
+
+/** Repo root, for the source-scanning guard in `scopeTypePredicate`. */
+const repoRootForGuard = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "..",
+  "..",
+  "..",
+);
 
 /**
  * Create a minimal C-Next IVariableSymbol for testing.
@@ -1517,6 +1529,63 @@ describe("CodeGenState", () => {
       expect(executed).toBe(true);
       expect(CodeGenState.expectedType).toBeNull();
       expect(CodeGenState.suppressBareEnumResolution).toBe(false);
+    });
+  });
+
+  /**
+   * Issue #1450 box 4: one binding, not six.
+   *
+   * `isScopeType` is a static that reads `this.symbolTable`, so a bare
+   * reference loses its receiver. Six sites each wrote the same closure to work
+   * around that. Unifying them rots silently -- every closure returns the same
+   * answer, so a seventh would keep every fixture green -- which is why
+   * `docs/architecture/README.md` principle 5 wants the invariant stated with a
+   * gate rather than in a comment.
+   *
+   * The forbidden form is derived by reading `src/`, never listed, so the guard
+   * cannot go stale against a file it does not know about. The first attempt at
+   * the inventory this replaced grepped for the parameter name `qualifiedName`
+   * and missed a site that spelled it `qn` -- matching on the RECEIVER is what
+   * makes the spelling irrelevant.
+   */
+  describe("scopeTypePredicate", () => {
+    it("survives being passed unbound, which is why it exists", () => {
+      const predicate: (name: string) => boolean =
+        CodeGenState.scopeTypePredicate;
+
+      expect(() => predicate("NoSuchType")).not.toThrow();
+      expect(predicate("NoSuchType")).toBe(false);
+    });
+
+    it("is the only closure in src/ that binds CodeGenState.isScopeType", () => {
+      const owner = join("src", "transpiler", "state", "CodeGenState.ts");
+      const binds = /CodeGenState\s*\.\s*isScopeType\s*\(/;
+
+      const walk = (dir: string): string[] =>
+        readdirSync(dir).flatMap((entry) => {
+          const full = join(dir, entry);
+          return statSync(full).isDirectory()
+            ? walk(full)
+            : entry.endsWith(".ts")
+              ? [full]
+              : [];
+        });
+
+      // Comments are stripped first. `NameExistence` explains at length why
+      // `CodeGenState.isScopeType()` cannot serve its purpose, and a guard that
+      // forbade naming the method in prose would forbid exactly the
+      // documentation that keeps the next person from reaching for it.
+      const code = (source: string): string =>
+        source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+
+      const offenders = walk(join(repoRootForGuard, "src"))
+        .map((file) => relative(repoRootForGuard, file))
+        .filter((file) => file !== owner && !file.includes("__tests__"))
+        .filter((file) =>
+          binds.test(code(readFileSync(join(repoRootForGuard, file), "utf8"))),
+        );
+
+      expect(offenders).toEqual([]);
     });
   });
 });

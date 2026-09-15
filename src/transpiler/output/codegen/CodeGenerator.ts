@@ -574,7 +574,7 @@ export default class CodeGenerator implements IOrchestrator {
       isCppScopeSymbol: (name) => this.isCppScopeSymbol(name),
       checkNeedsStructKeyword: (name) =>
         CodeGenState.symbolTable.checkNeedsStructKeyword(name),
-      isScopeType: (qn) => CodeGenState.isScopeType(qn),
+      isScopeType: CodeGenState.scopeTypePredicate,
       isCrossFileDeclaration: (name) =>
         CodeGenState.isCrossFileDeclaration(name),
     });
@@ -1178,11 +1178,9 @@ export default class CodeGenerator implements IOrchestrator {
     const resolved = TypeBinding.resolveName(
       ctx,
       CodeGenState.currentScopePath,
-      {
-        isScopeType: (qualifiedName) => CodeGenState.isScopeType(qualifiedName),
-        resolveQualifiedType: (identifiers) =>
-          this.resolveQualifiedType(identifiers),
-      },
+      CodeGenState.typeBindingDeps((identifiers) =>
+        this.resolveQualifiedType(identifiers),
+      ),
     );
     // #1508: the other half of ADR-010's promise. A cross-file declaration is
     // reached two ways -- it is CALLED, which the postfix generator records, or
@@ -4076,10 +4074,7 @@ export default class CodeGenerator implements IOrchestrator {
     const name = TypeBinding.resolveNamedType(
       typeCtx,
       CodeGenState.currentScopePath,
-      {
-        isScopeType: (qualifiedName) => CodeGenState.isScopeType(qualifiedName),
-        resolveQualifiedType: (parts) => this.resolveQualifiedType(parts),
-      },
+      CodeGenState.typeBindingDeps((parts) => this.resolveQualifiedType(parts)),
     );
     if (name === null) {
       return null;

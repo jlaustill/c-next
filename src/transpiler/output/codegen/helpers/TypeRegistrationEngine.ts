@@ -170,10 +170,11 @@ class TypeRegistrationEngine {
     // through; the caller at _registerVariableType treats a falsy base type as
     // "not registerable", so anything wrong here silently unregisters types
     // rather than failing.
-    return TypeBinding.resolveNamedOrPrimitiveType(typeCtx, currentScopePath, {
-      isScopeType: (qualifiedName) => CodeGenState.isScopeType(qualifiedName),
-      resolveQualifiedType: callbacks?.resolveQualifiedType,
-    });
+    return TypeBinding.resolveNamedOrPrimitiveType(
+      typeCtx,
+      currentScopePath,
+      CodeGenState.typeBindingDeps(callbacks?.resolveQualifiedType),
+    );
   }
 
   // ============================================================================
@@ -500,10 +501,11 @@ class TypeRegistrationEngine {
     // declaration in C++ mode: byte-identical. It is threaded because the two
     // adjacent calls must not differ by accident, not because a fixture moves.
     const baseType =
-      TypeBinding.resolveName(arrayTypeCtx, CodeGenState.currentScopePath, {
-        isScopeType: (qualifiedName) => CodeGenState.isScopeType(qualifiedName),
-        resolveQualifiedType: callbacks?.resolveQualifiedType,
-      }) ?? "";
+      TypeBinding.resolveName(
+        arrayTypeCtx,
+        CodeGenState.currentScopePath,
+        CodeGenState.typeBindingDeps(callbacks?.resolveQualifiedType),
+      ) ?? "";
 
     // TYPE_WIDTH is a plain object literal, and this lookup now sees every
     // named type rather than only primitives. A C-Next type named `constructor`

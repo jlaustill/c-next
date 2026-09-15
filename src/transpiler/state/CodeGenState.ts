@@ -48,6 +48,7 @@ import type IOutputExtensions from "../types/IOutputExtensions";
 import type IVariableSymbol from "../types/symbols/IVariableSymbol";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ScopeUtils from "../../utils/ScopeUtils";
+import type ITypeBindingDeps from "../types/ITypeBindingDeps";
 import SymbolRegistry from "./SymbolRegistry";
 import DEFAULT_TARGET from "../constants/DEFAULT_TARGET";
 
@@ -883,6 +884,22 @@ export default class CodeGenState {
   }
 
   /**
+   * `isScopeType` as a VALUE, bound to this class.
+   *
+   * `isScopeType` is a static that reads `this.symbolTable`, so a bare
+   * reference to it loses its receiver and throws. Six sites each wrote the
+   * same closure to work around that -- five feeding `ITypeBindingDeps`, one
+   * feeding `ITypeGenerationDeps`, which CLAUDE.md keeps separate so
+   * `TypeGenerationHelper` stays unit-testable. The two CONTRACTS are
+   * different and stay different; the BINDING was the same six times.
+   *
+   * An arrow property rather than a method precisely because a method cannot
+   * be passed unbound -- that is the whole problem it solves.
+   */
+  static readonly scopeTypePredicate = (qualifiedName: string): boolean =>
+    CodeGenState.isScopeType(qualifiedName);
+
+  /**
    * ADR-057: qualify a bare type name against the scope being generated.
    *
    * Binds `QualifiedCName.qualifyScopeType()` to this state's current scope and
@@ -896,8 +913,34 @@ export default class CodeGenState {
     return ScopeUtils.qualifyScopeType(
       typeName,
       this.currentScopePath,
-      (qualifiedName) => CodeGenState.isScopeType(qualifiedName),
+      CodeGenState.scopeTypePredicate,
     );
+  }
+
+  /**
+   * ADR-057: bind this state's type sets to `TypeBinding`'s injected deps.
+   *
+   * The sibling of `qualifyScopeType` above, for the sites that resolve a whole
+   * `TypeContext` rather than a bare name. `isScopeType` is a static that reads
+   * `this.symbolTable`, so it cannot be passed unbound -- which is why five
+   * call sites each wrote the same closure, paired with `currentScopePath`,
+   * and why the rule against re-pairing them needed something to call instead
+   * of only saying not to.
+   *
+   * `resolveQualifiedType` stays the caller's: it is the one half that really
+   * does differ, routing to a generator's C++ namespace resolution or to a
+   * callback's, and binding it here would invent a dependency from `state/` on
+   * whichever one happened to be first.
+   *
+   * @param resolveQualifiedType the caller's `Scope.Type` resolver, if it has one
+   */
+  static typeBindingDeps(
+    resolveQualifiedType?: (identifiers: string[]) => string,
+  ): ITypeBindingDeps {
+    return {
+      isScopeType: CodeGenState.scopeTypePredicate,
+      resolveQualifiedType,
+    };
   }
 
   /**
