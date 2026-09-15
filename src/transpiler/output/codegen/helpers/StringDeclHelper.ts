@@ -203,16 +203,11 @@ class StringDeclHelper {
     }
 
     // Reset array init tracking and generate initializer
-    CodeGenState.lastArrayInitCount = 0;
-    CodeGenState.lastArrayFillValue = undefined;
+    CodeGenState.resetArrayInitTracking();
     const initValue = callbacks.generateExpression(expression);
 
     // Check if it was an array initializer
-    const isArrayInit =
-      CodeGenState.lastArrayInitCount > 0 ||
-      CodeGenState.lastArrayFillValue !== undefined;
-
-    if (!isArrayInit) {
+    if (!CodeGenState.wasArrayInit()) {
       invariant(
         false,
         `a string array is initialized from literals -- E0866 rejects a variable initializer in pass 2.1`,

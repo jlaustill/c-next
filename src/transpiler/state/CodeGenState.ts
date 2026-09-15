@@ -458,6 +458,33 @@ export default class CodeGenState {
   /** ADR-035: Fill-all value for array initialization */
   static lastArrayFillValue: string | undefined = undefined;
 
+  /**
+   * ADR-035: clear the array-initializer tracking before generating one.
+   *
+   * The two fields above are written by the expression generator as a side
+   * effect and read back afterwards, so a caller that does not clear them
+   * first can read the PREVIOUS declaration's answer. Both callers cleared
+   * both fields by hand; naming the operation is what stops the next one
+   * clearing only the count, which is the half that reads as "no array".
+   */
+  static resetArrayInitTracking(): void {
+    this.lastArrayInitCount = 0;
+    this.lastArrayFillValue = undefined;
+  }
+
+  /**
+   * ADR-035: whether the initializer just generated was an array initializer.
+   *
+   * Derived from both fields, never one: `[0*]` sets only the fill value and
+   * leaves the count at zero, so a predicate asking only about the count reads
+   * the fill-all form as "not an array initializer". Two sites derived this
+   * independently and agreed -- one of them `private`, so the other could not
+   * have reused it even knowing it was there.
+   */
+  static wasArrayInit(): boolean {
+    return this.lastArrayInitCount > 0 || this.lastArrayFillValue !== undefined;
+  }
+
   /** strlen optimization: variable name -> temp variable name */
   static lengthCache: Map<string, string> | null = null;
 
