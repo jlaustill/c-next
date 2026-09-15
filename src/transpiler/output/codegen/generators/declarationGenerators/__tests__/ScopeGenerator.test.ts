@@ -1129,7 +1129,7 @@ describe("ScopeGenerator", () => {
       const enumDecl = createMockEnumDecl("State", [{ name: "A" }]);
       const member = createMockScopeMember({ enumDecl: enumDecl });
       const ctx = createMockScopeContext("Test", [member]);
-      const state = createMockState({ selfIncludeAdded: true });
+      const state = createMockState({ headerOwnsTypeDefinitions: true });
 
       const result = generateScope(
         ctx,
@@ -1153,7 +1153,7 @@ describe("ScopeGenerator", () => {
       // somewhere, or the `.c` that uses it does not compile. The two
       // placements are complements of one decision, so this is the other half
       // of the test above -- and the half that was missing while the gate read
-      // the file-level `selfIncludeAdded` instead of asking the header.
+      // the file-level `headerOwnsTypeDefinitions` instead of asking the header.
       CodeGenState.sourcePath = "test.cnx";
       const definesInHeader = vi
         .spyOn(PublicInterface, "definesTypeInHeader")
@@ -1161,7 +1161,7 @@ describe("ScopeGenerator", () => {
       const enumDecl = createMockEnumDecl("State", [{ name: "A" }]);
       const member = createMockScopeMember({ enumDecl: enumDecl });
       const ctx = createMockScopeContext("Test", [member]);
-      const state = createMockState({ selfIncludeAdded: true });
+      const state = createMockState({ headerOwnsTypeDefinitions: true });
       const input = createMockInput({
         symbols: {
           ...createMockInput().symbols!,
@@ -1225,7 +1225,7 @@ describe("ScopeGenerator", () => {
       const bitmapDecl = createMockBitmapDecl("Flags", "bitmap8", []);
       const member = createMockScopeMember({ bitmapDecl: bitmapDecl });
       const ctx = createMockScopeContext("Test", [member]);
-      const state = createMockState({ selfIncludeAdded: true });
+      const state = createMockState({ headerOwnsTypeDefinitions: true });
 
       const result = generateScope(
         ctx,
@@ -1249,7 +1249,7 @@ describe("ScopeGenerator", () => {
       // somewhere, or the `.c` that uses it does not compile. The two
       // placements are complements of one decision, so this is the other half
       // of the test above -- and the half that was missing while the gate read
-      // the file-level `selfIncludeAdded` instead of asking the header.
+      // the file-level `headerOwnsTypeDefinitions` instead of asking the header.
       CodeGenState.sourcePath = "test.cnx";
       const definesInHeader = vi
         .spyOn(PublicInterface, "definesTypeInHeader")
@@ -1257,7 +1257,7 @@ describe("ScopeGenerator", () => {
       const bitmapDecl = createMockBitmapDecl("Flags", "bitmap8", []);
       const member = createMockScopeMember({ bitmapDecl: bitmapDecl });
       const ctx = createMockScopeContext("Test", [member]);
-      const state = createMockState({ selfIncludeAdded: true });
+      const state = createMockState({ headerOwnsTypeDefinitions: true });
 
       const result = generateScope(
         ctx,
@@ -1321,7 +1321,7 @@ describe("ScopeGenerator", () => {
       ]);
       const member = createMockScopeMember({ structDecl: structDecl });
       const ctx = createMockScopeContext("Test", [member]);
-      const state = createMockState({ selfIncludeAdded: true });
+      const state = createMockState({ headerOwnsTypeDefinitions: true });
 
       const result = generateScope(
         ctx,
@@ -1345,7 +1345,7 @@ describe("ScopeGenerator", () => {
       // somewhere, or the `.c` that uses it does not compile. The two
       // placements are complements of one decision, so this is the other half
       // of the test above -- and the half that was missing while the gate read
-      // the file-level `selfIncludeAdded` instead of asking the header.
+      // the file-level `headerOwnsTypeDefinitions` instead of asking the header.
       CodeGenState.sourcePath = "test.cnx";
       const definesInHeader = vi
         .spyOn(PublicInterface, "definesTypeInHeader")
@@ -1355,7 +1355,7 @@ describe("ScopeGenerator", () => {
       ]);
       const member = createMockScopeMember({ structDecl: structDecl });
       const ctx = createMockScopeContext("Test", [member]);
-      const state = createMockState({ selfIncludeAdded: true });
+      const state = createMockState({ headerOwnsTypeDefinitions: true });
 
       const result = generateScope(
         ctx,

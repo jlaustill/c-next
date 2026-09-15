@@ -27,7 +27,7 @@ import IGeneratorInput from "./generators/IGeneratorInput";
 import IGeneratorState from "./generators/IGeneratorState";
 import TGeneratorEffect from "./generators/TGeneratorEffect";
 import EmissionPlan from "../../../TRANSPILE/2-Plan/EmissionPlan";
-import DeclarationOrder from "../../../TRANSPILE/2-Plan/DeclarationOrder";
+import DeclarationPlan from "../../../TRANSPILE/2-Plan/DeclarationPlan";
 import type TDeclarationKind from "../../types/TDeclarationKind";
 import type IEmissionPlan from "../../types/IEmissionPlan";
 import type IEmissionFacts from "../../types/IEmissionFacts";
@@ -397,7 +397,8 @@ export default class CodeGenerator implements IOrchestrator {
       localVariables: CodeGenState.localVariables,
       localArrays: CodeGenState.localArrays,
       expectedType: CodeGenState.expectedType,
-      selfIncludeAdded: CodeGenState.selfIncludeAdded, // Issue #369
+      headerOwnsTypeDefinitions:
+        CodeGenState.declarationPlan().headerOwnsTypeDefinitions, // #369/#1450
       // Issue #644: Postfix expression state
       scopeMembers: CodeGenState.getAllScopeMembers(),
       mainArgsName: CodeGenState.mainArgsName,
@@ -541,19 +542,29 @@ export default class CodeGenerator implements IOrchestrator {
   /**
    * Issue #477: Generate expression with a specific expected type context.
    * Used by return statements to resolve unqualified enum values.
-   * Note: Uses explicit save/restore (not withExpectedType) to support null values.
+   *
+   * #1450 box 4: this was a third hand-rolled save/restore of `expectedType`,
+   * beside `withExpectedType` and `withoutExpectedType`, justified by a note
+   * reading "uses explicit save/restore (not withExpectedType) to support null
+   * values". No caller passes one. Measured rather than argued: throwing here
+   * on a falsy argument leaves 1247/1247 fixtures green, and the control --
+   * throwing on a TRUTHY one -- fails 663 of them, so the line is reached and
+   * the falsy case simply never arrives.
+   *
+   * The parameter is therefore `string`, not `string | null`. That makes the
+   * fact the compiler's to keep rather than a comment's, which matters because
+   * the two spellings did OPPOSITE things on null: `withExpectedType(null)` is
+   * a no-op by contract, while this cleared the type. Two near-identically
+   * named operations disagreeing on their edge case is the trap; deleting the
+   * edge case is cheaper than documenting it.
    */
   generateExpressionWithExpectedType(
     ctx: Parser.ExpressionContext,
-    expectedType: string | null,
+    expectedType: string,
   ): string {
-    const saved = CodeGenState.expectedType;
-    CodeGenState.expectedType = expectedType;
-    try {
-      return this.generateExpression(ctx);
-    } finally {
-      CodeGenState.expectedType = saved;
-    }
+    return CodeGenState.withExpectedType(expectedType, () =>
+      this.generateExpression(ctx),
+    );
   }
 
   /**
@@ -573,7 +584,7 @@ export default class CodeGenerator implements IOrchestrator {
       isCppScopeSymbol: (name) => this.isCppScopeSymbol(name),
       checkNeedsStructKeyword: (name) =>
         CodeGenState.symbolTable.checkNeedsStructKeyword(name),
-      isScopeType: (qn) => CodeGenState.isScopeType(qn),
+      isScopeType: CodeGenState.scopeTypePredicate,
       isCrossFileDeclaration: (name) =>
         CodeGenState.isCrossFileDeclaration(name),
     });
@@ -1177,11 +1188,9 @@ export default class CodeGenerator implements IOrchestrator {
     const resolved = TypeBinding.resolveName(
       ctx,
       CodeGenState.currentScopePath,
-      {
-        isScopeType: (qualifiedName) => CodeGenState.isScopeType(qualifiedName),
-        resolveQualifiedType: (identifiers) =>
-          this.resolveQualifiedType(identifiers),
-      },
+      CodeGenState.typeBindingDeps((identifiers) =>
+        this.resolveQualifiedType(identifiers),
+      ),
     );
     // #1508: the other half of ADR-010's promise. A cross-file declaration is
     // reached two ways -- it is CALLED, which the postfix generator records, or
@@ -1508,7 +1517,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Issue #1164: the included header already declares this one.
     if (
-      CodeGenState.selfIncludeAdded &&
+      CodeGenState.declarationPlan().headerOwnsTypeDefinitions &&
       CodeGenState.headerOwnsCallbackTypedef(funcName)
     ) {
       return null;
@@ -2094,6 +2103,15 @@ export default class CodeGenerator implements IOrchestrator {
     // Process preprocessor directives
     this.processPreprocessorDirectives(tree, output);
 
+    // 2.2 Plan: the declaration decisions, settled BEFORE anything is rendered.
+    // Unlike the emission plan below, neither answer depends on what rendering
+    // turns out to produce, so Render reads them rather than interpreting the
+    // state they came from.
+    CodeGenState.declarationPlanOrNull = DeclarationPlan.build(
+      tree.declaration().map((decl) => CodeGenerator.declarationKindOf(decl)),
+      CodeGenState.selfIncludeAdded,
+    );
+
     // Generate declarations
     const declarations = this.generateAllDeclarations(tree);
 
@@ -2208,7 +2226,7 @@ export default class CodeGenerator implements IOrchestrator {
   /**
    * What a declaration is, in the terms 2.2 Plan's ordering asks about.
    *
-   * The parse tree stops here: `DeclarationOrder` takes kinds, not contexts,
+   * The parse tree stops here: `DeclarationPlan` takes kinds, not contexts,
    * so a pass outside the parse layer does not grow a dependency on ANTLR to
    * answer a question about order (#1317).
    */
@@ -2223,13 +2241,12 @@ export default class CodeGenerator implements IOrchestrator {
   private generateAllDeclarations(tree: Parser.ProgramContext): string[] {
     const sourceOrder = tree.declaration();
 
-    // Issue #1212, #1449: WHICH declaration the callback typedef block precedes
-    // is decided by 2.2 Plan, from the shape of the file. WHERE that lands in
-    // the emitted array is arithmetic, and stays here -- the index depends on
-    // how many leading-comment lines were pushed, which is a fact about text.
-    const precedes = DeclarationOrder.callbackTypedefsPrecede(
-      sourceOrder.map((decl) => CodeGenerator.declarationKindOf(decl)),
-    );
+    // Issue #1212, #1449, #1450: WHICH declaration the callback typedef block
+    // precedes is decided by 2.2 Plan and read off the plan here. WHERE that
+    // lands in the emitted array is arithmetic, and stays here -- the index
+    // depends on how many leading-comment lines were pushed, which is a fact
+    // about text rather than a decision about what C should exist.
+    const precedes = CodeGenState.declarationPlan().callbackTypedefsPrecede;
 
     const declarations: string[] = [];
     let firstFunctionIndex: number | null = null;
@@ -2470,48 +2487,47 @@ export default class CodeGenerator implements IOrchestrator {
   ): void {
     const scopeName = scopeDecl.IDENTIFIER().getText();
 
-    // Set scope context for scoped type resolution (this.Type)
-    const savedScope = CodeGenState.currentScopePath;
-    CodeGenState.setCurrentScopeByPath(scopeName);
-
-    // #1281/#1285: functions first, THEN everything that can reference one.
-    // A struct field naming a scope-local function-as-type asks isScopeType
-    // whether that name is a type, and the answer comes from callbackTypes --
-    // which this loop is what fills. Walking members in source order made the
-    // answer depend on whether the function happened to be declared above the
-    // struct, so `Config` before `tickSource` resolved the field BARE and
-    // emitted a header naming something that is not a type. Registering every
-    // function before reading any reference makes the order irrelevant, which
-    // is the same declaration-order invariant ADR-057 states for the symbols
-    // layer's Pass 0b.
-    for (const member of scopeDecl.scopeMember()) {
-      const funcDecl = member.functionDeclaration();
-      if (funcDecl) {
-        // #1298: resolve the scope PATH rather than reading back mutable
-        // state, so the generated name does not depend on when it is asked.
-        this._registerScopeFunction(
-          ScopeUtils.pathOf(SymbolRegistry.getOrCreateScope(scopeName)),
-          funcDecl,
-        );
+    // Scope context for scoped type resolution (`this.Type`), restored on exit
+    // even if a member throws.
+    CodeGenState.withScopePath(scopeName, () => {
+      // #1281/#1285: functions first, THEN everything that can reference one.
+      // A struct field naming a scope-local function-as-type asks isScopeType
+      // whether that name is a type, and the answer comes from callbackTypes --
+      // which this loop is what fills. Walking members in source order made the
+      // answer depend on whether the function happened to be declared above the
+      // struct, so `Config` before `tickSource` resolved the field BARE and
+      // emitted a header naming something that is not a type. Registering every
+      // function before reading any reference makes the order irrelevant, which
+      // is the same declaration-order invariant ADR-057 states for the symbols
+      // layer's Pass 0b.
+      for (const member of scopeDecl.scopeMember()) {
+        const funcDecl = member.functionDeclaration();
+        if (funcDecl) {
+          // #1298: resolve the scope PATH rather than reading back mutable
+          // state, so the generated name does not depend on when it is asked.
+          this._registerScopeFunction(
+            ScopeUtils.pathOf(SymbolRegistry.getOrCreateScope(scopeName)),
+            funcDecl,
+          );
+        }
       }
-    }
 
-    for (const member of scopeDecl.scopeMember()) {
-      // Issue #1200: a struct nested in a scope has callback fields just like a
-      // top-level one, and a scope member variable can itself be callback-typed.
-      // Neither was walked here, so neither ever registered its type.
-      if (member.structDeclaration()) {
-        this._collectStructCallbackFields(member.structDeclaration()!);
-        continue;
+      for (const member of scopeDecl.scopeMember()) {
+        // Issue #1200: a struct nested in a scope has callback fields just like a
+        // top-level one, and a scope member variable can itself be callback-typed.
+        // Neither was walked here, so neither ever registered its type.
+        if (member.structDeclaration()) {
+          this._collectStructCallbackFields(member.structDeclaration()!);
+          continue;
+        }
+        if (member.variableDeclaration()) {
+          const varType = this.getTypeName(
+            member.variableDeclaration()!.type(),
+          );
+          CodeGenState.notePublicCallbackTypeReference(varType);
+        }
       }
-      if (member.variableDeclaration()) {
-        const varType = this.getTypeName(member.variableDeclaration()!.type());
-        CodeGenState.notePublicCallbackTypeReference(varType);
-      }
-    }
-
-    // Restore previous scope context
-    CodeGenState.currentScopePath = savedScope;
+    });
   }
 
   /**
@@ -3424,7 +3440,9 @@ export default class CodeGenerator implements IOrchestrator {
     // Issues #369/#1164: the included header owns the definition. The generator
     // still runs so its effects are registered -- returning early here would
     // silently drop them, which is how the ADR-029 struct init function was lost.
-    return CodeGenState.selfIncludeAdded ? "" : result.code;
+    return CodeGenState.declarationPlan().headerOwnsTypeDefinitions
+      ? ""
+      : result.code;
   }
 
   /**
@@ -3448,7 +3466,9 @@ export default class CodeGenerator implements IOrchestrator {
     const result = generator(ctx, this.getInput(), this.getState(), this);
     this.applyEffects(result.effects);
     // Issues #369/#1164: the included header owns the definition.
-    return CodeGenState.selfIncludeAdded ? "" : result.code;
+    return CodeGenState.declarationPlan().headerOwnsTypeDefinitions
+      ? ""
+      : result.code;
   }
 
   /**
@@ -4071,10 +4091,7 @@ export default class CodeGenerator implements IOrchestrator {
     const name = TypeBinding.resolveNamedType(
       typeCtx,
       CodeGenState.currentScopePath,
-      {
-        isScopeType: (qualifiedName) => CodeGenState.isScopeType(qualifiedName),
-        resolveQualifiedType: (parts) => this.resolveQualifiedType(parts),
-      },
+      CodeGenState.typeBindingDeps((parts) => this.resolveQualifiedType(parts)),
     );
     if (name === null) {
       return null;

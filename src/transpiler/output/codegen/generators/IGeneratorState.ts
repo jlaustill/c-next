@@ -28,11 +28,16 @@ interface IGeneratorState {
   readonly expectedType: string | null;
 
   /**
-   * Issue #369: Whether self-include was added.
-   * When true, type definitions (struct/enum/bitmap) should not be emitted
-   * in the .c file as they'll come from the included header.
+   * Issue #369 / #1450: whether the included header owns this file's type
+   * definitions, so a generator must not also emit them.
+   *
+   * The DECISION, decided once by 2.2 Plan before any declaration renders --
+   * not the `selfIncludeAdded` fact it comes from, which this field used to
+   * carry. The prose above the old field stated the consequence and then left
+   * every reader to derive it, which is the shape CLAUDE.md names: sharing the
+   * flag is not enough if each path re-derives what it means.
    */
-  readonly selfIncludeAdded: boolean;
+  readonly headerOwnsTypeDefinitions: boolean;
 
   // === Postfix Expression State (Issue #644) ===
 

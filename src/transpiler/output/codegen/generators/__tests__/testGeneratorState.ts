@@ -35,7 +35,7 @@ class TestGeneratorState {
       localVariables: new Set(),
       localArrays: new Set(),
       expectedType: null,
-      selfIncludeAdded: false,
+      headerOwnsTypeDefinitions: false,
       scopeMembers: new Map(),
       mainArgsName: null,
       floatBitShadows: new Set(),

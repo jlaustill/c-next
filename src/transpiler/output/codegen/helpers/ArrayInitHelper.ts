@@ -66,8 +66,7 @@ class ArrayInitHelper {
     callbacks: IArrayInitCallbacks,
   ): IArrayInitResult | null {
     // Reset and generate initializer
-    CodeGenState.lastArrayInitCount = 0;
-    CodeGenState.lastArrayFillValue = undefined;
+    CodeGenState.resetArrayInitTracking();
 
     const initValue = ArrayInitHelper._generateArrayInitValue(
       typeCtx,
@@ -76,7 +75,7 @@ class ArrayInitHelper {
     );
 
     // Check if it was an array initializer
-    if (!ArrayInitHelper._isArrayInitializer()) {
+    if (!CodeGenState.wasArrayInit()) {
       return null;
     }
 
@@ -109,16 +108,6 @@ class ArrayInitHelper {
     const typeName = callbacks.getTypeName(typeCtx);
     return CodeGenState.withExpectedType(typeName, () =>
       callbacks.generateExpression(expression),
-    );
-  }
-
-  /**
-   * Check if the last expression was an array initializer
-   */
-  private static _isArrayInitializer(): boolean {
-    return (
-      CodeGenState.lastArrayInitCount > 0 ||
-      CodeGenState.lastArrayFillValue !== undefined
     );
   }
 

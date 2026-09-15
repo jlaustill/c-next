@@ -48,6 +48,9 @@ import type IOutputExtensions from "../types/IOutputExtensions";
 import type IVariableSymbol from "../types/symbols/IVariableSymbol";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ScopeUtils from "../../utils/ScopeUtils";
+import invariant from "../../utils/invariant";
+import type ITypeBindingDeps from "../types/ITypeBindingDeps";
+import type IDeclarationPlan from "../types/IDeclarationPlan";
 import SymbolRegistry from "./SymbolRegistry";
 import DEFAULT_TARGET from "../constants/DEFAULT_TARGET";
 
@@ -457,6 +460,33 @@ export default class CodeGenState {
   /** ADR-035: Fill-all value for array initialization */
   static lastArrayFillValue: string | undefined = undefined;
 
+  /**
+   * ADR-035: clear the array-initializer tracking before generating one.
+   *
+   * The two fields above are written by the expression generator as a side
+   * effect and read back afterwards, so a caller that does not clear them
+   * first can read the PREVIOUS declaration's answer. Both callers cleared
+   * both fields by hand; naming the operation is what stops the next one
+   * clearing only the count, which is the half that reads as "no array".
+   */
+  static resetArrayInitTracking(): void {
+    this.lastArrayInitCount = 0;
+    this.lastArrayFillValue = undefined;
+  }
+
+  /**
+   * ADR-035: whether the initializer just generated was an array initializer.
+   *
+   * Derived from both fields, never one: `[0*]` sets only the fill value and
+   * leaves the count at zero, so a predicate asking only about the count reads
+   * the fill-all form as "not an array initializer". Two sites derived this
+   * independently and agreed -- one of them `private`, so the other could not
+   * have reused it even knowing it was there.
+   */
+  static wasArrayInit(): boolean {
+    return this.lastArrayInitCount > 0 || this.lastArrayFillValue !== undefined;
+  }
+
   /** strlen optimization: variable name -> temp variable name */
   static lengthCache: Map<string, string> | null = null;
 
@@ -538,6 +568,37 @@ export default class CodeGenState {
 
   /** Issue #369: Whether self-include was added */
   static selfIncludeAdded: boolean = false;
+
+  /**
+   * 2.2 Plan's declaration decisions for the file being generated.
+   *
+   * Frozen, and set once before any declaration renders. Held here rather than
+   * on `CodeGenerator` because CLAUDE.md gives this class sole ownership of
+   * per-file state; it sits beside `symbols` for the same reason -- a decided
+   * artifact the whole file's generation reads and nothing re-derives.
+   *
+   * Null before `assembleGeneratedOutput` reaches the declarations, which is
+   * also every unit test that drives a generator directly. `declarationPlan()`
+   * is the accessor that refuses the null rather than letting a site read a
+   * silently-wrong default.
+   */
+  static declarationPlanOrNull: IDeclarationPlan | null = null;
+
+  /**
+   * 2.2 Plan's declaration decisions, asserted present.
+   *
+   * A decision read before it was made is a defect, not a default: answering
+   * `false` for "does the header own the type?" emits a duplicate definition
+   * rather than failing, and the C compiler is the first thing that notices.
+   */
+  static declarationPlan(): IDeclarationPlan {
+    const plan = this.declarationPlanOrNull;
+    invariant(
+      plan !== null,
+      "2.2 Plan decides declarations before 2.3 Render reads them",
+    );
+    return plan;
+  }
 
   // ===========================================================================
   // SOURCE PATHS (ADR-010, Issue #349)
@@ -658,6 +719,7 @@ export default class CodeGenState {
     this.tempVarCounter = 0;
     this.pendingCppClassAssignments = [];
     this.selfIncludeAdded = false;
+    this.declarationPlanOrNull = null;
 
     // Issue #948: Opaque scope variables (reset per-file)
     this.opaqueScopeVariables = new Set();
@@ -729,6 +791,34 @@ export default class CodeGenState {
     } finally {
       this.expectedType = savedType;
       this.suppressBareEnumResolution = savedSuppress;
+    }
+  }
+
+  /**
+   * Execute fn with the current scope set to `scopeName`'s path, restoring the
+   * previous path on exit.
+   *
+   * The sibling these four helpers were missing. Two sites hand-rolled it --
+   * `const savedScope = ...; setCurrentScopeByPath(...); ...; currentScopePath
+   * = savedScope;` -- with the restore as a plain trailing statement rather
+   * than a `finally`, which is the precise defect #872 extracted
+   * `withExpectedType` to fix: its own doc says "eliminate duplicate
+   * save/restore pattern and ADD EXCEPTION SAFETY". Scope path never got the
+   * same treatment.
+   *
+   * Latent rather than live today: a throw inside either body is caught per
+   * file by `Transpiler`, and `reset()` clears the path before the next file,
+   * so the stale value has nothing left to reach. That is a property of two
+   * unrelated mechanisms rather than of this code, which is why it is fixed
+   * here instead of relied upon.
+   */
+  static withScopePath<T>(scopeName: string, fn: () => T): T {
+    const saved = this.currentScopePath;
+    this.setCurrentScopeByPath(scopeName);
+    try {
+      return fn();
+    } finally {
+      this.currentScopePath = saved;
     }
   }
 
@@ -883,6 +973,22 @@ export default class CodeGenState {
   }
 
   /**
+   * `isScopeType` as a VALUE, bound to this class.
+   *
+   * `isScopeType` is a static that reads `this.symbolTable`, so a bare
+   * reference to it loses its receiver and throws. Six sites each wrote the
+   * same closure to work around that -- five feeding `ITypeBindingDeps`, one
+   * feeding `ITypeGenerationDeps`, which CLAUDE.md keeps separate so
+   * `TypeGenerationHelper` stays unit-testable. The two CONTRACTS are
+   * different and stay different; the BINDING was the same six times.
+   *
+   * An arrow property rather than a method precisely because a method cannot
+   * be passed unbound -- that is the whole problem it solves.
+   */
+  static readonly scopeTypePredicate = (qualifiedName: string): boolean =>
+    CodeGenState.isScopeType(qualifiedName);
+
+  /**
    * ADR-057: qualify a bare type name against the scope being generated.
    *
    * Binds `QualifiedCName.qualifyScopeType()` to this state's current scope and
@@ -896,8 +1002,34 @@ export default class CodeGenState {
     return ScopeUtils.qualifyScopeType(
       typeName,
       this.currentScopePath,
-      (qualifiedName) => CodeGenState.isScopeType(qualifiedName),
+      CodeGenState.scopeTypePredicate,
     );
+  }
+
+  /**
+   * ADR-057: bind this state's type sets to `TypeBinding`'s injected deps.
+   *
+   * The sibling of `qualifyScopeType` above, for the sites that resolve a whole
+   * `TypeContext` rather than a bare name. `isScopeType` is a static that reads
+   * `this.symbolTable`, so it cannot be passed unbound -- which is why five
+   * call sites each wrote the same closure, paired with `currentScopePath`,
+   * and why the rule against re-pairing them needed something to call instead
+   * of only saying not to.
+   *
+   * `resolveQualifiedType` stays the caller's: it is the one half that really
+   * does differ, routing to a generator's C++ namespace resolution or to a
+   * callback's, and binding it here would invent a dependency from `state/` on
+   * whichever one happened to be first.
+   *
+   * @param resolveQualifiedType the caller's `Scope.Type` resolver, if it has one
+   */
+  static typeBindingDeps(
+    resolveQualifiedType?: (identifiers: string[]) => string,
+  ): ITypeBindingDeps {
+    return {
+      isScopeType: CodeGenState.scopeTypePredicate,
+      resolveQualifiedType,
+    };
   }
 
   /**

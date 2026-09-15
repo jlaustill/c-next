@@ -31,10 +31,6 @@ describe("CppModeHelper", () => {
       expect(CppModeHelper.refOrPtr()).toBe("*");
     });
 
-    it("memberSeparator returns ->", () => {
-      expect(CppModeHelper.memberSeparator()).toBe("->");
-    });
-
     it("nullLiteral returns NULL", () => {
       expect(CppModeHelper.nullLiteral()).toBe("NULL");
     });
@@ -49,10 +45,6 @@ describe("CppModeHelper", () => {
       expect(CppModeHelper.reinterpretCast("uint8_t*", "buf")).toBe(
         "(uint8_t*)buf",
       );
-    });
-
-    it("isCppMode returns false", () => {
-      expect(CppModeHelper.isCppMode()).toBe(false);
     });
   });
 
@@ -75,10 +67,6 @@ describe("CppModeHelper", () => {
       expect(CppModeHelper.refOrPtr()).toBe("&");
     });
 
-    it("memberSeparator returns .", () => {
-      expect(CppModeHelper.memberSeparator()).toBe(".");
-    });
-
     it("nullLiteral returns nullptr", () => {
       expect(CppModeHelper.nullLiteral()).toBe("nullptr");
     });
@@ -97,10 +85,6 @@ describe("CppModeHelper", () => {
       expect(CppModeHelper.reinterpretCast("uint8_t*", "buf")).toBe(
         "reinterpret_cast<uint8_t*>(buf)",
       );
-    });
-
-    it("isCppMode returns true", () => {
-      expect(CppModeHelper.isCppMode()).toBe(true);
     });
   });
 

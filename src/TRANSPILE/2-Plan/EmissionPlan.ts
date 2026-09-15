@@ -49,6 +49,7 @@ import type IEmissionPlan from "../../transpiler/types/IEmissionPlan";
 import type IPlannedBlock from "../../transpiler/types/IPlannedBlock";
 import type TRequirementKey from "../../transpiler/types/TRequirementKey";
 import SYSTEM_INCLUDE_TARGETS from "../../transpiler/constants/SYSTEM_INCLUDE_TARGETS";
+import HeaderOwnership from "./HeaderOwnership";
 
 /**
  * The four platform arms of the emitted IRQ wrapper chain.
@@ -94,7 +95,9 @@ class EmissionPlan {
       systemIncludes: EmissionPlan.decideSystemIncludes(facts),
       floatStaticAssert: EmissionPlan.decideFloatStaticAssert(facts),
       irqWrappers: EmissionPlan.decideIrqWrappers(facts),
-      isrTypedef: facts.needsISR && !facts.selfIncludeAdded,
+      isrTypedef:
+        facts.needsISR &&
+        !HeaderOwnership.ownsDeclarations(facts.selfIncludeAdded),
       clampOps: [...facts.clampOps],
       safeDivOps: [...facts.safeDivOps],
     };

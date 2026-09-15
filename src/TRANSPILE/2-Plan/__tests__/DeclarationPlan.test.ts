@@ -7,13 +7,13 @@
  * which is #1317's shape.
  */
 
-import DeclarationOrder from "../DeclarationOrder";
+import DeclarationPlan from "../DeclarationPlan";
 import type TDeclarationKind from "../../../transpiler/types/TDeclarationKind";
 
 const precede = (kinds: TDeclarationKind[]): number | null =>
-  DeclarationOrder.callbackTypedefsPrecede(kinds);
+  DeclarationPlan.callbackTypedefsPrecede(kinds);
 
-describe("DeclarationOrder.callbackTypedefsPrecede", () => {
+describe("DeclarationPlan.callbackTypedefsPrecede", () => {
   it("puts them before the first function", () => {
     expect(precede(["other", "other", "function", "other"])).toBe(2);
   });

@@ -14,6 +14,16 @@ A `throw` in `output/` has no position to carry, which is why a fixture reports 
 
 ## Counts
 
+The number grows with ordinary work, which is why the acceptance criterion should read "every site
+as counted at audit time" rather than a literal.
+
+| bucket | meaning                                                                        | count |
+| ------ | ------------------------------------------------------------------------------ | ----- |
+| **1**  | user-facing diagnostic — belongs in pass 2.1, needs a code and a real position | **0** |
+| **2**  | internal invariant — should never fire for valid input; becomes an assertion   | **0** |
+| **3**  | dead — unreachable or subsumed; delete                                         | **0** |
+|        | **total**                                                                      | **0** |
+
 ## How to recount
 
 Run these rather than restating the numbers below; a count in prose is the thing that goes
@@ -43,21 +53,11 @@ whole point -- a coded, covered diagnostic invisible to the audit. (#1322 has si
 it to pass 2.1, so the line it sat on no longer holds a throw and is not cited here.) A user-facing, coded, fixture-covered diagnostic sat outside the audit that
 exists to find exactly those.
 
-So the corpus was **184** when the gate was widened, and fell to **145** once `ArrayAccessHelper`, `CodeGenErrors`, all 23 bucket-3 sites and all 16 invariants were gone — bucket 1 exactly. #1322 has since relocated bucket 1 as well, so the corpus is now empty. Those are both historical readings: the table below and `npm run docs:throw-citations:check` are the live counts, not this sentence. What this cost the anchors is the argument against the indirection, and it has now been paid: a
+So the corpus was **184** when the gate was widened, and fell to **145** once `ArrayAccessHelper`, `CodeGenErrors`, all 23 bucket-3 sites and all 16 invariants were gone — bucket 1 exactly. #1322 has since relocated bucket 1 as well, so the corpus is now empty. Those are both historical readings: the Counts table above and `npm run docs:throw-citations:check` are the live counts, not this sentence. What this cost the anchors is the argument against the indirection, and it has now been paid: a
 factory throw's argument list is `(line, varName, …)`, not the message, so those rows had to be
 anchored on their **arguments** — the only honest key for a site whose text is written elsewhere.
 `CodeGenErrors` is deleted and E0856 is raised at its site, so its row is anchored on what it
 says, like every other.
-
-The number grows with ordinary work, which is why the acceptance criterion should read "every site
-as counted at audit time" rather than a literal.
-
-| bucket | meaning                                                                        | count |
-| ------ | ------------------------------------------------------------------------------ | ----- |
-| **1**  | user-facing diagnostic — belongs in pass 2.1, needs a code and a real position | **0** |
-| **2**  | internal invariant — should never fire for valid input; becomes an assertion   | **0** |
-| **3**  | dead — unreachable or subsumed; delete                                         | **0** |
-|        | **total**                                                                      | **0** |
 
 **80% of `output/`'s throws are rejections.** That is the answer to open question 4: Render does
 not own nothing, it currently owns almost all of the rejection surface.

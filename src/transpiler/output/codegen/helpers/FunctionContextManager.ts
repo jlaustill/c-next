@@ -254,12 +254,9 @@ class FunctionContextManager {
     // global branches, and `arrayType().userType()` skipped the ADR-057
     // qualification that the bare `userType()` branch applied -- `Mode[4] p`
     // and `Mode p` in the same scope resolved to different names.
-    const deps = {
-      isScopeType: (qualifiedName: string): boolean =>
-        CodeGenState.isScopeType(qualifiedName),
-      resolveQualifiedType: (parts: string[]): string =>
-        callbacks.resolveQualifiedType(parts),
-    };
+    const deps = CodeGenState.typeBindingDeps((parts: string[]): string =>
+      callbacks.resolveQualifiedType(parts),
+    );
     const arrayTypeCtx = typeCtx.arrayType();
     const typeName =
       TypeBinding.resolveNamedType(

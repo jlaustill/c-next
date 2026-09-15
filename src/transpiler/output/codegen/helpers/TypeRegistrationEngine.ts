@@ -91,29 +91,26 @@ class TypeRegistrationEngine {
     callbacks: ITypeRegistrationCallbacks,
   ): void {
     const scopeName = scopeDecl.IDENTIFIER().getText();
-    const savedScope = CodeGenState.currentScopePath;
-    CodeGenState.setCurrentScopeByPath(scopeName);
-
-    for (const member of scopeDecl.scopeMember()) {
-      if (member.variableDeclaration()) {
-        const varDecl = member.variableDeclaration()!;
-        const varName = varDecl.IDENTIFIER().getText();
-        // #1298: `setCurrentScopeByPath` above stored this scope's whole path;
-        // qualify through that rather than re-joining one level from the leaf
-        // name it was resolved FROM.
-        const fullName = QualifiedNameGenerator.forMember(
-          CodeGenState.currentScopePath,
-          varName,
-        );
-        TypeRegistrationEngine._trackVariableTypeWithName(
-          varDecl,
-          fullName,
-          callbacks,
-        );
+    CodeGenState.withScopePath(scopeName, () => {
+      for (const member of scopeDecl.scopeMember()) {
+        if (member.variableDeclaration()) {
+          const varDecl = member.variableDeclaration()!;
+          const varName = varDecl.IDENTIFIER().getText();
+          // #1298: `withScopePath` above stored this scope's whole path;
+          // qualify through that rather than re-joining one level from the leaf
+          // name it was resolved FROM.
+          const fullName = QualifiedNameGenerator.forMember(
+            CodeGenState.currentScopePath,
+            varName,
+          );
+          TypeRegistrationEngine._trackVariableTypeWithName(
+            varDecl,
+            fullName,
+            callbacks,
+          );
+        }
       }
-    }
-
-    CodeGenState.currentScopePath = savedScope;
+    });
   }
 
   // ============================================================================
@@ -170,10 +167,11 @@ class TypeRegistrationEngine {
     // through; the caller at _registerVariableType treats a falsy base type as
     // "not registerable", so anything wrong here silently unregisters types
     // rather than failing.
-    return TypeBinding.resolveNamedOrPrimitiveType(typeCtx, currentScopePath, {
-      isScopeType: (qualifiedName) => CodeGenState.isScopeType(qualifiedName),
-      resolveQualifiedType: callbacks?.resolveQualifiedType,
-    });
+    return TypeBinding.resolveNamedOrPrimitiveType(
+      typeCtx,
+      currentScopePath,
+      CodeGenState.typeBindingDeps(callbacks?.resolveQualifiedType),
+    );
   }
 
   // ============================================================================
@@ -500,10 +498,11 @@ class TypeRegistrationEngine {
     // declaration in C++ mode: byte-identical. It is threaded because the two
     // adjacent calls must not differ by accident, not because a fixture moves.
     const baseType =
-      TypeBinding.resolveName(arrayTypeCtx, CodeGenState.currentScopePath, {
-        isScopeType: (qualifiedName) => CodeGenState.isScopeType(qualifiedName),
-        resolveQualifiedType: callbacks?.resolveQualifiedType,
-      }) ?? "";
+      TypeBinding.resolveName(
+        arrayTypeCtx,
+        CodeGenState.currentScopePath,
+        CodeGenState.typeBindingDeps(callbacks?.resolveQualifiedType),
+      ) ?? "";
 
     // TYPE_WIDTH is a plain object literal, and this lookup now sees every
     // named type rather than only primitives. A C-Next type named `constructor`

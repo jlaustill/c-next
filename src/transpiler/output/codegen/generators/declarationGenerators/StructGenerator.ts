@@ -206,7 +206,7 @@ const generateStruct: TGeneratorFn<Parser.StructDeclarationContext> = (
   // *type*. The ADR-029 init function is a definition, not a type — it has
   // external linkage and no other home, so it is still emitted here. Suppressing
   // the whole generator (rather than just the typedef) silently dropped it.
-  const typeDefinition = state.selfIncludeAdded ? [] : lines;
+  const typeDefinition = state.headerOwnsTypeDefinitions ? [] : lines;
 
   // #1205: the init function is emitted here and declared in the header. The
   // header is told which structs got one rather than working it out again --
