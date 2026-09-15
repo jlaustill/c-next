@@ -48,7 +48,9 @@ import type IOutputExtensions from "../types/IOutputExtensions";
 import type IVariableSymbol from "../types/symbols/IVariableSymbol";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ScopeUtils from "../../utils/ScopeUtils";
+import invariant from "../../utils/invariant";
 import type ITypeBindingDeps from "../types/ITypeBindingDeps";
+import type IDeclarationPlan from "../types/IDeclarationPlan";
 import SymbolRegistry from "./SymbolRegistry";
 import DEFAULT_TARGET from "../constants/DEFAULT_TARGET";
 
@@ -567,6 +569,37 @@ export default class CodeGenState {
   /** Issue #369: Whether self-include was added */
   static selfIncludeAdded: boolean = false;
 
+  /**
+   * 2.2 Plan's declaration decisions for the file being generated.
+   *
+   * Frozen, and set once before any declaration renders. Held here rather than
+   * on `CodeGenerator` because CLAUDE.md gives this class sole ownership of
+   * per-file state; it sits beside `symbols` for the same reason -- a decided
+   * artifact the whole file's generation reads and nothing re-derives.
+   *
+   * Null before `assembleGeneratedOutput` reaches the declarations, which is
+   * also every unit test that drives a generator directly. `declarationPlan()`
+   * is the accessor that refuses the null rather than letting a site read a
+   * silently-wrong default.
+   */
+  static declarationPlanOrNull: IDeclarationPlan | null = null;
+
+  /**
+   * 2.2 Plan's declaration decisions, asserted present.
+   *
+   * A decision read before it was made is a defect, not a default: answering
+   * `false` for "does the header own the type?" emits a duplicate definition
+   * rather than failing, and the C compiler is the first thing that notices.
+   */
+  static declarationPlan(): IDeclarationPlan {
+    const plan = this.declarationPlanOrNull;
+    invariant(
+      plan !== null,
+      "2.2 Plan decides declarations before 2.3 Render reads them",
+    );
+    return plan;
+  }
+
   // ===========================================================================
   // SOURCE PATHS (ADR-010, Issue #349)
   // ===========================================================================
@@ -686,6 +719,7 @@ export default class CodeGenState {
     this.tempVarCounter = 0;
     this.pendingCppClassAssignments = [];
     this.selfIncludeAdded = false;
+    this.declarationPlanOrNull = null;
 
     // Issue #948: Opaque scope variables (reset per-file)
     this.opaqueScopeVariables = new Set();

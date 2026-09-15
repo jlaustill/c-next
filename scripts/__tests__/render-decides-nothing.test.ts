@@ -134,7 +134,7 @@ const ANNOTATION_OWNER = join(
   "2-Plan",
   "ComplianceAnnotations.ts",
 );
-const ORDER_DECIDER = join("src", "TRANSPILE", "2-Plan", "DeclarationOrder.ts");
+const ORDER_DECIDER = join("src", "TRANSPILE", "2-Plan", "DeclarationPlan.ts");
 const ORDER_CLASSIFIER = join(
   "src",
   "transpiler",

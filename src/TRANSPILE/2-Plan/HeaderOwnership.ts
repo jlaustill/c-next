@@ -3,7 +3,7 @@
  * therefore does not emit.
  *
  * `docs/architecture/README.md` §1 gives 2.2 Plan "declarations and order".
- * `DeclarationOrder` is the order half; this is the declarations half. A `.c`
+ * `DeclarationPlan` decides the order half and carries this one. A `.c`
  * that includes its own generated header must not also define the types that
  * header defines, or the translation unit declares them twice (#369/#1164).
  *

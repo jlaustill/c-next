@@ -27,8 +27,7 @@ import IGeneratorInput from "./generators/IGeneratorInput";
 import IGeneratorState from "./generators/IGeneratorState";
 import TGeneratorEffect from "./generators/TGeneratorEffect";
 import EmissionPlan from "../../../TRANSPILE/2-Plan/EmissionPlan";
-import DeclarationOrder from "../../../TRANSPILE/2-Plan/DeclarationOrder";
-import HeaderOwnership from "../../../TRANSPILE/2-Plan/HeaderOwnership";
+import DeclarationPlan from "../../../TRANSPILE/2-Plan/DeclarationPlan";
 import type TDeclarationKind from "../../types/TDeclarationKind";
 import type IEmissionPlan from "../../types/IEmissionPlan";
 import type IEmissionFacts from "../../types/IEmissionFacts";
@@ -398,7 +397,8 @@ export default class CodeGenerator implements IOrchestrator {
       localVariables: CodeGenState.localVariables,
       localArrays: CodeGenState.localArrays,
       expectedType: CodeGenState.expectedType,
-      selfIncludeAdded: CodeGenState.selfIncludeAdded, // Issue #369
+      headerOwnsTypeDefinitions:
+        CodeGenState.declarationPlan().headerOwnsTypeDefinitions, // #369/#1450
       // Issue #644: Postfix expression state
       scopeMembers: CodeGenState.getAllScopeMembers(),
       mainArgsName: CodeGenState.mainArgsName,
@@ -1517,7 +1517,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Issue #1164: the included header already declares this one.
     if (
-      HeaderOwnership.ownsDeclarations(CodeGenState.selfIncludeAdded) &&
+      CodeGenState.declarationPlan().headerOwnsTypeDefinitions &&
       CodeGenState.headerOwnsCallbackTypedef(funcName)
     ) {
       return null;
@@ -2103,6 +2103,15 @@ export default class CodeGenerator implements IOrchestrator {
     // Process preprocessor directives
     this.processPreprocessorDirectives(tree, output);
 
+    // 2.2 Plan: the declaration decisions, settled BEFORE anything is rendered.
+    // Unlike the emission plan below, neither answer depends on what rendering
+    // turns out to produce, so Render reads them rather than interpreting the
+    // state they came from.
+    CodeGenState.declarationPlanOrNull = DeclarationPlan.build(
+      tree.declaration().map((decl) => CodeGenerator.declarationKindOf(decl)),
+      CodeGenState.selfIncludeAdded,
+    );
+
     // Generate declarations
     const declarations = this.generateAllDeclarations(tree);
 
@@ -2217,7 +2226,7 @@ export default class CodeGenerator implements IOrchestrator {
   /**
    * What a declaration is, in the terms 2.2 Plan's ordering asks about.
    *
-   * The parse tree stops here: `DeclarationOrder` takes kinds, not contexts,
+   * The parse tree stops here: `DeclarationPlan` takes kinds, not contexts,
    * so a pass outside the parse layer does not grow a dependency on ANTLR to
    * answer a question about order (#1317).
    */
@@ -2232,13 +2241,12 @@ export default class CodeGenerator implements IOrchestrator {
   private generateAllDeclarations(tree: Parser.ProgramContext): string[] {
     const sourceOrder = tree.declaration();
 
-    // Issue #1212, #1449: WHICH declaration the callback typedef block precedes
-    // is decided by 2.2 Plan, from the shape of the file. WHERE that lands in
-    // the emitted array is arithmetic, and stays here -- the index depends on
-    // how many leading-comment lines were pushed, which is a fact about text.
-    const precedes = DeclarationOrder.callbackTypedefsPrecede(
-      sourceOrder.map((decl) => CodeGenerator.declarationKindOf(decl)),
-    );
+    // Issue #1212, #1449, #1450: WHICH declaration the callback typedef block
+    // precedes is decided by 2.2 Plan and read off the plan here. WHERE that
+    // lands in the emitted array is arithmetic, and stays here -- the index
+    // depends on how many leading-comment lines were pushed, which is a fact
+    // about text rather than a decision about what C should exist.
+    const precedes = CodeGenState.declarationPlan().callbackTypedefsPrecede;
 
     const declarations: string[] = [];
     let firstFunctionIndex: number | null = null;
@@ -3432,7 +3440,7 @@ export default class CodeGenerator implements IOrchestrator {
     // Issues #369/#1164: the included header owns the definition. The generator
     // still runs so its effects are registered -- returning early here would
     // silently drop them, which is how the ADR-029 struct init function was lost.
-    return HeaderOwnership.ownsDeclarations(CodeGenState.selfIncludeAdded)
+    return CodeGenState.declarationPlan().headerOwnsTypeDefinitions
       ? ""
       : result.code;
   }
@@ -3458,7 +3466,7 @@ export default class CodeGenerator implements IOrchestrator {
     const result = generator(ctx, this.getInput(), this.getState(), this);
     this.applyEffects(result.effects);
     // Issues #369/#1164: the included header owns the definition.
-    return HeaderOwnership.ownsDeclarations(CodeGenState.selfIncludeAdded)
+    return CodeGenState.declarationPlan().headerOwnsTypeDefinitions
       ? ""
       : result.code;
   }
