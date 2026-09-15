@@ -51,17 +51,6 @@ class CppModeHelper {
   }
 
   /**
-   * Get the member access separator for struct parameters.
-   * C mode: `->` (pointer member access)
-   * C++ mode: `.` (reference member access)
-   *
-   * @returns The member access separator
-   */
-  static memberSeparator(): string {
-    return CodeGenState.cppMode ? "." : "->";
-  }
-
-  /**
    * Get NULL literal for the current mode.
    * C mode: `NULL`
    * C++ mode: `nullptr`
@@ -100,15 +89,6 @@ class CppModeHelper {
     return CodeGenState.cppMode
       ? `reinterpret_cast<${type}>(${expr})`
       : `(${type})${expr}`;
-  }
-
-  /**
-   * Check if we're in C++ mode.
-   *
-   * @returns True if generating C++ code
-   */
-  static isCppMode(): boolean {
-    return CodeGenState.cppMode;
   }
 }
 
