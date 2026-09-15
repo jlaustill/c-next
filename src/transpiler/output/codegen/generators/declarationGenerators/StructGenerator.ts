@@ -25,6 +25,7 @@ import ICodeGenSymbols from "../../../../types/ICodeGenSymbols";
 import ArrayDimensionUtils from "./ArrayDimensionUtils";
 import IStructFieldInit from "../../types/IStructFieldInit";
 import StructInitFunction from "../../helpers/StructInitFunction";
+import HeaderOwnership from "../../../../../TRANSPILE/2-Plan/HeaderOwnership";
 
 /**
  * Generate a callback field declaration for a struct.
@@ -206,7 +207,11 @@ const generateStruct: TGeneratorFn<Parser.StructDeclarationContext> = (
   // *type*. The ADR-029 init function is a definition, not a type — it has
   // external linkage and no other home, so it is still emitted here. Suppressing
   // the whole generator (rather than just the typedef) silently dropped it.
-  const typeDefinition = state.selfIncludeAdded ? [] : lines;
+  const typeDefinition = HeaderOwnership.ownsDeclarations(
+    state.selfIncludeAdded,
+  )
+    ? []
+    : lines;
 
   // #1205: the init function is emitted here and declared in the header. The
   // header is told which structs got one rather than working it out again --

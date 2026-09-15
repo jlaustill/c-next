@@ -28,6 +28,7 @@ import IGeneratorState from "./generators/IGeneratorState";
 import TGeneratorEffect from "./generators/TGeneratorEffect";
 import EmissionPlan from "../../../TRANSPILE/2-Plan/EmissionPlan";
 import DeclarationOrder from "../../../TRANSPILE/2-Plan/DeclarationOrder";
+import HeaderOwnership from "../../../TRANSPILE/2-Plan/HeaderOwnership";
 import type TDeclarationKind from "../../types/TDeclarationKind";
 import type IEmissionPlan from "../../types/IEmissionPlan";
 import type IEmissionFacts from "../../types/IEmissionFacts";
@@ -1508,7 +1509,7 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Issue #1164: the included header already declares this one.
     if (
-      CodeGenState.selfIncludeAdded &&
+      HeaderOwnership.ownsDeclarations(CodeGenState.selfIncludeAdded) &&
       CodeGenState.headerOwnsCallbackTypedef(funcName)
     ) {
       return null;
@@ -3424,7 +3425,9 @@ export default class CodeGenerator implements IOrchestrator {
     // Issues #369/#1164: the included header owns the definition. The generator
     // still runs so its effects are registered -- returning early here would
     // silently drop them, which is how the ADR-029 struct init function was lost.
-    return CodeGenState.selfIncludeAdded ? "" : result.code;
+    return HeaderOwnership.ownsDeclarations(CodeGenState.selfIncludeAdded)
+      ? ""
+      : result.code;
   }
 
   /**
@@ -3448,7 +3451,9 @@ export default class CodeGenerator implements IOrchestrator {
     const result = generator(ctx, this.getInput(), this.getState(), this);
     this.applyEffects(result.effects);
     // Issues #369/#1164: the included header owns the definition.
-    return CodeGenState.selfIncludeAdded ? "" : result.code;
+    return HeaderOwnership.ownsDeclarations(CodeGenState.selfIncludeAdded)
+      ? ""
+      : result.code;
   }
 
   /**
