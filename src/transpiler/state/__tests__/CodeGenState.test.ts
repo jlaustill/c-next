@@ -1548,6 +1548,49 @@ describe("CodeGenState", () => {
    * and missed a site that spelled it `qn` -- matching on the RECEIVER is what
    * makes the spelling irrelevant.
    */
+  /**
+   * Issue #1450 box 4: `withScopePath` exists for the `finally`.
+   *
+   * Two sites hand-rolled the save/restore with the restore as a plain trailing
+   * statement, so a throw anywhere in the body left `currentScopePath` pointing
+   * at the wrong scope. That is the same defect #872 extracted
+   * `withExpectedType` to fix -- its doc says "add exception safety" -- and
+   * scope path never got the same treatment.
+   *
+   * The happy path is already covered by 1247 fixtures; it is the THROWING path
+   * that had no coverage and is the entire reason the helper exists, so that is
+   * what this pins. Mutation: replacing the `finally` with a trailing
+   * assignment reddens exactly this test.
+   */
+  describe("withScopePath", () => {
+    it("restores the previous scope path when fn throws", () => {
+      CodeGenState.setCurrentScopeByPath("Outer");
+      const before = CodeGenState.currentScopePath;
+
+      expect(() =>
+        CodeGenState.withScopePath("Inner", () => {
+          expect(CodeGenState.currentScopePath).toBe("Inner");
+          throw new Error("boom");
+        }),
+      ).toThrow("boom");
+
+      expect(CodeGenState.currentScopePath).toBe(before);
+    });
+
+    it("restores the previous scope path on the ordinary path too", () => {
+      CodeGenState.setCurrentScopeByPath("Outer");
+      const before = CodeGenState.currentScopePath;
+
+      const seen = CodeGenState.withScopePath(
+        "Inner",
+        () => CodeGenState.currentScopePath,
+      );
+
+      expect(seen).toBe("Inner");
+      expect(CodeGenState.currentScopePath).toBe(before);
+    });
+  });
+
   describe("scopeTypePredicate", () => {
     it("survives being passed unbound, which is why it exists", () => {
       const predicate: (name: string) => boolean =

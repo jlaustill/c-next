@@ -733,6 +733,34 @@ export default class CodeGenState {
     }
   }
 
+  /**
+   * Execute fn with the current scope set to `scopeName`'s path, restoring the
+   * previous path on exit.
+   *
+   * The sibling these four helpers were missing. Two sites hand-rolled it --
+   * `const savedScope = ...; setCurrentScopeByPath(...); ...; currentScopePath
+   * = savedScope;` -- with the restore as a plain trailing statement rather
+   * than a `finally`, which is the precise defect #872 extracted
+   * `withExpectedType` to fix: its own doc says "eliminate duplicate
+   * save/restore pattern and ADD EXCEPTION SAFETY". Scope path never got the
+   * same treatment.
+   *
+   * Latent rather than live today: a throw inside either body is caught per
+   * file by `Transpiler`, and `reset()` clears the path before the next file,
+   * so the stale value has nothing left to reach. That is a property of two
+   * unrelated mechanisms rather than of this code, which is why it is fixed
+   * here instead of relied upon.
+   */
+  static withScopePath<T>(scopeName: string, fn: () => T): T {
+    const saved = this.currentScopePath;
+    this.setCurrentScopeByPath(scopeName);
+    try {
+      return fn();
+    } finally {
+      this.currentScopePath = saved;
+    }
+  }
+
   /** Execute fn with inDeclarationInit=true, restoring prior value on exit. */
   static withDeclarationInit<T>(fn: () => T): T {
     const saved = this.inDeclarationInit;

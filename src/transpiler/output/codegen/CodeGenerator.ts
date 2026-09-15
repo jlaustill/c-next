@@ -542,19 +542,29 @@ export default class CodeGenerator implements IOrchestrator {
   /**
    * Issue #477: Generate expression with a specific expected type context.
    * Used by return statements to resolve unqualified enum values.
-   * Note: Uses explicit save/restore (not withExpectedType) to support null values.
+   *
+   * #1450 box 4: this was a third hand-rolled save/restore of `expectedType`,
+   * beside `withExpectedType` and `withoutExpectedType`, justified by a note
+   * reading "uses explicit save/restore (not withExpectedType) to support null
+   * values". No caller passes one. Measured rather than argued: throwing here
+   * on a falsy argument leaves 1247/1247 fixtures green, and the control --
+   * throwing on a TRUTHY one -- fails 663 of them, so the line is reached and
+   * the falsy case simply never arrives.
+   *
+   * The parameter is therefore `string`, not `string | null`. That makes the
+   * fact the compiler's to keep rather than a comment's, which matters because
+   * the two spellings did OPPOSITE things on null: `withExpectedType(null)` is
+   * a no-op by contract, while this cleared the type. Two near-identically
+   * named operations disagreeing on their edge case is the trap; deleting the
+   * edge case is cheaper than documenting it.
    */
   generateExpressionWithExpectedType(
     ctx: Parser.ExpressionContext,
-    expectedType: string | null,
+    expectedType: string,
   ): string {
-    const saved = CodeGenState.expectedType;
-    CodeGenState.expectedType = expectedType;
-    try {
-      return this.generateExpression(ctx);
-    } finally {
-      CodeGenState.expectedType = saved;
-    }
+    return CodeGenState.withExpectedType(expectedType, () =>
+      this.generateExpression(ctx),
+    );
   }
 
   /**
@@ -2469,48 +2479,47 @@ export default class CodeGenerator implements IOrchestrator {
   ): void {
     const scopeName = scopeDecl.IDENTIFIER().getText();
 
-    // Set scope context for scoped type resolution (this.Type)
-    const savedScope = CodeGenState.currentScopePath;
-    CodeGenState.setCurrentScopeByPath(scopeName);
-
-    // #1281/#1285: functions first, THEN everything that can reference one.
-    // A struct field naming a scope-local function-as-type asks isScopeType
-    // whether that name is a type, and the answer comes from callbackTypes --
-    // which this loop is what fills. Walking members in source order made the
-    // answer depend on whether the function happened to be declared above the
-    // struct, so `Config` before `tickSource` resolved the field BARE and
-    // emitted a header naming something that is not a type. Registering every
-    // function before reading any reference makes the order irrelevant, which
-    // is the same declaration-order invariant ADR-057 states for the symbols
-    // layer's Pass 0b.
-    for (const member of scopeDecl.scopeMember()) {
-      const funcDecl = member.functionDeclaration();
-      if (funcDecl) {
-        // #1298: resolve the scope PATH rather than reading back mutable
-        // state, so the generated name does not depend on when it is asked.
-        this._registerScopeFunction(
-          ScopeUtils.pathOf(SymbolRegistry.getOrCreateScope(scopeName)),
-          funcDecl,
-        );
+    // Scope context for scoped type resolution (`this.Type`), restored on exit
+    // even if a member throws.
+    CodeGenState.withScopePath(scopeName, () => {
+      // #1281/#1285: functions first, THEN everything that can reference one.
+      // A struct field naming a scope-local function-as-type asks isScopeType
+      // whether that name is a type, and the answer comes from callbackTypes --
+      // which this loop is what fills. Walking members in source order made the
+      // answer depend on whether the function happened to be declared above the
+      // struct, so `Config` before `tickSource` resolved the field BARE and
+      // emitted a header naming something that is not a type. Registering every
+      // function before reading any reference makes the order irrelevant, which
+      // is the same declaration-order invariant ADR-057 states for the symbols
+      // layer's Pass 0b.
+      for (const member of scopeDecl.scopeMember()) {
+        const funcDecl = member.functionDeclaration();
+        if (funcDecl) {
+          // #1298: resolve the scope PATH rather than reading back mutable
+          // state, so the generated name does not depend on when it is asked.
+          this._registerScopeFunction(
+            ScopeUtils.pathOf(SymbolRegistry.getOrCreateScope(scopeName)),
+            funcDecl,
+          );
+        }
       }
-    }
 
-    for (const member of scopeDecl.scopeMember()) {
-      // Issue #1200: a struct nested in a scope has callback fields just like a
-      // top-level one, and a scope member variable can itself be callback-typed.
-      // Neither was walked here, so neither ever registered its type.
-      if (member.structDeclaration()) {
-        this._collectStructCallbackFields(member.structDeclaration()!);
-        continue;
+      for (const member of scopeDecl.scopeMember()) {
+        // Issue #1200: a struct nested in a scope has callback fields just like a
+        // top-level one, and a scope member variable can itself be callback-typed.
+        // Neither was walked here, so neither ever registered its type.
+        if (member.structDeclaration()) {
+          this._collectStructCallbackFields(member.structDeclaration()!);
+          continue;
+        }
+        if (member.variableDeclaration()) {
+          const varType = this.getTypeName(
+            member.variableDeclaration()!.type(),
+          );
+          CodeGenState.notePublicCallbackTypeReference(varType);
+        }
       }
-      if (member.variableDeclaration()) {
-        const varType = this.getTypeName(member.variableDeclaration()!.type());
-        CodeGenState.notePublicCallbackTypeReference(varType);
-      }
-    }
-
-    // Restore previous scope context
-    CodeGenState.currentScopePath = savedScope;
+    });
   }
 
   /**

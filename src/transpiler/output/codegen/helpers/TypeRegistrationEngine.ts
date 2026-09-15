@@ -91,29 +91,26 @@ class TypeRegistrationEngine {
     callbacks: ITypeRegistrationCallbacks,
   ): void {
     const scopeName = scopeDecl.IDENTIFIER().getText();
-    const savedScope = CodeGenState.currentScopePath;
-    CodeGenState.setCurrentScopeByPath(scopeName);
-
-    for (const member of scopeDecl.scopeMember()) {
-      if (member.variableDeclaration()) {
-        const varDecl = member.variableDeclaration()!;
-        const varName = varDecl.IDENTIFIER().getText();
-        // #1298: `setCurrentScopeByPath` above stored this scope's whole path;
-        // qualify through that rather than re-joining one level from the leaf
-        // name it was resolved FROM.
-        const fullName = QualifiedNameGenerator.forMember(
-          CodeGenState.currentScopePath,
-          varName,
-        );
-        TypeRegistrationEngine._trackVariableTypeWithName(
-          varDecl,
-          fullName,
-          callbacks,
-        );
+    CodeGenState.withScopePath(scopeName, () => {
+      for (const member of scopeDecl.scopeMember()) {
+        if (member.variableDeclaration()) {
+          const varDecl = member.variableDeclaration()!;
+          const varName = varDecl.IDENTIFIER().getText();
+          // #1298: `withScopePath` above stored this scope's whole path;
+          // qualify through that rather than re-joining one level from the leaf
+          // name it was resolved FROM.
+          const fullName = QualifiedNameGenerator.forMember(
+            CodeGenState.currentScopePath,
+            varName,
+          );
+          TypeRegistrationEngine._trackVariableTypeWithName(
+            varDecl,
+            fullName,
+            callbacks,
+          );
+        }
       }
-    }
-
-    CodeGenState.currentScopePath = savedScope;
+    });
   }
 
   // ============================================================================

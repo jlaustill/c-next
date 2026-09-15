@@ -54,7 +54,7 @@ interface IOrchestrator {
    */
   generateExpressionWithExpectedType(
     ctx: Parser.ExpressionContext,
-    expectedType: string | null,
+    expectedType: string,
   ): string;
 
   /** Generate type translation (C-Next type -> C type) */
