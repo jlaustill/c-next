@@ -91,6 +91,7 @@ import detectAssemblySyntax from "./logic/detectAssemblySyntax";
 import ExternalDeclarationOracle from "./logic/preprocessor/ExternalDeclarationOracle";
 import TypedefParamParser from "./output/codegen/helpers/TypedefParamParser";
 import type IRecordedRequirement from "./types/IRecordedRequirement";
+import type IRenderedFile from "./types/IRenderedFile";
 import RequirementAggregator from "../utils/RequirementAggregator";
 import TargetResolver from "../utils/TargetResolver";
 
@@ -508,7 +509,7 @@ class Transpiler {
     // captured header input to render either, same as parse-only mode.
     // `_renderHeaders` already treats a missing capture as "no header for this
     // file" rather than an error, so this is a silent no-op for it, not a bug.
-    this._renderHeaders(result);
+    const renderedFiles = this._renderHeaders(result);
 
     if (result.success && input.writeOutputToDisk) {
       for (const write of pendingWrites) {
@@ -518,7 +519,11 @@ class Transpiler {
 
     // Stage 6: Write the Stage 5.5 headers (only to disk in files mode)
     if (result.success && input.writeOutputToDisk) {
-      this._generateAllHeadersFromPipeline(input.cnextFiles, result);
+      this._generateAllHeadersFromPipeline(
+        input.cnextFiles,
+        result,
+        renderedFiles,
+      );
     }
   }
 
@@ -544,11 +549,21 @@ class Transpiler {
    * `_captureHeaderEmissionFacts` is only reached from inside the same try
    * block that produced that failure.
    */
-  private _renderHeaders(result: ITranspilerResult): void {
+  private _renderHeaders(
+    result: ITranspilerResult,
+  ): ReadonlyMap<string, IRenderedFile> {
     const rendered = HeaderRenderer.render(
       this.headerEmissionFactsByPath,
       this.headerGenerator,
     );
+
+    // 2.3 Render's artifact, assembled here because this is the first moment a
+    // file's text is complete: the implementation came from Stage 5, the header
+    // from the call above. Stage 6 reads this rather than rebuilding a map from
+    // `result.files[].headerCode` -- which is the same fact flattened into
+    // per-file fields and then un-flattened one stage later, agreeing only
+    // because nothing had yet written one of the two representations.
+    const renderedFiles = new Map<string, IRenderedFile>();
 
     for (const fileResult of result.files) {
       if (!fileResult.success) {
@@ -560,6 +575,11 @@ class Transpiler {
       );
       if (headerCode !== undefined) {
         fileResult.headerCode = headerCode;
+        renderedFiles.set(fileResult.sourcePath, {
+          sourcePath: fileResult.sourcePath,
+          implementation: fileResult.code,
+          header: headerCode,
+        });
         continue;
       }
 
@@ -567,6 +587,13 @@ class Transpiler {
         fileResult.sourcePath,
       );
       if (errorMessage === undefined) {
+        // No header and no failure: the file has no public interface, so 2.3
+        // rendered an implementation and nothing else.
+        renderedFiles.set(fileResult.sourcePath, {
+          sourcePath: fileResult.sourcePath,
+          implementation: fileResult.code,
+          header: null,
+        });
         continue;
       }
 
@@ -589,6 +616,8 @@ class Transpiler {
       result.errors.push({ ...error, sourcePath: fileResult.sourcePath });
       result.success = false;
     }
+
+    return renderedFiles;
   }
 
   /**
@@ -1697,19 +1726,13 @@ class Transpiler {
   private _generateAllHeadersFromPipeline(
     cnextFiles: IPipelineFile[],
     result: ITranspilerResult,
+    renderedFiles: ReadonlyMap<string, IRenderedFile>,
   ): void {
-    const headersBySourcePath = new Map<string, string>();
-    for (const fileResult of result.files) {
-      if (fileResult.headerCode) {
-        headersBySourcePath.set(fileResult.sourcePath, fileResult.headerCode);
-      }
-    }
-
     for (const file of cnextFiles) {
       if (!Transpiler._producesOutput(file)) {
         continue;
       }
-      const headerContent = headersBySourcePath.get(file.path);
+      const headerContent = renderedFiles.get(file.path)?.header;
       if (headerContent) {
         // Issue #933: .hpp in C++ mode, so C and C++ headers cannot overwrite
         const headerPath = this.pathResolver.getHeaderOutputPath(

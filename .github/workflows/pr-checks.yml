@@ -491,8 +491,14 @@ jobs:
 
       - name: Verify transpiler CLI
         run: |
+          # #1450: remove first, and assert the HEADER too. `test -f` over a
+          # committed file proves it exists, not that this run wrote it -- a
+          # break in the Stage 6 header write passed this step with the stale
+          # file on disk. Kept in step with scripts/gate.sh's "cli smoke".
+          rm -f examples/teensy4/blink.c examples/teensy4/blink.h
           node dist/index.js examples/teensy4/blink.cnx
           test -f examples/teensy4/blink.c || exit 1
+          test -f examples/teensy4/blink.h || exit 1
 
   grammar-coverage:
     name: Grammar Coverage
