@@ -832,9 +832,17 @@ describe("CodeGenerator Coverage Tests", () => {
   });
 
   // ==========================================================================
-  // Lines 5233-5275: _setupFunctionContext and _resolveReturnTypeAndParams
+  // Function context: the scope prefix on a generated name, and the return type
+  // a return statement resolves an unqualified enum member against.
+  //
+  // #1450: this named `_setupFunctionContext` at "lines 5233-5275". No such
+  // method existed -- `CodeGenerator` is 4,813 lines, and the live pair is
+  // `enterFunctionContext`/`exitFunctionContext`. The assertions below go
+  // through `setupGenerator`, so they were testing the behavior all along and
+  // only the label was wrong; a label naming a method nobody can find is how a
+  // reader concludes the test is stale and deletes it.
   // ==========================================================================
-  describe("_setupFunctionContext()", () => {
+  describe("function context", () => {
     it("should set up function context with scope prefix", () => {
       const source = `
         scope Utils {

@@ -1435,7 +1435,6 @@ export default class CodeGenerator implements IOrchestrator {
    */
   setCurrentFunctionName(name: string | null): void {
     CodeGenState.currentFunctionName = name;
-    CodeGenState.currentFunctionName = name;
   }
 
   /**
@@ -1495,7 +1494,6 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   setMainArgsName(name: string | null): void {
-    CodeGenState.mainArgsName = name;
     CodeGenState.mainArgsName = name;
   }
 

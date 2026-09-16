@@ -742,9 +742,11 @@ export default class CodeGenState {
    * Clear every per-function local register.
    *
    * One owner for the whole family. Four copies of this block existed, and they
-   * had already diverged: `FunctionContextManager.setupFunctionContext` cleared
-   * three of the four and left `localArrays` to leak between functions. Adding
-   * `localRenames` to four call sites would have made that five.
+   * had already diverged: one of them cleared three of the four registers and
+   * left `localArrays` to leak between functions. Adding `localRenames` to four
+   * call sites would have made that five. (The copy that diverged lived on
+   * `FunctionContextManager`, which #1450 deleted as production-dead; the point
+   * survives it, so it is stated without the name.)
    */
   private static clearFunctionLocals(): void {
     this.localVariables.clear();

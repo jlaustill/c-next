@@ -19,7 +19,6 @@ import IFunctionContextCallbacks from "../types/IFunctionContextCallbacks.js";
 // Issue #895: Parse typedef signatures to determine pointer vs value params
 import TypedefParamParser from "./TypedefParamParser.js";
 import UNRESOLVED_DIMENSION from "../../../constants/UNRESOLVED_DIMENSION";
-import ScopeUtils from "../../../../utils/ScopeUtils";
 import TypeBinding from "../../../../PARSE/3-Declare/TypeBinding";
 
 /**
@@ -44,51 +43,6 @@ interface IReturnTypeAndParams {
  * Manages function context lifecycle and parameter processing.
  */
 class FunctionContextManager {
-  /**
-   * Set up context for function generation.
-   * - Sets current function name (with scope prefix if in a scope)
-   * - Sets return type for enum inference
-   * - Processes parameters for ADR-006 pointer semantics
-   * - Clears local variables and marks in function body
-   */
-  static setupFunctionContext(
-    name: string,
-    ctx: Parser.FunctionDeclarationContext,
-    callbacks: IFunctionContextCallbacks,
-  ): void {
-    // Issue #269: Set current function name for pass-by-value lookup
-    const fullFuncName = CodeGenState.currentScopePath
-      ? ScopeUtils.qualifyInScope(name, CodeGenState.currentScopePath)
-      : name;
-    CodeGenState.currentFunctionName = fullFuncName;
-
-    // Issue #477: Set return type for enum inference in return statements
-    CodeGenState.currentFunctionReturnType = ctx.type().getText();
-
-    // Track parameters for ADR-006 pointer semantics
-    FunctionContextManager.processParameterList(
-      ctx.parameterList() ?? null,
-      callbacks,
-    );
-
-    // ADR-016: Clear local tracking and mark that we're in a function body.
-    // Delegated: this path used to clear three of the four local registers and
-    // let `localArrays` leak into the next function.
-    CodeGenState.enterFunctionBody();
-  }
-
-  /**
-   * Clean up context after function generation.
-   * Resets all function-related state.
-   */
-  static cleanupFunctionContext(): void {
-    CodeGenState.exitFunctionBody();
-    CodeGenState.mainArgsName = null;
-    CodeGenState.currentFunctionName = null;
-    CodeGenState.currentFunctionReturnType = null;
-    FunctionContextManager.clearParameters();
-  }
-
   /**
    * Resolve return type and initial params for function.
    * Handles main() special cases:
