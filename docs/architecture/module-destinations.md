@@ -105,12 +105,27 @@ Those are the measurement behind "the pass split is not finished", and they are
 why `src/transpiler/logic/symbols/` still exists — holding `SymbolTable.ts`
 alone, since #1515 removed the edge that pinned `PublicInterface` there.
 
+## Placed, but with no rows here
+
+**2.1 Analyze is relocated and undocumented.** `src/TRANSPILE/1-Analyze/` holds
+**127** non-test modules, moved out of `src/transpiler/logic/analysis/` — which
+no longer exists — beginning with `6e46f6d4` (#1322), 76 files in that commit
+alone. They arrived as renames, not as new modules, so the "created here rather
+than moved" exemption 2.2 Plan carries does not apply to them.
+
+This document says it "holds the modules moved so far", and _"a pass card adds
+entries there and rows here"_. Those rows were never added, and the pass sat in
+the list below — grouped with passes that have not moved at all, which reads as
+"nothing to place" rather than "placed, unrecorded". The rows themselves are
+#1443's deliverable, not this correction's: what is fixed here is the claim,
+so the gap is visible to whoever completes the map (#1450).
+
 ## Not yet placed
 
-The other five passes (1.1 Discover, 1.2 Parse, 2.1 Analyze, 2.3 Render, 3.1
-Write) have no rows here, and neither do the 60 genuinely-shared
-modules or `cli/`, `lib/` and `index.ts` — §1's tree names no home for the last
-group, which is [#1466](https://github.com/jlaustill/c-next/issues/1466).
+The other four passes (1.1 Discover, 1.2 Parse, 2.3 Render, 3.1 Write) have no
+rows here, and neither do the 60 genuinely-shared modules or `cli/`, `lib/` and
+`index.ts` — §1's tree names no home for the last group, which is
+[#1466](https://github.com/jlaustill/c-next/issues/1466).
 
 ## Moving modules
 
