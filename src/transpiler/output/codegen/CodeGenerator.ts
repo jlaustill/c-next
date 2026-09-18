@@ -3731,7 +3731,7 @@ export default class CodeGenerator implements IOrchestrator {
         if (this.isKnownStruct(t)) return true;
         // ADR-057: check qualified name for scope-local struct types only
         const qualified = CodeGenState.currentScopePath
-          ? ScopeUtils.qualifyInScope(t, CodeGenState.currentScopePath)
+          ? QualifiedNameGenerator.forMember(CodeGenState.currentScopePath, t)
           : t;
         return CodeGenState.symbols?.knownStructs.has(qualified) ?? false;
       },

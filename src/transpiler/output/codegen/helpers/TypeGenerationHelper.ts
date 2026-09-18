@@ -14,6 +14,7 @@ import QualifiedCName from "../../../../utils/QualifiedCName";
 import ScopeUtils from "../../../../utils/ScopeUtils";
 import ITypeAccessors from "../../../types/ITypeAccessors";
 import AdrProvenance from "../../../state/AdrProvenance";
+import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
 
 /**
  * Result of generating a primitive type.
@@ -82,7 +83,7 @@ class TypeGenerationHelper {
     typeName: string,
     currentScopePath: string,
   ): string {
-    return ScopeUtils.qualifyInScope(typeName, currentScopePath);
+    return QualifiedNameGenerator.forMember(currentScopePath, typeName);
   }
 
   /**

@@ -8,6 +8,7 @@ import AdrProvenance from "../../state/AdrProvenance";
 // SonarCloud S3776: Extracted literal parsing to reduce complexity
 import QualifiedCName from "../../../utils/QualifiedCName";
 import ScopeUtils from "../../../utils/ScopeUtils";
+import QualifiedNameGenerator from "./utils/QualifiedNameGenerator";
 
 /**
  * TypeValidator class - validates types, assignments, and control flow at compile time.
@@ -129,12 +130,12 @@ class TypeValidator {
       ScopeUtils.leafOf(currentScopePath),
     );
     if (scopeMembers?.has(identifier)) {
-      return ScopeUtils.qualifyInScope(identifier, currentScopePath);
+      return QualifiedNameGenerator.forMember(currentScopePath, identifier);
     }
 
-    const scopedFuncName = ScopeUtils.qualifyInScope(
-      identifier,
+    const scopedFuncName = QualifiedNameGenerator.forMember(
       currentScopePath,
+      identifier,
     );
     if (CodeGenState.knownFunctions.has(scopedFuncName)) {
       return scopedFuncName;

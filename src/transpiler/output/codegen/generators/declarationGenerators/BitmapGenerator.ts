@@ -24,7 +24,7 @@ import IOrchestrator from "../IOrchestrator";
 import TGeneratorFn from "../TGeneratorFn";
 import TGeneratorEffect from "../TGeneratorEffect";
 import BitmapCommentUtils from "./BitmapCommentUtils";
-import ScopeUtils from "../../../../../utils/ScopeUtils";
+import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
 
 /**
  * Generate a C typedef from a C-Next bitmap declaration.
@@ -43,7 +43,10 @@ const generateBitmap: TGeneratorFn<Parser.BitmapDeclarationContext> = (
   const name = node.IDENTIFIER().getText();
 
   // ADR-016: Apply scope prefix if inside a scope
-  const fullName = ScopeUtils.qualifyInScope(name, state.currentScopePath);
+  const fullName = QualifiedNameGenerator.forMember(
+    state.currentScopePath,
+    name,
+  );
 
   // Look up backing type from symbols (collected by SymbolCollector)
   const backingType = input.symbols?.bitmapBackingType.get(fullName);

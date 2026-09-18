@@ -15,7 +15,7 @@
 import ISeparatorContext from "../types/ISeparatorContext";
 import IMemberSeparatorDeps from "../types/IMemberSeparatorDeps";
 import QualifiedCName from "../../../../utils/QualifiedCName";
-import ScopeUtils from "../../../../utils/ScopeUtils";
+import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
 
 /**
  * Input parameters for building a separator context
@@ -56,7 +56,7 @@ class MemberSeparatorResolver {
 
     const scopedRegName =
       hasThis && currentScopePath
-        ? ScopeUtils.qualifyInScope(firstId, currentScopePath)
+        ? QualifiedNameGenerator.forMember(currentScopePath, firstId)
         : null;
 
     const isScopedRegister =

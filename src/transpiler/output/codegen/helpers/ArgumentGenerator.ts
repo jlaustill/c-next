@@ -20,6 +20,7 @@ import CppModeHelper from "./CppModeHelper.js";
 import TYPE_MAP from "../types/TYPE_MAP.js";
 import IArgumentGeneratorCallbacks from "./types/IArgumentGeneratorCallbacks.js";
 import ScopeUtils from "../../../../utils/ScopeUtils";
+import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
 
 /**
  * Generates function arguments with proper pass-by-reference semantics.
@@ -58,9 +59,9 @@ class ArgumentGenerator {
         ScopeUtils.leafOf(CodeGenState.currentScopePath),
       );
       if (members?.has(id)) {
-        const scopedName = ScopeUtils.qualifyInScope(
-          id,
+        const scopedName = QualifiedNameGenerator.forMember(
           CodeGenState.currentScopePath,
+          id,
         );
         return CppModeHelper.maybeAddressOf(scopedName);
       }

@@ -10,6 +10,20 @@ import SymbolRegistry from "../../../../state/SymbolRegistry";
 import FunctionUtils from "../../../../../tests/utils/FunctionUtils";
 import TTypeUtils from "../../../../../utils/TTypeUtils";
 import TestSourceSpan from "../../../../types/__testUtils__/testSourceSpan";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { dirname, join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
+
+/** Repo root, for the source-scanning guard below. */
+const repoRoot = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "..",
+  "..",
+  "..",
+  "..",
+  "..",
+);
 
 describe("QualifiedNameGenerator", () => {
   beforeEach(() => {
@@ -156,6 +170,70 @@ describe("QualifiedNameGenerator", () => {
       expect(
         QualifiedNameGenerator.forMember("OuterData.InnerData", "data"),
       ).toBe("OuterData__InnerData__data");
+    });
+  });
+
+  /**
+   * Issue #1450: the canonical spelling is asserted, not just documented.
+   *
+   * `forMember(scopePath, name)` and `ScopeUtils.qualifyInScope(name, scopePath)`
+   * are one operation with two public names and OPPOSITE argument orders.
+   * `QualifiedNameGenerator`'s own doc calls this one "the canonical spelling for
+   * `output/`" and names the hazard: "two spellings of one decision sixty lines
+   * apart in a file is how a silently inverted call gets written by the next
+   * person editing nearby (#1357 review)".
+   *
+   * That was stated and not enforced -- 14 call sites in `output/` still used the
+   * other spelling, against 18 that used this one, so the rule was being followed
+   * about half the time. A rule nothing checks is the shape
+   * `docs/architecture/README.md` principle 5 forbids: "an invariant without a
+   * gate does not count."
+   *
+   * `logic/` and the analysis passes cannot import from `output/`, so
+   * `qualifyInScope` stays their door and is deliberately not banned outright --
+   * only inside `output/`, and only outside the one module that delegates to it.
+   */
+  describe("is the only scope-qualification door in output/", () => {
+    const OWNER = join(
+      "src",
+      "transpiler",
+      "output",
+      "codegen",
+      "utils",
+      "QualifiedNameGenerator.ts",
+    );
+
+    /** `qualifyInScope` CALLED -- not merely named in prose. */
+    const CALLS = /ScopeUtils\s*\.\s*qualifyInScope\s*\(/;
+
+    const walk = (dir: string): string[] =>
+      readdirSync(dir).flatMap((entry) => {
+        const full = join(dir, entry);
+        return statSync(full).isDirectory()
+          ? walk(full)
+          : entry.endsWith(".ts")
+            ? [full]
+            : [];
+      });
+
+    it("finds the population at all", () => {
+      // Guards the selector: if the regex stops matching, the assertion below
+      // passes over an empty list and proves nothing.
+      const anywhere = walk(join(repoRoot, "src")).filter((file) =>
+        CALLS.test(readFileSync(file, "utf-8")),
+      );
+      expect(anywhere.length).toBeGreaterThan(0);
+    });
+
+    it("has no other caller inside output/", () => {
+      const offenders = walk(join(repoRoot, "src", "transpiler", "output"))
+        .map((file) => relative(repoRoot, file))
+        .filter((file) => file !== OWNER && !file.includes("__tests__"))
+        .filter((file) =>
+          CALLS.test(readFileSync(join(repoRoot, file), "utf-8")),
+        );
+
+      expect(offenders).toEqual([]);
     });
   });
 });

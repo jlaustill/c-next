@@ -17,7 +17,7 @@ import BitUtils from "../../../../../utils/BitUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import CodeGenState from "../../../../state/CodeGenState";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
-import ScopeUtils from "../../../../../utils/ScopeUtils";
+import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
 
 /**
  * Calculate mask value and hex string for bitmap field.
@@ -193,9 +193,9 @@ function handleScopedRegisterMemberBitmapField(
     regName = ctx.identifiers[0];
     memberName = ctx.identifiers[1];
     fieldName = ctx.identifiers[2];
-    fullRegName = ScopeUtils.qualifyInScope(
-      regName,
+    fullRegName = QualifiedNameGenerator.forMember(
       CodeGenState.currentScopePath,
+      regName,
     );
   } else {
     // Scope.REG.MEMBER.field - 4 identifiers

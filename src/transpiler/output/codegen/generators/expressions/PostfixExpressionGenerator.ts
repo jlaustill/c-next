@@ -34,6 +34,7 @@ import CodeGenState from "../../../../state/CodeGenState";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
 import ScopeUtils from "../../../../../utils/ScopeUtils";
 import invariant from "../../../../../utils/invariant";
+import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
 
 // ========================================================================
 // Tracking State
@@ -177,7 +178,10 @@ const resolveSubscriptBase = (
   // `this.x` is the scope-qualified variable `Scope_x`; `global.x` is plain `x`.
   const name =
     prefix === "this"
-      ? ScopeUtils.qualifyInScope(memberName, CodeGenState.currentScopePath)
+      ? QualifiedNameGenerator.forMember(
+          CodeGenState.currentScopePath,
+          memberName,
+        )
       : memberName;
   return { name, displayName: `${prefix}.${memberName}`, opOffset: 1 };
 };
@@ -485,9 +489,9 @@ const handleThisScopeLength = (
     return false;
   }
 
-  tracking.result = ScopeUtils.qualifyInScope(
-    memberName,
+  tracking.result = QualifiedNameGenerator.forMember(
     state.currentScopePath,
+    memberName,
   );
   tracking.resolvedIdentifier = tracking.result;
   const resolvedTypeInfo = CodeGenState.getVariableTypeInfo(tracking.result);
@@ -1346,9 +1350,9 @@ const tryScopeMemberAccess = (
   }
   // #1322: `this` outside a scope is E0431 in 2.1.
   const output = initializeMemberOutput(ctx);
-  const fullName = ScopeUtils.qualifyInScope(
-    ctx.memberName,
+  const fullName = QualifiedNameGenerator.forMember(
     state.currentScopePath,
+    ctx.memberName,
   );
   const constValue = input.symbols!.scopePrivateConstValues.get(fullName);
   if (constValue === undefined) {

@@ -9,7 +9,7 @@
  */
 
 import IBaseIdentifierResult from "../types/IBaseIdentifierResult";
-import ScopeUtils from "../../../../utils/ScopeUtils";
+import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
 
 /**
  * Static utility for building base identifiers
@@ -43,7 +43,7 @@ class BaseIdentifierBuilder {
       // reached with an empty `currentScopePath` here.
       // this.x - prefix with current scope
       return {
-        result: ScopeUtils.qualifyInScope(firstId, currentScopePath),
+        result: QualifiedNameGenerator.forMember(currentScopePath, firstId),
         firstId,
       };
     }

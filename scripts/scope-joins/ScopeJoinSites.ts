@@ -132,8 +132,23 @@ class ScopeJoinSites {
   private static readonly SCOPE_DENOTING =
     /\b\w*[Ss]cope(?:Path|Name)?\b|scope\.name/;
 
-  /** Routing through here is the CORRECT form, whatever the argument is called. */
-  private static readonly VIA_SCOPE_UTILS = "ScopeUtils.";
+  /**
+   * Routing through one of these is the CORRECT form, whatever the argument is
+   * called.
+   *
+   * Two spellings, one operation. `QualifiedNameGenerator.forMember` is a
+   * one-line delegate to `ScopeUtils.qualifyInScope` -- its own doc calls it
+   * "the canonical spelling for `output/`", because `logic/` cannot import from
+   * `output/` and so needs the other door. #1450 converted the 14 `output/`
+   * sites that still used the `ScopeUtils` spelling, and this list is why that
+   * conversion does not read as fourteen sites regressing INTO the population:
+   * the exclusion is about whether a join went through the single encoder, not
+   * about which of the encoder's two public names was typed.
+   */
+  private static readonly VIA_ENCODER: readonly string[] = [
+    "ScopeUtils.",
+    "QualifiedNameGenerator.forMember(",
+  ];
 
   /**
    * The reviewed judgement for every site the scan finds.
@@ -380,7 +395,7 @@ class ScopeJoinSites {
 
   /** Does this first element name a scope instead of an outermost component? */
   static isScopeDenoting(element: string): boolean {
-    if (element.includes(ScopeJoinSites.VIA_SCOPE_UTILS)) {
+    if (ScopeJoinSites.VIA_ENCODER.some((door) => element.includes(door))) {
       return false;
     }
     return ScopeJoinSites.SCOPE_DENOTING.test(element);

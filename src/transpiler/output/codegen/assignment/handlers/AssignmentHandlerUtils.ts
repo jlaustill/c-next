@@ -7,8 +7,8 @@
 
 import IRegisterNameResult from "./IRegisterNameResult";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
-import ScopeUtils from "../../../../../utils/ScopeUtils";
 import invariant from "../../../../../utils/invariant";
+import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
 
 /**
  * Validate that compound assignment operators are not used with bit field access.
@@ -66,7 +66,7 @@ function buildScopedRegisterName(
   // accept an arbitrary string. The scope qualifies the head; the remaining parts
   // are register/member components joined textually.
   return QualifiedCName.fromParts([
-    ScopeUtils.qualifyInScope(parts[0], declaringScopePath),
+    QualifiedNameGenerator.forMember(declaringScopePath, parts[0]),
     ...parts.slice(1),
   ]);
 }
