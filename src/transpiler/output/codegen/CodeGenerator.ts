@@ -3771,11 +3771,25 @@ export default class CodeGenerator implements IOrchestrator {
       return true;
     }
 
-    // Callback-compatible functions: struct params become pass-by-value
-    // to match C function pointer typedef signatures
-    // NOTE: This assumes the C typedef expects pass-by-value structs.
-    // Issue #895 describes cases where the typedef expects pointers instead.
-    // A full fix requires parsing the typedef signature to determine which.
+    // Callback-compatible functions: struct params become pass-by-value to
+    // match C function pointer typedef signatures.
+    //
+    // #1450: this used to say "a full fix requires parsing the typedef
+    // signature to determine which", citing #895. That fix IS #895 --
+    // `TypedefParamParser` parses the signature ("Used by Issue #895 to
+    // determine if callback params should be pointers or values") and
+    // `getCallbackTypedefParamInfo` is the path that consumes it. #895 closed
+    // 2026-02-23, so the note described work that had already landed and
+    // pointed at a closed issue as if it were the tracker.
+    //
+    // What is left here is the FALLBACK, reached only when the typedef type
+    // cannot be resolved -- the caller prefers `callbackInfo` and only calls
+    // this when that is null. Measured: throwing inside the branch leaves
+    // 1247/1247 fixtures green, while throwing immediately above it fires
+    // repeatedly, so the line is reached and the condition is simply never
+    // true in the corpus. Not deleted on that evidence: a corpus that does not
+    // reach a branch is not a user base that does not, and the third conjunct
+    // (`isKnownStruct`) is the one no fixture satisfies.
     if (
       CodeGenState.currentFunctionName &&
       CodeGenState.program
