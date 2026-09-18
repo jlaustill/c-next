@@ -14,7 +14,6 @@ const {
   buildMemberAccessChain,
   getStructParamSeparator,
   wrapStructParamValue,
-  buildStructParamMemberAccess,
 } = memberAccessChain;
 
 // Local type definition for separator options (mirrors internal type)
@@ -142,52 +141,6 @@ describe("wrapStructParamValue", () => {
     expect(wrapStructParamValue("my_config", { cppMode: true })).toBe(
       "my_config",
     );
-  });
-});
-
-describe("buildStructParamMemberAccess", () => {
-  describe("C mode", () => {
-    it("should use -> for single member access", () => {
-      expect(
-        buildStructParamMemberAccess("config", ["magic"], { cppMode: false }),
-      ).toBe("config->magic");
-    });
-
-    it("should use -> then . for chained member access", () => {
-      expect(
-        buildStructParamMemberAccess("config", ["inner", "value"], {
-          cppMode: false,
-        }),
-      ).toBe("config->inner.value");
-    });
-
-    it("should return just param name when no members", () => {
-      expect(
-        buildStructParamMemberAccess("config", [], { cppMode: false }),
-      ).toBe("config");
-    });
-  });
-
-  describe("C++ mode", () => {
-    it("should use . for single member access", () => {
-      expect(
-        buildStructParamMemberAccess("config", ["magic"], { cppMode: true }),
-      ).toBe("config.magic");
-    });
-
-    it("should use . for chained member access", () => {
-      expect(
-        buildStructParamMemberAccess("config", ["inner", "value"], {
-          cppMode: true,
-        }),
-      ).toBe("config.inner.value");
-    });
-
-    it("should return just param name when no members", () => {
-      expect(
-        buildStructParamMemberAccess("config", [], { cppMode: true }),
-      ).toBe("config");
-    });
   });
 });
 

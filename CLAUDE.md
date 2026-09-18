@@ -808,7 +808,9 @@ ones. `npx tsc --noEmit` cannot catch a name in prose; only a reader can.
 
 ### Struct Param Access Helpers
 
-Use `memberAccessChain.ts` helpers for all patterns: `getStructParamSeparator()` for `->` vs `.`, `wrapStructParamValue()` for `(*param)` vs `param`, `buildStructParamMemberAccess()` for chains. Never inline these.
+Use `memberAccessChain.ts` helpers rather than inlining the mode check: `getStructParamSeparator()` for `->` vs `.`, and `wrapStructParamValue()` for `(*param)` vs `param`. Never inline these.
+
+This used to name a third, `buildStructParamMemberAccess()`, "for chains". It had **no production caller** — chains are built incrementally by `MemberSeparatorResolver` and the postfix generator, never in one call — and knip could not report it, because its six test callers count as usage (#1418). Deleted under #1450. A rule naming a helper nothing uses teaches the next reader a pattern the codebase does not have.
 
 ### Function Argument Generation
 

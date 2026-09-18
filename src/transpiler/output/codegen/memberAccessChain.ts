@@ -49,26 +49,6 @@ function wrapStructParamValue(
 }
 
 /**
- * Build member access for a struct parameter: param->a.b or param.a.b
- *
- * @param paramName - The struct parameter name
- * @param members - Array of member names to access (can be empty)
- * @param options - The struct param options
- * @returns The complete member access expression
- */
-function buildStructParamMemberAccess(
-  paramName: string,
-  members: string[],
-  options: StructParamOptions,
-): string {
-  if (members.length === 0) {
-    return paramName;
-  }
-  const separator = getStructParamSeparator(options);
-  return `${paramName}${separator}${members.join(".")}`;
-}
-
-/**
  * Options for determining the separator between the first identifier and
  * the first member in a member access chain.
  */
@@ -469,5 +449,4 @@ export default {
   buildMemberAccessChain,
   getStructParamSeparator,
   wrapStructParamValue,
-  buildStructParamMemberAccess,
 };
