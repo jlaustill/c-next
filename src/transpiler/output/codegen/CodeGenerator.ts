@@ -2171,6 +2171,12 @@ export default class CodeGenerator implements IOrchestrator {
       this.captureEmissionFacts(sourceIncludeTargets),
     );
 
+    // The plan decided WHICH toolchain capabilities these helpers need and at
+    // which sites; registering them is part of that decision, not part of
+    // formatting. `addGeneratedHelpers` used to do it while pushing the text,
+    // which made the renderer a writer of state something downstream reads.
+    CodeGenerator.registerPlannedToolchain(plan);
+
     // 2.3 Render: format the plan. These two decide nothing.
     this.addAutoIncludes(output, plan);
     this.addGeneratedHelpers(output, plan);
@@ -2372,10 +2378,12 @@ export default class CodeGenerator implements IOrchestrator {
    * so every field below is correct for exactly the window between this file's
    * declarations being generated and the next file's `generate()`.
    *
-   * `output` is read only for the include targets the source itself carries --
-   * `processIncludeDirectives` has already pushed them -- so that the plan can
-   * decide the final set rather than a renderer subtracting one list from
-   * another.
+   * Nothing here reads rendered text. `existingIncludeTargets` arrives from the
+   * two places that KNOW it -- the self-include, and `processIncludeDirectives`
+   * as it walks the tree -- so the plan decides the final set rather than a
+   * renderer subtracting one list from another, and no fact is recovered from
+   * the output it was rendered into. This comment described the opposite until
+   * `02df0e77`, which is the same commit that stopped it being true.
    */
   private captureEmissionFacts(
     existingIncludeTargets: readonly string[],
@@ -2425,12 +2433,28 @@ export default class CodeGenerator implements IOrchestrator {
    * plan does not yet own (the mode baseline, C++ initializer forms, atomics).
    * Recording a decision someone else made is transcription, not derivation.
    */
+  /**
+   * Register the toolchain capabilities the plan's helper blocks need.
+   *
+   * Separated from `addGeneratedHelpers` so that rendering a block and
+   * declaring what the block requires are not the same act: the plan already
+   * holds both the keys and the sites, and a renderer that writes them is a
+   * renderer making state visible downstream. Order is unchanged -- this runs
+   * immediately after the plan is built, and nothing between reads a toolchain
+   * requirement.
+   */
+  private static registerPlannedToolchain(plan: IEmissionPlan): void {
+    for (const block of [plan.floatStaticAssert, plan.irqWrappers]) {
+      if (block === null) continue;
+      for (const key of block.requirements) {
+        CodeGenState.requireToolchain(key, block.sites);
+      }
+    }
+  }
+
   private addGeneratedHelpers(output: string[], plan: IEmissionPlan): void {
     const floatAssert = plan.floatStaticAssert;
     if (floatAssert !== null) {
-      for (const key of floatAssert.requirements) {
-        CodeGenState.requireToolchain(key, floatAssert.sites);
-      }
       output.push(
         `${floatAssert.keyword}(sizeof(float) == 4, "Float bit indexing requires 32-bit float");`,
         `${floatAssert.keyword}(sizeof(double) == 8, "Float bit indexing requires 64-bit double");`,
@@ -2440,9 +2464,6 @@ export default class CodeGenerator implements IOrchestrator {
 
     const irq = plan.irqWrappers;
     if (irq !== null) {
-      for (const key of irq.requirements) {
-        CodeGenState.requireToolchain(key, irq.sites);
-      }
       output.push(...this.generateIrqWrappers());
     }
 
