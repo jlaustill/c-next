@@ -48,9 +48,6 @@ enum AssignmentKind {
   /** flags[0, 3] <- 5 (bit range on integer variable) */
   INTEGER_BIT_RANGE,
 
-  /** item.byte[7] <- true (bit access on struct member) */
-  STRUCT_MEMBER_BIT,
-
   /** devices[0].control[0, 4] <- 15 (bit range through struct chain) */
   STRUCT_CHAIN_BIT_RANGE,
 

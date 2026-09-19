@@ -59,7 +59,6 @@ describe("BitAccessHandlers", () => {
 
       expect(kinds).toContain(AssignmentKind.INTEGER_BIT);
       expect(kinds).toContain(AssignmentKind.INTEGER_BIT_RANGE);
-      expect(kinds).toContain(AssignmentKind.STRUCT_MEMBER_BIT);
       expect(kinds).toContain(AssignmentKind.ARRAY_ELEMENT_BIT);
       expect(kinds).toContain(AssignmentKind.STRUCT_CHAIN_BIT_RANGE);
     });
@@ -67,7 +66,7 @@ describe("BitAccessHandlers", () => {
     it("exports exactly 5 handlers", () => {
       // Issue #1115: THIS_BIT / THIS_BIT_RANGE retired -- `this.` bit access now
       // classifies as INTEGER_BIT / INTEGER_BIT_RANGE, which these handlers serve.
-      expect(bitAccessHandlers).toHaveLength(5);
+      expect(bitAccessHandlers).toHaveLength(4);
     });
   });
 
@@ -269,30 +268,6 @@ describe("BitAccessHandlers", () => {
         "true",
       );
       expect(result).toBe("float_range_write_result");
-    });
-  });
-
-  describe("handleStructMemberBit (STRUCT_MEMBER_BIT)", () => {
-    const getHandler = () =>
-      bitAccessHandlers.find(
-        ([kind]) => kind === AssignmentKind.STRUCT_MEMBER_BIT,
-      )?.[1];
-
-    it("generates struct member bit assignment", () => {
-      HandlerTestUtils.setupMockGenerator({
-        generateAssignmentTarget: vi.fn().mockReturnValue("item.byte"),
-        generateExpression: vi.fn().mockReturnValue("7"),
-      });
-      const ctx = createMockContext({
-        identifiers: ["item", "byte"],
-        subscripts: [{ mockValue: "7" } as never],
-      });
-
-      const result = getHandler()!(ctx);
-
-      expect(result).toContain("item.byte =");
-      expect(result).toContain("& ~(1U << 7)");
-      expect(result).toContain("1U << 7");
     });
   });
 

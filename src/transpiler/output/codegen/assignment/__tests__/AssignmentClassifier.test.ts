@@ -1160,3 +1160,157 @@ describe("AssignmentClassifier - Member Chain", () => {
     );
   });
 });
+
+// ========================================================================
+// Kinds the classifier could produce with no test naming them (#1450)
+//
+// `codegen-decomposition.md` commits twice to "classification tests cover all
+// 25 kinds explicitly" -- once as a Testing Strategy target, once as a
+// Mitigation for the risk it names, "priority order bugs if new kinds added
+// incorrectly". The corpus had grown to 31 kinds while 25 were named here, so
+// the count still read as met. A guard that passes by coincidence is the one
+// nothing ever prompts anyone to look at.
+//
+// STRING_THIS_MEMBER is the sharpest of the five: the same kind whose registry
+// key, unguarded, emitted a 55-byte out-of-bounds `strncpy` bound
+// (`tests/string-assignment/string-assign-scope-this-shared-name.test.cnx`).
+// The classifier half of that hole had no test either.
+// ========================================================================
+describe("AssignmentClassifier - previously unnamed kinds", () => {
+  beforeEach(() => {
+    CodeGenState.reset();
+    setupSymbols();
+  });
+
+  it("classifies this.member string as STRING_THIS_MEMBER", () => {
+    CodeGenState.currentScopePath = "Logger";
+    CodeGenState.setVariableTypeInfo(
+      "Logger__message",
+      createTypeInfo({
+        baseType: "string<64>",
+        isString: true,
+        stringCapacity: 64,
+      }),
+    );
+
+    const ctx = createMockContext({
+      identifiers: ["message"],
+      generatedValue: '"hi"',
+      isSimpleIdentifier: false,
+      isSimpleThisAccess: true,
+      hasThis: true,
+    });
+
+    expect(AssignmentClassifier.classify(ctx)).toBe(
+      AssignmentKind.STRING_THIS_MEMBER,
+    );
+  });
+
+  it("classifies global.<name> string as STRING_GLOBAL", () => {
+    CodeGenState.setVariableTypeInfo(
+      "banner",
+      createTypeInfo({
+        baseType: "string<32>",
+        isString: true,
+        stringCapacity: 32,
+      }),
+    );
+
+    const ctx = createMockContext({
+      identifiers: ["banner"],
+      generatedValue: '"hi"',
+      isSimpleIdentifier: false,
+      isSimpleGlobalAccess: true,
+      hasGlobal: true,
+    });
+
+    expect(AssignmentClassifier.classify(ctx)).toBe(
+      AssignmentKind.STRING_GLOBAL,
+    );
+  });
+
+  it("classifies an element of a string ARRAY as STRING_ARRAY_ELEMENT", () => {
+    // Two dimensions: [count, capacity+1]. `arrayDimensions.length > 1` is what
+    // separates a string array from a plain `string<N>`, which carries one.
+    CodeGenState.setVariableTypeInfo(
+      "names",
+      createTypeInfo({
+        baseType: "char",
+        isString: true,
+        isArray: true,
+        stringCapacity: 8,
+        arrayDimensions: [4, 9],
+      }),
+    );
+
+    const ctx = createMockContext({
+      identifiers: ["names"],
+      generatedValue: '"hi"',
+      subscripts: [{} as IAssignmentContext["subscripts"][0]],
+      hasArrayAccess: true,
+      isSimpleIdentifier: false,
+    });
+
+    expect(AssignmentClassifier.classify(ctx)).toBe(
+      AssignmentKind.STRING_ARRAY_ELEMENT,
+    );
+  });
+
+  it("classifies struct.field[i] string as STRING_STRUCT_ARRAY_ELEMENT", () => {
+    setupSymbols({
+      knownStructs: new Set(["Config"]),
+      structFields: new Map([["Config", new Map([["items", "string<8>"]])]]),
+      structFieldArrays: new Map([["Config", new Set(["items"])]]),
+      structFieldDimensions: new Map([
+        ["Config", new Map([["items", [4, 9]]])],
+      ]),
+    });
+    CodeGenState.setVariableTypeInfo(
+      "config",
+      createTypeInfo({ baseType: "Config" }),
+    );
+
+    const ctx = createMockContext({
+      identifiers: ["config", "items"],
+      generatedValue: '"hi"',
+      subscripts: [{} as IAssignmentContext["subscripts"][0]],
+      hasMemberAccess: true,
+      hasArrayAccess: true,
+      memberAccessDepth: 1,
+      isSimpleIdentifier: false,
+    });
+
+    expect(AssignmentClassifier.classify(ctx)).toBe(
+      AssignmentKind.STRING_STRUCT_ARRAY_ELEMENT,
+    );
+  });
+
+  it("classifies global.<struct>.<field>[i] as GLOBAL_ARRAY", () => {
+    // #1115: with ONE identifier `global.x[i]` means what `x[i]` means and is
+    // delegated. The chain form is what still reaches GLOBAL_ARRAY, because the
+    // subscript applies to the field rather than to `config`.
+    setupSymbols({ knownStructs: new Set(["Config"]) });
+    CodeGenState.setVariableTypeInfo(
+      "config",
+      createTypeInfo({ baseType: "Config" }),
+    );
+
+    const ctx = createMockContext({
+      identifiers: ["config", "items"],
+      subscripts: [{} as IAssignmentContext["subscripts"][0]],
+      hasGlobal: true,
+      hasMemberAccess: true,
+      hasArrayAccess: true,
+      memberAccessDepth: 1,
+      // The `global.` dispatch is gated on postfixOpsCount > 0 -- `.items` and
+      // `[0]` are the two ops. With the mock's default of 0 this context falls
+      // through to MEMBER_CHAIN, which is exactly what it did on the first run.
+      postfixOpsCount: 2,
+      isSimpleIdentifier: false,
+    });
+
+    expect(AssignmentClassifier.classify(ctx)).toBe(
+      AssignmentKind.GLOBAL_ARRAY,
+    );
+  });
+});

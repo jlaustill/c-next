@@ -96,32 +96,6 @@ function handleIntegerBitRange(ctx: IAssignmentContext): string {
 }
 
 /**
- * Handle bit on struct member: item.byte[7] <- true
- * This is handled through MEMBER_CHAIN with bit detection.
- */
-function handleStructMemberBit(ctx: IAssignmentContext): string {
-  // The target up to the last subscript is the struct member path
-  // The last subscript is the bit index
-  // This pattern is complex - the target needs to be built from the member chain
-  // For now, delegate to the existing target generator and build the bit op
-  const target = CodeGenState.requireGenerator().generateAssignmentTarget(
-    ctx.targetCtx,
-  );
-
-  // Extract the bit index from the last subscript
-  const bitIndex = CodeGenState.requireGenerator().generateExpression(
-    ctx.subscripts.at(-1)!,
-  );
-
-  // Limitation: Uses literal "1U" which works for types up to 32 bits.
-  // For 64-bit struct members, would need to track member type through chain.
-  const one = "1U";
-  const intValue = BitUtils.boolToInt(ctx.generatedValue);
-
-  return `${target} = (${target} & ~(${one} << ${bitIndex})) | (${intValue} << ${bitIndex});`;
-}
-
-/**
  * Handle bit on multi-dimensional array element: matrix[i][j][FIELD_BIT] <- false
  * Uses resolvedBaseIdentifier for proper scope prefix support.
  */
@@ -211,7 +185,6 @@ function handleStructChainBitRange(ctx: IAssignmentContext): string {
 const bitAccessHandlers: ReadonlyArray<[AssignmentKind, TAssignmentHandler]> = [
   [AssignmentKind.INTEGER_BIT, handleIntegerBit],
   [AssignmentKind.INTEGER_BIT_RANGE, handleIntegerBitRange],
-  [AssignmentKind.STRUCT_MEMBER_BIT, handleStructMemberBit],
   [AssignmentKind.ARRAY_ELEMENT_BIT, handleArrayElementBit],
   [AssignmentKind.STRUCT_CHAIN_BIT_RANGE, handleStructChainBitRange],
 ];
