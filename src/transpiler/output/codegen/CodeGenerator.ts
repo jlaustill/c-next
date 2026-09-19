@@ -358,6 +358,48 @@ export default class CodeGenerator implements IOrchestrator {
     return result.code;
   }
 
+  /**
+   * Invoke a registered declaration generator by name.
+   *
+   * The sibling `invokeStatement` and `invokeExpression` already had; the five
+   * declaration wrappers each wrote this body out instead, and
+   * `analyze:duplication` reported the enum/bitmap pair as a 20-line clone
+   * (#1450).
+   *
+   * The invariant keeps the message the five copies used, interpolated rather
+   * than reworded. It names the registration a reader has to go look at, where
+   * the siblings' wording names only the dispatcher -- and two unit tests pin
+   * it, so rewording would have meant editing assertions to match what I had
+   * done rather than keeping what they assert.
+   *
+   * @param headerMaySuppress whether the included header owning this file's
+   *   type definitions means the declaration is not emitted here. True for the
+   *   type-forming kinds. `struct` is deliberately NOT one: its generator
+   *   suppresses only the typedef and still emits ADR-029's init function,
+   *   which has external linkage and no other home -- suppressing the whole
+   *   generator dropped that function once already (#1164).
+   */
+  private invokeDeclaration(
+    name: string,
+    ctx: ParserRuleContext,
+    headerMaySuppress: boolean,
+  ): string {
+    const generator = this.registry.getDeclaration(name);
+    invariant(
+      generator,
+      `registerDeclaration("${name}") is unconditional in the constructor`,
+    );
+    // The generator still runs when the header owns the definition, so its
+    // effects are registered -- returning early would silently drop them,
+    // which is how the ADR-029 struct init function was lost (#369/#1164).
+    const result = generator(ctx, this.getInput(), this.getState(), this);
+    this.applyEffects(result.effects);
+    const suppressed =
+      headerMaySuppress &&
+      CodeGenState.declarationPlan().headerOwnsTypeDefinitions;
+    return suppressed ? "" : result.code;
+  }
+
   private generatorsInitialized = false;
 
   // ===========================================================================
@@ -3365,19 +3407,7 @@ export default class CodeGenerator implements IOrchestrator {
   // ========================================================================
 
   private generateScope(ctx: Parser.ScopeDeclarationContext): string {
-    // #1285: no inline fallback. This used to carry a second, parallel
-    // implementation guarded by `if (generator)`, but registration is
-    // unconditional in the constructor, so the guard never failed and the twin
-    // was unreachable -- while still having to be kept in step by hand. A
-    // missing generator is an internal invariant violation, not a second path.
-    const generator = this.registry.getDeclaration("scope");
-    invariant(
-      generator,
-      'registerDeclaration("scope") is unconditional in the constructor',
-    );
-    const result = generator(ctx, this.getInput(), this.getState(), this);
-    this.applyEffects(result.effects);
-    return result.code;
+    return this.invokeDeclaration("scope", ctx, false);
   }
 
   // ========================================================================
@@ -3385,19 +3415,7 @@ export default class CodeGenerator implements IOrchestrator {
   // ========================================================================
 
   private generateRegister(ctx: Parser.RegisterDeclarationContext): string {
-    // #1285: no inline fallback. This used to carry a second, parallel
-    // implementation guarded by `if (generator)`, but registration is
-    // unconditional in the constructor, so the guard never failed and the twin
-    // was unreachable -- while still having to be kept in step by hand. A
-    // missing generator is an internal invariant violation, not a second path.
-    const generator = this.registry.getDeclaration("register");
-    invariant(
-      generator,
-      'registerDeclaration("register") is unconditional in the constructor',
-    );
-    const result = generator(ctx, this.getInput(), this.getState(), this);
-    this.applyEffects(result.effects);
-    return result.code;
+    return this.invokeDeclaration("register", ctx, false);
   }
 
   // ========================================================================
@@ -3405,15 +3423,7 @@ export default class CodeGenerator implements IOrchestrator {
   // ========================================================================
 
   private generateStruct(ctx: Parser.StructDeclarationContext): string {
-    // Delegates to extracted StructGenerator
-    const generator = this.registry.getDeclaration("struct");
-    invariant(
-      generator,
-      'registerDeclaration("struct") is unconditional in the constructor',
-    );
-    const result = generator(ctx, this.getInput(), this.getState(), this);
-    this.applyEffects(result.effects);
-    return result.code;
+    return this.invokeDeclaration("struct", ctx, false);
   }
 
   // ========================================================================
@@ -3428,19 +3438,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Delegates to extracted EnumGenerator.
    */
   private generateEnum(ctx: Parser.EnumDeclarationContext): string {
-    const generator = this.registry.getDeclaration("enum");
-    invariant(
-      generator,
-      'registerDeclaration("enum") is unconditional in the constructor',
-    );
-    const result = generator(ctx, this.getInput(), this.getState(), this);
-    this.applyEffects(result.effects);
-    // Issues #369/#1164: the included header owns the definition. The generator
-    // still runs so its effects are registered -- returning early here would
-    // silently drop them, which is how the ADR-029 struct init function was lost.
-    return CodeGenState.declarationPlan().headerOwnsTypeDefinitions
-      ? ""
-      : result.code;
+    return this.invokeDeclaration("enum", ctx, true);
   }
 
   /**
@@ -3451,22 +3449,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Delegates to extracted generator if registered.
    */
   private generateBitmap(ctx: Parser.BitmapDeclarationContext): string {
-    // #1285: no inline fallback. This used to carry a second, parallel
-    // implementation guarded by `if (generator)`, but registration is
-    // unconditional in the constructor, so the guard never failed and the twin
-    // was unreachable -- while still having to be kept in step by hand. A
-    // missing generator is an internal invariant violation, not a second path.
-    const generator = this.registry.getDeclaration("bitmap");
-    invariant(
-      generator,
-      'registerDeclaration("bitmap") is unconditional in the constructor',
-    );
-    const result = generator(ctx, this.getInput(), this.getState(), this);
-    this.applyEffects(result.effects);
-    // Issues #369/#1164: the included header owns the definition.
-    return CodeGenState.declarationPlan().headerOwnsTypeDefinitions
-      ? ""
-      : result.code;
+    return this.invokeDeclaration("bitmap", ctx, true);
   }
 
   /**
