@@ -1,0 +1,46 @@
+// test-execution
+// test-no-warnings
+// Found under #1450 while unifying duplicate decisions: ADR-035's fill-all form
+// filled ONE slot instead of every slot when the array dimension was written in
+// hex or binary.
+//
+//     u8[0x8] hexFill <- [7*];   ->   uint8_t hexFill[8] = {7U};
+//     u8[8]   decFill <- [7*];   ->   uint8_t decFill[8] = {7U, 7U, ... 7U};
+//
+// Same declared size, two spellings, different C. The hex form leaves elements
+// 1..7 zero-initialised by C's partial-initializer rule, so it compiles clean,
+// exits 0, and is wrong only in the values -- which is why nothing caught it.
+// With a fill value of 0 the two even agree, so the defect hides behind the
+// most common use of the form.
+//
+// CAUSE. Two functions named `parseArrayTypeDimension`, in two modules, asked
+// the same question and answered it differently: `TypeRegistrationEngine` used
+// `LiteralUtils.parseIntegerLiteral` (decimal, hex, binary) and
+// `VariableDeclHelper` used `/^\d+$/` (decimal only). The fill-all expansion
+// asked the decimal-only one, got nothing back for `0x8`, and could not know
+// how many slots to fill. `ArrayDimensionParser`'s own doc already said there
+// must be one evaluator and that "a caller that supplies fewer resolves fewer
+// forms than its peers ... is a divergence waiting to happen" (#1127).
+//
+// `decFill` is the negative control: the spelling that always worked has to
+// keep working, so a fix that broke the decimal path to satisfy the hex one
+// fails here.
+u32 main() {
+    u8[0x8] hexFill <- [7*];
+    u8[0b1000] binFill <- [7*];
+    u8[8] decFill <- [7*];
+
+    for (u32 i <- 0; i < 8; i +<- 1) {
+        if (hexFill[i] != 7) return 1;
+    }
+
+    for (u32 j <- 0; j < 8; j +<- 1) {
+        if (binFill[j] != 7) return 2;
+    }
+
+    for (u32 k <- 0; k < 8; k +<- 1) {
+        if (decFill[k] != 7) return 3;
+    }
+
+    return 0;
+}

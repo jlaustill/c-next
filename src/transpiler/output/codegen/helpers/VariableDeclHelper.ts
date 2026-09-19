@@ -26,6 +26,7 @@ import StringDeclHelper from "./StringDeclHelper.js";
 import VariableModifierBuilder from "./VariableModifierBuilder.js";
 import TYPE_MAP from "../types/TYPE_MAP.js";
 import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
+import LiteralUtils from "../../../../utils/LiteralUtils";
 
 /**
  * Callbacks for array type dimension generation.
@@ -151,12 +152,13 @@ class VariableDeclHelper {
     if (!sizeExpr) {
       return null;
     }
-    const sizeText = sizeExpr.getText();
-    const digitRegex = /^\d+$/;
-    if (digitRegex.exec(sizeText)) {
-      return Number.parseInt(sizeText, 10);
-    }
-    return null;
+    // `LiteralUtils`, not a local digit test. This answer MUST match
+    // `TypeRegistrationEngine.parseArrayTypeDimension`, which carries the same
+    // name and asks the same question of the same dimension; the two differ
+    // only in the shape of context they are handed. While this one folded
+    // decimal alone, `u8[0x8] a <- [7*]` registered a size of 8 and emitted
+    // `{7U}` -- one filled slot and seven zeroed ones, clean compile, exit 0.
+    return LiteralUtils.parseIntegerLiteral(sizeExpr.getText()) ?? null;
   }
 
   /**
@@ -172,11 +174,20 @@ class VariableDeclHelper {
     if (arrayDims.length === 0 || !arrayDims[0].expression()) {
       return null;
     }
-    const sizeText = arrayDims[0].expression()!.getText();
-    if (/^\d+$/.exec(sizeText)) {
-      return Number.parseInt(sizeText, 10);
-    }
-    return null;
+    // Same evaluator as its sibling above, for the same reason -- but note
+    // this line is NOT covered, and the fix here is by symmetry rather than by
+    // a reddened fixture. `arrayDimension` is the C-STYLE trailing form
+    // (`u8 arr[8]`), which `validateArrayDeclarationSyntax` rejects before
+    // codegen, so an unconditional throw on this line leaves 1249/1249 green
+    // while a throw at the top of the method reddens 20 -- every one of those
+    // stopping at the `length === 0` guard above. Kept aligned with the
+    // sibling anyway: the two must never differ in the answer, and a second
+    // evaluator that folds fewer forms is what produced the defect the
+    // `issue-1450-hex-array-dimension-fill` fixture pins.
+    return (
+      LiteralUtils.parseIntegerLiteral(arrayDims[0].expression()!.getText()) ??
+      null
+    );
   }
 
   // ========================================================================
