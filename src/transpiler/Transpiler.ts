@@ -1143,6 +1143,49 @@ class Transpiler {
    * Absorbs what StandaloneContextBuilder used to do, but returns data
    * instead of performing side effects.
    */
+  /**
+   * Resolve C/C++ headers transitively, wired to this run.
+   *
+   * The two call sites -- one per entry shape, source and disk -- each built
+   * the same three-field options bag and each pushed the warnings onto the same
+   * list. How a run reaches the filesystem, which processed-path set it shares,
+   * and whether it logs was therefore decided twice; adding an option meant
+   * remembering there was a second place, and the compiler would not have said
+   * so. Only the roots and the include directories are the caller's business.
+   *
+   * ## `processedPaths` is inert today, and stays
+   *
+   * Dropping it reddens 0 of 1248 fixtures. It seeds the resolver's `visited`
+   * set, and the set is empty at both call sites: the only production writer is
+   * `doCollectHeaderSymbols`, which is Stage 2, and both callers are discovery.
+   * `isHeaderProcessed` has no production caller at all -- tests are its only
+   * readers, which is why knip and `unused-code:check` stay green over it
+   * (#1418).
+   *
+   * Not deleted. It is a cycle guard that happens to be unreached on the order
+   * the pipeline runs in today, not one that cannot fire: a second discovery
+   * pass on a live instance would hand it a populated set. #1143 is this
+   * repository's record of what removing an unreached defense costs.
+   */
+  private _resolveHeadersTransitively(
+    rootHeaders: IDiscoveredFile[],
+    includeDirs: string[],
+  ): IDiscoveredFile[] {
+    const { headers, warnings } = IncludeResolver.resolveHeadersTransitively(
+      rootHeaders,
+      includeDirs,
+      {
+        onDebug: this.config.debugMode
+          ? (msg) => console.log(`[DEBUG] ${msg}`)
+          : undefined,
+        processedPaths: this.state.getProcessedHeadersSet(),
+        fs: this.fs,
+      },
+    );
+    this.warnings.push(...warnings);
+    return headers;
+  }
+
   private _discoverFromSource(
     source: string,
     workingDir: string,
@@ -1173,19 +1216,9 @@ class Transpiler {
     this.state.setIncludeSearchPaths(sourcePath, searchPaths);
 
     // Resolve C/C++ headers transitively
-    const { headers: allHeaders, warnings: headerWarnings } =
-      IncludeResolver.resolveHeadersTransitively(
-        resolved.headers,
-        [...this.config.includeDirs],
-        {
-          onDebug: this.config.debugMode
-            ? (msg) => console.log(`[DEBUG] ${msg}`)
-            : undefined,
-          processedPaths: this.state.getProcessedHeadersSet(),
-          fs: this.fs,
-        },
-      );
-    this.warnings.push(...headerWarnings);
+    const allHeaders = this._resolveHeadersTransitively(resolved.headers, [
+      ...this.config.includeDirs,
+    ]);
 
     // Store header include directives
     for (const header of allHeaders) {
@@ -2107,19 +2140,10 @@ class Transpiler {
     const sortedCnextFiles = this._sortFilesByDependency(depGraph, fileByPath);
 
     // Resolve headers transitively
-    const { headers: allHeaders, warnings: headerWarnings } =
-      IncludeResolver.resolveHeadersTransitively(
-        [...headerSet.values()],
-        this.config.includeDirs,
-        {
-          onDebug: this.config.debugMode
-            ? (msg) => console.log(`[DEBUG] ${msg}`)
-            : undefined,
-          processedPaths: this.state.getProcessedHeadersSet(),
-          fs: this.fs,
-        },
-      );
-    this.warnings.push(...headerWarnings);
+    const allHeaders = this._resolveHeadersTransitively(
+      [...headerSet.values()],
+      this.config.includeDirs,
+    );
 
     // Convert IDiscoveredFile[] to IPipelineFile[] (disk-based, all get code gen)
     const pipelineFiles: IPipelineFile[] = sortedCnextFiles.map((f) => ({
