@@ -1307,14 +1307,11 @@ export default class CodeGenState {
    */
   static isCurrentScopeMember(identifier: string): boolean {
     if (this.currentScopePath === "") return false;
-    // `scopeMembers` is keyed by the scope's LEAF name, so this passes `.name`
-    // deliberately rather than the scope's identity. That key is itself a
-    // leaf-only encoder and collides at depth two -- tracked as #1295, not
-    // changed here, because its producer and every other reader move with it.
+    // #1295: `scopeMembers` is keyed by the scope's IDENTITY -- its dotted
+    // source path -- which is exactly what `currentScopePath` holds. No
+    // conversion, and `Outer.Inner` no longer collides with `Other.Inner`.
     return (
-      this.scopeMembers
-        .get(ScopeUtils.leafOf(this.currentScopePath))
-        ?.has(identifier) ?? false
+      this.scopeMembers.get(this.currentScopePath)?.has(identifier) ?? false
     );
   }
 
@@ -1324,9 +1321,7 @@ export default class CodeGenState {
    */
   static resolveIdentifier(identifier: string): string {
     if (this.currentScopePath !== "") {
-      const members = this.scopeMembers.get(
-        ScopeUtils.leafOf(this.currentScopePath),
-      );
+      const members = this.scopeMembers.get(this.currentScopePath);
       if (members?.has(identifier)) {
         // Built from the whole PATH, so a member of a nested scope gets every
         // component rather than just the innermost one.

@@ -21,6 +21,8 @@ import TestSymbolUtils from "./testSymbolUtils";
 import TestSourceSpan from "../../../../transpiler/types/__testUtils__/testSourceSpan";
 import TestEnumMembers from "../../../../transpiler/types/__testUtils__/testEnumMembers";
 import TestMembers from "../../../../transpiler/types/__testUtils__/testMembers";
+import IScopeSymbol from "../../../../transpiler/types/symbols/IScopeSymbol";
+import TVisibility from "../../../../transpiler/types/TVisibility";
 
 describe("TSymbolInfoAdapter", () => {
   // Reset global scope between tests to avoid state pollution
@@ -841,6 +843,101 @@ describe("TSymbolInfoAdapter", () => {
 
       expect(JSON.stringify(resolved, jsonReplacer)).toBe(
         JSON.stringify(unresolved, jsonReplacer),
+      );
+    });
+  });
+
+  /**
+   * #1295: the three scope collections are keyed by the scope's identity, not by
+   * its leaf name. Two distinct scopes sharing a leaf collide, and the second
+   * write silently replaces the first.
+   *
+   * This is a unit test rather than a fixture because it has to be. `scopeMember`
+   * admits no `scopeDeclaration` and ADR-016 makes that prohibition permanent
+   * (#1306), so no `.cnx` program can build two scopes sharing a leaf -- nothing
+   * under `tests/` can redden. The collision is reachable only through the symbol
+   * model, which is exactly why it went unnoticed.
+   */
+  describe("scope collections are keyed by identity, not leaf (#1295)", () => {
+    const scopeWithMembers = (
+      name: string,
+      parentPath: string,
+      memberVisibility: ReadonlyMap<string, TVisibility>,
+    ): IScopeSymbol => ({
+      ...TestScopeUtils.createMockScope(name, parentPath),
+      members: [...memberVisibility.keys()],
+      memberVisibility,
+    });
+
+    /** `Outer.Inner` and `Other.Inner` -- distinct scopes, same leaf. */
+    const outerInner = scopeWithMembers(
+      "Inner",
+      "Outer",
+      new Map<string, TVisibility>([["token", "public"]]),
+    );
+    const otherInner = scopeWithMembers(
+      "Inner",
+      "Other",
+      new Map<string, TVisibility>([["hidden", "private"]]),
+    );
+
+    it("keeps two scopes that share a leaf name distinct", () => {
+      const symbols = TSymbolInfoAdapter.convert([outerInner, otherInner]);
+
+      expect(symbols.knownScopes.has("Outer.Inner")).toBe(true);
+      expect(symbols.knownScopes.has("Other.Inner")).toBe(true);
+    });
+
+    it("does not leak one scope's members into the other", () => {
+      const symbols = TSymbolInfoAdapter.convert([outerInner, otherInner]);
+
+      expect(symbols.scopeMembers.get("Outer.Inner")?.has("token")).toBe(true);
+      expect(symbols.scopeMembers.get("Outer.Inner")?.has("hidden")).toBe(
+        false,
+      );
+      expect(symbols.scopeMembers.get("Other.Inner")?.has("hidden")).toBe(true);
+      expect(symbols.scopeMembers.get("Other.Inner")?.has("token")).toBe(false);
+    });
+
+    /**
+     * The sharper consequence named by the issue: a `private` member of one
+     * scope checked against the other scope's visibility map decides cross-scope
+     * access control with the wrong scope's rules.
+     */
+    it("decides member visibility with the owning scope's rules", () => {
+      const symbols = TSymbolInfoAdapter.convert([outerInner, otherInner]);
+
+      expect(
+        symbols.scopeMemberVisibility.get("Outer.Inner")?.get("token"),
+      ).toBe("public");
+      expect(
+        symbols.scopeMemberVisibility.get("Other.Inner")?.get("hidden"),
+      ).toBe("private");
+    });
+
+    /**
+     * NEGATIVE CONTROL. Every assertion above is also satisfied by a lookup that
+     * simply misses, so a change breaking every key would pass them. A file-scope
+     * scope has no enclosing path, so its identity IS its leaf: these must keep
+     * resolving on the bare name, and this case must stay green throughout.
+     */
+    it("leaves file-scope scopes addressable by their bare name", () => {
+      const motor = scopeWithMembers(
+        "Motor",
+        "",
+        new Map<string, TVisibility>([["start", "public"]]),
+      );
+      const pump = scopeWithMembers(
+        "Pump",
+        "",
+        new Map<string, TVisibility>([["prime", "private"]]),
+      );
+      const symbols = TSymbolInfoAdapter.convert([motor, pump]);
+
+      expect(symbols.knownScopes.has("Motor")).toBe(true);
+      expect(symbols.scopeMembers.get("Motor")?.has("start")).toBe(true);
+      expect(symbols.scopeMemberVisibility.get("Pump")?.get("prime")).toBe(
+        "private",
       );
     });
   });

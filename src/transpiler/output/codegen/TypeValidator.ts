@@ -124,10 +124,8 @@ class TypeValidator {
     identifier: string,
     currentScopePath: string,
   ): string | null {
-    // #1295: getScopeMembers is keyed by the scope LEAF name.
-    const scopeMembers = CodeGenState.getScopeMembers(
-      ScopeUtils.leafOf(currentScopePath),
-    );
+    // #1295: getScopeMembers is keyed by the scope's dotted source path.
+    const scopeMembers = CodeGenState.getScopeMembers(currentScopePath);
     if (scopeMembers?.has(identifier)) {
       return ScopeUtils.qualifyInScope(identifier, currentScopePath);
     }
@@ -155,7 +153,13 @@ class TypeValidator {
 
     if (
       CodeGenState.knownFunctions.has(identifier) &&
-      !QualifiedCName.isInScope(identifier, ScopeUtils.leafOf(currentScopePath))
+      // #1295: `isInScope` compares a C NAME against a C scope prefix, so the
+      // path must be encoded rather than truncated -- `fromParts` splits the
+      // dotted path, giving `Outer__Inner` where `leafOf` gave `Inner`.
+      !QualifiedCName.isInScope(
+        identifier,
+        QualifiedCName.fromParts([currentScopePath]),
+      )
     ) {
       return true;
     }

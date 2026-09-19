@@ -55,7 +55,7 @@ class ArgumentGenerator {
     // Scope member - may need prefixing
     if (CodeGenState.currentScopePath) {
       const members = CodeGenState.getScopeMembers(
-        ScopeUtils.leafOf(CodeGenState.currentScopePath),
+        CodeGenState.currentScopePath,
       );
       if (members?.has(id)) {
         const scopedName = ScopeUtils.qualifyInScope(

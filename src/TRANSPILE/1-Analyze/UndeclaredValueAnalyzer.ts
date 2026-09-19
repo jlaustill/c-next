@@ -218,8 +218,7 @@ class UndeclaredValueAnalyzer {
       const qualified = ScopeUtils.qualifyInScope(name, scopePath);
       if (
         NameExistence.isValueName(qualified, symbols, symbolTable) ||
-        (symbols.scopeMembers.get(ScopeUtils.leafOf(scopePath))?.has(name) ??
-          false)
+        (symbols.scopeMembers.get(scopePath)?.has(name) ?? false)
       ) {
         return true;
       }
