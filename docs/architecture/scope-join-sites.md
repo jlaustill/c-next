@@ -45,30 +45,23 @@ judgement cannot outlive the code it was made about. A new row is a prompt
 to adjudicate, not proof of a bug -- but it must be adjudicated before it
 lands.
 
-| File                                                                          | First element      | Sites  | Kind       | Moves with |
-| ----------------------------------------------------------------------------- | ------------------ | ------ | ---------- | ---------- |
-| `src/PARSE/3-Declare/cnext/index.ts`                                          | `scopeName`        | 1      | leaf-keyed | #1295      |
-| `src/TRANSPILE/1-Analyze/helpers/CalleeNameResolver.ts`                       | `resolvedName`     | 1      | path       | --         |
-| `src/transpiler/output/codegen/assignment/AssignmentClassifier.ts`            | `firstId`          | 1      | path       | --         |
-| `src/transpiler/output/codegen/assignment/AssignmentClassifier.ts`            | `scopeName`        | 2      | path       | --         |
-| `src/transpiler/output/codegen/assignment/handlers/AssignmentHandlerUtils.ts` | `leadingId`        | 1      | path       | --         |
-| `src/transpiler/output/codegen/assignment/handlers/BitmapHandlers.ts`         | `scopeName`        | 1      | path       | --         |
-| `src/transpiler/output/codegen/resolution/EnumTypeResolver.ts`                | `parts[0]`         | 1      | path       | --         |
-| `src/transpiler/output/codegen/resolution/EnumTypeResolver.ts`                | `parts[1]`         | 1      | path       | --         |
-| `src/transpiler/output/codegen/resolution/EnumTypeResolver.ts`                | `scopeName`        | 1      | path       | --         |
-| `src/utils/ScopeUtils.ts`                                                     | `scopePath`        | 1      | encoder    | --         |
-| `src/utils/ScopeUtils.ts`                                                     | `symbol.scopePath` | 1      | encoder    | --         |
-| **total**                                                                     |                    | **12** |            |            |
+| File                                                                          | First element      | Sites  | Kind    | Moves with |
+| ----------------------------------------------------------------------------- | ------------------ | ------ | ------- | ---------- |
+| `src/PARSE/3-Declare/cnext/index.ts`                                          | `scopeName`        | 1      | path    | --         |
+| `src/TRANSPILE/1-Analyze/helpers/CalleeNameResolver.ts`                       | `resolvedName`     | 1      | path    | --         |
+| `src/transpiler/output/codegen/assignment/AssignmentClassifier.ts`            | `firstId`          | 1      | path    | --         |
+| `src/transpiler/output/codegen/assignment/AssignmentClassifier.ts`            | `scopeName`        | 2      | path    | --         |
+| `src/transpiler/output/codegen/assignment/handlers/AssignmentHandlerUtils.ts` | `leadingId`        | 1      | path    | --         |
+| `src/transpiler/output/codegen/assignment/handlers/BitmapHandlers.ts`         | `scopeName`        | 1      | path    | --         |
+| `src/transpiler/output/codegen/resolution/EnumTypeResolver.ts`                | `parts[0]`         | 1      | path    | --         |
+| `src/transpiler/output/codegen/resolution/EnumTypeResolver.ts`                | `parts[1]`         | 1      | path    | --         |
+| `src/transpiler/output/codegen/resolution/EnumTypeResolver.ts`                | `scopeName`        | 1      | path    | --         |
+| `src/utils/ScopeUtils.ts`                                                     | `scopePath`        | 1      | encoder | --         |
+| `src/utils/ScopeUtils.ts`                                                     | `symbol.scopePath` | 1      | encoder | --         |
+| **total**                                                                     |                    | **12** |         |            |
 
 12 site(s) across 7 file(s).
 
 ## What must move, and with what
 
-The checklist for whoever re-keys these collections. Each row is a call
-shape that must change in the SAME commit as its collection's keying --
-a key built one way against a map filed another returns empty, which
-reads as "no such symbol" rather than "wrong question" (#1139).
-
-| Site                                               | Paired with   | Moves with | Why                                                                                                                                                                      |
-| -------------------------------------------------- | ------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `src/PARSE/3-Declare/cnext/index.ts` (`scopeName`) | `constValues` | #1295      | files each scoped const under a leaf-joined key; live, and the same latent shape as #1295's three collections, but not one of them -- scope question raised on that card |
+Nothing. Every remaining site is adjudicated as needing no change.

@@ -39,11 +39,16 @@ interface ISite {
  * derived from `KIND_SECTIONS`, and `render` emits the preamble bullets from
  * the same array, so the union and the document cannot disagree about
  * precedence. They did disagree once, in opposite directions, and the
- * preamble's order would have sent an adjudicator the other way on
- * `cnext/index.ts`'s `scopeName`: source text from a parse-tree identifier, so
- * `path` by description, but `leaf-keyed` is the answer that matters because it
- * is paired with a collection. Reordering the array now moves both, and a
- * reorder that touches only one is unrepresentable.
+ * preamble's order decides cases like `cnext/index.ts`'s `scopeName`, which
+ * reads as `path` by description and was long filed as `leaf-keyed` on the
+ * grounds that it is paired with a collection. That judgement was overturned
+ * when #1295 closed: `constValues`' key goes through `fromParts`, which splits
+ * dotted paths, so the collection is not filed under a leaf-built key and the
+ * pairing it was judged on does not exist. It is `path` now, and the lesson the
+ * example carried survives it -- a kind is an argument, not a label, so an entry
+ * has to be re-argued when the collection it names is re-measured. Reordering
+ * the array moves the union and the document together, and a reorder that
+ * touches only one is unrepresentable.
  */
 const KIND_SECTIONS = [
   {
@@ -180,10 +185,10 @@ class ScopeJoinSites {
     {
       file: "src/PARSE/3-Declare/cnext/index.ts",
       element: "scopeName",
-      kind: "leaf-keyed",
-      pairedWith: "constValues",
-      movesWith: "#1295",
-      why: "files each scoped const under a leaf-joined key; live, and the same latent shape as #1295's three collections, but not one of them -- scope question raised on that card",
+      kind: "path",
+      pairedWith: null,
+      movesWith: null,
+      why: "`scopeDecl.IDENTIFIER()` -- source text from a parse-tree identifier. Re-adjudicated when #1295 closed: the scope question that card raised was answered NO. This is not leaf-keyed and nothing needs to move it. `constValues`' key is `fromParts([scopeName, name])`, and `fromParts` runs `toParts`, which SPLITS dotted paths, so the key is as complete as what it is handed -- unlike #1295's three collections, which used `scope.name` raw as a Map key with no encoder at all. What it is handed is complete by construction: `scopeMember` (`grammar/CNext.g4:81-88`) admits no `scopeDeclaration`, which ADR-016 states permanently (#1306), so a scope declaration is always at file scope and its identifier IS its whole path",
     },
     {
       file: "src/transpiler/output/codegen/assignment/AssignmentClassifier.ts",

@@ -153,13 +153,13 @@ class TypeValidator {
 
     if (
       CodeGenState.knownFunctions.has(identifier) &&
-      // #1295: `isInScope` compares a C NAME against a C scope prefix, so the
-      // path must be encoded rather than truncated -- `fromParts` splits the
-      // dotted path, giving `Outer__Inner` where `leafOf` gave `Inner`.
-      !QualifiedCName.isInScope(
-        identifier,
-        QualifiedCName.fromParts([currentScopePath]),
-      )
+      // #1295: pass the PATH, not its leaf. `isInScope` needs no help encoding
+      // it -- `prefixFor` runs the path through `toParts`, which splits on the
+      // source separator, so `Outer.Inner` becomes the prefix `Outer__Inner__`
+      // where `leafOf` gave `Inner__`. Encoding it at this call site instead
+      // would re-derive a qualified name by hand, which is what the
+      // scope-join inventory exists to catch.
+      !QualifiedCName.isInScope(identifier, currentScopePath)
     ) {
       return true;
     }
