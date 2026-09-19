@@ -2119,6 +2119,13 @@ export default class CodeGenerator implements IOrchestrator {
       CodeGenState.cppMode ? "baseline-cpp" : "baseline-c",
     );
 
+    // 2.2 Plan's fact, recorded where it is KNOWN rather than recovered from
+    // text. `captureEmissionFacts` used to regex `#include` lines back out of
+    // the rendered `output` array, so a fact the parse tree carries was
+    // serialized to text and re-derived from it -- the pass boundary running
+    // backwards inside one method. Both producers append here instead.
+    const sourceIncludeTargets: string[] = [];
+
     // Self-include for extern "C" linkage
     // Issue #1164: this used to ask a second predicate that saw only scope
     // members, so a file exporting types, consts or top-level functions got a
@@ -2135,11 +2142,12 @@ export default class CodeGenerator implements IOrchestrator {
       const ext = CodeGenState.outputExtensions.header;
       const headerName = pathToUse.replace(/\.cnx$|\.cnext$/, ext);
       output.push(`#include "${headerName}"`, "");
+      sourceIncludeTargets.push(`"${headerName}"`);
       CodeGenState.selfIncludeAdded = true;
     }
 
     // Process include directives
-    this.processIncludeDirectives(tree, output);
+    sourceIncludeTargets.push(...this.processIncludeDirectives(tree, output));
 
     // Process preprocessor directives
     this.processPreprocessorDirectives(tree, output);
@@ -2159,7 +2167,9 @@ export default class CodeGenerator implements IOrchestrator {
     // 2.2 Plan: every "does this file need X?" question the declarations above
     // raised is answered ONCE, here, from state that is warm for exactly this
     // long. Nothing below reads a `needs*` flag.
-    const plan = EmissionPlan.build(this.captureEmissionFacts(output));
+    const plan = EmissionPlan.build(
+      this.captureEmissionFacts(sourceIncludeTargets),
+    );
 
     // 2.3 Render: format the plan. These two decide nothing.
     this.addAutoIncludes(output, plan);
@@ -2214,7 +2224,8 @@ export default class CodeGenerator implements IOrchestrator {
   private processIncludeDirectives(
     tree: Parser.ProgramContext,
     output: string[],
-  ): void {
+  ): string[] {
+    const targets: string[] = [];
     // #1322: ADR-010's two rejections (E0503, E0504) used to run here, with a
     // line number threaded in as a NUMBER and spent on `Line N` prose while the
     // diagnostic reported `1:0`. Both are decided in pass 2.1, which also means
@@ -2232,12 +2243,19 @@ export default class CodeGenerator implements IOrchestrator {
       if (suppression) {
         output.push(suppression);
       }
-      output.push(this.transformIncludeDirective(includeText));
+      const line = this.transformIncludeDirective(includeText);
+      output.push(line);
+      const target = CodeGenerator.extractIncludeTarget(line);
+      if (target !== null) {
+        targets.push(target);
+      }
     }
 
     if (tree.includeDirective().length > 0) {
       output.push("");
     }
+
+    return targets;
   }
 
   /**
@@ -2359,11 +2377,9 @@ export default class CodeGenerator implements IOrchestrator {
    * decide the final set rather than a renderer subtracting one list from
    * another.
    */
-  private captureEmissionFacts(output: readonly string[]): IEmissionFacts {
-    const existingIncludeTargets = output
-      .map((line) => CodeGenerator.extractIncludeTarget(line))
-      .filter((target): target is string => target !== null);
-
+  private captureEmissionFacts(
+    existingIncludeTargets: readonly string[],
+  ): IEmissionFacts {
     return {
       cppMode: this.isCppMode(),
       needsStdint: CodeGenState.needsStdint,
