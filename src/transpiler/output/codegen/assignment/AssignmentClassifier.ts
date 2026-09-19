@@ -34,6 +34,67 @@ class AssignmentClassifier {
   /**
    * Check if typeInfo represents a simple string type (not a 2D+ string array).
    */
+  /**
+   * The type info of the assignment TARGET, for the three simple patterns.
+   *
+   * #1450: one decision, and it was derived twice. `classifySpecialCompound`
+   * resolved it across three branches to classify atomics and overflow clamps;
+   * the three string classifiers resolved it again, branch for branch, sixty
+   * lines below. They agreed, which is the failure mode rather than the
+   * defense -- changing how a target resolves (qualifying `global.member`, say)
+   * meant editing both, and nothing said so.
+   *
+   * The pattern GUARD stays with each caller, because the pattern is what picks
+   * the `AssignmentKind`. Only the resolution is shared: what a target is named
+   * is one question, and which kind that makes the assignment is another.
+   *
+   * `undefined` for a target that is none of the three, which is exactly what
+   * its callers already treated a missing type info as.
+   *
+   * ## The `this.member` qualification looks removable and is not
+   *
+   * `getVariableTypeInfo`'s contract is that callers arrive with a RESOLVED
+   * identifier -- "for a scope member that is already the registry key
+   * (`Scope__member`)" -- so qualifying here is what that contract asks for.
+   *
+   * No fixture can tell: resolving `this.label` by its BARE name instead leaves
+   * 1247/1247 green, and a purpose-built `scope Cfg { string<16> label }`
+   * assigning `this.label` emits byte-identical C. The branch IS reached -- a
+   * throw inside it fires on `value`, `Config` and others -- so this is not
+   * dead code passing unexercised.
+   *
+   * What hides it is a fallback two levels down. With the bare name the type
+   * registry MISSES (`registryHas=false`, its only key being `Cfg__label`) and
+   * `getCNextVariableSymbol` answers instead -- a path documented as "fall back
+   * to SymbolTable for cross-file C-Next variables only", covering a same-file
+   * scope member. The two spellings agree because an unrelated fallback
+   * happens to catch the miss, which is not the same as the bare name being
+   * right.
+   *
+   * Recorded rather than simplified: the next reader will measure exactly what
+   * is measured above, conclude the qualification is redundant, and remove the
+   * thing the contract requires.
+   */
+  private static targetTypeInfo(
+    ctx: IAssignmentContext,
+  ): TTypeInfo | undefined {
+    if (ctx.isSimpleIdentifier) {
+      return CodeGenState.getVariableTypeInfo(ctx.identifiers[0]);
+    }
+    if (ctx.isSimpleThisAccess && CodeGenState.currentScopePath) {
+      return CodeGenState.getVariableTypeInfo(
+        QualifiedNameGenerator.forMember(
+          CodeGenState.currentScopePath,
+          ctx.identifiers[0],
+        ),
+      );
+    }
+    if (ctx.isSimpleGlobalAccess) {
+      return CodeGenState.getVariableTypeInfo(ctx.identifiers[0]);
+    }
+    return undefined;
+  }
+
   private static isSimpleStringType(typeInfo: TTypeInfo | undefined): boolean {
     return (
       typeInfo?.isString === true &&
@@ -773,27 +834,7 @@ class AssignmentClassifier {
       return null;
     }
 
-    // Get typeInfo based on target pattern
-    let typeInfo;
-    if (ctx.isSimpleIdentifier) {
-      const id = ctx.identifiers[0];
-      typeInfo = CodeGenState.getVariableTypeInfo(id);
-    } else if (ctx.isSimpleThisAccess && CodeGenState.currentScopePath) {
-      // this.member pattern: lookup using scoped name
-      const memberName = ctx.identifiers[0];
-      const scopedName = QualifiedNameGenerator.forMember(
-        CodeGenState.currentScopePath,
-        memberName,
-      );
-      typeInfo = CodeGenState.getVariableTypeInfo(scopedName);
-    } else if (ctx.isSimpleGlobalAccess) {
-      // global.member pattern: lookup using direct name
-      const memberName = ctx.identifiers[0];
-      typeInfo = CodeGenState.getVariableTypeInfo(memberName);
-    } else {
-      return null;
-    }
-
+    const typeInfo = AssignmentClassifier.targetTypeInfo(ctx);
     if (!typeInfo) {
       return null;
     }
@@ -828,8 +869,7 @@ class AssignmentClassifier {
     ctx: IAssignmentContext,
   ): AssignmentKind | null {
     if (!ctx.isSimpleIdentifier) return null;
-    const id = ctx.identifiers[0];
-    const typeInfo = CodeGenState.getVariableTypeInfo(id);
+    const typeInfo = AssignmentClassifier.targetTypeInfo(ctx);
     return AssignmentClassifier.isSimpleStringType(typeInfo)
       ? AssignmentKind.STRING_SIMPLE
       : null;
@@ -842,12 +882,7 @@ class AssignmentClassifier {
     ctx: IAssignmentContext,
   ): AssignmentKind | null {
     if (!ctx.isSimpleThisAccess || !CodeGenState.currentScopePath) return null;
-    const memberName = ctx.identifiers[0];
-    const scopedName = QualifiedNameGenerator.forMember(
-      CodeGenState.currentScopePath,
-      memberName,
-    );
-    const typeInfo = CodeGenState.getVariableTypeInfo(scopedName);
+    const typeInfo = AssignmentClassifier.targetTypeInfo(ctx);
     return AssignmentClassifier.isSimpleStringType(typeInfo)
       ? AssignmentKind.STRING_THIS_MEMBER
       : null;
@@ -860,8 +895,7 @@ class AssignmentClassifier {
     ctx: IAssignmentContext,
   ): AssignmentKind | null {
     if (!ctx.isSimpleGlobalAccess) return null;
-    const id = ctx.identifiers[0];
-    const typeInfo = CodeGenState.getVariableTypeInfo(id);
+    const typeInfo = AssignmentClassifier.targetTypeInfo(ctx);
     return AssignmentClassifier.isSimpleStringType(typeInfo)
       ? AssignmentKind.STRING_GLOBAL
       : null;
