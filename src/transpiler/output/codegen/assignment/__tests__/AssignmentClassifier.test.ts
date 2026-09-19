@@ -1,7 +1,10 @@
 import type IBitmapFieldLayout from "../../../../types/IBitmapFieldLayout";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, it, expect, beforeEach } from "vitest";
 import AssignmentClassifier from "../AssignmentClassifier";
 import AssignmentKind from "../AssignmentKind";
+import AssignmentHandlerRegistry from "../index";
 import IAssignmentContext from "../IAssignmentContext";
 import CodeGenState from "../../../../state/CodeGenState";
 import SymbolTable from "../../../../state/SymbolTable";
@@ -1312,5 +1315,60 @@ describe("AssignmentClassifier - previously unnamed kinds", () => {
     expect(AssignmentClassifier.classify(ctx)).toBe(
       AssignmentKind.GLOBAL_ARRAY,
     );
+  });
+});
+
+// ========================================================================
+// The obligation, gated rather than remembered (#1450)
+//
+// `codegen-decomposition.md` requires that classification tests name every
+// kind. That was hand-maintained, and it drifted: 25 of 31 kinds were named,
+// while the obligation's own wording said "all 25 kinds" -- so the count read
+// as met and nothing prompted anyone to look.
+//
+// Closing that by hand restores the property once. This asserts it, so the
+// next kind added cannot land without a test. CLAUDE.md's argument for
+// `scripts/__tests__/layer-rules.test.ts` is the same one: derive the claim
+// instead of writing it down.
+// ========================================================================
+describe("AssignmentKind coverage is derived, not asserted", () => {
+  /** Every declared kind name, without the reverse numeric mappings. */
+  function declaredKinds(): string[] {
+    return Object.keys(AssignmentKind).filter((k) => Number.isNaN(Number(k)));
+  }
+
+  // What this catches and what it does not: it matches a MENTION of
+  // `AssignmentKind.X` anywhere in this file, a comment included. So it stops a
+  // kind being added with no test -- the accidental drift that actually
+  // happened -- and it would not stop someone writing a bare mention to quiet
+  // it. That is a deliberate act, not a thing anyone does by not noticing, and
+  // a stricter match (insisting on an `expect(...).toBe(...)` shape) would be
+  // brittle against the kinds asserted through a variable.
+  it("names every AssignmentKind somewhere in this file", () => {
+    const source = readFileSync(fileURLToPath(import.meta.url), "utf8");
+    const named = new Set(
+      [...source.matchAll(/AssignmentKind\.([A-Z_0-9]+)/g)].map((m) => m[1]),
+    );
+
+    const missing = declaredKinds().filter((kind) => !named.has(kind));
+    expect(missing).toEqual([]);
+  });
+
+  it("gives every AssignmentKind a registered handler", () => {
+    // `getHandler` throws lazily, only for a kind something actually
+    // dispatches. A kind registered by nobody is invisible until a user
+    // program reaches it, so ask for all of them here.
+    const unregistered = declaredKinds().filter((kind) => {
+      try {
+        AssignmentHandlerRegistry.getHandler(
+          AssignmentKind[kind as keyof typeof AssignmentKind],
+        );
+        return false;
+      } catch {
+        return true;
+      }
+    });
+
+    expect(unregistered).toEqual([]);
   });
 });
