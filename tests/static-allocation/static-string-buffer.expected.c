@@ -51,7 +51,7 @@ int main(void) {
     if (strlen(messageBuffer) != 8) return 11U;
     if (strcmp(messageBuffer, "Modified") != 0) return 12U;
     char source[65] = "FromParam";
-    copyMessage(&source);
+    copyMessage(source);
     if (strlen(messageBuffer) != 9) return 13U;
     if (strcmp(messageBuffer, "FromParam") != 0) return 14U;
     setDefaultMessage();

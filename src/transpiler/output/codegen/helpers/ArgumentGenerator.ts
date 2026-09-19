@@ -44,7 +44,7 @@ class ArgumentGenerator {
     // Global arrays also decay to pointers (check typeRegistry)
     // But NOT strings - strings need & (they're char arrays but passed by reference)
     const typeInfo = CodeGenState.getVariableTypeInfo(id);
-    if (typeInfo?.isArray && !typeInfo.isString) {
+    if (typeInfo?.isArray) {
       return id;
     }
 
