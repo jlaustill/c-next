@@ -24,9 +24,18 @@
  * disagreements were dead, so nothing failed; what stood was two answers to one
  * question, with no way for the next caller to know they had picked one.
  *
- * ADR-024's narrowing and sign-change DECISIONS live in pass 2.1 (#1322).
- * Nothing in `output/` decides them, under any name -- which is what a Render
- * pass that "decides nothing" should look like.
+ * What moved to pass 2.1 under #1322 is ADR-024's narrowing and sign-change
+ * DIAGNOSTICS. Whether to EMIT a cast is a separate decision and it is still
+ * made here in `output/`, by `NarrowingCastHelper.needsCast` -- live, through
+ * `wrap`'s five production call sites. An earlier version of this comment said
+ * nothing in `output/` decided narrowing "under any name", which was false and
+ * flattered #1450's box 4 by counting a live decision as already moved.
+ *
+ * Worth noting which of the two dead versions the live one agreed with: on an
+ * unknown width `needsCast` returns false -- "be conservative, no cast" -- which
+ * matches `TypeResolver`'s deleted version and contradicts the one deleted from
+ * here. It also reads a THIRD width table, `EXTENDED_TYPE_WIDTH`, where both
+ * dead versions used `TYPE_WIDTH`.
  *
  * The type lists come from `types/` rather than being spelled again here. The
  * four `Set` literals this module declared held exactly the same eight integer

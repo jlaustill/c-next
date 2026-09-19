@@ -58,9 +58,12 @@ class TypeResolver {
    * #1450: `isSignedType`, `isNarrowingConversion` and `isSignConversion` stood
    * beside this one with no production caller, each also declared on
    * `CastValidator` under the same name and two of the pairs disagreeing.
-   * ADR-024's narrowing and sign-change decisions are pass 2.1's (#1322);
-   * nothing in `output/` decides them under any name. This one survives because
-   * `UnaryExprGenerator` asks it.
+   * #1322 moved ADR-024's narrowing and sign-change DIAGNOSTICS to pass 2.1.
+   * Whether to emit a cast is still decided in `output/`, by
+   * `NarrowingCastHelper.needsCast` -- an earlier version of this comment said
+   * nothing here decided narrowing "under any name", which was false. What was
+   * dead was this pair of names, not the capability. `isUnsignedType` survives
+   * because `UnaryExprGenerator` asks it.
    */
   static isUnsignedType(typeName: string): boolean {
     return (UNSIGNED_TYPES as readonly string[]).includes(typeName);
