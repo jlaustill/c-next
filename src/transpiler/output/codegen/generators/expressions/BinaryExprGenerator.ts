@@ -433,6 +433,65 @@ const tryClampOperands = (
 };
 
 /**
+ * Fold, clamp, or join a chain of operands -- the tail both the additive and
+ * multiplicative generators end with, differing only in which operator fills a
+ * gap in the chain.
+ *
+ * #1450: `analyze:duplication` reported the two as a nine-line clone. Sharing
+ * it also settles an inconsistency that was correct only by coincidence: the
+ * multiplicative copy returned a fresh `[]` on the fold and join paths while
+ * handing `effects` to `tryClampOperands`, so any effect that function recorded
+ * before bailing out would have been dropped there and kept in the additive
+ * copy. It records none -- every `return null` in it precedes the first
+ * `effects.push` -- so the two agreed. They now agree by construction.
+ *
+ * @param defaultOperator fills a gap in `operators`, which the parse tree can
+ *   leave shorter than the operand list. Pre-existing and unexercised: passing
+ *   `"+"` for the multiplicative chain leaves 1247/1247 green, and a probe on
+ *   the fallback never fires while one on the surrounding loop fires with both
+ *   `'+'` and `'*'`. So the loop runs and `operators` is always fully
+ *   populated. Kept rather than dropped -- both copies had it, and removing a
+ *   defense because no fixture reaches it is the argument #1143 records
+ *   against.
+ */
+const foldClampOrJoin = (
+  node: ParserRuleContext,
+  operandCodes: string[],
+  operators: string[],
+  defaultOperator: string,
+  effects: TGeneratorEffect[],
+): IGeneratorOutput => {
+  // Issue #235: Try constant folding for compile-time constant expressions
+  const foldedResult = BinaryExprUtils.tryFoldConstants(
+    operandCodes,
+    operators,
+  );
+  if (foldedResult !== undefined) {
+    return { code: String(foldedResult), effects };
+  }
+
+  // Issue #1152: saturate when the operands are of a clamp integer type
+  const clamped = tryClampOperands(
+    node,
+    operandCodes,
+    operators,
+    defaultOperator,
+    effects,
+  );
+  if (clamped !== null) {
+    return { code: clamped, effects };
+  }
+
+  // Fall back to standard code generation
+  let result = operandCodes[0];
+  for (let index = 1; index < operandCodes.length; index++) {
+    const operator = operators[index - 1] || defaultOperator;
+    result += ` ${operator} ${operandCodes[index]}`;
+  }
+  return { code: result, effects };
+};
+
+/**
  * Generate C code for an additive expression.
  * Issue #235: Includes constant folding for compile-time constant expressions.
  */
@@ -459,29 +518,7 @@ const generateAdditiveExpr = (
   const operandCodes = operandResults.map((r) => r.code);
   operandResults.forEach((r) => effects.push(...r.effects));
 
-  // Issue #235: Try constant folding for compile-time constant expressions
-  const foldedResult = BinaryExprUtils.tryFoldConstants(
-    operandCodes,
-    operators,
-  );
-  if (foldedResult !== undefined) {
-    return { code: String(foldedResult), effects };
-  }
-
-  // Issue #1152: saturate when the operands are of a clamp integer type
-  const clamped = tryClampOperands(node, operandCodes, operators, "+", effects);
-  if (clamped !== null) {
-    return { code: clamped, effects };
-  }
-
-  // Fall back to standard code generation
-  let result = operandCodes[0];
-  for (let i = 1; i < operandCodes.length; i++) {
-    const op = operators[i - 1] || "+";
-    result += ` ${op} ${operandCodes[i]}`;
-  }
-
-  return { code: result, effects };
+  return foldClampOrJoin(node, operandCodes, operators, "+", effects);
 };
 
 /**
@@ -511,30 +548,7 @@ const generateMultiplicativeExpr = (
     orchestrator.generateUnaryExpr(expr),
   );
 
-  // Issue #235: Try constant folding for compile-time constant expressions
-  const foldedResult = BinaryExprUtils.tryFoldConstants(
-    operandCodes,
-    operators,
-  );
-  if (foldedResult !== undefined) {
-    return { code: String(foldedResult), effects: [] };
-  }
-
-  // Issue #1152: saturate when the operands are of a clamp integer type
-  const effects: TGeneratorEffect[] = [];
-  const clamped = tryClampOperands(node, operandCodes, operators, "*", effects);
-  if (clamped !== null) {
-    return { code: clamped, effects };
-  }
-
-  // Fall back to standard code generation
-  let result = operandCodes[0];
-  for (let i = 1; i < operandCodes.length; i++) {
-    const op = operators[i - 1] || "*";
-    result += ` ${op} ${operandCodes[i]}`;
-  }
-
-  return { code: result, effects: [] };
+  return foldClampOrJoin(node, operandCodes, operators, "*", []);
 };
 
 // Export all generators as a single object (lint requirement: no named exports)
