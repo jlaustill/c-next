@@ -1,4 +1,5 @@
 // test-execution
+// test-no-warnings
 // Tests: Issue #213 - Scope helper methods with string parameters
 // Validates that slice assignment in private methods serializes a value into the
 // string buffer (per-element little-endian writes, not scalar bit manipulation)

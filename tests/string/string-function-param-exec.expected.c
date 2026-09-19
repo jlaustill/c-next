@@ -10,6 +10,12 @@
 #include <string.h>
 
 // test-execution
+// #1450: the no-warnings marker is absent here deliberately. That marker is what
+// caught the `&array` argument defect this fixture's snapshot used to hold
+// (e3dff5f4), and its three siblings gained it in the same pass. These two
+// cannot take it yet: the generated C has an unused parameter, which is
+// -Werror=unused-parameter and is MISRA C:2012 Rule 2.7 -- tracked in #862
+// (69 violations). Add the marker here when #862 closes.
 // ADR-045: Validate string function parameters at runtime
 uint32_t getLen(const char* s) {
     return strlen(s);

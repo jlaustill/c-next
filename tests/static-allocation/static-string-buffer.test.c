@@ -9,6 +9,7 @@
 #include <string.h>
 
 // test-execution
+// test-no-warnings
 // ADR-003/ADR-045: Static string buffer allocation
 // Tests: global string buffers with known sizes are valid
 // Issues #138 and #139 fixed: string assignment now works correctly
