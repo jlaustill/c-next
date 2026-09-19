@@ -442,6 +442,12 @@ const handleMemberOp = (
   );
 
   tracking.result = memberResult.result;
+  // `??`, so a handler CANNOT clear this by returning undefined -- the old
+  // value is restored instead. `generateDefaultAccess` used to write
+  // `resolvedIdentifier = undefined` here for exactly that effect and never
+  // got it; both directions of that write redden 0 of 1248 fixtures. Resetting
+  // the identifier mid-chain needs a sentinel the merge can tell from "no
+  // opinion", not an undefined.
   tracking.resolvedIdentifier =
     memberResult.resolvedIdentifier ?? tracking.resolvedIdentifier;
   tracking.currentStructType = memberResult.currentStructType;
@@ -1007,6 +1013,24 @@ const generateTypeInfoBitLength = (
 };
 
 /**
+ * The `.byte_length` for a thing whose `.bit_length` has already been rendered.
+ *
+ * "Bits to bytes" has two representations and one decision behind them: a bit
+ * length that folded to a literal divides by eight, and one that stayed an
+ * expression renames the property it reads. `generateByteLengthProperty`
+ * derived both, twice -- once from a struct field's bit length and once from a
+ * type-info bit length -- so a change to either representation needed two
+ * edits that nothing held together.
+ */
+const bytesFromBitLength = (bitLength: string): string => {
+  const bitValue = Number.parseInt(bitLength, 10);
+  if (!Number.isNaN(bitValue)) {
+    return String(bitValue / 8);
+  }
+  return bitLength.replace(".bit_length", ".byte_length");
+};
+
+/**
  * Generate .byte_length property access (ADR-058).
  * Returns the byte size of any type (bit_length / 8).
  */
@@ -1036,12 +1060,7 @@ const generateByteLengthProperty = (
         ctx.subscriptDepth,
         input,
       );
-      // Parse and convert to bytes
-      const bitValue = Number.parseInt(bitLength, 10);
-      if (!Number.isNaN(bitValue)) {
-        return String(bitValue / 8);
-      }
-      return bitLength.replace(".bit_length", ".byte_length");
+      return bytesFromBitLength(bitLength);
     }
   }
 
@@ -1062,11 +1081,7 @@ const generateByteLengthProperty = (
     ctx.subscriptDepth,
     input,
   );
-  const bitValue = Number.parseInt(bitLength, 10);
-  if (!Number.isNaN(bitValue)) {
-    return String(bitValue / 8);
-  }
-  return bitLength.replace(".bit_length", ".byte_length");
+  return bytesFromBitLength(bitLength);
 };
 
 /**
@@ -1307,6 +1322,56 @@ const initializeMemberOutput = (
 });
 
 /**
+ * Emit `<result><separator><member>` and advance the struct-type tracking to
+ * that member's type.
+ *
+ * The struct-parameter path and the default path derived this separately: the
+ * same six lines, differing only in the separator each had already chosen. A
+ * change to how member access advances the chain -- what `currentStructType`
+ * becomes, whether `currentMemberIsArray` is set from the member or the parent
+ * -- needed two edits with nothing holding them together.
+ *
+ * `previousStructType` and `previousMemberName` are NOT re-assigned here.
+ * `initializeMemberOutput` already sets both to exactly these values; both
+ * callers set them again immediately after calling it.
+ *
+ * ## The difference between the two paths was not one
+ *
+ * The default path also carried `output.resolvedIdentifier = undefined` inside
+ * this branch, and the struct-param path did not -- which reads as a decision
+ * about whether a member access resets the chain's resolved identifier. It is
+ * not one. `handleMemberOp` merges the field with
+ * `memberResult.resolvedIdentifier ?? tracking.resolvedIdentifier`, so an
+ * `undefined` from a handler restores exactly the value it was trying to clear.
+ * The write cannot take effect.
+ *
+ * Measured both ways rather than reasoned about: giving the struct-param path
+ * the clear reddens 0 of 1248 fixtures, and taking it off the default path
+ * reddens 0. It is gone, so the two paths are identical rather than looking
+ * deliberately different, and the merge site says why re-adding it would be
+ * inert.
+ */
+const advanceMemberAccess = (
+  ctx: IMemberAccessContext,
+  orchestrator: IOrchestrator,
+  separator: string,
+): MemberAccessResult => {
+  const output = initializeMemberOutput(ctx);
+  output.result = `${ctx.result}${separator}${ctx.memberName}`;
+  if (ctx.currentStructType) {
+    const memberTypeInfo = orchestrator.getMemberTypeInfo(
+      ctx.currentStructType,
+      ctx.memberName,
+    );
+    if (memberTypeInfo) {
+      output.currentMemberIsArray = memberTypeInfo.isArray;
+      output.currentStructType = memberTypeInfo.baseType;
+    }
+  }
+  return output;
+};
+
+/**
  * Generate member access (obj.field).
  * Dispatches to specialized handlers via null-coalescing chain.
  */
@@ -1482,21 +1547,7 @@ const tryStructParamAccess = (
         cppMode: orchestrator.isCppMode(),
       });
 
-  const output = initializeMemberOutput(ctx);
-  output.result = `${ctx.result}${structParamSep}${ctx.memberName}`;
-  output.previousStructType = ctx.currentStructType;
-  output.previousMemberName = ctx.memberName;
-  if (ctx.currentStructType) {
-    const memberTypeInfo = orchestrator.getMemberTypeInfo(
-      ctx.currentStructType,
-      ctx.memberName,
-    );
-    if (memberTypeInfo) {
-      output.currentMemberIsArray = memberTypeInfo.isArray;
-      output.currentStructType = memberTypeInfo.baseType;
-    }
-  }
-  return output;
+  return advanceMemberAccess(ctx, orchestrator, structParamSep);
 };
 
 /**
@@ -1561,22 +1612,7 @@ const generateDefaultAccess = (
   orchestrator: IOrchestrator,
 ): MemberAccessResult => {
   const separator = ctx.isCppAccessChain ? "::" : ".";
-  const output = initializeMemberOutput(ctx);
-  output.result = `${ctx.result}${separator}${ctx.memberName}`;
-  output.previousStructType = ctx.currentStructType;
-  output.previousMemberName = ctx.memberName;
-  if (ctx.currentStructType) {
-    const memberTypeInfo = orchestrator.getMemberTypeInfo(
-      ctx.currentStructType,
-      ctx.memberName,
-    );
-    if (memberTypeInfo) {
-      output.currentMemberIsArray = memberTypeInfo.isArray;
-      output.currentStructType = memberTypeInfo.baseType;
-      output.resolvedIdentifier = undefined;
-    }
-  }
-  return output;
+  return advanceMemberAccess(ctx, orchestrator, separator);
 };
 
 // ========================================================================
