@@ -25,7 +25,7 @@ interface IScanResult {
  * generation markers in headers, and extracts the source .cnx paths.
  * Follows includes transitively through discovered .cnx files.
  *
- * Used by the C/C++ entry point feature (ADR-XXX) to enable compilation
+ * Used by the C/C++ entry point feature (ADR-010) to enable compilation
  * where the entry point is a C/C++ file that #includes C-Next generated headers.
  */
 class CppEntryPointScanner {
