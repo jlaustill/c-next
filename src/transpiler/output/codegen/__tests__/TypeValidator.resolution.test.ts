@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import TypeValidator from "../TypeValidator";
 import CodeGenState from "../../../state/CodeGenState";
 import createMockSymbols from "../../../__tests__/codeGenSymbolsHelpers";
+import enterScope from "../../../__tests__/enterScope";
 
 describe("TypeValidator.resolveBareIdentifier", () => {
   beforeEach(() => {
@@ -19,7 +20,7 @@ describe("TypeValidator.resolveBareIdentifier", () => {
       isArray: false,
       isConst: false,
     });
-    CodeGenState.setCurrentScopeByPath("Motor");
+    enterScope("Motor");
     CodeGenState.symbols = createMockSymbols({
       knownScopes: new Set(["Motor", "LED"]),
       knownRegisters: new Set(["GPIO"]),
@@ -89,7 +90,7 @@ describe("TypeValidator.resolveBareIdentifier", () => {
 
   describe("outside a scope", () => {
     beforeEach(() => {
-      CodeGenState.setCurrentScopeByPath(null);
+      enterScope(null);
     });
 
     it("returns null for local variables", () => {

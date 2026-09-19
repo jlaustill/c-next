@@ -351,15 +351,37 @@ class TSymbolInfoAdapter {
     scopeMembers: Map<string, Set<string>>,
     scopeMemberVisibility: Map<string, Map<string, "public" | "private">>,
   ): void {
-    knownScopes.add(scope.name);
+    // #1295: keyed by the scope's IDENTITY, never its leaf. `cnxScopedName` is
+    // the dotted source path -- `Motor`, `Outer.Inner` -- which is the same
+    // string every reader already holds (`currentScopePath`, a symbol's
+    // `scopePath`), so no site converts. Keyed by the leaf, `Outer.Inner` and
+    // `Other.Inner` collide and the second write silently replaces the first.
+    knownScopes.add(scope.cnxScopedName);
 
     // Use scope.members as the authoritative list of member names
     // This includes functions, variables, enums, structs, etc.
-    const members = new Set<string>(scope.members);
-    scopeMembers.set(scope.name, members);
+    //
+    // MERGED, not replaced. `processVariable` writes into the same key with
+    // get-or-create-and-add, so an unconditional `set` here dropped every
+    // variable that happened to be processed first. That was invisible because
+    // `_collectScopeDeclaration` pushes the scope before its members -- an
+    // emission-order coincidence nothing asserted, which is the shape this
+    // whole line of work exists to remove.
+    //
+    // `scopeMemberVisibility` below needs no equivalent: `processScope` is its
+    // only writer, and a reopened scope (ADR-016) is ONE symbol carrying many
+    // `declarationSites` (#1334), not two symbols to merge.
+    const members = scopeMembers.get(scope.cnxScopedName) ?? new Set<string>();
+    for (const member of scope.members) {
+      members.add(member);
+    }
+    scopeMembers.set(scope.cnxScopedName, members);
 
     // Copy visibility map
-    scopeMemberVisibility.set(scope.name, new Map(scope.memberVisibility));
+    scopeMemberVisibility.set(
+      scope.cnxScopedName,
+      new Map(scope.memberVisibility),
+    );
   }
 
   private static processRegister(
@@ -401,9 +423,10 @@ class TSymbolInfoAdapter {
     knownVariables: Set<string>,
   ): void {
     const cName = TSymbolInfoAdapter.getTranspiledCName(variable);
-    // `scopeMembers` is keyed by the scope's LEAF name -- itself a leaf-only
-    // encoder that collides at depth two, tracked as #1295 and unchanged here.
-    const scopeName = ScopeUtils.leafOf(variable.scopePath);
+    // #1295: `scopeMembers` is keyed by the scope's dotted source path, which is
+    // exactly what `scopePath` already holds -- no conversion here, and no
+    // collision at depth two.
+    const scopeName = variable.scopePath;
     const isScoped = !ScopeUtils.isGlobalScopePath(variable.scopePath);
 
     // Track scoped variables as scope members (needed for name resolution)

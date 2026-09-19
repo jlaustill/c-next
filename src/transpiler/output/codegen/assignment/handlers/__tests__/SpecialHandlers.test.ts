@@ -9,6 +9,7 @@ import AssignmentKind from "../../AssignmentKind";
 import IAssignmentContext from "../../IAssignmentContext";
 import CodeGenState from "../../../../../state/CodeGenState";
 import HandlerTestUtils from "./handlerTestUtils";
+import enterScope from "../../../../../__tests__/enterScope";
 
 /**
  * Create mock context for testing.
@@ -97,7 +98,7 @@ describe("SpecialHandlers", () => {
     });
 
     it("handles this.member atomic variable", () => {
-      CodeGenState.setCurrentScopeByPath("Motor");
+      enterScope("Motor");
       HandlerTestUtils.setupMockTypeRegistry([
         ["Motor__count", { baseType: "u32", isAtomic: true }],
       ]);
@@ -142,7 +143,7 @@ describe("SpecialHandlers", () => {
     // asserts the depth-one case still qualifies as `Motor__count`. A change
     // that dropped the scope entirely would pass this test and fail that one.
     it("qualifies a this.member atomic variable through the whole scope chain", () => {
-      CodeGenState.setCurrentScopeByPath("Outer.Inner");
+      enterScope("Outer.Inner");
       HandlerTestUtils.setupMockTypeRegistry([
         ["Outer__Inner__count", { baseType: "u32", isAtomic: true }],
       ]);
@@ -343,7 +344,7 @@ describe("SpecialHandlers", () => {
     });
 
     it("handles this.member with clamp", () => {
-      CodeGenState.setCurrentScopeByPath("Motor");
+      enterScope("Motor");
       HandlerTestUtils.setupMockTypeRegistry([
         ["Motor__speed", { baseType: "u8", overflowBehavior: "clamp" }],
       ]);

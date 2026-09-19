@@ -32,10 +32,13 @@ about it, so no reader has to re-derive which is which:
 They overlap as descriptions -- a site can be built from source text AND
 read a leaf-keyed map -- so a site takes the FIRST kind above that applies,
 which makes them a partition rather than labels. **Nothing computes this.**
-The order is an instruction to whoever writes the row: `cnext/index.ts`'s
-`scopeName` is source text from a parse-tree identifier, and is still
-`leaf-keyed`, because being paired with a collection is the fact that
-decides what must move.
+The order is an instruction to whoever writes the row. `cnext/index.ts`'s
+`scopeName` is the worked example: it is source text from a parse-tree
+identifier, so `path` by description, and it was long filed as
+`leaf-keyed` on the grounds that it is paired with a collection. #1295
+argues that the pairing does not exist -- `constValues`' key goes through
+`fromParts`, which splits dotted paths, so the collection is not filed
+under a leaf-built key. It is `path` on that argument.
 
 This list may shrink freely. It may not grow: `npm run scope-joins:check`
 fails on a file that gains a site, on a call shape nobody has adjudicated,
@@ -45,30 +48,23 @@ judgement cannot outlive the code it was made about. A new row is a prompt
 to adjudicate, not proof of a bug -- but it must be adjudicated before it
 lands.
 
-| File                                                                          | First element      | Sites  | Kind       | Moves with |
-| ----------------------------------------------------------------------------- | ------------------ | ------ | ---------- | ---------- |
-| `src/PARSE/3-Declare/cnext/index.ts`                                          | `scopeName`        | 1      | leaf-keyed | #1295      |
-| `src/TRANSPILE/1-Analyze/helpers/CalleeNameResolver.ts`                       | `resolvedName`     | 1      | path       | --         |
-| `src/transpiler/output/codegen/assignment/AssignmentClassifier.ts`            | `firstId`          | 1      | path       | --         |
-| `src/transpiler/output/codegen/assignment/AssignmentClassifier.ts`            | `scopeName`        | 2      | path       | --         |
-| `src/transpiler/output/codegen/assignment/handlers/AssignmentHandlerUtils.ts` | `leadingId`        | 1      | path       | --         |
-| `src/transpiler/output/codegen/assignment/handlers/BitmapHandlers.ts`         | `scopeName`        | 1      | path       | --         |
-| `src/transpiler/output/codegen/resolution/EnumTypeResolver.ts`                | `parts[0]`         | 1      | path       | --         |
-| `src/transpiler/output/codegen/resolution/EnumTypeResolver.ts`                | `parts[1]`         | 1      | path       | --         |
-| `src/transpiler/output/codegen/resolution/EnumTypeResolver.ts`                | `scopeName`        | 1      | path       | --         |
-| `src/utils/ScopeUtils.ts`                                                     | `scopePath`        | 1      | encoder    | --         |
-| `src/utils/ScopeUtils.ts`                                                     | `symbol.scopePath` | 1      | encoder    | --         |
-| **total**                                                                     |                    | **12** |            |            |
+| File                                                                          | First element      | Sites  | Kind    | Moves with |
+| ----------------------------------------------------------------------------- | ------------------ | ------ | ------- | ---------- |
+| `src/PARSE/3-Declare/cnext/index.ts`                                          | `scopeName`        | 1      | path    | --         |
+| `src/TRANSPILE/1-Analyze/helpers/CalleeNameResolver.ts`                       | `resolvedName`     | 1      | path    | --         |
+| `src/transpiler/output/codegen/assignment/AssignmentClassifier.ts`            | `firstId`          | 1      | path    | --         |
+| `src/transpiler/output/codegen/assignment/AssignmentClassifier.ts`            | `scopeName`        | 2      | path    | --         |
+| `src/transpiler/output/codegen/assignment/handlers/AssignmentHandlerUtils.ts` | `leadingId`        | 1      | path    | --         |
+| `src/transpiler/output/codegen/assignment/handlers/BitmapHandlers.ts`         | `scopeName`        | 1      | path    | --         |
+| `src/transpiler/output/codegen/resolution/EnumTypeResolver.ts`                | `parts[0]`         | 1      | path    | --         |
+| `src/transpiler/output/codegen/resolution/EnumTypeResolver.ts`                | `parts[1]`         | 1      | path    | --         |
+| `src/transpiler/output/codegen/resolution/EnumTypeResolver.ts`                | `scopeName`        | 1      | path    | --         |
+| `src/utils/ScopeUtils.ts`                                                     | `scopePath`        | 1      | encoder | --         |
+| `src/utils/ScopeUtils.ts`                                                     | `symbol.scopePath` | 1      | encoder | --         |
+| **total**                                                                     |                    | **12** |         |            |
 
 12 site(s) across 7 file(s).
 
 ## What must move, and with what
 
-The checklist for whoever re-keys these collections. Each row is a call
-shape that must change in the SAME commit as its collection's keying --
-a key built one way against a map filed another returns empty, which
-reads as "no such symbol" rather than "wrong question" (#1139).
-
-| Site                                               | Paired with   | Moves with | Why                                                                                                                                                                      |
-| -------------------------------------------------- | ------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `src/PARSE/3-Declare/cnext/index.ts` (`scopeName`) | `constValues` | #1295      | files each scoped const under a leaf-joined key; live, and the same latent shape as #1295's three collections, but not one of them -- scope question raised on that card |
+Nothing. Every remaining site is adjudicated as needing no change.

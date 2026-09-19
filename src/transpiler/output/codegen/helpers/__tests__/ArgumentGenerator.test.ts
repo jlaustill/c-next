@@ -7,6 +7,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import ArgumentGenerator from "../ArgumentGenerator";
 import CodeGenState from "../../../../state/CodeGenState";
 import IArgumentGeneratorCallbacks from "../types/IArgumentGeneratorCallbacks";
+import enterScope from "../../../../__tests__/enterScope";
 
 describe("ArgumentGenerator", () => {
   // Mock callbacks that return predictable values
@@ -83,7 +84,7 @@ describe("ArgumentGenerator", () => {
     describe("scope members", () => {
       it("prefixes scope member and adds & in C mode", () => {
         CodeGenState.cppMode = false;
-        CodeGenState.setCurrentScopeByPath("LED");
+        enterScope("LED");
         CodeGenState.setScopeMembers("LED", new Set(["brightness"]));
 
         const result = ArgumentGenerator.handleIdentifierArg("brightness");
@@ -92,7 +93,7 @@ describe("ArgumentGenerator", () => {
 
       it("prefixes scope member without & in C++ mode", () => {
         CodeGenState.cppMode = true;
-        CodeGenState.setCurrentScopeByPath("LED");
+        enterScope("LED");
         CodeGenState.setScopeMembers("LED", new Set(["brightness"]));
 
         const result = ArgumentGenerator.handleIdentifierArg("brightness");

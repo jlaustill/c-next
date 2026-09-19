@@ -7,6 +7,7 @@ import EnumTypeResolver from "../EnumTypeResolver";
 import CodeGenState from "../../../../state/CodeGenState";
 import SymbolTable from "../../../../state/SymbolTable";
 import createMockSymbols from "../../../../__tests__/codeGenSymbolsHelpers";
+import enterScope from "../../../../__tests__/enterScope";
 
 describe("EnumTypeResolver", () => {
   beforeEach(() => {
@@ -25,7 +26,7 @@ describe("EnumTypeResolver", () => {
     });
 
     it("resolves this.method() returning enum type", () => {
-      CodeGenState.setCurrentScopeByPath("Motor");
+      enterScope("Motor");
       CodeGenState.symbols = createMockSymbols({
         knownEnums: new Set(["State"]),
         functionReturnTypes: new Map([["Motor__getState", "State"]]),
@@ -135,7 +136,7 @@ describe("EnumTypeResolver", () => {
     });
 
     it("resolves this.Enum.MEMBER inside scope", () => {
-      CodeGenState.setCurrentScopeByPath("Motor");
+      enterScope("Motor");
       CodeGenState.symbols = createMockSymbols({
         knownEnums: new Set(["Motor__State"]),
       });
@@ -154,7 +155,7 @@ describe("EnumTypeResolver", () => {
     });
 
     it("resolves this.variable pattern for enum-typed scope member", () => {
-      CodeGenState.setCurrentScopeByPath("Motor");
+      enterScope("Motor");
       CodeGenState.symbols = createMockSymbols({
         knownEnums: new Set(["Motor__State"]),
       });
@@ -279,7 +280,7 @@ describe("EnumTypeResolver", () => {
 
   describe("resolve() - edge cases", () => {
     it("returns null for this.Enum.MEMBER when not in a scope", () => {
-      CodeGenState.setCurrentScopeByPath(null);
+      enterScope(null);
       CodeGenState.symbols = createMockSymbols({
         knownEnums: new Set(["Motor__State"]),
       });
@@ -289,7 +290,7 @@ describe("EnumTypeResolver", () => {
     });
 
     it("returns null for this.variable when not in a scope", () => {
-      CodeGenState.setCurrentScopeByPath(null);
+      enterScope(null);
 
       const mockCtx = { getText: () => "this.current" };
       expect(EnumTypeResolver.resolve(mockCtx as never)).toBeNull();
