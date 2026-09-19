@@ -10,6 +10,7 @@ import AssignmentKind from "../../AssignmentKind";
 import IAssignmentContext from "../../IAssignmentContext";
 import CodeGenState from "../../../../../state/CodeGenState";
 import HandlerTestUtils from "./handlerTestUtils";
+import enterScope from "../../../../../__tests__/enterScope";
 
 /**
  * Create mock context for testing.
@@ -284,7 +285,7 @@ describe("BitmapHandlers", () => {
       )?.[1];
 
     it("generates this-prefixed scoped register bitmap field", () => {
-      CodeGenState.setCurrentScopeByPath("Motor");
+      enterScope("Motor");
       HandlerTestUtils.setupMockSymbols({
         bitmapFields: new Map([
           ["ICR1Bits", new Map([["LED", { offset: 6, width: 2 }]])],
@@ -329,7 +330,7 @@ describe("BitmapHandlers", () => {
     // that is a dead branch's only caller is what keeps the branch alive.
 
     it("generates write-only pattern for wo register", () => {
-      CodeGenState.setCurrentScopeByPath("Motor");
+      enterScope("Motor");
       HandlerTestUtils.setupMockSymbols({
         bitmapFields: new Map([
           ["SetBits", new Map([["LED", { offset: 0, width: 1 }]])],
@@ -350,7 +351,7 @@ describe("BitmapHandlers", () => {
     });
 
     it("generates write-only pattern for w1s register", () => {
-      CodeGenState.setCurrentScopeByPath("Motor");
+      enterScope("Motor");
       HandlerTestUtils.setupMockSymbols({
         bitmapFields: new Map([
           ["SetBits", new Map([["LED", { offset: 3, width: 1 }]])],
@@ -370,7 +371,7 @@ describe("BitmapHandlers", () => {
     });
 
     it("generates write-only pattern for w1c register", () => {
-      CodeGenState.setCurrentScopeByPath("Motor");
+      enterScope("Motor");
       HandlerTestUtils.setupMockSymbols({
         bitmapFields: new Map([
           ["ClearBits", new Map([["LED", { offset: 5, width: 1 }]])],

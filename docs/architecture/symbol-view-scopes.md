@@ -101,8 +101,14 @@ Each hooked accessor records **three** answers for the same key at the same mome
 
 `asSpecified` is the **identity control**, and it is the reason the numbers below can be
 believed. Two answers cannot distinguish a real divergence from a key-space mismatch, and
-`ICodeGenSymbols` holds two key spaces at once: `knownScopes` and `scopeMembers` are keyed by
-the bare leaf `scope.name`, `knownStructs` and `functionReturnTypes` by the transpiled C name.
+`ICodeGenSymbols` holds two key spaces at once: `knownScopes`, `scopeMembers` and
+`scopeMemberVisibility` are keyed by a scope's `cnxScopedName` -- its dotted SOURCE path --
+while `knownStructs` and `functionReturnTypes` use the transpiled C name.
+
+> **Updated by #1295.** Those three were keyed by the bare leaf `scope.name` when this was
+> written, which collided whenever two scopes shared a leaf. The argument above is unchanged
+> by the correction: there are still two key spaces, so the control is still doing the work
+> described here. Only the spelling of the first one moved.
 
 **The identity control caught six defects in the measurement itself. Every one would have been
 published as a finding.** Two examples: a kind filter of `{struct, typedef}` misses C++ `class`

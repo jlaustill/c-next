@@ -9,6 +9,7 @@ import AssignmentKind from "../../AssignmentKind";
 import IAssignmentContext from "../../IAssignmentContext";
 import CodeGenState from "../../../../../state/CodeGenState";
 import HandlerTestUtils from "./handlerTestUtils";
+import enterScope from "../../../../../__tests__/enterScope";
 
 /**
  * Create mock context for testing.
@@ -152,7 +153,7 @@ describe("AccessPatternHandlers", () => {
       )?.[1];
 
     it("generates scoped member assignment", () => {
-      CodeGenState.setCurrentScopeByPath("Motor");
+      enterScope("Motor");
       HandlerTestUtils.setupMockGenerator({
         generateAssignmentTarget: vi.fn().mockReturnValue("Motor__speed"),
       });
@@ -174,7 +175,7 @@ describe("AccessPatternHandlers", () => {
     // that is a dead branch's only caller is what keeps the branch alive.
 
     it("handles compound assignment", () => {
-      CodeGenState.setCurrentScopeByPath("Motor");
+      enterScope("Motor");
       HandlerTestUtils.setupMockGenerator({
         generateAssignmentTarget: vi.fn().mockReturnValue("Motor_count"),
       });
@@ -199,7 +200,7 @@ describe("AccessPatternHandlers", () => {
       )?.[1];
 
     it("generates scoped array element assignment", () => {
-      CodeGenState.setCurrentScopeByPath("Motor");
+      enterScope("Motor");
       HandlerTestUtils.setupMockGenerator({
         generateAssignmentTarget: vi.fn().mockReturnValue("Motor_items[0]"),
       });

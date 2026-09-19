@@ -1418,15 +1418,15 @@ export default class CodeGenState {
   /**
    * Get members of a scope.
    */
-  static getScopeMembers(scopeName: string): Set<string> | undefined {
-    return this.scopeMembers.get(scopeName);
+  static getScopeMembers(scopePath: string): Set<string> | undefined {
+    return this.scopeMembers.get(scopePath);
   }
 
   /**
    * Set members of a scope.
    */
-  static setScopeMembers(scopeName: string, members: Set<string>): void {
-    this.scopeMembers.set(scopeName, members);
+  static setScopeMembers(scopePath: string, members: Set<string>): void {
+    this.scopeMembers.set(scopePath, members);
   }
 
   /**
@@ -1441,14 +1441,11 @@ export default class CodeGenState {
    */
   static isCurrentScopeMember(identifier: string): boolean {
     if (this.currentScopePath === "") return false;
-    // `scopeMembers` is keyed by the scope's LEAF name, so this passes `.name`
-    // deliberately rather than the scope's identity. That key is itself a
-    // leaf-only encoder and collides at depth two -- tracked as #1295, not
-    // changed here, because its producer and every other reader move with it.
+    // #1295: `scopeMembers` is keyed by the scope's IDENTITY -- its dotted
+    // source path -- which is exactly what `currentScopePath` holds. No
+    // conversion, and `Outer.Inner` no longer collides with `Other.Inner`.
     return (
-      this.scopeMembers
-        .get(ScopeUtils.leafOf(this.currentScopePath))
-        ?.has(identifier) ?? false
+      this.scopeMembers.get(this.currentScopePath)?.has(identifier) ?? false
     );
   }
 
@@ -1458,9 +1455,7 @@ export default class CodeGenState {
    */
   static resolveIdentifier(identifier: string): string {
     if (this.currentScopePath !== "") {
-      const members = this.scopeMembers.get(
-        ScopeUtils.leafOf(this.currentScopePath),
-      );
+      const members = this.scopeMembers.get(this.currentScopePath);
       if (members?.has(identifier)) {
         // Built from the whole PATH, so a member of a nested scope gets every
         // component rather than just the innermost one.
@@ -1682,25 +1677,39 @@ export default class CodeGenState {
    * registers it under the leaf, after which every qualification through
    * `currentScopePath` silently returns a one-level name.
    *
-   * Every codegen caller currently passes a leaf, and that is correct for every
-   * program C-Next can express: `scopeMember` admits no `scopeDeclaration`
+   * Every codegen caller passes a leaf, and that is correct for every program
+   * C-Next can express: `scopeMember` admits no `scopeDeclaration`
    * (grammar/CNext.g4:81-89), so a scope's leaf IS its whole path. ADR-016 makes
-   * that permanent, so no future grammar change retires the gap -- but the
-   * parameter is still a path, and a leaf passed where a path is expected is a
-   * misuse the type cannot catch. #1304 tracks it on those terms.
+   * that permanent, so no future grammar change retires the gap.
+   *
+   * #1304: what remains is that a leaf passed where a path is expected used to
+   * be UNDETECTABLE. `getOrCreateScope` minted a fresh scope parented to global
+   * and registered it under the leaf, after which `currentScopePath` was that
+   * orphan's one-level name -- so #1295's producer key (`scope.cnxScopedName`,
+   * the whole path) missed, and the member generated as a bare C identifier at
+   * exit 0. The two halves of the same decision disagreed silently.
+   *
+   * The registry is the authority. A path it does not know is a broken promise
+   * about the symbols pass, not something to create here, so this looks up and
+   * asserts instead of creating. Measured before changing it: the whole fixture
+   * corpus (1247/1247) enters only scopes that are already registered, so
+   * nothing reachable relied on the creating behavior.
+   *
+   * Reading the path back off the registered scope is what makes producer and
+   * reader agree BY CONSTRUCTION rather than by coincidence -- both are that
+   * scope's `cnxScopedName`, not two strings that happen to match.
    */
   static setCurrentScopeByPath(name: string | null): void {
     if (name === null) {
       this.currentScopePath = "";
       return;
     }
-    // Still routed through the registry: entering a scope has always created it
-    // when absent, and #1298 changes what is HELD, not when a scope comes into
-    // existence. Reading the path back off the registered scope also keeps a
-    // malformed argument from being stored verbatim.
-    this.currentScopePath = ScopeUtils.pathOf(
-      SymbolRegistry.getOrCreateScope(name),
+    const scope = SymbolRegistry.getScope(name);
+    invariant(
+      scope !== null,
+      `a scope entered during generation was registered by the symbols pass (got "${name}")`,
     );
+    this.currentScopePath = ScopeUtils.pathOf(scope);
   }
 
   /**

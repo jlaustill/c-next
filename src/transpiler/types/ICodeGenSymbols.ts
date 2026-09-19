@@ -9,7 +9,17 @@ import type IBitmapFieldLayout from "./IBitmapFieldLayout";
 interface ICodeGenSymbols {
   // === Known Type Names ===
 
-  /** Set of known scope names (ADR-016) */
+  /**
+   * Known scopes, keyed by a scope's IDENTITY -- its `cnxScopedName`, the dotted
+   * SOURCE path (`Motor`, `Outer.Inner`), never its leaf (ADR-016).
+   *
+   * #1295: stated here because the key is a contract, and this is the file a
+   * consumer opens to learn it. It was previously the leaf, and the three
+   * collections below moved with it. Nothing enforces this -- the key is
+   * `string` either way, so `tsc`, `knip` and `depcruise` are all structurally
+   * blind to a reader that goes back to passing a leaf. It would simply return
+   * `undefined`, which every caller reads as "not a scope member".
+   */
   readonly knownScopes: ReadonlySet<string>;
 
   /** Set of known struct type names */
@@ -44,10 +54,18 @@ interface ICodeGenSymbols {
 
   // === Scope Information ===
 
-  /** Members of each scope: scopeName -> Set of member names */
+  /**
+   * Members of each scope: scope `cnxScopedName` -> Set of member names.
+   *
+   * #1295: the key is the scope's whole dotted source path, not its leaf. See
+   * `knownScopes` above for why that is stated rather than enforced.
+   *
+   * Per-file, unlike its two siblings: `VisibleSymbols` merges `knownScopes`
+   * and `scopeMemberVisibility` across includes and does NOT merge this one.
+   */
   readonly scopeMembers: ReadonlyMap<string, ReadonlySet<string>>;
 
-  /** Visibility of scope members: scopeName -> (memberName -> visibility) */
+  /** Visibility of scope members: scope `cnxScopedName` -> (memberName -> visibility) */
   readonly scopeMemberVisibility: ReadonlyMap<
     string,
     ReadonlyMap<string, "public" | "private">

@@ -10,6 +10,7 @@ import CodeGenState from "../../../state/CodeGenState";
 import TTypeInfo from "../../../types/TTypeInfo";
 import { CNextLexer } from "../../../logic/parser/grammar/CNextLexer";
 import { CNextParser } from "../../../logic/parser/grammar/CNextParser";
+import enterScope from "../../../__tests__/enterScope";
 
 /** Parse a standalone C-Next expression into an ExpressionContext. */
 function parseExpression(source: string) {
@@ -756,7 +757,7 @@ describe("TypeResolver", () => {
     });
 
     it("should resolve this.scopeVar type", () => {
-      CodeGenState.setCurrentScopeByPath("Motor");
+      enterScope("Motor");
       setTypeInfo("Motor__speed", {
         baseType: "u32",
         bitWidth: 32,
@@ -801,7 +802,7 @@ describe("TypeResolver", () => {
     });
 
     it("should return null for this.X without current scope", () => {
-      CodeGenState.setCurrentScopeByPath(null);
+      enterScope(null);
 
       const ctx = {
         primaryExpression: () => ({

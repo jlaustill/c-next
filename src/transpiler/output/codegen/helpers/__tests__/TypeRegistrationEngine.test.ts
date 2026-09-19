@@ -9,6 +9,7 @@ import CNextSourceParser from "../../../../logic/parser/CNextSourceParser";
 import CodeGenState from "../../../../state/CodeGenState";
 import * as Parser from "../../../../logic/parser/grammar/CNextParser";
 import createMockSymbols from "../../../../__tests__/codeGenSymbolsHelpers";
+import enterScope from "../../../../__tests__/enterScope";
 
 /**
  * Helper to parse a variable declaration and get its arrayType context
@@ -175,7 +176,7 @@ describe("TypeRegistrationEngine", () => {
 
     it("registers global type arrays", () => {
       // Set up a scope context to test global.Type[N] pattern
-      CodeGenState.setCurrentScopeByPath("Motor");
+      enterScope("Motor");
 
       const source = `
         scope Motor {
@@ -192,7 +193,7 @@ describe("TypeRegistrationEngine", () => {
       expect(info?.baseType).toBe("State");
       expect(info?.isArray).toBe(true);
 
-      CodeGenState.setCurrentScopeByPath(null);
+      enterScope(null);
     });
 
     it("registers qualified type arrays (Scope.Type[N])", () => {
@@ -213,7 +214,7 @@ describe("TypeRegistrationEngine", () => {
     });
 
     it("registers scoped type arrays (this.Type[N])", () => {
-      CodeGenState.setCurrentScopeByPath("Motor");
+      enterScope("Motor");
 
       const source = `
         scope Motor {
@@ -230,7 +231,7 @@ describe("TypeRegistrationEngine", () => {
       expect(info?.baseType).toBe("Motor__State");
       expect(info?.isArray).toBe(true);
 
-      CodeGenState.setCurrentScopeByPath(null);
+      enterScope(null);
     });
   });
 });

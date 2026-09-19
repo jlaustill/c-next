@@ -7,6 +7,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import ArgumentGenerator from "../ArgumentGenerator";
 import CodeGenState from "../../../../state/CodeGenState";
 import IArgumentGeneratorCallbacks from "../types/IArgumentGeneratorCallbacks";
+import enterScope from "../../../../__tests__/enterScope";
 
 describe("ArgumentGenerator", () => {
   // Mock callbacks that return predictable values
@@ -68,7 +69,7 @@ describe("ArgumentGenerator", () => {
       // #1450: this asserted `&name`, and `&name` on a `char[N]` is
       // `char (*)[N]` -- not the `char*` a `string<N>` parameter is generated
       // as. gcc: "passing argument 1 from incompatible pointer type". The test
-      // pinned the defect rather than the behaviour, which is how five
+      // pinned the defect rather than the behavior, which is how five
       // committed snapshots came to hold it too; `&x` and `x` share a value, so
       // execution tests passed and only `-Werror` could tell.
       it("lets a global string decay, like any other array", () => {
@@ -89,7 +90,7 @@ describe("ArgumentGenerator", () => {
     describe("scope members", () => {
       it("prefixes scope member and adds & in C mode", () => {
         CodeGenState.cppMode = false;
-        CodeGenState.setCurrentScopeByPath("LED");
+        enterScope("LED");
         CodeGenState.setScopeMembers("LED", new Set(["brightness"]));
 
         const result = ArgumentGenerator.handleIdentifierArg("brightness");
@@ -98,7 +99,7 @@ describe("ArgumentGenerator", () => {
 
       it("prefixes scope member without & in C++ mode", () => {
         CodeGenState.cppMode = true;
-        CodeGenState.setCurrentScopeByPath("LED");
+        enterScope("LED");
         CodeGenState.setScopeMembers("LED", new Set(["brightness"]));
 
         const result = ArgumentGenerator.handleIdentifierArg("brightness");

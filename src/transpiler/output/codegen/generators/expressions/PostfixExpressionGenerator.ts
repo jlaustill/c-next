@@ -32,7 +32,6 @@ import C_TYPE_WIDTH from "../../types/C_TYPE_WIDTH";
 import TTypeInfo from "../../../../types/TTypeInfo";
 import CodeGenState from "../../../../state/CodeGenState";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
-import ScopeUtils from "../../../../../utils/ScopeUtils";
 import invariant from "../../../../../utils/invariant";
 import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
 
@@ -515,9 +514,7 @@ const handleThisScopeLength = (
     return false;
   }
   // #1322: `this` outside a scope is E0431 in 2.1.
-  const members = state.scopeMembers.get(
-    ScopeUtils.leafOf(state.currentScopePath),
-  );
+  const members = state.scopeMembers.get(state.currentScopePath);
   if (!members?.has("length")) {
     return false;
   }

@@ -162,9 +162,15 @@ class CNextResolver {
     constValues.set(name, value);
 
     // Store scoped name as well for scoped variables.
-    // #1295: keyed by the scope LEAF, like scopeMembers and knownScopes. Left
-    // as-is deliberately -- its consumers look up with leaf-built keys too, and
-    // moving one side alone would break the pairing.
+    // #1295: this is NOT the defect the three scope collections had, although
+    // this comment used to claim kinship with them. They held an `IScopeSymbol`
+    // carrying the whole chain in `cnxScopedName` and threw it away by taking
+    // `.name` -- information present and discarded -- and are now keyed by that
+    // identity. Here the key is built from a parse-tree identifier, and
+    // `scopeMember` (grammar/CNext.g4:81-88) admits no `scopeDeclaration`, a
+    // prohibition ADR-016 states permanently (#1306). So `scopeDecl.IDENTIFIER()`
+    // IS the whole path: there is no richer path at this site, and the symbol
+    // model that makes depth two reachable for those collections never feeds it.
     if (scopeName) {
       constValues.set(QualifiedCName.fromParts([scopeName, name]), value);
     }

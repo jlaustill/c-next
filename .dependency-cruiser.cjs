@@ -10,7 +10,15 @@ module.exports = {
     //   - Transpiler.ts → data/, logic/, output/ (orchestrator)
     //   - output/ → logic/ (code gen needs parser types, symbols)
     //   - Any layer → utils/ (shared utilities)
-    //   - Any layer → lib/types/ (shared public types)
+    //   - Any layer → lib/types/ (shared public types) -- TRANSITIONAL, and no
+    //     longer what the record says. docs/architecture/README.md §1 forbids
+    //     reaching up and back down into another root's interior, so this shape
+    //     is allowed here only until the modules move (#1443). All 7 non-host
+    //     importers want ONE file, ITranspileError -- a diagnostic type, which
+    //     2.1 Analyze authors -- so it belongs in the shared contracts root, not
+    //     in the published API surface it happens to have been written in.
+    //     Listed rather than quietly dropped: an allowance the record contradicts
+    //     should be visible to whoever writes layout:check (#1466).
     //   - Any layer → transpiler/types/ (shared contracts, layer-neutral)
     //
     // Forbidden dependencies:

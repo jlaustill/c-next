@@ -22,6 +22,7 @@ import TSymbolInfoAdapter from "../../../../PARSE/3-Declare/cnext/adapters/TSymb
 import CodeGenState from "../../../state/CodeGenState";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import TestSourceSpan from "../../../types/__testUtils__/testSourceSpan";
+import enterScope from "../../../__tests__/enterScope";
 
 /**
  * Helper to parse C-Next source and return tree + generator ready for testing.
@@ -289,7 +290,7 @@ describe("CodeGenerator Coverage Tests", () => {
       const { generator } = setupGenerator(source);
 
       // Manually set up scope context to test the resolution path
-      CodeGenState.setCurrentScopeByPath("Motor");
+      enterScope("Motor");
       CodeGenState.setScopeMembers("Motor", new Set(["speed", "setSpeed"]));
 
       // Now resolve should return prefixed name (line 633)
@@ -300,7 +301,7 @@ describe("CodeGenerator Coverage Tests", () => {
     it("should return unchanged identifier when not a scope member", () => {
       const { generator } = setupGenerator("u32 globalVar; void main() {}");
 
-      CodeGenState.setCurrentScopeByPath("Motor");
+      enterScope("Motor");
       CodeGenState.setScopeMembers("Motor", new Set(["speed"]));
 
       // globalVar is not in Motor scope members
@@ -311,7 +312,7 @@ describe("CodeGenerator Coverage Tests", () => {
     it("should return unchanged identifier when not in any scope", () => {
       const { generator } = setupGenerator("u32 globalVar; void main() {}");
 
-      CodeGenState.setCurrentScopeByPath(null);
+      enterScope(null);
 
       const resolved = generator.resolveIdentifier("globalVar");
       expect(resolved).toBe("globalVar");

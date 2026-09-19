@@ -19,7 +19,6 @@ import CodeGenState from "../../../state/CodeGenState.js";
 import CppModeHelper from "./CppModeHelper.js";
 import TYPE_MAP from "../types/TYPE_MAP.js";
 import IArgumentGeneratorCallbacks from "./types/IArgumentGeneratorCallbacks.js";
-import ScopeUtils from "../../../../utils/ScopeUtils";
 import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
 
 /**
@@ -56,7 +55,7 @@ class ArgumentGenerator {
     // Scope member - may need prefixing
     if (CodeGenState.currentScopePath) {
       const members = CodeGenState.getScopeMembers(
-        ScopeUtils.leafOf(CodeGenState.currentScopePath),
+        CodeGenState.currentScopePath,
       );
       if (members?.has(id)) {
         const scopedName = QualifiedNameGenerator.forMember(

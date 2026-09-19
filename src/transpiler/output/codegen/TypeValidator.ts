@@ -7,7 +7,6 @@ import CodeGenState from "../../state/CodeGenState";
 import AdrProvenance from "../../state/AdrProvenance";
 // SonarCloud S3776: Extracted literal parsing to reduce complexity
 import QualifiedCName from "../../../utils/QualifiedCName";
-import ScopeUtils from "../../../utils/ScopeUtils";
 import QualifiedNameGenerator from "./utils/QualifiedNameGenerator";
 
 /**
@@ -125,10 +124,8 @@ class TypeValidator {
     identifier: string,
     currentScopePath: string,
   ): string | null {
-    // #1295: getScopeMembers is keyed by the scope LEAF name.
-    const scopeMembers = CodeGenState.getScopeMembers(
-      ScopeUtils.leafOf(currentScopePath),
-    );
+    // #1295: getScopeMembers is keyed by the scope's dotted source path.
+    const scopeMembers = CodeGenState.getScopeMembers(currentScopePath);
     if (scopeMembers?.has(identifier)) {
       return QualifiedNameGenerator.forMember(currentScopePath, identifier);
     }
@@ -156,7 +153,21 @@ class TypeValidator {
 
     if (
       CodeGenState.knownFunctions.has(identifier) &&
-      !QualifiedCName.isInScope(identifier, ScopeUtils.leafOf(currentScopePath))
+      // #1295: pass the PATH, not its leaf. `isInScope` needs no help encoding
+      // it -- `prefixFor` runs the path through `toParts`, which splits on the
+      // source separator, so `Outer.Inner` becomes the prefix `Outer__Inner__`
+      // where `leafOf` gave `Inner__`. File scope is handled before that, by
+      // `isInScope`'s own `if (!scopeName) return false`: `prefixFor("")` would
+      // otherwise return the bogus `"__"`.
+      //
+      // NO GATE COVERS THIS CALL SITE -- review is what catches it. An earlier
+      // revision of this comment claimed the scope-join inventory did, which is
+      // the guard-that-cannot-fail shape CLAUDE.md flags: that scan matches the
+      // single literal `QualifiedCName.fromParts([` and inspects only the first
+      // ARRAY ELEMENT, so `isInScope(...)`, `prefixFor(...)`, and a
+      // `ScopeUtils.leafOf(...)` passed as an argument here are all invisible to
+      // it. Verified: re-inlining the leaf reddens nothing in that check.
+      !QualifiedCName.isInScope(identifier, currentScopePath)
     ) {
       return true;
     }
