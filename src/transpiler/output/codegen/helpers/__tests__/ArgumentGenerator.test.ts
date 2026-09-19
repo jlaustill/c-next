@@ -65,7 +65,13 @@ describe("ArgumentGenerator", () => {
         expect(result).toBe("globalArr");
       });
 
-      it("adds & for global strings (char arrays passed by reference)", () => {
+      // #1450: this asserted `&name`, and `&name` on a `char[N]` is
+      // `char (*)[N]` -- not the `char*` a `string<N>` parameter is generated
+      // as. gcc: "passing argument 1 from incompatible pointer type". The test
+      // pinned the defect rather than the behaviour, which is how five
+      // committed snapshots came to hold it too; `&x` and `x` share a value, so
+      // execution tests passed and only `-Werror` could tell.
+      it("lets a global string decay, like any other array", () => {
         CodeGenState.cppMode = false;
         CodeGenState.setVariableTypeInfo("name", {
           baseType: "char",
@@ -76,7 +82,7 @@ describe("ArgumentGenerator", () => {
         });
 
         const result = ArgumentGenerator.handleIdentifierArg("name");
-        expect(result).toBe("&name");
+        expect(result).toBe("name");
       });
     });
 

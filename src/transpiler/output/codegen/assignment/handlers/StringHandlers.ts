@@ -51,13 +51,33 @@ function copyIntoAssignmentTarget(
 ): string {
   const capacity = capacityOf(registryKey);
 
-  CodeGenState.requireInclude("string");
-
   const target = CodeGenState.requireGenerator().generateAssignmentTarget(
     ctx.targetCtx,
   );
   return StringUtils.copyWithNull(target, ctx.generatedValue, capacity);
 }
+
+/*
+ * #1450 box 4: four `requireInclude("string")` calls stood in this file, and
+ * two more in `StringDeclHelper`. All six were redundant, and measuring WHY
+ * corrected the reason I first wrote here.
+ *
+ * `needsString` is not settled early. It is OVER-DETERMINED: instrumenting
+ * `CodeGenState.requireInclude` shows three independent channels raising it
+ * across the corpus -- the effect channel during expression rendering (632
+ * raises), `CodeGenerator.generateType` (~499), and type registration (460).
+ * Any one of them can be removed and the flag is still true, which is exactly
+ * why deleting these six moved not one byte across 1250 fixtures.
+ *
+ * So this removes duplication, not a render-time decision: the same
+ * consequence was being derived in six more places than the three that already
+ * derive it. `needsString` remains a fact rendering raises, and making it a
+ * PLAN fact is still open under box 4.
+ *
+ * The three that remain are worth their own card, because the two largest fire
+ * on the mere PRESENCE of a string type rather than on a call into the string
+ * library -- which is #1095's root cause, stated there as a symptom.
+ */
 
 /**
  * Handle simple string assignments (STRING_SIMPLE and STRING_GLOBAL), whose
@@ -140,8 +160,6 @@ function handleStringStructField(ctx: IAssignmentContext): string {
   const fieldType = getStructFieldType(structName, fieldName);
   const capacity = TypeCheckUtils.getStringCapacity(fieldType)!;
 
-  CodeGenState.requireInclude("string");
-
   return StringUtils.copyToStructField(
     structName,
     fieldName,
@@ -156,8 +174,6 @@ function handleStringStructField(ctx: IAssignmentContext): string {
 function handleStringArrayElement(ctx: IAssignmentContext): string {
   const name = ctx.identifiers[0];
   const capacity = capacityOf(name);
-
-  CodeGenState.requireInclude("string");
 
   const index = CodeGenState.requireGenerator().generateExpression(
     ctx.subscripts[0],
@@ -203,8 +219,6 @@ function handleStringStructArrayElement(ctx: IAssignmentContext): string {
     `a string<N> capacity is always numeric -- the grammar restricts that token to digits ('${structType}.${fieldName}' gave '${String(rawCapacity)}')`,
   );
   const capacity = rawCapacity - 1;
-
-  CodeGenState.requireInclude("string");
 
   const index = CodeGenState.requireGenerator().generateExpression(
     ctx.subscripts[0],

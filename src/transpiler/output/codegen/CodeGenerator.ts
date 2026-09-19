@@ -3849,7 +3849,6 @@ export default class CodeGenerator implements IOrchestrator {
       getSubstringOperands: (substrCtx) =>
         this._getSubstringOperands(substrCtx),
       getStringExprCapacity: (exprCode) => this.getStringExprCapacity(exprCode),
-      requireStringInclude: () => CodeGenState.requireInclude("string"),
     });
   }
 

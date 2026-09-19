@@ -37,6 +37,11 @@ function createMockContext(
   } as IAssignmentContext;
 }
 
+// #1450: five `expect(CodeGenState.needsString).toBe(true)` assertions stood
+// here, one per handler. The handlers no longer raise it -- `needsString` is
+// over-determined, raised by the effect channel, by `generateType` and by type
+// registration, so six more raisers in the handlers changed nothing. What these
+// tests are FOR is the emitted `strncpy`, and that is untouched.
 describe("StringHandlers", () => {
   beforeEach(() => {
     CodeGenState.reset();
@@ -83,7 +88,6 @@ describe("StringHandlers", () => {
       expect(result).toContain("strncpy");
       expect(result).toContain("target");
       expect(result).toContain("32");
-      expect(CodeGenState.needsString).toBe(true);
     });
 
     // #1322: compound assignment on a bit index, bit range, slice, bitmap field
@@ -109,7 +113,6 @@ describe("StringHandlers", () => {
 
       expect(result).toContain("strncpy");
       expect(result).toContain("64");
-      expect(CodeGenState.needsString).toBe(true);
     });
 
     it("classifier and handler key the same map at depth two", () => {
@@ -181,7 +184,6 @@ describe("StringHandlers", () => {
       expect(result).toContain("strncpy");
       expect(result).toContain("person");
       expect(result).toContain("name");
-      expect(CodeGenState.needsString).toBe(true);
     });
   });
 
@@ -203,7 +205,6 @@ describe("StringHandlers", () => {
       expect(result).toContain("strncpy");
       expect(result).toContain("names");
       expect(result).toContain("20");
-      expect(CodeGenState.needsString).toBe(true);
     });
   });
 
@@ -232,7 +233,6 @@ describe("StringHandlers", () => {
       expect(result).toContain("items");
       // Capacity should be 33 - 1 = 32
       expect(result).toContain("32");
-      expect(CodeGenState.needsString).toBe(true);
     });
   });
 });

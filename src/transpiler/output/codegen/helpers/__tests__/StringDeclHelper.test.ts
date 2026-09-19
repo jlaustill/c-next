@@ -26,7 +26,6 @@ const defaultCallbacks = {
   getStringConcatOperands: vi.fn(() => null),
   getSubstringOperands: vi.fn(() => null),
   getStringExprCapacity: vi.fn(() => null),
-  requireStringInclude: vi.fn(),
 };
 
 // #1322: the `throws error ...` cases below now assert INVARIANTS, not
@@ -225,12 +224,6 @@ describe("StringDeclHelper", () => {
     });
 
     it("generates unsized const string with literal initializer", () => {
-      const requireStringInclude = vi.fn();
-      const callbacks = {
-        ...defaultCallbacks,
-        requireStringInclude,
-      };
-
       const typeCtx = {
         stringType: () => ({
           INTEGER_LITERAL: () => null,
@@ -248,12 +241,11 @@ describe("StringDeclHelper", () => {
         [],
         { extern: "", const: "const ", atomic: "", volatile: "" },
         true,
-        callbacks,
+        defaultCallbacks,
       );
 
       expect(result.handled).toBe(true);
       expect(result.code).toBe('const char greeting[6] = "Hello";');
-      expect(requireStringInclude).toHaveBeenCalled();
       expect(CodeGenState.getVariableTypeInfo("greeting")).toMatchObject({
         baseType: "char",
         isString: true,

@@ -122,7 +122,6 @@ interface IVariableDeclCallbacks {
   /** Get string expression capacity */
   getStringExprCapacity: (exprCode: string) => number | null;
   /** Request include for string operations */
-  requireStringInclude: () => void;
 }
 
 /**
@@ -520,7 +519,6 @@ class VariableDeclHelper {
           callbacks.getSubstringOperands(substrCtx),
         getStringExprCapacity: (exprCode) =>
           callbacks.getStringExprCapacity(exprCode),
-        requireStringInclude: () => callbacks.requireStringInclude(),
       },
     );
     if (stringResult.handled) {

@@ -61,8 +61,6 @@ interface IStringDeclCallbacks {
   getSubstringOperands: (ctx: Parser.ExpressionContext) => ISubstringOps | null;
   /** Get string expression capacity */
   getStringExprCapacity: (exprCode: string) => number | null;
-  /** Request the include string operations need */
-  requireStringInclude: () => void;
 }
 
 /**
@@ -120,7 +118,6 @@ class StringDeclHelper {
         expression,
         modifiers,
         isConst,
-        callbacks,
       );
     }
   }
@@ -149,7 +146,6 @@ class StringDeclHelper {
 
     const capacity = Number.parseInt(intLiteral.getText(), 10);
     // Ensure string.h is included for strncpy operations
-    callbacks.requireStringInclude();
 
     const {
       extern,
@@ -555,7 +551,6 @@ class StringDeclHelper {
     expression: Parser.ExpressionContext | null,
     modifiers: IStringDeclModifiers,
     isConst: boolean,
-    callbacks: IStringDeclCallbacks,
   ): IStringDeclResult {
     if (!isConst) {
       invariant(
@@ -581,7 +576,6 @@ class StringDeclHelper {
 
     // Infer capacity from literal length
     const inferredCapacity = StringUtils.literalLength(exprText);
-    callbacks.requireStringInclude();
 
     // Register in type registry with inferred capacity
     CodeGenState.setVariableTypeInfo(CodeGenState.sourceLocalName(name), {
