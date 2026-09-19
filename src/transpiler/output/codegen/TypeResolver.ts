@@ -16,6 +16,7 @@ import type TTypeInfo from "../../types/TTypeInfo";
 import QualifiedNameGenerator from "./utils/QualifiedNameGenerator";
 import QualifiedCName from "../../../utils/QualifiedCName";
 import ScopeUtils from "../../../utils/ScopeUtils";
+import PrimitiveKindUtils from "../../../utils/PrimitiveKindUtils";
 
 /**
  * Internal type info tracked through postfix suffix chains.
@@ -356,20 +357,11 @@ class TypeResolver {
   private static resolveCompositeIntegerType(
     ctx: ParserRuleContext,
   ): string | null {
-    let category: "i" | "u" | null = null;
-    let width = 0;
-
-    for (const operand of TypeResolver.collectOperandPostfixes(ctx)) {
-      const operandType = TypeResolver.typeOperandPostfix(operand);
-      const match = operandType
-        ? /^([iu])(8|16|32|64)$/.exec(operandType)
-        : null;
-      if (!match) continue;
-      category ??= match[1] as "i" | "u";
-      width = Math.max(width, Number.parseInt(match[2], 10));
-    }
-
-    return category && width > 0 ? `${category}${width}` : null;
+    return PrimitiveKindUtils.widestIntegerOf(
+      TypeResolver.collectOperandPostfixes(ctx).map((operand) =>
+        TypeResolver.typeOperandPostfix(operand),
+      ),
+    );
   }
 
   /**
