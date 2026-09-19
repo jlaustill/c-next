@@ -1,87 +1,42 @@
 /**
- * CastValidator
+ * CastValidator - does this cast need clamping?
  *
- * Validates type casts for safety (narrowing, sign changes) and determines
- * when clamping casts are required (float-to-int).
+ * Issue #632: a float-to-integer cast needs explicit bounds checking, because
+ * converting a float whose value is outside the target's range is undefined
+ * behavior in C. That is the whole of this module's job, and its one caller is
+ * `CodeGenerator`.
  *
- * ADR-024: Integer cast validation
- * Issue #632: Float-to-integer clamping
+ * ## What was here, and why it is gone (#1450)
+ *
+ * Six further predicates -- `isIntegerType`, `isFloatType`, `isSignedType`,
+ * `isUnsignedType`, `isNarrowingConversion`, `isSignConversion` -- plus
+ * `getTypeWidth`. Every one of them was also declared on `TypeResolver`, under
+ * the same name, in the same layer. Not one had a production caller: the only
+ * reference to this module from outside it is `requiresClampingCast`, and the
+ * rest were reachable only from each other and from this module's own tests,
+ * which is why knip stayed green over them (#1418).
+ *
+ * They were not copies, either. The two `isNarrowingConversion`s disagreed on
+ * an unknown width -- this one reported narrowing when the TARGET was unknown,
+ * `TypeResolver`'s returned false whenever either width was -- and the two
+ * `isSignConversion`s disagreed on `f32 -> i32`, which this one called a sign
+ * change because a float is not in its signed set. Both halves of both
+ * disagreements were dead, so nothing failed; what stood was two answers to one
+ * question, with no way for the next caller to know they had picked one.
+ *
+ * ADR-024's narrowing and sign-change DECISIONS live in pass 2.1 (#1322).
+ * Nothing in `output/` decides them, under any name -- which is what a Render
+ * pass that "decides nothing" should look like.
+ *
+ * The type lists come from `types/` rather than being spelled again here. The
+ * four `Set` literals this module declared held exactly the same eight integer
+ * and two float names those modules hold.
  */
 
-import TYPE_WIDTH from "../../../constants/TYPE_WIDTH.js";
-
-/**
- * Set of signed integer type names.
- */
-const SIGNED_INTEGERS = new Set(["i8", "i16", "i32", "i64"]);
-
-/**
- * Set of unsigned integer type names.
- */
-const UNSIGNED_INTEGERS = new Set(["u8", "u16", "u32", "u64"]);
-
-/**
- * Set of all integer type names.
- */
-const ALL_INTEGERS = new Set([...SIGNED_INTEGERS, ...UNSIGNED_INTEGERS]);
-
-/**
- * Set of float type names.
- */
-const FLOAT_TYPES = new Set(["f32", "f64"]);
+import INTEGER_TYPES from "../types/INTEGER_TYPES";
+import FLOAT_TYPES from "../types/FLOAT_TYPES";
 
 class CastValidator {
-  /**
-   * Check if a type is an integer type.
-   */
-  static isIntegerType(typeName: string): boolean {
-    return ALL_INTEGERS.has(typeName);
-  }
-
-  /**
-   * Check if a type is a floating-point type.
-   */
-  static isFloatType(typeName: string): boolean {
-    return FLOAT_TYPES.has(typeName);
-  }
-
-  /**
-   * Check if a type is signed.
-   */
-  static isSignedType(typeName: string): boolean {
-    return SIGNED_INTEGERS.has(typeName);
-  }
-
-  /**
-   * Check if a type is unsigned.
-   */
-  static isUnsignedType(typeName: string): boolean {
-    return UNSIGNED_INTEGERS.has(typeName);
-  }
-
-  /**
-   * Check if a conversion from sourceType to targetType is narrowing.
-   * Narrowing occurs when target type has fewer bits than source type.
-   */
-  static isNarrowingConversion(
-    sourceType: string,
-    targetType: string,
-  ): boolean {
-    const sourceWidth = TYPE_WIDTH[sourceType] ?? 0;
-    const targetWidth = TYPE_WIDTH[targetType] ?? 0;
-    return targetWidth < sourceWidth;
-  }
-
-  /**
-   * Check if a conversion involves a sign change.
-   * Sign change occurs when converting between signed and unsigned types.
-   */
-  static isSignConversion(sourceType: string, targetType: string): boolean {
-    const sourceIsSigned = CastValidator.isSignedType(sourceType);
-    const targetIsSigned = CastValidator.isSignedType(targetType);
-    return sourceIsSigned !== targetIsSigned;
-  }
-
   /**
    * Check if a cast requires clamping (float-to-integer).
    * Float-to-integer casts need explicit bounds checking to avoid undefined behavior.
@@ -97,16 +52,9 @@ class CastValidator {
     if (!sourceType) return false;
 
     return (
-      CastValidator.isIntegerType(targetType) &&
-      CastValidator.isFloatType(sourceType)
+      (INTEGER_TYPES as readonly string[]).includes(targetType) &&
+      (FLOAT_TYPES as readonly string[]).includes(sourceType)
     );
-  }
-
-  /**
-   * Get the bit width for an error message.
-   */
-  static getTypeWidth(typeName: string): number {
-    return TYPE_WIDTH[typeName] ?? 0;
   }
 }
 

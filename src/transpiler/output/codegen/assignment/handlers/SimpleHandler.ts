@@ -72,8 +72,8 @@ function tryHandleIntToFloatConversion(
   }
 
   if (
-    !NarrowingCastHelper.isIntegerType(valueType) ||
-    !NarrowingCastHelper.isFloatType(targetType)
+    !NarrowingCastHelper.isIntegerCategory(valueType) ||
+    !NarrowingCastHelper.isFloatCategory(targetType)
   ) {
     return null;
   }

@@ -414,8 +414,8 @@ class VariableDeclHelper {
       ) {
         // Int to float: add explicit cast
         if (
-          NarrowingCastHelper.isIntegerType(exprType) &&
-          NarrowingCastHelper.isFloatType(typeName)
+          NarrowingCastHelper.isIntegerCategory(exprType) &&
+          NarrowingCastHelper.isFloatCategory(typeName)
         ) {
           exprCode = NarrowingCastHelper.wrapIntToFloat(exprCode, typeName);
         }
@@ -424,8 +424,8 @@ class VariableDeclHelper {
         // which generates a clamping expression. This implicit cast is just for
         // MISRA 10.3 compliance when user omits explicit cast.
         if (
-          NarrowingCastHelper.isFloatType(exprType) &&
-          NarrowingCastHelper.isIntegerType(typeName)
+          NarrowingCastHelper.isFloatCategory(exprType) &&
+          NarrowingCastHelper.isIntegerCategory(typeName)
         ) {
           const cType = TYPE_MAP[typeName] ?? typeName;
           exprCode = CppModeHelper.cast(cType, exprCode);

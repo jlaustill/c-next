@@ -92,27 +92,6 @@ describe("TypeResolver", () => {
     });
   });
 
-  describe("isSignedType", () => {
-    it("should return true for signed integer types", () => {
-      expect(TypeResolver.isSignedType("i8")).toBe(true);
-      expect(TypeResolver.isSignedType("i16")).toBe(true);
-      expect(TypeResolver.isSignedType("i32")).toBe(true);
-      expect(TypeResolver.isSignedType("i64")).toBe(true);
-    });
-
-    it("should return false for unsigned types", () => {
-      expect(TypeResolver.isSignedType("u8")).toBe(false);
-      expect(TypeResolver.isSignedType("u16")).toBe(false);
-      expect(TypeResolver.isSignedType("u32")).toBe(false);
-      expect(TypeResolver.isSignedType("u64")).toBe(false);
-    });
-
-    it("should return false for non-integer types", () => {
-      expect(TypeResolver.isSignedType("f32")).toBe(false);
-      expect(TypeResolver.isSignedType("bool")).toBe(false);
-    });
-  });
-
   describe("isUnsignedType", () => {
     it("should return true for unsigned integer types", () => {
       expect(TypeResolver.isUnsignedType("u8")).toBe(true);
@@ -159,48 +138,6 @@ describe("TypeResolver", () => {
   // ========================================================================
   // Type Conversion Validation
   // ========================================================================
-
-  describe("isNarrowingConversion", () => {
-    it("should return true when target is smaller than source", () => {
-      expect(TypeResolver.isNarrowingConversion("u32", "u16")).toBe(true);
-      expect(TypeResolver.isNarrowingConversion("u32", "u8")).toBe(true);
-      expect(TypeResolver.isNarrowingConversion("u64", "u32")).toBe(true);
-      expect(TypeResolver.isNarrowingConversion("i64", "i8")).toBe(true);
-    });
-
-    it("should return false when target is same size or larger", () => {
-      expect(TypeResolver.isNarrowingConversion("u16", "u32")).toBe(false);
-      expect(TypeResolver.isNarrowingConversion("u32", "u32")).toBe(false);
-      expect(TypeResolver.isNarrowingConversion("u8", "u64")).toBe(false);
-    });
-
-    it("should return false for unknown types", () => {
-      expect(TypeResolver.isNarrowingConversion("unknown", "u32")).toBe(false);
-      expect(TypeResolver.isNarrowingConversion("u32", "unknown")).toBe(false);
-    });
-  });
-
-  describe("isSignConversion", () => {
-    it("should return true for signed to unsigned conversion", () => {
-      expect(TypeResolver.isSignConversion("i32", "u32")).toBe(true);
-      expect(TypeResolver.isSignConversion("i8", "u64")).toBe(true);
-    });
-
-    it("should return true for unsigned to signed conversion", () => {
-      expect(TypeResolver.isSignConversion("u32", "i32")).toBe(true);
-      expect(TypeResolver.isSignConversion("u8", "i64")).toBe(true);
-    });
-
-    it("should return false for same-sign conversion", () => {
-      expect(TypeResolver.isSignConversion("i32", "i64")).toBe(false);
-      expect(TypeResolver.isSignConversion("u32", "u64")).toBe(false);
-    });
-
-    it("should return false for non-integer types", () => {
-      expect(TypeResolver.isSignConversion("f32", "f64")).toBe(false);
-      expect(TypeResolver.isSignConversion("bool", "u8")).toBe(false);
-    });
-  });
 
   // #1322: the `validateTypeConversion` suite that stood here is gone with the method. ADR-024's
   // rules are E0868/E0869 in pass 2.1, covered by

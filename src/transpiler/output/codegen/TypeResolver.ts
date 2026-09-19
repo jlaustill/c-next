@@ -7,9 +7,7 @@ import * as Parser from "../../logic/parser/grammar/CNextParser";
 import CodeGenState from "../../state/CodeGenState";
 import INTEGER_TYPES from "./types/INTEGER_TYPES";
 import FLOAT_TYPES from "./types/FLOAT_TYPES";
-import SIGNED_TYPES from "./types/SIGNED_TYPES";
 import UNSIGNED_TYPES from "./types/UNSIGNED_TYPES";
-import TYPE_WIDTH from "../../constants/TYPE_WIDTH";
 import ExpressionUnwrapper from "../../../utils/ExpressionUnwrapper";
 import type TOverflowBehavior from "../../types/TOverflowBehavior";
 import type TTypeInfo from "../../types/TTypeInfo";
@@ -54,14 +52,15 @@ class TypeResolver {
   }
 
   /**
-   * ADR-024: Check if a type is a signed integer
-   */
-  static isSignedType(typeName: string): boolean {
-    return (SIGNED_TYPES as readonly string[]).includes(typeName);
-  }
-
-  /**
    * ADR-024: Check if a type is an unsigned integer
+   */
+  /**
+   * #1450: `isSignedType`, `isNarrowingConversion` and `isSignConversion` stood
+   * beside this one with no production caller, each also declared on
+   * `CastValidator` under the same name and two of the pairs disagreeing.
+   * ADR-024's narrowing and sign-change decisions are pass 2.1's (#1322);
+   * nothing in `output/` decides them under any name. This one survives because
+   * `UnaryExprGenerator` asks it.
    */
   static isUnsignedType(typeName: string): boolean {
     return (UNSIGNED_TYPES as readonly string[]).includes(typeName);
@@ -83,38 +82,6 @@ class TypeResolver {
       return true;
     }
     return false;
-  }
-
-  /**
-   * ADR-024: Check if conversion from sourceType to targetType is narrowing
-   */
-  static isNarrowingConversion(
-    sourceType: string,
-    targetType: string,
-  ): boolean {
-    const sourceWidth = TYPE_WIDTH[sourceType] || 0;
-    const targetWidth = TYPE_WIDTH[targetType] || 0;
-
-    if (sourceWidth === 0 || targetWidth === 0) {
-      return false;
-    }
-
-    return targetWidth < sourceWidth;
-  }
-
-  /**
-   * ADR-024: Check if conversion involves a sign change
-   */
-  static isSignConversion(sourceType: string, targetType: string): boolean {
-    const sourceIsSigned = TypeResolver.isSignedType(sourceType);
-    const sourceIsUnsigned = TypeResolver.isUnsignedType(sourceType);
-    const targetIsSigned = TypeResolver.isSignedType(targetType);
-    const targetIsUnsigned = TypeResolver.isUnsignedType(targetType);
-
-    return (
-      (sourceIsSigned && targetIsUnsigned) ||
-      (sourceIsUnsigned && targetIsSigned)
-    );
   }
 
   /**

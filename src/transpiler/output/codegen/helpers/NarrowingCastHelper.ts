@@ -28,7 +28,15 @@ const EXTENDED_TYPE_WIDTH: Record<string, number> = {
 const PROMOTED_TO_INT = new Set(["u8", "i8", "u16", "i16", "bool"]);
 
 /**
- * Float types for cross-category detection.
+ * Float types for cross-category detection -- C-Next's `f32`/`f64` AND the C
+ * spellings a header brings in, because MISRA 10.3's essential type categories
+ * do not stop at the interop boundary.
+ *
+ * #1450: deliberately WIDER than `types/FLOAT_TYPES`, which is C-Next only and
+ * is what `TypeResolver.isFloatType` answers from. Two different questions; the
+ * predicates below used to share `TypeResolver`'s names, so picking the wrong
+ * one silently answered the other question. `parseArrayTypeDimension` is what
+ * that costs when it happens -- see `issue-1450-hex-array-dimension-fill`.
  */
 const FLOAT_TYPES = new Set(["f32", "f64", "float", "double"]);
 
@@ -132,16 +140,22 @@ class NarrowingCastHelper {
   }
 
   /**
-   * Check if a type is a floating-point type.
+   * Is this type in the FLOAT category, C spellings included?
+   *
+   * Not `TypeResolver.isFloatType`, which answers about C-Next types alone:
+   * `double` is true here and false there, on purpose.
    */
-  static isFloatType(typeName: string): boolean {
+  static isFloatCategory(typeName: string): boolean {
     return FLOAT_TYPES.has(typeName);
   }
 
   /**
-   * Check if a type is an integer type.
+   * Is this type in the INTEGER category, C spellings included?
+   *
+   * Not `TypeResolver.isIntegerType` -- `uint8_t` and `int` are true here and
+   * false there, on purpose.
    */
-  static isIntegerType(typeName: string): boolean {
+  static isIntegerCategory(typeName: string): boolean {
     return INTEGER_TYPES.has(typeName);
   }
 
@@ -153,10 +167,10 @@ class NarrowingCastHelper {
     sourceType: string,
     targetType: string,
   ): boolean {
-    const sourceIsFloat = NarrowingCastHelper.isFloatType(sourceType);
-    const targetIsFloat = NarrowingCastHelper.isFloatType(targetType);
-    const sourceIsInt = NarrowingCastHelper.isIntegerType(sourceType);
-    const targetIsInt = NarrowingCastHelper.isIntegerType(targetType);
+    const sourceIsFloat = NarrowingCastHelper.isFloatCategory(sourceType);
+    const targetIsFloat = NarrowingCastHelper.isFloatCategory(targetType);
+    const sourceIsInt = NarrowingCastHelper.isIntegerCategory(sourceType);
+    const targetIsInt = NarrowingCastHelper.isIntegerCategory(targetType);
 
     // Float to integer or integer to float
     return (sourceIsFloat && targetIsInt) || (sourceIsInt && targetIsFloat);
