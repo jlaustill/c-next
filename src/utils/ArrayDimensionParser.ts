@@ -27,6 +27,7 @@
 import LiteralUtils from "./LiteralUtils.js";
 import * as Parser from "../transpiler/logic/parser/grammar/CNextParser.js";
 import UNRESOLVED_DIMENSION from "../transpiler/constants/UNRESOLVED_DIMENSION.js";
+import BareIdentifier from "./BareIdentifier";
 
 /**
  * Options for evaluating constant expressions.
@@ -48,8 +49,6 @@ interface IConstantEvalOptions {
  * - Binary expressions with const values (CONST + CONST)
  */
 class ArrayDimensionParser {
-  /** Regex for identifier pattern */
-  private static readonly IDENTIFIER_RE = /^[a-zA-Z_]\w*$/;
   /**
    * Regex for addition of two operands, each an integer literal or a const
    * identifier: `8+1`, `SIZE+1`, `1+SIZE`, `SIZE+OFFSET`.
@@ -121,7 +120,7 @@ class ArrayDimensionParser {
     options?: IConstantEvalOptions,
   ): number | undefined {
     const constValues = options?.constValues;
-    if (!constValues || !this.IDENTIFIER_RE.test(text)) {
+    if (!constValues || !BareIdentifier.matches(text)) {
       return undefined;
     }
     return constValues.get(text);

@@ -42,6 +42,7 @@ import TypeResolver from "../TypeResolver";
 import ExpressionUnwrapper from "../../../../utils/ExpressionUnwrapper";
 import QualifiedCName from "../../../../utils/QualifiedCName";
 import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
+import BareIdentifier from "../../../../utils/BareIdentifier";
 
 /**
  * Resolves enum types from expressions.
@@ -64,7 +65,7 @@ export default class EnumTypeResolver {
     }
 
     // Check if it's a simple identifier that's an enum variable
-    if (/^[a-zA-Z_]\w*$/.exec(text)) {
+    if (BareIdentifier.matches(text)) {
       const typeInfo = CodeGenState.getVariableTypeInfo(text);
       if (typeInfo?.isEnum && typeInfo.enumTypeName) {
         return typeInfo.enumTypeName;

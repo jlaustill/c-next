@@ -167,6 +167,7 @@ import SymbolGuards from "../../types/symbols/SymbolGuards";
 import type IFunctionSymbol from "../../types/symbols/IFunctionSymbol";
 import type TSymbol from "../../types/symbols/TSymbol";
 import type ICallbackTypeInfo from "../../types/ICallbackTypeInfo";
+import BareIdentifier from "../../../utils/BareIdentifier";
 
 const {
   generateOverflowHelpers: helperGenerateOverflowHelpers,
@@ -735,7 +736,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
 
     // Check if it's a simple variable of string type
-    if (/^[a-zA-Z_]\w*$/.exec(text)) {
+    if (BareIdentifier.matches(text)) {
       const typeInfo = CodeGenState.getVariableTypeInfo(text);
       if (typeInfo?.isString) {
         return true;

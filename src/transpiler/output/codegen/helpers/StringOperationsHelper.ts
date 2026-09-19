@@ -14,9 +14,7 @@ import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
 import CodeGenState from "../../../state/CodeGenState.js";
 import StringUtils from "../../../../utils/StringUtils.js";
 import ExpressionUnwrapper from "../../../../utils/ExpressionUnwrapper";
-
-/** Regex for identifying valid C/C++ identifiers */
-const IDENTIFIER_REGEX = /^[a-zA-Z_]\w*$/;
+import BareIdentifier from "../../../../utils/BareIdentifier";
 
 /**
  * String concatenation operands extracted from expression.
@@ -55,7 +53,7 @@ class StringOperationsHelper {
     }
 
     // Variable - check type registry
-    if (IDENTIFIER_REGEX.test(exprCode)) {
+    if (BareIdentifier.matches(exprCode)) {
       const typeInfo = CodeGenState.getVariableTypeInfo(exprCode);
       if (typeInfo?.isString && typeInfo.stringCapacity !== undefined) {
         return typeInfo.stringCapacity;
