@@ -9,6 +9,7 @@
  */
 
 import ISubstringOps from "../types/ISubstringOps";
+import IStringConcatOps from "../types/IStringConcatOps";
 import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
 import CodeGenState from "../../../state/CodeGenState.js";
 import StringUtils from "../../../../utils/StringUtils.js";
@@ -20,13 +21,6 @@ const IDENTIFIER_REGEX = /^[a-zA-Z_]\w*$/;
 /**
  * String concatenation operands extracted from expression.
  */
-interface IStringConcatOps {
-  left: string;
-  right: string;
-  leftCapacity: number;
-  rightCapacity: number;
-}
-
 /**
  * Callbacks for substring operand extraction.
  */

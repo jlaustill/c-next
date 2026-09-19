@@ -13,6 +13,7 @@
  */
 
 import ISubstringOps from "../types/ISubstringOps";
+import IStringConcatOps from "../types/IStringConcatOps";
 import ArrayDimensionParser from "../../../../utils/ArrayDimensionParser";
 import dimensionEvalOptions from "./dimensionEvalOptions";
 import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
@@ -23,13 +24,6 @@ import invariant from "../../../../utils/invariant";
 /**
  * String concatenation operands extracted from expression.
  */
-interface IStringConcatOps {
-  left: string;
-  right: string;
-  leftCapacity: number;
-  rightCapacity: number;
-}
-
 /**
  * Declaration modifiers for string variable declarations.
  */
@@ -57,7 +51,7 @@ interface IStringDeclResult {
 interface IStringDeclCallbacks {
   /** Generate expression code */
   generateExpression: (ctx: Parser.ExpressionContext) => string;
-  /** Generate array dimensions */
+  /** Generate array dimensions from contexts */
   generateArrayDimensions: (dims: Parser.ArrayDimensionContext[]) => string;
   /** Get string concatenation operands */
   getStringConcatOperands: (
@@ -67,7 +61,7 @@ interface IStringDeclCallbacks {
   getSubstringOperands: (ctx: Parser.ExpressionContext) => ISubstringOps | null;
   /** Get string expression capacity */
   getStringExprCapacity: (exprCode: string) => number | null;
-  /** Request string include */
+  /** Request the include string operations need */
   requireStringInclude: () => void;
 }
 

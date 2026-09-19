@@ -15,6 +15,7 @@
  */
 
 import ISubstringOps from "../types/ISubstringOps";
+import IStringConcatOps from "../types/IStringConcatOps";
 import * as Parser from "../../../logic/parser/grammar/CNextParser.js";
 import CodeGenState from "../../../state/CodeGenState.js";
 import invariant from "../../../../utils/invariant";
@@ -81,13 +82,6 @@ interface IArrayDeclResult {
 /**
  * String concatenation operands extracted from expression.
  */
-interface IStringConcatOps {
-  left: string;
-  right: string;
-  leftCapacity: number;
-  rightCapacity: number;
-}
-
 /**
  * Callbacks for the full variable declaration orchestrator.
  */
