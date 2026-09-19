@@ -32,10 +32,13 @@ about it, so no reader has to re-derive which is which:
 They overlap as descriptions -- a site can be built from source text AND
 read a leaf-keyed map -- so a site takes the FIRST kind above that applies,
 which makes them a partition rather than labels. **Nothing computes this.**
-The order is an instruction to whoever writes the row: `cnext/index.ts`'s
-`scopeName` is source text from a parse-tree identifier, and is still
-`leaf-keyed`, because being paired with a collection is the fact that
-decides what must move.
+The order is an instruction to whoever writes the row. `cnext/index.ts`'s
+`scopeName` is the worked example: it is source text from a parse-tree
+identifier, so `path` by description, and it was long filed as
+`leaf-keyed` on the grounds that it is paired with a collection. #1295
+argues that the pairing does not exist -- `constValues`' key goes through
+`fromParts`, which splits dotted paths, so the collection is not filed
+under a leaf-built key. It is `path` on that argument.
 
 This list may shrink freely. It may not grow: `npm run scope-joins:check`
 fails on a file that gains a site, on a call shape nobody has adjudicated,

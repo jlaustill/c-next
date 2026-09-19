@@ -18,6 +18,7 @@ import createMockSymbols from "../../__tests__/codeGenSymbolsHelpers";
 import UNRESOLVED_DIMENSION from "../../constants/UNRESOLVED_DIMENSION";
 import TestSourceSpan from "../../types/__testUtils__/testSourceSpan";
 import Program from "../../../PARSE/4-Resolve/Program";
+import enterScope from "../../__tests__/enterScope";
 
 /**
  * Create a minimal C-Next IVariableSymbol for testing.
@@ -74,7 +75,7 @@ describe("CodeGenState", () => {
   describe("reset()", () => {
     it("resets all state to initial values", () => {
       // Set some state
-      CodeGenState.setCurrentScopeByPath("TestScope");
+      enterScope("TestScope");
       CodeGenState.currentFunctionName = "testFunc";
       CodeGenState.needsStdint = true;
       CodeGenState.indentLevel = 5;
@@ -131,19 +132,19 @@ describe("CodeGenState", () => {
     });
 
     it("isCurrentScopeMember returns false when not in a scope", () => {
-      CodeGenState.setCurrentScopeByPath(null);
+      enterScope(null);
       expect(CodeGenState.isCurrentScopeMember("anyMember")).toBe(false);
     });
 
     it("isCurrentScopeMember returns false for non-member", () => {
-      CodeGenState.setCurrentScopeByPath("TestScope");
+      enterScope("TestScope");
       CodeGenState.setScopeMembers("TestScope", new Set(["member1"]));
 
       expect(CodeGenState.isCurrentScopeMember("nonMember")).toBe(false);
     });
 
     it("isCurrentScopeMember returns true for member", () => {
-      CodeGenState.setCurrentScopeByPath("TestScope");
+      enterScope("TestScope");
       CodeGenState.setScopeMembers("TestScope", new Set(["member1"]));
 
       expect(CodeGenState.isCurrentScopeMember("member1")).toBe(true);
@@ -152,19 +153,19 @@ describe("CodeGenState", () => {
 
   describe("resolveIdentifier()", () => {
     it("returns identifier unchanged when not in a scope", () => {
-      CodeGenState.setCurrentScopeByPath(null);
+      enterScope(null);
       expect(CodeGenState.resolveIdentifier("varName")).toBe("varName");
     });
 
     it("returns identifier unchanged when not a scope member", () => {
-      CodeGenState.setCurrentScopeByPath("TestScope");
+      enterScope("TestScope");
       CodeGenState.setScopeMembers("TestScope", new Set(["member1"]));
 
       expect(CodeGenState.resolveIdentifier("varName")).toBe("varName");
     });
 
     it("returns scoped name for scope member", () => {
-      CodeGenState.setCurrentScopeByPath("TestScope");
+      enterScope("TestScope");
       CodeGenState.setScopeMembers("TestScope", new Set(["member1"]));
 
       expect(CodeGenState.resolveIdentifier("member1")).toBe(
@@ -342,22 +343,35 @@ describe("CodeGenState", () => {
       ).toBe("Outer__Inner__tick");
     });
 
-    it("setCurrentScopeByPath with a LEAF cannot reach a nested scope (#1304)", () => {
-      // Documents the gap rather than asserting it is fine. A leaf does not
-      // fail -- it mints a fresh scope parented to global, and every
-      // qualification through it silently loses the outer component.
+    it("setCurrentScopeByPath with a LEAF now fails loudly (#1304)", () => {
+      // This test used to DOCUMENT the gap: a leaf did not fail, it minted a
+      // fresh scope parented to global, and every qualification through it
+      // silently lost the outer component. #1304 closes that -- the registry is
+      // the authority, so a path it does not know is a broken promise about the
+      // symbols pass rather than something to create here.
       SymbolRegistry.getOrCreateScope("Outer.Inner");
 
-      CodeGenState.setCurrentScopeByPath("Inner");
+      expect(() => CodeGenState.setCurrentScopeByPath("Inner")).toThrow();
 
-      // The leaf minted a FRESH top-level scope; it did not reach `Outer.Inner`.
-      // Asserted by value: comparing the path against the scope OBJECT would be
-      // a `string` vs `IScopeSymbol` `Object.is` that holds for every possible
-      // implementation, including one storing the wrong path (#1298 review).
-      expect(CodeGenState.currentScopePath).toBe("Inner");
+      // The failed entry must not have left the state half-updated, and must
+      // not have registered `Inner` as a side effect.
+      expect(CodeGenState.currentScopePath).toBe("");
+      expect(SymbolRegistry.getScope("Inner")).toBeNull();
+    });
+
+    it("setCurrentScopeByPath still enters a scope the registry knows", () => {
+      // NEGATIVE CONTROL for the guard above: it must fire only on a path the
+      // registry does not hold, not on every entry. Without this the assertion
+      // above would pass just as well if the method rejected everything.
+      SymbolRegistry.getOrCreateScope("Outer.Inner");
+
+      expect(() =>
+        CodeGenState.setCurrentScopeByPath("Outer.Inner"),
+      ).not.toThrow();
+      expect(CodeGenState.currentScopePath).toBe("Outer.Inner");
       expect(
         ScopeUtils.qualifyInScope("tick", CodeGenState.currentScopePath),
-      ).toBe("Inner__tick");
+      ).toBe("Outer__Inner__tick");
     });
 
     it("registerLocalVariable leaves a non-shadowing local under its own name", () => {
@@ -987,7 +1001,7 @@ describe("CodeGenState", () => {
       installMockSymbols({
         knownEnums: new Set(["A__B"]),
       });
-      CodeGenState.setCurrentScopeByPath("A");
+      enterScope("A");
 
       expect(CodeGenState.qualifyScopeType("B")).toBe("A__B");
     });
@@ -996,7 +1010,7 @@ describe("CodeGenState", () => {
       installMockSymbols({
         knownEnums: new Set(["A__B"]),
       });
-      CodeGenState.setCurrentScopeByPath("A");
+      enterScope("A");
 
       expect(CodeGenState.qualifyScopeType("Other")).toBe("Other");
     });
@@ -1005,7 +1019,7 @@ describe("CodeGenState", () => {
       installMockSymbols({
         knownEnums: new Set(["A__B"]),
       });
-      CodeGenState.setCurrentScopeByPath(null);
+      enterScope(null);
 
       expect(CodeGenState.qualifyScopeType("B")).toBe("B");
     });
@@ -1016,7 +1030,7 @@ describe("CodeGenState", () => {
       installMockSymbols({
         knownStructs: new Set(["Config"]),
       });
-      CodeGenState.setCurrentScopeByPath("A");
+      enterScope("A");
 
       expect(CodeGenState.qualifyScopeType("Config")).toBe("Config");
     });
@@ -1517,6 +1531,56 @@ describe("CodeGenState", () => {
       expect(executed).toBe(true);
       expect(CodeGenState.expectedType).toBeNull();
       expect(CodeGenState.suppressBareEnumResolution).toBe(false);
+    });
+  });
+
+  /**
+   * #1295 and #1304 are two halves of ONE decision: a scope's identity is its
+   * `cnxScopedName`, and the producer (`TSymbolInfoAdapter.processScope`, which
+   * keys `scopeMembers` by it) and the reader (`currentScopePath`) must name the
+   * same scope OBJECT.
+   *
+   * They agree by construction rather than by coincidence, because
+   * `setCurrentScopeByPath` does not store its argument -- it reads the path back
+   * off the registered scope. The single way to break that is for the registry to
+   * hand back a different scope than the producer keyed from, which is exactly
+   * what `getOrCreateScope` did when handed a leaf: it minted a fresh orphan
+   * parented to global, and the producer's key then missed in silence.
+   *
+   * These tests drive the READERS. The `TSymbolInfoAdapter` block covers the
+   * producer; before this, re-inlining `ScopeUtils.leafOf` at any reader site
+   * left the whole suite green.
+   */
+  describe("scope identity comes from the registry, not the caller's string (#1295, #1304)", () => {
+    beforeEach(() => {
+      SymbolRegistry.reset();
+      CodeGenState.reset();
+    });
+
+    it("resolves a member through the whole path when the scope is registered", () => {
+      SymbolRegistry.getOrCreateScope("Outer.Inner");
+      CodeGenState.setScopeMembers("Outer.Inner", new Set(["token"]));
+
+      CodeGenState.setCurrentScopeByPath("Outer.Inner");
+
+      expect(CodeGenState.currentScopePath).toBe("Outer.Inner");
+      expect(CodeGenState.isCurrentScopeMember("token")).toBe(true);
+      expect(CodeGenState.resolveIdentifier("token")).toBe(
+        "Outer__Inner__token",
+      );
+    });
+
+    /**
+     * NEGATIVE CONTROL for the case above. Without it the assertions would pass
+     * just as well if every name were qualified.
+     */
+    it("leaves a name that is not a member unqualified", () => {
+      SymbolRegistry.getOrCreateScope("Outer.Inner");
+      CodeGenState.setScopeMembers("Outer.Inner", new Set(["token"]));
+      CodeGenState.setCurrentScopeByPath("Outer.Inner");
+
+      expect(CodeGenState.isCurrentScopeMember("hidden")).toBe(false);
+      expect(CodeGenState.resolveIdentifier("hidden")).toBe("hidden");
     });
   });
 });

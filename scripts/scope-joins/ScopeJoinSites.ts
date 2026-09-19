@@ -39,16 +39,15 @@ interface ISite {
  * derived from `KIND_SECTIONS`, and `render` emits the preamble bullets from
  * the same array, so the union and the document cannot disagree about
  * precedence. They did disagree once, in opposite directions, and the
- * preamble's order decides cases like `cnext/index.ts`'s `scopeName`, which
- * reads as `path` by description and was long filed as `leaf-keyed` on the
- * grounds that it is paired with a collection. That judgement was overturned
- * when #1295 closed: `constValues`' key goes through `fromParts`, which splits
- * dotted paths, so the collection is not filed under a leaf-built key and the
- * pairing it was judged on does not exist. It is `path` now, and the lesson the
- * example carried survives it -- a kind is an argument, not a label, so an entry
- * has to be re-argued when the collection it names is re-measured. Reordering
- * the array moves the union and the document together, and a reorder that
- * touches only one is unrepresentable.
+ * preamble's order is what decides a site that several descriptions fit. The
+ * worked example lives in `render()` ONLY, and deliberately: it used to be
+ * stated here as well, the two copies disagreed the moment one row was
+ * re-argued, and `scope-joins:check` cannot see prose. Reordering the array
+ * moves the union and the document together, and a reorder that touches only
+ * one is unrepresentable.
+ *
+ * A kind is an ARGUMENT, not a label: an entry has to be re-argued when the
+ * collection it names is re-measured, which is why each row carries a `why`.
  */
 const KIND_SECTIONS = [
   {
@@ -188,7 +187,7 @@ class ScopeJoinSites {
       kind: "path",
       pairedWith: null,
       movesWith: null,
-      why: "`scopeDecl.IDENTIFIER()` -- source text from a parse-tree identifier. Re-adjudicated when #1295 closed: the scope question that card raised was answered NO. This is not leaf-keyed and nothing needs to move it. `constValues`' key is `fromParts([scopeName, name])`, and `fromParts` runs `toParts`, which SPLITS dotted paths, so the key is as complete as what it is handed -- unlike #1295's three collections, which used `scope.name` raw as a Map key with no encoder at all. What it is handed is complete by construction: `scopeMember` (`grammar/CNext.g4:81-88`) admits no `scopeDeclaration`, which ADR-016 states permanently (#1306), so a scope declaration is always at file scope and its identifier IS its whole path",
+      why: "`scopeDecl.IDENTIFIER()` -- source text from a parse-tree identifier. #1295 argues NO to the scope question that card raises, and this row records that argument rather than an outcome -- the card is the work in flight, so past tense here would assert an event that has not happened. This is not leaf-keyed and nothing needs to move it. `constValues`' key is `fromParts([scopeName, name])`, and `fromParts` runs `toParts`, which SPLITS dotted paths, so the key is as complete as what it is handed -- unlike #1295's three collections, which used `scope.name` raw as a Map key with no encoder at all. What it is handed is complete by construction: `scopeMember` (`grammar/CNext.g4:81-88`) admits no `scopeDeclaration`, which ADR-016 states permanently (#1306), so a scope declaration is always at file scope and its identifier IS its whole path. SCOPED to the key on this line: the BARE key the same function writes (`constValues.set(name, value)`) collides across sibling scopes and is a live defect tracked as #1538 -- this adjudication says nothing about it",
     },
     {
       file: "src/transpiler/output/codegen/assignment/AssignmentClassifier.ts",
@@ -480,10 +479,13 @@ class ScopeJoinSites {
       "They overlap as descriptions -- a site can be built from source text AND",
       "read a leaf-keyed map -- so a site takes the FIRST kind above that applies,",
       "which makes them a partition rather than labels. **Nothing computes this.**",
-      "The order is an instruction to whoever writes the row: `cnext/index.ts`'s",
-      "`scopeName` is source text from a parse-tree identifier, and is still",
-      "`leaf-keyed`, because being paired with a collection is the fact that",
-      "decides what must move.",
+      "The order is an instruction to whoever writes the row. `cnext/index.ts`'s",
+      "`scopeName` is the worked example: it is source text from a parse-tree",
+      "identifier, so `path` by description, and it was long filed as",
+      "`leaf-keyed` on the grounds that it is paired with a collection. #1295",
+      "argues that the pairing does not exist -- `constValues`' key goes through",
+      "`fromParts`, which splits dotted paths, so the collection is not filed",
+      "under a leaf-built key. It is `path` on that argument.",
       "",
       "This list may shrink freely. It may not grow: `npm run scope-joins:check`",
       "fails on a file that gains a site, on a call shape nobody has adjudicated,",

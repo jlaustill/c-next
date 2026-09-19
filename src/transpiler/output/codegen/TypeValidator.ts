@@ -156,9 +156,17 @@ class TypeValidator {
       // #1295: pass the PATH, not its leaf. `isInScope` needs no help encoding
       // it -- `prefixFor` runs the path through `toParts`, which splits on the
       // source separator, so `Outer.Inner` becomes the prefix `Outer__Inner__`
-      // where `leafOf` gave `Inner__`. Encoding it at this call site instead
-      // would re-derive a qualified name by hand, which is what the
-      // scope-join inventory exists to catch.
+      // where `leafOf` gave `Inner__`. File scope is handled before that, by
+      // `isInScope`'s own `if (!scopeName) return false`: `prefixFor("")` would
+      // otherwise return the bogus `"__"`.
+      //
+      // NO GATE COVERS THIS CALL SITE -- review is what catches it. An earlier
+      // revision of this comment claimed the scope-join inventory did, which is
+      // the guard-that-cannot-fail shape CLAUDE.md flags: that scan matches the
+      // single literal `QualifiedCName.fromParts([` and inspects only the first
+      // ARRAY ELEMENT, so `isInScope(...)`, `prefixFor(...)`, and a
+      // `ScopeUtils.leafOf(...)` passed as an argument here are all invisible to
+      // it. Verified: re-inlining the leaf reddens nothing in that check.
       !QualifiedCName.isInScope(identifier, currentScopePath)
     ) {
       return true;

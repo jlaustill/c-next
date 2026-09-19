@@ -341,6 +341,10 @@ describe("CodeGenerator", () => {
 
       it("should process set-scope effects", () => {
         const generator = createMinimalGenerator(`void foo() { }`);
+        // #1304: entering a scope the registry does not hold is an invariant
+        // violation now, not a silent orphan. A unit test that skips the
+        // symbols pass registers the scope itself.
+        SymbolRegistry.getOrCreateScope("MyScope");
 
         generator.applyEffects([{ type: "set-scope", name: "MyScope" }]);
 
@@ -736,6 +740,8 @@ describe("CodeGenerator", () => {
     describe("setCurrentScope() / setCurrentFunctionName()", () => {
       it("should set and track current scope", () => {
         const generator = createMinimalGenerator(`void foo() { }`);
+        // #1304: see the note on "should process set-scope effects".
+        SymbolRegistry.getOrCreateScope("MyScope");
 
         generator.setCurrentScope("MyScope");
         expect(generator.getState().currentScopePath).toBe("MyScope");

@@ -9,6 +9,7 @@ import AssignmentKind from "../../AssignmentKind";
 import IAssignmentContext from "../../IAssignmentContext";
 import CodeGenState from "../../../../../state/CodeGenState";
 import HandlerTestUtils from "./handlerTestUtils";
+import enterScope from "../../../../../__tests__/enterScope";
 
 /**
  * Create mock context for testing.
@@ -278,7 +279,7 @@ describe("RegisterHandlers", () => {
       )?.[1];
 
     it("generates read-modify-write for scoped register bit", () => {
-      CodeGenState.setCurrentScopeByPath("Motor");
+      enterScope("Motor");
       HandlerTestUtils.setupMockGenerator({
         generateExpression: vi.fn().mockReturnValue("LED_BIT"),
       });
@@ -294,7 +295,7 @@ describe("RegisterHandlers", () => {
     });
 
     it("generates simple write for write-only scoped register", () => {
-      CodeGenState.setCurrentScopeByPath("Motor");
+      enterScope("Motor");
       HandlerTestUtils.setupMockGenerator({
         generateExpression: vi.fn().mockReturnValue("LED_BIT"),
       });
@@ -318,7 +319,7 @@ describe("RegisterHandlers", () => {
     // that is a dead branch's only caller is what keeps the branch alive.
 
     it("throws on write-only register with false value", () => {
-      CodeGenState.setCurrentScopeByPath("Motor");
+      enterScope("Motor");
       HandlerTestUtils.setupMockGenerator({
         generateExpression: vi.fn().mockReturnValue("LED_BIT"),
       });
@@ -342,7 +343,7 @@ describe("RegisterHandlers", () => {
       )?.[1];
 
     it("generates read-modify-write for scoped register bit range", () => {
-      CodeGenState.setCurrentScopeByPath("Motor");
+      enterScope("Motor");
       HandlerTestUtils.setupMockGenerator({
         generateExpression: vi
           .fn()
@@ -364,7 +365,7 @@ describe("RegisterHandlers", () => {
     });
 
     it("generates simple write for write-only scoped register bit range", () => {
-      CodeGenState.setCurrentScopeByPath("Motor");
+      enterScope("Motor");
       HandlerTestUtils.setupMockGenerator({
         generateExpression: vi
           .fn()
@@ -388,7 +389,7 @@ describe("RegisterHandlers", () => {
     });
 
     it("generates MMIO optimization for byte-aligned scoped access", () => {
-      CodeGenState.setCurrentScopeByPath("Motor");
+      enterScope("Motor");
       HandlerTestUtils.setupMockGenerator({
         generateExpression: vi
           .fn()
@@ -424,7 +425,7 @@ describe("RegisterHandlers", () => {
     // that is a dead branch's only caller is what keeps the branch alive.
 
     it("throws on write-only bit range with 0 value", () => {
-      CodeGenState.setCurrentScopeByPath("Motor");
+      enterScope("Motor");
       HandlerTestUtils.setupMockGenerator({
         generateExpression: vi
           .fn()

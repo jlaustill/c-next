@@ -10,6 +10,7 @@ import IAssignmentContext from "../../IAssignmentContext";
 import CodeGenState from "../../../../../state/CodeGenState";
 import HandlerTestUtils from "./handlerTestUtils";
 import AssignmentClassifier from "../../AssignmentClassifier";
+import enterScope from "../../../../../__tests__/enterScope";
 
 /**
  * Create mock context for testing
@@ -96,7 +97,7 @@ describe("StringHandlers", () => {
 
   describe("handleStringThisMember (STRING_THIS_MEMBER)", () => {
     it("generates strncpy for scoped member", () => {
-      CodeGenState.setCurrentScopeByPath("TestScope");
+      enterScope("TestScope");
       HandlerTestUtils.setupMockTypeRegistry([
         ["TestScope__memberName", { stringCapacity: 64, baseType: "string" }],
       ]);
@@ -127,7 +128,7 @@ describe("StringHandlers", () => {
       // routes a member the handler cannot find, so the `!` throws at generation
       // time. They agree at depth one whichever encoder each uses, so only depth
       // two can tell a shared decision from a coincidence.
-      CodeGenState.setCurrentScopeByPath("Outer.Inner");
+      enterScope("Outer.Inner");
       HandlerTestUtils.setupMockTypeRegistry([
         [
           "Outer__Inner__memberName",

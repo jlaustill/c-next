@@ -710,6 +710,43 @@ describe("TSymbolInfoAdapter", () => {
       // ...it is reached through the scope path instead.
       expect(info.scopeMembers.get("Motor")?.has("MAX_SPEED")).toBe(true);
     });
+
+    /**
+     * #1295: `processVariable` is the OTHER half of the producer and had no
+     * guard -- reverting its key to `ScopeUtils.leafOf(...)` left the entire
+     * suite green, so the PR's mutation result covered `processScope` only. It
+     * must file a nested scope's variable under the scope's WHOLE path, which
+     * is the key `processScope` writes.
+     *
+     * The two halves must also agree regardless of EMISSION ORDER.
+     * `processScope` replaced the member set unconditionally while
+     * `processVariable` get-or-creates and adds, so a symbol array listing the
+     * variable first lost it when the scope was processed after. Nothing
+     * asserted that order -- it held only because `_collectScopeDeclaration`
+     * happens to push the scope before its members, which is a coincidence of
+     * emission, not a decision.
+     */
+    it("files a nested scope's variable under the whole path, in either order", () => {
+      const scope: IScopeSymbol = {
+        ...TestScopeUtils.createMockScope("Inner", "Outer"),
+        members: ["token"],
+        memberVisibility: new Map<string, TVisibility>([["token", "public"]]),
+      };
+      const variable = makeValue("count", "Outer.Inner");
+
+      for (const order of [
+        [scope, variable],
+        [variable, scope],
+      ]) {
+        const info = TSymbolInfoAdapter.convert(order);
+
+        expect(info.scopeMembers.get("Outer.Inner")?.has("count")).toBe(true);
+        expect(info.scopeMembers.get("Outer.Inner")?.has("token")).toBe(true);
+        // NEGATIVE CONTROL: the leaf must not be a key at all, or this would
+        // pass just as well against the behavior it exists to forbid.
+        expect(info.scopeMembers.has("Inner")).toBe(false);
+      }
+    });
   });
 
   describe("mixed symbols", () => {

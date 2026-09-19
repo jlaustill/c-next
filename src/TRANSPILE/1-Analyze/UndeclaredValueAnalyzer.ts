@@ -207,8 +207,16 @@ class UndeclaredValueAnalyzer {
     // wrong -- `isValueName` reaches `symbols.functionReturnTypes`, the
     // per-file view of the same ADR-029 fact, on the identical key. The
     // qualified read below goes for the same reason, but on the key-shape
-    // argument alone: reinstating it reddens no fixture, because the
-    // `scopeMembers` term beside it already answers cross-file (#1494).
+    // argument alone: reinstating it reddens no fixture.
+    //
+    // #1295 correction: that used to credit "the `scopeMembers` term beside it
+    // already answers cross-file (#1494)", and `scopeMembers` does NOT cross a
+    // file boundary -- `git grep -c scopeMembers -- VisibleSymbols.ts` is 0. It
+    // is absent from the merge accumulator and survives only via the `...base`
+    // spread, i.e. THIS file's symbols. `knownScopes` and
+    // `scopeMemberVisibility`, written by the same `processScope`, ARE merged,
+    // so the three disagree about what "visible" means. What actually answers
+    // cross-file here is the run-wide `symbolTable` term below.
     const symbolTable = CodeGenState.symbolTable;
     if (NameExistence.isValueName(name, symbols, symbolTable)) {
       return true;

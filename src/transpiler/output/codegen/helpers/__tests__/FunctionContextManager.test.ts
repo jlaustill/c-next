@@ -10,6 +10,7 @@ import UNRESOLVED_DIMENSION from "../../../../constants/UNRESOLVED_DIMENSION";
 import IFunctionContextCallbacks from "../../types/IFunctionContextCallbacks.js";
 import CodeGenState from "../../../../state/CodeGenState.js";
 import TestTypeAccessors from "../../../../types/__testUtils__/testTypeAccessors";
+import enterScope from "../../../../__tests__/enterScope";
 
 /**
  * Helper to set up CodeGenState.symbols with minimal fields.
@@ -146,7 +147,7 @@ describe("FunctionContextManager", () => {
     });
 
     it("sets current function name with scope prefix", () => {
-      CodeGenState.setCurrentScopeByPath("MyScope");
+      enterScope("MyScope");
       const callbacks = createMockCallbacks();
       const ctx = createMockFunctionDecl("void");
 
@@ -494,7 +495,7 @@ describe("FunctionContextManager", () => {
     });
 
     it("resolves scoped type with current scope", () => {
-      CodeGenState.setCurrentScopeByPath("MyScope");
+      enterScope("MyScope");
       const callbacks = createMockCallbacks();
       const typeCtx = {
         primitiveType: () => null,

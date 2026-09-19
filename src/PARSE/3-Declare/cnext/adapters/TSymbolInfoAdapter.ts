@@ -360,7 +360,21 @@ class TSymbolInfoAdapter {
 
     // Use scope.members as the authoritative list of member names
     // This includes functions, variables, enums, structs, etc.
-    const members = new Set<string>(scope.members);
+    //
+    // MERGED, not replaced. `processVariable` writes into the same key with
+    // get-or-create-and-add, so an unconditional `set` here dropped every
+    // variable that happened to be processed first. That was invisible because
+    // `_collectScopeDeclaration` pushes the scope before its members -- an
+    // emission-order coincidence nothing asserted, which is the shape this
+    // whole line of work exists to remove.
+    //
+    // `scopeMemberVisibility` below needs no equivalent: `processScope` is its
+    // only writer, and a reopened scope (ADR-016) is ONE symbol carrying many
+    // `declarationSites` (#1334), not two symbols to merge.
+    const members = scopeMembers.get(scope.cnxScopedName) ?? new Set<string>();
+    for (const member of scope.members) {
+      members.add(member);
+    }
     scopeMembers.set(scope.cnxScopedName, members);
 
     // Copy visibility map

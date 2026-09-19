@@ -11,6 +11,7 @@ import type ICallbackTypeInfo from "../../../types/ICallbackTypeInfo";
 import type TParameterInfo from "../../../types/TParameterInfo";
 import type TTypeInfo from "../../../types/TTypeInfo";
 import TypeValidator from "../TypeValidator";
+import enterScope from "../../../__tests__/enterScope";
 
 // ========================================================================
 // Test Helpers - Mock Symbols
@@ -51,7 +52,7 @@ function setupState(options: SetupStateOptions = {}): void {
     CodeGenState.knownFunctions = options.knownFunctions;
   }
   if (options.currentScopePath !== undefined) {
-    CodeGenState.setCurrentScopeByPath(options.currentScopePath);
+    enterScope(options.currentScopePath);
   }
   if (options.scopeMembers) {
     for (const [scope, members] of options.scopeMembers) {
