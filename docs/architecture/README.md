@@ -68,7 +68,8 @@ WRITE       3.1 Write     --> disk
 ### The layout is the pass table
 
 The eight passes are eight directories. `src/` holds one directory per layer, each holding
-one per pass, numbered in the order they run:
+one per pass, numbered in the order they run -- and beside them, the roots that are not
+passes:
 
 ```
 src/
@@ -83,12 +84,37 @@ src/
     3-Render/
   WRITE/
     1-Write/
+  types/
+  utils/
+  cli/
+  lib/
 ```
 
 The digit is not decoration. A pass may read the artifact of a lower-numbered pass in its
 own layer, or of any earlier layer, and nothing else. So "which pass owns this module?"
 and "may it read that?" are both answerable from the path -- by a reader, and by a gate --
 without opening the file.
+
+**Every child of `src/` is a directory, and is one of three kinds.** There are no bare
+files at the root: an entry point lives inside the root it starts.
+
+- **A layer** -- `PARSE/`, `TRANSPILE/` and `WRITE/`, each holding its passes, as above.
+- **Shared contracts** -- `types/` and `utils/`. Layer-neutral: every pass may depend on
+  them, and **they author no facts.** A shared root that authors one is a state container
+  under another name, which the paragraph below forbids.
+- **Host** -- `cli/` and `lib/`. Outside the three layers, and the only place allowed to
+  construct the pipeline. Each is entered through its own `index.ts`: the command-line
+  tool and the library are separate concerns and do not share a starting point.
+
+**An import may not go up and then back down into another root.**
+`../../types/ITranspileError` is legal; `../../lib/types/ITranspileError` is not. Anything
+reached from outside its own root belongs in a shared root, not in another root's
+interior -- reaching past a root's entry point into its internals is how a boundary stops
+being one. That is what `types/` and `utils/` are for, and why they sit beside the layers
+rather than inside one of them.
+
+A module's directory today does not determine its category. Which root it belongs under is
+adjudicated per module during the migration, never read off the path it currently sits on.
 
 **There is no directory for state.** A fact lives in the artifact of the pass that authored
 it. A container that outlives a pass is how facts come to be stashed instead of carried,
