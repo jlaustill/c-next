@@ -1,0 +1,62 @@
+// test-execution
+// test-no-warnings
+// Issue #1450: `this.<member>` string assignment resolves by its QUALIFIED
+// name, and two scopes may declare the same member name at different widths.
+//
+// WHAT THIS PINS, AND WHY THE SNAPSHOT IS THE ASSERTION. `string-assign-
+// scope-this` already reaches this handler -- it is the only fixture that
+// does -- but it declares ONE scope, so the qualified key `Logger__message`
+// and the bare key `message` cannot disagree. They disagree here.
+//
+// The type registry is keyed on the qualified name and holds `message` for
+// neither scope bare; the bare name still RESOLVES, through the symbol-table
+// fallback `getVariableTypeInfo` falls back to, and that fallback answers with
+// whichever `message` it finds. Replacing the qualified key with the bare one
+// therefore does not fail -- it silently sizes `Narrow`'s copy from `Wide`'s
+// capacity:
+//
+//     (void) strncpy(Narrow__message, "narrow", 64); Narrow__message[64] = '\0';
+//
+// `Narrow__message` is `char[9]`. That is a 55-byte out-of-bounds write in the
+// generated C, emitted with no diagnostic and exit 0. The `.expected.c` beside
+// this file carries the bound 8, which is what fails when the qualification is
+// dropped; `char_count` alone would NOT catch it, since the copied text is
+// short either way and the smash lands in adjacent storage.
+//
+// `Unique.banner` is the negative control: a scope member whose name no other
+// scope shares. A change that stopped qualifying, or one that over-qualified
+// into a key nothing holds, has to keep this one working too.
+scope Wide {
+    public string<64> message <- "";
+    public void set() {
+        this.message <- "wide";
+    }
+}
+
+scope Narrow {
+    public string<8> message <- "";
+    public void set() {
+        this.message <- "narrow";
+    }
+}
+
+scope Unique {
+    public string<16> banner <- "";
+    public void set() {
+        this.banner <- "unique";
+    }
+}
+
+u32 main() {
+    Wide.set();
+    if (Wide.message.char_count != 4) return 1;
+
+    Narrow.set();
+    if (Narrow.message.char_count != 6) return 2;
+    if (Wide.message.char_count != 4) return 3;
+
+    Unique.set();
+    if (Unique.banner.char_count != 6) return 4;
+
+    return 0;
+}

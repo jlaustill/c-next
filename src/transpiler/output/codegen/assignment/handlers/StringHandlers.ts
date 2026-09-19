@@ -23,14 +23,33 @@ import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
 // of six.
 
 /**
- * Common handler for simple string assignments (STRING_SIMPLE and STRING_GLOBAL).
+ * The declared capacity of the `string<N>` a registry key names.
  *
- * Gets capacity from typeRegistry and generates strncpy with null terminator.
+ * Three handlers asked the registry this, byte for byte. The key each one
+ * builds differs -- bare, scope-qualified, or an array's base name -- but the
+ * question and its answer do not, so only the key is the caller's business.
  */
-function handleSimpleStringAssignment(ctx: IAssignmentContext): string {
-  const id = ctx.identifiers[0];
-  const typeInfo = CodeGenState.getVariableTypeInfo(id);
-  const capacity = typeInfo!.stringCapacity!;
+function capacityOf(registryKey: string): number {
+  const typeInfo = CodeGenState.getVariableTypeInfo(registryKey);
+  return typeInfo!.stringCapacity!;
+}
+
+/**
+ * Emit a bounded copy into whatever `ctx.targetCtx` renders to, sized by the
+ * `string<N>` that `registryKey` names.
+ *
+ * STRING_SIMPLE, STRING_GLOBAL and STRING_THIS_MEMBER differ in exactly one
+ * thing: how the registry key is spelled. Everything downstream of that -- the
+ * `<string.h>` requirement, the target, the `strncpy`/null-terminator pair --
+ * was derived separately for the bare key and the qualified one, so a change
+ * to how a bounded string copy is emitted needed two edits that nothing held
+ * together. CLAUDE.md: "Single source of truth means the _decision_."
+ */
+function copyIntoAssignmentTarget(
+  ctx: IAssignmentContext,
+  registryKey: string,
+): string {
+  const capacity = capacityOf(registryKey);
 
   CodeGenState.requireInclude("string");
 
@@ -41,33 +60,29 @@ function handleSimpleStringAssignment(ctx: IAssignmentContext): string {
 }
 
 /**
+ * Handle simple string assignments (STRING_SIMPLE and STRING_GLOBAL), whose
+ * registry key is the identifier as written.
+ */
+function handleSimpleStringAssignment(ctx: IAssignmentContext): string {
+  return copyIntoAssignmentTarget(ctx, ctx.identifiers[0]);
+}
+
+/**
  * Get struct field type information.
  *
  * Shared helper for struct field string handlers.
  */
 function getStructFieldType(structName: string, fieldName: string): string {
   // Issue #831: Use SymbolTable as single source of truth for struct fields
-  const structTypeInfo = CodeGenState.getVariableTypeInfo(structName);
-  // #1322: classified "dead -- delete" by #1321's audit, and it is indeed
-  // unreachable: STRING_STRUCT_FIELD is produced only via
-  // `AssignmentClassifier._resolveStructType`, which runs the identical
-  // `getVariableTypeInfo` lookup and returns null when it misses. But deleting
-  // it yields `TS18048: possibly 'undefined'` on the next line -- the guard is
-  // doing type work as well as runtime work. Unreachable AND load-bearing is
-  // not dead; it is an invariant, so it says so.
-  invariant(
-    structTypeInfo,
-    "a classified struct assignment names a variable the symbol table knows",
-  );
-
-  const structType = structTypeInfo.baseType;
+  const structType = getStructType(structName);
   const fieldType = CodeGenState.symbolTable?.getStructFieldType(
     structType,
     fieldName,
   );
-  // Same shape: the classifier already required `getStructFieldType` truthy
-  // and `TypeCheckUtils.isString` before producing this kind, so a miss here
-  // is the transpiler contradicting itself, not the author's program.
+  // Same shape as the `structTypeInfo` guard `getStructType` carries: the
+  // classifier already required `getStructFieldType` truthy and
+  // `TypeCheckUtils.isString` before producing this kind, so a miss here is the
+  // transpiler contradicting itself, not the author's program.
   invariant(
     fieldType,
     "a classified string-field assignment names a field the struct declares",
@@ -104,23 +119,15 @@ function handleStringThisMember(ctx: IAssignmentContext): string {
   const memberName = ctx.identifiers[0];
   // The key must match `_classifyThisMemberString`
   // (AssignmentClassifier.ts:846), which hits the same map to decide whether to
-  // route here at all -- so a mismatch makes the `!` below throw rather than
-  // return a wrong answer. #1357 deleted a comment that said this alongside a
-  // claim that had gone false ("leaf key, matching forMember"); the false half
-  // deserved deleting and this half did not.
+  // route here at all -- so a mismatch makes `capacityOf`'s `!` throw rather
+  // than return a wrong answer. #1357 deleted a comment that said this
+  // alongside a claim that had gone false ("leaf key, matching forMember"); the
+  // false half deserved deleting and this half did not.
   const scopedName = QualifiedNameGenerator.forMember(
     CodeGenState.currentScopePath,
     memberName,
   );
-  const typeInfo = CodeGenState.getVariableTypeInfo(scopedName);
-  const capacity = typeInfo!.stringCapacity!;
-
-  CodeGenState.requireInclude("string");
-
-  const target = CodeGenState.requireGenerator().generateAssignmentTarget(
-    ctx.targetCtx,
-  );
-  return StringUtils.copyWithNull(target, ctx.generatedValue, capacity);
+  return copyIntoAssignmentTarget(ctx, scopedName);
 }
 
 /**
@@ -148,8 +155,7 @@ function handleStringStructField(ctx: IAssignmentContext): string {
  */
 function handleStringArrayElement(ctx: IAssignmentContext): string {
   const name = ctx.identifiers[0];
-  const typeInfo = CodeGenState.getVariableTypeInfo(name);
-  const capacity = typeInfo!.stringCapacity!;
+  const capacity = capacityOf(name);
 
   CodeGenState.requireInclude("string");
 
