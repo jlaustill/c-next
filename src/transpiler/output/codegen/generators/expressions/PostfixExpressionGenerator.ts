@@ -58,6 +58,33 @@ interface ITrackingState {
 }
 
 /**
+ * The C expression that reads ONE bit, narrowed per MISRA 10.3.
+ *
+ * #1450: written out three times -- for a register access, a primitive int
+ * member, and a `bit_single` subscript -- byte-identical each time, and
+ * reported by `analyze:duplication` as a three-way clone. The three callers
+ * differ only in what they do with `output` afterwards, which is why the
+ * expression is what is shared and the assignment is not.
+ *
+ * Two decisions live here, and both are the reason it is one function:
+ * shifting is skipped at index 0 (`0` or the MISRA-suffixed `0U`, since the
+ * suffix is applied before this runs), and the `& 1` result is an `int` by C's
+ * integer promotions, so a narrower target needs the cast MISRA 10.3 requires.
+ * Changing either used to mean finding all three.
+ *
+ * @param base generated C for the value being read from
+ * @param index generated C for the bit index
+ */
+const singleBitRead = (base: string, index: string): string => {
+  const expr =
+    index === "0" || index === "0U"
+      ? `((${base}) & 1)`
+      : `((${base} >> ${index}) & 1)`;
+  const targetType = CodeGenState.expectedType;
+  return targetType ? NarrowingCastHelper.wrap(expr, "int", targetType) : expr;
+};
+
+/**
  * Initialize tracking state from the primary expression.
  */
 const initializeTrackingState = (
@@ -1645,17 +1672,7 @@ const handleSingleSubscript = (
 
   // Register access: bit extraction
   if (isRegisterAccess) {
-    // Skip shift when index is 0 (either "0" or "0U" with MISRA suffix)
-    let expr =
-      index === "0" || index === "0U"
-        ? `((${ctx.result}) & 1)`
-        : `((${ctx.result} >> ${index}) & 1)`;
-    // MISRA 10.3: Add narrowing cast if expected type is narrower than int
-    const targetType = CodeGenState.expectedType;
-    if (targetType) {
-      expr = NarrowingCastHelper.wrap(expr, "int", targetType);
-    }
-    output.result = expr;
+    output.result = singleBitRead(ctx.result, index);
     return output;
   }
 
@@ -1679,17 +1696,7 @@ const handleSingleSubscript = (
   const isPrimitiveIntMember =
     ctx.currentStructType && TypeCheckUtils.isInteger(ctx.currentStructType);
   if (isPrimitiveIntMember) {
-    // Skip shift when index is 0 (either "0" or "0U" with MISRA suffix)
-    let expr =
-      index === "0" || index === "0U"
-        ? `((${ctx.result}) & 1)`
-        : `((${ctx.result} >> ${index}) & 1)`;
-    // MISRA 10.3: Add narrowing cast if expected type is narrower than int
-    const targetType = CodeGenState.expectedType;
-    if (targetType) {
-      expr = NarrowingCastHelper.wrap(expr, "int", targetType);
-    }
-    output.result = expr;
+    output.result = singleBitRead(ctx.result, index);
     output.currentStructType = undefined;
     return output;
   }
@@ -1808,17 +1815,7 @@ const handleDefaultSubscript = (
   });
 
   if (subscriptKind === "bit_single") {
-    // Skip shift when index is 0 (either "0" or "0U" with MISRA suffix)
-    let expr =
-      index === "0" || index === "0U"
-        ? `((${ctx.result}) & 1)`
-        : `((${ctx.result} >> ${index}) & 1)`;
-    // MISRA 10.3: Add narrowing cast if expected type is narrower than int
-    const targetType = CodeGenState.expectedType;
-    if (targetType) {
-      expr = NarrowingCastHelper.wrap(expr, "int", targetType);
-    }
-    output.result = expr;
+    output.result = singleBitRead(ctx.result, index);
   } else {
     output.result = `${ctx.result}[${index}]`;
   }
