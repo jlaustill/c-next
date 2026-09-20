@@ -820,7 +820,6 @@ void modified(uint32_t* value) { ... }
 Auto-const is applied to:
 
 - **Pointer parameters** (non-array, non-float, non-enum types that become `T*` in C)
-- **Array parameters** (already pointers in C, get `const` if unmodified)
 
 Auto-const is NOT applied to:
 
@@ -828,6 +827,12 @@ Auto-const is NOT applied to:
 - **Enum parameters** - passed by value, not by pointer
 - **ISR parameters** - function pointer type, not data pointer
 - **Explicitly `const` parameters** - already const, redundant
+- **Array parameters** - an array parameter is never const-qualified by
+  inference; only an explicit `const` written in the source qualifies one. This
+  reverses the decision this ADR originally recorded, which inferred `const` for
+  an unmodified array on the grounds that an array is already a pointer in C.
+  ADR-062 proposes a sink-aware replacement: infer `const` where the sink is
+  known to be read-only, and stay mutable where the sink cannot be resolved.
 - **Parameters of a function used as a callback** - a function assigned to a
   callback typedef must keep that typedef's parameter shape. Inferring `const`
   narrows the shape, so the function stops matching the typedef it is handed
