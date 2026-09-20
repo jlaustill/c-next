@@ -121,7 +121,7 @@ describe("OutputExtensions (#1319)", () => {
       .map((file) => file.slice(SRC_ROOT.length + 1));
 
     expect(defaults).toEqual([
-      ["transpiler", "output", "codegen", "CodeGenerator.ts"].join(sep),
+      ["TRANSPILE", "3-Render", "codegen", "CodeGenerator.ts"].join(sep),
     ]);
   });
 

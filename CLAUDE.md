@@ -329,10 +329,17 @@ never enter the comparison. A green `test:all` says nothing about any of
 them: #1399 pushed on one and turned CI red on `docs:throw-citations:check`, because
 **adding a single import to a file under `output/` shifts every later `throw new` down one
 line** and all 20 citations in `docs/architecture/output-throw-classification.md` missed by
-exactly one. That document is authored, not generated — there is no write mode, so the line
-numbers are hand-edited. Each row also carries an `anchor`, a verbatim substring of what its
-throw says, which the gate holds to the cited line: two rows cannot trade sites and stay
-green, and a drifted row's anchor says which throw it meant (#1374).
+exactly one. The prose is authored, but the line numbers are not hand-edited:
+`npm run docs:throw-citations` remaps them by reading the PREVIOUS revision, where an
+unchanged `throw` count makes the Nth throw then the Nth throw now. It **refuses** a file
+whose count changed — the one case it cannot decide, and precisely the objection that used to
+justify having no write mode at all (#1518). Each row also carries an `anchor`, a verbatim
+substring of what its throw says, which the gate holds to the cited line: two rows cannot
+trade sites and stay green, and a drifted row's anchor says which throw it meant (#1374).
+**It gates the population too, not only the citations**: a `throw` added under `output/`
+with no row fails it as `throw statement is not classified`. That is what holds the corpus
+at the zero #1322 emptied it to — verified by mutation, with a negative control, since the
+line-shifting edit above is the thing a file-level check would confuse it with.
 
 **A lost diagnostic used to erase its own evidence (#1316)**: under `--update`, a
 `test-error` fixture that stopped erroring had its `.expected.error` unlinked and rewritten
@@ -502,14 +509,14 @@ Mutation-checked, and the check is the point: add a static method nothing calls 
 
 ### 4-Layer Structure (`src/transpiler/`)
 
-| Layer        | Path            | Purpose                                                                                         |
-| ------------ | --------------- | ----------------------------------------------------------------------------------------------- |
-| Data         | `data/`         | Discovery (FileDiscovery, IncludeResolver, DependencyGraph)                                     |
-| Logic        | `logic/`        | Business logic (parser/, preprocessor/) — `symbols/` and `analysis/` left under #1511 and #1322 |
-| Output       | `output/`       | Generation (codegen/, headers/)                                                                 |
-| State        | `state/`        | Global state (CodeGenState, SymbolRegistry)                                                     |
-| Constants    | `constants/`    | Runtime lookups (BITMAP_SIZE, BITMAP_BACKING_TYPE)                                              |
-| Orchestrator | `Transpiler.ts` | Coordinates all layers                                                                          |
+| Layer        | Path                      | Purpose                                                                                         |
+| ------------ | ------------------------- | ----------------------------------------------------------------------------------------------- |
+| Data         | `data/`                   | Discovery (FileDiscovery, IncludeResolver, DependencyGraph)                                     |
+| Logic        | `logic/`                  | Business logic (parser/, preprocessor/) — `symbols/` and `analysis/` left under #1511 and #1322 |
+| Render       | `src/TRANSPILE/3-Render/` | 2.3 Render — codegen/, headers/. Moved out of `transpiler/output/` by #1450 box 5               |
+| State        | `state/`                  | Global state (CodeGenState, SymbolRegistry)                                                     |
+| Constants    | `constants/`              | Runtime lookups (BITMAP_SIZE, BITMAP_BACKING_TYPE)                                              |
+| Orchestrator | `Transpiler.ts`           | Coordinates all layers                                                                          |
 
 ### Utility Locations
 
@@ -801,7 +808,9 @@ ones. `npx tsc --noEmit` cannot catch a name in prose; only a reader can.
 
 ### Struct Param Access Helpers
 
-Use `memberAccessChain.ts` helpers for all patterns: `getStructParamSeparator()` for `->` vs `.`, `wrapStructParamValue()` for `(*param)` vs `param`, `buildStructParamMemberAccess()` for chains. Never inline these.
+Use `memberAccessChain.ts` helpers rather than inlining the mode check: `getStructParamSeparator()` for `->` vs `.`, and `wrapStructParamValue()` for `(*param)` vs `param`. Never inline these.
+
+This used to name a third, `buildStructParamMemberAccess()`, "for chains". It had **no production caller** — chains are built incrementally by `MemberSeparatorResolver` and the postfix generator, never in one call — and knip could not report it, because its six test callers count as usage (#1418). Deleted under #1450. A rule naming a helper nothing uses teaches the next reader a pattern the codebase does not have.
 
 ### Function Argument Generation
 

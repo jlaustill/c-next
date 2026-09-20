@@ -54,9 +54,7 @@ import IRegisterAccessError from "./types/IRegisterAccessError";
 import TChainRoot from "./types/TChainRoot";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 import ConstantExpression from "./helpers/ConstantExpression";
-
-/** The write-1 modifiers, for which a zero bit write is meaningless. */
-const WRITE_ONE = new Set(["wo", "w1s", "w1c"]);
+import RegisterAccessMode from "../../utils/RegisterAccessMode";
 
 class RegisterAccessListener extends CNextListener {
   private readonly found: IRegisterAccessError[] = [];
@@ -122,7 +120,7 @@ class RegisterAccessListener extends CNextListener {
     // Bit forms: the ops after the member are exactly one subscript.
     const rest = ops.slice(found.consumed - 1);
     if (rest.length !== 1 || rest[0].DOT() !== null) return;
-    if (!WRITE_ONE.has(found.access)) return;
+    if (!RegisterAccessMode.isWriteOne(found.access)) return;
     const exprs = rest[0].expression();
     if (!this.isZero(ctx.expression(), target)) return;
     const index = exprs.map((e) => e.getText()).join(", ");

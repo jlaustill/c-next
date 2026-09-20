@@ -136,8 +136,23 @@ class ScopeJoinSites {
   private static readonly SCOPE_DENOTING =
     /\b\w*[Ss]cope(?:Path|Name)?\b|scope\.name/;
 
-  /** Routing through here is the CORRECT form, whatever the argument is called. */
-  private static readonly VIA_SCOPE_UTILS = "ScopeUtils.";
+  /**
+   * Routing through one of these is the CORRECT form, whatever the argument is
+   * called.
+   *
+   * Two spellings, one operation. `QualifiedNameGenerator.forMember` is a
+   * one-line delegate to `ScopeUtils.qualifyInScope` -- its own doc calls it
+   * "the canonical spelling for `output/`", because `logic/` cannot import from
+   * `output/` and so needs the other door. #1450 converted the 14 `output/`
+   * sites that still used the `ScopeUtils` spelling, and this list is why that
+   * conversion does not read as fourteen sites regressing INTO the population:
+   * the exclusion is about whether a join went through the single encoder, not
+   * about which of the encoder's two public names was typed.
+   */
+  private static readonly VIA_ENCODER: readonly string[] = [
+    "ScopeUtils.",
+    "QualifiedNameGenerator.forMember(",
+  ];
 
   /**
    * The reviewed judgement for every site the scan finds.
@@ -190,7 +205,7 @@ class ScopeJoinSites {
       why: "`scopeDecl.IDENTIFIER()` -- source text from a parse-tree identifier. #1295 argues NO to the scope question that card raises, and this row records that argument rather than an outcome -- the card is the work in flight, so past tense here would assert an event that has not happened. This is not leaf-keyed and nothing needs to move it. `constValues`' key is `fromParts([scopeName, name])`, and `fromParts` runs `toParts`, which SPLITS dotted paths, so the key is as complete as what it is handed -- unlike #1295's three collections, which used `scope.name` raw as a Map key with no encoder at all. What it is handed is complete by construction: `scopeMember` (`grammar/CNext.g4:81-88`) admits no `scopeDeclaration`, which ADR-016 states permanently (#1306), so a scope declaration is always at file scope and its identifier IS its whole path. SCOPED to the key on this line: the BARE key the same function writes (`constValues.set(name, value)`) collides across sibling scopes and is a live defect tracked as #1538 -- this adjudication says nothing about it",
     },
     {
-      file: "src/transpiler/output/codegen/assignment/AssignmentClassifier.ts",
+      file: "src/TRANSPILE/2-Plan/AssignmentClassifier.ts",
       element: "scopeName",
       kind: "path",
       pairedWith: null,
@@ -198,7 +213,7 @@ class ScopeJoinSites {
       why: "`ids[0]` of a parse-tree chain, admitted by `isKnownScope(scopeName)` (`:229`, `:554`); under nesting the author writes more components and the INDEXING changes, not the join",
     },
     {
-      file: "src/transpiler/output/codegen/assignment/AssignmentClassifier.ts",
+      file: "src/TRANSPILE/2-Plan/AssignmentClassifier.ts",
       element: "firstId",
       kind: "path",
       pairedWith: null,
@@ -206,7 +221,7 @@ class ScopeJoinSites {
       why: "`ids[0]` of `Scope.REG.MEMBER[bit]`, guarded by `isKnownScope`",
     },
     {
-      file: "src/transpiler/output/codegen/assignment/handlers/AssignmentHandlerUtils.ts",
+      file: "src/TRANSPILE/3-Render/codegen/assignment/handlers/AssignmentHandlerUtils.ts",
       element: "leadingId",
       kind: "path",
       pairedWith: null,
@@ -214,7 +229,7 @@ class ScopeJoinSites {
       why: "`identifiers[0]` of `Scope.Register.Member`, guarded by the injected `isKnownScope`",
     },
     {
-      file: "src/transpiler/output/codegen/assignment/handlers/BitmapHandlers.ts",
+      file: "src/TRANSPILE/3-Render/codegen/assignment/handlers/BitmapHandlers.ts",
       element: "scopeName",
       kind: "path",
       pairedWith: null,
@@ -222,7 +237,7 @@ class ScopeJoinSites {
       why: "`ctx.identifiers[0]` of `Scope.REG.MEMBER.field`; the sibling `this.` branch already routes through `ScopeUtils.qualifyInScope`",
     },
     {
-      file: "src/transpiler/output/codegen/resolution/EnumTypeResolver.ts",
+      file: "src/TRANSPILE/3-Render/codegen/resolution/EnumTypeResolver.ts",
       element: "scopeName",
       kind: "path",
       pairedWith: null,
@@ -230,7 +245,7 @@ class ScopeJoinSites {
       why: "`parts[0]` of `Motor.State.IDLE`; builds a candidate key from source text, not a qualification of a member by its declaring scope",
     },
     {
-      file: "src/transpiler/output/codegen/resolution/EnumTypeResolver.ts",
+      file: "src/TRANSPILE/3-Render/codegen/resolution/EnumTypeResolver.ts",
       element: "parts[0]",
       kind: "path",
       pairedWith: null,
@@ -238,7 +253,7 @@ class ScopeJoinSites {
       why: "`Scope.method()` callee text, guarded by `isKnownScope`",
     },
     {
-      file: "src/transpiler/output/codegen/resolution/EnumTypeResolver.ts",
+      file: "src/TRANSPILE/3-Render/codegen/resolution/EnumTypeResolver.ts",
       element: "parts[1]",
       kind: "path",
       pairedWith: null,
@@ -384,7 +399,7 @@ class ScopeJoinSites {
 
   /** Does this first element name a scope instead of an outermost component? */
   static isScopeDenoting(element: string): boolean {
-    if (element.includes(ScopeJoinSites.VIA_SCOPE_UTILS)) {
+    if (ScopeJoinSites.VIA_ENCODER.some((door) => element.includes(door))) {
       return false;
     }
     return ScopeJoinSites.SCOPE_DENOTING.test(element);

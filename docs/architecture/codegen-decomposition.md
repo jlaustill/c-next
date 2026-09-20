@@ -7,13 +7,52 @@
 
 ## Status
 
-**WIP** — carried over verbatim from the ADR. Changing a status needs the owner's word,
-and the evidence below says this one is due a review rather than a silent edit (#1412).
+**Implemented** — 2026-09-19, on the owner's direction (#1412, #1450 box 6).
+
+It did **not** survive the check as it stood. This document states an obligation twice —
+"Classifier | Unit | 100% - all 25 kinds" under Testing Strategy, and "Classification tests
+cover all 25 kinds explicitly" under Mitigations — and the classifier's unit tests named
+**25 of the 31** kinds that existed. The count still read as met, because the number in the
+obligation and the number covered were both 25 while six kinds had no test at all: a guard
+that passes by coincidence. `STRING_THIS_MEMBER` was among the six, the same kind whose
+unguarded registry key emitted a 55-byte out-of-bounds `strncpy` bound
+(`tests/string-assignment/string-assign-scope-this-shared-name.test.cnx`).
+
+Closed before the status was changed rather than waived: `STRUCT_MEMBER_BIT` was a dead
+kind — a registered handler the classifier could never dispatch to, its own comment saying
+"this is handled through MEMBER_CHAIN" — and is deleted; the remaining five gained tests,
+each mutation-checked to redden alone with a line-shifting negative control staying green.
+**All 30 kinds are named explicitly.**
+
+### What shipped differently from the Decision below
+
+Recorded, not rewritten — the Decision is the decision that was taken, and these are
+findings about how it was carried out.
+
+| named below                                 | in the tree                                                                                                                               |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Context Builder `buildAssignmentContext`    | `AssignmentContextBuilder`                                                                                                                |
+| Classifier `classifyAssignment`, "25 kinds" | `AssignmentClassifier`, 30 kinds                                                                                                          |
+| Handlers                                    | 30 registered across 9 modules                                                                                                            |
+| `BitUtils`, `StringUtils`                   | `src/utils/`, as specified                                                                                                                |
+| `MmioUtils.volatileWrite`                   | absorbed — `RegisterUtils.tryGenerateMMIO` emits the volatile store                                                                       |
+| `BitUtils.writeOnlyBitWrite`                | absorbed — `RegisterUtils.generateWriteOnlyBitRange`                                                                                      |
+| `TargetUtils.joinPath` / `.subscript`       | absorbed — `memberAccessChain.ts` builds chains incrementally, `generateSubscriptAccess` handles subscripts                               |
+| **Validator `validateAssignment`**          | **deleted by #1322** — const, enum, conversion, compound and bounds checks are all pass 2.1 diagnostics now, at the target's own position |
+
+The Validator row is a supersession, not an omission: the component was removed on purpose
+by a later decision, and this document predates it.
+
+Coverage against the Testing Strategy, measured 2026-09-19: `StringUtils` 100% on every
+metric; `BitUtils` 100% statements/functions/lines, 96.36% branch; every handler module 100%
+functions, 95.8–100% statements.
+
+### The WIP justification had already expired
 
 The classifier + handler + utils pattern landed in PR #447 and is the documented way to add new
 assignment kinds (see CLAUDE.md, "Assignment Classification").
 
-The WIP justification no longer holds. It read: `CodeGenerator.ts` is down from 10,570 lines to
+It read: `CodeGenerator.ts` is down from 10,570 lines to
 roughly 5,000, "but three methods named as targets below — `_generatePostfixExpr`,
 `trackVariableType` and `generateMemberAccess` — are still in `CodeGenerator.ts`." Measured on
 2026-08-31, none of the three is:
@@ -24,8 +63,8 @@ roughly 5,000, "but three methods named as targets below — `_generatePostfixEx
 | `trackVariableType`    | `TypeRegistrationEngine`                      |
 | `generateMemberAccess` | removed outright in the grammar consolidation |
 
-`CodeGenerator.ts` is 4,995 lines, which matches the "roughly 5,000" the status already
-claimed. So the file's size was kept current while the sentence explaining why the work was
+`CodeGenerator.ts` was 4,995 lines then and is **4,826** on 2026-09-19, against the 10,570
+this document opens with. So the file's size was kept current while the sentence explaining why the work was
 unfinished was not — the two halves of the same paragraph disagreed.
 
 ## Context

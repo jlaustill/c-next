@@ -96,8 +96,16 @@ run_check "CLI Tests"         "test:cli"                 npm run test:cli
 # examples/teensy4 kept the old shape. Writing in place makes `working tree
 # clean` below catch that; a temp directory would run the CLI and prove nothing
 # about the committed files.
+#
+# #1450: the outputs are REMOVED first, and the HEADER is asserted too. `test -f`
+# over a committed file proves it exists, not that this run wrote it -- so a
+# break in the header write path passed here with the stale file sitting on
+# disk, and `working tree clean` saw nothing because an unwritten file is an
+# unchanged file. Measured: suppressing the Stage 6 header write left 1247/1247
+# fixtures green and this check passing. Deleting first turns "did not write"
+# into a missing file, which both this assertion and `working tree clean` catch.
 run_check "CLI Tests"         "cli smoke" \
-  bash -c 'node dist/index.js examples/teensy4/blink.cnx && test -f examples/teensy4/blink.c'
+  bash -c 'rm -f examples/teensy4/blink.c examples/teensy4/blink.h && node dist/index.js examples/teensy4/blink.cnx && test -f examples/teensy4/blink.c && test -f examples/teensy4/blink.h'
 run_check "Grammar Coverage"  "coverage:grammar:check"   npm run coverage:grammar:check -- --threshold 80
 run_check "Format Fidelity"   "format:fidelity"          npm run format:fidelity
 

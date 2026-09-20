@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import Transpiler from "../Transpiler";
-import HeaderGenerator from "../output/headers/HeaderGenerator";
+import HeaderGenerator from "../../TRANSPILE/3-Render/headers/HeaderGenerator";
 import CodeGenState from "../state/CodeGenState";
 import SymbolRegistry from "../state/SymbolRegistry";
 

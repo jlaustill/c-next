@@ -9,6 +9,7 @@
 #include <string.h>
 
 // ADR-045: String as function parameter
+// test-no-warnings
 // Tests: passing bounded string to function
 void printMessage(const char* msg) {
     uint32_t len = strlen(msg);
@@ -16,5 +17,5 @@ void printMessage(const char* msg) {
 
 int main(void) {
     char greeting[65] = "Hello, World!";
-    printMessage(&greeting);
+    printMessage(greeting);
 }

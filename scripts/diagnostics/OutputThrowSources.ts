@@ -1,6 +1,6 @@
 /**
  * The corpus both the throw-citations gate and its remapper read: every
- * non-test `.ts` under `src/transpiler/output/`, keyed by repo-relative path,
+ * non-test `.ts` under `src/TRANSPILE/3-Render/`, keyed by repo-relative path,
  * plus the document that classifies them.
  *
  * Extracted for #1322. The gate owned this walk; the remapper needs the exact
@@ -34,7 +34,7 @@ class OutputThrowSources {
    */
   static read(): Map<string, string> {
     const sources = new Map<string, string>();
-    const outputDir = join(rootDir, "src", "transpiler", "output");
+    const outputDir = join(rootDir, "src", "TRANSPILE", "3-Render");
     for (const full of FileScanner.findFiles(outputDir, ".ts")) {
       if (full.includes(`${sep}__tests__${sep}`)) {
         continue;

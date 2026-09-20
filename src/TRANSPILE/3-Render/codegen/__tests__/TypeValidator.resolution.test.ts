@@ -1,0 +1,140 @@
+import { describe, it, expect, beforeEach } from "vitest";
+import TypeValidator from "../TypeValidator";
+import CodeGenState from "../../../../transpiler/state/CodeGenState";
+import createMockSymbols from "../../../../transpiler/__tests__/codeGenSymbolsHelpers";
+import enterScope from "../../../../transpiler/__tests__/enterScope";
+
+describe("TypeValidator.resolveBareIdentifier", () => {
+  beforeEach(() => {
+    CodeGenState.reset();
+    CodeGenState.setScopeMembers("Motor", new Set(["speed", "maxSpeed"]));
+    CodeGenState.setVariableTypeInfo("globalCounter", {
+      baseType: "u32",
+      bitWidth: 32,
+      isArray: false,
+      isConst: false,
+    });
+    CodeGenState.setVariableTypeInfo("Motor__speed", {
+      baseType: "u32",
+      bitWidth: 32,
+      isArray: false,
+      isConst: false,
+    });
+    enterScope("Motor");
+    CodeGenState.symbols = createMockSymbols({
+      knownScopes: new Set(["Motor", "LED"]),
+      knownRegisters: new Set(["GPIO"]),
+      knownEnums: new Set(["State"]),
+      knownStructs: new Set(["Point"]),
+      scopeMembers: new Map([["Motor", new Set(["speed", "maxSpeed"])]]),
+    });
+    CodeGenState.knownFunctions = new Set(["globalFunc", "Motor__stop"]);
+  });
+
+  describe("inside a scope", () => {
+    it("returns null for local variables (no transformation needed)", () => {
+      const result = TypeValidator.resolveBareIdentifier(
+        "localVar",
+        true,
+        () => false,
+      );
+      expect(result).toBeNull();
+    });
+
+    it("resolves scope member to prefixed name", () => {
+      const result = TypeValidator.resolveBareIdentifier(
+        "speed",
+        false,
+        () => false,
+      );
+      expect(result).toBe("Motor__speed");
+    });
+
+    it("resolves global variable to itself", () => {
+      const result = TypeValidator.resolveBareIdentifier(
+        "globalCounter",
+        false,
+        () => false,
+      );
+      expect(result).toBe("globalCounter");
+    });
+
+    it("resolves global function to itself", () => {
+      const result = TypeValidator.resolveBareIdentifier(
+        "globalFunc",
+        false,
+        () => false,
+      );
+      expect(result).toBe("globalFunc");
+    });
+
+    it("resolves scope function to prefixed name", () => {
+      const result = TypeValidator.resolveBareIdentifier(
+        "stop",
+        false,
+        () => false,
+      );
+      // 'stop' should check if Motor_stop exists as a function
+      expect(result).toBe("Motor__stop");
+    });
+
+    it("returns null for unknown identifiers", () => {
+      const result = TypeValidator.resolveBareIdentifier(
+        "unknownName",
+        false,
+        () => false,
+      );
+      expect(result).toBeNull();
+    });
+  });
+
+  describe("outside a scope", () => {
+    beforeEach(() => {
+      enterScope(null);
+    });
+
+    it("returns null for local variables", () => {
+      const result = TypeValidator.resolveBareIdentifier(
+        "localVar",
+        true,
+        () => false,
+      );
+      expect(result).toBeNull();
+    });
+
+    it("returns null for global variables (no transformation)", () => {
+      const result = TypeValidator.resolveBareIdentifier(
+        "globalCounter",
+        false,
+        () => false,
+      );
+      expect(result).toBeNull();
+    });
+  });
+
+  describe("resolveForMemberAccess", () => {
+    it("prefers scope name over global variable for member access", () => {
+      // Setup: global variable 'LED' exists AND scope 'LED' exists
+      CodeGenState.setVariableTypeInfo("LED", {
+        baseType: "u8",
+        bitWidth: 8,
+        isArray: false,
+        isConst: false,
+      });
+
+      const result = TypeValidator.resolveForMemberAccess("LED");
+      expect(result).toBe("LED"); // Returns scope name, not transformed
+      expect(result).not.toBe("Motor_LED"); // Should NOT be scope-prefixed
+    });
+
+    it("returns scope name when it exists", () => {
+      const result = TypeValidator.resolveForMemberAccess("LED");
+      expect(result).toBe("LED");
+    });
+
+    it("returns null for unknown identifiers", () => {
+      const result = TypeValidator.resolveForMemberAccess("Unknown");
+      expect(result).toBeNull();
+    });
+  });
+});

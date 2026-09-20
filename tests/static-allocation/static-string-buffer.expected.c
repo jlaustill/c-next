@@ -9,6 +9,7 @@
 #include <string.h>
 
 // test-execution
+// test-no-warnings
 // ADR-003/ADR-045: Static string buffer allocation
 // Tests: global string buffers with known sizes are valid
 // Issues #138 and #139 fixed: string assignment now works correctly
@@ -51,7 +52,7 @@ int main(void) {
     if (strlen(messageBuffer) != 8) return 11U;
     if (strcmp(messageBuffer, "Modified") != 0) return 12U;
     char source[65] = "FromParam";
-    copyMessage(&source);
+    copyMessage(source);
     if (strlen(messageBuffer) != 9) return 13U;
     if (strcmp(messageBuffer, "FromParam") != 0) return 14U;
     setDefaultMessage();

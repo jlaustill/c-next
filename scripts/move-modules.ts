@@ -338,6 +338,146 @@ const MOVES: readonly IMove[] = [
     because:
       "the include funnel that consumes it moves to CodeGenState, and state/ may not import output/ (`state-cannot-import-output`); a union two layers name is a shared contract, which .dependency-cruiser.cjs sends to transpiler/types/",
   },
+  // --- 2.3 Render: what the text looks like -------------------------------
+  {
+    from: "src/transpiler/output",
+    to: "src/TRANSPILE/3-Render",
+    because:
+      "#1450 box 5. The whole of `output/` IS the render pass -- codegen and " +
+      "header generation -- so it moves as a tree, the way 2.1 Analyze did. " +
+      "Every module here exists to turn settled decisions into text, and the " +
+      "pass's own entry point (`CodeGenerator`) cannot be left behind by a " +
+      "partial move without `3-Render/` holding everything except the pass. " +
+      "Twenty-seven of the 144 still DECIDE rather than format -- they raise " +
+      "an emission fact or expose a classification predicate -- and that is " +
+      "box 4's remaining work, not a reason to split the directory: a module " +
+      "that decides is in the wrong pass-PHASE, not the wrong pass, and #1443 " +
+      "keys destinations on the pass.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/subscript/SubscriptClassifier.ts",
+    to: "src/TRANSPILE/2-Plan/SubscriptClassifier.ts",
+    because:
+      "#1450 box 4. `classify` decides WHICH subscript form a target is -- " +
+      "array element, bit, bit range, slice -- and both readers act on that " +
+      "answer rather than re-deriving it. That is 2.2's question, and the " +
+      "module can answer it there: its only imports are its own kind union " +
+      "and `TTypeInfo`, which is layer-neutral, so nothing " +
+      "`plan-cannot-import-render` forbids comes with it.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/subscript/TSubscriptKind.ts",
+    to: "src/TRANSPILE/2-Plan/TSubscriptKind.ts",
+    because:
+      "The decision's own vocabulary; its only readers are the classifier and " +
+      "itself, so it moves with it rather than becoming a shared contract.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/subscript/__tests__/SubscriptClassifier.test.ts",
+    to: "src/TRANSPILE/2-Plan/__tests__/SubscriptClassifier.test.ts",
+    because: "Tests live beside the module they exercise.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/assignment/AssignmentClassifier.ts",
+    to: "src/TRANSPILE/2-Plan/AssignmentClassifier.ts",
+    because:
+      "#1450 box 4. `classify` decides WHICH form an assignment takes -- which " +
+      "of 30 kinds, and therefore which handler emits it. Deciding the form is " +
+      "2.2's question; the handlers that act on the answer stay in 2.3. Its " +
+      "two render-side imports both resolve: `SubscriptDepthValidator` moves " +
+      "with it, and `QualifiedNameGenerator` is a render-pass FACADE over " +
+      "`ScopeUtils` (its own header says so), so a module that has left that " +
+      "pass calls the `utils/` authority directly instead.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/subscript/SubscriptDepthValidator.ts",
+    to: "src/TRANSPILE/2-Plan/SubscriptDepthValidator.ts",
+    because:
+      "Reached by the classifier above and by `PostfixExpressionGenerator`. It " +
+      "decides whether a subscript depth is legal against a type, which is the " +
+      "same kind of question `SubscriptClassifier` answers next to it; render " +
+      "reading it is the allowed direction.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/subscript/__tests__/SubscriptDepthValidator.test.ts",
+    to: "src/TRANSPILE/2-Plan/__tests__/SubscriptDepthValidator.test.ts",
+    because: "Tests live beside the module they exercise.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/assignment/AssignmentKind.ts",
+    to: "src/transpiler/types/AssignmentKind.ts",
+    because:
+      "Once the classifier is in 2.2 and the handlers stay in 2.3, this union " +
+      "is named by BOTH passes -- and the manifest's own rule sends a type " +
+      "named by more than one layer to `transpiler/types/` rather than letting " +
+      "either pass own the other's vocabulary.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/assignment/IAssignmentContext.ts",
+    to: "src/transpiler/types/IAssignmentContext.ts",
+    because:
+      "Same test, and the sharper case: 2.3 BUILDS it (`AssignmentContextBuilder`) " +
+      "and 2.2 READS it. A contract with a producer in one pass and a consumer " +
+      "in another is exactly what `transpiler/types/` is for.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/assignment/__tests__/AssignmentClassifier.test.ts",
+    to: "src/TRANSPILE/2-Plan/__tests__/AssignmentClassifier.test.ts",
+    because: "Tests live beside the module they exercise.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/types/INTEGER_TYPES.ts",
+    to: "src/transpiler/types/INTEGER_TYPES.ts",
+    because:
+      "#1450 box 4. ADR-024's type classification, and once `CastRequirement` " +
+      "in 2.2 reads it alongside 2.3's `TypeResolver` it is named by two " +
+      "layers -- which the admission rule sends to `transpiler/types/`.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/types/FLOAT_TYPES.ts",
+    to: "src/transpiler/types/FLOAT_TYPES.ts",
+    because: "Same rule, same pair of readers.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/types/SIGNED_TYPES.ts",
+    to: "src/transpiler/types/SIGNED_TYPES.ts",
+    because:
+      "`INTEGER_TYPES` is built from it, so it follows rather than leaving a " +
+      "shared contract importing back into a pass.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/types/UNSIGNED_TYPES.ts",
+    to: "src/transpiler/types/UNSIGNED_TYPES.ts",
+    because: "Same.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/helpers/types/IPostfixOp.ts",
+    to: "src/transpiler/types/IPostfixOp.ts",
+    because:
+      "#1450 box 4. The abstracted postfix-op shape, named by `CppMemberHelper` " +
+      "as it moves to 2.2 and by `PostfixChainBuilder` and `CodeGenerator` " +
+      "which stay in 2.3 -- two layers, which the admission rule sends to " +
+      "`transpiler/types/`. Not to be confused with `IPostfixOpLike` in " +
+      "`SubscriptDepthValidator`: that one wraps the RAW parse-tree op " +
+      "(`expression(): unknown[]`), this one is the abstracted boolean form, " +
+      "and they are different shapes rather than a duplicate.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/helpers/CppMemberHelper.ts",
+    to: "src/TRANSPILE/2-Plan/CppMemberHelper.ts",
+    because:
+      "#1450 box 4. Its four `needs*MemberConversion` methods decide whether a " +
+      "C++ conversion TEMPORARY is emitted at all -- a choice about what C++ " +
+      "exists, not how it reads. The module's own header says that is its job: " +
+      "'handles cases where passing struct members to functions in C++ mode " +
+      "requires temporary variables'. Its only render-side import was " +
+      "`IPostfixOp`, which becomes a shared contract above.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/helpers/__tests__/CppMemberHelper.test.ts",
+    to: "src/TRANSPILE/2-Plan/__tests__/CppMemberHelper.test.ts",
+    because: "Tests live beside the module they exercise.",
+  },
 ];
 
 /** Every `.ts` file under a path, or the path itself when it is a file. */

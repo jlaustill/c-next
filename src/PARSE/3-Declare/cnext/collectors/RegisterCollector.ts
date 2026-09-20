@@ -14,9 +14,7 @@ import ScopeUtils from "../../../../utils/ScopeUtils";
 import TVisibility from "../../../../transpiler/types/TVisibility";
 import ParserUtils from "../../../../utils/ParserUtils";
 import MemberSymbolBase from "../utils/MemberSymbolBase";
-
-/** Access mode type for register members */
-type TAccessMode = "rw" | "ro" | "wo" | "w1c" | "w1s";
+import type TAccessMode from "../../../../transpiler/types/TRegisterAccessMode";
 
 class RegisterCollector {
   /**

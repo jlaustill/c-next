@@ -1,0 +1,192 @@
+/**
+ * Integer bit access assignment handlers (ADR-065).
+ *
+ * Handles bit manipulation on integer variables:
+ * - INTEGER_BIT: flags[3] <- true
+ * - INTEGER_BIT_RANGE: flags[0, 3] <- 5
+ * - STRUCT_MEMBER_BIT: item.byte[7] <- true
+ * - ARRAY_ELEMENT_BIT: matrix[i][j][FIELD_BIT] <- false
+ */
+import invariant from "../../../../../utils/invariant";
+import AssignmentKind from "../../../../../transpiler/types/AssignmentKind";
+import IAssignmentContext from "../../../../../transpiler/types/IAssignmentContext";
+import BitUtils from "../../../../../utils/BitUtils";
+import TAssignmentHandler from "./TAssignmentHandler";
+import CodeGenState from "../../../../../transpiler/state/CodeGenState";
+
+// #1322: `validateNotCompound` is gone -- E0857 in pass 2.1. It was defined
+// here AND in the sibling handler, verbatim: one rule, two copies, in a group
+// of six.
+
+/**
+ * Handle single bit on integer variable: flags[3] <- true
+ * Also handles float bit indexing: f32Var[3] <- true
+ * Uses resolvedBaseIdentifier for proper scope prefix support.
+ */
+function handleIntegerBit(ctx: IAssignmentContext): string {
+  // Use resolvedBaseIdentifier for type lookup and code generation
+  // e.g., "ArrayBug_flags" instead of "flags"
+  const name = ctx.resolvedBaseIdentifier;
+  const bitIndex = CodeGenState.requireGenerator().generateExpression(
+    ctx.subscripts[0],
+  );
+  const typeInfo = CodeGenState.getVariableTypeInfo(name);
+
+  // Check for float bit indexing
+  if (typeInfo) {
+    const floatResult = CodeGenState.requireGenerator().generateFloatBitWrite(
+      name,
+      typeInfo,
+      bitIndex,
+      null, // single bit, no width
+      ctx.generatedValue,
+    );
+    if (floatResult !== null) {
+      return floatResult;
+    }
+  }
+
+  // Integer bit write - pass type for 64-bit aware code generation
+  return BitUtils.singleBitWrite(
+    name,
+    bitIndex,
+    ctx.generatedValue,
+    typeInfo?.baseType,
+  );
+}
+
+/**
+ * Handle bit range on integer variable: flags[0, 3] <- 5
+ * Also handles float bit range: f32Var[0, 8] <- 0xFF
+ * Uses resolvedBaseIdentifier for proper scope prefix support.
+ */
+function handleIntegerBitRange(ctx: IAssignmentContext): string {
+  // Use resolvedBaseIdentifier for type lookup and code generation
+  const name = ctx.resolvedBaseIdentifier;
+  const start = CodeGenState.requireGenerator().generateExpression(
+    ctx.subscripts[0],
+  );
+  const width = CodeGenState.requireGenerator().generateExpression(
+    ctx.subscripts[1],
+  );
+  const typeInfo = CodeGenState.getVariableTypeInfo(name);
+
+  // Check for float bit indexing
+  if (typeInfo) {
+    const floatResult = CodeGenState.requireGenerator().generateFloatBitWrite(
+      name,
+      typeInfo,
+      start,
+      width, // pass width for range writes
+      ctx.generatedValue,
+    );
+    if (floatResult !== null) {
+      return floatResult;
+    }
+  }
+
+  // Integer bit range write - pass type for 64-bit aware code generation
+  return BitUtils.multiBitWrite(
+    name,
+    start,
+    width,
+    ctx.generatedValue,
+    typeInfo?.baseType,
+  );
+}
+
+/**
+ * Handle bit on multi-dimensional array element: matrix[i][j][FIELD_BIT] <- false
+ * Uses resolvedBaseIdentifier for proper scope prefix support.
+ */
+function handleArrayElementBit(ctx: IAssignmentContext): string {
+  // Use resolvedBaseIdentifier for type lookup and code generation
+  const arrayName = ctx.resolvedBaseIdentifier;
+  const typeInfo = CodeGenState.getVariableTypeInfo(arrayName);
+
+  invariant(
+    typeInfo?.arrayDimensions,
+    `the classifier and this handler agree on a variable's array-ness; both ARRAY_ELEMENT_BIT sites read the same typeInfo ('${ctx.identifiers[0]}')`,
+  );
+
+  const numDims = typeInfo.arrayDimensions.length;
+
+  // Array indices are subscripts[0..numDims-1], bit index is subscripts[numDims]
+  const arrayIndices = ctx.subscripts
+    .slice(0, numDims)
+    .map((e) => `[${CodeGenState.requireGenerator().generateExpression(e)}]`)
+    .join("");
+  const bitIndex = CodeGenState.requireGenerator().generateExpression(
+    ctx.subscripts[numDims],
+  );
+
+  const arrayElement = `${arrayName}${arrayIndices}`;
+
+  // Use 1ULL for 64-bit element types
+  const one = BitUtils.oneForType(typeInfo.baseType);
+  const intValue = BitUtils.boolToInt(ctx.generatedValue);
+
+  return `${arrayElement} = (${arrayElement} & ~(${one} << ${bitIndex})) | (${intValue} << ${bitIndex});`;
+}
+
+/**
+ * Handle bit range through struct chain: devices[0].control[0, 4] <- 15
+ *
+ * The target is a chain like array[idx].member or struct.field with a
+ * bit range subscript [start, width] at the end.
+ * Uses resolvedBaseIdentifier for proper scope prefix support.
+ */
+function handleStructChainBitRange(ctx: IAssignmentContext): string {
+  // Build the base target from postfixOps, excluding the last one (the bit range)
+  // Use resolvedBaseIdentifier for the base to include scope prefix
+  const baseId = ctx.resolvedBaseIdentifier;
+  const opsBeforeLast = ctx.postfixOps.slice(0, -1);
+
+  let baseTarget = baseId;
+  for (const op of opsBeforeLast) {
+    const memberId = op.IDENTIFIER();
+    if (memberId) {
+      baseTarget += "." + memberId.getText();
+    } else {
+      const exprs = op.expression();
+      if (exprs.length > 0) {
+        baseTarget +=
+          "[" +
+          CodeGenState.requireGenerator().generateExpression(exprs[0]) +
+          "]";
+      }
+    }
+  }
+
+  // Get start and width from the last postfixOp (the bit range)
+  const lastOp = ctx.postfixOps.at(-1)!;
+  const bitRangeExprs = lastOp.expression();
+  const start = CodeGenState.requireGenerator().generateExpression(
+    bitRangeExprs[0],
+  );
+  const width = CodeGenState.requireGenerator().generateExpression(
+    bitRangeExprs[1],
+  );
+
+  // Generate bit range write
+  // Limitation: assumes 32-bit types. For 64-bit struct members,
+  // would need to track member type through chain.
+  return BitUtils.multiBitWrite(baseTarget, start, width, ctx.generatedValue);
+}
+
+/**
+ * All bit access handlers for registration.
+ *
+ * Issue #1115: `this.flags[3]` no longer needs its own kinds. It classifies as
+ * INTEGER_BIT / INTEGER_BIT_RANGE like any other integer bit access, because
+ * resolvedBaseIdentifier already includes the scope prefix — which is why the
+ * retired THIS_BIT / THIS_BIT_RANGE mapped to these same two handlers (#954).
+ */
+const bitAccessHandlers: ReadonlyArray<[AssignmentKind, TAssignmentHandler]> = [
+  [AssignmentKind.INTEGER_BIT, handleIntegerBit],
+  [AssignmentKind.INTEGER_BIT_RANGE, handleIntegerBitRange],
+  [AssignmentKind.ARRAY_ELEMENT_BIT, handleArrayElementBit],
+  [AssignmentKind.STRUCT_CHAIN_BIT_RANGE, handleStructChainBitRange],
+];
+
+export default bitAccessHandlers;

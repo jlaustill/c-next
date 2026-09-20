@@ -19,7 +19,7 @@ import * as Parser from "./logic/parser/grammar/CNextParser";
 import CNextSourceParser from "./logic/parser/CNextSourceParser";
 import HeaderParser from "./logic/parser/HeaderParser";
 
-import CodeGenerator from "./output/codegen/CodeGenerator";
+import CodeGenerator from "../TRANSPILE/3-Render/codegen/CodeGenerator";
 import CodeGenState from "./state/CodeGenState";
 import ModificationFacts from "./ModificationFacts";
 import CallbackCompatibility from "./CallbackCompatibility";
@@ -28,14 +28,14 @@ import AdrProvenance from "./state/AdrProvenance";
 import CachedSymbolReader from "../utils/cache/CachedSymbolReader";
 import TJsonValue from "../utils/types/TJsonValue";
 import PublicInterface from "../TRANSPILE/2-Plan/PublicInterface";
-import HeaderGenerator from "./output/headers/HeaderGenerator";
-import HeaderRenderer from "./output/headers/HeaderRenderer";
+import HeaderGenerator from "../TRANSPILE/3-Render/headers/HeaderGenerator";
+import HeaderRenderer from "../TRANSPILE/3-Render/headers/HeaderRenderer";
 import HeaderTypeNames from "../TRANSPILE/2-Plan/HeaderTypeNames";
 import HeaderIncludes from "../TRANSPILE/2-Plan/HeaderIncludes";
 import QualifiedCName from "../utils/QualifiedCName";
-import ExternalTypeHeaderBuilder from "./output/headers/ExternalTypeHeaderBuilder";
-import HeaderGeneratorUtils from "./output/headers/HeaderGeneratorUtils";
-import IHeaderEmissionFacts from "./output/headers/types/IHeaderEmissionFacts";
+import ExternalTypeHeaderBuilder from "../TRANSPILE/3-Render/headers/ExternalTypeHeaderBuilder";
+import HeaderGeneratorUtils from "../TRANSPILE/3-Render/headers/HeaderGeneratorUtils";
+import IHeaderEmissionFacts from "../TRANSPILE/3-Render/headers/types/IHeaderEmissionFacts";
 import IHeaderCallbackType from "./types/IHeaderCallbackType";
 import IncludeExtractor from "./logic/IncludeExtractor";
 import SymbolTable from "./state/SymbolTable";
@@ -48,8 +48,8 @@ import type IFileSymbols from "./types/IFileSymbols";
 import type IParsedFile from "./types/IParsedFile";
 import CResolver from "../PARSE/3-Declare/c/index";
 import CppResolver from "../PARSE/3-Declare/cpp/index";
-import HeaderSymbolAdapter from "./output/headers/adapters/HeaderSymbolAdapter";
-import IHeaderSymbol from "./output/headers/types/IHeaderSymbol";
+import HeaderSymbolAdapter from "../TRANSPILE/3-Render/headers/adapters/HeaderSymbolAdapter";
+import IHeaderSymbol from "../TRANSPILE/3-Render/headers/types/IHeaderSymbol";
 import TSymbol from "./types/symbols/TSymbol";
 import Preprocessor from "./logic/preprocessor/Preprocessor";
 import ToolchainDetector from "./logic/preprocessor/ToolchainDetector";
@@ -90,8 +90,9 @@ import MapUtils from "../utils/MapUtils";
 import detectCppSyntax from "./logic/detectCppSyntax";
 import detectAssemblySyntax from "./logic/detectAssemblySyntax";
 import ExternalDeclarationOracle from "./logic/preprocessor/ExternalDeclarationOracle";
-import TypedefParamParser from "./output/codegen/helpers/TypedefParamParser";
+import TypedefParamParser from "../TRANSPILE/3-Render/codegen/helpers/TypedefParamParser";
 import type IRecordedRequirement from "./types/IRecordedRequirement";
+import type IRenderedFile from "./types/IRenderedFile";
 import RequirementAggregator from "../utils/RequirementAggregator";
 import TargetResolver from "../utils/TargetResolver";
 
@@ -509,7 +510,7 @@ class Transpiler {
     // captured header input to render either, same as parse-only mode.
     // `_renderHeaders` already treats a missing capture as "no header for this
     // file" rather than an error, so this is a silent no-op for it, not a bug.
-    this._renderHeaders(result);
+    const renderedFiles = this._renderHeaders(result);
 
     if (result.success && input.writeOutputToDisk) {
       for (const write of pendingWrites) {
@@ -519,7 +520,11 @@ class Transpiler {
 
     // Stage 6: Write the Stage 5.5 headers (only to disk in files mode)
     if (result.success && input.writeOutputToDisk) {
-      this._generateAllHeadersFromPipeline(input.cnextFiles, result);
+      this._generateAllHeadersFromPipeline(
+        input.cnextFiles,
+        result,
+        renderedFiles,
+      );
     }
   }
 
@@ -545,11 +550,21 @@ class Transpiler {
    * `_captureHeaderEmissionFacts` is only reached from inside the same try
    * block that produced that failure.
    */
-  private _renderHeaders(result: ITranspilerResult): void {
+  private _renderHeaders(
+    result: ITranspilerResult,
+  ): ReadonlyMap<string, IRenderedFile> {
     const rendered = HeaderRenderer.render(
       this.headerEmissionFactsByPath,
       this.headerGenerator,
     );
+
+    // 2.3 Render's artifact, assembled here because this is the first moment a
+    // file's text is complete: the implementation came from Stage 5, the header
+    // from the call above. Stage 6 reads this rather than rebuilding a map from
+    // `result.files[].headerCode` -- which is the same fact flattened into
+    // per-file fields and then un-flattened one stage later, agreeing only
+    // because nothing had yet written one of the two representations.
+    const renderedFiles = new Map<string, IRenderedFile>();
 
     for (const fileResult of result.files) {
       if (!fileResult.success) {
@@ -561,6 +576,11 @@ class Transpiler {
       );
       if (headerCode !== undefined) {
         fileResult.headerCode = headerCode;
+        renderedFiles.set(fileResult.sourcePath, {
+          sourcePath: fileResult.sourcePath,
+          implementation: fileResult.code,
+          header: headerCode,
+        });
         continue;
       }
 
@@ -568,6 +588,13 @@ class Transpiler {
         fileResult.sourcePath,
       );
       if (errorMessage === undefined) {
+        // No header and no failure: the file has no public interface, so 2.3
+        // rendered an implementation and nothing else.
+        renderedFiles.set(fileResult.sourcePath, {
+          sourcePath: fileResult.sourcePath,
+          implementation: fileResult.code,
+          header: null,
+        });
         continue;
       }
 
@@ -590,6 +617,8 @@ class Transpiler {
       result.errors.push({ ...error, sourcePath: fileResult.sourcePath });
       result.success = false;
     }
+
+    return renderedFiles;
   }
 
   /**
@@ -1115,6 +1144,49 @@ class Transpiler {
    * Absorbs what StandaloneContextBuilder used to do, but returns data
    * instead of performing side effects.
    */
+  /**
+   * Resolve C/C++ headers transitively, wired to this run.
+   *
+   * The two call sites -- one per entry shape, source and disk -- each built
+   * the same three-field options bag and each pushed the warnings onto the same
+   * list. How a run reaches the filesystem, which processed-path set it shares,
+   * and whether it logs was therefore decided twice; adding an option meant
+   * remembering there was a second place, and the compiler would not have said
+   * so. Only the roots and the include directories are the caller's business.
+   *
+   * ## `processedPaths` is inert today, and stays
+   *
+   * Dropping it reddens 0 of 1248 fixtures. It seeds the resolver's `visited`
+   * set, and the set is empty at both call sites: the only production writer is
+   * `doCollectHeaderSymbols`, which is Stage 2, and both callers are discovery.
+   * `isHeaderProcessed` has no production caller at all -- tests are its only
+   * readers, which is why knip and `unused-code:check` stay green over it
+   * (#1418).
+   *
+   * Not deleted. It is a cycle guard that happens to be unreached on the order
+   * the pipeline runs in today, not one that cannot fire: a second discovery
+   * pass on a live instance would hand it a populated set. #1143 is this
+   * repository's record of what removing an unreached defense costs.
+   */
+  private _resolveHeadersTransitively(
+    rootHeaders: IDiscoveredFile[],
+    includeDirs: string[],
+  ): IDiscoveredFile[] {
+    const { headers, warnings } = IncludeResolver.resolveHeadersTransitively(
+      rootHeaders,
+      includeDirs,
+      {
+        onDebug: this.config.debugMode
+          ? (msg) => console.log(`[DEBUG] ${msg}`)
+          : undefined,
+        processedPaths: this.state.getProcessedHeadersSet(),
+        fs: this.fs,
+      },
+    );
+    this.warnings.push(...warnings);
+    return headers;
+  }
+
   private _discoverFromSource(
     source: string,
     workingDir: string,
@@ -1145,19 +1217,9 @@ class Transpiler {
     this.state.setIncludeSearchPaths(sourcePath, searchPaths);
 
     // Resolve C/C++ headers transitively
-    const { headers: allHeaders, warnings: headerWarnings } =
-      IncludeResolver.resolveHeadersTransitively(
-        resolved.headers,
-        [...this.config.includeDirs],
-        {
-          onDebug: this.config.debugMode
-            ? (msg) => console.log(`[DEBUG] ${msg}`)
-            : undefined,
-          processedPaths: this.state.getProcessedHeadersSet(),
-          fs: this.fs,
-        },
-      );
-    this.warnings.push(...headerWarnings);
+    const allHeaders = this._resolveHeadersTransitively(resolved.headers, [
+      ...this.config.includeDirs,
+    ]);
 
     // Store header include directives
     for (const header of allHeaders) {
@@ -1698,19 +1760,13 @@ class Transpiler {
   private _generateAllHeadersFromPipeline(
     cnextFiles: IPipelineFile[],
     result: ITranspilerResult,
+    renderedFiles: ReadonlyMap<string, IRenderedFile>,
   ): void {
-    const headersBySourcePath = new Map<string, string>();
-    for (const fileResult of result.files) {
-      if (fileResult.headerCode) {
-        headersBySourcePath.set(fileResult.sourcePath, fileResult.headerCode);
-      }
-    }
-
     for (const file of cnextFiles) {
       if (!Transpiler._producesOutput(file)) {
         continue;
       }
-      const headerContent = headersBySourcePath.get(file.path);
+      const headerContent = renderedFiles.get(file.path)?.header;
       if (headerContent) {
         // Issue #933: .hpp in C++ mode, so C and C++ headers cannot overwrite
         const headerPath = this.pathResolver.getHeaderOutputPath(
@@ -2085,19 +2141,10 @@ class Transpiler {
     const sortedCnextFiles = this._sortFilesByDependency(depGraph, fileByPath);
 
     // Resolve headers transitively
-    const { headers: allHeaders, warnings: headerWarnings } =
-      IncludeResolver.resolveHeadersTransitively(
-        [...headerSet.values()],
-        this.config.includeDirs,
-        {
-          onDebug: this.config.debugMode
-            ? (msg) => console.log(`[DEBUG] ${msg}`)
-            : undefined,
-          processedPaths: this.state.getProcessedHeadersSet(),
-          fs: this.fs,
-        },
-      );
-    this.warnings.push(...headerWarnings);
+    const allHeaders = this._resolveHeadersTransitively(
+      [...headerSet.values()],
+      this.config.includeDirs,
+    );
 
     // Convert IDiscoveredFile[] to IPipelineFile[] (disk-based, all get code gen)
     const pipelineFiles: IPipelineFile[] = sortedCnextFiles.map((f) => ({
