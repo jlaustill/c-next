@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import CppMemberHelper from "../CppMemberHelper";
-import IPostfixOp from "../types/IPostfixOp";
+import IPostfixOp from "../../../transpiler/types/IPostfixOp";
 
 // Local type definitions matching CppMemberHelper's internal interfaces
 type IParamInfo = {

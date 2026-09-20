@@ -92,8 +92,8 @@ import ArgumentGenerator from "./helpers/ArgumentGenerator";
 // Issue #644: Assignment expected type resolution helper
 import AssignmentExpectedTypeResolver from "./helpers/AssignmentExpectedTypeResolver";
 // PR #715: C++ member conversion helper for improved testability
-import CppMemberHelper from "./helpers/CppMemberHelper";
-import IPostfixOp from "./helpers/types/IPostfixOp";
+import CppMemberHelper from "../../2-Plan/CppMemberHelper";
+import IPostfixOp from "../../../transpiler/types/IPostfixOp";
 // PR #715: Boolean conversion helper for improved testability
 import BooleanHelper from "./helpers/BooleanHelper";
 // PR #715: C++ constructor detection helper for improved testability

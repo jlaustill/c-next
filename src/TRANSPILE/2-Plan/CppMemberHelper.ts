@@ -11,8 +11,8 @@
  * 3. Array element member access with external struct elements
  */
 
-import TYPE_MAP from "../../../../utils/constants/TypeMappings";
-import IPostfixOp from "./types/IPostfixOp";
+import TYPE_MAP from "../../utils/constants/TypeMappings";
+import IPostfixOp from "../../transpiler/types/IPostfixOp";
 
 /**
  * Parameter info from the type registry
@@ -45,6 +45,20 @@ class CppMemberHelper {
    * Case 1: Direct parameter member access needs conversion?
    * Issue #251: Const struct parameter needs temp to break const chain
    * Issue #252: External C structs may have bool/enum members
+   */
+  /**
+   * NOT REACHED by any fixture, and kept deliberately.
+   *
+   * #1450 measured it: a throw on entry reddens 0 of 1250, while its three
+   * siblings are entered twice each and the dispatcher above them is reached by
+   * one fixture -- which takes the complex-chain branch every time. So the
+   * corpus builds the OTHER side of that `if` and never this one.
+   *
+   * What it guards is real and named: #251's const struct parameter needing a
+   * temp to break the const chain, and #252's external C struct with a
+   * bool/enum member. A corpus that does not reach a branch is not a user base
+   * that does not, and #1143 is this repository's record of what deleting an
+   * unreached defense costs. The gap is a missing FIXTURE, not dead code.
    */
   static needsParamMemberConversion(
     paramInfo: IParamInfo,

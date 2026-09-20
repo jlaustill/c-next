@@ -450,6 +450,34 @@ const MOVES: readonly IMove[] = [
     to: "src/transpiler/types/UNSIGNED_TYPES.ts",
     because: "Same.",
   },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/helpers/types/IPostfixOp.ts",
+    to: "src/transpiler/types/IPostfixOp.ts",
+    because:
+      "#1450 box 4. The abstracted postfix-op shape, named by `CppMemberHelper` " +
+      "as it moves to 2.2 and by `PostfixChainBuilder` and `CodeGenerator` " +
+      "which stay in 2.3 -- two layers, which the admission rule sends to " +
+      "`transpiler/types/`. Not to be confused with `IPostfixOpLike` in " +
+      "`SubscriptDepthValidator`: that one wraps the RAW parse-tree op " +
+      "(`expression(): unknown[]`), this one is the abstracted boolean form, " +
+      "and they are different shapes rather than a duplicate.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/helpers/CppMemberHelper.ts",
+    to: "src/TRANSPILE/2-Plan/CppMemberHelper.ts",
+    because:
+      "#1450 box 4. Its four `needs*MemberConversion` methods decide whether a " +
+      "C++ conversion TEMPORARY is emitted at all -- a choice about what C++ " +
+      "exists, not how it reads. The module's own header says that is its job: " +
+      "'handles cases where passing struct members to functions in C++ mode " +
+      "requires temporary variables'. Its only render-side import was " +
+      "`IPostfixOp`, which becomes a shared contract above.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/helpers/__tests__/CppMemberHelper.test.ts",
+    to: "src/TRANSPILE/2-Plan/__tests__/CppMemberHelper.test.ts",
+    because: "Tests live beside the module they exercise.",
+  },
 ];
 
 /** Every `.ts` file under a path, or the path itself when it is a file. */
