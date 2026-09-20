@@ -425,6 +425,31 @@ const MOVES: readonly IMove[] = [
     to: "src/TRANSPILE/2-Plan/__tests__/AssignmentClassifier.test.ts",
     because: "Tests live beside the module they exercise.",
   },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/types/INTEGER_TYPES.ts",
+    to: "src/transpiler/types/INTEGER_TYPES.ts",
+    because:
+      "#1450 box 4. ADR-024's type classification, and once `CastRequirement` " +
+      "in 2.2 reads it alongside 2.3's `TypeResolver` it is named by two " +
+      "layers -- which the admission rule sends to `transpiler/types/`.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/types/FLOAT_TYPES.ts",
+    to: "src/transpiler/types/FLOAT_TYPES.ts",
+    because: "Same rule, same pair of readers.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/types/SIGNED_TYPES.ts",
+    to: "src/transpiler/types/SIGNED_TYPES.ts",
+    because:
+      "`INTEGER_TYPES` is built from it, so it follows rather than leaving a " +
+      "shared contract importing back into a pass.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/types/UNSIGNED_TYPES.ts",
+    to: "src/transpiler/types/UNSIGNED_TYPES.ts",
+    because: "Same.",
+  },
 ];
 
 /** Every `.ts` file under a path, or the path itself when it is a file. */

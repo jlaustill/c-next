@@ -1,4 +1,6 @@
 import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
+import INTEGER_TYPES from "../../transpiler/types/INTEGER_TYPES";
+import FLOAT_TYPES from "../../transpiler/types/FLOAT_TYPES";
 
 /**
  * Does a conversion need an explicit cast? (MISRA C:2012 Rule 10.3)
@@ -62,6 +64,28 @@ class CastRequirement {
 
     // Narrowing: the source is wider than the target.
     return sourceWidth > targetWidth;
+  }
+
+  /**
+   * True when the conversion must be CLAMPED, not merely cast.
+   *
+   * Issue #632: a float whose value falls outside the target integer's range
+   * is undefined behavior in C, so float-to-integer needs explicit bounds
+   * checking rather than a cast. Folded in beside `forConversion` because they
+   * are two answers to one question -- "what does this conversion need?" --
+   * and they were two modules: `CastValidator` held this one alone after
+   * `01d00cbe` deleted the six dead predicates around it.
+   */
+  static requiresClamping(
+    sourceType: string | null,
+    targetType: string,
+  ): boolean {
+    if (!sourceType) return false;
+
+    return (
+      (INTEGER_TYPES as readonly string[]).includes(targetType) &&
+      (FLOAT_TYPES as readonly string[]).includes(sourceType)
+    );
   }
 }
 

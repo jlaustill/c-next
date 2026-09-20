@@ -45,4 +45,35 @@ describe("CastRequirement", () => {
       expect(CastRequirement.forConversion("int", "u8")).toBe(true);
     });
   });
+  describe("requiresClamping", () => {
+    it("returns true for float-to-integer", () => {
+      expect(CastRequirement.requiresClamping("f32", "i32")).toBe(true);
+      expect(CastRequirement.requiresClamping("f64", "u8")).toBe(true);
+      expect(CastRequirement.requiresClamping("f32", "i64")).toBe(true);
+    });
+
+    it("returns false for integer-to-integer", () => {
+      expect(CastRequirement.requiresClamping("i32", "i64")).toBe(false);
+      expect(CastRequirement.requiresClamping("u8", "u32")).toBe(false);
+    });
+
+    it("returns false for float-to-float", () => {
+      expect(CastRequirement.requiresClamping("f32", "f64")).toBe(false);
+      expect(CastRequirement.requiresClamping("f64", "f32")).toBe(false);
+    });
+
+    it("returns false for integer-to-float", () => {
+      expect(CastRequirement.requiresClamping("i32", "f32")).toBe(false);
+      expect(CastRequirement.requiresClamping("u64", "f64")).toBe(false);
+    });
+
+    it("returns false for null source type", () => {
+      expect(CastRequirement.requiresClamping(null, "i32")).toBe(false);
+    });
+
+    it("returns false when target is not integer", () => {
+      expect(CastRequirement.requiresClamping("f32", "bool")).toBe(false);
+      expect(CastRequirement.requiresClamping("f32", "MyType")).toBe(false);
+    });
+  });
 });

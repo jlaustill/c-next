@@ -129,7 +129,6 @@ import ISeparatorContext from "./types/ISeparatorContext";
 // Phase 3: Type generation helper for improved testability
 import TypeGenerationHelper from "./helpers/TypeGenerationHelper";
 // Phase 5: Cast validation helper for improved testability
-import CastValidator from "./helpers/CastValidator";
 // Issue #793: Function context lifecycle and parameter processing helper
 import FunctionContextManager from "./helpers/FunctionContextManager";
 import IFunctionContextCallbacks from "./types/IFunctionContextCallbacks";
@@ -168,6 +167,7 @@ import type IFunctionSymbol from "../../../transpiler/types/symbols/IFunctionSym
 import type TSymbol from "../../../transpiler/types/symbols/TSymbol";
 import type ICallbackTypeInfo from "../../../transpiler/types/ICallbackTypeInfo";
 import BareIdentifier from "../../../utils/BareIdentifier";
+import CastRequirement from "../../2-Plan/CastRequirement";
 
 const {
   generateOverflowHelpers: helperGenerateOverflowHelpers,
@@ -4572,7 +4572,7 @@ export default class CodeGenerator implements IOrchestrator {
     // Issue #632: Float-to-integer casts must clamp to avoid undefined behavior
     // C-Next's default is "clamp" (saturate), so out-of-range values clamp to type limits
     const sourceType = this.getUnaryExpressionType(ctx.unaryExpression());
-    if (CastValidator.requiresClampingCast(sourceType, targetTypeName)) {
+    if (CastRequirement.requiresClamping(sourceType, targetTypeName)) {
       return this.generateFloatToIntClampCast(
         expr,
         targetType,

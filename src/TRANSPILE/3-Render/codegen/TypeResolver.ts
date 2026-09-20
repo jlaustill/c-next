@@ -5,9 +5,9 @@
 import { ParserRuleContext } from "antlr4ng";
 import * as Parser from "../../../transpiler/logic/parser/grammar/CNextParser";
 import CodeGenState from "../../../transpiler/state/CodeGenState";
-import INTEGER_TYPES from "./types/INTEGER_TYPES";
-import FLOAT_TYPES from "./types/FLOAT_TYPES";
-import UNSIGNED_TYPES from "./types/UNSIGNED_TYPES";
+import INTEGER_TYPES from "../../../transpiler/types/INTEGER_TYPES";
+import FLOAT_TYPES from "../../../transpiler/types/FLOAT_TYPES";
+import UNSIGNED_TYPES from "../../../transpiler/types/UNSIGNED_TYPES";
 import ExpressionUnwrapper from "../../../utils/ExpressionUnwrapper";
 import type TOverflowBehavior from "../../../transpiler/types/TOverflowBehavior";
 import type TTypeInfo from "../../../transpiler/types/TTypeInfo";
