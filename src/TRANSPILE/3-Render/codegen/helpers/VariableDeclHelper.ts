@@ -329,21 +329,18 @@ class VariableDeclHelper {
       // `Point single = { .x = 1 }` on the next line was already plain. One
       // declaration-initializer decision, previously made in two places.
       const arrayInitResult = CodeGenState.withDeclarationInit(() =>
-        ArrayInitHelper.processArrayInit(
-          name,
-          typeCtx,
-          ctx.expression()!,
-          arrayDims,
-          hasEmptyArrayDim,
-          declaredSize,
-          {
-            generateExpression: (exprCtx) =>
-              callbacks.generateExpression(exprCtx),
-            getTypeName: (typeCtxParam) => callbacks.getTypeName(typeCtxParam),
-            generateArrayDimensions: (dims) =>
-              callbacks.generateArrayDimensions(dims),
-          },
-        ),
+        ArrayInitHelper.processArrayInit(name, hasEmptyArrayDim, declaredSize, {
+          // #1445: thunks. The helper never read these nodes -- it handed
+          // them straight back -- so it now closes over them here instead of
+          // naming three grammar types to pass them through. Lazy, not
+          // pre-generated: `generateExpression` must run inside the
+          // `withExpectedType` window the helper opens.
+          generateExpression: () =>
+            callbacks.generateExpression(ctx.expression()!),
+          getTypeName: () => callbacks.getTypeName(typeCtx),
+          generateArrayDimensions: () =>
+            callbacks.generateArrayDimensions(arrayDims),
+        }),
       );
       if (arrayInitResult) {
         // Track as local array for type resolution

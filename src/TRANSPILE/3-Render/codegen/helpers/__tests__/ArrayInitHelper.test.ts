@@ -15,15 +15,9 @@ import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 const defaultCallbacks = {
   generateExpression: vi.fn(() => "{1, 2, 3}"),
   getTypeName: vi.fn(() => "u8"),
-  generateArrayDimensions: vi.fn(
-    (dims: { expression: () => { getText: () => string } | null }[]) =>
-      dims
-        .map((d) => {
-          const expr = d.expression();
-          return expr ? `[${expr.getText()}]` : "[]";
-        })
-        .join(""),
-  ),
+  // #1445: a thunk now. It used to compute the suffix from fake dimension
+  // nodes; the helper never read them, so the fake only ever fed this mock.
+  generateArrayDimensions: vi.fn(() => "[3]"),
 };
 
 describe("ArrayInitHelper", () => {
@@ -34,18 +28,9 @@ describe("ArrayInitHelper", () => {
 
   describe("processArrayInit", () => {
     it("returns null when not an array initializer", () => {
-      const typeCtx = {} as never;
-      const expression = { getText: () => "someVar" } as never;
-      const arrayDims = [
-        { expression: () => ({ getText: () => "3" }) },
-      ] as never;
-
       // CodeGenState not modified by generateExpression mock (stays at 0)
       const result = ArrayInitHelper.processArrayInit(
         "arr",
-        typeCtx,
-        expression,
-        arrayDims,
         false,
         3,
         defaultCallbacks,
@@ -73,15 +58,8 @@ describe("ArrayInitHelper", () => {
         generateArrayDimensions: vi.fn(() => ""),
       };
 
-      const typeCtx = {} as never;
-      const expression = { getText: () => "[1, 2, 3]" } as never;
-      const arrayDims = [{ expression: () => null }] as never; // Empty dimension
-
       const result = ArrayInitHelper.processArrayInit(
         "arr",
-        typeCtx,
-        expression,
-        arrayDims,
         true, // hasEmptyArrayDim
         null, // no declared size
         callbacks,
@@ -104,16 +82,9 @@ describe("ArrayInitHelper", () => {
         generateArrayDimensions: vi.fn(() => ""),
       };
 
-      const typeCtx = {} as never;
-      const expression = { getText: () => "[0*]" } as never;
-      const arrayDims = [{ expression: () => null }] as never;
-
       expect(() =>
         ArrayInitHelper.processArrayInit(
           "arr",
-          typeCtx,
-          expression,
-          arrayDims,
           true, // hasEmptyArrayDim
           null,
           callbacks,
@@ -131,18 +102,9 @@ describe("ArrayInitHelper", () => {
         generateArrayDimensions: vi.fn(() => "[3]"),
       };
 
-      const typeCtx = {} as never;
-      const expression = { getText: () => "[1, 2]" } as never;
-      const arrayDims = [
-        { expression: () => ({ getText: () => "3" }) },
-      ] as never;
-
       expect(() =>
         ArrayInitHelper.processArrayInit(
           "arr",
-          typeCtx,
-          expression,
-          arrayDims,
           false,
           3, // declared size
           callbacks,
@@ -160,17 +122,8 @@ describe("ArrayInitHelper", () => {
         generateArrayDimensions: vi.fn(() => "[3]"),
       };
 
-      const typeCtx = {} as never;
-      const expression = { getText: () => "[1*]" } as never;
-      const arrayDims = [
-        { expression: () => ({ getText: () => "3" }) },
-      ] as never;
-
       const result = ArrayInitHelper.processArrayInit(
         "arr",
-        typeCtx,
-        expression,
-        arrayDims,
         false,
         3,
         callbacks,
@@ -190,17 +143,8 @@ describe("ArrayInitHelper", () => {
         generateArrayDimensions: vi.fn(() => "[3]"),
       };
 
-      const typeCtx = {} as never;
-      const expression = { getText: () => "[0*]" } as never;
-      const arrayDims = [
-        { expression: () => ({ getText: () => "3" }) },
-      ] as never;
-
       const result = ArrayInitHelper.processArrayInit(
         "arr",
-        typeCtx,
-        expression,
-        arrayDims,
         false,
         3,
         callbacks,
