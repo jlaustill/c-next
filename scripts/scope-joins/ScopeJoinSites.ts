@@ -205,7 +205,7 @@ class ScopeJoinSites {
       why: "`scopeDecl.IDENTIFIER()` -- source text from a parse-tree identifier. #1295 argues NO to the scope question that card raises, and this row records that argument rather than an outcome -- the card is the work in flight, so past tense here would assert an event that has not happened. This is not leaf-keyed and nothing needs to move it. `constValues`' key is `fromParts([scopeName, name])`, and `fromParts` runs `toParts`, which SPLITS dotted paths, so the key is as complete as what it is handed -- unlike #1295's three collections, which used `scope.name` raw as a Map key with no encoder at all. What it is handed is complete by construction: `scopeMember` (`grammar/CNext.g4:81-88`) admits no `scopeDeclaration`, which ADR-016 states permanently (#1306), so a scope declaration is always at file scope and its identifier IS its whole path. SCOPED to the key on this line: the BARE key the same function writes (`constValues.set(name, value)`) collides across sibling scopes and is a live defect tracked as #1538 -- this adjudication says nothing about it",
     },
     {
-      file: "src/TRANSPILE/3-Render/codegen/assignment/AssignmentClassifier.ts",
+      file: "src/TRANSPILE/2-Plan/AssignmentClassifier.ts",
       element: "scopeName",
       kind: "path",
       pairedWith: null,
@@ -213,7 +213,7 @@ class ScopeJoinSites {
       why: "`ids[0]` of a parse-tree chain, admitted by `isKnownScope(scopeName)` (`:229`, `:554`); under nesting the author writes more components and the INDEXING changes, not the join",
     },
     {
-      file: "src/TRANSPILE/3-Render/codegen/assignment/AssignmentClassifier.ts",
+      file: "src/TRANSPILE/2-Plan/AssignmentClassifier.ts",
       element: "firstId",
       kind: "path",
       pairedWith: null,
