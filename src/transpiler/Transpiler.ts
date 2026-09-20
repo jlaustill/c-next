@@ -2903,11 +2903,18 @@ class Transpiler {
         // Note: isAutoConst may be set here, but ParameterSignatureBuilder will
         // suppress it for opaque handles (Issue #995) — single source of truth.
         //
-        // isCallbackCompatible is asked rather than assumed false. The early
-        // return above already handles a callback whose typedef TYPE resolves;
-        // asking the same whole-program map here means a callback whose typedef
-        // cannot be resolved still suppresses auto-const, instead of falling
-        // through to ordinary rules while the body path suppressed.
+        // isCallbackCompatible is false BY CONSTRUCTION here: the early return
+        // above takes every callback whose typedef type resolves, so only
+        // non-callbacks reach this line.
+        //
+        // That guard is not the same shape as the body's, which suppresses on
+        // the typedef INFO being present rather than on its TYPE resolving. A
+        // callback-compatible function whose typedef type fails to resolve
+        // would therefore suppress in the body and not here. Asking the
+        // whole-program map here instead would close that -- but no fixture in
+        // the corpus can distinguish the two, so it would be unguarded
+        // behaviour, and the case may not be reachable at all. Recorded as
+        // #1603 rather than shipped without a check.
         const shouldAutoConst =
           unmodified !== undefined &&
           unmodified.has(param.name) &&
@@ -2915,10 +2922,7 @@ class Transpiler {
             baseType: param.type ?? "",
             isModified: false,
             isExplicitlyConst: param.isConst ?? false,
-            isCallbackCompatible:
-              CodeGenState.program
-                ?.callbackCompatibleFunctions()
-                .has(headerSymbol.name) ?? false,
+            isCallbackCompatible: false,
             isArray: param.isArray ?? false,
             isKnownEnum: knownEnums.has(param.type ?? ""),
           });
