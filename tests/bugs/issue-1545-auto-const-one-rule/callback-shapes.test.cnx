@@ -1,0 +1,64 @@
+// test-no-warnings
+// test-adr: 013
+// #1545, the two parameter shapes the first round did not reach. Both are the
+// same defect as `onLogConst` beside this file -- a callback typedef's shape
+// not reaching the generated parameter -- in branches the string fix did not
+// touch, so they were invisible to that fixture.
+//
+// A. ARRAY. `_buildArrayInputFromAST` carried no forceConst, so a typedef
+//    declaring `const uint8_t *` emitted `uint8_t buf[4]` in the .c AND the
+//    .h. The two files agreed, which is why no .c/.h fixture could see it, and
+//    neither matched the typedef:
+//
+//      warning: passing argument 1 of 'register_buf' from incompatible
+//               pointer type [-Wincompatible-pointer-types]
+//
+//    -Wincompatible-pointer-types is a WARNING, so test-no-warnings is the
+//    only thing that fails on it -- the same argument log_api.h records.
+//
+// B. OPAQUE HANDLE. An incomplete typedef is only ever reachable as a pointer,
+//    so it needs no dereference when used as a value -- exactly the #1600
+//    argument for string<N>, one type over. It is not caught by the struct
+//    test, which needs fields a forward declaration does not have, so every
+//    whole-value use emitted `(*k)`:
+//
+//      error: invalid use of incomplete typedef 'knob_t'
+//
+//    `readKnob` below is that whole-value use: handing the parameter to
+//    another C-Next function, which takes it by pointer for the same reason.
+#include "shapes_api.h"
+
+u8 shapeWitness <- 0;
+
+// Reads the array without writing it. The const must come from the TYPEDEF --
+// ADR-006 gives arrays no auto-const, which `plainArray` below controls for.
+void onBuf(u8[4] buf) {
+    shapeWitness <- buf[0];
+}
+
+// NEGATIVE CONTROL for A. Same shape, not a callback, so nothing supplies a
+// const. Without it the fixture would also pass for an implementation that
+// const-qualified every array parameter, which is over-enforcement.
+void plainArray(u8[4] other) {
+    shapeWitness <- other[0];
+}
+
+u8 readKnob(knob_t k) {
+    return knob_id(k);
+}
+
+void onKnob(knob_t k) {
+    shapeWitness <- readKnob(k);
+}
+
+u32 main() {
+    register_buf(onBuf);
+    if (shapeWitness != 7) return 1;
+
+    u8[4] local <- [9, 0, 0, 0];
+    plainArray(local);
+    if (shapeWitness != 9) return 2;
+
+    register_knob(onKnob);
+    return 0;
+}

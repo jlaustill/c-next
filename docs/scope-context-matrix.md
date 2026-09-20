@@ -80,8 +80,10 @@ cell is declared by the ADR that owns it.
 | scope member       | ok        | ok     | ok         | n/a         | n/a        |
 | scope method       | ok        | ok     | ok         | n/a         | n/a        |
 
-1 linked fixture with no derivable context:
+3 linked fixtures with no derivable context:
 
+- `bugs/issue-1545-auto-const-one-rule/callback-arity.test.cnx`
+- `bugs/issue-1545-auto-const-one-rule/callback-shapes.test.cnx`
 - `bugs/issue-1545-auto-const-one-rule/cross-file-callback-const.test.cnx`
 
 ## ADR-014

@@ -117,14 +117,6 @@ class ParameterInputAdapter {
   ): IParameterInput {
     const isConst = ctx.constModifier() !== null;
     const typeName = deps.getTypeName(ctx.type());
-
-    // ADR-013 auto-const is decided for this parameter below -- directly for
-    // the general case, and inside _buildStringInput / _buildArrayInputFromAST
-    // for the others. Recorded at the PARAMETER's position so the matrix sees
-    // the enclosing function's context, exactly as ADR-030 is recorded further
-    // down. ADR-013's codegen half raises no diagnostic, so a provenance site
-    // is the only thing its occupancy can be derived from (#1241).
-    AdrProvenance.record("013", ctx.start?.line);
     const name = ctx.IDENTIFIER().getText();
     const mappedType = deps.generateType(ctx.type());
 
@@ -179,17 +171,13 @@ class ParameterInputAdapter {
       // thing an occupancy can be derived from (#1511).
       AdrProvenance.record("030", ctx.start?.line);
     }
-    // #1545: one rule, shared with the string path below and with the header
-    // path in Transpiler. This branch previously carried no float/enum/ISR
-    // exclusions, which ADR-013 requires and the header path had.
-    const isAutoConst = AutoConstRule.applies({
-      baseType: typeName,
-      isModified: deps.isModified,
-      isExplicitlyConst: isConst,
-      isCallbackCompatible: deps.isCallbackCompatible,
-      isArray: false,
-      isKnownEnum: deps.isKnownEnum(typeName),
-    });
+    const isAutoConst = this._autoConst(
+      typeName,
+      isConst,
+      false,
+      deps,
+      ctx.start?.line,
+    );
 
     // Issue #895/#958: Force pass-by-reference for callback or typedef struct types
     const isPassByReference =
@@ -397,21 +385,35 @@ class ParameterInputAdapter {
       }
     }
 
-    // ADR-006: Arrays are pass-by-reference and mutable by default.
-    // Never apply auto-const to arrays - only explicit const from source code.
-    // Auto-const would break compatibility with C APIs expecting mutable pointers.
+    // ADR-006: Arrays are pass-by-reference and mutable by default, so the rule
+    // returns false for every array. It is asked rather than hardcoded so the
+    // array policy has ONE spelling: #1602 is open on ADR-013 still listing
+    // arrays as receiving auto-const, and whoever resolves it must not have to
+    // find this branch as well.
     return {
       name,
       baseType: typeName,
       mappedType,
       isConst,
-      isAutoConst: false,
+      isAutoConst: this._autoConst(
+        typeName,
+        isConst,
+        true,
+        deps,
+        arrayTypeCtx.start?.line,
+      ),
       isArray: true,
       arrayDimensions: dims,
       isCallback: false,
       isString,
       isPassByValue: false, // Arrays are always passed by pointer
       isPassByReference: false,
+      // #1545: an array parameter drops the typedef's const exactly as the
+      // string branch did. A `void (*)(const uint8_t *)` typedef against
+      // `void onData(u8[4] buf)` emitted `uint8_t buf[4]` in BOTH files, so the
+      // two agreed with each other and neither matched the typedef --
+      // an incompatible-pointer-type warning at the registration, transpiler exit 0.
+      forceConst: deps.forceConst,
     };
   }
 
@@ -442,7 +444,47 @@ class ParameterInputAdapter {
       isUnboundedString,
       isPassByValue: false,
       isPassByReference: false,
+      // #1545: same as the AST array branch -- the typedef's const has to reach
+      // the header too, or the .h contradicts the .c it was generated beside.
+      forceConst: param.isCallbackConst || undefined,
     };
+  }
+
+  /**
+   * #1545: ADR-013 auto-const for a parse-tree parameter.
+   *
+   * One place that translates this file's vocabulary into IAutoConstFacts, so
+   * a fact added to the rule cannot reach two of the three branches and miss
+   * the third -- which is how the general path, the string path and the header
+   * path came to hold three different rules in the first place.
+   */
+  private static _autoConst(
+    typeName: string,
+    isConst: boolean,
+    isArray: boolean,
+    deps: IFromASTDeps,
+    line: number | undefined,
+  ): boolean {
+    const applies = AutoConstRule.applies({
+      baseType: typeName,
+      isModified: deps.isModified,
+      isExplicitlyConst: isConst,
+      isCallbackCompatible: deps.isCallbackCompatible,
+      isArray,
+      isKnownEnum: deps.isKnownEnum(typeName),
+    });
+
+    // Recorded where the rule FIRED, which is what #1241 derives occupancy
+    // from, and the shape ADR-030 uses eleven lines up (`if (isOpaque)`). An
+    // unguarded record at the top of fromAST credited ADR-013 for every
+    // parameter of every function -- two of the three positions it produced
+    // for this branch's own fixture were callback parameters the rule had just
+    // refused. ADR-013's codegen half raises no diagnostic, so a provenance
+    // site is the only thing its occupancy can be derived from.
+    if (applies) {
+      AdrProvenance.record("013", line);
+    }
+    return applies;
   }
 
   /**
@@ -463,14 +505,13 @@ class ParameterInputAdapter {
     // the callback term, so a callback-compatible function's unmodified string
     // parameter took `const char*` in the .c while the .h kept `char*` -- the
     // definition contradicting its own prototype.
-    const isAutoConst = AutoConstRule.applies({
-      baseType: typeName,
-      isModified: deps.isModified,
-      isExplicitlyConst: isConst,
-      isCallbackCompatible: deps.isCallbackCompatible,
-      isArray: false,
-      isKnownEnum: deps.isKnownEnum(typeName),
-    });
+    const isAutoConst = this._autoConst(
+      typeName,
+      isConst,
+      false,
+      deps,
+      stringTypeCtx.start?.line,
+    );
 
     return {
       name,

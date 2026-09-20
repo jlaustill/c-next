@@ -833,7 +833,7 @@ Auto-const is NOT applied to:
   narrows the shape, so the function stops matching the typedef it is handed
   to, and the C compiler rejects the assignment. C-Next does not own that
   contract and so does not quietly change it. A developer who wants `const` on
-  such a parameter writes it explicitly, and the rule above honours it.
+  such a parameter writes it explicitly, and the rule above honors it.
 
 ### Ordering Constraint
 

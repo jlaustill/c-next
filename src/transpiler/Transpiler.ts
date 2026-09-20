@@ -2903,29 +2903,21 @@ class Transpiler {
         // Note: isAutoConst may be set here, but ParameterSignatureBuilder will
         // suppress it for opaque handles (Issue #995) — single source of truth.
         //
-        // isCallbackCompatible is false BY CONSTRUCTION here: the early return
-        // above takes every callback whose typedef type resolves, so only
-        // non-callbacks reach this line.
-        //
-        // That guard is not the same shape as the body's, which suppresses on
-        // the typedef INFO being present rather than on its TYPE resolving. A
-        // callback-compatible function whose typedef type fails to resolve
-        // would therefore suppress in the body and not here. Asking the
-        // whole-program map here instead would close that -- but no fixture in
-        // the corpus can distinguish the two, so it would be unguarded
-        // behavior, and the case may not be reachable at all. Recorded as
-        // #1603 rather than shipped without a check.
-        const shouldAutoConst =
-          unmodified !== undefined &&
-          unmodified.has(param.name) &&
-          AutoConstRule.applies({
-            baseType: param.type ?? "",
-            isModified: false,
-            isExplicitlyConst: param.isConst ?? false,
-            isCallbackCompatible: false,
-            isArray: param.isArray ?? false,
-            isKnownEnum: knownEnums.has(param.type ?? ""),
-          });
+        // isCallbackCompatible is false here because the early return above
+        // took every callback whose typedef type resolves, and the body asks
+        // the same question at the same granularity since #1545 -- the whole
+        // function, not the parameter. #1603 records the remaining case: a
+        // callback-compatible function whose typedef type does NOT resolve
+        // reaches this line, and both paths then let auto-const apply, which is
+        // why nothing reddens for it.
+        const shouldAutoConst = AutoConstRule.applies({
+          baseType: param.type ?? "",
+          isModified: unmodified?.has(param.name) !== true,
+          isExplicitlyConst: param.isConst,
+          isCallbackCompatible: false,
+          isArray: param.isArray,
+          isKnownEnum: knownEnums.has(param.type ?? ""),
+        });
 
         // Return updated param with resolved flags
         if (shouldAutoConst || isOpaque) {

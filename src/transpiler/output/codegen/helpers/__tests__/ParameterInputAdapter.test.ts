@@ -568,8 +568,8 @@ describe("ParameterInputAdapter", () => {
       const deps = {
         ...createDefaultASTDeps({ isModified: false }),
         isOpaqueType: (typeName: string) => typeName === "widget_t",
-        isTypedefStructType: () => false,
-        isKnownEnum: () => false, // Not a typedef struct
+        isTypedefStructType: () => false, // Not a typedef struct
+        isKnownEnum: () => false,
       };
 
       const result = ParameterInputAdapter.fromAST(ctx, deps);

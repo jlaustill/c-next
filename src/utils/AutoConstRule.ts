@@ -22,9 +22,7 @@
  */
 
 import IAutoConstFacts from "./types/IAutoConstFacts";
-
-/** Types ADR-013 passes by value, so they never become a `const T*`. */
-const PASS_BY_VALUE_TYPES: ReadonlySet<string> = new Set(["f32", "f64", "ISR"]);
+import TypeCheckUtils from "./TypeCheckUtils";
 
 class AutoConstRule {
   /**
@@ -43,7 +41,7 @@ class AutoConstRule {
     // the parameter shape. Narrowing `char *` to `const char *` makes the
     // function stop matching the typedef it is handed to -- a contract C-Next
     // does not own. A developer who wants const on a callback parameter writes
-    // it explicitly, which the check above then honours.
+    // it explicitly, which the check above then honors.
     if (facts.isCallbackCompatible) {
       return false;
     }
@@ -64,8 +62,11 @@ class AutoConstRule {
     }
 
     // ADR-013 "NOT applied to": float and ISR are passed by value, not as a
-    // pointer, so there is no pointed-to type to qualify.
-    if (PASS_BY_VALUE_TYPES.has(facts.baseType)) {
+    // pointer, so there is no pointed-to type to qualify. The float half asks
+    // TypeCheckUtils rather than spelling {f32, f64} a ninth time -- a
+    // hand-written copy is what lets a future by-value type reach some of the
+    // sites that must exclude it and not others.
+    if (TypeCheckUtils.isFloat(facts.baseType) || facts.baseType === "ISR") {
       return false;
     }
 

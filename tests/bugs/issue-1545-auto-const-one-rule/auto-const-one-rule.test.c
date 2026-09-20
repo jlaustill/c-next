@@ -27,7 +27,7 @@
 // Why this fixture compiles rather than only snapshotting: the .c/.h split is
 // a hard error, but `onLogConst` below is the half that is only a WARNING
 // (-Wincompatible-pointer-types, gcc exit 0). test-no-warnings is what fails
-// on it. Same argument as #1544, which this fixture is modelled on.
+// on it. Same argument as #1544, which this fixture is modeled on.
 //
 // NOT covered here, deliberately: explicitly marking a param `const` against
 // the MUTABLE typedef. That is the developer's escape hatch and C-Next emits

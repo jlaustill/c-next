@@ -1,0 +1,35 @@
+// test-transpile-only
+// test-adr: 013
+// #1545: the .c and .h must agree about EVERY parameter of a callback-
+// compatible function, including one the typedef does not describe.
+//
+// `short_cb_t` declares one parameter; `onShort` declares two. Auto-const was
+// decided from `getCallbackTypedefParamInfo(paramIndex)`, which returns null
+// for any index past the typedef's arity -- so the body read `extra` as "not a
+// callback parameter" and const-qualified it, while the header suppressed
+// auto-const for the whole function:
+//
+//   .c: void onShort(char* msg, const char* extra)
+//   .h: void onShort(char* msg, char* extra)
+//   error: conflicting types for 'onShort'
+//
+// Verbatim the error the fixture beside this one quotes as the defect #1545
+// exists to remove, one parameter over.
+//
+// transpile-only deliberately: the registration below is an arity mismatch and
+// therefore an incompatible-pointer assignment whatever C-Next emits, so a
+// compiled fixture could only assert the developer's own error. The two
+// SNAPSHOTS are the assertion -- they disagreed before the fix and agree now.
+#include "arity_api.h"
+
+u8 arityWitness <- 0;
+
+void onShort(string<32> msg, string<16> extra) {
+    arityWitness <- msg[0];
+    arityWitness <- arityWitness + extra[0];
+}
+
+u32 main() {
+    register_short(onShort);
+    return 0;
+}
