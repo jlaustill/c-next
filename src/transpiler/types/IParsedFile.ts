@@ -20,14 +20,20 @@ import type ITranspileError from "../../lib/types/ITranspileError";
  * here -- not "is it cheap to compute" but "is 1.2 the only pass that can
  * still see it for free".
  *
- * `comments` in particular was scanned three times before #1445: once in 2.1
- * to check MISRA C:2012 Rules 3.1 and 3.2, and twice in the render layer to
- * re-attach them to generated declarations. One fact, three derivations off
- * one token stream -- the shape CLAUDE.md calls the project's worst
- * anti-pattern. `CommentScanner` still answers the two positional queries the
- * render layer asks (`getCommentsBefore` / `getCommentsAfter`), because those
- * are questions about a token index rather than about the file; what moved
- * here is the whole-file answer.
+ * `comments` is the whole-file answer, and before #1445 it was derived in 2.1
+ * -- `CommentExtractor` calling `CommentScanner.extractAll()` to check MISRA
+ * C:2012 Rules 3.1 and 3.2, off a token stream the parse had already filled.
+ * A pass re-deriving a fact about the PARSE is what the lifetime axis forbids,
+ * so it is computed once, here, by the pass that owns it.
+ *
+ * What did NOT move, and is not the same question: the render layer holds ONE
+ * `CommentScanner` (built in `CodeGenerator`, passed into `CommentUtils`) and
+ * asks it `getCommentsBefore` / `getCommentsAfter` to re-attach comments to
+ * generated declarations. Those are queries about a token INDEX, not about the
+ * file, and this field cannot answer them. An earlier draft of this comment
+ * called that "two more derivations" and counted three in total; it is one
+ * instance answering two positional queries, and the whole-file scan it was
+ * being added to was only ever done once.
  *
  * ## Parse errors are carried, not returned beside it
  *
