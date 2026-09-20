@@ -43,7 +43,7 @@ uint8_t witness = 0U;
 // A. Callback-compatible, parameter never modified, typedef takes `char *`.
 //    MUST NOT get auto-const.
 void onLog(char* msg) {
-    if (strcmp(msg, "hi") == 0) {
+    if (msg[0U] == 'h') {
         witness = 1U;
     }
 }
@@ -53,7 +53,7 @@ void onLog(char* msg) {
 //    implementation that stopped auto-consting string parameters altogether,
 //    which would be over-enforcement rather than a fix.
 void plainRead(const char* text) {
-    if (strcmp(text, "hi") == 0) {
+    if (text[0U] == 'h') {
         witness = 2U;
     }
 }

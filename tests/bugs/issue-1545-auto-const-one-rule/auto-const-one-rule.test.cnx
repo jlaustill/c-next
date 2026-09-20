@@ -33,7 +33,12 @@ u8 witness <- 0;
 // A. Callback-compatible, parameter never modified, typedef takes `char *`.
 //    MUST NOT get auto-const.
 void onLog(string<32> msg) {
-    if (msg = "hi") {
+    // Indexed rather than compared, which also pins #1600: a string parameter
+    // of a callback-compatible function was treated as pass-by-reference, so
+    // EVERY whole-value use emitted `(*msg)` -- here `(*msg)[0U]`, which gcc
+    // rejects outright. `plainRead` below indexes the identical shape outside
+    // a callback, so the two lowerings cannot drift apart unnoticed.
+    if (msg[0] = 'h') {
         witness <- 1;
     }
 }
@@ -43,7 +48,7 @@ void onLog(string<32> msg) {
 //    implementation that stopped auto-consting string parameters altogether,
 //    which would be over-enforcement rather than a fix.
 void plainRead(string<32> text) {
-    if (text = "hi") {
+    if (text[0] = 'h') {
         witness <- 2;
     }
 }
