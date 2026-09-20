@@ -8,12 +8,9 @@
  * - MISRA Rule 7.2: Unsigned suffix for unsigned integer types
  * - String and numeric literals pass through unchanged
  */
-import { LiteralContext } from "../../../../../transpiler/logic/parser/grammar/CNextParser";
 import IGeneratorOutput from "../IGeneratorOutput";
 import TGeneratorEffect from "../TGeneratorEffect";
-import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
-import IOrchestrator from "../IOrchestrator";
 import NarrowingCastHelper from "../../helpers/NarrowingCastHelper";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 
@@ -74,20 +71,24 @@ function hasUnsignedSuffix(text: string): boolean {
 /**
  * Generate C code for a literal value.
  *
- * @param node - The LiteralContext AST node
- * @param _input - Read-only context (unused for literals)
+ * Takes the literal's TEXT, not its parse node (#1445). Every branch below
+ * reads the text and `state.expectedType` and nothing else -- the node was
+ * only ever `node.getText()` -- so naming `LiteralContext` here bought a
+ * dependency on the grammar for a string. This is the first render-layer
+ * module to stop holding a parse context, and the shape the rest follow: the
+ * IR node for a literal IS its text, so the caller extracts it and this
+ * function can be reached, and tested, without a parser.
+ *
+ * @param text - The literal's source text, e.g. `3.14f32`, `true`, `'A'`
  * @param state - Current generation state (contains expectedType)
- * @param _orchestrator - For delegating to other generators (unused for literals)
  * @returns Generated code and effects (stdbool include for bool literals)
  */
 const generateLiteral = (
-  node: LiteralContext,
-  _input: IGeneratorInput,
+  text: string,
   state: IGeneratorState,
-  _orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
-  let literalText = node.getText();
+  let literalText = text;
 
   // Track boolean literal usage to include stdbool.h
   if (literalText === "true" || literalText === "false") {

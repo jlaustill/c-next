@@ -279,54 +279,28 @@ export default class CodeGenerator implements IOrchestrator {
     this.registry.registerStatement("switch", switchGenerators.generateSwitch);
     this.registry.registerStatement("critical", generateCriticalStatement);
 
-    // Expression generators
+    // Expression generators.
+    //
+    // Only the three kinds `invokeExpression` dispatches are registered.
+    // Eleven more were registered and never dispatched (#1445): `ternary`,
+    // `and`, `equality`, `relational`, `bitwise-or`, `bitwise-xor`,
+    // `bitwise-and`, `shift`, `additive`, `multiplicative` and `literal`.
+    //
+    // The functions are live -- `generateOrExpr` is the entry and the rest
+    // chain down the precedence ladder inside `BinaryExprGenerator`, while
+    // `generateLiteral` is called directly by `_generateLiteralExpression`.
+    // What was dead is the REGISTRATION: a second route to a live function
+    // that nothing took. It also erased the context type on the way through
+    // (`TGeneratorFn<ParserRuleContext>`), where the call that is actually
+    // used keeps the concrete one -- so the dead route was the less safe of
+    // the two, and `invokeExpression`'s invariant checks only that a
+    // generator exists, never that the context matches the kind.
     this.registry.registerExpression(
       "expression",
       expressionGenerators.generateExpression,
     );
-    this.registry.registerExpression(
-      "ternary",
-      expressionGenerators.generateTernaryExpr,
-    );
     this.registry.registerExpression("or", binaryExprGenerators.generateOrExpr);
-    this.registry.registerExpression(
-      "and",
-      binaryExprGenerators.generateAndExpr,
-    );
-    this.registry.registerExpression(
-      "equality",
-      binaryExprGenerators.generateEqualityExpr,
-    );
-    this.registry.registerExpression(
-      "relational",
-      binaryExprGenerators.generateRelationalExpr,
-    );
-    this.registry.registerExpression(
-      "bitwise-or",
-      binaryExprGenerators.generateBitwiseOrExpr,
-    );
-    this.registry.registerExpression(
-      "bitwise-xor",
-      binaryExprGenerators.generateBitwiseXorExpr,
-    );
-    this.registry.registerExpression(
-      "bitwise-and",
-      binaryExprGenerators.generateBitwiseAndExpr,
-    );
-    this.registry.registerExpression(
-      "shift",
-      binaryExprGenerators.generateShiftExpr,
-    );
-    this.registry.registerExpression(
-      "additive",
-      binaryExprGenerators.generateAdditiveExpr,
-    );
-    this.registry.registerExpression(
-      "multiplicative",
-      binaryExprGenerators.generateMultiplicativeExpr,
-    );
     this.registry.registerExpression("unary", generateUnaryExpr);
-    this.registry.registerExpression("literal", generateLiteral);
   }
 
   /**
@@ -4569,7 +4543,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Uses extracted literal generator
    */
   private _generateLiteralExpression(ctx: Parser.LiteralContext): string {
-    const result = generateLiteral(ctx, this.getInput(), this.getState(), this);
+    const result = generateLiteral(ctx.getText(), this.getState());
     this.applyEffects(result.effects);
 
     // Issue #304/#644: Transform NULL → nullptr in C++ mode

@@ -552,17 +552,18 @@ const generateMultiplicativeExpr = (
 };
 
 // Export all generators as a single object (lint requirement: no named exports)
+/**
+ * `generateOrExpr` is the only entry point.
+ *
+ * The other nine used to be exported here as well, reached solely by
+ * `CodeGenerator`'s expression registrations -- which nothing dispatched
+ * (#1445). They are the precedence ladder and are called from `generateOrExpr`
+ * downward inside this module, so exporting them published nine names with no
+ * consumer. knip cannot see that: members of an exported object literal are not
+ * analyzed, so the surface would have stayed green either way.
+ */
 const binaryExprGenerators = {
   generateOrExpr,
-  generateAndExpr,
-  generateEqualityExpr,
-  generateRelationalExpr,
-  generateBitwiseOrExpr,
-  generateBitwiseXorExpr,
-  generateBitwiseAndExpr,
-  generateShiftExpr,
-  generateAdditiveExpr,
-  generateMultiplicativeExpr,
 };
 
 export default binaryExprGenerators;

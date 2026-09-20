@@ -9,47 +9,24 @@
 
 import { describe, it, expect } from "vitest";
 import generateLiteral from "../LiteralGenerator";
-import type { LiteralContext } from "../../../../../../transpiler/logic/parser/grammar/CNextParser";
-import type IGeneratorInput from "../../IGeneratorInput";
 import type IGeneratorState from "../../IGeneratorState";
-import type IOrchestrator from "../../IOrchestrator";
 
-/**
- * Create a mock LiteralContext that returns the specified text.
- * generateLiteral only calls node.getText(), so this is sufficient.
- */
-function createMockLiteral(text: string): LiteralContext {
-  return { getText: () => text } as unknown as LiteralContext;
-}
-
-// generateLiteral does not use input, state, or orchestrator
-const mockInput = {} as IGeneratorInput;
+// #1445: generateLiteral takes the literal's text, so there is no node to
+// fake. The `as unknown as LiteralContext` cast this file used to need is gone
+// with it -- the function's real input was always a string.
 const mockState = {} as IGeneratorState;
-const mockOrchestrator = {} as IOrchestrator;
 
 describe("LiteralGenerator", () => {
   describe("boolean literals", () => {
     it("should pass through boolean true with stdbool effect", () => {
-      const node = createMockLiteral("true");
-      const result = generateLiteral(
-        node,
-        mockInput,
-        mockState,
-        mockOrchestrator,
-      );
+      const result = generateLiteral("true", mockState);
 
       expect(result.code).toBe("true");
       expect(result.effects).toEqual([{ type: "include", header: "stdbool" }]);
     });
 
     it("should pass through boolean false with stdbool effect", () => {
-      const node = createMockLiteral("false");
-      const result = generateLiteral(
-        node,
-        mockInput,
-        mockState,
-        mockOrchestrator,
-      );
+      const result = generateLiteral("false", mockState);
 
       expect(result.code).toBe("false");
       expect(result.effects).toEqual([{ type: "include", header: "stdbool" }]);
@@ -58,26 +35,14 @@ describe("LiteralGenerator", () => {
 
   describe("float suffixes (ADR-024)", () => {
     it("should transform f32 suffix to C float suffix", () => {
-      const node = createMockLiteral("3.14f32");
-      const result = generateLiteral(
-        node,
-        mockInput,
-        mockState,
-        mockOrchestrator,
-      );
+      const result = generateLiteral("3.14f32", mockState);
 
       expect(result.code).toBe("3.14f");
       expect(result.effects).toEqual([]);
     });
 
     it("should transform f64 suffix by removing it", () => {
-      const node = createMockLiteral("3.14f64");
-      const result = generateLiteral(
-        node,
-        mockInput,
-        mockState,
-        mockOrchestrator,
-      );
+      const result = generateLiteral("3.14f64", mockState);
 
       expect(result.code).toBe("3.14");
       expect(result.effects).toEqual([]);
@@ -91,13 +56,7 @@ describe("LiteralGenerator", () => {
       ["should strip 8/16/32-bit integer suffixes", "42u8", "42"],
       ["should transform uppercase U64 suffix to ULL", "0xFFU64", "0xFFULL"],
     ])("%s", (_label, source, source2) => {
-      const node = createMockLiteral(source);
-      const result = generateLiteral(
-        node,
-        mockInput,
-        mockState,
-        mockOrchestrator,
-      );
+      const result = generateLiteral(source, mockState);
 
       expect(result.code).toBe(source2);
       expect(result.effects).toEqual([]);
@@ -106,26 +65,14 @@ describe("LiteralGenerator", () => {
 
   describe("passthrough literals", () => {
     it("should pass through plain integer without effects", () => {
-      const node = createMockLiteral("42");
-      const result = generateLiteral(
-        node,
-        mockInput,
-        mockState,
-        mockOrchestrator,
-      );
+      const result = generateLiteral("42", mockState);
 
       expect(result.code).toBe("42");
       expect(result.effects).toEqual([]);
     });
 
     it("should pass through string literal without effects", () => {
-      const node = createMockLiteral('"hello"');
-      const result = generateLiteral(
-        node,
-        mockInput,
-        mockState,
-        mockOrchestrator,
-      );
+      const result = generateLiteral('"hello"', mockState);
 
       expect(result.code).toBe('"hello"');
       expect(result.effects).toEqual([]);
@@ -212,9 +159,8 @@ describe("LiteralGenerator", () => {
         "0x80000000U",
       ],
     ])("%s", (_label, source, argument2, expected) => {
-      const node = createMockLiteral(source);
       const state = createStateWithExpectedType(argument2);
-      const result = generateLiteral(node, mockInput, state, mockOrchestrator);
+      const result = generateLiteral(source, state);
 
       expect(result.code).toBe(expected);
     });
