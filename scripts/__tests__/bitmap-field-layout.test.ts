@@ -155,13 +155,32 @@ function candidateSources(project: Project, paths: string[]): SourceFile[] {
  * forbids, and the two it used to have had already diverged -- an interface's
  * `getProperties()` skips an accessor member that a type literal's
  * `getMembers()` returns.
+ *
+ * Constructor parameter properties are descended into. A `readonly offset:
+ * number` in a constructor signature declares an own property exactly like a
+ * field does, but the node is a `Parameter` under the `Constructor` rather than
+ * a `PropertyDeclaration` under the class, so a walk of the class's direct
+ * children never reaches it. That is live house style here, not a hypothetical
+ * -- 17 non-test files declare one, most of them analyzers -- so leaving it out
+ * would have been a claimed-away hole rather than a recorded one, in a gate
+ * whose whole argument is that a sweep cannot prove itself exhaustive.
+ * `getModifiers().length` is what separates a parameter property from a plain
+ * constructor parameter, which declares nothing.
  */
 function numericPropertyNames(container: Node): Set<string> {
   const names = new Set<string>();
-  for (const child of container.forEachChildAsArray()) {
+  const members = container
+    .forEachChildAsArray()
+    .flatMap(
+      (child) =>
+        child.asKind(SyntaxKind.Constructor)?.getParameters() ?? [child],
+    );
+  for (const child of members) {
+    const parameter = child.asKind(SyntaxKind.Parameter);
     const property =
       child.asKind(SyntaxKind.PropertySignature) ??
-      child.asKind(SyntaxKind.PropertyDeclaration);
+      child.asKind(SyntaxKind.PropertyDeclaration) ??
+      (parameter?.getModifiers().length ? parameter : undefined);
     if (property?.getTypeNode()?.getText() === "number") {
       names.add(property.getName());
     }

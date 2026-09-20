@@ -286,15 +286,18 @@ class VisibleSymbols {
    * Deep-copy an outer -> (inner -> value) map so the merged result never
    * aliases the base's inner maps.
    *
-   * One helper, not one per field. This decision was spelled three times --
-   * inline for `bitmapFields`, and as `_copyEnumMembers` and
-   * `_copyScopeMemberVisibility` -- so a fourth nested field could be added by
-   * copying whichever spelling sat nearest, and the SHALLOW `new Map(...)` the
-   * flat fields use sits right beside them and reads equally idiomatic. Pick
-   * that one and the merged view aliases the base file's inner map: writing
-   * through the merge mutates the base, and the answer starts depending on
-   * include order -- the class of order-dependence #1511 moved this pass to
-   * eliminate.
+   * One decision, spelled three times -- inline for `bitmapFields`, and as
+   * `_copyEnumMembers` and `_copyScopeMemberVisibility` -- unified, so a fourth
+   * nested field cannot be added by copying whichever spelling sat nearest.
+   *
+   * `tsc` holds the deep copy in place, which is the interesting part and the
+   * reason no test covers it: the SHALLOW `new Map(...)` the flat fields use
+   * sits right beside these and reads equally idiomatic, but substituting it
+   * here is rejected -- `Map<K, ReadonlyMap<IK, V>>` is not assignable to
+   * `Map<K, Map<IK, V>>`. An earlier version of this comment justified the
+   * helper with the aliasing bug that would follow instead, which the types
+   * forbid and `_mergePreferringLocal` never reaches anyway; naming an
+   * unreachable failure mode is the thing the rest of this change removes.
    */
   private static _copyNestedMap<K, IK, V>(
     source: ReadonlyMap<K, ReadonlyMap<IK, V>>,

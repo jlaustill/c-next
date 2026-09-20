@@ -606,8 +606,11 @@ Mutation-checked, and the check is the point: add a static method nothing calls 
   order-dependence this entry used to describe, and the two need opposite debugging. That is
   the whole value of the entry: #1399 shipped an E0426 that fired or not depending on which
   order the entry listed its two `#include` lines, and the old wording now sends the next
-  reader hunting include ordering for a shape the hoist removed. `typeRegistry` was named
-  here too; it is `private static` with no accessor, so an analyzer cannot read it at all.
+  reader hunting include ordering for a shape the hoist removed. `typeRegistry` is the sharpest of
+  the three and the reason this entry exists: it is `private`, but `getVariableTypeInfo()`
+  checks it **before** falling back to `SymbolTable`, so an analyzer following the bullet
+  above reads a stale local ahead of the correct cross-file answer — a wrong answer, not a
+  missing one. Three analyzers call it in production today.
   Use `symbols.functionReturnTypes` for the ADR-029 function-as-type fact — it is the
   per-file view of the same thing
 - **Analyzer test isolation**: Use `CodeGenState.reset()` in `afterEach` when tests set `CodeGenState.symbols`
