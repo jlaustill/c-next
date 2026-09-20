@@ -3363,7 +3363,11 @@ export default class CodeGenerator implements IOrchestrator {
    * Delegates to extracted EnumGenerator.
    */
   private generateEnum(ctx: Parser.EnumDeclarationContext): string {
-    return this.invokeDeclarationGenerator(enumGenerator, ctx, true);
+    return this.invokeDeclarationGenerator(
+      enumGenerator,
+      ctx.IDENTIFIER().getText(),
+      true,
+    );
   }
 
   /**
@@ -3374,7 +3378,11 @@ export default class CodeGenerator implements IOrchestrator {
    * Delegates to extracted generator if registered.
    */
   private generateBitmap(ctx: Parser.BitmapDeclarationContext): string {
-    return this.invokeDeclarationGenerator(bitmapGenerator, ctx, true);
+    return this.invokeDeclarationGenerator(
+      bitmapGenerator,
+      ctx.IDENTIFIER().getText(),
+      true,
+    );
   }
 
   /**

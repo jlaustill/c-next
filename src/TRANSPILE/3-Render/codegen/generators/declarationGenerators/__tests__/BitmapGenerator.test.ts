@@ -4,26 +4,11 @@ import generateBitmap from "../BitmapGenerator";
 import IGeneratorInput from "../../IGeneratorInput";
 import IGeneratorState from "../../IGeneratorState";
 import IOrchestrator from "../../IOrchestrator";
-import * as Parser from "../../../../../../transpiler/logic/parser/grammar/CNextParser";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
 
 // ========================================================================
 // Test Helpers
 // ========================================================================
-
-/**
- * Create a minimal mock bitmap declaration context.
- * BitmapGenerator only uses node.IDENTIFIER().getText()
- */
-function createMockBitmapContext(
-  name: string,
-): Parser.BitmapDeclarationContext {
-  return {
-    IDENTIFIER: () => ({
-      getText: () => name,
-    }),
-  } as unknown as Parser.BitmapDeclarationContext;
-}
 
 /**
  * Create minimal mock input with bitmap info.
@@ -90,35 +75,32 @@ function createMockOrchestrator(): IOrchestrator {
 describe("BitmapGenerator", () => {
   describe("basic bitmap generation", () => {
     it("generates typedef for bitmap8", () => {
-      const ctx = createMockBitmapContext("Flags");
       const input = createMockInput("Flags", "uint8_t");
       const state = createMockState();
       const orchestrator = createMockOrchestrator();
 
-      const result = generateBitmap(ctx, input, state, orchestrator);
+      const result = generateBitmap("Flags", input, state, orchestrator);
 
       expect(result.code).toContain("/* Bitmap: Flags */");
       expect(result.code).toContain("typedef uint8_t Flags;");
     });
 
     it("generates typedef for bitmap16", () => {
-      const ctx = createMockBitmapContext("StatusWord");
       const input = createMockInput("StatusWord", "uint16_t");
       const state = createMockState();
       const orchestrator = createMockOrchestrator();
 
-      const result = generateBitmap(ctx, input, state, orchestrator);
+      const result = generateBitmap("StatusWord", input, state, orchestrator);
 
       expect(result.code).toContain("typedef uint16_t StatusWord;");
     });
 
     it("generates typedef for bitmap32", () => {
-      const ctx = createMockBitmapContext("Config");
       const input = createMockInput("Config", "uint32_t");
       const state = createMockState();
       const orchestrator = createMockOrchestrator();
 
-      const result = generateBitmap(ctx, input, state, orchestrator);
+      const result = generateBitmap("Config", input, state, orchestrator);
 
       expect(result.code).toContain("typedef uint32_t Config;");
     });
@@ -130,12 +112,11 @@ describe("BitmapGenerator", () => {
         ["Running", { offset: 0, width: 1 }],
         ["Direction", { offset: 1, width: 1 }],
       ]);
-      const ctx = createMockBitmapContext("MotorFlags");
       const input = createMockInput("MotorFlags", "uint8_t", fields);
       const state = createMockState();
       const orchestrator = createMockOrchestrator();
 
-      const result = generateBitmap(ctx, input, state, orchestrator);
+      const result = generateBitmap("MotorFlags", input, state, orchestrator);
 
       expect(result.code).toContain("/* Fields:");
       expect(result.code).toContain(" *   Running: bit 0 (1 bit)");
@@ -148,24 +129,22 @@ describe("BitmapGenerator", () => {
         ["Mode", { offset: 0, width: 3 }],
         ["Reserved", { offset: 3, width: 5 }],
       ]);
-      const ctx = createMockBitmapContext("Control");
       const input = createMockInput("Control", "uint8_t", fields);
       const state = createMockState();
       const orchestrator = createMockOrchestrator();
 
-      const result = generateBitmap(ctx, input, state, orchestrator);
+      const result = generateBitmap("Control", input, state, orchestrator);
 
       expect(result.code).toContain(" *   Mode: bits 0-2 (3 bits)");
       expect(result.code).toContain(" *   Reserved: bits 3-7 (5 bits)");
     });
 
     it("generates bitmap without field comments when no fields defined", () => {
-      const ctx = createMockBitmapContext("Empty");
       const input = createMockInput("Empty", "uint8_t");
       const state = createMockState();
       const orchestrator = createMockOrchestrator();
 
-      const result = generateBitmap(ctx, input, state, orchestrator);
+      const result = generateBitmap("Empty", input, state, orchestrator);
 
       expect(result.code).not.toContain("/* Fields:");
       expect(result.code).toContain("/* Bitmap: Empty */");
@@ -178,13 +157,12 @@ describe("BitmapGenerator", () => {
       const fields = new Map<string, IBitmapFieldLayout>([
         ["Active", { offset: 0, width: 1 }],
       ]);
-      const ctx = createMockBitmapContext("Status");
       // Note: The bitmap name in symbols already includes scope prefix
       const input = createMockInput("Driver__Status", "uint8_t", fields);
       const state = createMockState("Driver");
       const orchestrator = createMockOrchestrator();
 
-      const result = generateBitmap(ctx, input, state, orchestrator);
+      const result = generateBitmap("Status", input, state, orchestrator);
 
       expect(result.code).toContain("/* Bitmap: Driver__Status */");
       expect(result.code).toContain("typedef uint8_t Driver__Status;");
@@ -193,12 +171,11 @@ describe("BitmapGenerator", () => {
 
   describe("effects", () => {
     it("includes stdint header effect", () => {
-      const ctx = createMockBitmapContext("Test");
       const input = createMockInput("Test", "uint8_t");
       const state = createMockState();
       const orchestrator = createMockOrchestrator();
 
-      const result = generateBitmap(ctx, input, state, orchestrator);
+      const result = generateBitmap("Test", input, state, orchestrator);
 
       expect(result.effects).toContainEqual({
         type: "include",
@@ -209,12 +186,13 @@ describe("BitmapGenerator", () => {
 
   describe("error handling", () => {
     it("throws error when bitmap not found in registry", () => {
-      const ctx = createMockBitmapContext("Unknown");
       const input = createMockInput("DifferentBitmap", "uint8_t");
       const state = createMockState();
       const orchestrator = createMockOrchestrator();
 
-      expect(() => generateBitmap(ctx, input, state, orchestrator)).toThrow(
+      expect(() =>
+        generateBitmap("Unknown", input, state, orchestrator),
+      ).toThrow(
         "was collected by the resolver, so its qualified name is in bitmapBackingType",
       );
     });
@@ -227,12 +205,11 @@ describe("BitmapGenerator", () => {
         ["Priority", { offset: 1, width: 3 }],
         ["Channel", { offset: 4, width: 4 }],
       ]);
-      const ctx = createMockBitmapContext("TaskConfig");
       const input = createMockInput("TaskConfig", "uint8_t", fields);
       const state = createMockState();
       const orchestrator = createMockOrchestrator();
 
-      const result = generateBitmap(ctx, input, state, orchestrator);
+      const result = generateBitmap("TaskConfig", input, state, orchestrator);
 
       expect(result.code).toBe(
         `/* Bitmap: TaskConfig */
