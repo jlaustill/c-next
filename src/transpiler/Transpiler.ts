@@ -2913,7 +2913,7 @@ class Transpiler {
         // would therefore suppress in the body and not here. Asking the
         // whole-program map here instead would close that -- but no fixture in
         // the corpus can distinguish the two, so it would be unguarded
-        // behaviour, and the case may not be reachable at all. Recorded as
+        // behavior, and the case may not be reachable at all. Recorded as
         // #1603 rather than shipped without a check.
         const shouldAutoConst =
           unmodified !== undefined &&

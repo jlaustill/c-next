@@ -57,14 +57,14 @@ class AutoConstRule {
     // would break C APIs expecting mutable pointers. NOTE: ADR-013's "What
     // Gets Auto-Const" still lists arrays as receiving it, which contradicts
     // this and every implementation; tracked as #1602, whose resolution is a
-    // maintainer decision. Current behaviour is preserved here deliberately
+    // maintainer decision. Current behavior is preserved here deliberately
     // rather than resolved in passing.
     if (facts.isArray) {
       return false;
     }
 
     // ADR-013 "NOT applied to": float and ISR are passed by value, not as a
-    // pointer, so there is no pointee to qualify.
+    // pointer, so there is no pointed-to type to qualify.
     if (PASS_BY_VALUE_TYPES.has(facts.baseType)) {
       return false;
     }
