@@ -8,18 +8,9 @@
  * which MISRA flags when assigned back to narrower types without explicit cast.
  */
 
-import TYPE_WIDTH from "../../../../transpiler/constants/TYPE_WIDTH";
 import CppModeHelper from "./CppModeHelper";
 import TYPE_MAP from "../types/TYPE_MAP";
-
-/**
- * Extended type widths including C's promoted "int" type.
- * The shared TYPE_WIDTH doesn't include "int" since it's not a C-Next type.
- */
-const EXTENDED_TYPE_WIDTH: Record<string, number> = {
-  ...TYPE_WIDTH,
-  int: 32, // C's int after promotion
-};
+import CastRequirement from "../../../2-Plan/CastRequirement";
 
 /**
  * Types that get promoted to int in C's integer promotion rules.
@@ -68,38 +59,6 @@ const INTEGER_TYPES = new Set([
  */
 class NarrowingCastHelper {
   /**
-   * Check if a cast is needed for MISRA 10.3 compliance.
-   * Returns true if:
-   * - Source is wider than target (narrowing)
-   * - Source and target are different essential type categories
-   *
-   * @param sourceType - Type of the expression (C-Next type or "int" for promoted)
-   * @param targetType - Type of the target variable (C-Next type)
-   */
-  static needsCast(sourceType: string, targetType: string): boolean {
-    // Same type never needs cast
-    if (sourceType === targetType) {
-      return false;
-    }
-
-    // Bool target from non-bool source always needs conversion
-    if (targetType === "bool" && sourceType !== "bool") {
-      return true;
-    }
-
-    const sourceWidth = EXTENDED_TYPE_WIDTH[sourceType];
-    const targetWidth = EXTENDED_TYPE_WIDTH[targetType];
-
-    // Unknown types - be conservative, no cast
-    if (sourceWidth === undefined || targetWidth === undefined) {
-      return false;
-    }
-
-    // Narrowing: source wider than target
-    return sourceWidth > targetWidth;
-  }
-
-  /**
    * Wrap expression with cast if needed for MISRA 10.3 compliance.
    *
    * @param expr - The generated C expression
@@ -108,7 +67,7 @@ class NarrowingCastHelper {
    * @returns Expression with cast wrapper if needed, or original expression
    */
   static wrap(expr: string, sourceType: string, targetType: string): string {
-    if (!NarrowingCastHelper.needsCast(sourceType, targetType)) {
+    if (!CastRequirement.forConversion(sourceType, targetType)) {
       return expr;
     }
 
