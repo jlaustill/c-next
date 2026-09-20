@@ -1,0 +1,25 @@
+// test-execution
+// test-no-warnings
+// test-adr: 013
+// #1545, relationship axis. The same-file fixture beside this one proves the
+// rule; this one proves it still holds when the WIRING and the DECLARATION sit
+// in different files, which is the context CLAUDE.md records the corpus as
+// almost entirely missing.
+//
+// It is a separate fixture rather than a case in the same-file one because the
+// axis being varied is the file relationship, and a fixture cannot vary that
+// within itself.
+#include "log_api.h"
+#include "cross-file-handlers.cnx"
+
+u32 main() {
+    xwitness <- 0;
+    register_log_handler(xOnLog);
+    if (xwitness != 104) return 1;
+
+    xwitness <- 0;
+    xPlainRead("hi");
+    if (xwitness != 104) return 2;
+
+    return 0;
+}
