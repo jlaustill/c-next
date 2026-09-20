@@ -2,7 +2,9 @@
  * MemberChainAnalyzer - Analyzes member access chains for bit access patterns
  *
  * Issue #644: Extracted from CodeGenerator to reduce file size.
- * Refactored to delegate to buildMemberAccessChain to eliminate code duplication.
+ * Issue #1445: the header used to claim this delegates to
+ * `buildMemberAccessChain`. It never imported it, and that function is now
+ * deleted as dead code. This class walks the chain itself.
  *
  * Used to detect bit access at the end of member chains, e.g.:
  * - grid[2][3].flags[0] - detects that [0] is bit access on flags
@@ -44,8 +46,9 @@ interface IChainState {
 /**
  * Analyzes member access chains to detect bit access patterns.
  *
- * Delegates to buildMemberAccessChain with type tracking and bit access
- * detection callbacks to determine if the final subscript is bit access.
+ * Walks the chain with type tracking to determine whether the final subscript
+ * is bit access. (#1445: this said "delegates to buildMemberAccessChain"; no
+ * such import ever existed and that function is now deleted.)
  */
 class MemberChainAnalyzer {
   /**
