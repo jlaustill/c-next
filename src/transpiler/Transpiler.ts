@@ -23,6 +23,7 @@ import CodeGenerator from "../TRANSPILE/3-Render/codegen/CodeGenerator";
 import CodeGenState from "./state/CodeGenState";
 import ModificationFacts from "./ModificationFacts";
 import CallbackCompatibility from "./CallbackCompatibility";
+import AutoConstRule from "../utils/AutoConstRule";
 import AdrProvenance from "./state/AdrProvenance";
 import CachedSymbolReader from "../utils/cache/CachedSymbolReader";
 import TJsonValue from "../utils/types/TJsonValue";
@@ -2898,13 +2899,13 @@ class Transpiler {
         return headerSymbol;
       }
 
-      // Issue #914: Resolve callback typedef type for callback-compatible functions
-      const typedefName = CodeGenState.program
-        ?.callbackCompatibleFunctions()
-        .get(headerSymbol.name);
-      const callbackTypedefType = typedefName
-        ? CodeGenState.getTypedefType(typedefName)
-        : undefined;
+      // Issue #914: Resolve callback typedef type for callback-compatible functions.
+      // #1545 review: through the one accessor, so this site and the body's
+      // cannot spell the predicate differently -- they used to differ on `""`,
+      // truthiness here against `!== undefined` there.
+      const callbackTypedefType = CodeGenState.callbackTypedefTypeFor(
+        headerSymbol.name,
+      );
 
       // Issue #914: For callback-compatible functions, bake pointer/const overrides
       // onto each parameter. Skip auto-const (matches CodeGenerator path).
@@ -2943,21 +2944,42 @@ class Transpiler {
         // This is the single source of truth for both body (.c/.cpp) and header (.h/.hpp).
         const isOpaque = CodeGenState.isOpaqueType(param.type ?? "");
 
-        // ADR-006: Only non-array pointer params get auto-const.
-        // Arrays are pass-by-reference and mutable by default - auto-const would
-        // break compatibility with C APIs expecting mutable pointers (issue #986).
+        // #1545: the same rule the body paths use, so the .h cannot disagree
+        // with the .c (ADR-013, "Header Generation Sync"). The exclusions this
+        // site used to spell out inline are now ADR-013's list inside the rule.
         // Note: isAutoConst may be set here, but ParameterSignatureBuilder will
         // suppress it for opaque handles (Issue #995) — single source of truth.
-        const isPointerParam =
-          !param.isConst &&
-          !param.isArray &&
-          param.type !== "f32" &&
-          param.type !== "f64" &&
-          param.type !== "ISR" &&
-          !knownEnums.has(param.type ?? "");
-
-        const shouldAutoConst =
-          unmodified && isPointerParam && unmodified.has(param.name);
+        //
+        // isCallbackCompatible is false here because the early return above
+        // took every callback whose typedef type resolves, and the body asks
+        // the same question at the same granularity since #1545 -- the whole
+        // function, not the parameter. #1603 records the remaining case: a
+        // callback-compatible function whose typedef type does NOT resolve
+        // reaches this line, and both paths then let auto-const apply, which is
+        // why nothing reddens for it.
+        const shouldAutoConst = AutoConstRule.applies({
+          baseType: param.type ?? "",
+          isModified: unmodified?.has(param.name) !== true,
+          isExplicitlyConst: param.isConst,
+          isCallbackCompatible: false,
+          isArray: param.isArray,
+          // #1545 review: this is the WHOLE-PROGRAM enum view (`allKnownEnums`
+          // = program.knownEnums()), while the body supplies the PER-FILE one
+          // (CodeGenState.isKnownEnum). CLAUDE.md names that pair as #1312 --
+          // a sibling never included is absent from one and present in the
+          // other. Deliberate on both sides: each matches the enum view ITS
+          // OWN pass-by-value decision reads, so neither introduces a new
+          // disagreement inside its own file. They are unobservable against
+          // each other today because enums route to _buildPassByValueParam,
+          // which ignores isAutoConst -- masking, not unification, so this is
+          // recorded rather than treated as settled.
+          isKnownEnum: knownEnums.has(param.type ?? ""),
+          // #995: computed fifteen lines up for the branch below. Supplying it
+          // here is behavior-preserving -- ParameterSignatureBuilder already
+          // zeroed isAutoConst for an opaque handle -- and moves the seventh
+          // ADR-013 exclusion into the rule that claims to hold them all.
+          isOpaqueHandle: isOpaque,
+        });
 
         // Return updated param with resolved flags
         if (shouldAutoConst || isOpaque) {

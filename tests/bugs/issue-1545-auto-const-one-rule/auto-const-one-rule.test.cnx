@@ -1,0 +1,81 @@
+// test-execution
+// test-no-warnings
+// test-adr: 013
+// #1545: auto-const (#268, ADR-013) is decided in three places with three
+// different rules, and the string path forgot the callback term. A function
+// assigned to a C callback typedef may not take auto-const -- the typedef
+// dictates the parameter shape, and C-Next narrowing it is C-Next breaking a
+// contract it does not own. ADR-013 states the other half:
+//
+//   "The auto-const information is synchronized to symbol metadata so header
+//    files (.h) match implementation files (.c)"
+//
+// Before the fix, `onLog` emitted `const char*` in the .c (the string path
+// applied auto-const) and `char*` in the .h (the header path suppressed it),
+// so the definition contradicted its own prototype:
+//
+//   error: conflicting types for 'onLog'; have 'void(const char *)'
+//   note: previous declaration of 'onLog' with type 'void(char *)'
+//
+// Why this fixture compiles rather than only snapshotting: the .c/.h split is
+// a hard error, but `onLogConst` below is the half that is only a WARNING
+// (-Wincompatible-pointer-types, gcc exit 0). test-no-warnings is what fails
+// on it. Same argument as #1544, which this fixture is modeled on.
+//
+// NOT covered here, deliberately: explicitly marking a param `const` against
+// the MUTABLE typedef. That is the developer's escape hatch and C-Next emits
+// it faithfully -- which makes it a C type error by construction, so it cannot
+// live in a fixture that must compile. `onLogConst` covers the const output.
+#include "log_api.h"
+
+u8 witness <- 0;
+
+// A. Callback-compatible, parameter never modified, typedef takes `char *`.
+//    MUST NOT get auto-const.
+void onLog(string<32> msg) {
+    // Indexed rather than compared, which also pins #1600: a string parameter
+    // of a callback-compatible function was treated as pass-by-reference, so
+    // EVERY whole-value use emitted `(*msg)` -- here `(*msg)[0U]`, which gcc
+    // rejects outright. `plainRead` below indexes the identical shape outside
+    // a callback, so the two lowerings cannot drift apart unnoticed.
+    if (msg[0] = 'h') {
+        witness <- 1;
+    }
+}
+
+// B. NEGATIVE CONTROL. Not a callback; parameter never modified.
+//    MUST get auto-const. Without this case the fixture would also pass for an
+//    implementation that stopped auto-consting string parameters altogether,
+//    which would be over-enforcement rather than a fix.
+void plainRead(string<32> text) {
+    if (text[0] = 'h') {
+        witness <- 2;
+    }
+}
+
+// C. Callback-compatible, parameter never modified, typedef takes `const char *`.
+//    MUST get const -- from the TYPEDEF, not from auto-const. This is the half
+//    the header path dropped: the .h emitted `char*` because the symbol branch
+//    carried no forceConst, so the two files disagreed in the opposite
+//    direction from `onLog`.
+void onLogConst(string<32> msg) {
+    if (msg = "hi") {
+        witness <- 3;
+    }
+}
+
+u32 main() {
+    witness <- 0;
+    register_log_handler(onLog);
+    if (witness != 1) return 1;
+
+    witness <- 0;
+    plainRead("hi");
+    if (witness != 2) return 2;
+
+    witness <- 0;
+    register_const_log_handler(onLogConst);
+    if (witness != 3) return 3;
+
+    return 0;
+}

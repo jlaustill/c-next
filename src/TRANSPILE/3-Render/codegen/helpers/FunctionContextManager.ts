@@ -128,8 +128,23 @@ class FunctionContextManager {
 
     // Issue #895: Primitive types that become pointers need dereferencing when used as values
     // e.g., "u8 buf" becoming "uint8_t* buf" requires "*buf" when accessing the value
+    // #1600: a string<N> is ALREADY a char* -- it is not a primitive that
+    // became a pointer to match the typedef, so it needs no dereference when
+    // used as a value. Without this term ParameterDereferenceResolver returns
+    // `(*msg)` for every whole-value use, and the ADR-045 string rule fifteen
+    // lines into isPassByValue is unreachable because this flag returns first.
+    //
+    // An OPAQUE handle is the same case one type over: `widget_t` is an
+    // incomplete typedef, so it is only ever a pointer and `(*w)` is
+    // `error: invalid use of incomplete typedef`. It is not caught by
+    // `typeInfo.isStruct`, which needs fields the forward declaration does not
+    // have -- so it is named here beside the other already-a-pointer shapes.
     const isCallbackPointerPrimitive =
-      isCallbackPointerParam && !typeInfo.isStruct && !isArray;
+      isCallbackPointerParam &&
+      !typeInfo.isStruct &&
+      !isArray &&
+      !typeInfo.isString &&
+      !CodeGenState.isOpaqueType(typeInfo.typeName);
 
     // Issue #958: typedef struct params need pointer semantics (like callback pointer params)
     const forcePointerSemantics = isCallbackPointerParam || isTypedefStruct;
@@ -344,20 +359,42 @@ class FunctionContextManager {
   }
 
   /**
+   * #1545: the C typedef dictating the current function's parameter shape, or
+   * undefined when nothing does.
+   *
+   * This is the FUNCTION-level question, and it is the one ADR-013 auto-const
+   * must ask. `getCallbackTypedefParamInfo` below answers a per-PARAMETER
+   * question and returns null for a parameter the typedef does not describe --
+   * one past its arity, or one whose type `TypedefParamParser` cannot read.
+   * Deciding auto-const from that answer made the .c suppress per parameter
+   * while the header suppressed per function, so `void (*)(char *)` against
+   * `void onTwo(string<32> msg, string<16> tag)` emitted
+   * `void onTwo(char* msg, const char* tag)` beside a prototype of
+   * `void onTwo(char* msg, char* tag)` -- `error: conflicting types`, which is
+   * the defect #1545 exists to remove, one parameter over.
+   */
+  static callbackTypedefType(): string | undefined {
+    if (CodeGenState.currentFunctionName === null) return undefined;
+
+    // #1545 review: delegates rather than restating the two steps. This is the
+    // current-function convenience over CodeGenState.callbackTypedefTypeFor,
+    // which is the one home for the predicate.
+    return CodeGenState.callbackTypedefTypeFor(
+      CodeGenState.currentFunctionName,
+    );
+  }
+
+  /**
    * Issue #895: Get callback typedef parameter info from the C header.
    * Returns null if not callback-compatible or index is invalid.
    */
   static getCallbackTypedefParamInfo(
     paramIndex: number,
   ): { isParamPointer: boolean; isParamConst: boolean } | null {
-    if (CodeGenState.currentFunctionName === null) return null;
-
-    const typedefName = CodeGenState.program
-      ?.callbackCompatibleFunctions()
-      .get(CodeGenState.currentFunctionName);
-    if (!typedefName) return null;
-
-    const typedefType = CodeGenState.getTypedefType(typedefName);
+    // main's renamed result fields (#1450), with #1545's extracted lookup --
+    // the two steps live in CodeGenState.callbackTypedefTypeFor now, so this
+    // site and the header's cannot spell the predicate differently.
+    const typedefType = FunctionContextManager.callbackTypedefType();
     if (!typedefType) return null;
 
     const isParamPointer = TypedefParamParser.isParamPointer(

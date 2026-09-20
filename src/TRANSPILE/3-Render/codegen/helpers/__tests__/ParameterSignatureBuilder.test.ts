@@ -405,6 +405,47 @@ describe("ParameterSignatureBuilder", () => {
     });
   });
 
+  describe("ADR-013 escape hatch: explicit const on a callback parameter", () => {
+    // #1545 review: AutoConstRule's docblock and its unit test both used to
+    // claim guard ORDER preserved this -- that an explicitly const parameter
+    // was "refused by the first guard" so the callback guard never decided
+    // otherwise. It does not. Every guard in that rule returns false, so the
+    // rule is identical under any permutation and cannot preserve anything.
+    //
+    // The hatch lives HERE: _getConstPrefix ORs `isConst` in independently of
+    // `isAutoConst`. Asserted in this file because this is the only place the
+    // claim can fail -- swap the guards in AutoConstRule and nothing reddens.
+    it("keeps const when the rule refused auto-const (callback parameter)", () => {
+      const input = createInput({
+        name: "msg",
+        baseType: "string<32>",
+        mappedType: "char",
+        isConst: true, // written by the developer
+        isAutoConst: false, // AutoConstRule refused: callback-compatible
+        isString: true,
+      });
+
+      expect(ParameterSignatureBuilder.build(input, "*")).toBe(
+        "const char* msg",
+      );
+    });
+
+    it("emits no const when neither source supplies one", () => {
+      // Negative control. Without it the assertion above would also pass for a
+      // builder that const-qualified every string parameter.
+      const input = createInput({
+        name: "msg",
+        baseType: "string<32>",
+        mappedType: "char",
+        isConst: false,
+        isAutoConst: false,
+        isString: true,
+      });
+
+      expect(ParameterSignatureBuilder.build(input, "*")).toBe("char* msg");
+    });
+  });
+
   describe("callback-compatible parameters (Issue #895)", () => {
     it("forceConst adds const from typedef signature", () => {
       const input = createInput({

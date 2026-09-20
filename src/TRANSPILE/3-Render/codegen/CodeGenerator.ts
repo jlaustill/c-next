@@ -3740,7 +3740,14 @@ export default class CodeGenerator implements IOrchestrator {
     const isPassByValue = callbackInfo
       ? !callbackInfo.isParamPointer
       : this._isPassByValueType(typeName, name);
-    const isCallbackCompatible = callbackInfo !== null;
+    // #1545: the FUNCTION-level question, which is the one the header asks.
+    // Reading `callbackInfo !== null` here asked a per-PARAMETER question, so a
+    // parameter the typedef does not describe (past its arity, or of a shape
+    // TypedefParamParser cannot read) took auto-const in the .c while the .h
+    // suppressed it for every parameter of the function -- `error: conflicting
+    // types`, the same defect one parameter over.
+    const isCallbackCompatible =
+      FunctionContextManager.callbackTypedefType() !== undefined;
 
     // Build normalized input using adapter
     // Issue #895: Force pass-by-reference and const from typedef signature
@@ -3767,6 +3774,12 @@ export default class CodeGenerator implements IOrchestrator {
       forceConst,
       isTypedefStructType: (t) =>
         CodeGenState.symbolTable?.isTypedefStructType(t) ?? false,
+      // #1545: the one named accessor, which is also what _isPassByValueType
+      // asks, so the auto-const rule and the pass-by-value decision cannot
+      // disagree about what an enum is. `t` arrives from getTypeName, which
+      // resolves through the ADR-057 isScopeType predicate, so this is already
+      // the qualified lookup the scope rule calls for.
+      isKnownEnum: (t) => CodeGenState.isKnownEnum(t),
       // Issue #995: Opaque handles should not get auto-const
       isOpaqueType: (t) => CodeGenState.isOpaqueType(t),
     });
@@ -3814,6 +3827,16 @@ export default class CodeGenerator implements IOrchestrator {
     // true in the corpus. Not deleted on that evidence: a corpus that does not
     // reach a branch is not a user base that does not, and the third conjunct
     // (`isKnownStruct`) is the one no fixture satisfies.
+    //
+    // #1545 attempted to route this through
+    // `CodeGenState.callbackTypedefTypeFor` so that "is this function
+    // callback-compatible" had ONE spelling. Reverted here on the reasoning
+    // directly above: requiring the typedef type to resolve would make this
+    // branch unreachable in precisely the case it exists to serve. The
+    // divergence from the auto-const decision is deliberate, not an oversight,
+    // and #1603 is where whether an unresolvable typedef should fail open is
+    // decided -- for both, in one place, rather than by quietly aligning the
+    // spellings here.
     if (
       CodeGenState.currentFunctionName &&
       CodeGenState.program

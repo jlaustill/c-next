@@ -1,0 +1,16 @@
+// Declared HERE; wired to the callback in cross-file-callback-const.test.cnx.
+// #1545's relationship axis: the same auto-const decision, reached with the
+// wiring in a DIFFERENT file from the declaration. The shape must not change.
+#include "log_api.h"
+
+u8 xwitness <- 0;
+
+// Callback-compatible via the OTHER file. Must NOT get auto-const.
+void xOnLog(string<32> msg) {
+    xwitness <- msg[0];
+}
+
+// Never wired anywhere. Must get auto-const -- the control for this file.
+void xPlainRead(string<32> text) {
+    xwitness <- text[0];
+}
