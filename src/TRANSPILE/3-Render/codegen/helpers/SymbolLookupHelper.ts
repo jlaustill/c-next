@@ -1,0 +1,170 @@
+/**
+ * SymbolLookupHelper
+ *
+ * Helper class for symbol table lookup operations.
+ * Extracts common lookup patterns for improved testability.
+ */
+
+import TSymbolKind from "../../../../transpiler/types/symbol-kinds/TSymbolKind";
+import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
+
+/**
+ * Symbol interface for lookups
+ */
+interface ISymbol {
+  kind: TSymbolKind;
+  sourceLanguage: ESourceLanguage;
+}
+
+/**
+ * Symbol table interface
+ */
+interface ISymbolTable {
+  /**
+   * Resolve by transpiled C name — the only lookup this layer may use.
+   *
+   * The bare-name lookup is deliberately absent. Everything here holds a
+   * generated identifier (`Motor__init`), and asking the bare-name index for
+   * one returns an empty result that reads as "no such symbol" rather than
+   * "wrong question" — which is precisely how #1139's defect 2 happened. Not
+   * declaring it means the next lookup added to this file cannot reach for it.
+   */
+  getOverloadsByCName(cName: string): ISymbol[];
+  getStructFields?(name: string): unknown;
+}
+
+class SymbolLookupHelper {
+  /**
+   * Check if a symbol exists with the given kind and language.
+   *
+   * Resolves by transpiled C name: every caller here is in the output layer and
+   * holds a generated identifier (`Motor__init`), never a bare scope-member
+   * name. Looking those up by bare name silently found nothing for any scoped
+   * symbol, which read as "no such symbol" rather than "wrong question".
+   */
+  static hasSymbolWithKindAndLanguage(
+    symbolTable: ISymbolTable | null | undefined,
+    name: string,
+    kind: TSymbolKind,
+    languages: ESourceLanguage[],
+  ): boolean {
+    if (!symbolTable) return false;
+
+    const symbols = symbolTable.getOverloadsByCName(name);
+    return symbols.some(
+      (sym) => sym.kind === kind && languages.includes(sym.sourceLanguage),
+    );
+  }
+
+  /**
+   * Check if a type is a C++ enum class (scoped enum).
+   * Issue #304: These require explicit casts to integer types in C++.
+   */
+  static isCppEnumClass(
+    symbolTable: ISymbolTable | null | undefined,
+    typeName: string,
+  ): boolean {
+    return SymbolLookupHelper.hasSymbolWithKindAndLanguage(
+      symbolTable,
+      typeName,
+      "enum",
+      [ESourceLanguage.Cpp],
+    );
+  }
+
+  /**
+   * Check if a function is an external C or C++ function.
+   * External functions use pass-by-value semantics.
+   */
+  static isExternalCFunction(
+    symbolTable: ISymbolTable | null | undefined,
+    name: string,
+  ): boolean {
+    return SymbolLookupHelper.hasSymbolWithKindAndLanguage(
+      symbolTable,
+      name,
+      "function",
+      [ESourceLanguage.C, ESourceLanguage.Cpp],
+    );
+  }
+
+  /**
+   * Check if a name refers to a namespace/scope.
+   *
+   * Resolves by transpiled C name for the same reason as the helper above, so
+   * this file has one convention rather than two. Only C++ symbols carry the
+   * "namespace" kind and their name is already their identity, so the result is
+   * unchanged — the point is that the next lookup added here inherits the
+   * correct convention by default.
+   */
+  static isNamespace(
+    symbolTable: ISymbolTable | null | undefined,
+    name: string,
+  ): boolean {
+    if (!symbolTable) return false;
+
+    const symbols = symbolTable.getOverloadsByCName(name);
+    return symbols.some((sym) => sym.kind === "namespace");
+  }
+
+  /**
+   * Check if a function is a C-Next function (uses pass-by-reference semantics).
+   * Returns true if the function is found in symbol table as C-Next.
+   */
+  static isCNextFunction(
+    symbolTable: ISymbolTable | null | undefined,
+    name: string,
+  ): boolean {
+    return SymbolLookupHelper.hasSymbolWithKindAndLanguage(
+      symbolTable,
+      name,
+      "function",
+      [ESourceLanguage.CNext],
+    );
+  }
+
+  /**
+   * Check if a function is a C-Next function (combined local + symbol table lookup).
+   * Checks local knownFunctions set first, then falls back to symbol table.
+   */
+  static isCNextFunctionCombined(
+    knownFunctions: ReadonlySet<string> | undefined,
+    symbolTable: ISymbolTable | null | undefined,
+    name: string,
+  ): boolean {
+    if (knownFunctions?.has(name)) return true;
+    return SymbolLookupHelper.isCNextFunction(symbolTable, name);
+  }
+
+  /**
+   * Check if a name is a known scope (combined local + symbol table lookup).
+   * Checks local knownScopes set first, then falls back to symbol table.
+   */
+  static isKnownScope(
+    knownScopes: ReadonlySet<string> | undefined,
+    symbolTable: ISymbolTable | null | undefined,
+    name: string,
+  ): boolean {
+    if (knownScopes?.has(name)) return true;
+    return SymbolLookupHelper.isNamespace(symbolTable, name);
+  }
+
+  /**
+   * Check if a type is a known struct (combined local + symbol table lookup).
+   * Checks local knownStructs and knownBitmaps, then falls back to symbol table.
+   * Issue #551: Bitmaps are struct-like (use pass-by-reference with -> access).
+   */
+  static isKnownStruct(
+    knownStructs: ReadonlySet<string> | undefined,
+    knownBitmaps: ReadonlySet<string> | undefined,
+    symbolTable: ISymbolTable | null | undefined,
+    typeName: string,
+  ): boolean {
+    if (knownStructs?.has(typeName)) return true;
+    if (knownBitmaps?.has(typeName)) return true;
+    if (symbolTable?.getStructFields?.(typeName)) return true;
+    return false;
+  }
+}
+
+export default SymbolLookupHelper;

@@ -27,7 +27,7 @@
  * unchecked with the reason on it -- "**exactly once** is a completeness claim
  * over all of `output/`, and nothing gates it yet".
  *
- * - **Scope.** The scan root was `src/transpiler/output/`, so the `needsISR`
+ * - **Scope.** The scan root was the render pass, so the `needsISR`
  *   read in `Transpiler._captureHeaderEmissionFacts` -- a legitimate capture,
  *   but the SECOND one -- was outside the guard's view entirely. The root is
  *   now `src/`, and both captures are named.
@@ -80,7 +80,7 @@ const srcDir = join(rootDir, "src");
  */
 const CAPTURES = [
   {
-    file: join("src", "transpiler", "output", "codegen", "CodeGenerator.ts"),
+    file: join("src", "TRANSPILE", "3-Render", "codegen", "CodeGenerator.ts"),
     needle: "private captureEmissionFacts(",
   },
   {
@@ -137,8 +137,8 @@ const ANNOTATION_OWNER = join(
 const ORDER_DECIDER = join("src", "TRANSPILE", "2-Plan", "DeclarationPlan.ts");
 const ORDER_CLASSIFIER = join(
   "src",
-  "transpiler",
-  "output",
+  "TRANSPILE",
+  "3-Render",
   "codegen",
   "CodeGenerator.ts",
 );

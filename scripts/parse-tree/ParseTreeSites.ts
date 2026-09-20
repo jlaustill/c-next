@@ -44,16 +44,19 @@ class ParseTreeSites {
   /**
    * The layer a module path belongs to, longest prefix first.
    *
-   * Ordered, not a map: `src/transpiler/output/` must be tested before
-   * `src/transpiler/`, or every transpiler module collapses into one row and
-   * the render layer's share -- the number the issue says matters -- disappears.
+   * Ordered, not a map: `src/TRANSPILE/3-Render/` must be tested before
+   * `src/TRANSPILE/`, or the render layer collapses into the generic pass row
+   * and its share -- the number the issue says matters -- disappears. The same
+   * trap under a different path since #1450 box 5 moved `transpiler/output/`
+   * there: the prefix that must win is the LONGER one, and the generic pass
+   * root now shares a stem with it.
    */
   private static readonly LAYERS: readonly string[] = [
     "src/PARSE/",
+    "src/TRANSPILE/3-Render/",
     "src/TRANSPILE/",
     "src/transpiler/data/",
     "src/transpiler/logic/",
-    "src/transpiler/output/",
     "src/transpiler/state/",
     "src/transpiler/types/",
     "src/transpiler/",
@@ -187,7 +190,7 @@ class ParseTreeSites {
       ...byLayer.map(([layer, count]) => `| \`${layer}\` | ${count} |`),
       `| **total** | **${total}** |`,
       "",
-      "`src/transpiler/output/` is the render layer, and its share is the number",
+      "`src/TRANSPILE/3-Render/` is the render layer, and its share is the number",
       "the issue singles out: the render layer holding parse nodes is how a",
       "diagnostic can originate there at all, which is what #1322 relocates.",
       "",
@@ -240,7 +243,7 @@ class ParseTreeSites {
 
     const { total, byLayer } = ParseTreeSites.summarize(sites);
     const renderLayer =
-      byLayer.find(([layer]) => layer === "src/transpiler/output/")?.[1] ?? 0;
+      byLayer.find(([layer]) => layer === "src/TRANSPILE/3-Render/")?.[1] ?? 0;
     const info = [
       `${total} module(s) hold a parse tree; ${renderLayer} in the render layer.`,
     ];

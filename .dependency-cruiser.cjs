@@ -53,7 +53,10 @@ module.exports = {
         "hypothetical -- while the rule reported green.",
       severity: "error",
       from: { path: "^src/transpiler/data/" },
-      to: { path: "^src/transpiler/output/", reachable: true },
+      to: {
+        path: ["^src/transpiler/output/", "^src/TRANSPILE/3-Render/"],
+        reachable: true,
+      },
     },
     {
       name: "collectors-build-names-from-scopes",
@@ -98,7 +101,10 @@ module.exports = {
         "to catch.",
       severity: "error",
       from: { path: "^src/transpiler/logic/" },
-      to: { path: "^src/transpiler/output/", reachable: true },
+      to: {
+        path: ["^src/transpiler/output/", "^src/TRANSPILE/3-Render/"],
+        reachable: true,
+      },
     },
     {
       name: "state-cannot-import-output",
@@ -110,7 +116,10 @@ module.exports = {
         "in transpiler/types/, which both layers may depend on.",
       severity: "error",
       from: { path: "^src/transpiler/state/" },
-      to: { path: "^src/transpiler/output/", reachable: true },
+      to: {
+        path: ["^src/transpiler/output/", "^src/TRANSPILE/3-Render/"],
+        reachable: true,
+      },
     },
 
     // ==========================================================================
@@ -127,7 +136,10 @@ module.exports = {
         "it names directly (#1297).",
       severity: "error",
       from: { path: "^src/PARSE/" },
-      to: { path: "^src/transpiler/output/", reachable: true },
+      to: {
+        path: ["^src/transpiler/output/", "^src/TRANSPILE/3-Render/"],
+        reachable: true,
+      },
     },
     {
       name: "parse-cannot-import-transpile",
@@ -171,7 +183,10 @@ module.exports = {
         "as a direct import (#1297).",
       severity: "error",
       from: { path: "^src/TRANSPILE/2-Plan/", pathNot: "__tests__" },
-      to: { path: "^src/transpiler/output/", reachable: true },
+      to: {
+        path: ["^src/transpiler/output/", "^src/TRANSPILE/3-Render/"],
+        reachable: true,
+      },
     },
     {
       name: "nothing-after-resolve-derives-cross-file-facts",
@@ -223,7 +238,10 @@ module.exports = {
         "tree itself rather than borrowing codegen's chain-walking.",
       severity: "error",
       from: { path: "^src/TRANSPILE/1-Analyze/", pathNot: "__tests__" },
-      to: { path: "^src/transpiler/output/", reachable: true },
+      to: {
+        path: ["^src/transpiler/output/", "^src/TRANSPILE/3-Render/"],
+        reachable: true,
+      },
     },
     {
       name: "render-cannot-import-analyzers",
@@ -235,7 +253,10 @@ module.exports = {
         "the remaining `output/ -> 1-Analyze` edges to be resolved rather " +
         "than carried across at a new path.",
       severity: "error",
-      from: { path: "^src/transpiler/output/", pathNot: "__tests__" },
+      from: {
+        path: ["^src/transpiler/output/", "^src/TRANSPILE/3-Render/"],
+        pathNot: "__tests__",
+      },
       to: { path: "^src/TRANSPILE/1-Analyze/", reachable: true },
     },
     {

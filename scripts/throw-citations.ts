@@ -36,7 +36,7 @@ const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 const docPath = OutputThrowSources.docPath;
 
 /**
- * Every file under `output/` that differs from HEAD, with both revisions.
+ * Every file under `3-Render/` that differs from HEAD, with both revisions.
  *
  * Keyed by basename because that is how the document cites -- some rows say
  * `codegen/CodeGenerator.ts`, others just `CodeGenerator.ts`, and the gate's
@@ -62,7 +62,7 @@ function revisionAtHead(path: string): string | null {
 function changedRevisions(): Map<string, IRevision> {
   const changed = execFileSync(
     "git",
-    ["diff", "--name-only", "HEAD", "--", "src/transpiler/output"],
+    ["diff", "--name-only", "HEAD", "--", "src/TRANSPILE/3-Render"],
     { encoding: "utf-8", cwd: rootDir },
   )
     .split("\n")
@@ -108,7 +108,7 @@ function write(): void {
   if (revisions.size === 0) {
     console.error(
       chalk.red(
-        "Citations are stale, but no file under output/ differs from HEAD.\n" +
+        "Citations are stale, but no file under 3-Render/ differs from HEAD.\n" +
           "  `--write` remaps against the previous revision, so it can only fix\n" +
           "  drift caused by the WORKING TREE. This drift is already committed:\n" +
           "  the source moved in an earlier commit and the document did not.\n" +

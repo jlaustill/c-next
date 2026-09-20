@@ -120,11 +120,40 @@ the list below — grouped with passes that have not moved at all, which reads a
 #1443's deliverable, not this correction's: what is fixed here is the claim,
 so the gap is visible to whoever completes the map (#1450).
 
+## 2.3 Render — moved as a tree (#1450 box 5)
+
+`src/transpiler/output/` **is** the render pass: codegen and header generation,
+**144** non-test modules (251 files with their tests). It moved whole to
+`src/TRANSPILE/3-Render/`, the way 2.1 Analyze did, rather than file by file.
+
+The manifest entry in `scripts/move-modules.ts` carries the reason; the short
+form is that the admission test places a module in the pass that computes what
+it holds, every module here exists to turn settled decisions into text, and a
+partial move would leave `3-Render/` holding everything except the pass's own
+entry point (`CodeGenerator`).
+
+**Twenty-seven of the 144 still decide rather than format** — they raise an
+emission fact (`requireInclude`, `requireToolchain`, a `needs*` write) or expose
+a classification predicate. That is box 4's remaining work and not a reason to
+split the directory: a module that decides is in the wrong pass-_phase_, not the
+wrong pass, and this map keys destinations on the pass. The discriminator §1
+states — "would removing the module change _what_ is emitted or only _how it
+reads_" — sorts phases within 2.x, and the modules that fail it are named on
+[#1450](https://github.com/jlaustill/c-next/issues/1450).
+
+What the move had to carry with it, recorded because none of it is obvious from
+the diff: seven `.dependency-cruiser.cjs` rules keyed on the old path (a move
+without them prints "no dependency violations found" while the layer is
+unguarded — #1297's failure), `ParseTreeSites`' layer list and its render-layer
+lookup, the throw-citation scanner's root, `ScopeJoinSites`' recorded sites, and
+five test guards that named the path. `vi.mock()` specifiers and inline
+`import("…")` types are string literals, so ts-morph rewrote neither.
+
 ## Not yet placed
 
-The other four passes (1.1 Discover, 1.2 Parse, 2.3 Render, 3.1 Write) have no
-rows here, and neither do the 60 genuinely-shared modules or `cli/`, `lib/` and
-`index.ts` — §1's tree names no home for the last group, which is
+The other three passes (1.1 Discover, 1.2 Parse, 3.1 Write) have no rows here,
+and neither do the 60 genuinely-shared modules or `cli/`, `lib/` and `index.ts`
+— §1's tree names no home for the last group, which is
 [#1466](https://github.com/jlaustill/c-next/issues/1466).
 
 ## Moving modules

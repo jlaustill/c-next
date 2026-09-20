@@ -79,7 +79,7 @@ The codebase is organized into three layers under `src/transpiler/`:
 
 - `src/transpiler/data/` — Discovery layer (FileDiscovery, IncludeResolver, DependencyGraph)
 - `src/transpiler/logic/` — Business logic (parser/, symbols/, analysis/, preprocessor/)
-- `src/transpiler/output/` — Generation (codegen/, headers/)
+- `src/TRANSPILE/3-Render/` — Generation (codegen/, headers/)
 - `src/transpiler/Transpiler.ts` — Orchestrator (coordinates all layers)
 - `src/utils/` — Shared utilities (constants/, cache/, types/)
 
@@ -93,7 +93,7 @@ The codebase is organized into three layers under `src/transpiler/`:
 
 **Do NOT use** the deleted legacy collectors:
 
-- ~~`SymbolCollector`~~ (was in transpiler/output/codegen/)
+- ~~`SymbolCollector`~~ (was in TRANSPILE/3-Render/codegen/)
 - ~~`CNextSymbolCollector`~~ (was in transpiler/logic/symbols/)
 
 **TypeUtils.getTypeName()** must preserve string capacity (return `string<32>` not `string`) for CodeGenerator validation.
@@ -108,7 +108,7 @@ The codebase is organized into three layers under `src/transpiler/`:
 - **Type-aware resolution**: Use `this.context.expectedType` in expression generators to disambiguate (e.g., enum members). For member access targets, walk the struct type chain to set `expectedType`.
 - **Nested struct access**: Track `currentStructType` through each member when processing `a.b.c` chains.
 - **Adding generator effects**: To add a new include/effect type (e.g., `irq_wrappers`):
-  1. Add to `TIncludeHeader` union in `src/transpiler/output/codegen/generators/TIncludeHeader.ts`
+  1. Add to `TIncludeHeader` union in `src/TRANSPILE/3-Render/codegen/generators/TIncludeHeader.ts`
   2. Add `needs<Effect>` boolean field in `CodeGenerator.ts` (with reset in generate())
   3. Handle effect in `processEffects()` switch statement
   4. Generate output in `assembleOutput()` where other effects are emitted

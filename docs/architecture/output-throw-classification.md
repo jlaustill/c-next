@@ -31,9 +31,9 @@ stale, and this document has done it before.
 
 ```bash
 # every throw STATEMENT in output/ -- the corpus this audit classifies (184)
-grep -rn '^\s*throw\b' src/transpiler/output --include='*.ts' | grep -v __tests__ | wc -l
+grep -rn '^\s*throw\b' src/TRANSPILE/3-Render --include='*.ts' | grep -v __tests__ | wc -l
 # the subset spelled `throw new` (181)
-grep -rn '^\s*throw new' src/transpiler/output --include='*.ts' | grep -v __tests__ | wc -l
+grep -rn '^\s*throw new' src/TRANSPILE/3-Render --include='*.ts' | grep -v __tests__ | wc -l
 # and the authority: the gate agrees or fails
 npm run docs:throw-citations:check
 ```

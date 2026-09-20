@@ -1,0 +1,4862 @@
+/**
+ * C-Next Code Generator
+ * Transforms C-Next AST to clean, readable C code
+ */
+
+import type ISubstringOps from "./types/ISubstringOps";
+import { basename } from "node:path";
+import ReservedCnxName from "../../../utils/ReservedCnxName";
+import { CommonTokenStream, ParserRuleContext } from "antlr4ng";
+import * as Parser from "../../../transpiler/logic/parser/grammar/CNextParser";
+
+import CommentScanner from "../../../transpiler/logic/parser/CommentScanner";
+import TypeRegistrationEngine from "./helpers/TypeRegistrationEngine";
+import CommentFormatter from "./CommentFormatter";
+import IComment from "../../../transpiler/types/IComment";
+import TYPE_WIDTH from "../../../transpiler/constants/TYPE_WIDTH";
+import TYPE_MAP from "./types/TYPE_MAP";
+import TYPE_LIMITS from "./types/TYPE_LIMITS";
+// Issue #60: BITMAP_SIZE and BITMAP_BACKING_TYPE moved to SymbolCollector
+import TTypeInfo from "../../../transpiler/types/TTypeInfo";
+import TParameterInfo from "../../../transpiler/types/TParameterInfo";
+import ICodeGeneratorOptions from "./types/ICodeGeneratorOptions";
+import TypeResolver from "./TypeResolver";
+import TypeValidator from "./TypeValidator";
+import IOrchestrator from "./generators/IOrchestrator";
+import IGeneratorInput from "./generators/IGeneratorInput";
+import IGeneratorState from "./generators/IGeneratorState";
+import TGeneratorEffect from "./generators/TGeneratorEffect";
+import EmissionPlan from "../../2-Plan/EmissionPlan";
+import DeclarationPlan from "../../2-Plan/DeclarationPlan";
+import type TDeclarationKind from "../../../transpiler/types/TDeclarationKind";
+import type IEmissionPlan from "../../../transpiler/types/IEmissionPlan";
+import type IEmissionFacts from "../../../transpiler/types/IEmissionFacts";
+import GeneratorRegistry from "./generators/GeneratorRegistry";
+// Expression generators
+import generateLiteral from "./generators/expressions/LiteralGenerator";
+import binaryExprGenerators from "./generators/expressions/BinaryExprGenerator";
+import generateUnaryExpr from "./generators/expressions/UnaryExprGenerator";
+import expressionGenerators from "./generators/expressions/ExpressionGenerator";
+import generatePostfixExpression from "./generators/expressions/PostfixExpressionGenerator";
+// Statement generators
+import controlFlowGenerators from "./generators/statements/ControlFlowGenerator";
+import generateCriticalStatement from "./generators/statements/CriticalGenerator";
+import atomicGenerators from "./generators/statements/AtomicGenerator";
+import switchGenerators from "./generators/statements/SwitchGenerator";
+// Declaration generators
+import enumGenerator from "./generators/declarationGenerators/EnumGenerator";
+import bitmapGenerator from "./generators/declarationGenerators/BitmapGenerator";
+import registerGenerator from "./generators/declarationGenerators/RegisterGenerator";
+import structGenerator from "./generators/declarationGenerators/StructGenerator";
+import functionGenerator from "./generators/declarationGenerators/FunctionGenerator";
+import scopeGenerator from "./generators/declarationGenerators/ScopeGenerator";
+// ADR-065: Extracted utilities
+import BitUtils from "../../../utils/BitUtils";
+import CppNamespaceUtils from "../../../utils/CppNamespaceUtils";
+import FormatUtils from "../../../utils/FormatUtils";
+import StringUtils from "../../../utils/StringUtils";
+import TypeCheckUtils from "../../../utils/TypeCheckUtils";
+import ExpressionUtils from "../../../utils/ExpressionUtils";
+// Support generators
+import helperGenerators from "./generators/support/HelperGenerator";
+import includeGenerators from "./generators/support/IncludeGenerator";
+import commentUtils from "./generators/support/CommentUtils";
+// ADR-046: which nullable C functions return a struct pointer (#1322: a
+// constant lookup, not an analyzer -- see the module header)
+import STRUCT_POINTER_C_FUNCTIONS from "../../../transpiler/constants/STRUCT_POINTER_C_FUNCTIONS";
+// ADR-006: Helper for building member access chains with proper separators
+import memberAccessChain from "./memberAccessChain";
+// ADR-065: Assignment decomposition (Phase 2)
+import AssignmentHandlerRegistry from "./assignment/index";
+import AssignmentClassifier from "./assignment/AssignmentClassifier";
+import buildAssignmentContext from "./assignment/AssignmentContextBuilder";
+// IHandlerDeps removed - handlers now use CodeGenState.generator directly
+// Issue #644: Extracted string length counter for strlen caching optimization
+import StringLengthCounter from "./analysis/StringLengthCounter";
+// Issue #644: C/C++ mode helper for consolidated mode-specific patterns
+import CppModeHelper from "./helpers/CppModeHelper";
+// Issue #644: Array dimension parsing helper for consolidation
+import ArrayDimensionParser from "../../../utils/ArrayDimensionParser";
+import dimensionEvalOptions from "./helpers/dimensionEvalOptions";
+// Issue #644: Member chain analyzer for bit access pattern detection
+import MemberChainAnalyzer from "./analysis/MemberChainAnalyzer";
+// Issue #644: Float bit write helper for shadow variable pattern
+import FloatBitHelper from "./helpers/FloatBitHelper";
+// Issue #644: String declaration helper for bounded/array/concat strings
+// Note: StringDeclHelper is now used via VariableDeclHelper
+// Issue #794: Argument generation helper for ADR-006 semantics
+import ArgumentGenerator from "./helpers/ArgumentGenerator";
+// Issue #644: Enum assignment validator for type-safe enum assignments
+// Issue #644: Array initialization helper for size inference and fill-all
+// Note: ArrayInitHelper is now used via VariableDeclHelper
+// Issue #644: Assignment expected type resolution helper
+import AssignmentExpectedTypeResolver from "./helpers/AssignmentExpectedTypeResolver";
+// PR #715: C++ member conversion helper for improved testability
+import CppMemberHelper from "./helpers/CppMemberHelper";
+import IPostfixOp from "./helpers/types/IPostfixOp";
+// PR #715: Boolean conversion helper for improved testability
+import BooleanHelper from "./helpers/BooleanHelper";
+// PR #715: C++ constructor detection helper for improved testability
+import CppConstructorHelper from "../../../utils/CppConstructorHelper";
+// PR #715: Set/Map utilities for improved testability
+// PR #715: Symbol lookup utilities for improved testability
+import SymbolLookupHelper from "./helpers/SymbolLookupHelper";
+// Issue #644: Assignment validation coordinator helper
+// Issue #696: Variable modifier extraction helper
+// Note: VariableModifierBuilder is now used via VariableDeclHelper
+// Issue #792: Variable declaration helper
+import VariableDeclHelper from "./helpers/VariableDeclHelper";
+// String operation detection and extraction
+import StringOperationsHelper from "./helpers/StringOperationsHelper";
+// PR #681: Extracted separator and dereference resolution utilities
+import MemberSeparatorResolver from "./helpers/MemberSeparatorResolver";
+import ParameterDereferenceResolver from "./helpers/ParameterDereferenceResolver";
+// SonarCloud S3776: Extracted helpers for assignment target generation
+import PostfixChainBuilder from "./helpers/PostfixChainBuilder";
+import SimpleIdentifierResolver from "./helpers/SimpleIdentifierResolver";
+import BaseIdentifierBuilder from "./helpers/BaseIdentifierBuilder";
+import ISimpleIdentifierDeps from "./types/ISimpleIdentifierDeps";
+import IPostfixChainDeps from "./types/IPostfixChainDeps";
+import IPostfixOperation from "./types/IPostfixOperation";
+// Issue #707: Expression unwrapping utility for reducing duplication
+import ExpressionUnwrapper from "../../../utils/ExpressionUnwrapper";
+// Stateless parser utilities extracted from CodeGenerator
+import ParserUtils from "../../../utils/ParserUtils";
+import CodegenParserUtils from "./utils/CodegenParserUtils";
+import IMemberSeparatorDeps from "./types/IMemberSeparatorDeps";
+import IParameterDereferenceDeps from "./types/IParameterDereferenceDeps";
+import ISeparatorContext from "./types/ISeparatorContext";
+// Phase 3: Type generation helper for improved testability
+import TypeGenerationHelper from "./helpers/TypeGenerationHelper";
+// Phase 5: Cast validation helper for improved testability
+import CastValidator from "./helpers/CastValidator";
+// Issue #793: Function context lifecycle and parameter processing helper
+import FunctionContextManager from "./helpers/FunctionContextManager";
+import IFunctionContextCallbacks from "./types/IFunctionContextCallbacks";
+// Global state for code generation (simplifies debugging, eliminates DI complexity)
+import BitRangeHelper from "./helpers/BitRangeHelper";
+import CodeGenState from "../../../transpiler/state/CodeGenState";
+import invariant from "../../../utils/invariant";
+import AdrProvenance from "../../../transpiler/state/AdrProvenance";
+import SymbolRegistry from "../../../transpiler/state/SymbolRegistry";
+import CallbackTypedefFormatter from "./helpers/CallbackTypedefFormatter";
+// Issue #269: Pass-by-value analysis extracted from CodeGenerator
+import PassByValueAnalyzer from "../../2-Plan/PassByValueAnalyzer";
+// Unified parameter generation (Phase 1)
+import ParameterInputAdapter from "./helpers/ParameterInputAdapter";
+import ParameterSignatureBuilder from "./helpers/ParameterSignatureBuilder";
+// Issue #895: Parse typedef signatures to determine pointer vs value params
+// Extracted resolvers that use CodeGenState
+import SizeofResolver from "./resolution/SizeofResolver";
+import EnumTypeResolver from "./resolution/EnumTypeResolver";
+// Issue #797: Centralized C-style name generation
+import QualifiedNameGenerator from "./utils/QualifiedNameGenerator";
+import MisraSuppressionUtils from "../MisraSuppressionUtils";
+import QualifiedCName from "../../../utils/QualifiedCName";
+import type IRecordedRequirement from "../../../transpiler/types/IRecordedRequirement";
+import ToolchainRequirementUtils from "../../../utils/ToolchainRequirementUtils";
+import ScopeUtils from "../../../utils/ScopeUtils";
+import TypeBinding from "../../../PARSE/3-Declare/TypeBinding";
+import type ITargetCapabilities from "../../../transpiler/types/ITargetCapabilities";
+import DEFAULT_TARGET from "../../../transpiler/constants/DEFAULT_TARGET";
+import TargetResolver from "../../../utils/TargetResolver";
+import SymbolTypeResolver from "../../../utils/TypeResolver";
+import CNEXT_TO_C_TYPE_MAP from "../../../utils/constants/TypeMappings";
+import ESourceLanguage from "../../../utils/types/ESourceLanguage";
+import SymbolGuards from "../../../transpiler/types/symbols/SymbolGuards";
+import type IFunctionSymbol from "../../../transpiler/types/symbols/IFunctionSymbol";
+import type TSymbol from "../../../transpiler/types/symbols/TSymbol";
+import type ICallbackTypeInfo from "../../../transpiler/types/ICallbackTypeInfo";
+import BareIdentifier from "../../../utils/BareIdentifier";
+
+const {
+  generateOverflowHelpers: helperGenerateOverflowHelpers,
+  generateSafeDivHelpers: helperGenerateSafeDivHelpers,
+} = helperGenerators;
+
+const {
+  transformIncludeDirective: includeTransformIncludeDirective,
+  processPreprocessorDirective: includeProcessPreprocessorDirective,
+} = includeGenerators;
+
+const {
+  getLeadingComments: commentGetLeadingComments,
+  formatLeadingComments: commentFormatLeadingComments,
+} = commentUtils;
+
+/*
+ * #1322: a second, byte-identical `ASSIGNMENT_OPERATOR_MAP` stood here as a
+ * file-local const while `utils/constants/OperatorMappings.ts` held the same
+ * eleven entries -- the one `AssignmentContextBuilder` and `ControlFlowGenerator`
+ * already import. Two copies of one table means adding an operator is two
+ * edits, and a divergence between them would be silent. The last reader of the
+ * local copy went with `AssignmentValidator`, so it is deleted rather than
+ * re-pointed: nothing here needs it now.
+ */
+
+/**
+ * ADR-013: Function signature for const parameter tracking
+ * Used to validate const-to-non-const errors at call sites
+ */
+interface FunctionSignature {
+  name: string;
+  parameters: Array<{
+    name: string;
+    baseType: string; // The C-Next type (e.g., 'u32', 'f32')
+    isConst: boolean;
+    isArray: boolean;
+  }>;
+}
+
+/**
+ * Code Generator - Transpiles C-Next to C
+ *
+ * Implements IOrchestrator to support modular generator extraction.
+ */
+export default class CodeGenerator implements IOrchestrator {
+  /** Lookup map for primitive type zero initializers */
+  private static readonly PRIMITIVE_ZERO_VALUES: ReadonlyMap<string, string> =
+    new Map([
+      ["bool", "false"],
+      ["f32", "0.0f"],
+      ["f64", "0.0"],
+    ]);
+
+  /** Token stream for comment extraction (ADR-043) */
+  private tokenStream: CommonTokenStream | null = null;
+
+  private commentExtractor: CommentScanner | null = null;
+
+  private readonly commentFormatter: CommentFormatter = new CommentFormatter();
+  /** Issue #644: String declaration helper for bounded/array/concat strings */
+
+  /** Issue #644: Array initialization helper for size inference and fill-all */
+
+  /** Generator registry for modular code generation */
+  private readonly registry: GeneratorRegistry = new GeneratorRegistry();
+
+  /**
+   * Initialize generator registry with extracted generators.
+   * Called once before code generation begins.
+   */
+  private initializeGenerators(): void {
+    // Phase 1: Simple leaf generators
+    this.registry.registerDeclaration("enum", enumGenerator);
+    this.registry.registerDeclaration("bitmap", bitmapGenerator);
+    this.registry.registerDeclaration("register", registerGenerator);
+
+    // Phase 2: Medium complexity generators
+    this.registry.registerDeclaration("struct", structGenerator);
+
+    // Phase 3: Complex generators
+    this.registry.registerDeclaration("function", functionGenerator);
+
+    // Phase 4: Composite generators
+    this.registry.registerDeclaration("scope", scopeGenerator);
+
+    // Statement generators
+    // Note: generateSwitchCase, generateCaseLabel, generateDefaultCase have extra
+    // switchEnumType param and are called directly rather than through the registry.
+    // Same for generateForVarDecl, generateForAssignment - internal helpers.
+    this.registry.registerStatement(
+      "return",
+      controlFlowGenerators.generateReturn,
+    );
+    this.registry.registerStatement("if", controlFlowGenerators.generateIf);
+    this.registry.registerStatement(
+      "while",
+      controlFlowGenerators.generateWhile,
+    );
+    this.registry.registerStatement(
+      "do-while",
+      controlFlowGenerators.generateDoWhile,
+    );
+    this.registry.registerStatement("for", controlFlowGenerators.generateFor);
+    this.registry.registerStatement(
+      "forever",
+      controlFlowGenerators.generateForever,
+    );
+    this.registry.registerStatement("switch", switchGenerators.generateSwitch);
+    this.registry.registerStatement("critical", generateCriticalStatement);
+
+    // Expression generators
+    this.registry.registerExpression(
+      "expression",
+      expressionGenerators.generateExpression,
+    );
+    this.registry.registerExpression(
+      "ternary",
+      expressionGenerators.generateTernaryExpr,
+    );
+    this.registry.registerExpression("or", binaryExprGenerators.generateOrExpr);
+    this.registry.registerExpression(
+      "and",
+      binaryExprGenerators.generateAndExpr,
+    );
+    this.registry.registerExpression(
+      "equality",
+      binaryExprGenerators.generateEqualityExpr,
+    );
+    this.registry.registerExpression(
+      "relational",
+      binaryExprGenerators.generateRelationalExpr,
+    );
+    this.registry.registerExpression(
+      "bitwise-or",
+      binaryExprGenerators.generateBitwiseOrExpr,
+    );
+    this.registry.registerExpression(
+      "bitwise-xor",
+      binaryExprGenerators.generateBitwiseXorExpr,
+    );
+    this.registry.registerExpression(
+      "bitwise-and",
+      binaryExprGenerators.generateBitwiseAndExpr,
+    );
+    this.registry.registerExpression(
+      "shift",
+      binaryExprGenerators.generateShiftExpr,
+    );
+    this.registry.registerExpression(
+      "additive",
+      binaryExprGenerators.generateAdditiveExpr,
+    );
+    this.registry.registerExpression(
+      "multiplicative",
+      binaryExprGenerators.generateMultiplicativeExpr,
+    );
+    this.registry.registerExpression("unary", generateUnaryExpr);
+    this.registry.registerExpression("literal", generateLiteral);
+  }
+
+  /**
+   * Invoke a registered statement generator by name.
+   * Reduces boilerplate in wrapper methods.
+   */
+  private invokeStatement(name: string, ctx: ParserRuleContext): string {
+    const generator = this.registry.getStatement(name);
+    invariant(
+      generator,
+      `every statement name reaching invokeStatement was registered by initializeGenerators (got '${name}')`,
+    );
+    const result = generator(ctx, this.getInput(), this.getState(), this);
+    this.applyEffects(result.effects);
+    return result.code;
+  }
+
+  /**
+   * Invoke a registered expression generator by name.
+   * Reduces boilerplate in wrapper methods.
+   */
+  private invokeExpression(name: string, ctx: ParserRuleContext): string {
+    const generator = this.registry.getExpression(name);
+    invariant(
+      generator,
+      `every expression name reaching invokeExpression was registered by initializeGenerators (got '${name}')`,
+    );
+    const result = generator(ctx, this.getInput(), this.getState(), this);
+    this.applyEffects(result.effects);
+    return result.code;
+  }
+
+  /**
+   * Invoke a registered declaration generator by name.
+   *
+   * The sibling `invokeStatement` and `invokeExpression` already had; the five
+   * declaration wrappers each wrote this body out instead, and
+   * `analyze:duplication` reported the enum/bitmap pair as a 20-line clone
+   * (#1450).
+   *
+   * The invariant keeps the message the five copies used, interpolated rather
+   * than reworded. It names the registration a reader has to go look at, where
+   * the siblings' wording names only the dispatcher -- and two unit tests pin
+   * it, so rewording would have meant editing assertions to match what I had
+   * done rather than keeping what they assert.
+   *
+   * @param headerMaySuppress whether the included header owning this file's
+   *   type definitions means the declaration is not emitted here. True for the
+   *   type-forming kinds. `struct` is deliberately NOT one: its generator
+   *   suppresses only the typedef and still emits ADR-029's init function,
+   *   which has external linkage and no other home -- suppressing the whole
+   *   generator dropped that function once already (#1164).
+   */
+  private invokeDeclaration(
+    name: string,
+    ctx: ParserRuleContext,
+    headerMaySuppress: boolean,
+  ): string {
+    const generator = this.registry.getDeclaration(name);
+    invariant(
+      generator,
+      `registerDeclaration("${name}") is unconditional in the constructor`,
+    );
+    // The generator still runs when the header owns the definition, so its
+    // effects are registered -- returning early would silently drop them,
+    // which is how the ADR-029 struct init function was lost (#369/#1164).
+    const result = generator(ctx, this.getInput(), this.getState(), this);
+    this.applyEffects(result.effects);
+    const suppressed =
+      headerMaySuppress &&
+      CodeGenState.declarationPlan().headerOwnsTypeDefinitions;
+    return suppressed ? "" : result.code;
+  }
+
+  private generatorsInitialized = false;
+
+  // ===========================================================================
+  // IOrchestrator Implementation
+  // ===========================================================================
+
+  /**
+   * Get read-only input context for generators.
+   * Contains all the information generators need to produce code.
+   */
+  getInput(): IGeneratorInput {
+    return {
+      symbolTable: CodeGenState.symbolTable,
+      symbols: CodeGenState.symbols,
+      typeRegistry: CodeGenState.getTypeRegistryView(),
+      functionSignatures: CodeGenState.functionSignatures,
+      knownFunctions: CodeGenState.knownFunctions,
+      knownStructs: CodeGenState.symbols?.knownStructs ?? new Set(),
+      constValues: CodeGenState.constValues,
+      callbackTypes: CodeGenState.callbackTypes,
+      callbackFieldTypes: CodeGenState.callbackFieldTypes,
+      targetCapabilities: CodeGenState.targetCapabilities,
+      debugMode: CodeGenState.debugMode,
+    };
+  }
+
+  /**
+   * Get a snapshot of the current generation state.
+   * Represents where we are in the AST traversal.
+   */
+  getState(): IGeneratorState {
+    return {
+      currentScopePath: CodeGenState.currentScopePath,
+      indentLevel: CodeGenState.indentLevel,
+      inFunctionBody: CodeGenState.inFunctionBody,
+      currentParameters: CodeGenState.currentParameters,
+      localVariables: CodeGenState.localVariables,
+      localArrays: CodeGenState.localArrays,
+      expectedType: CodeGenState.expectedType,
+      headerOwnsTypeDefinitions:
+        CodeGenState.declarationPlan().headerOwnsTypeDefinitions, // #369/#1450
+      // Issue #644: Postfix expression state
+      scopeMembers: CodeGenState.getAllScopeMembers(),
+      mainArgsName: CodeGenState.mainArgsName,
+      floatBitShadows: CodeGenState.floatBitShadows,
+      floatShadowCurrent: CodeGenState.floatShadowCurrent,
+      lengthCache: CodeGenState.lengthCache,
+    };
+  }
+
+  /**
+   * Process effects returned by generators, updating internal state.
+   * This centralizes all side-effect handling.
+   */
+  applyEffects(effects: readonly TGeneratorEffect[]): void {
+    for (const effect of effects) {
+      switch (effect.type) {
+        // Include effects - delegate to requireInclude()
+        case "include":
+          CodeGenState.requireInclude(effect.header, effect.line ?? null);
+          break;
+        case "isr":
+          CodeGenState.requireInclude("isr");
+          break;
+
+        // Toolchain requirement effects (Issue #1143)
+        case "requires":
+          CodeGenState.requireToolchain(effect.key, [
+            { sourcePath: CodeGenState.sourcePath ?? "", line: effect.line },
+          ]);
+          break;
+
+        // Helper function effects
+        case "helper":
+          // Route through the single marker rather than writing the set
+          // directly, so helper-op bookkeeping has one entry point (#1143).
+          CodeGenState.markClampOpUsed(effect.operation, effect.cnxType);
+          break;
+        case "safe-div":
+          // Internal helper-op key, not a scope-qualified C name
+          CodeGenState.usedSafeDivOps.add(
+            `${effect.operation}_${effect.cnxType}`,
+          );
+          // ADR-051 safe-div helpers return a bool error flag. Route that
+          // dependency through the single include path (#1108) rather than
+          // letting the helper emit its own #include <stdbool.h>.
+          CodeGenState.requireInclude("stdbool");
+          break;
+
+        // Type registration effects
+        case "register-type":
+          CodeGenState.setVariableTypeInfo(effect.name, effect.info);
+          break;
+        case "register-local":
+          CodeGenState.registerLocalVariable(effect.name, effect.isArray);
+          break;
+        case "register-const-value":
+          CodeGenState.constValues.set(effect.name, effect.value);
+          break;
+
+        // Scope effects (ADR-016)
+        case "set-scope":
+          CodeGenState.setCurrentScopeByPath(effect.name);
+          break;
+
+        // Function body effects
+        case "enter-function-body":
+          CodeGenState.enterFunctionBody();
+          break;
+        case "exit-function-body":
+          CodeGenState.exitFunctionBody();
+          break;
+        case "set-parameters":
+          CodeGenState.currentParameters = new Map(effect.params);
+          break;
+        case "clear-parameters":
+          CodeGenState.currentParameters.clear();
+          break;
+
+        // Callback effects
+        case "register-callback-field":
+          CodeGenState.callbackFieldTypes.set(effect.key, effect.typeName);
+          break;
+        case "register-struct-init":
+          CodeGenState.generatedStructInits.add(effect.structName);
+          break;
+
+        // Array initializer effects
+        case "set-array-init-count":
+          CodeGenState.lastArrayInitCount = effect.count;
+          break;
+        case "set-array-fill-value":
+          CodeGenState.lastArrayFillValue = effect.value;
+          break;
+      }
+    }
+  }
+
+  /**
+   * Issue #1143: Snapshot the toolchain requirements recorded during the last
+   * generate() call.
+   *
+   * Must be read before the next file's CodeGenState.reset(), which clears the
+   * recording map.
+   */
+  getToolchainRequirements(): readonly IRecordedRequirement[] {
+    return Array.from(CodeGenState.recordedRequirements.entries()).map(
+      ([key, sites]) => ({ key, sites: [...sites] }),
+    );
+  }
+
+  /**
+   * Get the current indentation string.
+   */
+  getIndent(): string {
+    return FormatUtils.indent(CodeGenState.indentLevel);
+  }
+
+  /**
+   * Resolve an identifier to its fully-scoped name.
+   * Part of IOrchestrator interface.
+   * ADR-016: Inside a scope, checks if the identifier is a scope member first.
+   * Otherwise returns the identifier unchanged (global scope).
+   */
+  resolveIdentifier(identifier: string): string {
+    // Delegates to CodeGenState, which owns scope membership. This method used to
+    // be a byte-identical copy of CodeGenState.resolveIdentifier, so the two
+    // could drift apart silently.
+    return CodeGenState.resolveIdentifier(identifier);
+  }
+
+  // === Expression Generation ===
+
+  /**
+   * Generate a C expression from any expression context.
+   * Part of IOrchestrator interface.
+   */
+  generateExpression(ctx: Parser.ExpressionContext): string {
+    return this.invokeExpression("expression", ctx);
+  }
+
+  /**
+   * Issue #477: Generate expression with a specific expected type context.
+   * Used by return statements to resolve unqualified enum values.
+   *
+   * #1450 box 4: this was a third hand-rolled save/restore of `expectedType`,
+   * beside `withExpectedType` and `withoutExpectedType`, justified by a note
+   * reading "uses explicit save/restore (not withExpectedType) to support null
+   * values". No caller passes one. Measured rather than argued: throwing here
+   * on a falsy argument leaves 1247/1247 fixtures green, and the control --
+   * throwing on a TRUTHY one -- fails 663 of them, so the line is reached and
+   * the falsy case simply never arrives.
+   *
+   * The parameter is therefore `string`, not `string | null`. That makes the
+   * fact the compiler's to keep rather than a comment's, which matters because
+   * the two spellings did OPPOSITE things on null: `withExpectedType(null)` is
+   * a no-op by contract, while this cleared the type. Two near-identically
+   * named operations disagreeing on their edge case is the trap; deleting the
+   * edge case is cheaper than documenting it.
+   */
+  generateExpressionWithExpectedType(
+    ctx: Parser.ExpressionContext,
+    expectedType: string,
+  ): string {
+    return CodeGenState.withExpectedType(expectedType, () =>
+      this.generateExpression(ctx),
+    );
+  }
+
+  /**
+   * Generate type translation (C-Next type -> C type).
+   * Part of IOrchestrator interface.
+   */
+  generateType(ctx: Parser.TypeContext): string {
+    // Track required includes based on type usage
+    const requiredInclude = TypeGenerationHelper.getRequiredInclude(ctx);
+    if (requiredInclude) {
+      CodeGenState.requireInclude(requiredInclude);
+    }
+
+    // Generate the C type using the helper with dependencies
+    return TypeGenerationHelper.generate(ctx, {
+      currentScopePath: CodeGenState.currentScopePath,
+      isCppScopeSymbol: (name) => this.isCppScopeSymbol(name),
+      checkNeedsStructKeyword: (name) =>
+        CodeGenState.symbolTable.checkNeedsStructKeyword(name),
+      isScopeType: CodeGenState.scopeTypePredicate,
+      isCrossFileDeclaration: (name) =>
+        CodeGenState.isCrossFileDeclaration(name),
+    });
+  }
+
+  /**
+   * Generate a unary expression.
+   * Part of IOrchestrator interface.
+   */
+  generateUnaryExpr(ctx: Parser.UnaryExpressionContext): string {
+    return this.invokeExpression("unary", ctx);
+  }
+
+  /**
+   * Generate a postfix expression.
+   * Part of IOrchestrator interface.
+   * Issue #644: Delegates to extracted PostfixExpressionGenerator.
+   */
+  generatePostfixExpr(ctx: Parser.PostfixExpressionContext): string {
+    const result = generatePostfixExpression(
+      ctx,
+      this.getInput(),
+      this.getState(),
+      this,
+    );
+    this.applyEffects(result.effects);
+    return result.code;
+  }
+
+  /**
+   * Generate the full precedence chain from or-expression down.
+   * Part of IOrchestrator interface.
+   */
+  generateOrExpr(ctx: Parser.OrExpressionContext): string {
+    return this.invokeExpression("or", ctx);
+  }
+
+  // === Type Utilities ===
+
+  /**
+   * Check if a type name is a known struct.
+   * Part of IOrchestrator interface.
+   */
+  isKnownStruct(typeName: string): boolean {
+    return SymbolLookupHelper.isKnownStruct(
+      CodeGenState.symbols?.knownStructs,
+      CodeGenState.symbols?.knownBitmaps,
+      CodeGenState.symbolTable,
+      typeName,
+    );
+  }
+
+  /**
+   * Check if a type is a float type.
+   * Part of IOrchestrator interface - delegates to TypeResolver.
+   */
+  isFloatType(typeName: string): boolean {
+    return TypeResolver.isFloatType(typeName);
+  }
+
+  /**
+   * Check if a type is an integer type.
+   * Part of IOrchestrator interface - delegates to TypeResolver.
+   */
+  isIntegerType(typeName: string): boolean {
+    return TypeResolver.isIntegerType(typeName);
+  }
+
+  /**
+   * Check if a function is defined in C-Next.
+   * Part of IOrchestrator interface.
+   */
+  isCNextFunction(name: string): boolean {
+    return SymbolLookupHelper.isCNextFunctionCombined(
+      CodeGenState.knownFunctions,
+      CodeGenState.symbolTable,
+      name,
+    );
+  }
+
+  // === Expression Analysis ===
+
+  /**
+   * Get the enum type of an expression.
+   * Part of IOrchestrator interface - delegates to private implementation.
+   */
+  getExpressionEnumType(
+    ctx: Parser.ExpressionContext | Parser.RelationalExpressionContext,
+  ): string | null {
+    return EnumTypeResolver.resolve(ctx);
+  }
+
+  /**
+   * Check if an expression is a string type.
+   * Part of IOrchestrator interface.
+   * ADR-045: Used to detect string comparisons and generate strcmp().
+   * Issue #137: Extended to handle array element access (e.g., names[0])
+   * Issue #1030: Extended to handle struct member access (e.g., person.name)
+   */
+  isStringExpression(ctx: Parser.RelationalExpressionContext): boolean {
+    const text = ctx.getText();
+
+    // Check for string literals
+    if (text.startsWith('"') && text.endsWith('"')) {
+      return true;
+    }
+
+    // Check if it's a simple variable of string type
+    if (BareIdentifier.matches(text)) {
+      const typeInfo = CodeGenState.getVariableTypeInfo(text);
+      if (typeInfo?.isString) {
+        return true;
+      }
+    }
+
+    // Issue #1030: Check for struct member access (e.g., person.name)
+    if (this._isStructMemberStringExpression(text)) {
+      return true;
+    }
+
+    // Issue #137: Check for array element access (e.g., names[0], arr[i])
+    return this._isArrayAccessStringExpression(text);
+  }
+
+  /**
+   * Check if array access expression evaluates to a string.
+   * Extracted from isStringExpression to reduce cognitive complexity.
+   */
+  private _isArrayAccessStringExpression(text: string): boolean {
+    // Pattern: identifier[expression] or identifier[expression][expression]...
+    // BUT NOT if accessing properties that return numbers, not strings
+    const arrayAccessMatch = /^([a-zA-Z_]\w*)\[/.exec(text);
+    if (!arrayAccessMatch) {
+      return false;
+    }
+
+    // ADR-045/ADR-058: String/array properties return numeric values, not strings
+    // ADR-058: .length deprecated, replaced by .bit_length, .byte_length,
+    // .element_count, .char_count
+    if (
+      text.endsWith(".length") ||
+      text.endsWith(".capacity") ||
+      text.endsWith(".size") ||
+      text.endsWith(".bit_length") ||
+      text.endsWith(".byte_length") ||
+      text.endsWith(".element_count") ||
+      text.endsWith(".char_count")
+    ) {
+      return false;
+    }
+
+    const arrayName = arrayAccessMatch[1];
+    const typeInfo = CodeGenState.getVariableTypeInfo(arrayName);
+    if (!typeInfo) {
+      return false;
+    }
+
+    // Check if it's an ARRAY OF STRINGS (not a single string being indexed)
+    // A single string<50> has arrayDimensions=[51] (just the char buffer)
+    // An array of strings string<50>[10] has arrayDimensions=[10, 51]
+    // Single string indexing (e.g., userName[i]) returns a char, not a string
+    // Array of strings indexing (e.g., names[0]) returns a string
+    if (typeInfo.isString) {
+      // For strings, only treat as string expression if it's an array of strings
+      // (arrayDimensions.length > 1 means it's string<N>[M], not just string<N>)
+      const dims = typeInfo.arrayDimensions;
+      return Array.isArray(dims) && dims.length > 1;
+    }
+
+    // Non-string array with string base type
+    return Boolean(
+      typeInfo.isArray &&
+      typeInfo.baseType &&
+      TypeCheckUtils.isString(typeInfo.baseType),
+    );
+  }
+
+  /**
+   * Check if struct member access expression evaluates to a string.
+   * Issue #1030: Handles patterns like person.name, config.key
+   */
+  private _isStructMemberStringExpression(text: string): boolean {
+    // Pattern: identifier.identifier (simple member access)
+    // Must not end with a property that returns a number
+    if (
+      text.endsWith(".char_count") ||
+      text.endsWith(".capacity") ||
+      text.endsWith(".size") ||
+      text.endsWith(".length") ||
+      text.endsWith(".bit_length") ||
+      text.endsWith(".byte_length") ||
+      text.endsWith(".element_count")
+    ) {
+      return false;
+    }
+
+    // Match simple struct.member pattern
+    const memberMatch = /^([a-zA-Z_]\w*)\.([a-zA-Z_]\w*)$/.exec(text);
+    if (!memberMatch) {
+      return false;
+    }
+
+    const [, varName, fieldName] = memberMatch;
+
+    // Get the struct variable's type
+    const typeInfo = CodeGenState.getVariableTypeInfo(varName);
+    if (!typeInfo) {
+      return false;
+    }
+
+    // Get the struct type name - it might be directly the baseType
+    // or we might need to look it up by the variable's type
+    const structTypeName = typeInfo.baseType;
+    if (!structTypeName) {
+      return false;
+    }
+
+    // Look up the field type from the struct
+    const fieldType = CodeGenState.getStructFieldType(
+      structTypeName,
+      fieldName,
+    );
+    if (!fieldType) {
+      return false;
+    }
+
+    // Check if the field is a string type (e.g., "string<64>")
+    return fieldType.startsWith("string");
+  }
+
+  /**
+   * Extract operators from parse tree children in correct order.
+   * Part of IOrchestrator interface - delegates to CodegenParserUtils.
+   */
+  getOperatorsFromChildren(ctx: ParserRuleContext): string[] {
+    return CodegenParserUtils.getOperatorsFromChildren(ctx);
+  }
+
+  // === Validation ===
+
+  // === Function Call Helpers ===
+
+  /**
+   * Get simple identifier from expression, or null if complex.
+   * Part of IOrchestrator interface - delegates to CodegenParserUtils.
+   */
+  getSimpleIdentifier(ctx: Parser.ExpressionContext): string | null {
+    return CodegenParserUtils.getSimpleIdentifier(ctx);
+  }
+
+  /**
+   * Generate function argument with pass-by-reference handling.
+   * Part of IOrchestrator interface - delegates to ArgumentGenerator.
+   */
+  generateFunctionArg(
+    ctx: Parser.ExpressionContext,
+    targetParamBaseType?: string,
+  ): string {
+    const simpleId = CodegenParserUtils.getSimpleIdentifier(ctx);
+    return ArgumentGenerator.generateArg(ctx, simpleId, targetParamBaseType, {
+      getLvalueType: (c) => this.getLvalueType(c),
+      getMemberAccessArrayStatus: (c) => this.getMemberAccessArrayStatus(c),
+      needsCppMemberConversion: (c, t) => this.needsCppMemberConversion(c, t),
+      isStringSubscriptAccess: (c) => this.isStringSubscriptAccess(c),
+      generateExpression: (c) => this.generateExpression(c),
+    });
+  }
+
+  /**
+   * Get known enums set for pass-by-value detection.
+   * Part of IOrchestrator interface.
+   */
+  getKnownEnums(): ReadonlySet<string> {
+    return CodeGenState.symbols!.knownEnums;
+  }
+
+  /**
+   * Issue #304: Check if we're generating C++ output.
+   * Part of IOrchestrator interface.
+   */
+  isCppMode(): boolean {
+    return CodeGenState.cppMode;
+  }
+
+  /**
+   * Issue #304: Check if a type is a C++ enum class (scoped enum).
+   * These require explicit casts to integer types in C++.
+   * Part of IOrchestrator interface.
+   */
+  isCppEnumClass(typeName: string): boolean {
+    return SymbolLookupHelper.isCppEnumClass(
+      CodeGenState.symbolTable,
+      typeName,
+    );
+  }
+
+  /**
+   * Issue #304: Get the type of an expression.
+   * Part of IOrchestrator interface.
+   */
+  getExpressionType(ctx: Parser.ExpressionContext): string | null {
+    return TypeResolver.getExpressionType(ctx);
+  }
+
+  /**
+   * Generate a block (curly braces with statements).
+   * Part of IOrchestrator interface.
+   */
+  generateBlock(ctx: Parser.BlockContext): string {
+    const lines: string[] = ["{"];
+    const innerIndent = FormatUtils.indent(1); // One level of relative indentation
+
+    for (const stmt of ctx.statement()) {
+      // Temporarily increment for any nested context that needs absolute level
+      CodeGenState.indentLevel++;
+      const stmtCode = this.generateStatement(stmt);
+      CodeGenState.indentLevel--;
+
+      if (stmtCode) {
+        // Add one level of indent to each line (relative indentation)
+        const indentedLines = stmtCode
+          .split("\n")
+          .map((line) => innerIndent + line);
+        lines.push(indentedLines.join("\n"));
+      }
+    }
+
+    lines.push("}");
+
+    return lines.join("\n");
+  }
+
+  /**
+   * Generate a single statement.
+   * Part of IOrchestrator interface.
+   */
+  generateStatement(ctx: Parser.StatementContext): string {
+    let result = "";
+
+    if (ctx.variableDeclaration()) {
+      result = this.generateVariableDecl(ctx.variableDeclaration()!);
+    } else if (ctx.assignmentStatement()) {
+      result = this.generateAssignment(ctx.assignmentStatement()!);
+    } else if (ctx.expressionStatement()) {
+      result =
+        this.generateExpression(ctx.expressionStatement()!.expression()) + ";";
+    } else if (ctx.ifStatement()) {
+      result = this.generateIf(ctx.ifStatement()!);
+    } else if (ctx.whileStatement()) {
+      result = this.generateWhile(ctx.whileStatement()!);
+    } else if (ctx.doWhileStatement()) {
+      result = this.generateDoWhile(ctx.doWhileStatement()!);
+    } else if (ctx.forStatement()) {
+      result = this.generateFor(ctx.forStatement()!);
+    } else if (ctx.foreverStatement()) {
+      result = this.generateForever(ctx.foreverStatement()!);
+    } else if (ctx.switchStatement()) {
+      result = this.generateSwitch(ctx.switchStatement()!);
+    } else if (ctx.returnStatement()) {
+      result = this.generateReturn(ctx.returnStatement()!);
+    } else if (ctx.criticalStatement()) {
+      // ADR-050: Critical statement for atomic multi-variable operations
+      result = this.generateCriticalStatement(ctx.criticalStatement()!);
+    } else if (ctx.block()) {
+      result = this.generateBlock(ctx.block()!);
+    }
+
+    // Issue #250: Prepend any pending temp variable declarations (C++ mode)
+    if (CodeGenState.pendingTempDeclarations.length > 0) {
+      const tempDecls = CodeGenState.pendingTempDeclarations.join("\n");
+      CodeGenState.pendingTempDeclarations = [];
+      return tempDecls + "\n" + result;
+    }
+
+    return result;
+  }
+
+  /**
+   * Issue #250: Flush pending temp variable declarations.
+   * Returns declarations as a single string and clears the pending list.
+   * Part of IOrchestrator interface.
+   */
+  flushPendingTempDeclarations(): string {
+    if (CodeGenState.pendingTempDeclarations.length === 0) {
+      return "";
+    }
+    const decls = CodeGenState.pendingTempDeclarations.join("\n");
+    CodeGenState.pendingTempDeclarations = [];
+    return decls;
+  }
+
+  /**
+   * Get indentation string for current level.
+   * Part of IOrchestrator interface.
+   */
+  indent(text: string): string {
+    return FormatUtils.indentAllLines(text, CodeGenState.indentLevel);
+  }
+
+  /**
+   * Generate an assignment target.
+   * Part of IOrchestrator interface.
+   * Issue #387: Unified postfix chain - all patterns now use IDENTIFIER postfixTargetOp*
+   */
+  generateAssignmentTarget(ctx: Parser.AssignmentTargetContext): string {
+    const hasGlobal = ctx.GLOBAL() !== null;
+    const hasThis = ctx.THIS() !== null;
+    const identifier = ctx.IDENTIFIER()?.getText();
+    const postfixOps = ctx.postfixTargetOp();
+
+    // SonarCloud S3776: Use SimpleIdentifierResolver for simple identifier case
+    if (!hasGlobal && !hasThis && postfixOps.length === 0 && identifier) {
+      return SimpleIdentifierResolver.resolve(
+        identifier,
+        this._buildSimpleIdentifierDeps(),
+        ctx.start?.line,
+      );
+    }
+
+    // Issue #779: Resolve bare scope member identifiers before postfix chain processing
+    // This ensures scope members get their prefix even with array/member access.
+    // Also skip known registers - they should be handled by the postfix chain builder
+    // to enable proper register validation (requiring global. when shadowed).
+    let resolvedIdentifier = identifier ?? "";
+    if (!hasGlobal && !hasThis && identifier) {
+      const isParameter = CodeGenState.currentParameters.has(identifier);
+      const isLocalVariable = CodeGenState.localVariables.has(identifier);
+      const isKnownRegister =
+        CodeGenState.symbols?.knownRegisters.has(identifier);
+      // Issue #1100: Parameters with postfix ops (array/bit subscript, member
+      // access) must resolve through the same dereference logic as a bare
+      // parameter reference (ParameterDereferenceResolver), not skip it.
+      // For array/struct/string/etc. parameters this is a no-op (they're
+      // already pointer-like, matching the prior behavior verbatim — e.g.
+      // `buf[idx]` stays `buf[idx]`). For a scalar parameter that became a
+      // pointer because it's modified elsewhere in the function, a bit
+      // access (`v[4] <- true`) now correctly dereferences to `(*v)[4]`
+      // (which AssignmentContextBuilder reduces to base identifier `(*v)`)
+      // instead of assigning through the raw pointer.
+      if (isParameter) {
+        const paramInfo = CodeGenState.currentParameters.get(identifier)!;
+        resolvedIdentifier = ParameterDereferenceResolver.resolve(
+          identifier,
+          paramInfo,
+          this._buildParameterDereferenceDeps(),
+        );
+      } else if (!isKnownRegister) {
+        // ADR-057: pass the REAL locality. Hardcoding `false` and skipping
+        // locals entirely made this the write-side twin of
+        // TypeValidator.resolveBareIdentifier rather than a caller of it, so a
+        // shadowing local kept its bare name here while every read was
+        // renamed -- `data[1] <- 5` wrote the global and `return data[1]` read
+        // the local, in the same function, compiling clean.
+        const resolved = TypeValidator.resolveBareIdentifier(
+          identifier,
+          isLocalVariable,
+          (name: string) => this.isKnownStruct(name),
+          ctx.start?.line,
+        );
+        if (resolved !== null) {
+          resolvedIdentifier = resolved;
+        }
+      }
+    }
+
+    // SonarCloud S3776: Use BaseIdentifierBuilder for base identifier
+    const safeIdentifier = identifier ?? "";
+    const { result: baseResult, firstId } = BaseIdentifierBuilder.build(
+      hasGlobal || hasThis ? safeIdentifier : resolvedIdentifier,
+      hasGlobal,
+      hasThis,
+      CodeGenState.currentScopePath,
+    );
+
+    // No postfix operations - return base
+    if (postfixOps.length === 0) {
+      return baseResult;
+    }
+
+    // SonarCloud S3776: Use PostfixChainBuilder for postfix operations
+    const operations = this._extractPostfixOperations(postfixOps);
+    const postfixDeps = this._buildPostfixChainDeps(
+      firstId,
+      hasGlobal,
+      hasThis,
+    );
+
+    return PostfixChainBuilder.build(
+      baseResult,
+      firstId,
+      operations,
+      postfixDeps,
+    );
+  }
+
+  /**
+   * Generate array dimensions.
+   * Part of IOrchestrator interface.
+   */
+  generateArrayDimensions(dims: Parser.ArrayDimensionContext[]): string {
+    return dims.map((d) => this.generateArrayDimension(d)).join("");
+  }
+
+  // === strlen Optimization ===
+
+  /**
+   * Count string length accesses for caching.
+   * Part of IOrchestrator interface.
+   */
+  countStringLengthAccesses(
+    ctx: Parser.ExpressionContext,
+  ): Map<string, number> {
+    // Issue #644: Delegate to extracted StringLengthCounter (now static)
+    return StringLengthCounter.countExpression(ctx);
+  }
+
+  /**
+   * Count block length accesses.
+   * Part of IOrchestrator interface.
+   */
+  countBlockLengthAccesses(
+    ctx: Parser.BlockContext,
+    counts: Map<string, number>,
+  ): void {
+    // Issue #644: Delegate to extracted StringLengthCounter (now static)
+    StringLengthCounter.countBlockInto(ctx, counts);
+  }
+
+  /**
+   * Setup length cache and return declarations.
+   * Part of IOrchestrator interface.
+   */
+  setupLengthCache(counts: Map<string, number>): string {
+    const declarations: string[] = [];
+    const cache = new Map<string, string>();
+
+    for (const [varName, count] of counts) {
+      if (count >= 2) {
+        const tempVar = ReservedCnxName.stringLengthCache(varName);
+        cache.set(varName, tempVar);
+        declarations.push(`size_t ${tempVar} = strlen(${varName});`);
+      }
+    }
+
+    if (declarations.length > 0) {
+      CodeGenState.lengthCache = cache;
+      return declarations.join("\n") + "\n";
+    }
+
+    return "";
+  }
+
+  /**
+   * Clear length cache.
+   * Part of IOrchestrator interface.
+   */
+  clearLengthCache(): void {
+    CodeGenState.lengthCache = null;
+  }
+
+  /**
+   * Register a local variable.
+   * Part of IOrchestrator interface.
+   */
+  registerLocalVariable(name: string): string {
+    CodeGenState.registerLocalVariable(name);
+    return CodeGenState.emittedLocalName(name);
+  }
+
+  // === Declaration Generation ===
+
+  /** Generate single array dimension */
+  generateArrayDimension(dim: Parser.ArrayDimensionContext): string {
+    if (dim.expression()) {
+      // Bug #8: At file scope, resolve const values to numeric literals
+      // because C doesn't allow const variables as array sizes at file scope
+      if (!CodeGenState.inFunctionBody) {
+        const constValue = this.tryEvaluateConstant(dim.expression()!);
+        if (constValue !== undefined) {
+          return `[${constValue}]`;
+        }
+      }
+      return `[${this.generateExpression(dim.expression()!)}]`;
+    }
+    return "[]";
+  }
+
+  /** Generate parameter list for function signature */
+  generateParameterList(ctx: Parser.ParameterListContext): string {
+    return ctx
+      .parameter()
+      .map((p, index) => this.generateParameter(p, index))
+      .join(", ");
+  }
+
+  /** Get the raw type name without C conversion */
+  getTypeName(ctx: Parser.TypeContext): string {
+    // #1285: one ladder. This was the largest of seven copies, and the only one
+    // that handled `arrayType` by peeking at two of its six element
+    // alternatives -- TypeBinding recurses into all of them.
+    const resolved = TypeBinding.resolveName(
+      ctx,
+      CodeGenState.currentScopePath,
+      CodeGenState.typeBindingDeps((identifiers) =>
+        this.resolveQualifiedType(identifiers),
+      ),
+    );
+    // #1508: the other half of ADR-010's promise. A cross-file declaration is
+    // reached two ways -- it is CALLED, which the postfix generator records, or
+    // its TYPE is named, which is this. A global variable cannot call anything
+    // at file scope, so without this site the `global variable` contexts would
+    // be permanently unoccupiable and would have had to be declared `off` --
+    // recording a claim that an included type cannot be used for a global,
+    // which is false.
+    //
+    // Both sites are one mechanism (provenance at the point of resolution), not
+    // the two the matrix guidance warns against mixing: neither depends on a
+    // diagnostic, and a fixture is credited once per position either way.
+    if (resolved !== null && CodeGenState.isCrossFileDeclaration(resolved)) {
+      AdrProvenance.record("010", ctx.start?.line);
+    }
+    return resolved ?? ctx.getText();
+  }
+
+  /** Try to evaluate a constant expression at compile time */
+  tryEvaluateConstant(ctx: Parser.ExpressionContext): number | undefined {
+    // Issue #1127: the shared builder, not a fourth inline copy of the same
+    // three lookups. This is the orchestrator entry point that
+    // ArrayDimensionUtils uses to emit declaration dimensions, so it is on the
+    // hot path for exactly the divergences this work closes.
+    return ArrayDimensionParser.parseSingleDimension(
+      ctx,
+      dimensionEvalOptions(),
+    );
+  }
+
+  /**
+   * Get zero initializer for a type.
+   * ADR-015: Get the appropriate zero initializer for a type
+   * ADR-017: Handle enum types by initializing to first member
+   */
+  getZeroInitializer(typeCtx: Parser.TypeContext, isArray: boolean): string {
+    // Issue #379 / #1004: arrays zero-init with the aggregate brace ({} in
+    // C++, {0} in C) regardless of element type.
+    if (isArray) {
+      return this.getAggregateZeroInitBrace();
+    }
+
+    // Handle named types (scoped, global, qualified, user)
+    const resolved = this._resolveTypeNameFromContext(typeCtx);
+    if (resolved) {
+      // Check if enum
+      if (CodeGenState.symbols!.knownEnums.has(resolved.name)) {
+        return this._getEnumZeroValue(resolved.name, resolved.separator);
+      }
+      // Issue #1004: struct/class zero-init. C++ value-initialization ({})
+      // works for every aggregate (including ones whose first field is an
+      // enum, where {0} is an invalid int->enum narrowing); C uses {0}.
+      return this.getAggregateZeroInitBrace();
+    }
+
+    // Issue #295: C++ template types use value initialization {}
+    if (typeCtx.templateType()) {
+      return "{}";
+    }
+
+    // Issue #1019: string<N> types use empty string initializer
+    if (typeCtx.stringType()) {
+      return '""';
+    }
+
+    // Primitive types use lookup map
+    if (typeCtx.primitiveType()) {
+      const primType = typeCtx.primitiveType()!.getText();
+      return CodeGenerator.PRIMITIVE_ZERO_VALUES.get(primType) ?? "0";
+    }
+
+    // Default fallback
+    return "0";
+  }
+
+  // #1322: the `Validation (IOrchestrator A4)` section that stood here held
+  // ADR-024's `validateLiteralFitsType` and `validateTypeConversion`. Both are
+  // E0868/E0869 in pass 2.1, and no generator asks the orchestrator for them.
+
+  // === String Helpers (IOrchestrator A4) ===
+
+  /** Get the length of a string literal */
+  getStringLiteralLength(literal: string): number {
+    return StringUtils.literalLength(literal);
+  }
+
+  /** Get string concatenation operands if expression is a concat */
+  getStringConcatOperands(ctx: Parser.ExpressionContext): {
+    left: string;
+    right: string;
+    leftCapacity: number;
+    rightCapacity: number;
+  } | null {
+    return this._getStringConcatOperands(ctx);
+  }
+
+  /** Get substring operands if expression is a substring call */
+  getSubstringOperands(ctx: Parser.ExpressionContext): ISubstringOps | null {
+    return this._getSubstringOperands(ctx);
+  }
+
+  /** Get the capacity of a string expression */
+  getStringExprCapacity(exprCode: string): number | null {
+    return StringOperationsHelper.getStringExprCapacity(exprCode);
+  }
+
+  // === Parameter Management (IOrchestrator A4) ===
+
+  /** Set current function parameters */
+  setParameters(paramList: Parser.ParameterListContext | null): void {
+    this._setParameters(paramList);
+  }
+
+  /** Clear current function parameters */
+  clearParameters(): void {
+    this._clearParameters();
+  }
+
+  /**
+   * Issue #1200: the `_fp` typedef name for a callback type, or null if the
+   * name is not one. Exposed so renderers do not re-derive the `${name}_fp`
+   * convention that registerCallbackType owns.
+   */
+  getCallbackTypedefName(typeName: string): string | null {
+    return CodeGenState.callbackTypes.get(typeName)?.typedefName ?? null;
+  }
+
+  /**
+   * ADR-029: the C type that a DECLARATION of this type emits.
+   *
+   * A function-as-type is declared by its `_fp` typedef; everything else is
+   * itself. This is the single owner of that consequence, because #1484 showed
+   * what happens when each declaration site decides it independently: a
+   * parameter and a scope member mapped, a local variable did not, and a `for`
+   * init declaration -- a separate grammar rule, `forVarDecl`, that
+   * `VariableDeclarationContext` never matches -- did not either. Fixing one
+   * site made it disagree with the declaration beside it in the same source.
+   *
+   * A fifth declaration site should call this rather than repeat the pairing.
+   */
+  generateDeclaredType(typeCtx: Parser.TypeContext): string {
+    const declared = this.generateType(typeCtx);
+    return this.getCallbackTypedefName(declared) ?? declared;
+  }
+
+  /**
+   * Issues #1200, #1201: does this callback type need its `_fp` typedef emitted?
+   *
+   * True when the type is referenced by any field or parameter, not only by a
+   * field of a top-level struct. Reading callbackFieldTypes alone missed
+   * scope-nested struct fields, scope members and parameters, each of which
+   * produced C that referenced a typedef nothing had emitted.
+   *
+   * This is an EMISSION question -- "must a typedef be written?" -- and it is
+   * the only one left here. Its twin, ADR-029's nominal-typing question ("is
+   * this function used as a field TYPE?"), was next to it until #1322 moved
+   * that rule to pass 2.1 as E0880. The two were deliberately separate then
+   * and are separate now for the same reason: merging them once widened the
+   * nominal rule as a side effect and rejected a callback assignment that
+   * transpiles on main.
+   */
+  /**
+   * ADR-029 + #1491: emit typedefs for callback types this file NAMES but does
+   * not DECLARE.
+   *
+   * `recordCallbackTypedef` fires when a function is emitted, so it covers
+   * every type this file declares and none it reaches through an include. A
+   * variable typed by an included function-as-type therefore referenced a
+   * typedef nothing had emitted.
+   *
+   * It goes in the `.c`, not the header, unless this file's own public
+   * interface names the type -- which `generateCallbackTypedef` already decides
+   * via `headerOwnsCallbackTypedef`. That is the rule C libraries follow: a
+   * header typedefs the callback types its API uses, and a type needed only
+   * inside one translation unit stays there. It is also what stops two files
+   * that both name the same included function-as-type from each exporting the
+   * typedef and colliding in anything that includes both.
+   */
+  private emitTypedefsForUndeclaredCallbackTypes(): void {
+    for (const funcName of CodeGenState.callbackTypeReferences) {
+      if (
+        !CodeGenState.callbackTypes.has(funcName) ||
+        CodeGenState.emittedCallbackTypedefs.has(funcName)
+      ) {
+        continue;
+      }
+      const typedef = this.generateCallbackTypedef(funcName);
+      if (typedef) {
+        CodeGenState.pendingCallbackTypedefs.push(typedef);
+        CodeGenState.emittedCallbackTypedefs.add(funcName);
+      }
+    }
+  }
+
+  /**
+   * ADR-029 / Issues #1201, #1212: record that this function needs a callback
+   * `_fp` typedef, if it does.
+   *
+   * The single owner of that decision. It was previously spelled out at each of
+   * the four sites that emit a function -- two here, plus FunctionGenerator and
+   * ScopeGenerator -- so deferring the typedefs meant changing all four, and
+   * missing one left a whole construct still emitting inline. Every caller now
+   * states the intent ("this function was emitted") and nothing re-derives the
+   * consequences.
+   */
+  recordCallbackTypedef(funcName: string): void {
+    if (funcName === "main") {
+      return;
+    }
+    if (!this.isCallbackTypeReferenced(funcName)) {
+      return;
+    }
+    const typedef = this.generateCallbackTypedef(funcName);
+    if (typedef) {
+      CodeGenState.pendingCallbackTypedefs.push(typedef);
+      CodeGenState.emittedCallbackTypedefs.add(funcName);
+    }
+  }
+
+  private isCallbackTypeReferenced(funcName: string): boolean {
+    return CodeGenState.callbackTypeReferences.has(funcName);
+  }
+
+  // #1322: `isCallbackTypeUsedAsFieldType` stood here, answering ADR-029's
+  // nominal-typing question by scanning `CodeGenState.callbackFieldTypes`.
+  // That map holds the structs emitted SO FAR in the current file, so a struct
+  // declared below the assignment, in an enclosing scope, or in an include did
+  // not count -- the identity of a type depending on emission order. Pass 2.1
+  // asks `CodeGenState.symbols.structFields`, the per-file view, which holds
+  // every struct the file can see before any code is generated.
+
+  // === Scope Management (A4) ===
+
+  setCurrentScope(name: string | null): void {
+    // The assignment was written twice on main; the second was dead.
+    CodeGenState.setCurrentScopeByPath(name);
+  }
+
+  /**
+   * Issue #269: Set the current function name for pass-by-value lookup.
+   * Part of IOrchestrator interface.
+   */
+  setCurrentFunctionName(name: string | null): void {
+    CodeGenState.currentFunctionName = name;
+  }
+
+  /**
+   * Issue #477: Get the current function's return type for enum inference.
+   * Used by return statement generation to set expectedType.
+   */
+  getCurrentFunctionReturnType(): string | null {
+    return CodeGenState.currentFunctionReturnType;
+  }
+
+  /**
+   * Issue #477: Set the current function's return type for enum inference.
+   */
+  setCurrentFunctionReturnType(returnType: string | null): void {
+    CodeGenState.currentFunctionReturnType = returnType;
+  }
+
+  /**
+   * #1277: the four facts a function body is generated against, set and
+   * cleared as one. See `IOrchestrator` for why this is a pair rather than
+   * four calls repeated at each site.
+   */
+  enterFunctionContext(
+    name: string,
+    returnTypeText: string,
+    parameterList: Parser.ParameterListContext | null,
+  ): void {
+    this.setCurrentFunctionName(name);
+    this.setCurrentFunctionReturnType(returnTypeText);
+    this.setParameters(parameterList);
+    this.enterFunctionBody();
+  }
+
+  exitFunctionContext(): void {
+    this.exitFunctionBody();
+    this.setCurrentFunctionName(null);
+    this.setCurrentFunctionReturnType(null);
+    this.clearParameters();
+  }
+
+  // === Function Body Management (A4) ===
+
+  /**
+   * Enter function body - clears local variables and sets inFunctionBody flag.
+   * Issue #793: Delegates to FunctionContextManager.
+   */
+  enterFunctionBody(): void {
+    FunctionContextManager.enterFunctionBody();
+  }
+
+  /**
+   * Exit function body - clears local variables and inFunctionBody flag.
+   * Issue #793: Delegates to FunctionContextManager.
+   */
+  exitFunctionBody(): void {
+    FunctionContextManager.exitFunctionBody();
+  }
+
+  setMainArgsName(name: string | null): void {
+    CodeGenState.mainArgsName = name;
+  }
+
+  isMainFunctionWithArgs(
+    name: string,
+    paramList: Parser.ParameterListContext | null,
+  ): boolean {
+    return ParserUtils.isMainFunctionWithArgs(name, paramList);
+  }
+
+  /**
+   * ADR-029: Generate typedef for callback type
+   */
+  generateCallbackTypedef(funcName: string): string | null {
+    const callbackInfo = CodeGenState.callbackTypes.get(funcName);
+    if (!callbackInfo) {
+      return null;
+    }
+
+    // Issue #1164: the included header already declares this one.
+    if (
+      CodeGenState.declarationPlan().headerOwnsTypeDefinitions &&
+      CodeGenState.headerOwnsCallbackTypedef(funcName)
+    ) {
+      return null;
+    }
+
+    // Bare, with no padding of its own: the splice in generateAllDeclarations
+    // decides the blank lines around the whole block, so one place owns the
+    // layout instead of each typedef guessing at it.
+    return CallbackTypedefFormatter.format(
+      callbackInfo.returnType,
+      callbackInfo.typedefName,
+      callbackInfo.parameters,
+      this.isCppMode(),
+    );
+  }
+
+  /**
+   * Issue #268: Get unmodified parameters info for all functions.
+   * Returns map of function name -> Set of unmodified parameter names.
+   * Computed on-demand from functionSignatures and modifiedParameters.
+   */
+  getFunctionUnmodifiedParams(): ReadonlyMap<string, Set<string>> {
+    return CodeGenState.getUnmodifiedParameters();
+  }
+
+  /**
+   * Issue #268: Update symbol parameters with auto-const info.
+   * Now a no-op - unmodified params are computed on-demand from CodeGenState.
+   * Kept for IOrchestrator interface compatibility.
+   */
+  updateFunctionParamsAutoConst(_functionName: string): void {
+    // No-op: Unmodified parameters are now computed on-demand from
+    // CodeGenState.functionSignatures and CodeGenState.modifiedParameters
+    // via CodeGenState.getUnmodifiedParameters().
+  }
+
+  /**
+   * Issue #268: Mark a parameter as modified for auto-const tracking.
+   * Issue #558: Now a no-op - analysis phase handles all modification tracking
+   * including transitive propagation across function calls and files.
+   */
+  markParameterModified(_paramName: string): void {
+    // No-op: Analysis phase (analyzePassByValue) now handles all modification
+    // tracking including cross-file and transitive propagation.
+  }
+
+  /**
+   * Issue #558: Check if a parameter is modified using analysis-phase results.
+   * This is the unified source of truth for modification tracking.
+   */
+  private _isCurrentParameterModified(paramName: string): boolean {
+    const funcName = CodeGenState.currentFunctionName;
+    if (!funcName) return false;
+    return (
+      CodeGenState.modifiedParameters.get(funcName)?.has(paramName) ?? false
+    );
+  }
+
+  /**
+   * Issue #558: Get the modified parameters map for cross-file propagation.
+   * Returns function name -> set of modified parameter names.
+   */
+  getModifiedParameters(): ReadonlyMap<string, Set<string>> {
+    return CodeGenState.modifiedParameters;
+  }
+
+  /**
+   * Issue #558: Get the function parameter lists for cross-file propagation.
+   */
+  getFunctionParamLists(): ReadonlyMap<string, string[]> {
+    return CodeGenState.functionParamLists;
+  }
+
+  /**
+   * Issue #268: Check if a callee function's parameter at given index is modified.
+   * Returns true if the callee modifies that parameter (should not have const).
+   */
+  isCalleeParameterModified(funcName: string, paramIndex: number): boolean {
+    // Get the parameter name at the given index from the function signature
+    const sig = CodeGenState.functionSignatures.get(funcName);
+    if (!sig || paramIndex >= sig.parameters.length) {
+      // Callee not yet processed - conservatively return false (assume unmodified)
+      return false;
+    }
+
+    const paramName = sig.parameters[paramIndex].name;
+    // Check directly if the parameter is in the modified set
+    return CodeGenState.isParameterModified(funcName, paramName);
+  }
+
+  /**
+   * Issue #268: Check if a name is a parameter of the current function.
+   */
+  isCurrentParameter(name: string): boolean {
+    return CodeGenState.currentParameters.has(name);
+  }
+
+  // === Postfix Expression Helpers (Issue #644) ===
+
+  /**
+   * Generate a primary expression.
+   * Part of IOrchestrator interface for PostfixExpressionGenerator.
+   */
+  generatePrimaryExpr(ctx: Parser.PrimaryExpressionContext): string {
+    // ADR-023: sizeof expression - sizeof(u32) or sizeof(variable)
+    if (ctx.sizeofExpression()) {
+      return this.generateSizeofExpr(ctx.sizeofExpression()!);
+    }
+    // ADR-017: Cast expression - (u8)State.IDLE
+    if (ctx.castExpression()) {
+      return this.generateCastExpression(ctx.castExpression()!);
+    }
+    // ADR-014: Struct initializer - Point { x: 10, y: 20 }
+    if (ctx.structInitializer()) {
+      return this.generateStructInitializer(ctx.structInitializer()!);
+    }
+    // ADR-035: Array initializer - [1, 2, 3] or [0*]
+    if (ctx.arrayInitializer()) {
+      return this.generateArrayInitializer(ctx.arrayInitializer()!);
+    }
+
+    // ADR-016: Handle 'this' keyword for scope-local reference
+    const text = ctx.getText();
+    if (text === "this") {
+      return this._resolveThisKeyword();
+    }
+
+    // ADR-016: Handle 'global' keyword for global reference
+    if (text === "global") {
+      return "__GLOBAL_PREFIX__";
+    }
+
+    if (ctx.IDENTIFIER()) {
+      const id = ctx.IDENTIFIER()!.getText();
+      // #1322: `break`/`continue` (ADR-026, E0703) are rejected in pass 2.1.
+      return this._resolveIdentifierExpression(id, ctx.start?.line);
+    }
+    if (ctx.literal()) {
+      return this._generateLiteralExpression(ctx.literal()!);
+    }
+    if (ctx.expression()) {
+      return `(${this.generateExpression(ctx.expression()!)})`;
+    }
+    return "";
+  }
+
+  /**
+   * Check if a name is a known scope.
+   * Part of IOrchestrator interface.
+   */
+  isKnownScope(name: string): boolean {
+    return SymbolLookupHelper.isKnownScope(
+      CodeGenState.symbols?.knownScopes,
+      CodeGenState.symbolTable,
+      name,
+    );
+  }
+
+  /**
+   * Check if a symbol is a C++ scope symbol (namespace, class, enum).
+   * Part of IOrchestrator interface.
+   */
+  isCppScopeSymbol(name: string): boolean {
+    return CppNamespaceUtils.isCppNamespace(
+      name,
+      CodeGenState.symbolTable ?? undefined,
+    );
+  }
+
+  /**
+   * Get the separator for scope access (:: for C++, _ for C-Next).
+   * Part of IOrchestrator interface - delegates to FormatUtils.
+   */
+  getScopeSeparator(isCppAccess: boolean): string {
+    return FormatUtils.getScopeSeparator(isCppAccess);
+  }
+
+  /**
+   * Get struct field info for .length calculations.
+   * Part of IOrchestrator interface.
+   *
+   * Issue #831: SymbolTable is the single source of truth for struct fields
+   * (both C-Next and C header structs).
+   */
+  getStructFieldInfo(
+    structType: string,
+    fieldName: string,
+  ): { type: string; dimensions?: (number | string)[] } | null {
+    const fieldInfo = CodeGenState.symbolTable?.getStructFieldInfo(
+      structType,
+      fieldName,
+    );
+    if (fieldInfo) {
+      return {
+        type: fieldInfo.type,
+        dimensions: fieldInfo.arrayDimensions,
+      };
+    }
+    return null;
+  }
+
+  /**
+   * Get member type info for struct access chains.
+   * Part of IOrchestrator interface.
+   */
+  getMemberTypeInfo(structType: string, memberName: string): TTypeInfo | null {
+    const fieldInfo = this.getStructFieldInfo(structType, memberName);
+    if (!fieldInfo) return null;
+
+    const isArray =
+      (fieldInfo.dimensions !== undefined && fieldInfo.dimensions.length > 0) ||
+      (CodeGenState.symbols!.structFieldArrays.get(structType)?.has(
+        memberName,
+      ) ??
+        false);
+    const dims = fieldInfo.dimensions?.filter(
+      (d): d is number => typeof d === "number",
+    );
+
+    return {
+      baseType: fieldInfo.type,
+      bitWidth: TYPE_WIDTH[fieldInfo.type] ?? 32,
+      isConst: false,
+      isArray,
+      arrayDimensions: dims && dims.length > 0 ? dims : undefined,
+    };
+  }
+
+  /**
+   * Generate a bit mask for bit range access.
+   * Part of IOrchestrator interface.
+   * Issue #644: Delegate to BitUtils for code reuse.
+   */
+  generateBitMask(width: string, is64Bit: boolean = false): string {
+    // BitUtils.generateMask expects a type string, not a boolean
+    return BitUtils.generateMask(width, is64Bit ? "u64" : undefined);
+  }
+
+  /**
+   * Add a pending temp variable declaration (for float bit indexing).
+   * Part of IOrchestrator interface.
+   */
+  addPendingTempDeclaration(declaration: string): void {
+    CodeGenState.pendingTempDeclarations.push(declaration);
+  }
+
+  /**
+   * Register a float bit shadow variable.
+   * Part of IOrchestrator interface.
+   */
+  registerFloatBitShadow(shadowName: string): void {
+    CodeGenState.floatBitShadows.add(shadowName);
+  }
+
+  /**
+   * Mark a float shadow as having current value (skip redundant memcpy).
+   * Part of IOrchestrator interface.
+   */
+  markFloatShadowCurrent(shadowName: string): void {
+    CodeGenState.floatShadowCurrent.add(shadowName);
+  }
+
+  /**
+   * Check if a float shadow has been declared.
+   * Part of IOrchestrator interface.
+   */
+  hasFloatBitShadow(shadowName: string): boolean {
+    return CodeGenState.floatBitShadows.has(shadowName);
+  }
+
+  /**
+   * Check if a float shadow has current value.
+   * Part of IOrchestrator interface.
+   */
+  isFloatShadowCurrent(shadowName: string): boolean {
+    return CodeGenState.floatShadowCurrent.has(shadowName);
+  }
+
+  /**
+   * Issue #948: Check if a type is an opaque (forward-declared) struct type.
+   * Opaque types can only be used as pointers (cannot be instantiated).
+   * Part of IOrchestrator interface.
+   */
+  isOpaqueType(typeName: string): boolean {
+    return CodeGenState.isOpaqueType(typeName);
+  }
+
+  /**
+   * Issue #958: Check if a type is an external typedef struct type.
+   * Used for scope variables which should always be pointers for external struct types.
+   * Part of IOrchestrator interface.
+   */
+  isTypedefStructType(typeName: string): boolean {
+    return CodeGenState.isTypedefStructType(typeName);
+  }
+
+  /**
+   * Issue #948: Mark a scope variable as having an opaque type.
+   * These variables are generated as pointers with NULL initialization.
+   * Part of IOrchestrator interface.
+   */
+  markOpaqueScopeVariable(qualifiedName: string): void {
+    CodeGenState.markOpaqueScopeVariable(qualifiedName);
+  }
+
+  // ===========================================================================
+  // End IOrchestrator Implementation
+  // ===========================================================================
+
+  /**
+   * Issue #551: Check if a type is a known primitive type.
+   * Known primitives use pass-by-reference with dereference.
+   * Unknown types (external enums, typedefs) use pass-by-value.
+   */
+  private _isKnownPrimitive(typeName: string): boolean {
+    return !!TYPE_MAP[typeName];
+  }
+
+  /**
+   * PR #681: Build dependencies for parameter dereference resolution.
+   * Used by ParameterDereferenceResolver to determine if parameters need dereferencing.
+   */
+  private _buildParameterDereferenceDeps(): IParameterDereferenceDeps {
+    return {
+      isFloatType: (typeName: string) => this._isFloatType(typeName),
+      isKnownPrimitive: (typeName: string) => this._isKnownPrimitive(typeName),
+      knownEnums: CodeGenState.symbols!.knownEnums,
+      isParameterPassByValue: (funcName: string, paramName: string) =>
+        PassByValueAnalyzer.isParameterPassByValueByName(funcName, paramName),
+      currentFunctionName: CodeGenState.currentFunctionName,
+      maybeDereference: (id: string) => CppModeHelper.maybeDereference(id),
+    };
+  }
+
+  /**
+   * PR #681: Build dependencies for member separator resolution.
+   * Used by MemberSeparatorResolver to determine appropriate separators.
+   */
+  private _buildMemberSeparatorDeps(): IMemberSeparatorDeps {
+    return {
+      isKnownScope: (name: string) => this.isKnownScope(name),
+      isKnownRegister: (name: string) =>
+        CodeGenState.symbols!.knownRegisters.has(name),
+      getStructParamSeparator: () =>
+        memberAccessChain.getStructParamSeparator({
+          cppMode: CodeGenState.cppMode,
+        }),
+    };
+  }
+
+  /**
+   * Issue #517: Check if a type is a C++ class with a user-defined constructor.
+   * C++ classes with user-defined constructors are NOT aggregate types,
+   * so designated initializers { .field = value } don't work with them.
+   * We check for the existence of a constructor symbol (TypeName::ClassName).
+   */
+  private _isCppClassWithConstructor(typeName: string): boolean {
+    return CppConstructorHelper.hasConstructor(
+      typeName,
+      CodeGenState.symbolTable,
+    );
+  }
+
+  private foldBooleanToInt(expr: string): string {
+    return BooleanHelper.foldBooleanToInt(expr);
+  }
+
+  /**
+   * Issue #388: Resolve a qualified type from dot notation to the correct output format.
+   * For C++ namespace types (like MockLib.Parse.ParseResult), uses :: separator.
+   * For C-Next scope types (like Motor.State), uses _ separator.
+   *
+   * @param identifiers Array of identifier names forming the qualified type
+   * @returns The resolved type name with appropriate separator
+   */
+  private resolveQualifiedType(identifiers: string[]): string {
+    if (identifiers.length === 0) {
+      return "";
+    }
+
+    const firstName = identifiers[0];
+
+    // Check if the first identifier is a C++ scope symbol (namespace, class, enum)
+    if (this.isCppScopeSymbol(firstName)) {
+      // C++ namespace type: join all parts with ::
+      return identifiers.join("::");
+    }
+
+    // C-Next scope type: join all parts with _
+    return QualifiedCName.fromParts(identifiers);
+  }
+
+  /**
+   * Generate C code from a C-Next program
+   * @param tree The parsed C-Next program
+   * @param tokenStream Optional token stream for comment preservation (ADR-043)
+   * @param options Optional code generator options (e.g., debugMode)
+   */
+  generate(
+    tree: Parser.ProgramContext,
+    tokenStream?: CommonTokenStream,
+    options?: ICodeGeneratorOptions,
+  ): string {
+    // ADR-049: Determine target capabilities with priority: CLI > pragma > default
+    const targetCapabilities = this.resolveTargetCapabilities(
+      tree,
+      options?.target,
+    );
+
+    // Initialize generators (once per CodeGenerator instance)
+    if (!this.generatorsInitialized) {
+      this.initializeGenerators();
+      this.generatorsInitialized = true;
+    }
+
+    // Reset state for fresh generation (must be before any state assignments)
+    this.resetGeneratorState(targetCapabilities);
+
+    // Initialize options and configuration (after reset)
+    this.initializeGenerateOptions(options, tokenStream);
+
+    // ADR-055: Use pre-collected symbolInfo from Pipeline (TSymbolInfoAdapter)
+    invariant(
+      options?.symbolInfo,
+      "the pipeline always supplies options.symbolInfo to generate(); its absence is a caller/API error, not a program error",
+    );
+    CodeGenState.symbols = options.symbolInfo;
+
+    // ADR-029 + #1491: register function-as-types reached through an include
+    // BEFORE anything can reference one. Must run after `symbols` is set and
+    // before the declaration walk, which registers this file's own functions
+    // afterwards and correctly overwrites on a name collision.
+    this.registerIncludedCallbackTypes();
+
+    // Initialize symbol data and const values
+    this.initializeSymbolData();
+
+    // Initialize all helper objects
+    this.initializeHelperObjects(tree);
+
+    // Second pass: register all variable types in the type registry
+    this.registerAllVariableTypes(tree);
+
+    // Assemble and return the output
+    return this.assembleGeneratedOutput(tree, options);
+  }
+
+  /**
+   * Initialize options and configuration for generate().
+   */
+  private initializeGenerateOptions(
+    options: ICodeGeneratorOptions | undefined,
+    tokenStream: CommonTokenStream | undefined,
+  ): void {
+    CodeGenState.debugMode = options?.debugMode ?? false;
+    CodeGenState.sourcePath = options?.sourcePath ?? null;
+    // #1241: Transpiler._transpileFile sets the provenance file before
+    // analyzers run; re-assert it here for API callers that drive the
+    // generator directly and never go through that path.
+    AdrProvenance.beginFile(CodeGenState.sourcePath);
+    CodeGenState.cnxIncludeRewrites =
+      options?.cnxIncludeRewrites ?? new Map<string, string>();
+    CodeGenState.cppMode = options?.cppMode ?? false;
+    CodeGenState.pendingTempDeclarations = [];
+    CodeGenState.tempVarCounter = 0;
+    CodeGenState.pendingCppClassAssignments = [];
+
+    this.tokenStream = tokenStream ?? null;
+    this.commentExtractor = this.tokenStream
+      ? new CommentScanner(this.tokenStream)
+      : null;
+  }
+
+  /**
+   * Reset all generator state for a fresh generation pass.
+   */
+  private resetGeneratorState(targetCapabilities: ITargetCapabilities): void {
+    // Reset global state (CodeGenState.reset() handles all field initialization)
+    CodeGenState.reset(targetCapabilities);
+
+    // Set generator reference for handlers to use
+    CodeGenState.generator = this;
+  }
+
+  /**
+   * Initialize symbol data and const values from symbol table.
+   */
+  private initializeSymbolData(): void {
+    const symbols = CodeGenState.symbols!;
+
+    // Copy symbol data to CodeGenState.scopeMembers
+    for (const [scopeName, members] of symbols.scopeMembers) {
+      CodeGenState.setScopeMembers(scopeName, new Set(members));
+    }
+
+    // Issue #461: seed constValues for this file's generation.
+    // Issue #1220: one derivation of "what is this const worth", not a second
+    // walk here -- this loop and the symbol table's were two implementations of
+    // one rule, and only one was reachable from the analyzers.
+    // #1447: that derivation now lives on `Program`, because a const reached
+    // through an include is worth the same as one declared beside the use and
+    // only 1.4 sees both. Copied into a mutable map because generation adds
+    // file-local consts to it as it goes.
+    CodeGenState.constValues = new Map(CodeGenState.program?.constValues());
+  }
+
+  /**
+   * Initialize all helper objects needed for code generation.
+   */
+  private initializeHelperObjects(tree: Parser.ProgramContext): void {
+    // Collect function/callback information
+    this.collectFunctionsAndCallbacks(tree);
+    CodeGenerator.seedWholeProgramFacts();
+  }
+
+  /**
+   * Take the parameter facts 1.4 Resolve authored.
+   *
+   * `PassByValueAnalyzer.analyze(tree)` used to stand here. It CLEARED these
+   * three maps and rebuilt them from one file plus whatever cross-file data had
+   * been injected — so the whole-program answer was thrown away once per file
+   * and approximated again. They are copied in now, because generation still
+   * adds to `modifiedParameters` as it walks a body; the copy is a working set,
+   * not a second derivation (#1511).
+   */
+  private static seedWholeProgramFacts(): void {
+    CodeGenState.modifiedParameters.clear();
+    CodeGenState.functionParamLists.clear();
+    CodeGenState.functionCallGraph.clear();
+
+    const program = CodeGenState.program;
+    if (!program) return;
+
+    for (const [funcName, params] of program.modifiedParameters()) {
+      CodeGenState.modifiedParameters.set(funcName, new Set(params));
+    }
+    for (const [funcName, params] of program.functionParamLists()) {
+      CodeGenState.functionParamLists.set(funcName, [...params]);
+    }
+    for (const [funcName, calls] of program.callGraph()) {
+      CodeGenState.functionCallGraph.set(funcName, [...calls]);
+    }
+  }
+
+  /**
+   * Assemble the final generated output.
+   */
+  private assembleGeneratedOutput(
+    tree: Parser.ProgramContext,
+    options: ICodeGeneratorOptions | undefined,
+  ): string {
+    const output: string[] = [];
+
+    // Issue #1143: every file carries its mode's baseline. Recorded here rather
+    // than assumed by consumers, so "what does this file need?" has exactly one
+    // answer source even for the trivial case.
+    CodeGenState.requireToolchain(
+      CodeGenState.cppMode ? "baseline-cpp" : "baseline-c",
+    );
+
+    // 2.2 Plan's fact, recorded where it is KNOWN rather than recovered from
+    // text. `captureEmissionFacts` used to regex `#include` lines back out of
+    // the rendered `output` array, so a fact the parse tree carries was
+    // serialized to text and re-derived from it -- the pass boundary running
+    // backwards inside one method. Both producers append here instead.
+    const sourceIncludeTargets: string[] = [];
+
+    // Self-include for extern "C" linkage
+    // Issue #1164: this used to ask a second predicate that saw only scope
+    // members, so a file exporting types, consts or top-level functions got a
+    // header nothing included. Same question, same answer source as the header
+    // itself.
+    // #1515: supplied by the caller, which asked `PublicInterface`. Not read
+    // off `ICodeGenSymbols`, where 1.3 Declare used to put it.
+    if (options?.hasPublicInterface && CodeGenState.sourcePath) {
+      const pathToUse =
+        options?.sourceRelativePath ||
+        CodeGenState.sourcePath.replace(/^.*[\\/]/, "");
+      // Issue #933: Use .hpp extension in C++ mode to match header file
+      // Issue #1319: read the run's extension; do not re-derive it from the mode
+      const ext = CodeGenState.outputExtensions.header;
+      const headerName = pathToUse.replace(/\.cnx$|\.cnext$/, ext);
+      output.push(`#include "${headerName}"`, "");
+      sourceIncludeTargets.push(`"${headerName}"`);
+      CodeGenState.selfIncludeAdded = true;
+    }
+
+    // Process include directives
+    sourceIncludeTargets.push(...this.processIncludeDirectives(tree, output));
+
+    // Process preprocessor directives
+    this.processPreprocessorDirectives(tree, output);
+
+    // 2.2 Plan: the declaration decisions, settled BEFORE anything is rendered.
+    // Unlike the emission plan below, neither answer depends on what rendering
+    // turns out to produce, so Render reads them rather than interpreting the
+    // state they came from.
+    CodeGenState.declarationPlanOrNull = DeclarationPlan.build(
+      tree.declaration().map((decl) => CodeGenerator.declarationKindOf(decl)),
+      CodeGenState.selfIncludeAdded,
+    );
+
+    // Generate declarations
+    const declarations = this.generateAllDeclarations(tree);
+
+    // 2.2 Plan: every "does this file need X?" question the declarations above
+    // raised is answered ONCE, here, from state that is warm for exactly this
+    // long. Nothing below reads a `needs*` flag.
+    const plan = EmissionPlan.build(
+      this.captureEmissionFacts(sourceIncludeTargets),
+    );
+
+    // The plan decided WHICH toolchain capabilities these helpers need and at
+    // which sites; registering them is part of that decision, not part of
+    // formatting. `addGeneratedHelpers` used to do it while pushing the text,
+    // which made the renderer a writer of state something downstream reads.
+    CodeGenerator.registerPlannedToolchain(plan);
+
+    // 2.3 Render: format the plan. These two decide nothing.
+    this.addAutoIncludes(output, plan);
+    this.addGeneratedHelpers(output, plan);
+
+    // Add the declarations
+    output.push(...declarations);
+
+    // Issue #1143: the banner is built last and prepended, because none of the
+    // requirement state exists until generateAllDeclarations() above has run.
+    // Computing it at the top -- where the banner used to be pushed -- could
+    // only ever describe an empty requirement set.
+    return [...this.buildBanner(), ...output].join("\n");
+  }
+
+  /**
+   * The file's own header comment, including what its output costs.
+   *
+   * Only requirements above the mode's baseline are listed, so an ordinary C99
+   * file is unchanged. The point is that the requirement travels with the
+   * artifact: someone handed a generated .c can see what it needs without
+   * having the .cnx, the transpiler, or this repository.
+   *
+   * Emitted on the .c/.cpp only. The companion header does not contain the
+   * constructs -- the IRQ wrappers, the static asserts and the helpers are all
+   * emitted into the implementation file -- so repeating the line there would
+   * claim a cost the header does not carry.
+   */
+  private buildBanner(): readonly string[] {
+    const sourcePath = CodeGenState.sourcePath;
+    const generatedLine = sourcePath
+      ? ` * Generated by C-Next Transpiler from: ${basename(sourcePath)}`
+      : " * Generated by C-Next Transpiler";
+
+    const lines = ["/**", generatedLine, " * A safer C for embedded systems"];
+
+    const requires = ToolchainRequirementUtils.describeForBanner(
+      this.getToolchainRequirements(),
+      CodeGenState.cppMode ? "cpp" : "c",
+    );
+    for (const line of requires) {
+      lines.push(` * ${line}`);
+    }
+
+    lines.push(" */", "");
+    return lines;
+  }
+
+  /**
+   * Process all include directives and add to output.
+   */
+  private processIncludeDirectives(
+    tree: Parser.ProgramContext,
+    output: string[],
+  ): string[] {
+    const targets: string[] = [];
+    // #1322: ADR-010's two rejections (E0503, E0504) used to run here, with a
+    // line number threaded in as a NUMBER and spent on `Line N` prose while the
+    // diagnostic reported `1:0`. Both are decided in pass 2.1, which also means
+    // the second derivation of the angle search path that stood on the line
+    // above -- narrower than the one discovery built, and blind to `--include`
+    // -- is gone rather than duplicated.
+    for (const includeDir of tree.includeDirective()) {
+      const leadingComments = this.getLeadingComments(includeDir);
+      output.push(...this.formatLeadingComments(leadingComments));
+
+      // Issue #850: Add MISRA suppression for banned headers
+      const includeText = includeDir.getText();
+      const suppression =
+        MisraSuppressionUtils.getMisraSuppressionComment(includeText);
+      if (suppression) {
+        output.push(suppression);
+      }
+      const line = this.transformIncludeDirective(includeText);
+      output.push(line);
+      const target = CodeGenerator.extractIncludeTarget(line);
+      if (target !== null) {
+        targets.push(target);
+      }
+    }
+
+    if (tree.includeDirective().length > 0) {
+      output.push("");
+    }
+
+    return targets;
+  }
+
+  /**
+   * Process all preprocessor directives and add to output.
+   */
+  private processPreprocessorDirectives(
+    tree: Parser.ProgramContext,
+    output: string[],
+  ): void {
+    for (const ppDir of tree.preprocessorDirective()) {
+      const leadingComments = this.getLeadingComments(ppDir);
+      output.push(...this.formatLeadingComments(leadingComments));
+      const result = this.processPreprocessorDirective(ppDir);
+      if (result) {
+        output.push(result);
+      }
+    }
+
+    if (tree.preprocessorDirective().length > 0) {
+      output.push("");
+    }
+  }
+
+  /**
+   * Generate all declarations from the tree.
+   */
+  /**
+   * What a declaration is, in the terms 2.2 Plan's ordering asks about.
+   *
+   * The parse tree stops here: `DeclarationPlan` takes kinds, not contexts,
+   * so a pass outside the parse layer does not grow a dependency on ANTLR to
+   * answer a question about order (#1317).
+   */
+  private static declarationKindOf(
+    decl: Parser.DeclarationContext,
+  ): TDeclarationKind {
+    if (decl.functionDeclaration() !== null) return "function";
+    if (decl.scopeDeclaration() !== null) return "scope";
+    return "other";
+  }
+
+  private generateAllDeclarations(tree: Parser.ProgramContext): string[] {
+    const sourceOrder = tree.declaration();
+
+    // Issue #1212, #1449, #1450: WHICH declaration the callback typedef block
+    // precedes is decided by 2.2 Plan and read off the plan here. WHERE that
+    // lands in the emitted array is arithmetic, and stays here -- the index
+    // depends on how many leading-comment lines were pushed, which is a fact
+    // about text rather than a decision about what C should exist.
+    const precedes = CodeGenState.declarationPlan().callbackTypedefsPrecede;
+
+    const declarations: string[] = [];
+    let firstFunctionIndex: number | null = null;
+
+    for (const [index, decl] of sourceOrder.entries()) {
+      const leadingComments = this.getLeadingComments(decl);
+      declarations.push(...this.formatLeadingComments(leadingComments));
+
+      if (index === precedes) {
+        firstFunctionIndex = declarations.length;
+      }
+
+      const code = this.generateDeclaration(decl);
+      if (code) {
+        declarations.push(code);
+      }
+    }
+
+    this.emitTypedefsForUndeclaredCallbackTypes();
+
+    const typedefs = CodeGenState.pendingCallbackTypedefs;
+    if (typedefs.length > 0) {
+      // One blank line either side of the block, and none between the typedefs
+      // themselves -- they are one group of related declarations, and the
+      // generated C is read by people auditing it.
+      declarations.splice(
+        firstFunctionIndex ?? declarations.length,
+        0,
+        "",
+        ...typedefs,
+        "",
+      );
+      CodeGenState.pendingCallbackTypedefs = [];
+    }
+
+    return declarations;
+  }
+
+  /**
+   * Add auto-generated includes based on usage.
+   */
+  /**
+   * Print the system includes the plan decided on.
+   *
+   * Deliberately holds no condition. It used to hold five `if (needs*)` tests
+   * plus a dedup that re-parsed `#include` lines already in `output` -- so the
+   * emitted text was an input to the decision, and the answer depended on how
+   * much of the file had been rendered. Both moved into `EmissionPlan`.
+   */
+  private addAutoIncludes(output: string[], plan: IEmissionPlan): void {
+    if (plan.systemIncludes.length === 0) return;
+    output.push(
+      ...plan.systemIncludes.map((target) => `#include ${target}`),
+      "",
+    );
+  }
+
+  /**
+   * Freeze this file's emission questions while `CodeGenState` still holds
+   * them.
+   *
+   * The `.c` counterpart of `Transpiler._captureHeaderEmissionFacts`, and
+   * captured at the same kind of moment: `CodeGenState.reset()` runs per file,
+   * so every field below is correct for exactly the window between this file's
+   * declarations being generated and the next file's `generate()`.
+   *
+   * Nothing here reads rendered text. `existingIncludeTargets` arrives from the
+   * two places that KNOW it -- the self-include, and `processIncludeDirectives`
+   * as it walks the tree -- so the plan decides the final set rather than a
+   * renderer subtracting one list from another, and no fact is recovered from
+   * the output it was rendered into. This comment described the opposite until
+   * `02df0e77`, which is the same commit that stopped it being true.
+   */
+  private captureEmissionFacts(
+    existingIncludeTargets: readonly string[],
+  ): IEmissionFacts {
+    return {
+      cppMode: this.isCppMode(),
+      needsStdint: CodeGenState.needsStdint,
+      needsStdbool: CodeGenState.needsStdbool,
+      needsString: CodeGenState.needsString,
+      needsCMSIS: CodeGenState.needsCMSIS,
+      needsLimits: CodeGenState.needsLimits,
+      needsFloatStaticAssert: CodeGenState.needsFloatStaticAssert,
+      needsIrqWrappers: CodeGenState.needsIrqWrappers,
+      needsISR: CodeGenState.needsISR,
+      selfIncludeAdded: CodeGenState.selfIncludeAdded,
+      existingIncludeTargets,
+      clampOps: CodeGenState.usedClampOps,
+      safeDivOps: CodeGenState.usedSafeDivOps,
+      floatAssertSites: CodeGenState.takeDeferredSites("float_static_assert"),
+      irqWrapperSites: CodeGenState.takeDeferredSites("irq_wrappers"),
+    };
+  }
+
+  /**
+   * Extract the include target (`<header.h>` or `"header.h"`) from a line,
+   * or null if the line is not a plain `#include` directive.
+   */
+  private static extractIncludeTarget(line: string): string | null {
+    const match = /^#include\s+(<[^>]+>|"[^"]+")\s*$/.exec(line.trim());
+    return match ? match[1] : null;
+  }
+
+  /**
+   * Add generated helpers (static asserts, IRQ wrappers, typedefs, etc.).
+   */
+  /**
+   * Print the deferred blocks and helpers the plan decided on.
+   *
+   * Every `if` below tests a decision the plan already made, never a question.
+   * The float assert's keyword arrives WITH the requirement key it costs, so
+   * the two cannot disagree -- #1143 kept them in step by computing both from
+   * one ternary at this site; the plan keeps them in step by making them two
+   * fields of one record, and the ternary is gone from here.
+   *
+   * Requirements are still recorded into `CodeGenState` rather than read off
+   * the plan by the banner, because the banner also carries requirements this
+   * plan does not yet own (the mode baseline, C++ initializer forms, atomics).
+   * Recording a decision someone else made is transcription, not derivation.
+   */
+  /**
+   * Register the toolchain capabilities the plan's helper blocks need.
+   *
+   * Separated from `addGeneratedHelpers` so that rendering a block and
+   * declaring what the block requires are not the same act: the plan already
+   * holds both the keys and the sites, and a renderer that writes them is a
+   * renderer making state visible downstream. Order is unchanged -- this runs
+   * immediately after the plan is built, and nothing between reads a toolchain
+   * requirement.
+   */
+  private static registerPlannedToolchain(plan: IEmissionPlan): void {
+    for (const block of [plan.floatStaticAssert, plan.irqWrappers]) {
+      if (block === null) continue;
+      for (const key of block.requirements) {
+        CodeGenState.requireToolchain(key, block.sites);
+      }
+    }
+  }
+
+  private addGeneratedHelpers(output: string[], plan: IEmissionPlan): void {
+    const floatAssert = plan.floatStaticAssert;
+    if (floatAssert !== null) {
+      output.push(
+        `${floatAssert.keyword}(sizeof(float) == 4, "Float bit indexing requires 32-bit float");`,
+        `${floatAssert.keyword}(sizeof(double) == 8, "Float bit indexing requires 64-bit double");`,
+        "",
+      );
+    }
+
+    const irq = plan.irqWrappers;
+    if (irq !== null) {
+      output.push(...this.generateIrqWrappers());
+    }
+
+    if (plan.isrTypedef) {
+      output.push(
+        "/* ADR-040: ISR function pointer type */",
+        "typedef void (*ISR)(void);",
+        "",
+      );
+    }
+
+    const helpers = this.generateOverflowHelpers(plan.clampOps);
+    if (helpers.length > 0) {
+      output.push(...helpers);
+    }
+
+    const safeDivHelpers = this.generateSafeDivHelpers(plan.safeDivOps);
+    if (safeDivHelpers.length > 0) {
+      output.push(...safeDivHelpers);
+    }
+  }
+
+  /**
+   * ADR-049: Resolve target capabilities with priority: CLI > pragma > default.
+   *
+   * Delegates to TargetResolver so this file and the whole-program Rule 5.1
+   * check read the same pragma the same way (#1307 review).
+   *
+   * @param tree - The parsed program tree
+   * @param cliTarget - Optional target from CLI --target flag
+   */
+  private resolveTargetCapabilities(
+    tree: Parser.ProgramContext,
+    cliTarget?: string,
+  ): ITargetCapabilities {
+    if (cliTarget) {
+      const fromCli = TargetResolver.byName(cliTarget);
+      if (fromCli) {
+        return fromCli;
+      }
+      console.warn(
+        `Warning: Unknown target '${cliTarget}', falling back to pragma or default`,
+      );
+    }
+
+    return (
+      TargetResolver.byName(TargetResolver.fromPragma(tree)) ?? DEFAULT_TARGET
+    );
+  }
+
+  /**
+   * ADR-010: Transform #include directives, converting .cnx to .h or .hpp
+   * Delegates to IncludeGenerator
+   * Issue #941: Now passes cppMode for .hpp extension in C++ mode
+   * Issue #1467: passes the resolved include paths. Codegen does not decide
+   * which header an include names -- PathResolver did, during discovery.
+   */
+  private transformIncludeDirective(includeText: string): string {
+    return includeTransformIncludeDirective(includeText, {
+      sourcePath: CodeGenState.sourcePath,
+      rewrites: CodeGenState.cnxIncludeRewrites,
+      headerExtension: CodeGenState.outputExtensions.header,
+    });
+  }
+
+  // Issue #63: validateIncludeNotImplementationFile moved to TypeValidator
+
+  /**
+   * Collect function and callback information.
+   * Issue #60: Symbol collection extracted to SymbolCollector.
+   * This method handles function signatures and callback types (not yet extracted).
+   */
+  private collectFunctionsAndCallbacks(tree: Parser.ProgramContext): void {
+    for (const decl of tree.declaration()) {
+      // ADR-016: Handle scope declarations for function tracking
+      if (decl.scopeDeclaration()) {
+        this._collectScopeFunctions(decl.scopeDeclaration()!);
+        continue;
+      }
+
+      // ADR-029: Track callback field types in structs
+      if (decl.structDeclaration()) {
+        this._collectStructCallbackFields(decl.structDeclaration()!);
+        continue;
+      }
+
+      // Track top-level functions
+      if (decl.functionDeclaration()) {
+        this._collectTopLevelFunction(decl.functionDeclaration()!);
+      }
+    }
+  }
+
+  /**
+   * Collect scoped functions and their callback types
+   */
+  private _collectScopeFunctions(
+    scopeDecl: Parser.ScopeDeclarationContext,
+  ): void {
+    const scopeName = scopeDecl.IDENTIFIER().getText();
+
+    // Scope context for scoped type resolution (`this.Type`), restored on exit
+    // even if a member throws.
+    CodeGenState.withScopePath(scopeName, () => {
+      // #1281/#1285: functions first, THEN everything that can reference one.
+      // A struct field naming a scope-local function-as-type asks isScopeType
+      // whether that name is a type, and the answer comes from callbackTypes --
+      // which this loop is what fills. Walking members in source order made the
+      // answer depend on whether the function happened to be declared above the
+      // struct, so `Config` before `tickSource` resolved the field BARE and
+      // emitted a header naming something that is not a type. Registering every
+      // function before reading any reference makes the order irrelevant, which
+      // is the same declaration-order invariant ADR-057 states for the symbols
+      // layer's Pass 0b.
+      for (const member of scopeDecl.scopeMember()) {
+        const funcDecl = member.functionDeclaration();
+        if (funcDecl) {
+          // #1298: resolve the scope PATH rather than reading back mutable
+          // state, so the generated name does not depend on when it is asked.
+          this._registerScopeFunction(
+            ScopeUtils.pathOf(SymbolRegistry.getOrCreateScope(scopeName)),
+            funcDecl,
+          );
+        }
+      }
+
+      for (const member of scopeDecl.scopeMember()) {
+        // Issue #1200: a struct nested in a scope has callback fields just like a
+        // top-level one, and a scope member variable can itself be callback-typed.
+        // Neither was walked here, so neither ever registered its type.
+        if (member.structDeclaration()) {
+          this._collectStructCallbackFields(member.structDeclaration()!);
+          continue;
+        }
+        if (member.variableDeclaration()) {
+          const varType = this.getTypeName(
+            member.variableDeclaration()!.type(),
+          );
+          CodeGenState.notePublicCallbackTypeReference(varType);
+        }
+      }
+    });
+  }
+
+  /**
+   * Register one scope function: its qualified name, signature, and ADR-029
+   * callback type. Extracted so the pre-pass above and nothing else owns the
+   * registration -- it must complete for every function in the scope before any
+   * reference to one is resolved.
+   */
+  private _registerScopeFunction(
+    declaringScopePath: string,
+    funcDecl: Parser.FunctionDeclarationContext,
+  ): void {
+    const funcName = funcDecl.IDENTIFIER().getText();
+    // Track fully qualified function name: Scope_function
+    const fullName = QualifiedNameGenerator.forFunctionInScope(
+      declaringScopePath,
+      funcName,
+    );
+    CodeGenState.knownFunctions.add(fullName);
+    // ADR-013: Track function signature for const checking
+    const sig = this.extractFunctionSignature(
+      fullName,
+      funcDecl.parameterList() ?? null,
+    );
+    CodeGenState.functionSignatures.set(fullName, sig);
+    // ADR-029: Register scoped function as callback type
+    this.registerCallbackType(fullName, funcDecl);
+    // #1484: locals in the body name callback types too.
+    this._collectLocalCallbackTypeReferences(funcDecl.block());
+  }
+
+  /**
+   * Collect callback field types from struct declaration
+   */
+  private _collectStructCallbackFields(
+    structDecl: Parser.StructDeclarationContext,
+  ): void {
+    const structName = structDecl.IDENTIFIER().getText();
+
+    for (const member of structDecl.structMember()) {
+      const fieldName = member.IDENTIFIER().getText();
+      const fieldType = this.getTypeName(member.type());
+
+      // Track callback field types (needed for typedef generation)
+      if (CodeGenState.callbackTypes.has(fieldType)) {
+        CodeGenState.callbackFieldTypes.set(
+          `${structName}.${fieldName}`,
+          fieldType,
+        );
+      }
+      CodeGenState.notePublicCallbackTypeReference(fieldType);
+    }
+  }
+
+  /**
+   * Collect top-level function and register as callback type
+   */
+  private _collectTopLevelFunction(
+    funcDecl: Parser.FunctionDeclarationContext,
+  ): void {
+    const name = funcDecl.IDENTIFIER().getText();
+    CodeGenState.knownFunctions.add(name);
+    // ADR-013: Track function signature for const checking
+    const sig = this.extractFunctionSignature(
+      name,
+      funcDecl.parameterList() ?? null,
+    );
+    CodeGenState.functionSignatures.set(name, sig);
+    // ADR-029: Register function as callback type
+    this.registerCallbackType(name, funcDecl);
+    // #1484: locals in the body name callback types too.
+    this._collectLocalCallbackTypeReferences(funcDecl.block());
+  }
+
+  /**
+   * Second pass: register all variable types in the type registry
+   * This ensures type information is available before generating any code,
+   * allowing .length and other type-dependent operations to work regardless
+   * of declaration order (e.g., scope functions can reference globals declared later)
+   * SonarCloud S3776: Refactored to use helper methods.
+   */
+  private registerAllVariableTypes(tree: Parser.ProgramContext): void {
+    TypeRegistrationEngine.register(tree, {
+      tryEvaluateConstant: (ctx) => this.tryEvaluateConstant(ctx),
+      requireInclude: (header) => CodeGenState.requireInclude(header),
+      resolveQualifiedType: (ids) => this.resolveQualifiedType(ids),
+    });
+  }
+
+  // Issue #60: collectEnum and collectBitmap methods removed - now in SymbolCollector
+
+  // Issue #63: validateBitmapFieldLiteral moved to TypeValidator
+  // Issue #60: evaluateConstantExpression method removed - now in SymbolCollector
+
+  // Issue #269: Pass-by-value analysis extracted to PassByValueAnalyzer
+
+  /**
+   * Issue #269: Check if a parameter should be passed by value (by index).
+   * Part of IOrchestrator interface - used by CallExprGenerator.
+   * Delegates to PassByValueAnalyzer.
+   */
+  isParameterPassByValue(funcName: string, paramIndex: number): boolean {
+    return PassByValueAnalyzer.isParameterPassByValue(funcName, paramIndex);
+  }
+
+  /**
+   * Issue #269: Get all pass-by-value parameters.
+   * Returns a Map from function name to Set of parameter names that should be pass-by-value.
+   * Used by HeaderGenerator to ensure header and implementation signatures match.
+   */
+  getPassByValueParams(): ReadonlyMap<string, ReadonlySet<string>> {
+    // #1511: the artifact's answer, so the `.h` this feeds and the `.c` this
+    // class emits cannot disagree -- they now read one derivation.
+    return CodeGenState.program?.passByValueParams() ?? new Map();
+  }
+
+  /**
+   * Issue #322: Check if a type name is a user-defined struct
+   * Part of IOrchestrator interface.
+   */
+  isStructType(typeName: string): boolean {
+    return TypeResolver.isStructType(typeName);
+  }
+
+  /**
+   * Set up parameter tracking for a function.
+   * Issue #793: Delegates to FunctionContextManager.
+   */
+  private _setParameters(params: Parser.ParameterListContext | null): void {
+    FunctionContextManager.processParameterList(
+      params,
+      this._getFunctionContextCallbacks(),
+    );
+  }
+
+  /**
+   * Clear parameter tracking when leaving a function.
+   * Issue #793: Delegates to FunctionContextManager.
+   */
+  private _clearParameters(): void {
+    FunctionContextManager.clearParameters();
+  }
+
+  /**
+   * ADR-013: Extract function signature from parameter list
+   */
+  private extractFunctionSignature(
+    name: string,
+    params: Parser.ParameterListContext | null,
+  ): FunctionSignature {
+    const parameters: Array<{
+      name: string;
+      baseType: string;
+      isConst: boolean;
+      isArray: boolean;
+    }> = [];
+
+    if (params) {
+      for (const param of params.parameter()) {
+        const paramName = param.IDENTIFIER().getText();
+        const isConst = param.constModifier() !== null;
+        // arrayDimension() returns an array (due to grammar's *), so check length
+        // Also check C-Next style array type (e.g., u8[8] param)
+        const isArray =
+          param.arrayDimension().length > 0 ||
+          param.type().arrayType() !== null;
+        const baseType = this.getTypeName(param.type());
+        // Issue #1201: a parameter naming a callback type needs that type's
+        // typedef emitted, exactly as a struct field does.
+        CodeGenState.notePublicCallbackTypeReference(baseType);
+        parameters.push({ name: paramName, baseType, isConst, isArray });
+      }
+    }
+
+    return { name, parameters };
+  }
+
+  /**
+   * ADR-029 / #1484: record the callback types named by LOCAL variable
+   * declarations in a function body.
+   *
+   * The three sites that already record a reference -- struct fields, scope
+   * member variables, and parameters via `extractFunctionSignature` -- all walk
+   * DECLARATIONS. A local variable lives inside a statement, so none of them
+   * reach it, and a callback type named only by a local had its `_fp` typedef
+   * omitted from the very output that used it: correct type name, no typedef,
+   * `unknown type name 'onTick_fp'`.
+   *
+   * Runs in the pre-pass rather than during generation because
+   * `recordCallbackTypedef` consumes this set as each function is emitted; a
+   * reference discovered while generating a later body would arrive after the
+   * decision it exists to inform.
+   */
+  private _collectLocalCallbackTypeReferences(
+    body: Parser.BlockContext | null,
+  ): void {
+    if (!body) {
+      return;
+    }
+    const visit = (node: ParserRuleContext): void => {
+      // Both declaration forms a body can hold. `forVarDecl` is its own
+      // grammar rule, so a `for` init is NOT a VariableDeclarationContext --
+      // missing it left `for (onTick f <- onTick; ...)` referencing a typedef
+      // nothing emitted.
+      if (
+        node instanceof Parser.VariableDeclarationContext ||
+        node instanceof Parser.ForVarDeclContext
+      ) {
+        CodeGenState.callbackTypeReferences.add(this.getTypeName(node.type()));
+      }
+      for (let i = 0; i < node.getChildCount(); i++) {
+        const child = node.getChild(i);
+        if (child instanceof ParserRuleContext) {
+          visit(child);
+        }
+      }
+    };
+    visit(body);
+  }
+
+  /**
+   * ADR-029: the typedef name for a function-as-type. One encoder, so the
+   * declaration site and every reference cannot spell it differently.
+   */
+  private static callbackTypedefName(functionName: string): string {
+    return `${functionName}_fp`;
+  }
+
+  /**
+   * ADR-029 + ADR-006: what one parameter of a callback typedef MEANS -- its
+   * rendered type and its pointer semantics.
+   *
+   * Extracted because two callers build an `ICallbackTypeInfo`: the parse-tree
+   * path, for functions declared in this file, and the symbol path, for
+   * functions reached through an include (#1491). They differ only in how they
+   * OBTAIN a type name. What they must not differ on is what that name means,
+   * and two copies of this decision could only ever agree by coincidence.
+   *
+   * `renderType` is a thunk on purpose: the parse-tree renderer records
+   * required includes as a side effect, and the callback branch must not fire
+   * it -- it did not before this was extracted, and eager evaluation would add
+   * an include nobody asked for.
+   */
+  private callbackParamShape(
+    typeName: string,
+    isArray: boolean,
+    renderType: () => string,
+  ): {
+    type: string;
+    isPointer: boolean;
+    isStruct: boolean;
+    isString: boolean;
+  } {
+    // ADR-006: struct-ness drives reference semantics.
+    const isStruct = this.isStructType(typeName);
+
+    // ADR-029: a parameter whose type is itself a function-as-type.
+    const cbInfo = CodeGenState.callbackTypes.get(typeName);
+    if (cbInfo) {
+      // Function pointers are already pointers.
+      return {
+        type: cbInfo.typedefName,
+        isPointer: false,
+        isStruct,
+        isString: false,
+      };
+    }
+
+    // ADR-045: a `string<N>` parameter is `char*` in C. Decided HERE, not in
+    // either caller's renderer, because that is where the two disagreed: the
+    // parse-tree renderer answered `char` (the ELEMENT type) and the symbol
+    // renderer answered `string<8>` (C-Next surface syntax, not C at all, and
+    // rejected by cc while the transpiler exited 0). Both are now wrong in one
+    // place instead of differently wrong in two -- which is the property this
+    // method exists to hold, and the one its comment already claimed.
+    if (!isArray && TypeCheckUtils.isString(typeName)) {
+      return {
+        type: "char*",
+        isPointer: false,
+        isStruct: false,
+        isString: true,
+      };
+    }
+
+    // ADR-006: non-array struct parameters become pointers in C mode.
+    return {
+      type: renderType(),
+      isPointer: !isArray && isStruct,
+      isStruct,
+      isString: false,
+    };
+  }
+
+  /**
+   * ADR-029 + #1491: a function reached through an include is a type HERE too.
+   *
+   * `registerCallbackType` walks only this file's own declarations, so an
+   * included function-as-type was never registered and a variable declared
+   * with it emitted the FUNCTION's name where a type belongs --
+   * `sharedHelper viaInclude` rather than `sharedHelper_fp viaInclude` -- which
+   * does not compile. The analyzer half of the same bug reported the call as
+   * E0422; fixing that alone only moved the failure from cnext to cc.
+   *
+   * The signature is READ FROM THE SYMBOL, not re-derived from a parse tree
+   * this file does not have -- "after 1.3, nothing may compute a symbol's
+   * name." That is also what makes it safe: a symbol's `arrayDimensions` are
+   * already const-folded, which is the property the parse-tree path works to
+   * establish for MISRA Rule 18.8.
+   *
+   * Registration is unconditional; EMISSION stays gated by
+   * `headerOwnsCallbackTypedef`, which intersects with `callbackTypeReferences`.
+   * So a visible function nobody uses as a type still yields no typedef and
+   * cannot trip MISRA Rule 2.3 (unused type declarations).
+   *
+   * Local declarations register afterwards and overwrite, which is the right
+   * precedence: a name declared here wins over the same name reached through
+   * an include.
+   */
+  private registerIncludedCallbackTypes(): void {
+    const symbols = CodeGenState.symbols;
+    if (!symbols) {
+      return;
+    }
+
+    // The per-file VISIBLE set: what this file declares, plus what its includes
+    // contribute via mergeExternalSymbols. Keyed by transpiled C name.
+    for (const cName of symbols.functionReturnTypes.keys()) {
+      if (CodeGenState.callbackTypes.has(cName)) {
+        continue;
+      }
+
+      // Run-wide identity lookup -- the exact-name index, never the bare-name
+      // one, which returns empty for every scoped symbol (#1139).
+      const symbol = CodeGenState.symbolTable
+        .getOverloadsByCName(cName)
+        .find(
+          (candidate) =>
+            candidate.sourceLanguage === ESourceLanguage.CNext &&
+            SymbolGuards.isFunction(candidate as TSymbol),
+        ) as IFunctionSymbol | undefined;
+
+      if (symbol) {
+        CodeGenState.callbackTypes.set(
+          cName,
+          this.callbackInfoFromSymbol(cName, symbol),
+        );
+      }
+    }
+  }
+
+  /**
+   * Build an `ICallbackTypeInfo` from a resolved function symbol.
+   *
+   * The symbol carries the resolved return type and parameters, so nothing here
+   * re-resolves a name. Parameter meaning is delegated to `callbackParamShape`,
+   * the same decision the parse-tree path makes.
+   */
+  private callbackInfoFromSymbol(
+    cName: string,
+    symbol: IFunctionSymbol,
+  ): ICallbackTypeInfo {
+    const toCType = (typeName: string): string =>
+      CNEXT_TO_C_TYPE_MAP[typeName] ?? typeName;
+
+    return {
+      functionName: cName,
+      returnType: toCType(SymbolTypeResolver.getTypeName(symbol.returnType)),
+      parameters: symbol.parameters.map((param) => {
+        const typeName = SymbolTypeResolver.getTypeName(param.type);
+        const { type, isPointer, isStruct, isString } = this.callbackParamShape(
+          typeName,
+          param.isArray,
+          () => toCType(typeName),
+        );
+        return {
+          name: param.name,
+          type,
+          isConst: CodeGenerator.typedefParamIsConst(
+            cName,
+            param.name,
+            param.isConst,
+            isStruct,
+            isString,
+          ),
+          isPointer,
+          isStruct,
+          isString,
+          isArray: param.isArray,
+          // Already folded to literals by the symbols layer, which is exactly
+          // what MISRA Rule 18.8 needs -- a dimension that is still an
+          // identifier makes the typedef a variably-modified type.
+          arrayDims: (param.arrayDimensions ?? [])
+            .map((dimension) => `[${dimension}]`)
+            .join(""),
+        };
+      }),
+      typedefName: CodeGenerator.callbackTypedefName(cName),
+    };
+  }
+
+  /**
+   * ADR-029: is this `_fp` typedef parameter const?
+   *
+   * THE decision for both typedef emitters -- the local one below, which reads
+   * a parse tree, and `callbackInfoFromSymbol`, which reads a resolved symbol
+   * for a function reached through an include. They already shared the
+   * parameter SHAPE via `callbackParamShape`; sharing the shape while each
+   * re-derived the const is what let them disagree with the prototype, and
+   * with each other, at the same time:
+   *
+   * - the local path asked the per-file accumulator during the declaration
+   *   walk, before any body had filled it, so a modifying body read as
+   *   unmodified and the typedef gained a `const` the prototype lacked (#1529)
+   * - the included path asked the symbol's `isAutoConst`, which only ever gets
+   *   set on the header's own copy of a parameter, so it was absent and the
+   *   typedef LOST a `const` the declaring file had emitted (#1552). Both files
+   *   then defined one typedef name incompatibly -- a hard `error: conflicting
+   *   types`, not a warning, at transpile exit 0
+   *
+   * Auto-const (#268) qualifies only what the prototype renders as a pointer,
+   * which for a typedef parameter is a struct or a string.
+   */
+  private static typedefParamIsConst(
+    funcName: string,
+    paramName: string,
+    isExplicitConst: boolean,
+    isStruct: boolean,
+    isString: boolean,
+  ): boolean {
+    if (isExplicitConst) {
+      return true;
+    }
+    if (!isStruct && !isString) {
+      return false;
+    }
+    return !CodeGenState.isParameterModifiedAnywhere(funcName, paramName);
+  }
+
+  /**
+   * ADR-029: Register a function as a callback type
+   * The function name becomes both a callable function and a type for callback fields
+   */
+  private registerCallbackType(
+    name: string,
+    funcDecl: Parser.FunctionDeclarationContext,
+  ): void {
+    const returnType = this.generateType(funcDecl.type());
+    const parameters: Array<{
+      name: string;
+      type: string;
+      isConst: boolean;
+      isPointer: boolean;
+      isStruct: boolean;
+      isString: boolean;
+      isArray: boolean;
+      arrayDims: string;
+    }> = [];
+
+    if (funcDecl.parameterList()) {
+      for (const param of funcDecl.parameterList()!.parameter()) {
+        const paramName = param.IDENTIFIER().getText();
+        const typeName = this.getTypeName(param.type());
+        const isConst = param.constModifier() !== null;
+        const dims = param.arrayDimension();
+        const arrayTypeCtx = param.type().arrayType();
+        const isArray = dims.length > 0 || arrayTypeCtx !== null;
+
+        const {
+          type: paramType,
+          isPointer,
+          isStruct,
+          isString,
+        } = this.callbackParamShape(typeName, isArray, () =>
+          this.generateType(param.type()),
+        );
+
+        // The typedef must carry the SAME const the prototype carries, or the
+        // two are incompatible pointer types and every assignment of the
+        // function to a variable of its own type warns. One decision, shared
+        // with the included-function path below -- #1529 and #1552 were this
+        // expression and its twin disagreeing with the prototype in OPPOSITE
+        // directions, which is what a second derivation of one fact buys.
+        const isEffectivelyConst = CodeGenerator.typedefParamIsConst(
+          name,
+          paramName,
+          isConst,
+          isStruct,
+          isString,
+        );
+
+        let arrayDims: string;
+        if (dims.length > 0) {
+          arrayDims = dims.map((d) => this.generateArrayDimension(d)).join("");
+        } else if (arrayTypeCtx) {
+          // Generate all dimensions from arrayType (supports multi-dimensional)
+          // Issue #1127: fold the same way ParameterInputAdapter does. Emitting
+          // the identifier here made one const render two ways in a single .c
+          // -- `void OnData(uint8_t buf[6])` beside
+          // `typedef void (*OnData_fp)(uint8_t buf[SIZE])` -- and the typedef
+          // form is a variably-modified type, which MISRA C:2012 Rule 18.8
+          // forbids and which gcc warns about under its variable-length-array
+          // diagnostic.
+          arrayDims = arrayTypeCtx
+            .arrayTypeDimension()
+            .map((d) => {
+              const expr = d.expression();
+              if (!expr) {
+                return "[]";
+              }
+              const folded = ArrayDimensionParser.parseSingleDimension(
+                expr,
+                dimensionEvalOptions(),
+              );
+              return `[${folded ?? this.generateExpression(expr)}]`;
+            })
+            .join("");
+        } else {
+          arrayDims = "";
+        }
+        parameters.push({
+          name: paramName,
+          type: paramType,
+          isConst: isEffectivelyConst,
+          isPointer,
+          isStruct,
+          isString,
+          isArray,
+          arrayDims,
+        });
+      }
+    }
+
+    CodeGenState.callbackTypes.set(name, {
+      functionName: name,
+      returnType,
+      parameters,
+      typedefName: CodeGenerator.callbackTypedefName(name),
+    });
+  }
+
+  /**
+   * ADR-029: Check if a function is used as a callback type (field type in a struct)
+   */
+  // Issue #63 moved validateCallbackAssignment and callbackSignaturesMatch to
+  // TypeValidator; #1322 deleted validateBareIdentifierInScope (no production
+  // caller) and moved the const rules (E0877/E0878) to pass 2.1.
+
+  // EnumTypeResolver now handles: _getEnumTypeFromThisEnum, _getEnumTypeFromGlobalEnum,
+  // _getEnumTypeFromThisVariable, _getEnumTypeFromScopedEnum, _getEnumTypeFromMemberAccess,
+  // _getExpressionEnumType, _getFunctionCallEnumType
+  /**
+   * ADR-017: Check if an expression represents an integer literal or numeric type.
+   * Used to detect comparisons between enums and integers.
+   */
+
+  /**
+   * ADR-045: Check if an expression is a string concatenation.
+   * Delegates to StringOperationsHelper.
+   */
+  private _getStringConcatOperands(ctx: Parser.ExpressionContext): {
+    left: string;
+    right: string;
+    leftCapacity: number;
+    rightCapacity: number;
+  } | null {
+    return StringOperationsHelper.getStringConcatOperands(ctx);
+  }
+
+  /**
+   * ADR-045: Check if an expression is a substring extraction.
+   * Delegates to StringOperationsHelper.
+   */
+  private _getSubstringOperands(
+    ctx: Parser.ExpressionContext,
+  ): ISubstringOps | null {
+    return StringOperationsHelper.getSubstringOperands(ctx, {
+      generateExpression: (exprCtx) => this.generateExpression(exprCtx),
+    });
+  }
+
+  // ========================================================================
+  // ADR-024: Type Classification and Validation Helpers
+  // ========================================================================
+
+  // NOTE: Public isIntegerType and isFloatType moved to IOrchestrator interface
+  // Private versions kept for internal use
+
+  private _isFloatType(typeName: string): boolean {
+    return TypeResolver.isFloatType(typeName);
+  }
+
+  /**
+   * ADR-024: Get the type of a unary expression (for cast validation).
+   */
+  private getUnaryExpressionType(
+    ctx: Parser.UnaryExpressionContext,
+  ): string | null {
+    return TypeResolver.getUnaryExpressionType(ctx);
+  }
+
+  /**
+   * Check if an expression is an lvalue that needs & when passed to functions.
+   * This includes member access (cursor.x) and array access (arr[i]).
+   * Returns the type of lvalue or null if not an lvalue.
+   */
+  private getLvalueType(
+    ctx: Parser.ExpressionContext,
+  ): "member" | "array" | null {
+    const postfix = ExpressionUnwrapper.getPostfixExpression(ctx);
+    if (!postfix) return null;
+
+    const ops = postfix.postfixOp();
+    const result = CppMemberHelper.getLastPostfixOpType(
+      this._toPostfixOps(ops),
+    );
+
+    // Function calls are not lvalues
+    if (result === "function") return null;
+    return result;
+  }
+
+  /**
+   * Issue #251/#252/#256: Check if a member access expression needs a temp variable in C++ mode.
+   *
+   * Returns true when passing struct member to function would fail C++ compilation:
+   * 1. Const struct parameter member -> non-const parameter (const T* -> T* invalid)
+   * 2. External C struct members of bool/enum type -> u8 parameter (type mismatch)
+   * 3. Array element member access (arr[i].member) with external struct elements
+   */
+  private needsCppMemberConversion(
+    ctx: Parser.ExpressionContext,
+    targetParamBaseType?: string,
+  ): boolean {
+    if (!CodeGenState.cppMode) return false;
+    if (!targetParamBaseType) return false;
+
+    const postfix = ExpressionUnwrapper.getPostfixExpression(ctx);
+    if (!postfix) return false;
+
+    const primary = postfix.primaryExpression();
+    if (!primary) return false;
+    const baseId = primary.IDENTIFIER()?.getText();
+    if (!baseId) return false;
+
+    const ops = postfix.postfixOp();
+
+    // Case 1: Direct parameter member access (cfg.value)
+    const paramInfo = CodeGenState.currentParameters.get(baseId);
+    if (paramInfo) {
+      return this._needsParamMemberConversion(paramInfo, targetParamBaseType);
+    }
+
+    // Case 2: Array element or function return member access
+    return this._needsComplexMemberConversion(ops, baseId, targetParamBaseType);
+  }
+
+  /**
+   * Case 1: Direct parameter member access needs conversion?
+   * Issue #251: Const struct parameter needs temp to break const chain
+   * Issue #252: External C structs may have bool/enum members
+   */
+  private _needsParamMemberConversion(
+    paramInfo: { baseType: string; isStruct?: boolean; isConst?: boolean },
+    targetParamBaseType: string,
+  ): boolean {
+    return CppMemberHelper.needsParamMemberConversion(
+      paramInfo,
+      targetParamBaseType,
+    );
+  }
+
+  /**
+   * Convert parser PostfixOpContext to IPostfixOp interface for CppMemberHelper.
+   */
+  private _toPostfixOps(ops: Parser.PostfixOpContext[]): IPostfixOp[] {
+    return ops.map((op) => ({
+      hasExpression: op.expression() !== null,
+      hasIdentifier: op.IDENTIFIER() !== null,
+      hasArgumentList: op.argumentList() !== null,
+      textEndsWithParen: op.getText().endsWith(")"),
+    }));
+  }
+
+  /**
+   * Case 2: Array element or function return member access needs conversion?
+   * Issue #256: arr[i].member or getConfig().member patterns
+   */
+  private _needsComplexMemberConversion(
+    ops: Parser.PostfixOpContext[],
+    baseId: string,
+    targetParamBaseType: string,
+  ): boolean {
+    const typeInfo = CodeGenState.getVariableTypeInfo(baseId);
+    return CppMemberHelper.needsComplexMemberConversion(
+      this._toPostfixOps(ops),
+      typeInfo,
+      targetParamBaseType,
+    );
+  }
+
+  /**
+   * Issue #246: Check if an expression is a subscript access on a string variable.
+   * For example, buf[0] where buf is a string<N>.
+   * Used to determine when to cast char* to uint8_t* etc.
+   */
+  private isStringSubscriptAccess(ctx: Parser.ExpressionContext): boolean {
+    const postfix = ExpressionUnwrapper.getPostfixExpression(ctx);
+    if (!postfix) return false;
+
+    const ops = postfix.postfixOp();
+    const hasPostfixOps = ops.length > 0;
+    const lastOpHasExpression =
+      hasPostfixOps && ops.at(-1)!.expression() !== null;
+
+    // Get the base identifier
+    const primary = postfix.primaryExpression();
+    const baseId = primary.IDENTIFIER()?.getText();
+    if (!baseId) return false;
+
+    const typeInfo = CodeGenState.getVariableTypeInfo(baseId);
+    const paramInfo = CodeGenState.currentParameters.get(baseId);
+
+    return CppMemberHelper.isStringSubscriptPattern(
+      hasPostfixOps,
+      lastOpHasExpression,
+      typeInfo,
+      paramInfo?.isString ?? false,
+    );
+  }
+
+  /**
+   * Issue #308: Check if a member access expression is accessing an array member.
+   * For example, result.data where data is a u8[6] array member.
+   * When passing such expressions to functions, the array should naturally decay
+   * to a pointer, so we should NOT add & operator.
+   *
+   * Note: Currently handles single-level member access only (e.g., result.data).
+   * Nested access like outer.inner.data would require traversing the postfix chain
+   * to resolve intermediate struct types. This is acceptable since issue #308
+   * involves single-level access patterns.
+   *
+   * Issue #355: Check if struct field info is available for a member access.
+   * Used for defensive code generation - when we don't have field info,
+   * we skip potentially dangerous conversions.
+   *
+   * @returns "array" if definitely an array, "not-array" if definitely not,
+   *          "unknown" if struct field info is not available
+   */
+  private getMemberAccessArrayStatus(
+    ctx: Parser.ExpressionContext,
+  ): "array" | "not-array" | "unknown" {
+    const postfix = ExpressionUnwrapper.getPostfixExpression(ctx);
+    if (!postfix) return "not-array";
+
+    const ops = postfix.postfixOp();
+    if (ops.length === 0) return "not-array";
+
+    // Last operator must be member access (.identifier)
+    const lastOp = ops.at(-1)!;
+    const memberName = lastOp.IDENTIFIER()?.getText();
+    if (!memberName) return "not-array";
+
+    // Get the base identifier to find the struct type
+    const primary = postfix.primaryExpression();
+    if (!primary) return "not-array";
+    const baseId = primary.IDENTIFIER()?.getText();
+    if (!baseId) return "not-array";
+
+    // Look up the struct type from either:
+    // 1. Local variable: typeRegistry.get(baseId).baseType
+    // 2. Parameter: currentParameters.get(baseId).baseType
+    let structType: string | undefined;
+
+    const typeInfo = CodeGenState.getVariableTypeInfo(baseId);
+    if (typeInfo) {
+      structType = typeInfo.baseType;
+    } else {
+      const paramInfo = CodeGenState.currentParameters.get(baseId);
+      if (paramInfo) {
+        structType = paramInfo.baseType;
+      }
+    }
+
+    if (!structType) return "not-array";
+
+    // Check if this struct member is an array
+    const memberInfo = this.getMemberTypeInfo(structType, memberName);
+
+    // Issue #355: If memberInfo is undefined, we don't have struct field info
+    // This could mean the header wasn't parsed - return "unknown" for defensive generation
+    if (!memberInfo) {
+      return "unknown";
+    }
+
+    return memberInfo.isArray ? "array" : "not-array";
+  }
+
+  // ========================================================================
+  // Declarations
+  // ========================================================================
+
+  private generateDeclaration(ctx: Parser.DeclarationContext): string {
+    // ADR-016: Handle scope declarations (renamed from namespace)
+    if (ctx.scopeDeclaration()) {
+      return this.generateScope(ctx.scopeDeclaration()!);
+    }
+    if (ctx.registerDeclaration()) {
+      return this.generateRegister(ctx.registerDeclaration()!);
+    }
+    // Issue #369: Skip struct/enum/bitmap definitions when self-include is added
+    // These types will be defined in the included header file
+    // Issue #1164: the struct generator decides for itself what a self-include
+    // suppresses. Returning early here also skipped its callback-field effects
+    // and dropped the ADR-029 init function, which the header never carries.
+    if (ctx.structDeclaration()) {
+      return this.generateStruct(ctx.structDeclaration()!);
+    }
+    // ADR-017: Handle enum declarations
+    if (ctx.enumDeclaration()) {
+      return this.generateEnum(ctx.enumDeclaration()!);
+    }
+    // ADR-034: Handle bitmap declarations
+    if (ctx.bitmapDeclaration()) {
+      return this.generateBitmap(ctx.bitmapDeclaration()!);
+    }
+    if (ctx.functionDeclaration()) {
+      return this.generateFunction(ctx.functionDeclaration()!);
+    }
+    if (ctx.variableDeclaration()) {
+      return this.generateVariableDecl(ctx.variableDeclaration()!) + "\n";
+    }
+    return "";
+  }
+
+  // ========================================================================
+  // Scope (ADR-016: Organization with visibility control)
+  // ========================================================================
+
+  private generateScope(ctx: Parser.ScopeDeclarationContext): string {
+    return this.invokeDeclaration("scope", ctx, false);
+  }
+
+  // ========================================================================
+  // Register Bindings (ADR-004)
+  // ========================================================================
+
+  private generateRegister(ctx: Parser.RegisterDeclarationContext): string {
+    return this.invokeDeclaration("register", ctx, false);
+  }
+
+  // ========================================================================
+  // Struct
+  // ========================================================================
+
+  private generateStruct(ctx: Parser.StructDeclarationContext): string {
+    return this.invokeDeclaration("struct", ctx, false);
+  }
+
+  // ========================================================================
+  // Enum (ADR-017: Type-safe enums)
+  // ========================================================================
+
+  /**
+   * ADR-017: Generate enum declaration
+   * enum State { IDLE, RUNNING, ERROR <- 255 }
+   * -> typedef enum { State_IDLE = 0, State_RUNNING = 1, State_ERROR = 255 } State;
+   *
+   * Delegates to extracted EnumGenerator.
+   */
+  private generateEnum(ctx: Parser.EnumDeclarationContext): string {
+    return this.invokeDeclaration("enum", ctx, true);
+  }
+
+  /**
+   * ADR-034: Generate bitmap declaration
+   * bitmap8 MotorFlags { Running, Direction, Mode[3], Reserved[2] }
+   * -> typedef uint8_t MotorFlags; (with field layout comment)
+   *
+   * Delegates to extracted generator if registered.
+   */
+  private generateBitmap(ctx: Parser.BitmapDeclarationContext): string {
+    return this.invokeDeclaration("bitmap", ctx, true);
+  }
+
+  /**
+   * The struct type for an initializer: explicit if written, else inferred
+   * from the expected type at this position.
+   *
+   * #1322: an assertion now. ADR-014's rejection -- a literal no position can
+   * type -- is E0357 in pass 2.1, which halts before this runs. Its sibling
+   * E0356 (a redundant WRITTEN type) is gone with the grammar alternative it
+   * rejected, so this takes no node: there is one source for the type.
+   */
+  private _resolveStructInitializerTypeName(): string {
+    invariant(
+      CodeGenState.expectedType,
+      "a struct initializer takes its type from its position -- E0357 " +
+        "rejects this in pass 2.1, before this runs",
+    );
+    return CodeGenState.expectedType;
+  }
+
+  /**
+   * ADR-014: Generate struct initializer
+   * { x: 10, y: 20 } -> (Point){ .x = 10, .y = 20 } (type inferred from context)
+   *
+   * #1322: there is no explicit-type syntax. `Point { x: 10 }` was a grammar
+   * alternative that no position accepted, and it is removed.
+   */
+  private generateStructInitializer(
+    ctx: Parser.StructInitializerContext,
+  ): string {
+    const typeName = this._resolveStructInitializerTypeName();
+    const fieldList = ctx.fieldInitializerList();
+
+    // Issue #517: Check if this is a C++ class with a user-defined constructor.
+    // C++ classes with user-defined constructors are NOT aggregate types,
+    // so designated initializers { .field = value } don't work with them.
+    // We check the SymbolTable for a constructor symbol (TypeName::TypeName).
+    const isCppClass =
+      CodeGenState.cppMode && this._isCppClassWithConstructor(typeName);
+
+    // Issue #834: For named struct tags (no typedef), we need 'struct' prefix in C mode
+    const needsStructKeyword =
+      !CodeGenState.cppMode &&
+      CodeGenState.symbolTable.checkNeedsStructKeyword(typeName);
+    const castType = TypeGenerationHelper.generateUserType(
+      typeName,
+      needsStructKeyword,
+    );
+
+    // #1322: an empty-initializer branch stood here, reachable only through the
+    // written form `Point {}` -- the inferred alternative has always required a
+    // field list. That alternative is removed, so `fieldInitializerList()` is
+    // non-nullable in the generated parser and `{}` is a parse error. The
+    // branch went with it rather than being left as a shape nothing can build.
+
+    // Get field type info for nested initializers
+    // Issue #831: SymbolTable is the single source of truth for struct fields
+    // (both C-Next and C/C++ header structs)
+    const structFieldTypes =
+      CodeGenState.symbolTable?.getStructFieldTypes(typeName);
+
+    const fields = fieldList.fieldInitializer().map((field) => {
+      const fieldName = field.IDENTIFIER().getText();
+      const fieldType = this._resolveFieldType(fieldName, structFieldTypes);
+      const value = CodeGenState.withExpectedType(fieldType, () =>
+        this.generateExpression(field.expression()),
+      );
+      return { fieldName, value };
+    });
+
+    // Issue #517: For C++ classes, store assignments for later and return {}
+    if (isCppClass) {
+      for (const { fieldName, value } of fields) {
+        CodeGenState.pendingCppClassAssignments.push(
+          `${fieldName} = ${value};`,
+        );
+      }
+      return "{}";
+    }
+
+    // For C-Next/C structs, generate designated initializer.
+    // Issue #1143: `.field = value` is C99 in C mode (baseline, free) but
+    // C++20 in C++ mode -- GCC and Clang accept it earlier as an extension,
+    // which is how this repo's own -std=c++14 harness compiles the output.
+    // The text is identical in both modes, so the mode has to be recorded
+    // here; no probe over the output could recover it.
+    if (CodeGenState.cppMode) {
+      CodeGenState.requireToolchain("cpp-designated-initializer");
+    }
+    const fieldInits = fields.map((f) => `.${f.fieldName} = ${f.value}`);
+
+    return this.formatStructInitializer(typeName, castType, fieldInits);
+  }
+
+  private formatStructInitializer(
+    typeName: string,
+    castType: string,
+    fieldInits: string[],
+  ): string {
+    const initializer: string = `{ ${fieldInits.join(", ")} }`;
+
+    // In a declaration initializer context, use plain designated initializer — no type cast
+    // prefix needed, and compound literals are not C99 constant expressions so they fail
+    // at file scope on GCC < 13.
+    if (CodeGenState.inDeclarationInit) {
+      return initializer;
+    }
+
+    // Issue #882: In C++ mode, anonymous structs/unions must use plain brace init.
+    // Compound literals like (struct { ... }){ ... } create incompatible types in C++
+    // because each struct { ... } definition creates a distinct nominal type.
+    if (
+      CodeGenState.cppMode &&
+      (typeName.startsWith("struct {") || typeName.startsWith("union {"))
+    ) {
+      return initializer;
+    }
+
+    if (!CodeGenState.inFunctionBody) {
+      return initializer;
+    }
+
+    // Issue #1143: a compound literal is C99, but is not ISO C++ at any
+    // version -- GCC and Clang accept it as an extension.
+    if (CodeGenState.cppMode) {
+      CodeGenState.requireToolchain("cpp-compound-literal");
+    }
+    return `(${castType})${initializer}`;
+  }
+
+  /**
+   * Resolve the C type string for a named struct field, converting C++ underscore-separated
+   * names to :: notation. Returns undefined if the field is not in the type map.
+   * Issue #502: C-Next stores C++ types with _ separator; codegen needs ::.
+   */
+  private _resolveFieldType(
+    fieldName: string,
+    structFieldTypes: Map<string, string> | undefined,
+  ): string | undefined {
+    if (!structFieldTypes?.has(fieldName)) return undefined;
+    const fieldType = structFieldTypes.get(fieldName)!;
+    if (!QualifiedCName.isQualified(fieldType)) return fieldType;
+    const parts = QualifiedCName.split(fieldType);
+    if (parts.length > 1 && this.isCppScopeSymbol(parts[0])) {
+      return parts.join("::");
+    }
+    return fieldType;
+  }
+
+  /**
+   * ADR-035: Generate array initializer
+   * [1, 2, 3] -> {1, 2, 3}
+   * [0*] -> {0} (fill-all syntax)
+   * Returns: { elements: string, count: number } for size inference
+   */
+  private generateArrayInitializer(
+    ctx: Parser.ArrayInitializerContext,
+  ): string {
+    // Check for fill-all syntax: [value*]
+    if (ctx.expression() && ctx.getChild(2)?.getText() === "*") {
+      // Fill-all: [0*] -> {0}
+      const fillValue = this.generateExpression(ctx.expression()!);
+      // Store element count as 0 to signal fill-all (size comes from declaration)
+      CodeGenState.lastArrayInitCount = 0;
+      CodeGenState.lastArrayFillValue = fillValue;
+      return `{${fillValue}}`;
+    }
+
+    // Regular list: [1, 2, 3] -> {1, 2, 3}
+    const elements = ctx.arrayInitializerElement();
+    const generatedElements: string[] = [];
+
+    for (const elem of elements) {
+      if (elem.expression()) {
+        generatedElements.push(this.generateExpression(elem.expression()!));
+      } else if (elem.structInitializer()) {
+        generatedElements.push(
+          this.generateStructInitializer(elem.structInitializer()!),
+        );
+      } else if (elem.arrayInitializer()) {
+        // Nested array for multi-dimensional
+        generatedElements.push(
+          this.generateArrayInitializer(elem.arrayInitializer()!),
+        );
+      }
+    }
+
+    // Store element count for size inference
+    CodeGenState.lastArrayInitCount = generatedElements.length;
+    CodeGenState.lastArrayFillValue = undefined;
+
+    return `{${generatedElements.join(", ")}}`;
+  }
+
+  // ========================================================================
+  // Functions
+  // ========================================================================
+
+  private generateFunction(ctx: Parser.FunctionDeclarationContext): string {
+    // #1285: no inline fallback. This used to carry a second, parallel
+    // implementation guarded by `if (generator)`, but registration is
+    // unconditional in the constructor, so the guard never failed and the twin
+    // was unreachable -- while still having to be kept in step by hand. A
+    // missing generator is an internal invariant violation, not a second path.
+    const generator = this.registry.getDeclaration("function");
+    invariant(
+      generator,
+      'registerDeclaration("function") is unconditional in the constructor',
+    );
+    const result = generator(ctx, this.getInput(), this.getState(), this);
+    this.applyEffects(result.effects);
+    return result.code;
+  }
+
+  /**
+   * Issue #793: Create callbacks for FunctionContextManager.
+   */
+  private _getFunctionContextCallbacks(): IFunctionContextCallbacks {
+    return {
+      isStructType: (typeName: string) => this.isStructType(typeName),
+      resolveQualifiedType: (identifiers: string[]) =>
+        this.resolveQualifiedType(identifiers),
+      isTypedefStructType: (t: string) =>
+        CodeGenState.symbolTable?.isTypedefStructType(t) ?? false,
+    };
+  }
+
+  private generateParameter(
+    ctx: Parser.ParameterContext,
+    paramIndex?: number,
+  ): string {
+    const typeName = this.getTypeName(ctx.type());
+    const name = ctx.IDENTIFIER().getText();
+
+    // #1322: a C-style or unbounded array parameter is E0874/E0875 in pass
+    // 2.1 (ADR-036).
+
+    // Pre-compute CodeGenState-dependent values
+    const isModified = this._isCurrentParameterModified(name);
+
+    // Issue #895: For callback-compatible functions, determine pointer/value
+    // from the typedef signature, not from normal C-Next pass-by-value rules
+    const callbackInfo =
+      paramIndex === undefined
+        ? null
+        : FunctionContextManager.getCallbackTypedefParamInfo(paramIndex);
+    const isPassByValue = callbackInfo
+      ? !callbackInfo.shouldBePointer
+      : this._isPassByValueType(typeName, name);
+    const isCallbackCompatible = callbackInfo !== null;
+
+    // Build normalized input using adapter
+    // Issue #895: Force pass-by-reference and const from typedef signature
+    const forcePassByReference = callbackInfo?.shouldBePointer ?? false;
+    const forceConst = callbackInfo?.shouldBeConst ?? false;
+    const input = ParameterInputAdapter.fromAST(ctx, {
+      getTypeName: (t) => this.getTypeName(t),
+      generateType: (t) => this.generateType(t),
+      generateExpression: (e) => this.generateExpression(e),
+      callbackTypes: CodeGenState.callbackTypes,
+      isKnownStruct: (t) => {
+        if (this.isKnownStruct(t)) return true;
+        // ADR-057: check qualified name for scope-local struct types only
+        const qualified = CodeGenState.currentScopePath
+          ? QualifiedNameGenerator.forMember(CodeGenState.currentScopePath, t)
+          : t;
+        return CodeGenState.symbols?.knownStructs.has(qualified) ?? false;
+      },
+      typeMap: TYPE_MAP,
+      isModified,
+      isPassByValue,
+      isCallbackCompatible,
+      forcePassByReference,
+      forceConst,
+      isTypedefStructType: (t) =>
+        CodeGenState.symbolTable?.isTypedefStructType(t) ?? false,
+      // Issue #995: Opaque handles should not get auto-const
+      isOpaqueType: (t) => CodeGenState.isOpaqueType(t),
+    });
+
+    // Use shared builder with C/C++ mode
+    return ParameterSignatureBuilder.build(input, CppModeHelper.refOrPtr());
+  }
+
+  /**
+   * Check if type should use pass-by-value semantics
+   */
+  private _isPassByValueType(typeName: string, name: string): boolean {
+    // ISR, float, enum types
+    if (typeName === "ISR") return true;
+    if (this._isFloatType(typeName)) return true;
+    if (CodeGenState.symbols?.knownEnums.has(typeName)) return true;
+
+    // Small unmodified primitives
+    if (
+      CodeGenState.currentFunctionName &&
+      PassByValueAnalyzer.isParameterPassByValueByName(
+        CodeGenState.currentFunctionName,
+        name,
+      )
+    ) {
+      return true;
+    }
+
+    // Callback-compatible functions: struct params become pass-by-value to
+    // match C function pointer typedef signatures.
+    //
+    // #1450: this used to say "a full fix requires parsing the typedef
+    // signature to determine which", citing #895. That fix IS #895 --
+    // `TypedefParamParser` parses the signature ("Used by Issue #895 to
+    // determine if callback params should be pointers or values") and
+    // `getCallbackTypedefParamInfo` is the path that consumes it. #895 closed
+    // 2026-02-23, so the note described work that had already landed and
+    // pointed at a closed issue as if it were the tracker.
+    //
+    // What is left here is the FALLBACK, reached only when the typedef type
+    // cannot be resolved -- the caller prefers `callbackInfo` and only calls
+    // this when that is null. Measured: throwing inside the branch leaves
+    // 1247/1247 fixtures green, while throwing immediately above it fires
+    // repeatedly, so the line is reached and the condition is simply never
+    // true in the corpus. Not deleted on that evidence: a corpus that does not
+    // reach a branch is not a user base that does not, and the third conjunct
+    // (`isKnownStruct`) is the one no fixture satisfies.
+    if (
+      CodeGenState.currentFunctionName &&
+      CodeGenState.program
+        ?.callbackCompatibleFunctions()
+        .has(CodeGenState.currentFunctionName) &&
+      this.isKnownStruct(typeName)
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
+  // ========================================================================
+  // Variables
+  // ========================================================================
+
+  private generateVariableDecl(ctx: Parser.VariableDeclarationContext): string {
+    // Issue #792: Delegate to VariableDeclHelper
+    return VariableDeclHelper.generateVariableDecl(ctx, {
+      generateExpression: (exprCtx) => this.generateExpression(exprCtx),
+      generateType: (typeCtx) => this.generateType(typeCtx),
+      getTypeName: (typeCtx) => this.getTypeName(typeCtx),
+      generateArrayDimensions: (dims) => this.generateArrayDimensions(dims),
+      tryEvaluateConstant: (exprCtx) => this.tryEvaluateConstant(exprCtx),
+      getZeroInitializer: (typeCtx, isArray) =>
+        this.getZeroInitializer(typeCtx, isArray),
+      getExpressionType: (exprCtx) => this.getExpressionType(exprCtx),
+      inferVariableType: (varCtx, name) =>
+        this._inferVariableType(varCtx, name),
+      trackLocalVariable: (varCtx, name) =>
+        this._trackLocalVariable(varCtx, name),
+      markVariableAsPointer: (name) => this._markVariableAsPointer(name),
+      getStringConcatOperands: (concatCtx) =>
+        this._getStringConcatOperands(concatCtx),
+      getSubstringOperands: (substrCtx) =>
+        this._getSubstringOperands(substrCtx),
+      getStringExprCapacity: (exprCode) => this.getStringExprCapacity(exprCode),
+    });
+  }
+
+  /**
+   * Issue #696: Infer variable type, handling nullable C pointer types.
+   * Issue #895 Bug B: Infer pointer type from C function return type.
+   */
+  private _inferVariableType(
+    ctx: Parser.VariableDeclarationContext,
+    name: string,
+  ): string {
+    // ADR-029 / #1484: a local variable declared with a function-as-type emits
+    // that function's `_fp` typedef. Asked of `generateDeclaredType`, which owns
+    // that consequence for every declaration site.
+    const type = this.generateDeclaredType(ctx.type());
+
+    // Issue #958: C-header typedef struct types always need pointer semantics
+    if (CodeGenState.symbolTable?.isTypedefStructType(type)) {
+      return `${type}*`;
+    }
+
+    if (!ctx.expression()) {
+      return type;
+    }
+
+    // Issue #895 Bug B: Check if initializer is a C function call returning pointer
+    const pointerType = this._inferPointerTypeFromFunctionCall(
+      ctx.expression()!,
+      type,
+    );
+    if (pointerType) {
+      return pointerType;
+    }
+
+    // ADR-046: Handle nullable C pointer types (c_ prefix variables)
+    if (name.startsWith("c_")) {
+      const exprText = ctx.expression()!.getText();
+      for (const funcName of STRUCT_POINTER_C_FUNCTIONS) {
+        if (exprText.includes(`${funcName}(`)) {
+          return `${type}*`;
+        }
+      }
+    }
+
+    return type;
+  }
+
+  /**
+   * Issue #895 Bug B: Infer pointer type from C function return type.
+   * If initializer is a call to a C function that returns T*, and declared
+   * type is T, return T* instead of T.
+   */
+  private _inferPointerTypeFromFunctionCall(
+    expr: Parser.ExpressionContext,
+    declaredType: string,
+  ): string | null {
+    // Extract function name from C function call patterns
+    const funcName = this._extractCFunctionName(expr);
+    if (!funcName) {
+      return null;
+    }
+
+    // Look up C function in symbol table
+    const cFunc = CodeGenState.symbolTable?.getCSymbol(funcName);
+    if (cFunc?.kind !== "function") {
+      return null;
+    }
+
+    // Check if return type is a pointer to the declared type
+    const returnType = cFunc.type;
+    if (!returnType.endsWith("*")) {
+      return null;
+    }
+
+    // Check if the base return type matches the declared type
+    // e.g., "widget_t *" or "widget_t*" matches declared "widget_t"
+    // The guard above established the last character is '*', so dropping it and
+    // trimming is exactly what /\s*\*\s*$/ did -- without the super-linear
+    // backtracking that pattern has on a long run of spaces (S8786).
+    const returnBaseType = returnType.slice(0, -1).trim();
+    if (returnBaseType === declaredType) {
+      return `${declaredType}*`;
+    }
+
+    return null;
+  }
+
+  /**
+   * Extract C function name from expression patterns.
+   * Handles both:
+   * - global.funcName(...) - explicit global access
+   * - funcName(...) - direct call (if funcName is a known C function)
+   * Returns null if expression doesn't match these patterns.
+   */
+  private _extractCFunctionName(expr: Parser.ExpressionContext): string | null {
+    const postfix = ExpressionUnwrapper.getPostfixExpression(expr);
+    if (!postfix) {
+      return null;
+    }
+
+    const primary = postfix.primaryExpression();
+    const ops = postfix.postfixOp();
+
+    // Pattern 1: global.funcName(...)
+    if (primary.GLOBAL()) {
+      return this._extractGlobalPatternFuncName(ops);
+    }
+
+    // Pattern 2: funcName(...) - direct call
+    const identifier = primary.IDENTIFIER();
+    if (identifier) {
+      return this._extractDirectCallFuncName(identifier.getText(), ops);
+    }
+
+    return null;
+  }
+
+  /**
+   * Extract function name from global.funcName(...) pattern.
+   */
+  private _extractGlobalPatternFuncName(
+    ops: Parser.PostfixOpContext[],
+  ): string | null {
+    if (ops.length < 2) {
+      return null;
+    }
+
+    const memberOp = ops[0];
+    if (!memberOp.IDENTIFIER()) {
+      return null;
+    }
+
+    const callOp = ops[1];
+    if (!this._isCallOp(callOp)) {
+      return null;
+    }
+
+    return memberOp.IDENTIFIER()!.getText();
+  }
+
+  /**
+   * Extract function name from direct funcName(...) call if it's a C function.
+   */
+  private _extractDirectCallFuncName(
+    funcName: string,
+    ops: Parser.PostfixOpContext[],
+  ): string | null {
+    if (ops.length < 1) {
+      return null;
+    }
+
+    if (!this._isCallOp(ops[0])) {
+      return null;
+    }
+
+    // Verify this is actually a C function (not a C-Next scope function)
+    const cFunc = CodeGenState.symbolTable?.getCSymbol(funcName);
+    if (cFunc?.kind === "function") {
+      return funcName;
+    }
+
+    return null;
+  }
+
+  /**
+   * Check if a postfix op is a function call.
+   */
+  private _isCallOp(op: Parser.PostfixOpContext): boolean {
+    return Boolean(op.argumentList() || op.getText().startsWith("("));
+  }
+
+  /**
+   * Issue #696: Track local variable for type registry and const values.
+   */
+  private _trackLocalVariable(
+    ctx: Parser.VariableDeclarationContext,
+    name: string,
+  ): void {
+    if (!CodeGenState.inFunctionBody) {
+      return;
+    }
+
+    TypeRegistrationEngine.trackVariable(ctx, {
+      tryEvaluateConstant: (expr) => this.tryEvaluateConstant(expr),
+      requireInclude: (header) => CodeGenState.requireInclude(header),
+      resolveQualifiedType: (ids) => this.resolveQualifiedType(ids),
+    });
+    CodeGenState.registerLocalVariable(name);
+
+    // Bug #8: Track local const values for array size and bit index resolution
+    if (ctx.constModifier() && ctx.expression()) {
+      const constValue = this.tryEvaluateConstant(ctx.expression()!);
+      if (constValue !== undefined) {
+        CodeGenState.constValues.set(name, constValue);
+      }
+    }
+  }
+
+  /**
+   * Issue #895 Bug B: Mark variable as a pointer in the type registry.
+   * Called when type inference detects that a variable should be a pointer
+   * (e.g., initialized from a C function returning T*).
+   */
+  private _markVariableAsPointer(name: string): void {
+    const typeInfo = CodeGenState.getVariableTypeInfo(name);
+    if (typeInfo) {
+      CodeGenState.setVariableTypeInfo(name, {
+        ...typeInfo,
+        isPointer: true,
+      });
+    }
+  }
+
+  // Issue #792: Methods _handleArrayDeclaration, _getArrayTypeDimension, _parseArrayTypeDimension,
+  // _parseFirstArrayDimension, _validateArrayDeclarationSyntax, _extractBaseTypeName,
+  // _generateVariableInitializer, _finalizeCppClassAssignments,
+  // and _generateConstructorDecl have been extracted to VariableDeclHelper.ts
+
+  /**
+   * Brace initializer that zero-initializes an aggregate (struct or array).
+   * Issue #379 / #1004: C++ uses value-initialization ({}), which is valid for
+   * any aggregate element type (POD, struct, class) including enum-first
+   * structs where {0} is an invalid int->enum narrowing; C uses {0}.
+   */
+  getAggregateZeroInitBrace(): string {
+    return CodeGenState.cppMode ? "{}" : "{0}";
+  }
+
+  /**
+   * Get zero initializer for an enum type.
+   * Returns member with value 0, or first member, or casted 0.
+   * ADR-017: Enums initialize to first member
+   */
+  private _getEnumZeroValue(
+    enumName: string,
+    separator: string = QualifiedCName.SEPARATOR,
+  ): string {
+    const members = CodeGenState.symbols!.enumMembers.get(enumName);
+    if (!members) {
+      return `(${enumName})0`;
+    }
+
+    // Find member with explicit value 0
+    for (const [memberName, value] of members.entries()) {
+      if (value === 0) {
+        return `${enumName}${separator}${memberName}`;
+      }
+    }
+
+    // Fall back to first member
+    const firstMember = members.keys().next().value;
+    if (firstMember) {
+      return `${enumName}${separator}${firstMember}`;
+    }
+
+    return `(${enumName})0`;
+  }
+
+  /**
+   * Resolve full type name from any TypeContext variant.
+   * Returns { name, separator } or null if not a named type.
+   * ADR-016: Handles scoped, global, qualified, and user types
+   */
+  private _resolveTypeNameFromContext(
+    typeCtx: Parser.TypeContext,
+  ): { name: string; separator: string } | null {
+    // #1285: ask for named types by name. Everything else -- string, array,
+    // template, primitive, `void` -- returns null and is handled by the
+    // caller's own chain, which is where it was always handled. An enumerated
+    // list of alternatives to SKIP would have to be kept in step with the
+    // grammar from ~3000 lines away, and getting it wrong fails open.
+    const name = TypeBinding.resolveNamedType(
+      typeCtx,
+      CodeGenState.currentScopePath,
+      CodeGenState.typeBindingDeps((parts) => this.resolveQualifiedType(parts)),
+    );
+    if (name === null) {
+      return null;
+    }
+
+    // Issue #388: a C++ namespace type comes back `::`-joined.
+    const separator = name.includes("::") ? "::" : QualifiedCName.SEPARATOR;
+    return { name, separator };
+  }
+
+  /**
+   * Generate a safe bit mask expression.
+   * Avoids undefined behavior when width >= 32 for 32-bit integers.
+   * @param width The width expression (may be a literal or expression)
+   * @param isF64 If true, generate 64-bit masks with ULL suffix (for f64 bit indexing)
+   */
+  // ========================================================================
+  // Statements
+  // Issue #644: _generateBitMask removed, now delegating to BitUtils.generateMask
+  // ========================================================================
+
+  // ADR-065: buildHandlerDeps removed - handlers now use CodeGenState.generator directly
+
+  /**
+   * Analyze a member chain target to detect bit access at the end.
+   * Issue #644: Delegates to MemberChainAnalyzer.
+   */
+  /** Public for handler access via CodeGenState.generator */
+  /**
+   * Dispatched through `ICodeGenApi` via `CodeGenState.requireGenerator()`, so
+   * no call site ever names this class. knip cannot follow that indirection.
+   *
+   * @public
+   */
+  analyzeMemberChainForBitAccess(targetCtx: Parser.AssignmentTargetContext): {
+    isBitAccess: boolean;
+    baseTarget?: string;
+    bitIndex?: string;
+    baseType?: string;
+  } {
+    // Issue #644: MemberChainAnalyzer is now static, pass generateExpression callback
+    return MemberChainAnalyzer.analyze(targetCtx, (ctx) =>
+      this.generateExpression(ctx),
+    );
+  }
+
+  /**
+   * Generate float bit write using shadow variable + memcpy.
+   * Issue #644: Delegates to FloatBitHelper.
+   */
+  /** Public for handler access via CodeGenState.generator */
+  /**
+   * Dispatched through `ICodeGenApi` via `CodeGenState.requireGenerator()`, so
+   * no call site ever names this class. knip cannot follow that indirection.
+   *
+   * @public
+   */
+  generateFloatBitWrite(
+    name: string,
+    typeInfo: TTypeInfo,
+    bitIndex: string,
+    width: string | null,
+    value: string,
+  ): string | null {
+    // Issue #644: FloatBitHelper is now static, pass callbacks
+    return FloatBitHelper.generateFloatBitWrite(
+      name,
+      typeInfo,
+      bitIndex,
+      width,
+      value,
+      {
+        generateBitMask: (w, is64Bit) => this.generateBitMask(w, is64Bit),
+        foldBooleanToInt: (expr) => this.foldBooleanToInt(expr),
+        requireInclude: (header) => CodeGenState.requireInclude(header),
+      },
+    );
+  }
+
+  // ADR-001: <- becomes = in C, with compound assignment operators
+  private generateAssignment(ctx: Parser.AssignmentStatementContext): string {
+    const targetCtx = ctx.assignmentTarget();
+
+    // Issue #644: Set expected type for inferred struct initializers and overflow behavior
+    // Delegated to AssignmentExpectedTypeResolver helper
+    const savedAssignmentContext = { ...CodeGenState.assignmentContext };
+
+    // Issue #644: AssignmentExpectedTypeResolver is now static
+    const resolved = AssignmentExpectedTypeResolver.resolve(targetCtx);
+    if (resolved.assignmentContext) {
+      CodeGenState.assignmentContext = resolved.assignmentContext;
+    }
+
+    // Use withExpectedType for exception safety on expectedType,
+    // manually save/restore assignmentContext
+    let value: string;
+    try {
+      value = CodeGenState.withExpectedType(resolved.expectedType, () =>
+        this.generateExpression(ctx.expression()),
+      );
+    } finally {
+      CodeGenState.assignmentContext = savedAssignmentContext;
+    }
+
+    // #1322: the operator was mapped to its C form here and used for nothing
+    // but the `isCompound` flag that `AssignmentValidator` took. ADR-065's
+    // handlers do their own mapping from `ctx`, so both are gone with it.
+
+    // #1322: `AssignmentValidator.validate` was called here, and by the end of
+    // the relocation it validated nothing -- ADR-013's const rule is E0877,
+    // ADR-017's enum rule E0428, ADR-024's conversions E0868/E0869, ADR-036's
+    // bounds E0854, ADR-004's `ro` write E0871 and ADR-029's callback typing
+    // E0879/E0880, every one of them authored in pass 2.1 at the target's own
+    // position. What was left was this single line of emission bookkeeping
+    // wrapped in a class named for the job it no longer did, so the class is
+    // deleted rather than left as a misleading name over a side effect.
+    //
+    // Writing to a float invalidates its bit-shadow: the union copy is stale
+    // until the next read refreshes it. Only a whole-variable assignment does
+    // this -- writing THROUGH a member or an element does not rebind the float.
+    if (targetCtx.postfixTargetOp().length === 0) {
+      const assignedName = targetCtx.IDENTIFIER()?.getText();
+      if (assignedName !== undefined) {
+        CodeGenState.floatShadowCurrent.delete(
+          BitRangeHelper.getShadowVarName(assignedName),
+        );
+      }
+    }
+
+    // ADR-065: Dispatch to assignment handlers
+    // Build context, classify, and dispatch - all patterns handled by handlers
+    const assignCtx = buildAssignmentContext(ctx, {
+      typeRegistry: CodeGenState.getTypeRegistryView(),
+      generateExpression: () => value,
+      generateAssignmentTarget: (targetCtx) =>
+        this.generateAssignmentTarget(targetCtx),
+      isKnownRegister: (name) => CodeGenState.symbols!.knownRegisters.has(name),
+      currentScopePath: CodeGenState.currentScopePath,
+    });
+    // ADR-065: Handlers access CodeGenState directly, no deps needed
+    const assignmentKind = AssignmentClassifier.classify(assignCtx);
+    const handler = AssignmentHandlerRegistry.getHandler(assignmentKind);
+    return handler(assignCtx);
+  }
+
+  /**
+   * ADR-049: Generate atomic Read-Modify-Write operation
+   * Uses LDREX/STREX on platforms that support it, otherwise PRIMASK
+   */
+  /** Public for handler access via CodeGenState.generator */
+  /**
+   * Dispatched through `ICodeGenApi` via `CodeGenState.requireGenerator()`, so
+   * no call site ever names this class. knip cannot follow that indirection.
+   *
+   * @public
+   */
+  generateAtomicRMW(
+    target: string,
+    cOp: string,
+    value: string,
+    typeInfo: TTypeInfo,
+  ): string {
+    const result = atomicGenerators.generateAtomicRMW(
+      target,
+      cOp,
+      value,
+      typeInfo,
+      CodeGenState.targetCapabilities,
+    );
+    this.applyEffects(result.effects);
+    return result.code;
+  }
+
+  /**
+   * Build dependencies for SimpleIdentifierResolver
+   */
+  private _buildSimpleIdentifierDeps(): ISimpleIdentifierDeps {
+    return {
+      getParameterInfo: (name: string) =>
+        CodeGenState.currentParameters.get(name),
+      resolveParameter: (name: string, paramInfo: TParameterInfo) =>
+        ParameterDereferenceResolver.resolve(
+          name,
+          paramInfo,
+          this._buildParameterDereferenceDeps(),
+        ),
+      isLocalVariable: (name: string) => CodeGenState.localVariables.has(name),
+      resolveBareIdentifier: (name: string, isLocal: boolean, line?: number) =>
+        TypeValidator.resolveBareIdentifier(
+          name,
+          isLocal,
+          (n: string) => this.isKnownStruct(n),
+          line,
+        ),
+    };
+  }
+
+  /**
+   * Extract postfix operations from parser contexts
+   */
+  private _extractPostfixOperations(
+    postfixOps: Parser.PostfixTargetOpContext[],
+  ): IPostfixOperation[] {
+    return postfixOps.map((op) => ({
+      memberName: op.IDENTIFIER()?.getText() ?? null,
+      expressions: op.expression(),
+    }));
+  }
+
+  /**
+   * Build dependencies for PostfixChainBuilder
+   */
+  private _buildPostfixChainDeps(
+    firstId: string,
+    hasGlobal: boolean,
+    hasThis: boolean,
+  ): IPostfixChainDeps {
+    const paramInfo = CodeGenState.currentParameters.get(firstId);
+    const isStructParam = paramInfo?.isStruct ?? false;
+    const isCppAccess = hasGlobal && this.isCppScopeSymbol(firstId);
+    const separatorDeps = this._buildMemberSeparatorDeps();
+    // Issue #895: Callback-compatible params need pointer semantics even in C++ mode
+    const forcePointerSemantics = paramInfo?.forcePointerSemantics ?? false;
+
+    const separatorCtx: ISeparatorContext =
+      MemberSeparatorResolver.buildContext(
+        {
+          firstId,
+          hasGlobal,
+          hasThis,
+          currentScopePath: CodeGenState.currentScopePath,
+          isStructParam,
+          isCppAccess,
+          forcePointerSemantics,
+        },
+        separatorDeps,
+      );
+
+    return {
+      generateExpression: (expr: unknown) =>
+        this.generateExpression(expr as Parser.ExpressionContext),
+      getSeparator: (isFirstOp: boolean, identifierChain: string[]) =>
+        MemberSeparatorResolver.getSeparator(
+          isFirstOp,
+          identifierChain,
+          separatorCtx,
+          separatorDeps,
+        ),
+    };
+  }
+
+  // #1322: ADR-016's access rules are E0435-E0437 in pass 2.1; `ScopeResolver`
+  // is gone with them.
+
+  // Issue #387: Dead methods removed (generateGlobalMemberAccess, generateGlobalArrayAccess,
+  // generateThisMemberAccess, generateThisArrayAccess) - now handled by unified doGenerateAssignmentTarget
+
+  private generateIf(ctx: Parser.IfStatementContext): string {
+    return this.invokeStatement("if", ctx);
+  }
+
+  private generateWhile(ctx: Parser.WhileStatementContext): string {
+    return this.invokeStatement("while", ctx);
+  }
+
+  private generateDoWhile(ctx: Parser.DoWhileStatementContext): string {
+    return this.invokeStatement("do-while", ctx);
+  }
+
+  private generateFor(ctx: Parser.ForStatementContext): string {
+    return this.invokeStatement("for", ctx);
+  }
+
+  private generateForever(ctx: Parser.ForeverStatementContext): string {
+    return this.invokeStatement("forever", ctx);
+  }
+
+  private generateReturn(ctx: Parser.ReturnStatementContext): string {
+    return this.invokeStatement("return", ctx);
+  }
+
+  // ========================================================================
+  // Critical Statements (ADR-050)
+  // ========================================================================
+
+  /**
+   * ADR-050: Generate critical statement with PRIMASK wrapper
+   * Ensures atomic execution of multi-variable operations
+   */
+  private generateCriticalStatement(
+    ctx: Parser.CriticalStatementContext,
+  ): string {
+    return this.invokeStatement("critical", ctx);
+  }
+
+  // Issue #63: validateNoEarlyExits moved to TypeValidator
+
+  // ========================================================================
+  // Switch Statements (ADR-025)
+  // ========================================================================
+
+  private generateSwitch(ctx: Parser.SwitchStatementContext): string {
+    return this.invokeStatement("switch", ctx);
+  }
+
+  // ========================================================================
+  // Expressions
+  // ========================================================================
+
+  // #1322: the shift-amount check (MISRA 12.2, E0873) that Issue #63 moved
+  // to TypeValidator is in pass 2.1, with the additive-type helpers that
+  // existed only to feed it.
+
+  /**
+   * Resolve 'this' keyword to scope marker
+   * ADR-016: 'this' returns a marker that postfixOps will transform to Scope_member
+   */
+  private _resolveThisKeyword(): string {
+    // #1322: the `!currentScopePath` guard that stood here is now E0431 in 2.1,
+    // with a real position. It threw the same string from four places in
+    // `output/`, and every one reached the user as `1:0`.
+    return "__THIS_SCOPE__";
+  }
+
+  /**
+   * Resolve an identifier in a primary expression context
+   * Handles: main args, parameters, local variables, scope resolution, enum members
+   */
+  private _resolveIdentifierExpression(id: string, line?: number): string {
+    // Special case: main function's args parameter -> argv
+    if (CodeGenState.mainArgsName && id === CodeGenState.mainArgsName) {
+      return "argv";
+    }
+
+    // ADR-006: Check if it's a function parameter
+    const paramInfo = CodeGenState.currentParameters.get(id);
+    if (paramInfo) {
+      return ParameterDereferenceResolver.resolve(
+        id,
+        paramInfo,
+        this._buildParameterDereferenceDeps(),
+      );
+    }
+
+    // ADR-016: Resolve bare identifier using local -> scope -> global priority
+    const isLocalVariable = CodeGenState.localVariables.has(id);
+    const resolved = TypeValidator.resolveBareIdentifier(
+      id,
+      isLocalVariable,
+      (name: string) => this.isKnownStruct(name),
+      line,
+    );
+    if (resolved !== null) {
+      // Issue #741: Check if this is a private const that should be inlined
+      const constValue =
+        CodeGenState.symbols!.scopePrivateConstValues.get(resolved);
+      if (constValue !== undefined) {
+        return constValue;
+      }
+      return resolved;
+    }
+
+    // Issue #452: Check if identifier is an unqualified enum member reference
+    const enumResolved = this._resolveUnqualifiedEnumMember(id);
+    if (enumResolved !== null) {
+      return enumResolved;
+    }
+
+    return id;
+  }
+
+  /**
+   * Resolve an unqualified identifier as an enum member
+   * Issue #452: Uses expectedType for type-aware resolution, falls back to searching all enums
+   * @returns The qualified enum member access, or null if not an enum member
+   */
+  private _resolveUnqualifiedEnumMember(id: string): string | null {
+    // Issue #872: MISRA contexts set expectedType for U suffix but suppress enum resolution
+    // Bare enum resolution in function args was never allowed and requires ADR approval to change
+    if (CodeGenState.suppressBareEnumResolution) {
+      // Fall through to error handling below - don't resolve bare enums
+    } else if (
+      // Type-aware resolution: check only the expected enum type
+      CodeGenState.expectedType &&
+      CodeGenState.symbols!.knownEnums.has(CodeGenState.expectedType)
+    ) {
+      const members = CodeGenState.symbols!.enumMembers.get(
+        CodeGenState.expectedType,
+      );
+      if (members?.has(id)) {
+        return `${CodeGenState.expectedType}${this.getScopeSeparator(false)}${id}`;
+      }
+      // Not a member of the expected enum: falls through to the assertion
+      // below. Before #1322 this returned null and the bare name was emitted
+      // into C when another enum declared it.
+    }
+
+    // #1322: a bare member with no enum naming its position is E0424 in pass
+    // 2.1 (ADR-017). Reaching here with a match means the emission would put a
+    // bare `RED` into C, so it is asserted rather than guessed at.
+    const matchingEnums: string[] = [];
+    for (const [enumName, members] of CodeGenState.symbols!.enumMembers) {
+      if (members.has(id)) {
+        matchingEnums.push(enumName);
+      }
+    }
+    invariant(
+      matchingEnums.length === 0,
+      `a bare enum member is resolved by its position -- E0424 rejects '${id}' ` +
+        `(declared by ${matchingEnums.join(", ")}) here in pass 2.1, before this runs`,
+    );
+    return null;
+  }
+
+  /**
+   * Generate a literal expression with C++ mode handling
+   * Uses extracted literal generator
+   */
+  private _generateLiteralExpression(ctx: Parser.LiteralContext): string {
+    const result = generateLiteral(ctx, this.getInput(), this.getState(), this);
+    this.applyEffects(result.effects);
+
+    // Issue #304/#644: Transform NULL → nullptr in C++ mode
+    if (result.code === "NULL") {
+      return CppModeHelper.nullLiteral();
+    }
+
+    return result.code;
+  }
+
+  /**
+   * ADR-017: Generate cast expression
+   * C mode:   (u8)State.IDLE -> (uint8_t)State_IDLE
+   * C++ mode: (u8)State.IDLE -> static_cast<uint8_t>(State_IDLE)
+   * Issue #267: Use C++ casts when cppMode is enabled
+   */
+  private generateCastExpression(ctx: Parser.CastExpressionContext): string {
+    const targetType = this.generateType(ctx.type());
+    const targetTypeName = ctx.type().getText();
+
+    // #1322: ADR-024's cast rules -- narrowing and sign change -- are E0869 in
+    // pass 2.1. They stood here as two throws that reached the user as `1:0`.
+
+    const expr = this.generateUnaryExpr(ctx.unaryExpression());
+
+    // Issue #632: Float-to-integer casts must clamp to avoid undefined behavior
+    // C-Next's default is "clamp" (saturate), so out-of-range values clamp to type limits
+    const sourceType = this.getUnaryExpressionType(ctx.unaryExpression());
+    if (CastValidator.requiresClampingCast(sourceType, targetTypeName)) {
+      return this.generateFloatToIntClampCast(
+        expr,
+        targetType,
+        targetTypeName,
+        sourceType!,
+      );
+    }
+
+    // Validate enum casts are only to unsigned types
+    const allowedCastTypes = ["u8", "u16", "u32", "u64"];
+
+    // Check if we're casting an enum (for validation)
+    // We allow casts from any expression, but could add validation here
+    if (
+      !allowedCastTypes.includes(targetTypeName) &&
+      !["i8", "i16", "i32", "i64", "f32", "f64", "bool"].includes(
+        targetTypeName,
+      )
+    ) {
+      // It's a user type cast - allow for now (could be struct pointer, etc.)
+    }
+
+    // Issue #267/#644: Use C++ casts when cppMode is enabled for MISRA compliance
+    return CppModeHelper.cast(targetType, expr);
+  }
+
+  /**
+   * Issue #632: Generate clamping cast for float-to-integer conversions
+   * In C, casting an out-of-range float to an integer is undefined behavior.
+   * C-Next's default overflow behavior is "clamp" (saturate), so we generate
+   * explicit bounds checks to ensure safe, deterministic results.
+   *
+   * @param expr The C expression for the float value
+   * @param targetType The C type name (e.g., "uint8_t")
+   * @param targetTypeName The C-Next type name (e.g., "u8")
+   * @param sourceType The source float type (e.g., "f32")
+   * @returns A clamping cast expression
+   */
+  private generateFloatToIntClampCast(
+    expr: string,
+    targetType: string,
+    targetTypeName: string,
+    sourceType: string,
+  ): string {
+    const maxValue = TYPE_LIMITS.TYPE_MAX[targetTypeName];
+    const minValue = TYPE_LIMITS.TYPE_MIN[targetTypeName];
+
+    if (!maxValue) {
+      // Unknown type, fall back to raw cast - Issue #644
+      return CppModeHelper.cast(targetType, expr);
+    }
+
+    // Mark that we need limits.h for the type limit macros
+    CodeGenState.requireInclude("limits");
+
+    // Use appropriate float suffix and type for comparisons
+    const floatSuffix = sourceType === "f32" ? "f" : "";
+    const floatCastType = sourceType === "f32" ? "float" : "double";
+
+    // For unsigned types, minValue is "0", for signed it's a macro like INT8_MIN
+    const minComparison =
+      minValue === "0"
+        ? `0.0${floatSuffix}`
+        : `((${floatCastType})${minValue})`;
+    const maxComparison = `((${floatCastType})${maxValue})`;
+
+    // Generate clamping expression:
+    // (expr > MAX) ? MAX : (expr < MIN) ? MIN : (type)(expr)
+    // Note: For unsigned targets, MIN is 0 so we check < 0.0
+    // MISRA 10.3: Cast limit macros to target type (they have type 'int')
+    const finalCast = CppModeHelper.cast(targetType, `(${expr})`);
+    const castMax = CppModeHelper.cast(targetType, maxValue);
+    const castMin = CppModeHelper.cast(targetType, minValue);
+    return `((${expr}) > ${maxComparison} ? ${castMax} : (${expr}) < ${minComparison} ? ${castMin} : ${finalCast})`;
+  }
+
+  /**
+   * ADR-023: Generate sizeof expression
+   * Delegates to SizeofResolver which uses CodeGenState.
+   */
+  private generateSizeofExpr(ctx: Parser.SizeofExpressionContext): string {
+    return SizeofResolver.generate(ctx, {
+      generateType: (typeCtx) => this.generateType(typeCtx),
+      generateExpression: (exprCtx) => this.generateExpression(exprCtx),
+      hasSideEffects: (exprCtx) => this.hasSideEffects(exprCtx),
+    });
+  }
+
+  /**
+   * True when the text contains an identifier followed by `(`, as
+   * /[a-zA-Z_]\w*\s*\(/ did -- scanned rather than matched, because that
+   * pattern retries \w* from every position when no `(` follows (S8786).
+   *
+   * The match may begin anywhere inside a word run, so the run before the
+   * parenthesis needs only to contain one letter or underscore: "9a8(" matches
+   * (starting at 'a') while "99(" does not.
+   */
+  private static _hasIdentifierBeforeParen(text: string): boolean {
+    for (let index = 0; index < text.length; index += 1) {
+      if (text[index] !== "(") {
+        continue;
+      }
+      let cursor = index - 1;
+      while (cursor >= 0 && /\s/.test(text[cursor])) {
+        cursor -= 1;
+      }
+      let sawIdentifierStart = false;
+      while (cursor >= 0 && /\w/.test(text[cursor])) {
+        if (/[a-zA-Z_]/.test(text[cursor])) {
+          sawIdentifierStart = true;
+        }
+        cursor -= 1;
+      }
+      if (sawIdentifierStart) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * ADR-023: Check if expression has side effects (E0602)
+   * Side effects include: assignments, function calls
+   */
+  private hasSideEffects(expr: Parser.ExpressionContext): boolean {
+    const text = expr.getText();
+
+    // Check for assignment operators
+    if (text.includes("<-")) return true;
+    if (text.includes("+<-")) return true;
+    if (text.includes("-<-")) return true;
+    if (text.includes("*<-")) return true;
+    if (text.includes("/<-")) return true;
+    if (text.includes("%<-")) return true;
+    if (text.includes("&<-")) return true;
+    if (text.includes("|<-")) return true;
+    if (text.includes("^<-")) return true;
+    if (text.includes("<<<-")) return true;
+    if (text.includes(">><-")) return true;
+
+    // Check for function calls by looking for identifier followed by (
+    // This is a heuristic - looking for "name(" pattern that's not a cast
+    if (CodeGenerator._hasIdentifierBeforeParen(text)) {
+      // Could be a function call - walk the tree to confirm
+      return this.hasPostfixFunctionCall(expr);
+    }
+
+    return false;
+  }
+
+  /**
+   * ADR-023: Check if expression contains a function call (postfix with argumentList)
+   */
+  private hasPostfixFunctionCall(expr: Parser.ExpressionContext): boolean {
+    return ExpressionUtils.hasFunctionCall(expr);
+  }
+
+  // NOTE: generateMemberAccess and generateArrayAccess removed in grammar consolidation
+  // These methods referenced MemberAccessContext and ArrayAccessContext which no longer
+  // exist after unifying to assignmentTarget: IDENTIFIER postfixTargetOp*
+
+  // ========================================================================
+  // strlen Optimization - Cache repeated .length accesses
+  // Issue #644: Walker methods extracted to StringLengthCounter class
+  // ========================================================================
+
+  /**
+   * Generate temp variable declarations for string lengths that are accessed 2+ times.
+   * Returns the declarations as a string and populates the lengthCache.
+   */
+  // ========================================================================
+  // ADR-044: Overflow Helper Functions
+  // ========================================================================
+
+  /**
+   * Generate all needed overflow helper functions
+   * Delegates to HelperGenerator
+   *
+   * Takes the ops from the PLAN, not from `CodeGenState`. Reading the state
+   * here while the plan also carried them was the fact in two places with the
+   * renderer using the other one -- the duplicate path this pass exists to
+   * remove, reintroduced by the pass itself.
+   */
+  private generateOverflowHelpers(clampOps: readonly string[]): string[] {
+    return helperGenerateOverflowHelpers(
+      new Set(clampOps),
+      CodeGenState.debugMode,
+    );
+  }
+
+  /**
+   * Generate platform-portable IRQ wrappers for critical sections (ADR-050, Issue #778)
+   *
+   * Generates code that works on:
+   * - ARM platforms (bare-metal or Arduino): Uses inline assembly for PRIMASK access
+   * - AVR Arduino: Uses SREG save/restore pattern
+   * - Other platforms: Falls back to CMSIS intrinsics
+   *
+   * This avoids dependencies on CMSIS headers which may not be available on all platforms
+   * (e.g., Teensy 4.x via Arduino.h doesn't expose __get_PRIMASK/__set_PRIMASK).
+   */
+  private generateIrqWrappers(): string[] {
+    return [
+      "// ADR-050: Platform-portable IRQ wrappers for critical sections",
+      "#if defined(__arm__) || defined(__ARM_ARCH)",
+      "// ARM platforms (including ARM Arduino like Teensy 4.x, Due, Zero)",
+      "// Provide inline assembly PRIMASK access to avoid CMSIS header dependencies",
+      "__attribute__((always_inline)) static inline uint32_t __cnx_get_PRIMASK(void) {",
+      "    uint32_t result;",
+      '    __asm volatile ("MRS %0, primask" : "=r" (result));',
+      "    return result;",
+      "}",
+      "__attribute__((always_inline)) static inline void __cnx_set_PRIMASK(uint32_t mask) {",
+      '    __asm volatile ("MSR primask, %0" :: "r" (mask) : "memory");',
+      "}",
+      "#if defined(ARDUINO)",
+      "static inline void __cnx_disable_irq(void) { noInterrupts(); }",
+      "#else",
+      "__attribute__((always_inline)) static inline void __cnx_disable_irq(void) {",
+      '    __asm volatile ("cpsid i" ::: "memory");',
+      "}",
+      "#endif",
+      "#elif defined(__AVR__)",
+      "// AVR Arduino: use SREG for interrupt state",
+      "// Note: Uses PRIMASK naming for API consistency across platforms (AVR has no PRIMASK)",
+      "// Returns uint8_t which is implicitly widened to uint32_t at call sites - this is intentional",
+      "static inline uint8_t __cnx_get_PRIMASK(void) { return SREG; }",
+      "static inline void __cnx_set_PRIMASK(uint8_t mask) { SREG = mask; }",
+      "static inline void __cnx_disable_irq(void) { cli(); }",
+      "#else",
+      "// Fallback: assume CMSIS is available",
+      "static inline void __cnx_disable_irq(void) { __disable_irq(); }",
+      "static inline uint32_t __cnx_get_PRIMASK(void) { return __get_PRIMASK(); }",
+      "static inline void __cnx_set_PRIMASK(uint32_t mask) { __set_PRIMASK(mask); }",
+      "#endif",
+      "",
+    ];
+  }
+
+  // ========================================================================
+  // Preprocessor Directive Handling (ADR-037)
+  // ========================================================================
+
+  /**
+   * Process a preprocessor directive
+   * Delegates to IncludeGenerator
+   */
+  private processPreprocessorDirective(
+    ctx: Parser.PreprocessorDirectiveContext,
+  ): string | null {
+    return includeProcessPreprocessorDirective(ctx);
+  }
+
+  // ========================================================================
+  // Comment Handling (ADR-043)
+  // Delegates to CommentUtils
+  // ========================================================================
+
+  /**
+   * Get comments that appear before a parse tree node
+   */
+  private getLeadingComments(ctx: {
+    start?: { tokenIndex: number } | null;
+  }): IComment[] {
+    return commentGetLeadingComments(ctx, this.commentExtractor);
+  }
+
+  /**
+   * Format leading comments with current indentation
+   */
+  private formatLeadingComments(comments: IComment[]): string[] {
+    const indent = FormatUtils.indent(CodeGenState.indentLevel);
+    return commentFormatLeadingComments(
+      comments,
+      this.commentFormatter,
+      indent,
+    );
+  }
+
+  /**
+   * ADR-051: Generate safe division helper functions for used integer types only
+   * Delegates to HelperGenerator
+   */
+  private generateSafeDivHelpers(safeDivOps: readonly string[]): string[] {
+    return helperGenerateSafeDivHelpers(new Set(safeDivOps));
+  }
+}

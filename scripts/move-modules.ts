@@ -338,6 +338,22 @@ const MOVES: readonly IMove[] = [
     because:
       "the include funnel that consumes it moves to CodeGenState, and state/ may not import output/ (`state-cannot-import-output`); a union two layers name is a shared contract, which .dependency-cruiser.cjs sends to transpiler/types/",
   },
+  // --- 2.3 Render: what the text looks like -------------------------------
+  {
+    from: "src/transpiler/output",
+    to: "src/TRANSPILE/3-Render",
+    because:
+      "#1450 box 5. The whole of `output/` IS the render pass -- codegen and " +
+      "header generation -- so it moves as a tree, the way 2.1 Analyze did. " +
+      "Every module here exists to turn settled decisions into text, and the " +
+      "pass's own entry point (`CodeGenerator`) cannot be left behind by a " +
+      "partial move without `3-Render/` holding everything except the pass. " +
+      "Twenty-seven of the 144 still DECIDE rather than format -- they raise " +
+      "an emission fact or expose a classification predicate -- and that is " +
+      "box 4's remaining work, not a reason to split the directory: a module " +
+      "that decides is in the wrong pass-PHASE, not the wrong pass, and #1443 " +
+      "keys destinations on the pass.",
+  },
 ];
 
 /** Every `.ts` file under a path, or the path itself when it is a file. */
