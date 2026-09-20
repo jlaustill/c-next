@@ -18,6 +18,7 @@ import TAssignmentHandler from "./TAssignmentHandler";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
 import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
+import RegisterAccessMode from "../../../../../utils/RegisterAccessMode";
 
 /**
  * Calculate mask value and hex string for bitmap field.
@@ -217,8 +218,7 @@ function handleScopedRegisterMemberBitmapField(
   // Check for write-only register (includes w1s, w1c)
   const accessMod =
     CodeGenState.symbols!.registerMemberAccess.get(fullRegMember);
-  const isWriteOnly =
-    accessMod === "wo" || accessMod === "w1s" || accessMod === "w1c";
+  const isWriteOnly = RegisterAccessMode.isWriteOne(accessMod);
 
   if (isWriteOnly) {
     return generateWriteOnlyBitmapWrite(

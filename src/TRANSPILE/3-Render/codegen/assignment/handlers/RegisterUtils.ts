@@ -7,6 +7,7 @@
 import BitUtils from "../../../../../utils/BitUtils";
 import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";
+import RegisterAccessMode from "../../../../../utils/RegisterAccessMode";
 
 /** Result from extracting bit range expressions */
 interface IBitRangeParams {
@@ -95,7 +96,7 @@ class RegisterUtils {
    * - 'w1c': Write-1-to-clear
    */
   static isWriteOnlyRegister(accessMod: string | undefined): boolean {
-    return accessMod === "wo" || accessMod === "w1s" || accessMod === "w1c";
+    return RegisterAccessMode.isWriteOne(accessMod);
   }
 
   /**
