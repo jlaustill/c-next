@@ -354,6 +354,29 @@ const MOVES: readonly IMove[] = [
       "that decides is in the wrong pass-PHASE, not the wrong pass, and #1443 " +
       "keys destinations on the pass.",
   },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/subscript/SubscriptClassifier.ts",
+    to: "src/TRANSPILE/2-Plan/SubscriptClassifier.ts",
+    because:
+      "#1450 box 4. `classify` decides WHICH subscript form a target is -- " +
+      "array element, bit, bit range, slice -- and both readers act on that " +
+      "answer rather than re-deriving it. That is 2.2's question, and the " +
+      "module can answer it there: its only imports are its own kind union " +
+      "and `TTypeInfo`, which is layer-neutral, so nothing " +
+      "`plan-cannot-import-render` forbids comes with it.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/subscript/TSubscriptKind.ts",
+    to: "src/TRANSPILE/2-Plan/TSubscriptKind.ts",
+    because:
+      "The decision's own vocabulary; its only readers are the classifier and " +
+      "itself, so it moves with it rather than becoming a shared contract.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/subscript/__tests__/SubscriptClassifier.test.ts",
+    to: "src/TRANSPILE/2-Plan/__tests__/SubscriptClassifier.test.ts",
+    because: "Tests live beside the module they exercise.",
+  },
 ];
 
 /** Every `.ts` file under a path, or the path itself when it is a file. */
