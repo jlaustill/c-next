@@ -16,9 +16,15 @@
  * the only one populated before `runAnalyzers`. It carries struct field
  * dimensions but nothing per-variable. The per-variable answers live in
  * `CodeGenState.typeRegistry`, which `CodeGenerator` fills and `reset()`
- * clears -- both AFTER the analyzers run. An analyzer reading it sees an empty
- * map for the first file and file N-1's data for every file after, so the
- * diagnostic becomes order-dependent; #1399 shipped exactly that.
+ * clears -- both AFTER the analyzers run. Since #1320 hoisted 2.1 Analyze
+ * whole-program, that map holds the SAME value for every file in a pass: empty
+ * in a fresh process, the previous run's last file in a long-lived one, because
+ * the only production `reset()` is per-file inside `generate()`. So an analyzer
+ * reading it through `getVariableTypeInfo()` -- which checks it before falling
+ * back to `SymbolTable` -- gets a stale local ahead of the correct answer. The
+ * order-dependence this comment used to describe was the pre-hoist shape (#1399
+ * shipped exactly that); the surviving failure is quieter and needs the opposite
+ * debugging.
  */
 interface IDeclaredVar {
   /** The declared type as written. What `vars` held before this widened. */
