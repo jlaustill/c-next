@@ -10,6 +10,10 @@ import IArgumentGeneratorCallbacks from "../types/IArgumentGeneratorCallbacks";
 import enterScope from "../../../../../transpiler/__tests__/enterScope";
 
 describe("ArgumentGenerator", () => {
+  // #1445: the callbacks are thunks and `generateArg` takes no node, so the 22
+  // `null as never` placeholders these tests passed as `ctx` are gone. One of
+  // them carried the comment "ctx not used in this path" -- which was true of
+  // every path, and is why this module left the parse-tree population.
   // Mock callbacks that return predictable values
   const createMockCallbacks = (
     overrides: Partial<IArgumentGeneratorCallbacks> = {},
@@ -18,7 +22,7 @@ describe("ArgumentGenerator", () => {
     getMemberAccessArrayStatus: () => "not-array",
     isCppMemberConversionRequired: () => false,
     isStringSubscriptAccess: () => false,
-    generateExpression: (ctx) => ctx.getText(),
+    generateExpression: () => "expr",
     ...overrides,
   });
 
@@ -130,11 +134,7 @@ describe("ArgumentGenerator", () => {
         generateExpression: () => "42",
       });
 
-      const result = ArgumentGenerator.handleRvalueArg(
-        null as never, // ctx not used in this path
-        undefined,
-        callbacks,
-      );
+      const result = ArgumentGenerator.handleRvalueArg(undefined, callbacks);
       expect(result).toBe("42");
     });
 
@@ -143,11 +143,7 @@ describe("ArgumentGenerator", () => {
         generateExpression: () => "doSomething()",
       });
 
-      const result = ArgumentGenerator.handleRvalueArg(
-        null as never,
-        "void",
-        callbacks,
-      );
+      const result = ArgumentGenerator.handleRvalueArg("void", callbacks);
       expect(result).toBe("doSomething()");
     });
 
@@ -157,11 +153,7 @@ describe("ArgumentGenerator", () => {
         generateExpression: () => "42",
       });
 
-      const result = ArgumentGenerator.handleRvalueArg(
-        null as never,
-        "u8",
-        callbacks,
-      );
+      const result = ArgumentGenerator.handleRvalueArg("u8", callbacks);
       expect(result).toBe("42");
     });
 
@@ -171,11 +163,7 @@ describe("ArgumentGenerator", () => {
         generateExpression: () => "42",
       });
 
-      const result = ArgumentGenerator.handleRvalueArg(
-        null as never,
-        "u8",
-        callbacks,
-      );
+      const result = ArgumentGenerator.handleRvalueArg("u8", callbacks);
       expect(result).toBe("&(uint8_t){42}");
     });
 
@@ -185,11 +173,7 @@ describe("ArgumentGenerator", () => {
         generateExpression: () => "1000",
       });
 
-      const result = ArgumentGenerator.handleRvalueArg(
-        null as never,
-        "i32",
-        callbacks,
-      );
+      const result = ArgumentGenerator.handleRvalueArg("i32", callbacks);
       expect(result).toBe("&(int32_t){1000}");
     });
   });
@@ -203,7 +187,6 @@ describe("ArgumentGenerator", () => {
       });
 
       const result = ArgumentGenerator.createCppMemberConversionTemp(
-        null as never,
         "u8",
         callbacks,
       );
@@ -223,7 +206,6 @@ describe("ArgumentGenerator", () => {
       });
 
       const result = ArgumentGenerator.createCppMemberConversionTemp(
-        null as never,
         "i16",
         callbacks,
       );
@@ -240,7 +222,6 @@ describe("ArgumentGenerator", () => {
       });
 
       const result = ArgumentGenerator.maybeCastStringSubscript(
-        null as never,
         "&buf[0]",
         undefined,
         callbacks,
@@ -254,7 +235,6 @@ describe("ArgumentGenerator", () => {
       });
 
       const result = ArgumentGenerator.maybeCastStringSubscript(
-        null as never,
         "&arr[0]",
         "u8",
         callbacks,
@@ -284,7 +264,6 @@ describe("ArgumentGenerator", () => {
       });
 
       const result = ArgumentGenerator.maybeCastStringSubscript(
-        null as never,
         "&buf[0]",
         argument2,
         callbacks,
@@ -300,11 +279,7 @@ describe("ArgumentGenerator", () => {
         generateExpression: () => "result.data",
       });
 
-      const result = ArgumentGenerator.handleMemberAccessArg(
-        null as never,
-        "u8",
-        callbacks,
-      );
+      const result = ArgumentGenerator.handleMemberAccessArg("u8", callbacks);
       expect(result).toBe("result.data");
     });
 
@@ -317,11 +292,7 @@ describe("ArgumentGenerator", () => {
         generateExpression: () => "cfg.enabled",
       });
 
-      const result = ArgumentGenerator.handleMemberAccessArg(
-        null as never,
-        "u8",
-        callbacks,
-      );
+      const result = ArgumentGenerator.handleMemberAccessArg("u8", callbacks);
 
       expect(result).toBe("cnx_tmp0");
       expect(CodeGenState.pendingTempDeclarations).toHaveLength(1);
@@ -333,11 +304,7 @@ describe("ArgumentGenerator", () => {
         isCppMemberConversionRequired: () => false,
       });
 
-      const result = ArgumentGenerator.handleMemberAccessArg(
-        null as never,
-        "u8",
-        callbacks,
-      );
+      const result = ArgumentGenerator.handleMemberAccessArg("u8", callbacks);
       expect(result).toBeNull();
     });
 
@@ -347,11 +314,7 @@ describe("ArgumentGenerator", () => {
         isCppMemberConversionRequired: () => false,
       });
 
-      const result = ArgumentGenerator.handleMemberAccessArg(
-        null as never,
-        "u8",
-        callbacks,
-      );
+      const result = ArgumentGenerator.handleMemberAccessArg("u8", callbacks);
       expect(result).toBeNull();
     });
   });
@@ -364,7 +327,6 @@ describe("ArgumentGenerator", () => {
       });
 
       const result = ArgumentGenerator.handleLvalueArg(
-        null as never,
         "member",
         "u8",
         callbacks,
@@ -381,7 +343,6 @@ describe("ArgumentGenerator", () => {
       });
 
       const result = ArgumentGenerator.handleLvalueArg(
-        null as never,
         "member",
         "u8",
         callbacks,
@@ -397,7 +358,6 @@ describe("ArgumentGenerator", () => {
       });
 
       const result = ArgumentGenerator.handleLvalueArg(
-        null as never,
         "array",
         "u8",
         callbacks,
@@ -413,7 +373,6 @@ describe("ArgumentGenerator", () => {
       });
 
       const result = ArgumentGenerator.handleLvalueArg(
-        null as never,
         "array",
         "u8",
         callbacks,
@@ -429,12 +388,7 @@ describe("ArgumentGenerator", () => {
         getLvalueType: () => null,
       });
 
-      const result = ArgumentGenerator.generateArg(
-        null as never,
-        "value",
-        "u8",
-        callbacks,
-      );
+      const result = ArgumentGenerator.generateArg("value", "u8", callbacks);
       expect(result).toBe("&value");
     });
 
@@ -452,12 +406,7 @@ describe("ArgumentGenerator", () => {
         getLvalueType: () => null,
       });
 
-      const result = ArgumentGenerator.generateArg(
-        null as never,
-        "cfg",
-        "Config",
-        callbacks,
-      );
+      const result = ArgumentGenerator.generateArg("cfg", "Config", callbacks);
       expect(result).toBe("cfg");
     });
 
@@ -471,7 +420,6 @@ describe("ArgumentGenerator", () => {
       });
 
       const result = ArgumentGenerator.generateArg(
-        null as never,
         null, // no simple identifier
         "u8",
         callbacks,
@@ -487,7 +435,6 @@ describe("ArgumentGenerator", () => {
       });
 
       const result = ArgumentGenerator.generateArg(
-        null as never,
         null, // no simple identifier
         "u8",
         callbacks,

@@ -769,13 +769,17 @@ export default class CodeGenerator implements IOrchestrator {
     targetParamBaseType?: string,
   ): string {
     const simpleId = ExpressionUnwrapper.getSimpleIdentifier(ctx);
-    return ArgumentGenerator.generateArg(ctx, simpleId, targetParamBaseType, {
-      getLvalueType: (c) => this.getLvalueType(c),
-      getMemberAccessArrayStatus: (c) => this.getMemberAccessArrayStatus(c),
-      isCppMemberConversionRequired: (c, t) =>
-        this.isCppMemberConversionRequired(c, t),
-      isStringSubscriptAccess: (c) => this.isStringSubscriptAccess(c),
-      generateExpression: (c) => this.generateExpression(c),
+    // #1445: thunks closing over `ctx`. `ArgumentGenerator` never read a
+    // member off the node -- it threaded it through five callbacks and four
+    // private helpers only to hand it back -- so the node stays here, where
+    // the tree already is.
+    return ArgumentGenerator.generateArg(simpleId, targetParamBaseType, {
+      getLvalueType: () => this.getLvalueType(ctx),
+      getMemberAccessArrayStatus: () => this.getMemberAccessArrayStatus(ctx),
+      isCppMemberConversionRequired: (t) =>
+        this.isCppMemberConversionRequired(ctx, t),
+      isStringSubscriptAccess: () => this.isStringSubscriptAccess(ctx),
+      generateExpression: () => this.generateExpression(ctx),
     });
   }
 

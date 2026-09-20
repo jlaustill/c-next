@@ -14,7 +14,6 @@
  * - Complex expressions are passed as-is
  */
 
-import * as Parser from "../../../../transpiler/logic/parser/grammar/CNextParser";
 import CodeGenState from "../../../../transpiler/state/CodeGenState";
 import CppModeHelper from "./CppModeHelper";
 import TYPE_MAP from "../types/TYPE_MAP";
@@ -78,13 +77,12 @@ class ArgumentGenerator {
    * Issue #872: Sets expectedType for MISRA 7.2 U suffix on unsigned literals.
    */
   static handleRvalueArg(
-    ctx: Parser.ExpressionContext,
     targetParamBaseType: string | undefined,
     callbacks: IArgumentGeneratorCallbacks,
   ): string {
     // Issue #872: Early return when no target type - no state management needed
     if (!targetParamBaseType) {
-      return callbacks.generateExpression(ctx);
+      return callbacks.generateExpression();
     }
 
     const cType = TYPE_MAP[targetParamBaseType];
@@ -92,7 +90,7 @@ class ArgumentGenerator {
       // Issue #872: Suppress bare enum resolution in function args (requires ADR to change)
       return CodeGenState.withExpectedType(
         targetParamBaseType,
-        () => callbacks.generateExpression(ctx),
+        () => callbacks.generateExpression(),
         true, // suppressEnumResolution
       );
     }
@@ -100,7 +98,7 @@ class ArgumentGenerator {
     // Issue #872: Suppress bare enum resolution in function args (requires ADR to change)
     const value = CodeGenState.withExpectedType(
       targetParamBaseType,
-      () => callbacks.generateExpression(ctx),
+      () => callbacks.generateExpression(),
       true, // suppressEnumResolution
     );
 
@@ -117,12 +115,11 @@ class ArgumentGenerator {
    * Create temp variable for C++ member conversion.
    */
   static createCppMemberConversionTemp(
-    ctx: Parser.ExpressionContext,
     targetParamBaseType: string,
     callbacks: IArgumentGeneratorCallbacks,
   ): string {
     const cType = TYPE_MAP[targetParamBaseType] || "uint8_t";
-    const value = callbacks.generateExpression(ctx);
+    const value = callbacks.generateExpression();
     // Issue #1131: one temporary namer for every family. This site previously
     // incremented the shared counter itself and spelled the name a third way
     // (`_cnx_tmp_<N>` alongside `_tmp<N>`), so the two families agreed only by
@@ -139,12 +136,11 @@ class ArgumentGenerator {
    * Maybe cast string subscript access for integer pointer parameters.
    */
   static maybeCastStringSubscript(
-    ctx: Parser.ExpressionContext,
     expr: string,
     targetParamBaseType: string | undefined,
     callbacks: IArgumentGeneratorCallbacks,
   ): string {
-    if (!targetParamBaseType || !callbacks.isStringSubscriptAccess(ctx)) {
+    if (!targetParamBaseType || !callbacks.isStringSubscriptAccess()) {
       return expr;
     }
 
@@ -161,25 +157,23 @@ class ArgumentGenerator {
    * Returns null if default lvalue handling should be used.
    */
   static handleMemberAccessArg(
-    ctx: Parser.ExpressionContext,
     targetParamBaseType: string | undefined,
     callbacks: IArgumentGeneratorCallbacks,
   ): string | null {
-    const arrayStatus = callbacks.getMemberAccessArrayStatus(ctx);
+    const arrayStatus = callbacks.getMemberAccessArrayStatus();
 
     // Array member - no address-of needed
     if (arrayStatus === "array") {
-      return callbacks.generateExpression(ctx);
+      return callbacks.generateExpression();
     }
 
     // C++ mode may need temp variable for type conversion
     if (
       arrayStatus === "not-array" &&
       targetParamBaseType &&
-      callbacks.isCppMemberConversionRequired(ctx, targetParamBaseType)
+      callbacks.isCppMemberConversionRequired(targetParamBaseType)
     ) {
       return ArgumentGenerator.createCppMemberConversionTemp(
-        ctx,
         targetParamBaseType,
         callbacks,
       );
@@ -192,7 +186,6 @@ class ArgumentGenerator {
    * Handle lvalue argument (member access or array access).
    */
   static handleLvalueArg(
-    ctx: Parser.ExpressionContext,
     lvalueType: "member" | "array",
     targetParamBaseType: string | undefined,
     callbacks: IArgumentGeneratorCallbacks,
@@ -200,7 +193,6 @@ class ArgumentGenerator {
     // Member access to array field - arrays decay to pointers
     if (lvalueType === "member") {
       const memberResult = ArgumentGenerator.handleMemberAccessArg(
-        ctx,
         targetParamBaseType,
         callbacks,
       );
@@ -208,13 +200,12 @@ class ArgumentGenerator {
     }
 
     // Generate expression with address-of
-    const generatedExpr = callbacks.generateExpression(ctx);
+    const generatedExpr = callbacks.generateExpression();
     const expr = CppModeHelper.maybeAddressOf(generatedExpr);
 
     // String subscript access may need cast
     if (lvalueType === "array") {
       return ArgumentGenerator.maybeCastStringSubscript(
-        ctx,
         expr,
         targetParamBaseType,
         callbacks,
@@ -227,13 +218,11 @@ class ArgumentGenerator {
   /**
    * Main entry point: Generate a function argument with proper ADR-006 semantics.
    *
-   * @param ctx - The expression context
    * @param simpleId - The simple identifier if known (optimization to avoid re-parsing)
    * @param targetParamBaseType - The target parameter's base type
    * @param callbacks - Callbacks to CodeGenerator methods
    */
   static generateArg(
-    ctx: Parser.ExpressionContext,
     simpleId: string | null,
     targetParamBaseType: string | undefined,
     callbacks: IArgumentGeneratorCallbacks,
@@ -244,10 +233,9 @@ class ArgumentGenerator {
     }
 
     // Check if expression is an lvalue
-    const lvalueType = callbacks.getLvalueType(ctx);
+    const lvalueType = callbacks.getLvalueType();
     if (lvalueType) {
       return ArgumentGenerator.handleLvalueArg(
-        ctx,
         lvalueType,
         targetParamBaseType,
         callbacks,
@@ -255,11 +243,7 @@ class ArgumentGenerator {
     }
 
     // Handle rvalue (literals or complex expressions)
-    return ArgumentGenerator.handleRvalueArg(
-      ctx,
-      targetParamBaseType,
-      callbacks,
-    );
+    return ArgumentGenerator.handleRvalueArg(targetParamBaseType, callbacks);
   }
 }
 
