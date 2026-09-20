@@ -11,7 +11,7 @@ import Transpiler from "../../../../transpiler/Transpiler";
  * Helper to parse C-Next source and get the first statement from main().
  */
 function parseFirstStatement(source: string): Parser.StatementContext {
-  const { tree, errors } = CNextSourceParser.parse(source);
+  const { tree, parseErrors: errors } = CNextSourceParser.parse(source);
   if (errors.length > 0) {
     throw new Error(`Parse failed: ${errors.map((e) => e.message).join(", ")}`);
   }

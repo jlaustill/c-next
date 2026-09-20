@@ -764,28 +764,32 @@ class Transpiler {
         readonly fileSymbols: IFileSymbols;
       } {
     const content = file.source ?? this.fs.readFile(file.path);
-    const { tree, tokenStream, errors, declarationCount } =
-      CNextSourceParser.parse(content);
+    const parsed = CNextSourceParser.parse(content);
 
-    // Parse errors — return them with original line/column and sourcePath
-    if (errors.length > 0) {
-      return { errors: errors.map((e) => ({ ...e, sourcePath: file.path })) };
+    // Parse errors — return them with original line/column and sourcePath.
+    // #1445: 1.2 carries its own errors, so the artifact is what comes back
+    // and this stamps the path the text came from -- the one fact 1.2 cannot
+    // know, because it parses a string.
+    if (parsed.parseErrors.length > 0) {
+      return {
+        errors: parsed.parseErrors.map((e) => ({
+          ...e,
+          sourcePath: file.path,
+        })),
+      };
     }
 
     // ADR-049: record the file's declared target while its tree is in hand, so
     // Stage 4c can resolve a run-level budget without re-parsing or re-deriving.
-    const pragmaTarget = TargetResolver.fromPragma(tree);
+    const pragmaTarget = TargetResolver.fromPragma(parsed.tree);
     if (pragmaTarget) {
       this.pragmaTargets.push(pragmaTarget);
     }
 
     try {
       // ADR-055 Phase 7: Use composable collectors via CNextResolver
-      const fileSymbols = this._declareFile(tree, file.path);
-      return {
-        parsed: { tree, tokenStream, declarationCount },
-        fileSymbols,
-      };
+      const fileSymbols = this._declareFile(parsed.tree, file.path);
+      return { parsed, fileSymbols };
     } catch (err) {
       return { errors: [Transpiler._collectionError(err)] };
     }
@@ -819,12 +823,7 @@ class Transpiler {
       // design's one real expense, so it is not paid for a consumer that does not
       // exist.
       if (Transpiler._producesOutput(file)) {
-        this.declaredFiles.set(file.path, {
-          tree: parsed.tree,
-          tokenStream: parsed.tokenStream,
-          declarationCount: parsed.declarationCount,
-          symbols: tSymbols,
-        });
+        this.declaredFiles.set(file.path, { parsed, symbols: tSymbols });
       }
 
       // ADR-055 Phase 7: Store TSymbol directly in SymbolTable (no ISymbol conversion)
@@ -911,7 +910,7 @@ class Transpiler {
       // #1322: the ADR-010 include facts are handed in rather than read off
       // CodeGenState, whose `sourcePath` is not written until `generate()` and
       // so holds another file's value here.
-      return runAnalyzers(declared.tree, declared.tokenStream, {
+      return runAnalyzers(declared.parsed.tree, declared.parsed.comments, {
         cppMode: this.cppMode,
         includes: {
           sourcePath,
@@ -939,7 +938,7 @@ class Transpiler {
     const sourcePath = file.path;
     const errors = diagnostics.forFile(sourcePath);
     const declarationCount =
-      this.declaredFiles.get(sourcePath)?.declarationCount ?? 0;
+      this.declaredFiles.get(sourcePath)?.parsed.declarationCount ?? 0;
 
     return errors.length > 0
       ? this.buildErrorResult(sourcePath, [...errors], declarationCount)
@@ -1047,7 +1046,7 @@ class Transpiler {
 
     try {
       const declared = this._requireDeclared(sourcePath);
-      const { tree, tokenStream, declarationCount } = declared;
+      const { tree, tokenStream, declarationCount } = declared.parsed;
 
       // Parse only mode
       if (this.config.parseOnly) {

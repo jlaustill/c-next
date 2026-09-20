@@ -318,7 +318,7 @@ describe("ParserUtils", () => {
     name: string;
     paramList: Parser.ParameterListContext | null;
   } {
-    const { tree, errors } = CNextSourceParser.parse(source);
+    const { tree, parseErrors: errors } = CNextSourceParser.parse(source);
 
     if (errors.length > 0) {
       throw new Error(

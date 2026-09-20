@@ -13,7 +13,7 @@ describe("CNextSourceParser", () => {
 
       const result = CNextSourceParser.parse(source);
 
-      expect(result.errors).toHaveLength(0);
+      expect(result.parseErrors).toHaveLength(0);
       expect(result.tree).toBeDefined();
       expect(result.tokenStream).toBeDefined();
       expect(result.declarationCount).toBe(1);
@@ -24,11 +24,11 @@ describe("CNextSourceParser", () => {
 
       const result = CNextSourceParser.parse(source);
 
-      expect(result.errors.length).toBeGreaterThan(0);
-      expect(result.errors[0].line).toBe(1);
-      expect(result.errors[0].column).toBeGreaterThanOrEqual(0);
-      expect(result.errors[0].severity).toBe("error");
-      expect(result.errors[0].message).toBeDefined();
+      expect(result.parseErrors.length).toBeGreaterThan(0);
+      expect(result.parseErrors[0].line).toBe(1);
+      expect(result.parseErrors[0].column).toBeGreaterThanOrEqual(0);
+      expect(result.parseErrors[0].severity).toBe("error");
+      expect(result.parseErrors[0].message).toBeDefined();
     });
 
     it("returns tree even when there are parse errors", () => {
@@ -50,7 +50,7 @@ describe("CNextSourceParser", () => {
 
       const result = CNextSourceParser.parse(source);
 
-      expect(result.errors).toHaveLength(0);
+      expect(result.parseErrors).toHaveLength(0);
       expect(result.declarationCount).toBe(3);
     });
 
@@ -59,7 +59,7 @@ describe("CNextSourceParser", () => {
 
       const result = CNextSourceParser.parse(source);
 
-      expect(result.errors).toHaveLength(0);
+      expect(result.parseErrors).toHaveLength(0);
       expect(result.declarationCount).toBe(0);
     });
 
@@ -69,8 +69,8 @@ describe("CNextSourceParser", () => {
 
       const result = CNextSourceParser.parse(source);
 
-      expect(result.errors.length).toBeGreaterThan(0);
-      expect(result.errors[0].severity).toBe("error");
+      expect(result.parseErrors.length).toBeGreaterThan(0);
+      expect(result.parseErrors[0].severity).toBe("error");
     });
 
     it("does not throw on malformed input", () => {
@@ -104,16 +104,16 @@ describe("CNextSourceParser", () => {
 
       const result = CNextSourceParser.parse(source);
 
-      expect(result.errors).toHaveLength(1);
-      expect(result.errors[0].message).toBe(
+      expect(result.parseErrors).toHaveLength(1);
+      expect(result.parseErrors[0].message).toBe(
         "error[E0430]: nested scopes are not allowed (ADR-016)",
       );
       // The advice sits on `help:`, the shape every other coded diagnostic uses.
-      expect(result.errors[0].helpText).toBe(
+      expect(result.parseErrors[0].helpText).toBe(
         "close the enclosing scope before declaring another, or use a flat scope such as Hardware_GPIO",
       );
-      expect(result.errors[0].line).toBe(3);
-      expect(result.errors[0].column).toBe(4);
+      expect(result.parseErrors[0].line).toBe(3);
+      expect(result.parseErrors[0].column).toBe(4);
     });
 
     it("names the missing brace first, because it cannot tell the two apart", () => {
@@ -130,8 +130,10 @@ scope B {
 
       const result = CNextSourceParser.parse(source);
 
-      expect(result.errors[0].message).toContain("error[E0430]");
-      expect(result.errors[0].helpText).toMatch(/^close the enclosing scope/);
+      expect(result.parseErrors[0].message).toContain("error[E0430]");
+      expect(result.parseErrors[0].helpText).toMatch(
+        /^close the enclosing scope/,
+      );
     });
 
     it("reports E0430 when the nested scope carries a visibility modifier", () => {
@@ -145,8 +147,8 @@ scope B {
 
       const result = CNextSourceParser.parse(source);
 
-      expect(result.errors[0].message).toContain("error[E0430]");
-      expect(result.errors[0].line).toBe(2);
+      expect(result.parseErrors[0].message).toContain("error[E0430]");
+      expect(result.parseErrors[0].line).toBe(2);
     });
 
     it("suppresses the recovery cascade so only the rule is reported", () => {
@@ -158,7 +160,7 @@ scope B {
 
       const result = CNextSourceParser.parse(source);
 
-      expect(result.errors).toHaveLength(1);
+      expect(result.parseErrors).toHaveLength(1);
     });
 
     it("reports every nested scope, not just the first", () => {
@@ -173,9 +175,9 @@ scope C {
 
       const result = CNextSourceParser.parse(source);
 
-      expect(result.errors).toHaveLength(2);
-      expect(result.errors[1].message).toContain("error[E0430]");
-      expect(result.errors[1].line).toBe(5);
+      expect(result.parseErrors).toHaveLength(2);
+      expect(result.parseErrors[1].message).toContain("error[E0430]");
+      expect(result.parseErrors[1].line).toBe(5);
     });
 
     // OVER-ENFORCEMENT CONTROLS. A `scope` keyword in one of these positions is
@@ -193,8 +195,8 @@ scope C {
       (_, source) => {
         const result = CNextSourceParser.parse(source);
 
-        expect(result.errors.length).toBeGreaterThan(0);
-        for (const error of result.errors) {
+        expect(result.parseErrors.length).toBeGreaterThan(0);
+        for (const error of result.parseErrors) {
           expect(error.message).not.toContain("E0430");
         }
       },
@@ -215,7 +217,7 @@ scope C {
 
       const result = CNextSourceParser.parse(source);
 
-      expect(result.errors).toHaveLength(0);
+      expect(result.parseErrors).toHaveLength(0);
     });
 
     it("still reports an unrelated later error in the same file", () => {
@@ -236,10 +238,10 @@ void main() {
 
       const result = CNextSourceParser.parse(source);
 
-      expect(result.errors).toHaveLength(2);
-      expect(result.errors[0].message).toContain("error[E0430]");
-      expect(result.errors[1].message).not.toContain("E0430");
-      expect(result.errors[1].line).toBe(6);
+      expect(result.parseErrors).toHaveLength(2);
+      expect(result.parseErrors[0].message).toContain("error[E0430]");
+      expect(result.parseErrors[1].message).not.toContain("E0430");
+      expect(result.parseErrors[1].line).toBe(6);
     });
 
     it("still reports an ordinary syntax error when no scope is nested", () => {
@@ -249,8 +251,8 @@ void main() { u8 y <- ; }`;
 
       const result = CNextSourceParser.parse(source);
 
-      expect(result.errors.length).toBeGreaterThan(0);
-      expect(result.errors[0].message).not.toContain("E0430");
+      expect(result.parseErrors.length).toBeGreaterThan(0);
+      expect(result.parseErrors[0].message).not.toContain("E0430");
     });
   });
 });

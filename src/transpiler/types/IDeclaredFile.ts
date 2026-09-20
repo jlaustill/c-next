@@ -1,6 +1,4 @@
-import type { CommonTokenStream } from "antlr4ng";
-
-import type { ProgramContext } from "../logic/parser/grammar/CNextParser";
+import type IParsedFile from "./IParsedFile";
 import type TSymbol from "./symbols/TSymbol";
 
 /**
@@ -20,22 +18,44 @@ import type TSymbol from "./symbols/TSymbol";
  * accumulated more `declarationSites` in between, reached by the SAME object
  * identity in both passes (175/175). So the second pass recomputed what the first
  * already knew.
+ *
+ * ## It holds 1.2's artifact; it does not restate it
+ *
+ * #1445. This interface used to list `tree`, `tokenStream` and
+ * `declarationCount` as its own fields, copied verbatim from `IParsedFile`, and
+ * `Transpiler._publishResolvedFile` destructured one into the other by hand.
+ * Three shapes described one parse -- `CNextSourceParser`'s private
+ * `IParseResult`, the artifact, and this -- so adding `comments` to the parse
+ * meant editing all three, which is the duplicate-path anti-pattern.
+ *
+ * **This is a cache entry, not a pass artifact.** 1.3 Declare's artifact is
+ * `IFileSymbols`, which carries no tree and has always had this right. What
+ * this holds is "what 1.2 and 1.3 produced for one file", retained because
+ * stage 5 reads it back instead of repeating both.
+ *
+ * ## Box 2 of #1445 is NOT satisfied by this shape
+ *
+ * *"1.3 consumes `ParsedFile` and does not re-export it; no artifact held by a
+ * later pass reaches a parse node."* Holding `parsed` re-exports it, plainly.
+ * The tree must survive 1.3 while 2.1 walks it to analyze and 2.3 walks it to
+ * render, so nothing here can be true before the render layer stops walking --
+ * that is box 3, and box 2 closes with it.
+ *
+ * This interface no longer NAMES a parse-context type, and it stays in
+ * `parse-tree-confined-to-parser`'s population anyway -- the rule lists
+ * `IParsedFile`, `IDeclaredFile` and `ITypeAccessors` in its `to` as sanctioned
+ * carriers, precisely so that reaching the tree through a named artifact counts
+ * the same as importing the grammar. That is the right answer and it was
+ * already there: swapping three fields for one carrier is a re-homing, not a
+ * decoupling, and a gate that let the count fall for it would be rewarding the
+ * spelling change the rule's own comment warns about.
  */
 interface IDeclaredFile {
-  /** The parse tree, walked by the analyzers and the generator. */
-  readonly tree: ProgramContext;
-
   /**
-   * The token stream that produced `tree`.
-   *
-   * Stage 3 discarded this and stage 5 obtained a fresh one from its own parse.
-   * `runAnalyzers` needs the stream that belongs to the tree it walks, so the
-   * two must be cached together or not at all.
+   * What 1.2 Parse produced: the tree, its token stream, the declaration
+   * count, the comments and any parse errors.
    */
-  readonly tokenStream: CommonTokenStream;
-
-  /** Top-level declaration count, reported in parse-only and error results. */
-  readonly declarationCount: number;
+  readonly parsed: IParsedFile;
 
   /**
    * Symbols declared by this file (pass 1.3).

@@ -8,7 +8,9 @@
 import { CharStream, CommonTokenStream, Parser, Token } from "antlr4ng";
 
 import { CNextLexer } from "./grammar/CNextLexer";
-import { CNextParser, ProgramContext } from "./grammar/CNextParser";
+import { CNextParser } from "./grammar/CNextParser";
+import CommentScanner from "./CommentScanner";
+import IParsedFile from "../../types/IParsedFile";
 import ITranspileError from "../../../lib/types/ITranspileError";
 
 /**
@@ -71,21 +73,14 @@ const NESTED_SCOPE_RULES: ReadonlySet<number> = new Set([
 ]);
 
 /**
- * Result of parsing C-Next source code
- */
-interface IParseResult {
-  /** The parsed AST */
-  tree: ProgramContext;
-  /** Token stream for code generation */
-  tokenStream: CommonTokenStream;
-  /** Any parse errors encountered */
-  errors: ITranspileError[];
-  /** Number of top-level declarations */
-  declarationCount: number;
-}
-
-/**
- * Parses C-Next source code and collects errors
+ * Parses C-Next source code and collects errors.
+ *
+ * Returns `IParsedFile` -- 1.2 Parse's artifact -- rather than a private result
+ * shape of its own. Until #1445 this file declared an `IParseResult` that
+ * restated `tree`, `tokenStream` and `declarationCount` verbatim, and
+ * `Transpiler` destructured one into the other by hand; adding a field to the
+ * artifact therefore meant editing both, which is the duplicate-path
+ * anti-pattern CLAUDE.md forbids. There is now one shape and no conversion.
  */
 class CNextSourceParser {
   /**
@@ -143,9 +138,9 @@ class CNextSourceParser {
   /**
    * Parse C-Next source code
    * @param source - The source code string to parse
-   * @returns Parse result with tree, token stream, errors, and declaration count
+   * @returns 1.2 Parse's artifact for this source
    */
-  static parse(source: string): IParseResult {
+  static parse(source: string): IParsedFile {
     const charStream = CharStream.fromString(source);
     const lexer = new CNextLexer(charStream);
     const tokenStream = new CommonTokenStream(lexer);
@@ -210,11 +205,19 @@ class CNextSourceParser {
     const tree = parser.program();
     const declarationCount = tree.declaration().length;
 
+    // Scanned here, once, because this is the last point at which the comments
+    // are free: the parse has already filled the token stream, so the hidden
+    // channel is a walk over tokens already in memory. Every later reader --
+    // 2.1's MISRA 3.1/3.2 check, and the render layer re-attaching them -- used
+    // to pay for its own scan off the same stream (#1445).
+    const comments = new CommentScanner(tokenStream).extractAll();
+
     return {
       tree,
       tokenStream,
-      errors,
       declarationCount,
+      comments,
+      parseErrors: errors,
     };
   }
 }

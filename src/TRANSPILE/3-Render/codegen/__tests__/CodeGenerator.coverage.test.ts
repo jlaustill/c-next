@@ -35,7 +35,11 @@ function setupGenerator(
   generator: CodeGenerator;
   code: string;
 } {
-  const { tree, errors, tokenStream } = CNextSourceParser.parse(source);
+  const {
+    tree,
+    parseErrors: errors,
+    tokenStream,
+  } = CNextSourceParser.parse(source);
   if (errors.length > 0) {
     throw new Error(`Parse failed: ${errors.map((e) => e.message).join(", ")}`);
   }

@@ -295,7 +295,7 @@ function convertScope(
  */
 function parseWithSymbols(source: string): IParseWithSymbolsResult {
   // Parse C-Next source
-  const { tree, errors } = CNextSourceParser.parse(source);
+  const { tree, parseErrors: errors } = CNextSourceParser.parse(source);
 
   // ADR-055 Phase 7: Direct TSymbol → ISymbolInfo conversion (no ISymbol intermediate)
   //
@@ -313,7 +313,9 @@ function parseWithSymbols(source: string): IParseWithSymbolsResult {
 
   return {
     success: errors.length === 0,
-    errors,
+    // Copied, not aliased: `parseErrors` belongs to 1.2's artifact, and this is
+    // a public API whose caller owns what it is handed (#1445).
+    errors: [...errors],
     symbols,
   };
 }

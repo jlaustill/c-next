@@ -12,7 +12,7 @@ import * as Parser from "../../../../../transpiler/logic/parser/grammar/CNextPar
  */
 function parseExpression(exprSource: string): Parser.ExpressionContext {
   const source = `void main() { u32 x <- ${exprSource}; }`;
-  const { tree, errors } = CNextSourceParser.parse(source);
+  const { tree, parseErrors: errors } = CNextSourceParser.parse(source);
 
   if (errors.length > 0) {
     throw new Error(`Parse failed: ${errors.map((e) => e.message).join(", ")}`);

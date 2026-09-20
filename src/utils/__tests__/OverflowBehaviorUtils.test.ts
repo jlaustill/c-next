@@ -14,7 +14,7 @@ import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
 const modifierFor = (
   declaration: string,
 ): Parser.OverflowModifierContext | null => {
-  const { tree, errors } = CNextSourceParser.parse(declaration);
+  const { tree, parseErrors: errors } = CNextSourceParser.parse(declaration);
   if (errors.length > 0) {
     throw new Error(`unparsable fixture: ${errors[0].message}`);
   }

@@ -3,9 +3,7 @@
  * Tests that all analyzers run in sequence with early returns on errors
  */
 import { describe, it, expect, beforeEach } from "vitest";
-import { CharStream, CommonTokenStream } from "antlr4ng";
-import { CNextLexer } from "../../../transpiler/logic/parser/grammar/CNextLexer";
-import { CNextParser } from "../../../transpiler/logic/parser/grammar/CNextParser";
+import CNextSourceParser from "../../../transpiler/logic/parser/CNextSourceParser";
 import runAnalyzers from "../runAnalyzers";
 import SymbolTable from "../../../transpiler/state/SymbolTable";
 import CodeGenState from "../../../transpiler/state/CodeGenState";
@@ -29,15 +27,18 @@ const NO_INCLUDES = {
 };
 
 /**
- * Helper to parse C-Next code and return AST + token stream
+ * Helper to parse C-Next code and return the AST plus its comments.
+ *
+ * #1445: this used to build its own `CharStream`/lexer/`CommonTokenStream`/
+ * parser -- a second spelling of `CNextSourceParser.parse` that had to be kept
+ * in step with it by hand, and which left ANTLR's DEFAULT error listeners
+ * installed, so an unparsable fixture printed to the console instead of being
+ * collected. It calls the real parser now, and takes `comments` off 1.2's
+ * artifact because that is what `runAnalyzers` asks for.
  */
-function parseWithStream(source: string) {
-  const charStream = CharStream.fromString(source);
-  const lexer = new CNextLexer(charStream);
-  const tokenStream = new CommonTokenStream(lexer);
-  const parser = new CNextParser(tokenStream);
-  const tree = parser.program();
-  return { tree, tokenStream };
+function parseWithComments(source: string) {
+  const { tree, comments } = CNextSourceParser.parse(source);
+  return { tree, comments };
 }
 
 describe("runAnalyzers", () => {
@@ -53,13 +54,13 @@ describe("runAnalyzers", () => {
 
   describe("valid code", () => {
     it("should return no errors for valid code", () => {
-      const { tree, tokenStream } = parseWithStream(`
+      const { tree, comments } = parseWithComments(`
         void main() {
           u32 x <- 5;
           u32 y <- x + 3;
         }
       `);
-      const errors = runAnalyzers(tree, tokenStream, {
+      const errors = runAnalyzers(tree, comments, {
         cppMode: false,
         includes: NO_INCLUDES,
       });
@@ -67,8 +68,8 @@ describe("runAnalyzers", () => {
     });
 
     it("should return no errors for empty program", () => {
-      const { tree, tokenStream } = parseWithStream(``);
-      const errors = runAnalyzers(tree, tokenStream, {
+      const { tree, comments } = parseWithComments(``);
+      const errors = runAnalyzers(tree, comments, {
         cppMode: false,
         includes: NO_INCLUDES,
       });
@@ -82,8 +83,8 @@ describe("runAnalyzers", () => {
 
   describe("phase 1 - identifier syntax", () => {
     it("should return early on a trailing-underscore identifier", () => {
-      const { tree, tokenStream } = parseWithStream(`u8 value_ <- 1;`);
-      const errors = runAnalyzers(tree, tokenStream, {
+      const { tree, comments } = parseWithComments(`u8 value_ <- 1;`);
+      const errors = runAnalyzers(tree, comments, {
         cppMode: false,
         includes: NO_INCLUDES,
       });
@@ -96,8 +97,8 @@ describe("runAnalyzers", () => {
     });
 
     it("should return early on consecutive underscores", () => {
-      const { tree, tokenStream } = parseWithStream(`u8 my__value <- 1;`);
-      const errors = runAnalyzers(tree, tokenStream, {
+      const { tree, comments } = parseWithComments(`u8 my__value <- 1;`);
+      const errors = runAnalyzers(tree, comments, {
         cppMode: false,
         includes: NO_INCLUDES,
       });
@@ -107,13 +108,13 @@ describe("runAnalyzers", () => {
     });
 
     it("should accept a leading underscore (ADR-063)", () => {
-      const { tree, tokenStream } = parseWithStream(`
+      const { tree, comments } = parseWithComments(`
         void fn() {
           u8 _local <- 1;
           u8 x <- _local;
         }
       `);
-      const errors = runAnalyzers(tree, tokenStream, {
+      const errors = runAnalyzers(tree, comments, {
         cppMode: false,
         includes: NO_INCLUDES,
       });
@@ -128,12 +129,12 @@ describe("runAnalyzers", () => {
 
   describe("phase 2 - parameter naming", () => {
     it("should return early on parameter naming error", () => {
-      const { tree, tokenStream } = parseWithStream(`
+      const { tree, comments } = parseWithComments(`
         void process(u32 process_data) {
           u32 x <- process_data;
         }
       `);
-      const errors = runAnalyzers(tree, tokenStream, {
+      const errors = runAnalyzers(tree, comments, {
         cppMode: false,
         includes: NO_INCLUDES,
       });
@@ -157,13 +158,13 @@ describe("runAnalyzers", () => {
 
   describe("phase 3 - initialization", () => {
     it("should return early on use-before-init error", () => {
-      const { tree, tokenStream } = parseWithStream(`
+      const { tree, comments } = parseWithComments(`
         void main() {
           u32 x;
           u32 y <- x;
         }
       `);
-      const errors = runAnalyzers(tree, tokenStream, {
+      const errors = runAnalyzers(tree, comments, {
         cppMode: false,
         includes: NO_INCLUDES,
       });
@@ -181,7 +182,7 @@ describe("runAnalyzers", () => {
 
   describe("phase 4 - function call", () => {
     it("should return early on call-before-define error", () => {
-      const { tree, tokenStream } = parseWithStream(`
+      const { tree, comments } = parseWithComments(`
         void main() {
           helper();
         }
@@ -189,7 +190,7 @@ describe("runAnalyzers", () => {
           u32 x <- 5;
         }
       `);
-      const errors = runAnalyzers(tree, tokenStream, {
+      const errors = runAnalyzers(tree, comments, {
         cppMode: false,
         includes: NO_INCLUDES,
       });
@@ -206,14 +207,14 @@ describe("runAnalyzers", () => {
 
   describe("phase 5 - null check", () => {
     it("should return early on missing null check", () => {
-      const { tree, tokenStream } = parseWithStream(`
+      const { tree, comments } = parseWithComments(`
         #include <string.h>
         void main() {
           cstring str <- "hello";
           strchr(str, 'x');
         }
       `);
-      const errors = runAnalyzers(tree, tokenStream, {
+      const errors = runAnalyzers(tree, comments, {
         cppMode: false,
         includes: NO_INCLUDES,
       });
@@ -230,12 +231,12 @@ describe("runAnalyzers", () => {
 
   describe("phase 6 - division by zero", () => {
     it("should return early on division by zero", () => {
-      const { tree, tokenStream } = parseWithStream(`
+      const { tree, comments } = parseWithComments(`
         void main() {
           u32 x <- 10 / 0;
         }
       `);
-      const errors = runAnalyzers(tree, tokenStream, {
+      const errors = runAnalyzers(tree, comments, {
         cppMode: false,
         includes: NO_INCLUDES,
       });
@@ -252,13 +253,13 @@ describe("runAnalyzers", () => {
 
   describe("phase 7 - float modulo", () => {
     it("should return early on float modulo", () => {
-      const { tree, tokenStream } = parseWithStream(`
+      const { tree, comments } = parseWithComments(`
         void main() {
           f32 x <- 10.5;
           f32 result <- x % 3;
         }
       `);
-      const errors = runAnalyzers(tree, tokenStream, {
+      const errors = runAnalyzers(tree, comments, {
         cppMode: false,
         includes: NO_INCLUDES,
       });
@@ -277,8 +278,8 @@ describe("runAnalyzers", () => {
     it("should return comment errors for nested comment markers", () => {
       // MISRA 3.1: no nested comment start markers inside comments
       const code = "/* outer /* nested */ \nvoid main() { u32 x <- 1; }";
-      const { tree, tokenStream } = parseWithStream(code);
-      const errors = runAnalyzers(tree, tokenStream, {
+      const { tree, comments } = parseWithComments(code);
+      const errors = runAnalyzers(tree, comments, {
         cppMode: false,
         includes: NO_INCLUDES,
       });
@@ -297,7 +298,7 @@ describe("runAnalyzers", () => {
     it("should read externalStructFields from CodeGenState", () => {
       // Code that uses a field from an external struct - externalStructFields
       // are now read from CodeGenState
-      const { tree, tokenStream } = parseWithStream(`
+      const { tree, comments } = parseWithComments(`
         void main() {
           u32 x <- 5;
         }
@@ -319,7 +320,7 @@ describe("runAnalyzers", () => {
         CodeGenState.symbolTable.getAllStructFields(),
       );
 
-      const errors = runAnalyzers(tree, tokenStream, {
+      const errors = runAnalyzers(tree, comments, {
         cppMode: false,
         includes: NO_INCLUDES,
       });
@@ -327,7 +328,7 @@ describe("runAnalyzers", () => {
     });
 
     it("should pass symbolTable to analyzers", () => {
-      const { tree, tokenStream } = parseWithStream(`
+      const { tree, comments } = parseWithComments(`
         void main() {
           u32 x <- 5;
         }
@@ -344,7 +345,7 @@ describe("runAnalyzers", () => {
         type: "void",
       });
 
-      const errors = runAnalyzers(tree, tokenStream, {
+      const errors = runAnalyzers(tree, comments, {
         symbolTable,
         cppMode: false,
         includes: NO_INCLUDES,
@@ -353,7 +354,7 @@ describe("runAnalyzers", () => {
     });
 
     it("should use CodeGenState.symbolTable by default", () => {
-      const { tree, tokenStream } = parseWithStream(`
+      const { tree, comments } = parseWithComments(`
         void main() {
           u32 x <- 5;
         }
@@ -375,7 +376,7 @@ describe("runAnalyzers", () => {
       );
 
       // No options passed - should use CodeGenState.symbolTable
-      const errors = runAnalyzers(tree, tokenStream, {
+      const errors = runAnalyzers(tree, comments, {
         cppMode: false,
         includes: NO_INCLUDES,
       });
@@ -389,12 +390,12 @@ describe("runAnalyzers", () => {
 
   describe("error format", () => {
     it("should include line, column, message, and severity on all errors", () => {
-      const { tree, tokenStream } = parseWithStream(`
+      const { tree, comments } = parseWithComments(`
         void main() {
           u32 x <- 10 / 0;
         }
       `);
-      const errors = runAnalyzers(tree, tokenStream, {
+      const errors = runAnalyzers(tree, comments, {
         cppMode: false,
         includes: NO_INCLUDES,
       });

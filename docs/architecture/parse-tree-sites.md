@@ -27,14 +27,14 @@ one.
 
 | Layer                     | Modules |
 | ------------------------- | ------: |
-| `src/TRANSPILE/`          |      63 |
+| `src/TRANSPILE/`          |      62 |
 | `src/TRANSPILE/3-Render/` |      43 |
 | `src/PARSE/`              |      18 |
 | `src/utils/`              |      11 |
 | `src/transpiler/types/`   |       4 |
 | `src/transpiler/`         |       3 |
 | `src/transpiler/logic/`   |       1 |
-| **total**                 | **143** |
+| **total**                 | **142** |
 
 `src/TRANSPILE/3-Render/` is the render layer, and its share is the number
 the issue singles out: the render layer holding parse nodes is how a
@@ -71,7 +71,6 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/TRANSPILE/1-Analyze/BitmapAccessAnalyzer.ts`                                            | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/BooleanOperandAnalyzer.ts`                                          | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/CallbackAssignmentAnalyzer.ts`                                      | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/CommentExtractor.ts`                                                | antlr4ng          |
 | `src/TRANSPILE/1-Analyze/CompoundAssignmentAnalyzer.ts`                                      | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/ConstAssignmentAnalyzer.ts`                                         | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/ConstructorArgumentAnalyzer.ts`                                     | antlr4ng, grammar |
@@ -110,7 +109,7 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/TRANSPILE/1-Analyze/RegisterAccessAnalyzer.ts`                                          | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/ReturnPathAnalyzer.ts`                                              | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/ReturnValueUseAnalyzer.ts`                                          | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/runAnalyzers.ts`                                                    | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/runAnalyzers.ts`                                                    | grammar           |
 | `src/TRANSPILE/1-Analyze/SafeDivisionAnalyzer.ts`                                            | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/ScopeAccessAnalyzer.ts`                                             | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/ScopeFrameResolver.ts`                                              | antlr4ng          |
@@ -173,7 +172,7 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/transpiler/ModificationFacts.ts`                                                        | grammar           |
 | `src/transpiler/Transpiler.ts`                                                               | grammar           |
 | `src/transpiler/types/IAssignmentContext.ts`                                                 | grammar           |
-| `src/transpiler/types/IDeclaredFile.ts`                                                      | antlr4ng, grammar |
+| `src/transpiler/types/IDeclaredFile.ts`                                                      | grammar           |
 | `src/transpiler/types/IParsedFile.ts`                                                        | antlr4ng, grammar |
 | `src/transpiler/types/ITypeAccessors.ts`                                                     | grammar           |
 | `src/utils/ArrayDimensionParser.ts`                                                          | grammar           |
@@ -188,4 +187,4 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/utils/PostfixAnalysisUtils.ts`                                                          | grammar           |
 | `src/utils/TargetResolver.ts`                                                                | grammar           |
 
-143 module(s).
+142 module(s).
