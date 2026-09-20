@@ -186,28 +186,6 @@ describe("HeaderGeneratorUtils", () => {
     });
   });
 
-  describe("isMacroDimension", () => {
-    it("returns false for empty string", () => {
-      expect(HeaderGeneratorUtils.isMacroDimension("")).toBe(false);
-    });
-
-    it("returns false for numeric dimensions", () => {
-      expect(HeaderGeneratorUtils.isMacroDimension("4")).toBe(false);
-      expect(HeaderGeneratorUtils.isMacroDimension("16")).toBe(false);
-      expect(HeaderGeneratorUtils.isMacroDimension("256")).toBe(false);
-    });
-
-    it("returns true for identifier dimensions", () => {
-      expect(HeaderGeneratorUtils.isMacroDimension("DEVICE_COUNT")).toBe(true);
-      expect(HeaderGeneratorUtils.isMacroDimension("MAX_SIZE")).toBe(true);
-      expect(HeaderGeneratorUtils.isMacroDimension("NUM_LEDS")).toBe(true);
-    });
-
-    it("returns true for expression dimensions", () => {
-      expect(HeaderGeneratorUtils.isMacroDimension("SIZE * 2")).toBe(true);
-    });
-  });
-
   describe("getLocalTypeNames", () => {
     it("extracts local type names from grouped symbols", () => {
       const groups = {

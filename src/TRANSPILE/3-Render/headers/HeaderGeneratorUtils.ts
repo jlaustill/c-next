@@ -111,26 +111,6 @@ class HeaderGeneratorUtils {
   }
 
   /**
-   * Check if an array dimension is a macro (non-numeric identifier)
-   * Numeric dimensions: "4", "16", "256", ""
-   * Macro dimensions: "DEVICE_COUNT", "MAX_SIZE", "NUM_LEDS"
-   */
-  static isMacroDimension(dimension: string): boolean {
-    // Empty string is an unbounded array, not a macro
-    if (!dimension || dimension.trim() === "") {
-      return false;
-    }
-
-    // Pure numeric dimensions are not macros
-    if (/^\d+$/.test(dimension.trim())) {
-      return false;
-    }
-
-    // Anything else (identifier, expression) is treated as a macro
-    return true;
-  }
-
-  /**
    * Collect external type dependencies from function signatures and variables
    * Returns types that are:
    * - Not primitive types (not in TYPE_MAP)
