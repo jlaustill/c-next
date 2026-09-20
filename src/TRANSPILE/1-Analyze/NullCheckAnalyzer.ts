@@ -18,6 +18,7 @@ import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
 import INullCheckError from "../../transpiler/types/INullCheckError";
 import ParserUtils from "../../utils/ParserUtils";
 import IncludeDirective from "./helpers/IncludeDirective";
+import BareIdentifier from "../../utils/BareIdentifier";
 
 /**
  * Metadata for C library functions that can return NULL
@@ -516,7 +517,7 @@ class NullCheckListener extends CNextListener {
     for (const child of children) {
       const text = child.getText();
       // Simple check: if it's a simple identifier and not NULL, add it
-      if (/^[a-zA-Z_]\w*$/.test(text) && text !== "NULL") {
+      if (BareIdentifier.matches(text) && text !== "NULL") {
         names.push(text);
       }
     }

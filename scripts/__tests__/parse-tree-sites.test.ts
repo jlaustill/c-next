@@ -72,8 +72,8 @@ describe("ParseTreeSites.layerOf", () => {
     // The ordering IS the assertion: with `src/transpiler/` tested first, every
     // transpiler module collapses into one row and the render layer's share --
     // the number #1317 singles out -- disappears from the document.
-    expect(ParseTreeSites.layerOf("src/transpiler/output/codegen/X.ts")).toBe(
-      "src/transpiler/output/",
+    expect(ParseTreeSites.layerOf("src/TRANSPILE/3-Render/codegen/X.ts")).toBe(
+      "src/TRANSPILE/3-Render/",
     );
     expect(ParseTreeSites.layerOf("src/transpiler/Transpiler.ts")).toBe(
       "src/transpiler/",
@@ -109,7 +109,7 @@ describe("ParseTreeSites.emptinessError", () => {
 
 describe("ParseTreeSites.render", () => {
   const sites = ParseTreeSites.sites([
-    violation("src/transpiler/output/A.ts", GRAMMAR),
+    violation("src/TRANSPILE/3-Render/A.ts", GRAMMAR),
     violation("src/utils/B.ts", RUNTIME),
   ]);
 
@@ -117,7 +117,7 @@ describe("ParseTreeSites.render", () => {
     const document = ParseTreeSites.render(sites);
 
     expect(document).toContain("| **total** | **2** |");
-    expect(document).toContain("| `src/transpiler/output/` | 1 |");
+    expect(document).toContain("| `src/TRANSPILE/3-Render/` | 1 |");
   });
 
   it("emits no timestamp", () => {
@@ -128,7 +128,7 @@ describe("ParseTreeSites.render", () => {
 
 describe("ParseTreeSites.checkOutcome", () => {
   const sites = ParseTreeSites.sites([
-    violation("src/transpiler/output/A.ts", GRAMMAR),
+    violation("src/TRANSPILE/3-Render/A.ts", GRAMMAR),
     violation("src/utils/B.ts", RUNTIME),
   ]);
   const committed = ParseTreeSites.render(sites);
@@ -153,7 +153,7 @@ describe("ParseTreeSites.checkOutcome", () => {
 
   it("fires when a module joins the population", () => {
     const grown = ParseTreeSites.sites([
-      violation("src/transpiler/output/A.ts", GRAMMAR),
+      violation("src/TRANSPILE/3-Render/A.ts", GRAMMAR),
       violation("src/utils/B.ts", RUNTIME),
       violation("src/TRANSPILE/2-Plan/New.ts", GRAMMAR),
     ]);
@@ -172,7 +172,7 @@ describe("ParseTreeSites.checkOutcome", () => {
     // for free, so the next rise is measured against a number nobody
     // re-derived.
     const shrunk = ParseTreeSites.sites([
-      violation("src/transpiler/output/A.ts", GRAMMAR),
+      violation("src/TRANSPILE/3-Render/A.ts", GRAMMAR),
     ]);
     const outcome = ParseTreeSites.checkOutcome(
       committed,
@@ -213,7 +213,7 @@ describe("ParseTreeSites.checkOutcome", () => {
     // makes the document stale as a CONSEQUENCE, so naming a hand edit there
     // points the reader at the wrong cause.
     const grown = ParseTreeSites.sites([
-      violation("src/transpiler/output/A.ts", GRAMMAR),
+      violation("src/TRANSPILE/3-Render/A.ts", GRAMMAR),
       violation("src/utils/B.ts", RUNTIME),
       violation("src/TRANSPILE/2-Plan/New.ts", GRAMMAR),
     ]);

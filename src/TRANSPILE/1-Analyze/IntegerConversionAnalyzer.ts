@@ -57,6 +57,7 @@ import IIntegerConversionError from "./types/IIntegerConversionError";
 import IScopeFrame from "./types/IScopeFrame";
 import OperandTypeResolver from "./OperandTypeResolver";
 import ScopeFrameResolver from "./ScopeFrameResolver";
+import PrimitiveKindUtils from "../../utils/PrimitiveKindUtils";
 
 const INTEGER_LITERAL = /^-?(?:\d+|0[xX][0-9a-fA-F]+|0[bB][01]+)$/;
 
@@ -242,16 +243,9 @@ class IntegerConversionListener extends CNextListener {
     const leaves = IntegerConversionListener.postfixLeaves(expr);
     if (leaves.length < 2) return null; // a lone operand codegen declined to type
 
-    let category: "i" | "u" | null = null;
-    let width = 0;
-    for (const leaf of leaves) {
-      const type = this.leafType(leaf, frame);
-      const match = type ? /^([iu])(8|16|32|64)$/.exec(type) : null;
-      if (!match) continue;
-      category ??= match[1] as "i" | "u";
-      width = Math.max(width, Number.parseInt(match[2], 10));
-    }
-    return category && width > 0 ? `${category}${width}` : null;
+    return PrimitiveKindUtils.widestIntegerOf(
+      leaves.map((leaf) => this.leafType(leaf, frame)),
+    );
   }
 
   /** A composite's operand: a bit extraction is the unsigned type of its width. */

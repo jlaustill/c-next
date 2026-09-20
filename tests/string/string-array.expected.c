@@ -22,6 +22,12 @@ static inline uint32_t cnx_clamp_add_u32(uint32_t a, uint64_t b) {
 }
 
 // test-execution
+// #1450: the no-warnings marker is absent here deliberately. That marker is what
+// caught the `&array` argument defect this fixture's snapshot used to hold
+// (e3dff5f4), and its three siblings gained it in the same pass. These two
+// cannot take it yet: the generated C has an unused parameter, which is
+// -Werror=unused-parameter and is MISRA C:2012 Rule 2.7 -- tracked in #862
+// (69 violations). Add the marker here when #862 closes.
 // ADR-045: Test array of strings
 // Validates: declaration, element access, array.length, element.length, loops
 // C-style allowed for string arrays (grammar limitation)
@@ -66,17 +72,17 @@ int main(void) {
     if (strlen(colors[0U]) != 3) return 14;
     if (strlen(colors[1U]) != 5) return 15;
     if (strlen(colors[2U]) != 4) return 16;
-    uint32_t arrLen = getArrayLength(&globalNames);
+    uint32_t arrLen = getArrayLength(globalNames);
     if (arrLen != 5) return 17;
-    uint32_t elemLen0 = getElementLength(&globalNames, 0U);
+    uint32_t elemLen0 = getElementLength(globalNames, 0U);
     if (elemLen0 != 5) return 18;
-    uint32_t elemLen1 = getElementLength(&globalNames, 1U);
+    uint32_t elemLen1 = getElementLength(globalNames, 1U);
     if (elemLen1 != 3) return 19;
-    uint32_t elemLen2 = getElementLength(&globalNames, 2U);
+    uint32_t elemLen2 = getElementLength(globalNames, 2U);
     if (elemLen2 != 7) return 20;
-    uint32_t elemLen3 = getElementLength(&globalNames, 3U);
+    uint32_t elemLen3 = getElementLength(globalNames, 3U);
     if (elemLen3 != 5) return 21;
-    uint32_t elemLen4 = getElementLength(&globalNames, 4U);
+    uint32_t elemLen4 = getElementLength(globalNames, 4U);
     if (elemLen4 != 3) return 22;
     uint32_t totalLength = 0U;
     uint32_t i = 0U;

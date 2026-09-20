@@ -39,9 +39,16 @@ import IDeclaredVar from "./types/IDeclaredVar";
 import IBitAccessError from "./types/IBitAccessError";
 import TChainRoot from "./types/TChainRoot";
 import ScopeFrameResolver from "./ScopeFrameResolver";
+import SHARED_FLOAT_TYPES from "../../transpiler/types/FLOAT_TYPES";
 
-/** The floats a bit range is lowered through a union for. */
-const FLOAT_TYPES = new Set(["f32", "f64"]);
+/**
+ * The floats a bit range is lowered through a union for.
+ *
+ * #1450: built from ADR-024's shared list rather than respelling it. The two
+ * agreed, which is exactly why nothing would have failed when a new float width
+ * was added to one of them.
+ */
+const FLOAT_TYPES = new Set<string>(SHARED_FLOAT_TYPES);
 
 class BitAccessListener extends CNextListener {
   private readonly found: IBitAccessError[] = [];

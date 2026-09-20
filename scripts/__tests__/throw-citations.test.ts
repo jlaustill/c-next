@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import ThrowCitations from "../diagnostics/ThrowCitations";
 
-const FILE = "src/transpiler/output/codegen/Sample.ts";
+const FILE = "src/TRANSPILE/3-Render/codegen/Sample.ts";
 
 /**
  * Two throws, at lines 2 and 5. The second spans three lines -- the shape 155
@@ -165,7 +165,7 @@ describe("ThrowCitations.throwArgument", () => {
 });
 
 describe("ThrowCitations.resolve", () => {
-  const files = [FILE, "src/transpiler/output/headers/Other.ts"];
+  const files = [FILE, "src/TRANSPILE/3-Render/headers/Other.ts"];
 
   it("matches on a path suffix", () => {
     expect(ThrowCitations.resolve("codegen/Sample.ts", files)).toBe(FILE);
@@ -182,14 +182,14 @@ describe("ThrowCitations.resolve", () => {
     // checked against.
     expect(
       ThrowCitations.resolve("codegen/Sample.ts", [
-        "src/transpiler/output/handlers/Sample.ts",
+        "src/TRANSPILE/3-Render/handlers/Sample.ts",
       ]),
-    ).toBe("src/transpiler/output/handlers/Sample.ts");
+    ).toBe("src/TRANSPILE/3-Render/handlers/Sample.ts");
   });
 
   it("refuses an ambiguous basename rather than guessing", () => {
     // Picking one would let the gate pass while checking the wrong file.
-    const ambiguous = [FILE, "src/transpiler/output/headers/Sample.ts"];
+    const ambiguous = [FILE, "src/TRANSPILE/3-Render/headers/Sample.ts"];
     expect(ThrowCitations.resolve("Sample.ts", ambiguous)).toBeNull();
   });
 });
@@ -427,7 +427,7 @@ describe("ThrowCitations.checkProse", () => {
   // number is not decoration; it mis-sizes the work.
   const SOURCES = new Map([
     [
-      "src/transpiler/output/codegen/Thing.ts",
+      "src/TRANSPILE/3-Render/codegen/Thing.ts",
       'const a = 1;\nthrow new Error("boom");\n',
     ],
   ]);

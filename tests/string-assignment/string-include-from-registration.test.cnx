@@ -1,0 +1,35 @@
+// test-execution
+// test-no-warnings
+// #1450 box 4: `<string.h>` is decided by TYPE REGISTRATION, which runs before
+// any text is generated — not by the emitters that happen to need it.
+//
+// WHAT THIS PINS. Six render-time raisers used to re-assert `needsString`:
+// four in `StringHandlers` and two in `StringDeclHelper`. Every one was
+// redundant — `registerAllVariableTypes` had already settled the flag — so
+// removing them changed nothing across 1249 fixtures. But "the corpus cannot
+// tell them apart" is not "they are redundant", and the case that separates
+// them was missing: a string PARAMETER with no local `string<N>` declaration
+// anywhere in the file.
+//
+// If registration did not see parameters, this file would declare no string
+// type, the emitters would be the only requirers, and `strncpy` would be
+// emitted with no `<string.h>` — a clean transpile and a compile error. It
+// does see them, and this fixture is what says so.
+//
+// The no-warnings marker matters here: the failure is a missing declaration,
+// which is a WARNING in C89-era compilers and an error under `-Werror`, so the
+// marker is what turns it into a test failure rather than a silent pass.
+//
+// `main` is the negative control: it declares nothing and copies nothing, so a
+// change that required `<string.h>` unconditionally would not be caught by the
+// assertions alone.
+void setIt(string<8> s) {
+    s <- "hi";
+}
+
+u32 main() {
+    string<8> local <- "ab";
+    setIt(local);
+    if (local.char_count != 2) return 1;
+    return 0;
+}

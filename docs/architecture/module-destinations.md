@@ -105,12 +105,89 @@ Those are the measurement behind "the pass split is not finished", and they are
 why `src/transpiler/logic/symbols/` still exists — holding `SymbolTable.ts`
 alone, since #1515 removed the edge that pinned `PublicInterface` there.
 
+## Placed, but with no rows here
+
+**2.1 Analyze is relocated and undocumented.** `src/TRANSPILE/1-Analyze/` holds
+**127** non-test modules, moved out of `src/transpiler/logic/analysis/` — which
+no longer exists — beginning with `6e46f6d4` (#1322), 76 files in that commit
+alone. They arrived as renames, not as new modules, so the "created here rather
+than moved" exemption 2.2 Plan carries does not apply to them.
+
+This document says it "holds the modules moved so far", and _"a pass card adds
+entries there and rows here"_. Those rows were never added, and the pass sat in
+the list below — grouped with passes that have not moved at all, which reads as
+"nothing to place" rather than "placed, unrecorded". The rows themselves are
+#1443's deliverable, not this correction's: what is fixed here is the claim,
+so the gap is visible to whoever completes the map (#1450).
+
+## 2.3 Render — moved as a tree (#1450 box 5)
+
+`src/transpiler/output/` **is** the render pass: codegen and header generation,
+**144** non-test modules (251 files with their tests). It moved whole to
+`src/TRANSPILE/3-Render/`, the way 2.1 Analyze did, rather than file by file.
+
+The manifest entry in `scripts/move-modules.ts` carries the reason; the short
+form is that the admission test places a module in the pass that computes what
+it holds, every module here exists to turn settled decisions into text, and a
+partial move would leave `3-Render/` holding everything except the pass's own
+entry point (`CodeGenerator`).
+
+**Zero of the 131 now expose a classification predicate** — the count was 27 of
+144 when the tree moved, and the difference is box 4: the decisions relocated to
+`2-Plan/` and the modules went with them. The discriminator §1 states — "would
+removing the module change _what_ is emitted or only _how it reads_" — is what
+sorted them, phase by phase within 2.x, since a module that decides is in the
+wrong pass-_phase_, not the wrong pass, and this map keys destinations on the
+pass.
+
+Five modules still raise an emission fact (`requireInclude`, `requireToolchain`,
+a `needs*` write), and that is **by design, not residue**. `IEmissionFacts` puts
+it plainly: the questions "are what the generators accumulate _while producing
+text_". A renderer discovering it has emitted a `strncpy` and therefore needs
+`<string.h>` is not deciding anything — 2.2 Plan answers the question, and the
+two captures that freeze it are the only places a `needs*` flag may be read.
+That property, and the two below, are gated by
+`scripts/__tests__/render-decides-nothing.test.ts`:
+
+- no module under `3-Render/` **declares** a decision predicate — a `needs`,
+  `requires`, `shouldBe` or `mustBe` name. Reddened by declaring one; a `is*`
+  fact in the same position stays green, so the check distinguishes the two
+  rather than flagging every boolean method.
+
+  The first spelling of that check required a literal `static ` or `function `
+  before the verb, and so **reported zero while three existed** — private
+  instance methods on `CodeGenerator`, one of them (`_needsParamMemberConversion`)
+  a bare delegate to the `CppMemberHelper` predicate this card had just moved to
+  2.2 Plan. The zero above was published from that count before the #1589 review
+  corrected it. Its own selector guard could not catch the error, because it
+  filters to 2.2 Plan, which is static-class style by convention: it proved the
+  regex worked on a population shaped differently from the one being asserted
+  over. **A non-empty selector is not a correct selector** — match the
+  declaration, not the keyword in front of it.
+
+- every decision `2-Plan/` owns is consulted from the exact render modules that
+  act on it, pinned per module rather than counted — a count survives the
+  regression, because a second importer keeps it non-zero.
+
+The honest limit: a brand-new decision **inlined** in a render module, under no
+decision-shaped name and displacing no existing import, is caught by neither
+shape. Both guards are name- or import-keyed, and an anonymous expression is
+the case they cannot see.
+
+What the move had to carry with it, recorded because none of it is obvious from
+the diff: seven `.dependency-cruiser.cjs` rules keyed on the old path (a move
+without them prints "no dependency violations found" while the layer is
+unguarded — #1297's failure), `ParseTreeSites`' layer list and its render-layer
+lookup, the throw-citation scanner's root, `ScopeJoinSites`' recorded sites, and
+five test guards that named the path. `vi.mock()` specifiers and inline
+`import("…")` types are string literals, so ts-morph rewrote neither.
+
 ## Not yet placed
 
-The other five passes (1.1 Discover, 1.2 Parse, 2.1 Analyze, 2.3 Render, 3.1
-Write) have no rows here, and neither do the 60 genuinely-shared
-modules or `cli/`, `lib/` and `index.ts` — §1's tree names no home for the last
-group, which is [#1466](https://github.com/jlaustill/c-next/issues/1466).
+The other three passes (1.1 Discover, 1.2 Parse, 3.1 Write) have no rows here,
+and neither do the 60 genuinely-shared modules or `cli/`, `lib/` and `index.ts`
+— §1's tree names no home for the last group, which is
+[#1466](https://github.com/jlaustill/c-next/issues/1466).
 
 ## Moving modules
 

@@ -103,7 +103,7 @@ describe("UnusedCode.authored (#1556)", () => {
     "src/transpiler/logic/parser/c/grammar/CParser.ts(4,1): error TS6133: 'Token' is declared but its value is never read.",
     "src/transpiler/state/CodeGenState.ts(906,10): error TS6133: 'isKnownRegister' is declared but its value is never read.",
     "src/utils/TTypeUtils.ts(165,10): error TS6138: Property 'isDeferred' is declared but its value is never read.",
-    "src/transpiler/output/codegen/CodeGenerator.ts(12,6): error TS6196: 'TUnused' is declared but never used.",
+    "src/TRANSPILE/3-Render/codegen/CodeGenerator.ts(12,6): error TS6196: 'TUnused' is declared but never used.",
     "src/transpiler/state/SymbolTable.ts(1,1): error TS2304: Cannot find name 'Foo'.",
   ].join("\n");
 
@@ -112,7 +112,7 @@ describe("UnusedCode.authored (#1556)", () => {
     expect(found.map((f) => f.file)).toEqual([
       "src/transpiler/state/CodeGenState.ts",
       "src/utils/TTypeUtils.ts",
-      "src/transpiler/output/codegen/CodeGenerator.ts",
+      "src/TRANSPILE/3-Render/codegen/CodeGenerator.ts",
     ]);
   });
 

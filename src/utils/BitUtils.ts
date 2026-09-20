@@ -1,4 +1,4 @@
-import TYPE_MAP from "../transpiler/output/codegen/types/TYPE_MAP";
+import TYPE_MAP from "../TRANSPILE/3-Render/codegen/types/TYPE_MAP";
 
 /**
  * Types that need explicit cast for MISRA 10.3 compliance.
