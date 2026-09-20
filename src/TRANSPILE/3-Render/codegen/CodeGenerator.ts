@@ -753,10 +753,11 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * Get simple identifier from expression, or null if complex.
-   * Part of IOrchestrator interface - delegates to CodegenParserUtils.
+   * Part of IOrchestrator interface - delegates to ExpressionUnwrapper,
+   * which is the single implementation (#1445).
    */
   getSimpleIdentifier(ctx: Parser.ExpressionContext): string | null {
-    return CodegenParserUtils.getSimpleIdentifier(ctx);
+    return ExpressionUnwrapper.getSimpleIdentifier(ctx);
   }
 
   /**
@@ -767,7 +768,7 @@ export default class CodeGenerator implements IOrchestrator {
     ctx: Parser.ExpressionContext,
     targetParamBaseType?: string,
   ): string {
-    const simpleId = CodegenParserUtils.getSimpleIdentifier(ctx);
+    const simpleId = ExpressionUnwrapper.getSimpleIdentifier(ctx);
     return ArgumentGenerator.generateArg(ctx, simpleId, targetParamBaseType, {
       getLvalueType: (c) => this.getLvalueType(c),
       getMemberAccessArrayStatus: (c) => this.getMemberAccessArrayStatus(c),
@@ -4327,7 +4328,13 @@ export default class CodeGenerator implements IOrchestrator {
   private generateCriticalStatement(
     ctx: Parser.CriticalStatementContext,
   ): string {
-    return this.invokeGenerator(generateCriticalStatement, ctx);
+    // #1445: the block is rendered here, where the tree is, and the generator
+    // wraps it. `generateBlock` still runs before the wrapper's irq_wrappers
+    // effect is applied, so effect order is unchanged.
+    return this.invokeGenerator(generateCriticalStatement, {
+      blockCode: this.generateBlock(ctx.block()),
+      line: ctx.start?.line,
+    });
   }
 
   // Issue #63: validateNoEarlyExits moved to TypeValidator

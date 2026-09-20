@@ -1,9 +1,8 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import generateCriticalStatement from "../CriticalGenerator";
 import IGeneratorInput from "../../IGeneratorInput";
 import IGeneratorState from "../../IGeneratorState";
 import IOrchestrator from "../../IOrchestrator";
-import * as Parser from "../../../../../../transpiler/logic/parser/grammar/CNextParser";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
 
 // ========================================================================
@@ -11,29 +10,17 @@ import TestGeneratorState from "../../__tests__/testGeneratorState";
 // ========================================================================
 
 /**
- * Create a minimal mock block context.
+ * #1445: the generator takes `{ blockCode, line }`, so there is no node to
+ * fake. `createMockBlockContext` / `createMockCriticalContext` and the
+ * `as unknown as Parser.CriticalStatementContext` cast went with them -- the
+ * block's code is passed in directly instead of being fetched back out of the
+ * orchestrator.
  */
-function createMockBlockContext(): Parser.BlockContext {
-  return {} as Parser.BlockContext;
+function critical(blockCode: string, line?: number) {
+  return { blockCode, line };
 }
 
-/**
- * Create a minimal mock critical statement context.
- * CriticalGenerator only uses node.block()
- */
-function createMockCriticalContext(
-  blockCtx?: Parser.BlockContext,
-): Parser.CriticalStatementContext {
-  const block = blockCtx ?? createMockBlockContext();
-  return {
-    block: () => block,
-  } as unknown as Parser.CriticalStatementContext;
-}
-
-/**
- * Create minimal mock input.
- * CriticalGenerator doesn't use input (_input parameter).
- */
+/** CriticalGenerator does not use input (_input parameter). */
 function createMockInput(): IGeneratorInput {
   return {
     symbols: null,
@@ -50,27 +37,14 @@ function createMockInput(): IGeneratorInput {
   } as unknown as IGeneratorInput;
 }
 
-/**
- * Create minimal mock state.
- * CriticalGenerator doesn't use state (_state parameter).
- */
+/** CriticalGenerator does not use state (_state parameter). */
 function createMockState(): IGeneratorState {
   return TestGeneratorState.create({ inFunctionBody: true });
 }
 
-/**
- * Create mock orchestrator for CriticalGenerator.
- * CriticalGenerator uses:
- * - generateBlock(block) - block generation
- */
-function createMockOrchestrator(options?: {
-  blockCode?: string;
-}): IOrchestrator {
-  const generateBlock = vi.fn(() => options?.blockCode ?? "{\n    x <- 1;\n}");
-
-  return {
-    generateBlock,
-  } as unknown as IOrchestrator;
+/** CriticalGenerator no longer uses the orchestrator at all. */
+function createMockOrchestrator(): IOrchestrator {
+  return {} as unknown as IOrchestrator;
 }
 
 // ========================================================================
@@ -78,17 +52,18 @@ function createMockOrchestrator(options?: {
 // ========================================================================
 
 describe("CriticalGenerator", () => {
+  const input = createMockInput();
+  const state = createMockState();
+  const orchestrator = createMockOrchestrator();
+
   describe("basic critical section generation", () => {
     it("generates PRIMASK save/restore wrapper with block contents", () => {
-      const blockCtx = createMockBlockContext();
-      const ctx = createMockCriticalContext(blockCtx);
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({
-        blockCode: "{\n    counter <- counter + 1;\n}",
-      });
-
-      const result = generateCriticalStatement(ctx, input, state, orchestrator);
+      const result = generateCriticalStatement(
+        critical("{\n    counter <- counter + 1;\n}"),
+        input,
+        state,
+        orchestrator,
+      );
 
       expect(result.code).toContain("uint32_t __primask = __cnx_get_PRIMASK()");
       expect(result.code).toContain("__cnx_disable_irq()");
@@ -97,14 +72,12 @@ describe("CriticalGenerator", () => {
     });
 
     it("strips outer braces from block code", () => {
-      const ctx = createMockCriticalContext();
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({
-        blockCode: "{\n    x = 1;\n    y = 2;\n}",
-      });
-
-      const result = generateCriticalStatement(ctx, input, state, orchestrator);
+      const result = generateCriticalStatement(
+        critical("{\n    x = 1;\n    y = 2;\n}"),
+        input,
+        state,
+        orchestrator,
+      );
 
       // Should not have double braces
       expect(result.code).not.toContain("{\n{");
@@ -115,14 +88,12 @@ describe("CriticalGenerator", () => {
     });
 
     it("generates correct wrapper structure", () => {
-      const ctx = createMockCriticalContext();
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({
-        blockCode: "{\n    operation();\n}",
-      });
-
-      const result = generateCriticalStatement(ctx, input, state, orchestrator);
+      const result = generateCriticalStatement(
+        critical("{\n    operation();\n}"),
+        input,
+        state,
+        orchestrator,
+      );
 
       // Check the exact structure: opening brace, PRIMASK save, disable, content, restore, closing brace
       const lines = result.code.split("\n");
@@ -141,14 +112,19 @@ describe("CriticalGenerator", () => {
   // `switch`, which the recursion it replaced did not descend into.
   // Covered by `1-Analyze/__tests__/CriticalSectionAnalyzer.test.ts`.
 
+  // #1445: the "calls generateBlock with the block context" test is gone with
+  // the delegation it asserted -- the CALLER renders the block now. That path
+  // is covered end-to-end by the 14 `.expected.*` files asserting
+  // `__cnx_get_PRIMASK`, so no assertion was dropped without a home.
+
   describe("effects", () => {
     it("returns irq_wrappers include effect", () => {
-      const ctx = createMockCriticalContext();
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator();
-
-      const result = generateCriticalStatement(ctx, input, state, orchestrator);
+      const result = generateCriticalStatement(
+        critical("{\n    x <- 1;\n}"),
+        input,
+        state,
+        orchestrator,
+      );
 
       expect(result.effects).toHaveLength(1);
       expect(result.effects[0]).toEqual({
@@ -157,13 +133,28 @@ describe("CriticalGenerator", () => {
       });
     });
 
-    it("uses __cnx_ prefixed functions (avoids macro collisions)", () => {
-      const ctx = createMockCriticalContext();
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator();
+    it("carries the construct's source line on the effect (#1143)", () => {
+      const result = generateCriticalStatement(
+        critical("{\n    x <- 1;\n}", 42),
+        input,
+        state,
+        orchestrator,
+      );
 
-      const result = generateCriticalStatement(ctx, input, state, orchestrator);
+      expect(result.effects[0]).toEqual({
+        type: "include",
+        header: "irq_wrappers",
+        line: 42,
+      });
+    });
+
+    it("uses __cnx_ prefixed functions (avoids macro collisions)", () => {
+      const result = generateCriticalStatement(
+        critical("{\n    x <- 1;\n}"),
+        input,
+        state,
+        orchestrator,
+      );
 
       // ADR-050: Use __cnx_ prefixed wrappers to avoid collision with platform headers
       expect(result.code).toContain("__cnx_get_PRIMASK");
@@ -178,28 +169,24 @@ describe("CriticalGenerator", () => {
 
   describe("block content handling", () => {
     it("handles empty block", () => {
-      const ctx = createMockCriticalContext();
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({
-        blockCode: "{\n}",
-      });
-
-      const result = generateCriticalStatement(ctx, input, state, orchestrator);
+      const result = generateCriticalStatement(
+        critical("{\n}"),
+        input,
+        state,
+        orchestrator,
+      );
 
       expect(result.code).toContain("__cnx_get_PRIMASK");
       expect(result.code).toContain("__cnx_set_PRIMASK");
     });
 
     it("handles block with multiple statements", () => {
-      const ctx = createMockCriticalContext();
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({
-        blockCode: "{\n    a = 1;\n    b = 2;\n    c = 3;\n}",
-      });
-
-      const result = generateCriticalStatement(ctx, input, state, orchestrator);
+      const result = generateCriticalStatement(
+        critical("{\n    a = 1;\n    b = 2;\n    c = 3;\n}"),
+        input,
+        state,
+        orchestrator,
+      );
 
       expect(result.code).toContain("a = 1;");
       expect(result.code).toContain("b = 2;");
@@ -207,37 +194,16 @@ describe("CriticalGenerator", () => {
     });
 
     it("preserves indentation of inner block content", () => {
-      const ctx = createMockCriticalContext();
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({
-        blockCode: "{\n    if (x) {\n        y = 1;\n    }\n}",
-      });
-
-      const result = generateCriticalStatement(ctx, input, state, orchestrator);
+      const result = generateCriticalStatement(
+        critical("{\n    if (x) {\n        y = 1;\n    }\n}"),
+        input,
+        state,
+        orchestrator,
+      );
 
       // The inner content should be preserved with its structure
       expect(result.code).toContain("if (x)");
       expect(result.code).toContain("y = 1;");
-    });
-  });
-
-  describe("orchestrator delegation", () => {
-    it("calls generateBlock with the block context", () => {
-      const blockCtx = createMockBlockContext();
-      const ctx = createMockCriticalContext(blockCtx);
-      const input = createMockInput();
-      const state = createMockState();
-      const generateBlock = vi.fn(() => "{\n    code;\n}");
-      const orchestrator = {
-        validateNoEarlyExits: vi.fn(),
-        generateBlock,
-      } as unknown as IOrchestrator;
-
-      generateCriticalStatement(ctx, input, state, orchestrator);
-
-      expect(generateBlock).toHaveBeenCalledOnce();
-      expect(generateBlock).toHaveBeenCalledWith(blockCtx);
     });
   });
 });

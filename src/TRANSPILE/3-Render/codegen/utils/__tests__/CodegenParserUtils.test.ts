@@ -104,22 +104,4 @@ describe("CodegenParserUtils", () => {
       expect(operators).toEqual([]);
     });
   });
-
-  describe("getSimpleIdentifier", () => {
-    it("returns identifier for simple variable", () => {
-      const expr = parseExpression("myVar");
-      expect(CodegenParserUtils.getSimpleIdentifier(expr)).toBe("myVar");
-    });
-
-    it.each([
-      ["returns null for member access", "obj.field"],
-      ["returns null for array access", "arr[0]"],
-      ["returns null for binary expression", "a + b"],
-      ["returns null for function call", "foo()"],
-      ["returns null for literal", "42"],
-    ])("%s", (_label, source) => {
-      const expr = parseExpression(source);
-      expect(CodegenParserUtils.getSimpleIdentifier(expr)).toBeNull();
-    });
-  });
 });

@@ -5,7 +5,6 @@
  * - Wraps block with PRIMASK save/restore for interrupt safety
  * - Ensures atomic execution of multi-variable operations
  */
-import { CriticalStatementContext } from "../../../../../transpiler/logic/parser/grammar/CNextParser";
 import IGeneratorOutput from "../IGeneratorOutput";
 import TGeneratorEffect from "../TGeneratorEffect";
 import IGeneratorInput from "../IGeneratorInput";
@@ -26,17 +25,38 @@ import IOrchestrator from "../IOrchestrator";
  * }
  * ```
  *
- * @param node - The CriticalStatementContext AST node
+ * #1445 box 3: takes the two things it read off the node -- the block's
+ * already-rendered code, and the line the `critical` keyword sits on -- rather
+ * than the node itself. The delegation inverts: the caller renders the block,
+ * this wraps it.
+ *
+ * `blockCode` MUST be a brace-delimited block, because the wrapper strips the
+ * outer braces before re-wrapping. That is an invariant the type cannot state,
+ * so it is stated here.
+ *
+ * Effect ordering is unchanged. The `irq_wrappers` effect is pushed onto this
+ * function's local array and only APPLIED by the caller on return, so whether
+ * the block renders before or during this call, the block's own effects still
+ * land first.
+ *
+ * @param critical - The rendered block and the source line of the construct
  * @param _input - Read-only context (unused)
  * @param _state - Current generation state (unused)
- * @param orchestrator - For delegating to generateBlock and validation
+ * @param _orchestrator - Unused; the block arrives rendered
  * @returns Generated code and effects (irq_wrappers)
  */
+interface ICriticalStatement {
+  /** The block's generated C, braces included. */
+  readonly blockCode: string;
+  /** Source line of the `critical` construct, for the #1143 deferred emitter. */
+  readonly line: number | undefined;
+}
+
 const generateCriticalStatement = (
-  node: CriticalStatementContext,
+  critical: ICriticalStatement,
   _input: IGeneratorInput,
   _state: IGeneratorState,
-  orchestrator: IOrchestrator,
+  _orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
 
@@ -53,14 +73,11 @@ const generateCriticalStatement = (
   effects.push({
     type: "include",
     header: "irq_wrappers",
-    line: node.start?.line,
+    line: critical.line,
   });
 
-  // Generate the block contents
-  const blockCode = orchestrator.generateBlock(node.block());
-
   // Remove outer braces from block since we're wrapping
-  const innerCode = blockCode.slice(1, -1).trim();
+  const innerCode = critical.blockCode.slice(1, -1).trim();
 
   // Generate PRIMASK save/restore wrapper using __cnx_ prefixed functions
   const code = `{

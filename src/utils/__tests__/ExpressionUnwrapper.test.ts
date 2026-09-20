@@ -102,6 +102,11 @@ describe("ExpressionUnwrapper", () => {
       ["should return null for array indexing", "arr[0]"],
       ["should return null for numeric literal", "42"],
       ["should return null for binary expression", "a + b"],
+      // #1445: carried over from CodegenParserUtils' duplicate of this
+      // function when that copy was deleted. It was the one case this block
+      // did not already cover, so deleting the duplicate without moving it
+      // would have dropped an assertion.
+      ["should return null for function call", "foo()"],
     ])("%s", (_label, source) => {
       const expr = parseExpression(source);
       const name = ExpressionUnwrapper.getSimpleIdentifier(expr);

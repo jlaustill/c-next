@@ -28,13 +28,13 @@ one.
 | Layer                     | Modules |
 | ------------------------- | ------: |
 | `src/TRANSPILE/`          |      62 |
-| `src/TRANSPILE/3-Render/` |      34 |
+| `src/TRANSPILE/3-Render/` |      33 |
 | `src/PARSE/`              |      18 |
 | `src/utils/`              |      11 |
 | `src/transpiler/types/`   |       4 |
 | `src/transpiler/`         |       3 |
 | `src/transpiler/logic/`   |       1 |
-| **total**                 | **133** |
+| **total**                 | **132** |
 
 `src/TRANSPILE/3-Render/` is the render layer, and its share is the number
 the issue singles out: the render layer holding parse nodes is how a
@@ -141,7 +141,6 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/TRANSPILE/3-Render/codegen/generators/expressions/UnaryExprGenerator.ts`            | grammar           |
 | `src/TRANSPILE/3-Render/codegen/generators/IOrchestrator.ts`                             | antlr4ng, grammar |
 | `src/TRANSPILE/3-Render/codegen/generators/statements/ControlFlowGenerator.ts`           | grammar           |
-| `src/TRANSPILE/3-Render/codegen/generators/statements/CriticalGenerator.ts`              | grammar           |
 | `src/TRANSPILE/3-Render/codegen/generators/statements/SwitchGenerator.ts`                | grammar           |
 | `src/TRANSPILE/3-Render/codegen/generators/support/IncludeGenerator.ts`                  | grammar           |
 | `src/TRANSPILE/3-Render/codegen/helpers/ArgumentGenerator.ts`                            | grammar           |
@@ -157,7 +156,7 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/TRANSPILE/3-Render/codegen/resolution/EnumTypeResolver.ts`                          | grammar           |
 | `src/TRANSPILE/3-Render/codegen/resolution/SizeofResolver.ts`                            | grammar           |
 | `src/TRANSPILE/3-Render/codegen/TypeResolver.ts`                                         | antlr4ng, grammar |
-| `src/TRANSPILE/3-Render/codegen/utils/CodegenParserUtils.ts`                             | antlr4ng, grammar |
+| `src/TRANSPILE/3-Render/codegen/utils/CodegenParserUtils.ts`                             | antlr4ng          |
 | `src/transpiler/CallbackCompatibility.ts`                                                | grammar           |
 | `src/transpiler/logic/IncludeExtractor.ts`                                               | grammar           |
 | `src/transpiler/ModificationFacts.ts`                                                    | grammar           |
@@ -178,4 +177,4 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/utils/PostfixAnalysisUtils.ts`                                                      | grammar           |
 | `src/utils/TargetResolver.ts`                                                            | grammar           |
 
-133 module(s).
+132 module(s).
