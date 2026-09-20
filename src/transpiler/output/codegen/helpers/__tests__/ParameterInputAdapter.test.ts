@@ -33,6 +33,7 @@ function createDefaultASTDeps(overrides?: {
   isModified?: boolean;
   isPassByValue?: boolean;
   isKnownStruct?: boolean;
+  isKnownEnum?: boolean;
   callbackTypes?: ReadonlyMap<string, ICallbackTypeInfo>;
 }) {
   const typeMap: Record<string, string> = {
@@ -58,6 +59,7 @@ function createDefaultASTDeps(overrides?: {
     callbackTypes:
       overrides?.callbackTypes ?? new Map<string, ICallbackTypeInfo>(),
     isKnownStruct: () => overrides?.isKnownStruct ?? false,
+    isKnownEnum: () => overrides?.isKnownEnum ?? false,
     typeMap,
     isModified: overrides?.isModified ?? false,
     isPassByValue: overrides?.isPassByValue ?? false,
@@ -566,7 +568,8 @@ describe("ParameterInputAdapter", () => {
       const deps = {
         ...createDefaultASTDeps({ isModified: false }),
         isOpaqueType: (typeName: string) => typeName === "widget_t",
-        isTypedefStructType: () => false, // Not a typedef struct
+        isTypedefStructType: () => false,
+        isKnownEnum: () => false, // Not a typedef struct
       };
 
       const result = ParameterInputAdapter.fromAST(ctx, deps);

@@ -14,6 +14,7 @@ import IParameterInput from "../types/IParameterInput";
 import IParameterSymbol from "../../../../utils/types/IParameterSymbol";
 import ICallbackTypeInfo from "../../../types/ICallbackTypeInfo";
 import ArrayDimensionParser from "../../../../utils/ArrayDimensionParser";
+import AutoConstRule from "../../../../utils/AutoConstRule";
 import dimensionEvalOptions from "./dimensionEvalOptions";
 
 /**
@@ -57,6 +58,14 @@ interface IFromASTDeps {
 
   /** Issue #958: Check if a type name is a typedef'd struct from C headers */
   isTypedefStructType: (typeName: string) => boolean;
+
+  /**
+   * #1545: Whether a type name is a known enum. ADR-013 passes enums by value,
+   * so they take no auto-const. The header path already excluded them and this
+   * path did not; AutoConstRule now holds that decision for both, which is why
+   * the fact has to reach here.
+   */
+  isKnownEnum: (typeName: string) => boolean;
 
   /**
    * Issue #895: Force const qualifier from callback typedef signature.
@@ -108,6 +117,14 @@ class ParameterInputAdapter {
   ): IParameterInput {
     const isConst = ctx.constModifier() !== null;
     const typeName = deps.getTypeName(ctx.type());
+
+    // ADR-013 auto-const is decided for this parameter below -- directly for
+    // the general case, and inside _buildStringInput / _buildArrayInputFromAST
+    // for the others. Recorded at the PARAMETER's position so the matrix sees
+    // the enclosing function's context, exactly as ADR-030 is recorded further
+    // down. ADR-013's codegen half raises no diagnostic, so a provenance site
+    // is the only thing its occupancy can be derived from (#1241).
+    AdrProvenance.record("013", ctx.start?.line);
     const name = ctx.IDENTIFIER().getText();
     const mappedType = deps.generateType(ctx.type());
 
@@ -162,10 +179,17 @@ class ParameterInputAdapter {
       // thing an occupancy can be derived from (#1511).
       AdrProvenance.record("030", ctx.start?.line);
     }
-    // Issue #895: Don't add auto-const for callback-compatible functions
-    // because it would change the signature and break typedef compatibility
-    const isAutoConst =
-      !deps.isCallbackCompatible && !deps.isModified && !isConst;
+    // #1545: one rule, shared with the string path below and with the header
+    // path in Transpiler. This branch previously carried no float/enum/ISR
+    // exclusions, which ADR-013 requires and the header path had.
+    const isAutoConst = AutoConstRule.applies({
+      baseType: typeName,
+      isModified: deps.isModified,
+      isExplicitlyConst: isConst,
+      isCallbackCompatible: deps.isCallbackCompatible,
+      isArray: false,
+      isKnownEnum: deps.isKnownEnum(typeName),
+    });
 
     // Issue #895/#958: Force pass-by-reference for callback or typedef struct types
     const isPassByReference =
@@ -239,6 +263,12 @@ class ParameterInputAdapter {
         isString: true,
         isPassByValue: false,
         isPassByReference: false,
+        // #1545: the general branch below carries this and the string branch
+        // did not, so a typedef declaring `const char *` reached the .c (via
+        // forceConst on the AST path) and never reached the .h -- the same
+        // .c/.h disagreement as the missing callback term, in the opposite
+        // direction.
+        forceConst: param.isCallbackConst || undefined,
       };
     }
 
@@ -429,7 +459,18 @@ class ParameterInputAdapter {
     const capacity = intLiteral
       ? Number.parseInt(intLiteral.getText(), 10)
       : undefined;
-    const isAutoConst = !deps.isModified && !isConst;
+    // #1545: the same rule the general path uses. This line previously omitted
+    // the callback term, so a callback-compatible function's unmodified string
+    // parameter took `const char*` in the .c while the .h kept `char*` -- the
+    // definition contradicting its own prototype.
+    const isAutoConst = AutoConstRule.applies({
+      baseType: typeName,
+      isModified: deps.isModified,
+      isExplicitlyConst: isConst,
+      isCallbackCompatible: deps.isCallbackCompatible,
+      isArray: false,
+      isKnownEnum: deps.isKnownEnum(typeName),
+    });
 
     return {
       name,
@@ -443,6 +484,11 @@ class ParameterInputAdapter {
       stringCapacity: capacity,
       isPassByValue: false,
       isPassByReference: false,
+      // #1545: the third site that dropped the typedef's const. The general
+      // branch of fromAST carries this and the string branch did not, so a
+      // `const char *` typedef reached neither file once auto-const stopped
+      // supplying the const by accident. Found by the fixture, not by reading.
+      forceConst: deps.forceConst,
     };
   }
 }

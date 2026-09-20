@@ -23,6 +23,7 @@ import CodeGenerator from "./output/codegen/CodeGenerator";
 import CodeGenState from "./state/CodeGenState";
 import ModificationFacts from "./ModificationFacts";
 import CallbackCompatibility from "./CallbackCompatibility";
+import AutoConstRule from "../utils/AutoConstRule";
 import AdrProvenance from "./state/AdrProvenance";
 import CachedSymbolReader from "../utils/cache/CachedSymbolReader";
 import TJsonValue from "../utils/types/TJsonValue";
@@ -2896,21 +2897,31 @@ class Transpiler {
         // This is the single source of truth for both body (.c/.cpp) and header (.h/.hpp).
         const isOpaque = CodeGenState.isOpaqueType(param.type ?? "");
 
-        // ADR-006: Only non-array pointer params get auto-const.
-        // Arrays are pass-by-reference and mutable by default - auto-const would
-        // break compatibility with C APIs expecting mutable pointers (issue #986).
+        // #1545: the same rule the body paths use, so the .h cannot disagree
+        // with the .c (ADR-013, "Header Generation Sync"). The exclusions this
+        // site used to spell out inline are now ADR-013's list inside the rule.
         // Note: isAutoConst may be set here, but ParameterSignatureBuilder will
         // suppress it for opaque handles (Issue #995) — single source of truth.
-        const isPointerParam =
-          !param.isConst &&
-          !param.isArray &&
-          param.type !== "f32" &&
-          param.type !== "f64" &&
-          param.type !== "ISR" &&
-          !knownEnums.has(param.type ?? "");
-
+        //
+        // isCallbackCompatible is asked rather than assumed false. The early
+        // return above already handles a callback whose typedef TYPE resolves;
+        // asking the same whole-program map here means a callback whose typedef
+        // cannot be resolved still suppresses auto-const, instead of falling
+        // through to ordinary rules while the body path suppressed.
         const shouldAutoConst =
-          unmodified && isPointerParam && unmodified.has(param.name);
+          unmodified !== undefined &&
+          unmodified.has(param.name) &&
+          AutoConstRule.applies({
+            baseType: param.type ?? "",
+            isModified: false,
+            isExplicitlyConst: param.isConst ?? false,
+            isCallbackCompatible:
+              CodeGenState.program
+                ?.callbackCompatibleFunctions()
+                .has(headerSymbol.name) ?? false,
+            isArray: param.isArray ?? false,
+            isKnownEnum: knownEnums.has(param.type ?? ""),
+          });
 
         // Return updated param with resolved flags
         if (shouldAutoConst || isOpaque) {

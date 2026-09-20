@@ -828,6 +828,12 @@ Auto-const is NOT applied to:
 - **Enum parameters** - passed by value, not by pointer
 - **ISR parameters** - function pointer type, not data pointer
 - **Explicitly `const` parameters** - already const, redundant
+- **Parameters of a function used as a callback** - a function assigned to a
+  callback typedef must keep that typedef's parameter shape. Inferring `const`
+  narrows the shape, so the function stops matching the typedef it is handed
+  to, and the C compiler rejects the assignment. C-Next does not own that
+  contract and so does not quietly change it. A developer who wants `const` on
+  such a parameter writes it explicitly, and the rule above honours it.
 
 ### Ordering Constraint
 

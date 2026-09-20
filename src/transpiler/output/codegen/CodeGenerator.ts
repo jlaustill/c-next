@@ -3725,6 +3725,11 @@ export default class CodeGenerator implements IOrchestrator {
       forceConst,
       isTypedefStructType: (t) =>
         CodeGenState.symbolTable?.isTypedefStructType(t) ?? false,
+      // #1545: deliberately the SAME bare lookup _isPassByValueType uses, so
+      // the auto-const rule and the pass-by-value decision cannot disagree
+      // about what an enum is. Qualifying here and not there would trade one
+      // divergence for another.
+      isKnownEnum: (t) => CodeGenState.symbols?.knownEnums.has(t) ?? false,
       // Issue #995: Opaque handles should not get auto-const
       isOpaqueType: (t) => CodeGenState.isOpaqueType(t),
     });

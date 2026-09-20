@@ -175,8 +175,16 @@ class FunctionContextManager {
 
     // Issue #895: Primitive types that become pointers need dereferencing when used as values
     // e.g., "u8 buf" becoming "uint8_t* buf" requires "*buf" when accessing the value
+    // #1600: a string<N> is ALREADY a char* -- it is not a primitive that
+    // became a pointer to match the typedef, so it needs no dereference when
+    // used as a value. Without this term ParameterDereferenceResolver returns
+    // `(*msg)` for every whole-value use, and the ADR-045 string rule fifteen
+    // lines into isPassByValue is unreachable because this flag returns first.
     const isCallbackPointerPrimitive =
-      isCallbackPointerParam && !typeInfo.isStruct && !isArray;
+      isCallbackPointerParam &&
+      !typeInfo.isStruct &&
+      !isArray &&
+      !typeInfo.isString;
 
     // Issue #958: typedef struct params need pointer semantics (like callback pointer params)
     const forcePointerSemantics = isCallbackPointerParam || isTypedefStruct;
