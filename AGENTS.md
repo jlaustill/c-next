@@ -75,11 +75,13 @@ See `CONTRIBUTING.md` for complete TypeScript coding standards.
 
 ### 3-Layer Architecture (PR #571, #572)
 
-The codebase is organized into three layers under `src/transpiler/`:
+The layers no longer share one root: #1450 box 5 moved the render pass out of
+`src/transpiler/` to `src/TRANSPILE/3-Render/`, and #1322 moved analysis to
+`src/TRANSPILE/1-Analyze/`. What remains under `src/transpiler/`:
 
 - `src/transpiler/data/` — Discovery layer (FileDiscovery, IncludeResolver, DependencyGraph)
-- `src/transpiler/logic/` — Business logic (parser/, symbols/, analysis/, preprocessor/)
-- `src/TRANSPILE/3-Render/` — Generation (codegen/, headers/)
+- `src/transpiler/logic/` — Business logic (parser/, preprocessor/)
+- `src/TRANSPILE/3-Render/` — Generation (codegen/, headers/) — **outside `src/transpiler/`**
 - `src/transpiler/Transpiler.ts` — Orchestrator (coordinates all layers)
 - `src/utils/` — Shared utilities (constants/, cache/, types/)
 
@@ -108,10 +110,12 @@ The codebase is organized into three layers under `src/transpiler/`:
 - **Type-aware resolution**: Use `this.context.expectedType` in expression generators to disambiguate (e.g., enum members). For member access targets, walk the struct type chain to set `expectedType`.
 - **Nested struct access**: Track `currentStructType` through each member when processing `a.b.c` chains.
 - **Adding generator effects**: To add a new include/effect type (e.g., `irq_wrappers`):
-  1. Add to `TIncludeHeader` union in `src/TRANSPILE/3-Render/codegen/generators/TIncludeHeader.ts`
-  2. Add `needs<Effect>` boolean field in `CodeGenerator.ts` (with reset in generate())
-  3. Handle effect in `processEffects()` switch statement
-  4. Generate output in `assembleOutput()` where other effects are emitted
+  1. Add to the `TIncludeHeader` union in `src/transpiler/types/` — it is a shared contract, not a codegen type (`CodeGenState` names it too, and `state/` may not import `3-Render/`)
+  2. Add the `needs<Effect>` field to **`CodeGenState`** (reset in `CodeGenState.reset()`)
+  3. Handle it in **`CodeGenerator.applyEffects()`**, which delegates to the one sink, `CodeGenState.requireInclude()` — never set a `needs*` field directly
+  4. Emit it in **`CodeGenerator.assembleGeneratedOutput()`** (via `addAutoIncludes()` for a real `#include`, or `addGeneratedHelpers()` for the deferred code-emission members)
+
+  Steps 2–4 named `processEffects()` and `assembleOutput()` until the #1589 review; neither has ever existed, and the `needs*` fields are static on `CodeGenState`, not on `CodeGenerator`. CLAUDE.md records the same correction under #1449. Step 1's path was stale before this rewrite too — the mechanical `transpiler/output/` → `TRANSPILE/3-Render/` pass turned an obviously-wrong path into a plausible-looking one, which is harder to notice.
 
 ### Error Messages
 

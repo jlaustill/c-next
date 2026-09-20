@@ -890,7 +890,8 @@ export default class CodeGenerator implements IOrchestrator {
     return ArgumentGenerator.generateArg(ctx, simpleId, targetParamBaseType, {
       getLvalueType: (c) => this.getLvalueType(c),
       getMemberAccessArrayStatus: (c) => this.getMemberAccessArrayStatus(c),
-      needsCppMemberConversion: (c, t) => this.needsCppMemberConversion(c, t),
+      isCppMemberConversionRequired: (c, t) =>
+        this.isCppMemberConversionRequired(c, t),
       isStringSubscriptAccess: (c) => this.isStringSubscriptAccess(c),
       generateExpression: (c) => this.generateExpression(c),
     });
@@ -3228,14 +3229,21 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Issue #251/#252/#256: Check if a member access expression needs a temp variable in C++ mode.
+   * Does this member access need a temp variable in C++ mode?
    *
-   * Returns true when passing struct member to function would fail C++ compilation:
+   * Issue #251/#252/#256. True when passing a struct member to a function would
+   * fail C++ compilation:
    * 1. Const struct parameter member -> non-const parameter (const T* -> T* invalid)
    * 2. External C struct members of bool/enum type -> u8 parameter (type mismatch)
    * 3. Array element member access (arr[i].member) with external struct elements
+   *
+   * #1450: this REPORTS `CppMemberHelper`'s answer, which is 2.2 Plan's. All
+   * that happens here is parse-tree navigation -- unwrap the postfix, find the
+   * base identifier, and pick WHICH of the two Plan questions applies. Named
+   * `isCppMemberConversionRequired` until the #1589 review, which is the spelling
+   * that says this module decides it.
    */
-  private needsCppMemberConversion(
+  private isCppMemberConversionRequired(
     ctx: Parser.ExpressionContext,
     targetParamBaseType?: string,
   ): boolean {
@@ -3255,24 +3263,16 @@ export default class CodeGenerator implements IOrchestrator {
     // Case 1: Direct parameter member access (cfg.value)
     const paramInfo = CodeGenState.currentParameters.get(baseId);
     if (paramInfo) {
-      return this._needsParamMemberConversion(paramInfo, targetParamBaseType);
+      return CppMemberHelper.needsParamMemberConversion(
+        paramInfo,
+        targetParamBaseType,
+      );
     }
 
     // Case 2: Array element or function return member access
-    return this._needsComplexMemberConversion(ops, baseId, targetParamBaseType);
-  }
-
-  /**
-   * Case 1: Direct parameter member access needs conversion?
-   * Issue #251: Const struct parameter needs temp to break const chain
-   * Issue #252: External C structs may have bool/enum members
-   */
-  private _needsParamMemberConversion(
-    paramInfo: { baseType: string; isStruct?: boolean; isConst?: boolean },
-    targetParamBaseType: string,
-  ): boolean {
-    return CppMemberHelper.needsParamMemberConversion(
-      paramInfo,
+    return this.isComplexMemberConversionRequired(
+      ops,
+      baseId,
       targetParamBaseType,
     );
   }
@@ -3290,10 +3290,13 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Case 2: Array element or function return member access needs conversion?
-   * Issue #256: arr[i].member or getConfig().member patterns
+   * Case 2: array element or function return member access -- arr[i].member,
+   * getConfig().member (issue #256).
+   *
+   * Gathers the inputs `CppMemberHelper` needs (the variable's type info, the
+   * postfix ops adapted to `IPostfixOp`) and reports its answer.
    */
-  private _needsComplexMemberConversion(
+  private isComplexMemberConversionRequired(
     ops: Parser.PostfixOpContext[],
     baseId: string,
     targetParamBaseType: string,

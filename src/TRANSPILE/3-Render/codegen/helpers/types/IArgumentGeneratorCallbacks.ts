@@ -17,7 +17,7 @@ interface IArgumentGeneratorCallbacks {
   ) => "array" | "not-array" | "unknown";
 
   /** Check if C++ mode needs temp variable for type conversion */
-  needsCppMemberConversion: (
+  isCppMemberConversionRequired: (
     ctx: Parser.ExpressionContext,
     targetType?: string,
   ) => boolean;

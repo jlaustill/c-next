@@ -153,6 +153,18 @@ That property, and the two below, are gated by
   `requires`, `shouldBe` or `mustBe` name. Reddened by declaring one; a `is*`
   fact in the same position stays green, so the check distinguishes the two
   rather than flagging every boolean method.
+
+  The first spelling of that check required a literal `static ` or `function `
+  before the verb, and so **reported zero while three existed** — private
+  instance methods on `CodeGenerator`, one of them (`_needsParamMemberConversion`)
+  a bare delegate to the `CppMemberHelper` predicate this card had just moved to
+  2.2 Plan. The zero above was published from that count before the #1589 review
+  corrected it. Its own selector guard could not catch the error, because it
+  filters to 2.2 Plan, which is static-class style by convention: it proved the
+  regex worked on a population shaped differently from the one being asserted
+  over. **A non-empty selector is not a correct selector** — match the
+  declaration, not the keyword in front of it.
+
 - every decision `2-Plan/` owns is consulted from the exact render modules that
   act on it, pinned per module rather than counted — a count survives the
   regression, because a second importer keeps it non-zero.

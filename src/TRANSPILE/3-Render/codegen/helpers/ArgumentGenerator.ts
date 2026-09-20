@@ -40,8 +40,11 @@ class ArgumentGenerator {
       return id;
     }
 
-    // Global arrays also decay to pointers (check typeRegistry)
-    // But NOT strings - strings need & (they're char arrays but passed by reference)
+    // Arrays decay to pointers, strings included: a `char[N]` decays to `char*`
+    // exactly like any other array, and a `string<N>` parameter is generated as
+    // `char*`. Taking its address instead yields `char (*)[N]`, an incompatible
+    // pointer type -- the defect `e3dff5f4` fixed by deleting the `isString`
+    // exception this comment used to argue for.
     const typeInfo = CodeGenState.getVariableTypeInfo(id);
     if (typeInfo?.isArray) {
       return id;
@@ -173,7 +176,7 @@ class ArgumentGenerator {
     if (
       arrayStatus === "not-array" &&
       targetParamBaseType &&
-      callbacks.needsCppMemberConversion(ctx, targetParamBaseType)
+      callbacks.isCppMemberConversionRequired(ctx, targetParamBaseType)
     ) {
       return ArgumentGenerator.createCppMemberConversionTemp(
         ctx,

@@ -114,9 +114,19 @@ const FLAG_READ =
  */
 const ANNOTATION_FORM = /\/\*[^*\n]{0,80}\bRule\b/g;
 
-/** An import of a named module, however its path is spelled. */
+/**
+ * An import of a named module, however its path is spelled.
+ *
+ * Anchored at the path segment (#1589 review): `[^"]*` absorbs a leading `I`,
+ * so the unanchored form matched the TYPE `IDeclarationPlan` as well as the
+ * DECISION `DeclarationPlan` -- and `src/transpiler/types/IDeclarationPlan.ts`
+ * exists. The census is exact-equality, so that is a false positive waiting to
+ * happen: a render module typing a parameter with `IDeclarationPlan` is
+ * decision-free, and would have reddened the census under a message naming the
+ * wrong problem.
+ */
 const importOf = (name: string): RegExp =>
-  new RegExp(`from\\s+"[^"]*${name}"`, "g");
+  new RegExp(`from\\s+"[^"]*(?:^|/)${name}"`, "g");
 
 /**
  * Diagnostic text cites rules too, and is not an emitted annotation.
@@ -154,9 +164,28 @@ const ORDER_CLASSIFIER = join(
  * was renamed `isParamPointer` under this check, which is the outcome this
  * shape is for -- either the name is wrong or the module is in the wrong pass,
  * and both are worth a reviewer's minute.
+ *
+ * ## Match the DECLARATION, not the keyword in front of it (#1589 review)
+ *
+ * The first spelling required a literal `static ` or `function ` immediately
+ * before the verb. It reported **zero** while `CodeGenerator` -- the render
+ * pass's largest file -- declared three private instance methods under exactly
+ * this verb, and a leading `_` defeated it a second way. `module-destinations`
+ * published "zero of the 131 expose a classification predicate" from that
+ * count, so the blind spot propagated into prose.
+ *
+ * The selector guard below could not catch it either: it filters to
+ * `PLAN_PASS`, and 2.2 Plan is static-class style by CLAUDE.md convention -- so
+ * it proved the regex worked on a population with a DIFFERENT shape from the
+ * one the assertion covers. A non-empty selector is not a correct selector.
+ *
+ * Anchoring to line start is what keeps CALL SITES out, and that matters here:
+ * render modules legitimately call Plan decisions, so an unanchored match on
+ * `CastRequirement.requiresClamping(...)` would redden the assertion for every
+ * one of them.
  */
 const DECISION_FORM =
-  /(?:static |function )(?:needs|requires|shouldBe|mustBe|willNeed)[A-Za-z0-9_]*\s*\(/g;
+  /^[ \t]*(?:export )?(?:private |public |protected )?(?:static |function |const |readonly )*_?(?:needs|requires|shouldBe|mustBe|willNeed)[A-Za-z0-9_]*\s*(?:\(|=\s*(?:async\s*)?\()/gm;
 
 const RENDER_PASS = join("src", "TRANSPILE", "3-Render") + sep;
 const PLAN_PASS = join("src", "TRANSPILE", "2-Plan") + sep;

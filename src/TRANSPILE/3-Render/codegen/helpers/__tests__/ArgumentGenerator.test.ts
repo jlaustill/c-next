@@ -16,7 +16,7 @@ describe("ArgumentGenerator", () => {
   ): IArgumentGeneratorCallbacks => ({
     getLvalueType: () => null,
     getMemberAccessArrayStatus: () => "not-array",
-    needsCppMemberConversion: () => false,
+    isCppMemberConversionRequired: () => false,
     isStringSubscriptAccess: () => false,
     generateExpression: (ctx) => ctx.getText(),
     ...overrides,
@@ -313,7 +313,7 @@ describe("ArgumentGenerator", () => {
       CodeGenState.tempVarCounter = 0;
       const callbacks = createMockCallbacks({
         getMemberAccessArrayStatus: () => "not-array",
-        needsCppMemberConversion: () => true,
+        isCppMemberConversionRequired: () => true,
         generateExpression: () => "cfg.enabled",
       });
 
@@ -330,7 +330,7 @@ describe("ArgumentGenerator", () => {
     it("returns null for default lvalue handling", () => {
       const callbacks = createMockCallbacks({
         getMemberAccessArrayStatus: () => "not-array",
-        needsCppMemberConversion: () => false,
+        isCppMemberConversionRequired: () => false,
       });
 
       const result = ArgumentGenerator.handleMemberAccessArg(
@@ -344,7 +344,7 @@ describe("ArgumentGenerator", () => {
     it("returns null when array status is unknown", () => {
       const callbacks = createMockCallbacks({
         getMemberAccessArrayStatus: () => "unknown",
-        needsCppMemberConversion: () => false,
+        isCppMemberConversionRequired: () => false,
       });
 
       const result = ArgumentGenerator.handleMemberAccessArg(
@@ -376,7 +376,7 @@ describe("ArgumentGenerator", () => {
       CodeGenState.cppMode = false;
       const callbacks = createMockCallbacks({
         getMemberAccessArrayStatus: () => "not-array",
-        needsCppMemberConversion: () => false,
+        isCppMemberConversionRequired: () => false,
         generateExpression: () => "obj.field",
       });
 
@@ -466,7 +466,7 @@ describe("ArgumentGenerator", () => {
       const callbacks = createMockCallbacks({
         getLvalueType: () => "member",
         getMemberAccessArrayStatus: () => "not-array",
-        needsCppMemberConversion: () => false,
+        isCppMemberConversionRequired: () => false,
         generateExpression: () => "obj.field",
       });
 

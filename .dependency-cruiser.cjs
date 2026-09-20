@@ -54,7 +54,7 @@ module.exports = {
       severity: "error",
       from: { path: "^src/transpiler/data/" },
       to: {
-        path: ["^src/transpiler/output/", "^src/TRANSPILE/3-Render/"],
+        path: "^src/TRANSPILE/3-Render/",
         reachable: true,
       },
     },
@@ -102,7 +102,7 @@ module.exports = {
       severity: "error",
       from: { path: "^src/transpiler/logic/" },
       to: {
-        path: ["^src/transpiler/output/", "^src/TRANSPILE/3-Render/"],
+        path: "^src/TRANSPILE/3-Render/",
         reachable: true,
       },
     },
@@ -117,7 +117,7 @@ module.exports = {
       severity: "error",
       from: { path: "^src/transpiler/state/" },
       to: {
-        path: ["^src/transpiler/output/", "^src/TRANSPILE/3-Render/"],
+        path: "^src/TRANSPILE/3-Render/",
         reachable: true,
       },
     },
@@ -137,7 +137,7 @@ module.exports = {
       severity: "error",
       from: { path: "^src/PARSE/" },
       to: {
-        path: ["^src/transpiler/output/", "^src/TRANSPILE/3-Render/"],
+        path: "^src/TRANSPILE/3-Render/",
         reachable: true,
       },
     },
@@ -184,7 +184,7 @@ module.exports = {
       severity: "error",
       from: { path: "^src/TRANSPILE/2-Plan/", pathNot: "__tests__" },
       to: {
-        path: ["^src/transpiler/output/", "^src/TRANSPILE/3-Render/"],
+        path: "^src/TRANSPILE/3-Render/",
         reachable: true,
       },
     },
@@ -205,10 +205,13 @@ module.exports = {
       severity: "error",
       from: {
         // `^src/transpiler/logic/analysis/` was a third alternative here on
-        // main. It is gone rather than dropped: #1322 moved that directory
-        // whole to `src/TRANSPILE/1-Analyze/`, which the next pattern covers.
-        // A path matching nothing is a rule arm that cannot fire.
-        path: ["^src/transpiler/output/", "^src/TRANSPILE/"],
+        // main, and `^src/transpiler/output/` a second. Both are gone rather
+        // than dropped: #1322 moved analysis whole to `1-Analyze/` and #1450
+        // box 5 moved output whole to `3-Render/`, so `^src/TRANSPILE/` covers
+        // each. A path matching nothing is a rule arm that cannot fire -- which
+        // this comment said while the arm above it did exactly that (#1589
+        // review).
+        path: "^src/TRANSPILE/",
         pathNot: "__tests__",
       },
       to: { path: "^src/PARSE/4-Resolve/", reachable: true },
@@ -239,7 +242,7 @@ module.exports = {
       severity: "error",
       from: { path: "^src/TRANSPILE/1-Analyze/", pathNot: "__tests__" },
       to: {
-        path: ["^src/transpiler/output/", "^src/TRANSPILE/3-Render/"],
+        path: "^src/TRANSPILE/3-Render/",
         reachable: true,
       },
     },
@@ -254,7 +257,7 @@ module.exports = {
         "than carried across at a new path.",
       severity: "error",
       from: {
-        path: ["^src/transpiler/output/", "^src/TRANSPILE/3-Render/"],
+        path: "^src/TRANSPILE/3-Render/",
         pathNot: "__tests__",
       },
       to: { path: "^src/TRANSPILE/1-Analyze/", reachable: true },

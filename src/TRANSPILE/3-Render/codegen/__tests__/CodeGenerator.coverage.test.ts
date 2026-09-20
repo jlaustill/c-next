@@ -382,9 +382,9 @@ describe("CodeGenerator Coverage Tests", () => {
   });
 
   // ==========================================================================
-  // Lines 4306-4379: needsCppMemberConversion and helpers
+  // Lines 4306-4379: isCppMemberConversionRequired and helpers
   // ==========================================================================
-  describe("needsCppMemberConversion() - C++ mode", () => {
+  describe("isCppMemberConversionRequired() - C++ mode", () => {
     it("should use pointer syntax in C mode for struct params", () => {
       const source = `
         struct Config { u8 value; }
