@@ -31,7 +31,7 @@ import DeclarationPlan from "../../2-Plan/DeclarationPlan";
 import type TDeclarationKind from "../../../transpiler/types/TDeclarationKind";
 import type IEmissionPlan from "../../../transpiler/types/IEmissionPlan";
 import type IEmissionFacts from "../../../transpiler/types/IEmissionFacts";
-import GeneratorRegistry from "./generators/GeneratorRegistry";
+import TGeneratorFn from "./generators/TGeneratorFn";
 // Expression generators
 import generateLiteral from "./generators/expressions/LiteralGenerator";
 import binaryExprGenerators from "./generators/expressions/BinaryExprGenerator";
@@ -232,120 +232,32 @@ export default class CodeGenerator implements IOrchestrator {
 
   /** Issue #644: Array initialization helper for size inference and fill-all */
 
-  /** Generator registry for modular code generation */
-  private readonly registry: GeneratorRegistry = new GeneratorRegistry();
-
   /**
-   * Initialize generator registry with extracted generators.
-   * Called once before code generation begins.
+   * Run a generator and apply its effects.
+   *
+   * #1445: takes the generator itself, not a name to look up. `GeneratorRegistry`
+   * held three string-keyed maps whose values were stored as
+   * `TGeneratorFn<ParserRuleContext>` -- an erasure written with three `as`
+   * casts -- so nothing checked that the context handed to a dispatch matched
+   * the kind named, and every call site needed an `invariant` to recover the
+   * fact that a string lookup can miss. Passing the function infers `T` from
+   * the generator and checks the context against it, and the invariants go
+   * with the lookup that could fail.
+   *
+   * Eleven of its fourteen expression registrations were already dead, four of
+   * its members had only test callers, and #1285 records the one incident it
+   * caused: a second, unreachable implementation kept alive behind
+   * `if (generator)` because registration is unconditional, so the guard could
+   * never fail and the twin still had to be maintained by hand.
    */
-  private initializeGenerators(): void {
-    // Phase 1: Simple leaf generators
-    this.registry.registerDeclaration("enum", enumGenerator);
-    this.registry.registerDeclaration("bitmap", bitmapGenerator);
-    this.registry.registerDeclaration("register", registerGenerator);
-
-    // Phase 2: Medium complexity generators
-    this.registry.registerDeclaration("struct", structGenerator);
-
-    // Phase 3: Complex generators
-    this.registry.registerDeclaration("function", functionGenerator);
-
-    // Phase 4: Composite generators
-    this.registry.registerDeclaration("scope", scopeGenerator);
-
-    // Statement generators
-    // Note: generateSwitchCase, generateCaseLabel, generateDefaultCase have extra
-    // switchEnumType param and are called directly rather than through the registry.
-    // Same for generateForVarDecl, generateForAssignment - internal helpers.
-    this.registry.registerStatement(
-      "return",
-      controlFlowGenerators.generateReturn,
-    );
-    this.registry.registerStatement("if", controlFlowGenerators.generateIf);
-    this.registry.registerStatement(
-      "while",
-      controlFlowGenerators.generateWhile,
-    );
-    this.registry.registerStatement(
-      "do-while",
-      controlFlowGenerators.generateDoWhile,
-    );
-    this.registry.registerStatement("for", controlFlowGenerators.generateFor);
-    this.registry.registerStatement(
-      "forever",
-      controlFlowGenerators.generateForever,
-    );
-    this.registry.registerStatement("switch", switchGenerators.generateSwitch);
-    this.registry.registerStatement("critical", generateCriticalStatement);
-
-    // Expression generators.
-    //
-    // Only the three kinds `invokeExpression` dispatches are registered.
-    // Eleven more were registered and never dispatched (#1445): `ternary`,
-    // `and`, `equality`, `relational`, `bitwise-or`, `bitwise-xor`,
-    // `bitwise-and`, `shift`, `additive`, `multiplicative` and `literal`.
-    //
-    // The functions are live -- `generateOrExpr` is the entry and the rest
-    // chain down the precedence ladder inside `BinaryExprGenerator`, while
-    // `generateLiteral` is called directly by `_generateLiteralExpression`.
-    // What was dead is the REGISTRATION: a second route to a live function
-    // that nothing took. It also erased the context type on the way through
-    // (`TGeneratorFn<ParserRuleContext>`), where the call that is actually
-    // used keeps the concrete one -- so the dead route was the less safe of
-    // the two, and `invokeExpression`'s invariant checks only that a
-    // generator exists, never that the context matches the kind.
-    this.registry.registerExpression(
-      "expression",
-      expressionGenerators.generateExpression,
-    );
-    this.registry.registerExpression("or", binaryExprGenerators.generateOrExpr);
-    this.registry.registerExpression("unary", generateUnaryExpr);
-  }
-
-  /**
-   * Invoke a registered statement generator by name.
-   * Reduces boilerplate in wrapper methods.
-   */
-  private invokeStatement(name: string, ctx: ParserRuleContext): string {
-    const generator = this.registry.getStatement(name);
-    invariant(
-      generator,
-      `every statement name reaching invokeStatement was registered by initializeGenerators (got '${name}')`,
-    );
-    const result = generator(ctx, this.getInput(), this.getState(), this);
+  private invokeGenerator<T>(generate: TGeneratorFn<T>, ctx: T): string {
+    const result = generate(ctx, this.getInput(), this.getState(), this);
     this.applyEffects(result.effects);
     return result.code;
   }
 
   /**
-   * Invoke a registered expression generator by name.
-   * Reduces boilerplate in wrapper methods.
-   */
-  private invokeExpression(name: string, ctx: ParserRuleContext): string {
-    const generator = this.registry.getExpression(name);
-    invariant(
-      generator,
-      `every expression name reaching invokeExpression was registered by initializeGenerators (got '${name}')`,
-    );
-    const result = generator(ctx, this.getInput(), this.getState(), this);
-    this.applyEffects(result.effects);
-    return result.code;
-  }
-
-  /**
-   * Invoke a registered declaration generator by name.
-   *
-   * The sibling `invokeStatement` and `invokeExpression` already had; the five
-   * declaration wrappers each wrote this body out instead, and
-   * `analyze:duplication` reported the enum/bitmap pair as a 20-line clone
-   * (#1450).
-   *
-   * The invariant keeps the message the five copies used, interpolated rather
-   * than reworded. It names the registration a reader has to go look at, where
-   * the siblings' wording names only the dispatcher -- and two unit tests pin
-   * it, so rewording would have meant editing assertions to match what I had
-   * done rather than keeping what they assert.
+   * Run a declaration generator, honouring ADR-029 header ownership.
    *
    * @param headerMaySuppress whether the included header owning this file's
    *   type definitions means the declaration is not emitted here. True for the
@@ -354,20 +266,15 @@ export default class CodeGenerator implements IOrchestrator {
    *   which has external linkage and no other home -- suppressing the whole
    *   generator dropped that function once already (#1164).
    */
-  private invokeDeclaration(
-    name: string,
-    ctx: ParserRuleContext,
+  private invokeDeclarationGenerator<T>(
+    generate: TGeneratorFn<T>,
+    ctx: T,
     headerMaySuppress: boolean,
   ): string {
-    const generator = this.registry.getDeclaration(name);
-    invariant(
-      generator,
-      `registerDeclaration("${name}") is unconditional in the constructor`,
-    );
     // The generator still runs when the header owns the definition, so its
     // effects are registered -- returning early would silently drop them,
     // which is how the ADR-029 struct init function was lost (#369/#1164).
-    const result = generator(ctx, this.getInput(), this.getState(), this);
+    const result = generate(ctx, this.getInput(), this.getState(), this);
     this.applyEffects(result.effects);
     const suppressed =
       headerMaySuppress &&
@@ -553,7 +460,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   generateExpression(ctx: Parser.ExpressionContext): string {
-    return this.invokeExpression("expression", ctx);
+    return this.invokeGenerator(expressionGenerators.generateExpression, ctx);
   }
 
   /**
@@ -612,7 +519,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   generateUnaryExpr(ctx: Parser.UnaryExpressionContext): string {
-    return this.invokeExpression("unary", ctx);
+    return this.invokeGenerator(generateUnaryExpr, ctx);
   }
 
   /**
@@ -636,7 +543,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   generateOrExpr(ctx: Parser.OrExpressionContext): string {
-    return this.invokeExpression("or", ctx);
+    return this.invokeGenerator(binaryExprGenerators.generateOrExpr, ctx);
   }
 
   // === Type Utilities ===
@@ -1945,7 +1852,6 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Initialize generators (once per CodeGenerator instance)
     if (!this.generatorsInitialized) {
-      this.initializeGenerators();
       this.generatorsInitialized = true;
     }
 
@@ -3422,7 +3328,7 @@ export default class CodeGenerator implements IOrchestrator {
   // ========================================================================
 
   private generateScope(ctx: Parser.ScopeDeclarationContext): string {
-    return this.invokeDeclaration("scope", ctx, false);
+    return this.invokeDeclarationGenerator(scopeGenerator, ctx, false);
   }
 
   // ========================================================================
@@ -3430,7 +3336,7 @@ export default class CodeGenerator implements IOrchestrator {
   // ========================================================================
 
   private generateRegister(ctx: Parser.RegisterDeclarationContext): string {
-    return this.invokeDeclaration("register", ctx, false);
+    return this.invokeDeclarationGenerator(registerGenerator, ctx, false);
   }
 
   // ========================================================================
@@ -3438,7 +3344,7 @@ export default class CodeGenerator implements IOrchestrator {
   // ========================================================================
 
   private generateStruct(ctx: Parser.StructDeclarationContext): string {
-    return this.invokeDeclaration("struct", ctx, false);
+    return this.invokeDeclarationGenerator(structGenerator, ctx, false);
   }
 
   // ========================================================================
@@ -3453,7 +3359,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Delegates to extracted EnumGenerator.
    */
   private generateEnum(ctx: Parser.EnumDeclarationContext): string {
-    return this.invokeDeclaration("enum", ctx, true);
+    return this.invokeDeclarationGenerator(enumGenerator, ctx, true);
   }
 
   /**
@@ -3464,7 +3370,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Delegates to extracted generator if registered.
    */
   private generateBitmap(ctx: Parser.BitmapDeclarationContext): string {
-    return this.invokeDeclaration("bitmap", ctx, true);
+    return this.invokeDeclarationGenerator(bitmapGenerator, ctx, true);
   }
 
   /**
@@ -3669,14 +3575,7 @@ export default class CodeGenerator implements IOrchestrator {
     // unconditional in the constructor, so the guard never failed and the twin
     // was unreachable -- while still having to be kept in step by hand. A
     // missing generator is an internal invariant violation, not a second path.
-    const generator = this.registry.getDeclaration("function");
-    invariant(
-      generator,
-      'registerDeclaration("function") is unconditional in the constructor',
-    );
-    const result = generator(ctx, this.getInput(), this.getState(), this);
-    this.applyEffects(result.effects);
-    return result.code;
+    return this.invokeGenerator(functionGenerator, ctx);
   }
 
   /**
@@ -4382,27 +4281,27 @@ export default class CodeGenerator implements IOrchestrator {
   // generateThisMemberAccess, generateThisArrayAccess) - now handled by unified doGenerateAssignmentTarget
 
   private generateIf(ctx: Parser.IfStatementContext): string {
-    return this.invokeStatement("if", ctx);
+    return this.invokeGenerator(controlFlowGenerators.generateIf, ctx);
   }
 
   private generateWhile(ctx: Parser.WhileStatementContext): string {
-    return this.invokeStatement("while", ctx);
+    return this.invokeGenerator(controlFlowGenerators.generateWhile, ctx);
   }
 
   private generateDoWhile(ctx: Parser.DoWhileStatementContext): string {
-    return this.invokeStatement("do-while", ctx);
+    return this.invokeGenerator(controlFlowGenerators.generateDoWhile, ctx);
   }
 
   private generateFor(ctx: Parser.ForStatementContext): string {
-    return this.invokeStatement("for", ctx);
+    return this.invokeGenerator(controlFlowGenerators.generateFor, ctx);
   }
 
   private generateForever(ctx: Parser.ForeverStatementContext): string {
-    return this.invokeStatement("forever", ctx);
+    return this.invokeGenerator(controlFlowGenerators.generateForever, ctx);
   }
 
   private generateReturn(ctx: Parser.ReturnStatementContext): string {
-    return this.invokeStatement("return", ctx);
+    return this.invokeGenerator(controlFlowGenerators.generateReturn, ctx);
   }
 
   // ========================================================================
@@ -4416,7 +4315,7 @@ export default class CodeGenerator implements IOrchestrator {
   private generateCriticalStatement(
     ctx: Parser.CriticalStatementContext,
   ): string {
-    return this.invokeStatement("critical", ctx);
+    return this.invokeGenerator(generateCriticalStatement, ctx);
   }
 
   // Issue #63: validateNoEarlyExits moved to TypeValidator
@@ -4426,7 +4325,7 @@ export default class CodeGenerator implements IOrchestrator {
   // ========================================================================
 
   private generateSwitch(ctx: Parser.SwitchStatementContext): string {
-    return this.invokeStatement("switch", ctx);
+    return this.invokeGenerator(switchGenerators.generateSwitch, ctx);
   }
 
   // ========================================================================

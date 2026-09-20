@@ -246,37 +246,6 @@ describe("CodeGenerator Coverage Tests", () => {
   // ==========================================================================
   // Lines 426, 440: invokeStatement/invokeExpression error paths
   // ==========================================================================
-  describe("invokeStatement/invokeExpression error paths", () => {
-    it("should throw when statement generator not registered", () => {
-      // This tests the error path at line 426
-      // We need to access the private method via type assertion
-      const { generator } = setupGenerator("void main() {}");
-
-      // Access the private registry and test with unregistered generator name
-      // The registry won't have a generator for a fake name
-      const registry = (
-        generator as unknown as {
-          registry: { getStatement: (name: string) => unknown };
-        }
-      ).registry;
-      const result = registry.getStatement("nonexistent_statement_type");
-      expect(result).toBeUndefined();
-    });
-
-    it("should throw when expression generator not registered", () => {
-      // This tests the error path at line 440
-      const { generator } = setupGenerator("void main() {}");
-
-      const registry = (
-        generator as unknown as {
-          registry: { getExpression: (name: string) => unknown };
-        }
-      ).registry;
-      const result = registry.getExpression("nonexistent_expression_type");
-      expect(result).toBeUndefined();
-    });
-  });
-
   // ==========================================================================
   // Lines 631-633: resolveIdentifier with scope members
   // ==========================================================================
