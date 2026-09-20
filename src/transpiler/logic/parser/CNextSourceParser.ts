@@ -205,18 +205,30 @@ class CNextSourceParser {
     const tree = parser.program();
     const declarationCount = tree.declaration().length;
 
-    // Scanned here, once, because this is the last point at which the comments
-    // are free: the parse has already filled the token stream, so the hidden
-    // channel is a walk over tokens already in memory. Every later reader --
-    // 2.1's MISRA 3.1/3.2 check, and the render layer re-attaching them -- used
-    // to pay for its own scan off the same stream (#1445).
-    const comments = new CommentScanner(tokenStream).extractAll();
+    // Scanned off THIS token stream, which the parse has already filled, so
+    // the hidden channel is a walk over tokens already in memory -- and
+    // scanned LAZILY, because the only reader is 2.1's MISRA 3.1/3.2 check
+    // and most callers of `parse` never ask. The prettier plugin, the
+    // format-fidelity gate, `grammar-coverage`, `FixtureOccupancy` and every
+    // `symbolOnly` include take the tree or the errors and nothing else;
+    // making the scan eager charged all of them for a walk they discard.
+    // `CommentScanner` memoizes, so the field is still computed at most once
+    // per parse (#1445).
+    //
+    // What did NOT move: the render layer's `CommentScanner` asks
+    // `getCommentsBefore`/`getCommentsAfter` about a token INDEX. Those are
+    // positional queries, not a whole-file scan, so there was never a second
+    // whole-file derivation to collapse -- an earlier draft of this comment
+    // said there was, and `IParsedFile` already carries the correction.
+    const scanner = new CommentScanner(tokenStream);
 
     return {
       tree,
       tokenStream,
       declarationCount,
-      comments,
+      get comments() {
+        return scanner.extractAll();
+      },
       parseErrors: errors,
     };
   }

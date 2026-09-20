@@ -1,13 +1,16 @@
 /**
  * Unit tests for CodeGenerator - Coverage for uncovered lines
  *
- * This file targets specific uncovered lines identified by SonarCloud:
- * - Lines 426, 440: invokeStatement/invokeExpression error paths
- * - Lines 631-633: resolveIdentifier with scope members
- * - Lines 4289-4379: C++ member conversion logic
- * - Lines 4572-4622: Member access argument handling
- * - Lines 4687-4765: Scope generation fallback
- * - Lines 5154-5275: Function/array generation
+ * This file targets paths SonarCloud reported as uncovered: resolveIdentifier
+ * with scope members, C++ member conversion, member-access argument handling,
+ * scope-generation fallback, and function/array generation.
+ *
+ * #1445: the line numbers this header used to carry are gone with the
+ * `invokeStatement`/`invokeExpression` bullet, whose two tests reached into a
+ * private `registry` that no longer exists. Naming a section by a line number
+ * in another file is the shape this branch deletes elsewhere -- it was already
+ * wrong before the diff shifted `CodeGenerator.ts`, and nothing could ever
+ * have reported that.
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import Program from "../../../../PARSE/4-Resolve/Program";
@@ -244,10 +247,7 @@ describe("CodeGenerator Coverage Tests", () => {
   });
 
   // ==========================================================================
-  // Lines 426, 440: invokeStatement/invokeExpression error paths
-  // ==========================================================================
-  // ==========================================================================
-  // Lines 631-633: resolveIdentifier with scope members
+  // resolveIdentifier with scope members
   // ==========================================================================
   describe("resolveIdentifier() with scope members", () => {
     it("should resolve identifier to scope-prefixed name when inside scope", () => {

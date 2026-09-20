@@ -425,6 +425,11 @@ function createMockOrchestrator(
 ): IOrchestrator {
   return {
     setCurrentScope: vi.fn(),
+    // #1445: a scope member's generator may return effects, and
+    // `processScopeMember` now applies them instead of dropping them. A mock
+    // missing this method is the `as unknown as IOrchestrator` cast hiding an
+    // unimplemented interface member -- which is what this one did.
+    applyEffects: vi.fn(),
     generateType: vi.fn((ctx) => {
       const text = ctx.getText();
       const typeMap: Record<string, string> = {

@@ -313,8 +313,10 @@ function parseWithSymbols(source: string): IParseWithSymbolsResult {
 
   return {
     success: errors.length === 0,
-    // Copied, not aliased: `parseErrors` belongs to 1.2's artifact, and this is
-    // a public API whose caller owns what it is handed (#1445).
+    // A fresh ARRAY, so a caller who sorts or splices what it is handed does
+    // not reach into 1.2's artifact. The elements are still shared -- this is
+    // not a deep copy and does not make the errors detached, so do not stamp
+    // fields onto them in place (#1445).
     errors: [...errors],
     symbols,
   };

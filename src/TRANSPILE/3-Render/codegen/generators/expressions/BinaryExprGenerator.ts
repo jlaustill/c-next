@@ -551,19 +551,20 @@ const generateMultiplicativeExpr = (
   return foldClampOrJoin(node, operandCodes, operators, "*", []);
 };
 
-// Export all generators as a single object (lint requirement: no named exports)
 /**
- * `generateOrExpr` is the only entry point.
+ * `generateOrExpr` is the only entry point, and it is exported DIRECTLY.
  *
- * The other nine used to be exported here as well, reached solely by
+ * The other nine used to be exported here too, reached solely by
  * `CodeGenerator`'s expression registrations -- which nothing dispatched
  * (#1445). They are the precedence ladder and are called from `generateOrExpr`
  * downward inside this module, so exporting them published nine names with no
- * consumer. knip cannot see that: members of an exported object literal are not
- * analyzed, so the surface would have stayed green either way.
+ * consumer. knip could not see that: members of an exported object literal are
+ * not analyzed, so the surface stayed green either way.
+ *
+ * Which is why the wrapper object went with them. Keeping a one-member literal
+ * would have preserved the exact affordance that let nine dead names
+ * accumulate -- a tenth key costs nothing and is reported by nothing. A plain
+ * default export satisfies oxlint's `no-named-export` and puts this module
+ * back under knip.
  */
-const binaryExprGenerators = {
-  generateOrExpr,
-};
-
-export default binaryExprGenerators;
+export default generateOrExpr;

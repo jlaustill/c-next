@@ -480,6 +480,14 @@ function processScopeMember(
       state,
       orchestrator,
     );
+    // #1445: the file-scope caller reaches this same generator through
+    // `CodeGenerator.invokeGenerator`, which applies its effects. This branch
+    // used to return only the code, so one function had two callers honoring
+    // half its contract -- safe solely because `effects` is hardcoded `[]`
+    // today. The first effect added here (a `stdint` include for a member's
+    // backing type, say) would have been emitted at file scope and silently
+    // dropped inside a scope.
+    orchestrator.applyEffects(result.effects);
     return ["", result.code];
   }
 

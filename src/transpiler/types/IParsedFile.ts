@@ -55,8 +55,18 @@ interface IParsedFile {
   /**
    * Every comment on the hidden channel, in token order (ADR-043).
    *
-   * Carries `tokenIndex` per comment, so a consumer that needs position
-   * relative to code does not need the token stream to get it.
+   * Computed on FIRST READ and memoized, not on parse: 2.1's MISRA 3.1/3.2
+   * check is the only reader, and most callers of `parse` -- the prettier
+   * plugin, `format-fidelity`, `grammar-coverage`, `FixtureOccupancy`, every
+   * `symbolOnly` include, every file that returned early on a parse error --
+   * take the tree or the errors and never ask. Reading it is still a property
+   * OF the parse, because the token stream it walks is this artifact's own.
+   *
+   * Each entry carries `tokenIndex`. Nothing reads it today: the positional
+   * question ("which comments precede THIS token") is answered by the render
+   * layer's `CommentScanner` off the token stream, and an index-ordered array
+   * is not obviously the better answer. It is recorded because 1.2 is the
+   * pass that can see it for free, not because a consumer was waiting.
    */
   readonly comments: readonly IComment[];
 

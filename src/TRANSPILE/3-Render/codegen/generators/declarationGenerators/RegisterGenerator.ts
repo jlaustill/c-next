@@ -33,6 +33,7 @@ import IGeneratorState from "../IGeneratorState";
 import IGeneratorOutput from "../IGeneratorOutput";
 import IOrchestrator from "../IOrchestrator";
 import IPlannedRegisterMember from "../../../../../transpiler/types/IPlannedRegisterMember";
+import type TRegisterAccessMode from "../../../../../transpiler/types/TRegisterAccessMode";
 import TGeneratorFn from "../TGeneratorFn";
 import generateRegisterMacros from "./RegisterMacroGenerator";
 import RegisterBlockPlacement from "./RegisterBlockPlacement";
@@ -46,22 +47,34 @@ import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
  * a bare `Flags` inside `scope Chip` arrives as `Chip__Flags` and an explicit
  * `global.Flags` arrives as `Flags`.
  *
- * The resolver this replaced re-qualified that ALREADY-resolved name and
- * probed the re-qualified key first, which is the post-pass ADR-057 forbids:
- * by then `global.Flags` and a bare `Flags` are byte-identical, so a
+ * A resolver on the scoped path used to re-qualify that ALREADY-resolved name
+ * and probe the re-qualified key first, which is the post-pass ADR-057
+ * forbids: by then `global.Flags` and a bare `Flags` are byte-identical, so a
  * scope-local `Chip__Flags` captured the global reference and the register was
- * typed with a bitmap whose bit names differ.
+ * typed with a bitmap whose bit names differ. It was deleted before this
+ * function existed (#1472); the note stays because "do not re-qualify" is the
+ * rule this function has to keep, not a change it made.
+ *
+ * `cType` and `offset` are bound to locals rather than written inline in the
+ * literal: both call the orchestrator, which registers effects on
+ * `CodeGenState`, so written inline their order would be pinned by the order
+ * the four FIELDS happen to appear -- and re-sorting an object literal reads
+ * as cosmetic.
  */
 function planMembers(
   members: readonly Parser.RegisterMemberContext[],
   orchestrator: IOrchestrator,
 ): IPlannedRegisterMember[] {
-  return members.map((member) => ({
-    name: member.IDENTIFIER().getText(),
-    cType: orchestrator.generateType(member.type()),
-    access: member.accessModifier().getText(),
-    offset: orchestrator.generateExpression(member.expression()),
-  }));
+  return members.map((member) => {
+    const cType = orchestrator.generateType(member.type());
+    const offset = orchestrator.generateExpression(member.expression());
+    return {
+      name: member.IDENTIFIER().getText(),
+      cType,
+      access: member.accessModifier().getText() as TRegisterAccessMode,
+      offset,
+    };
+  });
 }
 
 /**

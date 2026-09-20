@@ -34,7 +34,7 @@ import type IEmissionFacts from "../../../transpiler/types/IEmissionFacts";
 import TGeneratorFn from "./generators/TGeneratorFn";
 // Expression generators
 import generateLiteral from "./generators/expressions/LiteralGenerator";
-import binaryExprGenerators from "./generators/expressions/BinaryExprGenerator";
+import generateOrExpr from "./generators/expressions/BinaryExprGenerator";
 import generateUnaryExpr from "./generators/expressions/UnaryExprGenerator";
 import expressionGenerators from "./generators/expressions/ExpressionGenerator";
 import generatePostfixExpression from "./generators/expressions/PostfixExpressionGenerator";
@@ -249,6 +249,17 @@ export default class CodeGenerator implements IOrchestrator {
    * caused: a second, unreachable implementation kept alive behind
    * `if (generator)` because registration is unconditional, so the guard could
    * never fail and the twin still had to be maintained by hand.
+   *
+   * **The inference checks the context, not the MEANING of a context-free one.**
+   * `T` is inferred, so handing `generateWhile` an `IfStatementContext` is a
+   * compile error -- but `generateEnum` and `generateBitmap` are both
+   * `TGeneratorFn<string>`, so those two are mutually substitutable and any
+   * string satisfies either. For that pair the registry's erasure did not go
+   * away, it moved from `ParserRuleContext` into `string`; what catches a
+   * swap there is each generator's `invariant` on an unknown key, at run
+   * time. Stated because the slice's own commit subject says "a mis-wire is
+   * now a type error", which is true of the seven context-typed generators
+   * and not of the two this slice converted.
    */
   private invokeGenerator<T>(generate: TGeneratorFn<T>, ctx: T): string {
     const result = generate(ctx, this.getInput(), this.getState(), this);
@@ -257,32 +268,26 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Run a declaration generator, honoring ADR-029 header ownership.
+   * Run a declaration generator whose definition an included header may own
+   * (ADR-029), suppressing only the emitted text.
    *
-   * @param headerMaySuppress whether the included header owning this file's
-   *   type definitions means the declaration is not emitted here. True for the
-   *   type-forming kinds. `struct` is deliberately NOT one: its generator
-   *   suppresses only the typedef and still emits ADR-029's init function,
-   *   which has external linkage and no other home -- suppressing the whole
-   *   generator dropped that function once already (#1164).
+   * Only the type-forming kinds route here. `struct` deliberately does NOT:
+   * its generator suppresses only the typedef and still emits ADR-029's init
+   * function, which has external linkage and no other home -- suppressing the
+   * whole generator dropped that function once already (#1164). Scope,
+   * register, struct and function therefore call `invokeGenerator` directly
+   * rather than passing a `false` that made this the same function twice.
    */
-  private invokeDeclarationGenerator<T>(
+  private invokeSuppressibleDeclaration<T>(
     generate: TGeneratorFn<T>,
     ctx: T,
-    headerMaySuppress: boolean,
   ): string {
     // The generator still runs when the header owns the definition, so its
     // effects are registered -- returning early would silently drop them,
     // which is how the ADR-029 struct init function was lost (#369/#1164).
-    const result = generate(ctx, this.getInput(), this.getState(), this);
-    this.applyEffects(result.effects);
-    const suppressed =
-      headerMaySuppress &&
-      CodeGenState.declarationPlan().headerOwnsTypeDefinitions;
-    return suppressed ? "" : result.code;
+    const code = this.invokeGenerator(generate, ctx);
+    return CodeGenState.declarationPlan().headerOwnsTypeDefinitions ? "" : code;
   }
-
-  private generatorsInitialized = false;
 
   // ===========================================================================
   // IOrchestrator Implementation
@@ -543,7 +548,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   generateOrExpr(ctx: Parser.OrExpressionContext): string {
-    return this.invokeGenerator(binaryExprGenerators.generateOrExpr, ctx);
+    return this.invokeGenerator(generateOrExpr, ctx);
   }
 
   // === Type Utilities ===
@@ -1854,11 +1859,6 @@ export default class CodeGenerator implements IOrchestrator {
       tree,
       options?.target,
     );
-
-    // Initialize generators (once per CodeGenerator instance)
-    if (!this.generatorsInitialized) {
-      this.generatorsInitialized = true;
-    }
 
     // Reset state for fresh generation (must be before any state assignments)
     this.resetGeneratorState(targetCapabilities);
@@ -3333,7 +3333,7 @@ export default class CodeGenerator implements IOrchestrator {
   // ========================================================================
 
   private generateScope(ctx: Parser.ScopeDeclarationContext): string {
-    return this.invokeDeclarationGenerator(scopeGenerator, ctx, false);
+    return this.invokeGenerator(scopeGenerator, ctx);
   }
 
   // ========================================================================
@@ -3341,10 +3341,9 @@ export default class CodeGenerator implements IOrchestrator {
   // ========================================================================
 
   private generateRegister(ctx: Parser.RegisterDeclarationContext): string {
-    return this.invokeDeclarationGenerator(
-      registerGeneratorFor(""),
+    return this.invokeGenerator(
+      registerGeneratorFor(this.getState().currentScopePath),
       ctx,
-      false,
     );
   }
 
@@ -3353,7 +3352,7 @@ export default class CodeGenerator implements IOrchestrator {
   // ========================================================================
 
   private generateStruct(ctx: Parser.StructDeclarationContext): string {
-    return this.invokeDeclarationGenerator(structGenerator, ctx, false);
+    return this.invokeGenerator(structGenerator, ctx);
   }
 
   // ========================================================================
@@ -3368,10 +3367,9 @@ export default class CodeGenerator implements IOrchestrator {
    * Delegates to extracted EnumGenerator.
    */
   private generateEnum(ctx: Parser.EnumDeclarationContext): string {
-    return this.invokeDeclarationGenerator(
+    return this.invokeSuppressibleDeclaration(
       enumGenerator,
       ctx.IDENTIFIER().getText(),
-      true,
     );
   }
 
@@ -3383,10 +3381,9 @@ export default class CodeGenerator implements IOrchestrator {
    * Delegates to extracted generator if registered.
    */
   private generateBitmap(ctx: Parser.BitmapDeclarationContext): string {
-    return this.invokeDeclarationGenerator(
+    return this.invokeSuppressibleDeclaration(
       bitmapGenerator,
       ctx.IDENTIFIER().getText(),
-      true,
     );
   }
 
@@ -3588,10 +3585,11 @@ export default class CodeGenerator implements IOrchestrator {
 
   private generateFunction(ctx: Parser.FunctionDeclarationContext): string {
     // #1285: no inline fallback. This used to carry a second, parallel
-    // implementation guarded by `if (generator)`, but registration is
-    // unconditional in the constructor, so the guard never failed and the twin
-    // was unreachable -- while still having to be kept in step by hand. A
-    // missing generator is an internal invariant violation, not a second path.
+    // implementation guarded by `if (generator)` against a registry lookup
+    // that could never miss, so the twin was unreachable and still had to be
+    // kept in step by hand. #1445 deleted the registry as well, so there is no
+    // lookup left to guard -- this wrapper is now indistinguishable from its
+    // eleven siblings, which is the point.
     return this.invokeGenerator(functionGenerator, ctx);
   }
 

@@ -53,7 +53,14 @@ import type TSymbol from "./symbols/TSymbol";
 interface IDeclaredFile {
   /**
    * What 1.2 Parse produced: the tree, its token stream, the declaration
-   * count, the comments and any parse errors.
+   * count and the comments.
+   *
+   * Its `parseErrors` is always empty HERE, structurally: `_declarePipelineFile`
+   * returns before declaring when the parse reported anything, so no file with
+   * errors is ever cached. `IParsedFile`'s warning that a non-empty value means
+   * a RECOVERY tree is about the value `parse` returns, not about this carrier
+   * -- a later pass asking this one whether its tree is trustworthy would get
+   * `[]` whatever the answer should be.
    */
   readonly parsed: IParsedFile;
 
