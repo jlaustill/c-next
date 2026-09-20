@@ -46,7 +46,7 @@ import switchGenerators from "./generators/statements/SwitchGenerator";
 // Declaration generators
 import enumGenerator from "./generators/declarationGenerators/EnumGenerator";
 import bitmapGenerator from "./generators/declarationGenerators/BitmapGenerator";
-import registerGenerator from "./generators/declarationGenerators/RegisterGenerator";
+import registerGeneratorFor from "./generators/declarationGenerators/RegisterGenerator";
 import structGenerator from "./generators/declarationGenerators/StructGenerator";
 import functionGenerator from "./generators/declarationGenerators/FunctionGenerator";
 import scopeGenerator from "./generators/declarationGenerators/ScopeGenerator";
@@ -257,7 +257,7 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Run a declaration generator, honouring ADR-029 header ownership.
+   * Run a declaration generator, honoring ADR-029 header ownership.
    *
    * @param headerMaySuppress whether the included header owning this file's
    *   type definitions means the declaration is not emitted here. True for the
@@ -3336,7 +3336,11 @@ export default class CodeGenerator implements IOrchestrator {
   // ========================================================================
 
   private generateRegister(ctx: Parser.RegisterDeclarationContext): string {
-    return this.invokeDeclarationGenerator(registerGenerator, ctx, false);
+    return this.invokeDeclarationGenerator(
+      registerGeneratorFor(""),
+      ctx,
+      false,
+    );
   }
 
   // ========================================================================

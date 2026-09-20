@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import generateScopedRegister from "../ScopedRegisterGenerator";
+import registerGeneratorFor from "../RegisterGenerator";
 import IGeneratorInput from "../../IGeneratorInput";
 import IGeneratorState from "../../IGeneratorState";
 import IOrchestrator from "../../IOrchestrator";
@@ -132,9 +132,8 @@ describe("ScopedRegisterGenerator", () => {
       const state = createMockState();
       const orchestrator = createMockOrchestrator(standardTypes);
 
-      const result = generateScopedRegister(
+      const result = registerGeneratorFor("Teensy4")(
         ctx,
-        "Teensy4",
         input,
         state,
         orchestrator,
@@ -167,9 +166,8 @@ describe("ScopedRegisterGenerator", () => {
       const state = createMockState();
       const orchestrator = createMockOrchestrator(standardTypes);
 
-      const result = generateScopedRegister(
+      const result = registerGeneratorFor("Driver")(
         ctx,
-        "Driver",
         input,
         state,
         orchestrator,
@@ -195,9 +193,8 @@ describe("ScopedRegisterGenerator", () => {
       const state = createMockState();
       const orchestrator = createMockOrchestrator(standardTypes);
 
-      const result = generateScopedRegister(
+      const result = registerGeneratorFor("HAL")(
         ctx,
-        "HAL",
         input,
         state,
         orchestrator,
@@ -222,9 +219,8 @@ describe("ScopedRegisterGenerator", () => {
       const state = createMockState();
       const orchestrator = createMockOrchestrator(standardTypes);
 
-      const result = generateScopedRegister(
+      const result = registerGeneratorFor("HAL")(
         ctx,
-        "HAL",
         input,
         state,
         orchestrator,
@@ -258,9 +254,8 @@ describe("ScopedRegisterGenerator", () => {
         new Map([["GPIO7Pins", "Teensy4__GPIO7Pins"]]),
       );
 
-      const result = generateScopedRegister(
+      const result = registerGeneratorFor("Teensy4")(
         ctx,
-        "Teensy4",
         input,
         state,
         orchestrator,
@@ -294,9 +289,8 @@ describe("ScopedRegisterGenerator", () => {
         new Map([["GPIO7Pins", "GPIO7Pins"]]),
       );
 
-      const result = generateScopedRegister(
+      const result = registerGeneratorFor("Teensy4")(
         ctx,
-        "Teensy4",
         input,
         state,
         orchestrator,
@@ -320,9 +314,8 @@ describe("ScopedRegisterGenerator", () => {
       const state = createMockState();
       const orchestrator = createMockOrchestrator(standardTypes);
 
-      const result = generateScopedRegister(
+      const result = registerGeneratorFor("Teensy4")(
         ctx,
-        "Teensy4",
         input,
         state,
         orchestrator,
@@ -362,9 +355,8 @@ describe("ScopedRegisterGenerator", () => {
       const state = createMockState();
       const orchestrator = createMockOrchestrator(standardTypes);
 
-      const result = generateScopedRegister(
+      const result = registerGeneratorFor("Board")(
         ctx,
-        "Board",
         input,
         state,
         orchestrator,
@@ -395,9 +387,8 @@ describe("ScopedRegisterGenerator", () => {
       const state = createMockState();
       const orchestrator = createMockOrchestrator(standardTypes);
 
-      const result = generateScopedRegister(
+      const result = registerGeneratorFor("Scope")(
         ctx,
-        "Scope",
         input,
         state,
         orchestrator,

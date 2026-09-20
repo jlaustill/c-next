@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import generateRegister from "../RegisterGenerator";
+import registerGeneratorFor from "../RegisterGenerator";
 import IGeneratorInput from "../../IGeneratorInput";
 import IGeneratorState from "../../IGeneratorState";
 import IOrchestrator from "../../IOrchestrator";
@@ -112,7 +112,7 @@ describe("RegisterGenerator", () => {
       const state = createMockState();
       const orchestrator = createMockOrchestrator(standardTypes);
 
-      const result = generateRegister(ctx, input, state, orchestrator);
+      const result = registerGeneratorFor("")(ctx, input, state, orchestrator);
 
       expect(result.code).toBe(
         `/* Register: GPIO7 @ 0x42004000 */
@@ -150,7 +150,7 @@ describe("RegisterGenerator", () => {
       const state = createMockState();
       const orchestrator = createMockOrchestrator(standardTypes);
 
-      const result = generateRegister(ctx, input, state, orchestrator);
+      const result = registerGeneratorFor("")(ctx, input, state, orchestrator);
 
       expect(result.code).toContain("/* Register: TIMER @ 0x40000000 */");
       expect(result.code).toContain(
@@ -180,7 +180,7 @@ describe("RegisterGenerator", () => {
       const state = createMockState();
       const orchestrator = createMockOrchestrator(standardTypes);
 
-      const result = generateRegister(ctx, input, state, orchestrator);
+      const result = registerGeneratorFor("")(ctx, input, state, orchestrator);
 
       expect(result.code).toContain(
         "#define STATUS__FLAGS (*(volatile uint8_t const *)(0x50000000 + 0x00))",
@@ -201,7 +201,7 @@ describe("RegisterGenerator", () => {
       const state = createMockState();
       const orchestrator = createMockOrchestrator(standardTypes);
 
-      const result = generateRegister(ctx, input, state, orchestrator);
+      const result = registerGeneratorFor("")(ctx, input, state, orchestrator);
 
       expect(result.code).toContain(
         "#define COMMAND__SET (*(volatile uint16_t*)(0x50000000 + 0x00))",
@@ -222,7 +222,7 @@ describe("RegisterGenerator", () => {
       const state = createMockState();
       const orchestrator = createMockOrchestrator(standardTypes);
 
-      const result = generateRegister(ctx, input, state, orchestrator);
+      const result = registerGeneratorFor("")(ctx, input, state, orchestrator);
 
       expect(result.code).toContain(
         "#define CONFIG__VALUE (*(volatile uint32_t*)(0x50000000 + 0x00))",
@@ -245,7 +245,7 @@ describe("RegisterGenerator", () => {
       const state = createMockState();
       const orchestrator = createMockOrchestrator(standardTypes);
 
-      const result = generateRegister(ctx, input, state, orchestrator);
+      const result = registerGeneratorFor("")(ctx, input, state, orchestrator);
 
       expect(result.code).toContain("volatile uint8_t*");
     });
@@ -264,7 +264,7 @@ describe("RegisterGenerator", () => {
       const state = createMockState();
       const orchestrator = createMockOrchestrator(standardTypes);
 
-      const result = generateRegister(ctx, input, state, orchestrator);
+      const result = registerGeneratorFor("")(ctx, input, state, orchestrator);
 
       expect(result.code).toContain("volatile uint16_t*");
     });
@@ -283,7 +283,7 @@ describe("RegisterGenerator", () => {
       const state = createMockState();
       const orchestrator = createMockOrchestrator(standardTypes);
 
-      const result = generateRegister(ctx, input, state, orchestrator);
+      const result = registerGeneratorFor("")(ctx, input, state, orchestrator);
 
       expect(result.code).toContain("volatile uint64_t*");
     });
@@ -369,7 +369,7 @@ describe("RegisterGenerator", () => {
       const state = createMockState();
       const orchestrator = createMockOrchestrator(standardTypes);
 
-      const result = generateRegister(ctx, input, state, orchestrator);
+      const result = registerGeneratorFor("")(ctx, input, state, orchestrator);
 
       expect(result.code).toContain(
         "#define GPIO__DR (*(volatile uint32_t*)(0x401B8000 + 0x00))",
@@ -401,7 +401,7 @@ describe("RegisterGenerator", () => {
       const state = createMockState();
       const orchestrator = createMockOrchestrator(standardTypes);
 
-      const result = generateRegister(ctx, input, state, orchestrator);
+      const result = registerGeneratorFor("")(ctx, input, state, orchestrator);
 
       expect(result.effects).toEqual([]);
     });

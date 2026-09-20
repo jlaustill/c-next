@@ -20,7 +20,7 @@ import IGeneratorState from "../IGeneratorState";
 import IGeneratorOutput from "../IGeneratorOutput";
 import IOrchestrator from "../IOrchestrator";
 import TGeneratorFn from "../TGeneratorFn";
-import generateScopedRegister from "./ScopedRegisterGenerator";
+import registerGeneratorFor from "./RegisterGenerator";
 import ArrayDimensionUtils from "./ArrayDimensionUtils";
 import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";
@@ -474,9 +474,8 @@ function processScopeMember(
   // Handle register declarations inside scopes
   if (member.registerDeclaration()) {
     const regDecl = member.registerDeclaration()!;
-    const result = generateScopedRegister(
+    const result = registerGeneratorFor(declaringScopePath)(
       regDecl,
-      declaringScopePath,
       input,
       state,
       orchestrator,
