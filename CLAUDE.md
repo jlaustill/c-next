@@ -595,14 +595,21 @@ Mutation-checked, and the check is the point: add a static method nothing calls 
 - **Analyzer state**: external struct fields are **derived by 1.4 Resolve** (`Program.externalStructFields()`) and read via `CodeGenState.getExternalStructFields()`. #1447 moved the derivation there because which fields a header's struct has is a cross-file fact, and 1.4 is the pass that can see every file. The `buildExternalStructFields()` this line used to name was removed with the Stage 2b accumulation and does not exist
 - **Analyzer symbols**: `CodeGenState.symbols` is set before `runAnalyzers()` in `_analyzeFile()` — analyzers can use `isKnownEnum()`, `getStructFieldType()`, `getFunctionReturnType()`, `getVariableTypeInfo()`
 - **Analyzer-time vs codegen-time state**: `symbols` is the _only_ `CodeGenState` type view
-  populated before `runAnalyzers()`. `callbackTypes`, `typeRegistry` and `constValues` are
-  filled by `CodeGenerator` and cleared by `reset()` at the start of `generate()` — **both
-  after the analyzers run**. An analyzer reading one sees an empty map for the first file and
-  **file N-1's** data for every file after, so the diagnostic becomes order-dependent: #1399
-  shipped an E0426 that fired or not depending on which order the entry listed its two
-  `#include` lines, and the doc comment fifteen lines above the call already said the set was
-  filled later. Use `symbols.functionReturnTypes` for the ADR-029 function-as-type fact — it
-  is the per-file view of the same thing
+  populated before `runAnalyzers()`. `callbackTypes` and `constValues` are filled by
+  `CodeGenerator` and cleared by `reset()` at the start of `generate()` — **both after the
+  analyzers run**. Since #1320 hoisted 2.1 Analyze whole-program, every file is analyzed
+  before any file is planned, so across an analysis pass these hold the **same** value for
+  every file: empty in a fresh process, or the previous run's last file in a long-lived one
+  (`ServeCommand` holds a static transpiler and serves many requests), because the only
+  production `reset()` call is per-file inside `generate()`. An analyzer reading one is
+  reading nothing about the file it is analyzing — a silent no-op, **not** the
+  order-dependence this entry used to describe, and the two need opposite debugging. That is
+  the whole value of the entry: #1399 shipped an E0426 that fired or not depending on which
+  order the entry listed its two `#include` lines, and the old wording now sends the next
+  reader hunting include ordering for a shape the hoist removed. `typeRegistry` was named
+  here too; it is `private static` with no accessor, so an analyzer cannot read it at all.
+  Use `symbols.functionReturnTypes` for the ADR-029 function-as-type fact — it is the
+  per-file view of the same thing
 - **Analyzer test isolation**: Use `CodeGenState.reset()` in `afterEach` when tests set `CodeGenState.symbols`
 - **Analyzer type tracking**: Use `trackType(typeCtx, identifier)` helper pattern (see `FloatModuloAnalyzer.trackIfFloat()`, `ArrayIndexTypeAnalyzer.trackType()`) to avoid jscpd duplication across `enterVariableDeclaration`/`enterParameter`/`enterForVarDecl`
 - **Ternary grammar**: `ternaryExpression` has 3 `orExpression` children: `[0]` = condition, `[1]` = true value, `[2]` = false value. When validating value types, skip index 0 — and address them via `orExpression()`, **never `getChild(i)`**: the condition is parenthesized, so `getChild(0)` is `(` and an index-based skip silently does nothing
