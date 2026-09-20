@@ -4,16 +4,14 @@
 
 import generateBitmapHeader from "../generateBitmapHeader";
 import IHeaderTypeInput from "../IHeaderTypeInput";
+import type IBitmapFieldLayout from "../../../../../transpiler/types/IBitmapFieldLayout";
 
 /**
  * Creates a minimal IHeaderTypeInput with bitmap data populated
  */
 function createInput(
   bitmapBackingType: Map<string, string>,
-  bitmapFields?: Map<
-    string,
-    Map<string, { readonly offset: number; readonly width: number }>
-  >,
+  bitmapFields?: Map<string, Map<string, IBitmapFieldLayout>>,
 ): IHeaderTypeInput {
   return {
     enumMembers: new Map(),

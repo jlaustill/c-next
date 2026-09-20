@@ -592,8 +592,8 @@ Mutation-checked, and the check is the point: add a static method nothing calls 
   per-file sets about a C-Next name and the run-wide table about a foreign one
 - **Test isolation**: Call `SymbolRegistry.reset()` in `beforeEach` for CNextResolver tests
 - **Array dimensions**: `IVariableSymbol.arrayDimensions` is `(number | string)[]` — numbers for resolved constants, strings for C macros
-- **Analyzer state**: `CodeGenState.buildExternalStructFields()` in Stage 2b; analyzers read via `getExternalStructFields()`
-- **Analyzer symbols**: `CodeGenState.symbols` is set before `runAnalyzers()` in `_transpileFile()` — analyzers can use `isKnownEnum()`, `getStructFieldType()`, `getFunctionReturnType()`, `getVariableTypeInfo()`
+- **Analyzer state**: external struct fields are **derived by 1.4 Resolve** (`Program.externalStructFields()`) and read via `CodeGenState.getExternalStructFields()`. #1447 moved the derivation there because which fields a header's struct has is a cross-file fact, and 1.4 is the pass that can see every file. The `buildExternalStructFields()` this line used to name was removed with the Stage 2b accumulation and does not exist
+- **Analyzer symbols**: `CodeGenState.symbols` is set before `runAnalyzers()` in `_analyzeFile()` — analyzers can use `isKnownEnum()`, `getStructFieldType()`, `getFunctionReturnType()`, `getVariableTypeInfo()`
 - **Analyzer-time vs codegen-time state**: `symbols` is the _only_ `CodeGenState` type view
   populated before `runAnalyzers()`. `callbackTypes`, `typeRegistry` and `constValues` are
   filled by `CodeGenerator` and cleared by `reset()` at the start of `generate()` — **both

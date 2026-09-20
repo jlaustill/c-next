@@ -18,6 +18,7 @@
  * published. Composed once now, while the whole program is in hand.
  */
 
+import type IBitmapFieldLayout from "../../transpiler/types/IBitmapFieldLayout";
 import type ICodeGenSymbols from "../../transpiler/types/ICodeGenSymbols";
 
 /**
@@ -40,10 +41,7 @@ interface IMergeAccumulator {
   readonly knownStructs: Set<string>;
   readonly knownBitmaps: Set<string>;
   readonly knownVariables: Set<string>;
-  readonly bitmapFields: Map<
-    string,
-    Map<string, { readonly offset: number; readonly width: number }>
-  >;
+  readonly bitmapFields: Map<string, Map<string, IBitmapFieldLayout>>;
   readonly bitmapBackingType: Map<string, string>;
   readonly knownRegisters: Set<string>;
   readonly scopedRegisters: Map<string, string>;

@@ -14,7 +14,7 @@
  *
  * Declared names come from the lexical scope frames; struct field types come
  * from CodeGenState, which merges same-file and included-file structs and is
- * populated before runAnalyzers (Transpiler `_transpileFile`).
+ * populated before runAnalyzers (Transpiler `_analyzeFile`).
  */
 
 import { ParserRuleContext, ParseTree } from "antlr4ng";
