@@ -1,52 +1,28 @@
 /**
- * MISRA Suppression Utilities
+ * 2.3 Render -- how a MISRA suppression READS.
  *
- * Issue #850: Shared helpers for emitting MISRA inline suppression comments.
- * Used by both CodeGenerator (for .c files) and HeaderGeneratorUtils (for .h files).
+ * Issue #850: both the `.c` path (`CodeGenerator`) and the `.h` path
+ * (`HeaderGeneratorUtils`) emit inline suppressions, and they share this one
+ * spelling so the two artifacts cannot drift.
+ *
+ * #1450 box 4: WHICH header is suppressed, and under which rule, is
+ * `MisraSuppressions` in 2.2 Plan. All that is left here is the comment form --
+ * the same split `ComplianceAnnotations` already has, where the rule table is
+ * planned and only the string is rendered.
  */
+import MisraSuppressions from "../2-Plan/MisraSuppressions";
 
-/**
- * Headers that violate MISRA C:2012 rules and need inline suppression.
- * Maps header name to the MISRA rule it violates.
- */
-const MISRA_BANNED_HEADERS: ReadonlyMap<string, string> = new Map([
-  // MISRA Rule 21.6: Standard library I/O functions shall not be used
-  ["stdio.h", "misra-c2012-21.6"],
-]);
-
-/**
- * Regex to extract header name from angle-bracket includes.
- * Uses possessive matching via atomic group simulation to avoid backtracking.
- * Matches: #include <header.h> -> captures "header.h"
- */
-const ANGLE_BRACKET_INCLUDE_REGEX = /<([^<>]+)>/;
-
-/**
- * Check if an include directive needs MISRA suppression.
- * @param includeText The full include directive (e.g., "#include <stdio.h>")
- * @returns true if suppression is needed
- */
-function needsMisraSuppression(includeText: string): boolean {
-  const match = ANGLE_BRACKET_INCLUDE_REGEX.exec(includeText);
-  if (!match) return false;
-  return MISRA_BANNED_HEADERS.has(match[1]);
+class MisraSuppressionUtils {
+  /**
+   * The suppression comment for an include directive, or `null` when the plan
+   * cites no rule for it.
+   *
+   * @param includeText - a full include directive, e.g. `#include <stdio.h>`
+   */
+  static getMisraSuppressionComment(includeText: string): string | null {
+    const rule = MisraSuppressions.ruleFor(includeText);
+    return rule === null ? null : `// cppcheck-suppress ${rule}`;
+  }
 }
-
-/**
- * Get the MISRA suppression comment for an include directive.
- * @param includeText The full include directive (e.g., "#include <stdio.h>")
- * @returns The suppression comment, or null if not needed
- */
-function getMisraSuppressionComment(includeText: string): string | null {
-  const match = ANGLE_BRACKET_INCLUDE_REGEX.exec(includeText);
-  if (!match) return null;
-  const rule = MISRA_BANNED_HEADERS.get(match[1]);
-  return rule ? `// cppcheck-suppress ${rule}` : null;
-}
-
-const MisraSuppressionUtils = {
-  needsMisraSuppression,
-  getMisraSuppressionComment,
-};
 
 export default MisraSuppressionUtils;

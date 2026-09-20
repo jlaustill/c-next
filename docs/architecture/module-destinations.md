@@ -132,14 +132,35 @@ it holds, every module here exists to turn settled decisions into text, and a
 partial move would leave `3-Render/` holding everything except the pass's own
 entry point (`CodeGenerator`).
 
-**Twenty-seven of the 144 still decide rather than format** — they raise an
-emission fact (`requireInclude`, `requireToolchain`, a `needs*` write) or expose
-a classification predicate. That is box 4's remaining work and not a reason to
-split the directory: a module that decides is in the wrong pass-_phase_, not the
-wrong pass, and this map keys destinations on the pass. The discriminator §1
-states — "would removing the module change _what_ is emitted or only _how it
-reads_" — sorts phases within 2.x, and the modules that fail it are named on
-[#1450](https://github.com/jlaustill/c-next/issues/1450).
+**Zero of the 131 now expose a classification predicate** — the count was 27 of
+144 when the tree moved, and the difference is box 4: the decisions relocated to
+`2-Plan/` and the modules went with them. The discriminator §1 states — "would
+removing the module change _what_ is emitted or only _how it reads_" — is what
+sorted them, phase by phase within 2.x, since a module that decides is in the
+wrong pass-_phase_, not the wrong pass, and this map keys destinations on the
+pass.
+
+Five modules still raise an emission fact (`requireInclude`, `requireToolchain`,
+a `needs*` write), and that is **by design, not residue**. `IEmissionFacts` puts
+it plainly: the questions "are what the generators accumulate _while producing
+text_". A renderer discovering it has emitted a `strncpy` and therefore needs
+`<string.h>` is not deciding anything — 2.2 Plan answers the question, and the
+two captures that freeze it are the only places a `needs*` flag may be read.
+That property, and the two below, are gated by
+`scripts/__tests__/render-decides-nothing.test.ts`:
+
+- no module under `3-Render/` **declares** a decision predicate — a `needs`,
+  `requires`, `shouldBe` or `mustBe` name. Reddened by declaring one; a `is*`
+  fact in the same position stays green, so the check distinguishes the two
+  rather than flagging every boolean method.
+- every decision `2-Plan/` owns is consulted from the exact render modules that
+  act on it, pinned per module rather than counted — a count survives the
+  regression, because a second importer keeps it non-zero.
+
+The honest limit: a brand-new decision **inlined** in a render module, under no
+decision-shaped name and displacing no existing import, is caught by neither
+shape. Both guards are name- or import-keyed, and an anonymous expression is
+the case they cannot see.
 
 What the move had to carry with it, recorded because none of it is obvious from
 the diff: seven `.dependency-cruiser.cjs` rules keyed on the old path (a move

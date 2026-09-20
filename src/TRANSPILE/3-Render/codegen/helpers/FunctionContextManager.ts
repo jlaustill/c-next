@@ -111,8 +111,7 @@ class FunctionContextManager {
     // to determine if the param should be a pointer or value
     const callbackTypedefInfo =
       FunctionContextManager.getCallbackTypedefParamInfo(paramIndex);
-    const isCallbackPointerParam =
-      callbackTypedefInfo?.shouldBePointer ?? false;
+    const isCallbackPointerParam = callbackTypedefInfo?.isParamPointer ?? false;
 
     // Issue #958: Check if type is a typedef'd struct from C headers
     const isTypedefStruct =
@@ -350,7 +349,7 @@ class FunctionContextManager {
    */
   static getCallbackTypedefParamInfo(
     paramIndex: number,
-  ): { shouldBePointer: boolean; shouldBeConst: boolean } | null {
+  ): { isParamPointer: boolean; isParamConst: boolean } | null {
     if (CodeGenState.currentFunctionName === null) return null;
 
     const typedefName = CodeGenState.program
@@ -361,20 +360,20 @@ class FunctionContextManager {
     const typedefType = CodeGenState.getTypedefType(typedefName);
     if (!typedefType) return null;
 
-    const shouldBePointer = TypedefParamParser.shouldBePointer(
+    const isParamPointer = TypedefParamParser.isParamPointer(
       typedefType,
       paramIndex,
     );
-    const shouldBeConst = TypedefParamParser.shouldBeConst(
+    const isParamConst = TypedefParamParser.isParamConst(
       typedefType,
       paramIndex,
     );
 
-    if (shouldBePointer === null) return null;
+    if (isParamPointer === null) return null;
 
     return {
-      shouldBePointer,
-      shouldBeConst: shouldBeConst ?? false,
+      isParamPointer,
+      isParamConst: isParamConst ?? false,
     };
   }
 

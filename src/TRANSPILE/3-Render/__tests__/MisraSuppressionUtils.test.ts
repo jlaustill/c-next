@@ -1,56 +1,27 @@
 import { describe, it, expect } from "vitest";
 import MisraSuppressionUtils from "../MisraSuppressionUtils";
 
+/**
+ * #1450: what is asserted here is the comment FORM. Which header is banned and
+ * under which rule is `2-Plan/MisraSuppressions`, asserted in its own suite --
+ * these cases would pass unchanged if the table grew, and that is the point of
+ * the split.
+ */
 describe("MisraSuppressionUtils", () => {
-  describe("needsMisraSuppression", () => {
-    it("returns true for stdio.h", () => {
-      expect(
-        MisraSuppressionUtils.needsMisraSuppression("#include <stdio.h>"),
-      ).toBe(true);
-    });
-
-    it("returns false for other system headers", () => {
-      expect(
-        MisraSuppressionUtils.needsMisraSuppression("#include <stdint.h>"),
-      ).toBe(false);
-      expect(
-        MisraSuppressionUtils.needsMisraSuppression("#include <string.h>"),
-      ).toBe(false);
-    });
-
-    it("returns false for quote includes", () => {
-      expect(
-        MisraSuppressionUtils.needsMisraSuppression('#include "stdio.h"'),
-      ).toBe(false);
-    });
-
-    it("returns false for non-include text", () => {
-      expect(MisraSuppressionUtils.needsMisraSuppression("void foo();")).toBe(
-        false,
-      );
-    });
-  });
-
   describe("getMisraSuppressionComment", () => {
-    it("returns suppression comment for stdio.h", () => {
+    it("spells a cited rule as a cppcheck-suppress line", () => {
       expect(
         MisraSuppressionUtils.getMisraSuppressionComment("#include <stdio.h>"),
       ).toBe("// cppcheck-suppress misra-c2012-21.6");
     });
 
-    it("returns null for other system headers", () => {
+    it("returns null when the plan cites no rule", () => {
       expect(
         MisraSuppressionUtils.getMisraSuppressionComment("#include <stdint.h>"),
       ).toBeNull();
-    });
-
-    it("returns null for quote includes", () => {
       expect(
         MisraSuppressionUtils.getMisraSuppressionComment('#include "stdio.h"'),
       ).toBeNull();
-    });
-
-    it("returns null for non-include text", () => {
       expect(
         MisraSuppressionUtils.getMisraSuppressionComment("void foo();"),
       ).toBeNull();

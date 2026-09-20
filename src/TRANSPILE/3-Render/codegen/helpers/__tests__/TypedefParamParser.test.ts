@@ -183,54 +183,54 @@ describe("TypedefParamParser", () => {
     });
   });
 
-  describe("shouldBePointer", () => {
+  describe("isParamPointer", () => {
     it("should return true for pointer params", () => {
       const typedef = "void (*)(widget_t *, uint8_t *)";
 
-      expect(TypedefParamParser.shouldBePointer(typedef, 0)).toBe(true);
-      expect(TypedefParamParser.shouldBePointer(typedef, 1)).toBe(true);
+      expect(TypedefParamParser.isParamPointer(typedef, 0)).toBe(true);
+      expect(TypedefParamParser.isParamPointer(typedef, 1)).toBe(true);
     });
 
     it("should return false for value params", () => {
       const typedef = "void (*)(Point p, int count)";
 
-      expect(TypedefParamParser.shouldBePointer(typedef, 0)).toBe(false);
-      expect(TypedefParamParser.shouldBePointer(typedef, 1)).toBe(false);
+      expect(TypedefParamParser.isParamPointer(typedef, 0)).toBe(false);
+      expect(TypedefParamParser.isParamPointer(typedef, 1)).toBe(false);
     });
 
     it("should return null for out of bounds index", () => {
       const typedef = "void (*)(Point p)";
 
-      expect(TypedefParamParser.shouldBePointer(typedef, 1)).toBeNull();
-      expect(TypedefParamParser.shouldBePointer(typedef, 99)).toBeNull();
+      expect(TypedefParamParser.isParamPointer(typedef, 1)).toBeNull();
+      expect(TypedefParamParser.isParamPointer(typedef, 99)).toBeNull();
     });
 
     it("should return null for invalid typedef", () => {
-      expect(TypedefParamParser.shouldBePointer("invalid", 0)).toBeNull();
+      expect(TypedefParamParser.isParamPointer("invalid", 0)).toBeNull();
     });
   });
 
-  describe("shouldBeConst", () => {
+  describe("isParamConst", () => {
     it("should return true for const params", () => {
       const typedef = "void (*)(const Point* p, const char* s)";
 
-      expect(TypedefParamParser.shouldBeConst(typedef, 0)).toBe(true);
-      expect(TypedefParamParser.shouldBeConst(typedef, 1)).toBe(true);
+      expect(TypedefParamParser.isParamConst(typedef, 0)).toBe(true);
+      expect(TypedefParamParser.isParamConst(typedef, 1)).toBe(true);
     });
 
     it("should return false for non-const params", () => {
       const typedef = "void (*)(Point* p, uint8_t* buf)";
 
-      expect(TypedefParamParser.shouldBeConst(typedef, 0)).toBe(false);
-      expect(TypedefParamParser.shouldBeConst(typedef, 1)).toBe(false);
+      expect(TypedefParamParser.isParamConst(typedef, 0)).toBe(false);
+      expect(TypedefParamParser.isParamConst(typedef, 1)).toBe(false);
     });
 
     it("should handle mixed const params", () => {
       const typedef = "void (*)(widget_t* w, const rect_t* area, uint8_t* buf)";
 
-      expect(TypedefParamParser.shouldBeConst(typedef, 0)).toBe(false);
-      expect(TypedefParamParser.shouldBeConst(typedef, 1)).toBe(true);
-      expect(TypedefParamParser.shouldBeConst(typedef, 2)).toBe(false);
+      expect(TypedefParamParser.isParamConst(typedef, 0)).toBe(false);
+      expect(TypedefParamParser.isParamConst(typedef, 1)).toBe(true);
+      expect(TypedefParamParser.isParamConst(typedef, 2)).toBe(false);
     });
   });
 

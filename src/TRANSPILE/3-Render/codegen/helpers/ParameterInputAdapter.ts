@@ -263,7 +263,7 @@ class ParameterInputAdapter {
     }
 
     // Issue #914: Callback typedef overrides — param carries resolved pointer/const
-    // info. This is deliberately tri-state (TypedefParamParser.shouldBePointer
+    // info. This is deliberately tri-state (TypedefParamParser.isParamPointer
     // returns boolean | null): true means the typedef takes a pointer, FALSE
     // means it takes the value, and undefined means there is no typedef to
     // follow. Collapsing false into undefined with `?? false` sent a by-value

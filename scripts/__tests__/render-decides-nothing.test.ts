@@ -143,6 +143,65 @@ const ORDER_CLASSIFIER = join(
   "CodeGenerator.ts",
 );
 
+/**
+ * A predicate that DECIDES, keyed on the verb in its name.
+ *
+ * `isIntegerType` REPORTS; `needsCast` DECIDES. That distinction is the whole
+ * of #1450 box 4, and it is carried in the name because it is carried nowhere
+ * else -- both spellings are `(...) => boolean` and no type can tell them
+ * apart. `shouldBe`/`mustBe` are included because they are the same verb in
+ * other clothes: `TypedefParamParser.shouldBePointer` READ a parsed typedef and
+ * was renamed `isParamPointer` under this check, which is the outcome this
+ * shape is for -- either the name is wrong or the module is in the wrong pass,
+ * and both are worth a reviewer's minute.
+ */
+const DECISION_FORM =
+  /(?:static |function )(?:needs|requires|shouldBe|mustBe|willNeed)[A-Za-z0-9_]*\s*\(/g;
+
+const RENDER_PASS = join("src", "TRANSPILE", "3-Render") + sep;
+const PLAN_PASS = join("src", "TRANSPILE", "2-Plan") + sep;
+
+/**
+ * Every decision 2.2 Plan owns, and the exact render-pass modules that consult
+ * it -- pinned, not counted.
+ *
+ * A count is not enough, and that is measured rather than assumed: the mutation
+ * this table exists to catch re-derived the narrowing decision inside
+ * `NarrowingCastHelper` and dropped its `CastRequirement` import, while
+ * `CodeGenerator` kept its own. An "at least one importer" census stays green
+ * through that; the pinned set does not.
+ *
+ * Yes, a legitimate new call site edits this table. That is the feature -- the
+ * edit is the moment a reviewer sees a render module start or stop consulting
+ * the plan, which is precisely the event nothing else in the suite can observe.
+ */
+const PLAN_DECISIONS: Readonly<Record<string, readonly string[]>> = {
+  AssignmentClassifier: ["codegen/CodeGenerator.ts"],
+  CastRequirement: [
+    "codegen/CodeGenerator.ts",
+    "codegen/helpers/NarrowingCastHelper.ts",
+  ],
+  ComplianceAnnotations: [
+    "codegen/assignment/handlers/ArrayHandlers.ts",
+    "codegen/generators/statements/ControlFlowGenerator.ts",
+    "codegen/helpers/StructInitFunction.ts",
+  ],
+  CppMemberHelper: ["codegen/CodeGenerator.ts"],
+  DeclarationPlan: ["codegen/CodeGenerator.ts"],
+  MisraSuppressions: ["MisraSuppressionUtils.ts"],
+  PassByValueAnalyzer: ["codegen/CodeGenerator.ts"],
+  PublicInterface: [
+    "codegen/generators/declarationGenerators/RegisterBlockPlacement.ts",
+    "codegen/generators/declarationGenerators/ScopeGenerator.ts",
+  ],
+  SubscriptClassifier: [
+    "codegen/generators/expressions/PostfixExpressionGenerator.ts",
+  ],
+  SubscriptDepthValidator: [
+    "codegen/generators/expressions/PostfixExpressionGenerator.ts",
+  ],
+};
+
 interface IHit {
   readonly file: string;
   readonly offset: number;
@@ -194,6 +253,12 @@ function scan(pattern: RegExp): IHit[] {
 /** The distinct files a pattern matches in, sorted. */
 const filesMatching = (pattern: RegExp): string[] =>
   [...new Set(scan(pattern).map((hit) => hit.file))].sort();
+
+/** Render-pass files matching `pattern`, as `/`-separated paths below the pass. */
+const inRenderPass = (pattern: RegExp): string[] =>
+  filesMatching(pattern)
+    .filter((file) => file.startsWith(RENDER_PASS))
+    .map((file) => file.slice(RENDER_PASS.length).split(sep).join("/"));
 
 /** Byte range of one permitted capture method. */
 function captureRange(
@@ -267,6 +332,38 @@ describe("2.3 Render decides nothing (#1449)", () => {
         (file) => !file.startsWith(DIAGNOSTIC_LAYER),
       ),
     ).toEqual([ANNOTATION_OWNER]);
+  });
+
+  it("finds the decision-predicate population at all", () => {
+    // Guards the selector for the two assertions below, which both expect a
+    // SHORTER list. A regex that stopped matching would make them pass over
+    // nothing -- #1297's shape, and the reason this file already carries one
+    // selector guard. The live population sits in 2.2 Plan, which is the claim.
+    expect(
+      filesMatching(DECISION_FORM).filter((file) => file.startsWith(PLAN_PASS))
+        .length,
+    ).toBeGreaterThan(0);
+  });
+
+  it("declares no decision predicate inside the render pass", () => {
+    // The complement of the guard above: the same verbs, the other pass.
+    // Mutation-checked by re-deriving a decision render-side and confirming
+    // this goes red -- a FIXTURE cannot, because the Plan/Render split was
+    // behavior-preserving by construction and output is identical either way.
+    expect(inRenderPass(DECISION_FORM)).toEqual([]);
+  });
+
+  it("keeps every Plan decision consulted from the render sites that act on it", () => {
+    // Import-shaped, so it catches the case the form check cannot see: a render
+    // module that inlines a decision it used to import, under no new name.
+    const consulted = Object.fromEntries(
+      Object.keys(PLAN_DECISIONS).map((decision) => [
+        decision,
+        inRenderPass(importOf(decision)),
+      ]),
+    );
+
+    expect(consulted).toEqual(PLAN_DECISIONS);
   });
 
   it("reasons about declaration kinds only in the decider and the classifier", () => {

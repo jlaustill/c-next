@@ -239,13 +239,20 @@ class TypedefParamParser {
   }
 
   /**
-   * Check if a parameter at a given index should be a pointer based on the typedef.
+   * Does the typedef DECLARE this parameter as a pointer?
+   *
+   * #1450: a fact read off a parsed typedef, not a choice -- which is why the
+   * name is `isParamPointer` and not `shouldBePointer`. The old spelling read as
+   * a decision the render pass was making, and the whole point of the box-4 scan
+   * is that a `needs`/`should` name is where a decision hides. This one answers
+   * from the C header's own text; nothing here elects anything.
    *
    * @param typedefType - The typedef type string
    * @param paramIndex - The parameter index (0-based)
-   * @returns true if the param should be a pointer, false for value, null if unknown
+   * @returns true for a pointer, false for a value, null when the typedef is
+   *   silent -- tri-state, because "the typedef does not say" is not "no"
    */
-  static shouldBePointer(
+  static isParamPointer(
     typedefType: string,
     paramIndex: number,
   ): boolean | null {
@@ -255,16 +262,16 @@ class TypedefParamParser {
   }
 
   /**
-   * Check if a parameter at a given index should be const based on the typedef.
+   * Does the typedef DECLARE this parameter const?
+   *
+   * The `const` counterpart of `isParamPointer`, and a fact for the same
+   * reason -- see its note on the rename.
    *
    * @param typedefType - The typedef type string
    * @param paramIndex - The parameter index (0-based)
-   * @returns true if the param should be const, false otherwise, null if unknown
+   * @returns true for const, false otherwise, null when the typedef is silent
    */
-  static shouldBeConst(
-    typedefType: string,
-    paramIndex: number,
-  ): boolean | null {
+  static isParamConst(typedefType: string, paramIndex: number): boolean | null {
     return (
       TypedefParamParser.getParamAt(typedefType, paramIndex)?.isConst ?? null
     );
@@ -285,18 +292,18 @@ class TypedefParamParser {
     callbackTypedefType: string,
   ): IParameterSymbol[] {
     return params.map((param, index) => {
-      const shouldBePointer = TypedefParamParser.shouldBePointer(
+      const isParamPointer = TypedefParamParser.isParamPointer(
         callbackTypedefType,
         index,
       );
-      const shouldBeConst = TypedefParamParser.shouldBeConst(
+      const isParamConst = TypedefParamParser.isParamConst(
         callbackTypedefType,
         index,
       );
       return {
         ...param,
-        isCallbackPointer: shouldBePointer ?? undefined,
-        isCallbackConst: shouldBeConst ?? undefined,
+        isCallbackPointer: isParamPointer ?? undefined,
+        isCallbackConst: isParamConst ?? undefined,
       };
     });
   }

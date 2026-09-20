@@ -3735,14 +3735,14 @@ export default class CodeGenerator implements IOrchestrator {
         ? null
         : FunctionContextManager.getCallbackTypedefParamInfo(paramIndex);
     const isPassByValue = callbackInfo
-      ? !callbackInfo.shouldBePointer
+      ? !callbackInfo.isParamPointer
       : this._isPassByValueType(typeName, name);
     const isCallbackCompatible = callbackInfo !== null;
 
     // Build normalized input using adapter
     // Issue #895: Force pass-by-reference and const from typedef signature
-    const forcePassByReference = callbackInfo?.shouldBePointer ?? false;
-    const forceConst = callbackInfo?.shouldBeConst ?? false;
+    const forcePassByReference = callbackInfo?.isParamPointer ?? false;
+    const forceConst = callbackInfo?.isParamConst ?? false;
     const input = ParameterInputAdapter.fromAST(ctx, {
       getTypeName: (t) => this.getTypeName(t),
       generateType: (t) => this.generateType(t),
