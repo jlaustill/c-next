@@ -5,6 +5,7 @@
 
 #include "callback-shapes.test.h"
 
+// test-execution
 // test-no-warnings
 // test-adr: 013
 // #1545, the two parameter shapes the first round did not reach. Both are the

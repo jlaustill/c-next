@@ -41,7 +41,10 @@ class AutoConstRule {
     // the parameter shape. Narrowing `char *` to `const char *` makes the
     // function stop matching the typedef it is handed to -- a contract C-Next
     // does not own. A developer who wants const on a callback parameter writes
-    // it explicitly, which the check above then honors.
+    // it explicitly -- and that is honored by ParameterSignatureBuilder, whose
+    // _getConstPrefix ORs `isConst` in independently of `isAutoConst`, NOT by
+    // the guard above. Every guard here returns false, so their order carries
+    // no meaning and swapping any two changes nothing.
     if (facts.isCallbackCompatible) {
       return false;
     }
@@ -72,6 +75,17 @@ class AutoConstRule {
 
     // ADR-013 "NOT applied to": enums are passed by value.
     if (facts.isKnownEnum) {
+      return false;
+    }
+
+    // #995: an opaque handle is an incomplete type reached only through a
+    // pointer, and the C APIs that produce one expect it mutable. This was the
+    // one ADR-013 exclusion still decided outside this file -- in
+    // ParameterSignatureBuilder._getConstPrefix, which zeroes isAutoConst for
+    // an opaque handle. Both callers already compute the fact beside their
+    // applies(...) call, so asking here makes the rule total; the builder's
+    // guard stays as the backstop for inputs this rule never saw.
+    if (facts.isOpaqueHandle) {
       return false;
     }
 

@@ -472,6 +472,10 @@ class ParameterInputAdapter {
       isCallbackCompatible: deps.isCallbackCompatible,
       isArray,
       isKnownEnum: deps.isKnownEnum(typeName),
+      // #995: derived here rather than at the three call sites, so the string,
+      // array and general branches cannot disagree about it the way they
+      // disagreed about the callback term.
+      isOpaqueHandle: deps.isOpaqueType?.(typeName) ?? false,
     });
 
     // Recorded where the rule FIRED, which is what #1241 derives occupancy

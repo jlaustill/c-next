@@ -14,6 +14,7 @@ function facts(overrides: Partial<IAutoConstFacts> = {}): IAutoConstFacts {
     isCallbackCompatible: false,
     isArray: false,
     isKnownEnum: false,
+    isOpaqueHandle: false,
     ...overrides,
   };
 }
@@ -46,15 +47,28 @@ describe("AutoConstRule", () => {
   });
 
   it("refuses a callback parameter even when every other fact allows it", () => {
-    // The ordering matters for the escape hatch ADR-013 documents: an
-    // explicitly const parameter is refused by the FIRST guard, so a developer
-    // writing `const` on a callback parameter still gets it -- the rule never
-    // reaches the callback branch to decide otherwise.
+    // Guard order carries NO meaning here: every guard in `applies` returns
+    // false, so the result is identical under any permutation of them. This
+    // asserts the answer, not a path to it.
+    //
+    // ADR-013's escape hatch is NOT implemented by this rule reaching one
+    // guard before another -- an explicitly const parameter and a callback
+    // parameter both return false. It is implemented in
+    // ParameterSignatureBuilder._getConstPrefix, which ORs `isConst` in
+    // independently of `isAutoConst`. That is asserted in that file's own
+    // tests, where it can actually fail.
     expect(
       AutoConstRule.applies(
         facts({ isCallbackCompatible: true, isExplicitlyConst: true }),
       ),
     ).toBe(false);
+  });
+
+  it("refuses an opaque handle, the exclusion that used to live in the builder", () => {
+    // #995. Before this fact reached the rule, ParameterSignatureBuilder was
+    // the only thing that knew -- so a reader of AutoConstRule counted six
+    // exclusions and the code had seven.
+    expect(AutoConstRule.applies(facts({ isOpaqueHandle: true }))).toBe(false);
   });
 
   it("treats a string<N> as an ordinary pointer parameter", () => {

@@ -2852,13 +2852,13 @@ class Transpiler {
         return headerSymbol;
       }
 
-      // Issue #914: Resolve callback typedef type for callback-compatible functions
-      const typedefName = CodeGenState.program
-        ?.callbackCompatibleFunctions()
-        .get(headerSymbol.name);
-      const callbackTypedefType = typedefName
-        ? CodeGenState.getTypedefType(typedefName)
-        : undefined;
+      // Issue #914: Resolve callback typedef type for callback-compatible functions.
+      // #1545 review: through the one accessor, so this site and the body's
+      // cannot spell the predicate differently -- they used to differ on `""`,
+      // truthiness here against `!== undefined` there.
+      const callbackTypedefType = CodeGenState.callbackTypedefTypeFor(
+        headerSymbol.name,
+      );
 
       // Issue #914: For callback-compatible functions, bake pointer/const overrides
       // onto each parameter. Skip auto-const (matches CodeGenerator path).
@@ -2916,7 +2916,22 @@ class Transpiler {
           isExplicitlyConst: param.isConst,
           isCallbackCompatible: false,
           isArray: param.isArray,
+          // #1545 review: this is the WHOLE-PROGRAM enum view (`allKnownEnums`
+          // = program.knownEnums()), while the body supplies the PER-FILE one
+          // (CodeGenState.isKnownEnum). CLAUDE.md names that pair as #1312 --
+          // a sibling never included is absent from one and present in the
+          // other. Deliberate on both sides: each matches the enum view ITS
+          // OWN pass-by-value decision reads, so neither introduces a new
+          // disagreement inside its own file. They are unobservable against
+          // each other today because enums route to _buildPassByValueParam,
+          // which ignores isAutoConst -- masking, not unification, so this is
+          // recorded rather than treated as settled.
           isKnownEnum: knownEnums.has(param.type ?? ""),
+          // #995: computed fifteen lines up for the branch below. Supplying it
+          // here is behavior-preserving -- ParameterSignatureBuilder already
+          // zeroed isAutoConst for an opaque handle -- and moves the seventh
+          // ADR-013 exclusion into the rule that claims to hold them all.
+          isOpaqueHandle: isOpaque,
         });
 
         // Return updated param with resolved flags

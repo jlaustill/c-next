@@ -3771,11 +3771,13 @@ export default class CodeGenerator implements IOrchestrator {
     // NOTE: This assumes the C typedef expects pass-by-value structs.
     // Issue #895 describes cases where the typedef expects pointers instead.
     // A full fix requires parsing the typedef signature to determine which.
+    // #1545 review: this asked `.has()` and never resolved the typedef, so for
+    // a function in the map whose typedef type does not resolve it answered
+    // "callback-compatible" while the auto-const decision seventy lines up
+    // answered the opposite -- two decisions about one function disagreeing
+    // inside one file. Through the same accessor now, so they cannot.
     if (
-      CodeGenState.currentFunctionName &&
-      CodeGenState.program
-        ?.callbackCompatibleFunctions()
-        .has(CodeGenState.currentFunctionName) &&
+      FunctionContextManager.callbackTypedefType() !== undefined &&
       this.isKnownStruct(typeName)
     ) {
       return true;

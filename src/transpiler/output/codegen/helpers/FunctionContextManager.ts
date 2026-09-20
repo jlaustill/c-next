@@ -426,12 +426,12 @@ class FunctionContextManager {
   static callbackTypedefType(): string | undefined {
     if (CodeGenState.currentFunctionName === null) return undefined;
 
-    const typedefName = CodeGenState.program
-      ?.callbackCompatibleFunctions()
-      .get(CodeGenState.currentFunctionName);
-    if (!typedefName) return undefined;
-
-    return CodeGenState.getTypedefType(typedefName);
+    // #1545 review: delegates rather than restating the two steps. This is the
+    // current-function convenience over CodeGenState.callbackTypedefTypeFor,
+    // which is the one home for the predicate.
+    return CodeGenState.callbackTypedefTypeFor(
+      CodeGenState.currentFunctionName,
+    );
   }
 
   /**

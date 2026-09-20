@@ -29,6 +29,12 @@ interface IAutoConstFacts {
 
   /** Whether `baseType` names an enum, which ADR-013 passes by value. */
   readonly isKnownEnum: boolean;
+
+  /**
+   * Whether the parameter is a #995 opaque handle -- an incomplete type the
+   * producing C API hands back and expects mutable.
+   */
+  readonly isOpaqueHandle: boolean;
 }
 
 export default IAutoConstFacts;

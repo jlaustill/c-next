@@ -556,10 +556,18 @@ describe("ParameterInputAdapter", () => {
 
       const result = ParameterInputAdapter.fromAST(ctx, deps);
 
-      // Adapter passes through detection; builder applies rule
+      // Adapter still passes the detection through; the builder still applies
+      // its own guard as a backstop.
       expect(result.isOpaqueHandle).toBe(true);
-      // isAutoConst computed normally; builder will suppress it for opaque handles
-      expect(result.isAutoConst).toBe(true);
+      // #1545 review: isAutoConst is now FALSE here. The #995 exclusion moved
+      // into AutoConstRule, which previously counted six exclusions while the
+      // code had seven -- the seventh being the builder's
+      // `isOpaqueHandle ? false : isAutoConst`.
+      //
+      // Behavior-preserving at the output: the builder zeroed this value
+      // anyway, so no generated C changes. Verified by the integration suite
+      // regenerating no snapshots.
+      expect(result.isAutoConst).toBe(false);
     });
 
     // Issue #995: Opaque handles don't set forcePointerSyntax — builder handles it

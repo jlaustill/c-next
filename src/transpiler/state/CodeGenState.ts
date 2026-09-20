@@ -1260,6 +1260,31 @@ export default class CodeGenState {
    * @param typedefName - Name of the typedef (e.g., "flush_cb_t")
    * @returns The type string (e.g., "void (*)(widget_t *, const rect_t *, uint8_t *)") or undefined
    */
+  /**
+   * The C callback typedef TYPE a function is assigned to, or undefined.
+   *
+   * #1545 review: "is this function callback-compatible?" was answered in
+   * three places with three spellings -- the header asked the two steps and
+   * consumed them as truthiness, the body asked them and consumed `!==
+   * undefined`, and the pass-by-value decision asked only `.has()` and never
+   * resolved the typedef at all. The first two disagree on `""`, which
+   * getTypedefType can return because it forwards `symbol.type` unchecked; the
+   * third disagrees whenever the map holds a function whose typedef does not
+   * resolve.
+   *
+   * One home, so the predicate cannot be spelled a fourth way. Whether an
+   * unresolvable typedef should suppress auto-const at all is #1603, and this
+   * is the single place that question now has to be answered.
+   */
+  static callbackTypedefTypeFor(functionName: string): string | undefined {
+    const typedefName = this.program
+      ?.callbackCompatibleFunctions()
+      .get(functionName);
+    if (!typedefName) return undefined;
+
+    return this.getTypedefType(typedefName);
+  }
+
   static getTypedefType(typedefName: string): string | undefined {
     const symbol = this.symbolTable.getCSymbol(typedefName);
     if (symbol?.kind === "type") {
