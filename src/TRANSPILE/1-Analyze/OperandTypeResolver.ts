@@ -13,8 +13,16 @@
  * `sensor.ready / other`, and `flags[0] / flags[1]` were all accepted.
  *
  * Declared names come from the lexical scope frames; struct field types come
- * from CodeGenState, which merges same-file and included-file structs and is
- * populated before runAnalyzers (Transpiler `_analyzeFile`).
+ * from CodeGenState, populated before runAnalyzers (Transpiler `_analyzeFile`).
+ *
+ * That view holds the structs a file DECLARES, not the ones it can see: while
+ * `VisibleSymbols` merges an included file's struct NAMES, it does not merge
+ * `structFields`, so `#include "shapes.cnx"` then `Frame f; f.data[9]` leaves
+ * every chain through `f` unresolved. `importedFieldType` below is the
+ * `Program.symbolByCName` fallback for exactly that case -- do not delete it as
+ * redundant. The predecessor of this sentence claimed CodeGenState "merges
+ * same-file and included-file structs", which is what makes the fallback look
+ * redundant; it never did, and the gap is tracked separately.
  */
 
 import { ParserRuleContext, ParseTree } from "antlr4ng";

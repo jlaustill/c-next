@@ -85,15 +85,14 @@ class VisibleSymbols {
     const mergedKnownStructs = new Set(base.knownStructs);
     const mergedKnownBitmaps = new Set(base.knownBitmaps);
     const mergedKnownVariables = new Set(base.knownVariables);
-    const mergedBitmapFields = new Map(
-      [...base.bitmapFields].map(([name, fields]) => [name, new Map(fields)]),
-    );
+    const mergedBitmapFields = VisibleSymbols._copyNestedMap(base.bitmapFields);
     const mergedBitmapBackingType = new Map(base.bitmapBackingType);
     const mergedBitmapBitWidth = new Map(base.bitmapBitWidth);
-    const mergedEnumMembers = VisibleSymbols._copyEnumMembers(base.enumMembers);
+    const mergedEnumMembers = VisibleSymbols._copyNestedMap(base.enumMembers);
     const mergedFunctionReturnTypes = new Map(base.functionReturnTypes);
-    const mergedScopeMemberVisibility =
-      VisibleSymbols._copyScopeMemberVisibility(base.scopeMemberVisibility);
+    const mergedScopeMemberVisibility = VisibleSymbols._copyNestedMap(
+      base.scopeMemberVisibility,
+    );
     const mergedKnownRegisters = new Set(base.knownRegisters);
     const mergedScopedRegisters = new Map(base.scopedRegisters);
     const mergedRegisterMemberAccess = new Map(base.registerMemberAccess);
@@ -284,31 +283,25 @@ class VisibleSymbols {
   }
 
   /**
-   * Create a deep copy of enum members map
+   * Deep-copy an outer -> (inner -> value) map so the merged result never
+   * aliases the base's inner maps.
+   *
+   * One helper, not one per field. This decision was spelled three times --
+   * inline for `bitmapFields`, and as `_copyEnumMembers` and
+   * `_copyScopeMemberVisibility` -- so a fourth nested field could be added by
+   * copying whichever spelling sat nearest, and the SHALLOW `new Map(...)` the
+   * flat fields use sits right beside them and reads equally idiomatic. Pick
+   * that one and the merged view aliases the base file's inner map: writing
+   * through the merge mutates the base, and the answer starts depending on
+   * include order -- the class of order-dependence #1511 moved this pass to
+   * eliminate.
    */
-  private static _copyEnumMembers(
-    enumMembers: ReadonlyMap<string, ReadonlyMap<string, number>>,
-  ): Map<string, Map<string, number>> {
-    const copy = new Map<string, Map<string, number>>();
-    for (const [enumName, members] of enumMembers) {
-      copy.set(enumName, new Map(members));
-    }
-    return copy;
-  }
-
-  /**
-   * Deep-copy a scopeName -> (memberName -> visibility) map so the merged
-   * result never aliases the base's inner maps.
-   */
-  private static _copyScopeMemberVisibility(
-    scopeMemberVisibility: ReadonlyMap<
-      string,
-      ReadonlyMap<string, "public" | "private">
-    >,
-  ): Map<string, Map<string, "public" | "private">> {
-    const copy = new Map<string, Map<string, "public" | "private">>();
-    for (const [scopeName, visibility] of scopeMemberVisibility) {
-      copy.set(scopeName, new Map(visibility));
+  private static _copyNestedMap<K, IK, V>(
+    source: ReadonlyMap<K, ReadonlyMap<IK, V>>,
+  ): Map<K, Map<IK, V>> {
+    const copy = new Map<K, Map<IK, V>>();
+    for (const [key, inner] of source) {
+      copy.set(key, new Map(inner));
     }
     return copy;
   }
