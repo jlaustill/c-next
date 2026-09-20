@@ -9,6 +9,7 @@ import type IBaseSymbol from "./IBaseSymbol";
  * `fullyQualifiedCName` is an INDEX KEY, not an emitted identifier: a register
  * member is emitted as an offset from a base address.
  */
+import type TRegisterAccessMode from "../TRegisterAccessMode";
 interface IRegisterMemberSymbol extends IBaseSymbol {
   /** Discriminator narrowed to "register_member" */
   readonly kind: "register_member";
@@ -20,7 +21,7 @@ interface IRegisterMemberSymbol extends IBaseSymbol {
   readonly cType: string;
 
   /** Access mode for the register */
-  readonly access: "rw" | "ro" | "wo" | "w1c" | "w1s";
+  readonly access: TRegisterAccessMode;
 
   /** Optional bitmap type for structured bit access */
   readonly bitmapType?: string;

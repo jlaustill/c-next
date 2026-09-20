@@ -5,26 +5,20 @@
  * Extracted from CodeGenerator.ts as part of ADR-065 decomposition.
  */
 
-/** All integer types in C-Next */
-const INTEGER_TYPES = [
-  "u8",
-  "u16",
-  "u32",
-  "u64",
-  "i8",
-  "i16",
-  "i32",
-  "i64",
-] as const;
-
-/** Unsigned integer types */
-const UNSIGNED_TYPES = ["u8", "u16", "u32", "u64"] as const;
-
-/** Signed integer types */
-const SIGNED_TYPES = ["i8", "i16", "i32", "i64"] as const;
-
-/** Floating point types */
-const FLOAT_TYPES = ["f32", "f64"] as const;
+/**
+ * ADR-024's four type lists, imported rather than respelled.
+ *
+ * #1450: all four were declared here AND in `transpiler/types/`, byte-identical
+ * — so a new integer width had to be added in two files, and nothing failed if
+ * only one was. That is the same defect `INTEGER_TYPES` records having fixed
+ * one level down, which is what makes this the second half of it rather than a
+ * new one: it stopped respelling the lists it is built from while its own
+ * consumers went on respelling it.
+ */
+import INTEGER_TYPES from "../transpiler/types/INTEGER_TYPES";
+import UNSIGNED_TYPES from "../transpiler/types/UNSIGNED_TYPES";
+import SIGNED_TYPES from "../transpiler/types/SIGNED_TYPES";
+import FLOAT_TYPES from "../transpiler/types/FLOAT_TYPES";
 
 /** Standard bit widths for MMIO optimization */
 const STANDARD_WIDTHS = [8, 16, 32] as const;
