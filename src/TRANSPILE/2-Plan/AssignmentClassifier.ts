@@ -7,16 +7,15 @@
  *
  * Migrated to use CodeGenState instead of constructor DI.
  */
-import AssignmentKind from "./AssignmentKind";
-import IAssignmentContext from "./IAssignmentContext";
-import CodeGenState from "../../../../transpiler/state/CodeGenState";
-import SubscriptClassifier from "../../../2-Plan/SubscriptClassifier";
-import SubscriptDepthValidator from "../subscript/SubscriptDepthValidator";
-import TTypeInfo from "../../../../transpiler/types/TTypeInfo";
-import TypeCheckUtils from "../../../../utils/TypeCheckUtils";
-import QualifiedCName from "../../../../utils/QualifiedCName";
-import ScopeUtils from "../../../../utils/ScopeUtils";
-import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
+import AssignmentKind from "../../transpiler/types/AssignmentKind";
+import IAssignmentContext from "../../transpiler/types/IAssignmentContext";
+import CodeGenState from "../../transpiler/state/CodeGenState";
+import SubscriptClassifier from "./SubscriptClassifier";
+import SubscriptDepthValidator from "./SubscriptDepthValidator";
+import TTypeInfo from "../../transpiler/types/TTypeInfo";
+import TypeCheckUtils from "../../utils/TypeCheckUtils";
+import QualifiedCName from "../../utils/QualifiedCName";
+import ScopeUtils from "../../utils/ScopeUtils";
 
 /**
  * Classifies assignment statements by analyzing their structure.
@@ -83,9 +82,9 @@ class AssignmentClassifier {
     }
     if (ctx.isSimpleThisAccess && CodeGenState.currentScopePath) {
       return CodeGenState.getVariableTypeInfo(
-        QualifiedNameGenerator.forMember(
-          CodeGenState.currentScopePath,
+        ScopeUtils.qualifyInScope(
           ctx.identifiers[0],
+          CodeGenState.currentScopePath,
         ),
       );
     }
@@ -601,7 +600,7 @@ class AssignmentClassifier {
 
     return (
       CodeGenState.getVariableTypeInfo(
-        QualifiedNameGenerator.forMember(scopePath, name),
+        ScopeUtils.qualifyInScope(name, scopePath),
       ) !== undefined
     );
   }
@@ -650,9 +649,9 @@ class AssignmentClassifier {
     }
 
     const firstId = ctx.identifiers[0];
-    const scopedRegName = QualifiedNameGenerator.forMember(
-      CodeGenState.currentScopePath,
+    const scopedRegName = ScopeUtils.qualifyInScope(
       firstId,
+      CodeGenState.currentScopePath,
     );
 
     if (ctx.hasArrayAccess) {

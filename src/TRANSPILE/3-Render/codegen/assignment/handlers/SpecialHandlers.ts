@@ -5,8 +5,8 @@
  * - ATOMIC_RMW: atomic counter +<- 1
  * - OVERFLOW_CLAMP: clamp u8 saturated +<- 200
  */
-import AssignmentKind from "../AssignmentKind";
-import IAssignmentContext from "../IAssignmentContext";
+import AssignmentKind from "../../../../../transpiler/types/AssignmentKind";
+import IAssignmentContext from "../../../../../transpiler/types/IAssignmentContext";
 import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";

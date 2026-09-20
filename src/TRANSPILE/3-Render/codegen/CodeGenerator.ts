@@ -68,7 +68,7 @@ import STRUCT_POINTER_C_FUNCTIONS from "../../../transpiler/constants/STRUCT_POI
 import memberAccessChain from "./memberAccessChain";
 // ADR-065: Assignment decomposition (Phase 2)
 import AssignmentHandlerRegistry from "./assignment/index";
-import AssignmentClassifier from "./assignment/AssignmentClassifier";
+import AssignmentClassifier from "../../2-Plan/AssignmentClassifier";
 import buildAssignmentContext from "./assignment/AssignmentContextBuilder";
 // IHandlerDeps removed - handlers now use CodeGenState.generator directly
 // Issue #644: Extracted string length counter for strlen caching optimization

@@ -5,7 +5,7 @@
  * needed for classification and code generation.
  */
 import * as Parser from "../../../../transpiler/logic/parser/grammar/CNextParser";
-import IAssignmentContext from "./IAssignmentContext";
+import IAssignmentContext from "../../../../transpiler/types/IAssignmentContext";
 import TTypeInfo from "../../../../transpiler/types/TTypeInfo";
 import AssignmentOperatorMapper from "../helpers/AssignmentOperatorMapper";
 

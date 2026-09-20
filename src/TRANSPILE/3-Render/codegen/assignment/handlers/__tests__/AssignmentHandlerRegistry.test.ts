@@ -6,7 +6,7 @@
 import { describe, expect, it } from "vitest";
 // Import from parent module to ensure handlers are registered
 import AssignmentHandlerRegistry from "../../index";
-import AssignmentKind from "../../AssignmentKind";
+import AssignmentKind from "../../../../../../transpiler/types/AssignmentKind";
 
 describe("AssignmentHandlerRegistry", () => {
   describe("getHandler", () => {

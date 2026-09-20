@@ -8,8 +8,8 @@
  */
 import ComplianceAnnotations from "../../../../2-Plan/ComplianceAnnotations";
 import * as Parser from "../../../../../transpiler/logic/parser/grammar/CNextParser";
-import AssignmentKind from "../AssignmentKind";
-import IAssignmentContext from "../IAssignmentContext";
+import AssignmentKind from "../../../../../transpiler/types/AssignmentKind";
+import IAssignmentContext from "../../../../../transpiler/types/IAssignmentContext";
 import TAssignmentHandler from "./TAssignmentHandler";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 import type TTypeInfo from "../../../../../transpiler/types/TTypeInfo";

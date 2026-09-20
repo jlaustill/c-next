@@ -377,6 +377,54 @@ const MOVES: readonly IMove[] = [
     to: "src/TRANSPILE/2-Plan/__tests__/SubscriptClassifier.test.ts",
     because: "Tests live beside the module they exercise.",
   },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/assignment/AssignmentClassifier.ts",
+    to: "src/TRANSPILE/2-Plan/AssignmentClassifier.ts",
+    because:
+      "#1450 box 4. `classify` decides WHICH form an assignment takes -- which " +
+      "of 30 kinds, and therefore which handler emits it. Deciding the form is " +
+      "2.2's question; the handlers that act on the answer stay in 2.3. Its " +
+      "two render-side imports both resolve: `SubscriptDepthValidator` moves " +
+      "with it, and `QualifiedNameGenerator` is a render-pass FACADE over " +
+      "`ScopeUtils` (its own header says so), so a module that has left that " +
+      "pass calls the `utils/` authority directly instead.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/subscript/SubscriptDepthValidator.ts",
+    to: "src/TRANSPILE/2-Plan/SubscriptDepthValidator.ts",
+    because:
+      "Reached by the classifier above and by `PostfixExpressionGenerator`. It " +
+      "decides whether a subscript depth is legal against a type, which is the " +
+      "same kind of question `SubscriptClassifier` answers next to it; render " +
+      "reading it is the allowed direction.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/subscript/__tests__/SubscriptDepthValidator.test.ts",
+    to: "src/TRANSPILE/2-Plan/__tests__/SubscriptDepthValidator.test.ts",
+    because: "Tests live beside the module they exercise.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/assignment/AssignmentKind.ts",
+    to: "src/transpiler/types/AssignmentKind.ts",
+    because:
+      "Once the classifier is in 2.2 and the handlers stay in 2.3, this union " +
+      "is named by BOTH passes -- and the manifest's own rule sends a type " +
+      "named by more than one layer to `transpiler/types/` rather than letting " +
+      "either pass own the other's vocabulary.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/assignment/IAssignmentContext.ts",
+    to: "src/transpiler/types/IAssignmentContext.ts",
+    because:
+      "Same test, and the sharper case: 2.3 BUILDS it (`AssignmentContextBuilder`) " +
+      "and 2.2 READS it. A contract with a producer in one pass and a consumer " +
+      "in another is exactly what `transpiler/types/` is for.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/assignment/__tests__/AssignmentClassifier.test.ts",
+    to: "src/TRANSPILE/2-Plan/__tests__/AssignmentClassifier.test.ts",
+    because: "Tests live beside the module they exercise.",
+  },
 ];
 
 /** Every `.ts` file under a path, or the path itself when it is a file. */

@@ -5,11 +5,11 @@
 
 import { beforeEach, describe, expect, it } from "vitest";
 import stringHandlers from "../StringHandlers";
-import AssignmentKind from "../../AssignmentKind";
-import IAssignmentContext from "../../IAssignmentContext";
+import AssignmentKind from "../../../../../../transpiler/types/AssignmentKind";
+import IAssignmentContext from "../../../../../../transpiler/types/IAssignmentContext";
 import CodeGenState from "../../../../../../transpiler/state/CodeGenState";
 import HandlerTestUtils from "./handlerTestUtils";
-import AssignmentClassifier from "../../AssignmentClassifier";
+import AssignmentClassifier from "../../../../../2-Plan/AssignmentClassifier";
 import enterScope from "../../../../../../transpiler/__tests__/enterScope";
 
 /**

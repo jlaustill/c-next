@@ -8,7 +8,7 @@
  * u8, u16), expands to explicit cast: `target = (type)(target OP value);`
  * Also handles int-to-float conversions with explicit casts.
  */
-import IAssignmentContext from "../IAssignmentContext";
+import IAssignmentContext from "../../../../../transpiler/types/IAssignmentContext";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 import NarrowingCastHelper from "../../helpers/NarrowingCastHelper";
 import TypeResolver from "../../TypeResolver";

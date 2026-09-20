@@ -8,8 +8,8 @@
  * - ARRAY_ELEMENT_BIT: matrix[i][j][FIELD_BIT] <- false
  */
 import invariant from "../../../../../utils/invariant";
-import AssignmentKind from "../AssignmentKind";
-import IAssignmentContext from "../IAssignmentContext";
+import AssignmentKind from "../../../../../transpiler/types/AssignmentKind";
+import IAssignmentContext from "../../../../../transpiler/types/IAssignmentContext";
 import BitUtils from "../../../../../utils/BitUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";

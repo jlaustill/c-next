@@ -8,8 +8,8 @@
  * - SCOPED_REGISTER_BIT: this.GPIO7.DR_SET[bit] <- true
  * - SCOPED_REGISTER_BIT_RANGE: this.GPIO7.ICR1[6, 2] <- value
  */
-import AssignmentKind from "../AssignmentKind";
-import IAssignmentContext from "../IAssignmentContext";
+import AssignmentKind from "../../../../../transpiler/types/AssignmentKind";
+import IAssignmentContext from "../../../../../transpiler/types/IAssignmentContext";
 import BitUtils from "../../../../../utils/BitUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import RegisterUtils from "./RegisterUtils";

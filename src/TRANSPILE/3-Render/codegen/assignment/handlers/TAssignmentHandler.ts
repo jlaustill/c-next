@@ -4,7 +4,7 @@
  * Handlers access state via CodeGenState and CodeGenState.generator
  * instead of receiving deps as a parameter.
  */
-import IAssignmentContext from "../IAssignmentContext";
+import IAssignmentContext from "../../../../../transpiler/types/IAssignmentContext";
 
 /**
  * Handler function that generates C code for an assignment kind.

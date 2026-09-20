@@ -1,15 +1,15 @@
-import type IBitmapFieldLayout from "../../../../../transpiler/types/IBitmapFieldLayout";
+import type IBitmapFieldLayout from "../../../transpiler/types/IBitmapFieldLayout";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, it, expect, beforeEach } from "vitest";
 import AssignmentClassifier from "../AssignmentClassifier";
-import AssignmentKind from "../AssignmentKind";
-import AssignmentHandlerRegistry from "../index";
-import IAssignmentContext from "../IAssignmentContext";
-import CodeGenState from "../../../../../transpiler/state/CodeGenState";
-import SymbolTable from "../../../../../transpiler/state/SymbolTable";
-import TTypeInfo from "../../../../../transpiler/types/TTypeInfo";
-import enterScope from "../../../../../transpiler/__tests__/enterScope";
+import AssignmentKind from "../../../transpiler/types/AssignmentKind";
+import AssignmentHandlerRegistry from "../../3-Render/codegen/assignment/index";
+import IAssignmentContext from "../../../transpiler/types/IAssignmentContext";
+import CodeGenState from "../../../transpiler/state/CodeGenState";
+import SymbolTable from "../../../transpiler/state/SymbolTable";
+import TTypeInfo from "../../../transpiler/types/TTypeInfo";
+import enterScope from "../../../transpiler/__tests__/enterScope";
 
 // ========================================================================
 // Test Helpers

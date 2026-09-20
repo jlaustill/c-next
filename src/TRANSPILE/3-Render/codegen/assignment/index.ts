@@ -8,7 +8,7 @@
  * - AssignmentContextBuilder (context extraction)
  * - handlers/index (registry)
  */
-import AssignmentKind from "./AssignmentKind";
+import AssignmentKind from "../../../../transpiler/types/AssignmentKind";
 import AssignmentHandlerRegistry from "./handlers/index";
 
 // Import all handler modules

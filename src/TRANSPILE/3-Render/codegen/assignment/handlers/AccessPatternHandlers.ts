@@ -7,8 +7,8 @@
  * - THIS_MEMBER: this.count <- 5
  * - MEMBER_CHAIN: struct.field.subfield <- value
  */
-import AssignmentKind from "../AssignmentKind";
-import IAssignmentContext from "../IAssignmentContext";
+import AssignmentKind from "../../../../../transpiler/types/AssignmentKind";
+import IAssignmentContext from "../../../../../transpiler/types/IAssignmentContext";
 import BitUtils from "../../../../../utils/BitUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";

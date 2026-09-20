@@ -28,11 +28,11 @@ one.
 | Layer                     | Modules |
 | ------------------------- | ------: |
 | `src/TRANSPILE/`          |      63 |
-| `src/TRANSPILE/3-Render/` |      44 |
+| `src/TRANSPILE/3-Render/` |      43 |
 | `src/PARSE/`              |      18 |
 | `src/utils/`              |      11 |
+| `src/transpiler/types/`   |       4 |
 | `src/transpiler/`         |       3 |
-| `src/transpiler/types/`   |       3 |
 | `src/transpiler/logic/`   |       1 |
 | **total**                 | **143** |
 
@@ -129,7 +129,6 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/TRANSPILE/3-Render/codegen/analysis/StringLengthCounter.ts`                             | grammar           |
 | `src/TRANSPILE/3-Render/codegen/assignment/AssignmentContextBuilder.ts`                      | grammar           |
 | `src/TRANSPILE/3-Render/codegen/assignment/handlers/ArrayHandlers.ts`                        | grammar           |
-| `src/TRANSPILE/3-Render/codegen/assignment/IAssignmentContext.ts`                            | grammar           |
 | `src/TRANSPILE/3-Render/codegen/CodeGenerator.ts`                                            | antlr4ng, grammar |
 | `src/TRANSPILE/3-Render/codegen/generators/declarationGenerators/ArrayDimensionUtils.ts`     | grammar           |
 | `src/TRANSPILE/3-Render/codegen/generators/declarationGenerators/BitmapGenerator.ts`         | grammar           |
@@ -173,6 +172,7 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/transpiler/logic/IncludeExtractor.ts`                                                   | grammar           |
 | `src/transpiler/ModificationFacts.ts`                                                        | grammar           |
 | `src/transpiler/Transpiler.ts`                                                               | grammar           |
+| `src/transpiler/types/IAssignmentContext.ts`                                                 | grammar           |
 | `src/transpiler/types/IDeclaredFile.ts`                                                      | antlr4ng, grammar |
 | `src/transpiler/types/IParsedFile.ts`                                                        | antlr4ng, grammar |
 | `src/transpiler/types/ITypeAccessors.ts`                                                     | grammar           |

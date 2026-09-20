@@ -6,8 +6,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import bitmapHandlers from "../BitmapHandlers";
-import AssignmentKind from "../../AssignmentKind";
-import IAssignmentContext from "../../IAssignmentContext";
+import AssignmentKind from "../../../../../../transpiler/types/AssignmentKind";
+import IAssignmentContext from "../../../../../../transpiler/types/IAssignmentContext";
 import CodeGenState from "../../../../../../transpiler/state/CodeGenState";
 import HandlerTestUtils from "./handlerTestUtils";
 import enterScope from "../../../../../../transpiler/__tests__/enterScope";

@@ -6,7 +6,7 @@
  * code for one specific kind of assignment.
  */
 import invariant from "../../../../../utils/invariant";
-import AssignmentKind from "../AssignmentKind";
+import AssignmentKind from "../../../../../transpiler/types/AssignmentKind";
 import TAssignmentHandler from "./TAssignmentHandler";
 
 /**

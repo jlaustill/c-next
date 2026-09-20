@@ -33,8 +33,8 @@ vi.mock("../../../TypeResolver", () => ({
 }));
 
 import arrayHandlers from "../ArrayHandlers";
-import AssignmentKind from "../../AssignmentKind";
-import IAssignmentContext from "../../IAssignmentContext";
+import AssignmentKind from "../../../../../../transpiler/types/AssignmentKind";
+import IAssignmentContext from "../../../../../../transpiler/types/IAssignmentContext";
 import CodeGenState from "../../../../../../transpiler/state/CodeGenState";
 import HandlerTestUtils from "./handlerTestUtils";
 
