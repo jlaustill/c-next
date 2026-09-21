@@ -9,12 +9,17 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mkdirSync, writeFileSync, rmSync, existsSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import FileDiscovery from "../FileDiscovery";
 import EFileType from "../types/EFileType";
 
 describe("FileDiscovery", () => {
-  const testDir = join(__dirname, "__test_file_discovery__");
+  // #1640: NOT under `src/`. A test that writes into the tree another
+  // test scans is the coupling -- `tmpdir()` has no scanner. The pid
+  // suffix keeps concurrent runs apart, which being under `__dirname`
+  // used to provide by accident.
+  const testDir = join(tmpdir(), `cnx-file-discovery-${process.pid}`);
   const srcDir = join(testDir, "src");
   const includeDir = join(testDir, "include");
 

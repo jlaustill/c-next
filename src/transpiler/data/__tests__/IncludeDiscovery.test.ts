@@ -11,12 +11,17 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mkdirSync, writeFileSync, rmSync, existsSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import IncludeDiscovery from "../IncludeDiscovery";
 import IFileSystem from "../../types/IFileSystem";
 
 describe("IncludeDiscovery", () => {
-  const testDir = join(__dirname, "__test_include_discovery__");
+  // #1640: NOT under `src/`. A test that writes into the tree another
+  // test scans is the coupling -- `tmpdir()` has no scanner. The pid
+  // suffix keeps concurrent runs apart, which being under `__dirname`
+  // used to provide by accident.
+  const testDir = join(tmpdir(), `cnx-include-discovery-${process.pid}`);
 
   beforeEach(() => {
     mkdirSync(testDir, { recursive: true });

@@ -22,7 +22,7 @@
  * not know about.
  */
 
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -57,13 +57,29 @@ const OWNER = join("src", "TRANSPILE", "2-Plan", "HeaderOwnership.ts");
 const DERIVES =
   /(?:!\s*[\w.]*\bselfIncludeAdded)|(?:\bselfIncludeAdded\s*[?&|])/;
 
+/**
+ * Every `.ts` under `dir`, production only.
+ *
+ * #1640: `withFileTypes` asks `readdir` for the kind as part of the listing,
+ * so there is no second syscall against a path that may have gone between the
+ * two -- which is how this walker used to fail with ENOENT on a temp tree
+ * another test file was creating and removing in parallel.
+ *
+ * `__tests__` is skipped because the claim is about production code: a test
+ * that MENTIONS the flag is not a second module deriving from it, and scanning
+ * test trees is what put the walker in the path of another test's fixtures in
+ * the first place.
+ */
 function sourceFiles(dir: string): string[] {
   const found: string[] = [];
-  for (const entry of readdirSync(dir)) {
-    const full = join(dir, entry);
-    if (statSync(full).isDirectory()) {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (entry.name === "__tests__") {
+      continue;
+    }
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) {
       found.push(...sourceFiles(full));
-    } else if (entry.endsWith(".ts")) {
+    } else if (entry.name.endsWith(".ts")) {
       found.push(full);
     }
   }
