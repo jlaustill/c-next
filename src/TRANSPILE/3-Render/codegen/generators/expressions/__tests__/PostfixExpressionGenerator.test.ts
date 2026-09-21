@@ -145,6 +145,18 @@ function createMockOrchestrator(overrides?: {
     getExpressionEnumType: vi.fn(),
     isStringExpression: vi.fn(),
     getOperatorsFromChildren: vi.fn(),
+    // #1445: the call generator takes planned arguments, and the orchestrator
+    // is where they are built -- this is its only dispatcher. Mirrors what
+    // `CodeGenerator.planCallArguments` does against this file's mock nodes.
+    planCallArguments: vi.fn(
+      (ctx: { expression: () => { getText: () => string }[] } | null) =>
+        ctx?.expression().map((expression) => ({
+          simpleIdentifier: expression.getText(),
+          expressionType: () => null,
+          render: () => expression.getText(),
+          renderByReference: () => `&${expression.getText()}`,
+        })) ?? null,
+    ),
     getSimpleIdentifier: vi.fn(),
     generateFunctionArg: overrides?.generateFunctionArg ?? vi.fn(),
     isConstValue: vi.fn(),

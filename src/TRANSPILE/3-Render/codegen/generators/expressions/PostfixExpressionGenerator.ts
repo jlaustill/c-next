@@ -345,7 +345,10 @@ const generatePostfixExpression = (
       }
       const callResult = generateFunctionCall(
         tracking.result,
-        op.argumentList() || null,
+        // #1445: the plan is built by the orchestrator -- this is the only
+        // dispatcher, and keeping the derivation there is what lets the call
+        // generator name no parse type.
+        orchestrator.planCallArguments(op.argumentList() || null),
         input,
         state,
         orchestrator,

@@ -55,6 +55,7 @@ import type IPlannedRegister from "./types/IPlannedRegister";
 import type IPlannedFunction from "./types/IPlannedFunction";
 import type IPlannedStruct from "./types/IPlannedStruct";
 import type IPlannedDimension from "./types/IPlannedDimension";
+import type IPlannedCallArgument from "./types/IPlannedCallArgument";
 import type TRegisterAccessMode from "../../../transpiler/types/TRegisterAccessMode";
 import structGenerator from "./generators/declarationGenerators/StructGenerator";
 import ArrayDimensionUtils from "./generators/declarationGenerators/ArrayDimensionUtils";
@@ -3659,6 +3660,29 @@ export default class CodeGenerator implements IOrchestrator {
         },
       };
     });
+  }
+
+  /**
+   * A call's arguments, decided (#1445).
+   *
+   * Three of the four fields are thunks because exactly ONE render happens
+   * per argument and the generator decides which -- see
+   * `IPlannedCallArgument`. `simpleIdentifier` is eager: it is a pure tree
+   * walk, and Issue #268's pass-through tracking reads it for every argument
+   * before any of them renders.
+   */
+  planCallArguments(
+    ctx: Parser.ArgumentListContext | null,
+  ): readonly IPlannedCallArgument[] | null {
+    if (ctx === null) return null;
+
+    return ctx.expression().map((expression) => ({
+      simpleIdentifier: this.getSimpleIdentifier(expression),
+      expressionType: () => this.getExpressionType(expression),
+      render: () => this.generateExpression(expression),
+      renderByReference: (targetParamBaseType: string | undefined) =>
+        this.generateFunctionArg(expression, targetParamBaseType),
+    }));
   }
 
   /** A bounded string type's declared capacity, or null (#1445). */

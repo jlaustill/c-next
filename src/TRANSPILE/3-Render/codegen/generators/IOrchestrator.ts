@@ -15,6 +15,7 @@ import type ISubstringOps from "../types/ISubstringOps";
 import type IPlannedRegister from "../types/IPlannedRegister";
 import type IPlannedFunctionParameter from "../types/IPlannedFunctionParameter";
 import type IPlannedDimension from "../types/IPlannedDimension";
+import type IPlannedCallArgument from "../types/IPlannedCallArgument";
 import type IStringConcatOps from "../types/IStringConcatOps";
 import IGeneratorInput from "./IGeneratorInput";
 import IGeneratorState from "./IGeneratorState";
@@ -230,6 +231,17 @@ interface IOrchestrator {
    * one. The null terminator is the renderer's to add.
    */
   planStringCapacity(ctx: Parser.TypeContext): number | null;
+
+  /**
+   * A call's arguments, decided (#1445).
+   *
+   * Null when the call declares no argument list -- which is not the same as
+   * an empty one: the grammar's `argumentList` admits no empty case, and the
+   * call generator's zero-argument early return depends on that distinction.
+   */
+  planCallArguments(
+    ctx: Parser.ArgumentListContext | null,
+  ): readonly IPlannedCallArgument[] | null;
 
   /** Generate parameter list for function signature */
   generateParameterList(ctx: Parser.ParameterListContext): string;
