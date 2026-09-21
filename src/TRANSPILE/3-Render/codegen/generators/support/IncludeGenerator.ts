@@ -2,7 +2,7 @@
  * Include directive and preprocessor handling.
  * Extracted from CodeGenerator.ts.
  */
-import * as Parser from "../../../../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../../../../PARSE/2-Parse/grammar/CNextParser";
 import IncludeRewriter from "../../../../../transpiler/data/IncludeRewriter";
 import type THeaderExtension from "../../../../../transpiler/types/THeaderExtension";
 import invariant from "../../../../../utils/invariant";

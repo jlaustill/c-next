@@ -1,4 +1,4 @@
-import { ProgramContext } from "../../../src/transpiler/logic/parser/grammar/CNextParser";
+import { ProgramContext } from "../../../src/PARSE/2-Parse/grammar/CNextParser";
 
 /**
  * The parse-tree root handed to Prettier.

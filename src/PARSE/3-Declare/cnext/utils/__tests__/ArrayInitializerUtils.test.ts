@@ -4,9 +4,9 @@
  */
 
 import { describe, it, expect } from "vitest";
-import CNextSourceParser from "../../../../../transpiler/logic/parser/CNextSourceParser";
+import CNextSourceParser from "../../../../2-Parse/CNextSourceParser";
 import ArrayInitializerUtils from "../ArrayInitializerUtils";
-import * as Parser from "../../../../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../../../2-Parse/grammar/CNextParser";
 
 describe("ArrayInitializerUtils", () => {
   function getVariableExpression(

@@ -10,7 +10,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import MemberChainAnalyzer from "../MemberChainAnalyzer";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 import SymbolTable from "../../../../../transpiler/state/SymbolTable";
-import type * as Parser from "../../../../../transpiler/logic/parser/grammar/CNextParser";
+import type * as Parser from "../../../../../PARSE/2-Parse/grammar/CNextParser";
 
 /** Mock type for PostfixTargetOpContext */
 interface IMockPostfixOp {

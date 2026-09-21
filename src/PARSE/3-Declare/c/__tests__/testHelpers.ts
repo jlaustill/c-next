@@ -2,8 +2,8 @@
  * Test helpers for C collector tests.
  */
 
-import HeaderParser from "../../../../transpiler/logic/parser/HeaderParser";
-import { CompilationUnitContext } from "../../../../transpiler/logic/parser/c/grammar/CParser";
+import HeaderParser from "../../../2-Parse/HeaderParser";
+import { CompilationUnitContext } from "../../../2-Parse/c/grammar/CParser";
 
 /**
  * Parse C source code and return the compilation unit context.

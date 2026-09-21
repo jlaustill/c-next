@@ -1,6 +1,6 @@
 import type { CommonTokenStream } from "antlr4ng";
 
-import type * as Parser from "../logic/parser/grammar/CNextParser";
+import type * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import type IComment from "./IComment";
 import type ITranspileError from "../../lib/types/ITranspileError";
 

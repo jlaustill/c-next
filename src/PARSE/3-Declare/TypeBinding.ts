@@ -36,7 +36,7 @@ import ITypeAccessors from "../../transpiler/types/ITypeAccessors";
 import type ITypeBindingDeps from "../../transpiler/types/ITypeBindingDeps";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ScopeUtils from "../../utils/ScopeUtils";
-import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../2-Parse/grammar/CNextParser";
 
 /**
  * Which syntactic branch answered, what was written, and what it resolved to.

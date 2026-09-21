@@ -4,8 +4,8 @@
  */
 import { describe, it, expect } from "vitest";
 import ParserUtils from "../ParserUtils";
-import CNextSourceParser from "../../transpiler/logic/parser/CNextSourceParser";
-import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
+import CNextSourceParser from "../../PARSE/2-Parse/CNextSourceParser";
+import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 
 describe("ParserUtils", () => {
   describe("getPosition", () => {

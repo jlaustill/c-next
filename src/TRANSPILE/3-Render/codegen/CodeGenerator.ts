@@ -7,9 +7,9 @@ import type ISubstringOps from "./types/ISubstringOps";
 import { basename } from "node:path";
 import ReservedCnxName from "../../../utils/ReservedCnxName";
 import { CommonTokenStream, ParserRuleContext } from "antlr4ng";
-import * as Parser from "../../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
 
-import CommentScanner from "../../../transpiler/logic/parser/CommentScanner";
+import CommentScanner from "../../../PARSE/2-Parse/CommentScanner";
 import TypeRegistrationEngine from "./helpers/TypeRegistrationEngine";
 import CommentFormatter from "./CommentFormatter";
 import IComment from "../../../transpiler/types/IComment";

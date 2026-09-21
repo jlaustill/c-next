@@ -18,7 +18,7 @@ import registerGeneratorFor from "../RegisterGenerator";
 import IGeneratorInput from "../../IGeneratorInput";
 import IGeneratorState from "../../IGeneratorState";
 import IOrchestrator from "../../IOrchestrator";
-import * as Parser from "../../../../../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../../../../../PARSE/2-Parse/grammar/CNextParser";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
 
 // ========================================================================

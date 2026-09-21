@@ -7,7 +7,7 @@
  * Extracted from CodeGenerator._generateType for improved testability.
  */
 
-import * as Parser from "../../../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../../../PARSE/2-Parse/grammar/CNextParser";
 import TYPE_MAP from "../types/TYPE_MAP";
 import TIncludeHeader from "../../../../transpiler/types/TIncludeHeader";
 import QualifiedCName from "../../../../utils/QualifiedCName";

@@ -9,7 +9,7 @@
  * Migrated to use CodeGenState instead of constructor DI.
  */
 
-import * as Parser from "../../../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../../../PARSE/2-Parse/grammar/CNextParser";
 import TOverflowBehavior from "../../../../transpiler/types/TOverflowBehavior";
 import analyzePostfixOps from "../../../../utils/PostfixAnalysisUtils";
 import CodeGenState from "../../../../transpiler/state/CodeGenState";

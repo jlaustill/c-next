@@ -2,7 +2,7 @@
  * EnumCollector - Collects enum symbols from C parse trees.
  */
 
-import type { EnumSpecifierContext } from "../../../../transpiler/logic/parser/c/grammar/CParser";
+import type { EnumSpecifierContext } from "../../../2-Parse/c/grammar/CParser";
 import type ICEnumSymbol from "../../../../transpiler/types/symbols/c/ICEnumSymbol";
 import type ICEnumMemberSymbol from "../../../../transpiler/types/symbols/c/ICEnumMemberSymbol";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";

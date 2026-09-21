@@ -4,8 +4,8 @@
  */
 import { describe, it, expect } from "vitest";
 import TargetResolver from "../TargetResolver";
-import CNextSourceParser from "../../transpiler/logic/parser/CNextSourceParser";
-import type * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
+import CNextSourceParser from "../../PARSE/2-Parse/CNextSourceParser";
+import type * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import DEFAULT_TARGET from "../../transpiler/constants/DEFAULT_TARGET";
 
 describe("TargetResolver", () => {

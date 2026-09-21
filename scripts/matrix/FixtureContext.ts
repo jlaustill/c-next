@@ -8,7 +8,7 @@
  * would credit both, whether or not the construct under test is in either.
  */
 
-import { ProgramContext } from "../../src/transpiler/logic/parser/grammar/CNextParser";
+import { ProgramContext } from "../../src/PARSE/2-Parse/grammar/CNextParser";
 import TMatrixContext from "../types/TMatrixContext";
 
 /** Parse-tree node shape this walk relies on, structurally typed. */

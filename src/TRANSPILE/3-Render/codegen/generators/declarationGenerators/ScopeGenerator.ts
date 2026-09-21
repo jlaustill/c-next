@@ -14,7 +14,7 @@
  *   static uint32_t Driver_counter = 0;
  *   void Driver_init(void) { Driver_counter = 0; }
  */
-import * as Parser from "../../../../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../../../../PARSE/2-Parse/grammar/CNextParser";
 import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IGeneratorOutput from "../IGeneratorOutput";

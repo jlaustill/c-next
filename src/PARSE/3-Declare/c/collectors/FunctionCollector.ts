@@ -5,7 +5,7 @@
 import type {
   DeclaratorContext,
   FunctionDefinitionContext,
-} from "../../../../transpiler/logic/parser/c/grammar/CParser";
+} from "../../../2-Parse/c/grammar/CParser";
 import type ICFunctionSymbol from "../../../../transpiler/types/symbols/c/ICFunctionSymbol";
 import type ICParameterInfo from "../../../../transpiler/types/symbols/c/ICParameterInfo";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";

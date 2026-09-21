@@ -9,7 +9,7 @@
  * - E0602: Side effects in sizeof are error (MISRA C:2012 Rule 13.6)
  */
 
-import * as Parser from "../../../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../../../PARSE/2-Parse/grammar/CNextParser";
 import CodeGenState from "../../../../transpiler/state/CodeGenState";
 import ExpressionUnwrapper from "../../../../utils/ExpressionUnwrapper";
 import invariant from "../../../../utils/invariant";

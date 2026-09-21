@@ -25,7 +25,7 @@
 import { ParserRuleContext } from "antlr4ng";
 import { AstPath, Doc, ParserOptions, doc } from "prettier";
 
-import { CNextParser } from "../../src/transpiler/logic/parser/grammar/CNextParser";
+import { CNextParser } from "../../src/PARSE/2-Parse/grammar/CNextParser";
 
 import ChildCursor from "./childCursor";
 import Cst from "./cst";

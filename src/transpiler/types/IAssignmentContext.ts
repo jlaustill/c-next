@@ -5,7 +5,7 @@
  * code for an assignment. Built once by the context extractor, then used
  * by the classifier and handlers.
  */
-import * as Parser from "../logic/parser/grammar/CNextParser";
+import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import TTypeInfo from "./TTypeInfo";
 
 /**

@@ -15,7 +15,7 @@
 
 import { ParserRuleContext, ParseTree } from "antlr4ng";
 
-import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import CodeGenState from "../../transpiler/state/CodeGenState";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ScopeCandidates from "./helpers/ScopeCandidates";

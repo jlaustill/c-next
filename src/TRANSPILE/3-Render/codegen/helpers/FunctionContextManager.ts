@@ -10,7 +10,7 @@
  * - Function body enter/exit coordination
  */
 
-import * as Parser from "../../../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../../../PARSE/2-Parse/grammar/CNextParser";
 import CodeGenState from "../../../../transpiler/state/CodeGenState";
 import TYPE_WIDTH from "../../../../transpiler/constants/TYPE_WIDTH";
 import ArrayDimensionParser from "../../../../utils/ArrayDimensionParser";

@@ -38,7 +38,7 @@ import { fileURLToPath } from "node:url";
 import chalk from "chalk";
 import * as prettier from "prettier";
 
-import CNextSourceParser from "../src/transpiler/logic/parser/CNextSourceParser";
+import CNextSourceParser from "../src/PARSE/2-Parse/CNextSourceParser";
 import Transpiler from "../src/transpiler/Transpiler";
 
 import FileScanner from "./utils/FileScanner";

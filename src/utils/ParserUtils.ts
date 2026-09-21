@@ -5,7 +5,7 @@
  * parser contexts, providing consistent null handling across the codebase.
  */
 
-import * as Parser from "../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
 import ISourcePosition from "./types/ISourcePosition";
 import type ISourceSpan from "../transpiler/types/ISourceSpan";
 

@@ -7,7 +7,7 @@
  * other type-dependent operations regardless of declaration order.
  */
 
-import * as Parser from "../../../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../../../PARSE/2-Parse/grammar/CNextParser";
 import TIncludeHeader from "../../../../transpiler/types/TIncludeHeader";
 import TOverflowBehavior from "../../../../transpiler/types/TOverflowBehavior";
 import TYPE_WIDTH from "../../../../transpiler/constants/TYPE_WIDTH";

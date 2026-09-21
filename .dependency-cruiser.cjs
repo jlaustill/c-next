@@ -79,7 +79,7 @@ module.exports = {
       from: {
         path: [
           "^src/PARSE/3-Declare/cnext/collectors/",
-          "^src/transpiler/logic/parser/",
+          "^src/PARSE/2-Parse/",
           "^src/transpiler/logic/preprocessor/",
           "^src/transpiler/data/",
         ],
@@ -307,7 +307,7 @@ module.exports = {
       from: {
         path: "^src/",
         pathNot: [
-          "^src/transpiler/logic/parser/",
+          "^src/PARSE/2-Parse/",
           // Tests and their helpers are excluded ON PURPOSE: a fixture builds a
           // parse tree because that is what it is testing, and counting them
           // would make the baseline move whenever the suite grows. It is a
@@ -324,7 +324,7 @@ module.exports = {
       },
       to: {
         path: [
-          "^src/transpiler/logic/parser/.*grammar/",
+          "^src/PARSE/2-Parse/.*grammar/",
           "node_modules/antlr4ng/",
           // The sanctioned carriers. `IParsedFile` is documented as the way a
           // pass takes the tree "instead of re-parsing", and `IParsedFile["tree"]`
@@ -425,7 +425,7 @@ module.exports = {
         // Enumerated, a FOURTH grammar directory would be matched by the rule
         // and FOLLOWED by the cruise, re-admitting the generated-code noise this
         // entry exists to keep out, with nothing saying so.
-        "^src/transpiler/logic/parser/.*grammar/",
+        "^src/PARSE/2-Parse/.*grammar/",
       ],
     },
     tsPreCompilationDeps: true,

@@ -5,7 +5,7 @@
  * Produces TType-based IBitmapSymbol with proper IScopeSymbol references.
  */
 
-import * as Parser from "../../../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../../2-Parse/grammar/CNextParser";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import IBitmapSymbol from "../../../../transpiler/types/symbols/IBitmapSymbol";
 import type IBitmapFieldSymbol from "../../../../transpiler/types/symbols/IBitmapFieldSymbol";

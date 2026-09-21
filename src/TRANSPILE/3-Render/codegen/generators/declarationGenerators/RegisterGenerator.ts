@@ -27,7 +27,7 @@
  * divergence to keep in step" -- true of the macros, not of the wrapper around
  * them.
  */
-import * as Parser from "../../../../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../../../../PARSE/2-Parse/grammar/CNextParser";
 import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IGeneratorOutput from "../IGeneratorOutput";

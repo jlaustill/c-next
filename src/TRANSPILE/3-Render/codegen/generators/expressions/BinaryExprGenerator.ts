@@ -11,7 +11,7 @@
  *
  * Issue #235: Includes constant folding for compile-time constant expressions.
  */
-import * as Parser from "../../../../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../../../../PARSE/2-Parse/grammar/CNextParser";
 import IGeneratorOutput from "../IGeneratorOutput";
 import TGeneratorEffect from "../TGeneratorEffect";
 import IGeneratorInput from "../IGeneratorInput";

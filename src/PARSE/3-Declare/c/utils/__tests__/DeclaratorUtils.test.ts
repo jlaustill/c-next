@@ -4,7 +4,7 @@
 
 import { describe, it, expect } from "vitest";
 import DeclaratorUtils from "../DeclaratorUtils";
-import HeaderParser from "../../../../../transpiler/logic/parser/HeaderParser";
+import HeaderParser from "../../../../2-Parse/HeaderParser";
 
 describe("DeclaratorUtils", () => {
   describe("extractTypeFromSpecQualList", () => {

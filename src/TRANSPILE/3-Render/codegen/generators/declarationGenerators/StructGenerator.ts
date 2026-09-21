@@ -14,7 +14,7 @@
  * ADR-029: Structs with callback fields get an auto-generated init function.
  * ADR-036: Multi-dimensional array support in struct fields.
  */
-import * as Parser from "../../../../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../../../../PARSE/2-Parse/grammar/CNextParser";
 import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IGeneratorOutput from "../IGeneratorOutput";

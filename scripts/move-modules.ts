@@ -142,6 +142,22 @@ const MOVES: readonly IMove[] = [
       "anti-pattern -- and #1322 is about to author 145 more diagnostics, each " +
       "of which would have to pick a home.",
   },
+  // --- 1.2 Parse: text becomes one tree, once -----------------------------
+  {
+    from: "src/transpiler/logic/parser",
+    to: "src/PARSE/2-Parse",
+    because:
+      "#1445 box 4, absorbing #1443's 1.2 Parse rows and move at the " +
+      "maintainer's direction. `docs/architecture/README.md` \u00a71 places 1.2 " +
+      "Parse at `src/PARSE/2-Parse`, and #1443's own table already adjudicates " +
+      "this directory there -- so this records an answer that exists rather " +
+      "than inventing one. It moves WHOLE: the three hand-written modules " +
+      "(`CNextSourceParser`, `CommentScanner`, `HeaderParser`) are the pass, " +
+      "and the twelve files under `grammar/`, `c/grammar/` and `cpp/grammar/` " +
+      "are ANTLR's output for it. The `antlr*` scripts' `-o` paths move with " +
+      "them, or the next `npm run antlr:all` silently recreates the old tree " +
+      "beside the new one.",
+  },
   // --- 1.3 Declare: per-file identity and declaration ---------------------
   {
     from: "src/transpiler/logic/symbols/cnext",

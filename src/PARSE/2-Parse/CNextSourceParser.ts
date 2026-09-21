@@ -10,8 +10,8 @@ import { CharStream, CommonTokenStream, Parser, Token } from "antlr4ng";
 import { CNextLexer } from "./grammar/CNextLexer";
 import { CNextParser } from "./grammar/CNextParser";
 import CommentScanner from "./CommentScanner";
-import IParsedFile from "../../types/IParsedFile";
-import ITranspileError from "../../../lib/types/ITranspileError";
+import IParsedFile from "../../transpiler/types/IParsedFile";
+import ITranspileError from "../../lib/types/ITranspileError";
 
 /**
  * ADR-016 makes scopes a FLAT namespace, permanently: a scope declared inside

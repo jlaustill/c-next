@@ -15,7 +15,7 @@
  * `discards 'const' qualifier`, at exit 0.
  */
 
-import * as Parser from "../../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
 import ExpressionUnwrapper from "../../../utils/ExpressionUnwrapper";
 
 /** The two ADR-051 builtins, which share a signature. */

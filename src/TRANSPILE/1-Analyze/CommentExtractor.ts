@@ -1,5 +1,5 @@
 import ECommentType from "../../transpiler/types/ECommentType";
-import CommentScanner from "../../transpiler/logic/parser/CommentScanner";
+import CommentScanner from "../../PARSE/2-Parse/CommentScanner";
 import IComment from "../../transpiler/types/IComment";
 import ICommentError from "../../transpiler/types/ICommentError";
 

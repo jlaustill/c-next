@@ -3,7 +3,7 @@
  * ADR-055 Phase 7: Direct TSymbol → ISymbolInfo conversion (no ISymbol intermediate)
  */
 
-import CNextSourceParser from "../transpiler/logic/parser/CNextSourceParser";
+import CNextSourceParser from "../PARSE/2-Parse/CNextSourceParser";
 import CNextResolver from "../PARSE/3-Declare/cnext/index";
 import DeferredTypes from "../PARSE/4-Resolve/DeferredTypes";
 import ScopeUtils from "../utils/ScopeUtils";

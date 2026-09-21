@@ -15,8 +15,8 @@
  */
 
 import { ParseTreeWalker, TerminalNode } from "antlr4ng";
-import { CNextListener } from "../../transpiler/logic/parser/grammar/CNextListener";
-import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
+import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
+import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import IIdentifierSyntaxError from "./types/IIdentifierSyntaxError";
 import TIdentifierViolation from "./types/TIdentifierViolation";
 import ReservedCnxName from "../../utils/ReservedCnxName";

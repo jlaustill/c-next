@@ -4,7 +4,7 @@
  * Extracts all context from an assignment statement parse tree
  * needed for classification and code generation.
  */
-import * as Parser from "../../../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../../../PARSE/2-Parse/grammar/CNextParser";
 import IAssignmentContext from "../../../../transpiler/types/IAssignmentContext";
 import TTypeInfo from "../../../../transpiler/types/TTypeInfo";
 import AssignmentOperatorMapper from "../helpers/AssignmentOperatorMapper";

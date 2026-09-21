@@ -5,9 +5,9 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import TypeRegistrationEngine from "../TypeRegistrationEngine";
-import CNextSourceParser from "../../../../../transpiler/logic/parser/CNextSourceParser";
+import CNextSourceParser from "../../../../../PARSE/2-Parse/CNextSourceParser";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";
-import * as Parser from "../../../../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../../../../PARSE/2-Parse/grammar/CNextParser";
 import createMockSymbols from "../../../../../transpiler/__tests__/codeGenSymbolsHelpers";
 import enterScope from "../../../../../transpiler/__tests__/enterScope";
 

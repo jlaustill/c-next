@@ -1,4 +1,4 @@
-import * as Parser from "../logic/parser/grammar/CNextParser";
+import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 
 /**
  * The type-alternative accessors every type-bearing parse context exposes.

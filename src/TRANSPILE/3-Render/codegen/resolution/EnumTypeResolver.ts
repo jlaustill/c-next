@@ -36,7 +36,7 @@
  * - Function calls returning enum types
  */
 
-import * as Parser from "../../../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../../../PARSE/2-Parse/grammar/CNextParser";
 import CodeGenState from "../../../../transpiler/state/CodeGenState";
 import TypeResolver from "../TypeResolver";
 import ExpressionUnwrapper from "../../../../utils/ExpressionUnwrapper";

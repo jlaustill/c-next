@@ -22,7 +22,7 @@
  * ADR-006) are excluded — via the isArray check below.
  */
 
-import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import CodeGenState from "../../transpiler/state/CodeGenState";
 import SymbolRegistry from "../../transpiler/state/SymbolRegistry";
 import ScopeUtils from "../../utils/ScopeUtils";

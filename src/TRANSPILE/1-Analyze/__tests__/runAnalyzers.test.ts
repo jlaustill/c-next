@@ -3,7 +3,7 @@
  * Tests that all analyzers run in sequence with early returns on errors
  */
 import { describe, it, expect, beforeEach } from "vitest";
-import CNextSourceParser from "../../../transpiler/logic/parser/CNextSourceParser";
+import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import runAnalyzers from "../runAnalyzers";
 import SymbolTable from "../../../transpiler/state/SymbolTable";
 import CodeGenState from "../../../transpiler/state/CodeGenState";

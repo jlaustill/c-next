@@ -54,6 +54,30 @@ from `awaiting` to a real path, never back.
 
 ## PARSE
 
+### 1.2 Parse — `src/PARSE/2-Parse/`
+
+Moved as a tree (#1445 box 4, absorbing this card's 1.2 Parse rows and move at
+the maintainer's direction). `src/transpiler/logic/parser/` no longer exists.
+
+| module                           | why                                                                                                       |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `CNextSourceParser.ts`           | the pass itself: source text becomes one `IParsedFile`, once                                              |
+| `CommentScanner.ts`              | reads comments off the hidden channel of that parse; a fact about the parse, not about a pass above it    |
+| `HeaderParser.ts`                | the same for a C or C++ header                                                                            |
+| `grammar/**`                     | ANTLR's output for `grammar/CNext.g4` — the tree 1.2 produces, so it lives with the pass that produces it |
+| `c/grammar/**`, `cpp/grammar/**` | the same for the C and C++ grammars                                                                       |
+
+Two things this move needed that no previous pass move did, recorded so the next
+tree-move does not rediscover them:
+
+- **12 non-TypeScript files.** `.interp` and `.tokens` are ANTLR byproducts,
+  tracked in git and read by nothing in the repo. `ts-morph` does not know about
+  them, so `npm run move:modules` reports them as `not in the project` and exits
+  non-zero; they move by `git mv` alongside.
+- **The `antlr*` scripts' `-o` paths.** Five scripts in `package.json` write into
+  this directory. Had they not moved with it, the next `npm run antlr:all` would
+  have silently recreated the old tree beside the new one.
+
 ### 1.3 Declare — `src/PARSE/3-Declare/`
 
 | module                                 | why                                                                                                                                                                                       |
@@ -184,10 +208,12 @@ five test guards that named the path. `vi.mock()` specifiers and inline
 
 ## Not yet placed
 
-The other three passes (1.1 Discover, 1.2 Parse, 3.1 Write) have no rows here,
-and neither do the 60 genuinely-shared modules or `cli/`, `lib/` and `index.ts`
-— §1's tree names no home for the last group, which is
+The other two passes (1.1 Discover, 3.1 Write) have no rows here, and neither do
+the 60 genuinely-shared modules or `cli/`, `lib/` and `index.ts` — §1's tree
+names no home for the last group, which is
 [#1466](https://github.com/jlaustill/c-next/issues/1466).
+
+1.2 Parse was in this list and is now placed above (#1445).
 
 ## Moving modules
 

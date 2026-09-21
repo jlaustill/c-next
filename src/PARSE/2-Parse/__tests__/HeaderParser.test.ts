@@ -4,7 +4,7 @@
 
 import { describe, it, expect, vi, afterEach } from "vitest";
 import HeaderParser from "../HeaderParser";
-import parseCHeader from "../../../../lib/parseCHeader";
+import parseCHeader from "../../../lib/parseCHeader";
 
 describe("HeaderParser", () => {
   describe("parseC", () => {

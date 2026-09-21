@@ -15,9 +15,9 @@ import type IConflict from "./types/IConflict";
 import IFileSystem from "./types/IFileSystem";
 import NodeFileSystem from "./NodeFileSystem";
 
-import * as Parser from "./logic/parser/grammar/CNextParser";
-import CNextSourceParser from "./logic/parser/CNextSourceParser";
-import HeaderParser from "./logic/parser/HeaderParser";
+import * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
+import CNextSourceParser from "../PARSE/2-Parse/CNextSourceParser";
+import HeaderParser from "../PARSE/2-Parse/HeaderParser";
 
 import CodeGenerator from "../TRANSPILE/3-Render/codegen/CodeGenerator";
 import CodeGenState from "./state/CodeGenState";

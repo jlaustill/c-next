@@ -12,7 +12,7 @@
  * decisions that agree only while the corpus stays simple.
  */
 
-import type * as Parser from "../transpiler/logic/parser/grammar/CNextParser";
+import type * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
 import type ITargetCapabilities from "../transpiler/types/ITargetCapabilities";
 import TARGET_CAPABILITIES from "../transpiler/constants/TARGET_CAPABILITIES";
 import DEFAULT_TARGET from "../transpiler/constants/DEFAULT_TARGET";

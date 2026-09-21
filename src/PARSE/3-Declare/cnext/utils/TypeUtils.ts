@@ -2,7 +2,7 @@
  * TypeUtils - Utilities for extracting and converting C-Next types.
  */
 
-import * as Parser from "../../../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../../2-Parse/grammar/CNextParser";
 import CNEXT_TO_C_TYPE_MAP from "../../../../utils/constants/TypeMappings";
 import TypeBinding from "../../TypeBinding";
 import TypeResolver from "../../../../utils/TypeResolver";

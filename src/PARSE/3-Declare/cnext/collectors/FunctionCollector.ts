@@ -5,7 +5,7 @@
  * Produces TType-based IFunctionSymbol with proper IScopeSymbol references.
  */
 
-import * as Parser from "../../../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../../2-Parse/grammar/CNextParser";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import IFunctionSymbol from "../../../../transpiler/types/symbols/IFunctionSymbol";
 import IParameterInfo from "../../../../transpiler/types/symbols/IParameterInfo";

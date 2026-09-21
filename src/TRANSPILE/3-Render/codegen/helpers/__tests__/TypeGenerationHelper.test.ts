@@ -4,9 +4,9 @@
  */
 
 import { describe, it, expect } from "vitest";
-import CNextSourceParser from "../../../../../transpiler/logic/parser/CNextSourceParser";
+import CNextSourceParser from "../../../../../PARSE/2-Parse/CNextSourceParser";
 import TypeGenerationHelper from "../TypeGenerationHelper";
-import * as Parser from "../../../../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../../../../PARSE/2-Parse/grammar/CNextParser";
 
 describe("TypeGenerationHelper", () => {
   /**

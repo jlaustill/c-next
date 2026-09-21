@@ -7,7 +7,7 @@
  * - ARRAY_SLICE: buffer[0, 10] <- source
  */
 import ComplianceAnnotations from "../../../../2-Plan/ComplianceAnnotations";
-import * as Parser from "../../../../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../../../../PARSE/2-Parse/grammar/CNextParser";
 import AssignmentKind from "../../../../../transpiler/types/AssignmentKind";
 import IAssignmentContext from "../../../../../transpiler/types/IAssignmentContext";
 import TAssignmentHandler from "./TAssignmentHandler";

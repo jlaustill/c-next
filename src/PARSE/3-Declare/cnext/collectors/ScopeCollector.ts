@@ -6,7 +6,7 @@
  * Uses SymbolRegistry for scope management.
  */
 
-import * as Parser from "../../../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../../2-Parse/grammar/CNextParser";
 import DeclarationSite from "../../../../utils/DeclarationSite";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import ScopeUtils from "../../../../utils/ScopeUtils";

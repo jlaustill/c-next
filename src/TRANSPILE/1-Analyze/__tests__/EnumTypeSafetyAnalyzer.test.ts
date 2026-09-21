@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import CodeGenState from "../../../transpiler/state/CodeGenState";
-import CNextSourceParser from "../../../transpiler/logic/parser/CNextSourceParser";
+import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import EnumTypeSafetyAnalyzer from "../EnumTypeSafetyAnalyzer";
 
 /**

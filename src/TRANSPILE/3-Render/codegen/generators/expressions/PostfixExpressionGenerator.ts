@@ -11,7 +11,7 @@
  * This generator was extracted from CodeGenerator._generatePostfixExpr
  * to reduce the size and complexity of CodeGenerator.ts.
  */
-import * as Parser from "../../../../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../../../../PARSE/2-Parse/grammar/CNextParser";
 import IGeneratorOutput from "../IGeneratorOutput";
 import TGeneratorEffect from "../TGeneratorEffect";
 import IGeneratorInput from "../IGeneratorInput";

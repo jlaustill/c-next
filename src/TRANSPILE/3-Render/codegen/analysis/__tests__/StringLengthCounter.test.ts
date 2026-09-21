@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import StringLengthCounter from "../StringLengthCounter";
-import CNextSourceParser from "../../../../../transpiler/logic/parser/CNextSourceParser";
+import CNextSourceParser from "../../../../../PARSE/2-Parse/CNextSourceParser";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 
 /**

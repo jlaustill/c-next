@@ -4,8 +4,8 @@
 
 import { describe, expect, it } from "vitest";
 import CodegenParserUtils from "../CodegenParserUtils";
-import CNextSourceParser from "../../../../../transpiler/logic/parser/CNextSourceParser";
-import * as Parser from "../../../../../transpiler/logic/parser/grammar/CNextParser";
+import CNextSourceParser from "../../../../../PARSE/2-Parse/CNextSourceParser";
+import * as Parser from "../../../../../PARSE/2-Parse/grammar/CNextParser";
 
 /**
  * Helper to parse and get the expression from a variable declaration

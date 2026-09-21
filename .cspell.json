@@ -609,6 +609,7 @@
     "WWDG",
     "Xchg",
     "xtensa",
+    "interp",
     "xthal",
     "xtruntime",
     "xyzzy"
@@ -616,7 +617,7 @@
   "ignorePaths": [
     "tests-gtest/**",
     "src/antlr_parser/**",
-    "**/parser/**/grammar/**",
+    "**/grammar/**",
     "package-lock.json",
     "*.expected.c",
     "*.expected.h",

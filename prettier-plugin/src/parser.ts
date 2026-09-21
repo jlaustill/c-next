@@ -13,8 +13,8 @@
 
 import { ParseTree, Token } from "antlr4ng";
 
-import CNextSourceParser from "../../src/transpiler/logic/parser/CNextSourceParser";
-import { CNextLexer } from "../../src/transpiler/logic/parser/grammar/CNextLexer";
+import CNextSourceParser from "../../src/PARSE/2-Parse/CNextSourceParser";
+import { CNextLexer } from "../../src/PARSE/2-Parse/grammar/CNextLexer";
 
 import Cst from "./cst";
 import ICommentAnchor from "./types/ICommentAnchor";

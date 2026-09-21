@@ -10,7 +10,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { relative } from "node:path";
 
-import CNextSourceParser from "../../src/transpiler/logic/parser/CNextSourceParser";
+import CNextSourceParser from "../../src/PARSE/2-Parse/CNextSourceParser";
 import FixtureContext from "./FixtureContext";
 import IncludeDepth from "./IncludeDepth";
 import MatrixCell from "./MatrixCell";

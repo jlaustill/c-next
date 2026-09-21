@@ -14,7 +14,7 @@
  */
 import { describe, it, expect, vi } from "vitest";
 
-vi.mock("../../transpiler/logic/parser/HeaderParser", () => ({
+vi.mock("../../PARSE/2-Parse/HeaderParser", () => ({
   default: {
     parseC: (): { tree: null } => ({ tree: null }),
   },

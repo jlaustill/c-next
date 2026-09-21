@@ -1,7 +1,7 @@
 import { ParseTreeWalker } from "antlr4ng";
 import { describe, expect, it } from "vitest";
 
-import CNextSourceParser from "../../../transpiler/logic/parser/CNextSourceParser";
+import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import DeclarationScopeCollector from "../DeclarationScopeCollector";
 import ScopeFrameResolver from "../ScopeFrameResolver";
 

@@ -7,8 +7,8 @@
 import { describe, it, expect } from "vitest";
 import ParameterInputAdapter from "../ParameterInputAdapter";
 import IParameterSymbol from "../../../../../utils/types/IParameterSymbol";
-import CNextSourceParser from "../../../../../transpiler/logic/parser/CNextSourceParser";
-import * as Parser from "../../../../../transpiler/logic/parser/grammar/CNextParser";
+import CNextSourceParser from "../../../../../PARSE/2-Parse/CNextSourceParser";
+import * as Parser from "../../../../../PARSE/2-Parse/grammar/CNextParser";
 import ICallbackTypeInfo from "../../../../../transpiler/types/ICallbackTypeInfo";
 
 /**

@@ -11,7 +11,7 @@ import invariant from "../../../../../utils/invariant";
 import {
   ArgumentListContext,
   ExpressionContext,
-} from "../../../../../transpiler/logic/parser/grammar/CNextParser";
+} from "../../../../../PARSE/2-Parse/grammar/CNextParser";
 import IGeneratorOutput from "../IGeneratorOutput";
 import TGeneratorEffect from "../TGeneratorEffect";
 import IGeneratorInput from "../IGeneratorInput";

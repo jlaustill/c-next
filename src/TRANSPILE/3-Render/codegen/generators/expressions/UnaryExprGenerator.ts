@@ -6,7 +6,7 @@
  * - Recursive unary (e.g., !!x, --x)
  * - Delegates to postfix for base case
  */
-import { UnaryExpressionContext } from "../../../../../transpiler/logic/parser/grammar/CNextParser";
+import { UnaryExpressionContext } from "../../../../../PARSE/2-Parse/grammar/CNextParser";
 import IGeneratorOutput from "../IGeneratorOutput";
 import TGeneratorEffect from "../TGeneratorEffect";
 import IGeneratorInput from "../IGeneratorInput";

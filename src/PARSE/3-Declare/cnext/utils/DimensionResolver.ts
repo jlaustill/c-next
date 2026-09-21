@@ -16,7 +16,7 @@
  * ArrayDimensionParser and TYPE_WIDTH table codegen uses.
  */
 
-import * as Parser from "../../../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../../2-Parse/grammar/CNextParser";
 import ArrayDimensionParser from "../../../../utils/ArrayDimensionParser";
 import TYPE_WIDTH from "../../../../transpiler/constants/TYPE_WIDTH";
 

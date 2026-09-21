@@ -4,7 +4,7 @@
  * Used by StructGenerator and ScopeGenerator for consistent array dimension handling.
  */
 
-import * as Parser from "../../../../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../../../../PARSE/2-Parse/grammar/CNextParser";
 import IOrchestrator from "../IOrchestrator";
 
 /**

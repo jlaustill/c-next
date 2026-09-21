@@ -4,8 +4,8 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { CharStream, CommonTokenStream } from "antlr4ng";
-import { CNextLexer } from "../../../transpiler/logic/parser/grammar/CNextLexer";
-import { CNextParser } from "../../../transpiler/logic/parser/grammar/CNextParser";
+import { CNextLexer } from "../../../PARSE/2-Parse/grammar/CNextLexer";
+import { CNextParser } from "../../../PARSE/2-Parse/grammar/CNextParser";
 import CNextResolver from "../../../PARSE/3-Declare/cnext/index";
 import TSymbolInfoAdapter from "../../../PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
 import SymbolRegistry from "../../../transpiler/state/SymbolRegistry";

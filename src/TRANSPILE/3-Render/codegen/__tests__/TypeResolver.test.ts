@@ -8,8 +8,8 @@ import TypeResolver from "../TypeResolver";
 import SymbolTable from "../../../../transpiler/state/SymbolTable";
 import CodeGenState from "../../../../transpiler/state/CodeGenState";
 import TTypeInfo from "../../../../transpiler/types/TTypeInfo";
-import { CNextLexer } from "../../../../transpiler/logic/parser/grammar/CNextLexer";
-import { CNextParser } from "../../../../transpiler/logic/parser/grammar/CNextParser";
+import { CNextLexer } from "../../../../PARSE/2-Parse/grammar/CNextLexer";
+import { CNextParser } from "../../../../PARSE/2-Parse/grammar/CNextParser";
 import enterScope from "../../../../transpiler/__tests__/enterScope";
 
 /** Parse a standalone C-Next expression into an ExpressionContext. */

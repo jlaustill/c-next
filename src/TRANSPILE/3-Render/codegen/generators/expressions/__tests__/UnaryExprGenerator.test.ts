@@ -9,7 +9,7 @@
 
 import { describe, it, expect, vi, afterEach } from "vitest";
 import generateUnaryExpr from "../UnaryExprGenerator";
-import type { UnaryExpressionContext } from "../../../../../../transpiler/logic/parser/grammar/CNextParser";
+import type { UnaryExpressionContext } from "../../../../../../PARSE/2-Parse/grammar/CNextParser";
 import type IGeneratorInput from "../../IGeneratorInput";
 import type IGeneratorState from "../../IGeneratorState";
 import type IOrchestrator from "../../IOrchestrator";

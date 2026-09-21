@@ -16,7 +16,7 @@ import ISubstringOps from "../types/ISubstringOps";
 import IStringConcatOps from "../types/IStringConcatOps";
 import ArrayDimensionParser from "../../../../utils/ArrayDimensionParser";
 import dimensionEvalOptions from "./dimensionEvalOptions";
-import * as Parser from "../../../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../../../PARSE/2-Parse/grammar/CNextParser";
 import StringUtils from "../../../../utils/StringUtils";
 import CodeGenState from "../../../../transpiler/state/CodeGenState";
 import invariant from "../../../../utils/invariant";

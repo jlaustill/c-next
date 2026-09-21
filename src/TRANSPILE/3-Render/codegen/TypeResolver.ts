@@ -3,7 +3,7 @@
  * Static class that reads from CodeGenState directly.
  */
 import { ParserRuleContext } from "antlr4ng";
-import * as Parser from "../../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
 import CodeGenState from "../../../transpiler/state/CodeGenState";
 import INTEGER_TYPES from "../../../transpiler/types/INTEGER_TYPES";
 import FLOAT_TYPES from "../../../transpiler/types/FLOAT_TYPES";

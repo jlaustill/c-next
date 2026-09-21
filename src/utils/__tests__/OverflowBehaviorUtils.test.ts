@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import CNextSourceParser from "../../transpiler/logic/parser/CNextSourceParser";
+import CNextSourceParser from "../../PARSE/2-Parse/CNextSourceParser";
 import OverflowBehaviorUtils from "../OverflowBehaviorUtils";
-import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 
 /**
  * Issue #1303: the one decoder for ADR-044's `clamp`/`wrap` modifier.

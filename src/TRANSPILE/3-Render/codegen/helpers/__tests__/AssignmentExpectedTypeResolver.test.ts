@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import AssignmentExpectedTypeResolver from "../AssignmentExpectedTypeResolver";
-import CNextSourceParser from "../../../../../transpiler/logic/parser/CNextSourceParser";
+import CNextSourceParser from "../../../../../PARSE/2-Parse/CNextSourceParser";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 import SymbolTable from "../../../../../transpiler/state/SymbolTable";
 

@@ -8,7 +8,7 @@
  * Both produce normalized IParameterInput for use with ParameterSignatureBuilder.
  */
 
-import * as Parser from "../../../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../../../PARSE/2-Parse/grammar/CNextParser";
 import AdrProvenance from "../../../../transpiler/state/AdrProvenance";
 import IParameterInput from "../types/IParameterInput";
 import IParameterSymbol from "../../../../utils/types/IParameterSymbol";

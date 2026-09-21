@@ -15,9 +15,9 @@ export default defineConfig({
         "**/__tests__/**", // Test directories (tests + helpers)
         "src/index.ts", // CLI entry point with module-level bootstrap code
         "src/antlr_parser/**", // Generated ANTLR code (legacy path)
-        "src/transpiler/logic/parser/grammar/**", // Generated CNext parser
-        "src/transpiler/logic/parser/c/grammar/**", // Generated C parser
-        "src/transpiler/logic/parser/cpp/grammar/**", // Generated C++ parser
+        "src/PARSE/2-Parse/grammar/**", // Generated CNext parser
+        "src/PARSE/2-Parse/c/grammar/**", // Generated C parser
+        "src/PARSE/2-Parse/cpp/grammar/**", // Generated C++ parser
       ],
       reporter: ["text", "html", "lcov"],
       reportsDirectory: "./coverage",
