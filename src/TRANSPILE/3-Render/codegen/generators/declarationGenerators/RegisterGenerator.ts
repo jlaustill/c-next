@@ -26,59 +26,41 @@
  * comment already claimed the two paths "share one macro generator with no
  * divergence to keep in step" -- true of the macros, not of the wrapper around
  * them.
+ *
+ * ## It takes a plan, not a node
+ *
+ * #1445 box 3: the three things it read off the node -- the written name, the
+ * base address, the members -- are all strings, and `IPlannedRegister` names
+ * them. The ADR-057 note below is why the members' `cType` arrives rendered,
+ * and it is why this module must not re-derive anything.
  */
-import * as Parser from "../../../../../PARSE/2-Parse/grammar/CNextParser";
 import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IGeneratorOutput from "../IGeneratorOutput";
 import IOrchestrator from "../IOrchestrator";
-import IPlannedRegisterMember from "../../../../../transpiler/types/IPlannedRegisterMember";
-import type TRegisterAccessMode from "../../../../../transpiler/types/TRegisterAccessMode";
 import TGeneratorFn from "../TGeneratorFn";
 import generateRegisterMacros from "./RegisterMacroGenerator";
 import RegisterBlockPlacement from "./RegisterBlockPlacement";
 import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
+import type IPlannedRegister from "../../types/IPlannedRegister";
 
-/**
- * Decide what each member's `#define` needs, so the formatter takes no nodes.
- *
- * No scoped-bitmap resolver here, deliberately. `orchestrator.generateType`
- * already applies ADR-057 qualification through the one TypeBinding ladder, so
- * a bare `Flags` inside `scope Chip` arrives as `Chip__Flags` and an explicit
- * `global.Flags` arrives as `Flags`.
+/*
+ * No scoped-bitmap resolver on the planning side, deliberately.
+ * `orchestrator.generateType` already applies ADR-057 qualification through
+ * the one TypeBinding ladder, so a bare `Flags` inside `scope Chip` arrives as
+ * `Chip__Flags` and an explicit `global.Flags` arrives as `Flags`.
  *
  * A resolver on the scoped path used to re-qualify that ALREADY-resolved name
  * and probe the re-qualified key first, which is the post-pass ADR-057
  * forbids: by then `global.Flags` and a bare `Flags` are byte-identical, so a
  * scope-local `Chip__Flags` captured the global reference and the register was
- * typed with a bitmap whose bit names differ. It was deleted before this
- * function existed (#1472); the note stays because "do not re-qualify" is the
- * rule this function has to keep, not a change it made.
- *
- * `cType` and `offset` are bound to locals rather than written inline in the
- * literal: both call the orchestrator, which registers effects on
- * `CodeGenState`, so written inline their order would be pinned by the order
- * the four FIELDS happen to appear -- and re-sorting an object literal reads
- * as cosmetic.
+ * typed with a bitmap whose bit names differ. It was deleted before the plan
+ * existed (#1472); the note stays because "do not re-qualify" is the rule this
+ * generator has to keep, not a change it made.
  */
-function planMembers(
-  members: readonly Parser.RegisterMemberContext[],
-  orchestrator: IOrchestrator,
-): IPlannedRegisterMember[] {
-  return members.map((member) => {
-    const cType = orchestrator.generateType(member.type());
-    const offset = orchestrator.generateExpression(member.expression());
-    return {
-      name: member.IDENTIFIER().getText(),
-      cType,
-      access: member.accessModifier().getText() as TRegisterAccessMode,
-      offset,
-    };
-  });
-}
 
 /**
- * Generate C #define macros from a C-Next register declaration.
+ * Generate C #define macros from a planned register declaration.
  *
  * ADR-004: Registers provide hardware abstraction with access control.
  * Access modifiers: ro (read-only), wo (write-only), rw (read-write default)
@@ -86,28 +68,21 @@ function planMembers(
  * @param declaringScopePath the enclosing scope's path, `""` at file scope
  */
 const registerGeneratorFor =
+  (declaringScopePath: string): TGeneratorFn<IPlannedRegister> =>
   (
-    declaringScopePath: string,
-  ): TGeneratorFn<Parser.RegisterDeclarationContext> =>
-  (
-    node: Parser.RegisterDeclarationContext,
+    planned: IPlannedRegister,
     _input: IGeneratorInput,
     _state: IGeneratorState,
-    orchestrator: IOrchestrator,
+    _orchestrator: IOrchestrator,
   ): IGeneratorOutput => {
     const fullName = QualifiedNameGenerator.forMember(
       declaringScopePath,
-      node.IDENTIFIER().getText(),
+      planned.name,
     );
-    const baseAddress = orchestrator.generateExpression(node.expression());
 
     const lines: string[] = [
-      `/* Register: ${fullName} @ ${baseAddress} */`,
-      ...generateRegisterMacros(
-        planMembers(node.registerMember(), orchestrator),
-        fullName,
-        baseAddress,
-      ),
+      `/* Register: ${fullName} @ ${planned.baseAddress} */`,
+      ...generateRegisterMacros(planned.members, fullName, planned.baseAddress),
       "",
     ];
 

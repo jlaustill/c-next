@@ -449,6 +449,31 @@ function createMockOrchestrator(
       return typeMap[text] ?? text;
     }),
     generateExpression: vi.fn((ctx) => ctx.__mockValue ?? ctx.getText()),
+    // #1445: the register generator takes a plan, and the orchestrator is
+    // where it is built -- there are two dispatchers and one planner. A mock
+    // missing this is the same `as unknown as IOrchestrator` gap the note
+    // above records; this one was caught at RUNTIME, by the register test.
+    planRegister: vi.fn((ctx) => ({
+      name: ctx.IDENTIFIER().getText(),
+      baseAddress: ctx.expression().__mockValue ?? ctx.expression().getText(),
+      members: ctx
+        .registerMember()
+        .map(
+          (registerMember: {
+            IDENTIFIER: () => { getText: () => string };
+            type: () => { getText: () => string };
+            accessModifier: () => { getText: () => string };
+            expression: () => { __mockValue?: string; getText: () => string };
+          }) => ({
+            name: registerMember.IDENTIFIER().getText(),
+            cType: registerMember.type().getText(),
+            access: registerMember.accessModifier().getText(),
+            offset:
+              registerMember.expression().__mockValue ??
+              registerMember.expression().getText(),
+          }),
+        ),
+    })),
     generateArrayDimensions: vi.fn((dims) =>
       dims.map((d: { getText: () => string }) => d.getText()).join(""),
     ),

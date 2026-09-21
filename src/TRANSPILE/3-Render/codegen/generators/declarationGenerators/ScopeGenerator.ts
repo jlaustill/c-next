@@ -478,7 +478,7 @@ function processScopeMember(
   if (member.registerDeclaration()) {
     const regDecl = member.registerDeclaration()!;
     const result = registerGeneratorFor(declaringScopePath)(
-      regDecl,
+      orchestrator.planRegister(regDecl),
       input,
       state,
       orchestrator,

@@ -49,6 +49,8 @@ import switchGenerators from "./generators/statements/SwitchGenerator";
 import enumGenerator from "./generators/declarationGenerators/EnumGenerator";
 import bitmapGenerator from "./generators/declarationGenerators/BitmapGenerator";
 import registerGeneratorFor from "./generators/declarationGenerators/RegisterGenerator";
+import type IPlannedRegister from "./types/IPlannedRegister";
+import type TRegisterAccessMode from "../../../transpiler/types/TRegisterAccessMode";
 import structGenerator from "./generators/declarationGenerators/StructGenerator";
 import functionGenerator from "./generators/declarationGenerators/FunctionGenerator";
 import scopeGenerator from "./generators/declarationGenerators/ScopeGenerator";
@@ -3537,8 +3539,43 @@ export default class CodeGenerator implements IOrchestrator {
   private generateRegister(ctx: Parser.RegisterDeclarationContext): string {
     return this.invokeGenerator(
       registerGeneratorFor(this.getState().currentScopePath),
-      ctx,
+      this.planRegister(ctx),
     );
+  }
+
+  /**
+   * An ADR-004 register binding, decided (#1445).
+   *
+   * Part of IOrchestrator: `ScopeGenerator` dispatches the same generator for
+   * a register inside a scope, and planning at both sites would be two
+   * derivations of one register.
+   *
+   * The ORDER matters and is the node-walking order: the base address is
+   * generated before the members, because each generation registers effects
+   * on `CodeGenState`.
+   *
+   * `cType` comes from `generateType`, the single ADR-057 resolution point --
+   * a bare `Flags` inside `scope Chip` arrives as `Chip__Flags` and an
+   * explicit `global.Flags` arrives as `Flags`. Nothing downstream may
+   * re-qualify it.
+   */
+  planRegister(ctx: Parser.RegisterDeclarationContext): IPlannedRegister {
+    const baseAddress = this.generateExpression(ctx.expression());
+
+    return {
+      name: ctx.IDENTIFIER().getText(),
+      baseAddress,
+      members: ctx.registerMember().map((member) => {
+        const cType = this.generateType(member.type());
+        const offset = this.generateExpression(member.expression());
+        return {
+          name: member.IDENTIFIER().getText(),
+          cType,
+          access: member.accessModifier().getText() as TRegisterAccessMode,
+          offset,
+        };
+      }),
+    };
   }
 
   // ========================================================================

@@ -12,6 +12,7 @@
  * - Gradual migration via "strangler fig" pattern
  */
 import type ISubstringOps from "../types/ISubstringOps";
+import type IPlannedRegister from "../types/IPlannedRegister";
 import type IStringConcatOps from "../types/IStringConcatOps";
 import IGeneratorInput from "./IGeneratorInput";
 import IGeneratorState from "./IGeneratorState";
@@ -199,6 +200,15 @@ interface IOrchestrator {
   registerLocalVariable(name: string): string;
 
   // === Declaration Generation ===
+
+  /**
+   * An ADR-004 register binding, decided (#1445).
+   *
+   * On the orchestrator because there are TWO dispatchers -- file scope and
+   * inside a scope -- and both already hold it. Planning at each would be two
+   * derivations of one register; see `IPlannedRegister`.
+   */
+  planRegister(ctx: Parser.RegisterDeclarationContext): IPlannedRegister;
 
   /** Generate parameter list for function signature */
   generateParameterList(ctx: Parser.ParameterListContext): string;
