@@ -1,0 +1,23 @@
+// test-execution
+// NEGATIVE CONTROL for #1582 -- this file must stay SILENT and keep working.
+#include <write-target-source.cnx>
+
+u32 shared <- 1;
+
+u32 main() {
+    u32 shared <- 2;
+    shared <- 3;
+    global.shared <- 4;
+    crossCounter <- 9;
+
+    if (shared != 3) {
+        return 1;
+    }
+    if (global.shared != 4) {
+        return 2;
+    }
+    if (crossCounter != 9) {
+        return 3;
+    }
+    return 0;
+}

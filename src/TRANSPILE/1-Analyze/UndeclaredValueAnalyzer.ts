@@ -34,6 +34,7 @@ import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../transpiler/logic/parser/grammar/CNextListener";
 import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
 import BUILTIN_TYPE_NAMES from "../../transpiler/constants/BUILTIN_TYPE_NAMES";
+import ChainRoot from "./helpers/ChainRoot";
 import CodeGenState from "../../transpiler/state/CodeGenState";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
 import EnclosingScope from "./helpers/EnclosingScope";
@@ -110,6 +111,49 @@ class UndeclaredValueListener extends CNextListener {
     const { line, column } = ParserUtils.getPosition(primary);
     this.analyzer.addError(name, line, column);
   };
+
+  /**
+   * The WRITE position. `assignmentTarget` is its own grammar rule, not a
+   * `postfixExpression`, so no target ever reached the listener above and
+   * `witness <- 5` against a name in no scope transpiled at exit 0 (#1582).
+   *
+   * One hook covers all three rules that reference the target -- the assignment
+   * statement and a `for` loop's init and update clauses -- because they share
+   * the node, not because the check is repeated for each.
+   */
+  override enterAssignmentTarget = (
+    ctx: Parser.AssignmentTargetContext,
+  ): void => {
+    const identifier = ctx.IDENTIFIER();
+    if (!identifier) {
+      return;
+    }
+
+    const name = identifier.getText();
+    if (REJECTED_KEYWORDS.has(name) || BUILTIN_TYPE_NAMES.has(name)) {
+      return;
+    }
+
+    if (
+      this.analyzer.isTargetVisible(
+        name,
+        ChainRoot.ofTarget(ctx),
+        this.scopes.frameFor(ctx),
+        this.enclosing.current(),
+        this.scopes,
+      )
+    ) {
+      return;
+    }
+
+    // The caret names the identifier, not the `this`/`global` keyword the
+    // target may start with. `getPosition` takes the shape structurally, so the
+    // terminal's own token is what carries the position here.
+    const { line, column } = ParserUtils.getPosition({
+      start: identifier.symbol,
+    });
+    this.analyzer.addError(name, line, column);
+  };
 }
 
 class UndeclaredValueAnalyzer {
@@ -147,6 +191,64 @@ class UndeclaredValueAnalyzer {
       (symbols !== null &&
         symbols !== undefined &&
         NameExistence.isKnownEnumMember(name, symbols))
+    );
+  }
+
+  /**
+   * Whether an ASSIGNMENT TARGET's base name denotes something writable here.
+   *
+   * A bare target asks the same question a bare read asks, so it calls the same
+   * predicate -- the write position is not a second policy. `this.` and
+   * `global.` do NOT: each states which level to look at, and falling through
+   * to the bare outward walk is what lets a shadowing local capture them.
+   * `ScopeFrameResolver.declarationFor` is the one encoder of that distinction
+   * (#1322 found four copies of it disagreeing, three of which emitted broken C
+   * at exit 0), so the root is handed to it rather than re-branched here.
+   *
+   * Without the split, `this.gx <- 5` where `gx` is a file-scope global -- not
+   * a member of the enclosing scope -- passes on the bare lookup and emits
+   * `Scope__gx`, a name nothing declares.
+   */
+  isTargetVisible(
+    name: string,
+    root: ReturnType<typeof ChainRoot.ofTarget>,
+    frame: Parameters<ScopeFrameResolver["typeOfName"]>[1],
+    scopePath: ReturnType<EnclosingScope["current"]>,
+    scopes: ScopeFrameResolver,
+  ): boolean {
+    if (root === null) {
+      return this.isVisible(name, frame, scopePath, scopes);
+    }
+
+    if (scopes.declarationFor(root, name, frame) !== null) {
+      return true;
+    }
+
+    const symbols = CodeGenState.symbols;
+    if (!symbols) {
+      return true;
+    }
+
+    // `global.x` may still name a file-scope variable that arrived through an
+    // `#include`, which this file's frames never held. The include-filtered
+    // predicate is the cross-file half, exactly as it is for a bare name.
+    if (root === "global") {
+      return NameExistence.isValueName(name, symbols, CodeGenState.symbolTable);
+    }
+
+    // `this.` outside any scope is E0431's to reject, and two diagnostics for
+    // one name is worse than one.
+    if (scopePath === "") {
+      return true;
+    }
+
+    return (
+      NameExistence.isValueName(
+        ScopeUtils.qualifyInScope(name, scopePath),
+        symbols,
+        CodeGenState.symbolTable,
+      ) ||
+      (symbols.scopeMembers.get(scopePath)?.has(name) ?? false)
     );
   }
 
