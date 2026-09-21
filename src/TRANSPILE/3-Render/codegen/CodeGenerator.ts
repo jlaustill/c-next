@@ -68,6 +68,9 @@ import type TRegisterAccessMode from "../../../transpiler/types/TRegisterAccessM
 import structGenerator from "./generators/declarationGenerators/StructGenerator";
 import ArrayDimensionUtils from "./generators/declarationGenerators/ArrayDimensionUtils";
 import IPlannedArrayDeclaration from "./types/IPlannedArrayDeclaration";
+import IPlannedPostfix from "./types/IPlannedPostfix";
+import SubscriptDepthValidator from "../../2-Plan/SubscriptDepthValidator";
+import TPlannedPostfixOp from "./types/TPlannedPostfixOp";
 import TPlannedStringDecl from "./types/TPlannedStringDecl";
 import IPlannedStringInit from "./types/IPlannedStringInit";
 import TPlannedVariableDecl from "./types/TPlannedVariableDecl";
@@ -656,9 +659,130 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    * Issue #644: Delegates to extracted PostfixExpressionGenerator.
    */
+  // ========================================================================
+  // Postfix expression planning (#1445 box 3)
+  // ========================================================================
+
+  /**
+   * Resolve the variable that a leading subscript chain indexes (Issue #1106).
+   *
+   * ADR-016 lets the same variable be reached three ways, and
+   * `postfixExpression` parses each differently:
+   *
+   * - `flags[4][3]`        -- primary is the IDENTIFIER; subscripts start at op 0
+   * - `this.flags[4][3]`   -- primary is `this`; `.flags` is op 0, subscripts at 1
+   * - `global.flags[4][3]` -- primary is `global`; likewise
+   *
+   * Returning the resolved name and offset for all three keeps depth
+   * validation from having a hole that the bare-identifier form does not.
+   *
+   * `displayName` is how the DEVELOPER spelled it, because a diagnostic quotes
+   * that rather than the resolved name -- `Sensor_flags` does resolve as a
+   * bare name, but nobody writes it, and echoing it back reads as a different
+   * variable.
+   */
+  private resolveSubscriptBase(
+    ctx: Parser.PostfixExpressionContext,
+    rootIdentifier: string | undefined,
+    ops: readonly Parser.PostfixOpContext[],
+  ): { name: string; displayName: string; opOffset: number } | undefined {
+    if (rootIdentifier) {
+      return { name: rootIdentifier, displayName: rootIdentifier, opOffset: 0 };
+    }
+
+    const prefix = ctx.primaryExpression().getText();
+    if (prefix !== "this" && prefix !== "global") {
+      return undefined;
+    }
+
+    const memberName = ops[0]?.IDENTIFIER()?.getText();
+    if (!memberName) {
+      return undefined;
+    }
+
+    // `this.x` is the scope-qualified variable `Scope_x`; `global.x` is plain `x`.
+    const name =
+      prefix === "this"
+        ? QualifiedNameGenerator.forMember(
+            CodeGenState.currentScopePath,
+            memberName,
+          )
+        : memberName;
+    return { name, displayName: `${prefix}.${memberName}`, opOffset: 1 };
+  }
+
+  /**
+   * A postfix expression: its primary, and the operations applied to it.
+   *
+   * What the generator read off the tree was the op KINDS -- an IDENTIFIER is
+   * a member access, one or two bracketed expressions are a subscript, neither
+   * is a call -- and two facts about the leading subscript run. Both are
+   * decided here; the renders they reach are thunks, because generating an
+   * index draws a temp name and queues its declaration, so rendering one for
+   * an operation the generator has not reached yet would take the name a
+   * nearer expression holds today.
+   */
+  private planPostfixExpression(
+    ctx: Parser.PostfixExpressionContext,
+  ): IPlannedPostfix {
+    const primary = ctx.primaryExpression();
+    const ops = ctx.postfixOp();
+    const rootIdentifier = primary.IDENTIFIER()?.getText();
+    const subscriptBase = this.resolveSubscriptBase(ctx, rootIdentifier, ops);
+
+    return {
+      rootIdentifier,
+      renderPrimary: () => this.generatePrimaryExpr(primary),
+      subscriptBase: subscriptBase
+        ? { name: subscriptBase.name, displayName: subscriptBase.displayName }
+        : null,
+      // Counted through `SubscriptDepthValidator`, the same function the WRITE
+      // path calls, so the two cannot diverge on what counts as a subscript.
+      // The plan carries the number rather than the nodes, which is what lets
+      // that function keep its one node-shaped signature for the write path.
+      leadingSubscriptCount: subscriptBase
+        ? SubscriptDepthValidator.countLeadingSubscripts(
+            ops,
+            subscriptBase.opOffset,
+          )
+        : 0,
+      ops: ops.map((op) => this.planPostfixOp(op)),
+    };
+  }
+
+  /** Which of `postfixOp`'s three shapes this one is. */
+  private planPostfixOp(op: Parser.PostfixOpContext): TPlannedPostfixOp {
+    const identifier = op.IDENTIFIER();
+    if (identifier) {
+      return { kind: "member", name: identifier.getText() };
+    }
+
+    const indexes = op.expression();
+    if (indexes.length > 0) {
+      return {
+        kind: "subscript",
+        indexCount: indexes.length,
+        renderIndexes: () =>
+          indexes.map((index) => this.generateExpression(index)),
+        // Issue #1094: the final index, folded, so a const or macro bit
+        // width gets a precomputed mask rather than a runtime one.
+        foldWidth: () => this.tryEvaluateConstant(indexes[indexes.length - 1]),
+      };
+    }
+
+    return {
+      kind: "call",
+      // #1508: ADR-010 is recorded at the CALL rather than at the directive --
+      // an `#include` sits in no scope, function or variable, so the matrix's
+      // context axis has nothing to ask it.
+      line: op.start?.line,
+      planArguments: () => this.planCallArguments(op.argumentList() || null),
+    };
+  }
+
   generatePostfixExpr(ctx: Parser.PostfixExpressionContext): string {
     const result = generatePostfixExpression(
-      ctx,
+      this.planPostfixExpression(ctx),
       this.getInput(),
       this.getState(),
       this,

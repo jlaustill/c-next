@@ -232,6 +232,15 @@ const PLAN_DECISIONS: Readonly<Record<string, readonly string[]>> = {
     "codegen/generators/expressions/PostfixExpressionGenerator.ts",
   ],
   SubscriptDepthValidator: [
+    // #1445 box 3 split this decider's two entry points between two modules,
+    // and both are pinned because both are real consultations.
+    //
+    // `countLeadingSubscripts` needs the OPS, so it is asked by
+    // `planPostfixExpression` -- through this same function, which keeps its
+    // node-shaped signature for the write path and so cannot diverge from it.
+    // `validate` needs the rendered base's type info, so it stays where that
+    // is known.
+    "codegen/CodeGenerator.ts",
     "codegen/generators/expressions/PostfixExpressionGenerator.ts",
   ],
 };

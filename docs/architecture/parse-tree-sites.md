@@ -30,11 +30,11 @@ one.
 | `src/TRANSPILE/`          |      62 |
 | `src/PARSE/`              |      18 |
 | `src/utils/`              |      11 |
-| `src/TRANSPILE/3-Render/` |       9 |
+| `src/TRANSPILE/3-Render/` |       8 |
 | `src/transpiler/types/`   |       4 |
 | `src/transpiler/`         |       3 |
 | `src/transpiler/logic/`   |       1 |
-| **total**                 | **108** |
+| **total**                 | **107** |
 
 `src/TRANSPILE/3-Render/` is the render layer, and its share is the number
 the issue singles out: the render layer holding parse nodes is how a
@@ -42,115 +42,114 @@ diagnostic can originate there at all, which is what #1322 relocates.
 
 ## Modules
 
-| Module                                                                                | Holds             |
-| ------------------------------------------------------------------------------------- | ----------------- |
-| `src/PARSE/3-Declare/c/collectors/EnumCollector.ts`                                   | grammar           |
-| `src/PARSE/3-Declare/c/collectors/FunctionCollector.ts`                               | grammar           |
-| `src/PARSE/3-Declare/c/collectors/StructCollector.ts`                                 | grammar           |
-| `src/PARSE/3-Declare/c/index.ts`                                                      | grammar           |
-| `src/PARSE/3-Declare/c/utils/DeclaratorUtils.ts`                                      | grammar           |
-| `src/PARSE/3-Declare/cnext/collectors/BitmapCollector.ts`                             | grammar           |
-| `src/PARSE/3-Declare/cnext/collectors/EnumCollector.ts`                               | grammar           |
-| `src/PARSE/3-Declare/cnext/collectors/FunctionCollector.ts`                           | grammar           |
-| `src/PARSE/3-Declare/cnext/collectors/RegisterCollector.ts`                           | grammar           |
-| `src/PARSE/3-Declare/cnext/collectors/ScopeCollector.ts`                              | grammar           |
-| `src/PARSE/3-Declare/cnext/collectors/StructCollector.ts`                             | grammar           |
-| `src/PARSE/3-Declare/cnext/collectors/VariableCollector.ts`                           | grammar           |
-| `src/PARSE/3-Declare/cnext/index.ts`                                                  | grammar           |
-| `src/PARSE/3-Declare/cnext/utils/ArrayInitializerUtils.ts`                            | grammar           |
-| `src/PARSE/3-Declare/cnext/utils/DimensionResolver.ts`                                | grammar           |
-| `src/PARSE/3-Declare/cnext/utils/TypeUtils.ts`                                        | grammar           |
-| `src/PARSE/3-Declare/cpp/index.ts`                                                    | grammar           |
-| `src/PARSE/3-Declare/TypeBinding.ts`                                                  | grammar           |
-| `src/TRANSPILE/1-Analyze/ArrayDeclarationAnalyzer.ts`                                 | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/ArrayIndexBoundsAnalyzer.ts`                                 | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/ArrayIndexTypeAnalyzer.ts`                                   | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/BareEnumMemberAnalyzer.ts`                                   | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/BinaryOperatorLevelListener.ts`                              | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/BitAccessAnalyzer.ts`                                        | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/BitmapAccessAnalyzer.ts`                                     | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/BooleanOperandAnalyzer.ts`                                   | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/CallbackAssignmentAnalyzer.ts`                               | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/CompoundAssignmentAnalyzer.ts`                               | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/ConstAssignmentAnalyzer.ts`                                  | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/ConstructorArgumentAnalyzer.ts`                              | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/ControllingExpressionAnalyzer.ts`                            | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/CppClassInitializerAnalyzer.ts`                              | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/CriticalSectionAnalyzer.ts`                                  | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/DeclarationModifierAnalyzer.ts`                              | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/DeclarationScopeCollector.ts`                                | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/DefineDirectiveAnalyzer.ts`                                  | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/DivisionByZeroAnalyzer.ts`                                   | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/EnumTypeSafetyAnalyzer.ts`                                   | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/EnumValueResolver.ts`                                        | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/FloatModuloAnalyzer.ts`                                      | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/FunctionCallAnalyzer.ts`                                     | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/GrammarCoverageListener.ts`                                  | antlr4ng          |
-| `src/TRANSPILE/1-Analyze/helpers/CalleeNameResolver.ts`                               | grammar           |
-| `src/TRANSPILE/1-Analyze/helpers/ChainRoot.ts`                                        | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/helpers/ConstantExpression.ts`                               | grammar           |
-| `src/TRANSPILE/1-Analyze/helpers/EnclosingFunction.ts`                                | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/helpers/FunctionReference.ts`                                | grammar           |
-| `src/TRANSPILE/1-Analyze/helpers/IncludeDirective.ts`                                 | grammar           |
-| `src/TRANSPILE/1-Analyze/helpers/RegisterMemberReference.ts`                          | antlr4ng          |
-| `src/TRANSPILE/1-Analyze/helpers/SafeDivision.ts`                                     | grammar           |
-| `src/TRANSPILE/1-Analyze/helpers/StructInitializerType.ts`                            | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/IdentifierSyntaxAnalyzer.ts`                                 | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/IncludeDirectiveAnalyzer.ts`                                 | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/InitializationAnalyzer.ts`                                   | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/IntegerConversionAnalyzer.ts`                                | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/LengthPropertyAnalyzer.ts`                                   | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/LoopAnalyzer.ts`                                             | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/MixedTypeCategoryAnalyzer.ts`                                | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/NestedTernaryAnalyzer.ts`                                    | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/NullCheckAnalyzer.ts`                                        | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/OperandTypeResolver.ts`                                      | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/ParameterNamingAnalyzer.ts`                                  | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/RegisterAccessAnalyzer.ts`                                   | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/ReturnPathAnalyzer.ts`                                       | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/ReturnValueUseAnalyzer.ts`                                   | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/runAnalyzers.ts`                                             | grammar           |
-| `src/TRANSPILE/1-Analyze/SafeDivisionAnalyzer.ts`                                     | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/ScopeAccessAnalyzer.ts`                                      | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/ScopeFrameResolver.ts`                                       | antlr4ng          |
-| `src/TRANSPILE/1-Analyze/ShiftAnalyzer.ts`                                            | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/SizeofAnalyzer.ts`                                           | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/SliceAssignmentAnalyzer.ts`                                  | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/StringDeclarationAnalyzer.ts`                                | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/StructFieldAnalyzer.ts`                                      | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/StructLiteralAnalyzer.ts`                                    | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/SwitchStatementAnalyzer.ts`                                  | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/ThisOutsideScopeAnalyzer.ts`                                 | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/UndeclaredTypeAnalyzer.ts`                                   | antlr4ng, grammar |
-| `src/TRANSPILE/1-Analyze/UndeclaredValueAnalyzer.ts`                                  | antlr4ng, grammar |
-| `src/TRANSPILE/2-Plan/PassByValueAnalyzer.ts`                                         | grammar           |
-| `src/TRANSPILE/3-Render/codegen/analysis/StringLengthCounter.ts`                      | grammar           |
-| `src/TRANSPILE/3-Render/codegen/assignment/AssignmentContextBuilder.ts`               | grammar           |
-| `src/TRANSPILE/3-Render/codegen/assignment/handlers/ArrayHandlers.ts`                 | grammar           |
-| `src/TRANSPILE/3-Render/codegen/CodeGenerator.ts`                                     | antlr4ng, grammar |
-| `src/TRANSPILE/3-Render/codegen/generators/expressions/BinaryExprGenerator.ts`        | antlr4ng, grammar |
-| `src/TRANSPILE/3-Render/codegen/generators/expressions/PostfixExpressionGenerator.ts` | grammar           |
-| `src/TRANSPILE/3-Render/codegen/generators/IOrchestrator.ts`                          | antlr4ng, grammar |
-| `src/TRANSPILE/3-Render/codegen/helpers/TypeRegistrationEngine.ts`                    | grammar           |
-| `src/TRANSPILE/3-Render/codegen/TypeResolver.ts`                                      | antlr4ng, grammar |
-| `src/transpiler/CallbackCompatibility.ts`                                             | grammar           |
-| `src/transpiler/logic/IncludeExtractor.ts`                                            | grammar           |
-| `src/transpiler/ModificationFacts.ts`                                                 | grammar           |
-| `src/transpiler/Transpiler.ts`                                                        | grammar           |
-| `src/transpiler/types/IAssignmentContext.ts`                                          | grammar           |
-| `src/transpiler/types/IDeclaredFile.ts`                                               | grammar           |
-| `src/transpiler/types/IParsedFile.ts`                                                 | antlr4ng, grammar |
-| `src/transpiler/types/ITypeAccessors.ts`                                              | grammar           |
-| `src/utils/ArrayDimensionParser.ts`                                                   | grammar           |
-| `src/utils/ast/AssignmentTargetExtractor.ts`                                          | grammar           |
-| `src/utils/ast/ChildStatementCollector.ts`                                            | grammar           |
-| `src/utils/ast/StatementExpressionCollector.ts`                                       | grammar           |
-| `src/utils/ExpressionUnwrapper.ts`                                                    | grammar           |
-| `src/utils/ExpressionUtils.ts`                                                        | grammar           |
-| `src/utils/LiteralUtils.ts`                                                           | grammar           |
-| `src/utils/OverflowBehaviorUtils.ts`                                                  | grammar           |
-| `src/utils/ParserUtils.ts`                                                            | antlr4ng, grammar |
-| `src/utils/PostfixAnalysisUtils.ts`                                                   | grammar           |
-| `src/utils/TargetResolver.ts`                                                         | grammar           |
+| Module                                                                         | Holds             |
+| ------------------------------------------------------------------------------ | ----------------- |
+| `src/PARSE/3-Declare/c/collectors/EnumCollector.ts`                            | grammar           |
+| `src/PARSE/3-Declare/c/collectors/FunctionCollector.ts`                        | grammar           |
+| `src/PARSE/3-Declare/c/collectors/StructCollector.ts`                          | grammar           |
+| `src/PARSE/3-Declare/c/index.ts`                                               | grammar           |
+| `src/PARSE/3-Declare/c/utils/DeclaratorUtils.ts`                               | grammar           |
+| `src/PARSE/3-Declare/cnext/collectors/BitmapCollector.ts`                      | grammar           |
+| `src/PARSE/3-Declare/cnext/collectors/EnumCollector.ts`                        | grammar           |
+| `src/PARSE/3-Declare/cnext/collectors/FunctionCollector.ts`                    | grammar           |
+| `src/PARSE/3-Declare/cnext/collectors/RegisterCollector.ts`                    | grammar           |
+| `src/PARSE/3-Declare/cnext/collectors/ScopeCollector.ts`                       | grammar           |
+| `src/PARSE/3-Declare/cnext/collectors/StructCollector.ts`                      | grammar           |
+| `src/PARSE/3-Declare/cnext/collectors/VariableCollector.ts`                    | grammar           |
+| `src/PARSE/3-Declare/cnext/index.ts`                                           | grammar           |
+| `src/PARSE/3-Declare/cnext/utils/ArrayInitializerUtils.ts`                     | grammar           |
+| `src/PARSE/3-Declare/cnext/utils/DimensionResolver.ts`                         | grammar           |
+| `src/PARSE/3-Declare/cnext/utils/TypeUtils.ts`                                 | grammar           |
+| `src/PARSE/3-Declare/cpp/index.ts`                                             | grammar           |
+| `src/PARSE/3-Declare/TypeBinding.ts`                                           | grammar           |
+| `src/TRANSPILE/1-Analyze/ArrayDeclarationAnalyzer.ts`                          | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/ArrayIndexBoundsAnalyzer.ts`                          | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/ArrayIndexTypeAnalyzer.ts`                            | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/BareEnumMemberAnalyzer.ts`                            | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/BinaryOperatorLevelListener.ts`                       | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/BitAccessAnalyzer.ts`                                 | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/BitmapAccessAnalyzer.ts`                              | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/BooleanOperandAnalyzer.ts`                            | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/CallbackAssignmentAnalyzer.ts`                        | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/CompoundAssignmentAnalyzer.ts`                        | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/ConstAssignmentAnalyzer.ts`                           | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/ConstructorArgumentAnalyzer.ts`                       | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/ControllingExpressionAnalyzer.ts`                     | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/CppClassInitializerAnalyzer.ts`                       | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/CriticalSectionAnalyzer.ts`                           | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/DeclarationModifierAnalyzer.ts`                       | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/DeclarationScopeCollector.ts`                         | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/DefineDirectiveAnalyzer.ts`                           | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/DivisionByZeroAnalyzer.ts`                            | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/EnumTypeSafetyAnalyzer.ts`                            | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/EnumValueResolver.ts`                                 | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/FloatModuloAnalyzer.ts`                               | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/FunctionCallAnalyzer.ts`                              | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/GrammarCoverageListener.ts`                           | antlr4ng          |
+| `src/TRANSPILE/1-Analyze/helpers/CalleeNameResolver.ts`                        | grammar           |
+| `src/TRANSPILE/1-Analyze/helpers/ChainRoot.ts`                                 | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/helpers/ConstantExpression.ts`                        | grammar           |
+| `src/TRANSPILE/1-Analyze/helpers/EnclosingFunction.ts`                         | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/helpers/FunctionReference.ts`                         | grammar           |
+| `src/TRANSPILE/1-Analyze/helpers/IncludeDirective.ts`                          | grammar           |
+| `src/TRANSPILE/1-Analyze/helpers/RegisterMemberReference.ts`                   | antlr4ng          |
+| `src/TRANSPILE/1-Analyze/helpers/SafeDivision.ts`                              | grammar           |
+| `src/TRANSPILE/1-Analyze/helpers/StructInitializerType.ts`                     | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/IdentifierSyntaxAnalyzer.ts`                          | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/IncludeDirectiveAnalyzer.ts`                          | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/InitializationAnalyzer.ts`                            | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/IntegerConversionAnalyzer.ts`                         | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/LengthPropertyAnalyzer.ts`                            | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/LoopAnalyzer.ts`                                      | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/MixedTypeCategoryAnalyzer.ts`                         | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/NestedTernaryAnalyzer.ts`                             | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/NullCheckAnalyzer.ts`                                 | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/OperandTypeResolver.ts`                               | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/ParameterNamingAnalyzer.ts`                           | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/RegisterAccessAnalyzer.ts`                            | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/ReturnPathAnalyzer.ts`                                | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/ReturnValueUseAnalyzer.ts`                            | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/runAnalyzers.ts`                                      | grammar           |
+| `src/TRANSPILE/1-Analyze/SafeDivisionAnalyzer.ts`                              | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/ScopeAccessAnalyzer.ts`                               | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/ScopeFrameResolver.ts`                                | antlr4ng          |
+| `src/TRANSPILE/1-Analyze/ShiftAnalyzer.ts`                                     | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/SizeofAnalyzer.ts`                                    | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/SliceAssignmentAnalyzer.ts`                           | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/StringDeclarationAnalyzer.ts`                         | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/StructFieldAnalyzer.ts`                               | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/StructLiteralAnalyzer.ts`                             | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/SwitchStatementAnalyzer.ts`                           | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/ThisOutsideScopeAnalyzer.ts`                          | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/UndeclaredTypeAnalyzer.ts`                            | antlr4ng, grammar |
+| `src/TRANSPILE/1-Analyze/UndeclaredValueAnalyzer.ts`                           | antlr4ng, grammar |
+| `src/TRANSPILE/2-Plan/PassByValueAnalyzer.ts`                                  | grammar           |
+| `src/TRANSPILE/3-Render/codegen/analysis/StringLengthCounter.ts`               | grammar           |
+| `src/TRANSPILE/3-Render/codegen/assignment/AssignmentContextBuilder.ts`        | grammar           |
+| `src/TRANSPILE/3-Render/codegen/assignment/handlers/ArrayHandlers.ts`          | grammar           |
+| `src/TRANSPILE/3-Render/codegen/CodeGenerator.ts`                              | antlr4ng, grammar |
+| `src/TRANSPILE/3-Render/codegen/generators/expressions/BinaryExprGenerator.ts` | antlr4ng, grammar |
+| `src/TRANSPILE/3-Render/codegen/generators/IOrchestrator.ts`                   | antlr4ng, grammar |
+| `src/TRANSPILE/3-Render/codegen/helpers/TypeRegistrationEngine.ts`             | grammar           |
+| `src/TRANSPILE/3-Render/codegen/TypeResolver.ts`                               | antlr4ng, grammar |
+| `src/transpiler/CallbackCompatibility.ts`                                      | grammar           |
+| `src/transpiler/logic/IncludeExtractor.ts`                                     | grammar           |
+| `src/transpiler/ModificationFacts.ts`                                          | grammar           |
+| `src/transpiler/Transpiler.ts`                                                 | grammar           |
+| `src/transpiler/types/IAssignmentContext.ts`                                   | grammar           |
+| `src/transpiler/types/IDeclaredFile.ts`                                        | grammar           |
+| `src/transpiler/types/IParsedFile.ts`                                          | antlr4ng, grammar |
+| `src/transpiler/types/ITypeAccessors.ts`                                       | grammar           |
+| `src/utils/ArrayDimensionParser.ts`                                            | grammar           |
+| `src/utils/ast/AssignmentTargetExtractor.ts`                                   | grammar           |
+| `src/utils/ast/ChildStatementCollector.ts`                                     | grammar           |
+| `src/utils/ast/StatementExpressionCollector.ts`                                | grammar           |
+| `src/utils/ExpressionUnwrapper.ts`                                             | grammar           |
+| `src/utils/ExpressionUtils.ts`                                                 | grammar           |
+| `src/utils/LiteralUtils.ts`                                                    | grammar           |
+| `src/utils/OverflowBehaviorUtils.ts`                                           | grammar           |
+| `src/utils/ParserUtils.ts`                                                     | antlr4ng, grammar |
+| `src/utils/PostfixAnalysisUtils.ts`                                            | grammar           |
+| `src/utils/TargetResolver.ts`                                                  | grammar           |
 
-108 module(s).
+107 module(s).
