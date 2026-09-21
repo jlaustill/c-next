@@ -4,7 +4,7 @@
  * Issue #792: Tests for extracted variable declaration logic
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import VariableDeclHelper from "../VariableDeclHelper";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 import CNextSourceParser from "../../../../../PARSE/2-Parse/CNextSourceParser";
@@ -88,6 +88,146 @@ describe("VariableDeclHelper", () => {
   // rules are E0868/E0869 in pass 2.1, covered by
   // `1-Analyze/__tests__/IntegerConversionAnalyzer.test.ts` against real source
   // rather than a text API.
+
+  // ========================================================================
+  // Tier 3b: ADR-045 string planning (#1445 box 3)
+  // ========================================================================
+
+  describe("planStringDecl", () => {
+    /**
+     * A full `IVariableDeclCallbacks`. The planner needs four of these; the
+     * rest are present because the interface requires them, and each throws so
+     * a path that starts calling one fails loudly instead of reading a stub.
+     */
+    function stubCallbacks(
+      overrides: Partial<Record<string, unknown>> = {},
+    ): Parameters<typeof VariableDeclHelper.planStringDecl>[3] {
+      const unused = (name: string) => () => {
+        throw new Error(`planStringDecl must not call ${name}`);
+      };
+      return {
+        generateExpression: (ctx: Parser.ExpressionContext) => ctx.getText(),
+        generateArrayDimensions: (dims: Parser.ArrayDimensionContext[]) =>
+          dims.map((d) => `[${d.expression()?.getText() ?? ""}]`).join(""),
+        getStringConcatOperands: () => null,
+        getSubstringOperands: () => null,
+        generateType: unused("generateType"),
+        getTypeName: unused("getTypeName"),
+        tryEvaluateConstant: unused("tryEvaluateConstant"),
+        getZeroInitializer: unused("getZeroInitializer"),
+        getExpressionType: unused("getExpressionType"),
+        inferVariableType: unused("inferVariableType"),
+        trackLocalVariable: unused("trackLocalVariable"),
+        markVariableAsPointer: unused("markVariableAsPointer"),
+        ...overrides,
+      } as Parameters<typeof VariableDeclHelper.planStringDecl>[3];
+    }
+
+    function plan(source: string, overrides = {}) {
+      const varDecl = parseVarDecl(source);
+      return VariableDeclHelper.planStringDecl(
+        varDecl.type(),
+        varDecl.expression() ?? null,
+        varDecl.arrayDimension(),
+        stubCallbacks(overrides),
+      );
+    }
+
+    it("returns null for a declaration that is not a string", () => {
+      expect(plan("u8 x;")).toBeNull();
+    });
+
+    it("plans a bounded string without an initializer", () => {
+      expect(plan("string<16> s;")).toEqual({
+        kind: "bounded",
+        capacity: 16,
+        init: null,
+      });
+    });
+
+    it("plans a bounded string with its initializer text", () => {
+      const result = plan('string<16> s <- "hi";');
+      expect(result?.kind).toBe("bounded");
+      expect(result?.kind === "bounded" && result.init?.text).toBe('"hi"');
+    });
+
+    it("plans an unsized string, carrying the literal it infers from", () => {
+      expect(plan('const string s <- "abc";')).toEqual({
+        kind: "unsized",
+        initText: '"abc"',
+      });
+    });
+
+    it("plans an unsized string with no initializer as initText null", () => {
+      expect(plan("const string s;")).toEqual({
+        kind: "unsized",
+        initText: null,
+      });
+    });
+
+    it("plans a string array, rendering its dimensions", () => {
+      expect(plan("string<32>[4] items;")).toMatchObject({
+        kind: "array",
+        elementCapacity: 32,
+        dimensions: "[4]",
+        declaredSize: 4,
+        renderInit: null,
+      });
+    });
+
+    // #1644: the declared size and the rendered dimension come from ONE
+    // evaluator, so a hex spelling cannot fold in the declarator and fail to
+    // fold for the fill-all expansion.
+    it.each([
+      ["hex", "string<32>[0x4] items;"],
+      ["binary", "string<32>[0b100] items;"],
+    ])(
+      "folds a %s dimension for both the declarator and the size",
+      (_l, src) => {
+        expect(plan(src)).toMatchObject({ dimensions: "[4]", declaredSize: 4 });
+      },
+    );
+
+    it("appends trailing declaration dimensions to the type's own", () => {
+      expect(plan("string<10>[2] matrix[3];")).toMatchObject({
+        dimensions: "[2][3]",
+      });
+    });
+
+    it("asserts the invariant for an unsized string array", () => {
+      expect(() => plan("string[4] items;")).toThrow(
+        "a string array states its element capacity",
+      );
+    });
+
+    // The plan is built where `generateStringDecl` used to be called, so the
+    // effects it raises must be the ones that call raised. Asking for a
+    // substring generates index expressions and rendering generates the whole
+    // initializer -- neither may happen until the renderer takes that arm.
+    it("does not render the initializer or ask for a substring at plan time", () => {
+      const getSubstringOperands = vi.fn(() => null);
+      const generateExpression = vi.fn(() => "rendered");
+      const result = plan("string<16> s <- src[0, 5];", {
+        getSubstringOperands,
+        generateExpression,
+      });
+
+      expect(getSubstringOperands).not.toHaveBeenCalled();
+      expect(generateExpression).not.toHaveBeenCalled();
+
+      expect(result?.kind === "bounded" && result.init?.renderSubstring()).toBe(
+        null,
+      );
+      expect(getSubstringOperands).toHaveBeenCalledTimes(1);
+    });
+
+    it("asks for concatenation operands eagerly, exactly once", () => {
+      const getStringConcatOperands = vi.fn(() => null);
+      plan("string<16> s <- a + b;", { getStringConcatOperands });
+
+      expect(getStringConcatOperands).toHaveBeenCalledTimes(1);
+    });
+  });
 
   describe("finalizeCppClassAssignments", () => {
     beforeEach(() => {

@@ -1344,11 +1344,6 @@ export default class CodeGenerator implements IOrchestrator {
     return this._getSubstringOperands(ctx);
   }
 
-  /** Get the capacity of a string expression */
-  getStringExprCapacity(exprCode: string): number | null {
-    return StringOperationsHelper.getStringExprCapacity(exprCode);
-  }
-
   // === Parameter Management (IOrchestrator A4) ===
 
   /** Set current function parameters */
@@ -4200,7 +4195,6 @@ export default class CodeGenerator implements IOrchestrator {
         this._getStringConcatOperands(concatCtx),
       getSubstringOperands: (substrCtx) =>
         this._getSubstringOperands(substrCtx),
-      getStringExprCapacity: (exprCode) => this.getStringExprCapacity(exprCode),
     });
   }
 

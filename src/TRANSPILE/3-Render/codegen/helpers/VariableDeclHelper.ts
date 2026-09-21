@@ -14,7 +14,9 @@
  * CodeGenerator dependencies.
  */
 
+import IPlannedStringInit from "../types/IPlannedStringInit";
 import ISubstringOps from "../types/ISubstringOps";
+import TPlannedStringDecl from "../types/TPlannedStringDecl";
 import IStringConcatOps from "../types/IStringConcatOps";
 import * as Parser from "../../../../PARSE/2-Parse/grammar/CNextParser";
 import CodeGenState from "../../../../transpiler/state/CodeGenState";
@@ -120,9 +122,6 @@ interface IVariableDeclCallbacks {
   ) => IStringConcatOps | null;
   /** Get substring extraction operands */
   getSubstringOperands: (ctx: Parser.ExpressionContext) => ISubstringOps | null;
-  /** Get string expression capacity */
-  getStringExprCapacity: (exprCode: string) => number | null;
-  /** Request include for string operations */
 }
 
 /**
@@ -448,6 +447,163 @@ class VariableDeclHelper {
   }
 
   // ========================================================================
+  // Tier 3b: ADR-045 string planning
+  // ========================================================================
+
+  /**
+   * Which of ADR-045's three string forms this declaration takes, or null when
+   * it is not a string at all.
+   *
+   * #1445 box 3: `StringDeclHelper` used to be handed the `TypeContext` and do
+   * this navigation itself. It is here rather than on `CodeGenerator`, where
+   * every other planner on this branch sits, and the placement is MEASURED.
+   * `generateVariableDecl` calls `trackLocalVariable` before it reaches the
+   * string path, and that registers the declared variable's type info --
+   * string capacity included -- so the variable's own name resolves inside its
+   * own initializer: `string<32> s <- s + "x"` is detected as a concatenation
+   * and rejected E0864 for "capacity 33", the 32 read back off `s` itself.
+   * Planning one frame earlier, in `CodeGenerator.generateVariableDecl`, asks
+   * the registry before that registration and loses the diagnostic. (That the
+   * name resolves at all is a separate defect, #1643.)
+   */
+  static planStringDecl(
+    typeCtx: Parser.TypeContext,
+    expression: Parser.ExpressionContext | null,
+    trailingDims: Parser.ArrayDimensionContext[],
+    callbacks: IVariableDeclCallbacks,
+  ): TPlannedStringDecl | null {
+    // Issue #1029: string array in arrayType syntax -- `string<32>[4] items`
+    const arrayTypeCtx = typeCtx.arrayType?.();
+    const arrayStringCtx = arrayTypeCtx?.stringType?.();
+    if (arrayTypeCtx && arrayStringCtx) {
+      return VariableDeclHelper._planStringArray(
+        arrayTypeCtx,
+        arrayStringCtx,
+        expression,
+        trailingDims,
+        callbacks,
+      );
+    }
+
+    const stringCtx = typeCtx.stringType();
+    if (!stringCtx) {
+      return null;
+    }
+
+    const intLiteral = stringCtx.INTEGER_LITERAL();
+    if (!intLiteral) {
+      // Unsized string - requires const and a literal to infer from
+      return { kind: "unsized", initText: expression?.getText() ?? null };
+    }
+
+    return {
+      kind: "bounded",
+      capacity: Number.parseInt(intLiteral.getText(), 10),
+      init: expression
+        ? VariableDeclHelper._planStringInit(expression, callbacks)
+        : null,
+    };
+  }
+
+  /**
+   * The four ways a bounded string's initializer can be written, ready to be
+   * asked in ADR-045's order.
+   *
+   * `concat` is eager because deciding it reads the type registry by name and
+   * generates nothing. The other two are unevaluated: `renderSubstring`
+   * generates the index expressions once it decides the source IS a string,
+   * and `render` generates the whole initializer -- either can request an
+   * include or queue a C++ temp, so raising those effects for an arm that is
+   * not taken would change the emitted C.
+   */
+  private static _planStringInit(
+    expression: Parser.ExpressionContext,
+    callbacks: IVariableDeclCallbacks,
+  ): IPlannedStringInit {
+    return {
+      concat: callbacks.getStringConcatOperands(expression),
+      renderSubstring: () => callbacks.getSubstringOperands(expression),
+      text: expression.getText(),
+      render: () => callbacks.generateExpression(expression),
+    };
+  }
+
+  /**
+   * Issue #1029: `string<32>[4] items`.
+   */
+  private static _planStringArray(
+    arrayTypeCtx: Parser.ArrayTypeContext,
+    stringCtx: Parser.StringTypeContext,
+    expression: Parser.ExpressionContext | null,
+    trailingDims: Parser.ArrayDimensionContext[],
+    callbacks: IVariableDeclCallbacks,
+  ): TPlannedStringDecl {
+    const intLiteral = stringCtx.INTEGER_LITERAL();
+    if (!intLiteral) {
+      // Unsized string array - not supported
+      invariant(
+        false,
+        "a string array states its element capacity -- E0862 rejects an unsized one in pass 2.1",
+      );
+    }
+
+    const dims = arrayTypeCtx.arrayTypeDimension();
+    let dimensions = "";
+    for (const dim of dims) {
+      const sizeExpr = dim.expression();
+      if (sizeExpr) {
+        // Issue #1127: fold a compile-time constant rather than emitting its
+        // source text. `string<32>[COUNT] items` produced
+        // `char items[COUNT][33] = {0}` -- a variably-modified type, which C
+        // rejects here outright ("variable-sized object may not be
+        // initialized") and which CLAUDE.md rules out.
+        const folded = ArrayDimensionParser.parseSingleDimension(
+          sizeExpr,
+          dimensionEvalOptions(),
+        );
+        dimensions += `[${folded ?? sizeExpr.getText()}]`;
+      } else {
+        dimensions += "[]";
+      }
+    }
+
+    // Any trailing dimensions from the variable declaration. Unconditional on
+    // this arm -- every string array emits its dimensions, initializer or not
+    // -- so the effects this raises are raised exactly as often as before.
+    dimensions += callbacks.generateArrayDimensions(trailingDims);
+
+    return {
+      kind: "array",
+      elementCapacity: Number.parseInt(intLiteral.getText(), 10),
+      dimensions,
+      // #1644: the SAME call the loop above renders the declarator with. The
+      // size used to expand a fill-all must equal the size emitted in `[...]`,
+      // or the array is the declared length with the wrong contents.
+      declaredSize: VariableDeclHelper._firstDeclaredDimension(
+        dims[0]?.expression(),
+      ),
+      renderInit: expression
+        ? () => callbacks.generateExpression(expression)
+        : null,
+    };
+  }
+
+  /** The folded value of a declared dimension, or null when it does not fold. */
+  private static _firstDeclaredDimension(
+    sizeExpr: Parser.ExpressionContext | null | undefined,
+  ): number | null {
+    if (!sizeExpr) {
+      return null;
+    }
+    return (
+      ArrayDimensionParser.parseSingleDimension(
+        sizeExpr,
+        dimensionEvalOptions(),
+      ) ?? null
+    );
+  }
+
+  // ========================================================================
   // Tier 4: Orchestrators (main entry points)
   // ========================================================================
 
@@ -513,28 +669,20 @@ class VariableDeclHelper {
       callbacks.markVariableAsPointer(name);
     }
 
-    // ADR-045: Handle bounded string type specially - early return
-    const stringResult = StringDeclHelper.generateStringDecl(
+    // ADR-045: Handle string types specially - early return
+    const stringPlan = VariableDeclHelper.planStringDecl(
       typeCtx,
-      emittedName,
       ctx.expression() ?? null,
       ctx.arrayDimension(),
-      modifiers,
-      ctx.constModifier() !== null,
-      {
-        generateExpression: (exprCtx) => callbacks.generateExpression(exprCtx),
-        generateArrayDimensions: (dims) =>
-          callbacks.generateArrayDimensions(dims),
-        getStringConcatOperands: (concatCtx) =>
-          callbacks.getStringConcatOperands(concatCtx),
-        getSubstringOperands: (substrCtx) =>
-          callbacks.getSubstringOperands(substrCtx),
-        getStringExprCapacity: (exprCode) =>
-          callbacks.getStringExprCapacity(exprCode),
-      },
+      callbacks,
     );
-    if (stringResult.handled) {
-      return stringResult.code;
+    if (stringPlan) {
+      return StringDeclHelper.generateStringDecl(
+        stringPlan,
+        emittedName,
+        modifiers,
+        ctx.constModifier() !== null,
+      );
     }
 
     // Build base declaration.

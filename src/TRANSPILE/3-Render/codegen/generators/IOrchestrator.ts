@@ -257,9 +257,6 @@ interface IOrchestrator {
   /** Get substring operands if expression is a substring call */
   getSubstringOperands(ctx: Parser.ExpressionContext): ISubstringOps | null;
 
-  /** Get the capacity of a string expression (for validation) */
-  getStringExprCapacity(exprCode: string): number | null;
-
   // === Parameter Management ===
 
   /** Set current function parameters for pointer semantics (ADR-006) */
