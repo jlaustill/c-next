@@ -44,20 +44,19 @@ scope Motor {
         return m;
     }
 
-    // THE ASSERTION: `this.Global` names a member of THIS scope, and the scope
-    // has none called `Global` -- the global enum is reached with `global.`,
-    // not `this.`. The path names nothing, and nothing is not of any enum type.
+    // `this.Global` -- a path naming nothing, since the scope has no member
+    // called `Global` -- used to be asserted here, because E0428 was the only
+    // rule that reported on it. The comment then read "`this.missingName` in a
+    // non-enum position is accepted today, so without this the relocation
+    // would have turned a rejection into silence", which recorded a missing
+    // diagnostic rather than an ADR-017 rule.
     //
-    // This is the only place the rule reports on a value it cannot resolve, and
-    // it is deliberate: a member PATH's type is settled entirely by
-    // declarations, so one that resolves to nothing names nothing. Probed
-    // before relying on it -- `this.missingName` in a non-enum position is
-    // accepted today, so without this the relocation would have turned a
-    // rejection into silence.
-    public this.Mode unresolvablePath() {
-        this.Mode m <- this.Global.ON;
-        return m;
-    }
+    // #1582 closed that hole: a rooted READ is now E0427, which says the name
+    // is undefined instead of inferring it from the enum it failed to be. The
+    // case moved to `tests/bugs/issue-1582-undeclared-write-target/`, where it
+    // asserts the diagnostic that actually owns it -- and E0427 aborts before
+    // 2.1 reaches this rule, so keeping it here would have cost the two
+    // assertions below.
 }
 
 void main() {

@@ -1,4 +1,5 @@
 // test-error
+// test-adr: 030
 // Issue #1353: a name that was never declared, used in a VALUE position.
 // No includes, so external-symbol recovery cannot explain it. Today this
 // transpiles at exit 0 and emits `uint32_t v = notDeclaredAnywhere;`.

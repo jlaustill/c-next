@@ -100,10 +100,9 @@ describe("Transpiler", () => {
         expect(result.code).toBe("");
       });
 
-      it("handles code generation errors gracefully", async () => {
+      it("rejects a write to an undefined name, and reports rather than throws", async () => {
         const transpiler = new Transpiler({ input: "", noCache: true }, mockFs);
 
-        // This should parse but might have semantic issues
         const result = (
           await transpiler.transpile({
             kind: "source",
@@ -111,8 +110,19 @@ describe("Transpiler", () => {
           })
         ).files[0];
 
-        // Should still succeed (undefined vars become C identifiers)
-        expect(result.success).toBe(true);
+        // #1582: this asserted `success === true`, with the comment "undefined
+        // vars become C identifiers". That was the defect written down as an
+        // expectation -- the name reached the generated C unresolved and the C
+        // compiler was the only thing that caught it, which inverts what
+        // C-Next is for. E0427 covered the read position and not the write.
+        //
+        // What the case is actually here to pin is unchanged: a semantically
+        // invalid source is REPORTED, as a structured result, rather than
+        // thrown out of the transpiler.
+        expect(result.success).toBe(false);
+        expect(result.errors).toHaveLength(1);
+        expect(result.errors[0].message).toContain("E0427");
+        expect(result.errors[0].message).toContain("undefinedVar");
       });
 
       it("reports narrowing error at the correct line", async () => {

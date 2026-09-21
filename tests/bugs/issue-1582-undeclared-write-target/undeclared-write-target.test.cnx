@@ -1,0 +1,47 @@
+// test-error
+// test-adr: 030
+// #1582: E0427 fires for a name that is READ and not for the same name
+// WRITTEN. UndeclaredValueAnalyzer hooks `postfixExpression`; an assignment
+// TARGET is `assignmentTarget`, a separate grammar rule, so no write position
+// ever reaches the listener. Every write below transpiles at exit 0 today and
+// emits C that gcc rejects.
+u32 declaredAtFileScope <- 0;
+
+scope Motor {
+    u32 speed <- 0;
+
+    u32 spin() {
+        // NEGATIVE CONTROL -- must stay SILENT: `speed` is this scope's own.
+        this.speed <- 1;
+        this.noSuchField <- 7;
+
+        // `declaredAtFileScope` IS visible bare, and is NOT a member of
+        // `Motor`. So this is the case that tells the two implementations
+        // apart: `this.` states which level to look at, and an implementation
+        // that ignores the root finds the global by the bare walk and stays
+        // silent -- emitting `Motor__declaredAtFileScope`, which nothing
+        // declares. Every other qualified write here is visible either both
+        // ways or neither, so this line is the only witness to the split.
+        this.declaredAtFileScope <- 8;
+        return 0;
+    }
+}
+
+u32 main() {
+    u32 declaredLocal <- 0;
+
+    // NEGATIVE CONTROLS -- must stay SILENT: both names are visible here.
+    declaredLocal <- 1;
+    declaredAtFileScope <- 2;
+    global.declaredAtFileScope <- 3;
+
+    bareWrite <- 5;
+    noSuchArray[0] <- 6;
+    global.noSuchGlobal <- 7;
+
+    for (forInitNope <- 0; declaredLocal < 3; forUpdateNope +<- 1) {
+        declaredLocal +<- 1;
+    }
+
+    return Motor.spin();
+}

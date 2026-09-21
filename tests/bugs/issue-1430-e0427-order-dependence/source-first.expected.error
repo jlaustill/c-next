@@ -1,2 +1,2 @@
-24:21 error[E0427]: 'sharedHelper' is not defined
-29:18 error[E0427]: 'neverDeclaredAnywhere' is not defined
+tests/bugs/issue-1430-e0427-order-dependence/value-consumer.cnx:24:21 error[E0427]: 'sharedHelper' is not defined
+tests/bugs/issue-1430-e0427-order-dependence/value-consumer.cnx:29:18 error[E0427]: 'neverDeclaredAnywhere' is not defined

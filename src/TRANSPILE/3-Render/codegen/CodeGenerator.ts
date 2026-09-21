@@ -1979,9 +1979,11 @@ export default class CodeGenerator implements IOrchestrator {
   ): void {
     CodeGenState.debugMode = options?.debugMode ?? false;
     CodeGenState.sourcePath = options?.sourcePath ?? null;
-    // #1241: Transpiler._transpileFile sets the provenance file before
-    // analyzers run; re-assert it here for API callers that drive the
-    // generator directly and never go through that path.
+    // #1241: Transpiler._analyzeFile sets the provenance file before analyzers
+    // run; re-assert it here for API callers that drive the generator directly
+    // and never go through that path. (Said `_transpileFile` until #1320
+    // hoisted analysis out of it into its own pass -- by the time
+    // `_transpileFile` runs, every file's analyzers are already done.)
     AdrProvenance.beginFile(CodeGenState.sourcePath);
     CodeGenState.cnxIncludeRewrites =
       options?.cnxIncludeRewrites ?? new Map<string, string>();

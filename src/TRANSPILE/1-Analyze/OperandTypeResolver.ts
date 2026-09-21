@@ -13,8 +13,17 @@
  * `sensor.ready / other`, and `flags[0] / flags[1]` were all accepted.
  *
  * Declared names come from the lexical scope frames; struct field types come
- * from CodeGenState, which merges same-file and included-file structs and is
- * populated before runAnalyzers (Transpiler `_transpileFile`).
+ * from CodeGenState, populated before runAnalyzers (Transpiler `_analyzeFile`).
+ *
+ * That view holds the structs a file DECLARES, not the ones it can see, so
+ * `importedFieldType` below is a required fallback rather than a redundant one
+ * -- do not delete it. Its own doc states the mechanism and the worked example;
+ * they are not restated here, because two copies of one explanation is the
+ * shape #1486 was filed to end. The gap itself is **#1436**.
+ *
+ * The predecessor of this sentence claimed CodeGenState "merges same-file and
+ * included-file structs", which is exactly what makes the fallback look
+ * redundant. It never did.
  */
 
 import { ParserRuleContext, ParseTree } from "antlr4ng";

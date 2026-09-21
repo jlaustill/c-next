@@ -150,8 +150,19 @@ class ParameterInputAdapter {
       // ADR-030 decided here: an incomplete type can only be handled through a
       // pointer, which is why #995's `const T*` was wrong. Recorded at the
       // PARAMETER's position so the matrix sees the enclosing function's
-      // context; ADR-030 raises no diagnostic, so a provenance site is the only
-      // thing an occupancy can be derived from (#1511).
+      // context.
+      //
+      // #1511: this is the only thing an occupancy can be derived from for the
+      // OPAQUE-HANDLE half of ADR-030, which shapes generated code and reports
+      // nothing. The ADR does raise diagnostics -- E0422/E0423/E0426/E0427 --
+      // and since #1582 their fixtures occupy cells here too, on their own
+      // reported positions. Occupancy is per ADR, not per code, so a cell
+      // occupied by one half says nothing about the other: deleting this line
+      // leaves `scope method / same file` green.
+      //
+      // #1445: the position comes from the planned parameter now. It is the
+      // same position -- `ctx.start?.line` of the parameter context -- read
+      // once by the planner instead of here.
       AdrProvenance.record("030", planned.line);
     }
     const isAutoConst = this._autoConst(

@@ -1,0 +1,23 @@
+// test-error
+// test-adr: 030
+// #1582: the other include order. The twin of
+// undeclared-write-sibling-source-first.test.cnx -- same two sources,
+// opposite order.
+//
+// This half is a STANDALONE regression test, unlike the #1312/#1430 order
+// pairs whose wording it was written from. Those exist because one order still
+// reported and only the pair was the assertion. Here the defect was that the
+// write position never reached the analyzer at all, so before #1582 NEITHER
+// order reported: revert the assignment-target hook and this file goes from
+// one E0427 to zero and fails on its own. Do not read "only the pair counts"
+// as permission to delete it.
+//
+// The pair still earns its keep looking forward: an order dependence in the
+// include-filtered name set would make the two .expected.error files disagree,
+// which scripts/__tests__/order-pair-fixtures.test.ts fails on.
+#include <write-sibling-consumer.cnx>
+#include <write-sibling-source.cnx>
+
+u32 main() {
+    return 0;
+}

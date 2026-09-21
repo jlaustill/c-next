@@ -5,6 +5,7 @@
 
 #include "transitive-type-resolves.test.h"
 
+// test-adr: 030
 // NEGATIVE CONTROL for issue #1312 — this file must stay SILENT.
 // `Depth` is two include-hops away (this -> mid-layer -> deep-enum), which is
 // a genuine visibility path, unlike the sibling case. A fix that rejects an

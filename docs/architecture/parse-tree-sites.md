@@ -87,7 +87,7 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/TRANSPILE/1-Analyze/FunctionCallAnalyzer.ts`                                        | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/GrammarCoverageListener.ts`                                     | antlr4ng          |
 | `src/TRANSPILE/1-Analyze/helpers/CalleeNameResolver.ts`                                  | grammar           |
-| `src/TRANSPILE/1-Analyze/helpers/ChainRoot.ts`                                           | grammar           |
+| `src/TRANSPILE/1-Analyze/helpers/ChainRoot.ts`                                           | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/helpers/ConstantExpression.ts`                                  | grammar           |
 | `src/TRANSPILE/1-Analyze/helpers/EnclosingFunction.ts`                                   | antlr4ng, grammar |
 | `src/TRANSPILE/1-Analyze/helpers/FunctionReference.ts`                                   | grammar           |

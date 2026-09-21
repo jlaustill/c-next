@@ -225,7 +225,10 @@ function generateRegularVariable(
     // in the scope-member context rather than crediting the scope keyword's line.
     // #1511: the opacity verdict is the artifact's, so this is the point where a
     // cross-file fact changes generated shape -- and the only kind of site the
-    // matrix can derive an occupancy from, since ADR-030 raises no diagnostic.
+    // matrix can derive an occupancy from for ADR-030's OPAQUE-HANDLE half,
+    // which reports nothing. The ADR's other half raises E0422/E0423/E0426/E0427
+    // and its fixtures occupy cells here on their own reported positions (#1582),
+    // so an occupied cell is not evidence that this line still exists.
     if (isOpaque) {
       AdrProvenance.record("030", varDecl.start?.line);
     }

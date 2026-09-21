@@ -102,14 +102,14 @@ second header and the program ran with a wrong value.
 | Code  | Message                                                                    | Help                                                                                            | Source                                                                                            |
 | ----- | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
 | E0381 | Use of possibly/uninitialized variable                                     | Variable must be initialized before use                                                         | `logic/analysis/InitializationAnalyzer.ts`                                                        |
-| E0422 | Function called before definition                                          | Define function before calling it                                                               | `logic/analysis/FunctionCallAnalyzer.ts`                                                          |
-| E0423 | Recursive function call (MISRA C:2012 Rule 17.2)                           | Remove recursive call                                                                           | `logic/analysis/FunctionCallAnalyzer.ts`                                                          |
+| E0422 | Function called before definition                                          | Define function before calling it                                                               | `TRANSPILE/1-Analyze/FunctionCallAnalyzer.ts`                                                     |
+| E0423 | Recursive function call (MISRA C:2012 Rule 17.2)                           | Remove recursive call                                                                           | `TRANSPILE/1-Analyze/FunctionCallAnalyzer.ts`                                                     |
 | E0424 | Unqualified enum member — did you mean `Enum.member`?                      | Use qualified enum member syntax                                                                | `TRANSPILE/1-Analyze/BareEnumMemberAnalyzer.ts`, `TRANSPILE/1-Analyze/SwitchStatementAnalyzer.ts` |
 | E0425 | Symbol defined multiple times, or in multiple languages                    | Rename one definition                                                                           | `logic/symbols/SymbolTable.ts`, `Transpiler.ts`                                                   |
-| E0426 | Type is not defined                                                        | Declare the type, or #include the file that does                                                | `logic/analysis/UndeclaredTypeAnalyzer.ts`                                                        |
-| E0427 | Identifier is not defined                                                  | Declare it, or #include the file that does                                                      | `logic/analysis/UndeclaredValueAnalyzer.ts`                                                       |
+| E0426 | Type is not defined                                                        | Declare the type, or #include the file that does                                                | `TRANSPILE/1-Analyze/UndeclaredTypeAnalyzer.ts`                                                   |
+| E0427 | Identifier is not defined                                                  | Declare it, or #include the file that does                                                      | `TRANSPILE/1-Analyze/UndeclaredValueAnalyzer.ts`                                                  |
 | E0428 | Value assigned to an enum is not of that enum type                         | Assign one of the enum's members, or convert explicitly with a cast                             | `TRANSPILE/1-Analyze/EnumTypeSafetyAnalyzer.ts`                                                   |
-| E0429 | Name is a register, not a type                                             | Access the register's members instead, e.g. `GPIO.DR`                                           | `logic/analysis/UndeclaredTypeAnalyzer.ts`                                                        |
+| E0429 | Name is a register, not a type                                             | Access the register's members instead, e.g. `GPIO.DR`                                           | `TRANSPILE/1-Analyze/UndeclaredTypeAnalyzer.ts`                                                   |
 | E0430 | Nested scopes are not allowed                                              | Close the enclosing scope before declaring another, or use a flat scope such as `Hardware_GPIO` | `logic/parser/CNextSourceParser.ts`                                                               |
 | E0431 | `this` used outside a `scope` (ADR-016)                                    | Use `global.Name` for a file-scope declaration, or move the code into the scope it belongs to   | `TRANSPILE/1-Analyze/ThisOutsideScopeAnalyzer.ts`                                                 |
 | E0432 | C++ constructor argument is not `const`                                    | Declare the argument `const`; a constructor runs during static initialization                   | `TRANSPILE/1-Analyze/ConstructorArgumentAnalyzer.ts`                                              |
@@ -119,8 +119,10 @@ second header and the program ran with a wrong value.
 | E0436 | Private scope member reached from outside its scope (ADR-016)              | Mark the member `public`, or reach it through a public one                                      | `TRANSPILE/1-Analyze/ScopeAccessAnalyzer.ts`                                                      |
 | E0437 | Global enum or register shadowed inside a scope and reached bare (ADR-016) | Write `global.Name.member`; the bare name resolves to the shadow                                | `TRANSPILE/1-Analyze/ScopeAccessAnalyzer.ts`                                                      |
 
-**Related:** ADR-030 (E0422), ADR-016 (E0425 — a reopened scope composes, but its
-members stay unique)
+**Related:** ADR-030 (E0422, E0423, E0426, E0427 — one define-before-use promise
+enforced in the call, type and value positions; the ADR's `## Diagnostics` table
+is where the promise is stated), ADR-016 (E0425 — a reopened scope composes, but
+its members stay unique)
 
 **E0429 (#1336)** is the type position's other answer: the name IS declared, as a
 register, and a register is not a type. ADR-004 makes a register a binding to memory,
@@ -137,7 +139,12 @@ to find every site that has to change together.
 
 **E0426/E0427 (#1312, #1353, #1398)** complete the set: an undeclared name is diagnosed
 in a type position, a value position and a call position (E0422) rather than only the
-last. Both are reported only where the transpiler knows the file's whole name universe —
+last. The value position is both halves of it — a name READ and the same name WRITTEN
+(#1582) — in all three of ADR-016's spellings, since `this.x` and `global.x` each state
+which level to search and a name visible at one level is not thereby visible at another.
+What is diagnosed is the name a spelling starts from; whether a member further along a
+chain exists is a separate question neither code answers.
+Both are reported only where the transpiler knows the file's whole name universe —
 a file including an unparsed C/C++ header keeps the previous permissive behavior, because
 rejecting a type the compiler will supply is a regression while failing to diagnose is
 the status quo.

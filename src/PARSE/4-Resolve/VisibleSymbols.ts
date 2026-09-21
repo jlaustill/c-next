@@ -18,6 +18,7 @@
  * published. Composed once now, while the whole program is in hand.
  */
 
+import type IBitmapFieldLayout from "../../transpiler/types/IBitmapFieldLayout";
 import type ICodeGenSymbols from "../../transpiler/types/ICodeGenSymbols";
 
 /**
@@ -40,10 +41,7 @@ interface IMergeAccumulator {
   readonly knownStructs: Set<string>;
   readonly knownBitmaps: Set<string>;
   readonly knownVariables: Set<string>;
-  readonly bitmapFields: Map<
-    string,
-    Map<string, { readonly offset: number; readonly width: number }>
-  >;
+  readonly bitmapFields: Map<string, Map<string, IBitmapFieldLayout>>;
   readonly bitmapBackingType: Map<string, string>;
   readonly knownRegisters: Set<string>;
   readonly scopedRegisters: Map<string, string>;
@@ -87,15 +85,14 @@ class VisibleSymbols {
     const mergedKnownStructs = new Set(base.knownStructs);
     const mergedKnownBitmaps = new Set(base.knownBitmaps);
     const mergedKnownVariables = new Set(base.knownVariables);
-    const mergedBitmapFields = new Map(
-      [...base.bitmapFields].map(([name, fields]) => [name, new Map(fields)]),
-    );
+    const mergedBitmapFields = VisibleSymbols._copyNestedMap(base.bitmapFields);
     const mergedBitmapBackingType = new Map(base.bitmapBackingType);
     const mergedBitmapBitWidth = new Map(base.bitmapBitWidth);
-    const mergedEnumMembers = VisibleSymbols._copyEnumMembers(base.enumMembers);
+    const mergedEnumMembers = VisibleSymbols._copyNestedMap(base.enumMembers);
     const mergedFunctionReturnTypes = new Map(base.functionReturnTypes);
-    const mergedScopeMemberVisibility =
-      VisibleSymbols._copyScopeMemberVisibility(base.scopeMemberVisibility);
+    const mergedScopeMemberVisibility = VisibleSymbols._copyNestedMap(
+      base.scopeMemberVisibility,
+    );
     const mergedKnownRegisters = new Set(base.knownRegisters);
     const mergedScopedRegisters = new Map(base.scopedRegisters);
     const mergedRegisterMemberAccess = new Map(base.registerMemberAccess);
@@ -286,31 +283,28 @@ class VisibleSymbols {
   }
 
   /**
-   * Create a deep copy of enum members map
+   * Deep-copy an outer -> (inner -> value) map so the merged result never
+   * aliases the base's inner maps.
+   *
+   * One decision, spelled three times -- inline for `bitmapFields`, and as
+   * `_copyEnumMembers` and `_copyScopeMemberVisibility` -- unified, so a fourth
+   * nested field cannot be added by copying whichever spelling sat nearest.
+   *
+   * `tsc` holds the deep copy in place, which is the interesting part and the
+   * reason no test covers it: the SHALLOW `new Map(...)` the flat fields use
+   * sits right beside these and reads equally idiomatic, but substituting it
+   * here is rejected -- `Map<K, ReadonlyMap<IK, V>>` is not assignable to
+   * `Map<K, Map<IK, V>>`. An earlier version of this comment justified the
+   * helper with the aliasing bug that would follow instead, which the types
+   * forbid and `_mergePreferringLocal` never reaches anyway; naming an
+   * unreachable failure mode is the thing the rest of this change removes.
    */
-  private static _copyEnumMembers(
-    enumMembers: ReadonlyMap<string, ReadonlyMap<string, number>>,
-  ): Map<string, Map<string, number>> {
-    const copy = new Map<string, Map<string, number>>();
-    for (const [enumName, members] of enumMembers) {
-      copy.set(enumName, new Map(members));
-    }
-    return copy;
-  }
-
-  /**
-   * Deep-copy a scopeName -> (memberName -> visibility) map so the merged
-   * result never aliases the base's inner maps.
-   */
-  private static _copyScopeMemberVisibility(
-    scopeMemberVisibility: ReadonlyMap<
-      string,
-      ReadonlyMap<string, "public" | "private">
-    >,
-  ): Map<string, Map<string, "public" | "private">> {
-    const copy = new Map<string, Map<string, "public" | "private">>();
-    for (const [scopeName, visibility] of scopeMemberVisibility) {
-      copy.set(scopeName, new Map(visibility));
+  private static _copyNestedMap<K, IK, V>(
+    source: ReadonlyMap<K, ReadonlyMap<IK, V>>,
+  ): Map<K, Map<IK, V>> {
+    const copy = new Map<K, Map<IK, V>>();
+    for (const [key, inner] of source) {
+      copy.set(key, new Map(inner));
     }
     return copy;
   }

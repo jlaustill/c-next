@@ -1,1 +1,1 @@
-14:21 error[E0427]: 'SHARED_LIMIT' is not defined
+tests/bugs/issue-1353-undeclared-value-position/value-consumer.cnx:14:21 error[E0427]: 'SHARED_LIMIT' is not defined

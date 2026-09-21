@@ -3,6 +3,7 @@
  * A safer C for embedded systems
  */
 
+// test-adr: 030
 // NEGATIVE CONTROL for issue #1353 — this file must stay SILENT.
 // REACHABLE_LIMIT is genuinely included here, so reading it must keep
 // working. If this fixture starts erroring, the check is over-firing.
