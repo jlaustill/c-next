@@ -37,7 +37,8 @@ import TGeneratorFn from "./generators/TGeneratorFn";
 import generateLiteral from "./generators/expressions/LiteralGenerator";
 import generateOrExpr from "./generators/expressions/BinaryExprGenerator";
 import generateUnaryExpr from "./generators/expressions/UnaryExprGenerator";
-import expressionGenerators from "./generators/expressions/ExpressionGenerator";
+import generateTernaryExpr from "./generators/expressions/ExpressionGenerator";
+import type TPlannedTernary from "./types/TPlannedTernary";
 import generatePostfixExpression from "./generators/expressions/PostfixExpressionGenerator";
 // Statement generators
 import controlFlowGenerators from "./generators/statements/ControlFlowGenerator";
@@ -475,7 +476,32 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   generateExpression(ctx: Parser.ExpressionContext): string {
-    return this.invokeGenerator(expressionGenerators.generateExpression, ctx);
+    return this.invokeGenerator(
+      generateTernaryExpr,
+      this.planTernary(ctx.ternaryExpression()),
+    );
+  }
+
+  /**
+   * A ternary reduced to its operands (#1445).
+   *
+   * The child COUNT is the discrimination -- one `orExpression` is a plain
+   * expression, three are condition, true arm and false arm -- and that is a
+   * question about the tree, so it is asked here. The arms go over as thunks
+   * because Issue #992's rule is the generator's: see `TPlannedTernary`.
+   */
+  private planTernary(ctx: Parser.TernaryExpressionContext): TPlannedTernary {
+    const operands = ctx.orExpression();
+    if (operands.length === 1) {
+      return { kind: "value", code: this.generateOrExpr(operands[0]) };
+    }
+
+    return {
+      kind: "ternary",
+      renderCondition: () => this.generateOrExpr(operands[0]),
+      renderTrue: () => this.generateOrExpr(operands[1]),
+      renderFalse: () => this.generateOrExpr(operands[2]),
+    };
   }
 
   /**
