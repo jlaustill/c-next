@@ -4,6 +4,7 @@
  */
 import { describe, it, expect } from "vitest";
 import ParserUtils from "../ParserUtils";
+import ExpressionUnwrapper from "../ExpressionUnwrapper";
 import CNextSourceParser from "../../PARSE/2-Parse/CNextSourceParser";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 
@@ -370,6 +371,60 @@ describe("ParserUtils", () => {
     ])("%s", (_label, source) => {
       const { name, paramList } = parseFunctionDeclaration(source);
       expect(ParserUtils.isMainFunctionWithArgs(name, paramList)).toBe(false);
+    });
+  });
+
+  /**
+   * #1445: moved here with `getOperatorsFromChildren`, whose module
+   * `CodegenParserUtils` is deleted. The navigation these used is
+   * `ExpressionUnwrapper`'s -- the original test hand-rolled its own 33-line
+   * copy of `getAdditiveExpression` under a comment saying it "follows the
+   * same pattern as ExpressionUnwrapper", which is the duplicate the utility
+   * exists to prevent.
+   */
+  describe("getOperatorsFromChildren", () => {
+    /** The additive level of `u32 x <- <source>;` inside `main`. */
+    function additiveOf(source: string): Parser.AdditiveExpressionContext {
+      const { tree, parseErrors } = CNextSourceParser.parse(
+        `void main() { u32 x <- ${source}; }`,
+      );
+      if (parseErrors.length > 0) {
+        throw new Error(
+          `Parse failed: ${parseErrors.map((e) => e.message).join(", ")}`,
+        );
+      }
+
+      const expression = tree
+        .declaration()[0]
+        .functionDeclaration()!
+        .block()!
+        .statement()[0]
+        .variableDeclaration()!
+        .expression()!;
+
+      const additive = ExpressionUnwrapper.getAdditiveExpression(expression);
+      if (!additive) {
+        throw new Error(`No additive level in: ${source}`);
+      }
+      return additive;
+    }
+
+    it("extracts operators from an additive expression, in order", () => {
+      expect(
+        ParserUtils.getOperatorsFromChildren(additiveOf("1 + 2 - 3")),
+      ).toEqual(["+", "-"]);
+    });
+
+    it("extracts operators from a multiplicative expression", () => {
+      const mult = additiveOf("2 * 3 / 4").multiplicativeExpression(0);
+      expect(mult).toBeDefined();
+      expect(ParserUtils.getOperatorsFromChildren(mult!)).toEqual(["*", "/"]);
+    });
+
+    it("returns an empty array when there are no operators", () => {
+      expect(ParserUtils.getOperatorsFromChildren(additiveOf("42"))).toEqual(
+        [],
+      );
     });
   });
 });

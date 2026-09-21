@@ -126,7 +126,6 @@ import IPostfixOperation from "./types/IPostfixOperation";
 import ExpressionUnwrapper from "../../../utils/ExpressionUnwrapper";
 // Stateless parser utilities extracted from CodeGenerator
 import ParserUtils from "../../../utils/ParserUtils";
-import CodegenParserUtils from "./utils/CodegenParserUtils";
 import IMemberSeparatorDeps from "./types/IMemberSeparatorDeps";
 import IParameterDereferenceDeps from "./types/IParameterDereferenceDeps";
 import ISeparatorContext from "./types/ISeparatorContext";
@@ -827,10 +826,10 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * Extract operators from parse tree children in correct order.
-   * Part of IOrchestrator interface - delegates to CodegenParserUtils.
+   * Part of IOrchestrator interface - delegates to ParserUtils.
    */
   getOperatorsFromChildren(ctx: ParserRuleContext): string[] {
-    return CodegenParserUtils.getOperatorsFromChildren(ctx);
+    return ParserUtils.getOperatorsFromChildren(ctx);
   }
 
   // === Validation ===
