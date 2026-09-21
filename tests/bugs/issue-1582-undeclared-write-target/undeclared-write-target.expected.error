@@ -1,6 +1,7 @@
 15:13 error[E0427]: 'noSuchField' is not defined
-28:4 error[E0427]: 'bareWrite' is not defined
-29:4 error[E0427]: 'noSuchArray' is not defined
-30:11 error[E0427]: 'noSuchGlobal' is not defined
-32:9 error[E0427]: 'forInitNope' is not defined
-32:46 error[E0427]: 'forUpdateNope' is not defined
+24:13 error[E0427]: 'declaredAtFileScope' is not defined
+37:4 error[E0427]: 'bareWrite' is not defined
+38:4 error[E0427]: 'noSuchArray' is not defined
+39:11 error[E0427]: 'noSuchGlobal' is not defined
+41:9 error[E0427]: 'forInitNope' is not defined
+41:46 error[E0427]: 'forUpdateNope' is not defined

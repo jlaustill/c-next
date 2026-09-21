@@ -13,6 +13,15 @@ scope Motor {
         // NEGATIVE CONTROL -- must stay SILENT: `speed` is this scope's own.
         this.speed <- 1;
         this.noSuchField <- 7;
+
+        // `declaredAtFileScope` IS visible bare, and is NOT a member of
+        // `Motor`. So this is the case that tells the two implementations
+        // apart: `this.` states which level to look at, and an implementation
+        // that ignores the root finds the global by the bare walk and stays
+        // silent -- emitting `Motor__declaredAtFileScope`, which nothing
+        // declares. Every other qualified write here is visible either both
+        // ways or neither, so this line is the only witness to the split.
+        this.declaredAtFileScope <- 8;
         return 0;
     }
 }
