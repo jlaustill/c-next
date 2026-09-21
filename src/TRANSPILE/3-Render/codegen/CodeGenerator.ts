@@ -132,6 +132,8 @@ import IParameterDereferenceDeps from "./types/IParameterDereferenceDeps";
 import ISeparatorContext from "./types/ISeparatorContext";
 // Phase 3: Type generation helper for improved testability
 import TypeGenerationHelper from "./helpers/TypeGenerationHelper";
+import type IPlannedType from "./types/IPlannedType";
+import type ITypeAccessors from "../../../transpiler/types/ITypeAccessors";
 // Phase 5: Cast validation helper for improved testability
 // Issue #793: Function context lifecycle and parameter processing helper
 import FunctionContextManager from "./helpers/FunctionContextManager";
@@ -506,22 +508,57 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   generateType(ctx: Parser.TypeContext): string {
+    const plan = this.planType(ctx);
+
     // Track required includes based on type usage
-    const requiredInclude = TypeGenerationHelper.getRequiredInclude(ctx);
+    const requiredInclude = TypeGenerationHelper.getRequiredInclude(plan);
     if (requiredInclude) {
       CodeGenState.requireInclude(requiredInclude);
     }
 
     // Generate the C type using the helper with dependencies
-    return TypeGenerationHelper.generate(ctx, {
-      currentScopePath: CodeGenState.currentScopePath,
-      isCppScopeSymbol: (name) => this.isCppScopeSymbol(name),
+    return TypeGenerationHelper.generate(plan, {
       checkNeedsStructKeyword: (name) =>
         CodeGenState.symbolTable.checkNeedsStructKeyword(name),
-      isScopeType: CodeGenState.scopeTypePredicate,
       isCrossFileDeclaration: (name) =>
         CodeGenState.isCrossFileDeclaration(name),
     });
+  }
+
+  /**
+   * A type context reduced to what the renderer asks of it (#1445).
+   *
+   * The named branches come from `TypeBinding` -- 1.3 Declare's one ladder --
+   * rather than from a second walk here, which is what `TypeGenerationHelper`
+   * used to do. `typeBindingDeps` supplies the same two predicates that helper
+   * was handed: ADR-057's scope-type test, and this generator's C++-aware
+   * `Scope.Type` resolver.
+   *
+   * An array's alternatives describe its ELEMENT, so the classification is
+   * taken from `arrayType()` when there is one. `primitiveName` and `isString`
+   * follow the same accessors, and `isArray` is carried because
+   * `getRequiredInclude` asks a narrower question than `generate` does -- see
+   * its comment.
+   */
+  private planType(ctx: Parser.TypeContext): IPlannedType {
+    const array = ctx.arrayType();
+    const accessors: ITypeAccessors = array ?? ctx;
+    const deps = CodeGenState.typeBindingDeps((identifiers) =>
+      this.resolveQualifiedType(identifiers),
+    );
+
+    return {
+      named: TypeBinding.classifyNamedType(
+        accessors,
+        CodeGenState.currentScopePath,
+        deps,
+      ),
+      isString: accessors.stringType() !== null,
+      primitiveName: accessors.primitiveType()?.getText() ?? null,
+      isArray: array !== null,
+      userTypeLine: accessors.userType()?.start?.line,
+      text: ctx.getText(),
+    };
   }
 
   /**

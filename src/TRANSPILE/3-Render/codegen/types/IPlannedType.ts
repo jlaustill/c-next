@@ -1,0 +1,53 @@
+import type INamedTypeResolution from "../../../../transpiler/types/INamedTypeResolution";
+
+/**
+ * A C-Next type, reduced to what 2.3 Render asks of it.
+ *
+ * #1445: `TypeGenerationHelper` used to take a `TypeContext` and re-walk the
+ * six type alternatives itself. That was the seventh ladder #1285 set out to
+ * collapse -- `TypeBinding`'s own header names this helper as one of the seven
+ * -- and it was still standing. The named branches come from that one ladder
+ * now, so the renderer receives a classification instead of re-deriving one.
+ *
+ * The three non-named alternatives stay separate fields rather than joining
+ * the union, because 1.3 Declare and 2.3 Render want DIFFERENT answers for
+ * them: `TypeBinding.resolveStringType` yields `string<32>`, where the
+ * renderer wants `char`; `resolveNamedOrPrimitiveType` yields a primitive's
+ * written name, where the renderer wants it through `TYPE_MAP`. Folding them
+ * in would force one of the two to re-derive, which is the thing this replaces.
+ */
+interface IPlannedType {
+  /**
+   * The named-type branch `TypeBinding` classified -- `this.T`, `global.T`,
+   * `Scope.T` or a bare `T` -- or null for every other alternative.
+   *
+   * For an array type this describes the ELEMENT: the renderer emits the
+   * element type and the dimensions are appended by whoever declares the
+   * variable.
+   */
+  readonly named: INamedTypeResolution | null;
+
+  /** `string<N>` or a bare `string`, whose element type is `char`. */
+  readonly isString: boolean;
+
+  /** A primitive's WRITTEN name; the renderer maps it through `TYPE_MAP`. */
+  readonly primitiveName: string | null;
+
+  /** True when the alternatives above describe an array's element type. */
+  readonly isArray: boolean;
+
+  /**
+   * The line a bare `userType` sits on, for `AdrProvenance`. Undefined for
+   * every other branch, and for a `userType` whose token carries no position.
+   */
+  readonly userTypeLine: number | undefined;
+
+  /**
+   * The type's source text. This is what an unrecognized alternative renders
+   * as -- a C++ `templateType` passes through unchanged, and `void` is its own
+   * text, which is why the renderer needs no special case for it.
+   */
+  readonly text: string;
+}
+
+export default IPlannedType;

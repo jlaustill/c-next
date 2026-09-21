@@ -1,32 +1,45 @@
 /**
  * Unit tests for TypeGenerationHelper
- * Tests for C type generation from C-Next type contexts
+ * Tests for C type generation from a planned C-Next type
+ *
+ * #1445: the helper takes an `IPlannedType` now, so these build plans instead
+ * of parsing source. What moved OUT of this file with the parse contexts is
+ * the mapping from a type context to that plan -- `CodeGenerator.planType`,
+ * which delegates the named branches to `TypeBinding` and is exercised by the
+ * 1254 integration fixtures rather than here.
+ *
+ * Three methods moved out with it: `generateScopedType`, `generateGlobalType`
+ * and `generateQualifiedType` had no caller but this file, so their tests were
+ * the only thing keeping knip quiet about them (#1418). Those decisions are
+ * `TypeBinding`'s.
  */
 
 import { describe, it, expect } from "vitest";
-import CNextSourceParser from "../../../../../PARSE/2-Parse/CNextSourceParser";
 import TypeGenerationHelper from "../TypeGenerationHelper";
-import * as Parser from "../../../../../PARSE/2-Parse/grammar/CNextParser";
+import type IPlannedType from "../../types/IPlannedType";
+import type INamedTypeResolution from "../../../../../transpiler/types/INamedTypeResolution";
 
 describe("TypeGenerationHelper", () => {
-  /**
-   * Helper to extract a type context from a variable declaration.
-   */
-  function getTypeContext(source: string): Parser.TypeContext | null {
-    const result = CNextSourceParser.parse(source);
-    const decl = result.tree.declaration(0);
-    const varDecl = decl?.variableDeclaration();
-    return varDecl?.type() ?? null;
+  /** A plan with every alternative absent, for a test to fill one in. */
+  function plan(overrides: Partial<IPlannedType> = {}): IPlannedType {
+    return {
+      named: null,
+      isString: false,
+      primitiveName: null,
+      isArray: false,
+      userTypeLine: undefined,
+      text: "",
+      ...overrides,
+    };
   }
 
-  /**
-   * Helper to extract type from function return type.
-   */
-  function getFunctionReturnType(source: string): Parser.TypeContext | null {
-    const result = CNextSourceParser.parse(source);
-    const decl = result.tree.declaration(0);
-    const funcDecl = decl?.functionDeclaration();
-    return funcDecl?.type() ?? null;
+  /** A named-type branch as `TypeBinding` reports it. */
+  function named(
+    branch: INamedTypeResolution["branch"],
+    written: string,
+    name: string = written,
+  ): INamedTypeResolution {
+    return { branch, written, name };
   }
 
   describe("generatePrimitiveType", () => {
@@ -67,42 +80,6 @@ describe("TypeGenerationHelper", () => {
     });
   });
 
-  describe("generateScopedType", () => {
-    it("generates prefixed type name within scope", () => {
-      const result = TypeGenerationHelper.generateScopedType("State", "Motor");
-      expect(result).toBe("Motor__State");
-    });
-
-    // #1322: the "throws when called outside scope" case is deleted with the
-    // guard. `this` outside a scope is E0431 in pass 2.1, which halts before
-    // code generation, so the empty-scope call this asserted is unreachable.
-  });
-
-  describe("generateGlobalType", () => {
-    it("returns type name unchanged", () => {
-      const result = TypeGenerationHelper.generateGlobalType("GlobalConfig");
-      expect(result).toBe("GlobalConfig");
-    });
-  });
-
-  describe("generateQualifiedType", () => {
-    it("joins C++ namespace identifiers with ::", () => {
-      const result = TypeGenerationHelper.generateQualifiedType(
-        ["MockLib", "Parse", "ParseResult"],
-        true,
-      );
-      expect(result).toBe("MockLib::Parse::ParseResult");
-    });
-
-    it("joins C-Next scope identifiers with _", () => {
-      const result = TypeGenerationHelper.generateQualifiedType(
-        ["Motor", "State"],
-        false,
-      );
-      expect(result).toBe("Motor__State");
-    });
-  });
-
   describe("generateUserType", () => {
     it("maps cstring to char*", () => {
       const result = TypeGenerationHelper.generateUserType("cstring", false);
@@ -127,156 +104,158 @@ describe("TypeGenerationHelper", () => {
     });
   });
 
-  describe("generate (full context)", () => {
+  describe("generate", () => {
     const defaultDeps = {
-      currentScopePath: "",
-      isCppScopeSymbol: () => false,
       checkNeedsStructKeyword: () => false,
-      isScopeType: () => false,
       isCrossFileDeclaration: () => false,
     };
 
     it.each([
-      ["generates primitive type u32", "u32 x;", "uint32_t"],
-      ["generates primitive type bool", "bool flag;", "bool"],
-      ["generates string type", "string<32> name;", "char"],
-    ])("%s", (_label, source, expected) => {
-      const ctx = getTypeContext(source);
-      expect(ctx).not.toBeNull();
-      const result = TypeGenerationHelper.generate(ctx!, defaultDeps);
-      expect(result).toBe(expected);
-    });
-
-    it("generates scoped type within scope", () => {
-      const ctx = getTypeContext("this.State status;");
-      expect(ctx).not.toBeNull();
-      const result = TypeGenerationHelper.generate(ctx!, {
-        ...defaultDeps,
-        currentScopePath: "Motor",
-      });
-      expect(result).toBe("Motor__State");
-    });
-
-    // #1322: this case asserted that `generate` throws for `this.Type` with no
-    // enclosing scope. The guard is deleted, not relocated -- `this` outside a
-    // scope is E0431 in pass 2.1, which reaches a TYPE position as well as a
-    // value one and halts before code generation. Verified on both shapes that
-    // reached this code: a file-scope declaration and a local one, each
-    // reporting E0431 at the `this` token.
-
-    // The deps column keeps the two cases needing a non-default dependency in
-    // the same table as the rest, rather than stranding them between merged
-    // rows. It also makes what each case overrides obvious at a glance.
-    // Mirrors the optional half of ITypeGenerationDeps, which is not exported
-    // (the project uses default exports only). Deriving from typeof defaultDeps
-    // instead would narrow the mocks to their zero-argument shapes.
-    type DepsOverride = {
-      currentScopePath?: string;
-      isCppScopeSymbol?: (name: string) => boolean;
-      checkNeedsStructKeyword?: (name: string) => boolean;
-      isScopeType?: (qualifiedName: string) => boolean;
-    };
-
-    it.each<[string, string, DepsOverride, string]>([
-      ["global type", "global.Config cfg;", {}, "Config"],
-      ["qualified C-Next type", "Motor.State status;", {}, "Motor__State"],
       [
-        "qualified C++ namespace type",
-        "Lib.Type val;",
-        { isCppScopeSymbol: (name: string) => name === "Lib" },
+        "a primitive through TYPE_MAP",
+        plan({ primitiveName: "u32" }),
+        "uint32_t",
+      ],
+      ["a primitive with no mapping", plan({ primitiveName: "bool" }), "bool"],
+      [
+        "a bounded string as char",
+        plan({ isString: true, text: "string<32>" }),
+        "char",
+      ],
+      [
+        "this.T, qualified by TypeBinding",
+        plan({ named: named("this", "State", "Motor__State") }),
+        "Motor__State",
+      ],
+      [
+        "global.T, left bare",
+        plan({ named: named("global", "Config") }),
+        "Config",
+      ],
+      [
+        "Scope.T, through the caller's resolver",
+        plan({ named: named("qualified", "Motor.State", "Motor__State") }),
+        "Motor__State",
+      ],
+      [
+        "a C++ namespace type, through the same resolver",
+        plan({ named: named("qualified", "Lib.Type", "Lib::Type") }),
         "Lib::Type",
       ],
-      ["user type", "MyStruct obj;", {}, "MyStruct"],
       [
-        "user type with struct keyword",
-        "CStruct obj;",
-        { checkNeedsStructKeyword: (name: string) => name === "CStruct" },
-        "struct CStruct",
+        "a bare user type",
+        plan({ named: named("bare", "MyStruct") }),
+        "MyStruct",
       ],
-      ["cstring as char*", "cstring ptr;", {}, "char*"],
-    ])("generates %s", (_label, source, depsOverride, expected) => {
-      const ctx = getTypeContext(source);
-      expect(ctx).not.toBeNull();
-      const result = TypeGenerationHelper.generate(ctx!, {
-        ...defaultDeps,
-        ...depsOverride,
-      });
-      expect(result).toBe(expected);
+      ["cstring as char*", plan({ named: named("bare", "cstring") }), "char*"],
+      [
+        "an unrecognized alternative, as its own text",
+        plan({ text: "FlexCAN_T4<CAN1>" }),
+        "FlexCAN_T4<CAN1>",
+      ],
+      // `void` needs no branch of its own: its source text IS "void".
+      ["void, as its own text", plan({ text: "void" }), "void"],
+    ])("generates %s", (_label, planned, expected) => {
+      expect(TypeGenerationHelper.generate(planned, defaultDeps)).toBe(
+        expected,
+      );
     });
 
-    it("generates array type with primitive via generate()", () => {
-      // Array type in type position: u8[10] as the type
-      const ctx = getTypeContext("u8[10] arr;");
-      expect(ctx).not.toBeNull();
-      expect(ctx!.arrayType()).not.toBeNull();
-      const result = TypeGenerationHelper.generate(ctx!, defaultDeps);
-      expect(result).toBe("uint8_t");
+    it("adds the struct keyword when C needs it for a tag", () => {
+      expect(
+        TypeGenerationHelper.generate(
+          plan({ named: named("bare", "CStruct") }),
+          {
+            ...defaultDeps,
+            checkNeedsStructKeyword: (name) => name === "CStruct",
+          },
+        ),
+      ).toBe("struct CStruct");
     });
 
-    it("generates array type with user type via generate()", () => {
-      // Array of user-defined type: MyStruct[5] as the type
-      const ctx = getTypeContext("MyStruct[5] arr;");
-      expect(ctx).not.toBeNull();
-      expect(ctx!.arrayType()).not.toBeNull();
-      const result = TypeGenerationHelper.generate(ctx!, defaultDeps);
-      expect(result).toBe("MyStruct");
+    it("emits the qualified name when ADR-057 captured a bare one", () => {
+      expect(
+        TypeGenerationHelper.generate(
+          plan({ named: named("bare", "State", "Motor__State") }),
+          defaultDeps,
+        ),
+      ).toBe("Motor__State");
     });
 
-    it("generates array type with user type needing struct keyword", () => {
-      // Array of C struct type that needs 'struct' prefix
-      const ctx = getTypeContext("CStruct[3] arr;");
-      expect(ctx).not.toBeNull();
-      expect(ctx!.arrayType()).not.toBeNull();
-      const result = TypeGenerationHelper.generate(ctx!, {
-        ...defaultDeps,
-        checkNeedsStructKeyword: (name) => name === "CStruct",
-      });
-      expect(result).toBe("struct CStruct");
+    /**
+     * The struct keyword is asked about the WRITTEN name, and only when the
+     * name was not captured. A qualified name is a C-Next scope type, which is
+     * always a typedef -- asking would be asking about the wrong identifier.
+     */
+    it("does not ask about the struct keyword for a captured name", () => {
+      const asked: string[] = [];
+
+      TypeGenerationHelper.generate(
+        plan({ named: named("bare", "State", "Motor__State") }),
+        {
+          ...defaultDeps,
+          checkNeedsStructKeyword: (name) => {
+            asked.push(name);
+            return false;
+          },
+        },
+      );
+
+      expect(asked).toEqual([]);
     });
 
-    it("generates void return type", () => {
-      const ctx = getFunctionReturnType("void test() { }");
-      expect(ctx).not.toBeNull();
-      const result = TypeGenerationHelper.generate(ctx!, defaultDeps);
-      expect(result).toBe("void");
-    });
-
-    it("passes through C++ template types unchanged (fallback)", () => {
-      // C++ template types like FlexCAN_T4<CAN1> hit the fallback path
-      // and are passed through unchanged for C++ output
-      const ctx = getTypeContext("FlexCAN_T4<CAN1> bus;");
-      expect(ctx).not.toBeNull();
-      expect(ctx!.templateType()).not.toBeNull();
-      const result = TypeGenerationHelper.generate(ctx!, defaultDeps);
-      expect(result).toBe("FlexCAN_T4<CAN1>");
+    it("prefers a string over a named branch, as the old ladder did", () => {
+      expect(
+        TypeGenerationHelper.generate(
+          plan({ isString: true, named: named("bare", "unused") }),
+          defaultDeps,
+        ),
+      ).toBe("char");
     });
   });
 
   describe("getRequiredInclude", () => {
     it.each([
-      ["returns stdbool for bool type", "bool x;", "stdbool"],
-      ["returns stdint for integer types", "u32 x;", "stdint"],
-      ["returns string for string type", "string<32> name;", "string"],
-    ])("%s", (_label, source, expected) => {
-      const ctx = getTypeContext(source);
-      expect(ctx).not.toBeNull();
-      const result = TypeGenerationHelper.getRequiredInclude(ctx!);
-      expect(result).toBe(expected);
+      ["stdbool for bool", plan({ primitiveName: "bool" }), "stdbool"],
+      ["stdint for an integer", plan({ primitiveName: "u32" }), "stdint"],
+      [
+        "stdint for a float, which is in TYPE_MAP",
+        plan({ primitiveName: "f32" }),
+        "stdint",
+      ],
+      ["string for a bounded string", plan({ isString: true }), "string"],
+    ])("returns %s", (_label, planned, expected) => {
+      expect(TypeGenerationHelper.getRequiredInclude(planned)).toBe(expected);
     });
 
-    it("returns null for user types", () => {
-      const ctx = getTypeContext("MyStruct obj;");
-      expect(ctx).not.toBeNull();
-      const result = TypeGenerationHelper.getRequiredInclude(ctx!);
-      expect(result).toBeNull();
+    it("returns null for a user type", () => {
+      expect(
+        TypeGenerationHelper.getRequiredInclude(
+          plan({ named: named("bare", "MyStruct") }),
+        ),
+      ).toBeNull();
     });
 
-    it("returns stdint for float types (in TYPE_MAP)", () => {
-      // Note: floats are in TYPE_MAP so they return stdint per original logic
-      const ctx = getTypeContext("f32 x;");
-      expect(ctx).not.toBeNull();
-      const result = TypeGenerationHelper.getRequiredInclude(ctx!);
-      expect(result).toBe("stdint");
+    /**
+     * Carried over deliberately: the question was asked of the bare context
+     * first and of an array's element only for primitives, so `string<8>[2]`
+     * has never contributed `<string.h>` from this path. Masked in the emitted
+     * code by a second route in `TypeRegistrationEngine`; filed as #1638.
+     */
+    it("returns null for an ARRAY of strings", () => {
+      expect(
+        TypeGenerationHelper.getRequiredInclude(
+          plan({ isString: true, isArray: true }),
+        ),
+      ).toBeNull();
+    });
+
+    it("returns the element's include for an array of primitives", () => {
+      expect(
+        TypeGenerationHelper.getRequiredInclude(
+          plan({ primitiveName: "u8", isArray: true }),
+        ),
+      ).toBe("stdint");
     });
   });
 });
