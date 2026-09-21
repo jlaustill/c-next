@@ -132,6 +132,7 @@ import ISeparatorContext from "./types/ISeparatorContext";
 // Phase 3: Type generation helper for improved testability
 import TypeGenerationHelper from "./helpers/TypeGenerationHelper";
 import type IPlannedType from "./types/IPlannedType";
+import type IPlannedParameter from "./types/IPlannedParameter";
 import type ITypeAccessors from "../../../transpiler/types/ITypeAccessors";
 // Phase 5: Cast validation helper for improved testability
 // Issue #793: Function context lifecycle and parameter processing helper
@@ -3729,10 +3730,7 @@ export default class CodeGenerator implements IOrchestrator {
     // Issue #895: Force pass-by-reference and const from typedef signature
     const forcePassByReference = callbackInfo?.isParamPointer ?? false;
     const forceConst = callbackInfo?.isParamConst ?? false;
-    const input = ParameterInputAdapter.fromAST(ctx, {
-      getTypeName: (t) => this.getTypeName(t),
-      generateType: (t) => this.generateType(t),
-      generateExpression: (e) => this.generateExpression(e),
+    const input = ParameterInputAdapter.fromAST(this.planParameter(ctx), {
       callbackTypes: CodeGenState.callbackTypes,
       isKnownStruct: (t) => {
         if (this.isKnownStruct(t)) return true;
@@ -3762,6 +3760,76 @@ export default class CodeGenerator implements IOrchestrator {
 
     // Use shared builder with C/C++ mode
     return ParameterSignatureBuilder.build(input, CppModeHelper.refOrPtr());
+  }
+
+  /**
+   * A parameter reduced to what ADR-006's signature adapter asks of it (#1445).
+   *
+   * Three provenance positions are carried, not one: ADR-013 is recorded
+   * against the parameter, the string type or the array type depending on
+   * which branch of the adapter fires, and #1241 derives matrix occupancy from
+   * those positions.
+   *
+   * The dimensions go over as a thunk. A parameter whose type IS a callback
+   * returns from the adapter before any dimension is needed, and a dimension
+   * that is not a compile-time constant goes through expression generation,
+   * which can queue a pending temp declaration -- so rendering one that is
+   * then discarded leaks it.
+   */
+  private planParameter(ctx: Parser.ParameterContext): IPlannedParameter {
+    const typeCtx = ctx.type();
+    const arrayType = typeCtx.arrayType();
+    const stringType = arrayType
+      ? arrayType.stringType()
+      : typeCtx.stringType();
+    const capacity = stringType?.INTEGER_LITERAL();
+
+    return {
+      name: ctx.IDENTIFIER().getText(),
+      isConst: ctx.constModifier() !== null,
+      typeName: this.getTypeName(typeCtx),
+      mappedType: this.generateType(typeCtx),
+      renderDimensions: arrayType
+        ? () =>
+            arrayType
+              .arrayTypeDimension()
+              .map((dimension) => this.renderArrayDimension(dimension))
+        : null,
+      isString: stringType !== null,
+      stringCapacity: capacity
+        ? Number.parseInt(capacity.getText(), 10)
+        : undefined,
+      line: ctx.start?.line,
+      stringTypeLine: stringType?.start?.line,
+      arrayTypeLine: arrayType?.start?.line,
+    };
+  }
+
+  /**
+   * One array dimension of a parameter, as C should say it.
+   *
+   * Issue #1159: fold a compile-time constant to its value first. Emitting the
+   * identifier makes `u8[SIZE] buf` a VLA parameter (`uint8_t buf[SIZE]`)
+   * while the matching local declaration folds to `uint8_t b[6]` -- the same
+   * const rendered two ways in one .c, and a construct CLAUDE.md rules out.
+   * Expression generation stays as the fallback for dimensions that are
+   * genuinely not constant.
+   */
+  private renderArrayDimension(
+    dimension: Parser.ArrayTypeDimensionContext,
+  ): string {
+    const expression = dimension.expression();
+    if (!expression) {
+      return "";
+    }
+
+    const folded = ArrayDimensionParser.parseSingleDimension(
+      expression,
+      dimensionEvalOptions(),
+    );
+    return folded === undefined
+      ? this.generateExpression(expression)
+      : String(folded);
   }
 
   /**
