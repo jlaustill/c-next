@@ -5,18 +5,14 @@
 import IncludeRewriter from "../../../../../transpiler/data/IncludeRewriter";
 import type THeaderExtension from "../../../../../transpiler/types/THeaderExtension";
 import invariant from "../../../../../utils/invariant";
+import type IPlannedDirective from "../../types/IPlannedDirective";
 
-/**
- * One preprocessor directive, reduced to what emission needs (#1445 box 3).
- *
- * The three functions below read their nodes for exactly two things: WHICH
- * shape the parser matched, and the directive's own text. Nothing else.
- *
- * `text` MUST be `ctx.getText()` passed VERBATIM by the caller. `getText()`
- * returns the concatenated TOKEN text, which is NOT the same string as the
- * source slice -- rebuilding it from source positions would change the emitted
- * `#define`/`#ifdef` lines. So the caller hands over the value, not the means
- * to recompute it.
+/*
+ * One preprocessor directive, reduced to what emission needs (#1445 box 3):
+ * the three directive functions below read their nodes for exactly two
+ * things, WHICH shape the parser matched and the directive's own text. The
+ * shape is `IPlannedDirective`, which also says why `text` is handed over
+ * verbatim.
  *
  * The `.trim()` stays HERE, on the string, rather than moving to the caller
  * with the walk. It is load-bearing and measurable: `getText()` on
@@ -26,16 +22,6 @@ import invariant from "../../../../../utils/invariant";
  * it -- `.cnx` fixtures are prettier-formatted, so a define with trailing
  * whitespace cannot survive in the corpus to cover it.
  */
-interface IPlannedDirective {
-  readonly kind:
-    | "define-flag"
-    | "define-function"
-    | "define-value"
-    | "define-other"
-    | "conditional"
-    | "none";
-  readonly text: string;
-}
 
 /**
  * Issue #349, #1467: Options for include transformation

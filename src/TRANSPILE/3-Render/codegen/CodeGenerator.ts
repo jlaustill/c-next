@@ -133,6 +133,7 @@ import ISeparatorContext from "./types/ISeparatorContext";
 import TypeGenerationHelper from "./helpers/TypeGenerationHelper";
 import type IPlannedType from "./types/IPlannedType";
 import type IPlannedParameter from "./types/IPlannedParameter";
+import type IPlannedDirective from "./types/IPlannedDirective";
 import type ITypeAccessors from "../../../transpiler/types/ITypeAccessors";
 // Phase 5: Cast validation helper for improved testability
 // Issue #793: Function context lifecycle and parameter processing helper
@@ -4971,6 +4972,24 @@ export default class CodeGenerator implements IOrchestrator {
    * Process a preprocessor directive
    * Delegates to IncludeGenerator
    */
+  /**
+   * Which of `defineDirective`'s four alternatives matched.
+   *
+   * Early returns rather than a ternary chain: as one expression this was two
+   * nested ternaries and SonarCloud S3358 flagged both (introduced by this
+   * card's slice 12, caught by the PR-scoped issue list while the quality gate
+   * still read OK -- which is why the list is the standard here and the gate
+   * is not).
+   */
+  private static defineDirectiveKind(
+    define: Parser.DefineDirectiveContext,
+  ): IPlannedDirective["kind"] {
+    if (define.DEFINE_FUNCTION()) return "define-function";
+    if (define.DEFINE_WITH_VALUE()) return "define-value";
+    if (define.DEFINE_FLAG()) return "define-flag";
+    return "define-other";
+  }
+
   private processPreprocessorDirective(
     ctx: Parser.PreprocessorDirectiveContext,
   ): string | null {
@@ -4982,13 +5001,7 @@ export default class CodeGenerator implements IOrchestrator {
     const define = ctx.defineDirective();
     if (define) {
       return includeProcessPreprocessorDirective({
-        kind: define.DEFINE_FUNCTION()
-          ? "define-function"
-          : define.DEFINE_WITH_VALUE()
-            ? "define-value"
-            : define.DEFINE_FLAG()
-              ? "define-flag"
-              : "define-other",
+        kind: CodeGenerator.defineDirectiveKind(define),
         text: define.getText(),
       });
     }
