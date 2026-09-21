@@ -1,9 +1,30 @@
+/**
+ * Unit tests for ControlFlowGenerator
+ *
+ * #1445 box 3: this file was 360 lines of hand-built fake parse nodes before
+ * 33 tests -- including a 21-level `createMockExpression` chain
+ * (`ternaryExpression` -> `orExpression` -> ... -> `primaryExpression`) that
+ * existed only so `ExpressionUnwrapper` could walk it, and 25 casts to make
+ * TypeScript accept the result. The generators take plans now, so the builders
+ * are plan literals and the casts are gone.
+ *
+ * The two stubs that remain are PROXIES that throw on any member the
+ * generators do not use. That turns "these are the only things it touches"
+ * from a comment into an assertion: a future edit that reaches back through
+ * the orchestrator for a tree, or starts reading `input`, fails here rather
+ * than silently re-growing the population this slice shrank.
+ */
+
 import { describe, it, expect, vi } from "vitest";
 import controlFlowGenerators from "../ControlFlowGenerator";
 import IGeneratorInput from "../../IGeneratorInput";
 import IGeneratorState from "../../IGeneratorState";
 import IOrchestrator from "../../IOrchestrator";
-import * as Parser from "../../../../../../PARSE/2-Parse/grammar/CNextParser";
+import IPlannedFor from "../../../types/IPlannedFor";
+import IPlannedForAssignment from "../../../types/IPlannedForAssignment";
+import IPlannedForVarDecl from "../../../types/IPlannedForVarDecl";
+import IPlannedIf from "../../../types/IPlannedIf";
+import IPlannedLoop from "../../../types/IPlannedLoop";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
 
 const {
@@ -12,360 +33,107 @@ const {
   generateWhile,
   generateDoWhile,
   generateFor,
+  generateForever,
   generateForVarDecl,
   generateForAssignment,
 } = controlFlowGenerators;
 
-// ========================================================================
-// Test Helpers - Mock Contexts
-// ========================================================================
-
 /**
- * Create a mock expression context. Can be configured to be "simple" or "complex".
- * For simple: navigates down the chain to a simple identifier
+ * A stub that answers only what it was given and throws for anything else.
+ *
+ * `expect` and vitest probe objects for `then`, `Symbol.toStringTag` and the
+ * like, so symbols and `then` come back undefined rather than throwing.
  */
-function createMockExpression(options?: {
-  text?: string;
-  isSimple?: boolean;
-  identifier?: string;
-  hasPostfixOp?: boolean;
-  line?: number;
-  col?: number;
-}): Parser.ExpressionContext {
-  const text = options?.text ?? "x";
-  const isSimple = options?.isSimple ?? true;
-  const identifier = options?.identifier ?? text;
-
-  // Build a mock expression tree that the isSimpleExpression/getSimpleIdentifier functions can navigate
-  if (isSimple) {
-    const primaryExpr = {
-      IDENTIFIER: () => ({ getText: () => identifier }),
-      getText: () => text,
-    };
-    const postfixExpr = {
-      primaryExpression: () => primaryExpr,
-      postfixOp: () => (options?.hasPostfixOp ? [{}] : []),
-    };
-    const unaryExpr = { postfixExpression: () => postfixExpr };
-    const mulExpr = { unaryExpression: () => [unaryExpr] };
-    const addExpr = { multiplicativeExpression: () => [mulExpr] };
-    const shiftExpr = { additiveExpression: () => [addExpr] };
-    const bandExpr = { shiftExpression: () => [shiftExpr] };
-    const bxorExpr = { bitwiseAndExpression: () => [bandExpr] };
-    const borExpr = { bitwiseXorExpression: () => [bxorExpr] };
-    const relExpr = { bitwiseOrExpression: () => [borExpr] };
-    const eqExpr = { relationalExpression: () => [relExpr] };
-    const andExpr = { equalityExpression: () => [eqExpr] };
-    const orExpr = { andExpression: () => [andExpr] };
-    const ternaryExpr = { orExpression: () => [orExpr] };
-
-    return {
-      ternaryExpression: () => ternaryExpr,
-      getText: () => text,
-      start: { line: options?.line ?? 1, column: options?.col ?? 0 },
-    } as unknown as Parser.ExpressionContext;
-  }
-
-  // Complex expression - multiple operands at some level
-  const mulExpr1 = { unaryExpression: () => [{}, {}] }; // Two operands = complex
-  const addExpr = { multiplicativeExpression: () => [mulExpr1] };
-  const shiftExpr = { additiveExpression: () => [addExpr] };
-  const bandExpr = { shiftExpression: () => [shiftExpr] };
-  const bxorExpr = { bitwiseAndExpression: () => [bandExpr] };
-  const borExpr = { bitwiseXorExpression: () => [bxorExpr] };
-  const relExpr = { bitwiseOrExpression: () => [borExpr] };
-  const eqExpr = { relationalExpression: () => [relExpr] };
-  const andExpr = { equalityExpression: () => [eqExpr] };
-  const orExpr = { andExpression: () => [andExpr] };
-  const ternaryExpr = { orExpression: () => [orExpr] };
-
-  return {
-    ternaryExpression: () => ternaryExpr,
-    getText: () => text,
-    start: { line: options?.line ?? 1, column: options?.col ?? 0 },
-  } as unknown as Parser.ExpressionContext;
-}
-
-/**
- * Create a mock return statement context
- */
-function createMockReturnStatement(
-  expr?: Parser.ExpressionContext,
-): Parser.ReturnStatementContext {
-  return {
-    expression: () => expr ?? null,
-  } as unknown as Parser.ReturnStatementContext;
-}
-
-/**
- * Create a mock statement context
- */
-function createMockStatement(
-  blockCtx?: Parser.BlockContext,
-): Parser.StatementContext {
-  return {
-    block: () => blockCtx ?? null,
-  } as unknown as Parser.StatementContext;
-}
-
-/**
- * Create a mock block context
- */
-function createMockBlock(): Parser.BlockContext {
-  return {
-    statement: () => [],
-  } as unknown as Parser.BlockContext;
-}
-
-/**
- * Create a mock if statement context
- */
-function createMockIfStatement(options?: {
-  expr?: Parser.ExpressionContext;
-  thenStmt?: Parser.StatementContext;
-  elseStmt?: Parser.StatementContext;
-}): Parser.IfStatementContext {
-  const statements = [options?.thenStmt ?? createMockStatement()];
-  if (options?.elseStmt) {
-    statements.push(options.elseStmt);
-  }
-  return {
-    expression: () => options?.expr ?? createMockExpression(),
-    statement: () => statements,
-  } as unknown as Parser.IfStatementContext;
-}
-
-/**
- * Create a mock while statement context
- */
-function createMockWhileStatement(options?: {
-  expr?: Parser.ExpressionContext;
-  stmt?: Parser.StatementContext;
-}): Parser.WhileStatementContext {
-  return {
-    expression: () => options?.expr ?? createMockExpression(),
-    statement: () => options?.stmt ?? createMockStatement(),
-  } as unknown as Parser.WhileStatementContext;
-}
-
-/**
- * Create a mock do-while statement context
- */
-function createMockDoWhileStatement(options?: {
-  expr?: Parser.ExpressionContext;
-  block?: Parser.BlockContext;
-}): Parser.DoWhileStatementContext {
-  return {
-    expression: () => options?.expr ?? createMockExpression(),
-    block: () => options?.block ?? createMockBlock(),
-  } as unknown as Parser.DoWhileStatementContext;
-}
-
-/**
- * Create a mock type context
- */
-function createMockType(typeName: string): Parser.TypeContext {
-  return {
-    getText: () => typeName,
-  } as unknown as Parser.TypeContext;
-}
-
-/**
- * Create a mock for variable declaration context
- */
-function createMockForVarDecl(options?: {
-  type?: Parser.TypeContext;
-  identifier?: string;
-  expr?: Parser.ExpressionContext;
-  atomicMod?: boolean;
-  volatileMod?: boolean;
-  arrayDims?: Parser.ArrayDimensionContext[];
-}): Parser.ForVarDeclContext {
-  return {
-    atomicModifier: () => (options?.atomicMod ? {} : null),
-    volatileModifier: () => (options?.volatileMod ? {} : null),
-    type: () => options?.type ?? createMockType("i32"),
-    IDENTIFIER: () => ({ getText: () => options?.identifier ?? "i" }),
-    arrayDimension: () => options?.arrayDims ?? [],
-    expression: () => options?.expr ?? null,
-  } as unknown as Parser.ForVarDeclContext;
-}
-
-/**
- * Create a mock assignment target context
- */
-function createMockAssignmentTarget(
-  text: string,
-): Parser.AssignmentTargetContext {
-  return {
-    getText: () => text,
-  } as unknown as Parser.AssignmentTargetContext;
-}
-
-/**
- * Create a mock assignment operator context
- */
-function createMockAssignmentOperator(
-  op: string,
-): Parser.AssignmentOperatorContext {
-  return {
-    getText: () => op,
-  } as unknown as Parser.AssignmentOperatorContext;
-}
-
-/**
- * Create a mock for assignment context
- */
-function createMockForAssignment(options?: {
-  target?: Parser.AssignmentTargetContext;
-  operator?: Parser.AssignmentOperatorContext;
-  expr?: Parser.ExpressionContext;
-}): Parser.ForAssignmentContext {
-  return {
-    assignmentTarget: () => options?.target ?? createMockAssignmentTarget("i"),
-    assignmentOperator: () =>
-      options?.operator ?? createMockAssignmentOperator("<-"),
-    expression: () => options?.expr ?? createMockExpression(),
-  } as unknown as Parser.ForAssignmentContext;
-}
-
-/**
- * Create a mock for init context
- */
-function createMockForInit(options?: {
-  varDecl?: Parser.ForVarDeclContext;
-  assignment?: Parser.ForAssignmentContext;
-}): Parser.ForInitContext {
-  return {
-    forVarDecl: () => options?.varDecl ?? null,
-    forAssignment: () => options?.assignment ?? null,
-  } as unknown as Parser.ForInitContext;
-}
-
-/**
- * Create a mock for update context
- */
-function createMockForUpdate(options?: {
-  target?: Parser.AssignmentTargetContext;
-  operator?: Parser.AssignmentOperatorContext;
-  expr?: Parser.ExpressionContext;
-}): Parser.ForUpdateContext {
-  return {
-    assignmentTarget: () => options?.target ?? createMockAssignmentTarget("i"),
-    assignmentOperator: () =>
-      options?.operator ?? createMockAssignmentOperator("+<-"),
-    expression: () => options?.expr ?? createMockExpression({ text: "1" }),
-  } as unknown as Parser.ForUpdateContext;
-}
-
-/**
- * Create a mock for statement context
- */
-function createMockForStatement(options?: {
-  init?: Parser.ForInitContext;
-  expr?: Parser.ExpressionContext;
-  update?: Parser.ForUpdateContext;
-  stmt?: Parser.StatementContext;
-}): Parser.ForStatementContext {
-  return {
-    forInit: () => options?.init ?? null,
-    expression: () => options?.expr ?? null,
-    forUpdate: () => options?.update ?? null,
-    statement: () => options?.stmt ?? createMockStatement(),
-  } as unknown as Parser.ForStatementContext;
-}
-
-// ========================================================================
-// Test Helpers - Mock Input/State/Orchestrator
-// ========================================================================
-
-/**
- * Create minimal mock input.
- */
-function createMockInput(options?: {
-  enumMembers?: Map<string, Map<string, number>>;
-}): IGeneratorInput {
-  const enumMembers = options?.enumMembers ?? new Map();
-  return {
-    symbols: {
-      enumMembers,
-      knownScopes: new Set(),
-      knownStructs: new Set(),
-      knownRegisters: new Set(),
-      knownEnums: new Set(enumMembers.keys()),
-      knownBitmaps: new Set(),
-      scopeMembers: new Map(),
-      scopeMemberVisibility: new Map(),
-      structFields: new Map(),
-      structFieldArrays: new Map(),
-      structFieldDimensions: new Map(),
-      bitmapFields: new Map(),
-      bitmapBackingType: new Map(),
-      bitmapBitWidth: new Map(),
-      scopedRegisters: new Map(),
-      registerMemberAccess: new Map(),
-      registerMemberTypes: new Map(),
-      scopePrivateConstValues: new Map(),
+function strictStub<T extends object>(provided: Record<string, unknown>): T {
+  return new Proxy(provided, {
+    get(target, prop) {
+      if (typeof prop === "symbol" || prop === "then") {
+        return undefined;
+      }
+      if (prop in target) {
+        return target[prop as string];
+      }
+      throw new Error(`ControlFlowGenerator must not read .${String(prop)}`);
     },
-    symbolTable: null,
-    typeRegistry: new Map(),
-    functionSignatures: new Map(),
-    knownFunctions: new Set(),
-    knownStructs: new Set(),
-    constValues: new Map(),
-    callbackTypes: new Map(),
-    callbackFieldTypes: new Map(),
-    targetCapabilities: { hasAtomicSupport: false },
-    debugMode: false,
-  } as unknown as IGeneratorInput;
+  }) as T;
 }
 
-/**
- * Create minimal mock state.
- */
-function createMockState(): IGeneratorState {
-  return TestGeneratorState.create({ inFunctionBody: true });
-}
+/** None of the eight generators reads its input; this asserts that. */
+const INPUT = strictStub<IGeneratorInput>({});
 
-/**
- * Create mock orchestrator for control flow generators.
- */
+const STATE: IGeneratorState = TestGeneratorState.create({
+  inFunctionBody: true,
+});
+
 function createMockOrchestrator(options?: {
   returnType?: string | null;
-  exprCode?: string;
-  statementCode?: string;
-  blockCode?: string;
-  typeCode?: string;
   tempDeclarations?: string;
   lengthCacheDecls?: string;
 }): IOrchestrator {
-  return {
+  return strictStub<IOrchestrator>({
     getCurrentFunctionReturnType: vi.fn(() => options?.returnType ?? null),
-    generateExpression: vi.fn(() => options?.exprCode ?? "x"),
-    generateExpressionWithExpectedType: vi.fn(() => options?.exprCode ?? "x"),
-    generateStatement: vi.fn(() => options?.statementCode ?? "{}"),
-    generateBlock: vi.fn(() => options?.blockCode ?? "{ }"),
-    generateType: vi.fn(() => options?.typeCode ?? "int"),
-    // #1484: `generateDeclaredType` is what a declaration site asks -- the `_fp`
-    // typedef for an ADR-029 function-as-type, the type itself otherwise. The
-    // mock mirrors the non-callback answer, which is what these cases exercise.
-    generateDeclaredType: vi.fn(() => options?.typeCode ?? "int"),
-    generateAssignmentTarget: vi.fn((ctx) => ctx.getText?.() ?? "target"),
-    generateArrayDimensions: vi.fn(() => "[10]"),
     // ADR-057: registration hands back the emitted name; identity here means
     // "nothing shadowed, keep the source name".
     registerLocalVariable: vi.fn((name: string) => name),
     flushPendingTempDeclarations: vi.fn(() => options?.tempDeclarations ?? ""),
-    countStringLengthAccesses: vi.fn(() => new Map()),
-    countBlockLengthAccesses: vi.fn(),
     setupLengthCache: vi.fn(() => options?.lengthCacheDecls ?? ""),
     clearLengthCache: vi.fn(),
-  } as unknown as IOrchestrator;
+  });
 }
 
-// ========================================================================
-// Tests - generateReturn
-// ========================================================================
+function loop(overrides: Partial<IPlannedLoop> = {}): IPlannedLoop {
+  return {
+    renderCondition: () => "cond",
+    renderBody: () => "{ body }",
+    ...overrides,
+  };
+}
+
+function ifPlan(overrides: Partial<IPlannedIf> = {}): IPlannedIf {
+  return {
+    lengthCounts: new Map(),
+    renderCondition: () => "cond",
+    renderThen: () => "{ then }",
+    renderElse: null,
+    ...overrides,
+  };
+}
+
+function varDecl(
+  overrides: Partial<IPlannedForVarDecl> = {},
+): IPlannedForVarDecl {
+  return {
+    atomic: "",
+    volatile: "",
+    typeName: "int32_t",
+    declaredName: "i",
+    renderArrayDimensions: null,
+    renderInitializer: null,
+    ...overrides,
+  };
+}
+
+function assignment(
+  overrides: Partial<IPlannedForAssignment> = {},
+): IPlannedForAssignment {
+  return {
+    renderTarget: () => "i",
+    renderValue: () => "0",
+    operatorText: "<-",
+    operatorLine: 1,
+    ...overrides,
+  };
+}
+
+function forPlan(overrides: Partial<IPlannedFor> = {}): IPlannedFor {
+  return {
+    init: null,
+    renderCondition: () => "i < 10",
+    update: null,
+    renderBody: () => "{ body }",
+    ...overrides,
+  };
+}
 
 // #1322: the condition-validation delegation tests are gone with the calls.
 // ADR-022's controlling-expression rules -- E0701 (a condition must be a
@@ -376,524 +144,515 @@ function createMockOrchestrator(options?: {
 // `1-Analyze/__tests__/ControllingExpressionAnalyzer.test.ts`.
 describe("ControlFlowGenerator", () => {
   describe("generateReturn", () => {
-    it("generates simple return without expression", () => {
-      const ctx = createMockReturnStatement();
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator();
-
-      const result = generateReturn(ctx, input, state, orchestrator);
+    it("generates a bare return for the void arm", () => {
+      const result = generateReturn(
+        { kind: "void" },
+        INPUT,
+        STATE,
+        createMockOrchestrator(),
+      );
 
       expect(result.code).toBe("return;");
       expect(result.effects).toEqual([]);
     });
 
-    it("generates return with expression", () => {
-      const ctx = createMockReturnStatement(
-        createMockExpression({ text: "42" }),
+    it("generates return with the rendered expression", () => {
+      const result = generateReturn(
+        { kind: "value", render: () => "value" },
+        INPUT,
+        STATE,
+        createMockOrchestrator(),
       );
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({ exprCode: "42" });
 
-      const result = generateReturn(ctx, input, state, orchestrator);
-
-      expect(result.code).toBe("return 42;");
+      expect(result.code).toBe("return value;");
     });
 
-    it("uses expectedType when returning enum value (Issue #477)", () => {
-      const ctx = createMockReturnStatement(
-        createMockExpression({ text: "IDLE" }),
-      );
-      const input = createMockInput({
-        enumMembers: new Map([["State", new Map([["IDLE", 0]])]]),
-      });
-      const state = createMockState();
-      const generateExpressionWithExpectedType = vi.fn(() => "State_IDLE");
-      const orchestrator = {
-        ...createMockOrchestrator({ returnType: "State" }),
-        generateExpressionWithExpectedType,
-      } as unknown as IOrchestrator;
+    // Issue #477 / #1277: the expected type is the ENCLOSING FUNCTION's, which
+    // is why it is asked for at render time and handed to the plan rather than
+    // captured when the plan was built.
+    it("hands the enclosing function's return type to the renderer", () => {
+      const render = vi.fn(() => "RED");
 
-      const result = generateReturn(ctx, input, state, orchestrator);
-
-      expect(generateExpressionWithExpectedType).toHaveBeenCalledWith(
-        expect.anything(),
-        "State",
+      generateReturn(
+        { kind: "value", render },
+        INPUT,
+        STATE,
+        createMockOrchestrator({ returnType: "EColor" }),
       );
-      expect(result.code).toBe("return State_IDLE;");
+
+      expect(render).toHaveBeenCalledWith("EColor");
     });
 
-    it("allows unqualified identifier that is not an enum member", () => {
-      const ctx = createMockReturnStatement(
-        createMockExpression({ identifier: "count" }),
+    it("hands null when the function declares no return type", () => {
+      const render = vi.fn(() => "x");
+
+      generateReturn(
+        { kind: "value", render },
+        INPUT,
+        STATE,
+        createMockOrchestrator({ returnType: null }),
       );
-      const input = createMockInput({
-        enumMembers: new Map([["State", new Map([["IDLE", 0]])]]),
-      });
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({
-        returnType: "u32",
-        exprCode: "count",
-      });
 
-      const result = generateReturn(ctx, input, state, orchestrator);
-
-      expect(result.code).toBe("return count;");
-    });
-
-    it("does not throw for complex expressions containing enum-like identifiers", () => {
-      // Complex expression (a + b) should not be checked for enum membership
-      const ctx = createMockReturnStatement(
-        createMockExpression({ text: "a + IDLE", isSimple: false }),
-      );
-      const input = createMockInput({
-        enumMembers: new Map([["State", new Map([["IDLE", 0]])]]),
-      });
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({
-        returnType: "u32",
-        exprCode: "a + IDLE",
-      });
-
-      // Should not throw because expression is complex
-      const result = generateReturn(ctx, input, state, orchestrator);
-
-      expect(result.code).toBe("return a + IDLE;");
+      expect(render).toHaveBeenCalledWith(null);
     });
   });
-
-  // ========================================================================
-  // Tests - generateIf
-  // ========================================================================
 
   describe("generateIf", () => {
-    it("generates simple if statement", () => {
-      const ctx = createMockIfStatement();
-      const input = createMockInput();
-      const state = createMockState();
+    it("generates a simple if statement", () => {
+      const result = generateIf(
+        ifPlan(),
+        INPUT,
+        STATE,
+        createMockOrchestrator(),
+      );
+
+      expect(result.code).toBe("if (cond) { then }");
+    });
+
+    it("generates an if-else statement", () => {
+      const result = generateIf(
+        ifPlan({ renderElse: () => "{ otherwise }" }),
+        INPUT,
+        STATE,
+        createMockOrchestrator(),
+      );
+
+      expect(result.code).toBe("if (cond) { then } else { otherwise }");
+    });
+
+    it("does not render an else branch that is not there", () => {
+      // The plan says `null`, and there is nothing to call -- asserted because
+      // rendering a branch that does not exist would register its effects.
+      const result = generateIf(
+        ifPlan({ renderElse: null }),
+        INPUT,
+        STATE,
+        createMockOrchestrator(),
+      );
+
+      expect(result.code).not.toContain("else");
+    });
+
+    // Issue #250: a temp queued by the CONDITION has to be declared in front of
+    // the statement, not inside the branch that reads it.
+    it("flushes temp declarations before the branches", () => {
       const orchestrator = createMockOrchestrator({
-        exprCode: "flag",
-        statementCode: "{ x = 1; }",
+        tempDeclarations: "int32_t tmp = f();",
       });
+      const order: string[] = [];
 
-      const result = generateIf(ctx, input, state, orchestrator);
+      const result = generateIf(
+        ifPlan({
+          renderCondition: () => {
+            order.push("condition");
+            return "cond";
+          },
+          renderThen: () => {
+            order.push("then");
+            return "{ then }";
+          },
+        }),
+        INPUT,
+        STATE,
+        orchestrator,
+      );
 
-      expect(result.code).toBe("if (flag) { x = 1; }");
+      expect(result.code.startsWith("int32_t tmp = f();\n")).toBe(true);
+      expect(order).toEqual(["condition", "then"]);
     });
 
-    it("generates if-else statement", () => {
-      const ctx = createMockIfStatement({
-        thenStmt: createMockStatement(),
-        elseStmt: createMockStatement(),
-      });
-      const input = createMockInput();
-      const state = createMockState();
-      let stmtCount = 0;
-      const orchestrator = {
-        ...createMockOrchestrator({ exprCode: "x > 0" }),
-        generateStatement: vi.fn(() =>
-          stmtCount++ === 0 ? "{ a = 1; }" : "{ a = 2; }",
-        ),
-      } as unknown as IOrchestrator;
-
-      const result = generateIf(ctx, input, state, orchestrator);
-
-      expect(result.code).toBe("if (x > 0) { a = 1; } else { a = 2; }");
-    });
-
-    it("flushes temp declarations before branches (Issue #250)", () => {
-      const ctx = createMockIfStatement();
-      const input = createMockInput();
-      const state = createMockState();
+    it("sets up the length cache from the plan's counts", () => {
       const orchestrator = createMockOrchestrator({
-        exprCode: "tmp_1",
-        tempDeclarations: "int tmp_1 = getValue();",
-        statementCode: "{ use(tmp_1); }",
+        lengthCacheDecls: "size_t cnx_len_s = strlen(s);\n",
       });
+      const lengthCounts = new Map([["s", 3]]);
 
-      const result = generateIf(ctx, input, state, orchestrator);
+      const result = generateIf(
+        ifPlan({ lengthCounts }),
+        INPUT,
+        STATE,
+        orchestrator,
+      );
 
-      expect(result.code).toContain("int tmp_1 = getValue();");
-      expect(result.code).toContain("if (tmp_1)");
+      expect(orchestrator.setupLengthCache).toHaveBeenCalledWith(lengthCounts);
+      expect(result.code.startsWith("size_t cnx_len_s = strlen(s);\n")).toBe(
+        true,
+      );
     });
 
-    it("sets up strlen cache for length optimization", () => {
-      const ctx = createMockIfStatement();
-      const input = createMockInput();
-      const state = createMockState();
-      const setupLengthCache = vi.fn(() => "size_t __len_str = strlen(str);\n");
-      const orchestrator = {
-        ...createMockOrchestrator({ exprCode: "__len_str > 0" }),
-        setupLengthCache,
-        countStringLengthAccesses: vi.fn(() => new Map([["str", 2]])),
-      } as unknown as IOrchestrator;
+    it("clears the length cache after generating", () => {
+      const orchestrator = createMockOrchestrator();
 
-      const result = generateIf(ctx, input, state, orchestrator);
+      generateIf(ifPlan(), INPUT, STATE, orchestrator);
 
-      expect(setupLengthCache).toHaveBeenCalled();
-      expect(result.code).toContain("__len_str");
-    });
-
-    it("clears length cache after generating", () => {
-      const ctx = createMockIfStatement();
-      const input = createMockInput();
-      const state = createMockState();
-      const clearLengthCache = vi.fn();
-      const orchestrator = {
-        ...createMockOrchestrator(),
-        clearLengthCache,
-      } as unknown as IOrchestrator;
-
-      generateIf(ctx, input, state, orchestrator);
-
-      expect(clearLengthCache).toHaveBeenCalled();
+      expect(orchestrator.clearLengthCache).toHaveBeenCalledTimes(1);
     });
   });
 
-  // ========================================================================
-  // Tests - generateWhile
-  // ========================================================================
-
   describe("generateWhile", () => {
-    it("generates simple while loop", () => {
-      const ctx = createMockWhileStatement();
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({
-        exprCode: "i < 10",
-        statementCode: "{ i++; }",
-      });
+    it("generates a simple while loop", () => {
+      const result = generateWhile(
+        loop(),
+        INPUT,
+        STATE,
+        createMockOrchestrator(),
+      );
 
-      const result = generateWhile(ctx, input, state, orchestrator);
-
-      expect(result.code).toBe("while (i < 10) { i++; }");
+      expect(result.code).toBe("while (cond) { body }");
     });
 
-    it("flushes temp declarations before body (Issue #250)", () => {
-      const ctx = createMockWhileStatement();
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({
-        exprCode: "tmp_1",
-        tempDeclarations: "bool tmp_1 = hasMore();",
-        statementCode: "{ process(); }",
-      });
+    it("renders the condition before the body (Issue #250)", () => {
+      const order: string[] = [];
 
-      const result = generateWhile(ctx, input, state, orchestrator);
+      generateWhile(
+        loop({
+          renderCondition: () => {
+            order.push("condition");
+            return "cond";
+          },
+          renderBody: () => {
+            order.push("body");
+            return "{ body }";
+          },
+        }),
+        INPUT,
+        STATE,
+        createMockOrchestrator(),
+      );
 
-      expect(result.code).toContain("bool tmp_1 = hasMore();");
-      expect(result.code).toContain("while (tmp_1)");
+      expect(order).toEqual(["condition", "body"]);
+    });
+
+    it("hoists the condition's temps in front of the loop", () => {
+      const result = generateWhile(
+        loop(),
+        INPUT,
+        STATE,
+        createMockOrchestrator({ tempDeclarations: "int32_t tmp = f();" }),
+      );
+
+      expect(result.code).toBe("int32_t tmp = f();\nwhile (cond) { body }");
     });
 
     it("returns empty effects", () => {
-      const ctx = createMockWhileStatement();
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator();
-
-      const result = generateWhile(ctx, input, state, orchestrator);
-
-      expect(result.effects).toEqual([]);
+      expect(
+        generateWhile(loop(), INPUT, STATE, createMockOrchestrator()).effects,
+      ).toEqual([]);
     });
   });
-
-  // ========================================================================
-  // Tests - generateDoWhile
-  // ========================================================================
 
   describe("generateDoWhile", () => {
-    it("generates simple do-while loop (ADR-027)", () => {
-      const ctx = createMockDoWhileStatement();
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({
-        exprCode: "count > 0",
-        blockCode: "{ count--; }",
-      });
+    it("generates a simple do-while loop (ADR-027)", () => {
+      const result = generateDoWhile(
+        loop(),
+        INPUT,
+        STATE,
+        createMockOrchestrator(),
+      );
 
-      const result = generateDoWhile(ctx, input, state, orchestrator);
-
-      expect(result.code).toBe("do { count--; } while (count > 0);");
+      expect(result.code).toBe("do { body } while (cond);");
     });
 
-    it("flushes temp declarations before loop (Issue #250)", () => {
-      const ctx = createMockDoWhileStatement();
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({
-        exprCode: "tmp_1",
-        tempDeclarations: "int tmp_1 = check();",
-        blockCode: "{ work(); }",
-      });
+    // The whole difference between the two loop generators, which share one
+    // plan shape: `do-while` renders the BODY first, because that is the order
+    // the source reads and the order the temps must come out in.
+    it("renders the body before the condition", () => {
+      const order: string[] = [];
 
-      const result = generateDoWhile(ctx, input, state, orchestrator);
+      generateDoWhile(
+        loop({
+          renderCondition: () => {
+            order.push("condition");
+            return "cond";
+          },
+          renderBody: () => {
+            order.push("body");
+            return "{ body }";
+          },
+        }),
+        INPUT,
+        STATE,
+        createMockOrchestrator(),
+      );
 
-      expect(result.code).toContain("int tmp_1 = check();");
-      expect(result.code).toContain("while (tmp_1);");
+      expect(order).toEqual(["body", "condition"]);
+    });
+
+    it("hoists the condition's temps in front of the loop", () => {
+      const result = generateDoWhile(
+        loop(),
+        INPUT,
+        STATE,
+        createMockOrchestrator({ tempDeclarations: "int32_t tmp = f();" }),
+      );
+
+      expect(result.code).toBe("int32_t tmp = f();\ndo { body } while (cond);");
     });
   });
 
-  // ========================================================================
-  // Tests - generateForVarDecl
-  // ========================================================================
+  describe("generateForever", () => {
+    it("lowers to the MISRA Rule 14.3 idiom with its annotation (ADR-068)", () => {
+      const result = generateForever(
+        { renderBody: () => "{ body }" },
+        INPUT,
+        STATE,
+        createMockOrchestrator(),
+      );
+
+      expect(result.code).toContain("for (;;) { body }");
+      expect(result.code).toContain("14.3");
+    });
+  });
 
   describe("generateForVarDecl", () => {
-    it("generates simple variable declaration", () => {
-      const ctx = createMockForVarDecl({ identifier: "i" });
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({ typeCode: "int" });
+    it("generates a simple variable declaration", () => {
+      const result = generateForVarDecl(
+        varDecl(),
+        INPUT,
+        STATE,
+        createMockOrchestrator(),
+      );
 
-      const result = generateForVarDecl(ctx, input, state, orchestrator);
-
-      expect(result.code).toBe("int i");
+      expect(result.code).toBe("int32_t i");
     });
 
-    it("generates declaration with initialization", () => {
-      const ctx = createMockForVarDecl({
-        identifier: "i",
-        expr: createMockExpression({ text: "0" }),
-      });
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({
-        typeCode: "int",
-        exprCode: "0",
-      });
+    it("generates a declaration with an initializer", () => {
+      const result = generateForVarDecl(
+        varDecl({ renderInitializer: () => "0" }),
+        INPUT,
+        STATE,
+        createMockOrchestrator(),
+      );
 
-      const result = generateForVarDecl(ctx, input, state, orchestrator);
-
-      expect(result.code).toBe("int i = 0");
+      expect(result.code).toBe("int32_t i = 0");
     });
 
-    it("adds atomic modifier as volatile", () => {
-      const ctx = createMockForVarDecl({
-        identifier: "count",
-        atomicMod: true,
-      });
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({ typeCode: "int" });
+    // #1277: the declared type IS the initializer's expected type, which is
+    // what types a struct literal that no declaration names.
+    it("renders the initializer with the declared type as its expected type", () => {
+      const renderInitializer = vi.fn(() => "{ 1, 2 }");
 
-      const result = generateForVarDecl(ctx, input, state, orchestrator);
+      generateForVarDecl(
+        varDecl({ typeName: "Point", renderInitializer }),
+        INPUT,
+        STATE,
+        createMockOrchestrator(),
+      );
 
-      expect(result.code).toBe("volatile int count");
+      expect(renderInitializer).toHaveBeenCalledWith("Point");
     });
 
-    it("adds volatile modifier", () => {
-      const ctx = createMockForVarDecl({
-        identifier: "reg",
-        volatileMod: true,
-      });
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({ typeCode: "uint8_t" });
-
-      const result = generateForVarDecl(ctx, input, state, orchestrator);
-
-      expect(result.code).toBe("volatile uint8_t reg");
+    it.each([
+      ["atomic", { atomic: "volatile " }, "volatile int32_t i"],
+      ["volatile", { volatile: "volatile " }, "volatile int32_t i"],
+    ])("carries the %s modifier", (_label, mods, expected) => {
+      expect(
+        generateForVarDecl(
+          varDecl(mods),
+          INPUT,
+          STATE,
+          createMockOrchestrator(),
+        ).code,
+      ).toBe(expected);
     });
 
-    it("registers local variable (ADR-016)", () => {
-      const ctx = createMockForVarDecl({ identifier: "index" });
-      const input = createMockInput();
-      const state = createMockState();
-      const registerLocalVariable = vi.fn((name: string) => name);
-      const orchestrator = {
-        ...createMockOrchestrator(),
-        registerLocalVariable,
-      } as unknown as IOrchestrator;
+    // ADR-016/ADR-057: registration is what yields the EMITTED name, and it
+    // happens before the dimensions and initializer render.
+    it("registers the local variable and declares the name it hands back", () => {
+      const orchestrator = createMockOrchestrator();
+      const order: string[] = [];
 
-      generateForVarDecl(ctx, input, state, orchestrator);
+      const result = generateForVarDecl(
+        varDecl({
+          renderInitializer: () => {
+            order.push("initializer");
+            return "0";
+          },
+        }),
+        INPUT,
+        STATE,
+        orchestrator,
+      );
 
-      expect(registerLocalVariable).toHaveBeenCalledWith("index");
+      expect(orchestrator.registerLocalVariable).toHaveBeenCalledWith("i");
+      expect(result.code).toContain(" i");
+      expect(order).toEqual(["initializer"]);
     });
 
-    it("generates array dimensions (ADR-036)", () => {
-      const arrayDim = {} as Parser.ArrayDimensionContext;
-      const ctx = createMockForVarDecl({
-        identifier: "arr",
-        arrayDims: [arrayDim],
-      });
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({ typeCode: "int" });
+    // #1646: the array branch REASSIGNS, so it drops the modifiers the
+    // non-array branch carries. Pinned as current behavior, not endorsed --
+    // the fix changes emitted C and is tracked on its own card.
+    it("drops the modifiers on the array branch (#1646, pre-existing)", () => {
+      const result = generateForVarDecl(
+        varDecl({
+          volatile: "volatile ",
+          renderArrayDimensions: () => "[10]",
+        }),
+        INPUT,
+        STATE,
+        createMockOrchestrator(),
+      );
 
-      const result = generateForVarDecl(ctx, input, state, orchestrator);
-
-      expect(result.code).toBe("int arr[10]");
+      expect(result.code).toBe("int32_t i[10]");
+      expect(result.code).not.toContain("volatile");
     });
   });
-
-  // ========================================================================
-  // Tests - generateForAssignment
-  // ========================================================================
 
   describe("generateForAssignment", () => {
-    it("generates simple assignment with <- operator", () => {
-      const ctx = createMockForAssignment({
-        target: createMockAssignmentTarget("i"),
-        operator: createMockAssignmentOperator("<-"),
-      });
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({ exprCode: "0" });
-
-      const result = generateForAssignment(ctx, input, state, orchestrator);
-
-      expect(result.code).toBe("i = 0");
+    it.each([
+      ["<-", "i = 0"],
+      ["+<-", "i += 0"],
+      ["-<-", "i -= 0"],
+      ["*<-", "i *= 0"],
+      ["/<-", "i /= 0"],
+    ])("maps the %s operator", (operatorText, expected) => {
+      expect(
+        generateForAssignment(
+          assignment({ operatorText }),
+          INPUT,
+          STATE,
+          createMockOrchestrator(),
+        ).code,
+      ).toBe(expected);
     });
 
-    it("generates compound assignment with +<- operator", () => {
-      const ctx = createMockForAssignment({
-        target: createMockAssignmentTarget("i"),
-        operator: createMockAssignmentOperator("+<-"),
-      });
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({ exprCode: "1" });
+    it("renders the target before the value", () => {
+      const order: string[] = [];
 
-      const result = generateForAssignment(ctx, input, state, orchestrator);
+      generateForAssignment(
+        assignment({
+          renderTarget: () => {
+            order.push("target");
+            return "i";
+          },
+          renderValue: () => {
+            order.push("value");
+            return "0";
+          },
+        }),
+        INPUT,
+        STATE,
+        createMockOrchestrator(),
+      );
 
-      expect(result.code).toBe("i += 1");
-    });
-
-    it("maps all assignment operators correctly", () => {
-      const operators: [string, string][] = [
-        ["<-", "="],
-        ["+<-", "+="],
-        ["-<-", "-="],
-        ["*<-", "*="],
-        ["/<-", "/="],
-        ["%<-", "%="],
-        ["&<-", "&="],
-        ["|<-", "|="],
-        ["^<-", "^="],
-        ["<<<-", "<<="],
-        [">><-", ">>="],
-      ];
-
-      for (const [cnextOp, cOp] of operators) {
-        const ctx = createMockForAssignment({
-          target: createMockAssignmentTarget("x"),
-          operator: createMockAssignmentOperator(cnextOp),
-        });
-        const input = createMockInput();
-        const state = createMockState();
-        const orchestrator = createMockOrchestrator({ exprCode: "1" });
-
-        const result = generateForAssignment(ctx, input, state, orchestrator);
-
-        expect(result.code).toBe(`x ${cOp} 1`);
-      }
+      expect(order).toEqual(["target", "value"]);
     });
   });
 
-  // ========================================================================
-  // Tests - generateFor
-  // ========================================================================
-
   describe("generateFor", () => {
-    it("generates for loop with all parts", () => {
-      const ctx = createMockForStatement({
-        init: createMockForInit({
-          varDecl: createMockForVarDecl({
-            identifier: "i",
-            expr: createMockExpression({ text: "0" }),
+    it("generates a for loop with every part", () => {
+      const result = generateFor(
+        forPlan({
+          init: {
+            kind: "varDecl",
+            plan: varDecl({ renderInitializer: () => "0" }),
+          },
+          update: assignment({ operatorText: "+<-", renderValue: () => "1" }),
+        }),
+        INPUT,
+        STATE,
+        createMockOrchestrator(),
+      );
+
+      expect(result.code).toBe("for (int32_t i = 0; i < 10; i += 1) { body }");
+    });
+
+    it("generates a for loop whose init is an assignment", () => {
+      const result = generateFor(
+        forPlan({ init: { kind: "assignment", plan: assignment() } }),
+        INPUT,
+        STATE,
+        createMockOrchestrator(),
+      );
+
+      expect(result.code).toBe("for (i = 0; i < 10; ) { body }");
+    });
+
+    it("generates a for loop with neither init nor update", () => {
+      const result = generateFor(
+        forPlan(),
+        INPUT,
+        STATE,
+        createMockOrchestrator(),
+      );
+
+      expect(result.code).toBe("for (; i < 10; ) { body }");
+    });
+
+    // #1445: the init and the update go through the SAME renderer. They were
+    // two code paths with the same three reads and the same operator mapping,
+    // which is the duplicate-path anti-pattern at its smallest.
+    it("renders the update through the same path as an assignment init", () => {
+      const asInit = generateFor(
+        forPlan({
+          init: {
+            kind: "assignment",
+            plan: assignment({ operatorText: "+<-" }),
+          },
+        }),
+        INPUT,
+        STATE,
+        createMockOrchestrator(),
+      );
+      const asUpdate = generateFor(
+        forPlan({ update: assignment({ operatorText: "+<-" }) }),
+        INPUT,
+        STATE,
+        createMockOrchestrator(),
+      );
+
+      expect(asInit.code).toContain("for (i += 0;");
+      expect(asUpdate.code).toContain("; i += 0)");
+    });
+
+    // Issue #250: four clauses, three flush points between them, so each
+    // clause's temps land in the right group and none lands inside the body.
+    it("renders the clauses in header order with a flush between each", () => {
+      const orchestrator = createMockOrchestrator();
+      const order: string[] = [];
+      const note = (label: string, value: string) => () => {
+        order.push(label);
+        return value;
+      };
+
+      generateFor(
+        forPlan({
+          init: {
+            kind: "assignment",
+            plan: assignment({
+              renderTarget: note("init", "i"),
+              renderValue: () => "0",
+            }),
+          },
+          renderCondition: note("condition", "i < 10"),
+          update: assignment({
+            renderTarget: note("update", "i"),
+            renderValue: () => "1",
           }),
+          renderBody: note("body", "{ body }"),
         }),
-        expr: createMockExpression({ text: "i < 10" }),
-        update: createMockForUpdate(),
-        stmt: createMockStatement(),
-      });
-      const input = createMockInput();
-      const state = createMockState();
-      // #1277: a `for` header's declaration types its initializer through
-      // `generateExpressionWithExpectedType`, like any other declaration, so
-      // the initializer no longer arrives on the plain `generateExpression`
-      // sequence. Stubbing only that one made this read as a wrong loop
-      // rather than as a call nobody had stubbed.
-      let exprCount = 0;
-      const orchestrator = {
-        ...createMockOrchestrator({ typeCode: "int" }),
-        generateExpressionWithExpectedType: vi.fn(() => "0"),
-        generateExpression: vi.fn(() => {
-          return ["i < 10", "1"][exprCount++] ?? "x";
-        }),
-        generateStatement: vi.fn(() => "{ body(); }"),
-      } as unknown as IOrchestrator;
+        INPUT,
+        STATE,
+        orchestrator,
+      );
 
-      const result = generateFor(ctx, input, state, orchestrator);
-
-      expect(result.code).toContain(
-        "for (int i = 0; i < 10; i += 1) { body(); }",
+      expect(order).toEqual(["init", "condition", "update", "body"]);
+      expect(orchestrator.flushPendingTempDeclarations).toHaveBeenCalledTimes(
+        3,
       );
     });
 
-    it("generates for loop with assignment init", () => {
-      const ctx = createMockForStatement({
-        init: createMockForInit({
-          assignment: createMockForAssignment({
-            target: createMockAssignmentTarget("i"),
-            operator: createMockAssignmentOperator("<-"),
-          }),
-        }),
-        expr: createMockExpression({ text: "i < 10" }),
-      });
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({
-        exprCode: "0",
-        statementCode: "{ }",
-      });
+    it("hoists every clause's temps in front of the loop", () => {
+      const result = generateFor(
+        forPlan(),
+        INPUT,
+        STATE,
+        createMockOrchestrator({ tempDeclarations: "int32_t tmp = f();" }),
+      );
 
-      const result = generateFor(ctx, input, state, orchestrator);
-
-      expect(result.code).toContain("for (i = 0;");
-    });
-
-    it("flushes temp declarations from all stages (Issue #250)", () => {
-      const ctx = createMockForStatement({
-        init: createMockForInit({
-          varDecl: createMockForVarDecl(),
-        }),
-        expr: createMockExpression(),
-        update: createMockForUpdate(),
-      });
-      const input = createMockInput();
-      const state = createMockState();
-      let flushCount = 0;
-      const temps = ["int tmp_init;", "int tmp_cond;", "int tmp_update;", ""];
-      const orchestrator = {
-        ...createMockOrchestrator(),
-        flushPendingTempDeclarations: vi.fn(() => temps[flushCount++] ?? ""),
-      } as unknown as IOrchestrator;
-
-      const result = generateFor(ctx, input, state, orchestrator);
-
-      // All temps should be prepended before the for loop
-      expect(result.code).toContain("int tmp_init;");
-      expect(result.code).toContain("int tmp_cond;");
-      expect(result.code).toContain("int tmp_update;");
-      expect(result.code).toContain("for (");
-    });
-
-    it("collects effects from init", () => {
-      const ctx = createMockForStatement({
-        init: createMockForInit({
-          varDecl: createMockForVarDecl(),
-        }),
-        expr: createMockExpression({ text: "i < 10" }),
-      });
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator();
-
-      const result = generateFor(ctx, input, state, orchestrator);
-
-      // Effects come from generateForVarDecl which returns empty effects
-      expect(result.effects).toEqual([]);
+      // Three flushes, each returning the stub's declaration.
+      expect(result.code.split("int32_t tmp = f();").length - 1).toBe(3);
+      expect(result.code).toContain("for (; i < 10; ) { body }");
     });
   });
 });

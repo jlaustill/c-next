@@ -1477,4 +1477,207 @@ describe("CodeGenerator Coverage Tests", () => {
       expect(code).toBeDefined();
     });
   });
+
+  // ========================================================================
+  // Control-flow planning (#1445 box 3)
+  // ========================================================================
+  //
+  // `ControlFlowGenerator` takes plans now, and the tree navigation it used to
+  // do lives in `CodeGenerator.plan*`. Those planners are private, so they are
+  // exercised the way production reaches them -- by generating real source --
+  // rather than by making eight methods public for a test. That also means
+  // each case asserts the EMITTED C, which is the thing the planner exists to
+  // produce, instead of the shape of an intermediate record.
+  describe("control-flow planners", () => {
+    it("plans a void return and a value return from the same function body", () => {
+      const { code } = setupGenerator(`
+        u8 pick(u8 n) {
+          if (n > 1) {
+            return 2;
+          }
+          return 0;
+        }
+      `);
+
+      // #1277: the declared return type reaches the literal, so MISRA C:2012
+      // Rule 7.2's suffix does too.
+      expect(code).toContain("return 2U;");
+      expect(code).toContain("return 0U;");
+    });
+
+    it("plans a bare return in a void function", () => {
+      const { code } = setupGenerator(`
+        void stop(u8 n) {
+          if (n > 0) {
+            return;
+          }
+        }
+      `);
+
+      expect(code).toContain("return;");
+    });
+
+    it("plans an if with no else", () => {
+      const { code } = setupGenerator(`
+        u8 main() {
+          u8 n <- 0;
+          if (n > 0) {
+            n <- 1;
+          }
+          return n;
+        }
+      `);
+
+      expect(code).toContain("if (n > 0)");
+      expect(code).not.toContain("else");
+    });
+
+    it("plans an if with an else", () => {
+      const { code } = setupGenerator(`
+        u8 main() {
+          u8 n <- 0;
+          if (n > 0) {
+            n <- 1;
+          } else {
+            n <- 2;
+          }
+          return n;
+        }
+      `);
+
+      expect(code).toContain("} else {");
+    });
+
+    // The counts come from the condition AND the then block, which is why a
+    // read in each is enough to reach the threshold of two.
+    it("plans the strlen cache from the condition and the then block", () => {
+      const { code } = setupGenerator(`
+        u8 main() {
+          string<16> s <- "hi";
+          u32 n <- 0;
+          if (s.char_count > 1) {
+            n <- s.char_count;
+          }
+          return 0;
+        }
+      `);
+
+      expect(code).toContain("strlen(s)");
+      expect(code).toContain("cnx_len_s");
+    });
+
+    it("plans a while loop", () => {
+      const { code } = setupGenerator(`
+        u8 main() {
+          u8 n <- 0;
+          while (n < 3) {
+            n <- n + 1;
+          }
+          return n;
+        }
+      `);
+
+      expect(code).toContain("while (n < 3)");
+    });
+
+    it("plans a do-while loop (ADR-027)", () => {
+      const { code } = setupGenerator(`
+        u8 main() {
+          u8 n <- 0;
+          do {
+            n <- n + 1;
+          } while (n < 3);
+          return n;
+        }
+      `);
+
+      expect(code).toMatch(/do \{[\s\S]*\} while \(n < 3\);/);
+    });
+
+    it("plans a forever loop as the MISRA Rule 14.3 idiom (ADR-068)", () => {
+      const { code } = setupGenerator(`
+        void spin() {
+          forever {
+            u8 n <- 0;
+          }
+        }
+      `);
+
+      expect(code).toContain("for (;;)");
+      expect(code).toContain("14.3");
+    });
+
+    it("plans a for loop with a declaration init and an update", () => {
+      const { code } = setupGenerator(`
+        u8 main() {
+          u8 total <- 0;
+          for (u32 i <- 0; i < 4; i +<- 1) {
+            total <- total + 1;
+          }
+          return total;
+        }
+      `);
+
+      expect(code).toContain("for (uint32_t i = 0U; i < 4; i += 1)");
+    });
+
+    it("plans a for loop whose init is an assignment to an existing variable", () => {
+      const { code } = setupGenerator(`
+        u8 main() {
+          u32 i <- 9;
+          u8 total <- 0;
+          for (i <- 0; i < 4; i +<- 1) {
+            total <- total + 1;
+          }
+          return total;
+        }
+      `);
+
+      expect(code).toContain("for (i = 0; i < 4; i += 1)");
+    });
+
+    it("plans a for loop with neither init nor update", () => {
+      const { code } = setupGenerator(`
+        u8 main() {
+          u32 i <- 0;
+          for (; i < 4;) {
+            i <- i + 1;
+          }
+          return 0;
+        }
+      `);
+
+      expect(code).toContain("for (; i < 4; )");
+    });
+
+    // The init and the update are ONE plan shape and one renderer (#1445), so
+    // an operator has to map the same way in both positions.
+    it("maps a compound operator identically in the init and the update", () => {
+      const { code } = setupGenerator(`
+        u8 main() {
+          u32 i <- 1;
+          for (i *<- 2; i < 16; i *<- 2) {
+            u8 n <- 0;
+          }
+          return 0;
+        }
+      `);
+
+      expect(code).toContain("for (i *= 2; i < 16; i *= 2)");
+    });
+
+    it("carries a for variable's modifiers (#696)", () => {
+      const { code } = setupGenerator(`
+        u8 main() {
+          u8 total <- 0;
+          for (volatile u32 i <- 0; i < 4; i +<- 1) {
+            total <- total + 1;
+          }
+          return total;
+        }
+      `);
+
+      expect(code).toContain("for (volatile uint32_t i = 0U;");
+    });
+  });
 });

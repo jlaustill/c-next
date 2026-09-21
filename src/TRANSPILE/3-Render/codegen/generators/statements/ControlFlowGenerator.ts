@@ -7,24 +7,46 @@
  * - while loops
  * - do-while loops
  * - for loops
+ *
+ * ## It renders plans; it does not read a tree (#1445 box 3)
+ *
+ * Every question these eight used to ask of a parse node -- does this `return`
+ * carry an expression, does this `if` have an else, is this `for` init a
+ * declaration or an assignment -- is answered by a `plan*` method on
+ * `CodeGenerator` and arrives as a record.
+ *
+ * ## What did NOT move, and why: the flush points
+ *
+ * Almost every field on these plans is a THUNK, and the reason is Issue #250
+ * rather than conditionality. Rendering a clause can queue a temp declaration
+ * into `pendingTempDeclarations`, and these generators hoist those temps out in
+ * front of the statement by flushing BETWEEN clauses: a `for` flushes after its
+ * init, after its condition and after its update, so each clause's temps land in
+ * the right group and none of them lands inside the loop body where the header
+ * that reads it cannot see it.
+ *
+ * Rendering a clause at plan time would collapse those flush points into one --
+ * the first flush would return everything. So the interleaving stays here, in
+ * the generator, where the statement's shape is legible, and the planner hands
+ * over unevaluated renders rather than strings.
+ *
+ * The one eager field is `IPlannedIf.lengthCounts`: counting repeated
+ * `.char_count` reads walks the tree and emits nothing, so asking at plan time
+ * costs what asking at render time cost.
  */
 import ComplianceAnnotations from "../../../../2-Plan/ComplianceAnnotations";
-import {
-  ReturnStatementContext,
-  IfStatementContext,
-  WhileStatementContext,
-  DoWhileStatementContext,
-  ForStatementContext,
-  ForeverStatementContext,
-  ForVarDeclContext,
-  ForAssignmentContext,
-} from "../../../../../PARSE/2-Parse/grammar/CNextParser";
 import IGeneratorOutput from "../IGeneratorOutput";
 import TGeneratorEffect from "../TGeneratorEffect";
 import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IOrchestrator from "../IOrchestrator";
-import VariableModifierBuilder from "../../helpers/VariableModifierBuilder";
+import IPlannedFor from "../../types/IPlannedFor";
+import IPlannedForAssignment from "../../types/IPlannedForAssignment";
+import IPlannedForVarDecl from "../../types/IPlannedForVarDecl";
+import IPlannedForever from "../../types/IPlannedForever";
+import IPlannedIf from "../../types/IPlannedIf";
+import IPlannedLoop from "../../types/IPlannedLoop";
+import TPlannedReturn from "../../types/TPlannedReturn";
 import AssignmentOperatorMapper from "../../helpers/AssignmentOperatorMapper";
 
 /**
@@ -32,14 +54,14 @@ import AssignmentOperatorMapper from "../../helpers/AssignmentOperatorMapper";
  * Issue #477: Uses function return type as expected type for enum inference.
  */
 const generateReturn = (
-  node: ReturnStatementContext,
+  plan: TPlannedReturn,
   _input: IGeneratorInput,
   _state: IGeneratorState,
   orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
 
-  if (!node.expression()) {
+  if (plan.kind === "void") {
     return { code: "return;", effects };
   }
 
@@ -52,75 +74,58 @@ const generateReturn = (
   // the identical literal assigned to a local first compiled. A struct literal
   // takes its type from the position it stands in, and a return statement is
   // such a position; restricting the mechanism to enums made it one for enums
-  // only. `expectedType` means "what this position expects", so the condition
-  // was describing the consumers rather than the fact.
-  const returnType = orchestrator.getCurrentFunctionReturnType();
-  const exprCtx = node.expression()!;
-
-  // #1322: a bare enum member returned from a non-enum function is E0424 in
-  // pass 2.1 (ADR-017), and a struct literal that no position types is E0357.
-  // Threaded for EVERY return type, not only the ones whose literals cannot be
-  // written without it. A `return` expression is expected to be the declared
-  // return type -- that is the fact, and `expectedType` is the mechanism that
-  // carries it. Restricting it to enums (which is what stood here) described
-  // the consumers rather than the fact, and that is why #1277 existed.
+  // only.
+  //
+  // The return type is asked for HERE rather than captured in the plan: it
+  // belongs to the enclosing function, not to this node, and the generator is
+  // what holds that context.
   //
   // The measured consequence is wider than #1277: `return 1;` from a function
-  // returning `u8` now emits `return 1U;`, the MISRA C:2012 Rule 7.2 suffix
-  // that the identical literal already received in `u8 x <- 1;`. The rule did
-  // not reach a return statement only because the type did not. 505 fixtures
-  // move, every one of them adding a suffix or a cast that the declaration
-  // form already had.
-  const expr = returnType
-    ? orchestrator.generateExpressionWithExpectedType(exprCtx, returnType)
-    : orchestrator.generateExpression(exprCtx);
+  // returning `u8` emits `return 1U;`, the MISRA C:2012 Rule 7.2 suffix that
+  // the identical literal already received in `u8 x <- 1;`. The rule did not
+  // reach a return statement only because the type did not.
+  const expr = plan.render(orchestrator.getCurrentFunctionReturnType());
 
   return { code: `return ${expr};`, effects };
 };
 
 /**
  * Generate C code for an if statement.
- * Includes strlen optimization for repeated .length accesses.
+ * Includes strlen optimization for repeated .char_count accesses.
  */
 const generateIf = (
-  node: IfStatementContext,
+  plan: IPlannedIf,
   _input: IGeneratorInput,
   _state: IGeneratorState,
   orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
-  const statements = node.statement();
-
-  // Analyze condition and body for repeated .length accesses (strlen optimization)
-  const lengthCounts = orchestrator.countStringLengthAccesses(
-    node.expression(),
-  );
-
-  // Also count in the then branch if it's a block
-  const thenStmt = statements[0];
-  if (thenStmt.block()) {
-    orchestrator.countBlockLengthAccesses(thenStmt.block()!, lengthCounts);
-  }
 
   // Set up cache and generate declarations
-  const cacheDecls = orchestrator.setupLengthCache(lengthCounts);
+  const cacheDecls = orchestrator.setupLengthCache(plan.lengthCounts);
 
   // Generate with cache enabled
-  const condition = orchestrator.generateExpression(node.expression());
+  const condition = plan.renderCondition();
 
   // Issue #250: Flush any temp vars from condition BEFORE generating branches
   const conditionTemps = orchestrator.flushPendingTempDeclarations();
 
-  const thenBranch = orchestrator.generateStatement(thenStmt);
+  const thenBranch = plan.renderThen();
 
   let result = `if (${condition}) ${thenBranch}`;
 
-  if (statements.length > 1) {
-    const elseBranch = orchestrator.generateStatement(statements[1]);
-    result += ` else ${elseBranch}`;
+  if (plan.renderElse) {
+    result += ` else ${plan.renderElse()}`;
   }
 
-  // Clear cache after generating
+  // Clear cache after generating.
+  //
+  // #1645: this nulls the cache unconditionally while `setupLengthCache` only
+  // WRITES it when it emitted a declaration, so a nested statement clears its
+  // parent's cache on the way out and one expression renders two ways in one
+  // block. Pre-existing, output-visible, and deliberately preserved here --
+  // fixing it changes emitted C, and this slice's oracle is a byte-identical
+  // corpus.
   orchestrator.clearLengthCache();
 
   // Prepend condition temps and cache declarations
@@ -138,7 +143,7 @@ const generateIf = (
  * Generate C code for a while statement.
  */
 const generateWhile = (
-  node: WhileStatementContext,
+  plan: IPlannedLoop,
   _input: IGeneratorInput,
   _state: IGeneratorState,
   orchestrator: IOrchestrator,
@@ -148,13 +153,13 @@ const generateWhile = (
   // #1322: E0701/E0702 and the always-true check (E0707) are authored in
   // pass 2.1, which halts before this runs.
 
-  const condition = orchestrator.generateExpression(node.expression());
+  const condition = plan.renderCondition();
 
   // Issue #250: Flush any temp vars from condition BEFORE generating body
   // Otherwise they end up inside the loop body, causing "not declared" errors
   const conditionTemps = orchestrator.flushPendingTempDeclarations();
 
-  const body = orchestrator.generateStatement(node.statement());
+  const body = plan.renderBody();
   let result = `while (${condition}) ${body}`;
 
   // Prepend condition temps before the while statement
@@ -167,17 +172,20 @@ const generateWhile = (
 
 /**
  * Generate C code for a do-while statement (ADR-027).
+ *
+ * The body renders FIRST -- the same two thunks as `while`, called in the
+ * other order, because that is the order the source reads.
  */
 const generateDoWhile = (
-  node: DoWhileStatementContext,
+  plan: IPlannedLoop,
   _input: IGeneratorInput,
   _state: IGeneratorState,
   orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
 
-  const body = orchestrator.generateBlock(node.block());
-  const condition = orchestrator.generateExpression(node.expression());
+  const body = plan.renderBody();
+  const condition = plan.renderCondition();
 
   // Issue #250: Flush any temp vars from condition
   // For do-while, condition is evaluated after body, but temps must be declared before
@@ -196,65 +204,76 @@ const generateDoWhile = (
  * Generate variable declaration for for loop init (no trailing semicolon).
  */
 const generateForVarDecl = (
-  node: ForVarDeclContext,
+  plan: IPlannedForVarDecl,
   _input: IGeneratorInput,
   _state: IGeneratorState,
   orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
-  // Issue #696: Use shared modifier builder
-  const modifiers = VariableModifierBuilder.buildSimple(node);
-  // #1484: a `for` init declares a variable like any other, including one
-  // typed by an ADR-029 function-as-type.
-  const typeName = orchestrator.generateDeclaredType(node.type());
-  const declaredName = node.IDENTIFIER().getText();
 
   // ADR-016: Track local variables (allowed as bare identifiers inside scopes).
   // ADR-057: registration hands back the emitted name -- a `for` variable that
   // shadows a file-scope name moves, so `global.x` inside the loop body still
-  // reaches the global rather than the counter.
-  const name = orchestrator.registerLocalVariable(declaredName);
+  // reaches the global rather than the counter. It happens before the
+  // dimensions and the initializer render, which is why those two are thunks.
+  const name = orchestrator.registerLocalVariable(plan.declaredName);
 
-  let result = `${modifiers.atomic}${modifiers.volatile}${typeName} ${name}`;
+  let result = `${plan.atomic}${plan.volatile}${plan.typeName} ${name}`;
 
-  // ADR-036: Handle array dimensions (now returns array for multi-dim support)
-  const arrayDims = node.arrayDimension();
-  if (arrayDims.length > 0) {
-    result = `${typeName} ${name}${orchestrator.generateArrayDimensions(arrayDims)}`;
+  // ADR-036: Handle array dimensions (now returns array for multi-dim support).
+  //
+  // #1646: this REASSIGNS rather than appends, so it drops the two modifiers
+  // above -- and it is reached only by the C-style `u32 a[2]` spelling that
+  // E0874 rejects everywhere except here, because the prefix `u32[2] a` form
+  // puts its dimensions in the TYPE and loses them entirely (emitting C that
+  // gcc refuses to compile). All three are pre-existing and preserved exactly:
+  // this slice's oracle is a byte-identical corpus, and every one of those
+  // fixes changes emitted C.
+  if (plan.renderArrayDimensions) {
+    result = `${plan.typeName} ${name}${plan.renderArrayDimensions()}`;
   }
 
   // Handle initialization
-  if (node.expression()) {
+  if (plan.renderInitializer) {
     // #1277: a `for` header declares a variable like any other, so its
     // initializer is typed by the declared type through the same mechanism a
     // block-level declaration uses. Without it a struct literal here was
     // rejected as "Cannot infer struct type".
-    const value = orchestrator.generateExpressionWithExpectedType(
-      node.expression()!,
-      typeName,
-    );
-    result += ` = ${value}`;
+    result += ` = ${plan.renderInitializer(plan.typeName)}`;
   }
 
   return { code: result, effects };
 };
 
 /**
- * Generate assignment for for loop init/update (no trailing semicolon).
+ * Generate an assignment in a `for` header, for the init and the update alike.
+ *
+ * #1445: ONE renderer, where there were two. `generateFor` open-coded the
+ * update form inline with the same three reads and the same
+ * `AssignmentOperatorMapper` call, which is the duplicate-code-path
+ * anti-pattern at its smallest -- a change to the operator mapping needed two
+ * edits and nothing said so.
+ *
+ * #1647: it is still a THIRD path beside the one a statement assignment takes.
+ * Concatenating target, operator and value skips ADR-065's classification, so
+ * ADR-044's overflow lowering and MISRA C:2012 Rule 7.2's literal suffix never
+ * run here -- `i +<- 10` on a `u8` saturates as a statement and WRAPS in a
+ * `for` update, which turns a terminating loop into an infinite one.
+ * Pre-existing and preserved exactly: this slice's oracle is a byte-identical
+ * corpus, and that fix changes the emitted C of every `for` header.
  */
 const generateForAssignment = (
-  node: ForAssignmentContext,
+  plan: IPlannedForAssignment,
   _input: IGeneratorInput,
   _state: IGeneratorState,
-  orchestrator: IOrchestrator,
+  _orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
-  const target = orchestrator.generateAssignmentTarget(node.assignmentTarget());
-  const value = orchestrator.generateExpression(node.expression());
-  const operatorCtx = node.assignmentOperator();
+  const target = plan.renderTarget();
+  const value = plan.renderValue();
   const cOp = AssignmentOperatorMapper.toCOperator(
-    operatorCtx.getText(),
-    operatorCtx.start?.line,
+    plan.operatorText,
+    plan.operatorLine,
   );
   return { code: `${target} ${cOp} ${value}`, effects };
 };
@@ -268,7 +287,7 @@ const generateForAssignment = (
  * the user should capture it in a variable explicitly.
  */
 const generateFor = (
-  node: ForStatementContext,
+  plan: IPlannedFor,
   input: IGeneratorInput,
   state: IGeneratorState,
   orchestrator: IOrchestrator,
@@ -276,63 +295,43 @@ const generateFor = (
   const effects: TGeneratorEffect[] = [];
 
   // #1322: `for (;;)` and an always-true condition are E0707 in pass 2.1
-  // (ADR-068). A header with no condition never reaches this generator.
+  // (ADR-068). A header with no condition never reaches this generator, which
+  // is why `renderCondition` is not nullable.
 
   let init = "";
-  const forInit = node.forInit();
-  if (forInit) {
-    if (forInit.forVarDecl()) {
-      const result = generateForVarDecl(
-        forInit.forVarDecl()!,
-        input,
-        state,
-        orchestrator,
-      );
-      init = result.code;
-      effects.push(...result.effects);
-    } else if (forInit.forAssignment()) {
-      const result = generateForAssignment(
-        forInit.forAssignment()!,
-        input,
-        state,
-        orchestrator,
-      );
-      init = result.code;
-      effects.push(...result.effects);
-    }
+  if (plan.init) {
+    const result =
+      plan.init.kind === "varDecl"
+        ? generateForVarDecl(plan.init.plan, input, state, orchestrator)
+        : generateForAssignment(plan.init.plan, input, state, orchestrator);
+    init = result.code;
+    effects.push(...result.effects);
   }
 
   // Issue #250: Flush temps from init before generating condition
   const initTemps = orchestrator.flushPendingTempDeclarations();
 
-  // `for (;;)` is E0707 in pass 2.1, so the controlling expression is
-  // guaranteed present here.
-  const conditionExpr = node.expression()!;
-
-  const condition = orchestrator.generateExpression(conditionExpr);
+  const condition = plan.renderCondition();
 
   // Issue #250: Flush temps from condition before generating update
   const conditionTemps = orchestrator.flushPendingTempDeclarations();
 
   let update = "";
-  const forUpdate = node.forUpdate();
-  if (forUpdate) {
-    const target = orchestrator.generateAssignmentTarget(
-      forUpdate.assignmentTarget(),
+  if (plan.update) {
+    const result = generateForAssignment(
+      plan.update,
+      input,
+      state,
+      orchestrator,
     );
-    const value = orchestrator.generateExpression(forUpdate.expression());
-    const operatorCtx = forUpdate.assignmentOperator();
-    const cOp = AssignmentOperatorMapper.toCOperator(
-      operatorCtx.getText(),
-      operatorCtx.start?.line,
-    );
-    update = `${target} ${cOp} ${value}`;
+    update = result.code;
+    effects.push(...result.effects);
   }
 
   // Issue #250: Flush temps from update before generating body
   const updateTemps = orchestrator.flushPendingTempDeclarations();
 
-  const body = orchestrator.generateStatement(node.statement());
+  const body = plan.renderBody();
 
   let result = `for (${init}; ${condition}; ${update}) ${body}`;
 
@@ -357,16 +356,16 @@ const generateFor = (
  * loops forever.
  */
 const generateForever = (
-  node: ForeverStatementContext,
+  plan: IPlannedForever,
   _input: IGeneratorInput,
   _state: IGeneratorState,
-  orchestrator: IOrchestrator,
+  _orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
 
   // #1322: `forever` in a non-void function is E0705 in pass 2.1 (ADR-068).
 
-  const body = orchestrator.generateBlock(node.block());
+  const body = plan.renderBody();
   const comment = ComplianceAnnotations.render(
     ComplianceAnnotations.FOREVER_LOOP,
   );

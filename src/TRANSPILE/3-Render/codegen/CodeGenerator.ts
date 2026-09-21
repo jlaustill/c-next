@@ -42,6 +42,14 @@ import type TPlannedTernary from "./types/TPlannedTernary";
 import generatePostfixExpression from "./generators/expressions/PostfixExpressionGenerator";
 // Statement generators
 import controlFlowGenerators from "./generators/statements/ControlFlowGenerator";
+import IPlannedFor from "./types/IPlannedFor";
+import IPlannedForAssignment from "./types/IPlannedForAssignment";
+import IPlannedForVarDecl from "./types/IPlannedForVarDecl";
+import IPlannedForever from "./types/IPlannedForever";
+import IPlannedIf from "./types/IPlannedIf";
+import IPlannedLoop from "./types/IPlannedLoop";
+import TPlannedReturn from "./types/TPlannedReturn";
+import VariableModifierBuilder from "./helpers/VariableModifierBuilder";
 import generateCriticalStatement from "./generators/statements/CriticalGenerator";
 import atomicGenerators from "./generators/statements/AtomicGenerator";
 import generateSwitchStatement from "./generators/statements/SwitchGenerator";
@@ -1144,29 +1152,6 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   // === strlen Optimization ===
-
-  /**
-   * Count string length accesses for caching.
-   * Part of IOrchestrator interface.
-   */
-  countStringLengthAccesses(
-    ctx: Parser.ExpressionContext,
-  ): Map<string, number> {
-    // Issue #644: Delegate to extracted StringLengthCounter (now static)
-    return StringLengthCounter.countExpression(ctx);
-  }
-
-  /**
-   * Count block length accesses.
-   * Part of IOrchestrator interface.
-   */
-  countBlockLengthAccesses(
-    ctx: Parser.BlockContext,
-    counts: Map<string, number>,
-  ): void {
-    // Issue #644: Delegate to extracted StringLengthCounter (now static)
-    StringLengthCounter.countBlockInto(ctx, counts);
-  }
 
   /**
    * Setup length cache and return declarations.
@@ -4763,28 +4748,229 @@ export default class CodeGenerator implements IOrchestrator {
   // Issue #387: Dead methods removed (generateGlobalMemberAccess, generateGlobalArrayAccess,
   // generateThisMemberAccess, generateThisArrayAccess) - now handled by unified doGenerateAssignmentTarget
 
+  // ========================================================================
+  // ADR-025/027/036/068 control-flow planning (#1445 box 3)
+  // ========================================================================
+
+  /**
+   * What a `return` carries. `node.expression()` was asked twice here -- once
+   * as a predicate and once with `!` -- which is what a union states once.
+   */
+  private planReturn(ctx: Parser.ReturnStatementContext): TPlannedReturn {
+    const exprCtx = ctx.expression();
+    if (!exprCtx) {
+      return { kind: "void" };
+    }
+
+    return {
+      kind: "value",
+      render: (expectedType) =>
+        expectedType
+          ? this.generateExpressionWithExpectedType(exprCtx, expectedType)
+          : this.generateExpression(exprCtx),
+    };
+  }
+
+  /**
+   * An `if`, with the strlen-cache counts it needs before anything renders.
+   *
+   * The counts are eager because counting walks the tree and emits nothing.
+   * The three branches are thunks because `generateIf` has to flush the
+   * condition's pending temps before either branch renders (Issue #250).
+   *
+   * The counts cover the condition and the THEN block only, never the else.
+   * That asymmetry is preserved rather than tidied: the cache declaration is
+   * emitted in front of the whole statement, but widening the counts would
+   * cache a length read only on a path the declaration's own value may not
+   * describe.
+   */
+  private planIf(ctx: Parser.IfStatementContext): IPlannedIf {
+    const conditionCtx = ctx.expression();
+    const statements = ctx.statement();
+    const thenStmt = statements[0];
+
+    const lengthCounts = StringLengthCounter.countExpression(conditionCtx);
+    const thenBlock = thenStmt.block();
+    if (thenBlock) {
+      StringLengthCounter.countBlockInto(thenBlock, lengthCounts);
+    }
+
+    return {
+      lengthCounts,
+      renderCondition: () => this.generateExpression(conditionCtx),
+      renderThen: () => this.generateStatement(thenStmt),
+      renderElse:
+        statements.length > 1
+          ? () => this.generateStatement(statements[1])
+          : null,
+    };
+  }
+
+  /** A `while`: condition then body. */
+  private planWhile(ctx: Parser.WhileStatementContext): IPlannedLoop {
+    return {
+      renderCondition: () => this.generateExpression(ctx.expression()),
+      renderBody: () => this.generateStatement(ctx.statement()),
+    };
+  }
+
+  /**
+   * A `do ... while` (ADR-027): the same two parts as `while`, and the
+   * generator calls them in the other order. Note the body is a BLOCK here and
+   * a statement there -- which is exactly the difference a thunk hides.
+   */
+  private planDoWhile(ctx: Parser.DoWhileStatementContext): IPlannedLoop {
+    return {
+      renderCondition: () => this.generateExpression(ctx.expression()),
+      renderBody: () => this.generateBlock(ctx.block()),
+    };
+  }
+
+  /** An ADR-068 `forever`: a body and nothing else. */
+  private planForever(ctx: Parser.ForeverStatementContext): IPlannedForever {
+    return { renderBody: () => this.generateBlock(ctx.block()) };
+  }
+
+  /**
+   * A variable declared in a `for` header.
+   *
+   * `typeName` is eager, and that is the one ordering claim worth checking:
+   * today it renders before `registerLocalVariable`, and planning is also
+   * before it, so the relative order holds. The dimensions and the initializer
+   * are thunks because registration sits between them and the type -- it is
+   * what yields the EMITTED name (ADR-057), and an initializer rendered ahead
+   * of it would resolve the loop variable's own name against the outer scope.
+   */
+  private planForVarDecl(ctx: Parser.ForVarDeclContext): IPlannedForVarDecl {
+    // Issue #696: Use shared modifier builder
+    const modifiers = VariableModifierBuilder.buildSimple(ctx);
+    // #1484: a `for` init declares a variable like any other, including one
+    // typed by an ADR-029 function-as-type.
+    const typeName = this.generateDeclaredType(ctx.type());
+    const arrayDims = ctx.arrayDimension();
+    const initCtx = ctx.expression();
+
+    return {
+      atomic: modifiers.atomic,
+      volatile: modifiers.volatile,
+      typeName,
+      declaredName: ctx.IDENTIFIER().getText(),
+      renderArrayDimensions:
+        arrayDims.length > 0
+          ? () => this.generateArrayDimensions(arrayDims)
+          : null,
+      renderInitializer: initCtx
+        ? (expectedType) =>
+            this.generateExpressionWithExpectedType(initCtx, expectedType)
+        : null,
+    };
+  }
+
+  /**
+   * An assignment in a `for` header -- the init form and the update form
+   * alike.
+   *
+   * #1445: it takes the three CHILDREN rather than a context, which is what
+   * lets one planner and one renderer serve `forAssignment` and `forUpdate`.
+   * The grammar gives them the same three parts and `generateFor` used to
+   * open-code the update, so the operator mapping lived in two places with
+   * nothing saying they had to agree.
+   */
+  private planForAssignment(
+    target: Parser.AssignmentTargetContext,
+    expression: Parser.ExpressionContext,
+    operator: Parser.AssignmentOperatorContext,
+  ): IPlannedForAssignment {
+    return {
+      renderTarget: () => this.generateAssignmentTarget(target),
+      renderValue: () => this.generateExpression(expression),
+      operatorText: operator.getText(),
+      operatorLine: operator.start?.line,
+    };
+  }
+
+  /** A `for` header and its body. */
+  private planFor(ctx: Parser.ForStatementContext): IPlannedFor {
+    const forUpdate = ctx.forUpdate();
+
+    return {
+      init: this.planForInit(ctx.forInit()),
+      // `for (;;)` is E0707 in pass 2.1, so the controlling expression is
+      // guaranteed present here.
+      renderCondition: () => this.generateExpression(ctx.expression()!),
+      update: forUpdate
+        ? this.planForAssignment(
+            forUpdate.assignmentTarget(),
+            forUpdate.expression(),
+            forUpdate.assignmentOperator(),
+          )
+        : null,
+      renderBody: () => this.generateStatement(ctx.statement()),
+    };
+  }
+
+  /** Which of the two `for` init forms this header uses, if either. */
+  private planForInit(ctx: Parser.ForInitContext | null): IPlannedFor["init"] {
+    const varDecl = ctx?.forVarDecl();
+    if (varDecl) {
+      return { kind: "varDecl", plan: this.planForVarDecl(varDecl) };
+    }
+
+    const assignment = ctx?.forAssignment();
+    if (assignment) {
+      return {
+        kind: "assignment",
+        plan: this.planForAssignment(
+          assignment.assignmentTarget(),
+          assignment.expression(),
+          assignment.assignmentOperator(),
+        ),
+      };
+    }
+
+    return null;
+  }
+
   private generateIf(ctx: Parser.IfStatementContext): string {
-    return this.invokeGenerator(controlFlowGenerators.generateIf, ctx);
+    return this.invokeGenerator(
+      controlFlowGenerators.generateIf,
+      this.planIf(ctx),
+    );
   }
 
   private generateWhile(ctx: Parser.WhileStatementContext): string {
-    return this.invokeGenerator(controlFlowGenerators.generateWhile, ctx);
+    return this.invokeGenerator(
+      controlFlowGenerators.generateWhile,
+      this.planWhile(ctx),
+    );
   }
 
   private generateDoWhile(ctx: Parser.DoWhileStatementContext): string {
-    return this.invokeGenerator(controlFlowGenerators.generateDoWhile, ctx);
+    return this.invokeGenerator(
+      controlFlowGenerators.generateDoWhile,
+      this.planDoWhile(ctx),
+    );
   }
 
   private generateFor(ctx: Parser.ForStatementContext): string {
-    return this.invokeGenerator(controlFlowGenerators.generateFor, ctx);
+    return this.invokeGenerator(
+      controlFlowGenerators.generateFor,
+      this.planFor(ctx),
+    );
   }
 
   private generateForever(ctx: Parser.ForeverStatementContext): string {
-    return this.invokeGenerator(controlFlowGenerators.generateForever, ctx);
+    return this.invokeGenerator(
+      controlFlowGenerators.generateForever,
+      this.planForever(ctx),
+    );
   }
 
   private generateReturn(ctx: Parser.ReturnStatementContext): string {
-    return this.invokeGenerator(controlFlowGenerators.generateReturn, ctx);
+    return this.invokeGenerator(
+      controlFlowGenerators.generateReturn,
+      this.planReturn(ctx),
+    );
   }
 
   // ========================================================================

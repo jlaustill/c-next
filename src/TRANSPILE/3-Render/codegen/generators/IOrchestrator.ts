@@ -176,14 +176,12 @@ interface IOrchestrator {
 
   // === strlen Optimization ===
 
-  /** Count string length accesses for caching */
-  countStringLengthAccesses(ctx: Parser.ExpressionContext): Map<string, number>;
-
-  /** Count block length accesses */
-  countBlockLengthAccesses(
-    ctx: Parser.BlockContext,
-    counts: Map<string, number>,
-  ): void;
+  // #1445 box 3: the two counting members that stood here --
+  // `countStringLengthAccesses(ExpressionContext)` and
+  // `countBlockLengthAccesses(BlockContext, ...)` -- were named by this
+  // interface only so `ControlFlowGenerator` could ask a tree a question. It
+  // plans now, and the planner calls `StringLengthCounter` directly, so two of
+  // this interface's parse-typed members are gone with them.
 
   /** Setup length cache and return declarations */
   setupLengthCache(counts: Map<string, number>): string;
