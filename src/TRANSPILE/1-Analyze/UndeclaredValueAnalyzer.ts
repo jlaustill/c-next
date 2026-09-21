@@ -30,20 +30,23 @@
  * diagnostics for one name is worse than one.
  */
 
-import { ParseTreeWalker } from "antlr4ng";
+import { ParserRuleContext, ParseTreeWalker, TerminalNode } from "antlr4ng";
 import { CNextListener } from "../../transpiler/logic/parser/grammar/CNextListener";
 import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
 import BUILTIN_TYPE_NAMES from "../../transpiler/constants/BUILTIN_TYPE_NAMES";
 import ChainRoot from "./helpers/ChainRoot";
 import CodeGenState from "../../transpiler/state/CodeGenState";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
-import EnclosingScope from "./helpers/EnclosingScope";
+import ICodeGenSymbols from "../../transpiler/types/ICodeGenSymbols";
+import IScopeFrame from "./types/IScopeFrame";
 import IUndeclaredValueError from "./types/IUndeclaredValueError";
 import NameExistence from "../../PARSE/3-Declare/NameExistence";
 import ParserUtils from "../../utils/ParserUtils";
 import REJECTED_KEYWORDS from "../../transpiler/constants/REJECTED_KEYWORDS";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 import ScopeUtils from "../../utils/ScopeUtils";
+import SymbolTable from "../../transpiler/state/SymbolTable";
+import TChainRoot from "./types/TChainRoot";
 
 class UndeclaredValueListener extends CNextListener {
   private readonly analyzer: UndeclaredValueAnalyzer;
@@ -51,65 +54,48 @@ class UndeclaredValueListener extends CNextListener {
   // eslint-disable-next-line @typescript-eslint/lines-between-class-members
   private readonly scopes: ScopeFrameResolver;
 
-  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
-  private readonly enclosing = new EnclosingScope();
-
   constructor(analyzer: UndeclaredValueAnalyzer, scopes: ScopeFrameResolver) {
     super();
     this.analyzer = analyzer;
     this.scopes = scopes;
   }
 
-  override enterScopeDeclaration = (
-    ctx: Parser.ScopeDeclarationContext,
-  ): void => {
-    this.enclosing.enter(ctx.IDENTIFIER().getText());
-  };
-
-  override exitScopeDeclaration = (
-    _ctx: Parser.ScopeDeclarationContext,
-  ): void => {
-    this.enclosing.exit();
-  };
-
+  /**
+   * The READ position.
+   *
+   * ADR-016's three spellings read the chain from DIFFERENT offsets, which is
+   * the whole of `ChainRoot`'s docstring: a bare name IS the primary, while
+   * `this.x` and `global.x` put the keyword on the primary and the name in the
+   * first op. Taking the name from the primary alone is why every rooted read
+   * went unchecked -- `u32 v <- this.gx`, where `gx` is a file-scope global and
+   * not a member of the enclosing scope, emitted `Scope__gx` at exit 0. That is
+   * #1582's own defect one grammar rule over, and it is the case the write
+   * position's fixture calls "the only witness to the split".
+   */
   override enterPostfixExpression = (
     ctx: Parser.PostfixExpressionContext,
   ): void => {
     const primary = ctx.primaryExpression();
-    const identifier = primary?.IDENTIFIER();
-    if (!identifier) {
+    if (!primary) {
       return;
     }
+
+    const root = ChainRoot.ofPrimary(primary);
+    const ops = ctx.postfixOp();
+
+    // The root keyword consumes the primary, so a rooted chain carries the
+    // name -- and therefore its call parentheses -- one op further along.
+    const identifier =
+      root === null ? primary.IDENTIFIER() : (ops[0]?.IDENTIFIER() ?? null);
+    const callAt = root === null ? 0 : 1;
 
     // `name(...)` is a call. E0422 owns undefined calls, with ADR-030/040/057
     // rules this analyzer deliberately does not reimplement.
-    const ops = ctx.postfixOp();
-    if (ops.length > 0 && ops[0].getText().startsWith("(")) {
+    if (ops.length > callAt && ops[callAt].getText().startsWith("(")) {
       return;
     }
 
-    const name = identifier.getText();
-
-    // ADR-026: `break`/`continue` parse as identifiers and are rejected by
-    // E0703, which names the structured alternative. Reporting them as
-    // undefined would be true and useless.
-    if (REJECTED_KEYWORDS.has(name) || BUILTIN_TYPE_NAMES.has(name)) {
-      return;
-    }
-
-    if (
-      this.analyzer.isVisible(
-        name,
-        this.scopes.frameFor(ctx),
-        this.enclosing.current(),
-        this.scopes,
-      )
-    ) {
-      return;
-    }
-
-    const { line, column } = ParserUtils.getPosition(primary);
-    this.analyzer.addError(name, line, column);
+    this.check(identifier, root, ctx);
   };
 
   /**
@@ -124,32 +110,62 @@ class UndeclaredValueListener extends CNextListener {
   override enterAssignmentTarget = (
     ctx: Parser.AssignmentTargetContext,
   ): void => {
-    const identifier = ctx.IDENTIFIER();
+    this.check(ctx.IDENTIFIER(), ChainRoot.ofTarget(ctx), ctx);
+  };
+
+  /**
+   * One name, one question, for both positions.
+   *
+   * The two hooks differ only in how they read `(root, identifier)` off their
+   * node -- the pair `ChainRoot` already separates. Everything after that is
+   * the same policy, so it is written once: a second copy would be free to
+   * gain an exempt spelling the other did not, which is the read/write
+   * divergence #1582 is about.
+   *
+   * `identifier` is nullable because the read hook's primary may be a literal
+   * or a parenthesised expression, and because the generated accessor for an
+   * assignment target asserts non-null over a `getToken` that can return null.
+   */
+  private check(
+    identifier: TerminalNode | null,
+    root: TChainRoot,
+    ctx: ParserRuleContext,
+  ): void {
+    if (!identifier) {
+      return;
+    }
+
     const name = identifier.getText();
+
+    // ADR-026: `break`/`continue` parse as identifiers and are rejected by
+    // E0703, which names the structured alternative. Reporting them as
+    // undefined would be true and useless.
+    //
+    // That reasoning is the READ position's, and it does not carry to the
+    // write position: E0703 is raised from `LoopAnalyzer`'s
+    // `enterPrimaryExpression` alone, so `break <- 5` is exempted here and
+    // owned by nothing -- it reaches the C compiler as `break = 5;`. The
+    // exemption stays shared rather than being split, because narrowing it is
+    // a diagnostic decision for the rule that owns those spellings; tracked as
+    // #1632 with the reproduction.
     if (REJECTED_KEYWORDS.has(name) || BUILTIN_TYPE_NAMES.has(name)) {
       return;
     }
 
-    if (
-      this.analyzer.isTargetVisible(
-        name,
-        ChainRoot.ofTarget(ctx),
-        this.scopes.frameFor(ctx),
-        this.enclosing.current(),
-        this.scopes,
-      )
-    ) {
+    const frame = this.scopes.frameFor(ctx);
+    if (this.analyzer.isVisible(name, root, frame, this.scopes)) {
       return;
     }
 
     // The caret names the identifier, not the `this`/`global` keyword the
-    // target may start with. `getPosition` takes the shape structurally, so the
-    // terminal's own token is what carries the position here.
+    // spelling may start with. `getPosition` takes the shape structurally, so
+    // the terminal's own token is what carries the position here. For a bare
+    // name this is the primary's own start token, so no position moves.
     const { line, column } = ParserUtils.getPosition({
       start: identifier.symbol,
     });
     this.analyzer.addError(name, line, column);
-  };
+  }
 }
 
 class UndeclaredValueAnalyzer {
@@ -175,52 +191,54 @@ class UndeclaredValueAnalyzer {
     return this.errors;
   }
 
+  /**
+   * Whether a name in a VALUE position denotes something this file can see.
+   *
+   * ADR-016's root is PART of the question, not a decoration on it: `this.x`
+   * asks the enclosing scope, `global.x` asks file scope, and only a bare name
+   * searches outward. `ScopeFrameResolver.declarationFor` is the one encoder of
+   * that distinction over this file's lexical frames (#1322 found four copies
+   * of it disagreeing, three of which emitted broken C at exit 0), so the root
+   * is handed to it rather than re-branched. The arms below are the CROSS-FILE
+   * half, which frames built from this file's parse tree cannot answer.
+   *
+   * Without the split, `this.gx` where `gx` is a file-scope global -- not a
+   * member of the enclosing scope -- passes on the bare lookup and emits
+   * `Scope__gx`, a name nothing declares.
+   *
+   * Both POSITIONS ask this identically, which is why there is one predicate
+   * and not two. #1582 first gave the split to the write position alone, and
+   * the read position beside it could not see a rooted name at all: `this.gx
+   * <- 5` was rejected while `u32 v <- this.gx` on the next line emitted
+   * `Scope__gx` at exit 0. Two predicates that agree by inspection are the
+   * divergence this analyzer exists to prevent.
+   */
   isVisible(
     name: string,
-    frame: Parameters<ScopeFrameResolver["typeOfName"]>[1],
-    scopePath: ReturnType<EnclosingScope["current"]>,
+    root: TChainRoot,
+    frame: IScopeFrame,
     scopes: ScopeFrameResolver,
   ): boolean {
     const symbols = CodeGenState.symbols;
-    return (
-      UndeclaredValueAnalyzer.isDeclaredValue(name, frame, scopePath, scopes) ||
-      (symbols !== null &&
-        symbols !== undefined &&
-        NameExistence.isKnownEnumMember(name, symbols))
-    );
-  }
 
-  /**
-   * Whether an ASSIGNMENT TARGET's base name denotes something writable here.
-   *
-   * A bare target asks the same question a bare read asks, so it calls the same
-   * predicate -- the write position is not a second policy. `this.` and
-   * `global.` do NOT: each states which level to look at, and falling through
-   * to the bare outward walk is what lets a shadowing local capture them.
-   * `ScopeFrameResolver.declarationFor` is the one encoder of that distinction
-   * (#1322 found four copies of it disagreeing, three of which emitted broken C
-   * at exit 0), so the root is handed to it rather than re-branched here.
-   *
-   * Without the split, `this.gx <- 5` where `gx` is a file-scope global -- not
-   * a member of the enclosing scope -- passes on the bare lookup and emits
-   * `Scope__gx`, a name nothing declares.
-   */
-  isTargetVisible(
-    name: string,
-    root: ReturnType<typeof ChainRoot.ofTarget>,
-    frame: Parameters<ScopeFrameResolver["typeOfName"]>[1],
-    scopePath: ReturnType<EnclosingScope["current"]>,
-    scopes: ScopeFrameResolver,
-  ): boolean {
     if (root === null) {
-      return this.isVisible(name, frame, scopePath, scopes);
+      return (
+        UndeclaredValueAnalyzer.isDeclaredValue(
+          name,
+          frame,
+          frame.scopePath,
+          scopes,
+        ) ||
+        (symbols !== null &&
+          symbols !== undefined &&
+          NameExistence.isKnownEnumMember(name, symbols))
+      );
     }
 
     if (scopes.declarationFor(root, name, frame) !== null) {
       return true;
     }
 
-    const symbols = CodeGenState.symbols;
     if (!symbols) {
       return true;
     }
@@ -234,15 +252,39 @@ class UndeclaredValueAnalyzer {
 
     // `this.` outside any scope is E0431's to reject, and two diagnostics for
     // one name is worse than one.
-    if (scopePath === "") {
+    if (frame.scopePath === "") {
       return true;
     }
 
+    return UndeclaredValueAnalyzer.isScopeMemberValue(
+      name,
+      frame.scopePath,
+      symbols,
+      CodeGenState.symbolTable,
+    );
+  }
+
+  /**
+   * Whether a name is a value declared by the scope at `scopePath`.
+   *
+   * Written once because the bare spelling and the `this.` spelling ask it
+   * identically -- the bare outward walk reaches the enclosing scope, and
+   * `this.` names it directly. #1582 briefly carried two copies eighty lines
+   * apart, which is the shape CLAUDE.md forbids: the single source of truth is
+   * the DECISION, and the term `scopeMembers` is missing (it spans the run
+   * rather than the include graph, #1494) has to be added in one place.
+   */
+  private static isScopeMemberValue(
+    name: string,
+    scopePath: string,
+    symbols: ICodeGenSymbols,
+    symbolTable: SymbolTable,
+  ): boolean {
     return (
       NameExistence.isValueName(
         ScopeUtils.qualifyInScope(name, scopePath),
         symbols,
-        CodeGenState.symbolTable,
+        symbolTable,
       ) ||
       (symbols.scopeMembers.get(scopePath)?.has(name) ?? false)
     );
@@ -261,8 +303,8 @@ class UndeclaredValueAnalyzer {
    */
   static isDeclaredValue(
     name: string,
-    frame: Parameters<ScopeFrameResolver["typeOfName"]>[1],
-    scopePath: ReturnType<EnclosingScope["current"]>,
+    frame: IScopeFrame,
+    scopePath: string,
     scopes: ScopeFrameResolver,
   ): boolean {
     // A declared variable in an enclosing lexical frame of THIS file.
@@ -320,17 +362,15 @@ class UndeclaredValueAnalyzer {
       return true;
     }
 
-    if (scopePath !== "") {
-      const qualified = ScopeUtils.qualifyInScope(name, scopePath);
-      if (
-        NameExistence.isValueName(qualified, symbols, symbolTable) ||
-        (symbols.scopeMembers.get(scopePath)?.has(name) ?? false)
-      ) {
-        return true;
-      }
-    }
-
-    return false;
+    return (
+      scopePath !== "" &&
+      UndeclaredValueAnalyzer.isScopeMemberValue(
+        name,
+        scopePath,
+        symbols,
+        symbolTable,
+      )
+    );
   }
 
   addError(identifier: string, line: number, column: number): void {

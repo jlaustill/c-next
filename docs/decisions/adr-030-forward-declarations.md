@@ -299,16 +299,28 @@ not define. That reasoning is true and the conclusion drawn from it was false:
 the cell is not about where the type is DECLARED, it is about how far the C-Next
 program reaches to USE it, and the answer for a C header is zero.
 
-The two `error` cells are the ones a fixture reaches:
+The two `error` cells are the ones the opaque-handle decision itself reaches:
 `tests/bugs/issue-995-opaque-param-const/` passes an opaque handle as a scope
 method's parameter, and `tests/bugs/issue-996-array-opaque-handles/` stores an
 array of them as a scope member.
 
 Everything else is `warn`. A global variable or a top-level function can hold an
 opaque handle, and the declaring C header can arrive through a C-Next include
-chain, so `off` would be a false claim that they cannot exist. No fixture
-exercises them today, so `error` would be an obligation nothing meets. `warn`
+chain, so `off` would be a false claim that they cannot exist. `error` would be
+an obligation the opaque-handle decision does not meet in those cells, so `warn`
 records the obligation without asserting an occupancy that is not there.
+
+**Several of those `warn` cells nonetheless read as occupied, and by the wrong
+thing.** Occupancy is derived per ADR, not per code, so the define-before-use
+fixtures marked `// test-adr: 030` occupy cells here on their diagnostics'
+positions — which is why `global variable` and `top-level function` at
+`same file`, and `top-level function` at `direct`, are no longer empty. They
+say nothing about opaque handles. **The reverse also holds and is the sharper
+half: `scope method / same file` is now co-occupied by an E0427 fixture, so
+deleting the provenance recording behind the opaque-handle decision would leave
+this table green.** That is the coincidence the paragraph below warns about,
+arriving from the other direction — a cell can be occupied by a fixture that
+would not notice the thing the cell was declared for.
 
 **The cells above are occupied by provenance, not by diagnostics, and that
 distinction is load-bearing.** This ADR does raise diagnostics — the four in
@@ -349,9 +361,17 @@ content of the promise — a rule that accepted any name declared anywhere in th
 build would make "before use" unenforceable across files.
 
 **Reading and writing a name ask the same question.** E0427 covers both
-positions a value name can occupy. Treating the write as a separate case is
-what left `witness <- 5` against an out-of-scope name accepted while
-`u8 copy <- witness` beside it was rejected (#1582).
+positions a value name can occupy, in every spelling. Treating the write as a
+separate case is what left `witness <- 5` against an out-of-scope name accepted
+while `u8 copy <- witness` beside it was rejected (#1582) — and treating the
+read as a separate case, which the first fix for #1582 did, inverted it for the
+qualified spellings: `this.gx <- 5` was rejected while `u8 copy <- this.gx`
+beside it was accepted. The promise is symmetric or it is not a promise, so the
+two positions are one decision.
+
+What E0427 answers about is the name a spelling STARTS from. Whether a member
+further along a chain exists — the `nope` in `Scope.nope` or `this.cfg.nope` —
+is a different question and is not covered here, equally in both positions.
 
 **A qualified spelling states which level to search, and searching any other
 level is a different answer, not a fallback.** `this.x` asks the enclosing

@@ -12,7 +12,7 @@ loses its `.expected.error`, or stops asserting a code listed here.
 Removing a diagnostic on purpose means deleting its row in the same commit.
 Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 
-377 fixture(s) assert a diagnostic; 362 carry a code.
+380 fixture(s) assert a diagnostic; 365 carry a code.
 
 | Fixture                                                                                          | Codes               |
 | ------------------------------------------------------------------------------------------------ | ------------------- |
@@ -315,6 +315,9 @@ Adding one, or promoting `(uncoded)` to a real code, never fails the gate.
 | tests/bugs/issue-1430-e0427-order-dependence/consumer-first.test.cnx                             | E0427               |
 | tests/bugs/issue-1430-e0427-order-dependence/source-first.test.cnx                               | E0427               |
 | tests/bugs/issue-1472-scope-function-as-type/undefined-still-rejected.test.cnx                   | E0422               |
+| tests/bugs/issue-1582-undeclared-write-target/undeclared-read-through-root.test.cnx              | E0427               |
+| tests/bugs/issue-1582-undeclared-write-target/undeclared-write-sibling-consumer-first.test.cnx   | E0427               |
+| tests/bugs/issue-1582-undeclared-write-target/undeclared-write-sibling-source-first.test.cnx     | E0427               |
 | tests/bugs/issue-1582-undeclared-write-target/undeclared-write-target.test.cnx                   | E0427               |
 | tests/bugs/issue-847-misra-17-7-lowering/bare-intra-scope-discard.test.cnx                       | E0708               |
 | tests/bugs/issue-847-misra-17-7-lowering/cross-file-scope-discard.test.cnx                       | E0708               |

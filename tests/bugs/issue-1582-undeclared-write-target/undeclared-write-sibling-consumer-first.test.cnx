@@ -1,0 +1,12 @@
+// test-error
+// test-adr: 030
+// #1582: the other include order. The twin of
+// undeclared-write-sibling-source-first.test.cnx -- same two sources,
+// opposite order. This half always reported, so on its own it could not
+// detect the leak; only the pair is the assertion.
+#include <write-sibling-consumer.cnx>
+#include <write-sibling-source.cnx>
+
+u32 main() {
+    return 0;
+}

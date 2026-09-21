@@ -1,0 +1,13 @@
+// Helper for #1582. Deliberately does NOT include write-sibling-source.cnx,
+// so `siblingCounter` is genuinely undeclared HERE even though the entry
+// pulls both files into the same run. Shared by BOTH include orders.
+//
+// The read counterpart of this shape is issue-1353's value-consumer.cnx, and
+// it is the #1398 regression: the run-wide symbol table answers "declared
+// somewhere in this build", which is not the question. The write position had
+// no such fixture -- swapping the include-filtered `knownVariables` term for
+// the run-wide table reddened no write fixture at all.
+u32 bumpSibling() {
+    siblingCounter <- 5;
+    return 0;
+}
