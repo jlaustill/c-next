@@ -19,14 +19,15 @@ import IStringConcatOps from "../types/IStringConcatOps";
 import * as Parser from "../../../../PARSE/2-Parse/grammar/CNextParser";
 import CodeGenState from "../../../../transpiler/state/CodeGenState";
 import invariant from "../../../../utils/invariant";
+import ArrayDimensionParser from "../../../../utils/ArrayDimensionParser";
 import ArrayInitHelper from "./ArrayInitHelper";
+import dimensionEvalOptions from "./dimensionEvalOptions";
 import CppModeHelper from "./CppModeHelper";
 import NarrowingCastHelper from "./NarrowingCastHelper";
 import StringDeclHelper from "./StringDeclHelper";
 import VariableModifierBuilder from "./VariableModifierBuilder";
 import TYPE_MAP from "../types/TYPE_MAP";
 import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
-import LiteralUtils from "../../../../utils/LiteralUtils";
 
 /**
  * Callbacks for array type dimension generation.
@@ -151,13 +152,24 @@ class VariableDeclHelper {
     if (!sizeExpr) {
       return null;
     }
-    // `LiteralUtils`, not a local digit test. This answer MUST match
-    // `TypeRegistrationEngine.parseArrayTypeDimension`, which carries the same
-    // name and asks the same question of the same dimension; the two differ
-    // only in the shape of context they are handed. While this one folded
-    // decimal alone, `u8[0x8] a <- [7*]` registered a size of 8 and emitted
-    // `{7U}` -- one filled slot and seven zeroed ones, clean compile, exit 0.
-    return LiteralUtils.parseIntegerLiteral(sizeExpr.getText()) ?? null;
+    // `ArrayDimensionParser`, not a local digit test and not `LiteralUtils`
+    // either. This answer MUST match the size the DECLARATOR is emitted with,
+    // because it decides how many slots a fill-all expands to -- disagree and
+    // the array is the declared length with the wrong contents, which compiles
+    // clean and exits 0.
+    //
+    // #1450 moved this off `/^\d+$/` onto `LiteralUtils.parseIntegerLiteral`,
+    // which fixed `u8[0x8] a <- [7*]` and stopped one evaluator short: a const
+    // dimension renders through `ArrayDimensionParser.parseSingleDimension`,
+    // which folds consts and `sizeof`, so `u8[COUNT] n <- [7*]` still emitted
+    // `uint8_t n[4] = {7U}` (#1644). Matching the literal set was never the
+    // property; matching the RENDERER is.
+    return (
+      ArrayDimensionParser.parseSingleDimension(
+        sizeExpr,
+        dimensionEvalOptions(),
+      ) ?? null
+    );
   }
 
   /**
@@ -182,10 +194,13 @@ class VariableDeclHelper {
     // stopping at the `length === 0` guard above. Kept aligned with the
     // sibling anyway: the two must never differ in the answer, and a second
     // evaluator that folds fewer forms is what produced the defect the
-    // `issue-1450-hex-array-dimension-fill` fixture pins.
+    // `issue-1450-hex-array-dimension-fill` fixture pins, and the narrower one
+    // #1450 left behind is what `issue-1644-hex-string-array-dimension` pins.
     return (
-      LiteralUtils.parseIntegerLiteral(arrayDims[0].expression()!.getText()) ??
-      null
+      ArrayDimensionParser.parseSingleDimension(
+        arrayDims[0].expression()!,
+        dimensionEvalOptions(),
+      ) ?? null
     );
   }
 

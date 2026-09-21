@@ -1,0 +1,81 @@
+// test-execution
+// test-no-warnings
+// #1644: ADR-035's fill-all form filled ONE slot instead of every slot whenever
+// the array dimension was written as anything but a decimal literal.
+//
+//     string<8>[0x4] hex <- ["ab"*];   ->   char hex[4][9] = {"ab"};
+//     string<8>[4]   dec <- ["ab"*];   ->   char dec[4][9] = {"ab","ab","ab","ab"};
+//
+// Same declared size, two spellings, different C. The unfilled slots are left
+// as empty strings by C's partial-initializer rule, so it compiles clean and
+// exits 0 -- wrong only in the values.
+//
+// CAUSE, and why two earlier fixes did not reach it. One decision -- "what is
+// the first declared dimension of this arrayType" -- was written FOUR times
+// with THREE different evaluators:
+//
+//   * the declarator render          ArrayDimensionParser.parseSingleDimension
+//                                    (literals + consts + sizeof)
+//   * TypeRegistrationEngine's
+//     _collectArrayDimensions        the same, moved there by #1159
+//   * TypeRegistrationEngine's
+//     parseArrayTypeDimension        LiteralUtils (literals only)
+//   * VariableDeclHelper's
+//     parseArrayTypeDimension        LiteralUtils (literals only), after #1450
+//   * StringDeclHelper's
+//     _parseNumericSize              /^\d+$/ (decimal only)
+//
+// #1450 moved the plain-array read from the decimal regex to `LiteralUtils`,
+// which is why `u8[0x8] a <- [7*]` is fixed and pinned by
+// issue-1450-hex-array-dimension-fill. It stopped one evaluator short of the
+// renderer, so the const spelling stayed broken in the plain path, and it never
+// touched the string path at all, so every non-decimal spelling stayed broken
+// there.
+//
+// The invariant is not "fold the same literals". It is that the size used to
+// EXPAND must equal the size emitted in the DECLARATOR -- so all four now make
+// the identical `parseSingleDimension(expr, dimensionEvalOptions())` call.
+//
+// The dimension itself was always right: `[0x4]` rendered as `[4]` throughout.
+// Only the size read back diverged, so the array was the declared length with
+// the wrong contents.
+//
+// NEGATIVE CONTROLS. `dec` and `decPlain` are the spelling that always worked:
+// a fix that widened the const path by breaking the decimal one fails here.
+u32 main() {
+    const u32 COUNT <- 4;
+
+    string<8>[0x4] hex <- ["ab"*];
+    string<8>[0b100] bin <- ["ab"*];
+    string<8>[COUNT] con <- ["ab"*];
+    string<8>[4] dec <- ["ab"*];
+
+    u8[COUNT] conPlain <- [7*];
+    u8[4] decPlain <- [7*];
+
+    for (u32 i <- 0; i < 4; i +<- 1) {
+        if (hex[i] != "ab") return 1;
+    }
+
+    for (u32 j <- 0; j < 4; j +<- 1) {
+        if (bin[j] != "ab") return 2;
+    }
+
+    for (u32 k <- 0; k < 4; k +<- 1) {
+        if (con[k] != "ab") return 3;
+    }
+
+    for (u32 m <- 0; m < 4; m +<- 1) {
+        if (dec[m] != "ab") return 4;
+    }
+
+    for (u32 n <- 0; n < 4; n +<- 1) {
+        if (conPlain[n] != 7) return 5;
+    }
+
+    for (u32 p <- 0; p < 4; p +<- 1) {
+        if (decPlain[p] != 7) return 6;
+    }
+
+    return 0;
+}

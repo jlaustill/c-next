@@ -247,7 +247,21 @@ class StringDeclHelper {
       return null;
     }
     const firstDimExpr = dims[0].expression();
-    return StringDeclHelper._parseNumericSize(firstDimExpr);
+    if (!firstDimExpr) {
+      return null;
+    }
+    // #1644: the SAME call that renders the declarator above. The size used to
+    // expand a fill-all and to check the element count must equal the size
+    // emitted in `[...]`, or the array is the declared length with the wrong
+    // contents -- which compiles clean and exits 0. This read used a local
+    // `/^\d+$/` test, so `string<8>[0x4] a <- ["ab"*]` rendered `[4]` and then
+    // expanded nothing.
+    return (
+      ArrayDimensionParser.parseSingleDimension(
+        firstDimExpr,
+        dimensionEvalOptions(),
+      ) ?? null
+    );
   }
 
   /**
@@ -286,23 +300,6 @@ class StringDeclHelper {
 
     const elements = new Array<string>(declaredSize).fill(fillVal);
     return `{${elements.join(", ")}}`;
-  }
-
-  /**
-   * Parse a numeric size from an expression, or return null if not numeric.
-   * Shared helper to eliminate duplicate parsing logic.
-   */
-  private static _parseNumericSize(
-    expr: Parser.ExpressionContext | null | undefined,
-  ): number | null {
-    if (!expr) {
-      return null;
-    }
-    const sizeText = expr.getText();
-    if (!/^\d+$/.exec(sizeText)) {
-      return null;
-    }
-    return Number.parseInt(sizeText, 10);
   }
 
   /**

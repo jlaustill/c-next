@@ -15,7 +15,6 @@ import CodeGenState from "../../../../transpiler/state/CodeGenState";
 import TypeRegistrationUtils from "../TypeRegistrationUtils";
 import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
 import ArrayDimensionParser from "../../../../utils/ArrayDimensionParser";
-import LiteralUtils from "../../../../utils/LiteralUtils";
 import OverflowBehaviorUtils from "../../../../utils/OverflowBehaviorUtils";
 import UNRESOLVED_DIMENSION from "../../../../transpiler/constants/UNRESOLVED_DIMENSION";
 import dimensionEvalOptions from "./dimensionEvalOptions";
@@ -132,7 +131,16 @@ class TypeRegistrationEngine {
     if (!sizeExpr) {
       return undefined;
     }
-    return LiteralUtils.parseIntegerLiteral(sizeExpr.getText());
+    // #1644: the same evaluator `_collectArrayDimensions` was moved onto by
+    // #1159, in this same class, for the same reason -- "so every notation
+    // (hex, binary, const, sizeof) yields the same dimension the .c
+    // declaration emits". This one kept `LiteralUtils`, which folds literals
+    // and not consts, so `u8[COUNT] n` registered NO dimension at all and the
+    // subscript bounds check had nothing to check against.
+    return ArrayDimensionParser.parseSingleDimension(
+      sizeExpr,
+      dimensionEvalOptions(),
+    );
   }
 
   /**
