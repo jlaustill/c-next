@@ -398,7 +398,7 @@ The qualifier matters and an earlier draft of this passage got it wrong, saying
 a header "the transpiler does not parse". Parsing is not the criterion and
 never was: whether a header's declarations are read changes what the transpiler
 can resolve, never what the preprocessor can supply behind its back. A
-reimplementation following the narrower promise would exempt fewer files and
+transpiler rewritten from this ADR would exempt fewer files and
 reject programs this language accepts, which is the failure the rewrite test
 exists to catch — and no gate can catch it, because the sentence names no
 module and no path.

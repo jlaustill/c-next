@@ -15,7 +15,6 @@
 
 import { TerminalNode } from "antlr4ng";
 import * as Parser from "../../../transpiler/logic/parser/grammar/CNextParser";
-import IChainHead from "../types/IChainHead";
 import TChainRoot from "../types/TChainRoot";
 
 class ChainRoot {
@@ -46,6 +45,12 @@ class ChainRoot {
    * different spellings, two of them keeping the `DOT()` guard below and two
    * dropping it.
    *
+   * The shape is declared here rather than in `types/`: it carries a parse-tree
+   * node, and nothing under `1-Analyze/types/` holds one -- `parse-tree:check`
+   * treats a pass reaching for the tree as a lifetime violation, and a shared
+   * contract is exactly where that coupling would spread from. This class is
+   * already a grammar site, so the node stops here.
+   *
    * `identifier` is null when the head is not a name at all -- a literal, a
    * parenthesised expression, or a rooted chain whose first op subscripts
    * rather than names (`this[0]`), which no spelling that omits the guard can
@@ -54,7 +59,11 @@ class ChainRoot {
   static headOf(
     primary: Parser.PrimaryExpressionContext,
     ops: readonly Parser.PostfixOpContext[],
-  ): IChainHead {
+  ): {
+    root: TChainRoot;
+    identifier: TerminalNode | null;
+    opsConsumed: number;
+  } {
     const root = ChainRoot.ofPrimary(primary);
     if (root === null) {
       return { root, identifier: primary.IDENTIFIER() ?? null, opsConsumed: 0 };
