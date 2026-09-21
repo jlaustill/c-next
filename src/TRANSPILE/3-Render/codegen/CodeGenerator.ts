@@ -44,7 +44,9 @@ import generatePostfixExpression from "./generators/expressions/PostfixExpressio
 import controlFlowGenerators from "./generators/statements/ControlFlowGenerator";
 import generateCriticalStatement from "./generators/statements/CriticalGenerator";
 import atomicGenerators from "./generators/statements/AtomicGenerator";
-import switchGenerators from "./generators/statements/SwitchGenerator";
+import generateSwitchStatement from "./generators/statements/SwitchGenerator";
+import type IPlannedSwitch from "./types/IPlannedSwitch";
+import type TPlannedCaseLabel from "./types/TPlannedCaseLabel";
 // Declaration generators
 import enumGenerator from "./generators/declarationGenerators/EnumGenerator";
 import bitmapGenerator from "./generators/declarationGenerators/BitmapGenerator";
@@ -4755,8 +4757,96 @@ export default class CodeGenerator implements IOrchestrator {
   // Switch Statements (ADR-025)
   // ========================================================================
 
+  /**
+   * An ADR-025 switch statement, decided (#1445).
+   *
+   * The subject is rendered here, and its enum type asked for, in that order
+   * -- which is the node-walking order, and both can register effects.
+   *
+   * A case label's SIX alternatives are asked in the grammar's order, first
+   * match wins, exactly as the generator asked them. Each body stays a thunk:
+   * rendering a statement registers effects, and the generator decides how
+   * deep each line indents.
+   */
+  private planSwitch(ctx: Parser.SwitchStatementContext): IPlannedSwitch {
+    const subjectExpression = ctx.expression();
+    const subject = this.generateExpression(subjectExpression);
+    const subjectEnumType =
+      this.getExpressionEnumType(subjectExpression) ?? undefined;
+    const defaultCase = ctx.defaultCase();
+
+    return {
+      subject,
+      subjectEnumType,
+      cases: ctx.switchCase().map((switchCase) => ({
+        labels: switchCase
+          .caseLabel()
+          .map((label) => this.planCaseLabel(label)),
+        renderBody: () => this.renderStatements(switchCase.block()),
+      })),
+      renderDefaultBody: defaultCase
+        ? () => this.renderStatements(defaultCase.block())
+        : null,
+    };
+  }
+
+  /**
+   * Which of `caseLabel`'s six alternatives matched, and what it carries.
+   *
+   * The order is the grammar's and the generator's: qualified type,
+   * identifier, integer, hex, binary, char. A char literal is its own arm
+   * because it is the one that ignores a leading minus.
+   */
+  private planCaseLabel(ctx: Parser.CaseLabelContext): TPlannedCaseLabel {
+    // A minus is the first child, for a negative literal.
+    const negative =
+      ctx.children !== null && ctx.children[0]?.getText() === "-";
+
+    const qualified = ctx.qualifiedType();
+    if (qualified) {
+      return {
+        kind: "qualified",
+        parts: qualified.IDENTIFIER().map((id) => id.getText()),
+      };
+    }
+
+    const identifier = ctx.IDENTIFIER();
+    if (identifier) {
+      return { kind: "identifier", name: identifier.getText() };
+    }
+
+    const integer = ctx.INTEGER_LITERAL();
+    if (integer) {
+      return { kind: "numeric", text: integer.getText(), negative };
+    }
+
+    const hex = ctx.HEX_LITERAL();
+    if (hex) {
+      return { kind: "numeric", text: hex.getText(), negative };
+    }
+
+    const binary = ctx.BINARY_LITERAL();
+    if (binary) {
+      return { kind: "binary", text: binary.getText(), negative };
+    }
+
+    const char = ctx.CHAR_LITERAL();
+    if (char) {
+      return { kind: "char", text: char.getText() };
+    }
+
+    return { kind: "none" };
+  }
+
+  /** Every statement of a block, rendered in order. */
+  private renderStatements(ctx: Parser.BlockContext): readonly string[] {
+    return ctx
+      .statement()
+      .map((statement) => this.generateStatement(statement));
+  }
+
   private generateSwitch(ctx: Parser.SwitchStatementContext): string {
-    return this.invokeGenerator(switchGenerators.generateSwitch, ctx);
+    return this.invokeGenerator(generateSwitchStatement, this.planSwitch(ctx));
   }
 
   // ========================================================================
