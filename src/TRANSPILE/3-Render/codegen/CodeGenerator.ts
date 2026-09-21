@@ -149,6 +149,7 @@ import ParameterSignatureBuilder from "./helpers/ParameterSignatureBuilder";
 // Issue #895: Parse typedef signatures to determine pointer vs value params
 // Extracted resolvers that use CodeGenState
 import SizeofResolver from "./resolution/SizeofResolver";
+import type TSizeofOperand from "./types/TSizeofOperand";
 import EnumTypeResolver from "./resolution/EnumTypeResolver";
 // Issue #797: Centralized C-style name generation
 import QualifiedNameGenerator from "./utils/QualifiedNameGenerator";
@@ -4638,11 +4639,48 @@ export default class CodeGenerator implements IOrchestrator {
    * Delegates to SizeofResolver which uses CodeGenState.
    */
   private generateSizeofExpr(ctx: Parser.SizeofExpressionContext): string {
-    return SizeofResolver.generate(ctx, {
-      generateType: (typeCtx) => this.generateType(typeCtx),
-      generateExpression: (exprCtx) => this.generateExpression(exprCtx),
-      hasSideEffects: (exprCtx) => this.hasSideEffects(exprCtx),
-    });
+    return SizeofResolver.generate(this.planSizeofOperand(ctx));
+  }
+
+  /**
+   * Which of `sizeof`'s four shapes this is, and the names each one needs.
+   *
+   * #1445: the discrimination is here because it is a question about which
+   * grammar alternative matched. `generateType` for the qualified arm goes
+   * over as a thunk -- `a.b` may turn out to be a member access, and
+   * rendering it as a type would register an include for a type the program
+   * never names. See `TSizeofOperand`.
+   */
+  private planSizeofOperand(
+    ctx: Parser.SizeofExpressionContext,
+  ): TSizeofOperand {
+    const typeCtx = ctx.type();
+    if (typeCtx) {
+      const qualified = typeCtx.qualifiedType();
+      if (qualified) {
+        const identifiers = qualified.IDENTIFIER();
+        return {
+          kind: "qualified-type",
+          firstName: identifiers[0].getText(),
+          memberName: identifiers[1].getText(),
+          renderTypeName: () => this.generateType(typeCtx),
+        };
+      }
+      // The whole type's text, not the userType's: that is what this arm has
+      // always been given, and the two differ for a type carrying dimensions.
+      if (typeCtx.userType()) {
+        return { kind: "user-type", text: typeCtx.getText() };
+      }
+      return { kind: "plain-type", cTypeName: this.generateType(typeCtx) };
+    }
+
+    const expression = ctx.expression()!;
+    return {
+      kind: "expression",
+      simpleIdentifier: ExpressionUnwrapper.getSimpleIdentifier(expression),
+      hasSideEffects: this.hasSideEffects(expression),
+      code: this.generateExpression(expression),
+    };
   }
 
   /**

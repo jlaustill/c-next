@@ -7,22 +7,23 @@
  * ADR-023: sizeof expression handling with safety checks:
  * - E0601: sizeof on array parameter is error (returns pointer size)
  * - E0602: Side effects in sizeof are error (MISRA C:2012 Rule 13.6)
+ *
+ * ## It takes an operand, not a node (#1445)
+ *
+ * Every question here is about a NAME and `CodeGenState`: is `arr` a
+ * parameter, is `cfg` a local that shadows a file-scope name, is `Scope` a
+ * known scope. The tree was consulted only to find out WHICH grammar
+ * alternative matched, which is the caller's question -- so `TSizeofOperand`
+ * arrives already discriminated and this module names no parse type.
+ *
+ * The one thing it must not do is render a type name for `a.b` before
+ * deciding `a.b` is a type, which is why that arm carries a thunk. See
+ * `TSizeofOperand`.
  */
 
-import * as Parser from "../../../../PARSE/2-Parse/grammar/CNextParser";
 import CodeGenState from "../../../../transpiler/state/CodeGenState";
-import ExpressionUnwrapper from "../../../../utils/ExpressionUnwrapper";
+import TSizeofOperand from "../types/TSizeofOperand";
 import invariant from "../../../../utils/invariant";
-
-/**
- * Callbacks for operations that require CodeGenerator context.
- * These are the minimal dependencies that can't be replaced with CodeGenState.
- */
-interface ISizeofCallbacks {
-  generateType: (ctx: Parser.TypeContext) => string;
-  generateExpression: (ctx: Parser.ExpressionContext) => string;
-  hasSideEffects: (ctx: Parser.ExpressionContext) => boolean;
-}
 
 /**
  * Resolves sizeof expressions to C code.
@@ -33,40 +34,22 @@ export default class SizeofResolver {
    * sizeof(type) -> sizeof(c_type)
    * sizeof(variable) -> sizeof(variable)
    */
-  static generate(
-    ctx: Parser.SizeofExpressionContext,
-    callbacks: ISizeofCallbacks,
-  ): string {
-    // Check if it's sizeof(type) or sizeof(expression)
-    // Note: Due to grammar ambiguity, sizeof(variable) may parse as sizeof(type)
-    // when the variable name matches userType (just an identifier)
-    if (ctx.type()) {
-      return this.sizeofType(ctx.type()!, callbacks);
+  static generate(operand: TSizeofOperand): string {
+    switch (operand.kind) {
+      case "qualified-type":
+        // `a.b` matched the qualified-TYPE alternative, and may still be a
+        // member access -- only `CodeGenState` knows which.
+        return (
+          this.sizeofQualifiedType(operand.firstName, operand.memberName) ??
+          `sizeof(${operand.renderTypeName()})`
+        );
+      case "user-type":
+        return this.sizeofUserType(operand.text);
+      case "plain-type":
+        return `sizeof(${operand.cTypeName})`;
+      case "expression":
+        return this.sizeofExpression(operand);
     }
-    return this.sizeofExpression(ctx.expression()!, callbacks);
-  }
-
-  /**
-   * Handle sizeof(type) - may actually be sizeof(variable) due to grammar ambiguity
-   */
-  private static sizeofType(
-    typeCtx: Parser.TypeContext,
-    callbacks: ISizeofCallbacks,
-  ): string {
-    // qualifiedType matches IDENTIFIER.IDENTIFIER, could be struct.member
-    if (typeCtx.qualifiedType()) {
-      const result = this.sizeofQualifiedType(typeCtx.qualifiedType()!);
-      if (result) return result;
-      // Fall through to generateType for actual type references (Scope.Type)
-    }
-
-    // userType is just IDENTIFIER, could be a variable reference
-    if (typeCtx.userType()) {
-      return this.sizeofUserType(typeCtx.getText());
-    }
-
-    // It's a primitive or other type - generate normally
-    return `sizeof(${callbacks.generateType(typeCtx)})`;
   }
 
   /**
@@ -74,12 +57,9 @@ export default class SizeofResolver {
    * Returns null if this is actually a type reference (Scope.Type)
    */
   private static sizeofQualifiedType(
-    qualifiedCtx: Parser.QualifiedTypeContext,
+    firstName: string,
+    memberName: string,
   ): string | null {
-    const identifiers = qualifiedCtx.IDENTIFIER();
-    const firstName = identifiers[0].getText();
-    const memberName = identifiers[1].getText();
-
     // Check if first identifier is a local variable (struct instance)
     if (CodeGenState.localVariables.has(firstName)) {
       // ADR-057: a local that shadows a file-scope name is emitted under a
@@ -165,15 +145,15 @@ export default class SizeofResolver {
    * Handle sizeof(expression) with validation
    */
   private static sizeofExpression(
-    expr: Parser.ExpressionContext,
-    callbacks: ISizeofCallbacks,
+    operand: Extract<TSizeofOperand, { kind: "expression" }>,
   ): string {
     // E0601: Check if expression is an array parameter
-    const varName = ExpressionUnwrapper.getSimpleIdentifier(expr);
-    if (varName) {
-      const paramInfo = CodeGenState.currentParameters.get(varName);
+    if (operand.simpleIdentifier !== null) {
+      const paramInfo = CodeGenState.currentParameters.get(
+        operand.simpleIdentifier,
+      );
       if (paramInfo?.isArray) {
-        this.throwArrayParamSizeofError(varName);
+        this.throwArrayParamSizeofError(operand.simpleIdentifier);
       }
     }
 
@@ -182,10 +162,10 @@ export default class SizeofResolver {
     // eleven assignment operators, none of which can appear in an expression --
     // assignment is a statement in this grammar.
     invariant(
-      !callbacks.hasSideEffects(expr),
+      !operand.hasSideEffects,
       "sizeof()'s operand has no side effects -- E0602 rejects this in pass 2.1, before this runs",
     );
 
-    return `sizeof(${callbacks.generateExpression(expr)})`;
+    return `sizeof(${operand.code})`;
   }
 }
