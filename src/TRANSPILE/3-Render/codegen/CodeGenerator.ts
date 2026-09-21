@@ -524,7 +524,33 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   generateUnaryExpr(ctx: Parser.UnaryExpressionContext): string {
-    return this.invokeGenerator(generateUnaryExpr, ctx);
+    // #1445: the generator takes the operator and the operand's generated
+    // code. The recursion stays here, where the tree is.
+    const postfix = ctx.postfixExpression();
+    if (postfix) {
+      return this.invokeGenerator(generateUnaryExpr, {
+        operator: null,
+        operandCode: this.generatePostfixExpr(postfix),
+        operandType: () => null,
+      });
+    }
+
+    const operand = ctx.unaryExpression()!;
+    const text = ctx.getText();
+    const operator =
+      text.startsWith("!") ||
+      text.startsWith("-") ||
+      text.startsWith("~") ||
+      text.startsWith("&")
+        ? (text[0] as "!" | "-" | "~" | "&")
+        : null;
+
+    return this.invokeGenerator(generateUnaryExpr, {
+      operator,
+      operandCode: this.generateUnaryExpr(operand),
+      // lazy: only `~` consults it
+      operandType: () => TypeResolver.getUnaryExpressionType(operand),
+    });
   }
 
   /**
