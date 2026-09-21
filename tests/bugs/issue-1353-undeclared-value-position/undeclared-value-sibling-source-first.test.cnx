@@ -1,4 +1,5 @@
 // test-error
+// test-adr: 030
 // Issue #1353, cross-file: value-consumer.cnx reads a const declared in
 // value-source.cnx without including it.
 //

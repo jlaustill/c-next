@@ -1,4 +1,5 @@
 // test-error
+// test-adr: 030
 // Issue #1312: a name that was never declared, used in a TYPE position.
 // No includes anywhere in this run, so external-symbol recovery cannot
 // explain it. Today this transpiles at exit 0 and emits `Mode x = ...`,

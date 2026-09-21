@@ -5,6 +5,7 @@
 
 #include "macro-through-cnx-include.test.hpp"
 
+// test-adr: 030
 // NEGATIVE CONTROL for the #1399 review — this file must stay SILENT.
 //
 // Both names come from a C header two hops away: this file includes only a

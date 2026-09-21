@@ -1,0 +1,32 @@
+// test-execution
+// test-adr: 030
+// NEGATIVE CONTROL for #1582 -- this file must stay SILENT and keep working.
+//
+// `global.crossCounter` is the reason the include is here. A name that arrives
+// through a `.cnx` include is in no frame this file built, so `global.` reaches
+// it only through the include-filtered cross-file term -- and every OTHER
+// `global.` spelling in this directory names something declared in its own
+// file, which `declarationFor` answers first. Without this line, replacing that
+// term with `return false` reddens nothing, read or written.
+#include <write-target-source.cnx>
+
+u32 shared <- 1;
+
+u32 main() {
+    u32 shared <- 2;
+    shared <- 3;
+    global.shared <- 4;
+    crossCounter <- 9;
+    global.crossCounter +<- 1;
+
+    if (shared != 3) {
+        return 1;
+    }
+    if (global.shared != 4) {
+        return 2;
+    }
+    if (global.crossCounter != 10) {
+        return 3;
+    }
+    return 0;
+}

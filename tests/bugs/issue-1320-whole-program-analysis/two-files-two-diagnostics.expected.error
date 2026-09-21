@@ -1,3 +1,3 @@
-21:19 error[E0427]: 'neverDeclaredInA' is not defined
-14:16 error[E0800]: Division by zero
+tests/bugs/issue-1320-whole-program-analysis/a-side.cnx:21:19 error[E0427]: 'neverDeclaredInA' is not defined
+tests/bugs/issue-1320-whole-program-analysis/b-side.cnx:14:16 error[E0800]: Division by zero
        help: Consider using safe_div(output, numerator, divisor, defaultValue) for runtime safety

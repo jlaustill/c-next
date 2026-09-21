@@ -1,0 +1,4 @@
+28:29 error[E0427]: 'declaredAtFileScope' is not defined
+30:27 error[E0427]: 'noSuchMember' is not defined
+31:28 error[E0427]: 'noSuchGlobal' is not defined
+38:28 error[E0427]: 'Global' is not defined

@@ -1,0 +1,21 @@
+// test-error
+// test-adr: 030
+// #1582, cross-file: write-sibling-consumer.cnx WRITES a variable declared in
+// write-sibling-source.cnx without including it.
+//
+// Paired with undeclared-write-sibling-consumer-first.test.cnx -- same two
+// sources, opposite include order, and the two must produce the IDENTICAL
+// diagnostic set. `knownVariables` is assembled incrementally and is
+// order-sensitive, which is what made #1430 flip a diagnostic on and off by
+// swapping two `#include` lines. The pair asserts that, rather than a comment
+// anyone has to trust.
+//
+// Both halves carry the `-first` suffix on purpose: scripts/__tests__/
+// order-pair-fixtures.test.ts treats that name as a promise of a pair and
+// fails a directory holding a lone half.
+#include <write-sibling-source.cnx>
+#include <write-sibling-consumer.cnx>
+
+u32 main() {
+    return 0;
+}

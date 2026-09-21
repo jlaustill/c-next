@@ -1,0 +1,51 @@
+// test-error
+// test-adr: 030
+// #1582, the READ half, found reviewing the write half.
+//
+// `enterPostfixExpression` took the name from `primary.IDENTIFIER()`, and for
+// `this.x` / `global.x` the primary is the KEYWORD -- the name sits in the
+// first postfix op. So that terminal was null and every rooted read returned
+// unchecked, while the write beside it was rejected. ADR-016's three spellings
+// read the chain from different offsets, which is what `ChainRoot` exists to
+// say; using one shape's offset on the other is the whole defect.
+//
+// Each case below emitted a C identifier nothing declares, at exit 0.
+u32 declaredAtFileScope <- 0;
+
+scope Motor {
+    u32 speed <- 0;
+
+    u32 spin() {
+        // NEGATIVE CONTROLS -- must stay SILENT.
+        u32 own <- this.speed;
+        u32 far <- global.declaredAtFileScope;
+
+        // `declaredAtFileScope` IS visible bare and is NOT a member of
+        // `Motor`, so this is the case that tells a root-aware read from a
+        // root-blind one: the bare outward walk finds the global and stays
+        // silent, emitting `Motor__declaredAtFileScope`, which nothing
+        // declares. Every other rooted read here is invisible both ways.
+        u32 captured <- this.declaredAtFileScope;
+
+        u32 absent <- this.noSuchMember;
+        u32 loose <- global.noSuchGlobal;
+
+        // `this.Global` names a member of THIS scope and the scope has none,
+        // so the accurate answer is that the name is undefined. ADR-017's
+        // `enum-error-assign-wrong-enum` fixture carried this case and could
+        // only reach it through E0428 ("not of any enum type"), which its own
+        // comment recorded as standing in for a diagnostic that did not exist.
+        u32 viaPath <- this.Global.ON;
+
+        return own + far + captured + absent + loose + viaPath;
+    }
+}
+
+enum Global {
+    ON,
+    OFF
+}
+
+u32 main() {
+    return Motor.spin();
+}
