@@ -80,18 +80,17 @@ class UndeclaredValueListener extends CNextListener {
       return;
     }
 
-    const root = ChainRoot.ofPrimary(primary);
     const ops = ctx.postfixOp();
-
-    // The root keyword consumes the primary, so a rooted chain carries the
-    // name -- and therefore its call parentheses -- one op further along.
-    const identifier =
-      root === null ? primary.IDENTIFIER() : (ops[0]?.IDENTIFIER() ?? null);
-    const callAt = root === null ? 0 : 1;
+    const { root, identifier, opsConsumed } = ChainRoot.headOf(primary, ops);
 
     // `name(...)` is a call. E0422 owns undefined calls, with ADR-030/040/057
-    // rules this analyzer deliberately does not reimplement.
-    if (ops.length > callAt && ops[callAt].getText().startsWith("(")) {
+    // rules this analyzer deliberately does not reimplement. The root keyword
+    // consumes the primary, so the parentheses sit `opsConsumed` further along
+    // -- the offset travels with the root instead of being re-derived here.
+    if (
+      ops.length > opsConsumed &&
+      ops[opsConsumed].getText().startsWith("(")
+    ) {
       return;
     }
 

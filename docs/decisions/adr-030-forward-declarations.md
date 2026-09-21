@@ -313,9 +313,18 @@ records the obligation without asserting an occupancy that is not there.
 **Several of those `warn` cells nonetheless read as occupied, and by the wrong
 thing.** Occupancy is derived per ADR, not per code, so the define-before-use
 fixtures marked `// test-adr: 030` occupy cells here on their diagnostics'
-positions — which is why `global variable` and `top-level function` at
-`same file`, and `top-level function` at `direct`, are no longer empty. They
-say nothing about opaque handles. **The reverse also holds and is the sharper
+positions — which is why the four `same file` cells are no longer empty. They
+say nothing about opaque handles.
+
+The `direct` row is deliberately **not** among them. A cross-file fixture
+reports its diagnostic in the included file, and a snapshot recording only
+`line:column` is resolved against the ENTRY — so those positions occupied the
+row by naming a line in a file the diagnostic never came from, and the two
+halves of an order-swapped pair disagreed about which cell they filled while
+carrying identical snapshots. Such a position is now skipped rather than
+guessed at, and the row reads `warn`: a visible obligation rather than a closed
+question. Restoring it honestly needs the occupancy derivation to resolve each
+position against its own file, which is #1408. **The reverse also holds and is the sharper
 half: `scope method / same file` is now co-occupied by an E0427 fixture, so
 deleting the provenance recording behind the opaque-handle decision would leave
 this table green.** That is the coincidence the paragraph below warns about,
@@ -378,11 +387,21 @@ level is a different answer, not a fallback.** `this.x` asks the enclosing
 scope, `global.x` asks file scope, and a bare name searches outward. A name
 visible at one level is not thereby visible at another.
 
-**A name arriving from a C or C++ header the transpiler does not parse is
-exempt.** C-Next cannot enumerate what such a header supplies, so it does not
-claim a name is undefined on evidence it does not have. The exemption is a
-promise about interop, and it applies to the whole file that reaches the
-header.
+**A file that reaches a C or C++ header is exempt**, directly or through any
+`.cnx` it includes. A header supplies names through the preprocessor — a
+`#define` is not a declaration and appears in no symbol table — so C-Next
+cannot enumerate what is in scope and does not claim a name is undefined on
+evidence it does not have. The exemption is a promise about interop, and it
+covers the whole file, not the names that came from the header.
+
+The qualifier matters and an earlier draft of this passage got it wrong, saying
+a header "the transpiler does not parse". Parsing is not the criterion and
+never was: whether a header's declarations are read changes what the transpiler
+can resolve, never what the preprocessor can supply behind its back. A
+reimplementation following the narrower promise would exempt fewer files and
+reject programs this language accepts, which is the failure the rewrite test
+exists to catch — and no gate can catch it, because the sentence names no
+module and no path.
 
 ## References
 

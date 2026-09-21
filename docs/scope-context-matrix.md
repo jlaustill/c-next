@@ -202,11 +202,11 @@ cell is declared by the ADR that owns it.
 | Context            | same file | direct | transitive | from 1 away | thru chain |
 | ------------------ | --------- | ------ | ---------- | ----------- | ---------- |
 | global variable    | ok        | warn   | warn       | n/a         | n/a        |
-| top-level function | ok        | ok     | warn       | n/a         | n/a        |
+| top-level function | ok        | warn   | warn       | n/a         | n/a        |
 | scope member       | ok        | warn   | warn       | n/a         | n/a        |
 | scope method       | ok        | warn   | warn       | n/a         | n/a        |
 
-11 linked fixtures with no derivable context:
+13 linked fixtures with no derivable context:
 
 - `bugs/issue-1312-undefined-type-position/order-consumer-first.test.cnx`
 - `bugs/issue-1312-undefined-type-position/order-lib-first.test.cnx`
@@ -214,10 +214,12 @@ cell is declared by the ADR that owns it.
 - `bugs/issue-1312-undefined-type-position/undefined-type-sibling.test.cnx`
 - `bugs/issue-1353-undeclared-value-position/declared-value-resolves.test.cnx`
 - `bugs/issue-1353-undeclared-value-position/macro-through-cnx-include.test.cnx`
+- `bugs/issue-1353-undeclared-value-position/undeclared-value-sibling-consumer-first.test.cnx`
 - `bugs/issue-1353-undeclared-value-position/undeclared-value-sibling-source-first.test.cnx`
 - `bugs/issue-1430-e0427-order-dependence/consumer-first.test.cnx`
 - `bugs/issue-1430-e0427-order-dependence/source-first.test.cnx`
 - `bugs/issue-1582-undeclared-write-target/shadowed-write-resolves.test.cnx`
+- `bugs/issue-1582-undeclared-write-target/undeclared-write-sibling-consumer-first.test.cnx`
 - `bugs/issue-1582-undeclared-write-target/undeclared-write-sibling-source-first.test.cnx`
 
 ## ADR-034

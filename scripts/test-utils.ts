@@ -16,7 +16,7 @@ import {
   statSync,
   readdirSync,
 } from "node:fs";
-import { join, dirname, basename } from "node:path";
+import { join, dirname, basename, relative } from "node:path";
 import { execFileSync, spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { randomBytes, createHash } from "node:crypto";
@@ -149,6 +149,29 @@ interface ICliTranspileResult {
  * @param cppMode - Whether to use C++ mode (--cpp flag)
  * @param outputPath - Optional output path for the generated code file
  */
+/**
+ * How a diagnostic is written into a `.expected.error` snapshot.
+ *
+ * `line:col message` when the diagnostic belongs to the fixture itself, and
+ * `path:line:col message` when it does not. #1582 review: a bare `line:col`
+ * is resolved by every reader -- human and `FixtureOccupancy` alike -- against
+ * the ENTRY file, so a diagnostic reported in an included sibling pointed at a
+ * real line in the wrong file. The two halves of an order-swapped pair carried
+ * byte-identical snapshots meaning different lines.
+ *
+ * Conditional rather than unconditional on purpose: prefixing every diagnostic
+ * would rewrite every single-file snapshot in the corpus to say what the
+ * filename already says.
+ */
+function renderDiagnostic(
+  e: { line: number; column: number; message: string; file?: string },
+  entryPath: string,
+): string {
+  const entry = relative(PROJECT_ROOT, entryPath);
+  const where = e.file !== undefined && e.file !== entry ? `${e.file}:` : "";
+  return `${where}${e.line}:${e.column} ${e.message}`;
+}
+
 function transpileViaCli(
   cnxFile: string,
   _rootDir: string,
@@ -207,13 +230,24 @@ function transpileViaCli(
 
   // Parse errors from stderr
   // CLI format: "Error: /path/file.cnx:line:column message" followed by optional indented continuation lines
-  const errors: Array<{ line: number; column: number; message: string }> = [];
+  // #1582 review: the path is CAPTURED, not merely matched. A diagnostic
+  // reported in an included file used to render as a bare `line:col`, which
+  // resolves against the ENTRY -- so a cross-file snapshot pointed at a real
+  // line in the wrong file. `11:4` meant a comment in one fixture and
+  // `return 0;` in its order-swapped twin.
+  const errors: Array<{
+    line: number;
+    column: number;
+    message: string;
+    file?: string;
+  }> = [];
   if (result.stderr) {
     const lines = result.stderr.split("\n");
     let currentError: {
       line: number;
       column: number;
       messageParts: string[];
+      file?: string;
     } | null = null;
 
     for (const line of lines) {
@@ -221,7 +255,7 @@ function transpileViaCli(
       if (!line.trim() || line === "Compilation failed") continue;
 
       // Match: "Error: /path/file.cnx:line:column message"
-      const fullMatch = line.match(/^Error:\s*[^:]+:(\d+):(\d+)\s+(.+)$/);
+      const fullMatch = line.match(/^Error:\s*([^:]+):(\d+):(\d+)\s+(.+)$/);
       if (fullMatch) {
         // Save previous error if any
         if (currentError) {
@@ -229,12 +263,14 @@ function transpileViaCli(
             line: currentError.line,
             column: currentError.column,
             message: currentError.messageParts.join("\n"),
+            file: currentError.file,
           });
         }
         currentError = {
-          line: parseInt(fullMatch[1], 10),
-          column: parseInt(fullMatch[2], 10),
-          messageParts: [fullMatch[3]],
+          line: parseInt(fullMatch[2], 10),
+          column: parseInt(fullMatch[3], 10),
+          messageParts: [fullMatch[4]],
+          file: fullMatch[1],
         };
         continue;
       }
@@ -254,6 +290,7 @@ function transpileViaCli(
             line: currentError.line,
             column: currentError.column,
             message: currentError.messageParts.join("\n"),
+            file: currentError.file,
           });
         }
         // #1319: become the current error rather than pushing immediately. This
@@ -264,6 +301,8 @@ function transpileViaCli(
         // The path-carrying branch has always accumulated; only this one did
         // not, so the same diagnostic asserted more or less of itself depending
         // on whether it happened to know its file.
+        // No path in front of it, so the diagnostic is the entry's own and
+        // `file` stays undefined -- which renders exactly as it always has.
         currentError = {
           line: parseInt(simpleMatch[1], 10),
           column: parseInt(simpleMatch[2], 10),
@@ -278,6 +317,7 @@ function transpileViaCli(
         line: currentError.line,
         column: currentError.column,
         message: currentError.messageParts.join("\n"),
+        file: currentError.file,
       });
     }
   }
@@ -1082,7 +1122,7 @@ class TestUtils {
 
     if (!transpileResult.success) {
       const errors = transpileResult.errors
-        .map((e) => `${e.line}:${e.column} ${e.message}`)
+        .map((e) => renderDiagnostic(e, cnxFile))
         .join("\n");
       result.error = `Transpilation failed: ${errors || transpileResult.stderr}`;
       return result;
@@ -1842,8 +1882,8 @@ class TestUtils {
 
     const actualErrors = result.errors
       .map(
-        (e: { line: number; column: number; message: string }) =>
-          `${e.line}:${e.column} ${e.message}`,
+        (e: { line: number; column: number; message: string; file?: string }) =>
+          renderDiagnostic(e, cnxFile),
       )
       .join("\n");
 

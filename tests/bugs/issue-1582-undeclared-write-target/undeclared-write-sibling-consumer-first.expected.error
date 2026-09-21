@@ -1,1 +1,1 @@
-11:4 error[E0427]: 'siblingCounter' is not defined
+tests/bugs/issue-1582-undeclared-write-target/write-sibling-consumer.cnx:11:4 error[E0427]: 'siblingCounter' is not defined
