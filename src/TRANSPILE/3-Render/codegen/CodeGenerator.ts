@@ -4798,7 +4798,34 @@ export default class CodeGenerator implements IOrchestrator {
   private processPreprocessorDirective(
     ctx: Parser.PreprocessorDirectiveContext,
   ): string | null {
-    return includeProcessPreprocessorDirective(ctx);
+    // #1445: the generator takes the directive's SHAPE and its text.
+    // `getText()` is the concatenated token text, handed over VERBATIM --
+    // rebuilding it from source positions would change the emitted line. The
+    // generator trims, because trimming is string work and that is where its
+    // test can reach it.
+    const define = ctx.defineDirective();
+    if (define) {
+      return includeProcessPreprocessorDirective({
+        kind: define.DEFINE_FUNCTION()
+          ? "define-function"
+          : define.DEFINE_WITH_VALUE()
+            ? "define-value"
+            : define.DEFINE_FLAG()
+              ? "define-flag"
+              : "define-other",
+        text: define.getText(),
+      });
+    }
+
+    const conditional = ctx.conditionalDirective();
+    if (conditional) {
+      return includeProcessPreprocessorDirective({
+        kind: "conditional",
+        text: conditional.getText(),
+      });
+    }
+
+    return includeProcessPreprocessorDirective({ kind: "none", text: "" });
   }
 
   // ========================================================================
