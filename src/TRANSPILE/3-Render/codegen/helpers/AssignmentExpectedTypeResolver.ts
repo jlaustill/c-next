@@ -9,7 +9,7 @@
  * Migrated to use CodeGenState instead of constructor DI.
  */
 
-import TOverflowBehavior from "../../../../transpiler/types/TOverflowBehavior";
+import IAssignmentOverflowContext from "../../../../transpiler/types/IAssignmentOverflowContext";
 import CodeGenState from "../../../../transpiler/state/CodeGenState";
 
 /**
@@ -19,16 +19,7 @@ interface IExpectedTypeResult {
   /** The resolved expected type (e.g., "u32", "Status"), or null if not resolved */
   expectedType: string | null;
   /** Assignment context for overflow behavior tracking */
-  assignmentContext: IAssignmentContext | null;
-}
-
-/**
- * Assignment context for overflow behavior tracking (ADR-044).
- */
-interface IAssignmentContext {
-  targetName: string;
-  targetType: string;
-  overflowBehavior: TOverflowBehavior;
+  assignmentContext: IAssignmentOverflowContext | null;
 }
 
 /**

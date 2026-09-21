@@ -38,7 +38,7 @@ import type IRequirementSite from "../types/IRequirementSite";
 import type TRequirementKey from "../types/TRequirementKey";
 import RequirementSites from "../../utils/RequirementSites";
 import ITargetCapabilities from "../types/ITargetCapabilities";
-import TOverflowBehavior from "../types/TOverflowBehavior";
+import IAssignmentOverflowContext from "../types/IAssignmentOverflowContext";
 import TYPE_WIDTH from "../constants/TYPE_WIDTH";
 import UNRESOLVED_DIMENSION from "../constants/UNRESOLVED_DIMENSION";
 import type ICodeGenApi from "../types/ICodeGenApi";
@@ -58,15 +58,6 @@ import DEFAULT_TARGET from "../constants/DEFAULT_TARGET";
  * Default target capabilities (safe fallback)
  * Uses C99 guarantees: 31 external, 63 internal significant characters.
  */
-/**
- * Assignment context for overflow behavior tracking (ADR-044)
- */
-interface IAssignmentContext {
-  targetName: string | null;
-  targetType: string | null;
-  overflowBehavior: TOverflowBehavior;
-}
-
 /**
  * Global state for code generation.
  * All fields are static - import and use directly from any module.
@@ -448,7 +439,7 @@ export default class CodeGenState {
   static mainArgsName: string | null = null;
 
   /** ADR-044: Current assignment context for overflow behavior */
-  static assignmentContext: IAssignmentContext = {
+  static assignmentContext: IAssignmentOverflowContext = {
     targetName: null,
     targetType: null,
     overflowBehavior: "clamp",
