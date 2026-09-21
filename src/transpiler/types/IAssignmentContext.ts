@@ -5,34 +5,92 @@
  * code for an assignment. Built once by the context extractor, then used
  * by the classifier and handlers.
  */
-import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
+import type IBitAccessAnalysis from "./IBitAccessAnalysis";
+import type TPlannedTargetOp from "./TPlannedTargetOp";
 import TTypeInfo from "./TTypeInfo";
 
 /**
  * Context extracted from assignment statement for classification.
  */
 interface IAssignmentContext {
-  // === Parse tree nodes ===
+  // === The target, as renders rather than as a node ===
 
-  /** The full assignment statement context */
-  readonly statementCtx: Parser.AssignmentStatementContext;
+  /**
+   * The fully-resolved target, rendered on demand.
+   *
+   * This renders the SAME text `resolvedTarget` already holds, and that
+   * duplication is pre-existing: the builder renders the target once to derive
+   * `resolvedTarget` and `resolvedBaseIdentifier`, and six handlers rendered it
+   * again from the node. Preserved rather than collapsed here, because
+   * `generateAssignmentTarget` renders chain subscripts and so is not obviously
+   * free to call once instead of twice -- collapsing it changes emitted C if it
+   * is not. Keeping both makes the duplication visible instead of hiding it
+   * behind a node that looked like data.
+   */
+  readonly renderTarget: () => string;
 
-  /** The assignment target (left-hand side) */
-  readonly targetCtx: Parser.AssignmentTargetContext;
+  /** ADR-034 bit-access analysis of the target's member chain. */
+  readonly analyzeTargetForBitAccess: () => IBitAccessAnalysis;
 
-  /** The value expression (right-hand side), null if missing */
-  readonly valueCtx: Parser.ExpressionContext | null;
+  /**
+   * The target's source line -- where ADR-044's overflow decision is recorded.
+   *
+   * #1318: position comes from the span, not from holding the node that had
+   * one. This is the only thing any consumer asked `targetCtx.start` for.
+   */
+  readonly targetLine: number | undefined;
+
+  // === The value, as questions rather than as a node ===
+
+  /** Whether the assignment has a right-hand side at all. */
+  readonly hasValue: boolean;
+
+  /**
+   * The value's essential type, its integer type, and its constant fold.
+   *
+   * All three are pure -- they read the type registry and fold literals, and
+   * none of them generates. They are thunks so an assignment form that does
+   * not ask does not pay, which is what the node gave for free.
+   */
+  readonly valueExpressionType: () => string | null;
+  readonly valueIntegerType: () => string | null;
+  readonly foldValue: () => number | undefined;
 
   // === Extracted identifiers and expressions ===
 
   /** All identifiers in the target chain */
   readonly identifiers: readonly string[];
 
-  /** All subscript expressions from [...] access */
-  readonly subscripts: readonly Parser.ExpressionContext[];
+  /**
+   * How many subscript EXPRESSIONS the target carries, across all of its
+   * operations -- `a[i][j]` is 2, and so is `a[start, width]`.
+   *
+   * The classifier asks only this, at twelve sites, and asked it as
+   * `subscripts.length`.
+   */
+  readonly subscriptCount: number;
 
-  /** The postfix operations for detailed analysis */
-  readonly postfixOps: readonly Parser.PostfixTargetOpContext[];
+  /**
+   * One subscript expression, rendered or folded. Indexed as `subscripts` was.
+   *
+   * Two accessors because the handlers ask two different questions of the same
+   * expression: ADR-046's slice needs its offset and length to FOLD at compile
+   * time (E0859/E0860 reject a runtime one), while a bit index is RENDERED into
+   * the shift. A single accessor returning generated code cannot answer the
+   * first, and one returning a number cannot answer the second.
+   */
+  readonly renderSubscript: (index: number) => string;
+  readonly foldSubscript: (index: number) => number | undefined;
+
+  /** The postfix operations, reduced to what is asked of them. */
+  readonly postfixOps: readonly TPlannedTargetOp[];
+
+  /**
+   * How many of the leading operations are subscripts, counted through
+   * `SubscriptDepthValidator` so the read path and this one share the
+   * decision rather than each counting for itself (Issue #1106).
+   */
+  readonly leadingSubscriptCount: number;
 
   // === Target classification flags ===
 

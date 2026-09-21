@@ -126,9 +126,7 @@ function handleBitmapArrayElementField(ctx: IAssignmentContext): string {
   const bitmapType = typeInfo!.bitmapTypeName!;
 
   const fieldInfo = getBitmapFieldInfo(bitmapType, fieldName);
-  const index = CodeGenState.requireGenerator().generateExpression(
-    ctx.subscripts[0],
-  );
+  const index = ctx.renderSubscript(0);
   const arrayElement = `${arrayName}[${index}]`;
 
   return generateBitmapWrite(arrayElement, fieldInfo, ctx.generatedValue);

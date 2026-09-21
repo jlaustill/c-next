@@ -31,9 +31,7 @@ function handleRegisterBit(ctx: IAssignmentContext): string {
   const accessMod = CodeGenState.symbols!.registerMemberAccess.get(fullName);
   const isWriteOnly = RegisterUtils.isWriteOnlyRegister(accessMod);
 
-  const bitIndex = CodeGenState.requireGenerator().generateExpression(
-    ctx.subscripts[0],
-  );
+  const bitIndex = ctx.renderSubscript(0);
 
   if (isWriteOnly) {
     AssignmentHandlerUtils.validateWriteOnlyValue(
@@ -63,7 +61,8 @@ function handleRegisterBitRange(ctx: IAssignmentContext): string {
   const isWriteOnly = RegisterUtils.isWriteOnlyRegister(accessMod);
 
   const { start, width, mask } = RegisterUtils.extractBitRangeParams(
-    ctx.subscripts,
+    ctx.renderSubscript(0),
+    ctx.renderSubscript(1),
   );
 
   if (isWriteOnly) {
@@ -78,7 +77,8 @@ function handleRegisterBitRange(ctx: IAssignmentContext): string {
     const mmio = RegisterUtils.tryGenerateMMIO(
       fullName,
       regName,
-      ctx.subscripts,
+      ctx.foldSubscript(0),
+      ctx.foldSubscript(1),
       ctx.generatedValue,
     );
     if (mmio.success) {
@@ -118,9 +118,7 @@ function handleScopedRegisterBit(ctx: IAssignmentContext): string {
   const accessMod = CodeGenState.symbols!.registerMemberAccess.get(regName);
   const isWriteOnly = RegisterUtils.isWriteOnlyRegister(accessMod);
 
-  const bitIndex = CodeGenState.requireGenerator().generateExpression(
-    ctx.subscripts[0],
-  );
+  const bitIndex = ctx.renderSubscript(0);
 
   if (isWriteOnly) {
     AssignmentHandlerUtils.validateWriteOnlyValue(
@@ -159,7 +157,8 @@ function handleScopedRegisterBitRange(ctx: IAssignmentContext): string {
   const isWriteOnly = RegisterUtils.isWriteOnlyRegister(accessMod);
 
   const { start, width, mask } = RegisterUtils.extractBitRangeParams(
-    ctx.subscripts,
+    ctx.renderSubscript(0),
+    ctx.renderSubscript(1),
   );
 
   if (isWriteOnly) {
@@ -174,7 +173,8 @@ function handleScopedRegisterBitRange(ctx: IAssignmentContext): string {
     const mmio = RegisterUtils.tryGenerateMMIO(
       regName,
       scopedRegName,
-      ctx.subscripts,
+      ctx.foldSubscript(0),
+      ctx.foldSubscript(1),
       ctx.generatedValue,
     );
     if (mmio.success) {

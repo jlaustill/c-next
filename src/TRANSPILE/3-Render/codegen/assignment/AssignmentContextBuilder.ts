@@ -1,12 +1,30 @@
 /**
  * Builder for IAssignmentContext (ADR-065).
  *
- * Extracts all context from an assignment statement parse tree
- * needed for classification and code generation.
+ * Extracts all context from an assignment statement parse tree needed for
+ * classification and code generation.
+ *
+ * ## The context carries no parse nodes (#1445 box 3)
+ *
+ * It used to carry five: the statement, the target, the value, the subscript
+ * expressions and the postfix operations. Every consumer of those five asked a
+ * bounded set of questions -- render this target, analyze it for bit access,
+ * what type is the value, fold this subscript, how many subscripts are there --
+ * so the context carries the answers and the renders, and the walk stays here.
+ *
+ * That also fixes an under-measurement. `parse-tree-confined-to-parser` counts
+ * modules that NAME a parse type, so the four handler files that read
+ * `ctx.valueCtx` and `ctx.subscripts[0]` off this interface held parse trees
+ * without ever being counted -- the contract was acting as an unsanctioned
+ * carrier. They hold no nodes now, and the two modules that did name types are
+ * out of the population for real rather than by spelling.
  */
 import * as Parser from "../../../../PARSE/2-Parse/grammar/CNextParser";
 import IAssignmentContext from "../../../../transpiler/types/IAssignmentContext";
+import IBitAccessAnalysis from "../../../../transpiler/types/IBitAccessAnalysis";
+import TPlannedTargetOp from "../../../../transpiler/types/TPlannedTargetOp";
 import TTypeInfo from "../../../../transpiler/types/TTypeInfo";
+import SubscriptDepthValidator from "../../../2-Plan/SubscriptDepthValidator";
 import AssignmentOperatorMapper from "../helpers/AssignmentOperatorMapper";
 
 /**
@@ -16,17 +34,34 @@ interface IContextBuilderDeps {
   /** Type registry: variable name -> type info */
   readonly typeRegistry: ReadonlyMap<string, TTypeInfo>;
 
-  /** Generate C expression for a value */
-  generateExpression(ctx: Parser.ExpressionContext): string;
+  /**
+   * The value expression, already generated.
+   *
+   * Takes no argument: `CodeGenerator.generateAssignment` renders the
+   * right-hand side inside its own `withExpectedType` window and passes the
+   * result, so this must not render it a second time.
+   */
+  generatedValue(): string;
 
   /** Generate fully-resolved assignment target with scope prefixes */
   generateAssignmentTarget(ctx: Parser.AssignmentTargetContext): string;
 
-  /** Check if an identifier is a known register (for skipping resolution) */
-  isKnownRegister(name: string): boolean;
+  /** ADR-034: analyze the target's member chain for bit access */
+  analyzeMemberChainForBitAccess(
+    ctx: Parser.AssignmentTargetContext,
+  ): IBitAccessAnalysis;
 
-  /** Current scope name (for scoped register detection) */
-  currentScopePath: string;
+  /** Generate a subscript expression */
+  generateExpression(ctx: Parser.ExpressionContext): string;
+
+  /** Fold an expression to a compile-time constant */
+  tryEvaluateConstant(ctx: Parser.ExpressionContext): number | undefined;
+
+  /** The value expression's essential type */
+  expressionType(ctx: Parser.ExpressionContext): string | null;
+
+  /** The value expression's integer type */
+  integerExpressionType(ctx: Parser.ExpressionContext): string | null;
 }
 
 /**
@@ -35,6 +70,7 @@ interface IContextBuilderDeps {
 interface ITargetExtraction {
   identifiers: string[];
   subscripts: Parser.ExpressionContext[];
+  ops: TPlannedTargetOp[];
   hasMemberAccess: boolean;
   hasArrayAccess: boolean;
   /** Number of expressions in the last subscript operation */
@@ -80,7 +116,6 @@ function extractBaseIdentifier(
   targetCtx: Parser.AssignmentTargetContext,
 ): ITargetExtraction {
   const identifiers: string[] = [];
-  const subscripts: Parser.ExpressionContext[] = [];
 
   // All patterns now have a base IDENTIFIER
   if (targetCtx.IDENTIFIER()) {
@@ -89,7 +124,8 @@ function extractBaseIdentifier(
 
   return {
     identifiers,
-    subscripts,
+    subscripts: [],
+    ops: [],
     hasMemberAccess: false,
     hasArrayAccess: false,
     lastSubscriptExprCount: 0,
@@ -103,11 +139,14 @@ function extractBaseIdentifier(
 function processPostfixOps(
   postfixOps: Parser.PostfixTargetOpContext[],
   extraction: ITargetExtraction,
+  deps: IContextBuilderDeps,
 ): void {
   for (const op of postfixOps) {
     if (op.IDENTIFIER()) {
-      extraction.identifiers.push(op.IDENTIFIER()!.getText());
+      const name = op.IDENTIFIER()!.getText();
+      extraction.identifiers.push(name);
       extraction.hasMemberAccess = true;
+      extraction.ops.push({ kind: "member", name });
     } else {
       const exprs = op.expression();
       for (const expr of exprs) {
@@ -116,6 +155,14 @@ function processPostfixOps(
       extraction.hasArrayAccess = true;
       // Track the expression count of the last subscript operation
       extraction.lastSubscriptExprCount = exprs.length;
+      extraction.ops.push({
+        kind: "subscript",
+        indexCount: exprs.length,
+        // A thunk: most chains are not bit accesses, and the walk that reads
+        // these decides that from `CodeGenState` alone. Generating an index up
+        // front would queue a pending temp for every chain it then rejects.
+        renderIndexes: () => exprs.map((expr) => deps.generateExpression(expr)),
+      });
     }
   }
 }
@@ -140,8 +187,7 @@ function buildAssignmentContext(
   );
   const isCompound = cOp !== "=";
 
-  // Generate value expression
-  const generatedValue = deps.generateExpression(valueCtx);
+  const generatedValue = deps.generatedValue();
 
   // Generate fully-resolved target (with scope prefixes)
   const resolvedTarget = deps.generateAssignmentTarget(targetCtx);
@@ -157,11 +203,12 @@ function buildAssignmentContext(
 
   // Extract base identifier and process postfix operations
   const extraction = extractBaseIdentifier(targetCtx);
-  processPostfixOps(postfixOps, extraction);
+  processPostfixOps(postfixOps, extraction, deps);
 
   const {
     identifiers,
     subscripts,
+    ops,
     hasMemberAccess,
     hasArrayAccess,
     lastSubscriptExprCount,
@@ -187,12 +234,25 @@ function buildAssignmentContext(
   const isSimpleGlobalAccess = hasGlobal && postfixOps.length === 0;
 
   return {
-    statementCtx: ctx,
-    targetCtx,
-    valueCtx,
+    renderTarget: () => deps.generateAssignmentTarget(targetCtx),
+    analyzeTargetForBitAccess: () =>
+      deps.analyzeMemberChainForBitAccess(targetCtx),
+    targetLine: targetCtx.start?.line,
+    hasValue: valueCtx !== null,
+    valueExpressionType: () => deps.expressionType(valueCtx),
+    valueIntegerType: () => deps.integerExpressionType(valueCtx),
+    foldValue: () => deps.tryEvaluateConstant(valueCtx),
     identifiers,
-    subscripts,
-    postfixOps,
+    subscriptCount: subscripts.length,
+    renderSubscript: (index) => deps.generateExpression(subscripts[index]),
+    foldSubscript: (index) => deps.tryEvaluateConstant(subscripts[index]),
+    postfixOps: ops,
+    // Issue #1106: counted through the validator, which the READ path also
+    // calls, so the two cannot diverge on what counts as a subscript.
+    leadingSubscriptCount: SubscriptDepthValidator.countLeadingSubscripts(
+      postfixOps,
+      0,
+    ),
     hasThis,
     hasGlobal,
     hasMemberAccess,

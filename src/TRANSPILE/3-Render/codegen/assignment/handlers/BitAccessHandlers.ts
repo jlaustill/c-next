@@ -27,9 +27,7 @@ function handleIntegerBit(ctx: IAssignmentContext): string {
   // Use resolvedBaseIdentifier for type lookup and code generation
   // e.g., "ArrayBug_flags" instead of "flags"
   const name = ctx.resolvedBaseIdentifier;
-  const bitIndex = CodeGenState.requireGenerator().generateExpression(
-    ctx.subscripts[0],
-  );
+  const bitIndex = ctx.renderSubscript(0);
   const typeInfo = CodeGenState.getVariableTypeInfo(name);
 
   // Check for float bit indexing
@@ -63,12 +61,8 @@ function handleIntegerBit(ctx: IAssignmentContext): string {
 function handleIntegerBitRange(ctx: IAssignmentContext): string {
   // Use resolvedBaseIdentifier for type lookup and code generation
   const name = ctx.resolvedBaseIdentifier;
-  const start = CodeGenState.requireGenerator().generateExpression(
-    ctx.subscripts[0],
-  );
-  const width = CodeGenState.requireGenerator().generateExpression(
-    ctx.subscripts[1],
-  );
+  const start = ctx.renderSubscript(0);
+  const width = ctx.renderSubscript(1);
   const typeInfo = CodeGenState.getVariableTypeInfo(name);
 
   // Check for float bit indexing
@@ -112,13 +106,11 @@ function handleArrayElementBit(ctx: IAssignmentContext): string {
   const numDims = typeInfo.arrayDimensions.length;
 
   // Array indices are subscripts[0..numDims-1], bit index is subscripts[numDims]
-  const arrayIndices = ctx.subscripts
-    .slice(0, numDims)
-    .map((e) => `[${CodeGenState.requireGenerator().generateExpression(e)}]`)
-    .join("");
-  const bitIndex = CodeGenState.requireGenerator().generateExpression(
-    ctx.subscripts[numDims],
-  );
+  let arrayIndices = "";
+  for (let dim = 0; dim < numDims; dim++) {
+    arrayIndices += `[${ctx.renderSubscript(dim)}]`;
+  }
+  const bitIndex = ctx.renderSubscript(numDims);
 
   const arrayElement = `${arrayName}${arrayIndices}`;
 
@@ -144,29 +136,20 @@ function handleStructChainBitRange(ctx: IAssignmentContext): string {
 
   let baseTarget = baseId;
   for (const op of opsBeforeLast) {
-    const memberId = op.IDENTIFIER();
-    if (memberId) {
-      baseTarget += "." + memberId.getText();
+    if (op.kind === "member") {
+      baseTarget += "." + op.name;
     } else {
-      const exprs = op.expression();
-      if (exprs.length > 0) {
-        baseTarget +=
-          "[" +
-          CodeGenState.requireGenerator().generateExpression(exprs[0]) +
-          "]";
+      const indexes = op.renderIndexes();
+      if (indexes.length > 0) {
+        baseTarget += "[" + indexes[0] + "]";
       }
     }
   }
 
   // Get start and width from the last postfixOp (the bit range)
   const lastOp = ctx.postfixOps.at(-1)!;
-  const bitRangeExprs = lastOp.expression();
-  const start = CodeGenState.requireGenerator().generateExpression(
-    bitRangeExprs[0],
-  );
-  const width = CodeGenState.requireGenerator().generateExpression(
-    bitRangeExprs[1],
-  );
+  const [start, width] =
+    lastOp.kind === "subscript" ? lastOp.renderIndexes() : ["", ""];
 
   // Generate bit range write
   // Limitation: assumes 32-bit types. For 64-bit struct members,

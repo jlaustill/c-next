@@ -62,6 +62,33 @@ function setupMockGenerator(overrides: Record<string, unknown> = {}): void {
   } as unknown as ICodeGenApi;
 }
 
+/**
+ * The subscript accessors an `IAssignmentContext` carries, bound to the mocked
+ * generator.
+ *
+ * #1445: the context used to hand the handlers a node, which they passed to
+ * `CodeGenState.requireGenerator().generateExpression(...)`. It hands them a
+ * render now, so the cases keep their stand-in nodes -- the default mock reads
+ * `mockValue` off one, and several cases override `generateExpression` or
+ * `tryEvaluateConstant` outright -- and this routes through the same mock in
+ * the same order.
+ */
+function subscriptsOf(nodes: readonly unknown[]): {
+  subscriptCount: number;
+  renderSubscript: (index: number) => string;
+  foldSubscript: (index: number) => number | undefined;
+} {
+  return {
+    subscriptCount: nodes.length,
+    renderSubscript: (index) =>
+      CodeGenState.requireGenerator().generateExpression(nodes[index] as never),
+    foldSubscript: (index) =>
+      CodeGenState.requireGenerator().tryEvaluateConstant(
+        nodes[index] as never,
+      ),
+  };
+}
+
 /** Common type bit widths for test mocks */
 const TYPE_BIT_WIDTHS: Record<string, number> = {
   u8: 8,
@@ -109,5 +136,6 @@ function setupMockTypeRegistry(
 export default class HandlerTestUtils {
   static readonly setupMockSymbols = setupMockSymbols;
   static readonly setupMockGenerator = setupMockGenerator;
+  static readonly subscriptsOf = subscriptsOf;
   static readonly setupMockTypeRegistry = setupMockTypeRegistry;
 }

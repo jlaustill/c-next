@@ -11,7 +11,6 @@ import AssignmentKind from "../../../../../transpiler/types/AssignmentKind";
 import IAssignmentContext from "../../../../../transpiler/types/IAssignmentContext";
 import BitUtils from "../../../../../utils/BitUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
-import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 
 /**
  * Emission for a qualified access target: `global.Counter.value <- 5`,
@@ -28,9 +27,7 @@ import CodeGenState from "../../../../../transpiler/state/CodeGenState";
  * shared by being one function rather than by two that happen to agree.
  */
 function handleQualifiedAccess(ctx: IAssignmentContext): string {
-  const target = CodeGenState.requireGenerator().generateAssignmentTarget(
-    ctx.targetCtx,
-  );
+  const target = ctx.renderTarget();
   return `${target} ${ctx.cOp} ${ctx.generatedValue};`;
 }
 
@@ -45,10 +42,7 @@ function handleQualifiedAccess(ctx: IAssignmentContext): string {
  */
 function handleMemberChain(ctx: IAssignmentContext): string {
   // Check if this is bit access on a struct member
-  const bitAnalysis =
-    CodeGenState.requireGenerator().analyzeMemberChainForBitAccess(
-      ctx.targetCtx,
-    );
+  const bitAnalysis = ctx.analyzeTargetForBitAccess();
 
   if (bitAnalysis.isBitAccess) {
     // #1322: compound assignment on this target is E0857 in pass 2.1.
@@ -61,9 +55,7 @@ function handleMemberChain(ctx: IAssignmentContext): string {
   }
 
   // Normal member chain assignment
-  const target = CodeGenState.requireGenerator().generateAssignmentTarget(
-    ctx.targetCtx,
-  );
+  const target = ctx.renderTarget();
   return `${target} ${ctx.cOp} ${ctx.generatedValue};`;
 }
 

@@ -113,7 +113,7 @@ import dimensionEvalOptions from "./helpers/dimensionEvalOptions";
 // Issue #644: Member chain analyzer for bit access pattern detection
 import MemberChainAnalyzer from "./analysis/MemberChainAnalyzer";
 import type IBitAccessAnalysis from "../../../transpiler/types/IBitAccessAnalysis";
-import type TPlannedTargetOp from "./types/TPlannedTargetOp";
+import type TPlannedTargetOp from "../../../transpiler/types/TPlannedTargetOp";
 // Issue #644: Float bit write helper for shadow variable pattern
 import FloatBitHelper from "./helpers/FloatBitHelper";
 // Issue #644: String declaration helper for bounded/array/concat strings
@@ -5432,11 +5432,17 @@ export default class CodeGenerator implements IOrchestrator {
     // Build context, classify, and dispatch - all patterns handled by handlers
     const assignCtx = buildAssignmentContext(ctx, {
       typeRegistry: CodeGenState.getTypeRegistryView(),
-      generateExpression: () => value,
-      generateAssignmentTarget: (targetCtx) =>
-        this.generateAssignmentTarget(targetCtx),
-      isKnownRegister: (name) => CodeGenState.symbols!.knownRegisters.has(name),
-      currentScopePath: CodeGenState.currentScopePath,
+      // Already rendered, inside the expectedType window above -- never again.
+      generatedValue: () => value,
+      generateAssignmentTarget: (target) =>
+        this.generateAssignmentTarget(target),
+      analyzeMemberChainForBitAccess: (target) =>
+        this.analyzeMemberChainForBitAccess(target),
+      generateExpression: (expr) => this.generateExpression(expr),
+      tryEvaluateConstant: (expr) => this.tryEvaluateConstant(expr),
+      expressionType: (expr) => TypeResolver.getExpressionType(expr),
+      integerExpressionType: (expr) =>
+        TypeResolver.getIntegerExpressionType(expr),
     });
     // ADR-065: Handlers access CodeGenState directly, no deps needed
     const assignmentKind = AssignmentClassifier.classify(assignCtx);

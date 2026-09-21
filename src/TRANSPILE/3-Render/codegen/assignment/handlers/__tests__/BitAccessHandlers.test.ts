@@ -24,12 +24,29 @@ function createMockContext(
 
   return {
     identifiers,
-    subscripts: [{ mockValue: "3" } as never],
+    ...HandlerTestUtils.subscriptsOf([{ mockValue: "3" } as never]),
     isCompound: false,
     cnextOp: "<-",
     cOp: "=",
     generatedValue: "true",
-    targetCtx: {} as never,
+    // #1445: renders, not nodes -- each delegates to the mocked generator the
+    // cases already configure, so a case that overrides
+    // `generateAssignmentTarget` or `analyzeMemberChainForBitAccess` still
+    // controls what this returns.
+    renderTarget: () =>
+      CodeGenState.requireGenerator().generateAssignmentTarget(null as never),
+    analyzeTargetForBitAccess: () =>
+      CodeGenState.requireGenerator().analyzeMemberChainForBitAccess(
+        null as never,
+      ),
+    targetLine: 1,
+    hasValue: true,
+    valueExpressionType: () => null,
+    valueIntegerType: () => null,
+    foldValue: () =>
+      CodeGenState.requireGenerator().tryEvaluateConstant(null as never),
+    postfixOps: [],
+    leadingSubscriptCount: 0,
     hasThis: false,
     hasGlobal: false,
     hasMemberAccess: false,
@@ -96,7 +113,7 @@ describe("BitAccessHandlers", () => {
         generateExpression: vi.fn().mockReturnValue("32"),
       });
       const ctx = createMockContext({
-        subscripts: [{ mockValue: "32" } as never],
+        ...HandlerTestUtils.subscriptsOf([{ mockValue: "32" } as never]),
       });
 
       const result = getHandler()!(ctx);
@@ -187,7 +204,10 @@ describe("BitAccessHandlers", () => {
           .mockReturnValueOnce("4"),
       });
       const ctx = createMockContext({
-        subscripts: [{ mockValue: "0" } as never, { mockValue: "4" } as never],
+        ...HandlerTestUtils.subscriptsOf([
+          { mockValue: "0" } as never,
+          { mockValue: "4" } as never,
+        ]),
         generatedValue: "5",
       });
 
@@ -208,7 +228,10 @@ describe("BitAccessHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["data"],
-        subscripts: [{ mockValue: "4" } as never, { mockValue: "8" } as never],
+        ...HandlerTestUtils.subscriptsOf([
+          { mockValue: "4" } as never,
+          { mockValue: "8" } as never,
+        ]),
         generatedValue: "value",
       });
 
@@ -228,10 +251,10 @@ describe("BitAccessHandlers", () => {
           .mockReturnValueOnce("16"),
       });
       const ctx = createMockContext({
-        subscripts: [
+        ...HandlerTestUtils.subscriptsOf([
           { mockValue: "32" } as never,
           { mockValue: "16" } as never,
-        ],
+        ]),
         generatedValue: "value",
       });
 
@@ -255,7 +278,10 @@ describe("BitAccessHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["f"],
-        subscripts: [{ mockValue: "0" } as never, { mockValue: "8" } as never],
+        ...HandlerTestUtils.subscriptsOf([
+          { mockValue: "0" } as never,
+          { mockValue: "8" } as never,
+        ]),
       });
 
       const result = getHandler()!(ctx);
@@ -289,10 +315,10 @@ describe("BitAccessHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["arr"],
-        subscripts: [
+        ...HandlerTestUtils.subscriptsOf([
           { mockValue: "i" } as never,
           { mockValue: "BIT" } as never,
-        ],
+        ]),
       });
 
       const result = getHandler()!(ctx);
@@ -314,11 +340,11 @@ describe("BitAccessHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["matrix"],
-        subscripts: [
+        ...HandlerTestUtils.subscriptsOf([
           { mockValue: "i" } as never,
           { mockValue: "j" } as never,
           { mockValue: "FIELD_BIT" } as never,
-        ],
+        ]),
       });
 
       const result = getHandler()!(ctx);
@@ -339,7 +365,10 @@ describe("BitAccessHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["arr"],
-        subscripts: [{ mockValue: "0" } as never, { mockValue: "40" } as never],
+        ...HandlerTestUtils.subscriptsOf([
+          { mockValue: "0" } as never,
+          { mockValue: "40" } as never,
+        ]),
       });
 
       const result = getHandler()!(ctx);
@@ -376,29 +405,36 @@ describe("BitAccessHandlers", () => {
           .mockReturnValueOnce("4"), // bit range width
       });
 
-      // Create mock postfixOps for devices[0].control[0, 4]
+      // The planned chain for devices[0].control[0, 4]. #1445: each op states
+      // its kind, where the node mock said it by which accessor returned null.
+      // The renders still route through the mocked generator above, in the
+      // same order, so the `mockReturnValueOnce` chain reads unchanged.
       const mockPostfixOps = [
         {
-          IDENTIFIER: () => null,
-          expression: () => [{ mockValue: "0" }],
+          kind: "subscript" as const,
+          indexCount: 1,
+          renderIndexes: () => [
+            CodeGenState.requireGenerator().generateExpression(null as never),
+          ],
         },
+        { kind: "member" as const, name: "control" },
         {
-          IDENTIFIER: () => ({ getText: () => "control" }),
-          expression: () => [],
-        },
-        {
-          IDENTIFIER: () => null,
-          expression: () => [{ mockValue: "0" }, { mockValue: "4" }],
+          kind: "subscript" as const,
+          indexCount: 2,
+          renderIndexes: () => [
+            CodeGenState.requireGenerator().generateExpression(null as never),
+            CodeGenState.requireGenerator().generateExpression(null as never),
+          ],
         },
       ];
 
       const ctx = createMockContext({
         identifiers: ["devices", "control"],
-        subscripts: [
+        ...HandlerTestUtils.subscriptsOf([
           { mockValue: "0" } as never,
           { mockValue: "0" } as never,
           { mockValue: "4" } as never,
-        ],
+        ]),
         postfixOps: mockPostfixOps as never,
         generatedValue: "15",
         hasMemberAccess: true,

@@ -9,9 +9,7 @@
  * Also handles int-to-float conversions with explicit casts.
  */
 import IAssignmentContext from "../../../../../transpiler/types/IAssignmentContext";
-import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 import NarrowingCastHelper from "../../helpers/NarrowingCastHelper";
-import TypeResolver from "../../TypeResolver";
 import TYPE_MAP from "../../types/TYPE_MAP";
 import CppModeHelper from "../../helpers/CppModeHelper";
 import COMPOUND_TO_BINARY from "../../types/COMPOUND_TO_BINARY";
@@ -54,12 +52,12 @@ function tryHandleIntToFloatConversion(
   ctx: IAssignmentContext,
   target: string,
 ): string | null {
-  if (ctx.isCompound || !ctx.firstIdTypeInfo || !ctx.valueCtx) {
+  if (ctx.isCompound || !ctx.firstIdTypeInfo || !ctx.hasValue) {
     return null;
   }
 
   const targetType = ctx.firstIdTypeInfo.baseType;
-  const valueType = TypeResolver.getExpressionType(ctx.valueCtx);
+  const valueType = ctx.valueExpressionType();
 
   if (!valueType) {
     return null;
@@ -94,9 +92,7 @@ function tryHandleIntToFloatConversion(
  * i16_val &<- 0xFF =>  i16_val = (int16_t)(i16_val & 0xFF);  // MISRA 10.3
  */
 function handleSimpleAssignment(ctx: IAssignmentContext): string {
-  const target = CodeGenState.requireGenerator().generateAssignmentTarget(
-    ctx.targetCtx,
-  );
+  const target = ctx.renderTarget();
 
   // Try compound assignment narrowing cast (MISRA 10.3)
   const compoundResult = tryHandleCompoundNarrowingCast(ctx, target);

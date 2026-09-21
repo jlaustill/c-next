@@ -241,6 +241,11 @@ const PLAN_DECISIONS: Readonly<Record<string, readonly string[]>> = {
     // `validate` needs the rendered base's type info, so it stays where that
     // is known.
     "codegen/CodeGenerator.ts",
+    // #1445: the assignment context carries a `leadingSubscriptCount` now
+    // rather than the ops it was counted from, and the builder is where the
+    // ops still are -- so the WRITE path asks the same function the read path
+    // does, at the point it plans.
+    "codegen/assignment/AssignmentContextBuilder.ts",
     "codegen/generators/expressions/PostfixExpressionGenerator.ts",
   ],
 };

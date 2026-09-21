@@ -23,7 +23,7 @@
 
 import CodeGenState from "../../../../transpiler/state/CodeGenState";
 import IBitAccessAnalysis from "../../../../transpiler/types/IBitAccessAnalysis";
-import TPlannedTargetOp from "../types/TPlannedTargetOp";
+import TPlannedTargetOp from "../../../../transpiler/types/TPlannedTargetOp";
 
 /** Mutable state for tracking types through a member chain. */
 interface IChainState {

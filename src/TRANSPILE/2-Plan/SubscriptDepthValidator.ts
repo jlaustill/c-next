@@ -29,6 +29,15 @@ interface IPostfixOpLike {
   expression(): unknown[];
 }
 
+/** The same question asked of a PLANNED op, which states its kind (#1445). */
+interface IPlannedOpLike {
+  readonly kind: string;
+}
+
+function isSubscript(op: IPostfixOpLike | IPlannedOpLike): boolean {
+  return "kind" in op ? op.kind === "subscript" : op.expression().length !== 0;
+}
+
 class SubscriptDepthValidator {
   /**
    * Count the leading run of subscript operations applied directly to a base,
@@ -48,12 +57,12 @@ class SubscriptDepthValidator {
    * from index 0.
    */
   static countLeadingSubscripts(
-    ops: readonly IPostfixOpLike[],
+    ops: readonly (IPostfixOpLike | IPlannedOpLike)[],
     startIndex = 0,
   ): number {
     let count = 0;
     for (let index = startIndex; index < ops.length; index++) {
-      if (ops[index].expression().length === 0) {
+      if (!isSubscript(ops[index])) {
         break;
       }
       count++;

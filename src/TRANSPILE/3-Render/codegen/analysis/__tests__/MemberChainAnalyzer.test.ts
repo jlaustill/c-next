@@ -20,7 +20,7 @@ import MemberChainAnalyzer from "../MemberChainAnalyzer";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 import SymbolTable from "../../../../../transpiler/state/SymbolTable";
 import createMockSymbols from "../../../../../transpiler/__tests__/codeGenSymbolsHelpers";
-import type TPlannedTargetOp from "../../types/TPlannedTargetOp";
+import type TPlannedTargetOp from "../../../../../transpiler/types/TPlannedTargetOp";
 
 /** A member access step: `.memberName` */
 function member(name: string): TPlannedTargetOp {
