@@ -1,29 +1,28 @@
 /**
  * Unit tests for StringOperationsHelper
  *
- * Tests string operation detection and extraction.
+ * #1445: the helper asks the type registry about NAMES, so these tests hand it
+ * names. The tree navigation that used to sit in front of them --
+ * "is this a two-operand `+`", "is this an identifier with one subscript" --
+ * is asserted in `ExpressionUnwrapper.test.ts`, including both of the
+ * regressions it carries (a hyphen inside a literal, a subscripted call).
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
 import StringOperationsHelper from "../StringOperationsHelper";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";
-import CNextSourceParser from "../../../../../PARSE/2-Parse/CNextSourceParser";
-import * as Parser from "../../../../../PARSE/2-Parse/grammar/CNextParser";
 
-/**
- * Helper to parse an expression from source code.
- */
-function parseExpression(source: string): Parser.ExpressionContext {
-  // Wrap expression in a variable declaration to get valid syntax
-  const fullSource = `u8 x <- ${source};`;
-  const result = CNextSourceParser.parse(fullSource);
-  const decl = result.tree.declaration(0);
-  const varDecl = decl?.variableDeclaration();
-  const expr = varDecl?.expression();
-  if (!expr) {
-    throw new Error(`Failed to parse expression from: ${source}`);
-  }
-  return expr;
+/** A declared `string<capacity>` in the render-time type registry. */
+function declareString(name: string, capacity: number): void {
+  CodeGenState.setVariableTypeInfo(name, {
+    baseType: "char",
+    bitWidth: 8,
+    isArray: true,
+    arrayDimensions: [capacity + 1],
+    isConst: false,
+    isString: true,
+    stringCapacity: capacity,
+  });
 }
 
 describe("StringOperationsHelper", () => {
@@ -57,15 +56,7 @@ describe("StringOperationsHelper", () => {
     });
 
     it("returns capacity from type registry for string variable", () => {
-      CodeGenState.setVariableTypeInfo("myStr", {
-        baseType: "char",
-        bitWidth: 8,
-        isArray: true,
-        arrayDimensions: [33],
-        isConst: false,
-        isString: true,
-        stringCapacity: 32,
-      });
+      declareString("myStr", 32);
 
       const capacity = StringOperationsHelper.getStringExprCapacity("myStr");
       expect(capacity).toBe(32);
@@ -91,78 +82,56 @@ describe("StringOperationsHelper", () => {
 
   describe("getStringConcatOperands", () => {
     beforeEach(() => {
-      // Set up string variables for concatenation tests
-      CodeGenState.setVariableTypeInfo("str1", {
-        baseType: "char",
-        bitWidth: 8,
-        isArray: true,
-        arrayDimensions: [33],
-        isConst: false,
-        isString: true,
-        stringCapacity: 32,
-      });
-      CodeGenState.setVariableTypeInfo("str2", {
-        baseType: "char",
-        bitWidth: 8,
-        isArray: true,
-        arrayDimensions: [17],
-        isConst: false,
-        isString: true,
-        stringCapacity: 16,
-      });
+      declareString("str1", 32);
+      declareString("str2", 16);
     });
 
     it("returns operands for string variable concatenation", () => {
-      const expr = parseExpression("str1 + str2");
-      const result = StringOperationsHelper.getStringConcatOperands(expr);
+      const result = StringOperationsHelper.getStringConcatOperands(
+        "str1",
+        "str2",
+      );
 
-      expect(result).not.toBeNull();
-      expect(result!.left).toBe("str1");
-      expect(result!.right).toBe("str2");
-      expect(result!.leftCapacity).toBe(32);
-      expect(result!.rightCapacity).toBe(16);
+      expect(result).toEqual({
+        left: "str1",
+        right: "str2",
+        leftCapacity: 32,
+        rightCapacity: 16,
+      });
     });
 
     it("returns operands for string literal concatenation", () => {
-      const expr = parseExpression('"hello" + "world"');
-      const result = StringOperationsHelper.getStringConcatOperands(expr);
+      const result = StringOperationsHelper.getStringConcatOperands(
+        '"hello"',
+        '"world"',
+      );
+
+      expect(result).toEqual({
+        left: '"hello"',
+        right: '"world"',
+        leftCapacity: 5,
+        rightCapacity: 5,
+      });
+    });
+
+    it("measures a literal that contains a hyphen", () => {
+      const result = StringOperationsHelper.getStringConcatOperands(
+        "str1",
+        '"hello-world"',
+      );
 
       expect(result).not.toBeNull();
-      expect(result!.left).toBe('"hello"');
-      expect(result!.right).toBe('"world"');
-      expect(result!.leftCapacity).toBe(5);
-      expect(result!.rightCapacity).toBe(5);
+      expect(result!.rightCapacity).toBe(11);
     });
 
     it.each([
-      ["returns null for integer addition", "1 + 2"],
-      ["returns null for subtraction", "str1 - str2"],
-      ["returns null for mixed string/non-string", "str1 + 5"],
-    ])("%s", (_label, expected) => {
-      const expr = parseExpression(expected);
-      const result = StringOperationsHelper.getStringConcatOperands(expr);
-      expect(result).toBeNull();
-    });
-
-    it("returns null for more than 2 operands", () => {
-      // This expression has 3 operands at the additive level
-      const expr = parseExpression("str1 + str2 + str1");
-      const result = StringOperationsHelper.getStringConcatOperands(expr);
-      // With 3 operands, it should return null (simple concat only)
-      expect(result).toBeNull();
-    });
-
-    it("handles string literal containing hyphen correctly", () => {
-      // Regression test: ensure hyphen in string literal doesn't
-      // falsely trigger subtraction detection
-      const expr = parseExpression('str1 + "hello-world"');
-      const result = StringOperationsHelper.getStringConcatOperands(expr);
-
-      expect(result).not.toBeNull();
-      expect(result!.left).toBe("str1");
-      expect(result!.right).toBe('"hello-world"');
-      expect(result!.leftCapacity).toBe(32);
-      expect(result!.rightCapacity).toBe(11); // "hello-world" is 11 chars
+      ["neither operand is a string", "1", "2"],
+      ["only the left operand is a string", "str1", "5"],
+      ["only the right operand is a string", "5", "str2"],
+    ])("returns null when %s", (_label, left, right) => {
+      expect(
+        StringOperationsHelper.getStringConcatOperands(left, right),
+      ).toBeNull();
     });
   });
 
@@ -172,84 +141,79 @@ describe("StringOperationsHelper", () => {
 
   describe("getSubstringOperands", () => {
     beforeEach(() => {
-      CodeGenState.setVariableTypeInfo("myStr", {
-        baseType: "char",
-        bitWidth: 8,
-        isArray: true,
-        arrayDimensions: [65],
+      declareString("myStr", 64);
+    });
+
+    it("keeps both generated indexes for the [start, length] form", () => {
+      expect(
+        StringOperationsHelper.getSubstringOperands("myStr", () => ["0", "5"]),
+      ).toEqual({
+        source: "myStr",
+        start: "0",
+        lengthExpression: "5",
+        sourceCapacity: 64,
+      });
+    });
+
+    it("gives the single-index form a length of 1 (issue #140)", () => {
+      expect(
+        StringOperationsHelper.getSubstringOperands("myStr", () => ["3"]),
+      ).toEqual({
+        source: "myStr",
+        start: "3",
+        lengthExpression: "1",
+        sourceCapacity: 64,
+      });
+    });
+
+    it("carries generated code through, not source text", () => {
+      const ops = StringOperationsHelper.getSubstringOperands("myStr", () => [
+        "generated_idx",
+        "generated_len",
+      ]);
+
+      expect(ops).not.toBeNull();
+      expect(ops!.start).toBe("generated_idx");
+      expect(ops!.lengthExpression).toBe("generated_len");
+    });
+
+    it.each([
+      ["a non-string variable", "myInt"],
+      ["an undeclared name", "unknown"],
+    ])("returns null for %s", (_label, sourceName) => {
+      CodeGenState.setVariableTypeInfo("myInt", {
+        baseType: "u32",
+        bitWidth: 32,
+        isArray: false,
+        arrayDimensions: [],
         isConst: false,
-        isString: true,
-        stringCapacity: 64,
       });
+
+      expect(
+        StringOperationsHelper.getSubstringOperands(sourceName, () => ["0"]),
+      ).toBeNull();
     });
 
-    it("returns operands for substring [start, length] pattern", () => {
-      const expr = parseExpression("myStr[0, 5]");
-      const result = StringOperationsHelper.getSubstringOperands(expr, {
-        generateExpression: (ctx) => ctx.getText(),
-      });
+    /**
+     * The ordering invariant, asserted rather than commented: generating an
+     * index queues a pending temp declaration in some shapes, so one generated
+     * for an expression that is not a substring after all leaks a declaration
+     * nothing reads. Reordering the lookup reddens 0 of the 1254 integration
+     * fixtures, which is why this test exists here.
+     */
+    it("does not generate the indexes when the source is not a string", () => {
+      let generated = 0;
 
-      expect(result).not.toBeNull();
-      expect(result!.source).toBe("myStr");
-      expect(result!.start).toBe("0");
-      expect(result!.lengthExpression).toBe("5");
-      expect(result!.sourceCapacity).toBe(64);
-    });
+      const ops = StringOperationsHelper.getSubstringOperands(
+        "notAString",
+        () => {
+          generated += 1;
+          return ["0", "5"];
+        },
+      );
 
-    it("returns operands for single-char access [index] pattern", () => {
-      const expr = parseExpression("myStr[3]");
-      const result = StringOperationsHelper.getSubstringOperands(expr, {
-        generateExpression: (ctx) => ctx.getText(),
-      });
-
-      expect(result).not.toBeNull();
-      expect(result!.source).toBe("myStr");
-      expect(result!.start).toBe("3");
-      expect(result!.lengthExpression).toBe("1");
-      expect(result!.sourceCapacity).toBe(64);
-    });
-
-    it("returns null for non-string variable", () => {
-      CodeGenState.setVariableTypeInfo("myArray", {
-        baseType: "u8",
-        bitWidth: 8,
-        isArray: true,
-        arrayDimensions: [10],
-        isConst: false,
-      });
-
-      const expr = parseExpression("myArray[0, 5]");
-      const result = StringOperationsHelper.getSubstringOperands(expr, {
-        generateExpression: (ctx) => ctx.getText(),
-      });
-      expect(result).toBeNull();
-    });
-
-    it("returns null for unknown variable", () => {
-      const expr = parseExpression("unknown[0, 5]");
-      const result = StringOperationsHelper.getSubstringOperands(expr, {
-        generateExpression: (ctx) => ctx.getText(),
-      });
-      expect(result).toBeNull();
-    });
-
-    it("returns null for function call expression", () => {
-      const expr = parseExpression("getStr()[0, 5]");
-      const result = StringOperationsHelper.getSubstringOperands(expr, {
-        generateExpression: (ctx) => ctx.getText(),
-      });
-      expect(result).toBeNull();
-    });
-
-    it("uses callback to generate expression code", () => {
-      const expr = parseExpression("myStr[idx, len]");
-      const result = StringOperationsHelper.getSubstringOperands(expr, {
-        generateExpression: (ctx) => `generated_${ctx.getText()}`,
-      });
-
-      expect(result).not.toBeNull();
-      expect(result!.start).toBe("generated_idx");
-      expect(result!.lengthExpression).toBe("generated_len");
+      expect(ops).toBeNull();
+      expect(generated).toBe(0);
     });
   });
 });

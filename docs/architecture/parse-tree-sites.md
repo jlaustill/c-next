@@ -28,13 +28,13 @@ one.
 | Layer                     | Modules |
 | ------------------------- | ------: |
 | `src/TRANSPILE/`          |      62 |
-| `src/TRANSPILE/3-Render/` |      27 |
+| `src/TRANSPILE/3-Render/` |      26 |
 | `src/PARSE/`              |      18 |
 | `src/utils/`              |      11 |
 | `src/transpiler/types/`   |       4 |
 | `src/transpiler/`         |       3 |
 | `src/transpiler/logic/`   |       1 |
-| **total**                 | **126** |
+| **total**                 | **125** |
 
 `src/TRANSPILE/3-Render/` is the render layer, and its share is the number
 the issue singles out: the render layer holding parse nodes is how a
@@ -144,7 +144,6 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/TRANSPILE/3-Render/codegen/helpers/FunctionContextManager.ts`                       | grammar           |
 | `src/TRANSPILE/3-Render/codegen/helpers/ParameterInputAdapter.ts`                        | grammar           |
 | `src/TRANSPILE/3-Render/codegen/helpers/StringDeclHelper.ts`                             | grammar           |
-| `src/TRANSPILE/3-Render/codegen/helpers/StringOperationsHelper.ts`                       | grammar           |
 | `src/TRANSPILE/3-Render/codegen/helpers/TypeGenerationHelper.ts`                         | grammar           |
 | `src/TRANSPILE/3-Render/codegen/helpers/TypeRegistrationEngine.ts`                       | grammar           |
 | `src/TRANSPILE/3-Render/codegen/helpers/VariableDeclHelper.ts`                           | grammar           |
@@ -171,4 +170,4 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/utils/PostfixAnalysisUtils.ts`                                                      | grammar           |
 | `src/utils/TargetResolver.ts`                                                            | grammar           |
 
-126 module(s).
+125 module(s).

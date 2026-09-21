@@ -19,6 +19,24 @@
 import * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
 
 /**
+ * An identifier with exactly one subscript applied, and that subscript's
+ * index expressions.
+ *
+ * Declared here rather than in `src/transpiler/types/`: it names a parse
+ * context, and a type file that does so JOINS the population
+ * `parse-tree-confined-to-parser` gates (#1317). This module is already in it,
+ * so the shape costs nothing where it is.
+ */
+interface ISubscriptedIdentifier {
+  readonly name: string;
+  /**
+   * One expression for `s[i]`, two for `s[i, n]` -- the grammar allows no
+   * other arity.
+   */
+  readonly indexes: readonly Parser.ExpressionContext[];
+}
+
+/**
  * Utility class for navigating expression tree hierarchy
  */
 class ExpressionUnwrapper {
@@ -160,6 +178,65 @@ class ExpressionUnwrapper {
    */
   static isSimpleIdentifier(ctx: Parser.ExpressionContext): boolean {
     return this.getSimpleIdentifier(ctx) !== null;
+  }
+
+  /**
+   * The two operand texts of a two-operand `+`, or null for anything else.
+   *
+   * #1445: lifted out of `StringOperationsHelper`, whose ADR-045 concatenation
+   * check was the only caller and which now names no parse type. The operands
+   * come back as SOURCE TEXT because that is what its question needs -- a
+   * string literal's length and a declared string's capacity are both answered
+   * from the name, not from generated code.
+   *
+   * Subtraction is rejected on the MINUS token rather than on the text. An
+   * identifier or a string literal may contain a hyphen, so a
+   * `getText().includes("-")` test reads `str + "hello-world"` as a
+   * subtraction and silently declines to concatenate it.
+   */
+  static getAdditionOperandTexts(
+    ctx: Parser.ExpressionContext,
+  ): readonly [string, string] | null {
+    const add = this.getAdditiveExpression(ctx);
+    if (!add) return null;
+
+    const operands = add.multiplicativeExpression();
+    if (operands.length !== 2 || add.MINUS().length > 0) return null;
+
+    return [operands[0].getText(), operands[1].getText()];
+  }
+
+  /**
+   * An identifier with exactly one subscript applied: `s[i]` or `s[i, n]`.
+   *
+   * The sibling of `getSimpleIdentifier`, which answers the no-suffix case.
+   *
+   * `postfixOp` has four shapes and only the two subscripts carry expressions
+   * -- a member access carries an IDENTIFIER and a call carries an
+   * argumentList -- so an empty index list is an exact discriminator rather
+   * than a heuristic, and `f()[0]` is excluded by the primary not being an
+   * identifier.
+   *
+   * The indexes come back as NODES, not generated code, because generating one
+   * is not free: it can allocate a C++ temp and queue its declaration, so a
+   * caller that may discard them has to decide before it pays. ADR-045's
+   * substring extraction asks the source's capacity first for exactly that
+   * reason.
+   */
+  static getSubscriptedIdentifier(
+    ctx: Parser.ExpressionContext,
+  ): ISubscriptedIdentifier | null {
+    const postfix = this.getPostfixExpression(ctx);
+    if (!postfix) return null;
+
+    const ops = postfix.postfixOp();
+    if (ops.length !== 1) return null;
+
+    const id = postfix.primaryExpression().IDENTIFIER();
+    const indexes = ops[0].expression();
+    if (!id || indexes.length === 0) return null;
+
+    return { name: id.getText(), indexes };
   }
 }
 

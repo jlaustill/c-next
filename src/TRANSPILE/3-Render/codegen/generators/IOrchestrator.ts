@@ -12,6 +12,7 @@
  * - Gradual migration via "strangler fig" pattern
  */
 import type ISubstringOps from "../types/ISubstringOps";
+import type IStringConcatOps from "../types/IStringConcatOps";
 import IGeneratorInput from "./IGeneratorInput";
 import IGeneratorState from "./IGeneratorState";
 import TGeneratorEffect from "./TGeneratorEffect";
@@ -206,12 +207,9 @@ interface IOrchestrator {
   getStringLiteralLength(literal: string): number;
 
   /** Get string concatenation operands if expression is a concat */
-  getStringConcatOperands(ctx: Parser.ExpressionContext): {
-    left: string;
-    right: string;
-    leftCapacity: number;
-    rightCapacity: number;
-  } | null;
+  getStringConcatOperands(
+    ctx: Parser.ExpressionContext,
+  ): IStringConcatOps | null;
 
   /** Get substring operands if expression is a substring call */
   getSubstringOperands(ctx: Parser.ExpressionContext): ISubstringOps | null;

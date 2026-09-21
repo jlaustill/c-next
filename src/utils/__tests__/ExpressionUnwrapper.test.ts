@@ -158,4 +158,74 @@ describe("ExpressionUnwrapper", () => {
       expect(additive).toBeNull();
     });
   });
+
+  // #1445: these two shapes moved here from StringOperationsHelper, which
+  // asked them of the tree before it could ask the type registry anything.
+  // The assertions are its assertions -- including both of its regressions.
+  describe("getAdditionOperandTexts", () => {
+    it.each([
+      ["identifiers", "a + b", ["a", "b"]],
+      ["string literals", '"hello" + "world"', ['"hello"', '"world"']],
+      ["integer literals", "1 + 2", ["1", "2"]],
+      // Regression: MINUS() rather than a text test for "-". The hyphen is
+      // inside a literal here, so a text test reads this as a subtraction.
+      [
+        "a literal containing a hyphen",
+        'a + "hello-world"',
+        ["a", '"hello-world"'],
+      ],
+    ])("returns both operand texts for %s", (_label, source, expected) => {
+      expect(
+        ExpressionUnwrapper.getAdditionOperandTexts(parseExpression(source)),
+      ).toEqual(expected);
+    });
+
+    it.each([
+      ["subtraction", "a - b"],
+      ["three operands", "a + b + c"],
+      ["no addition at all", "myVar"],
+      ["a comparison above the additive level", "a > b"],
+    ])("returns null for %s", (_label, source) => {
+      expect(
+        ExpressionUnwrapper.getAdditionOperandTexts(parseExpression(source)),
+      ).toBeNull();
+    });
+  });
+
+  describe("getSubscriptedIdentifier", () => {
+    it("returns the name and both indexes for s[i, n]", () => {
+      const subscript = ExpressionUnwrapper.getSubscriptedIdentifier(
+        parseExpression("myStr[0, 5]"),
+      );
+
+      expect(subscript).not.toBeNull();
+      expect(subscript!.name).toBe("myStr");
+      expect(subscript!.indexes.map((i) => i.getText())).toEqual(["0", "5"]);
+    });
+
+    it("returns the single index for s[i]", () => {
+      const subscript = ExpressionUnwrapper.getSubscriptedIdentifier(
+        parseExpression("myStr[3]"),
+      );
+
+      expect(subscript).not.toBeNull();
+      expect(subscript!.name).toBe("myStr");
+      expect(subscript!.indexes.map((i) => i.getText())).toEqual(["3"]);
+    });
+
+    it.each([
+      // The primary is a call, not an identifier.
+      ["a subscripted call", "getStr()[0, 5]"],
+      // `postfixOp` matched, but a member access carries no expression.
+      ["a member access", "obj.field"],
+      // Two postfix ops, so no single subscript.
+      ["a chained subscript", "grid[1][2]"],
+      ["a bare identifier", "myStr"],
+      ["an addition", "a + b"],
+    ])("returns null for %s", (_label, source) => {
+      expect(
+        ExpressionUnwrapper.getSubscriptedIdentifier(parseExpression(source)),
+      ).toBeNull();
+    });
+  });
 });

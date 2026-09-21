@@ -4,6 +4,7 @@
  */
 
 import type ISubstringOps from "./types/ISubstringOps";
+import type IStringConcatOps from "./types/IStringConcatOps";
 import { basename } from "node:path";
 import ReservedCnxName from "../../../utils/ReservedCnxName";
 import { CommonTokenStream, ParserRuleContext } from "antlr4ng";
@@ -1253,12 +1254,9 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /** Get string concatenation operands if expression is a concat */
-  getStringConcatOperands(ctx: Parser.ExpressionContext): {
-    left: string;
-    right: string;
-    leftCapacity: number;
-    rightCapacity: number;
-  } | null {
+  getStringConcatOperands(
+    ctx: Parser.ExpressionContext,
+  ): IStringConcatOps | null {
     return this._getStringConcatOperands(ctx);
   }
 
@@ -3089,27 +3087,38 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * ADR-045: Check if an expression is a string concatenation.
-   * Delegates to StringOperationsHelper.
+   *
+   * #1445: the shape question is `ExpressionUnwrapper`'s and the capacity
+   * question is `StringOperationsHelper`'s, so neither has to hold both.
    */
-  private _getStringConcatOperands(ctx: Parser.ExpressionContext): {
-    left: string;
-    right: string;
-    leftCapacity: number;
-    rightCapacity: number;
-  } | null {
-    return StringOperationsHelper.getStringConcatOperands(ctx);
+  private _getStringConcatOperands(
+    ctx: Parser.ExpressionContext,
+  ): IStringConcatOps | null {
+    const operands = ExpressionUnwrapper.getAdditionOperandTexts(ctx);
+    if (operands === null) return null;
+
+    return StringOperationsHelper.getStringConcatOperands(
+      operands[0],
+      operands[1],
+    );
   }
 
   /**
    * ADR-045: Check if an expression is a substring extraction.
-   * Delegates to StringOperationsHelper.
+   *
+   * The indexes go over as a thunk rather than as generated code: generating
+   * one queues a pending temp declaration in some shapes, and only the helper
+   * knows whether this is a substring at all. See its comment.
    */
   private _getSubstringOperands(
     ctx: Parser.ExpressionContext,
   ): ISubstringOps | null {
-    return StringOperationsHelper.getSubstringOperands(ctx, {
-      generateExpression: (exprCtx) => this.generateExpression(exprCtx),
-    });
+    const subscript = ExpressionUnwrapper.getSubscriptedIdentifier(ctx);
+    if (subscript === null) return null;
+
+    return StringOperationsHelper.getSubstringOperands(subscript.name, () =>
+      subscript.indexes.map((index) => this.generateExpression(index)),
+    );
   }
 
   // ========================================================================
