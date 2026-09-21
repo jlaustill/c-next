@@ -30,6 +30,18 @@ interface IPlannedType {
   /** `string<N>` or a bare `string`, whose element type is `char`. */
   readonly isString: boolean;
 
+  /**
+   * The string type's source text -- `string<32>`, or `string` unbounded.
+   *
+   * Undefined unless `isString`. Present because 2.3's two readers want
+   * different answers from the same node: the renderer emits `char`, and the
+   * parameter context reports the written text for an ARRAY element while
+   * reporting a bare `"string"` for a top-level one. That asymmetry is
+   * load-bearing -- a top-level string's capacity travels separately -- so the
+   * text is carried rather than either reader re-deriving it.
+   */
+  readonly stringTypeText: string | undefined;
+
   /** A primitive's WRITTEN name; the renderer maps it through `TYPE_MAP`. */
   readonly primitiveName: string | null;
 

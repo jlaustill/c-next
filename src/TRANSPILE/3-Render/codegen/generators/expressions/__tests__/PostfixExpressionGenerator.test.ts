@@ -178,7 +178,6 @@ function createMockOrchestrator(overrides?: {
     setCurrentFunctionReturnType: vi.fn(),
     enterFunctionBody: vi.fn(),
     exitFunctionBody: vi.fn(),
-    setMainArgsName: vi.fn(),
     isMainFunctionWithArgs: vi.fn(),
     updateFunctionParamsAutoConst: vi.fn(),
     markParameterModified: vi.fn(),

@@ -25,6 +25,7 @@ describe("TypeGenerationHelper", () => {
     return {
       named: null,
       isString: false,
+      stringTypeText: undefined,
       primitiveName: null,
       isArray: false,
       userTypeLine: undefined,

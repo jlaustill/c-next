@@ -806,18 +806,6 @@ describe("CodeGenerator", () => {
       });
     });
 
-    describe("setMainArgsName()", () => {
-      it("should set main args name", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
-
-        generator.setMainArgsName("args");
-        expect(generator.getState().mainArgsName).toBe("args");
-
-        generator.setMainArgsName(null);
-        expect(generator.getState().mainArgsName).toBeNull();
-      });
-    });
-
     describe("isKnownScope()", () => {
       it("should return true for known scope", () => {
         const generator = createMinimalGenerator(`

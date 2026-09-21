@@ -78,6 +78,7 @@ import StringLengthCounter from "./analysis/StringLengthCounter";
 import CppModeHelper from "./helpers/CppModeHelper";
 // Issue #644: Array dimension parsing helper for consolidation
 import ArrayDimensionParser from "../../../utils/ArrayDimensionParser";
+import UNRESOLVED_DIMENSION from "../../../transpiler/constants/UNRESOLVED_DIMENSION";
 import dimensionEvalOptions from "./helpers/dimensionEvalOptions";
 // Issue #644: Member chain analyzer for bit access pattern detection
 import MemberChainAnalyzer from "./analysis/MemberChainAnalyzer";
@@ -134,6 +135,7 @@ import TypeGenerationHelper from "./helpers/TypeGenerationHelper";
 import type IPlannedType from "./types/IPlannedType";
 import type IPlannedParameter from "./types/IPlannedParameter";
 import type IPlannedDirective from "./types/IPlannedDirective";
+import type IPlannedFunctionParameter from "./types/IPlannedFunctionParameter";
 import type ITypeAccessors from "../../../transpiler/types/ITypeAccessors";
 // Phase 5: Cast validation helper for improved testability
 // Issue #793: Function context lifecycle and parameter processing helper
@@ -555,6 +557,7 @@ export default class CodeGenerator implements IOrchestrator {
         deps,
       ),
       isString: accessors.stringType() !== null,
+      stringTypeText: accessors.stringType()?.getText(),
       primitiveName: accessors.primitiveType()?.getText() ?? null,
       isArray: array !== null,
       userTypeLine: accessors.userType()?.start?.line,
@@ -1505,10 +1508,6 @@ export default class CodeGenerator implements IOrchestrator {
    */
   exitFunctionBody(): void {
     FunctionContextManager.exitFunctionBody();
-  }
-
-  setMainArgsName(name: string | null): void {
-    CodeGenState.mainArgsName = name;
   }
 
   isMainFunctionWithArgs(
@@ -2703,9 +2702,86 @@ export default class CodeGenerator implements IOrchestrator {
    */
   private _setParameters(params: Parser.ParameterListContext | null): void {
     FunctionContextManager.processParameterList(
-      params,
+      params?.parameter().map((param) => this.planFunctionParameter(param)) ??
+        null,
       this._getFunctionContextCallbacks(),
     );
+  }
+
+  /**
+   * A parameter as the function CONTEXT needs it (#1445).
+   *
+   * Distinct from `planParameter`, which serves the signature adapter, and the
+   * two disagree on purpose -- see `IPlannedFunctionParameter` for the two
+   * places and why. This one's `isArray` admits either spelling, and its
+   * dimensions are folded to VALUES for ADR-036 bounds checking rather than
+   * rendered as C text.
+   */
+  private planFunctionParameter(
+    ctx: Parser.ParameterContext,
+  ): IPlannedFunctionParameter {
+    const typeCtx = ctx.type();
+    // Check both C-Next style (u8[8] param) and legacy style (u8 param[8])
+    const cStyleDimensions = ctx.arrayDimension();
+    const arrayType = typeCtx.arrayType();
+    const isArray = cStyleDimensions.length > 0 || arrayType !== null;
+    const stringType = arrayType
+      ? arrayType.stringType()
+      : typeCtx.stringType();
+    const capacity = stringType?.INTEGER_LITERAL();
+
+    return {
+      name: ctx.IDENTIFIER().getText(),
+      isConst: ctx.constModifier() !== null,
+      isArray,
+      arrayDimensions: this.foldParameterDimensions(
+        cStyleDimensions,
+        arrayType,
+        isArray,
+      ),
+      stringCapacity: capacity
+        ? Number.parseInt(capacity.getText(), 10)
+        : undefined,
+      type: this.planType(typeCtx),
+    };
+  }
+
+  /**
+   * A parameter's dimensions as VALUES, for ADR-036 bounds checking.
+   *
+   * Issue #1159: fold through the shared evaluator, and keep the slot when the
+   * size does not fold so dimension i still matches subscript i.
+   * `parseIntegerLiteral` alone folds literals only, so a const-sized
+   * parameter recorded `UNRESOLVED_DIMENSION` and lost ADR-036 bounds checking
+   * while the signature folded the same const -- `void fill(u8[SIZE] buf)`
+   * emitted `uint8_t buf[6]` and still accepted `buf[9]`.
+   */
+  private foldParameterDimensions(
+    cStyleDimensions: Parser.ArrayDimensionContext[],
+    arrayType: Parser.ArrayTypeContext | null,
+    isArray: boolean,
+  ): readonly number[] {
+    if (!isArray) return [];
+
+    // C-style first, which E0874 admits only for `main(string args[])`.
+    if (cStyleDimensions.length > 0) {
+      return ArrayDimensionParser.parseDimensions(
+        cStyleDimensions,
+        dimensionEvalOptions(),
+      );
+    }
+
+    if (!arrayType) return [];
+
+    return arrayType.arrayTypeDimension().flatMap((dimension) => {
+      const expression = dimension.expression();
+      if (!expression) return [];
+      const size = ArrayDimensionParser.parseSingleDimension(
+        expression,
+        dimensionEvalOptions(),
+      );
+      return [size ?? UNRESOLVED_DIMENSION];
+    });
   }
 
   /**
@@ -3691,8 +3767,6 @@ export default class CodeGenerator implements IOrchestrator {
   private _getFunctionContextCallbacks(): IFunctionContextCallbacks {
     return {
       isStructType: (typeName: string) => this.isStructType(typeName),
-      resolveQualifiedType: (identifiers: string[]) =>
-        this.resolveQualifiedType(identifiers),
       isTypedefStructType: (t: string) =>
         CodeGenState.symbolTable?.isTypedefStructType(t) ?? false,
     };

@@ -17,6 +17,7 @@ import IGeneratorState from "../IGeneratorState";
 import IGeneratorOutput from "../IGeneratorOutput";
 import IOrchestrator from "../IOrchestrator";
 import TGeneratorFn from "../TGeneratorFn";
+import FunctionContextManager from "../../helpers/FunctionContextManager";
 
 /**
  * Generate a C function from a C-Next function declaration.
@@ -51,22 +52,23 @@ const generateFunction: TGeneratorFn<Parser.FunctionDeclarationContext> = (
     node.parameterList(),
   );
 
-  let params: string = ""; // Will be set below
-  let actualReturnType: string;
-
-  // Issue #268: Generate body FIRST to track parameter modifications,
-  // then generate parameter list using that tracking info
-  if (isMainWithArgs) {
-    // Special case: main(u8 args[][]) -> int main(int argc, char *argv[])
-    actualReturnType = "int";
-    params = "int argc, char *argv[]";
-    // Store the args parameter name for translation in the body
-    const argsParam = node.parameterList()!.parameter()[0];
-    orchestrator.setMainArgsName(argsParam.IDENTIFIER().getText());
-  } else {
-    // For main() without args, always use int return type for C++ compatibility
-    actualReturnType = name === "main" ? "int" : returnType;
-  }
+  // #1445: this decision was written out here AND in
+  // `FunctionContextManager.resolveReturnTypeAndParams`, byte-identical. That
+  // method had no caller at all -- not production, not even inside its own
+  // file -- so knip could not report it: its three TEST callers count as usage
+  // (#1418). One copy was live and inline, the other dead and named. Unified
+  // onto the named one, which is the half that has a unit test.
+  //
+  // Issue #268: Generate body FIRST to track parameter modifications, then
+  // generate parameter list using that tracking info.
+  const { actualReturnType, initialParams } =
+    FunctionContextManager.resolveReturnTypeAndParams(
+      name,
+      returnType,
+      isMainWithArgs,
+      node.parameterList()?.parameter()[0]?.IDENTIFIER().getText(),
+    );
+  let params: string = initialParams;
 
   // Generate body first (this populates modifiedParameters)
   const body = orchestrator.generateBlock(node.block());

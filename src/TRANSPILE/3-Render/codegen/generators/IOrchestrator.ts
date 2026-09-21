@@ -288,9 +288,6 @@ interface IOrchestrator {
   /** Exit function body - clears local variables and inFunctionBody flag */
   exitFunctionBody(): void;
 
-  /** Set the main function args parameter name for translation */
-  setMainArgsName(name: string | null): void;
-
   /** Check if this is main function with args parameter */
   isMainFunctionWithArgs(
     name: string,

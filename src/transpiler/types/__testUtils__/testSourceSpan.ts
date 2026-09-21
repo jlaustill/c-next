@@ -7,8 +7,10 @@ import type ISourceSpan from "../ISourceSpan";
  * every test that builds one cares about the line alone -- it is asserting which
  * declaration a diagnostic names, not how wide it is. Spelling the other three
  * fields at each site would bury that intent in noise, and a `as never` cast to
- * dodge them is what let mocks drift from the interface before (see
- * `testTypeAccessors`).
+ * dodge them is what let mocks drift from the interface before. `ITypeAccessors`
+ * had a sibling builder for exactly that reason; #1445 removed the last mock it
+ * served, because the module that took those accessors takes a classified plan
+ * now and has no accessor literal left to get wrong.
  *
  * Defaults to a zero-width span at the start of the line. A test that asserts a
  * column or a range passes them explicitly.
