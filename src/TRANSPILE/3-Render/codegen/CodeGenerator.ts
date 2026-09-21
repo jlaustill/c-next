@@ -51,8 +51,10 @@ import bitmapGenerator from "./generators/declarationGenerators/BitmapGenerator"
 import registerGeneratorFor from "./generators/declarationGenerators/RegisterGenerator";
 import type IPlannedRegister from "./types/IPlannedRegister";
 import type IPlannedFunction from "./types/IPlannedFunction";
+import type IPlannedStruct from "./types/IPlannedStruct";
 import type TRegisterAccessMode from "../../../transpiler/types/TRegisterAccessMode";
 import structGenerator from "./generators/declarationGenerators/StructGenerator";
+import ArrayDimensionUtils from "./generators/declarationGenerators/ArrayDimensionUtils";
 import functionGenerator from "./generators/declarationGenerators/FunctionGenerator";
 import scopeGenerator from "./generators/declarationGenerators/ScopeGenerator";
 // ADR-065: Extracted utilities
@@ -3589,8 +3591,44 @@ export default class CodeGenerator implements IOrchestrator {
   // Struct
   // ========================================================================
 
+  /**
+   * A struct declaration, decided (#1445).
+   *
+   * `getTypeName` is the one eager read, because every field needs it -- it is
+   * the key `callbackTypes` and `knownEnums` are looked up by. The four
+   * renders stay thunks: each runs on only some branches, and each can
+   * register effects, so rendering them all would emit effects for fields that
+   * do not use them. See `IPlannedStructField`.
+   */
+  private planStruct(ctx: Parser.StructDeclarationContext): IPlannedStruct {
+    return {
+      name: ctx.IDENTIFIER().getText(),
+      fields: ctx.structMember().map((member) => {
+        const typeCtx = member.type();
+        // Use optional chaining for mock compatibility in tests
+        const arrayType = typeCtx.arrayType?.() ?? null;
+        // ADR-036: arrayDimension() returns an array, for multi-dimensional
+        // support
+        const nameDimensions = member.arrayDimension();
+
+        return {
+          name: member.IDENTIFIER().getText(),
+          typeName: this.getTypeName(typeCtx),
+          hasNameDimensions: nameDimensions.length > 0,
+          hasTypeDimensions: arrayType !== null,
+          renderCType: () => this.generateType(typeCtx),
+          renderTypeDimensions: () =>
+            ArrayDimensionUtils.generateArrayTypeDimension(arrayType, this),
+          renderNameDimensions: () =>
+            this.generateArrayDimensions(nameDimensions),
+          renderZeroInitializer: () => this.getZeroInitializer(typeCtx, false),
+        };
+      }),
+    };
+  }
+
   private generateStruct(ctx: Parser.StructDeclarationContext): string {
-    return this.invokeGenerator(structGenerator, ctx);
+    return this.invokeGenerator(structGenerator, this.planStruct(ctx));
   }
 
   // ========================================================================

@@ -1,52 +1,65 @@
+/**
+ * Unit tests for the struct declaration generator.
+ *
+ * #1445 box 3: the generator takes `IPlannedStruct`, so these build plans. The
+ * four renders stay callbacks in the plan -- each is conditional in the
+ * generator, so a test can also assert that a branch does NOT render, which is
+ * what the tracked-dimensions case is really about.
+ */
 import { describe, it, expect } from "vitest";
 import generateStruct from "../StructGenerator";
 import IGeneratorInput from "../../IGeneratorInput";
 import IGeneratorState from "../../IGeneratorState";
 import IOrchestrator from "../../IOrchestrator";
-import * as Parser from "../../../../../../PARSE/2-Parse/grammar/CNextParser";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
+import type IPlannedStruct from "../../../types/IPlannedStruct";
+import type IPlannedStructField from "../../../types/IPlannedStructField";
 
 // ========================================================================
 // Test Helpers
 // ========================================================================
 
-/**
- * Struct member definition for test setup.
- */
-interface IStructMemberDef {
+/** The C types the type ladder resolves the primitives to. */
+const C_TYPES: Record<string, string> = {
+  u8: "uint8_t",
+  u16: "uint16_t",
+  u32: "uint32_t",
+  i32: "int32_t",
+  f32: "float",
+  bool: "bool",
+  string: "char",
+};
+
+/** Struct field definition for test setup. */
+interface IStructFieldDef {
   name: string;
   type: string;
-  cType: string;
-  arrayDims?: string[]; // e.g., ["4"], ["4", "4"]
-  isCallback?: boolean;
+  /** Dimensions written after the NAME, e.g. ["4"] or ["4", "4"]. */
+  arrayDims?: string[];
+  /** Dimensions written on the TYPE, e.g. "[16]" for `u8[16] data`. */
+  typeDims?: string;
+  /** ADR-017's zero for the field's type. */
+  zero?: string;
 }
 
-/**
- * Create a minimal mock struct member context.
- */
-function createMockStructMember(def: IStructMemberDef) {
+/** A planned field. */
+function field(def: IStructFieldDef): IPlannedStructField {
   return {
-    IDENTIFIER: () => ({ getText: () => def.name }),
-    type: () => ({
-      getText: () => def.type,
-      stringType: () => null, // No string type by default
-    }),
-    arrayDimension: () =>
-      def.arrayDims?.map((dim) => ({ __mockDim: dim })) ?? [],
+    name: def.name,
+    typeName: def.type,
+    hasNameDimensions: (def.arrayDims?.length ?? 0) > 0,
+    hasTypeDimensions: def.typeDims !== undefined,
+    renderCType: () => C_TYPES[def.type] ?? def.type,
+    renderTypeDimensions: () => def.typeDims ?? "",
+    renderNameDimensions: () =>
+      (def.arrayDims ?? []).map((dim) => `[${dim}]`).join(""),
+    renderZeroInitializer: () => def.zero ?? "0",
   };
 }
 
-/**
- * Create a minimal mock struct declaration context.
- */
-function createMockStructContext(
-  name: string,
-  members: IStructMemberDef[],
-): Parser.StructDeclarationContext {
-  return {
-    IDENTIFIER: () => ({ getText: () => name }),
-    structMember: () => members.map(createMockStructMember),
-  } as unknown as Parser.StructDeclarationContext;
+/** A planned struct. */
+function planned(name: string, fields: IStructFieldDef[]): IPlannedStruct {
+  return { name, fields: fields.map(field) };
 }
 
 /**
@@ -56,17 +69,18 @@ function createMockInput(
   options: {
     callbackTypes?: Map<string, { typedefName: string }>;
     structFieldDimensions?: Map<string, Map<string, readonly number[]>>;
+    knownEnums?: Set<string>;
   } = {},
 ): IGeneratorInput {
   return {
     callbackTypes: options.callbackTypes ?? new Map(),
     symbols: {
       structFieldDimensions: options.structFieldDimensions ?? new Map(),
+      knownEnums: options.knownEnums ?? new Set(),
       // Other fields not used
       knownScopes: new Set(),
       knownStructs: new Set(),
       knownRegisters: new Set(),
-      knownEnums: new Set(),
       knownBitmaps: new Set(),
       scopeMembers: new Map(),
       scopeMemberVisibility: new Map(),
@@ -84,32 +98,32 @@ function createMockInput(
   } as unknown as IGeneratorInput;
 }
 
-/**
- * Create minimal mock state.
- */
+/** Create minimal mock state. */
 function createMockState(): IGeneratorState {
   return TestGeneratorState.create();
 }
 
 /**
- * Create mock orchestrator with required methods.
+ * The generator reaches the orchestrator for one thing now: the aggregate zero
+ * brace the ADR-029 init function opens with. Everything else arrives planned.
+ *
+ * #1568: the init function zeroes the aggregate before assigning the fields
+ * whose value is not zero. `{0}` is the C spelling.
  */
-function createMockOrchestrator(typeMap: Map<string, string>): IOrchestrator {
+function createMockOrchestrator(): IOrchestrator {
   return {
-    generateType: (ctx: { getText: () => string }) => {
-      const cnextType = ctx.getText();
-      return typeMap.get(cnextType) ?? cnextType;
-    },
-    getTypeName: (ctx: { getText: () => string }) => {
-      return ctx.getText();
-    },
-    generateArrayDimensions: (dims: Array<{ __mockDim: string }>) => {
-      return dims.map((d) => `[${d.__mockDim}]`).join("");
-    },
-    // #1568: the ADR-029 init function zeroes the aggregate before assigning
-    // the fields whose value is not zero. `{0}` is the C spelling.
     getAggregateZeroInitBrace: () => "{0}",
   } as unknown as IOrchestrator;
+}
+
+/** Run the generator on a plan. */
+function generate(struct: IPlannedStruct, input: IGeneratorInput) {
+  return generateStruct(
+    struct,
+    input,
+    createMockState(),
+    createMockOrchestrator(),
+  );
 }
 
 // ========================================================================
@@ -117,26 +131,12 @@ function createMockOrchestrator(typeMap: Map<string, string>): IOrchestrator {
 // ========================================================================
 
 describe("StructGenerator", () => {
-  // Standard type mappings
-  const standardTypes = new Map([
-    ["u8", "uint8_t"],
-    ["u16", "uint16_t"],
-    ["u32", "uint32_t"],
-    ["i32", "int32_t"],
-    ["f32", "float"],
-    ["bool", "bool"],
-  ]);
-
   describe("basic struct generation", () => {
     it("generates struct with single field", () => {
-      const ctx = createMockStructContext("Point", [
-        { name: "x", type: "i32", cType: "int32_t" },
-      ]);
+      const struct = planned("Point", [{ name: "x", type: "i32" }]);
       const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator(standardTypes);
 
-      const result = generateStruct(ctx, input, state, orchestrator);
+      const result = generate(struct, input);
 
       expect(result.code).toBe(
         `typedef struct Point {
@@ -147,16 +147,14 @@ describe("StructGenerator", () => {
     });
 
     it("generates struct with multiple fields", () => {
-      const ctx = createMockStructContext("Point3D", [
-        { name: "x", type: "f32", cType: "float" },
-        { name: "y", type: "f32", cType: "float" },
-        { name: "z", type: "f32", cType: "float" },
+      const struct = planned("Point3D", [
+        { name: "x", type: "f32" },
+        { name: "y", type: "f32" },
+        { name: "z", type: "f32" },
       ]);
       const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator(standardTypes);
 
-      const result = generateStruct(ctx, input, state, orchestrator);
+      const result = generate(struct, input);
 
       expect(result.code).toBe(
         `typedef struct Point3D {
@@ -169,16 +167,14 @@ describe("StructGenerator", () => {
     });
 
     it("generates struct with mixed types", () => {
-      const ctx = createMockStructContext("Config", [
-        { name: "id", type: "u32", cType: "uint32_t" },
-        { name: "enabled", type: "bool", cType: "bool" },
-        { name: "value", type: "f32", cType: "float" },
+      const struct = planned("Config", [
+        { name: "id", type: "u32" },
+        { name: "enabled", type: "bool" },
+        { name: "value", type: "f32" },
       ]);
       const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator(standardTypes);
 
-      const result = generateStruct(ctx, input, state, orchestrator);
+      const result = generate(struct, input);
 
       expect(result.code).toContain("uint32_t id;");
       expect(result.code).toContain("bool enabled;");
@@ -188,90 +184,110 @@ describe("StructGenerator", () => {
 
   describe("array fields (ADR-036)", () => {
     it("generates struct with single-dimension array field", () => {
-      const ctx = createMockStructContext("Buffer", [
-        { name: "data", type: "u8", cType: "uint8_t", arrayDims: ["256"] },
+      const struct = planned("Buffer", [
+        { name: "data", type: "u8", arrayDims: ["256"] },
       ]);
       const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator(standardTypes);
 
-      const result = generateStruct(ctx, input, state, orchestrator);
+      const result = generate(struct, input);
 
       expect(result.code).toContain("uint8_t data[256];");
     });
 
     it("generates struct with multi-dimension array field", () => {
-      const ctx = createMockStructContext("Matrix", [
-        { name: "values", type: "f32", cType: "float", arrayDims: ["4", "4"] },
+      const struct = planned("Matrix", [
+        { name: "values", type: "f32", arrayDims: ["4", "4"] },
       ]);
       const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator(standardTypes);
 
-      const result = generateStruct(ctx, input, state, orchestrator);
+      const result = generate(struct, input);
 
       expect(result.code).toContain("float values[4][4];");
     });
 
     it("uses tracked dimensions when available", () => {
-      const ctx = createMockStructContext("StringArray", [
-        { name: "items", type: "string", cType: "char", arrayDims: ["4"] },
+      const struct = planned("StringArray", [
+        { name: "items", type: "string", arrayDims: ["4"] },
       ]);
       // Tracked dimensions include string capacity
       const structFieldDimensions = new Map([
         ["StringArray", new Map([["items", [4, 65] as readonly number[]]])],
       ]);
       const input = createMockInput({ structFieldDimensions });
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator(
-        new Map([["string", "char"]]),
-      );
 
-      const result = generateStruct(ctx, input, state, orchestrator);
+      const result = generate(struct, input);
 
       expect(result.code).toContain("char items[4][65];");
+    });
+
+    /**
+     * The tracked-dimension branch renders NEITHER dimension source. That is
+     * why they are thunks: rendering them would register effects for
+     * dimensions this field does not emit.
+     */
+    it("renders no written dimension when tracked ones are used", () => {
+      let renders = 0;
+      const counting = (): string => {
+        renders += 1;
+        return "[IGNORED]";
+      };
+
+      const struct: IPlannedStruct = {
+        name: "StringArray",
+        fields: [
+          {
+            ...field({ name: "items", type: "string", arrayDims: ["4"] }),
+            renderTypeDimensions: counting,
+            renderNameDimensions: counting,
+          },
+        ],
+      };
+
+      const result = generate(
+        struct,
+        createMockInput({
+          structFieldDimensions: new Map([
+            ["StringArray", new Map([["items", [4, 65] as readonly number[]]])],
+          ]),
+        }),
+      );
+
+      expect(result.code).toContain("char items[4][65];");
+      expect(renders).toBe(0);
     });
   });
 
   describe("callback fields (ADR-029)", () => {
     it("generates struct with callback field", () => {
-      const ctx = createMockStructContext("Handler", [
+      const struct = planned("Handler", [
         {
           name: "onEvent",
           type: "EventCallback",
-          cType: "EventCallback",
-          isCallback: true,
         },
       ]);
       const callbackTypes = new Map([
         ["EventCallback", { typedefName: "EventCallback_t" }],
       ]);
       const input = createMockInput({ callbackTypes });
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator(standardTypes);
 
-      const result = generateStruct(ctx, input, state, orchestrator);
+      const result = generate(struct, input);
 
       expect(result.code).toContain("EventCallback_t onEvent;");
     });
 
     it("generates init function for struct with callback", () => {
-      const ctx = createMockStructContext("Handler", [
+      const struct = planned("Handler", [
         {
           name: "callback",
           type: "MyCallback",
-          cType: "MyCallback",
-          isCallback: true,
         },
       ]);
       const callbackTypes = new Map([
         ["MyCallback", { typedefName: "MyCallback_t" }],
       ]);
       const input = createMockInput({ callbackTypes });
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator(standardTypes);
 
-      const result = generateStruct(ctx, input, state, orchestrator);
+      const result = generate(struct, input);
 
       // #1568: the aggregate is zeroed first, then the callback assigned. The
       // compound literal this replaces named every field with a per-type zero,
@@ -285,18 +301,14 @@ describe("StructGenerator", () => {
     });
 
     it("generates init function with multiple callbacks", () => {
-      const ctx = createMockStructContext("EventManager", [
+      const struct = planned("EventManager", [
         {
           name: "onStart",
           type: "StartCallback",
-          cType: "StartCallback",
-          isCallback: true,
         },
         {
           name: "onStop",
           type: "StopCallback",
-          cType: "StopCallback",
-          isCallback: true,
         },
       ]);
       const callbackTypes = new Map([
@@ -304,10 +316,8 @@ describe("StructGenerator", () => {
         ["StopCallback", { typedefName: "StopCallback_t" }],
       ]);
       const input = createMockInput({ callbackTypes });
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator(standardTypes);
 
-      const result = generateStruct(ctx, input, state, orchestrator);
+      const result = generate(struct, input);
 
       expect(result.code).toContain("EventManager value = {0};");
       expect(result.code).toContain("value.onStart = StartCallback;");
@@ -319,12 +329,10 @@ describe("StructGenerator", () => {
     });
 
     it("generates callback array field", () => {
-      const ctx = createMockStructContext("Handlers", [
+      const struct = planned("Handlers", [
         {
           name: "callbacks",
           type: "Handler",
-          cType: "Handler",
-          isCallback: true,
           arrayDims: ["4"],
         },
       ]);
@@ -332,10 +340,8 @@ describe("StructGenerator", () => {
         ["Handler", { typedefName: "Handler_t" }],
       ]);
       const input = createMockInput({ callbackTypes });
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator(standardTypes);
 
-      const result = generateStruct(ctx, input, state, orchestrator);
+      const result = generate(struct, input);
 
       expect(result.code).toContain("Handler_t callbacks[4];");
     });
@@ -343,35 +349,27 @@ describe("StructGenerator", () => {
 
   describe("effects", () => {
     it("returns empty effects for simple struct", () => {
-      const ctx = createMockStructContext("Simple", [
-        { name: "value", type: "u32", cType: "uint32_t" },
-      ]);
+      const struct = planned("Simple", [{ name: "value", type: "u32" }]);
       const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator(standardTypes);
 
-      const result = generateStruct(ctx, input, state, orchestrator);
+      const result = generate(struct, input);
 
       expect(result.effects).toEqual([]);
     });
 
     it("registers callback field effect", () => {
-      const ctx = createMockStructContext("Handler", [
+      const struct = planned("Handler", [
         {
           name: "onEvent",
           type: "Callback",
-          cType: "Callback",
-          isCallback: true,
         },
       ]);
       const callbackTypes = new Map([
         ["Callback", { typedefName: "Callback_t" }],
       ]);
       const input = createMockInput({ callbackTypes });
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator(standardTypes);
 
-      const result = generateStruct(ctx, input, state, orchestrator);
+      const result = generate(struct, input);
 
       expect(result.effects).toContainEqual({
         type: "register-callback-field",
@@ -383,14 +381,10 @@ describe("StructGenerator", () => {
 
   describe("named struct for forward declaration (Issue #296)", () => {
     it("uses named struct syntax", () => {
-      const ctx = createMockStructContext("Node", [
-        { name: "value", type: "i32", cType: "int32_t" },
-      ]);
+      const struct = planned("Node", [{ name: "value", type: "i32" }]);
       const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator(standardTypes);
 
-      const result = generateStruct(ctx, input, state, orchestrator);
+      const result = generate(struct, input);
 
       // Should be "typedef struct Node {" not "typedef struct {"
       expect(result.code).toContain("typedef struct Node {");
