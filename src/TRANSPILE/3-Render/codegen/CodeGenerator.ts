@@ -91,6 +91,7 @@ import ArgumentGenerator from "./helpers/ArgumentGenerator";
 // Note: ArrayInitHelper is now used via VariableDeclHelper
 // Issue #644: Assignment expected type resolution helper
 import AssignmentExpectedTypeResolver from "./helpers/AssignmentExpectedTypeResolver";
+import analyzePostfixOps from "../../../utils/PostfixAnalysisUtils";
 // PR #715: C++ member conversion helper for improved testability
 import CppMemberHelper from "../../2-Plan/CppMemberHelper";
 import IPostfixOp from "../../../transpiler/types/IPostfixOp";
@@ -4165,7 +4166,22 @@ export default class CodeGenerator implements IOrchestrator {
     const savedAssignmentContext = { ...CodeGenState.assignmentContext };
 
     // Issue #644: AssignmentExpectedTypeResolver is now static
-    const resolved = AssignmentExpectedTypeResolver.resolve(targetCtx);
+    // #1445: the resolver takes the target's SHAPE -- a name, a chain of names
+    // and two booleans. The walk stays here, where the node is.
+    const postfixOps = targetCtx.postfixTargetOp();
+    const baseId = targetCtx.IDENTIFIER()?.getText();
+    const chain =
+      baseId && postfixOps.length > 0
+        ? analyzePostfixOps(baseId, postfixOps)
+        : { identifiers: [] as string[], hasSubscript: false };
+    const resolved = AssignmentExpectedTypeResolver.resolve({
+      baseId,
+      identifiers: chain.identifiers,
+      hasSubscript: chain.hasSubscript,
+      // the `[offset, length]` slice / bit-range form
+      hasRangeSubscript: postfixOps.some((op) => op.expression().length === 2),
+      hasPostfixOps: postfixOps.length > 0,
+    });
     if (resolved.assignmentContext) {
       CodeGenState.assignmentContext = resolved.assignmentContext;
     }
