@@ -125,10 +125,6 @@ class UndeclaredValueListener extends CNextListener {
     ctx: Parser.AssignmentTargetContext,
   ): void => {
     const identifier = ctx.IDENTIFIER();
-    if (!identifier) {
-      return;
-    }
-
     const name = identifier.getText();
     if (REJECTED_KEYWORDS.has(name) || BUILTIN_TYPE_NAMES.has(name)) {
       return;

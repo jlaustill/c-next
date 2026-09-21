@@ -310,15 +310,59 @@ chain, so `off` would be a false claim that they cannot exist. No fixture
 exercises them today, so `error` would be an obligation nothing meets. `warn`
 records the obligation without asserting an occupancy that is not there.
 
-ADR-030 raises no diagnostic — it shapes generated code — so a cell here is
-occupied by recording where the decision was applied, rather than by where an
-error was reported. The two points that record it are the ones where an
-incomplete type forces a pointer: a scope variable's declaration, and a
-parameter's.
+**The cells above are occupied by provenance, not by diagnostics, and that
+distinction is load-bearing.** This ADR does raise diagnostics — the four in
+`## Diagnostics` below — but the two `error` cells here are reached by
+recording where the opaque-handle decision was applied: the two points where an
+incomplete type forces a pointer, a scope variable's declaration and a
+parameter's. Occupancy is derived per ADR and knows nothing about error codes,
+so a cell occupied this way reads as satisfied for _every_ obligation this ADR
+declares. A diagnostic fixture must therefore be able to occupy the cell it
+claims on its own reported position, or the gate would pass by coincidence in
+exactly the cell a missing diagnostic lives in — which is how #1582's write
+position stayed unreported while this table was green.
+
+An earlier version of this passage read "ADR-030 raises no diagnostic — it
+shapes generated code". That was already false when it was written: the
+define-before-use check is this ADR's, and it is the oldest diagnostic in the
+set.
 
 The `transitive` row is newly reachable rather than newly interesting: a fixture
 whose opaque handle arrives two include hops away could not link until #1508
 made the harness link the include closure.
+
+## Diagnostics
+
+Define-before-use is one promise, and a name can be used in three positions, so
+the rule is enforced in three places rather than decided in three places.
+
+| Code  | Reported when                                                               | Asserted by                                                                                                                                           |
+| ----- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| E0422 | A function is called before it is defined, or is defined nowhere visible    | `tests/forward-declarations/call-before-define-error`, `.../bare-undeclared-function-error`, `.../scope-member-undefined-error`                       |
+| E0423 | A function calls itself (MISRA C:2012 Rule 17.2)                            | `tests/forward-declarations/recursive-call-error`, `tests/analysis/self-recursion`                                                                    |
+| E0426 | A name in a type position denotes nothing visible in the file that uses it  | `tests/bugs/issue-1312-undefined-type-position/` — same file, sibling, and both include orders                                                        |
+| E0427 | A name in a value position denotes nothing visible in the file that uses it | `tests/bugs/issue-1353-undeclared-value-position/`, `tests/bugs/issue-1430-e0427-order-dependence/`, `tests/bugs/issue-1582-undeclared-write-target/` |
+
+**Visibility is answered per file, not per run.** A name declared in a sibling
+that this file never includes is not visible here, and saying so is the whole
+content of the promise — a rule that accepted any name declared anywhere in the
+build would make "before use" unenforceable across files.
+
+**Reading and writing a name ask the same question.** E0427 covers both
+positions a value name can occupy. Treating the write as a separate case is
+what left `witness <- 5` against an out-of-scope name accepted while
+`u8 copy <- witness` beside it was rejected (#1582).
+
+**A qualified spelling states which level to search, and searching any other
+level is a different answer, not a fallback.** `this.x` asks the enclosing
+scope, `global.x` asks file scope, and a bare name searches outward. A name
+visible at one level is not thereby visible at another.
+
+**A name arriving from a C or C++ header the transpiler does not parse is
+exempt.** C-Next cannot enumerate what such a header supplies, so it does not
+claim a name is undefined on evidence it does not have. The exemption is a
+promise about interop, and it applies to the whole file that reaches the
+header.
 
 ## References
 

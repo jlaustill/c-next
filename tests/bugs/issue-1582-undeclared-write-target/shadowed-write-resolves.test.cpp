@@ -6,6 +6,7 @@
 #include "shadowed-write-resolves.test.hpp"
 
 // test-execution
+// test-adr: 030
 // NEGATIVE CONTROL for #1582 -- this file must stay SILENT and keep working.
 #include <write-target-source.hpp>
 
