@@ -50,6 +50,7 @@ import enumGenerator from "./generators/declarationGenerators/EnumGenerator";
 import bitmapGenerator from "./generators/declarationGenerators/BitmapGenerator";
 import registerGeneratorFor from "./generators/declarationGenerators/RegisterGenerator";
 import type IPlannedRegister from "./types/IPlannedRegister";
+import type IPlannedFunction from "./types/IPlannedFunction";
 import type TRegisterAccessMode from "../../../transpiler/types/TRegisterAccessMode";
 import structGenerator from "./generators/declarationGenerators/StructGenerator";
 import functionGenerator from "./generators/declarationGenerators/FunctionGenerator";
@@ -1345,8 +1346,26 @@ export default class CodeGenerator implements IOrchestrator {
   // === Parameter Management (IOrchestrator A4) ===
 
   /** Set current function parameters */
-  setParameters(paramList: Parser.ParameterListContext | null): void {
-    this._setParameters(paramList);
+  setParameters(parameters: readonly IPlannedFunctionParameter[] | null): void {
+    FunctionContextManager.processParameterList(
+      parameters,
+      this._getFunctionContextCallbacks(),
+    );
+  }
+
+  /**
+   * The parameters a function's context registers, decided (#1445).
+   *
+   * Part of IOrchestrator: `ScopeGenerator` enters a context for a scoped
+   * function, so planning at both call sites would be two derivations of one
+   * parameter list.
+   */
+  planFunctionParameters(
+    ctx: Parser.ParameterListContext | null,
+  ): readonly IPlannedFunctionParameter[] | null {
+    return (
+      ctx?.parameter().map((param) => this.planFunctionParameter(param)) ?? null
+    );
   }
 
   /** Clear current function parameters */
@@ -1505,11 +1524,11 @@ export default class CodeGenerator implements IOrchestrator {
   enterFunctionContext(
     name: string,
     returnTypeText: string,
-    parameterList: Parser.ParameterListContext | null,
+    parameters: readonly IPlannedFunctionParameter[] | null,
   ): void {
     this.setCurrentFunctionName(name);
     this.setCurrentFunctionReturnType(returnTypeText);
-    this.setParameters(parameterList);
+    this.setParameters(parameters);
     this.enterFunctionBody();
   }
 
@@ -2725,18 +2744,6 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Set up parameter tracking for a function.
-   * Issue #793: Delegates to FunctionContextManager.
-   */
-  private _setParameters(params: Parser.ParameterListContext | null): void {
-    FunctionContextManager.processParameterList(
-      params?.parameter().map((param) => this.planFunctionParameter(param)) ??
-        null,
-      this._getFunctionContextCallbacks(),
-    );
-  }
-
-  /**
    * A parameter as the function CONTEXT needs it (#1445).
    *
    * Distinct from `planParameter`, which serves the signature adapter, and the
@@ -3814,6 +3821,39 @@ export default class CodeGenerator implements IOrchestrator {
   // Functions
   // ========================================================================
 
+  /**
+   * A function declaration, decided (#1445).
+   *
+   * The return type is rendered HERE, before the context is entered, because
+   * that is where the node-walking version rendered it.
+   * `isMainFunctionWithArgs` and the first parameter's name are pure reads of
+   * the tree, so moving them ahead of the context changes nothing they can
+   * observe.
+   *
+   * The body and the parameter list stay unrendered: Issue #268 makes their
+   * ORDER the generator's decision, and it cannot own that if it is handed
+   * two strings.
+   */
+  private planFunction(
+    ctx: Parser.FunctionDeclarationContext,
+  ): IPlannedFunction {
+    const parameterList = ctx.parameterList() ?? null;
+    const name = ctx.IDENTIFIER().getText();
+
+    return {
+      name,
+      returnType: this.generateType(ctx.type()),
+      returnTypeText: ctx.type().getText(),
+      isMainWithArgs: this.isMainFunctionWithArgs(name, parameterList),
+      firstParameterName: parameterList?.parameter()[0]?.IDENTIFIER().getText(),
+      parameters: this.planFunctionParameters(parameterList),
+      renderBody: () => this.generateBlock(ctx.block()),
+      renderParameterList: parameterList
+        ? () => this.generateParameterList(parameterList)
+        : null,
+    };
+  }
+
   private generateFunction(ctx: Parser.FunctionDeclarationContext): string {
     // #1285: no inline fallback. This used to carry a second, parallel
     // implementation guarded by `if (generator)` against a registry lookup
@@ -3821,7 +3861,7 @@ export default class CodeGenerator implements IOrchestrator {
     // kept in step by hand. #1445 deleted the registry as well, so there is no
     // lookup left to guard -- this wrapper is now indistinguishable from its
     // eleven siblings, which is the point.
-    return this.invokeGenerator(functionGenerator, ctx);
+    return this.invokeGenerator(functionGenerator, this.planFunction(ctx));
   }
 
   /**

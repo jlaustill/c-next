@@ -482,6 +482,10 @@ function createMockOrchestrator(
     enterFunctionContext: vi.fn(),
     exitFunctionContext: vi.fn(),
     setParameters: vi.fn(),
+    // #1445: `enterFunctionContext` takes planned parameters now, and this
+    // mock's `enterFunctionContext` is a no-op -- so null is the honest
+    // return here, not a shape nothing in this file can observe.
+    planFunctionParameters: vi.fn(() => null),
     enterFunctionBody: vi.fn(),
     generateBlock: vi.fn(() => "{ }"),
     updateFunctionParamsAutoConst: vi.fn(),

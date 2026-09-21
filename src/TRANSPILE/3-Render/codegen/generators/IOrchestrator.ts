@@ -13,6 +13,7 @@
  */
 import type ISubstringOps from "../types/ISubstringOps";
 import type IPlannedRegister from "../types/IPlannedRegister";
+import type IPlannedFunctionParameter from "../types/IPlannedFunctionParameter";
 import type IStringConcatOps from "../types/IStringConcatOps";
 import IGeneratorInput from "./IGeneratorInput";
 import IGeneratorState from "./IGeneratorState";
@@ -230,7 +231,7 @@ interface IOrchestrator {
   // === Parameter Management ===
 
   /** Set current function parameters for pointer semantics (ADR-006) */
-  setParameters(paramList: Parser.ParameterListContext | null): void;
+  setParameters(parameters: readonly IPlannedFunctionParameter[] | null): void;
 
   /** Clear current function parameters */
   clearParameters(): void;
@@ -285,8 +286,19 @@ interface IOrchestrator {
   enterFunctionContext(
     name: string,
     returnTypeText: string,
-    parameterList: Parser.ParameterListContext | null,
+    parameters: readonly IPlannedFunctionParameter[] | null,
   ): void;
+
+  /**
+   * The parameters a function's context registers, decided (#1445).
+   *
+   * On the orchestrator because `enterFunctionContext` has TWO callers -- a
+   * file-scope function and a scoped one -- and planning at each would be two
+   * derivations of one parameter list.
+   */
+  planFunctionParameters(
+    ctx: Parser.ParameterListContext | null,
+  ): readonly IPlannedFunctionParameter[] | null;
 
   exitFunctionContext(): void;
 

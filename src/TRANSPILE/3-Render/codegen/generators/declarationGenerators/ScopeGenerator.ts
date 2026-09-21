@@ -311,7 +311,10 @@ function generateScopeFunction(
   orchestrator.enterFunctionContext(
     fullName,
     funcDecl.type().getText(),
-    funcDecl.parameterList() ?? null,
+    // #1445: the plan is built by the orchestrator, not here -- this call and
+    // the file-scope one would otherwise be two derivations of one parameter
+    // list.
+    orchestrator.planFunctionParameters(funcDecl.parameterList() ?? null),
   );
 
   // Issue #281: Generate body FIRST to track parameter modifications,
