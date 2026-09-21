@@ -4,9 +4,7 @@
   "ignore": [
     "**/node_modules/**",
     "**/antlr_parser/**",
-    "**/parser/grammar/**",
-    "**/parser/c/grammar/**",
-    "**/parser/cpp/grammar/**",
+    "**/grammar/**",
     "**/*.test.ts",
     "**/__tests__/**",
     "**/coverage/**",

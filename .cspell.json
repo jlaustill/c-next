@@ -244,6 +244,7 @@
     "int32_t",
     "int64_t",
     "int8_t",
+    "interp",
     "iquote",
     "isalnum",
     "isalpha",
@@ -609,7 +610,6 @@
     "WWDG",
     "Xchg",
     "xtensa",
-    "interp",
     "xthal",
     "xtruntime",
     "xyzzy"
