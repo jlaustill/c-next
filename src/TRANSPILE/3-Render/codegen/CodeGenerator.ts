@@ -759,14 +759,20 @@ export default class CodeGenerator implements IOrchestrator {
 
     const indexes = op.expression();
     if (indexes.length > 0) {
+      // Issue #1094: the final index is the WIDTH on the two-index arm, and
+      // folding it is what gets a const or macro width a precomputed mask
+      // rather than a runtime one. Captured here rather than indexed inside
+      // the thunk so the arity check above is what guarantees it exists.
+      const widthExpr = indexes.at(-1);
       return {
         kind: "subscript",
         indexCount: indexes.length,
         renderIndexes: () =>
           indexes.map((index) => this.generateExpression(index)),
-        // Issue #1094: the final index, folded, so a const or macro bit
-        // width gets a precomputed mask rather than a runtime one.
-        foldWidth: () => this.tryEvaluateConstant(indexes[indexes.length - 1]),
+        foldWidth: () =>
+          widthExpr === undefined
+            ? undefined
+            : this.tryEvaluateConstant(widthExpr),
       };
     }
 
