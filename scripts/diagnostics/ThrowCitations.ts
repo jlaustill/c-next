@@ -502,7 +502,7 @@ class ThrowCitations {
       ok: errors.length === 0,
       errors,
       info: [
-        `${cited.length} citation(s) checked against ${total} throw site(s) in output/.`,
+        `${cited.length} citation(s) checked against ${total} throw site(s) in 3-Render/.`,
       ],
     };
   }

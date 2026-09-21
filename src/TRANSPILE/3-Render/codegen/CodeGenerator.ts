@@ -67,6 +67,11 @@ import type IPlannedCallArgument from "./types/IPlannedCallArgument";
 import type TRegisterAccessMode from "../../../transpiler/types/TRegisterAccessMode";
 import structGenerator from "./generators/declarationGenerators/StructGenerator";
 import ArrayDimensionUtils from "./generators/declarationGenerators/ArrayDimensionUtils";
+import IPlannedArrayDeclaration from "./types/IPlannedArrayDeclaration";
+import TPlannedStringDecl from "./types/TPlannedStringDecl";
+import IPlannedStringInit from "./types/IPlannedStringInit";
+import TPlannedVariableDecl from "./types/TPlannedVariableDecl";
+import TPlannedVariableInitializer from "./types/TPlannedVariableInitializer";
 import IPlannedScope from "./types/IPlannedScope";
 import TPlannedScopeMember from "./types/TPlannedScopeMember";
 import TPlannedScopeVariable from "./types/TPlannedScopeVariable";
@@ -4435,27 +4440,420 @@ export default class CodeGenerator implements IOrchestrator {
   // Variables
   // ========================================================================
 
+  // ========================================================================
+  // Variable declaration planning (#1445 box 3)
+  // ========================================================================
+
+  /**
+   * One variable declaration, in whichever of three forms it takes.
+   *
+   * ## This planner WRITES, and the order is the contract
+   *
+   * `inferVariableType` renders; `trackLocalVariable` registers the variable's
+   * type info; `emittedLocalName` is only correct after that registration; and
+   * ADR-045's string discrimination reads the registry registration filled --
+   * which is why `string<32> s <- s + "x"` is detected as a concatenation and
+   * rejected E0864 for "capacity 33", the 32 read back off `s` itself (#1643
+   * tracks that the name resolves at all). So this is not a description
+   * computed ahead of time; it is the sequence the renderer used to perform,
+   * with the rendering lifted out of it.
+   */
+  private planVariableDecl(
+    ctx: Parser.VariableDeclarationContext,
+  ): TPlannedVariableDecl {
+    // Issue #375: Check for C++ constructor syntax - early return
+    const constructorArgList = ctx.constructorArgumentList();
+    if (constructorArgList) {
+      return this.planConstructorDecl(ctx, constructorArgList);
+    }
+
+    // Issue #696: Use helper for modifier extraction and validation
+    // Issue #852 (MISRA Rule 8.5): hasInitializer and cppMode drive extern
+    const modifiers = VariableModifierBuilder.build(
+      ctx,
+      CodeGenState.inFunctionBody,
+      ctx.expression() !== null,
+      CodeGenState.cppMode,
+    );
+
+    const name = ctx.IDENTIFIER().getText();
+    const typeCtx = ctx.type();
+
+    // #1322: a C-style array declaration (u16 arr[8]) is E0874 in pass 2.1
+    // (ADR-036), raised by `ArrayDeclarationAnalyzer`.
+    const type = this._inferVariableType(ctx, name);
+
+    // Track local variable metadata
+    this._trackLocalVariable(ctx, name);
+
+    // ADR-057: the identifier this declaration is EMITTED under. Computed once,
+    // here, because the string and array forms below return before the plain
+    // declaration is assembled -- a second call would be a second place
+    // deciding the same thing. Registries keep the source name; only the
+    // generated text moves.
+    const emittedName = CodeGenState.emittedLocalName(name);
+
+    // Issue #895 Bug B: If type was inferred as pointer, mark it in the registry
+    if (type.endsWith("*")) {
+      this._markVariableAsPointer(name);
+    }
+
+    // ADR-045: string types have their own three forms
+    const stringPlan = this.planStringDecl(
+      typeCtx,
+      ctx.expression() ?? null,
+      ctx.arrayDimension(),
+    );
+    if (stringPlan) {
+      return {
+        kind: "string",
+        string: stringPlan,
+        emittedName,
+        modifiers,
+        isConst: ctx.constModifier() !== null,
+      };
+    }
+
+    // Statements rather than an object literal, because the ORDER matters and
+    // an object literal's property order is not something a reader checks:
+    // the array half renders its type dimensions eagerly, and it must do so
+    // before anything the initializer renders.
+    const array = this.planArrayDeclaration(ctx, typeCtx);
+    const initializer = this.planVariableInitializer(ctx, typeCtx);
+
+    return {
+      kind: "plain",
+      sourceName: name,
+      emittedName,
+      modifierPrefix: VariableModifierBuilder.toPrefix(modifiers),
+      type,
+      array,
+      initializer,
+    };
+  }
+
+  /**
+   * Issue #375: `Type name(arg, arg);` -- C++ constructor syntax.
+   *
+   * #1322: the "is not declared" (E0433) and "must be const" (E0432)
+   * rejections that stood here are authored in pass 2.1, which halts before
+   * codegen -- so an argument reaching this line is declared and const. The two
+   * copies of that rule also decided const-ness two different ways;
+   * `IDeclaredVar.isConst` is now the single answer.
+   *
+   * What survives is NAME resolution, which is codegen's own question: a scope
+   * member is emitted by its qualified C name.
+   */
+  private planConstructorDecl(
+    ctx: Parser.VariableDeclarationContext,
+    argListCtx: Parser.ConstructorArgumentListContext,
+  ): TPlannedVariableDecl {
+    const type = this.generateType(ctx.type());
+    const name = ctx.IDENTIFIER().getText();
+
+    const args = argListCtx.IDENTIFIER().map((argNode) => {
+      const argName = argNode.getText();
+      const isFileScope =
+        CodeGenState.getVariableTypeInfo(argName) !== undefined;
+      return isFileScope || !CodeGenState.currentScopePath
+        ? argName
+        : QualifiedNameGenerator.forMember(
+            CodeGenState.currentScopePath,
+            argName,
+          );
+    });
+
+    // Track the variable in type registry (as an external C++ type)
+    CodeGenState.setVariableTypeInfo(name, {
+      baseType: type,
+      bitWidth: 0, // Unknown for C++ types
+      isArray: false,
+      arrayDimensions: [],
+      isConst: false,
+      isExternalCppType: true,
+    });
+
+    // Track as local variable if inside function body
+    if (CodeGenState.inFunctionBody) {
+      CodeGenState.registerLocalVariable(name);
+    }
+
+    return {
+      kind: "constructor",
+      type,
+      // ADR-057: emit under the name registration decided on, not the source one.
+      emittedName: CodeGenState.emittedLocalName(name),
+      args,
+    };
+  }
+
+  /**
+   * The array half of a declaration (ADR-035/ADR-036).
+   *
+   * `arrayTypeDimensions` is rendered HERE rather than handed over as a thunk,
+   * and that is the one placement worth checking. It renders unconditionally
+   * once the declaration is an array, before the initializer branch chooses
+   * whether to use it, and one sub-branch discards it. A thunk would skip the
+   * render on exactly that sub-branch and drop whatever effects the dimension
+   * expressions raised.
+   */
+  private planArrayDeclaration(
+    ctx: Parser.VariableDeclarationContext,
+    typeCtx: Parser.TypeContext,
+  ): IPlannedArrayDeclaration {
+    const arrayDims = ctx.arrayDimension();
+    const arrayTypeCtx = typeCtx.arrayType();
+
+    if (arrayDims.length === 0 && arrayTypeCtx === null) {
+      return {
+        isArray: false,
+        hasEmptyDimension: false,
+        hasEmptyArrayTypeDimension: false,
+        declaredSize: null,
+        arrayTypeDimensions: "",
+        renderCStyleDimensions: () => "",
+        init: null,
+      };
+    }
+
+    const typeDims = arrayTypeCtx?.arrayTypeDimension() ?? [];
+    const hasEmptyArrayTypeDimension = typeDims.some(
+      (dim) => !dim.expression(),
+    );
+    const initializer = ctx.expression();
+
+    return {
+      isArray: true,
+      hasEmptyDimension:
+        arrayDims.some((dim) => !dim.expression()) ||
+        hasEmptyArrayTypeDimension,
+      hasEmptyArrayTypeDimension,
+      // #1644: one evaluator, and one FUNCTION -- the type's dimensions and the
+      // trailing ones are the same question asked of two lists. They were two
+      // methods that had to be kept in step by hand, and the comment saying so
+      // is what this deletes.
+      declaredSize:
+        CodeGenerator.foldFirstDimension(typeDims) ??
+        CodeGenerator.foldFirstDimension(arrayDims),
+      arrayTypeDimensions: this.renderArrayTypeDimensions(arrayTypeCtx),
+      renderCStyleDimensions: () => this.generateArrayDimensions(arrayDims),
+      init: initializer
+        ? {
+            renderExpression: () => this.generateExpression(initializer),
+            renderTypeName: () => this.getTypeName(typeCtx),
+            renderDimensions: () => this.generateArrayDimensions(arrayDims),
+          }
+        : null,
+    };
+  }
+
+  /**
+   * The folded value of the first dimension in a list, or null.
+   *
+   * Through `ArrayDimensionParser`, which is the single evaluator: the size
+   * used to expand a fill-all must equal the size emitted in the declarator, or
+   * the array is the declared length with the wrong contents (#1644).
+   */
+  private static foldFirstDimension(
+    dims: readonly {
+      expression(): Parser.ExpressionContext | null;
+    }[],
+  ): number | null {
+    const sizeExpr = dims[0]?.expression();
+    if (!sizeExpr) {
+      return null;
+    }
+    return (
+      ArrayDimensionParser.parseSingleDimension(
+        sizeExpr,
+        dimensionEvalOptions(),
+      ) ?? null
+    );
+  }
+
+  /**
+   * The type's own dimensions, rendered: `u16[8]` -> `"[8]"`, `u16[4][4]` ->
+   * `"[4][4]"`.
+   *
+   * A constant is folded first, because C rejects a variably-modified type at
+   * file scope; the expression text is the fallback for macros and enums.
+   */
+  private renderArrayTypeDimensions(
+    arrayTypeCtx: Parser.ArrayTypeContext | null,
+  ): string {
+    if (!arrayTypeCtx) {
+      return "";
+    }
+
+    let result = "";
+    for (const dim of arrayTypeCtx.arrayTypeDimension()) {
+      const sizeExpr = dim.expression();
+      if (!sizeExpr) {
+        result += "[]";
+        continue;
+      }
+      const dimValue =
+        this.tryEvaluateConstant(sizeExpr) ?? this.generateExpression(sizeExpr);
+      result += `[${dimValue}]`;
+    }
+    return result;
+  }
+
+  /**
+   * How a variable's initializer is rendered (ADR-015 when there is none).
+   */
+  private planVariableInitializer(
+    ctx: Parser.VariableDeclarationContext,
+    typeCtx: Parser.TypeContext,
+  ): TPlannedVariableInitializer {
+    const initializer = ctx.expression();
+    if (!initializer) {
+      return {
+        kind: "zero",
+        render: (isArray) => this.getZeroInitializer(typeCtx, isArray),
+      };
+    }
+
+    return {
+      kind: "expression",
+      renderTypeName: () => this.getTypeName(typeCtx),
+      renderExpression: () => this.generateExpression(initializer),
+      resolveExpressionType: () => this.getExpressionType(initializer),
+    };
+  }
+
+  /**
+   * Which of ADR-045's three string forms this declaration takes, or null when
+   * it is not a string at all.
+   *
+   * #1445 box 3: `StringDeclHelper` used to be handed the `TypeContext` and do
+   * this navigation itself.
+   *
+   * WHERE it is called from is load-bearing and was measured. `planVariableDecl`
+   * calls `trackLocalVariable` before it reaches this, and that registers the
+   * declared variable's type info -- string capacity included -- so the
+   * variable's own name resolves inside its own initializer:
+   * `string<32> s <- s + "x"` is detected as a concatenation and rejected
+   * E0864 for "capacity 33", the 32 read back off `s` itself. Moving this call
+   * ahead of the registration asks the registry before it is filled and loses
+   * the diagnostic. (That the name resolves at all is a separate defect,
+   * #1643.)
+   */
+  private planStringDecl(
+    typeCtx: Parser.TypeContext,
+    expression: Parser.ExpressionContext | null,
+    trailingDims: Parser.ArrayDimensionContext[],
+  ): TPlannedStringDecl | null {
+    // Issue #1029: string array in arrayType syntax -- `string<32>[4] items`
+    const arrayTypeCtx = typeCtx.arrayType?.();
+    const arrayStringCtx = arrayTypeCtx?.stringType?.();
+    if (arrayTypeCtx && arrayStringCtx) {
+      return this.planStringArray(
+        arrayTypeCtx,
+        arrayStringCtx,
+        expression,
+        trailingDims,
+      );
+    }
+
+    const stringCtx = typeCtx.stringType();
+    if (!stringCtx) {
+      return null;
+    }
+
+    const intLiteral = stringCtx.INTEGER_LITERAL();
+    if (!intLiteral) {
+      // Unsized string - requires const and a literal to infer from
+      return { kind: "unsized", initText: expression?.getText() ?? null };
+    }
+
+    return {
+      kind: "bounded",
+      capacity: Number.parseInt(intLiteral.getText(), 10),
+      init: expression ? this.planStringInit(expression) : null,
+    };
+  }
+
+  /**
+   * The four ways a bounded string's initializer can be written, ready to be
+   * asked in ADR-045's order.
+   *
+   * `concat` is eager because deciding it reads the type registry by name and
+   * generates nothing. The other two are unevaluated: `renderSubstring`
+   * generates the index expressions once it decides the source IS a string,
+   * and `render` generates the whole initializer -- either can request an
+   * include or queue a C++ temp, so raising those effects for an arm that is
+   * not taken would change the emitted C.
+   */
+  private planStringInit(
+    expression: Parser.ExpressionContext,
+  ): IPlannedStringInit {
+    return {
+      concat: this._getStringConcatOperands(expression),
+      renderSubstring: () => this._getSubstringOperands(expression),
+      text: expression.getText(),
+      render: () => this.generateExpression(expression),
+    };
+  }
+
+  /**
+   * Issue #1029: `string<32>[4] items`.
+   */
+  private planStringArray(
+    arrayTypeCtx: Parser.ArrayTypeContext,
+    stringCtx: Parser.StringTypeContext,
+    expression: Parser.ExpressionContext | null,
+    trailingDims: Parser.ArrayDimensionContext[],
+  ): TPlannedStringDecl {
+    const intLiteral = stringCtx.INTEGER_LITERAL();
+    if (!intLiteral) {
+      // Unsized string array - not supported
+      invariant(
+        false,
+        "a string array states its element capacity -- E0862 rejects an unsized one in pass 2.1",
+      );
+    }
+
+    const dims = arrayTypeCtx.arrayTypeDimension();
+    let dimensions = "";
+    for (const dim of dims) {
+      const sizeExpr = dim.expression();
+      if (sizeExpr) {
+        // Issue #1127: fold a compile-time constant rather than emitting its
+        // source text. `string<32>[COUNT] items` produced
+        // `char items[COUNT][33] = {0}` -- a variably-modified type, which C
+        // rejects here outright ("variable-sized object may not be
+        // initialized") and which CLAUDE.md rules out.
+        const folded = ArrayDimensionParser.parseSingleDimension(
+          sizeExpr,
+          dimensionEvalOptions(),
+        );
+        dimensions += `[${folded ?? sizeExpr.getText()}]`;
+      } else {
+        dimensions += "[]";
+      }
+    }
+
+    // Any trailing dimensions from the variable declaration. Unconditional on
+    // this arm -- every string array emits its dimensions, initializer or not
+    // -- so the effects this raises are raised exactly as often as before.
+    dimensions += this.generateArrayDimensions(trailingDims);
+
+    return {
+      kind: "array",
+      elementCapacity: Number.parseInt(intLiteral.getText(), 10),
+      dimensions,
+      // #1644: the SAME call the loop above renders the declarator with. The
+      // size used to expand a fill-all must equal the size emitted in `[...]`,
+      // or the array is the declared length with the wrong contents.
+      declaredSize: CodeGenerator.foldFirstDimension(dims),
+      renderInit: expression ? () => this.generateExpression(expression) : null,
+    };
+  }
+
   private generateVariableDecl(ctx: Parser.VariableDeclarationContext): string {
     // Issue #792: Delegate to VariableDeclHelper
-    return VariableDeclHelper.generateVariableDecl(ctx, {
-      generateExpression: (exprCtx) => this.generateExpression(exprCtx),
-      generateType: (typeCtx) => this.generateType(typeCtx),
-      getTypeName: (typeCtx) => this.getTypeName(typeCtx),
-      generateArrayDimensions: (dims) => this.generateArrayDimensions(dims),
-      tryEvaluateConstant: (exprCtx) => this.tryEvaluateConstant(exprCtx),
-      getZeroInitializer: (typeCtx, isArray) =>
-        this.getZeroInitializer(typeCtx, isArray),
-      getExpressionType: (exprCtx) => this.getExpressionType(exprCtx),
-      inferVariableType: (varCtx, name) =>
-        this._inferVariableType(varCtx, name),
-      trackLocalVariable: (varCtx, name) =>
-        this._trackLocalVariable(varCtx, name),
-      markVariableAsPointer: (name) => this._markVariableAsPointer(name),
-      getStringConcatOperands: (concatCtx) =>
-        this._getStringConcatOperands(concatCtx),
-      getSubstringOperands: (substrCtx) =>
-        this._getSubstringOperands(substrCtx),
-    });
+    return VariableDeclHelper.renderVariableDecl(this.planVariableDecl(ctx));
   }
 
   /**
@@ -4668,10 +5066,15 @@ export default class CodeGenerator implements IOrchestrator {
     }
   }
 
-  // Issue #792: Methods _handleArrayDeclaration, _getArrayTypeDimension, _parseArrayTypeDimension,
-  // _parseFirstArrayDimension, _validateArrayDeclarationSyntax, _extractBaseTypeName,
-  // _generateVariableInitializer, _finalizeCppClassAssignments,
-  // and _generateConstructorDecl have been extracted to VariableDeclHelper.ts
+  // Issue #792 extracted a batch of variable-declaration methods to
+  // `VariableDeclHelper`. #1445 box 3 split that batch again, by what each one
+  // does: the tree-reading half came back as the `plan*` methods above and the
+  // rendering half stayed there.
+  //
+  // The list this comment used to enumerate named nine methods, one of which
+  // (`_validateArrayDeclarationSyntax`) had not existed since its rejection
+  // moved to 2.1 as E0874. A list of names is wrong the moment anything moves,
+  // and nothing checks it -- which is why it is a sentence now.
 
   /**
    * Brace initializer that zero-initializes an aggregate (struct or array).

@@ -199,6 +199,9 @@ questions and only the first was asked.
   helpers. Verified by probe, not by reading: all three routes in (`string<8> items[3]`,
   `items[]`, and the fill-all form) are intercepted by
   `VariableDeclHelper.validateArrayDeclarationSyntax` with the C-style-array error.
+  (That interception is `ArrayDeclarationAnalyzer`'s E0874 now, in 2.1; the method
+  named here no longer exists. Recorded rather than rewritten -- this section is a
+  history of what was deleted and when.)
 - `EnumAssignmentValidator.validateGlobalEnumPattern` (1) — its only rejection was unreachable,
   and with the throw gone the method did nothing.
 - Four copies of `'this' can only be used inside a scope` (`StringHandlers`,

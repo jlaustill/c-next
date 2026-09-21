@@ -1812,4 +1812,149 @@ describe("CodeGenerator Coverage Tests", () => {
       expect(code).toContain("/* Scope: Driver */");
     });
   });
+
+  // ========================================================================
+  // Variable declaration planning (#1445 box 3)
+  // ========================================================================
+  //
+  // `VariableDeclHelper` renders a plan now, and the tree-reading half is
+  // `CodeGenerator.planVariableDecl`. These run against real declarations
+  // because that is what the planner reads; the assembly half is asserted
+  // against plan literals in `VariableDeclHelper.test.ts`.
+  describe("variable declaration planning", () => {
+    it("plans a scalar with its zero initializer (ADR-015)", () => {
+      const { code } = setupGenerator(`
+        u8 main() {
+          u32 n;
+          return 0;
+        }
+      `);
+
+      expect(code).toContain("uint32_t n = 0;");
+    });
+
+    it("plans a scalar with an expression initializer", () => {
+      const { code } = setupGenerator(`
+        u8 main() {
+          u32 n <- 7;
+          return 0;
+        }
+      `);
+
+      expect(code).toContain("uint32_t n = 7U;");
+    });
+
+    // MISRA 10.3: the cross-category cast is added from what the expression
+    // turned out to be, against what the declaration expects.
+    it("adds the MISRA 10.3 cast for an int-to-float initializer", () => {
+      const { code } = setupGenerator(`
+        u8 main() {
+          u8 n <- 3;
+          f32 x <- n;
+          return 0;
+        }
+      `);
+
+      expect(code).toContain("float x = (float)n;");
+    });
+
+    it("plans a C-Next array and puts its dimensions in the declarator", () => {
+      const { code } = setupGenerator(`
+        u8 main() {
+          u32[3] arr <- [1, 2, 3];
+          return 0;
+        }
+      `);
+
+      expect(code).toContain("uint32_t arr[3] = {1U, 2U, 3U};");
+    });
+
+    // ADR-035: an empty dimension in the TYPE is filled from the initializer,
+    // and the inferred suffix already carries it.
+    it("infers an empty array dimension from the initializer", () => {
+      const { code } = setupGenerator(`
+        u8 main() {
+          u32[] arr <- [1, 2, 3];
+          return 0;
+        }
+      `);
+
+      expect(code).toContain("uint32_t arr[3]");
+      expect(code).not.toContain("arr[][3]");
+    });
+
+    // #1644: the declared size and the rendered dimension come from ONE
+    // evaluator, so every spelling folds for both.
+    it.each([
+      ["decimal", "u32[3] arr <- [7*];"],
+      ["hex", "u32[0x3] arr <- [7*];"],
+      ["binary", "u32[0b11] arr <- [7*];"],
+    ])("folds a %s dimension for the fill-all expansion", (_label, decl) => {
+      const { code } = setupGenerator(`
+        u8 main() {
+          ${decl}
+          return 0;
+        }
+      `);
+
+      expect(code).toContain("arr[3] = {7U, 7U, 7U};");
+    });
+
+    it("plans a C++ constructor declaration (Issue #375)", () => {
+      const { code } = setupGenerator(
+        `
+        const u8 pinConst <- 10;
+        u8 main() {
+          MAX31856 thermo(pinConst);
+          return 0;
+        }
+      `,
+        { cppMode: true },
+      );
+
+      expect(code).toContain("MAX31856 thermo(pinConst);");
+    });
+
+    // ADR-045: the string forms are discriminated by the same planner, and the
+    // discrimination reads the type registry that `trackLocalVariable` filled.
+    it.each([
+      ["bounded, no initializer", "string<16> s;", 'char s[17] = "";'],
+      ["bounded, literal", 'string<16> s <- "hi";', 'char s[17] = "hi";'],
+      ["unsized const", 'const string s <- "hi";', 'const char s[3] = "hi";'],
+    ])("plans a %s string declaration", (_label, decl, expected) => {
+      const { code } = setupGenerator(`
+        u8 main() {
+          ${decl}
+          return 0;
+        }
+      `);
+
+      expect(code).toContain(expected);
+    });
+
+    it("plans a string array with its element capacity (Issue #1029)", () => {
+      const { code } = setupGenerator(`
+        u8 main() {
+          string<8>[2] items <- ["a", "b"];
+          return 0;
+        }
+      `);
+
+      expect(code).toContain("char items[2][9]");
+    });
+
+    // The string path returns before the array and initializer halves are
+    // planned, so a string is never treated as a plain array.
+    it("does not plan a string as a plain array declaration", () => {
+      const { code } = setupGenerator(`
+        u8 main() {
+          string<16> s;
+          return 0;
+        }
+      `);
+
+      expect(code).not.toContain("char s[16]");
+      expect(code).toContain("char s[17]");
+    });
+  });
 });
