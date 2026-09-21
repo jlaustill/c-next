@@ -340,6 +340,10 @@ class StringDeclHelper {
       expression,
       extern,
       constMod,
+      // #1642: these two were not passed at all, so a bounded string WITH an
+      // initializer lost them while the header kept them -- `conflicting
+      // types`, in C and C++, with the transpiler exiting 0.
+      `${atomic}${volatileMod}`,
       callbacks,
     );
   }
@@ -353,6 +357,7 @@ class StringDeclHelper {
     expression: Parser.ExpressionContext,
     extern: string,
     constMod: string,
+    qualifiers: string,
     callbacks: IStringDeclCallbacks,
   ): IStringDeclResult {
     // Check for string concatenation
@@ -363,6 +368,7 @@ class StringDeclHelper {
         capacity,
         concatOps,
         constMod,
+        qualifiers,
       );
     }
 
@@ -374,6 +380,7 @@ class StringDeclHelper {
         capacity,
         substringOps,
         constMod,
+        qualifiers,
       );
     }
 
@@ -387,7 +394,7 @@ class StringDeclHelper {
 
     if (isLiteral) {
       // String literal: can use direct initialization
-      const code = `${extern}${constMod}char ${name}[${capacity + 1}] = ${callbacks.generateExpression(expression)};`;
+      const code = `${extern}${constMod}${qualifiers}char ${name}[${capacity + 1}] = ${callbacks.generateExpression(expression)};`;
       return { code, handled: true };
     }
 
@@ -408,7 +415,7 @@ class StringDeclHelper {
     // emitter (CodeGenerator.generateBlock) prefixes every line.
     const lines: string[] = [];
     lines.push(
-      `${constMod}char ${name}[${capacity + 1}] = "";`,
+      `${constMod}${qualifiers}char ${name}[${capacity + 1}] = "";`,
       StringUtils.copyWithNull(name, srcExpr, capacity),
     );
     return { code: lines.join("\n"), handled: true };
@@ -454,6 +461,7 @@ class StringDeclHelper {
     capacity: number,
     concatOps: IStringConcatOps,
     constMod: string,
+    qualifiers: string,
   ): IStringDeclResult {
     // String concatenation requires runtime function calls (strncpy, strncat)
     // which cannot exist at global scope in C
@@ -480,7 +488,7 @@ class StringDeclHelper {
     // second path that has to be kept in step by hand.
     const lines: string[] = [];
     lines.push(
-      `${constMod}char ${name}[${capacity + 1}] = "";`,
+      `${constMod}${qualifiers}char ${name}[${capacity + 1}] = "";`,
       ...StringUtils.concat(name, concatOps.left, concatOps.right, capacity),
     );
     return { code: lines.join("\n"), handled: true };
@@ -494,6 +502,7 @@ class StringDeclHelper {
     capacity: number,
     substringOps: ISubstringOps,
     constMod: string,
+    qualifiers: string,
   ): IStringDeclResult {
     // Substring extraction requires runtime function calls (strncpy)
     // which cannot exist at global scope in C
@@ -532,7 +541,7 @@ class StringDeclHelper {
     // Extraction sequence owned by StringUtils.substring (see _generateConcatDecl).
     const lines: string[] = [];
     lines.push(
-      `${constMod}char ${name}[${capacity + 1}] = "";`,
+      `${constMod}${qualifiers}char ${name}[${capacity + 1}] = "";`,
       ...StringUtils.substring(
         name,
         substringOps.source,
