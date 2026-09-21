@@ -36,10 +36,7 @@
  * - Function calls returning enum types
  */
 
-import * as Parser from "../../../../PARSE/2-Parse/grammar/CNextParser";
 import CodeGenState from "../../../../transpiler/state/CodeGenState";
-import TypeResolver from "../TypeResolver";
-import ExpressionUnwrapper from "../../../../utils/ExpressionUnwrapper";
 import QualifiedCName from "../../../../utils/QualifiedCName";
 import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
 import BareIdentifier from "../../../../utils/BareIdentifier";
@@ -54,10 +51,9 @@ export default class EnumTypeResolver {
    * Returns the enum type name if the expression is an enum value, null otherwise.
    */
   static resolve(
-    ctx: Parser.ExpressionContext | Parser.RelationalExpressionContext,
+    text: string,
+    resolvePostfixEnumType: () => string | null,
   ): string | null {
-    const text = ctx.getText();
-
     // Check if it's a function call returning an enum
     const enumReturnType = this.getFunctionCallEnumType(text);
     if (enumReturnType) {
@@ -78,31 +74,10 @@ export default class EnumTypeResolver {
       return memberResult;
     }
 
-    // Fallback: use TypeResolver to resolve the full expression type through
-    // struct member chains (e.g. global.config.inputs[0].assignedValue -> EValueId)
-    return this.resolveViaTypeResolver(ctx);
-  }
-
-  /**
-   * Fallback resolution via TypeResolver for complex expressions.
-   * Handles struct member chains like global.struct.field that resolve to enum types.
-   */
-  private static resolveViaTypeResolver(
-    ctx: Parser.ExpressionContext | Parser.RelationalExpressionContext,
-  ): string | null {
-    // ExpressionContext has getPostfixExpression, RelationalExpressionContext does not
-    if (!("ternaryExpression" in ctx)) {
-      return null;
-    }
-    const postfix = ExpressionUnwrapper.getPostfixExpression(ctx);
-    if (!postfix) {
-      return null;
-    }
-    const resolvedType = TypeResolver.getPostfixExpressionType(postfix);
-    if (resolvedType && CodeGenState.isKnownEnum(resolvedType)) {
-      return resolvedType;
-    }
-    return null;
+    // Fallback: resolve the full expression type through struct member chains
+    // (e.g. global.config.inputs[0].assignedValue -> EValueId). The caller owns
+    // that walk -- it is the one holding the node.
+    return resolvePostfixEnumType();
   }
 
   /**

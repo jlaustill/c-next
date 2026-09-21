@@ -5,10 +5,17 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import EnumTypeResolver from "../EnumTypeResolver";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";
+import ExpressionUnwrapper from "../../../../../utils/ExpressionUnwrapper";
+import TypeResolver from "../../TypeResolver";
 import SymbolTable from "../../../../../transpiler/state/SymbolTable";
 import createMockSymbols from "../../../../../transpiler/__tests__/codeGenSymbolsHelpers";
 import enterScope from "../../../../../transpiler/__tests__/enterScope";
 
+// #1445: `resolve` takes the expression's TEXT and a thunk for the
+// struct-member-chain fallback, so there is no node to fake and the
+// `as never` casts these tests carried are gone. The thunk returns null
+// throughout because none of these cases reach the fallback -- the mock never
+// had a tree for it to walk either.
 describe("EnumTypeResolver", () => {
   beforeEach(() => {
     CodeGenState.reset();
@@ -21,8 +28,7 @@ describe("EnumTypeResolver", () => {
         functionReturnTypes: new Map([["getState", "State"]]),
       });
 
-      const mockCtx = { getText: () => "getState()" };
-      expect(EnumTypeResolver.resolve(mockCtx as never)).toBe("State");
+      expect(EnumTypeResolver.resolve("getState()", () => null)).toBe("State");
     });
 
     it("resolves this.method() returning enum type", () => {
@@ -32,8 +38,9 @@ describe("EnumTypeResolver", () => {
         functionReturnTypes: new Map([["Motor__getState", "State"]]),
       });
 
-      const mockCtx = { getText: () => "this.getState()" };
-      expect(EnumTypeResolver.resolve(mockCtx as never)).toBe("State");
+      expect(EnumTypeResolver.resolve("this.getState()", () => null)).toBe(
+        "State",
+      );
     });
 
     it("resolves global.func() returning enum type", () => {
@@ -42,8 +49,9 @@ describe("EnumTypeResolver", () => {
         functionReturnTypes: new Map([["getGlobalState", "State"]]),
       });
 
-      const mockCtx = { getText: () => "global.getGlobalState()" };
-      expect(EnumTypeResolver.resolve(mockCtx as never)).toBe("State");
+      expect(
+        EnumTypeResolver.resolve("global.getGlobalState()", () => null),
+      ).toBe("State");
     });
 
     it("resolves Scope.method() returning enum type", () => {
@@ -53,8 +61,9 @@ describe("EnumTypeResolver", () => {
         functionReturnTypes: new Map([["Motor__getState", "State"]]),
       });
 
-      const mockCtx = { getText: () => "Motor.getState()" };
-      expect(EnumTypeResolver.resolve(mockCtx as never)).toBe("State");
+      expect(EnumTypeResolver.resolve("Motor.getState()", () => null)).toBe(
+        "State",
+      );
     });
 
     it("resolves global.Scope.method() returning enum type", () => {
@@ -64,8 +73,9 @@ describe("EnumTypeResolver", () => {
         functionReturnTypes: new Map([["Motor__getState", "State"]]),
       });
 
-      const mockCtx = { getText: () => "global.Motor.getState()" };
-      expect(EnumTypeResolver.resolve(mockCtx as never)).toBe("State");
+      expect(
+        EnumTypeResolver.resolve("global.Motor.getState()", () => null),
+      ).toBe("State");
     });
 
     it("returns null for function returning non-enum type", () => {
@@ -73,15 +83,13 @@ describe("EnumTypeResolver", () => {
         functionReturnTypes: new Map([["getValue", "u32"]]),
       });
 
-      const mockCtx = { getText: () => "getValue()" };
-      expect(EnumTypeResolver.resolve(mockCtx as never)).toBeNull();
+      expect(EnumTypeResolver.resolve("getValue()", () => null)).toBeNull();
     });
 
     it("returns null for unknown function", () => {
       CodeGenState.symbols = createMockSymbols();
 
-      const mockCtx = { getText: () => "unknownFunc()" };
-      expect(EnumTypeResolver.resolve(mockCtx as never)).toBeNull();
+      expect(EnumTypeResolver.resolve("unknownFunc()", () => null)).toBeNull();
     });
   });
 
@@ -99,8 +107,9 @@ describe("EnumTypeResolver", () => {
         enumTypeName: "State",
       });
 
-      const mockCtx = { getText: () => "currentState" };
-      expect(EnumTypeResolver.resolve(mockCtx as never)).toBe("State");
+      expect(EnumTypeResolver.resolve("currentState", () => null)).toBe(
+        "State",
+      );
     });
 
     it("returns null for non-enum variable", () => {
@@ -111,8 +120,7 @@ describe("EnumTypeResolver", () => {
         isConst: false,
       });
 
-      const mockCtx = { getText: () => "count" };
-      expect(EnumTypeResolver.resolve(mockCtx as never)).toBeNull();
+      expect(EnumTypeResolver.resolve("count", () => null)).toBeNull();
     });
   });
 
@@ -122,8 +130,7 @@ describe("EnumTypeResolver", () => {
         knownEnums: new Set(["State"]),
       });
 
-      const mockCtx = { getText: () => "State.IDLE" };
-      expect(EnumTypeResolver.resolve(mockCtx as never)).toBe("State");
+      expect(EnumTypeResolver.resolve("State.IDLE", () => null)).toBe("State");
     });
 
     it("resolves scoped enum: Motor.State.IDLE -> Motor_State", () => {
@@ -131,8 +138,9 @@ describe("EnumTypeResolver", () => {
         knownEnums: new Set(["Motor__State"]),
       });
 
-      const mockCtx = { getText: () => "Motor.State.IDLE" };
-      expect(EnumTypeResolver.resolve(mockCtx as never)).toBe("Motor__State");
+      expect(EnumTypeResolver.resolve("Motor.State.IDLE", () => null)).toBe(
+        "Motor__State",
+      );
     });
 
     it("resolves this.Enum.MEMBER inside scope", () => {
@@ -141,8 +149,9 @@ describe("EnumTypeResolver", () => {
         knownEnums: new Set(["Motor__State"]),
       });
 
-      const mockCtx = { getText: () => "this.State.IDLE" };
-      expect(EnumTypeResolver.resolve(mockCtx as never)).toBe("Motor__State");
+      expect(EnumTypeResolver.resolve("this.State.IDLE", () => null)).toBe(
+        "Motor__State",
+      );
     });
 
     it("resolves global.Enum.MEMBER pattern", () => {
@@ -150,8 +159,9 @@ describe("EnumTypeResolver", () => {
         knownEnums: new Set(["ECategory"]),
       });
 
-      const mockCtx = { getText: () => "global.ECategory.CAT_A" };
-      expect(EnumTypeResolver.resolve(mockCtx as never)).toBe("ECategory");
+      expect(
+        EnumTypeResolver.resolve("global.ECategory.CAT_A", () => null),
+      ).toBe("ECategory");
     });
 
     it("resolves this.variable pattern for enum-typed scope member", () => {
@@ -168,8 +178,9 @@ describe("EnumTypeResolver", () => {
         enumTypeName: "Motor__State",
       });
 
-      const mockCtx = { getText: () => "this.current" };
-      expect(EnumTypeResolver.resolve(mockCtx as never)).toBe("Motor__State");
+      expect(EnumTypeResolver.resolve("this.current", () => null)).toBe(
+        "Motor__State",
+      );
     });
   });
 
@@ -178,6 +189,21 @@ describe("EnumTypeResolver", () => {
      * Helper to build a mock ExpressionContext that contains a full postfix
      * expression tree: global.input.assignedValue
      */
+
+    /**
+     * #1445: the struct-member-chain fallback moved to
+     * `CodeGenerator.getExpressionEnumType`, which supplies it as a thunk. This
+     * is that walk, so the two assertions below still exercise
+     * `TypeResolver.getPostfixExpressionType` against a fabricated chain rather
+     * than being deleted with the method that used to host them.
+     */
+    const postfixEnumThunk = (ctx: { getText: () => string }) => () => {
+      const postfix = ExpressionUnwrapper.getPostfixExpression(ctx as never);
+      if (!postfix) return null;
+      const resolved = TypeResolver.getPostfixExpressionType(postfix);
+      return resolved && CodeGenState.isKnownEnum(resolved) ? resolved : null;
+    };
+
     const buildStructChainCtx = (
       primaryToken: "GLOBAL" | "THIS" | "IDENTIFIER",
       primaryText: string,
@@ -227,10 +253,13 @@ describe("EnumTypeResolver", () => {
       const or = { andExpression: () => [and] };
       const ternary = { orExpression: () => [or] };
 
+      // #1445: no longer cast to `never`. The thunk below casts where the
+      // unwrapper needs a real context; the test still needs `getText()` to be
+      // readable, because `resolve` takes the text now.
       return {
         getText: () => primaryText + suffixes.join(""),
         ternaryExpression: () => ternary,
-      } as never;
+      };
     };
 
     it("resolves global.struct.enumField via TypeResolver fallback", () => {
@@ -251,7 +280,9 @@ describe("EnumTypeResolver", () => {
         ".input",
         ".assignedValue",
       ]);
-      expect(EnumTypeResolver.resolve(ctx)).toBe("EValueId");
+      expect(
+        EnumTypeResolver.resolve(ctx.getText(), postfixEnumThunk(ctx)),
+      ).toBe("EValueId");
     });
 
     it("returns null when struct field is not an enum type", () => {
@@ -267,15 +298,16 @@ describe("EnumTypeResolver", () => {
       });
 
       const ctx = buildStructChainCtx("GLOBAL", "global", [".input", ".count"]);
-      expect(EnumTypeResolver.resolve(ctx)).toBeNull();
+      expect(
+        EnumTypeResolver.resolve(ctx.getText(), postfixEnumThunk(ctx)),
+      ).toBeNull();
     });
 
-    it("returns null for RelationalExpressionContext (no ternaryExpression)", () => {
-      CodeGenState.symbols = createMockSymbols();
-      // RelationalExpressionContext doesn't have ternaryExpression
-      const ctx = { getText: () => "something.weird" } as never;
-      expect(EnumTypeResolver.resolve(ctx)).toBeNull();
-    });
+    // #1445: "returns null for RelationalExpressionContext" is deleted with the
+    // guard it asserted. That union arm was dead -- the only caller,
+    // SwitchGenerator, passes `node.expression()` -- so the
+    // `!("ternaryExpression" in ctx)` discriminator could never fire. Struct-member
+    // enum resolution is covered end-to-end by tests/enum/cross-file-struct-member/.
   });
 
   describe("resolve() - edge cases", () => {
@@ -285,15 +317,15 @@ describe("EnumTypeResolver", () => {
         knownEnums: new Set(["Motor__State"]),
       });
 
-      const mockCtx = { getText: () => "this.State.IDLE" };
-      expect(EnumTypeResolver.resolve(mockCtx as never)).toBeNull();
+      expect(
+        EnumTypeResolver.resolve("this.State.IDLE", () => null),
+      ).toBeNull();
     });
 
     it("returns null for this.variable when not in a scope", () => {
       enterScope(null);
 
-      const mockCtx = { getText: () => "this.current" };
-      expect(EnumTypeResolver.resolve(mockCtx as never)).toBeNull();
+      expect(EnumTypeResolver.resolve("this.current", () => null)).toBeNull();
     });
 
     it("returns null for unknown enum in scoped pattern", () => {
@@ -301,15 +333,15 @@ describe("EnumTypeResolver", () => {
         knownEnums: new Set(), // No enums
       });
 
-      const mockCtx = { getText: () => "Motor.State.IDLE" };
-      expect(EnumTypeResolver.resolve(mockCtx as never)).toBeNull();
+      expect(
+        EnumTypeResolver.resolve("Motor.State.IDLE", () => null),
+      ).toBeNull();
     });
 
     it("returns null for single identifier that is not in type registry", () => {
       CodeGenState.symbols = createMockSymbols();
 
-      const mockCtx = { getText: () => "unknownVar" };
-      expect(EnumTypeResolver.resolve(mockCtx as never)).toBeNull();
+      expect(EnumTypeResolver.resolve("unknownVar", () => null)).toBeNull();
     });
   });
 });

@@ -600,10 +600,23 @@ export default class CodeGenerator implements IOrchestrator {
    * Get the enum type of an expression.
    * Part of IOrchestrator interface - delegates to private implementation.
    */
-  getExpressionEnumType(
-    ctx: Parser.ExpressionContext | Parser.RelationalExpressionContext,
-  ): string | null {
-    return EnumTypeResolver.resolve(ctx);
+  getExpressionEnumType(ctx: Parser.ExpressionContext): string | null {
+    // #1445: the resolver takes the expression's TEXT plus a thunk for the
+    // struct-member-chain fallback, so it names no parse type. The walk stays
+    // here, where the node is.
+    //
+    // The parameter was `ExpressionContext | RelationalExpressionContext`. The
+    // second arm was dead: the only caller is `SwitchGenerator`, which passes
+    // `node.expression()`. The resolver's `!("ternaryExpression" in ctx)` guard
+    // existed to discriminate the union and could therefore never fire.
+    return EnumTypeResolver.resolve(ctx.getText(), () => {
+      const postfix = ExpressionUnwrapper.getPostfixExpression(ctx);
+      if (!postfix) return null;
+      const resolvedType = TypeResolver.getPostfixExpressionType(postfix);
+      return resolvedType && CodeGenState.isKnownEnum(resolvedType)
+        ? resolvedType
+        : null;
+    });
   }
 
   /**

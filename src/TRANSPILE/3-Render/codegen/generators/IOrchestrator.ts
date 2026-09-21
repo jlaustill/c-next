@@ -105,9 +105,7 @@ interface IOrchestrator {
   // === Expression Analysis ===
 
   /** Get the enum type of an expression, if any */
-  getExpressionEnumType(
-    ctx: Parser.ExpressionContext | Parser.RelationalExpressionContext,
-  ): string | null;
+  getExpressionEnumType(ctx: Parser.ExpressionContext): string | null;
 
   /** Check if an expression is a string type */
   isStringExpression(ctx: Parser.RelationalExpressionContext): boolean;
