@@ -81,6 +81,8 @@ import ArrayDimensionParser from "../../../utils/ArrayDimensionParser";
 import dimensionEvalOptions from "./helpers/dimensionEvalOptions";
 // Issue #644: Member chain analyzer for bit access pattern detection
 import MemberChainAnalyzer from "./analysis/MemberChainAnalyzer";
+import type IBitAccessAnalysis from "../../../transpiler/types/IBitAccessAnalysis";
+import type TPlannedTargetOp from "./types/TPlannedTargetOp";
 // Issue #644: Float bit write helper for shadow variable pattern
 import FloatBitHelper from "./helpers/FloatBitHelper";
 // Issue #644: String declaration helper for bounded/array/concat strings
@@ -4122,16 +4124,37 @@ export default class CodeGenerator implements IOrchestrator {
    *
    * @public
    */
-  analyzeMemberChainForBitAccess(targetCtx: Parser.AssignmentTargetContext): {
-    isBitAccess: boolean;
-    baseTarget?: string;
-    bitIndex?: string;
-    baseType?: string;
-  } {
-    // Issue #644: MemberChainAnalyzer is now static, pass generateExpression callback
-    return MemberChainAnalyzer.analyze(targetCtx, (ctx) =>
-      this.generateExpression(ctx),
+  analyzeMemberChainForBitAccess(
+    targetCtx: Parser.AssignmentTargetContext,
+  ): IBitAccessAnalysis {
+    return MemberChainAnalyzer.analyze(
+      targetCtx.IDENTIFIER()?.getText() ?? null,
+      targetCtx.postfixTargetOp().map((op) => this.planTargetOp(op)),
     );
+  }
+
+  /**
+   * One postfix step of an assignment target, as the chain walk needs it.
+   *
+   * #1445: `postfixTargetOp` is `.IDENTIFIER`, `[e]` or `[e, e]`, so the only
+   * thing the walk read off a node was which of those it is. The indexes stay
+   * unrendered behind a thunk -- most chains are not bit accesses, and
+   * rendering an index queues a pending temp declaration in some shapes. See
+   * `TPlannedTargetOp`.
+   */
+  private planTargetOp(op: Parser.PostfixTargetOpContext): TPlannedTargetOp {
+    const member = op.IDENTIFIER();
+    if (member) {
+      return { kind: "member", name: member.getText() };
+    }
+
+    const indexes = op.expression();
+    return {
+      kind: "subscript",
+      indexCount: indexes.length,
+      renderIndexes: () =>
+        indexes.map((index) => this.generateExpression(index)),
+    };
   }
 
   /**
