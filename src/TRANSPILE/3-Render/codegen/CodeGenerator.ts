@@ -67,6 +67,10 @@ import type IPlannedCallArgument from "./types/IPlannedCallArgument";
 import type TRegisterAccessMode from "../../../transpiler/types/TRegisterAccessMode";
 import structGenerator from "./generators/declarationGenerators/StructGenerator";
 import ArrayDimensionUtils from "./generators/declarationGenerators/ArrayDimensionUtils";
+import IPlannedScope from "./types/IPlannedScope";
+import TPlannedScopeMember from "./types/TPlannedScopeMember";
+import TPlannedScopeVariable from "./types/TPlannedScopeVariable";
+import PublicInterface from "../../2-Plan/PublicInterface";
 import functionGenerator from "./generators/declarationGenerators/FunctionGenerator";
 import scopeGenerator from "./generators/declarationGenerators/ScopeGenerator";
 // ADR-065: Extracted utilities
@@ -3521,8 +3525,279 @@ export default class CodeGenerator implements IOrchestrator {
   // Scope (ADR-016: Organization with visibility control)
   // ========================================================================
 
+  /**
+   * The kinds a generated header can DEFINE, in the order it emits their
+   * sections (#1300). Iterating kind-outer is what gives the `.c` the header's
+   * ordering: a struct naming an enum declared below it must still come second,
+   * and the two files disagreeing on that was an exit-0 miscompile.
+   */
+  private static readonly SCOPE_TYPE_KINDS: ReadonlyArray<{
+    readonly kind: IPlannedScope["typeDefinitions"][number]["kind"];
+    readonly declarationOf: (
+      member: Parser.ScopeMemberContext,
+    ) => { IDENTIFIER(): { getText(): string } } | null;
+  }> = [
+    { kind: "enum", declarationOf: (m) => m.enumDeclaration() },
+    { kind: "bitmap", declarationOf: (m) => m.bitmapDeclaration() },
+    { kind: "struct", declarationOf: (m) => m.structDeclaration() },
+  ];
+
+  /**
+   * An ADR-016 scope: its members, and the types it contributes to the `.c`.
+   *
+   * Everything a member RENDERS is left unevaluated. `generateScope` calls
+   * `setCurrentScope` before it renders anything, and every type name resolves
+   * against the path that sets -- a bare `Flags` inside `scope Chip` is
+   * `Chip__Flags`. Resolving one here would resolve it against the OUTER path
+   * and emit the wrong name with nothing failing.
+   *
+   * What IS decided here is the structure: which members exist, which kind each
+   * is, which types the header already defines, and whether Issue #282 skips a
+   * private const scalar. Those are pure reads of the declaration.
+   */
+  private planScope(ctx: Parser.ScopeDeclarationContext): IPlannedScope {
+    const name = ctx.IDENTIFIER().getText();
+
+    // #1298: thread the whole scope PATH, not a leaf name, so every member
+    // qualifies against every outer component instead of re-joining one level.
+    // `getOrCreateScope` is the same resolver `setCurrentScopeByPath` uses, and
+    // it is cached, so this is one decision asked twice -- not two decisions.
+    const declaringScopePath = ScopeUtils.pathOf(
+      SymbolRegistry.getOrCreateScope(name),
+    );
+    const members = ctx.scopeMember();
+
+    return {
+      name,
+      declaringScopePath,
+      typeDefinitions: this.planScopeTypeDefinitions(
+        members,
+        declaringScopePath,
+      ),
+      members: members.map((member) =>
+        this.planScopeMember(member, declaringScopePath),
+      ),
+    };
+  }
+
+  /**
+   * #1300: the types this scope defines in the `.c` -- the complement of what
+   * the header defines, asked per symbol rather than re-derived from
+   * visibility. Those two answers agree only until a public signature drags a
+   * private type into the header, and then the type is defined twice and the C
+   * compiler rejects it.
+   */
+  private planScopeTypeDefinitions(
+    members: readonly Parser.ScopeMemberContext[],
+    declaringScopePath: string,
+  ): IPlannedScope["typeDefinitions"] {
+    return CodeGenerator.SCOPE_TYPE_KINDS.flatMap(({ kind, declarationOf }) =>
+      members
+        .map(declarationOf)
+        .filter((declaration) => declaration !== null)
+        .map((declaration) =>
+          this.scopeTypeCNameIfAbsentFromHeader(
+            declaration!,
+            declaringScopePath,
+          ),
+        )
+        .filter((cName): cName is string => cName !== null)
+        .map((cName) => ({ kind, cName })),
+    );
+  }
+
+  /** This type's transpiled C name, or null when the header already defines it. */
+  private scopeTypeCNameIfAbsentFromHeader(
+    nameNode: { IDENTIFIER(): { getText(): string } },
+    declaringScopePath: string,
+  ): string | null {
+    const fullName = QualifiedNameGenerator.forMember(
+      declaringScopePath,
+      nameNode.IDENTIFIER().getText(),
+    );
+    const definedInHeader =
+      CodeGenState.sourcePath !== null &&
+      PublicInterface.definesTypeInHeader(
+        CodeGenState.symbolTable,
+        CodeGenState.sourcePath,
+        fullName,
+      );
+    return definedInHeader ? null : fullName;
+  }
+
+  /** Which of the four kinds this member is, and what rendering it needs. */
+  private planScopeMember(
+    member: Parser.ScopeMemberContext,
+    declaringScopePath: string,
+  ): TPlannedScopeMember {
+    // #1241: recorded at the MEMBER's position, so a variable member and a
+    // function member land in different matrix contexts instead of both
+    // crediting whichever line the `scope` keyword sits on. Carried for every
+    // member, including the ones nothing is emitted for.
+    const adrLine = member.start?.line;
+
+    // ADR-016, via the one helper the symbols layer also asks (#1300). Codegen
+    // used to recompute this, so the header and the body decided visibility
+    // independently.
+    const isPrivate = ScopeUtils.getMemberVisibility(member) === "private";
+
+    const varDecl = member.variableDeclaration();
+    if (varDecl) {
+      return {
+        kind: "variable",
+        adrLine,
+        variable: this.planScopeVariable(
+          varDecl,
+          declaringScopePath,
+          isPrivate,
+        ),
+      };
+    }
+
+    const funcDecl = member.functionDeclaration();
+    if (funcDecl) {
+      const parameterList = funcDecl.parameterList();
+      return {
+        kind: "function",
+        adrLine,
+        isPrivate,
+        fullName: QualifiedNameGenerator.forFunctionInScope(
+          declaringScopePath,
+          funcDecl.IDENTIFIER().getText(),
+        ),
+        declaredTypeText: funcDecl.type().getText(),
+        renderReturnType: () => this.generateType(funcDecl.type()),
+        planParameters: () => this.planFunctionParameters(parameterList),
+        renderBody: () => this.generateBlock(funcDecl.block()),
+        renderParameterList: () =>
+          parameterList ? this.generateParameterList(parameterList) : "void",
+      };
+    }
+
+    const regDecl = member.registerDeclaration();
+    if (regDecl) {
+      return {
+        kind: "register",
+        adrLine,
+        planRegister: () => this.planRegister(regDecl),
+      };
+    }
+
+    return { kind: "other", adrLine };
+  }
+
+  /** Which of the three shapes a scope variable is emitted in. */
+  private planScopeVariable(
+    varDecl: Parser.VariableDeclarationContext,
+    declaringScopePath: string,
+    isPrivate: boolean,
+  ): TPlannedScopeVariable {
+    const fullName = QualifiedNameGenerator.forMember(
+      declaringScopePath,
+      varDecl.IDENTIFIER().getText(),
+    );
+
+    // Issue #375: constructor syntax.
+    //
+    // #1322: the arguments are no longer VALIDATED here -- the const check that
+    // stood beside this resolution is E0432 in pass 2.1, and it was the second
+    // of two implementations of one decision.
+    const constructorArgList = varDecl.constructorArgumentList();
+    if (constructorArgList) {
+      return {
+        kind: "constructor",
+        fullName,
+        isPrivate,
+        args: constructorArgList
+          .IDENTIFIER()
+          .map((arg) =>
+            QualifiedNameGenerator.forMember(declaringScopePath, arg.getText()),
+          ),
+        renderType: () => this.generateType(varDecl.type()),
+      };
+    }
+
+    // Issue #500: check for an array BEFORE skipping -- arrays must be emitted.
+    // Both spellings count: C-style trailing dimensions and the C-Next arrayType.
+    const isConst = varDecl.constModifier() !== null;
+    const arrayDims = varDecl.arrayDimension();
+    const arrayTypeCtx = varDecl.type().arrayType?.() ?? null;
+    const isArray = arrayDims.length > 0 || arrayTypeCtx !== null;
+
+    // Issue #282: a private const scalar is inlined at its uses, not emitted at
+    // file scope. Issue #500 exempts arrays, which cannot be inlined. Decided
+    // before any render, so a skipped declaration registers no include.
+    if (isPrivate && isConst && !isArray) {
+      return { kind: "skipped" };
+    }
+
+    // Issue #998: the one modifier builder, which validates the atomic/volatile
+    // mutual exclusion. Scope variables are file scope, and the initializer does
+    // not affect volatile/atomic handling.
+    const modifiers = VariableModifierBuilder.build(
+      varDecl,
+      false,
+      false,
+      false,
+    );
+
+    return {
+      kind: "regular",
+      fullName,
+      isPrivate,
+      isConst,
+      isArray,
+      declarationLine: varDecl.start?.line,
+      atomic: modifiers.atomic,
+      volatile: modifiers.volatile,
+      renderType: () => this.generateType(varDecl.type()),
+      renderArrayTypeDimensions: () =>
+        ArrayDimensionUtils.renderArrayTypeDimensions(
+          this.planArrayTypeDimensions(arrayTypeCtx),
+        ),
+      renderCStyleDimensions:
+        arrayDims.length > 0
+          ? () => this.generateArrayDimensions(arrayDims)
+          : null,
+      renderStringCapacityDimension: () =>
+        ArrayDimensionUtils.renderStringCapacityDimension(
+          this.planStringCapacity(varDecl.type()),
+        ),
+      renderInitializer: () => this.renderScopeInitializer(varDecl, isArray),
+    };
+  }
+
+  /**
+   * A scope variable's initializer.
+   *
+   * Issue #872: `expectedType` is what puts the MISRA C:2012 Rule 7.2 `U`
+   * suffix on an unsigned literal. Issue #992: `withDeclarationInit` suppresses
+   * compound literals at file scope, for GCC 9-12 compatibility.
+   *
+   * The type is rendered again here rather than reused from the declaration:
+   * the caller's copy may have become a callback typedef or gained a `*`, and
+   * the expected type of the INITIALIZER is the declared type, not the emitted
+   * one. Two questions, two answers.
+   */
+  private renderScopeInitializer(
+    varDecl: Parser.VariableDeclarationContext,
+    isArray: boolean,
+  ): string {
+    const initializer = varDecl.expression();
+    if (initializer) {
+      const typeName = this.generateType(varDecl.type());
+      return CodeGenState.withExpectedType(typeName, () =>
+        CodeGenState.withDeclarationInit(
+          () => ` = ${this.generateExpression(initializer)}`,
+        ),
+      );
+    }
+    // ADR-015: Zero initialization for uninitialized scope variables
+    return ` = ${this.getZeroInitializer(varDecl.type(), isArray)}`;
+  }
+
   private generateScope(ctx: Parser.ScopeDeclarationContext): string {
-    return this.invokeGenerator(scopeGenerator, ctx);
+    return this.invokeGenerator(scopeGenerator, this.planScope(ctx));
   }
 
   // ========================================================================

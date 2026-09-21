@@ -13,195 +13,131 @@
  *   // Scope: Driver
  *   static uint32_t Driver_counter = 0;
  *   void Driver_init(void) { Driver_counter = 0; }
+ *
+ * ## It renders a plan; it does not read a tree (#1445 box 3)
+ *
+ * Which members this scope has, which of four kinds each one is, which types it
+ * contributes to the `.c` and in what order, and whether a private const scalar
+ * is skipped -- all of that is `CodeGenerator.planScope` now.
+ *
+ * ## Why nearly everything here is a thunk
+ *
+ * `setCurrentScope` is the first thing this generator does, and every type name
+ * below resolves against the path it sets: a bare `Flags` inside `scope Chip`
+ * emits `Chip__Flags`. A value rendered at PLAN time resolves against the outer
+ * path instead and emits `Flags` -- wrong, and silent. So a member's type, a
+ * method's return type, its parameter plan and a register's plan are all
+ * unevaluated on arrival, even though every one of them is needed
+ * unconditionally.
+ *
+ * Wrapping the planner in `CodeGenState.withScopePath` would make eager renders
+ * resolve correctly and would still be wrong: the bodies have to render inside
+ * `enterFunctionContext`, so they would stay thunks while everything else moved
+ * ahead of them -- and in C++ that shifts `getNextTempVarName` allocation
+ * between initializers and bodies, which renames temps in the emitted C.
  */
-import * as Parser from "../../../../../PARSE/2-Parse/grammar/CNextParser";
 import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IGeneratorOutput from "../IGeneratorOutput";
 import IOrchestrator from "../IOrchestrator";
+import IPlannedScope from "../../types/IPlannedScope";
 import TGeneratorFn from "../TGeneratorFn";
+import TPlannedScopeMember from "../../types/TPlannedScopeMember";
+import TPlannedScopeVariable from "../../types/TPlannedScopeVariable";
 import registerGeneratorFor from "./RegisterGenerator";
-import ArrayDimensionUtils from "./ArrayDimensionUtils";
-import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 import AdrProvenance from "../../../../../transpiler/state/AdrProvenance";
-import SymbolRegistry from "../../../../../transpiler/state/SymbolRegistry";
-import ScopeUtils from "../../../../../utils/ScopeUtils";
-import PublicInterface from "../../../../2-Plan/PublicInterface";
 import generateEnumHeader from "../../../headers/generators/generateEnumHeader";
 import generateBitmapHeader from "../../../headers/generators/generateBitmapHeader";
 import generateStructHeader from "../../../headers/generators/generateStructHeader";
 import type IHeaderTypeInput from "../../../headers/generators/IHeaderTypeInput";
-import VariableModifierBuilder from "../../helpers/VariableModifierBuilder";
 
 /**
- * Generate initializer expression for a variable declaration.
- * Issue #872: Sets expectedType for MISRA 7.2 U suffix on unsigned literals.
- */
-function generateInitializer(
-  varDecl: Parser.VariableDeclarationContext,
-  isArray: boolean,
-  orchestrator: IOrchestrator,
-): string {
-  if (varDecl.expression()) {
-    // Issue #872: Set expectedType for MISRA 7.2 U suffix compliance
-    // Issue #992: withDeclarationInit suppresses compound literals at file scope (GCC 9-12 compat)
-    const typeName = orchestrator.generateType(varDecl.type());
-    return CodeGenState.withExpectedType(typeName, () =>
-      CodeGenState.withDeclarationInit(
-        () => ` = ${orchestrator.generateExpression(varDecl.expression()!)}`,
-      ),
-    );
-  }
-  // ADR-015: Zero initialization for uninitialized scope variables
-  return ` = ${orchestrator.getZeroInitializer(varDecl.type(), isArray)}`;
-}
-
-/**
- * Extract scoped name from a declaration node.
- * Returns both the local name and the fully qualified scoped name.
- */
-function getScopedName(
-  node: { IDENTIFIER(): { getText(): string } },
-  declaringScopePath: string,
-): { name: string; fullName: string } {
-  const name = node.IDENTIFIER().getText();
-  return {
-    name,
-    fullName: QualifiedNameGenerator.forMember(declaringScopePath, name),
-  };
-}
-
-/**
- * Resolve constructor arguments to their scope-prefixed names.
+ * The header's own per-type emitters, by kind.
  *
- * #1322: it no longer VALIDATES. `line` and `orchestrator` were parameters only
- * so it could report and so it could ask `isConstValue`; both rejections are
- * authored in pass 2.1 now (E0432, E0433), which halts before codegen.
+ * #1300: the TEXT comes from the header rather than from inline emitters here.
+ * Codegen used to have its own, reached only when a file had no header at all;
+ * when private types started routing through them they were found to disagree
+ * with the header in two ways, each an exit-0 miscompile -- they emitted in
+ * source order rather than grouped by kind, so a struct naming an enum declared
+ * below it forward-referenced, and they had no ADR-029 callback resolution, so
+ * a function-typed field came out as the bare function name.
+ *
+ * The ORDER is the plan's; this map only says who renders what.
  */
-function resolveConstructorArgs(
-  argIdentifiers: { getText(): string }[],
-  declaringScopePath: string,
+const HEADER_TYPE_EMITTERS: Readonly<
+  Record<
+    IPlannedScope["typeDefinitions"][number]["kind"],
+    (name: string, input: IHeaderTypeInput) => string
+  >
+> = {
+  enum: generateEnumHeader,
+  bitmap: generateBitmapHeader,
+  struct: generateStructHeader,
+};
+
+/**
+ * Render the type definitions this scope contributes to the `.c`.
+ */
+function renderTypeDefinitions(
+  plan: IPlannedScope,
+  input: IGeneratorInput,
 ): string[] {
-  const resolvedArgs: string[] = [];
-
-  for (const argNode of argIdentifiers) {
-    const argName = argNode.getText();
-    // Arguments must be resolved with scope prefix
-    const scopedArgName = QualifiedNameGenerator.forMember(
-      declaringScopePath,
-      argName,
-    );
-
-    // #1322: the const check that stood here is E0432 in pass 2.1. It was the
-    // second of two implementations of one decision -- this one asked
-    // `orchestrator.isConstValue` on a scope-qualified name, the file-scope
-    // copy read the type registry directly.
-
-    resolvedArgs.push(scopedArgName);
+  const symbols = input.symbols;
+  if (!symbols || plan.typeDefinitions.length === 0) {
+    return [];
   }
 
-  return resolvedArgs;
+  const typeInput: IHeaderTypeInput = {
+    ...symbols,
+    symbolTable: CodeGenState.symbolTable,
+    callbackTypes: CodeGenState.callbackTypes,
+  };
+
+  return [
+    "",
+    ...plan.typeDefinitions.map((definition) =>
+      HEADER_TYPE_EMITTERS[definition.kind](definition.cName, typeInput),
+    ),
+  ];
 }
 
 /**
- * Generate a scope variable declaration.
- * Returns the declaration string, or null if the variable should be skipped.
+ * Render a scope variable, or null when the plan says it is not emitted.
  */
-function generateScopeVariable(
-  varDecl: Parser.VariableDeclarationContext,
-  declaringScopePath: string,
-  isPrivate: boolean,
+function renderScopeVariable(
+  plan: TPlannedScopeVariable,
   orchestrator: IOrchestrator,
 ): string | null {
-  const varName = varDecl.IDENTIFIER().getText();
+  switch (plan.kind) {
+    // Issue #282/#500: a private const scalar is inlined at its uses. Nothing
+    // is rendered -- not even the type, which would register an include for a
+    // declaration that never appears.
+    case "skipped":
+      return null;
 
-  // Issue #375: Check for constructor syntax
-  const constructorArgList = varDecl.constructorArgumentList();
-  if (constructorArgList) {
-    return generateConstructorVariable(
-      varDecl,
-      varName,
-      declaringScopePath,
-      isPrivate,
-      constructorArgList,
-      orchestrator,
-    );
+    // Issue #375: constructor syntax.
+    case "constructor": {
+      // ADR-016: All scope variables are emitted at file scope
+      const type = plan.renderType();
+      const prefix = plan.isPrivate ? "static " : "";
+      return `${prefix}${type} ${plan.fullName}(${plan.args.join(", ")});`;
+    }
+
+    case "regular":
+      return renderRegularVariable(plan, orchestrator);
   }
-
-  // Issue #282: Check if this is a const variable - const values should be inlined
-  const isConst = varDecl.constModifier() !== null;
-
-  // Issue #500: Check if array before skipping - arrays must be emitted
-  // Check both C-style arrayDimension and C-Next style arrayType
-  // Use optional chaining for mock compatibility in tests
-  const arrayDims = varDecl.arrayDimension();
-  const arrayTypeCtx = varDecl.type().arrayType?.() ?? null;
-  const isArray = arrayDims.length > 0 || arrayTypeCtx !== null;
-
-  // Issue #282: Private const variables should be inlined, not emitted at file scope
-  // Issue #500: EXCEPT arrays - arrays must be emitted as static const
-  // The inlining happens in CodeGenerator when resolving this.CONST_NAME
-  if (isPrivate && isConst && !isArray) {
-    return null;
-  }
-
-  return generateRegularVariable(
-    varDecl,
-    varName,
-    declaringScopePath,
-    isPrivate,
-    orchestrator,
-  );
 }
 
 /**
- * Generate a constructor-style variable declaration.
+ * Render a regular (non-constructor) scope variable declaration.
  */
-function generateConstructorVariable(
-  varDecl: Parser.VariableDeclarationContext,
-  varName: string,
-  declaringScopePath: string,
-  isPrivate: boolean,
-  constructorArgList: Parser.ConstructorArgumentListContext,
+function renderRegularVariable(
+  plan: Extract<TPlannedScopeVariable, { kind: "regular" }>,
   orchestrator: IOrchestrator,
 ): string {
-  // ADR-016: All scope variables are emitted at file scope
-  const type = orchestrator.generateType(varDecl.type());
-  const fullName = QualifiedNameGenerator.forMember(
-    declaringScopePath,
-    varName,
-  );
-  const prefix = isPrivate ? "static " : "";
-
-  // Validate and resolve constructor arguments
-  const argIdentifiers = constructorArgList.IDENTIFIER();
-  const resolvedArgs = resolveConstructorArgs(
-    argIdentifiers,
-    declaringScopePath,
-  );
-
-  return `${prefix}${type} ${fullName}(${resolvedArgs.join(", ")});`;
-}
-
-/**
- * Generate a regular (non-constructor) variable declaration.
- */
-function generateRegularVariable(
-  varDecl: Parser.VariableDeclarationContext,
-  varName: string,
-  declaringScopePath: string,
-  isPrivate: boolean,
-  orchestrator: IOrchestrator,
-): string {
-  // Derive array and const info from varDecl
-  const isConst = varDecl.constModifier() !== null;
-  const arrayDims = varDecl.arrayDimension();
-  const arrayTypeCtx = varDecl.type().arrayType?.() ?? null;
-  const isArray = arrayDims.length > 0 || arrayTypeCtx !== null;
-
   // ADR-016: All scope variables are emitted at file scope (static-like persistence)
-  let type = orchestrator.generateType(varDecl.type());
+  let type = plan.renderType();
   // Issue #1200: a callback-typed scope member renders as its function-pointer
   // typedef. Without this the raw function name was emitted as the type, which
   // collides with the function of the same name.
@@ -209,10 +145,6 @@ function generateRegularVariable(
   if (callbackTypedef !== null) {
     type = callbackTypedef;
   }
-  const fullName = QualifiedNameGenerator.forMember(
-    declaringScopePath,
-    varName,
-  );
 
   // Issue #948: Check if this is an opaque (forward-declared) struct type
   // Issue #958: Also check for external typedef struct types (complete definitions)
@@ -230,275 +162,143 @@ function generateRegularVariable(
     // and its fixtures occupy cells here on their own reported positions (#1582),
     // so an occupied cell is not evidence that this line still exists.
     if (isOpaque) {
-      AdrProvenance.record("030", varDecl.start?.line);
+      AdrProvenance.record("030", plan.declarationLine);
     }
     type = `${type}*`;
     // Mark as "opaque" scope variable so CallExprGenerator knows this is already
     // a pointer and doesn't add '&' when passing to functions. The name is historical
     // but the tracking applies to any scope variable declared as a pointer type.
-    orchestrator.markOpaqueScopeVariable(fullName);
+    orchestrator.markOpaqueScopeVariable(plan.fullName);
   }
 
-  // Issue #998: Use VariableModifierBuilder for consistent modifier handling
-  // This handles const, atomic, volatile, and validates mutual exclusion
-  // Scope variables are always at file scope (not in function body), no initializer for modifier purposes
-  const modifiers = VariableModifierBuilder.build(
-    varDecl,
-    false, // inFunctionBody - scope vars are file scope
-    false, // hasInitializer - doesn't affect volatile/atomic handling
-    false, // cppMode - doesn't affect volatile/atomic handling
-  );
-  // For scope variables: static for private, no modifier for public
-  // Then add volatile (from atomic or volatile keyword), then const
-  const staticPrefix = isPrivate ? "static " : "";
-  const volatilePrefix = modifiers.atomic || modifiers.volatile;
-  const constPrefix = isConst ? "const " : "";
+  // Issue #998: modifiers come from the one builder, which validates the
+  // atomic/volatile mutual exclusion. For scope variables: static for private,
+  // no modifier for public; then volatile, then const.
+  const staticPrefix = plan.isPrivate ? "static " : "";
+  const volatilePrefix = plan.atomic || plan.volatile;
+  const constPrefix = plan.isConst ? "const " : "";
 
   // Build declaration with all dimensions
-  let decl = `${staticPrefix}${volatilePrefix}${constPrefix}${type} ${fullName}`;
-  decl += ArrayDimensionUtils.renderArrayTypeDimensions(
-    orchestrator.planArrayTypeDimensions(arrayTypeCtx),
-  );
+  let decl = `${staticPrefix}${volatilePrefix}${constPrefix}${type} ${plan.fullName}`;
+  decl += plan.renderArrayTypeDimensions();
 
-  if (arrayDims.length > 0) {
+  if (plan.renderCStyleDimensions) {
     // C-style or additional dimensions
-    decl += orchestrator.generateArrayDimensions(arrayDims);
+    decl += plan.renderCStyleDimensions();
   }
 
   // ADR-045: Add string capacity dimension for string arrays
-  decl += ArrayDimensionUtils.renderStringCapacityDimension(
-    orchestrator.planStringCapacity(varDecl.type()),
-  );
+  decl += plan.renderStringCapacityDimension();
 
   // Issue #948: Opaque types use NULL initialization instead of {0}
   // Issue #958: External typedef struct types also use NULL initialization
   // Issue #996: ...but only for SCALAR handles, which are single pointers. An
   // *array* of opaque handles needs a brace initializer ({0}), not a scalar
-  // NULL. Route arrays through generateInitializer, which uses
-  // getZeroInitializer(type, isArray) — the single source of truth for
+  // NULL -- which is why the plan's initializer thunk routes through
+  // getZeroInitializer(type, isArray), the single source of truth for
   // zero-initialization (ADR-015).
-  if ((isOpaque || isExternalStruct) && !isArray) {
+  if ((isOpaque || isExternalStruct) && !plan.isArray) {
     decl += " = NULL";
   } else {
-    decl += generateInitializer(varDecl, isArray, orchestrator);
+    decl += plan.renderInitializer();
   }
 
   return decl + ";";
 }
 
 /**
- * Generate a scope function declaration.
- * Returns array of output lines (function definition + optional callback typedef).
+ * Render a scope function: its definition, and any callback typedef it records.
  */
-function generateScopeFunction(
-  funcDecl: Parser.FunctionDeclarationContext,
-  declaringScopePath: string,
-  isPrivate: boolean,
+function renderScopeFunction(
+  plan: Extract<TPlannedScopeMember, { kind: "function" }>,
   orchestrator: IOrchestrator,
 ): string[] {
-  const returnType = orchestrator.generateType(funcDecl.type());
-  const funcName = funcDecl.IDENTIFIER().getText();
-  // Use QualifiedNameGenerator for consistent C-style name generation
-  const fullName = QualifiedNameGenerator.forFunctionInScope(
-    declaringScopePath,
-    funcName,
-  );
-  const prefix = isPrivate ? "static " : "";
+  const returnType = plan.renderReturnType();
+  const prefix = plan.isPrivate ? "static " : "";
 
   // Issues #269/#477, ADR-016 (and #281's modifiedParameters clear): the same
   // four facts a top-level function sets, through the same call. #1277: the
   // return type was the one this copy omitted, so no `return` in a scope
   // method knew its type.
+  //
+  // #1445: the parameter plan is the orchestrator's -- this call and the
+  // file-scope one would otherwise be two derivations of one parameter list --
+  // and it is unevaluated until here, because a parameter's type resolves
+  // against the scope path this generator has already entered.
   orchestrator.enterFunctionContext(
-    fullName,
-    funcDecl.type().getText(),
-    // #1445: the plan is built by the orchestrator, not here -- this call and
-    // the file-scope one would otherwise be two derivations of one parameter
-    // list.
-    orchestrator.planFunctionParameters(funcDecl.parameterList() ?? null),
+    plan.fullName,
+    plan.declaredTypeText,
+    plan.planParameters(),
   );
 
   // Issue #281: Generate body FIRST to track parameter modifications,
   // then generate parameter list using that tracking info
-  const body = orchestrator.generateBlock(funcDecl.block());
+  const body = plan.renderBody();
 
   // Issue #281: Update symbol's parameter info with auto-const before generating params
-  orchestrator.updateFunctionParamsAutoConst(fullName);
+  orchestrator.updateFunctionParamsAutoConst(plan.fullName);
 
   // Now generate parameter list (can use modifiedParameters for auto-const)
-  const params = funcDecl.parameterList()
-    ? orchestrator.generateParameterList(funcDecl.parameterList()!)
-    : "void";
+  const params = plan.renderParameterList();
 
   orchestrator.exitFunctionContext();
 
   const lines: string[] = [];
-  lines.push("", `${prefix}${returnType} ${fullName}(${params}) ${body}`);
+  lines.push("", `${prefix}${returnType} ${plan.fullName}(${params}) ${body}`);
 
   // ADR-029: Generate callback typedef only if used as a type
-  orchestrator.recordCallbackTypedef(fullName);
+  orchestrator.recordCallbackTypedef(plan.fullName);
 
   return lines;
 }
 
 /**
- * The kinds a generated header can DEFINE, in the order it emits their
- * sections. Iterating kind-outer is what gives the `.c` the header's ordering:
- * a struct naming an enum declared below it must still come second, and the
- * two files disagreeing on that was an exit-0 miscompile (#1300 review).
+ * Render a single scope member and return the lines it contributes.
  */
-const HEADER_TYPE_KINDS: ReadonlyArray<{
-  readonly declarationOf: (
-    member: Parser.ScopeMemberContext,
-  ) => { IDENTIFIER(): { getText(): string } } | null;
-  readonly emit: (name: string, input: IHeaderTypeInput) => string;
-}> = [
-  { declarationOf: (m) => m.enumDeclaration(), emit: generateEnumHeader },
-  { declarationOf: (m) => m.bitmapDeclaration(), emit: generateBitmapHeader },
-  { declarationOf: (m) => m.structDeclaration(), emit: generateStructHeader },
-];
-
-/**
- * This type's transpiled C name, or null when the header already defines it.
- *
- * #1300: a type is defined in exactly ONE file, so the `.c` asks the header
- * what it holds rather than re-deriving it from visibility -- those two answers
- * agree only until a public signature drags a private type into the header, and
- * then the type is defined twice and the C compiler rejects it.
- */
-function cNameIfAbsentFromHeader(
-  nameNode: { IDENTIFIER(): { getText(): string } },
-  declaringScopePath: string,
-): string | null {
-  const { fullName } = getScopedName(nameNode, declaringScopePath);
-  const definedInHeader =
-    CodeGenState.sourcePath !== null &&
-    PublicInterface.definesTypeInHeader(
-      CodeGenState.symbolTable,
-      CodeGenState.sourcePath,
-      fullName,
-    );
-  return definedInHeader ? null : fullName;
-}
-
-/**
- * #1300: the type definitions this scope contributes to the `.c`.
- *
- * A type is defined in exactly ONE file -- the header when it reaches the
- * public interface, this file otherwise -- so the set here is the complement of
- * what `PublicInterface` decided, asked per symbol rather than re-derived.
- *
- * The TEXT comes from the header's own per-type emitters. Codegen used to have
- * its own inline emitters, reached only when a file had no header at all; when
- * private types started routing through them they were found to disagree with
- * the header in two ways, each an exit-0 miscompile:
- *
- *   - they emitted in `scopeMember()` SOURCE order, so a struct naming an enum
- *     declared below it forward-referenced. Marking both `public` compiled,
- *     because the header groups by kind -- the asymmetry was the bug.
- *   - they had no ADR-029 callback resolution, so a function-typed field was
- *     emitted as the bare function name rather than its typedef.
- *
- * Ordering by kind here is not this function agreeing with the header; it is
- * the same grouping the header applies, for the same reason C needs it.
- */
-function generateScopeTypeDefinitions(
-  node: Parser.ScopeDeclarationContext,
-  declaringScopePath: string,
-  input: IGeneratorInput,
-): string[] {
-  const symbols = input.symbols;
-  if (!symbols) {
-    return [];
-  }
-
-  const typeInput: IHeaderTypeInput = {
-    ...symbols,
-    symbolTable: CodeGenState.symbolTable,
-    callbackTypes: CodeGenState.callbackTypes,
-  };
-
-  const members = node.scopeMember();
-  const definitions = HEADER_TYPE_KINDS.flatMap(({ declarationOf, emit }) =>
-    members
-      .map(declarationOf)
-      .filter((decl) => decl !== null)
-      .map((decl) => cNameIfAbsentFromHeader(decl!, declaringScopePath))
-      .filter((cName): cName is string => cName !== null)
-      .map((cName) => emit(cName, typeInput)),
-  );
-
-  return definitions.length === 0 ? [] : ["", ...definitions];
-}
-
-/**
- * Process a single scope member and return lines to add.
- */
-function processScopeMember(
-  member: Parser.ScopeMemberContext,
-  declaringScopePath: string,
+function renderScopeMember(
+  plan: IPlannedScope,
+  member: TPlannedScopeMember,
   input: IGeneratorInput,
   state: IGeneratorState,
   orchestrator: IOrchestrator,
 ): string[] {
   // #1241: ADR-016's rule -- a scope member is emitted at file scope under a
   // scope-qualified C name, with visibility deciding linkage -- fires once per
-  // member, here. Recorded at the MEMBER's position rather than the scope's, so
-  // a variable member and a function member land in different matrix contexts
-  // (scope-member vs scope-method) instead of both crediting whichever
-  // declaration the scope keyword happens to sit in.
-  AdrProvenance.record("016", member.start?.line);
+  // member, here. Recorded for EVERY member, including the ones nothing is
+  // emitted for, because the occupancy it feeds is about where the decision was
+  // taken and not about whether that decision produced text.
+  AdrProvenance.record("016", member.adrLine);
 
-  // ADR-016, via the one helper the symbols layer also asks (#1300). Codegen
-  // used to recompute this, so the header and the body decided visibility
-  // independently -- which is the divergence this issue is made of.
-  const visibility = ScopeUtils.getMemberVisibility(member);
-  const isPrivate = visibility === "private";
+  switch (member.kind) {
+    case "variable": {
+      const code = renderScopeVariable(member.variable, orchestrator);
+      return code === null ? [] : [code];
+    }
 
-  // Handle variable declarations
-  if (member.variableDeclaration()) {
-    const varDecl = member.variableDeclaration()!;
-    const result = generateScopeVariable(
-      varDecl,
-      declaringScopePath,
-      isPrivate,
-      orchestrator,
-    );
-    return result === null ? [] : [result];
+    case "function":
+      return renderScopeFunction(member, orchestrator);
+
+    case "register": {
+      const result = registerGeneratorFor(plan.declaringScopePath)(
+        member.planRegister(),
+        input,
+        state,
+        orchestrator,
+      );
+      // #1445: the file-scope caller reaches this same generator through
+      // `CodeGenerator.invokeGenerator`, which applies its effects. This branch
+      // used to return only the code, so one function had two callers honoring
+      // half its contract -- safe solely because `effects` is hardcoded `[]`
+      // today. The first effect added here (a `stdint` include for a member's
+      // backing type, say) would have been emitted at file scope and silently
+      // dropped inside a scope.
+      orchestrator.applyEffects(result.effects);
+      return ["", result.code];
+    }
+
+    case "other":
+      return [];
   }
-
-  // Handle function declarations
-  if (member.functionDeclaration()) {
-    const funcDecl = member.functionDeclaration()!;
-    return generateScopeFunction(
-      funcDecl,
-      declaringScopePath,
-      isPrivate,
-      orchestrator,
-    );
-  }
-
-  // Handle register declarations inside scopes
-  if (member.registerDeclaration()) {
-    const regDecl = member.registerDeclaration()!;
-    const result = registerGeneratorFor(declaringScopePath)(
-      orchestrator.planRegister(regDecl),
-      input,
-      state,
-      orchestrator,
-    );
-    // #1445: the file-scope caller reaches this same generator through
-    // `CodeGenerator.invokeGenerator`, which applies its effects. This branch
-    // used to return only the code, so one function had two callers honoring
-    // half its contract -- safe solely because `effects` is hardcoded `[]`
-    // today. The first effect added here (a `stdint` include for a member's
-    // backing type, say) would have been emitted at file scope and silently
-    // dropped inside a scope.
-    orchestrator.applyEffects(result.effects);
-    return ["", result.code];
-  }
-
-  return [];
 }
 
 /**
@@ -509,51 +309,24 @@ function processScopeMember(
  * - Visibility control (private -> static, public -> extern)
  * - Organization without runtime overhead
  */
-const generateScope: TGeneratorFn<Parser.ScopeDeclarationContext> = (
-  node: Parser.ScopeDeclarationContext,
+const generateScope: TGeneratorFn<IPlannedScope> = (
+  plan: IPlannedScope,
   input: IGeneratorInput,
   state: IGeneratorState,
   orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
-  const name = node.IDENTIFIER().getText();
-
-  // Set current scope for nested generation (imperative, not effect-based)
-  orchestrator.setCurrentScope(name);
-
-  // #1298: thread the whole scope PATH, not a leaf name, so every member below
-  // qualifies against every outer component instead of re-joining one level.
-  //
-  // Resolved here rather than read back from `CodeGenState.currentScopePath`: that
-  // would make the generated NAMES depend on `orchestrator.setCurrentScope` having
-  // reached global state, which is a side effect through an interface. A mock
-  // orchestrator that does not forward it produced bare names with nothing failing
-  // at the type level. `getOrCreateScope` is the same resolver `setCurrentScopeByPath`
-  // uses, and it is cached, so this is one decision asked twice -- not two decisions.
-  //
-  // Passing a leaf path is correct because `scopeMember` admits no
-  // `scopeDeclaration` -- permanently, per ADR-016, so this is a decision to rely on
-  // rather than a grammar accident that may expire. #1304 still tracks the narrower
-  // point that this argument is typed as a path.
-  const declaringScopePath = ScopeUtils.pathOf(
-    SymbolRegistry.getOrCreateScope(name),
-  );
+  // Set current scope for nested generation (imperative, not effect-based).
+  // Everything below renders inside this window.
+  orchestrator.setCurrentScope(plan.name);
 
   const lines: string[] = [
-    `/* Scope: ${name} */`,
+    `/* Scope: ${plan.name} */`,
     // #1300: types first, grouped by kind, before anything that can name them.
-    ...generateScopeTypeDefinitions(node, declaringScopePath, input),
+    ...renderTypeDefinitions(plan, input),
   ];
 
-  for (const member of node.scopeMember()) {
-    lines.push(
-      ...processScopeMember(
-        member,
-        declaringScopePath,
-        input,
-        state,
-        orchestrator,
-      ),
-    );
+  for (const member of plan.members) {
+    lines.push(...renderScopeMember(plan, member, input, state, orchestrator));
   }
 
   lines.push("");

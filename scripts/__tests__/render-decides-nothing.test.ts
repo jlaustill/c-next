@@ -220,8 +220,13 @@ const PLAN_DECISIONS: Readonly<Record<string, readonly string[]>> = {
   MisraSuppressions: ["MisraSuppressionUtils.ts"],
   PassByValueAnalyzer: ["codegen/CodeGenerator.ts"],
   PublicInterface: [
+    // #1445 box 3: `ScopeGenerator` used to ask this while walking its own
+    // members. It renders a plan now, so "does the header already define this
+    // type?" is answered once by `CodeGenerator.planScope` and arrives as the
+    // list of names the `.c` still owes -- which is the direction this guard
+    // exists to push, a decision moving toward the planner rather than away.
+    "codegen/CodeGenerator.ts",
     "codegen/generators/declarationGenerators/RegisterBlockPlacement.ts",
-    "codegen/generators/declarationGenerators/ScopeGenerator.ts",
   ],
   SubscriptClassifier: [
     "codegen/generators/expressions/PostfixExpressionGenerator.ts",

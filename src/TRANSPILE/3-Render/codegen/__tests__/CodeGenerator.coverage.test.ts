@@ -1680,4 +1680,136 @@ describe("CodeGenerator Coverage Tests", () => {
       expect(code).toContain("for (volatile uint32_t i = 0U;");
     });
   });
+
+  // ========================================================================
+  // Scope planning (#1445 box 3)
+  // ========================================================================
+  //
+  // `ScopeGenerator` takes a plan now. What the PLANNER decides from a
+  // declaration -- whether Issue #282 skips a private const scalar, whether the
+  // header already defines a type, which of four kinds a member is, and what
+  // order the type definitions come out in -- is asserted here, against real
+  // source, because that is the input those decisions are made from.
+  describe("scope planning", () => {
+    it("skips a private const scalar and emits nothing for it (Issue #282)", () => {
+      const { code } = setupGenerator(`
+        scope Driver {
+          private const u32 LIMIT <- 8;
+          public u32 counter;
+        }
+      `);
+
+      expect(code).toContain("Driver__counter");
+      expect(code).not.toContain("Driver__LIMIT");
+    });
+
+    // Issue #500: an array cannot be inlined at its uses, so the exemption is
+    // what keeps it emitted.
+    it("emits a private const ARRAY despite the skip rule (Issue #500)", () => {
+      const { code } = setupGenerator(`
+        scope Driver {
+          private const u32[2] TABLE <- [1, 2];
+        }
+      `);
+
+      expect(code).toContain("Driver__TABLE");
+      expect(code).toContain("static");
+    });
+
+    it("emits a public const scalar", () => {
+      const { code } = setupGenerator(`
+        scope Driver {
+          public const u32 LIMIT <- 8;
+        }
+      `);
+
+      expect(code).toContain("Driver__LIMIT");
+    });
+
+    it("qualifies a private member as static and a public one plainly", () => {
+      const { code } = setupGenerator(`
+        scope Driver {
+          private u32 hidden;
+          public u32 shown;
+        }
+      `);
+
+      expect(code).toContain("static uint32_t Driver__hidden");
+      expect(code).toContain("uint32_t Driver__shown");
+      expect(code).not.toContain("static uint32_t Driver__shown");
+    });
+
+    it("plans a scope function under its qualified name", () => {
+      const { code } = setupGenerator(`
+        scope Driver {
+          private void reset() {
+            u32 n <- 0;
+          }
+        }
+      `);
+
+      expect(code).toContain("static void Driver__reset(void)");
+    });
+
+    // #1300: the .c groups type definitions BY KIND, matching the header,
+    // because a struct naming an enum declared below it must still come second.
+    // Source order here is struct-then-enum; the output must be the reverse.
+    //
+    // The types are PRIVATE on purpose: a public type is defined in the header,
+    // so the .c gets nothing for it and the assertion would have nothing to
+    // order. That complement is the other half of #1300 and is asserted below.
+    it("orders type definitions by kind, not by source order", () => {
+      const { code } = setupGenerator(`
+        scope Driver {
+          private struct Config {
+            u32 timeout;
+          }
+          private enum EState {
+            IDLE,
+            BUSY
+          }
+        }
+      `);
+
+      const enumAt = code.indexOf("Driver__EState");
+      const structAt = code.indexOf("Driver__Config");
+      expect(enumAt).toBeGreaterThan(-1);
+      expect(structAt).toBeGreaterThan(-1);
+      expect(enumAt).toBeLessThan(structAt);
+    });
+
+    // #1300: a type is defined in exactly ONE file. The planner asks the header
+    // what it holds rather than re-deriving it from visibility -- those two
+    // answers agree only until a public signature drags a private type into the
+    // header, and then the type is defined twice and the C compiler rejects it.
+    it("omits a type the header already defines", () => {
+      const { code } = setupGenerator(`
+        scope Driver {
+          public enum EState {
+            IDLE
+          }
+          private enum EHidden {
+            OFF
+          }
+        }
+      `);
+
+      expect(code).not.toContain("Driver__EState");
+      expect(code).toContain("Driver__EHidden");
+    });
+
+    // A member the generator emits nothing for still has to reach the plan, or
+    // its ADR-016 site is lost. The scope must still render around it.
+    it("renders a scope whose only member defines a type", () => {
+      const { code } = setupGenerator(`
+        scope Driver {
+          public enum EState {
+            IDLE
+          }
+        }
+      `);
+
+      expect(code).toContain("/* Scope: Driver */");
+    });
+  });
 });
