@@ -54,6 +54,7 @@ import registerGeneratorFor from "./generators/declarationGenerators/RegisterGen
 import type IPlannedRegister from "./types/IPlannedRegister";
 import type IPlannedFunction from "./types/IPlannedFunction";
 import type IPlannedStruct from "./types/IPlannedStruct";
+import type IPlannedDimension from "./types/IPlannedDimension";
 import type TRegisterAccessMode from "../../../transpiler/types/TRegisterAccessMode";
 import structGenerator from "./generators/declarationGenerators/StructGenerator";
 import ArrayDimensionUtils from "./generators/declarationGenerators/ArrayDimensionUtils";
@@ -3620,13 +3621,50 @@ export default class CodeGenerator implements IOrchestrator {
           hasTypeDimensions: arrayType !== null,
           renderCType: () => this.generateType(typeCtx),
           renderTypeDimensions: () =>
-            ArrayDimensionUtils.generateArrayTypeDimension(arrayType, this),
+            ArrayDimensionUtils.renderArrayTypeDimensions(
+              this.planArrayTypeDimensions(arrayType),
+            ),
           renderNameDimensions: () =>
             this.generateArrayDimensions(nameDimensions),
           renderZeroInitializer: () => this.getZeroInitializer(typeCtx, false),
         };
       }),
     };
+  }
+
+  /**
+   * An array TYPE's dimensions, decided (#1445).
+   *
+   * Issue #1159: a dimension that folds to a compile-time constant is emitted
+   * as its value. Emitting the identifier makes `u8[SIZE] buf` a VLA while the
+   * matching local declaration folds to `uint8_t b[6]` -- the same const
+   * rendered two ways in one .c. Expression generation is the fallback, and it
+   * stays behind a thunk because a caller may not emit these dimensions at all.
+   */
+  planArrayTypeDimensions(
+    ctx: Parser.ArrayTypeContext | null,
+  ): readonly IPlannedDimension[] | null {
+    if (ctx === null) return null;
+
+    return ctx.arrayTypeDimension().map((dimension) => {
+      const expression = dimension.expression();
+      if (!expression) return { renderSize: null };
+
+      return {
+        renderSize: () => {
+          const folded = this.tryEvaluateConstant(expression);
+          return folded === undefined
+            ? this.generateExpression(expression)
+            : String(folded);
+        },
+      };
+    });
+  }
+
+  /** A bounded string type's declared capacity, or null (#1445). */
+  planStringCapacity(ctx: Parser.TypeContext): number | null {
+    const literal = ctx.stringType()?.INTEGER_LITERAL();
+    return literal ? Number.parseInt(literal.getText(), 10) : null;
   }
 
   private generateStruct(ctx: Parser.StructDeclarationContext): string {

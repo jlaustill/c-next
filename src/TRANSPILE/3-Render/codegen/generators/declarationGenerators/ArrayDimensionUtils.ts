@@ -1,75 +1,55 @@
 /**
- * ArrayDimensionUtils - Shared utilities for generating array dimension strings.
+ * ArrayDimensionUtils - Shared utilities for rendering array dimension strings.
  *
- * Used by StructGenerator and ScopeGenerator for consistent array dimension handling.
+ * Used by StructGenerator's planner and ScopeGenerator for consistent array
+ * dimension handling.
+ *
+ * #1445 box 3: takes planned dimensions and a capacity, not parse contexts.
+ * Both callers hold the tree, so either could have read it -- and that is why
+ * neither does: two readers is the duplicate derivation CLAUDE.md forbids, so
+ * the orchestrator plans it once and both ask for the plan.
  */
-
-import * as Parser from "../../../../../PARSE/2-Parse/grammar/CNextParser";
-import IOrchestrator from "../IOrchestrator";
+import type IPlannedDimension from "../../types/IPlannedDimension";
 
 /**
- * Generate array type dimension string from arrayType syntax (e.g., u8[16]).
- * Evaluates constants when possible, falls back to expression generation.
+ * Render an array type's dimensions, e.g. `[4][4]`.
  *
- * @param arrayTypeCtx - The arrayType context, or null if not present
- * @param orchestrator - The orchestrator for constant evaluation and expression generation
- * @returns Dimension string like "[16]", "[]", or "" if no arrayType
+ * Supports every arity the grammar admits, including the unsized `[]`.
+ *
+ * @param dimensions the type's dimensions, or null when the type has none
+ * @returns the dimension string, or `""` when there are none
  */
-function generateArrayTypeDimension(
-  arrayTypeCtx: Parser.ArrayTypeContext | null,
-  orchestrator: IOrchestrator,
+function renderArrayTypeDimensions(
+  dimensions: readonly IPlannedDimension[] | null,
 ): string {
-  if (arrayTypeCtx === null) {
+  if (dimensions === null) {
     return "";
   }
 
-  // Handle all dimensions from arrayType (supports u8[4][4], u8[], etc.)
-  const dims = arrayTypeCtx.arrayTypeDimension();
-  let result = "";
-  for (const dim of dims) {
-    const sizeExpr = dim.expression();
-    if (!sizeExpr) {
-      result += "[]";
-      continue;
-    }
-
-    const constValue = orchestrator.tryEvaluateConstant(sizeExpr);
-    if (constValue === undefined) {
-      // Fall back to expression generation for macros, enums, etc.
-      result += `[${orchestrator.generateExpression(sizeExpr)}]`;
-    } else {
-      result += `[${constValue}]`;
-    }
-  }
-
-  return result;
+  return dimensions
+    .map((dimension) =>
+      dimension.renderSize === null ? "[]" : `[${dimension.renderSize()}]`,
+    )
+    .join("");
 }
 
 /**
- * Generate string capacity dimension if applicable.
- * Adds +1 for null terminator.
+ * Render a bounded string's capacity dimension, e.g. `[33]` for `string<32>`.
  *
- * @param typeCtx - The type context to check for string type
- * @returns Dimension string like "[33]" for string<32>, or "" if not a string
+ * The `+1` is the null terminator, and it is decided HERE rather than by the
+ * planner: a capacity is a language fact where a dimension is a C one.
+ *
+ * @param capacity the declared capacity, or null when the type is not a
+ *   bounded string
+ * @returns the dimension string, or `""` when there is no capacity
  */
-function generateStringCapacityDim(typeCtx: Parser.TypeContext): string {
-  const stringCtx = typeCtx.stringType();
-  if (!stringCtx) {
-    return "";
-  }
-
-  const intLiteral = stringCtx.INTEGER_LITERAL();
-  if (!intLiteral) {
-    return "";
-  }
-
-  const capacity = Number.parseInt(intLiteral.getText(), 10);
-  return `[${capacity + 1}]`;
+function renderStringCapacityDimension(capacity: number | null): string {
+  return capacity === null ? "" : `[${capacity + 1}]`;
 }
 
 class ArrayDimensionUtils {
-  static readonly generateArrayTypeDimension = generateArrayTypeDimension;
-  static readonly generateStringCapacityDim = generateStringCapacityDim;
+  static readonly renderArrayTypeDimensions = renderArrayTypeDimensions;
+  static readonly renderStringCapacityDimension = renderStringCapacityDimension;
 }
 
 export default ArrayDimensionUtils;

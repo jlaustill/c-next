@@ -14,6 +14,7 @@
 import type ISubstringOps from "../types/ISubstringOps";
 import type IPlannedRegister from "../types/IPlannedRegister";
 import type IPlannedFunctionParameter from "../types/IPlannedFunctionParameter";
+import type IPlannedDimension from "../types/IPlannedDimension";
 import type IStringConcatOps from "../types/IStringConcatOps";
 import IGeneratorInput from "./IGeneratorInput";
 import IGeneratorState from "./IGeneratorState";
@@ -210,6 +211,25 @@ interface IOrchestrator {
    * derivations of one register; see `IPlannedRegister`.
    */
   planRegister(ctx: Parser.RegisterDeclarationContext): IPlannedRegister;
+
+  /**
+   * An array TYPE's dimensions, decided (#1445).
+   *
+   * On the orchestrator because both callers of the renderer hold the tree --
+   * a struct field's planner and a scope variable's generator -- and two
+   * readers of one shape is the duplicate derivation CLAUDE.md forbids.
+   *
+   * Null when the type is not an array type.
+   */
+  planArrayTypeDimensions(
+    ctx: Parser.ArrayTypeContext | null,
+  ): readonly IPlannedDimension[] | null;
+
+  /**
+   * A bounded string type's declared capacity, or null when the type is not
+   * one. The null terminator is the renderer's to add.
+   */
+  planStringCapacity(ctx: Parser.TypeContext): number | null;
 
   /** Generate parameter list for function signature */
   generateParameterList(ctx: Parser.ParameterListContext): string;

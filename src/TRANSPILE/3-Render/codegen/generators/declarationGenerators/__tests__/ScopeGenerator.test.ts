@@ -486,6 +486,38 @@ function createMockOrchestrator(
     // mock's `enterFunctionContext` is a no-op -- so null is the honest
     // return here, not a shape nothing in this file can observe.
     planFunctionParameters: vi.fn(() => null),
+    // #1445: the dimension renderers take plans, and the orchestrator is where
+    // they are built -- two callers, one planner. These mirror what
+    // `CodeGenerator` does, against this file's `__mockDim` contexts.
+    planArrayTypeDimensions: vi.fn(
+      (
+        ctx: {
+          arrayTypeDimension: () => { expression: () => unknown }[];
+        } | null,
+      ) =>
+        ctx?.arrayTypeDimension().map((dimension) => {
+          const expression = dimension.expression() as {
+            __mockValue?: string;
+            getText?: () => string;
+          } | null;
+          return expression === null
+            ? { renderSize: null }
+            : {
+                renderSize: () =>
+                  expression.__mockValue ?? expression.getText?.() ?? "",
+              };
+        }) ?? null,
+    ),
+    planStringCapacity: vi.fn(
+      (ctx: {
+        stringType: () => {
+          INTEGER_LITERAL: () => { getText: () => string } | null;
+        } | null;
+      }) => {
+        const literal = ctx.stringType()?.INTEGER_LITERAL();
+        return literal ? Number.parseInt(literal.getText(), 10) : null;
+      },
+    ),
     enterFunctionBody: vi.fn(),
     generateBlock: vi.fn(() => "{ }"),
     updateFunctionParamsAutoConst: vi.fn(),

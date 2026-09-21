@@ -256,9 +256,8 @@ function generateRegularVariable(
 
   // Build declaration with all dimensions
   let decl = `${staticPrefix}${volatilePrefix}${constPrefix}${type} ${fullName}`;
-  decl += ArrayDimensionUtils.generateArrayTypeDimension(
-    arrayTypeCtx,
-    orchestrator,
+  decl += ArrayDimensionUtils.renderArrayTypeDimensions(
+    orchestrator.planArrayTypeDimensions(arrayTypeCtx),
   );
 
   if (arrayDims.length > 0) {
@@ -267,7 +266,9 @@ function generateRegularVariable(
   }
 
   // ADR-045: Add string capacity dimension for string arrays
-  decl += ArrayDimensionUtils.generateStringCapacityDim(varDecl.type());
+  decl += ArrayDimensionUtils.renderStringCapacityDimension(
+    orchestrator.planStringCapacity(varDecl.type()),
+  );
 
   // Issue #948: Opaque types use NULL initialization instead of {0}
   // Issue #958: External typedef struct types also use NULL initialization
