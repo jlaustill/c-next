@@ -530,21 +530,51 @@ describe("StringDeclHelper", () => {
 
   describe("unsized const strings", () => {
     it("generates unsized const string with literal initializer", () => {
+      // #1642: `NO_MODS` cannot reach this arm -- an unsized string is const,
+      // which E0862 enforces in 2.1 -- and passing it here is what let the arm
+      // hardcode `const ` and drop `atomic`/`volatile` for years without a
+      // test noticing. The realistic input carries the const the caller
+      // resolved.
       const code = StringDeclHelper.generateStringDecl(
         { kind: "unsized", initText: '"Hello World"' },
         "message",
-        NO_MODS,
+        { ...NO_MODS, const: "const " },
         true,
       );
 
       expect(code).toBe('const char message[12] = "Hello World";');
     });
 
+    it("carries atomic and volatile onto the unsized arm (#1642)", () => {
+      const code = StringDeclHelper.generateStringDecl(
+        { kind: "unsized", initText: '"v"' },
+        "flag",
+        { extern: "", const: "const ", atomic: "", volatile: "volatile " },
+        true,
+      );
+
+      // The header derives the qualifier from the SYMBOL, so a definition
+      // without it is `conflicting types` at the first translation unit that
+      // includes its own header.
+      expect(code).toBe('const volatile char flag[2] = "v";');
+    });
+
+    it("refuses a non-const unsized string rather than emitting one", () => {
+      expect(() =>
+        StringDeclHelper.generateStringDecl(
+          { kind: "unsized", initText: '"x"' },
+          "loose",
+          NO_MODS,
+          true,
+        ),
+      ).toThrow(/unsized string is const/);
+    });
+
     it("registers the inferred capacity in the type registry", () => {
       StringDeclHelper.generateStringDecl(
         { kind: "unsized", initText: '"abc"' },
         "msg",
-        NO_MODS,
+        { ...NO_MODS, const: "const " },
         true,
       );
 
@@ -556,7 +586,7 @@ describe("StringDeclHelper", () => {
         StringDeclHelper.generateStringDecl(
           { kind: "unsized", initText: '"x"' },
           "bad",
-          NO_MODS,
+          { ...NO_MODS, const: "const " },
           false,
         ),
       ).toThrow("a non-const string states its capacity");
@@ -567,7 +597,7 @@ describe("StringDeclHelper", () => {
         StringDeclHelper.generateStringDecl(
           { kind: "unsized", initText: null },
           "bad",
-          NO_MODS,
+          { ...NO_MODS, const: "const " },
           true,
         ),
       ).toThrow("an unsized const string has an initializer to infer from");
@@ -578,7 +608,7 @@ describe("StringDeclHelper", () => {
         StringDeclHelper.generateStringDecl(
           { kind: "unsized", initText: "someVar" },
           "bad",
-          NO_MODS,
+          { ...NO_MODS, const: "const " },
           true,
         ),
       ).toThrow("an unsized const string infers from a LITERAL");

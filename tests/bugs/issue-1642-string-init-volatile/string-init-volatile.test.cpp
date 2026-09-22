@@ -26,6 +26,16 @@ volatile char volatileWithInit[17] = "v";
 
 volatile char volatileNoInit[17] = "";
 
+// The UNSIZED arm, which is the box #1642 left open. Two bugs stacked here:
+// `isConstDeclaration` asked `getText().startsWith("const")`, and the grammar
+// puts `atomic`/`volatile` FIRST, so these read as non-const and were rejected
+// with E0862 before reaching codegen. That rejection is what hid the second
+// bug -- the unsized arm emits a hardcoded `const char`, dropping the
+// qualifier the .h still derives from the symbol.
+extern const volatile char unsizedVolatile[2] = "v";
+
+extern const volatile char unsizedAtomic[2] = "a";
+
 // Negative control: a non-string atomic was never affected, and an unqualified
 // string must not gain a qualifier.
 volatile uint32_t plainAtomic = 1U;

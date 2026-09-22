@@ -17,6 +17,8 @@ extern volatile char atomicWithInit[17];
 extern volatile char atomicNoInit[17];
 extern volatile char volatileWithInit[17];
 extern volatile char volatileNoInit[17];
+extern volatile const char unsizedVolatile[2];
+extern volatile const char unsizedAtomic[2];
 extern volatile uint32_t plainAtomic;
 extern char unqualified[17];
 

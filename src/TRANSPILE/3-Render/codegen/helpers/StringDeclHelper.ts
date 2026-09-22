@@ -35,6 +35,7 @@
  */
 
 import IPlannedStringInit from "../types/IPlannedStringInit";
+import VariableModifierBuilder from "./VariableModifierBuilder";
 import IRenderedModifiers from "../types/IRenderedModifiers";
 import IStringConcatOps from "../types/IStringConcatOps";
 import ISubstringOps from "../types/ISubstringOps";
@@ -429,7 +430,31 @@ class StringDeclHelper {
       stringCapacity: inferredCapacity,
     });
 
-    return `${modifiers.extern}const char ${name}[${inferredCapacity + 1}] = ${initText};`;
+    // #1642's open box. This arm hand-assembled `${extern}const `, dropping
+    // `atomic`/`volatile` and hardcoding the `const` rather than reading the
+    // one the caller resolved -- so the `.h`, which derives the qualifier from
+    // the SYMBOL, emitted `extern volatile const char x[2];` against this
+    // file's `const char x[2] = "v";` and the translation unit did not
+    // compile. It was unreachable until the E0862 predicate beside it started
+    // asking the grammar instead of the declaration's text, which is why the
+    // bounded arms were fixed in #1642 and this one was not.
+    //
+    // `toPrefix` is the single encoder the bounded arms above spell out by
+    // hand; using it here is what makes a fifth arm impossible to forget.
+    //
+    // The hardcoded `const` was also STATING an invariant -- an unsized string
+    // is const, which E0862 enforces in 2.1 -- so dropping it silently would
+    // have traded one masked bug for another. Asserted instead, which is the
+    // same fact without the mask: if the invariant ever breaks, this says so
+    // rather than quietly emitting a non-const definition against a `const`
+    // declaration in the header.
+    invariant(
+      modifiers.const !== "",
+      "an unsized string is const -- E0862 rejects a non-const one in pass 2.1, before this runs",
+    );
+
+    const prefix = VariableModifierBuilder.toPrefix(modifiers);
+    return `${prefix}char ${name}[${inferredCapacity + 1}] = ${initText};`;
   }
 }
 
