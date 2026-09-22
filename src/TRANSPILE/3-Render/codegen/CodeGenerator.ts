@@ -16,7 +16,6 @@ import CommentFormatter from "./CommentFormatter";
 import IComment from "../../../transpiler/types/IComment";
 import TYPE_WIDTH from "../../../transpiler/constants/TYPE_WIDTH";
 import TYPE_MAP from "./types/TYPE_MAP";
-import TYPE_LIMITS from "./types/TYPE_LIMITS";
 // Issue #60: BITMAP_SIZE and BITMAP_BACKING_TYPE moved to SymbolCollector
 import TTypeInfo from "../../../transpiler/types/TTypeInfo";
 import TParameterInfo from "../../../transpiler/types/TParameterInfo";
@@ -110,6 +109,8 @@ import buildAssignmentContext from "../../2-Plan/AssignmentContextBuilder";
 import StringLengthCounter from "../../2-Plan/StringLengthCounter";
 // Issue #644: C/C++ mode helper for consolidated mode-specific patterns
 import CppModeHelper from "./helpers/CppModeHelper";
+import generateCast from "./generators/expressions/CastExprGenerator";
+import type IPlannedCast from "./types/IPlannedCast";
 // Issue #644: Array dimension parsing helper for consolidation
 import ArrayDimensionParser from "../../../utils/ArrayDimensionParser";
 import UNRESOLVED_DIMENSION from "../../../transpiler/constants/UNRESOLVED_DIMENSION";
@@ -211,7 +212,6 @@ import type IFunctionSymbol from "../../../transpiler/types/symbols/IFunctionSym
 import type TSymbol from "../../../transpiler/types/symbols/TSymbol";
 import type ICallbackTypeInfo from "../../../transpiler/types/ICallbackTypeInfo";
 import BareIdentifier from "../../../utils/BareIdentifier";
-import CastRequirement from "../../2-Plan/CastRequirement";
 
 const {
   generateOverflowHelpers: helperGenerateOverflowHelpers,
@@ -2052,7 +2052,7 @@ export default class CodeGenerator implements IOrchestrator {
     }
     // ADR-017: Cast expression - (u8)State.IDLE
     if (ctx.castExpression()) {
-      return this.generateCastExpression(ctx.castExpression()!);
+      return generateCast(this.planCast(ctx.castExpression()!));
     }
     // ADR-014: Struct initializer - Point { x: 10, y: 20 }
     if (ctx.structInitializer()) {
@@ -6281,93 +6281,22 @@ export default class CodeGenerator implements IOrchestrator {
    * C++ mode: (u8)State.IDLE -> static_cast<uint8_t>(State_IDLE)
    * Issue #267: Use C++ casts when cppMode is enabled
    */
-  private generateCastExpression(ctx: Parser.CastExpressionContext): string {
+  /**
+   * What rendering a cast needs. The render order is fixed HERE, not in the
+   * generator: the target type is rendered before the operand because
+   * `generateType` may register an include and rendering the operand may
+   * allocate a `cnx_tmp<N>`, and swapping them renames temps in emitted C.
+   *
+   * #1322: ADR-024's cast rules -- narrowing and sign change -- are E0869 in
+   * pass 2.1. They stood here as two throws that reached the user as `1:0`.
+   */
+  private planCast(ctx: Parser.CastExpressionContext): IPlannedCast {
     const targetType = this.generateType(ctx.type());
     const targetTypeName = ctx.type().getText();
+    const operandCode = this.generateUnaryExpr(ctx.unaryExpression());
+    const operandType = this.getUnaryExpressionType(ctx.unaryExpression());
 
-    // #1322: ADR-024's cast rules -- narrowing and sign change -- are E0869 in
-    // pass 2.1. They stood here as two throws that reached the user as `1:0`.
-
-    const expr = this.generateUnaryExpr(ctx.unaryExpression());
-
-    // Issue #632: Float-to-integer casts must clamp to avoid undefined behavior
-    // C-Next's default is "clamp" (saturate), so out-of-range values clamp to type limits
-    const sourceType = this.getUnaryExpressionType(ctx.unaryExpression());
-    if (CastRequirement.requiresClamping(sourceType, targetTypeName)) {
-      return this.generateFloatToIntClampCast(
-        expr,
-        targetType,
-        targetTypeName,
-        sourceType!,
-      );
-    }
-
-    // Validate enum casts are only to unsigned types
-    const allowedCastTypes = ["u8", "u16", "u32", "u64"];
-
-    // Check if we're casting an enum (for validation)
-    // We allow casts from any expression, but could add validation here
-    if (
-      !allowedCastTypes.includes(targetTypeName) &&
-      !["i8", "i16", "i32", "i64", "f32", "f64", "bool"].includes(
-        targetTypeName,
-      )
-    ) {
-      // It's a user type cast - allow for now (could be struct pointer, etc.)
-    }
-
-    // Issue #267/#644: Use C++ casts when cppMode is enabled for MISRA compliance
-    return CppModeHelper.cast(targetType, expr);
-  }
-
-  /**
-   * Issue #632: Generate clamping cast for float-to-integer conversions
-   * In C, casting an out-of-range float to an integer is undefined behavior.
-   * C-Next's default overflow behavior is "clamp" (saturate), so we generate
-   * explicit bounds checks to ensure safe, deterministic results.
-   *
-   * @param expr The C expression for the float value
-   * @param targetType The C type name (e.g., "uint8_t")
-   * @param targetTypeName The C-Next type name (e.g., "u8")
-   * @param sourceType The source float type (e.g., "f32")
-   * @returns A clamping cast expression
-   */
-  private generateFloatToIntClampCast(
-    expr: string,
-    targetType: string,
-    targetTypeName: string,
-    sourceType: string,
-  ): string {
-    const maxValue = TYPE_LIMITS.TYPE_MAX[targetTypeName];
-    const minValue = TYPE_LIMITS.TYPE_MIN[targetTypeName];
-
-    if (!maxValue) {
-      // Unknown type, fall back to raw cast - Issue #644
-      return CppModeHelper.cast(targetType, expr);
-    }
-
-    // Mark that we need limits.h for the type limit macros
-    CodeGenState.requireInclude("limits");
-
-    // Use appropriate float suffix and type for comparisons
-    const floatSuffix = sourceType === "f32" ? "f" : "";
-    const floatCastType = sourceType === "f32" ? "float" : "double";
-
-    // For unsigned types, minValue is "0", for signed it's a macro like INT8_MIN
-    const minComparison =
-      minValue === "0"
-        ? `0.0${floatSuffix}`
-        : `((${floatCastType})${minValue})`;
-    const maxComparison = `((${floatCastType})${maxValue})`;
-
-    // Generate clamping expression:
-    // (expr > MAX) ? MAX : (expr < MIN) ? MIN : (type)(expr)
-    // Note: For unsigned targets, MIN is 0 so we check < 0.0
-    // MISRA 10.3: Cast limit macros to target type (they have type 'int')
-    const finalCast = CppModeHelper.cast(targetType, `(${expr})`);
-    const castMax = CppModeHelper.cast(targetType, maxValue);
-    const castMin = CppModeHelper.cast(targetType, minValue);
-    return `((${expr}) > ${maxComparison} ? ${castMax} : (${expr}) < ${minComparison} ? ${castMin} : ${finalCast})`;
+    return { targetType, targetTypeName, operandCode, operandType };
   }
 
   /**

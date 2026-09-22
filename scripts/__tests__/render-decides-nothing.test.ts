@@ -207,7 +207,11 @@ const PLAN_PASS = join("src", "TRANSPILE", "2-Plan") + sep;
 const PLAN_DECISIONS: Readonly<Record<string, readonly string[]>> = {
   AssignmentClassifier: ["codegen/CodeGenerator.ts"],
   CastRequirement: [
-    "codegen/CodeGenerator.ts",
+    // #1445 box 3 slice 38: `CodeGenerator` consulted this inline while
+    // walking a cast; the render half moved to `CastExprGenerator` and the
+    // consultation went with it. The site changed, the edge did not -- which
+    // is exactly the event this table exists to make visible in a diff.
+    "codegen/generators/expressions/CastExprGenerator.ts",
     "codegen/helpers/NarrowingCastHelper.ts",
   ],
   ComplianceAnnotations: [
