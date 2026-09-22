@@ -106,17 +106,18 @@ tree-move does not rediscover them:
 
 ### 2.2 Plan — `src/TRANSPILE/2-Plan/`
 
-| module                      | why                                                                                                                                                               |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `EmissionPlan.ts`           | decides what C should exist for one file — the artifact 2.2 emits                                                                                                 |
-| `ComplianceAnnotations.ts`  | which safety-standard rule shaped a construct, and the one rendering of the house form                                                                            |
-| `HeaderTypeNames.ts`        | every type name a file's public header will name — one enumeration, where two derivations each stopped at functions and variables (#1520)                         |
-| `PublicInterface.ts`        | which symbols form a file's public C interface — `isExported` minus ADR-030's `main` exemption minus "a scope is a container", which §2 assigns to `EmissionPlan` |
-| `StringLengthCounter.ts`    | which `.char_count` reads are worth hoisting into a cached `strlen` temp — a choice about what C exists, not how it reads (#1445 box 3)                           |
-| `ExpressionTypeResolver.ts` | the essential type of an expression — returns type names, never C text, and originates no diagnostic (#1445 box 3)                                                |
-| `TypeRegistrationEngine.ts` | walks declarations and writes the type facts every later decision reads — returns no text, so it fails the render admission test (#1445 box 3)                    |
-| `TypeRegistrationUtils.ts`  | the engine's write half; registers an enum- or bitmap-typed variable from the one `DeclaredTypeFacts` derivation (#1651)                                          |
-| `dimensionEvalOptions.ts`   | the const-evaluation options both array-dimension paths must share, so the two cannot diverge on what folds                                                       |
+| module                        | why                                                                                                                                                                         |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `EmissionPlan.ts`             | decides what C should exist for one file — the artifact 2.2 emits                                                                                                           |
+| `ComplianceAnnotations.ts`    | which safety-standard rule shaped a construct, and the one rendering of the house form                                                                                      |
+| `HeaderTypeNames.ts`          | every type name a file's public header will name — one enumeration, where two derivations each stopped at functions and variables (#1520)                                   |
+| `PublicInterface.ts`          | which symbols form a file's public C interface — `isExported` minus ADR-030's `main` exemption minus "a scope is a container", which §2 assigns to `EmissionPlan`           |
+| `StringLengthCounter.ts`      | which `.char_count` reads are worth hoisting into a cached `strlen` temp — a choice about what C exists, not how it reads (#1445 box 3)                                     |
+| `ExpressionTypeResolver.ts`   | the essential type of an expression — returns type names, never C text, and originates no diagnostic (#1445 box 3)                                                          |
+| `AssignmentContextBuilder.ts` | turns an assignment statement into the `IAssignmentContext` that `AssignmentClassifier` decides the kind from — the input half of a decision 2.2 already owns (#1445 box 3) |
+| `TypeRegistrationEngine.ts`   | walks declarations and writes the type facts every later decision reads — returns no text, so it fails the render admission test (#1445 box 3)                              |
+| `TypeRegistrationUtils.ts`    | the engine's write half; registers an enum- or bitmap-typed variable from the one `DeclaredTypeFacts` derivation (#1651)                                                    |
+| `dimensionEvalOptions.ts`     | the const-evaluation options both array-dimension paths must share, so the two cannot diverge on what folds                                                                 |
 
 `EmissionPlan`, `ComplianceAnnotations` and `HeaderTypeNames` were created here
 rather than moved: 2.2 Plan did not exist as a module anywhere, so for those
@@ -125,7 +126,7 @@ no longer does — `scripts/move-modules.ts` has since relocated ten modules int
 `2-Plan/`, `PublicInterface` and `StringLengthCounter` among them.
 
 **This table is incomplete, and deliberately says so rather than reading as
-complete.** It documents 9 of the 21 modules under `2-Plan/`; eight modules the
+complete.** It documents 10 of the 22 modules under `2-Plan/`; eight modules the
 manifest moved in have no row. Tracked as #1653 — each needs its own researched
 _why_, which is not something to bulk-generate from the manifest's `because`
 strings, since those argue the move and this column states the responsibility.

@@ -103,7 +103,8 @@ import memberAccessChain from "./memberAccessChain";
 // ADR-065: Assignment decomposition (Phase 2)
 import AssignmentHandlerRegistry from "./assignment/index";
 import AssignmentClassifier from "../../2-Plan/AssignmentClassifier";
-import buildAssignmentContext from "./assignment/AssignmentContextBuilder";
+import AssignmentOperatorMapper from "./helpers/AssignmentOperatorMapper";
+import buildAssignmentContext from "../../2-Plan/AssignmentContextBuilder";
 // IHandlerDeps removed - handlers now use CodeGenState.generator directly
 // Issue #644: Extracted string length counter for strlen caching optimization
 import StringLengthCounter from "../../2-Plan/StringLengthCounter";
@@ -5685,6 +5686,8 @@ export default class CodeGenerator implements IOrchestrator {
       expressionType: (expr) => ExpressionTypeResolver.getExpressionType(expr),
       integerExpressionType: (expr) =>
         ExpressionTypeResolver.getIntegerExpressionType(expr),
+      toCOperator: (cnextOp, line) =>
+        AssignmentOperatorMapper.toCOperator(cnextOp, line),
     });
     // ADR-065: Handlers access CodeGenState directly, no deps needed
     const assignmentKind = AssignmentClassifier.classify(assignCtx);

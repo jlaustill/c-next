@@ -241,11 +241,13 @@ const PLAN_DECISIONS: Readonly<Record<string, readonly string[]>> = {
     // `validate` needs the rendered base's type info, so it stays where that
     // is known.
     "codegen/CodeGenerator.ts",
-    // #1445: the assignment context carries a `leadingSubscriptCount` now
-    // rather than the ops it was counted from, and the builder is where the
-    // ops still are -- so the WRITE path asks the same function the read path
-    // does, at the point it plans.
-    "codegen/assignment/AssignmentContextBuilder.ts",
+    // #1445 box 3 slice 37: `AssignmentContextBuilder` was listed here and is
+    // gone from this roster because it is no longer a RENDER site -- it moved
+    // to `2-Plan/`. The consultation it recorded did not disappear; it stopped
+    // crossing the pass boundary, which is the outcome this roster exists to
+    // track. A 2.2 module asking a 2.2 decision is not a render site
+    // consulting a plan, so listing it here would assert an edge that no
+    // longer exists.
     "codegen/generators/expressions/PostfixExpressionGenerator.ts",
   ],
 };

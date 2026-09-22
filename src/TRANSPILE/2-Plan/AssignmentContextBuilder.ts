@@ -19,13 +19,12 @@
  * carrier. They hold no nodes now, and the two modules that did name types are
  * out of the population for real rather than by spelling.
  */
-import * as Parser from "../../../../PARSE/2-Parse/grammar/CNextParser";
-import IAssignmentContext from "../../../../transpiler/types/IAssignmentContext";
-import IBitAccessAnalysis from "../../../../transpiler/types/IBitAccessAnalysis";
-import TPlannedTargetOp from "../../../../transpiler/types/TPlannedTargetOp";
-import TTypeInfo from "../../../../transpiler/types/TTypeInfo";
-import SubscriptDepthValidator from "../../../2-Plan/SubscriptDepthValidator";
-import AssignmentOperatorMapper from "../helpers/AssignmentOperatorMapper";
+import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
+import IAssignmentContext from "../../transpiler/types/IAssignmentContext";
+import IBitAccessAnalysis from "../../transpiler/types/IBitAccessAnalysis";
+import TPlannedTargetOp from "../../transpiler/types/TPlannedTargetOp";
+import TTypeInfo from "../../transpiler/types/TTypeInfo";
+import SubscriptDepthValidator from "./SubscriptDepthValidator";
 
 /**
  * Dependencies for building context.
@@ -62,6 +61,18 @@ interface IContextBuilderDeps {
 
   /** The value expression's integer type */
   integerExpressionType(ctx: Parser.ExpressionContext): string | null;
+
+  /**
+   * ADR-001's assignment operator mapping, injected rather than imported.
+   *
+   * This module moved to 2.2 Plan (#1445 box 3) and `AssignmentOperatorMapper`
+   * did not: it is the one place a C-Next operator BECOMES its C form, which
+   * is text, and `plan-cannot-import-render` is `error` and `reachable`. It
+   * arrives through the deps the same way the seven render thunks above do --
+   * that is what this interface has always been for, not a new indirection
+   * invented to satisfy the rule.
+   */
+  toCOperator(cnextOp: string, line: number | undefined): string;
 }
 
 /**
@@ -181,10 +192,7 @@ function buildAssignmentContext(
   // Extract operator info
   const operatorCtx = ctx.assignmentOperator();
   const cnextOp = operatorCtx.getText();
-  const cOp = AssignmentOperatorMapper.toCOperator(
-    cnextOp,
-    operatorCtx.start?.line,
-  );
+  const cOp = deps.toCOperator(cnextOp, operatorCtx.start?.line);
   const isCompound = cOp !== "=";
 
   const generatedValue = deps.generatedValue();

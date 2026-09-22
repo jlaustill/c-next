@@ -611,6 +611,23 @@ const MOVES: readonly IMove[] = [
     to: "src/TRANSPILE/2-Plan/__tests__/dimensionEvalOptions.test.ts",
     because: "Tests live beside the module they exercise.",
   },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/assignment/AssignmentContextBuilder.ts",
+    to: "src/TRANSPILE/2-Plan/AssignmentContextBuilder.ts",
+    because:
+      "#1445 box 3. It turns an assignment statement into `IAssignmentContext`, " +
+      "which `2-Plan/AssignmentClassifier` consumes to decide the " +
+      "`AssignmentKind` -- so it is the input half of a decision 2.2 already " +
+      "owns, sitting a pass downstream of it. Remove it and nothing is " +
+      "classified at all, which is the render admission test failing.\n\n" +
+      "`AssignmentOperatorMapper` deliberately does NOT come along: it is the " +
+      "one place a C-Next operator becomes its C FORM, which is text, and it " +
+      "is ADR-001's provenance site. Rather than reclassify it to satisfy " +
+      "`plan-cannot-import-render`, it is injected through " +
+      "`IContextBuilderDeps` -- the interface that already carries seven " +
+      "render thunks for exactly this reason, because the builder has always " +
+      "needed render capabilities it must not import.",
+  },
 ];
 
 /** Every `.ts` file under a path, or the path itself when it is a file. */
