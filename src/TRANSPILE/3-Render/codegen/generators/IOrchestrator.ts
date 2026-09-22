@@ -22,7 +22,6 @@ import IGeneratorState from "./IGeneratorState";
 import TGeneratorEffect from "./TGeneratorEffect";
 import TTypeInfo from "../../../../transpiler/types/TTypeInfo";
 import * as Parser from "../../../../PARSE/2-Parse/grammar/CNextParser";
-import { ParserRuleContext } from "antlr4ng";
 
 interface IOrchestrator {
   // === State Access ===
@@ -65,14 +64,8 @@ interface IOrchestrator {
   /** Generate type translation (C-Next type -> C type) */
   generateType(ctx: Parser.TypeContext): string;
 
-  /** Generate a unary expression */
-  generateUnaryExpr(ctx: Parser.UnaryExpressionContext): string;
-
   /** Generate a postfix expression */
   generatePostfixExpr(ctx: Parser.PostfixExpressionContext): string;
-
-  /** Generate the full precedence chain from or-expression down */
-  generateOrExpr(ctx: Parser.OrExpressionContext): string;
 
   // === Type Utilities ===
 
@@ -111,12 +104,6 @@ interface IOrchestrator {
 
   /** Get the enum type of an expression, if any */
   getExpressionEnumType(ctx: Parser.ExpressionContext): string | null;
-
-  /** Check if an expression is a string type */
-  isStringExpression(ctx: Parser.RelationalExpressionContext): boolean;
-
-  /** Extract operators from parse tree children in correct order */
-  getOperatorsFromChildren(ctx: ParserRuleContext): string[];
 
   // === Function Call Helpers ===
 

@@ -26,6 +26,7 @@ import TypeValidator from "./TypeValidator";
 import IOrchestrator from "./generators/IOrchestrator";
 import IGeneratorInput from "./generators/IGeneratorInput";
 import IGeneratorState from "./generators/IGeneratorState";
+import IGeneratorOutput from "./generators/IGeneratorOutput";
 import TGeneratorEffect from "./generators/TGeneratorEffect";
 import EmissionPlan from "../../2-Plan/EmissionPlan";
 import DeclarationPlan from "../../2-Plan/DeclarationPlan";
@@ -35,7 +36,9 @@ import type IEmissionFacts from "../../../transpiler/types/IEmissionFacts";
 import TGeneratorFn from "./generators/TGeneratorFn";
 // Expression generators
 import generateLiteral from "./generators/expressions/LiteralGenerator";
-import generateOrExpr from "./generators/expressions/BinaryExprGenerator";
+import generateBinaryExpr from "./generators/expressions/BinaryExprGenerator";
+import TPlannedBinaryExpr from "./types/TPlannedBinaryExpr";
+import BinaryExprUtils from "./generators/expressions/BinaryExprUtils";
 import generateUnaryExpr from "./generators/expressions/UnaryExprGenerator";
 import generateTernaryExpr from "./generators/expressions/ExpressionGenerator";
 import type TPlannedTernary from "./types/TPlannedTernary";
@@ -801,8 +804,242 @@ export default class CodeGenerator implements IOrchestrator {
    * Generate the full precedence chain from or-expression down.
    * Part of IOrchestrator interface.
    */
+
+  // ========================================================================
+  // Binary precedence ladder planning (#1445 box 3)
+  // ========================================================================
+
+  /**
+   * The binary precedence ladder, collapsed.
+   *
+   * Ten grammar levels, and nine of them are single-child pass-through levels for
+   * almost every expression -- so each `plan*Level` returns its CHILD's plan
+   * rather than wrapping it, and a plan ends up only as deep as the
+   * expression's real operator nesting.
+   *
+   * Every operand is a thunk that re-enters the planner one level down. That
+   * laziness is in the PLANNER and not merely in a top-level thunk, because
+   * `withoutExpectedType` is a dynamic scope over the whole operand subtree:
+   * an operand nested any distance under a comparison must render inside the
+   * window the renderer opens, and anything rendered at plan time renders
+   * outside it (#1032).
+   */
+  private planBinaryExpr(ctx: Parser.OrExpressionContext): TPlannedBinaryExpr {
+    const children = ctx.andExpression();
+    if (children.length === 1) {
+      return this.planAndLevel(children[0]);
+    }
+    return {
+      kind: "join",
+      separator: " || ",
+      renderOperands: children.map(
+        (child) => () => this.renderBinaryLevel(this.planAndLevel(child)),
+      ),
+    };
+  }
+
+  /**
+   * Render a NESTED level, returning its effects to the parent rather than
+   * applying them.
+   *
+   * The top of the ladder goes through `invokeGenerator`, which applies the
+   * accumulated effects once. An inner level must not, or an operand's
+   * include would be applied while its parent is still deciding whether to
+   * emit it.
+   */
+  private renderBinaryLevel(plan: TPlannedBinaryExpr): IGeneratorOutput {
+    return generateBinaryExpr(plan, this.getInput(), this.getState(), this);
+  }
+
+  private planAndLevel(ctx: Parser.AndExpressionContext): TPlannedBinaryExpr {
+    const children = ctx.equalityExpression();
+    if (children.length === 1) {
+      return this.planEqualityLevel(children[0]);
+    }
+    return {
+      kind: "join",
+      separator: " && ",
+      renderOperands: children.map(
+        (child) => () => this.renderBinaryLevel(this.planEqualityLevel(child)),
+      ),
+    };
+  }
+
+  private planEqualityLevel(
+    ctx: Parser.EqualityExpressionContext,
+  ): TPlannedBinaryExpr {
+    const children = ctx.relationalExpression();
+    if (children.length === 1) {
+      return this.planRelationalLevel(children[0]);
+    }
+
+    // #1302: read the operator from the parse tree, not from the text of the
+    // whole comparison. `node.getText()` includes both operands, so a string
+    // literal CONTAINING "!=" selected inequality -- `t = "a!=b"` generated
+    // `strcmp(t, "a!=b") != 0`, compiling clean with the condition inverted.
+    const operators = this.getOperatorsFromChildren(ctx);
+
+    // ADR-045: a string operand makes this a strcmp. A type-registry predicate
+    // that generates nothing, so it is decided here; the renderer raises the
+    // include.
+    const isStrcmp =
+      this.isStringExpression(children[0]) ||
+      this.isStringExpression(children[1]);
+
+    return {
+      kind: "comparison",
+      defaultOperator: "=",
+      operators,
+      mapOperator: BinaryExprUtils.mapEqualityOperator,
+      // ADR-001 fired only if `=` was written; `!=` is unchanged from C, and
+      // occupancy must not be invented for a cell the rule never reached.
+      adrLine: operators.includes("=") ? ctx.start?.line : undefined,
+      strcmp: isStrcmp ? { isNotEqual: operators[0] === "!=" } : null,
+      renderOperands: children.map(
+        (child) => () =>
+          this.renderBinaryLevel(this.planRelationalLevel(child)),
+      ),
+    };
+  }
+
+  private planRelationalLevel(
+    ctx: Parser.RelationalExpressionContext,
+  ): TPlannedBinaryExpr {
+    const children = ctx.bitwiseOrExpression();
+    if (children.length === 1) {
+      return this.planBitwiseOrLevel(children[0]);
+    }
+    return {
+      kind: "comparison",
+      defaultOperator: "<",
+      operators: this.getOperatorsFromChildren(ctx),
+      mapOperator: null,
+      adrLine: undefined,
+      strcmp: null,
+      renderOperands: children.map(
+        (child) => () => this.renderBinaryLevel(this.planBitwiseOrLevel(child)),
+      ),
+    };
+  }
+
+  private planBitwiseOrLevel(
+    ctx: Parser.BitwiseOrExpressionContext,
+  ): TPlannedBinaryExpr {
+    const children = ctx.bitwiseXorExpression();
+    if (children.length === 1) {
+      return this.planBitwiseXorLevel(children[0]);
+    }
+    return {
+      kind: "join",
+      separator: " | ",
+      renderOperands: children.map(
+        (child) => () =>
+          this.renderBinaryLevel(this.planBitwiseXorLevel(child)),
+      ),
+    };
+  }
+
+  private planBitwiseXorLevel(
+    ctx: Parser.BitwiseXorExpressionContext,
+  ): TPlannedBinaryExpr {
+    const children = ctx.bitwiseAndExpression();
+    if (children.length === 1) {
+      return this.planBitwiseAndLevel(children[0]);
+    }
+    return {
+      kind: "join",
+      separator: " ^ ",
+      renderOperands: children.map(
+        (child) => () =>
+          this.renderBinaryLevel(this.planBitwiseAndLevel(child)),
+      ),
+    };
+  }
+
+  private planBitwiseAndLevel(
+    ctx: Parser.BitwiseAndExpressionContext,
+  ): TPlannedBinaryExpr {
+    const children = ctx.shiftExpression();
+    if (children.length === 1) {
+      return this.planShiftLevel(children[0]);
+    }
+    return {
+      kind: "join",
+      separator: " & ",
+      renderOperands: children.map(
+        (child) => () => this.renderBinaryLevel(this.planShiftLevel(child)),
+      ),
+    };
+  }
+
+  private planShiftLevel(
+    ctx: Parser.ShiftExpressionContext,
+  ): TPlannedBinaryExpr {
+    const children = ctx.additiveExpression();
+    if (children.length === 1) {
+      return this.planAdditiveLevel(children[0]);
+    }
+    return {
+      kind: "shift",
+      operators: this.getOperatorsFromChildren(ctx),
+      renderOperands: children.map(
+        (child) => () => this.renderBinaryLevel(this.planAdditiveLevel(child)),
+      ),
+    };
+  }
+
+  private planAdditiveLevel(
+    ctx: Parser.AdditiveExpressionContext,
+  ): TPlannedBinaryExpr {
+    const children = ctx.multiplicativeExpression();
+    if (children.length === 1) {
+      return this.planMultiplicativeLevel(children[0]);
+    }
+    return {
+      kind: "arithmetic",
+      defaultOperator: "+",
+      operators: this.getOperatorsFromChildren(ctx),
+      // Asked AFTER the operands render, which is where they are asked today:
+      // both read the type registry, and asking earlier asks about a state the
+      // operands have not reached.
+      clampType: () => TypeResolver.getCompositeIntegerType(ctx),
+      clampBehavior: () => TypeResolver.getCompositeOverflowBehavior(ctx),
+      adrLine: ctx.start?.line,
+      renderOperands: children.map(
+        (child) => () =>
+          this.renderBinaryLevel(this.planMultiplicativeLevel(child)),
+      ),
+    };
+  }
+
+  private planMultiplicativeLevel(
+    ctx: Parser.MultiplicativeExpressionContext,
+  ): TPlannedBinaryExpr {
+    const children = ctx.unaryExpression();
+    if (children.length === 1) {
+      return {
+        kind: "leaf",
+        render: () => this.generateUnaryExpr(children[0]),
+      };
+    }
+    return {
+      kind: "arithmetic",
+      defaultOperator: "*",
+      operators: this.getOperatorsFromChildren(ctx),
+      clampType: () => TypeResolver.getCompositeIntegerType(ctx),
+      clampBehavior: () => TypeResolver.getCompositeOverflowBehavior(ctx),
+      adrLine: ctx.start?.line,
+      // `generateUnaryExpr` applies its own effects, so a leaf contributes
+      // none here -- matching the empty array the multiplicative tail passed.
+      renderOperands: children.map((child) => () => ({
+        code: this.generateUnaryExpr(child),
+        effects: [],
+      })),
+    };
+  }
+
   generateOrExpr(ctx: Parser.OrExpressionContext): string {
-    return this.invokeGenerator(generateOrExpr, ctx);
+    return this.invokeGenerator(generateBinaryExpr, this.planBinaryExpr(ctx));
   }
 
   // === Type Utilities ===
