@@ -494,6 +494,26 @@ const MOVES: readonly IMove[] = [
     to: "src/TRANSPILE/2-Plan/__tests__/CppMemberHelper.test.ts",
     because: "Tests live beside the module they exercise.",
   },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/analysis/StringLengthCounter.ts",
+    to: "src/TRANSPILE/2-Plan/StringLengthCounter.ts",
+    because:
+      "#1445 box 3. It renders nothing -- it walks a tree and returns " +
+      "`Map<string, number>`, the count of `.char_count` accesses per string " +
+      "variable, which is the input to the strlen-caching decision. Deciding " +
+      "WHICH lengths are worth hoisting into a temp is a choice about what C " +
+      "exists, not how it reads, which is 2.2's job by the same argument " +
+      "`CppMemberHelper` moved on. It does not belong in 2.1 either: its key " +
+      "is the ADR-057 emitted C identifier, which 2.1 cannot produce. Its one " +
+      "state touch is `CodeGenState.getVariableTypeInfo`, and 2-Plan already " +
+      "reaches that from `AssignmentClassifier` and `PassByValueAnalyzer`, so " +
+      "no layer rule moves.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/analysis/__tests__/StringLengthCounter.test.ts",
+    to: "src/TRANSPILE/2-Plan/__tests__/StringLengthCounter.test.ts",
+    because: "Tests live beside the module they exercise.",
+  },
 ];
 
 /** Every `.ts` file under a path, or the path itself when it is a file. */

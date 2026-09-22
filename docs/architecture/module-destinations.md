@@ -112,9 +112,21 @@ tree-move does not rediscover them:
 | `ComplianceAnnotations.ts` | which safety-standard rule shaped a construct, and the one rendering of the house form                                                                            |
 | `HeaderTypeNames.ts`       | every type name a file's public header will name — one enumeration, where two derivations each stopped at functions and variables (#1520)                         |
 | `PublicInterface.ts`       | which symbols form a file's public C interface — `isExported` minus ADR-030's `main` exemption minus "a scope is a container", which §2 assigns to `EmissionPlan` |
+| `StringLengthCounter.ts`   | which `.char_count` reads are worth hoisting into a cached `strlen` temp — a choice about what C exists, not how it reads (#1445 box 3)                           |
 
-Created here rather than moved: 2.2 Plan did not exist as a module anywhere, so
-there was nothing to relocate. #1323's `HeaderRenderer` (`HeaderEmissionPlanner` until #1449) is **not** listed
+`EmissionPlan`, `ComplianceAnnotations` and `HeaderTypeNames` were created here
+rather than moved: 2.2 Plan did not exist as a module anywhere, so for those
+there was nothing to relocate. That sentence used to cover the whole section and
+no longer does — `scripts/move-modules.ts` has since relocated ten modules into
+`2-Plan/`, `PublicInterface` and `StringLengthCounter` among them.
+
+**This table is incomplete, and deliberately says so rather than reading as
+complete.** It documents 5 of the 17 modules under `2-Plan/`; eight modules the
+manifest moved in have no row. Tracked as #1653 — each needs its own researched
+_why_, which is not something to bulk-generate from the manifest's `because`
+strings, since those argue the move and this column states the responsibility.
+
+#1323's `HeaderRenderer` (`HeaderEmissionPlanner` until #1449) is **not** listed
 — it renders header text from already-decided facts, which is 2.3 by the
 discriminator above.
 

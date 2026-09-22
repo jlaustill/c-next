@@ -106,7 +106,7 @@ import AssignmentClassifier from "../../2-Plan/AssignmentClassifier";
 import buildAssignmentContext from "./assignment/AssignmentContextBuilder";
 // IHandlerDeps removed - handlers now use CodeGenState.generator directly
 // Issue #644: Extracted string length counter for strlen caching optimization
-import StringLengthCounter from "./analysis/StringLengthCounter";
+import StringLengthCounter from "../../2-Plan/StringLengthCounter";
 // Issue #644: C/C++ mode helper for consolidated mode-specific patterns
 import CppModeHelper from "./helpers/CppModeHelper";
 // Issue #644: Array dimension parsing helper for consolidation

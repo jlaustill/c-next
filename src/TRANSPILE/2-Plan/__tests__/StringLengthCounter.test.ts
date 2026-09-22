@@ -5,8 +5,8 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import StringLengthCounter from "../StringLengthCounter";
-import CNextSourceParser from "../../../../../PARSE/2-Parse/CNextSourceParser";
-import CodeGenState from "../../../../../transpiler/state/CodeGenState";
+import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
+import CodeGenState from "../../../transpiler/state/CodeGenState";
 
 /**
  * Parse a C-Next expression and return the expression context.

@@ -9,8 +9,8 @@
  * Updated for ADR-058: .length replaced with .char_count
  */
 
-import * as Parser from "../../../../PARSE/2-Parse/grammar/CNextParser";
-import CodeGenState from "../../../../transpiler/state/CodeGenState";
+import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
+import CodeGenState from "../../transpiler/state/CodeGenState";
 
 /**
  * Counts .char_count accesses on string variables in an expression tree.
