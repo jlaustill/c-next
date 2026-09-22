@@ -5,7 +5,7 @@
 
 import { beforeEach, describe, expect, it } from "vitest";
 import TypeRegistrationUtils from "../TypeRegistrationUtils";
-import CodeGenState from "../../../../transpiler/state/CodeGenState";
+import CodeGenState from "../../../transpiler/state/CodeGenState";
 
 /**
  * Mock for `ITypeSymbols` -- the three-field interface TypeRegistrationUtils

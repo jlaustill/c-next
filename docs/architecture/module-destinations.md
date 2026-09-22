@@ -106,13 +106,17 @@ tree-move does not rediscover them:
 
 ### 2.2 Plan — `src/TRANSPILE/2-Plan/`
 
-| module                     | why                                                                                                                                                               |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `EmissionPlan.ts`          | decides what C should exist for one file — the artifact 2.2 emits                                                                                                 |
-| `ComplianceAnnotations.ts` | which safety-standard rule shaped a construct, and the one rendering of the house form                                                                            |
-| `HeaderTypeNames.ts`       | every type name a file's public header will name — one enumeration, where two derivations each stopped at functions and variables (#1520)                         |
-| `PublicInterface.ts`       | which symbols form a file's public C interface — `isExported` minus ADR-030's `main` exemption minus "a scope is a container", which §2 assigns to `EmissionPlan` |
-| `StringLengthCounter.ts`   | which `.char_count` reads are worth hoisting into a cached `strlen` temp — a choice about what C exists, not how it reads (#1445 box 3)                           |
+| module                      | why                                                                                                                                                               |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `EmissionPlan.ts`           | decides what C should exist for one file — the artifact 2.2 emits                                                                                                 |
+| `ComplianceAnnotations.ts`  | which safety-standard rule shaped a construct, and the one rendering of the house form                                                                            |
+| `HeaderTypeNames.ts`        | every type name a file's public header will name — one enumeration, where two derivations each stopped at functions and variables (#1520)                         |
+| `PublicInterface.ts`        | which symbols form a file's public C interface — `isExported` minus ADR-030's `main` exemption minus "a scope is a container", which §2 assigns to `EmissionPlan` |
+| `StringLengthCounter.ts`    | which `.char_count` reads are worth hoisting into a cached `strlen` temp — a choice about what C exists, not how it reads (#1445 box 3)                           |
+| `ExpressionTypeResolver.ts` | the essential type of an expression — returns type names, never C text, and originates no diagnostic (#1445 box 3)                                                |
+| `TypeRegistrationEngine.ts` | walks declarations and writes the type facts every later decision reads — returns no text, so it fails the render admission test (#1445 box 3)                    |
+| `TypeRegistrationUtils.ts`  | the engine's write half; registers an enum- or bitmap-typed variable from the one `DeclaredTypeFacts` derivation (#1651)                                          |
+| `dimensionEvalOptions.ts`   | the const-evaluation options both array-dimension paths must share, so the two cannot diverge on what folds                                                       |
 
 `EmissionPlan`, `ComplianceAnnotations` and `HeaderTypeNames` were created here
 rather than moved: 2.2 Plan did not exist as a module anywhere, so for those
@@ -121,7 +125,7 @@ no longer does — `scripts/move-modules.ts` has since relocated ten modules int
 `2-Plan/`, `PublicInterface` and `StringLengthCounter` among them.
 
 **This table is incomplete, and deliberately says so rather than reading as
-complete.** It documents 5 of the 17 modules under `2-Plan/`; eight modules the
+complete.** It documents 9 of the 21 modules under `2-Plan/`; eight modules the
 manifest moved in have no row. Tracked as #1653 — each needs its own researched
 _why_, which is not something to bulk-generate from the manifest's `because`
 strings, since those argue the move and this column states the responsibility.
@@ -129,6 +133,22 @@ strings, since those argue the move and this column states the responsibility.
 #1323's `HeaderRenderer` (`HeaderEmissionPlanner` until #1449) is **not** listed
 — it renders header text from already-decided facts, which is 2.3 by the
 discriminator above.
+
+## Layer-neutral — `src/utils/`
+
+Not a pass, so these have no section above. The map is keyed on passes, which
+left modules moved _out_ of a pass and into `src/utils/` with nowhere to be
+recorded — three had moved there with no row anywhere.
+
+| module                             | why                                                                                                                                                                                                     |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `QualifiedNameGenerator.ts`        | builds a qualified C name from a scope path; imports only `SymbolRegistry` and `ScopeUtils`, and `2-Plan/` needs it too, which `plan-cannot-import-render` forbade while it sat in render (#1445 box 3) |
+| `ast/AssignmentTargetExtractor.ts` | a generic parse-tree walker two passes reach (#1322)                                                                                                                                                    |
+| `ast/ChildStatementCollector.ts`   | answers _what statements are inside this one?_ — a question about the tree, not about legality (#1322)                                                                                                  |
+
+A module arrives here when more than one pass reaches it and it decides nothing
+about the program — the admission test §1 states, answered "neither pass owns
+this".
 
 ## Blocked
 
@@ -168,9 +188,19 @@ it holds, every module here exists to turn settled decisions into text, and a
 partial move would leave `3-Render/` holding everything except the pass's own
 entry point (`CodeGenerator`).
 
-**Zero of the 131 now expose a classification predicate** — the count was 27 of
-144 when the tree moved, and the difference is box 4: the decisions relocated to
-`2-Plan/` and the modules went with them. The discriminator §1 states — "would
+**No module here exposes a classification predicate** — the count was 27 of 144
+when the tree moved, and the difference is box 4: the decisions relocated to
+`2-Plan/` and the modules went with them.
+
+The property is stated without a present-tense denominator on purpose. It used
+to read "zero of the 131", and 131 was ungated prose that nothing asserted:
+`render-decides-nothing.test.ts` gates the **property**, never the population
+size, so the number could only ever drift. It had — the tree held 156 non-test
+modules when this was corrected, off in the _opposite_ direction from the moves
+that prompted the check, because modules were added faster than #1445 box 3
+moved them out. `find src/TRANSPILE/3-Render -name '*.ts' ! -path '*__tests__*'
+! -name '*.test.ts' | wc -l` answers it in one line, which is why no sentence
+here should. The discriminator §1 states — "would
 removing the module change _what_ is emitted or only _how it reads_" — is what
 sorted them, phase by phase within 2.x, since a module that decides is in the
 wrong pass-_phase_, not the wrong pass, and this map keys destinations on the

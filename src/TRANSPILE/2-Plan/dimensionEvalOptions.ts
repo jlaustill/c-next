@@ -16,8 +16,8 @@
  * dimension form becomes resolvable everywhere at once.
  */
 
-import CodeGenState from "../../../../transpiler/state/CodeGenState";
-import TYPE_WIDTH from "../../../../transpiler/constants/TYPE_WIDTH";
+import CodeGenState from "../../transpiler/state/CodeGenState";
+import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
 
 /**
  * Build the constant-folding options for an array dimension from current state.

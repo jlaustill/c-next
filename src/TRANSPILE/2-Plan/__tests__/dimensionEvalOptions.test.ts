@@ -4,8 +4,8 @@
  */
 
 import { describe, it, expect, afterEach } from "vitest";
-import CodeGenState from "../../../../../transpiler/state/CodeGenState";
-import TYPE_WIDTH from "../../../../../transpiler/constants/TYPE_WIDTH";
+import CodeGenState from "../../../transpiler/state/CodeGenState";
+import TYPE_WIDTH from "../../../transpiler/constants/TYPE_WIDTH";
 import dimensionEvalOptions from "../dimensionEvalOptions";
 
 describe("dimensionEvalOptions", () => {

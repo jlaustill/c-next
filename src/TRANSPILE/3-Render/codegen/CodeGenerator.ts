@@ -11,7 +11,7 @@ import { CommonTokenStream, ParserRuleContext } from "antlr4ng";
 import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
 
 import CommentScanner from "../../../PARSE/2-Parse/CommentScanner";
-import TypeRegistrationEngine from "./helpers/TypeRegistrationEngine";
+import TypeRegistrationEngine from "../../2-Plan/TypeRegistrationEngine";
 import CommentFormatter from "./CommentFormatter";
 import IComment from "../../../transpiler/types/IComment";
 import TYPE_WIDTH from "../../../transpiler/constants/TYPE_WIDTH";
@@ -112,7 +112,7 @@ import CppModeHelper from "./helpers/CppModeHelper";
 // Issue #644: Array dimension parsing helper for consolidation
 import ArrayDimensionParser from "../../../utils/ArrayDimensionParser";
 import UNRESOLVED_DIMENSION from "../../../transpiler/constants/UNRESOLVED_DIMENSION";
-import dimensionEvalOptions from "./helpers/dimensionEvalOptions";
+import dimensionEvalOptions from "../../2-Plan/dimensionEvalOptions";
 // Issue #644: Member chain analyzer for bit access pattern detection
 import MemberChainAnalyzer from "./analysis/MemberChainAnalyzer";
 import type IBitAccessAnalysis from "../../../transpiler/types/IBitAccessAnalysis";

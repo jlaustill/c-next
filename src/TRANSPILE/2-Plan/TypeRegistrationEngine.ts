@@ -7,18 +7,18 @@
  * other type-dependent operations regardless of declaration order.
  */
 
-import * as Parser from "../../../../PARSE/2-Parse/grammar/CNextParser";
-import TIncludeHeader from "../../../../transpiler/types/TIncludeHeader";
-import TOverflowBehavior from "../../../../transpiler/types/TOverflowBehavior";
-import TYPE_WIDTH from "../../../../transpiler/constants/TYPE_WIDTH";
-import CodeGenState from "../../../../transpiler/state/CodeGenState";
-import TypeRegistrationUtils from "../TypeRegistrationUtils";
-import QualifiedNameGenerator from "../../../../utils/QualifiedNameGenerator";
-import ArrayDimensionParser from "../../../../utils/ArrayDimensionParser";
-import OverflowBehaviorUtils from "../../../../utils/OverflowBehaviorUtils";
-import UNRESOLVED_DIMENSION from "../../../../transpiler/constants/UNRESOLVED_DIMENSION";
+import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
+import TIncludeHeader from "../../transpiler/types/TIncludeHeader";
+import TOverflowBehavior from "../../transpiler/types/TOverflowBehavior";
+import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
+import CodeGenState from "../../transpiler/state/CodeGenState";
+import TypeRegistrationUtils from "./TypeRegistrationUtils";
+import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
+import ArrayDimensionParser from "../../utils/ArrayDimensionParser";
+import OverflowBehaviorUtils from "../../utils/OverflowBehaviorUtils";
+import UNRESOLVED_DIMENSION from "../../transpiler/constants/UNRESOLVED_DIMENSION";
 import dimensionEvalOptions from "./dimensionEvalOptions";
-import TypeBinding from "../../../../PARSE/3-Declare/TypeBinding";
+import TypeBinding from "../../PARSE/3-Declare/TypeBinding";
 
 /**
  * Callbacks required for type registration.

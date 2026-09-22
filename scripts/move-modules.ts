@@ -559,6 +559,58 @@ const MOVES: readonly IMove[] = [
     to: "src/TRANSPILE/2-Plan/__tests__/ExpressionTypeResolver.test.ts",
     because: "Tests live beside the module they exercise.",
   },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/helpers/TypeRegistrationEngine.ts",
+    to: "src/TRANSPILE/2-Plan/TypeRegistrationEngine.ts",
+    because:
+      "#1445 box 3. It returns no text -- it walks declarations and writes " +
+      "type facts into the registry every later decision reads. The render " +
+      "admission test is *would removing this change WHAT is emitted or only " +
+      "HOW it reads*, and removing this leaves codegen with no types at all, " +
+      "so it fails the test the pass is defined by. It also originates zero " +
+      "diagnostics.\n\n" +
+      "Recorded honestly: this is a move out of a pass it does not belong " +
+      "in, not a claim that 2.2 is its final home. Type facts about " +
+      "declarations arguably belong further upstream in 1.3 Declare or 1.4 " +
+      "Resolve, and the reason they are computed here at all is that the " +
+      "registry is per-file and codegen-scoped. That is a larger question " +
+      "than box 3, and this move does not foreclose it.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/helpers/__tests__/TypeRegistrationEngine.test.ts",
+    to: "src/TRANSPILE/2-Plan/__tests__/TypeRegistrationEngine.test.ts",
+    because: "Tests live beside the module they exercise.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/TypeRegistrationUtils.ts",
+    to: "src/TRANSPILE/2-Plan/TypeRegistrationUtils.ts",
+    because:
+      "#1445 box 3, with the engine above -- it is the engine's write half " +
+      "and has no other production caller. Its imports became layer-neutral " +
+      "under #1651, which replaced its hand-spelled enum/bitmap quintuple " +
+      "with `DeclaredTypeFacts`; before that it would have dragged the " +
+      "render-side derivation along with it.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/__tests__/TypeRegistrationUtils.test.ts",
+    to: "src/TRANSPILE/2-Plan/__tests__/TypeRegistrationUtils.test.ts",
+    because: "Tests live beside the module they exercise.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/helpers/dimensionEvalOptions.ts",
+    to: "src/TRANSPILE/2-Plan/dimensionEvalOptions.ts",
+    because:
+      "#1445 box 3, with the engine above. Thirty-two lines binding the " +
+      "const-evaluation options both dimension-resolving paths must share; " +
+      "`ArrayDimensionParser` in `utils/` names it in a comment as the thing " +
+      "that prevents those two diverging. It imports `CodeGenState` and " +
+      "`TYPE_WIDTH` and nothing else.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/helpers/__tests__/dimensionEvalOptions.test.ts",
+    to: "src/TRANSPILE/2-Plan/__tests__/dimensionEvalOptions.test.ts",
+    because: "Tests live beside the module they exercise.",
+  },
 ];
 
 /** Every `.ts` file under a path, or the path itself when it is a file. */

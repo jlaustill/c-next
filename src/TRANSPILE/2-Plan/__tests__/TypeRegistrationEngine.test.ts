@@ -5,11 +5,11 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import TypeRegistrationEngine from "../TypeRegistrationEngine";
-import CNextSourceParser from "../../../../../PARSE/2-Parse/CNextSourceParser";
-import CodeGenState from "../../../../../transpiler/state/CodeGenState";
-import * as Parser from "../../../../../PARSE/2-Parse/grammar/CNextParser";
-import createMockSymbols from "../../../../../transpiler/__tests__/codeGenSymbolsHelpers";
-import enterScope from "../../../../../transpiler/__tests__/enterScope";
+import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
+import CodeGenState from "../../../transpiler/state/CodeGenState";
+import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
+import createMockSymbols from "../../../transpiler/__tests__/codeGenSymbolsHelpers";
+import enterScope from "../../../transpiler/__tests__/enterScope";
 
 /**
  * Helper to parse a variable declaration and get its arrayType context

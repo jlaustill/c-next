@@ -6,10 +6,10 @@
  * qualifiedType, userType) that each had identical enum/bitmap handling.
  */
 
-import CodeGenState from "../../../transpiler/state/CodeGenState";
-import TOverflowBehavior from "../../../transpiler/types/TOverflowBehavior";
-import type IDeclaredTypeSets from "../../../transpiler/types/IDeclaredTypeSets";
-import DeclaredTypeFacts from "../../../utils/DeclaredTypeFacts";
+import CodeGenState from "../../transpiler/state/CodeGenState";
+import TOverflowBehavior from "../../transpiler/types/TOverflowBehavior";
+import type IDeclaredTypeSets from "../../transpiler/types/IDeclaredTypeSets";
+import DeclaredTypeFacts from "../../utils/DeclaredTypeFacts";
 
 /**
  * Common options for type registration.

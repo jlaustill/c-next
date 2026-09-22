@@ -27,10 +27,10 @@ one.
 
 | Layer                     | Modules |
 | ------------------------- | ------: |
-| `src/TRANSPILE/`          |      64 |
+| `src/TRANSPILE/`          |      65 |
 | `src/PARSE/`              |      18 |
 | `src/utils/`              |      11 |
-| `src/TRANSPILE/3-Render/` |       4 |
+| `src/TRANSPILE/3-Render/` |       3 |
 | `src/transpiler/`         |       3 |
 | `src/transpiler/types/`   |       3 |
 | `src/transpiler/logic/`   |       1 |
@@ -126,10 +126,10 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/TRANSPILE/2-Plan/ExpressionTypeResolver.ts`                        | antlr4ng, grammar |
 | `src/TRANSPILE/2-Plan/PassByValueAnalyzer.ts`                           | grammar           |
 | `src/TRANSPILE/2-Plan/StringLengthCounter.ts`                           | grammar           |
+| `src/TRANSPILE/2-Plan/TypeRegistrationEngine.ts`                        | grammar           |
 | `src/TRANSPILE/3-Render/codegen/assignment/AssignmentContextBuilder.ts` | grammar           |
 | `src/TRANSPILE/3-Render/codegen/CodeGenerator.ts`                       | antlr4ng, grammar |
 | `src/TRANSPILE/3-Render/codegen/generators/IOrchestrator.ts`            | grammar           |
-| `src/TRANSPILE/3-Render/codegen/helpers/TypeRegistrationEngine.ts`      | grammar           |
 | `src/transpiler/CallbackCompatibility.ts`                               | grammar           |
 | `src/transpiler/logic/IncludeExtractor.ts`                              | grammar           |
 | `src/transpiler/ModificationFacts.ts`                                   | grammar           |
