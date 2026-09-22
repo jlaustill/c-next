@@ -533,23 +533,31 @@ class CodeGenWalker {
     const rootIdentifier = primary.IDENTIFIER()?.getText();
     const subscriptBase = this.resolveSubscriptBase(ctx, rootIdentifier, ops);
 
+    // #1445 review: planned FIRST, then counted off the planned ops.
+    //
+    // This counted off the raw nodes while the write path counted off planned
+    // ones, so `SubscriptDepthValidator` -- whose whole purpose is that the two
+    // paths "cannot diverge on what counts as a subscript" -- answered that
+    // question from two representations behind a `"kind" in op` probe. Planning
+    // is pure (it builds thunks and renders nothing), so doing it first costs
+    // nothing and leaves the validator one branch and one shape.
+    const plannedOps = ops.map((op) => this.planPostfixOp(op));
+
     return {
       rootIdentifier,
       renderPrimary: () => this.generatePrimaryExpr(primary),
       subscriptBase: subscriptBase
         ? { name: subscriptBase.name, displayName: subscriptBase.displayName }
         : null,
-      // Counted through `SubscriptDepthValidator`, the same function the WRITE
-      // path calls, so the two cannot diverge on what counts as a subscript.
-      // The plan carries the number rather than the nodes, which is what lets
-      // that function keep its one node-shaped signature for the write path.
+      // Counted through `SubscriptDepthValidator`, the same function AND the
+      // same representation the WRITE path uses.
       leadingSubscriptCount: subscriptBase
         ? SubscriptDepthValidator.countLeadingSubscripts(
-            ops,
+            plannedOps,
             subscriptBase.opOffset,
           )
         : 0,
-      ops: ops.map((op) => this.planPostfixOp(op)),
+      ops: plannedOps,
     };
   }
 

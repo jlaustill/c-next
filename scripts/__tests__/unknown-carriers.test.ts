@@ -61,11 +61,15 @@ const UNKNOWN_CARRIER = new RegExp(
  * A row is `file:member`. Adding one is the point at which someone has to say
  * what the `unknown` holds.
  */
+// #1445 review removed a second row -- `SubscriptDepthValidator.expression`,
+// the structural shape over raw postfix nodes. Both of its callers pass
+// PLANNED ops now, so the shape is gone rather than exempted. The
+// orphaned-row assertion below is what reported it: the row outlived its site
+// by one commit and said so, which is the direction a roster usually rots in
+// silence.
 const ACCOUNTED: Readonly<Record<string, string>> = {
   "src/transpiler/types/symbols/IScopeSymbol.ts:variables":
     "symbols, not nodes — the element type is open because `IVariableSymbol` would close a cycle through `TSymbol`",
-  "src/TRANSPILE/2-Plan/SubscriptDepthValidator.ts:expression":
-    "a deliberate structural shape over `postfixOp` and `postfixTargetOp` so the read and write paths ask one function; the caller already holds the tree",
 };
 
 function walk(dir: string): string[] {
