@@ -1697,17 +1697,12 @@ export default class CodeGenerator implements IOrchestrator {
     return StringUtils.literalLength(literal);
   }
 
-  /** Get string concatenation operands if expression is a concat */
-  getStringConcatOperands(
-    ctx: Parser.ExpressionContext,
-  ): IStringConcatOps | null {
-    return this._getStringConcatOperands(ctx);
-  }
-
-  /** Get substring operands if expression is a substring call */
-  getSubstringOperands(ctx: Parser.ExpressionContext): ISubstringOps | null {
-    return this._getSubstringOperands(ctx);
-  }
+  // #1445 box 3: `getStringConcatOperands` and `getSubstringOperands` stood
+  // here as public delegates to the `_`-prefixed pair below. Their only
+  // reachable caller was `IOrchestrator`, and no generator ever called either
+  // -- so removing the declarations left them dead, which `knip` reported
+  // (#1556's `classMembers`, doing exactly what it was added for). The private
+  // originals keep their in-file callers.
 
   // === Parameter Management (IOrchestrator A4) ===
 

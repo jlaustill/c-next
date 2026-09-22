@@ -11,17 +11,11 @@
  * - Testing generators with mock orchestrators
  * - Gradual migration via "strangler fig" pattern
  */
-import type ISubstringOps from "../types/ISubstringOps";
-import type IPlannedRegister from "../types/IPlannedRegister";
 import type IPlannedFunctionParameter from "../types/IPlannedFunctionParameter";
-import type IPlannedDimension from "../types/IPlannedDimension";
-import type IPlannedCallArgument from "../types/IPlannedCallArgument";
-import type IStringConcatOps from "../types/IStringConcatOps";
 import IGeneratorInput from "./IGeneratorInput";
 import IGeneratorState from "./IGeneratorState";
 import TGeneratorEffect from "./TGeneratorEffect";
 import TTypeInfo from "../../../../transpiler/types/TTypeInfo";
-import * as Parser from "../../../../PARSE/2-Parse/grammar/CNextParser";
 
 interface IOrchestrator {
   // === State Access ===
@@ -49,24 +43,6 @@ interface IOrchestrator {
   // These methods allow extracted generators to call back into CodeGenerator
   // for parts not yet extracted, enabling incremental "strangler fig" migration.
 
-  /** Generate a C expression from any expression context */
-  generateExpression(ctx: Parser.ExpressionContext): string;
-
-  /**
-   * Issue #477: Generate a C expression with a specific expected type context.
-   * Used by return statements to resolve unqualified enum values.
-   */
-  generateExpressionWithExpectedType(
-    ctx: Parser.ExpressionContext,
-    expectedType: string,
-  ): string;
-
-  /** Generate type translation (C-Next type -> C type) */
-  generateType(ctx: Parser.TypeContext): string;
-
-  /** Generate a postfix expression */
-  generatePostfixExpr(ctx: Parser.PostfixExpressionContext): string;
-
   // === Type Utilities ===
 
   /** Check if a type name is a known struct */
@@ -84,15 +60,6 @@ interface IOrchestrator {
   /** Issue #322: Check if a type is a struct type */
   isStructType(typeName: string): boolean;
 
-  /** Get the raw type name without C conversion */
-  getTypeName(ctx: Parser.TypeContext): string;
-
-  /** Try to evaluate a constant expression at compile time */
-  tryEvaluateConstant(ctx: Parser.ExpressionContext): number | undefined;
-
-  /** Get zero initializer for a type (e.g., "0", "{0}", "false") */
-  getZeroInitializer(typeCtx: Parser.TypeContext, isArray: boolean): string;
-
   /**
    * Brace that zero-initializes a whole aggregate -- `{}` in C++, `{0}` in C.
    * #1568: the ADR-029 init function needs it for the struct as a whole, and
@@ -102,19 +69,7 @@ interface IOrchestrator {
 
   // === Expression Analysis ===
 
-  /** Get the enum type of an expression, if any */
-  getExpressionEnumType(ctx: Parser.ExpressionContext): string | null;
-
   // === Function Call Helpers ===
-
-  /** Get simple identifier from expression, or null if complex */
-  getSimpleIdentifier(ctx: Parser.ExpressionContext): string | null;
-
-  /** Generate function argument with pass-by-reference handling */
-  generateFunctionArg(
-    ctx: Parser.ExpressionContext,
-    targetParamBaseType?: string,
-  ): string;
 
   /** Get known enums set for pass-by-value detection */
   getKnownEnums(): ReadonlySet<string>;
@@ -125,19 +80,10 @@ interface IOrchestrator {
   /** Issue #304: Check if a type is a C++ enum class (needs :: syntax and explicit casts) */
   isCppEnumClass(typeName: string): boolean;
 
-  /** Issue #304: Get the expression type */
-  getExpressionType(ctx: Parser.ExpressionContext): string | null;
-
   /** Issue #269: Check if a parameter is pass-by-value (small unmodified primitive) */
   isParameterPassByValue(funcName: string, paramIndex: number): boolean;
 
   // === Statement Generation ===
-
-  /** Generate a block (curly braces with statements) */
-  generateBlock(ctx: Parser.BlockContext): string;
-
-  /** Generate a single statement */
-  generateStatement(ctx: Parser.StatementContext): string;
 
   /**
    * Issue #250: Flush pending temp variable declarations.
@@ -151,15 +97,6 @@ interface IOrchestrator {
   indent(text: string): string;
 
   // === Control Flow Helpers ===
-
-  /** Generate an assignment target */
-  generateAssignmentTarget(ctx: Parser.AssignmentTargetContext): string;
-
-  /** Generate array dimensions */
-  generateArrayDimensions(dims: Parser.ArrayDimensionContext[]): string;
-
-  /** Generate single array dimension */
-  generateArrayDimension(dim: Parser.ArrayDimensionContext): string;
 
   // === strlen Optimization ===
 
@@ -189,58 +126,8 @@ interface IOrchestrator {
 
   // === Declaration Generation ===
 
-  /**
-   * An ADR-004 register binding, decided (#1445).
-   *
-   * On the orchestrator because there are TWO dispatchers -- file scope and
-   * inside a scope -- and both already hold it. Planning at each would be two
-   * derivations of one register; see `IPlannedRegister`.
-   */
-  planRegister(ctx: Parser.RegisterDeclarationContext): IPlannedRegister;
-
-  /**
-   * An array TYPE's dimensions, decided (#1445).
-   *
-   * On the orchestrator because both callers of the renderer hold the tree --
-   * a struct field's planner and a scope variable's generator -- and two
-   * readers of one shape is the duplicate derivation CLAUDE.md forbids.
-   *
-   * Null when the type is not an array type.
-   */
-  planArrayTypeDimensions(
-    ctx: Parser.ArrayTypeContext | null,
-  ): readonly IPlannedDimension[] | null;
-
-  /**
-   * A bounded string type's declared capacity, or null when the type is not
-   * one. The null terminator is the renderer's to add.
-   */
-  planStringCapacity(ctx: Parser.TypeContext): number | null;
-
-  /**
-   * A call's arguments, decided (#1445).
-   *
-   * Null when the call declares no argument list -- which is not the same as
-   * an empty one: the grammar's `argumentList` admits no empty case, and the
-   * call generator's zero-argument early return depends on that distinction.
-   */
-  planCallArguments(
-    ctx: Parser.ArgumentListContext | null,
-  ): readonly IPlannedCallArgument[] | null;
-
-  /** Generate parameter list for function signature */
-  generateParameterList(ctx: Parser.ParameterListContext): string;
-
   /** Get the length of a string literal (excluding quotes and null terminator) */
   getStringLiteralLength(literal: string): number;
-
-  /** Get string concatenation operands if expression is a concat */
-  getStringConcatOperands(
-    ctx: Parser.ExpressionContext,
-  ): IStringConcatOps | null;
-
-  /** Get substring operands if expression is a substring call */
-  getSubstringOperands(ctx: Parser.ExpressionContext): ISubstringOps | null;
 
   // === Parameter Management ===
 
@@ -256,14 +143,6 @@ interface IOrchestrator {
    * convention that registerCallbackType owns.
    */
   getCallbackTypedefName(typeName: string): string | null;
-
-  /**
-   * ADR-029: the C type a DECLARATION of this type emits -- the `_fp` typedef
-   * for a function-as-type, the type itself otherwise. Every declaration site
-   * asks this rather than pairing generateType with getCallbackTypedefName
-   * itself (#1484).
-   */
-  generateDeclaredType(typeCtx: Parser.TypeContext): string;
 
   /**
    * ADR-029 / Issues #1201, #1212: record that this function needs a callback
@@ -303,17 +182,6 @@ interface IOrchestrator {
     parameters: readonly IPlannedFunctionParameter[] | null,
   ): void;
 
-  /**
-   * The parameters a function's context registers, decided (#1445).
-   *
-   * On the orchestrator because `enterFunctionContext` has TWO callers -- a
-   * file-scope function and a scoped one -- and planning at each would be two
-   * derivations of one parameter list.
-   */
-  planFunctionParameters(
-    ctx: Parser.ParameterListContext | null,
-  ): readonly IPlannedFunctionParameter[] | null;
-
   exitFunctionContext(): void;
 
   // === Function Body Management ===
@@ -323,12 +191,6 @@ interface IOrchestrator {
 
   /** Exit function body - clears local variables and inFunctionBody flag */
   exitFunctionBody(): void;
-
-  /** Check if this is main function with args parameter */
-  isMainFunctionWithArgs(
-    name: string,
-    paramList: Parser.ParameterListContext | null,
-  ): boolean;
 
   /** Generate callback typedef for a function */
 
@@ -357,9 +219,6 @@ interface IOrchestrator {
   isCurrentParameter(name: string): boolean;
 
   // === Postfix Expression Helpers (Issue #644) ===
-
-  /** Generate a primary expression */
-  generatePrimaryExpr(ctx: Parser.PrimaryExpressionContext): string;
 
   /** Check if a name is a known scope */
   isKnownScope(name: string): boolean;

@@ -36,7 +36,7 @@ function createMockExpressionContext(text: string): Parser.ExpressionContext {
  * may happen per argument.
  */
 function planArguments(
-  orchestrator: IOrchestrator,
+  orchestrator: IArgumentPlannerStub,
   expressions: Parser.ExpressionContext[],
 ): readonly IPlannedCallArgument[] {
   return expressions.map((expression) => ({
@@ -79,9 +79,28 @@ function createMockState(): IGeneratorState {
   return TestGeneratorState.create();
 }
 
+/**
+ * The four planner operations this file stands in for.
+ *
+ * #1445 box 3: they used to be declared on `IOrchestrator`, where **no
+ * production generator called them** -- they were interface surface kept alive
+ * by this test alone, and `IOrchestrator` named a parse type solely to declare
+ * them. Declared locally instead, so every per-case override below keeps
+ * working while the production interface sheds its last parse types.
+ */
+interface IArgumentPlannerStub {
+  getSimpleIdentifier(ctx: Parser.ExpressionContext): string | null;
+  getExpressionType(ctx: Parser.ExpressionContext): string | null;
+  generateExpression(ctx: Parser.ExpressionContext): string;
+  generateFunctionArg(
+    ctx: Parser.ExpressionContext,
+    targetParamBaseType?: string,
+  ): string;
+}
+
 function createMockOrchestrator(
-  overrides: Partial<IOrchestrator> = {},
-): IOrchestrator {
+  overrides: Partial<IOrchestrator & IArgumentPlannerStub> = {},
+): IOrchestrator & IArgumentPlannerStub {
   return {
     generateExpression: vi.fn((ctx: Parser.ExpressionContext) => ctx.getText()),
     generateFunctionArg: vi.fn(
@@ -103,7 +122,7 @@ function createMockOrchestrator(
     isCalleeParameterModified: vi.fn(() => false),
     markParameterModified: vi.fn(),
     ...overrides,
-  } as unknown as IOrchestrator;
+  } as unknown as IOrchestrator & IArgumentPlannerStub;
 }
 
 // ========================================================================

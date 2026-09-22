@@ -32,6 +32,20 @@ import createMockSymbols from "../../../../../../transpiler/__tests__/codeGenSym
 // Test Helpers - Mock Input
 // ========================================================================
 
+/**
+ * The two planner operations this file stands in for.
+ *
+ * #1445 box 3: both were declared on `IOrchestrator` and called by **no
+ * production generator** -- `PostfixExpressionGenerator` takes `renderPrimary`
+ * and `foldWidth` as thunks and never asks the orchestrator for either. They
+ * were interface surface this test kept alive, and declaring them locally is
+ * what lets `IOrchestrator` shed its last parse types.
+ */
+interface IPostfixPlannerStub {
+  generatePrimaryExpr(ctx: Parser.PrimaryExpressionContext): string;
+  tryEvaluateConstant(ctx: Parser.ExpressionContext): number | undefined;
+}
+
 function createMockInput(overrides?: {
   symbols?: ICodeGenSymbols;
   typeRegistry?: Map<string, TTypeInfo>;
@@ -122,7 +136,7 @@ function createMockOrchestrator(overrides?: {
   addPendingTempDeclaration?: (decl: string) => void;
   isFloatShadowCurrent?: (name: string) => boolean;
   markFloatShadowCurrent?: (name: string) => void;
-}): IOrchestrator {
+}): IOrchestrator & IPostfixPlannerStub {
   return {
     getInput: vi.fn(),
     getState: vi.fn(),
@@ -211,7 +225,7 @@ function createMockOrchestrator(overrides?: {
     markFloatShadowCurrent: overrides?.markFloatShadowCurrent ?? vi.fn(),
     hasFloatBitShadow: overrides?.hasFloatBitShadow ?? vi.fn(() => false),
     isFloatShadowCurrent: overrides?.isFloatShadowCurrent ?? vi.fn(() => false),
-  } as unknown as IOrchestrator;
+  } as unknown as IOrchestrator & IPostfixPlannerStub;
 }
 
 // ========================================================================
@@ -313,7 +327,7 @@ function runPostfix(
   plan: IMockPostfixPlan,
   input: IGeneratorInput,
   state: IGeneratorState,
-  orchestrator: IOrchestrator,
+  orchestrator: IOrchestrator & IPostfixPlannerStub,
 ) {
   return generatePostfixExpression(
     {
