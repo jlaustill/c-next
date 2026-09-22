@@ -4930,14 +4930,16 @@ export default class CodeGenerator implements IOrchestrator {
           );
     });
 
-    // Track the variable in type registry (as an external C++ type)
+    // Track the variable in type registry. #375 also set an
+    // `isExternalCppType` flag here; it was written at this one site and read
+    // at none, from #375 (closed 2026-01-24) until it was removed. knip does
+    // not analyze interface members, so nothing reported it.
     CodeGenState.setVariableTypeInfo(name, {
       baseType: type,
       bitWidth: 0, // Unknown for C++ types
       isArray: false,
       arrayDimensions: [],
       isConst: false,
-      isExternalCppType: true,
     });
 
     // Track as local variable if inside function body
