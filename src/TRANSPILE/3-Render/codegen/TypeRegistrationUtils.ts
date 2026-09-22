@@ -8,16 +8,8 @@
 
 import CodeGenState from "../../../transpiler/state/CodeGenState";
 import TOverflowBehavior from "../../../transpiler/types/TOverflowBehavior";
-
-/**
- * Minimal symbol info interface for type registration.
- * Subset of ISymbolInfo used by registration helpers.
- */
-interface ITypeSymbols {
-  knownEnums: ReadonlySet<string>;
-  knownBitmaps: ReadonlySet<string>;
-  bitmapBitWidth: ReadonlyMap<string, number>;
-}
+import type IDeclaredTypeSets from "../../../transpiler/types/IDeclaredTypeSets";
+import DeclaredTypeFacts from "../../../utils/DeclaredTypeFacts";
 
 /**
  * Common options for type registration.
@@ -40,7 +32,7 @@ class TypeRegistrationUtils {
    * Returns true if the type was a known enum and was registered.
    */
   static tryRegisterEnumType(
-    symbols: ITypeSymbols,
+    symbols: IDeclaredTypeSets,
     options: ITypeRegistrationOptions,
   ): boolean {
     if (!symbols.knownEnums.has(options.baseType)) {
@@ -49,13 +41,13 @@ class TypeRegistrationUtils {
 
     CodeGenState.setVariableTypeInfo(options.name, {
       baseType: options.baseType,
-      bitWidth: 0,
       isArray: false,
       isConst: options.isConst,
-      isEnum: true,
-      enumTypeName: options.baseType,
       overflowBehavior: options.overflowBehavior,
       isAtomic: options.isAtomic,
+      // An enum registers width 0 and is widened to ADR-017's 32 bits where it
+      // is used, which is why the fallback here is 0 rather than a lookup.
+      ...DeclaredTypeFacts.of(options.baseType, symbols, 0),
     });
 
     return true;
@@ -68,7 +60,7 @@ class TypeRegistrationUtils {
    * Handles both array and non-array bitmap types.
    */
   static tryRegisterBitmapType(
-    symbols: ITypeSymbols,
+    symbols: IDeclaredTypeSets,
     options: ITypeRegistrationOptions,
     arrayDimensions: number[] | undefined,
   ): boolean {
@@ -76,34 +68,20 @@ class TypeRegistrationUtils {
       return false;
     }
 
-    const bitWidth = symbols.bitmapBitWidth.get(options.baseType) || 0;
+    // The two branches this replaces differed in `isArray` and nothing else,
+    // and each spelled the bitmap quintuple out again -- two more places to
+    // miss a field, inside the one function that had it right.
+    const isArray = arrayDimensions !== undefined && arrayDimensions.length > 0;
 
-    if (arrayDimensions && arrayDimensions.length > 0) {
-      // Bitmap array
-      CodeGenState.setVariableTypeInfo(options.name, {
-        baseType: options.baseType,
-        bitWidth,
-        isArray: true,
-        arrayDimensions,
-        isConst: options.isConst,
-        isBitmap: true,
-        bitmapTypeName: options.baseType,
-        overflowBehavior: options.overflowBehavior,
-        isAtomic: options.isAtomic,
-      });
-    } else {
-      // Non-array bitmap
-      CodeGenState.setVariableTypeInfo(options.name, {
-        baseType: options.baseType,
-        bitWidth,
-        isArray: false,
-        isConst: options.isConst,
-        isBitmap: true,
-        bitmapTypeName: options.baseType,
-        overflowBehavior: options.overflowBehavior,
-        isAtomic: options.isAtomic,
-      });
-    }
+    CodeGenState.setVariableTypeInfo(options.name, {
+      baseType: options.baseType,
+      isArray,
+      ...(isArray && { arrayDimensions }),
+      isConst: options.isConst,
+      overflowBehavior: options.overflowBehavior,
+      isAtomic: options.isAtomic,
+      ...DeclaredTypeFacts.of(options.baseType, symbols, 0),
+    });
 
     return true;
   }

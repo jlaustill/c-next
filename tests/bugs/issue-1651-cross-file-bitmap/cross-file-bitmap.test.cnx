@@ -1,0 +1,63 @@
+// test-execution
+// test-no-warnings
+// test-adr: 034
+// #1651: a bitmap field assignment emitted a STRUCT member write when the
+// bitmap-typed variable was declared in an included file.
+//
+//     shared.Active <- 1      same file  ->  shared = (shared & ~(1U << 0)) | ...
+//     shared.Active <- 1      one hop    ->  shared.Active = 1
+//
+// `Flags` is a bitmap typedef -- a scalar -- so the cross-file form is a member
+// access on an integer and gcc refuses it outright:
+//
+//     error: request for member 'Active' in something not a structure or union
+//
+// with the transpiler exiting 0.
+//
+// CAUSE. `AssignmentClassifier` decides bitmap-field-write from the target's
+// type info, and the cross-file path built that info through
+// `convertTSymbolToTypeInfo`, which did not set `isBitmap`. The classifier saw
+// an ordinary member access and dispatched the struct handler.
+//
+// This is #1303 again -- *"ADR-044 clamp is silently dropped for a u8 declared
+// in an included .cnx -- same statement clamps locally, wraps cross-file"* --
+// and it has the same fix: carry the fact on the symbol instead of re-deriving
+// it after the boundary. A second derivation that happens to agree same-file is
+// what both bugs are made of.
+//
+// `local` is the NEGATIVE CONTROL: a bitmap declared in THIS file, which was
+// always correct and must stay correct. A fix that made the cross-file path
+// work by breaking the local one fails here.
+#include "lib/flags.cnx"
+
+bitmap8 LocalFlags {
+    On[1],
+    Mode[3],
+    Spare[4]
+}
+
+LocalFlags local <- 0;
+
+u32 main() {
+    // Cross-file bitmap: the case that emitted a struct member write.
+    shared.Active <- 1;
+    shared.Level <- 5;
+
+    // Same-file bitmap: the control.
+    local.On <- 1;
+    local.Mode <- 3;
+
+    if (shared.Active != 1) {
+        return 1;
+    }
+    if (shared.Level != 5) {
+        return 2;
+    }
+    if (local.On != 1) {
+        return 3;
+    }
+    if (local.Mode != 3) {
+        return 4;
+    }
+    return 0;
+}

@@ -42,6 +42,7 @@ import IAssignmentOverflowContext from "../types/IAssignmentOverflowContext";
 import TYPE_WIDTH from "../constants/TYPE_WIDTH";
 import UNRESOLVED_DIMENSION from "../constants/UNRESOLVED_DIMENSION";
 import type ICodeGenApi from "../types/ICodeGenApi";
+import DeclaredTypeFacts from "../../utils/DeclaredTypeFacts";
 import TypeResolver from "../../utils/TypeResolver";
 import OutputExtensions from "../../utils/OutputExtensions";
 import type IOutputExtensions from "../types/IOutputExtensions";
@@ -1273,11 +1274,21 @@ export default class CodeGenState {
     // Use char for string types to match local convention
     const baseType = isString ? "char" : typeName;
 
-    const isEnum = this.isKnownEnum(baseType);
+    // #1651: this converter is the CROSS-FILE path, and it used to answer the
+    // enum question here and not the bitmap one -- so `shared.Active <- 1` one
+    // include hop from the declaration classified as a struct member write and
+    // emitted `shared.Active = 1`, a member access on a scalar that gcc
+    // refuses, while the identical statement same-file lowered to mask-and-
+    // shift. The classification is derived in one place now; see
+    // `DeclaredTypeFacts` for why all five fields travel together.
+    const declared = DeclaredTypeFacts.of(
+      baseType,
+      this.symbols,
+      isString ? 8 : TYPE_WIDTH[baseType] || 0,
+    );
 
     return {
       baseType,
-      bitWidth: isString ? 8 : TYPE_WIDTH[baseType] || 0,
       isArray: symbol.isArray || false,
       // #1360: keep the slot. Filtering a dimension that cannot be folded out shifted
       // every dimension after it, so a cross-file `u8[BUF_SIZE][3]` arrived as
@@ -1302,8 +1313,7 @@ export default class CodeGenState {
       // #1303: the declared ADR-044 behavior, carried on the symbol so an
       // imported `u8` arrives saturating rather than silently wrapping.
       overflowBehavior: symbol.overflowBehavior,
-      isEnum,
-      enumTypeName: isEnum ? baseType : undefined,
+      ...declared,
       isString,
       stringCapacity,
     };

@@ -19,6 +19,7 @@
  * fourth walk here.
  */
 
+import DeclaredTypeFacts from "../../../../utils/DeclaredTypeFacts";
 import CodeGenState from "../../../../transpiler/state/CodeGenState";
 import TYPE_WIDTH from "../../../../transpiler/constants/TYPE_WIDTH";
 import IFunctionContextCallbacks from "../types/IFunctionContextCallbacks";
@@ -245,8 +246,11 @@ class FunctionContextManager {
     const { typeName, isString } = typeInfo;
     const { name, isArray, isConst } = param;
 
-    const isEnum = CodeGenState.symbols!.knownEnums.has(typeName);
-    const isBitmap = CodeGenState.symbols!.knownBitmaps.has(typeName);
+    const declared = DeclaredTypeFacts.of(
+      typeName,
+      CodeGenState.symbols,
+      TYPE_WIDTH[typeName] || 0,
+    );
 
     const arrayDimensions = [...param.arrayDimensions];
 
@@ -262,16 +266,10 @@ class FunctionContextManager {
 
     const registeredType = {
       baseType: typeName,
-      bitWidth: isBitmap
-        ? CodeGenState.symbols!.bitmapBitWidth.get(typeName) || 0
-        : TYPE_WIDTH[typeName] || 0,
       isArray,
       arrayDimensions: arrayDimensions.length > 0 ? arrayDimensions : undefined,
       isConst,
-      isEnum,
-      enumTypeName: isEnum ? typeName : undefined,
-      isBitmap,
-      bitmapTypeName: isBitmap ? typeName : undefined,
+      ...declared,
       isString,
       stringCapacity,
       isParameter: true,
