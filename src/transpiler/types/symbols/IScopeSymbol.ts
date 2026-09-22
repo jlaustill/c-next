@@ -26,7 +26,15 @@ interface IScopeSymbol extends IBaseSymbol {
   /** Functions in this scope */
   readonly functions: IFunctionSymbol[];
 
-  /** Variables in this scope */
+  /**
+   * Variables in this scope.
+   *
+   * #1652: `unknown[]` here is SYMBOLS, never parse nodes -- the element type
+   * is left open because `IVariableSymbol` would close a cycle through
+   * `TSymbol`. Recorded because the shape is the one that hid live parse
+   * contexts elsewhere, and `scripts/__tests__/unknown-carriers.test.ts` keys
+   * its roster on exactly this spelling.
+   */
   readonly variables: unknown[];
 
   /** Visibility of each member */

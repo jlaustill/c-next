@@ -1038,12 +1038,12 @@ class CodeGenWalker implements ICodeGenApi {
     // private helpers only to hand it back -- so the node stays here, where
     // the tree already is.
     return ArgumentGenerator.generateArg(simpleId, targetParamBaseType, {
+      generateExpression: () => this.generateExpression(ctx),
       getLvalueType: () => this.getLvalueType(ctx),
       getMemberAccessArrayStatus: () => this.getMemberAccessArrayStatus(ctx),
       isCppMemberConversionRequired: (t) =>
         this.isCppMemberConversionRequired(ctx, t),
       isStringSubscriptAccess: () => this.isStringSubscriptAccess(ctx),
-      generateExpression: () => this.generateExpression(ctx),
     });
   }
 
@@ -4796,10 +4796,17 @@ class CodeGenWalker implements ICodeGenApi {
   private _extractPostfixOperations(
     postfixOps: Parser.PostfixTargetOpContext[],
   ): IPostfixOperation[] {
-    return postfixOps.map((op) => ({
-      memberName: op.IDENTIFIER()?.getText() ?? null,
-      expressions: op.expression(),
-    }));
+    return postfixOps.map((op) => {
+      const expressions = op.expression();
+      return {
+        memberName: op.IDENTIFIER()?.getText() ?? null,
+        indexCount: expressions.length,
+        // #1652: the nodes stay closed over HERE, in the walk. What crosses
+        // into the render layer is a count and a function returning strings.
+        renderIndexes: () =>
+          expressions.map((expr) => this.generateExpression(expr)),
+      };
+    });
   }
 
   /**
@@ -4832,8 +4839,6 @@ class CodeGenWalker implements ICodeGenApi {
       );
 
     return {
-      generateExpression: (expr: unknown) =>
-        this.generateExpression(expr as Parser.ExpressionContext),
       getSeparator: (isFirstOp: boolean, identifierChain: string[]) =>
         MemberSeparatorResolver.getSeparator(
           isFirstOp,

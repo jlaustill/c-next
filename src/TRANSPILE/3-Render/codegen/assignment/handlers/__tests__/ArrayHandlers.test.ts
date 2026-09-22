@@ -59,9 +59,9 @@ function createMockContext(
     // order, without a fake node to hang it on.
     subscriptCount: 1,
     renderSubscript: () =>
-      CodeGenState.requireGenerator().generateExpression(null as never),
+      HandlerTestUtils.planner().generateExpression(null as never),
     foldSubscript: () =>
-      CodeGenState.requireGenerator().tryEvaluateConstant(null as never),
+      HandlerTestUtils.planner().tryEvaluateConstant(null as never),
     isCompound: false,
     cnextOp: "<-",
     cOp: "=",
@@ -75,7 +75,7 @@ function createMockContext(
     valueExpressionType: () => mockGetExpressionType(null),
     valueIntegerType: () => mockGetIntegerExpressionType(null),
     foldValue: () =>
-      CodeGenState.requireGenerator().tryEvaluateConstant(null as never),
+      HandlerTestUtils.planner().tryEvaluateConstant(null as never),
     postfixOps: [],
     leadingSubscriptCount: 1,
     hasThis: false,

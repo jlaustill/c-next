@@ -36,17 +36,15 @@ function createMockContext(
     // `generateAssignmentTarget` or `analyzeMemberChainForBitAccess` still
     // controls what this returns.
     renderTarget: () =>
-      CodeGenState.requireGenerator().generateAssignmentTarget(null as never),
+      HandlerTestUtils.planner().generateAssignmentTarget(null as never),
     analyzeTargetForBitAccess: () =>
-      CodeGenState.requireGenerator().analyzeMemberChainForBitAccess(
-        null as never,
-      ),
+      HandlerTestUtils.planner().analyzeMemberChainForBitAccess(null as never),
     targetLine: 1,
     hasValue: true,
     valueExpressionType: () => null,
     valueIntegerType: () => null,
     foldValue: () =>
-      CodeGenState.requireGenerator().tryEvaluateConstant(null as never),
+      HandlerTestUtils.planner().tryEvaluateConstant(null as never),
     postfixOps: [],
     leadingSubscriptCount: 0,
     resolvedTarget,

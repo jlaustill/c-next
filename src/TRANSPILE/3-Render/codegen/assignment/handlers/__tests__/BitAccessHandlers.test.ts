@@ -34,17 +34,15 @@ function createMockContext(
     // `generateAssignmentTarget` or `analyzeMemberChainForBitAccess` still
     // controls what this returns.
     renderTarget: () =>
-      CodeGenState.requireGenerator().generateAssignmentTarget(null as never),
+      HandlerTestUtils.planner().generateAssignmentTarget(null as never),
     analyzeTargetForBitAccess: () =>
-      CodeGenState.requireGenerator().analyzeMemberChainForBitAccess(
-        null as never,
-      ),
+      HandlerTestUtils.planner().analyzeMemberChainForBitAccess(null as never),
     targetLine: 1,
     hasValue: true,
     valueExpressionType: () => null,
     valueIntegerType: () => null,
     foldValue: () =>
-      CodeGenState.requireGenerator().tryEvaluateConstant(null as never),
+      HandlerTestUtils.planner().tryEvaluateConstant(null as never),
     postfixOps: [],
     leadingSubscriptCount: 0,
     hasThis: false,
@@ -414,7 +412,7 @@ describe("BitAccessHandlers", () => {
           kind: "subscript" as const,
           indexCount: 1,
           renderIndexes: () => [
-            CodeGenState.requireGenerator().generateExpression(null as never),
+            HandlerTestUtils.planner().generateExpression(null as never),
           ],
         },
         { kind: "member" as const, name: "control" },
@@ -422,8 +420,8 @@ describe("BitAccessHandlers", () => {
           kind: "subscript" as const,
           indexCount: 2,
           renderIndexes: () => [
-            CodeGenState.requireGenerator().generateExpression(null as never),
-            CodeGenState.requireGenerator().generateExpression(null as never),
+            HandlerTestUtils.planner().generateExpression(null as never),
+            HandlerTestUtils.planner().generateExpression(null as never),
           ],
         },
       ];

@@ -40,11 +40,47 @@ function setupMockSymbols(overrides: Partial<ICodeGenSymbols> = {}): void {
 }
 
 /**
+ * The node-taking operations these tests stand in for.
+ *
+ * #1652: these four used to be declared on `ICodeGenApi` as `ctx: unknown`, and
+ * that file said why -- naming the type would have put the production contract
+ * in the `parse-tree-confined-to-parser` population. So the contract pretended
+ * not to hold a parse node while holding one, and the gate read clean.
+ *
+ * They had **no production caller**. Declared here instead, where a parse node
+ * is honest: `__tests__/` is excluded from that population on purpose, because
+ * a fixture builds a tree because that is what it is testing.
+ */
+interface ITestPlanner {
+  generateExpression(ctx: unknown): string;
+  generateAssignmentTarget(ctx: unknown): string;
+  tryEvaluateConstant(ctx: unknown): number | undefined;
+  analyzeMemberChainForBitAccess(ctx: unknown): { isBitAccess: boolean };
+}
+
+/**
+ * The mock the current test installed, reached DIRECTLY.
+ *
+ * #1652: the helpers used to route back through
+ * `CodeGenState.requireGenerator()`, which is what kept the four members alive
+ * on the production interface. A test holding its own mock needs no production
+ * contract to hand it back.
+ */
+let installed: (ICodeGenApi & ITestPlanner) | null = null;
+
+function planner(): ITestPlanner {
+  if (!installed) {
+    throw new Error("call HandlerTestUtils.setupMockGenerator() first");
+  }
+  return installed;
+}
+
+/**
  * Set up mock generator on CodeGenState.
  * Common generator methods are pre-mocked with sensible defaults.
  */
 function setupMockGenerator(overrides: Record<string, unknown> = {}): void {
-  CodeGenState.generator = {
+  installed = {
     generateAssignmentTarget: vi.fn().mockReturnValue("target"),
     generateExpression: vi
       .fn()
@@ -59,7 +95,10 @@ function setupMockGenerator(overrides: Record<string, unknown> = {}): void {
     isKnownScope: vi.fn().mockReturnValue(false),
     isKnownStruct: vi.fn().mockReturnValue(false),
     ...overrides,
-  } as unknown as ICodeGenApi;
+  } as unknown as ICodeGenApi & ITestPlanner;
+
+  // Only the members production actually reaches through this door.
+  CodeGenState.generator = installed;
 }
 
 /**
@@ -67,7 +106,7 @@ function setupMockGenerator(overrides: Record<string, unknown> = {}): void {
  * generator.
  *
  * #1445: the context used to hand the handlers a node, which they passed to
- * `CodeGenState.requireGenerator().generateExpression(...)`. It hands them a
+ * `planner().generateExpression(...)`. It hands them a
  * render now, so the cases keep their stand-in nodes -- the default mock reads
  * `mockValue` off one, and several cases override `generateExpression` or
  * `tryEvaluateConstant` outright -- and this routes through the same mock in
@@ -80,12 +119,8 @@ function subscriptsOf(nodes: readonly unknown[]): {
 } {
   return {
     subscriptCount: nodes.length,
-    renderSubscript: (index) =>
-      CodeGenState.requireGenerator().generateExpression(nodes[index] as never),
-    foldSubscript: (index) =>
-      CodeGenState.requireGenerator().tryEvaluateConstant(
-        nodes[index] as never,
-      ),
+    renderSubscript: (index) => planner().generateExpression(nodes[index]),
+    foldSubscript: (index) => planner().tryEvaluateConstant(nodes[index]),
   };
 }
 
@@ -137,5 +172,6 @@ export default class HandlerTestUtils {
   static readonly setupMockSymbols = setupMockSymbols;
   static readonly setupMockGenerator = setupMockGenerator;
   static readonly subscriptsOf = subscriptsOf;
+  static readonly planner = planner;
   static readonly setupMockTypeRegistry = setupMockTypeRegistry;
 }

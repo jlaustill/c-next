@@ -4,6 +4,8 @@
  */
 import { ParserRuleContext } from "antlr4ng";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
+import ArrayDimensionParser from "../../utils/ArrayDimensionParser";
+import dimensionEvalOptions from "./dimensionEvalOptions";
 import CodeGenState from "../../transpiler/state/CodeGenState";
 import INTEGER_TYPES from "../../transpiler/types/INTEGER_TYPES";
 import FLOAT_TYPES from "../../transpiler/types/FLOAT_TYPES";
@@ -438,7 +440,17 @@ class ExpressionTypeResolver {
     // offset/length use — so a named const or any-base literal width
     // (`b[0, WIDTH]`, `b[0, 0b100000]`) is sized at its real width rather than
     // dropped, which would mis-type a composite slice source (Issue #1085 review).
-    const evaluated = CodeGenState.generator?.tryEvaluateConstant(widthExpr);
+    // #1652: this went through `CodeGenState.generator?.tryEvaluateConstant`,
+    // whose parameter was typed `unknown` so the production contract would stay
+    // out of the parse-tree population while carrying a parse node. The member
+    // it reached was a ONE-LINE delegate to exactly the call below, so the
+    // laundering bought nothing. This module already names parse types -- it
+    // takes a `PostfixExpressionContext` six lines up -- so calling the
+    // evaluator directly is both shorter and honest.
+    const evaluated = ArrayDimensionParser.parseSingleDimension(
+      widthExpr,
+      dimensionEvalOptions(),
+    );
     if (evaluated !== undefined) {
       return evaluated > 0 ? evaluated : null;
     }

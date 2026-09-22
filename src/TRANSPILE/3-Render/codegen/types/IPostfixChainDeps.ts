@@ -3,7 +3,9 @@
  */
 interface IPostfixChainDeps {
   /** Generate an expression to a string */
-  generateExpression(expr: unknown): string;
+  // #1652: `generateExpression(expr: unknown)` stood here and was the door the
+  // parse nodes came through. `IPostfixOperation` carries a render thunk now,
+  // so the builder never sees an expression at all and this dep has no reader.
 
   /** Get separator for member access */
   getSeparator(isFirstOp: boolean, identifierChain: string[]): string;
