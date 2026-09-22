@@ -75,7 +75,6 @@ import ParserUtils from "../utils/ParserUtils";
 import ITranspilerConfig from "./types/ITranspilerConfig";
 import ITranspilerResult from "./types/ITranspilerResult";
 import IFileResult from "./types/IFileResult";
-import IDeclaredFile from "./types/IDeclaredFile";
 import IPipelineFile from "./types/IPipelineFile";
 import IPipelineInput from "./types/IPipelineInput";
 import TTranspileInput from "./types/TTranspileInput";
@@ -195,7 +194,23 @@ class Transpiler {
    */
   private program: IProgram | null = null;
 
-  private readonly declaredFiles = new Map<string, IDeclaredFile>();
+  /**
+   * The parses retained for Stage 5, keyed by source path.
+   *
+   * #1445 box 2: this was a `Map<string, IDeclaredFile>`, and `IDeclaredFile`
+   * was `{ parsed: IParsedFile; symbols: readonly TSymbol[] }` -- so the record
+   * 1.3 appeared to hand forward RE-EXPORTED the tree, which is the one thing
+   * the lifetime rule forbids. It was never 1.3's artifact: `_declareFile`
+   * returns `IFileSymbols`, and this map came from #1301 purely so Stage 5
+   * could reuse Stage 3's parse.
+   *
+   * Its `symbols` half had **no reader** -- every use of the map reached
+   * `.parsed` and nothing else -- so the bundle was carrying a dead field in
+   * order to look like an artifact. Holding 1.2's artifact under its own name
+   * says what is true: retention is the ORCHESTRATOR's bookkeeping, not
+   * something a pass passes on.
+   */
+  private readonly retainedParses = new Map<string, IParsedFile>();
 
   /**
    * Issue #593: Centralized analyzer for cross-file const inference in C++ mode.
@@ -379,7 +394,11 @@ class Transpiler {
       // and a throw -- that one could never observe a non-empty map, so deleting it
       // reddened nothing. Two sites for one invariant is the duplication CLAUDE.md
       // calls the worst anti-pattern, and the unreachable half is the #1143 shape.
-      this.declaredFiles.clear();
+      this.retainedParses.clear();
+
+      // #1445 box 2: the walker holds the token stream and the comment scanner
+      // over it on its own fields, which the map clear above cannot reach.
+      this.codeGenerator.releaseParseState();
     }
   }
 
@@ -823,7 +842,7 @@ class Transpiler {
       // design's one real expense, so it is not paid for a consumer that does not
       // exist.
       if (Transpiler._producesOutput(file)) {
-        this.declaredFiles.set(file.path, { parsed, symbols: tSymbols });
+        this.retainedParses.set(file.path, parsed);
       }
 
       // ADR-055 Phase 7: Store TSymbol directly in SymbolTable (no ISymbol conversion)
@@ -903,14 +922,14 @@ class Transpiler {
     AdrProvenance.beginFile(sourcePath);
 
     try {
-      const declared = this._requireDeclared(sourcePath);
+      const parsed = this._requireRetainedParse(sourcePath);
 
       this._establishPerFileCodeGenState(file, sourcePath);
 
       // #1322: the ADR-010 include facts are handed in rather than read off
       // CodeGenState, whose `sourcePath` is not written until `generate()` and
       // so holds another file's value here.
-      return runAnalyzers(declared.parsed.tree, declared.parsed.comments, {
+      return runAnalyzers(parsed.tree, parsed.comments, {
         cppMode: this.cppMode,
         includes: {
           sourcePath,
@@ -938,7 +957,7 @@ class Transpiler {
     const sourcePath = file.path;
     const errors = diagnostics.forFile(sourcePath);
     const declarationCount =
-      this.declaredFiles.get(sourcePath)?.parsed.declarationCount ?? 0;
+      this.retainedParses.get(sourcePath)?.declarationCount ?? 0;
 
     return errors.length > 0
       ? this.buildErrorResult(sourcePath, [...errors], declarationCount)
@@ -962,8 +981,8 @@ class Transpiler {
    * guard. It surfaces as a user-facing `Code generation failed: ...` at line 1,
    * since the message carries no `N:M` prefix for `parseErrorLocation` to find.
    */
-  private _requireDeclared(sourcePath: string): IDeclaredFile {
-    const declared = this.declaredFiles.get(sourcePath);
+  private _requireRetainedParse(sourcePath: string): IParsedFile {
+    const declared = this.retainedParses.get(sourcePath);
     if (!declared) {
       throw new Error(
         `${sourcePath} reached code generation without being declared`,
@@ -1045,8 +1064,8 @@ class Transpiler {
     AdrProvenance.beginFile(sourcePath);
 
     try {
-      const declared = this._requireDeclared(sourcePath);
-      const { tree, tokenStream, declarationCount } = declared.parsed;
+      const { tree, tokenStream, declarationCount } =
+        this._requireRetainedParse(sourcePath);
 
       // Parse only mode
       if (this.config.parseOnly) {

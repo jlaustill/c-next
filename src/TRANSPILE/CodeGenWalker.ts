@@ -224,6 +224,26 @@ class CodeGenWalker implements ICodeGenApi {
 
   private readonly commentFormatter: CommentFormatter = new CommentFormatter();
 
+  /**
+   * Drop the parse state this walker accumulated during a run.
+   *
+   * #1445 box 2: `tokenStream` and the `CommentScanner` over it were assigned
+   * per file in `generate()` and **never cleared**, so after a run the walker
+   * still pointed at the LAST file's `CommonTokenStream`. `Transpiler` holds one
+   * walker for its whole life and `ServeCommand` holds one `Transpiler` in a
+   * static field, so a language server sitting idle retained that stream until
+   * the next request overwrote it.
+   *
+   * This is the residency defect #1301 already fixed for the retained parses,
+   * in a different field. That fix cleared a map the orchestrator owned; these
+   * two live on the walker, so the orchestrator cannot reach them -- hence a
+   * method rather than another `.clear()` in the same `finally`.
+   */
+  releaseParseState(): void {
+    this.tokenStream = null;
+    this.commentExtractor = null;
+  }
+
   /** Issue #644: String declaration helper for bounded/array/concat strings */
   /** Issue #644: Array initialization helper for size inference and fill-all */
   /**

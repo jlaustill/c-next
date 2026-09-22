@@ -334,7 +334,13 @@ module.exports = {
           // `IParsedFile["tree"]` left the gate at 141 and exit 0, while the same
           // probe spelled `ParserRuleContext` failed loudly. The guard was
           // catching the honest spelling and missing the recommended one.
-          "^src/transpiler/types/(IParsedFile|IDeclaredFile|ITypeAccessors)\\.ts$",
+          // #1445 box 2 removed `IDeclaredFile` from this alternation with the
+          // type itself. It was 1.3's apparent artifact and held
+          // `parsed: IParsedFile`, so importing it reached the tree in one hop
+          // -- exactly what naming the carriers here was for. Its `symbols`
+          // half had no reader, so it was a bundle whose only live content was
+          // the re-export.
+          "^src/transpiler/types/(IParsedFile|ITypeAccessors)\\.ts$",
         ],
       },
     },

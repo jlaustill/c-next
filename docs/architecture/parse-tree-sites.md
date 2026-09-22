@@ -31,9 +31,9 @@ one.
 | `src/PARSE/`            |      18 |
 | `src/utils/`            |      11 |
 | `src/transpiler/`       |       3 |
-| `src/transpiler/types/` |       3 |
+| `src/transpiler/types/` |       2 |
 | `src/transpiler/logic/` |       1 |
-| **total**               | **103** |
+| **total**               | **102** |
 
 `src/TRANSPILE/3-Render/` is the render layer, and its share is the number
 the issue singles out: the render layer holding parse nodes is how a
@@ -132,7 +132,6 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/transpiler/logic/IncludeExtractor.ts`                   | grammar           |
 | `src/transpiler/ModificationFacts.ts`                        | grammar           |
 | `src/transpiler/Transpiler.ts`                               | grammar           |
-| `src/transpiler/types/IDeclaredFile.ts`                      | grammar           |
 | `src/transpiler/types/IParsedFile.ts`                        | antlr4ng, grammar |
 | `src/transpiler/types/ITypeAccessors.ts`                     | grammar           |
 | `src/utils/ArrayDimensionParser.ts`                          | grammar           |
@@ -147,4 +146,4 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/utils/PostfixAnalysisUtils.ts`                          | grammar           |
 | `src/utils/TargetResolver.ts`                                | grammar           |
 
-103 module(s).
+102 module(s).
