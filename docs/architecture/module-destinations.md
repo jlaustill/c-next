@@ -135,6 +135,24 @@ strings, since those argue the move and this column states the responsibility.
 — it renders header text from already-decided facts, which is 2.3 by the
 discriminator above.
 
+## Not a pass — `src/TRANSPILE/`
+
+| module             | why                                                                                                                                                                                             |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CodeGenWalker.ts` | walks one file's parse tree and drives 2.2 and 2.3 over it — the role `Transpiler` plays for a whole run, which is why `src/transpiler/` already holds three tree-walking modules (#1445 box 3) |
+
+It is not in `2-Plan/`, and that is a constraint rather than a preference:
+`plan-cannot-import-render` is `error` with `reachable: true`, and the walk
+imports sixteen generator functions and twenty-eight helpers from `3-Render/`.
+Every other pass directory forbids the same edge, so a walker that calls
+renderers cannot live in one. Putting it a level up says what is true — it
+sits above the passes and drives them.
+
+The split is **acyclic**, and that was measured rather than assumed: the half
+that stayed in `3-Render/` makes zero calls back into the walk, so
+`CodeGenWalker` depends on `CodeGenerator` and never the reverse. Fourteen of
+`CodeGenerator`'s methods are reached through the injected host.
+
 ## Layer-neutral — `src/utils/`
 
 Not a pass, so these have no section above. The map is keyed on passes, which
@@ -185,9 +203,16 @@ so the gap is visible to whoever completes the map (#1450).
 
 The manifest entry in `scripts/move-modules.ts` carries the reason; the short
 form is that the admission test places a module in the pass that computes what
-it holds, every module here exists to turn settled decisions into text, and a
-partial move would leave `3-Render/` holding everything except the pass's own
-entry point (`CodeGenerator`).
+it holds, and every module here exists to turn settled decisions into text.
+
+That reasoning named `CodeGenerator` as "the pass's own entry point", and
+**#1445 box 3 found it was not one.** Of its 258 members, 193 named a parse
+type or were reached only by members that did -- it was a tree WALKER that
+called renderers, not a renderer. Those 193 moved to
+`src/TRANSPILE/CodeGenWalker.ts` (below) and the 65 that stayed are the render
+pass's service surface: `IOrchestrator`, the emission-fact capture, output
+assembly. The render pass's entry point is now the walker calling into it from
+outside.
 
 **No module here exposes a classification predicate** — the count was 27 of 144
 when the tree moved, and the difference is box 4: the decisions relocated to

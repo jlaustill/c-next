@@ -25,16 +25,15 @@ one.
 
 ## By layer
 
-| Layer                     | Modules |
-| ------------------------- | ------: |
-| `src/TRANSPILE/`          |      66 |
-| `src/PARSE/`              |      18 |
-| `src/utils/`              |      11 |
-| `src/transpiler/`         |       3 |
-| `src/transpiler/types/`   |       3 |
-| `src/TRANSPILE/3-Render/` |       1 |
-| `src/transpiler/logic/`   |       1 |
-| **total**                 | **103** |
+| Layer                   | Modules |
+| ----------------------- | ------: |
+| `src/TRANSPILE/`        |      67 |
+| `src/PARSE/`            |      18 |
+| `src/utils/`            |      11 |
+| `src/transpiler/`       |       3 |
+| `src/transpiler/types/` |       3 |
+| `src/transpiler/logic/` |       1 |
+| **total**               | **103** |
 
 `src/TRANSPILE/3-Render/` is the render layer, and its share is the number
 the issue singles out: the render layer holding parse nodes is how a
@@ -128,7 +127,7 @@ diagnostic can originate there at all, which is what #1322 relocates.
 | `src/TRANSPILE/2-Plan/PassByValueAnalyzer.ts`                | grammar           |
 | `src/TRANSPILE/2-Plan/StringLengthCounter.ts`                | grammar           |
 | `src/TRANSPILE/2-Plan/TypeRegistrationEngine.ts`             | grammar           |
-| `src/TRANSPILE/3-Render/codegen/CodeGenerator.ts`            | antlr4ng, grammar |
+| `src/TRANSPILE/CodeGenWalker.ts`                             | antlr4ng, grammar |
 | `src/transpiler/CallbackCompatibility.ts`                    | grammar           |
 | `src/transpiler/logic/IncludeExtractor.ts`                   | grammar           |
 | `src/transpiler/ModificationFacts.ts`                        | grammar           |

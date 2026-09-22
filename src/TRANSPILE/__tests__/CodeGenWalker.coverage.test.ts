@@ -1,5 +1,5 @@
 /**
- * Unit tests for CodeGenerator - Coverage for uncovered lines
+ * Unit tests for CodeGenWalker - Coverage for uncovered lines
  *
  * This file targets paths SonarCloud reported as uncovered: resolveIdentifier
  * with scope members, C++ member conversion, member-access argument handling,
@@ -9,23 +9,24 @@
  * `invokeStatement`/`invokeExpression` bullet, whose two tests reached into a
  * private `registry` that no longer exists. Naming a section by a line number
  * in another file is the shape this branch deletes elsewhere -- it was already
- * wrong before the diff shifted `CodeGenerator.ts`, and nothing could ever
+ * wrong before the diff shifted `CodeGenWalker.ts`, and nothing could ever
  * have reported that.
  */
 import { describe, it, expect, beforeEach } from "vitest";
-import Program from "../../../../PARSE/4-Resolve/Program";
-import ModificationFacts from "../../../../transpiler/ModificationFacts";
-import CodeGenerator from "../CodeGenerator";
-import CNextSourceParser from "../../../../PARSE/2-Parse/CNextSourceParser";
-import * as Parser from "../../../../PARSE/2-Parse/grammar/CNextParser";
-import SymbolTable from "../../../../transpiler/state/SymbolTable";
-import CNextResolver from "../../../../PARSE/3-Declare/cnext/index";
-import SymbolRegistry from "../../../../transpiler/state/SymbolRegistry";
-import TSymbolInfoAdapter from "../../../../PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
-import CodeGenState from "../../../../transpiler/state/CodeGenState";
-import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
-import TestSourceSpan from "../../../../transpiler/types/__testUtils__/testSourceSpan";
-import enterScope from "../../../../transpiler/__tests__/enterScope";
+import Program from "../../PARSE/4-Resolve/Program";
+import ModificationFacts from "../../transpiler/ModificationFacts";
+import CodeGenWalker from "../CodeGenWalker";
+import CodeGenerator from "../3-Render/codegen/CodeGenerator";
+import CNextSourceParser from "../../PARSE/2-Parse/CNextSourceParser";
+import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
+import SymbolTable from "../../transpiler/state/SymbolTable";
+import CNextResolver from "../../PARSE/3-Declare/cnext/index";
+import SymbolRegistry from "../../transpiler/state/SymbolRegistry";
+import TSymbolInfoAdapter from "../../PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
+import CodeGenState from "../../transpiler/state/CodeGenState";
+import ESourceLanguage from "../../utils/types/ESourceLanguage";
+import TestSourceSpan from "../../transpiler/types/__testUtils__/testSourceSpan";
+import enterScope from "../../transpiler/__tests__/enterScope";
 
 /**
  * Helper to parse C-Next source and return tree + generator ready for testing.
@@ -35,7 +36,8 @@ function setupGenerator(
   options: { cppMode?: boolean } = {},
 ): {
   tree: Parser.ProgramContext;
-  generator: CodeGenerator;
+  generator: CodeGenWalker;
+  host: CodeGenerator;
   code: string;
 } {
   const {
@@ -53,7 +55,11 @@ function setupGenerator(
   symbolTable.addTSymbols(tSymbols);
   const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-  const generator = new CodeGenerator();
+  // #1445 box 3: the walk and the render-side services are two objects now.
+  // The host is constructed here and injected, so assertions about the state
+  // the walk accumulates read the SAME instance the walk drove.
+  const host = new CodeGenerator();
+  const generator = new CodeGenWalker(host);
   CodeGenState.symbolTable = symbolTable;
   const code = generateWithProgram(generator, tree, tokenStream, {
     symbolInfo: symbols,
@@ -61,7 +67,7 @@ function setupGenerator(
     cppMode: options.cppMode ?? false,
   });
 
-  return { tree, generator, code };
+  return { tree, generator, host, code };
 }
 
 /**
@@ -92,16 +98,16 @@ function installProgramFor(
 
 /** Generate with the whole-program artifact in place — see #1511. */
 function generateWithProgram(
-  generator: CodeGenerator,
+  generator: CodeGenWalker,
   tree: Parser.ProgramContext,
-  tokenStream: Parameters<CodeGenerator["generate"]>[1],
-  options: Parameters<CodeGenerator["generate"]>[2],
-): ReturnType<CodeGenerator["generate"]> {
+  tokenStream: Parameters<CodeGenWalker["generate"]>[1],
+  options: Parameters<CodeGenWalker["generate"]>[2],
+): ReturnType<CodeGenWalker["generate"]> {
   installProgramFor(tree, options?.sourcePath ?? "test.cnx");
   return generator.generate(tree, tokenStream, options);
 }
 
-describe("CodeGenerator Coverage Tests", () => {
+describe("CodeGenWalker Coverage Tests", () => {
   beforeEach(() => {
     CodeGenState.reset();
     // CLAUDE.md, "Test isolation": this file drives CNextResolver, which writes
@@ -260,34 +266,34 @@ describe("CodeGenerator Coverage Tests", () => {
           }
         }
       `;
-      const { generator } = setupGenerator(source);
+      const { host } = setupGenerator(source);
 
       // Manually set up scope context to test the resolution path
       enterScope("Motor");
       CodeGenState.setScopeMembers("Motor", new Set(["speed", "setSpeed"]));
 
       // Now resolve should return prefixed name (line 633)
-      const resolved = generator.resolveIdentifier("speed");
+      const resolved = host.resolveIdentifier("speed");
       expect(resolved).toBe("Motor__speed");
     });
 
     it("should return unchanged identifier when not a scope member", () => {
-      const { generator } = setupGenerator("u32 globalVar; void main() {}");
+      const { host } = setupGenerator("u32 globalVar; void main() {}");
 
       enterScope("Motor");
       CodeGenState.setScopeMembers("Motor", new Set(["speed"]));
 
       // globalVar is not in Motor scope members
-      const resolved = generator.resolveIdentifier("globalVar");
+      const resolved = host.resolveIdentifier("globalVar");
       expect(resolved).toBe("globalVar");
     });
 
     it("should return unchanged identifier when not in any scope", () => {
-      const { generator } = setupGenerator("u32 globalVar; void main() {}");
+      const { host } = setupGenerator("u32 globalVar; void main() {}");
 
       enterScope(null);
 
-      const resolved = generator.resolveIdentifier("globalVar");
+      const resolved = host.resolveIdentifier("globalVar");
       expect(resolved).toBe("globalVar");
     });
   });
@@ -679,7 +685,11 @@ describe("CodeGenerator Coverage Tests", () => {
       const tSymbols = CNextResolver.resolve(tree, "test.cnx").symbols;
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       CodeGenState.symbolTable = symbolTable;
       const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
@@ -718,7 +728,11 @@ describe("CodeGenerator Coverage Tests", () => {
       const tSymbols = CNextResolver.resolve(tree, "test.cnx").symbols;
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       CodeGenState.symbolTable = symbolTable;
       const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
@@ -748,7 +762,11 @@ describe("CodeGenerator Coverage Tests", () => {
       const tSymbols = CNextResolver.resolve(tree, "test.cnx").symbols;
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       CodeGenState.symbolTable = symbolTable;
       const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
@@ -810,7 +828,7 @@ describe("CodeGenerator Coverage Tests", () => {
   // a return statement resolves an unqualified enum member against.
   //
   // #1450: this named `_setupFunctionContext` at "lines 5233-5275". No such
-  // method existed -- `CodeGenerator` is 4,813 lines, and the live pair is
+  // method existed -- `CodeGenWalker` is 4,813 lines, and the live pair is
   // `enterFunctionContext`/`exitFunctionContext`. The assertions below go
   // through `setupGenerator`, so they were testing the behavior all along and
   // only the label was wrong; a label naming a method nobody can find is how a
@@ -1244,7 +1262,11 @@ describe("CodeGenerator Coverage Tests", () => {
         });
       }
 
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       CodeGenState.symbolTable = symbolTable;
 
       return generateWithProgram(generator, tree, tokenStream, {
@@ -1434,7 +1456,11 @@ describe("CodeGenerator Coverage Tests", () => {
       // Register struct field type with underscore (simulates C++ imported struct)
       symbolTable.addStructField("Outer", "dummy", "SeaDash_Parse_Result");
 
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       CodeGenState.symbolTable = symbolTable;
       const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
@@ -1464,7 +1490,11 @@ describe("CodeGenerator Coverage Tests", () => {
       // Register struct field type with underscore but NOT a C++ namespace
       symbolTable.addStructField("Data", "value", "some_plain_type");
 
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       CodeGenState.symbolTable = symbolTable;
       const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
@@ -1483,7 +1513,7 @@ describe("CodeGenerator Coverage Tests", () => {
   // ========================================================================
   //
   // `ControlFlowGenerator` takes plans now, and the tree navigation it used to
-  // do lives in `CodeGenerator.plan*`. Those planners are private, so they are
+  // do lives in `CodeGenWalker.plan*`. Those planners are private, so they are
   // exercised the way production reaches them -- by generating real source --
   // rather than by making eight methods public for a test. That also means
   // each case asserts the EMITTED C, which is the thing the planner exists to
@@ -1818,7 +1848,7 @@ describe("CodeGenerator Coverage Tests", () => {
   // ========================================================================
   //
   // `VariableDeclHelper` renders a plan now, and the tree-reading half is
-  // `CodeGenerator.planVariableDecl`. These run against real declarations
+  // `CodeGenWalker.planVariableDecl`. These run against real declarations
   // because that is what the planner reads; the assembly half is asserted
   // against plan literals in `VariableDeclHelper.test.ts`.
   describe("variable declaration planning", () => {

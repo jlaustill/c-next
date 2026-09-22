@@ -1,23 +1,24 @@
 /**
- * Unit tests for CodeGenerator - the main transpiler component.
+ * Unit tests for CodeGenWalker - the main transpiler component.
  * Tests the IOrchestrator interface and internal methods.
  */
-import PublicInterface from "../../../2-Plan/PublicInterface";
-import Program from "../../../../PARSE/4-Resolve/Program";
-import ModificationFacts from "../../../../transpiler/ModificationFacts";
+import PublicInterface from "../2-Plan/PublicInterface";
+import Program from "../../PARSE/4-Resolve/Program";
+import ModificationFacts from "../../transpiler/ModificationFacts";
 import { describe, it, expect, beforeEach } from "vitest";
-import CodeGenerator from "../CodeGenerator";
-import CNextSourceParser from "../../../../PARSE/2-Parse/CNextSourceParser";
-import * as Parser from "../../../../PARSE/2-Parse/grammar/CNextParser";
-import SymbolTable from "../../../../transpiler/state/SymbolTable";
-import CNextResolver from "../../../../PARSE/3-Declare/cnext/index";
-import TSymbolInfoAdapter from "../../../../PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
-import ICodeGenSymbols from "../../../../transpiler/types/ICodeGenSymbols";
-import TParameterInfo from "../../../../transpiler/types/TParameterInfo";
-import CodeGenState from "../../../../transpiler/state/CodeGenState";
-import SymbolRegistry from "../../../../transpiler/state/SymbolRegistry";
-import DeferredTypes from "../../../../PARSE/4-Resolve/DeferredTypes";
-import type TSymbol from "../../../../transpiler/types/symbols/TSymbol";
+import CodeGenWalker from "../CodeGenWalker";
+import CodeGenerator from "../3-Render/codegen/CodeGenerator";
+import CNextSourceParser from "../../PARSE/2-Parse/CNextSourceParser";
+import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
+import SymbolTable from "../../transpiler/state/SymbolTable";
+import CNextResolver from "../../PARSE/3-Declare/cnext/index";
+import TSymbolInfoAdapter from "../../PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
+import ICodeGenSymbols from "../../transpiler/types/ICodeGenSymbols";
+import TParameterInfo from "../../transpiler/types/TParameterInfo";
+import CodeGenState from "../../transpiler/state/CodeGenState";
+import SymbolRegistry from "../../transpiler/state/SymbolRegistry";
+import DeferredTypes from "../../PARSE/4-Resolve/DeferredTypes";
+import type TSymbol from "../../transpiler/types/symbols/TSymbol";
 
 /**
  * Both symbol passes, the way the pipeline runs them.
@@ -47,7 +48,8 @@ function declareAndResolve(tree: Parser.ProgramContext): TSymbol[] {
  */
 function setupGenerator(source: string): {
   tree: Parser.ProgramContext;
-  generator: CodeGenerator;
+  generator: CodeGenWalker;
+  host: CodeGenerator;
   symbols: ICodeGenSymbols;
 } {
   const {
@@ -65,7 +67,11 @@ function setupGenerator(source: string): {
   symbolTable.addTSymbols(tSymbols);
   const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
-  const generator = new CodeGenerator();
+  // #1445 box 3: the walk and the render-side services are two objects now.
+  // The host is constructed here and injected, so assertions about the state
+  // the walk accumulates read the SAME instance the walk drove.
+  const host = new CodeGenerator();
+  const generator = new CodeGenWalker(host);
   // Set symbolTable in CodeGenState before generate (CodeGenState owns SymbolTable)
   CodeGenState.symbolTable = symbolTable;
   // #1511: the whole-program facts codegen reads. Without them every small
@@ -78,15 +84,18 @@ function setupGenerator(source: string): {
     sourcePath: "test.cnx",
   });
 
-  return { tree, generator, symbols };
+  return { tree, generator, host, symbols };
 }
 
 /**
  * Helper to create a minimal generator for testing specific methods.
  */
-function createMinimalGenerator(source: string): CodeGenerator {
-  const { generator } = setupGenerator(source);
-  return generator;
+function createMinimalGenerator(source: string): {
+  generator: CodeGenWalker;
+  host: CodeGenerator;
+} {
+  const { generator, host } = setupGenerator(source);
+  return { generator, host };
 }
 
 /**
@@ -126,16 +135,16 @@ function installProgramFor(
  * generated, so it cannot go stale between tests.
  */
 function generateWithProgram(
-  generator: CodeGenerator,
+  generator: CodeGenWalker,
   tree: Parser.ProgramContext,
-  tokenStream: Parameters<CodeGenerator["generate"]>[1],
-  options: Parameters<CodeGenerator["generate"]>[2],
-): ReturnType<CodeGenerator["generate"]> {
+  tokenStream: Parameters<CodeGenWalker["generate"]>[1],
+  options: Parameters<CodeGenWalker["generate"]>[2],
+): ReturnType<CodeGenWalker["generate"]> {
   installProgramFor(tree, options?.sourcePath ?? "test.cnx");
   return generator.generate(tree, tokenStream, options);
 }
 
-describe("CodeGenerator", () => {
+describe("CodeGenWalker", () => {
   // Reset SymbolRegistry before each test to prevent state pollution
   beforeEach(() => {
     SymbolRegistry.reset();
@@ -150,7 +159,11 @@ describe("CodeGenerator", () => {
     it("should generate basic C code from empty program", () => {
       const source = "";
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -167,7 +180,11 @@ describe("CodeGenerator", () => {
         void foo() { }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -182,7 +199,11 @@ describe("CodeGenerator", () => {
     it("should throw when symbolInfo is not provided", () => {
       const source = `void foo() { }`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
 
       expect(() =>
         generateWithProgram(generator, tree, tokenStream, {
@@ -199,7 +220,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -218,7 +243,11 @@ describe("CodeGenerator", () => {
         void foo() { }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -228,7 +257,7 @@ describe("CodeGenerator", () => {
         cppMode: true,
       });
 
-      expect(generator.isCppMode()).toBe(true);
+      expect(host.isCppMode()).toBe(true);
       // C++ mode uses consistent function signatures with explicit void
       expect(code).toContain("void foo(void)");
     });
@@ -238,7 +267,11 @@ describe("CodeGenerator", () => {
         void foo() { }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -254,7 +287,11 @@ describe("CodeGenerator", () => {
     it("should include source path in generation comment", () => {
       const source = `void test() { }`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -270,11 +307,11 @@ describe("CodeGenerator", () => {
   describe("IOrchestrator interface", () => {
     describe("getInput()", () => {
       it("should return input context with symbol table", () => {
-        const generator = createMinimalGenerator(`
+        const { host } = createMinimalGenerator(`
           void foo() { }
         `);
 
-        const input = generator.getInput();
+        const input = host.getInput();
 
         expect(input.symbolTable).not.toBeNull();
         expect(input.symbols).not.toBeNull();
@@ -291,11 +328,11 @@ describe("CodeGenerator", () => {
 
     describe("getState()", () => {
       it("should return generation state snapshot", () => {
-        const generator = createMinimalGenerator(`
+        const { host } = createMinimalGenerator(`
           void foo() { }
         `);
 
-        const state = generator.getState();
+        const state = host.getState();
 
         expect(state.currentScopePath).toBe("");
         expect(typeof state.indentLevel).toBe("number");
@@ -309,152 +346,150 @@ describe("CodeGenerator", () => {
 
     describe("applyEffects()", () => {
       it("should process include effects", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`);
 
         // Apply stdint include effect - verify it doesn't throw
         expect(() =>
-          generator.applyEffects([{ type: "include", header: "stdint" }]),
+          host.applyEffects([{ type: "include", header: "stdint" }]),
         ).not.toThrow();
 
         // Verify generator is still functional after applying effects
-        expect(generator.getState()).toBeDefined();
+        expect(host.getState()).toBeDefined();
       });
 
       it("should process register-local effects", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`);
 
-        generator.applyEffects([
+        host.applyEffects([
           { type: "register-local", name: "myVar", isArray: false },
         ]);
 
-        const state = generator.getState();
+        const state = host.getState();
         expect(state.localVariables.has("myVar")).toBe(true);
       });
 
       it("should process register-local array effects", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`);
 
-        generator.applyEffects([
+        host.applyEffects([
           { type: "register-local", name: "myArray", isArray: true },
         ]);
 
-        const state = generator.getState();
+        const state = host.getState();
         expect(state.localVariables.has("myArray")).toBe(true);
         expect(state.localArrays.has("myArray")).toBe(true);
       });
 
       it("should process set-scope effects", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`);
         // #1304: entering a scope the registry does not hold is an invariant
         // violation now, not a silent orphan. A unit test that skips the
         // symbols pass registers the scope itself.
         SymbolRegistry.getOrCreateScope("MyScope");
 
-        generator.applyEffects([{ type: "set-scope", name: "MyScope" }]);
+        host.applyEffects([{ type: "set-scope", name: "MyScope" }]);
 
-        const state = generator.getState();
+        const state = host.getState();
         // #1298: state carries the scope PATH, so assert the path rather than
         // whatever the caller happened to pass.
         expect(state.currentScopePath).toBe("MyScope");
       });
 
       it("should process enter-function-body effects", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`);
 
         // First add a local
-        generator.applyEffects([
+        host.applyEffects([
           { type: "register-local", name: "myVar", isArray: false },
         ]);
-        expect(generator.getState().localVariables.has("myVar")).toBe(true);
+        expect(host.getState().localVariables.has("myVar")).toBe(true);
 
         // Then enter function body (clears locals)
-        generator.applyEffects([{ type: "enter-function-body" }]);
+        host.applyEffects([{ type: "enter-function-body" }]);
 
-        expect(generator.getState().inFunctionBody).toBe(true);
-        expect(generator.getState().localVariables.size).toBe(0);
+        expect(host.getState().inFunctionBody).toBe(true);
+        expect(host.getState().localVariables.size).toBe(0);
       });
 
       it("should process exit-function-body effects", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`);
 
-        generator.applyEffects([{ type: "enter-function-body" }]);
-        expect(generator.getState().inFunctionBody).toBe(true);
+        host.applyEffects([{ type: "enter-function-body" }]);
+        expect(host.getState().inFunctionBody).toBe(true);
 
-        generator.applyEffects([{ type: "exit-function-body" }]);
+        host.applyEffects([{ type: "exit-function-body" }]);
 
-        expect(generator.getState().inFunctionBody).toBe(false);
+        expect(host.getState().inFunctionBody).toBe(false);
       });
 
       it("should process set-array-init-count effects", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`);
 
         // Verify effect is applied without throwing
         expect(() =>
-          generator.applyEffects([{ type: "set-array-init-count", count: 5 }]),
+          host.applyEffects([{ type: "set-array-init-count", count: 5 }]),
         ).not.toThrow();
 
         // Verify generator state is still valid
-        expect(generator.getState()).toBeDefined();
+        expect(host.getState()).toBeDefined();
       });
 
       it("should process set-array-fill-value effects", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`);
 
         // Verify effect is applied without throwing
         expect(() =>
-          generator.applyEffects([
-            { type: "set-array-fill-value", value: "0xFF" },
-          ]),
+          host.applyEffects([{ type: "set-array-fill-value", value: "0xFF" }]),
         ).not.toThrow();
 
         // Verify generator state is still valid
-        expect(generator.getState()).toBeDefined();
+        expect(host.getState()).toBeDefined();
       });
 
       it("should process isr effects (adds ISR include)", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`);
 
         // Apply ISR effect - this triggers requireInclude("isr")
-        expect(() => generator.applyEffects([{ type: "isr" }])).not.toThrow();
+        expect(() => host.applyEffects([{ type: "isr" }])).not.toThrow();
 
         // Generator should still be functional
-        expect(generator.getState()).toBeDefined();
+        expect(host.getState()).toBeDefined();
       });
 
       it("should process helper effects (clamp operations)", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`);
 
         // Apply helper effect for clamp add operation
         expect(() =>
-          generator.applyEffects([
+          host.applyEffects([
             { type: "helper", operation: "add", cnxType: "u8" },
           ]),
         ).not.toThrow();
 
         // Generator should track the helper operation
-        expect(generator.getState()).toBeDefined();
+        expect(host.getState()).toBeDefined();
       });
 
       it("should process safe-div effects (division operations)", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`);
 
         // Apply safe division effect
         expect(() =>
-          generator.applyEffects([
+          host.applyEffects([
             { type: "safe-div", operation: "div", cnxType: "u32" },
           ]),
         ).not.toThrow();
 
         // Generator should track the safe division operation
-        expect(generator.getState()).toBeDefined();
+        expect(host.getState()).toBeDefined();
       });
 
       it("should process register-type effects", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`);
 
         // Apply register-type effect with full TTypeInfo
         expect(() =>
-          generator.applyEffects([
+          host.applyEffects([
             {
               type: "register-type",
               name: "myVar",
@@ -469,7 +504,7 @@ describe("CodeGenerator", () => {
         ).not.toThrow();
 
         // Type should be registered
-        const input = generator.getInput();
+        const input = host.getInput();
         expect(input.typeRegistry.has("myVar")).toBe(true);
         const typeInfo = input.typeRegistry.get("myVar");
         expect(typeInfo?.baseType).toBe("u32");
@@ -477,23 +512,23 @@ describe("CodeGenerator", () => {
       });
 
       it("should process register-const-value effects", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`);
 
         // Apply register const value effect
         expect(() =>
-          generator.applyEffects([
+          host.applyEffects([
             { type: "register-const-value", name: "MY_CONST", value: 42 },
           ]),
         ).not.toThrow();
 
         // Const should be registered
-        const input = generator.getInput();
+        const input = host.getInput();
         expect(input.constValues.has("MY_CONST")).toBe(true);
         expect(input.constValues.get("MY_CONST")).toBe(42);
       });
 
       it("should process set-parameters effects", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`);
 
         // Apply set-parameters effect with full TParameterInfo
         const params = new Map<string, TParameterInfo>([
@@ -511,16 +546,16 @@ describe("CodeGenerator", () => {
           ],
         ]);
         expect(() =>
-          generator.applyEffects([{ type: "set-parameters", params }]),
+          host.applyEffects([{ type: "set-parameters", params }]),
         ).not.toThrow();
 
         // Parameters should be set
-        const state = generator.getState();
+        const state = host.getState();
         expect(state.currentParameters.has("param1")).toBe(true);
       });
 
       it("should process clear-parameters effects", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`);
 
         // First set some parameters with full TParameterInfo
         const params = new Map<string, TParameterInfo>([
@@ -537,20 +572,20 @@ describe("CodeGenerator", () => {
             },
           ],
         ]);
-        generator.applyEffects([{ type: "set-parameters", params }]);
-        expect(generator.getState().currentParameters.has("param1")).toBe(true);
+        host.applyEffects([{ type: "set-parameters", params }]);
+        expect(host.getState().currentParameters.has("param1")).toBe(true);
 
         // Now clear them
-        generator.applyEffects([{ type: "clear-parameters" }]);
-        expect(generator.getState().currentParameters.size).toBe(0);
+        host.applyEffects([{ type: "clear-parameters" }]);
+        expect(host.getState().currentParameters.size).toBe(0);
       });
 
       it("should process register-callback-field effects", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`);
 
         // Apply register-callback-field effect
         expect(() =>
-          generator.applyEffects([
+          host.applyEffects([
             {
               type: "register-callback-field",
               key: "MyStruct.callback",
@@ -560,27 +595,27 @@ describe("CodeGenerator", () => {
         ).not.toThrow();
 
         // Callback field should be registered
-        const input = generator.getInput();
+        const input = host.getInput();
         expect(input.callbackFieldTypes.has("MyStruct.callback")).toBe(true);
       });
     });
 
     describe("getIndent()", () => {
       it("should return empty string at indent level 0", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`);
 
-        expect(generator.getIndent()).toBe("");
+        expect(host.getIndent()).toBe("");
       });
     });
 
     describe("resolveIdentifier()", () => {
       it("should resolve simple identifier", () => {
-        const generator = createMinimalGenerator(`
+        const { host } = createMinimalGenerator(`
           u32 globalVar;
           void foo() { }
         `);
 
-        const resolved = generator.resolveIdentifier("globalVar");
+        const resolved = host.resolveIdentifier("globalVar");
         expect(resolved).toBe("globalVar");
       });
 
@@ -591,19 +626,19 @@ describe("CodeGenerator", () => {
             public void setSpeed() { }
           }
         `;
-        const generator = createMinimalGenerator(source);
+        const { host } = createMinimalGenerator(source);
 
         // When inside a scope, identifiers should be resolved with prefix
-        generator.setCurrentScope("Motor");
+        host.setCurrentScope("Motor");
 
         // Verify scope was set correctly
-        expect(generator.getState().currentScopePath).toBe("Motor");
+        expect(host.getState().currentScopePath).toBe("Motor");
       });
     });
 
     describe("isKnownStruct()", () => {
       it("should return true for known struct", () => {
-        const generator = createMinimalGenerator(`
+        const { generator } = createMinimalGenerator(`
           struct Point { i32 x; i32 y; }
         `);
 
@@ -611,7 +646,7 @@ describe("CodeGenerator", () => {
       });
 
       it("should return false for unknown struct", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
+        const { generator } = createMinimalGenerator(`void foo() { }`);
 
         expect(generator.isKnownStruct("UnknownStruct")).toBe(false);
       });
@@ -619,122 +654,122 @@ describe("CodeGenerator", () => {
 
     describe("isFloatType()", () => {
       it("should return true for f32", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
-        expect(generator.isFloatType("f32")).toBe(true);
+        const { host } = createMinimalGenerator(`void foo() { }`);
+        expect(host.isFloatType("f32")).toBe(true);
       });
 
       it("should return true for f64", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
-        expect(generator.isFloatType("f64")).toBe(true);
+        const { host } = createMinimalGenerator(`void foo() { }`);
+        expect(host.isFloatType("f64")).toBe(true);
       });
 
       it("should return false for C type float (only C-Next types checked)", () => {
         // isFloatType only checks C-Next types, not C types
-        const generator = createMinimalGenerator(`void foo() { }`);
-        expect(generator.isFloatType("float")).toBe(false);
+        const { host } = createMinimalGenerator(`void foo() { }`);
+        expect(host.isFloatType("float")).toBe(false);
       });
 
       it("should return false for C type double (only C-Next types checked)", () => {
         // isFloatType only checks C-Next types, not C types
-        const generator = createMinimalGenerator(`void foo() { }`);
-        expect(generator.isFloatType("double")).toBe(false);
+        const { host } = createMinimalGenerator(`void foo() { }`);
+        expect(host.isFloatType("double")).toBe(false);
       });
 
       it("should return false for integer types", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
-        expect(generator.isFloatType("u32")).toBe(false);
-        expect(generator.isFloatType("i32")).toBe(false);
+        const { host } = createMinimalGenerator(`void foo() { }`);
+        expect(host.isFloatType("u32")).toBe(false);
+        expect(host.isFloatType("i32")).toBe(false);
       });
     });
 
     describe("isIntegerType()", () => {
       it("should return true for unsigned integer types", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
-        expect(generator.isIntegerType("u8")).toBe(true);
-        expect(generator.isIntegerType("u16")).toBe(true);
-        expect(generator.isIntegerType("u32")).toBe(true);
-        expect(generator.isIntegerType("u64")).toBe(true);
+        const { host } = createMinimalGenerator(`void foo() { }`);
+        expect(host.isIntegerType("u8")).toBe(true);
+        expect(host.isIntegerType("u16")).toBe(true);
+        expect(host.isIntegerType("u32")).toBe(true);
+        expect(host.isIntegerType("u64")).toBe(true);
       });
 
       it("should return true for signed integer types", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
-        expect(generator.isIntegerType("i8")).toBe(true);
-        expect(generator.isIntegerType("i16")).toBe(true);
-        expect(generator.isIntegerType("i32")).toBe(true);
-        expect(generator.isIntegerType("i64")).toBe(true);
+        const { host } = createMinimalGenerator(`void foo() { }`);
+        expect(host.isIntegerType("i8")).toBe(true);
+        expect(host.isIntegerType("i16")).toBe(true);
+        expect(host.isIntegerType("i32")).toBe(true);
+        expect(host.isIntegerType("i64")).toBe(true);
       });
 
       it("should return false for float types", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
-        expect(generator.isIntegerType("f32")).toBe(false);
-        expect(generator.isIntegerType("f64")).toBe(false);
+        const { host } = createMinimalGenerator(`void foo() { }`);
+        expect(host.isIntegerType("f32")).toBe(false);
+        expect(host.isIntegerType("f64")).toBe(false);
       });
     });
 
     describe("isCNextFunction()", () => {
       it("should return true for C-Next defined function", () => {
-        const generator = createMinimalGenerator(`
+        const { host } = createMinimalGenerator(`
           void myFunction() { }
         `);
 
-        expect(generator.isCNextFunction("myFunction")).toBe(true);
+        expect(host.isCNextFunction("myFunction")).toBe(true);
       });
 
       it("should return false for unknown function", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`);
 
-        expect(generator.isCNextFunction("unknownFunction")).toBe(false);
+        expect(host.isCNextFunction("unknownFunction")).toBe(false);
       });
     });
 
     describe("isCppMode()", () => {
       it("should return false by default", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
-        expect(generator.isCppMode()).toBe(false);
+        const { host } = createMinimalGenerator(`void foo() { }`);
+        expect(host.isCppMode()).toBe(false);
       });
     });
 
     describe("isStructType()", () => {
       it("should return true for struct type", () => {
-        const generator = createMinimalGenerator(`
+        const { host } = createMinimalGenerator(`
           struct Point { i32 x; i32 y; }
         `);
 
-        expect(generator.isStructType("Point")).toBe(true);
+        expect(host.isStructType("Point")).toBe(true);
       });
 
       it("should return false for primitive type", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
-        expect(generator.isStructType("u32")).toBe(false);
+        const { host } = createMinimalGenerator(`void foo() { }`);
+        expect(host.isStructType("u32")).toBe(false);
       });
     });
 
     describe("getKnownEnums()", () => {
       it("should return set of known enums", () => {
-        const generator = createMinimalGenerator(`
+        const { host } = createMinimalGenerator(`
           enum Color { RED, GREEN, BLUE }
         `);
 
-        const knownEnums = generator.getKnownEnums();
+        const knownEnums = host.getKnownEnums();
         expect(knownEnums.has("Color")).toBe(true);
       });
     });
 
     describe("flushPendingTempDeclarations()", () => {
       it("should return empty string when no pending declarations", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`);
 
-        expect(generator.flushPendingTempDeclarations()).toBe("");
+        expect(host.flushPendingTempDeclarations()).toBe("");
       });
     });
 
     describe("registerLocalVariable()", () => {
       it("should add variable to local variables", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`);
 
-        const emitted = generator.registerLocalVariable("localVar");
+        const emitted = host.registerLocalVariable("localVar");
 
-        expect(generator.getState().localVariables.has("localVar")).toBe(true);
+        expect(host.getState().localVariables.has("localVar")).toBe(true);
         // ADR-057: nothing at file scope is called `localVar`, so it keeps its
         // own name. The emitted name is the return value, not the argument.
         expect(emitted).toBe("localVar");
@@ -743,72 +778,70 @@ describe("CodeGenerator", () => {
 
     describe("setCurrentScope() / setCurrentFunctionName()", () => {
       it("should set and track current scope", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`);
         // #1304: see the note on "should process set-scope effects".
         SymbolRegistry.getOrCreateScope("MyScope");
 
-        generator.setCurrentScope("MyScope");
-        expect(generator.getState().currentScopePath).toBe("MyScope");
+        host.setCurrentScope("MyScope");
+        expect(host.getState().currentScopePath).toBe("MyScope");
 
-        generator.setCurrentScope(null);
-        expect(generator.getState().currentScopePath).toBe("");
+        host.setCurrentScope(null);
+        expect(host.getState().currentScopePath).toBe("");
       });
 
       it("should set current function name", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`);
 
         // Verify function name can be set without throwing
-        expect(() =>
-          generator.setCurrentFunctionName("myFunction"),
-        ).not.toThrow();
+        expect(() => host.setCurrentFunctionName("myFunction")).not.toThrow();
 
         // Verify generator state is still valid
-        expect(generator.getState()).toBeDefined();
+        expect(host.getState()).toBeDefined();
       });
     });
 
     describe("getCurrentFunctionReturnType() / setCurrentFunctionReturnType()", () => {
       it("should get and set return type", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`);
 
-        expect(generator.getCurrentFunctionReturnType()).toBeNull();
+        expect(host.getCurrentFunctionReturnType()).toBeNull();
 
-        generator.setCurrentFunctionReturnType("u32");
-        expect(generator.getCurrentFunctionReturnType()).toBe("u32");
+        host.setCurrentFunctionReturnType("u32");
+        expect(host.getCurrentFunctionReturnType()).toBe("u32");
 
-        generator.setCurrentFunctionReturnType(null);
-        expect(generator.getCurrentFunctionReturnType()).toBeNull();
+        host.setCurrentFunctionReturnType(null);
+        expect(host.getCurrentFunctionReturnType()).toBeNull();
       });
     });
 
     describe("enterFunctionBody() / exitFunctionBody()", () => {
       it("should track function body state", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`);
 
-        expect(generator.getState().inFunctionBody).toBe(false);
+        expect(host.getState().inFunctionBody).toBe(false);
 
-        generator.enterFunctionBody();
-        expect(generator.getState().inFunctionBody).toBe(true);
+        host.enterFunctionBody();
+        expect(host.getState().inFunctionBody).toBe(true);
 
-        generator.exitFunctionBody();
-        expect(generator.getState().inFunctionBody).toBe(false);
+        host.exitFunctionBody();
+        expect(host.getState().inFunctionBody).toBe(false);
       });
 
       it("should clear local state on exit", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`);
 
-        generator.enterFunctionBody();
-        generator.registerLocalVariable("tempVar");
-        expect(generator.getState().localVariables.has("tempVar")).toBe(true);
+        host.enterFunctionBody();
+        host.registerLocalVariable("tempVar");
+        expect(host.getState().localVariables.has("tempVar")).toBe(true);
 
-        generator.exitFunctionBody();
-        expect(generator.getState().localVariables.has("tempVar")).toBe(false);
+        host.exitFunctionBody();
+        expect(host.getState().localVariables.has("tempVar")).toBe(false);
       });
     });
 
     describe("isKnownScope()", () => {
       it("should return true for known scope", () => {
-        const generator = createMinimalGenerator(`
+        const { generator } = createMinimalGenerator(`
           scope Motor {
             public void stop() { }
           }
@@ -818,7 +851,7 @@ describe("CodeGenerator", () => {
       });
 
       it("should return false for unknown scope", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
+        const { generator } = createMinimalGenerator(`void foo() { }`);
 
         expect(generator.isKnownScope("UnknownScope")).toBe(false);
       });
@@ -826,93 +859,93 @@ describe("CodeGenerator", () => {
 
     describe("addPendingTempDeclaration()", () => {
       it("should add temp declaration that can be flushed", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`);
 
-        generator.addPendingTempDeclaration("int _tmp1 = 0;");
+        host.addPendingTempDeclaration("int _tmp1 = 0;");
 
-        const decls = generator.flushPendingTempDeclarations();
+        const decls = host.flushPendingTempDeclarations();
         expect(decls).toBe("int _tmp1 = 0;");
 
         // After flush, should be empty
-        expect(generator.flushPendingTempDeclarations()).toBe("");
+        expect(host.flushPendingTempDeclarations()).toBe("");
       });
     });
 
     describe("float bit shadow management", () => {
       it("should register and track float bit shadows", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`);
 
-        expect(generator.hasFloatBitShadow("__bits_myFloat")).toBe(false);
-        expect(generator.isFloatShadowCurrent("__bits_myFloat")).toBe(false);
+        expect(host.hasFloatBitShadow("__bits_myFloat")).toBe(false);
+        expect(host.isFloatShadowCurrent("__bits_myFloat")).toBe(false);
 
-        generator.registerFloatBitShadow("__bits_myFloat");
-        expect(generator.hasFloatBitShadow("__bits_myFloat")).toBe(true);
-        expect(generator.isFloatShadowCurrent("__bits_myFloat")).toBe(false);
+        host.registerFloatBitShadow("__bits_myFloat");
+        expect(host.hasFloatBitShadow("__bits_myFloat")).toBe(true);
+        expect(host.isFloatShadowCurrent("__bits_myFloat")).toBe(false);
 
-        generator.markFloatShadowCurrent("__bits_myFloat");
-        expect(generator.isFloatShadowCurrent("__bits_myFloat")).toBe(true);
+        host.markFloatShadowCurrent("__bits_myFloat");
+        expect(host.isFloatShadowCurrent("__bits_myFloat")).toBe(true);
       });
 
       it("should clear float shadows on enter/exit function body", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`);
 
-        generator.enterFunctionBody();
-        generator.registerFloatBitShadow("__bits_myFloat");
-        expect(generator.hasFloatBitShadow("__bits_myFloat")).toBe(true);
+        host.enterFunctionBody();
+        host.registerFloatBitShadow("__bits_myFloat");
+        expect(host.hasFloatBitShadow("__bits_myFloat")).toBe(true);
 
-        generator.exitFunctionBody();
-        expect(generator.hasFloatBitShadow("__bits_myFloat")).toBe(false);
+        host.exitFunctionBody();
+        expect(host.hasFloatBitShadow("__bits_myFloat")).toBe(false);
       });
     });
 
     describe("generateBitMask()", () => {
       it("should generate 32-bit mask", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`);
 
-        const mask = generator.generateBitMask("8", false);
+        const mask = host.generateBitMask("8", false);
         expect(mask).toContain("0xFFU");
       });
 
       it("should generate 64-bit mask with ULL suffix", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`);
 
-        const mask = generator.generateBitMask("8", true);
+        const mask = host.generateBitMask("8", true);
         expect(mask).toContain("ULL");
       });
     });
 
     describe("getScopeSeparator()", () => {
       it("should return :: for C++ access", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`);
 
-        expect(generator.getScopeSeparator(true)).toBe("::");
+        expect(host.getScopeSeparator(true)).toBe("::");
       });
 
       it("should return _ for C-Next access", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`);
 
-        expect(generator.getScopeSeparator(false)).toBe("__");
+        expect(host.getScopeSeparator(false)).toBe("__");
       });
     });
 
     describe("getStringLiteralLength()", () => {
       it("should return correct length for simple string", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`);
 
-        expect(generator.getStringLiteralLength('"hello"')).toBe(5);
+        expect(host.getStringLiteralLength('"hello"')).toBe(5);
       });
 
       it("should handle escape sequences", () => {
-        const generator = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`);
 
         // \n is one character
-        expect(generator.getStringLiteralLength('"hello\\n"')).toBe(6);
+        expect(host.getStringLiteralLength('"hello\\n"')).toBe(6);
       });
     });
 
     describe("isParameterPassByValue()", () => {
       it("should check pass-by-value for primitive parameters", () => {
-        const generator = createMinimalGenerator(`
+        const { generator } = createMinimalGenerator(`
           void test(u32 value) { }
         `);
 
@@ -925,7 +958,7 @@ describe("CodeGenerator", () => {
 
     describe("markParameterModified() / isCalleeParameterModified()", () => {
       it("should track parameter modifications", () => {
-        const generator = createMinimalGenerator(`
+        const { host } = createMinimalGenerator(`
           void modify(u32 param) {
             param <- 42;
           }
@@ -935,46 +968,46 @@ describe("CodeGenerator", () => {
         `);
 
         // Modification tracking is done during generation
-        expect(generator.isCalleeParameterModified("modify", 0)).toBe(true);
+        expect(host.isCalleeParameterModified("modify", 0)).toBe(true);
       });
 
       it("should return false for unmodified parameters", () => {
-        const generator = createMinimalGenerator(`
+        const { host } = createMinimalGenerator(`
           void noModify(u32 param) { }
         `);
 
-        expect(generator.isCalleeParameterModified("noModify", 0)).toBe(false);
+        expect(host.isCalleeParameterModified("noModify", 0)).toBe(false);
       });
     });
 
     describe("isCurrentParameter()", () => {
       it("should check if name is a current parameter", () => {
-        const generator = createMinimalGenerator(`
+        const { host } = createMinimalGenerator(`
           void test(u32 value) { }
         `);
 
         // Parameters are only current during function body generation
         // After generation, parameters are cleared
-        expect(generator.isCurrentParameter("value")).toBe(false);
+        expect(host.isCurrentParameter("value")).toBe(false);
       });
     });
 
     describe("getModifiedParameters()", () => {
       it("should return map of modified parameters", () => {
-        const generator = createMinimalGenerator(`
+        const { host } = createMinimalGenerator(`
           void modify(u32 param) {
             param <- 42;
           }
         `);
 
-        const modifiedParams = generator.getModifiedParameters();
+        const modifiedParams = host.getModifiedParameters();
         expect(modifiedParams).toBeInstanceOf(Map);
       });
     });
 
     describe("getFunctionUnmodifiedParams()", () => {
       it("should return map of unmodified parameters", () => {
-        const generator = createMinimalGenerator(`
+        const { generator } = createMinimalGenerator(`
           void noModify(u32 param) { }
         `);
 
@@ -985,18 +1018,18 @@ describe("CodeGenerator", () => {
 
     describe("getFunctionParamLists()", () => {
       it("should return function parameter lists", () => {
-        const generator = createMinimalGenerator(`
+        const { host } = createMinimalGenerator(`
           void test(u32 a, u32 b) { }
         `);
 
-        const paramLists = generator.getFunctionParamLists();
+        const paramLists = host.getFunctionParamLists();
         expect(paramLists).toBeInstanceOf(Map);
       });
     });
 
     describe("getPassByValueParams()", () => {
       it("should return pass-by-value parameters", () => {
-        const generator = createMinimalGenerator(`
+        const { generator } = createMinimalGenerator(`
           void test(u32 value) { }
         `);
 
@@ -1023,7 +1056,11 @@ describe("CodeGenerator", () => {
         void main() { }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1055,7 +1092,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1080,7 +1121,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1105,7 +1150,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1129,7 +1178,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1154,7 +1207,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1172,7 +1229,11 @@ describe("CodeGenerator", () => {
     it("should use default capabilities when no target specified", () => {
       const source = `void foo() { }`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1181,14 +1242,18 @@ describe("CodeGenerator", () => {
         sourcePath: "test.cnx",
       });
 
-      const input = generator.getInput();
+      const input = host.getInput();
       expect(input.targetCapabilities.wordSize).toBe(32);
     });
 
     it("should use CLI target when specified", () => {
       const source = `void foo() { }`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1198,7 +1263,7 @@ describe("CodeGenerator", () => {
         target: "teensy41",
       });
 
-      const input = generator.getInput();
+      const input = host.getInput();
       expect(input.targetCapabilities.hasLdrexStrex).toBe(true);
       expect(input.targetCapabilities.hasBasepri).toBe(true);
     });
@@ -1206,7 +1271,11 @@ describe("CodeGenerator", () => {
     it("should handle unknown CLI target with warning", () => {
       const source = `void foo() { }`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1217,7 +1286,7 @@ describe("CodeGenerator", () => {
         target: "unknown-target",
       });
 
-      const input = generator.getInput();
+      const input = host.getInput();
       expect(input.targetCapabilities.wordSize).toBe(32);
     });
   });
@@ -1233,7 +1302,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1258,7 +1331,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1281,7 +1358,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1303,7 +1384,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1326,7 +1411,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1352,7 +1441,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1375,7 +1468,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1398,7 +1495,11 @@ describe("CodeGenerator", () => {
         void main() { }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1416,7 +1517,11 @@ describe("CodeGenerator", () => {
         void main() { }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1435,7 +1540,11 @@ describe("CodeGenerator", () => {
         void main() { }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1454,7 +1563,11 @@ describe("CodeGenerator", () => {
         void add(u32 a, u32 b) { }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1476,7 +1589,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1494,7 +1611,11 @@ describe("CodeGenerator", () => {
         void process(u32[10] arr) { }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1518,7 +1639,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1543,7 +1668,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1570,7 +1699,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1597,7 +1730,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1622,7 +1759,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1645,7 +1786,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1667,7 +1812,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1692,7 +1841,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1712,7 +1865,11 @@ describe("CodeGenerator", () => {
         void main() { }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1736,7 +1893,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1756,7 +1917,11 @@ describe("CodeGenerator", () => {
         void main() { }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1778,7 +1943,11 @@ describe("CodeGenerator", () => {
         void main() { }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1803,7 +1972,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1828,7 +2001,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1850,7 +2027,11 @@ describe("CodeGenerator", () => {
         void main() { }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1871,7 +2052,11 @@ describe("CodeGenerator", () => {
         void main() { }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1892,7 +2077,11 @@ describe("CodeGenerator", () => {
         void main() { }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1917,7 +2106,11 @@ describe("CodeGenerator", () => {
         void main() { }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1939,7 +2132,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1960,36 +2157,36 @@ describe("CodeGenerator", () => {
 
   describe("isCppEnumClass()", () => {
     it("should return false when no symbol table", () => {
-      const generator = createMinimalGenerator(`void foo() { }`);
+      const { host } = createMinimalGenerator(`void foo() { }`);
       // With symbol table but no C++ symbols
-      expect(generator.isCppEnumClass("UnknownEnum")).toBe(false);
+      expect(host.isCppEnumClass("UnknownEnum")).toBe(false);
     });
   });
 
   describe("getStructFieldInfo()", () => {
     it("should return field info for known struct", () => {
-      const generator = createMinimalGenerator(`
+      const { host } = createMinimalGenerator(`
         struct Point { i32 x; i32 y; }
       `);
 
-      const fieldInfo = generator.getStructFieldInfo("Point", "x");
+      const fieldInfo = host.getStructFieldInfo("Point", "x");
       expect(fieldInfo).not.toBeNull();
       expect(fieldInfo?.type).toBe("i32");
     });
 
     it("should return null for unknown field", () => {
-      const generator = createMinimalGenerator(`
+      const { host } = createMinimalGenerator(`
         struct Point { i32 x; i32 y; }
       `);
 
-      const fieldInfo = generator.getStructFieldInfo("Point", "z");
+      const fieldInfo = host.getStructFieldInfo("Point", "z");
       expect(fieldInfo).toBeNull();
     });
   });
 
   describe("getMemberTypeInfo()", () => {
     it("should return member type info for known struct", () => {
-      const generator = createMinimalGenerator(`
+      const { generator } = createMinimalGenerator(`
         struct Point { i32 x; i32 y; }
       `);
 
@@ -2002,7 +2199,7 @@ describe("CodeGenerator", () => {
     });
 
     it("should return full TTypeInfo for array struct field", () => {
-      const generator = createMinimalGenerator(`
+      const { generator } = createMinimalGenerator(`
         struct Buffer { u8 data[256]; u16 len; }
       `);
 
@@ -2016,7 +2213,7 @@ describe("CodeGenerator", () => {
     });
 
     it("should return null for unknown struct", () => {
-      const generator = createMinimalGenerator(`void foo() { }`);
+      const { generator } = createMinimalGenerator(`void foo() { }`);
 
       const memberInfo = generator.getMemberTypeInfo("Unknown", "field");
       expect(memberInfo).toBeNull();
@@ -2025,10 +2222,10 @@ describe("CodeGenerator", () => {
 
   describe("indent()", () => {
     it("should indent text with current level", () => {
-      const generator = createMinimalGenerator(`void foo() { }`);
+      const { host } = createMinimalGenerator(`void foo() { }`);
 
       // Default indent level is 0
-      const indented = generator.indent("test");
+      const indented = host.indent("test");
       expect(indented).toBe("test");
     });
   });
@@ -2044,7 +2241,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -2067,7 +2268,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -2093,7 +2298,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -2118,7 +2327,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -2146,7 +2359,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -2172,7 +2389,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -2195,7 +2416,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -2223,7 +2448,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -2248,7 +2477,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -2271,7 +2504,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -2292,7 +2529,11 @@ describe("CodeGenerator", () => {
         void main() { }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -2314,7 +2555,11 @@ describe("CodeGenerator", () => {
         void main() { }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -2335,7 +2580,11 @@ describe("CodeGenerator", () => {
         void main() { }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -2353,7 +2602,11 @@ describe("CodeGenerator", () => {
         void main() { }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -2373,7 +2626,11 @@ describe("CodeGenerator", () => {
         void main() { }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -2392,7 +2649,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -2421,7 +2682,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -2444,7 +2709,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -2465,7 +2734,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -2489,7 +2762,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -2513,7 +2790,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -2544,7 +2825,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -2566,7 +2851,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -2587,7 +2876,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -2608,7 +2901,11 @@ describe("CodeGenerator", () => {
         u32 mul(u32 a, u32 b) { return a * b; }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -2633,7 +2930,11 @@ describe("CodeGenerator", () => {
         void main() { }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -2655,7 +2956,11 @@ describe("CodeGenerator", () => {
         void main() { }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -2680,7 +2985,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -2704,7 +3013,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -2728,7 +3041,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -2751,7 +3068,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -2778,7 +3099,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -2801,7 +3126,11 @@ describe("CodeGenerator", () => {
         void main() { }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -2822,7 +3151,11 @@ describe("CodeGenerator", () => {
         void main() { }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -2844,7 +3177,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -2865,7 +3202,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -2899,7 +3240,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -2921,7 +3266,11 @@ describe("CodeGenerator", () => {
         void noop() { }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -2948,7 +3297,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -2973,7 +3326,11 @@ describe("CodeGenerator", () => {
         void main() { }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -2997,7 +3354,11 @@ describe("CodeGenerator", () => {
         void main() { }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3015,7 +3376,11 @@ describe("CodeGenerator", () => {
         void main() { }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3038,7 +3403,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3063,7 +3432,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3087,7 +3460,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3110,7 +3487,11 @@ describe("CodeGenerator", () => {
         void main() { }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3140,7 +3521,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3160,7 +3545,11 @@ describe("CodeGenerator", () => {
         void main() { }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3182,7 +3571,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3206,7 +3599,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3229,7 +3626,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3253,7 +3654,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3279,7 +3684,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3307,7 +3716,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3335,7 +3748,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3359,7 +3776,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3374,14 +3795,14 @@ describe("CodeGenerator", () => {
 
   describe("getSimpleIdentifier()", () => {
     it("should return null for complex expressions", () => {
-      const generator = createMinimalGenerator(`
+      const { host } = createMinimalGenerator(`
         u32 a;
         u32 b;
         void foo() { }
       `);
 
       // getSimpleIdentifier is tested indirectly through expression parsing
-      expect(generator.getInput()).not.toBeNull();
+      expect(host.getInput()).not.toBeNull();
     });
   });
 
@@ -3396,7 +3817,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3417,7 +3842,11 @@ describe("CodeGenerator", () => {
         State current;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3436,7 +3865,11 @@ describe("CodeGenerator", () => {
         Priority p;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3459,7 +3892,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3480,7 +3917,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3502,7 +3943,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3525,7 +3970,11 @@ describe("CodeGenerator", () => {
         Config.Level setting;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3545,7 +3994,11 @@ describe("CodeGenerator", () => {
         u32[10] data <- [0*];
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3563,7 +4016,11 @@ describe("CodeGenerator", () => {
         u8[4] buffer <- [255*];
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3583,7 +4040,11 @@ describe("CodeGenerator", () => {
         u32[2][3] matrix <- [[1, 2, 3], [4, 5, 6]];
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3603,7 +4064,11 @@ describe("CodeGenerator", () => {
         Point[2] points <- [{x: 1, y: 2}, {x: 3, y: 4}];
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3621,7 +4086,11 @@ describe("CodeGenerator", () => {
     it("should initialize bool to false", () => {
       const source = `bool flag;`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3636,7 +4105,11 @@ describe("CodeGenerator", () => {
     it("should initialize f32 to 0.0f", () => {
       const source = `f32 value;`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3651,7 +4124,11 @@ describe("CodeGenerator", () => {
     it("should initialize f64 to 0.0", () => {
       const source = `f64 value;`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3675,7 +4152,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3700,7 +4181,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3722,7 +4207,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3741,7 +4230,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3761,7 +4254,11 @@ describe("CodeGenerator", () => {
         Point origin;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3781,7 +4278,11 @@ describe("CodeGenerator", () => {
         atomic volatile u32 badVar;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3810,7 +4311,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3839,7 +4344,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3861,7 +4370,11 @@ describe("CodeGenerator", () => {
         u32[SIZE] data;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3881,7 +4394,11 @@ describe("CodeGenerator", () => {
         u8[2][3][4] cube;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3903,7 +4420,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3928,7 +4449,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3949,7 +4474,11 @@ describe("CodeGenerator", () => {
         bool result <- !flag;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3967,7 +4496,11 @@ describe("CodeGenerator", () => {
         wrap u8 inverted <- ~mask;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -3985,7 +4518,11 @@ describe("CodeGenerator", () => {
         i32 neg <- -pos;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4006,7 +4543,11 @@ describe("CodeGenerator", () => {
         wrap u8 result <- a & b;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4025,7 +4566,11 @@ describe("CodeGenerator", () => {
         wrap u8 result <- a | b;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4044,7 +4589,11 @@ describe("CodeGenerator", () => {
         wrap u8 result <- a ^ b;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4062,7 +4611,11 @@ describe("CodeGenerator", () => {
         wrap u8 result <- a << 4;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4080,7 +4633,11 @@ describe("CodeGenerator", () => {
         wrap u8 result <- a >> 4;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4101,7 +4658,11 @@ describe("CodeGenerator", () => {
         bool result <- a && b;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4120,7 +4681,11 @@ describe("CodeGenerator", () => {
         bool result <- a || b;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4141,7 +4706,11 @@ describe("CodeGenerator", () => {
         bool result <- a <= b;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4160,7 +4729,11 @@ describe("CodeGenerator", () => {
         bool result <- a >= b;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4179,7 +4752,11 @@ describe("CodeGenerator", () => {
         bool result <- a != b;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4204,7 +4781,11 @@ describe("CodeGenerator", () => {
         u32 big <- small as u32;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4224,7 +4805,11 @@ describe("CodeGenerator", () => {
         u8 small <- big[0, 8];
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4244,7 +4829,11 @@ describe("CodeGenerator", () => {
         i32 intVal <- floatVal as i32;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4267,7 +4856,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4291,7 +4884,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4314,7 +4911,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4337,7 +4938,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4354,7 +4959,11 @@ describe("CodeGenerator", () => {
     it("should generate bounded string declaration", () => {
       const source = `string<32> name <- "hello";`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4372,7 +4981,11 @@ describe("CodeGenerator", () => {
     it("should generate volatile declaration", () => {
       const source = `volatile u32 hwReg;`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4392,7 +5005,11 @@ describe("CodeGenerator", () => {
         const Config defaultConfig <- {value: 100};
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4416,7 +5033,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4435,7 +5056,11 @@ describe("CodeGenerator", () => {
     it("should generate volatile for atomic variable", () => {
       const source = `atomic u32 counter <- 0;`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4455,7 +5080,11 @@ describe("CodeGenerator", () => {
         u32 size <- sizeof(u32);
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4473,7 +5102,11 @@ describe("CodeGenerator", () => {
         u32 size <- sizeof(Point);
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4493,7 +5126,11 @@ describe("CodeGenerator", () => {
         u32 len <- data.element_count;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4511,7 +5148,11 @@ describe("CodeGenerator", () => {
     it("should generate hex literal", () => {
       const source = `u32 mask <- 0xFF00;`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4526,7 +5167,11 @@ describe("CodeGenerator", () => {
     it("should generate binary literal", () => {
       const source = `u8 pattern <- 0b10101010;`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4544,7 +5189,11 @@ describe("CodeGenerator", () => {
     it("should generate character literal", () => {
       const source = `u8 ch <- 'A';`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4566,7 +5215,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4591,7 +5244,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4612,7 +5269,11 @@ describe("CodeGenerator", () => {
         wrap u32 result <- a % b;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4633,7 +5294,11 @@ describe("CodeGenerator", () => {
         wrap u32 result <- a / b;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4657,7 +5322,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4677,7 +5346,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4697,7 +5370,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4717,7 +5394,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4737,7 +5418,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4757,7 +5442,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4777,7 +5466,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4797,7 +5490,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4819,7 +5516,11 @@ describe("CodeGenerator", () => {
         wrap u32 result <- (a + b) * c;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4841,7 +5542,11 @@ describe("CodeGenerator", () => {
         u32 result <- add(10, 20);
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4863,7 +5568,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4886,7 +5595,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4911,7 +5624,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4929,7 +5646,11 @@ describe("CodeGenerator", () => {
     it("should generate string literal", () => {
       const source = `string<20> msg <- "Hello World";`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4951,7 +5672,11 @@ describe("CodeGenerator", () => {
         u64 d;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4974,7 +5699,11 @@ describe("CodeGenerator", () => {
         i64 d;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -4994,7 +5723,11 @@ describe("CodeGenerator", () => {
     it("should generate negative literal", () => {
       const source = `i32 val <- -42;`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5011,7 +5744,11 @@ describe("CodeGenerator", () => {
     it("should generate f32 literal with suffix", () => {
       const source = `f32 val <- 3.14;`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5026,7 +5763,11 @@ describe("CodeGenerator", () => {
     it("should generate f64 literal", () => {
       const source = `f64 val <- 2.718281828;`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5043,7 +5784,11 @@ describe("CodeGenerator", () => {
     it("should generate true literal", () => {
       const source = `bool flag <- true;`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5058,7 +5803,11 @@ describe("CodeGenerator", () => {
     it("should generate false literal", () => {
       const source = `bool flag <- false;`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5079,7 +5828,11 @@ describe("CodeGenerator", () => {
         u32 max <- (a > b) ? a : b;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5099,7 +5852,11 @@ describe("CodeGenerator", () => {
         bool bit0 <- flags[0, 1] = 1;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5119,7 +5876,11 @@ describe("CodeGenerator", () => {
         u8 nibble <- data[4, 4];
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5143,7 +5904,11 @@ describe("CodeGenerator", () => {
         Vec3 pos <- {x: 1, y: 2, z: 3};
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5167,7 +5932,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5190,7 +5959,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5213,7 +5986,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5234,7 +6011,11 @@ describe("CodeGenerator", () => {
       // The extern declaration comes from the header.
       const source = `const u32 VERSION <- 1;`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5254,7 +6035,11 @@ describe("CodeGenerator", () => {
       // extern is needed for cross-file access, even for definitions.
       const source = `const u32 VERSION <- 1;`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5273,7 +6058,11 @@ describe("CodeGenerator", () => {
     it("should generate function with empty body", () => {
       const source = `void noop() { }`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5294,7 +6083,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5320,7 +6113,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5340,7 +6137,11 @@ describe("CodeGenerator", () => {
         u32 size <- sizeof(arr);
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5360,7 +6161,11 @@ describe("CodeGenerator", () => {
         u8[BUFFER_SIZE] buffer;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5383,7 +6188,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5407,7 +6216,11 @@ describe("CodeGenerator", () => {
         wrap u32 result <- a + b - c;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5430,7 +6243,11 @@ describe("CodeGenerator", () => {
         wrap u32 result <- ((a + b) * c) - d;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5451,7 +6268,11 @@ describe("CodeGenerator", () => {
         f32 sum <- a + b;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5470,7 +6291,11 @@ describe("CodeGenerator", () => {
         bool less <- a < b;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5496,7 +6321,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5519,7 +6348,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5548,7 +6381,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5571,7 +6408,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5595,7 +6436,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5614,7 +6459,11 @@ describe("CodeGenerator", () => {
     it("should generate 64-bit hex literal", () => {
       const source = `u64 big <- 0xFFFFFFFFFFFFFFFF;`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5639,7 +6488,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5665,7 +6518,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5686,7 +6543,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5704,7 +6565,11 @@ describe("CodeGenerator", () => {
     it("should preserve escape sequences", () => {
       const source = `string<10> newline <- "\\n";`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5726,7 +6591,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5747,7 +6616,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5769,7 +6642,11 @@ describe("CodeGenerator", () => {
         bool result <- a < b;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5788,7 +6665,11 @@ describe("CodeGenerator", () => {
         scope Empty { }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5810,7 +6691,11 @@ describe("CodeGenerator", () => {
         Types.Mode selected <- Types.Mode.AUTO;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5832,7 +6717,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5852,7 +6741,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5874,7 +6767,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5895,7 +6792,11 @@ describe("CodeGenerator", () => {
         i32 diff <- b - a;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5918,7 +6819,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5942,7 +6847,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5964,7 +6873,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -5986,7 +6899,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6009,7 +6926,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6026,7 +6947,11 @@ describe("CodeGenerator", () => {
     it("should generate array with integer literal size", () => {
       const source = `u32[100] buffer;`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6046,7 +6971,11 @@ describe("CodeGenerator", () => {
         i32 b <- -a;
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6063,7 +6992,11 @@ describe("CodeGenerator", () => {
     it("should include generated file header", () => {
       const source = `void main() { }`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6080,7 +7013,11 @@ describe("CodeGenerator", () => {
     it("should include stdint.h for fixed-width types", () => {
       const source = `u32 val <- 0;`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6097,7 +7034,11 @@ describe("CodeGenerator", () => {
     it("should include stdbool.h for bool type", () => {
       const source = `bool flag <- false;`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6114,7 +7055,11 @@ describe("CodeGenerator", () => {
     it("should generate array with initialization list", () => {
       const source = `u8[4] data <- [1, 2, 3, 4];`;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6137,7 +7082,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6160,7 +7109,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6179,7 +7132,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6198,7 +7155,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6217,7 +7178,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6239,7 +7204,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6261,7 +7230,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6283,7 +7256,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6305,7 +7282,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6328,7 +7309,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6350,7 +7335,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6372,7 +7361,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6393,7 +7386,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6413,7 +7410,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6434,7 +7435,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6456,7 +7461,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6482,7 +7491,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6505,7 +7518,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6527,7 +7544,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6548,7 +7569,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6570,7 +7595,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6592,7 +7621,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6621,7 +7654,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6644,7 +7681,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6668,7 +7709,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6690,7 +7735,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6716,7 +7765,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6739,7 +7792,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6762,7 +7819,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6788,7 +7849,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6812,7 +7877,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6834,7 +7903,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6860,7 +7933,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
         const code = generateWithProgram(generator, tree, tokenStream, {
@@ -6882,7 +7959,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6906,7 +7987,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6926,7 +8011,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6954,7 +8043,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -6979,7 +8072,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7002,7 +8099,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7025,7 +8126,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7047,7 +8152,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7073,7 +8182,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7098,7 +8211,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7123,7 +8240,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7145,7 +8266,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7168,7 +8293,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7191,7 +8320,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7213,7 +8346,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7238,7 +8375,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7264,7 +8405,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7285,7 +8430,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7306,7 +8455,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7327,7 +8480,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7350,7 +8507,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7372,7 +8533,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7393,7 +8558,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7413,7 +8582,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7434,7 +8607,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7456,7 +8633,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7476,7 +8657,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7497,7 +8682,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7517,7 +8706,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7538,7 +8731,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7560,7 +8757,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7579,7 +8780,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7599,7 +8804,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7618,7 +8827,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7637,7 +8850,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7656,7 +8873,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7675,7 +8896,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7695,7 +8920,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7716,7 +8945,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7736,7 +8969,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7756,7 +8993,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7775,7 +9016,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7796,7 +9041,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7818,7 +9067,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7838,7 +9091,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7858,7 +9115,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7878,7 +9139,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
         // Issue #1100: SymbolTable must be wired up (as the real Transpiler
@@ -7909,7 +9174,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7930,7 +9199,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7951,7 +9224,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7970,7 +9247,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -7993,7 +9274,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         // #831/#1285: register the symbols, as Transpiler.ts:429 does. Passing only
         // `symbolInfo` leaves CodeGenState.symbolTable empty -- a state the real
@@ -8023,7 +9308,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -8046,7 +9335,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -8066,7 +9359,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -8088,7 +9385,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         // Issue #831: Register TSymbols in SymbolTable (single source of truth)
         const symbolTable = new SymbolTable();
@@ -8114,7 +9415,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -8135,7 +9440,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -8156,7 +9465,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -8175,7 +9488,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -8194,7 +9511,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -8213,7 +9534,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -8232,7 +9557,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -8255,7 +9584,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -8277,7 +9610,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -8301,7 +9638,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -8321,7 +9662,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -8343,7 +9688,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -8363,7 +9712,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -8384,7 +9737,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -8410,7 +9767,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -8438,7 +9799,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -8460,7 +9825,11 @@ describe("CodeGenerator", () => {
           u32[MAX_SIZE] buffer;
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -8483,7 +9852,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -8508,7 +9881,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -8528,7 +9905,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -8549,7 +9930,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -8573,7 +9958,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -8597,7 +9986,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -8620,7 +10013,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -8641,7 +10038,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -8664,7 +10065,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -8687,7 +10092,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -8713,7 +10122,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         // #831/#1285: register the symbols, as Transpiler.ts:429 does. Passing only
         // `symbolInfo` leaves CodeGenState.symbolTable empty -- a state the real
@@ -8745,7 +10158,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -8770,7 +10187,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -8793,7 +10214,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -8819,7 +10244,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -8844,7 +10273,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -8867,7 +10300,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -8892,7 +10329,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -8913,7 +10354,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -8936,7 +10381,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -8957,7 +10406,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -8980,7 +10433,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9000,7 +10457,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9022,7 +10483,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9047,7 +10512,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9068,7 +10537,11 @@ describe("CodeGenerator", () => {
           void test() { }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9090,7 +10563,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9111,7 +10588,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9131,7 +10612,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9150,7 +10635,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9169,7 +10658,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9188,7 +10681,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9209,7 +10706,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9231,7 +10732,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9258,7 +10763,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9282,7 +10791,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9304,7 +10817,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9328,7 +10845,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9348,7 +10869,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9371,7 +10896,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9393,7 +10922,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9418,7 +10951,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9441,7 +10978,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9461,7 +11002,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9483,7 +11028,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9504,7 +11053,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9525,7 +11078,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9544,7 +11101,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9569,7 +11130,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9592,7 +11157,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9614,7 +11183,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9644,7 +11217,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9669,7 +11246,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9694,7 +11275,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9716,7 +11301,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9738,7 +11327,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9763,7 +11356,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9785,7 +11382,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9813,7 +11414,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9834,7 +11439,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9853,7 +11462,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9879,7 +11492,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9900,7 +11517,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9920,7 +11541,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9943,7 +11568,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9967,7 +11596,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -9990,7 +11623,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10010,7 +11647,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10032,7 +11673,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10052,7 +11697,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10071,7 +11720,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10091,7 +11744,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10111,7 +11768,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10132,7 +11793,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10152,7 +11817,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10174,7 +11843,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10195,7 +11868,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10218,7 +11895,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10240,7 +11921,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10266,7 +11951,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10287,7 +11976,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10312,7 +12005,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10337,7 +12034,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10364,7 +12065,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10388,7 +12093,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10412,7 +12121,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10441,7 +12154,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10466,7 +12183,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10486,7 +12207,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10509,7 +12234,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10535,7 +12264,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10559,7 +12292,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10584,7 +12321,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10609,7 +12350,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10631,7 +12376,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10652,7 +12401,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10671,7 +12424,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10691,7 +12448,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10713,7 +12474,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10734,7 +12499,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10757,7 +12526,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10780,7 +12553,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10808,7 +12585,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10830,7 +12611,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10853,7 +12638,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10874,7 +12663,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10899,7 +12692,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10923,7 +12720,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10945,7 +12746,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10967,7 +12772,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -10988,7 +12797,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11013,7 +12826,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11038,7 +12855,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11063,7 +12884,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11085,7 +12910,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11107,7 +12936,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11127,7 +12960,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11146,7 +12983,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11172,7 +13013,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11195,7 +13040,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11217,7 +13066,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11242,7 +13095,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11265,7 +13122,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11287,7 +13148,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11309,7 +13174,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11329,7 +13198,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11351,7 +13224,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11370,7 +13247,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11391,7 +13272,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11411,7 +13296,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11432,7 +13321,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11452,7 +13345,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11474,7 +13371,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11494,7 +13395,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11514,7 +13419,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11536,7 +13445,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11558,7 +13471,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11578,7 +13495,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11602,7 +13523,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11624,7 +13549,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11646,7 +13575,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11668,7 +13601,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11689,7 +13626,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11710,7 +13651,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11736,7 +13681,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11763,7 +13712,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11786,7 +13739,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11809,7 +13766,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11834,7 +13795,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11857,7 +13822,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11880,7 +13849,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11903,7 +13876,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11929,7 +13906,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11954,7 +13935,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -11979,7 +13964,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12000,7 +13989,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12019,7 +14012,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12038,7 +14035,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12060,7 +14061,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12084,7 +14089,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12112,7 +14121,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12139,7 +14152,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12161,7 +14178,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12185,7 +14206,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12208,7 +14233,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12232,7 +14261,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12258,7 +14291,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12282,7 +14319,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12303,7 +14344,11 @@ describe("CodeGenerator", () => {
           void doNothing() { }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12324,7 +14369,11 @@ describe("CodeGenerator", () => {
           Motor.State status;
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12342,7 +14391,11 @@ describe("CodeGenerator", () => {
           Point[10] points;
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12360,7 +14413,11 @@ describe("CodeGenerator", () => {
           i32[10] numbers;
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12385,7 +14442,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12406,7 +14467,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12429,7 +14494,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12452,7 +14521,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12479,7 +14552,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12501,7 +14578,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12522,7 +14603,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12542,7 +14627,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12565,7 +14654,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12585,7 +14678,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12605,7 +14702,11 @@ describe("CodeGenerator", () => {
           Motor.State status <- Motor.State.IDLE;
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12627,7 +14728,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12646,7 +14751,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12669,7 +14778,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12691,7 +14804,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12712,7 +14829,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12736,7 +14857,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12758,7 +14883,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12779,7 +14908,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12799,7 +14932,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12819,7 +14956,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12841,7 +14982,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12862,7 +15007,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12889,7 +15038,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12912,7 +15065,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12934,7 +15091,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12958,7 +15119,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -12982,7 +15147,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13008,7 +15177,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13030,7 +15203,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13051,7 +15228,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13079,7 +15260,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13104,7 +15289,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13128,7 +15317,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13155,7 +15348,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13178,7 +15375,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13199,7 +15400,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13219,7 +15424,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13241,7 +15450,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13262,7 +15475,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13284,7 +15501,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13306,7 +15527,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13329,7 +15554,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13349,7 +15578,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13369,7 +15602,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13388,7 +15625,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13412,7 +15653,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13441,7 +15686,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13468,7 +15717,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13489,7 +15742,11 @@ describe("CodeGenerator", () => {
           const Item[2] items <- [{id: 1}, {id: 2}];
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13514,7 +15771,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13539,7 +15800,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13563,7 +15828,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13588,7 +15857,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13612,7 +15885,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13634,7 +15911,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13659,7 +15940,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13683,7 +15968,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13706,7 +15995,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13729,7 +16022,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13749,7 +16046,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13769,7 +16070,11 @@ describe("CodeGenerator", () => {
           void test() {}
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13787,7 +16092,11 @@ describe("CodeGenerator", () => {
           void test() {}
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13809,7 +16118,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13831,7 +16144,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13852,7 +16169,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13874,7 +16195,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13894,7 +16219,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13915,7 +16244,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13940,7 +16273,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13962,7 +16299,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -13988,7 +16329,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -14015,7 +16360,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -14040,7 +16389,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -14063,7 +16416,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -14089,7 +16446,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -14111,7 +16472,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -14131,7 +16496,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -14150,7 +16519,11 @@ describe("CodeGenerator", () => {
           u32 globalCounter <- 0;
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -14168,7 +16541,11 @@ describe("CodeGenerator", () => {
           const u32 MAX_VALUE <- 100;
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -14191,7 +16568,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -14214,7 +16595,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -14238,7 +16623,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -14263,7 +16652,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -14284,7 +16677,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -14306,7 +16703,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -14331,7 +16732,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -14351,7 +16756,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -14383,7 +16792,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -14407,7 +16820,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -14431,7 +16848,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -14452,7 +16873,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -14475,7 +16900,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -14497,7 +16926,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -14523,7 +16956,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -14548,7 +16985,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -14575,7 +17016,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -14595,7 +17040,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -14615,7 +17064,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -14636,7 +17089,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -14659,7 +17116,11 @@ describe("CodeGenerator", () => {
           }
         `;
         const { tree, tokenStream } = CNextSourceParser.parse(source);
-        const generator = new CodeGenerator();
+        // #1445 box 3: the walk and the render-side services are two objects now.
+        // The host is constructed here and injected, so assertions about the state
+        // the walk accumulates read the SAME instance the walk drove.
+        const host = new CodeGenerator();
+        const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -14688,7 +17149,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -14714,7 +17179,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -14736,7 +17205,11 @@ describe("CodeGenerator", () => {
         Point origin <- {x: 0, y: 0};
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -14759,7 +17232,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -14779,7 +17256,11 @@ describe("CodeGenerator", () => {
         Line seg <- {start: {x: 0, y: 0}, end: {x: 100, y: 100}};
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -14805,7 +17286,11 @@ describe("CodeGenerator", () => {
         }
       `;
       const { tree, tokenStream } = CNextSourceParser.parse(source);
-      const generator = new CodeGenerator();
+      // #1445 box 3: the walk and the render-side services are two objects now.
+      // The host is constructed here and injected, so assertions about the state
+      // the walk accumulates read the SAME instance the walk drove.
+      const host = new CodeGenerator();
+      const generator = new CodeGenWalker(host);
       const tSymbols = declareAndResolve(tree);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 

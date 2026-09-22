@@ -19,7 +19,7 @@ import * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
 import CNextSourceParser from "../PARSE/2-Parse/CNextSourceParser";
 import HeaderParser from "../PARSE/2-Parse/HeaderParser";
 
-import CodeGenerator from "../TRANSPILE/3-Render/codegen/CodeGenerator";
+import CodeGenWalker from "../TRANSPILE/CodeGenWalker";
 import CodeGenState from "./state/CodeGenState";
 import ModificationFacts from "./ModificationFacts";
 import CallbackCompatibility from "./CallbackCompatibility";
@@ -102,7 +102,7 @@ import TargetResolver from "../utils/TargetResolver";
 class Transpiler {
   private readonly config: Required<ITranspilerConfig>;
   private readonly preprocessor: Preprocessor;
-  private readonly codeGenerator: CodeGenerator;
+  private readonly codeGenerator: CodeGenWalker;
   private readonly headerGenerator: HeaderGenerator;
   private readonly warnings: string[];
   private readonly cacheManager: CacheManager | null;
@@ -270,7 +270,7 @@ class Transpiler {
     this.preprocessor = new Preprocessor(
       Transpiler._toolchainForCompileDb(compileDb),
     );
-    this.codeGenerator = new CodeGenerator();
+    this.codeGenerator = new CodeGenWalker();
     this.headerGenerator = new HeaderGenerator();
     this.warnings = [];
 
