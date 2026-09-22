@@ -259,12 +259,23 @@ describe("artifact lifetime (#1445 box 2)", () => {
   it(
     "pins every field outside the parser that holds a parse node",
     () => {
-      // An EXHAUSTIVE roster, not an emptiness claim. Two fields legitimately
-      // hold one and both are released when the run ends; asserting "none" would
+      // An EXHAUSTIVE roster, not an emptiness claim. Four fields legitimately
+      // hold one and all are released when the run ends; asserting "none" would
       // have to exempt them, and an exemption is invisible once written. A roster
-      // makes a third holder a failing diff.
+      // makes a fifth holder a failing diff.
+      //
+      // The pattern is ALL of `src/` minus the two directories whose emptiness
+      // the other assertions here own, because a roster scoped to where the
+      // holders were already known cannot find one anywhere else. It used to
+      // read `src/transpiler/|src/TRANSPILE/CodeGenWalker.ts$` -- one directory
+      // plus one file -- so `src/cli/` was outside it, and `ServeCommand`
+      // sat unlisted under a test named "pins EVERY field outside the parser".
+      // Found by review. The backstop did not cover the gap either:
+      // `parse-tree-sites.md` reports modules that NAME a parse type, and
+      // `ServeCommand` names none -- transitive reach is precisely what this
+      // file exists to catch.
       const holders = storedParseNodes(
-        /src\/transpiler\/|src\/TRANSPILE\/CodeGenWalker\.ts$/,
+        /src\/(?!PARSE\/2-Parse|TRANSPILE\/1-Analyze)/,
       ).map((f) => f.replace(/:\d+ /, " "));
 
       expect(holders.sort()).toEqual(
@@ -279,6 +290,14 @@ describe("artifact lifetime (#1445 box 2)", () => {
           // residency defect #1445 box 2 found and fixed.
           "src/TRANSPILE/CodeGenWalker.ts CodeGenWalker.commentExtractor",
           "src/TRANSPILE/CodeGenWalker.ts CodeGenWalker.tokenStream",
+          // The longest-lived holder in the codebase, and `private static` --
+          // CLAUDE.md singles it out ("`ServeCommand` holds a static transpiler
+          // and serves many requests"). Not a leak: it reaches a tree only
+          // through the two `Transpiler` fields above, which `Transpiler`
+          // clears in a `finally`. It is here because the roster claims to be
+          // exhaustive, and a holder reachable only transitively is the one
+          // shape the generated `parse-tree-sites.md` backstop cannot see.
+          "src/cli/serve/ServeCommand.ts ServeCommand.transpiler",
         ].sort(),
       );
     },

@@ -13,8 +13,10 @@ and it fails quietly: where the two disagree a module is gated by neither
 while both report green.
 
 **A row is not by itself a defect.** `IParsedFile.ts` IS 1.2 Parse's
-artifact and `IDeclaredFile.ts` carries the tree 1.3 consumes; holding a
-parse context is their job. What the lifetime axis forbids is the
+artifact, and holding a parse context is its job -- 1.3 consumes that
+same artifact rather than re-exporting the tree in one of its own, which
+is what #1445 box 2 closed when it deleted `IDeclaredFile.ts`.
+What the lifetime axis forbids is the
 population GROWING -- a pass reaching for the tree to answer a question its
 own artifact should already answer. So the rule is `warn`, not `error`, and
 this document is the gate: `npm run parse-tree:check` fails when a module

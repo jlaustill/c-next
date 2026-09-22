@@ -271,8 +271,14 @@ class CodeGenWalker {
    * away, it moved from `ParserRuleContext` into `string`; what catches a
    * swap there is each generator's `invariant` on an unknown key, at run
    * time. Stated because the slice's own commit subject says "a mis-wire is
-   * now a type error", which is true of the seven context-typed generators
-   * and not of the two this slice converted.
+   * now a type error", which was true of the seven context-typed generators
+   * of the day and not of the two that slice converted.
+   *
+   * There are now ZERO context-typed generators -- the slices after it took
+   * the render layer to none, which is this PR's headline result. So the
+   * caveat is no longer a minority case: `generateEnum`/`generateBitmap` are
+   * the ONLY unguarded substitution left in the family, and the run-time
+   * `invariant` is the only thing standing behind it.
    */
   private invokeGenerator<T>(generate: TGeneratorFn<T>, ctx: T): string {
     const result = generate(
@@ -3273,9 +3279,10 @@ class CodeGenWalker {
     // Issue #500: check for an array BEFORE skipping -- arrays must be emitted.
     // Both spellings count: C-style trailing dimensions and the C-Next arrayType.
     const isConst = varDecl.constModifier() !== null;
-    const arrayDims = varDecl.arrayDimension();
-    const arrayTypeCtx = varDecl.type().arrayType?.() ?? null;
-    const isArray = arrayDims.length > 0 || arrayTypeCtx !== null;
+    const shape = CodeGenWalker.readArrayShape(varDecl);
+    const arrayDims = shape.arrayDims;
+    const arrayTypeCtx = shape.arrayTypeCtx;
+    const isArray = shape.isArray;
 
     // Issue #282: a private const scalar is inlined at its uses, not emitted at
     // file scope. Issue #500 exempts arrays, which cannot be inlined. Decided
@@ -4103,6 +4110,37 @@ class CodeGenWalker {
   }
 
   /**
+   * The two spellings of "this declaration is an array", read once.
+   *
+   * C-Next admits trailing C-style dimensions (`u32 a[4]`) and the arrayType
+   * prefix (`u32[4] a`), so "is this an array" is their disjunction --
+   * `IPlannedArrayDeclaration` says it is decided once, and it was being
+   * re-derived at a second site from the same node.
+   *
+   * The scope-side copy gates a BEHAVIORAL arm, which is why this is not
+   * cosmetic: Issue #282 inlines a private const scalar at its uses and Issue
+   * #500 exempts arrays. Two spellings of this disjunction disagreeing emits an
+   * array that should have been inlined, or inlines one that had to be emitted.
+   *
+   * `arrayType?.()` keeps the scope path's defensive call -- `TypeContext`
+   * always carries the rule, but a hand-built context in a unit test need not.
+   */
+  private static readArrayShape(ctx: Parser.VariableDeclarationContext): {
+    arrayDims: Parser.ArrayDimensionContext[];
+    arrayTypeCtx: Parser.ArrayTypeContext | null;
+    isArray: boolean;
+  } {
+    const arrayDims = ctx.arrayDimension();
+    const arrayTypeCtx = ctx.type().arrayType?.() ?? null;
+
+    return {
+      arrayDims,
+      arrayTypeCtx,
+      isArray: arrayDims.length > 0 || arrayTypeCtx !== null,
+    };
+  }
+
+  /**
    * The array half of a declaration (ADR-035/ADR-036).
    *
    * `arrayTypeDimensions` is rendered HERE rather than handed over as a thunk,
@@ -4116,10 +4154,11 @@ class CodeGenWalker {
     ctx: Parser.VariableDeclarationContext,
     typeCtx: Parser.TypeContext,
   ): IPlannedArrayDeclaration {
-    const arrayDims = ctx.arrayDimension();
-    const arrayTypeCtx = typeCtx.arrayType();
+    const shape = CodeGenWalker.readArrayShape(ctx);
+    const arrayDims = shape.arrayDims;
+    const arrayTypeCtx = shape.arrayTypeCtx;
 
-    if (arrayDims.length === 0 && arrayTypeCtx === null) {
+    if (!shape.isArray) {
       return {
         isArray: false,
         hasEmptyDimension: false,
@@ -4150,7 +4189,16 @@ class CodeGenWalker {
       declaredSize:
         CodeGenWalker.foldFirstDimension(typeDims) ??
         CodeGenWalker.foldFirstDimension(arrayDims),
-      arrayTypeDimensions: this.renderArrayTypeDimensions(arrayTypeCtx),
+      // One renderer for the type's dimensions, not two. This used to call a
+      // private twin of `ArrayDimensionUtils.renderArrayTypeDimensions` that
+      // re-derived the same rule -- fold a constant, else generate, `[]` when
+      // unsized -- from the same node. They agreed only because both folded
+      // through `tryEvaluateConstant`, which is the "by coincidence" shape the
+      // house rule names. Still eager: the util calls each `renderSize` inside
+      // its `map`, so dimension effects are raised exactly where they were.
+      arrayTypeDimensions: ArrayDimensionUtils.renderArrayTypeDimensions(
+        this.planArrayTypeDimensions(arrayTypeCtx),
+      ),
       renderCStyleDimensions: () => this.generateArrayDimensions(arrayDims),
       init: initializer
         ? {
@@ -4184,34 +4232,6 @@ class CodeGenWalker {
         dimensionEvalOptions(),
       ) ?? null
     );
-  }
-
-  /**
-   * The type's own dimensions, rendered: `u16[8]` -> `"[8]"`, `u16[4][4]` ->
-   * `"[4][4]"`.
-   *
-   * A constant is folded first, because C rejects a variably-modified type at
-   * file scope; the expression text is the fallback for macros and enums.
-   */
-  private renderArrayTypeDimensions(
-    arrayTypeCtx: Parser.ArrayTypeContext | null,
-  ): string {
-    if (!arrayTypeCtx) {
-      return "";
-    }
-
-    let result = "";
-    for (const dim of arrayTypeCtx.arrayTypeDimension()) {
-      const sizeExpr = dim.expression();
-      if (!sizeExpr) {
-        result += "[]";
-        continue;
-      }
-      const dimValue =
-        this.tryEvaluateConstant(sizeExpr) ?? this.generateExpression(sizeExpr);
-      result += `[${dimValue}]`;
-    }
-    return result;
   }
 
   /**

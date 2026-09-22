@@ -11,8 +11,13 @@
  * that need it -- both are `TGeneratorFn<string>`, because a declared NAME is
  * all either reads before looking the declaration up in `input.symbols`, and
  * the old constraint would have forbidden saying so. Dropping it is what lets
- * this module stop naming `antlr4ng` while the declaration generators that
- * still take a context keep working unchanged.
+ * this module stop naming `antlr4ng` at all.
+ *
+ * At the time that was written, the declaration generators that still took a
+ * parse context kept working unchanged under the relaxation. There are now
+ * NONE -- box 3 took the render layer's parse-node holders to zero, so every
+ * `T` in this family is a planned IR type or a name. The relaxation is what
+ * made that reachable rather than something it tolerated.
  *
  * `generateLiteral` is NOT the example here, though an earlier draft of this
  * comment named it: it left the family entirely, to `(text, state)`, and is
@@ -26,7 +31,9 @@
  * substitutable at the type level, so a dispatch swap between the enum and the
  * bitmap compiles. That is the registry's erasure surviving in a narrower
  * form, and it is caught only by each generator's `invariant` on an unknown
- * key, at run time. See `CodeGenerator.invokeGenerator`.
+ * key, at run time. See `CodeGenWalker.invokeGenerator` -- it moved there
+ * with the 193 parse-typed members box 3 extracted, and this line named
+ * `CodeGenerator` for a while after it had.
  *
  * @param node - The node to generate code for
  * @param input - Read-only context (symbols, types, config)

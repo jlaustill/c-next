@@ -56,6 +56,52 @@ const UNKNOWN_CARRIER = new RegExp(
 );
 
 /**
+ * The selector's own control, one case per ARM.
+ *
+ * The population cannot provide this. `occurrences()` is a UNION and only the
+ * array arm has a live site, so "finds the shape at all" is satisfied by that
+ * one row however broken the name-keyed arm is. Deleting the name arm outright
+ * left all three population tests green -- measured, not reasoned about, and
+ * the same shape `tests-do-not-write-into-src.test.ts` was corrected for one
+ * file over.
+ *
+ * Asserting each arm matches something LIVE is not available either: the
+ * name-keyed arm has zero production sites, and that is this PR's achievement
+ * rather than a gap -- #1652 removed the last `ctx: unknown`. An arm guarding
+ * against a shape's RETURN has nothing to point at until it returns.
+ *
+ * So the control is over the SELECTOR, with synthetic lines. It answers "can
+ * this still match what it exists for?", which is the question a population
+ * cannot answer once that population is empty.
+ */
+const SELECTOR_CASES: readonly {
+  arm: string;
+  line: string;
+  matches: boolean;
+}[] = [
+  // The array arm -- how a list of expressions travels.
+  { arm: "array", line: "  expressions: unknown[];", matches: true },
+  // The name-keyed arm -- the `ICodeGenApi` idiom #1652 removed. `expr2` also
+  // pins the `\d*`, which is what lets a second parameter share a name.
+  {
+    arm: "name-keyed",
+    line: "  generate(ctx: unknown): string;",
+    matches: true,
+  },
+  { arm: "name-keyed", line: "  visit(node: unknown): void;", matches: true },
+  { arm: "name-keyed", line: "  fold(expr2: unknown): string;", matches: true },
+  // Negative controls: the legitimate `unknown`s this roster must NOT collect,
+  // or it becomes a list of unrelated exemptions nobody reads.
+  { arm: "catch binding", line: "  } catch (err: unknown) {", matches: false },
+  {
+    arm: "ANTLR listener",
+    line: "  syntaxError(recognizer: unknown): void {",
+    matches: false,
+  },
+  { arm: "bare unknown", line: "  payload: unknown;", matches: false },
+];
+
+/**
  * Every production site allowed to spell it, and why each is not a parse node.
  *
  * A row is `file:member`. Adding one is the point at which someone has to say
@@ -111,6 +157,13 @@ describe("unknown-typed carriers (#1652)", () => {
 
     expect(unaccounted).toEqual([]);
   });
+
+  it.each(SELECTOR_CASES)(
+    "selector arm $arm matches `$line` -> $matches",
+    ({ line, matches }) => {
+      expect(UNKNOWN_CARRIER.test(line)).toBe(matches);
+    },
+  );
 
   it("every accounted row still exists", () => {
     // The other direction: a row kept after its site is gone is an exemption

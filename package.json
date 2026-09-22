@@ -88,7 +88,7 @@
     "duplication:all": "echo '=== Local (jscpd) ===' && npm run duplication && echo '\n=== SonarCloud ===' && npm run duplication:sonar",
     "analyze:prune": "ts-prune",
     "analyze:madge": "madge src/ --circular --extensions ts",
-    "analyze:madge:graph": "madge src/ --image docs/architecture/dependency-graph.svg --extensions ts --exclude '(parser/(grammar|c/grammar|cpp/grammar)|__tests__)' --layout sfdp",
+    "analyze:madge:graph": "madge src/ --image docs/architecture/dependency-graph.svg --extensions ts --exclude '(PARSE/2-Parse/(grammar|c/grammar|cpp/grammar)|__tests__)' --layout sfdp",
     "analyze:cpd": "./scripts/cpd.sh",
     "analyze:duplication": "npx jscpd src/ scripts/",
     "analyze:all": "npm run analyze:duplication && npm run analyze:prune && npm run analyze:madge",
