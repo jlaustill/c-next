@@ -28,7 +28,13 @@
  * `IParsedFile` in its `to:` list for exactly this reason.
  */
 import { describe, it, expect } from "vitest";
-import { Project, type Type } from "ts-morph";
+import {
+  Project,
+  type ClassDeclaration,
+  type ParameterDeclaration,
+  type PropertyDeclaration,
+  type Type,
+} from "ts-morph";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -153,13 +159,44 @@ const ARTIFACTS: ReadonlyArray<readonly [string, string]> = [
 ];
 
 /** Every class field under a directory whose type reaches a parse node. */
+/**
+ * Every own property a class declares -- fields AND constructor parameter
+ * properties.
+ *
+ * `constructor(private readonly file: IParsedFile) {}` declares a property
+ * exactly as a field does, but the node is a `Parameter` under the
+ * `Constructor`, so `getProperties()` never reaches it. This guard shipped
+ * without that and was **unable to fail on the shape it was written against**:
+ * adding that exact constructor to a 2-Plan module left all six assertions
+ * green, and only `parse-tree:check` -- which the header above calls the
+ * backstop -- caught it. That inverted the claim this file makes about itself.
+ *
+ * Its sibling `bitmap-field-layout.test.ts` had already recorded the same hole
+ * and closed it the same way, noting that 17 non-test files declare one. Found
+ * by review, not by the guard.
+ *
+ * `getModifiers().length` is what separates a parameter property from a plain
+ * constructor parameter, which declares nothing.
+ */
+function declaredProperties(
+  cls: ClassDeclaration,
+): (PropertyDeclaration | ParameterDeclaration)[] {
+  const fields: (PropertyDeclaration | ParameterDeclaration)[] = [
+    ...cls.getProperties(),
+  ];
+  for (const ctor of cls.getConstructors())
+    for (const parameter of ctor.getParameters())
+      if (parameter.getModifiers().length) fields.push(parameter);
+  return fields;
+}
+
 function storedParseNodes(pattern: RegExp): string[] {
   const found: string[] = [];
   for (const sf of project.getSourceFiles()) {
     const path = sf.getFilePath();
     if (path.includes("__tests__") || !pattern.test(path)) continue;
     for (const cls of sf.getClasses())
-      for (const prop of cls.getProperties()) {
+      for (const prop of declaredProperties(cls)) {
         try {
           if (reachesParseNode(prop.getType()))
             found.push(

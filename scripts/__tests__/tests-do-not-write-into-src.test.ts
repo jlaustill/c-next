@@ -65,6 +65,19 @@ describe("tests do not write into src/ (#1640)", () => {
     expect(offenders).toEqual([]);
   });
 
+  // The other selector's control, and it was missing. `offenders` is a
+  // CONJUNCTION, so a dead `WRITES` empties it -- and the read-only control
+  // below gets EASIER, not harder, because `!WRITES.test(source)` then holds
+  // for every file. Both tests pass with the write-call names replaced by
+  // a string that matches nothing; measured, not reasoned about. Found by review.
+  it("finds the write calls at all", () => {
+    const writers = testFiles(srcDir).filter((path) =>
+      WRITES.test(readFileSync(path, "utf-8")),
+    );
+
+    expect(writers.length).toBeGreaterThan(0);
+  });
+
   // The negative control, asserted rather than assumed. `__dirname` is also how
   // a test finds a FIXTURE to read, and that is fine -- so the check above is
   // only meaningful while files of that shape exist for it to let through. If

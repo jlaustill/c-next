@@ -46,7 +46,6 @@ function createMockContext(
     foldValue: () =>
       HandlerTestUtils.planner().tryEvaluateConstant(null as never),
     postfixOps: [],
-    leadingSubscriptCount: 0,
     resolvedTarget,
     resolvedBaseIdentifier,
     ...overrides,

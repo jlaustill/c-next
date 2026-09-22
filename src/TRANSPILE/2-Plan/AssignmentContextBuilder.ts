@@ -24,7 +24,6 @@ import IAssignmentContext from "../../transpiler/types/IAssignmentContext";
 import IBitAccessAnalysis from "../../transpiler/types/IBitAccessAnalysis";
 import TPlannedTargetOp from "../../transpiler/types/TPlannedTargetOp";
 import TTypeInfo from "../../transpiler/types/TTypeInfo";
-import SubscriptDepthValidator from "./SubscriptDepthValidator";
 
 /**
  * Dependencies for building context.
@@ -255,12 +254,6 @@ function buildAssignmentContext(
     renderSubscript: (index) => deps.generateExpression(subscripts[index]),
     foldSubscript: (index) => deps.tryEvaluateConstant(subscripts[index]),
     postfixOps: ops,
-    // Issue #1106: counted through the validator, which the READ path also
-    // calls, so the two cannot diverge on what counts as a subscript.
-    leadingSubscriptCount: SubscriptDepthValidator.countLeadingSubscripts(
-      postfixOps,
-      0,
-    ),
     hasThis,
     hasGlobal,
     hasMemberAccess,

@@ -191,10 +191,9 @@ interface FunctionSignature {
     isArray: boolean;
   }>;
 }
-import type ICodeGenApi from "../transpiler/types/ICodeGenApi";
 import CodeGenerator from "./3-Render/codegen/CodeGenerator";
 
-class CodeGenWalker implements ICodeGenApi {
+class CodeGenWalker {
   /**
    * The render-side services. Generators receive THIS object as their
    * orchestrator, not the walker: `IOrchestrator` is implemented over there.
@@ -1654,7 +1653,10 @@ class CodeGenWalker implements ICodeGenApi {
     CodeGenState.reset(targetCapabilities);
 
     // Set generator reference for handlers to use
-    CodeGenState.generator = this;
+    // #1652 removed `ICodeGenApi`'s four parse-node members, and every one that
+    // remains is implemented on the host. The walker used to be assigned here
+    // and forward all five, which made a sixth member two places to write.
+    CodeGenState.generator = this.host;
   }
 
   /**
@@ -5582,45 +5584,6 @@ class CodeGenWalker implements ICodeGenApi {
    */
   private generateSafeDivHelpers(safeDivOps: readonly string[]): string[] {
     return helperGenerateSafeDivHelpers(new Set(safeDivOps));
-  }
-
-  // === ICodeGenApi (#1445 box 3) ===
-  //
-  // `CodeGenState.generator` is the WALKER, not the host: three of
-  // `ICodeGenApi`'s members take a parse node (`generateExpression`,
-  // `generateAssignmentTarget`, `tryEvaluateConstant`) and came over with the
-  // walk, so the host cannot satisfy the contract on its own. The five that
-  // did not move are delegated rather than duplicated -- one implementation,
-  // reached through the same `host` every other render service is.
-
-  generateAtomicRMW(
-    ...args: Parameters<CodeGenerator["generateAtomicRMW"]>
-  ): ReturnType<CodeGenerator["generateAtomicRMW"]> {
-    return this.host.generateAtomicRMW(...args);
-  }
-
-  generateFloatBitWrite(
-    ...args: Parameters<CodeGenerator["generateFloatBitWrite"]>
-  ): ReturnType<CodeGenerator["generateFloatBitWrite"]> {
-    return this.host.generateFloatBitWrite(...args);
-  }
-
-  getMemberTypeInfo(
-    ...args: Parameters<CodeGenerator["getMemberTypeInfo"]>
-  ): ReturnType<CodeGenerator["getMemberTypeInfo"]> {
-    return this.host.getMemberTypeInfo(...args);
-  }
-
-  isKnownScope(
-    ...args: Parameters<CodeGenerator["isKnownScope"]>
-  ): ReturnType<CodeGenerator["isKnownScope"]> {
-    return this.host.isKnownScope(...args);
-  }
-
-  isKnownStruct(
-    ...args: Parameters<CodeGenerator["isKnownStruct"]>
-  ): ReturnType<CodeGenerator["isKnownStruct"]> {
-    return this.host.isKnownStruct(...args);
   }
 
   // === Pipeline surface ===

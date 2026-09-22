@@ -85,12 +85,15 @@ interface IAssignmentContext {
   /** The postfix operations, reduced to what is asked of them. */
   readonly postfixOps: readonly TPlannedTargetOp[];
 
-  /**
-   * How many of the leading operations are subscripts, counted through
-   * `SubscriptDepthValidator` so the read path and this one share the
-   * decision rather than each counting for itself (Issue #1106).
-   */
-  readonly leadingSubscriptCount: number;
+  // #1445 review: `leadingSubscriptCount` stood here, written by the builder
+  // and read by NOTHING in production. Its doc said it existed so the two
+  // paths would "share the decision rather than each counting for itself" --
+  // while `AssignmentClassifier` counts for itself two lines from where it
+  // would have read this, off `postfixOps.slice(memberOpCount)`. This one was
+  // counted from offset 0, so the two disagree on every scope-qualified chain
+  // (`global.Other.buf[3][1]`): a reader who trusted the comment and removed
+  // the "duplicate" would have got a wrong depth, silently. Deleted rather
+  // than fixed, because the classifier's count is the live one.
 
   // === Target classification flags ===
 

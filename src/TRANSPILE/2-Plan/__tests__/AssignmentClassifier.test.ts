@@ -44,7 +44,6 @@ function createMockContext(
     renderSubscript: () => "0",
     foldSubscript: () => undefined,
     postfixOps: [],
-    leadingSubscriptCount: 0,
     hasThis: false,
     hasGlobal: false,
     hasMemberAccess: false,

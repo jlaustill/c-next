@@ -638,17 +638,17 @@ describe("CodeGenWalker", () => {
 
     describe("isKnownStruct()", () => {
       it("should return true for known struct", () => {
-        const { generator } = createMinimalGenerator(`
+        const { host } = createMinimalGenerator(`
           struct Point { i32 x; i32 y; }
         `);
 
-        expect(generator.isKnownStruct("Point")).toBe(true);
+        expect(host.isKnownStruct("Point")).toBe(true);
       });
 
       it("should return false for unknown struct", () => {
-        const { generator } = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`);
 
-        expect(generator.isKnownStruct("UnknownStruct")).toBe(false);
+        expect(host.isKnownStruct("UnknownStruct")).toBe(false);
       });
     });
 
@@ -841,19 +841,19 @@ describe("CodeGenWalker", () => {
 
     describe("isKnownScope()", () => {
       it("should return true for known scope", () => {
-        const { generator } = createMinimalGenerator(`
+        const { host } = createMinimalGenerator(`
           scope Motor {
             public void stop() { }
           }
         `);
 
-        expect(generator.isKnownScope("Motor")).toBe(true);
+        expect(host.isKnownScope("Motor")).toBe(true);
       });
 
       it("should return false for unknown scope", () => {
-        const { generator } = createMinimalGenerator(`void foo() { }`);
+        const { host } = createMinimalGenerator(`void foo() { }`);
 
-        expect(generator.isKnownScope("UnknownScope")).toBe(false);
+        expect(host.isKnownScope("UnknownScope")).toBe(false);
       });
     });
 
@@ -2186,11 +2186,11 @@ describe("CodeGenWalker", () => {
 
   describe("getMemberTypeInfo()", () => {
     it("should return member type info for known struct", () => {
-      const { generator } = createMinimalGenerator(`
+      const { host } = createMinimalGenerator(`
         struct Point { i32 x; i32 y; }
       `);
 
-      const memberInfo = generator.getMemberTypeInfo("Point", "x");
+      const memberInfo = host.getMemberTypeInfo("Point", "x");
       expect(memberInfo).not.toBeNull();
       expect(memberInfo?.baseType).toBe("i32");
       expect(memberInfo?.isArray).toBe(false);
@@ -2199,11 +2199,11 @@ describe("CodeGenWalker", () => {
     });
 
     it("should return full TTypeInfo for array struct field", () => {
-      const { generator } = createMinimalGenerator(`
+      const { host } = createMinimalGenerator(`
         struct Buffer { u8 data[256]; u16 len; }
       `);
 
-      const memberInfo = generator.getMemberTypeInfo("Buffer", "data");
+      const memberInfo = host.getMemberTypeInfo("Buffer", "data");
       expect(memberInfo).not.toBeNull();
       expect(memberInfo?.baseType).toBe("u8");
       expect(memberInfo?.isArray).toBe(true);
@@ -2213,9 +2213,9 @@ describe("CodeGenWalker", () => {
     });
 
     it("should return null for unknown struct", () => {
-      const { generator } = createMinimalGenerator(`void foo() { }`);
+      const { host } = createMinimalGenerator(`void foo() { }`);
 
-      const memberInfo = generator.getMemberTypeInfo("Unknown", "field");
+      const memberInfo = host.getMemberTypeInfo("Unknown", "field");
       expect(memberInfo).toBeNull();
     });
   });
