@@ -94,6 +94,23 @@ function reachesParseNode(
     /* not a union */
   }
 
+  // What a callable HANDS BACK. This is the difference between a thunk and a
+  // re-export, and it is the whole reason these artifacts are legal.
+  // `IAssignmentContext` carries eight functions that close over
+  // `Parser.AssignmentTargetContext` and friends, and `ICodeGenApi` takes parse
+  // nodes as `unknown`; a consumer therefore RETAINS a tree for the duration of
+  // a render. But every one returns `string`, `IBitAccessAnalysis`,
+  // `number | undefined` -- a value, never a node -- so no later pass can
+  // OBTAIN a parse node from an artifact and walk it. Retention for the length
+  // of the render is the lifetime the design asks for; handing the node back is
+  // what box 2 forbids, and only this check can tell the two apart.
+  try {
+    for (const sig of type.getCallSignatures())
+      if (reachesParseNode(sig.getReturnType(), depth + 1, seen)) return true;
+  } catch {
+    /* not callable */
+  }
+
   for (const prop of type.getProperties()) {
     const decl = prop.getDeclarations()[0];
     if (!decl) continue;
@@ -129,6 +146,10 @@ const ARTIFACTS: ReadonlyArray<readonly [string, string]> = [
   ["src/PARSE/4-Resolve/VisibleSymbols.ts", "VisibleSymbols"],
   ["src/transpiler/state/SymbolTable.ts", "SymbolTable"],
   ["src/transpiler/state/SymbolRegistry.ts", "SymbolRegistry"],
+  // The two artifacts whose RUNTIME values retain a tree through closures --
+  // included precisely so the return-type check above is exercised on them.
+  ["src/transpiler/types/IAssignmentContext.ts", "IAssignmentContext"],
+  ["src/transpiler/types/TPlannedTargetOp.ts", "TPlannedTargetOp"],
 ];
 
 /** Every class field under a directory whose type reaches a parse node. */
