@@ -21,7 +21,7 @@ import TYPE_LIMITS from "./types/TYPE_LIMITS";
 import TTypeInfo from "../../../transpiler/types/TTypeInfo";
 import TParameterInfo from "../../../transpiler/types/TParameterInfo";
 import ICodeGeneratorOptions from "./types/ICodeGeneratorOptions";
-import TypeResolver from "./TypeResolver";
+import ExpressionTypeResolver from "../../2-Plan/ExpressionTypeResolver";
 import TypeValidator from "./TypeValidator";
 import IOrchestrator from "./generators/IOrchestrator";
 import IGeneratorInput from "./generators/IGeneratorInput";
@@ -192,7 +192,7 @@ import SizeofResolver from "./resolution/SizeofResolver";
 import type TSizeofOperand from "./types/TSizeofOperand";
 import EnumTypeResolver from "./resolution/EnumTypeResolver";
 // Issue #797: Centralized C-style name generation
-import QualifiedNameGenerator from "./utils/QualifiedNameGenerator";
+import QualifiedNameGenerator from "../../../utils/QualifiedNameGenerator";
 import MisraSuppressionUtils from "../MisraSuppressionUtils";
 import QualifiedCName from "../../../utils/QualifiedCName";
 import type IRecordedRequirement from "../../../transpiler/types/IRecordedRequirement";
@@ -653,7 +653,7 @@ export default class CodeGenerator implements IOrchestrator {
       operator,
       operandCode: this.generateUnaryExpr(operand),
       // lazy: only `~` consults it
-      operandType: () => TypeResolver.getUnaryExpressionType(operand),
+      operandType: () => ExpressionTypeResolver.getUnaryExpressionType(operand),
     });
   }
 
@@ -1002,8 +1002,9 @@ export default class CodeGenerator implements IOrchestrator {
       // Asked AFTER the operands render, which is where they are asked today:
       // both read the type registry, and asking earlier asks about a state the
       // operands have not reached.
-      clampType: () => TypeResolver.getCompositeIntegerType(ctx),
-      clampBehavior: () => TypeResolver.getCompositeOverflowBehavior(ctx),
+      clampType: () => ExpressionTypeResolver.getCompositeIntegerType(ctx),
+      clampBehavior: () =>
+        ExpressionTypeResolver.getCompositeOverflowBehavior(ctx),
       adrLine: ctx.start?.line,
       renderOperands: children.map(
         (child) => () =>
@@ -1026,8 +1027,9 @@ export default class CodeGenerator implements IOrchestrator {
       kind: "arithmetic",
       defaultOperator: "*",
       operators: this.getOperatorsFromChildren(ctx),
-      clampType: () => TypeResolver.getCompositeIntegerType(ctx),
-      clampBehavior: () => TypeResolver.getCompositeOverflowBehavior(ctx),
+      clampType: () => ExpressionTypeResolver.getCompositeIntegerType(ctx),
+      clampBehavior: () =>
+        ExpressionTypeResolver.getCompositeOverflowBehavior(ctx),
       adrLine: ctx.start?.line,
       // `generateUnaryExpr` applies its own effects, so a leaf contributes
       // none here -- matching the empty array the multiplicative tail passed.
@@ -1059,18 +1061,18 @@ export default class CodeGenerator implements IOrchestrator {
 
   /**
    * Check if a type is a float type.
-   * Part of IOrchestrator interface - delegates to TypeResolver.
+   * Part of IOrchestrator interface - delegates to ExpressionTypeResolver.
    */
   isFloatType(typeName: string): boolean {
-    return TypeResolver.isFloatType(typeName);
+    return ExpressionTypeResolver.isFloatType(typeName);
   }
 
   /**
    * Check if a type is an integer type.
-   * Part of IOrchestrator interface - delegates to TypeResolver.
+   * Part of IOrchestrator interface - delegates to ExpressionTypeResolver.
    */
   isIntegerType(typeName: string): boolean {
-    return TypeResolver.isIntegerType(typeName);
+    return ExpressionTypeResolver.isIntegerType(typeName);
   }
 
   /**
@@ -1103,7 +1105,8 @@ export default class CodeGenerator implements IOrchestrator {
     return EnumTypeResolver.resolve(ctx.getText(), () => {
       const postfix = ExpressionUnwrapper.getPostfixExpression(ctx);
       if (!postfix) return null;
-      const resolvedType = TypeResolver.getPostfixExpressionType(postfix);
+      const resolvedType =
+        ExpressionTypeResolver.getPostfixExpressionType(postfix);
       return resolvedType && CodeGenState.isKnownEnum(resolvedType)
         ? resolvedType
         : null;
@@ -1325,7 +1328,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   getExpressionType(ctx: Parser.ExpressionContext): string | null {
-    return TypeResolver.getExpressionType(ctx);
+    return ExpressionTypeResolver.getExpressionType(ctx);
   }
 
   /**
@@ -3102,7 +3105,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   isStructType(typeName: string): boolean {
-    return TypeResolver.isStructType(typeName);
+    return ExpressionTypeResolver.isStructType(typeName);
   }
 
   /**
@@ -3645,7 +3648,7 @@ export default class CodeGenerator implements IOrchestrator {
   // Private versions kept for internal use
 
   private _isFloatType(typeName: string): boolean {
-    return TypeResolver.isFloatType(typeName);
+    return ExpressionTypeResolver.isFloatType(typeName);
   }
 
   /**
@@ -3654,7 +3657,7 @@ export default class CodeGenerator implements IOrchestrator {
   private getUnaryExpressionType(
     ctx: Parser.UnaryExpressionContext,
   ): string | null {
-    return TypeResolver.getUnaryExpressionType(ctx);
+    return ExpressionTypeResolver.getUnaryExpressionType(ctx);
   }
 
   /**
@@ -5679,9 +5682,9 @@ export default class CodeGenerator implements IOrchestrator {
         this.analyzeMemberChainForBitAccess(target),
       generateExpression: (expr) => this.generateExpression(expr),
       tryEvaluateConstant: (expr) => this.tryEvaluateConstant(expr),
-      expressionType: (expr) => TypeResolver.getExpressionType(expr),
+      expressionType: (expr) => ExpressionTypeResolver.getExpressionType(expr),
       integerExpressionType: (expr) =>
-        TypeResolver.getIntegerExpressionType(expr),
+        ExpressionTypeResolver.getIntegerExpressionType(expr),
     });
     // ADR-065: Handlers access CodeGenState directly, no deps needed
     const assignmentKind = AssignmentClassifier.classify(assignCtx);

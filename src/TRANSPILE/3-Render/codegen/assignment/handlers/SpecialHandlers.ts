@@ -11,7 +11,7 @@ import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 import TTypeInfo from "../../../../../transpiler/types/TTypeInfo";
-import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
+import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator";
 import AdrProvenance from "../../../../../transpiler/state/AdrProvenance";
 
 /** Maps C operators to clamp helper operation names */

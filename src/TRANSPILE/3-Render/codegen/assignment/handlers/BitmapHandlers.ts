@@ -18,7 +18,7 @@ import BitUtils from "../../../../../utils/BitUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
-import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
+import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator";
 import RegisterAccessMode from "../../../../../utils/RegisterAccessMode";
 
 /**

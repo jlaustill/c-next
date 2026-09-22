@@ -7,7 +7,7 @@ import CodeGenState from "../../../transpiler/state/CodeGenState";
 import AdrProvenance from "../../../transpiler/state/AdrProvenance";
 // SonarCloud S3776: Extracted literal parsing to reduce complexity
 import QualifiedCName from "../../../utils/QualifiedCName";
-import QualifiedNameGenerator from "./utils/QualifiedNameGenerator";
+import QualifiedNameGenerator from "../../../utils/QualifiedNameGenerator";
 
 /**
  * TypeValidator class - validates types, assignments, and control flow at compile time.

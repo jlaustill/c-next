@@ -13,7 +13,7 @@ import TOverflowBehavior from "../../../../transpiler/types/TOverflowBehavior";
 import TYPE_WIDTH from "../../../../transpiler/constants/TYPE_WIDTH";
 import CodeGenState from "../../../../transpiler/state/CodeGenState";
 import TypeRegistrationUtils from "../TypeRegistrationUtils";
-import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
+import QualifiedNameGenerator from "../../../../utils/QualifiedNameGenerator";
 import ArrayDimensionParser from "../../../../utils/ArrayDimensionParser";
 import OverflowBehaviorUtils from "../../../../utils/OverflowBehaviorUtils";
 import UNRESOLVED_DIMENSION from "../../../../transpiler/constants/UNRESOLVED_DIMENSION";

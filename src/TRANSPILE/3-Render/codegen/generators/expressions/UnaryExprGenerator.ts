@@ -12,7 +12,7 @@ import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IOrchestrator from "../IOrchestrator";
 import TGeneratorFn from "../TGeneratorFn";
-import TypeResolver from "../../TypeResolver";
+import ExpressionTypeResolver from "../../../../2-Plan/ExpressionTypeResolver";
 import TYPE_MAP from "../../types/TYPE_MAP";
 import CppModeHelper from "../../helpers/CppModeHelper";
 
@@ -84,7 +84,7 @@ const generateUnaryExpr: TGeneratorFn<IPlannedUnary> = (
   }
   if (unary.operator === "~") {
     const innerType = unary.operandType();
-    if (innerType && TypeResolver.isUnsignedType(innerType)) {
+    if (innerType && ExpressionTypeResolver.isUnsignedType(innerType)) {
       const cType = TYPE_MAP[innerType] ?? innerType;
       return { code: CppModeHelper.cast(cType, `~${inner}`), effects: [] };
     }

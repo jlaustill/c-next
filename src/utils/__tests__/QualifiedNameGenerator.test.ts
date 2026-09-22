@@ -6,10 +6,10 @@
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import QualifiedNameGenerator from "../QualifiedNameGenerator";
-import SymbolRegistry from "../../../../../transpiler/state/SymbolRegistry";
-import FunctionUtils from "../../../../../tests/utils/FunctionUtils";
-import TTypeUtils from "../../../../../utils/TTypeUtils";
-import TestSourceSpan from "../../../../../transpiler/types/__testUtils__/testSourceSpan";
+import SymbolRegistry from "../../transpiler/state/SymbolRegistry";
+import FunctionUtils from "../../tests/utils/FunctionUtils";
+import TTypeUtils from "../TTypeUtils";
+import TestSourceSpan from "../../transpiler/types/__testUtils__/testSourceSpan";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -17,9 +17,6 @@ import { fileURLToPath } from "node:url";
 /** Repo root, for the source-scanning guard below. */
 const repoRoot = join(
   dirname(fileURLToPath(import.meta.url)),
-  "..",
-  "..",
-  "..",
   "..",
   "..",
   "..",
@@ -194,14 +191,11 @@ describe("QualifiedNameGenerator", () => {
    * only inside `output/`, and only outside the one module that delegates to it.
    */
   describe("is the only scope-qualification door in the render pass", () => {
-    const OWNER = join(
-      "src",
-      "TRANSPILE",
-      "3-Render",
-      "codegen",
-      "utils",
-      "QualifiedNameGenerator.ts",
-    );
+    // #1445 box 3: the owner moved to `src/utils/`, so it is no longer INSIDE
+    // the population this scans. The exclusion is kept anyway rather than
+    // deleted -- it costs nothing and the scan is over a directory the module
+    // could be moved back into.
+    const OWNER = join("src", "utils", "QualifiedNameGenerator.ts");
 
     /** `qualifyInScope` CALLED -- not merely named in prose. */
     const CALLS = /ScopeUtils\s*\.\s*qualifyInScope\s*\(/;

@@ -25,7 +25,7 @@ const { mockGetExpressionType, mockGetIntegerExpressionType } = vi.hoisted(
   }),
 );
 
-vi.mock("../../../TypeResolver", () => ({
+vi.mock("../../../../../2-Plan/ExpressionTypeResolver", () => ({
   default: {
     getExpressionType: mockGetExpressionType,
     getIntegerExpressionType: mockGetIntegerExpressionType,

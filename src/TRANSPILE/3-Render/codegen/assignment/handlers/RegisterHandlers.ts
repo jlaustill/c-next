@@ -15,7 +15,7 @@ import TAssignmentHandler from "./TAssignmentHandler";
 import RegisterUtils from "./RegisterUtils";
 import AssignmentHandlerUtils from "./AssignmentHandlerUtils";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";
-import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
+import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator";
 
 /**
  * Handle register single bit: GPIO7.DR_SET[LED_BIT] <- true

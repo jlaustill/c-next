@@ -1,16 +1,16 @@
 /**
- * Unit tests for TypeResolver
+ * Unit tests for ExpressionTypeResolver
  * Tests type classification, conversion validation, and literal validation
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { CharStream, CommonTokenStream } from "antlr4ng";
-import TypeResolver from "../TypeResolver";
-import SymbolTable from "../../../../transpiler/state/SymbolTable";
-import CodeGenState from "../../../../transpiler/state/CodeGenState";
-import TTypeInfo from "../../../../transpiler/types/TTypeInfo";
-import { CNextLexer } from "../../../../PARSE/2-Parse/grammar/CNextLexer";
-import { CNextParser } from "../../../../PARSE/2-Parse/grammar/CNextParser";
-import enterScope from "../../../../transpiler/__tests__/enterScope";
+import ExpressionTypeResolver from "../ExpressionTypeResolver";
+import SymbolTable from "../../../transpiler/state/SymbolTable";
+import CodeGenState from "../../../transpiler/state/CodeGenState";
+import TTypeInfo from "../../../transpiler/types/TTypeInfo";
+import { CNextLexer } from "../../../PARSE/2-Parse/grammar/CNextLexer";
+import { CNextParser } from "../../../PARSE/2-Parse/grammar/CNextParser";
+import enterScope from "../../../transpiler/__tests__/enterScope";
 
 /** Parse a standalone C-Next expression into an ExpressionContext. */
 function parseExpression(source: string) {
@@ -38,7 +38,7 @@ const postfixOpsFrom = (
     LBRACKET: () => (text.startsWith("[") ? {} : null),
   }));
 
-describe("TypeResolver", () => {
+describe("ExpressionTypeResolver", () => {
   let symbolTable: SymbolTable;
 
   beforeEach(() => {
@@ -58,59 +58,59 @@ describe("TypeResolver", () => {
 
   describe("isIntegerType", () => {
     it("should return true for unsigned integer types", () => {
-      expect(TypeResolver.isIntegerType("u8")).toBe(true);
-      expect(TypeResolver.isIntegerType("u16")).toBe(true);
-      expect(TypeResolver.isIntegerType("u32")).toBe(true);
-      expect(TypeResolver.isIntegerType("u64")).toBe(true);
+      expect(ExpressionTypeResolver.isIntegerType("u8")).toBe(true);
+      expect(ExpressionTypeResolver.isIntegerType("u16")).toBe(true);
+      expect(ExpressionTypeResolver.isIntegerType("u32")).toBe(true);
+      expect(ExpressionTypeResolver.isIntegerType("u64")).toBe(true);
     });
 
     it("should return true for signed integer types", () => {
-      expect(TypeResolver.isIntegerType("i8")).toBe(true);
-      expect(TypeResolver.isIntegerType("i16")).toBe(true);
-      expect(TypeResolver.isIntegerType("i32")).toBe(true);
-      expect(TypeResolver.isIntegerType("i64")).toBe(true);
+      expect(ExpressionTypeResolver.isIntegerType("i8")).toBe(true);
+      expect(ExpressionTypeResolver.isIntegerType("i16")).toBe(true);
+      expect(ExpressionTypeResolver.isIntegerType("i32")).toBe(true);
+      expect(ExpressionTypeResolver.isIntegerType("i64")).toBe(true);
     });
 
     it("should return false for non-integer types", () => {
-      expect(TypeResolver.isIntegerType("f32")).toBe(false);
-      expect(TypeResolver.isIntegerType("f64")).toBe(false);
-      expect(TypeResolver.isIntegerType("bool")).toBe(false);
-      expect(TypeResolver.isIntegerType("void")).toBe(false);
-      expect(TypeResolver.isIntegerType("MyStruct")).toBe(false);
+      expect(ExpressionTypeResolver.isIntegerType("f32")).toBe(false);
+      expect(ExpressionTypeResolver.isIntegerType("f64")).toBe(false);
+      expect(ExpressionTypeResolver.isIntegerType("bool")).toBe(false);
+      expect(ExpressionTypeResolver.isIntegerType("void")).toBe(false);
+      expect(ExpressionTypeResolver.isIntegerType("MyStruct")).toBe(false);
     });
   });
 
   describe("isFloatType", () => {
     it("should return true for float types", () => {
-      expect(TypeResolver.isFloatType("f32")).toBe(true);
-      expect(TypeResolver.isFloatType("f64")).toBe(true);
+      expect(ExpressionTypeResolver.isFloatType("f32")).toBe(true);
+      expect(ExpressionTypeResolver.isFloatType("f64")).toBe(true);
     });
 
     it("should return false for non-float types", () => {
-      expect(TypeResolver.isFloatType("u32")).toBe(false);
-      expect(TypeResolver.isFloatType("i32")).toBe(false);
-      expect(TypeResolver.isFloatType("bool")).toBe(false);
+      expect(ExpressionTypeResolver.isFloatType("u32")).toBe(false);
+      expect(ExpressionTypeResolver.isFloatType("i32")).toBe(false);
+      expect(ExpressionTypeResolver.isFloatType("bool")).toBe(false);
     });
   });
 
   describe("isUnsignedType", () => {
     it("should return true for unsigned integer types", () => {
-      expect(TypeResolver.isUnsignedType("u8")).toBe(true);
-      expect(TypeResolver.isUnsignedType("u16")).toBe(true);
-      expect(TypeResolver.isUnsignedType("u32")).toBe(true);
-      expect(TypeResolver.isUnsignedType("u64")).toBe(true);
+      expect(ExpressionTypeResolver.isUnsignedType("u8")).toBe(true);
+      expect(ExpressionTypeResolver.isUnsignedType("u16")).toBe(true);
+      expect(ExpressionTypeResolver.isUnsignedType("u32")).toBe(true);
+      expect(ExpressionTypeResolver.isUnsignedType("u64")).toBe(true);
     });
 
     it("should return false for signed types", () => {
-      expect(TypeResolver.isUnsignedType("i8")).toBe(false);
-      expect(TypeResolver.isUnsignedType("i16")).toBe(false);
-      expect(TypeResolver.isUnsignedType("i32")).toBe(false);
-      expect(TypeResolver.isUnsignedType("i64")).toBe(false);
+      expect(ExpressionTypeResolver.isUnsignedType("i8")).toBe(false);
+      expect(ExpressionTypeResolver.isUnsignedType("i16")).toBe(false);
+      expect(ExpressionTypeResolver.isUnsignedType("i32")).toBe(false);
+      expect(ExpressionTypeResolver.isUnsignedType("i64")).toBe(false);
     });
 
     it("should return false for non-integer types", () => {
-      expect(TypeResolver.isUnsignedType("f32")).toBe(false);
-      expect(TypeResolver.isUnsignedType("bool")).toBe(false);
+      expect(ExpressionTypeResolver.isUnsignedType("f32")).toBe(false);
+      expect(ExpressionTypeResolver.isUnsignedType("bool")).toBe(false);
     });
   });
 
@@ -123,16 +123,16 @@ describe("TypeResolver", () => {
       symbolTable.addStructField("Point", "x", "i32");
       symbolTable.addStructField("Point", "y", "i32");
 
-      expect(TypeResolver.isStructType("Point")).toBe(true);
+      expect(ExpressionTypeResolver.isStructType("Point")).toBe(true);
     });
 
     it("should return false for unknown type", () => {
-      expect(TypeResolver.isStructType("UnknownStruct")).toBe(false);
+      expect(ExpressionTypeResolver.isStructType("UnknownStruct")).toBe(false);
     });
 
     it("should return false for primitive types", () => {
-      expect(TypeResolver.isStructType("u32")).toBe(false);
-      expect(TypeResolver.isStructType("f64")).toBe(false);
+      expect(ExpressionTypeResolver.isStructType("u32")).toBe(false);
+      expect(ExpressionTypeResolver.isStructType("f64")).toBe(false);
     });
   });
 
@@ -175,7 +175,9 @@ describe("TypeResolver", () => {
           opts.castType
             ? { type: () => ({ getText: () => opts.castType }) }
             : null,
-      } as Parameters<typeof TypeResolver.getPrimaryExpressionType>[0];
+      } as Parameters<
+        typeof ExpressionTypeResolver.getPrimaryExpressionType
+      >[0];
     };
 
     it("should return type for identifier in registry", () => {
@@ -186,32 +188,32 @@ describe("TypeResolver", () => {
         isConst: false,
       });
       const ctx = mockPrimary({ identifier: "myVar" });
-      expect(TypeResolver.getPrimaryExpressionType(ctx)).toBe("u32");
+      expect(ExpressionTypeResolver.getPrimaryExpressionType(ctx)).toBe("u32");
     });
 
     it("should return null for identifier not in registry", () => {
       const ctx = mockPrimary({ identifier: "unknownVar" });
-      expect(TypeResolver.getPrimaryExpressionType(ctx)).toBeNull();
+      expect(ExpressionTypeResolver.getPrimaryExpressionType(ctx)).toBeNull();
     });
 
     it("should return type from literal suffix", () => {
       const ctx = mockPrimary({ literal: "42u8" });
-      expect(TypeResolver.getPrimaryExpressionType(ctx)).toBe("u8");
+      expect(ExpressionTypeResolver.getPrimaryExpressionType(ctx)).toBe("u8");
     });
 
     it("should return bool for boolean literal", () => {
       const ctx = mockPrimary({ literal: "true" });
-      expect(TypeResolver.getPrimaryExpressionType(ctx)).toBe("bool");
+      expect(ExpressionTypeResolver.getPrimaryExpressionType(ctx)).toBe("bool");
     });
 
     it("should return type from cast expression", () => {
       const ctx = mockPrimary({ castType: "i16" });
-      expect(TypeResolver.getPrimaryExpressionType(ctx)).toBe("i16");
+      expect(ExpressionTypeResolver.getPrimaryExpressionType(ctx)).toBe("i16");
     });
 
     it("should return null when no matching component", () => {
       const ctx = mockPrimary({});
-      expect(TypeResolver.getPrimaryExpressionType(ctx)).toBeNull();
+      expect(ExpressionTypeResolver.getPrimaryExpressionType(ctx)).toBeNull();
     });
   });
 
@@ -241,7 +243,9 @@ describe("TypeResolver", () => {
         ternaryExpression: () => ({
           orExpression: () => orExprs,
         }),
-      } as unknown as Parameters<typeof TypeResolver.getExpressionType>[0];
+      } as unknown as Parameters<
+        typeof ExpressionTypeResolver.getExpressionType
+      >[0];
     };
 
     const mockExpressionWithAnd = (andCount: number) => {
@@ -257,7 +261,9 @@ describe("TypeResolver", () => {
         ternaryExpression: () => ({
           orExpression: () => [{ andExpression: () => andExprs }],
         }),
-      } as unknown as Parameters<typeof TypeResolver.getExpressionType>[0];
+      } as unknown as Parameters<
+        typeof ExpressionTypeResolver.getExpressionType
+      >[0];
     };
 
     const mockExpressionWithEquality = (eqCount: number) => {
@@ -273,7 +279,9 @@ describe("TypeResolver", () => {
             { andExpression: () => [{ equalityExpression: () => eqExprs }] },
           ],
         }),
-      } as unknown as Parameters<typeof TypeResolver.getExpressionType>[0];
+      } as unknown as Parameters<
+        typeof ExpressionTypeResolver.getExpressionType
+      >[0];
     };
 
     const mockExpressionWithRelational = (relCount: number) => {
@@ -297,27 +305,29 @@ describe("TypeResolver", () => {
             },
           ],
         }),
-      } as unknown as Parameters<typeof TypeResolver.getExpressionType>[0];
+      } as unknown as Parameters<
+        typeof ExpressionTypeResolver.getExpressionType
+      >[0];
     };
 
     it("should return null for ternary expression (multiple or expressions)", () => {
       const ctx = mockExpressionWithOr(3);
-      expect(TypeResolver.getExpressionType(ctx)).toBeNull();
+      expect(ExpressionTypeResolver.getExpressionType(ctx)).toBeNull();
     });
 
     it("should return bool for logical OR expression", () => {
       const ctx = mockExpressionWithAnd(2);
-      expect(TypeResolver.getExpressionType(ctx)).toBe("bool");
+      expect(ExpressionTypeResolver.getExpressionType(ctx)).toBe("bool");
     });
 
     it("should return bool for logical AND expression", () => {
       const ctx = mockExpressionWithEquality(2);
-      expect(TypeResolver.getExpressionType(ctx)).toBe("bool");
+      expect(ExpressionTypeResolver.getExpressionType(ctx)).toBe("bool");
     });
 
     it("should return bool for equality expression", () => {
       const ctx = mockExpressionWithRelational(2);
-      expect(TypeResolver.getExpressionType(ctx)).toBe("bool");
+      expect(ExpressionTypeResolver.getExpressionType(ctx)).toBe("bool");
     });
 
     it("should return null for simple arithmetic expression", () => {
@@ -368,9 +378,11 @@ describe("TypeResolver", () => {
             },
           ],
         }),
-      } as unknown as Parameters<typeof TypeResolver.getExpressionType>[0];
+      } as unknown as Parameters<
+        typeof ExpressionTypeResolver.getExpressionType
+      >[0];
 
-      expect(TypeResolver.getExpressionType(ctx)).toBeNull();
+      expect(ExpressionTypeResolver.getExpressionType(ctx)).toBeNull();
     });
   });
 
@@ -383,7 +395,9 @@ describe("TypeResolver", () => {
       setInt("a", "i32", 32);
       setInt("b", "i32", 32);
       expect(
-        TypeResolver.getIntegerExpressionType(parseExpression("a + b")),
+        ExpressionTypeResolver.getIntegerExpressionType(
+          parseExpression("a + b"),
+        ),
       ).toBe("i32");
     });
 
@@ -391,7 +405,9 @@ describe("TypeResolver", () => {
       setInt("a", "u32", 32);
       setInt("b", "u32", 32);
       expect(
-        TypeResolver.getIntegerExpressionType(parseExpression("a | b")),
+        ExpressionTypeResolver.getIntegerExpressionType(
+          parseExpression("a | b"),
+        ),
       ).toBe("u32");
     });
 
@@ -399,27 +415,33 @@ describe("TypeResolver", () => {
       setInt("small", "u8", 8);
       setInt("big", "u32", 32);
       expect(
-        TypeResolver.getIntegerExpressionType(parseExpression("small + big")),
+        ExpressionTypeResolver.getIntegerExpressionType(
+          parseExpression("small + big"),
+        ),
       ).toBe("u32");
     });
 
     it("still resolves a simple variable via getExpressionType", () => {
       setInt("x", "i16", 16);
-      expect(TypeResolver.getIntegerExpressionType(parseExpression("x"))).toBe(
-        "i16",
-      );
+      expect(
+        ExpressionTypeResolver.getIntegerExpressionType(parseExpression("x")),
+      ).toBe("i16");
     });
 
     it("returns null when no integer variable leaf can be resolved", () => {
       expect(
-        TypeResolver.getIntegerExpressionType(parseExpression("a + b")),
+        ExpressionTypeResolver.getIntegerExpressionType(
+          parseExpression("a + b"),
+        ),
       ).toBeNull();
     });
 
     it("ignores integer literals (contextually typed, not fixed-category)", () => {
       setInt("a", "u32", 32);
       expect(
-        TypeResolver.getIntegerExpressionType(parseExpression("a + 5")),
+        ExpressionTypeResolver.getIntegerExpressionType(
+          parseExpression("a + 5"),
+        ),
       ).toBe("u32");
     });
 
@@ -429,7 +451,9 @@ describe("TypeResolver", () => {
       // b[0, 32] is u32, so a + b[0, 32] is u32 — NOT u64. Typing it u64 would
       // make slice codegen cast the composite to a wider type (MISRA 10.8).
       expect(
-        TypeResolver.getIntegerExpressionType(parseExpression("a + b[0, 32]")),
+        ExpressionTypeResolver.getIntegerExpressionType(
+          parseExpression("a + b[0, 32]"),
+        ),
       ).toBe("u32");
     });
 
@@ -444,7 +468,9 @@ describe("TypeResolver", () => {
       setInt("a", "u8", 8);
       // arr[idx] is u8 (the element); a wide index must not inflate the width.
       expect(
-        TypeResolver.getIntegerExpressionType(parseExpression("a + arr[idx]")),
+        ExpressionTypeResolver.getIntegerExpressionType(
+          parseExpression("a + arr[idx]"),
+        ),
       ).toBe("u8");
     });
 
@@ -452,7 +478,9 @@ describe("TypeResolver", () => {
       setInt("b", "u64", 64);
       setInt("c", "u8", 8);
       expect(
-        TypeResolver.getIntegerExpressionType(parseExpression("b[0, 32] + c")),
+        ExpressionTypeResolver.getIntegerExpressionType(
+          parseExpression("b[0, 32] + c"),
+        ),
       ).toBe("u32");
     });
   });
@@ -467,10 +495,10 @@ describe("TypeResolver", () => {
         primaryExpression: () => null,
         children: [],
       } as unknown as Parameters<
-        typeof TypeResolver.getPostfixExpressionType
+        typeof ExpressionTypeResolver.getPostfixExpressionType
       >[0];
 
-      expect(TypeResolver.getPostfixExpressionType(ctx)).toBeNull();
+      expect(ExpressionTypeResolver.getPostfixExpressionType(ctx)).toBeNull();
     });
 
     it("should return type from simple identifier", () => {
@@ -490,10 +518,10 @@ describe("TypeResolver", () => {
         }),
         children: [{ getText: () => "counter" }],
       } as unknown as Parameters<
-        typeof TypeResolver.getPostfixExpressionType
+        typeof ExpressionTypeResolver.getPostfixExpressionType
       >[0];
 
-      expect(TypeResolver.getPostfixExpressionType(ctx)).toBe("u32");
+      expect(ExpressionTypeResolver.getPostfixExpressionType(ctx)).toBe("u32");
     });
 
     it("should return null when primary type cannot be determined", () => {
@@ -511,10 +539,10 @@ describe("TypeResolver", () => {
         postfixOp: () => [],
         children: [{ getText: () => "unknownVar" }],
       } as unknown as Parameters<
-        typeof TypeResolver.getPostfixExpressionType
+        typeof ExpressionTypeResolver.getPostfixExpressionType
       >[0];
 
-      expect(TypeResolver.getPostfixExpressionType(ctx)).toBeNull();
+      expect(ExpressionTypeResolver.getPostfixExpressionType(ctx)).toBeNull();
     });
 
     it("should return member type for struct member access", () => {
@@ -535,10 +563,10 @@ describe("TypeResolver", () => {
         }),
         children: [{ getText: () => "point" }, { getText: () => ".x" }],
       } as unknown as Parameters<
-        typeof TypeResolver.getPostfixExpressionType
+        typeof ExpressionTypeResolver.getPostfixExpressionType
       >[0];
 
-      expect(TypeResolver.getPostfixExpressionType(ctx)).toBe("i32");
+      expect(ExpressionTypeResolver.getPostfixExpressionType(ctx)).toBe("i32");
     });
 
     it("should return null for unknown member", () => {
@@ -559,10 +587,10 @@ describe("TypeResolver", () => {
         }),
         children: [{ getText: () => "point" }, { getText: () => ".unknown" }],
       } as unknown as Parameters<
-        typeof TypeResolver.getPostfixExpressionType
+        typeof ExpressionTypeResolver.getPostfixExpressionType
       >[0];
 
-      expect(TypeResolver.getPostfixExpressionType(ctx)).toBeNull();
+      expect(ExpressionTypeResolver.getPostfixExpressionType(ctx)).toBeNull();
     });
 
     it("should return null for range bit indexing", () => {
@@ -582,10 +610,10 @@ describe("TypeResolver", () => {
         }),
         children: [{ getText: () => "flags" }, { getText: () => "[0, 8]" }],
       } as unknown as Parameters<
-        typeof TypeResolver.getPostfixExpressionType
+        typeof ExpressionTypeResolver.getPostfixExpressionType
       >[0];
 
-      expect(TypeResolver.getPostfixExpressionType(ctx)).toBeNull();
+      expect(ExpressionTypeResolver.getPostfixExpressionType(ctx)).toBeNull();
     });
 
     it("should return bool for single bit indexing on integer", () => {
@@ -605,10 +633,10 @@ describe("TypeResolver", () => {
         }),
         children: [{ getText: () => "flags" }, { getText: () => "[7]" }],
       } as unknown as Parameters<
-        typeof TypeResolver.getPostfixExpressionType
+        typeof ExpressionTypeResolver.getPostfixExpressionType
       >[0];
 
-      expect(TypeResolver.getPostfixExpressionType(ctx)).toBe("bool");
+      expect(ExpressionTypeResolver.getPostfixExpressionType(ctx)).toBe("bool");
     });
 
     it("should return element type for struct array member indexing", () => {
@@ -634,11 +662,11 @@ describe("TypeResolver", () => {
         ],
         postfixOp: () => postfixOpsFrom([".values", "[0]"]),
       } as unknown as Parameters<
-        typeof TypeResolver.getPostfixExpressionType
+        typeof ExpressionTypeResolver.getPostfixExpressionType
       >[0];
 
       // Bug fix: After .values (u8 array), [0] should be array element access -> "u8"
-      expect(TypeResolver.getPostfixExpressionType(ctx)).toBe("u8");
+      expect(ExpressionTypeResolver.getPostfixExpressionType(ctx)).toBe("u8");
     });
 
     it("should return element type for direct array variable indexing", () => {
@@ -658,11 +686,11 @@ describe("TypeResolver", () => {
         }),
         children: [{ getText: () => "arr" }, { getText: () => "[0]" }],
       } as unknown as Parameters<
-        typeof TypeResolver.getPostfixExpressionType
+        typeof ExpressionTypeResolver.getPostfixExpressionType
       >[0];
 
       // u8 array with [0] should be array element access -> "u8" (not "bool")
-      expect(TypeResolver.getPostfixExpressionType(ctx)).toBe("u8");
+      expect(ExpressionTypeResolver.getPostfixExpressionType(ctx)).toBe("u8");
     });
 
     it("should return bool for bit indexing on plain integer variable", () => {
@@ -682,11 +710,11 @@ describe("TypeResolver", () => {
         }),
         children: [{ getText: () => "val" }, { getText: () => "[0]" }],
       } as unknown as Parameters<
-        typeof TypeResolver.getPostfixExpressionType
+        typeof ExpressionTypeResolver.getPostfixExpressionType
       >[0];
 
       // Plain u8 (not array) with [0] should be bit indexing -> "bool"
-      expect(TypeResolver.getPostfixExpressionType(ctx)).toBe("bool");
+      expect(ExpressionTypeResolver.getPostfixExpressionType(ctx)).toBe("bool");
     });
   });
 
@@ -720,10 +748,10 @@ describe("TypeResolver", () => {
         ],
         postfixOp: () => postfixOpsFrom([".config", ".value"]),
       } as unknown as Parameters<
-        typeof TypeResolver.getPostfixExpressionType
+        typeof ExpressionTypeResolver.getPostfixExpressionType
       >[0];
 
-      expect(TypeResolver.getPostfixExpressionType(ctx)).toBe("u32");
+      expect(ExpressionTypeResolver.getPostfixExpressionType(ctx)).toBe("u32");
     });
 
     it("should resolve global.arrayVar[0] element type", () => {
@@ -750,10 +778,12 @@ describe("TypeResolver", () => {
         ],
         postfixOp: () => postfixOpsFrom([".inputs", "[0]"]),
       } as unknown as Parameters<
-        typeof TypeResolver.getPostfixExpressionType
+        typeof ExpressionTypeResolver.getPostfixExpressionType
       >[0];
 
-      expect(TypeResolver.getPostfixExpressionType(ctx)).toBe("TInput");
+      expect(ExpressionTypeResolver.getPostfixExpressionType(ctx)).toBe(
+        "TInput",
+      );
     });
 
     it("should resolve this.scopeVar type", () => {
@@ -776,10 +806,10 @@ describe("TypeResolver", () => {
         }),
         children: [{ getText: () => "this" }, { getText: () => ".speed" }],
       } as unknown as Parameters<
-        typeof TypeResolver.getPostfixExpressionType
+        typeof ExpressionTypeResolver.getPostfixExpressionType
       >[0];
 
-      expect(TypeResolver.getPostfixExpressionType(ctx)).toBe("u32");
+      expect(ExpressionTypeResolver.getPostfixExpressionType(ctx)).toBe("u32");
     });
 
     it("should return null for global.unknownVar", () => {
@@ -795,10 +825,10 @@ describe("TypeResolver", () => {
         children: [{ getText: () => "global" }, { getText: () => ".unknown" }],
         postfixOp: () => postfixOpsFrom([".unknown"]),
       } as unknown as Parameters<
-        typeof TypeResolver.getPostfixExpressionType
+        typeof ExpressionTypeResolver.getPostfixExpressionType
       >[0];
 
-      expect(TypeResolver.getPostfixExpressionType(ctx)).toBeNull();
+      expect(ExpressionTypeResolver.getPostfixExpressionType(ctx)).toBeNull();
     });
 
     it("should return null for this.X without current scope", () => {
@@ -815,10 +845,10 @@ describe("TypeResolver", () => {
         }),
         children: [{ getText: () => "this" }, { getText: () => ".speed" }],
       } as unknown as Parameters<
-        typeof TypeResolver.getPostfixExpressionType
+        typeof ExpressionTypeResolver.getPostfixExpressionType
       >[0];
 
-      expect(TypeResolver.getPostfixExpressionType(ctx)).toBeNull();
+      expect(ExpressionTypeResolver.getPostfixExpressionType(ctx)).toBeNull();
     });
 
     it("should resolve global.struct.enumField for enum type", () => {
@@ -846,10 +876,12 @@ describe("TypeResolver", () => {
         ],
         postfixOp: () => postfixOpsFrom([".input", ".assignedValue"]),
       } as unknown as Parameters<
-        typeof TypeResolver.getPostfixExpressionType
+        typeof ExpressionTypeResolver.getPostfixExpressionType
       >[0];
 
-      expect(TypeResolver.getPostfixExpressionType(ctx)).toBe("EValueId");
+      expect(ExpressionTypeResolver.getPostfixExpressionType(ctx)).toBe(
+        "EValueId",
+      );
     });
   });
 
@@ -877,18 +909,22 @@ describe("TypeResolver", () => {
           children: [{ getText: () => "value" }],
         }),
         unaryExpression: () => null,
-      } as unknown as Parameters<typeof TypeResolver.getUnaryExpressionType>[0];
+      } as unknown as Parameters<
+        typeof ExpressionTypeResolver.getUnaryExpressionType
+      >[0];
 
-      expect(TypeResolver.getUnaryExpressionType(ctx)).toBe("i32");
+      expect(ExpressionTypeResolver.getUnaryExpressionType(ctx)).toBe("i32");
     });
 
     it("should return null when no postfix or unary", () => {
       const ctx = {
         postfixExpression: () => null,
         unaryExpression: () => null,
-      } as unknown as Parameters<typeof TypeResolver.getUnaryExpressionType>[0];
+      } as unknown as Parameters<
+        typeof ExpressionTypeResolver.getUnaryExpressionType
+      >[0];
 
-      expect(TypeResolver.getUnaryExpressionType(ctx)).toBeNull();
+      expect(ExpressionTypeResolver.getUnaryExpressionType(ctx)).toBeNull();
     });
 
     it("should recurse through unary expression chain", () => {
@@ -913,9 +949,11 @@ describe("TypeResolver", () => {
           }),
           unaryExpression: () => null,
         }),
-      } as unknown as Parameters<typeof TypeResolver.getUnaryExpressionType>[0];
+      } as unknown as Parameters<
+        typeof ExpressionTypeResolver.getUnaryExpressionType
+      >[0];
 
-      expect(TypeResolver.getUnaryExpressionType(ctx)).toBe("i32");
+      expect(ExpressionTypeResolver.getUnaryExpressionType(ctx)).toBe("i32");
     });
   });
 
@@ -926,90 +964,116 @@ describe("TypeResolver", () => {
   describe("getLiteralType", () => {
     const mockLiteral = (text: string) =>
       ({ getText: () => text }) as Parameters<
-        typeof TypeResolver.getLiteralType
+        typeof ExpressionTypeResolver.getLiteralType
       >[0];
 
     describe("boolean literals", () => {
       it("should return bool for true", () => {
-        expect(TypeResolver.getLiteralType(mockLiteral("true"))).toBe("bool");
+        expect(ExpressionTypeResolver.getLiteralType(mockLiteral("true"))).toBe(
+          "bool",
+        );
       });
 
       it("should return bool for false", () => {
-        expect(TypeResolver.getLiteralType(mockLiteral("false"))).toBe("bool");
+        expect(
+          ExpressionTypeResolver.getLiteralType(mockLiteral("false")),
+        ).toBe("bool");
       });
     });
 
     describe("integer suffixes", () => {
       it("should detect u8 suffix", () => {
-        expect(TypeResolver.getLiteralType(mockLiteral("255u8"))).toBe("u8");
-        expect(TypeResolver.getLiteralType(mockLiteral("0U8"))).toBe("u8");
+        expect(
+          ExpressionTypeResolver.getLiteralType(mockLiteral("255u8")),
+        ).toBe("u8");
+        expect(ExpressionTypeResolver.getLiteralType(mockLiteral("0U8"))).toBe(
+          "u8",
+        );
       });
 
       it("should detect u16 suffix", () => {
-        expect(TypeResolver.getLiteralType(mockLiteral("1000u16"))).toBe("u16");
+        expect(
+          ExpressionTypeResolver.getLiteralType(mockLiteral("1000u16")),
+        ).toBe("u16");
       });
 
       it("should detect u32 suffix", () => {
-        expect(TypeResolver.getLiteralType(mockLiteral("1000000u32"))).toBe(
-          "u32",
-        );
+        expect(
+          ExpressionTypeResolver.getLiteralType(mockLiteral("1000000u32")),
+        ).toBe("u32");
       });
 
       it("should detect u64 suffix", () => {
-        expect(TypeResolver.getLiteralType(mockLiteral("1000000000u64"))).toBe(
-          "u64",
-        );
+        expect(
+          ExpressionTypeResolver.getLiteralType(mockLiteral("1000000000u64")),
+        ).toBe("u64");
       });
 
       it("should detect i8 suffix", () => {
-        expect(TypeResolver.getLiteralType(mockLiteral("-50i8"))).toBe("i8");
-        expect(TypeResolver.getLiteralType(mockLiteral("50I8"))).toBe("i8");
+        expect(
+          ExpressionTypeResolver.getLiteralType(mockLiteral("-50i8")),
+        ).toBe("i8");
+        expect(ExpressionTypeResolver.getLiteralType(mockLiteral("50I8"))).toBe(
+          "i8",
+        );
       });
 
       it("should detect i16 suffix", () => {
-        expect(TypeResolver.getLiteralType(mockLiteral("1000i16"))).toBe("i16");
+        expect(
+          ExpressionTypeResolver.getLiteralType(mockLiteral("1000i16")),
+        ).toBe("i16");
       });
 
       it("should detect i32 suffix", () => {
-        expect(TypeResolver.getLiteralType(mockLiteral("1000000i32"))).toBe(
-          "i32",
-        );
+        expect(
+          ExpressionTypeResolver.getLiteralType(mockLiteral("1000000i32")),
+        ).toBe("i32");
       });
 
       it("should detect i64 suffix", () => {
-        expect(TypeResolver.getLiteralType(mockLiteral("1000000000i64"))).toBe(
-          "i64",
-        );
+        expect(
+          ExpressionTypeResolver.getLiteralType(mockLiteral("1000000000i64")),
+        ).toBe("i64");
       });
     });
 
     describe("float suffixes", () => {
       it("should detect f32 suffix", () => {
-        expect(TypeResolver.getLiteralType(mockLiteral("3.14f32"))).toBe("f32");
-        expect(TypeResolver.getLiteralType(mockLiteral("3.14F32"))).toBe("f32");
+        expect(
+          ExpressionTypeResolver.getLiteralType(mockLiteral("3.14f32")),
+        ).toBe("f32");
+        expect(
+          ExpressionTypeResolver.getLiteralType(mockLiteral("3.14F32")),
+        ).toBe("f32");
       });
 
       it("should detect f64 suffix", () => {
-        expect(TypeResolver.getLiteralType(mockLiteral("3.14159f64"))).toBe(
-          "f64",
-        );
-        expect(TypeResolver.getLiteralType(mockLiteral("3.14159F64"))).toBe(
-          "f64",
-        );
+        expect(
+          ExpressionTypeResolver.getLiteralType(mockLiteral("3.14159f64")),
+        ).toBe("f64");
+        expect(
+          ExpressionTypeResolver.getLiteralType(mockLiteral("3.14159F64")),
+        ).toBe("f64");
       });
     });
 
     describe("unsuffixed literals (MISRA 10.3 compliance)", () => {
       it("should return int for unsuffixed integer", () => {
-        expect(TypeResolver.getLiteralType(mockLiteral("42"))).toBe("int");
+        expect(ExpressionTypeResolver.getLiteralType(mockLiteral("42"))).toBe(
+          "int",
+        );
       });
 
       it("should return int for unsuffixed hex", () => {
-        expect(TypeResolver.getLiteralType(mockLiteral("0xFF"))).toBe("int");
+        expect(ExpressionTypeResolver.getLiteralType(mockLiteral("0xFF"))).toBe(
+          "int",
+        );
       });
 
       it("should return f64 for unsuffixed float", () => {
-        expect(TypeResolver.getLiteralType(mockLiteral("3.14"))).toBe("f64");
+        expect(ExpressionTypeResolver.getLiteralType(mockLiteral("3.14"))).toBe(
+          "f64",
+        );
       });
     });
   });
@@ -1023,7 +1087,7 @@ describe("TypeResolver", () => {
       symbolTable.addStructField("Point", "x", "i32");
       symbolTable.addStructField("Point", "y", "i32");
 
-      const xInfo = TypeResolver.getMemberTypeInfo("Point", "x");
+      const xInfo = ExpressionTypeResolver.getMemberTypeInfo("Point", "x");
       expect(xInfo).toBeDefined();
       expect(xInfo?.baseType).toBe("i32");
       expect(xInfo?.isArray).toBe(false);
@@ -1032,7 +1096,10 @@ describe("TypeResolver", () => {
     it("should return array info for array fields", () => {
       symbolTable.addStructField("Buffer", "data", "u8", [256]);
 
-      const dataInfo = TypeResolver.getMemberTypeInfo("Buffer", "data");
+      const dataInfo = ExpressionTypeResolver.getMemberTypeInfo(
+        "Buffer",
+        "data",
+      );
       expect(dataInfo).toBeDefined();
       expect(dataInfo?.baseType).toBe("u8");
       expect(dataInfo?.isArray).toBe(true);
@@ -1040,13 +1107,15 @@ describe("TypeResolver", () => {
 
     it("should return undefined for unknown struct", () => {
       expect(
-        TypeResolver.getMemberTypeInfo("Unknown", "field"),
+        ExpressionTypeResolver.getMemberTypeInfo("Unknown", "field"),
       ).toBeUndefined();
     });
 
     it("should return undefined for unknown field", () => {
       symbolTable.addStructField("Point", "x", "i32");
-      expect(TypeResolver.getMemberTypeInfo("Point", "z")).toBeUndefined();
+      expect(
+        ExpressionTypeResolver.getMemberTypeInfo("Point", "z"),
+      ).toBeUndefined();
     });
   });
 });

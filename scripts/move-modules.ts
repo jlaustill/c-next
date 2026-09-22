@@ -514,6 +514,51 @@ const MOVES: readonly IMove[] = [
     to: "src/TRANSPILE/2-Plan/__tests__/StringLengthCounter.test.ts",
     because: "Tests live beside the module they exercise.",
   },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/utils/QualifiedNameGenerator.ts",
+    to: "src/utils/QualifiedNameGenerator.ts",
+    because:
+      "#1445 box 3, enabling. It builds a qualified C name from a scope path " +
+      "and a member name -- it imports `IFunctionSymbol`, `SymbolRegistry` " +
+      "and `ScopeUtils` and nothing from the render layer, so nothing about " +
+      "it was ever render-specific. CLAUDE.md already treats qualified-name " +
+      "encoding as `ScopeUtils`' territory (`getTranspiledCName` is named as " +
+      "the single encoder, with an instruction never to re-derive a name by " +
+      "hand), and this is the builder that instruction points at. Filed under " +
+      "render it is unreachable from `2-Plan/` -- `plan-cannot-import-render` " +
+      "is `error` and `reachable` -- which is what blocked `TypeResolver` " +
+      "below, whose only render import is one `forMember` call. " +
+      "`PassByValueAnalyzer` already carries a comment explaining that it " +
+      "cannot use this module for exactly that reason.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/utils/__tests__/QualifiedNameGenerator.test.ts",
+    to: "src/utils/__tests__/QualifiedNameGenerator.test.ts",
+    because: "Tests live beside the module they exercise.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/TypeResolver.ts",
+    to: "src/TRANSPILE/2-Plan/ExpressionTypeResolver.ts",
+    because:
+      "#1445 box 3. It answers *what is the essential type of this " +
+      "expression?* -- `getExpressionType`, `getPostfixExpressionType`, " +
+      "`getCompositeIntegerType`, `getCompositeOverflowBehavior` -- and " +
+      "returns type names, never C text. It emits no diagnostic (zero " +
+      "`throw`/`invariant` sites), so it is a pure query about the program, " +
+      "which is 2.2's side of the *decides vs formats* discriminator. Its " +
+      "only render import was one `QualifiedNameGenerator.forMember` call, " +
+      "and that module moves to `utils/` above.\n\n" +
+      "Renamed because the old name collided: `CodeGenerator` imported this " +
+      "AND `src/utils/TypeResolver`, aliasing the latter `SymbolTypeResolver` " +
+      "at the import site. That alias was the only thing telling a reader " +
+      "which of the two answered which question, and it existed in one file. " +
+      "`ExpressionTypeResolver` says it in the name.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/__tests__/TypeResolver.test.ts",
+    to: "src/TRANSPILE/2-Plan/__tests__/ExpressionTypeResolver.test.ts",
+    because: "Tests live beside the module they exercise.",
+  },
 ];
 
 /** Every `.ts` file under a path, or the path itself when it is a file. */

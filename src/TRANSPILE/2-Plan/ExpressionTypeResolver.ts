@@ -1,20 +1,20 @@
 /**
- * TypeResolver - Handles type inference, classification, and validation
+ * ExpressionTypeResolver - Handles type inference, classification, and validation
  * Static class that reads from CodeGenState directly.
  */
 import { ParserRuleContext } from "antlr4ng";
-import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
-import CodeGenState from "../../../transpiler/state/CodeGenState";
-import INTEGER_TYPES from "../../../transpiler/types/INTEGER_TYPES";
-import FLOAT_TYPES from "../../../transpiler/types/FLOAT_TYPES";
-import UNSIGNED_TYPES from "../../../transpiler/types/UNSIGNED_TYPES";
-import ExpressionUnwrapper from "../../../utils/ExpressionUnwrapper";
-import type TOverflowBehavior from "../../../transpiler/types/TOverflowBehavior";
-import type TTypeInfo from "../../../transpiler/types/TTypeInfo";
-import QualifiedNameGenerator from "./utils/QualifiedNameGenerator";
-import QualifiedCName from "../../../utils/QualifiedCName";
-import ScopeUtils from "../../../utils/ScopeUtils";
-import PrimitiveKindUtils from "../../../utils/PrimitiveKindUtils";
+import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
+import CodeGenState from "../../transpiler/state/CodeGenState";
+import INTEGER_TYPES from "../../transpiler/types/INTEGER_TYPES";
+import FLOAT_TYPES from "../../transpiler/types/FLOAT_TYPES";
+import UNSIGNED_TYPES from "../../transpiler/types/UNSIGNED_TYPES";
+import ExpressionUnwrapper from "../../utils/ExpressionUnwrapper";
+import type TOverflowBehavior from "../../transpiler/types/TOverflowBehavior";
+import type TTypeInfo from "../../transpiler/types/TTypeInfo";
+import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
+import QualifiedCName from "../../utils/QualifiedCName";
+import ScopeUtils from "../../utils/ScopeUtils";
+import PrimitiveKindUtils from "../../utils/PrimitiveKindUtils";
 
 /**
  * Internal type info tracked through postfix suffix chains.
@@ -31,7 +31,7 @@ type SuffixResult =
   | { stop: true; type: string | null }
   | { stop: false; info: InternalTypeInfo };
 
-class TypeResolver {
+class ExpressionTypeResolver {
   /** Sentinel value for `global` keyword in postfix expression type resolution */
   private static readonly GLOBAL_SENTINEL = "__global__";
   /** Sentinel value for `this` keyword in postfix expression type resolution */
@@ -130,7 +130,7 @@ class TypeResolver {
   static getExpressionType(ctx: Parser.ExpressionContext): string | null {
     const postfix = ExpressionUnwrapper.getPostfixExpression(ctx);
     if (postfix) {
-      return TypeResolver.getPostfixExpressionType(postfix);
+      return ExpressionTypeResolver.getPostfixExpressionType(postfix);
     }
 
     const ternary = ctx.ternaryExpression();
@@ -177,9 +177,9 @@ class TypeResolver {
   static getIntegerExpressionType(
     ctx: Parser.ExpressionContext,
   ): string | null {
-    const direct = TypeResolver.getExpressionType(ctx);
+    const direct = ExpressionTypeResolver.getExpressionType(ctx);
     if (direct !== null) return direct;
-    return TypeResolver.resolveCompositeIntegerType(ctx);
+    return ExpressionTypeResolver.resolveCompositeIntegerType(ctx);
   }
 
   /**
@@ -199,7 +199,7 @@ class TypeResolver {
    * per Rule 10.4) category at the widest operand's width.
    */
   static getCompositeIntegerType(node: ParserRuleContext): string | null {
-    return TypeResolver.resolveCompositeIntegerType(node);
+    return ExpressionTypeResolver.resolveCompositeIntegerType(node);
   }
 
   /**
@@ -218,10 +218,12 @@ class TypeResolver {
     node: ParserRuleContext,
   ): TOverflowBehavior | null {
     let sawInteger = false;
-    for (const operand of TypeResolver.collectOperandPostfixes(node)) {
-      const info = TypeResolver.operandTypeInfo(operand);
+    for (const operand of ExpressionTypeResolver.collectOperandPostfixes(
+      node,
+    )) {
+      const info = ExpressionTypeResolver.operandTypeInfo(operand);
       if (info === undefined) continue;
-      if (!TypeResolver.isIntegerType(info.baseType)) continue;
+      if (!ExpressionTypeResolver.isIntegerType(info.baseType)) continue;
       sawInteger = true;
       if (info.overflowBehavior === "clamp") return "clamp";
     }
@@ -245,7 +247,7 @@ class TypeResolver {
       return name ? CodeGenState.getVariableTypeInfo(name) : undefined;
     }
 
-    return TypeResolver.scopeMemberOperandTypeInfo(primary, ops);
+    return ExpressionTypeResolver.scopeMemberOperandTypeInfo(primary, ops);
   }
 
   /**
@@ -290,7 +292,7 @@ class TypeResolver {
     // out; `Counter.value` spells its own path. Both go through the one
     // encoder rather than joining with "__" by hand.
     return CodeGenState.getVariableTypeInfo(
-      TypeResolver.memberChainKey(primary, members),
+      ExpressionTypeResolver.memberChainKey(primary, members),
     );
   }
 
@@ -328,8 +330,8 @@ class TypeResolver {
     ctx: ParserRuleContext,
   ): string | null {
     return PrimitiveKindUtils.widestIntegerOf(
-      TypeResolver.collectOperandPostfixes(ctx).map((operand) =>
-        TypeResolver.typeOperandPostfix(operand),
+      ExpressionTypeResolver.collectOperandPostfixes(ctx).map((operand) =>
+        ExpressionTypeResolver.typeOperandPostfix(operand),
       ),
     );
   }
@@ -345,15 +347,15 @@ class TypeResolver {
   private static typeOperandPostfix(
     postfix: Parser.PostfixExpressionContext,
   ): string | null {
-    const extractionWidth = TypeResolver.bitExtractionWidth(postfix);
+    const extractionWidth = ExpressionTypeResolver.bitExtractionWidth(postfix);
     if (extractionWidth !== null) {
-      return TypeResolver.unsignedTypeForBits(extractionWidth);
+      return ExpressionTypeResolver.unsignedTypeForBits(extractionWidth);
     }
 
-    const direct = TypeResolver.getPostfixExpressionType(postfix);
+    const direct = ExpressionTypeResolver.getPostfixExpressionType(postfix);
     if (direct !== null) return direct;
 
-    return TypeResolver.callReturnType(postfix);
+    return ExpressionTypeResolver.callReturnType(postfix);
   }
 
   /**
@@ -371,21 +373,23 @@ class TypeResolver {
     // `(val > 0) ? 1 : -1` by `val`, reporting an i32 result as u32.
     // Addressed via orExpression() rather than child indices because the
     // condition is parenthesised, so it sits at child index 1, not 0.
-    const arms = TypeResolver.ternaryValueArms(node);
+    const arms = ExpressionTypeResolver.ternaryValueArms(node);
     if (arms !== null) {
-      return arms.flatMap((arm) => TypeResolver.collectOperandPostfixes(arm));
+      return arms.flatMap((arm) =>
+        ExpressionTypeResolver.collectOperandPostfixes(arm),
+      );
     }
 
     // Issue #1152: `&x` (address-of, ADR-006) yields an ADDRESS, not x's
     // value, so x's type must not flow out as the expression's type --
     // `u32 addr <- &counter` with an i32 counter is not a sign conversion.
-    if (TypeResolver.isAddressOf(node)) return [];
+    if (ExpressionTypeResolver.isAddressOf(node)) return [];
 
     const operands: Parser.PostfixExpressionContext[] = [];
     for (let i = 0; i < node.getChildCount(); i += 1) {
       const child = node.getChild(i);
       if (child instanceof ParserRuleContext) {
-        operands.push(...TypeResolver.collectOperandPostfixes(child));
+        operands.push(...ExpressionTypeResolver.collectOperandPostfixes(child));
       }
     }
     return operands;
@@ -484,7 +488,7 @@ class TypeResolver {
     const primary = ctx.primaryExpression();
     if (!primary) return null;
 
-    let current = TypeResolver.getPrimaryExpressionTypeInfo(primary);
+    let current = ExpressionTypeResolver.getPrimaryExpressionTypeInfo(primary);
     if (!current) {
       // #1303: a scope member named through its scope (`Counter.value`) has no
       // type at the primary -- `Counter` is a scope, not a variable, so the
@@ -499,7 +503,10 @@ class TypeResolver {
       const ops = ctx.postfixOp();
       if (ops.length === 0) return null;
 
-      const memberInfo = TypeResolver.scopeMemberOperandTypeInfo(primary, ops);
+      const memberInfo = ExpressionTypeResolver.scopeMemberOperandTypeInfo(
+        primary,
+        ops,
+      );
       return memberInfo ? memberInfo.baseType : null;
     }
 
@@ -511,10 +518,10 @@ class TypeResolver {
     // Tried first, and only when it answers: `global.plainVar` resolves here
     // too (a one-part path is its own key), while `global.someStruct.field`
     // does not and falls through to the struct handling below, unchanged.
-    if (current.baseType === TypeResolver.GLOBAL_SENTINEL) {
+    if (current.baseType === ExpressionTypeResolver.GLOBAL_SENTINEL) {
       const globalOps = ctx.postfixOp();
       if (globalOps.length > 0) {
-        const memberInfo = TypeResolver.scopeMemberOperandTypeInfo(
+        const memberInfo = ExpressionTypeResolver.scopeMemberOperandTypeInfo(
           primary,
           globalOps,
         );
@@ -524,7 +531,7 @@ class TypeResolver {
 
     const suffixes = ctx.children?.slice(1) || [];
     for (const suffix of suffixes) {
-      const result = TypeResolver.processPostfixSuffix(
+      const result = ExpressionTypeResolver.processPostfixSuffix(
         suffix.getText(),
         current,
       );
@@ -546,11 +553,11 @@ class TypeResolver {
     current: InternalTypeInfo,
   ): SuffixResult {
     if (text.startsWith(".")) {
-      return TypeResolver.processMemberSuffix(text.slice(1), current);
+      return ExpressionTypeResolver.processMemberSuffix(text.slice(1), current);
     }
 
     if (text.startsWith("[") && text.endsWith("]")) {
-      return TypeResolver.processIndexingSuffix(text, current);
+      return ExpressionTypeResolver.processIndexingSuffix(text, current);
     }
 
     return { stop: false, info: current };
@@ -565,23 +572,23 @@ class TypeResolver {
     current: InternalTypeInfo,
   ): SuffixResult {
     // Handle global.X — resolve X as a global variable name
-    if (current.baseType === TypeResolver.GLOBAL_SENTINEL) {
-      return TypeResolver.resolveRegistryLookup(memberName);
+    if (current.baseType === ExpressionTypeResolver.GLOBAL_SENTINEL) {
+      return ExpressionTypeResolver.resolveRegistryLookup(memberName);
     }
 
     // Handle this.X — resolve X as a scope member variable
     if (
-      current.baseType === TypeResolver.THIS_SENTINEL &&
+      current.baseType === ExpressionTypeResolver.THIS_SENTINEL &&
       CodeGenState.currentScopePath
     ) {
       const scopedName = QualifiedNameGenerator.forMember(
         CodeGenState.currentScopePath,
         memberName,
       );
-      return TypeResolver.resolveRegistryLookup(scopedName);
+      return ExpressionTypeResolver.resolveRegistryLookup(scopedName);
     }
 
-    const memberInfo = TypeResolver.getMemberTypeInfo(
+    const memberInfo = ExpressionTypeResolver.getMemberTypeInfo(
       current.baseType,
       memberName,
     );
@@ -633,7 +640,7 @@ class TypeResolver {
     }
 
     // Bit indexing on integer: single bit returns bool
-    if (TypeResolver.isIntegerType(current.baseType)) {
+    if (ExpressionTypeResolver.isIntegerType(current.baseType)) {
       return { stop: true, type: "bool" };
     }
 
@@ -662,21 +669,24 @@ class TypeResolver {
     // The actual variable name is the first .suffix after the keyword.
     // Return a sentinel so getPostfixExpressionType knows to consume one suffix.
     if (ctx.GLOBAL()) {
-      return { baseType: TypeResolver.GLOBAL_SENTINEL, isArray: false };
+      return {
+        baseType: ExpressionTypeResolver.GLOBAL_SENTINEL,
+        isArray: false,
+      };
     }
     if (ctx.THIS()) {
-      return { baseType: TypeResolver.THIS_SENTINEL, isArray: false };
+      return { baseType: ExpressionTypeResolver.THIS_SENTINEL, isArray: false };
     }
 
     const literal = ctx.literal();
     if (literal) {
-      const litType = TypeResolver.getLiteralType(literal);
+      const litType = ExpressionTypeResolver.getLiteralType(literal);
       return litType ? { baseType: litType, isArray: false } : null;
     }
 
     const expr = ctx.expression();
     if (expr) {
-      const exprType = TypeResolver.getExpressionType(expr);
+      const exprType = ExpressionTypeResolver.getExpressionType(expr);
       return exprType ? { baseType: exprType, isArray: false } : null;
     }
 
@@ -694,7 +704,7 @@ class TypeResolver {
   static getPrimaryExpressionType(
     ctx: Parser.PrimaryExpressionContext,
   ): string | null {
-    const info = TypeResolver.getPrimaryExpressionTypeInfo(ctx);
+    const info = ExpressionTypeResolver.getPrimaryExpressionTypeInfo(ctx);
     return info?.baseType ?? null;
   }
 
@@ -706,12 +716,12 @@ class TypeResolver {
   ): string | null {
     const postfix = ctx.postfixExpression();
     if (postfix) {
-      return TypeResolver.getPostfixExpressionType(postfix);
+      return ExpressionTypeResolver.getPostfixExpressionType(postfix);
     }
 
     const unary = ctx.unaryExpression();
     if (unary) {
-      return TypeResolver.getUnaryExpressionType(unary);
+      return ExpressionTypeResolver.getUnaryExpressionType(unary);
     }
 
     return null;
@@ -740,4 +750,4 @@ class TypeResolver {
   }
 }
 
-export default TypeResolver;
+export default ExpressionTypeResolver;

@@ -16,7 +16,7 @@ import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 import invariant from "../../../../../utils/invariant";
-import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
+import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator";
 
 // #1322: `validateNotCompound` is gone -- E0857 in pass 2.1. It was defined
 // here AND in the sibling handler, verbatim: one rule, two copies, in a group

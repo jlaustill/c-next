@@ -18,7 +18,7 @@ import CodeGenState from "../../../../transpiler/state/CodeGenState";
 import CppModeHelper from "./CppModeHelper";
 import TYPE_MAP from "../types/TYPE_MAP";
 import IArgumentGeneratorCallbacks from "./types/IArgumentGeneratorCallbacks";
-import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
+import QualifiedNameGenerator from "../../../../utils/QualifiedNameGenerator";
 
 /**
  * Generates function arguments with proper pass-by-reference semantics.

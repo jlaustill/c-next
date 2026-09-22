@@ -12,9 +12,9 @@
  * - Handles nested scopes: Outer.Inner.func -> Outer_Inner_func
  * - Global scope functions keep their bare names
  */
-import type IFunctionSymbol from "../../../../transpiler/types/symbols/IFunctionSymbol";
-import SymbolRegistry from "../../../../transpiler/state/SymbolRegistry";
-import ScopeUtils from "../../../../utils/ScopeUtils";
+import type IFunctionSymbol from "../transpiler/types/symbols/IFunctionSymbol";
+import SymbolRegistry from "../transpiler/state/SymbolRegistry";
+import ScopeUtils from "./ScopeUtils";
 
 class QualifiedNameGenerator {
   // ============================================================================

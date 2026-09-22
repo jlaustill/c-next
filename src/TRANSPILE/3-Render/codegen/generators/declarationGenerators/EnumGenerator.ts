@@ -19,7 +19,7 @@ import IGeneratorOutput from "../IGeneratorOutput";
 import IOrchestrator from "../IOrchestrator";
 import TGeneratorFn from "../TGeneratorFn";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
-import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
+import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator";
 
 /**
  * Generate a C typedef enum from a C-Next enum declaration.

@@ -23,7 +23,7 @@ import IOrchestrator from "../IOrchestrator";
 import TGeneratorFn from "../TGeneratorFn";
 import TGeneratorEffect from "../TGeneratorEffect";
 import BitmapCommentUtils from "./BitmapCommentUtils";
-import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
+import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator";
 
 /**
  * Generate a C typedef from a C-Next bitmap declaration.

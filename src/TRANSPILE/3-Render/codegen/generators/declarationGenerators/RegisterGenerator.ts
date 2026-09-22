@@ -41,7 +41,7 @@ import IOrchestrator from "../IOrchestrator";
 import TGeneratorFn from "../TGeneratorFn";
 import generateRegisterMacros from "./RegisterMacroGenerator";
 import RegisterBlockPlacement from "./RegisterBlockPlacement";
-import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
+import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator";
 import type IPlannedRegister from "../../types/IPlannedRegister";
 
 /*

@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import EnumTypeResolver from "../EnumTypeResolver";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 import ExpressionUnwrapper from "../../../../../utils/ExpressionUnwrapper";
-import TypeResolver from "../../TypeResolver";
+import ExpressionTypeResolver from "../../../../2-Plan/ExpressionTypeResolver";
 import SymbolTable from "../../../../../transpiler/state/SymbolTable";
 import createMockSymbols from "../../../../../transpiler/__tests__/codeGenSymbolsHelpers";
 import enterScope from "../../../../../transpiler/__tests__/enterScope";
@@ -184,7 +184,7 @@ describe("EnumTypeResolver", () => {
     });
   });
 
-  describe("resolve() - TypeResolver fallback for struct member chains", () => {
+  describe("resolve() - ExpressionTypeResolver fallback for struct member chains", () => {
     /**
      * Helper to build a mock ExpressionContext that contains a full postfix
      * expression tree: global.input.assignedValue
@@ -194,13 +194,13 @@ describe("EnumTypeResolver", () => {
      * #1445: the struct-member-chain fallback moved to
      * `CodeGenerator.getExpressionEnumType`, which supplies it as a thunk. This
      * is that walk, so the two assertions below still exercise
-     * `TypeResolver.getPostfixExpressionType` against a fabricated chain rather
+     * `ExpressionTypeResolver.getPostfixExpressionType` against a fabricated chain rather
      * than being deleted with the method that used to host them.
      */
     const postfixEnumThunk = (ctx: { getText: () => string }) => () => {
       const postfix = ExpressionUnwrapper.getPostfixExpression(ctx as never);
       if (!postfix) return null;
-      const resolved = TypeResolver.getPostfixExpressionType(postfix);
+      const resolved = ExpressionTypeResolver.getPostfixExpressionType(postfix);
       return resolved && CodeGenState.isKnownEnum(resolved) ? resolved : null;
     };
 
@@ -262,7 +262,7 @@ describe("EnumTypeResolver", () => {
       };
     };
 
-    it("resolves global.struct.enumField via TypeResolver fallback", () => {
+    it("resolves global.struct.enumField via ExpressionTypeResolver fallback", () => {
       const symbolTable = new SymbolTable();
       symbolTable.addStructField("TInput", "assignedValue", "EValueId");
       CodeGenState.symbolTable = symbolTable;

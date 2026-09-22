@@ -34,7 +34,7 @@ import TTypeInfo from "../../../../../transpiler/types/TTypeInfo";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
 import invariant from "../../../../../utils/invariant";
-import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
+import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator";
 
 // ========================================================================
 // Tracking State
