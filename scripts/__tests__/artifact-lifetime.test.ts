@@ -29,7 +29,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { Project, type Type } from "ts-morph";
-import { dirname, join } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -163,7 +163,7 @@ function storedParseNodes(pattern: RegExp): string[] {
         try {
           if (reachesParseNode(prop.getType()))
             found.push(
-              `${path.split("/c-next2/")[1]}:${prop.getStartLineNumber()} ${cls.getName()}.${prop.getName()}`,
+              `${relative(repoRoot, path)}:${prop.getStartLineNumber()} ${cls.getName()}.${prop.getName()}`,
             );
         } catch {
           /* unresolvable field */
@@ -173,97 +173,128 @@ function storedParseNodes(pattern: RegExp): string[] {
   return found;
 }
 
+/**
+ * Each assertion walks types across the whole program, and `npm run unit` runs
+ * under v8 coverage in CI, which took these from ~0.5s to 5.8-11.4s -- past
+ * vitest's 5000ms default. The local gate passed because it does not instrument.
+ */
+const WALK_TIMEOUT_MS = 60_000;
+
 describe("artifact lifetime (#1445 box 2)", () => {
-  it("the walk works at all", () => {
-    // The control, and it is load-bearing. Every assertion below is an
-    // emptiness claim, and an emptiness claim from a broken scan is
-    // indistinguishable from a true one. `Transpiler.retainedParses` is
-    // `Map<string, IParsedFile>` -- the one field in this repository that holds
-    // every retained tree on purpose -- so the scan must see it.
-    const control = storedParseNodes(/src\/transpiler\/Transpiler\.ts$/);
+  it(
+    "the walk works at all",
+    () => {
+      // The control, and it is load-bearing. Every assertion below is an
+      // emptiness claim, and an emptiness claim from a broken scan is
+      // indistinguishable from a true one. `Transpiler.retainedParses` is
+      // `Map<string, IParsedFile>` -- the one field in this repository that holds
+      // every retained tree on purpose -- so the scan must see it.
+      const control = storedParseNodes(/src\/transpiler\/Transpiler\.ts$/);
 
-    expect(control.some((f) => f.includes("retainedParses"))).toBe(true);
-  });
+      expect(control.some((f) => f.includes("retainedParses"))).toBe(true);
+    },
+    WALK_TIMEOUT_MS,
+  );
 
-  it("no artifact a pass hands forward reaches a parse node", () => {
-    const carriers = ARTIFACTS.filter(([file, name]) =>
-      reachesParseNode(namedType(file, name)),
-    ).map(([, name]) => name);
+  it(
+    "no artifact a pass hands forward reaches a parse node",
+    () => {
+      const carriers = ARTIFACTS.filter(([file, name]) =>
+        reachesParseNode(namedType(file, name)),
+      ).map(([, name]) => name);
 
-    expect(carriers).toEqual([]);
-  });
+      expect(carriers).toEqual([]);
+    },
+    WALK_TIMEOUT_MS,
+  );
 
-  it("no shared state holds one", () => {
-    // `CodeGenState`, `SymbolTable` and `SymbolRegistry` outlive every pass and
-    // are reachable from all of them, so a tree parked on one is the lifetime
-    // violation with the longest reach available.
-    expect(storedParseNodes(/src\/transpiler\/state\//)).toEqual([]);
-  });
+  it(
+    "no shared state holds one",
+    () => {
+      // `CodeGenState`, `SymbolTable` and `SymbolRegistry` outlive every pass and
+      // are reachable from all of them, so a tree parked on one is the lifetime
+      // violation with the longest reach available.
+      expect(storedParseNodes(/src\/transpiler\/state\//)).toEqual([]);
+    },
+    WALK_TIMEOUT_MS,
+  );
 
-  it("pins every field outside the parser that holds a parse node", () => {
-    // An EXHAUSTIVE roster, not an emptiness claim. Two fields legitimately
-    // hold one and both are released when the run ends; asserting "none" would
-    // have to exempt them, and an exemption is invisible once written. A roster
-    // makes a third holder a failing diff.
-    const holders = storedParseNodes(
-      /src\/transpiler\/|src\/TRANSPILE\/CodeGenWalker\.ts$/,
-    ).map((f) => f.replace(/:\d+ /, " "));
+  it(
+    "pins every field outside the parser that holds a parse node",
+    () => {
+      // An EXHAUSTIVE roster, not an emptiness claim. Two fields legitimately
+      // hold one and both are released when the run ends; asserting "none" would
+      // have to exempt them, and an exemption is invisible once written. A roster
+      // makes a third holder a failing diff.
+      const holders = storedParseNodes(
+        /src\/transpiler\/|src\/TRANSPILE\/CodeGenWalker\.ts$/,
+      ).map((f) => f.replace(/:\d+ /, " "));
 
-    expect(holders.sort()).toEqual(
-      [
-        // #1301: Stage 5 reuses Stage 3's parse. Cleared in a `finally`, which
-        // `RetainedParseCacheRelease.test.ts` asserts and mutation-checks.
-        "src/transpiler/Transpiler.ts Transpiler.codeGenerator",
-        "src/transpiler/Transpiler.ts Transpiler.retainedParses",
-        // The walk itself. `tokenStream` and the `CommentScanner` over it are
-        // ADR-043 comment plumbing, assigned per file and released by
-        // `releaseParseState()` at run end -- they used not to be, which is the
-        // residency defect #1445 box 2 found and fixed.
-        "src/TRANSPILE/CodeGenWalker.ts CodeGenWalker.commentExtractor",
-        "src/TRANSPILE/CodeGenWalker.ts CodeGenWalker.tokenStream",
-      ].sort(),
-    );
-  });
+      expect(holders.sort()).toEqual(
+        [
+          // #1301: Stage 5 reuses Stage 3's parse. Cleared in a `finally`, which
+          // `RetainedParseCacheRelease.test.ts` asserts and mutation-checks.
+          "src/transpiler/Transpiler.ts Transpiler.codeGenerator",
+          "src/transpiler/Transpiler.ts Transpiler.retainedParses",
+          // The walk itself. `tokenStream` and the `CommentScanner` over it are
+          // ADR-043 comment plumbing, assigned per file and released by
+          // `releaseParseState()` at run end -- they used not to be, which is the
+          // residency defect #1445 box 2 found and fixed.
+          "src/TRANSPILE/CodeGenWalker.ts CodeGenWalker.commentExtractor",
+          "src/TRANSPILE/CodeGenWalker.ts CodeGenWalker.tokenStream",
+        ].sort(),
+      );
+    },
+    WALK_TIMEOUT_MS,
+  );
 
-  it("no pass after 1.3 holds one on a field", () => {
-    // The passes proper. 1-Analyze is excluded and that is by CONSTRUCTION, not
-    // exemption: its listeners index nodes while walking, but every one is a
-    // local built per traversal (`new ShiftListener(...)`) with no static
-    // holder in the pass, so nothing survives the walk that created it.
-    const holders = storedParseNodes(
-      /src\/(PARSE\/4-Resolve|TRANSPILE\/2-Plan|TRANSPILE\/3-Render)\//,
-    );
+  it(
+    "no pass after 1.3 holds one on a field",
+    () => {
+      // The passes proper. 1-Analyze is excluded and that is by CONSTRUCTION, not
+      // exemption: its listeners index nodes while walking, but every one is a
+      // local built per traversal (`new ShiftListener(...)`) with no static
+      // holder in the pass, so nothing survives the walk that created it.
+      const holders = storedParseNodes(
+        /src\/(PARSE\/4-Resolve|TRANSPILE\/2-Plan|TRANSPILE\/3-Render)\//,
+      );
 
-    expect(holders).toEqual([]);
-  });
+      expect(holders).toEqual([]);
+    },
+    WALK_TIMEOUT_MS,
+  );
 
-  it("1-Analyze holds parse nodes only on per-walk instances", () => {
-    // Its listeners index nodes while walking -- `Map<ParserRuleContext, …>` on
-    // roughly two dozen fields -- and that is what analysis IS. What makes them
-    // working state rather than artifacts is that none outlives its traversal,
-    // so the property to assert is that no STATIC field holds one. Listing the
-    // instance fields instead would pin two dozen names that churn with every
-    // analyzer, and would assert nothing about lifetime.
-    const statics: string[] = [];
-    for (const sf of project.getSourceFiles()) {
-      const path = sf.getFilePath();
-      if (
-        path.includes("__tests__") ||
-        !/src\/TRANSPILE\/1-Analyze\//.test(path)
-      )
-        continue;
-      for (const cls of sf.getClasses())
-        for (const prop of cls.getProperties()) {
-          if (!prop.isStatic()) continue;
-          try {
-            if (reachesParseNode(prop.getType()))
-              statics.push(`${cls.getName()}.${prop.getName()}`);
-          } catch {
-            /* unresolvable field */
+  it(
+    "1-Analyze holds parse nodes only on per-walk instances",
+    () => {
+      // Its listeners index nodes while walking -- `Map<ParserRuleContext, …>` on
+      // roughly two dozen fields -- and that is what analysis IS. What makes them
+      // working state rather than artifacts is that none outlives its traversal,
+      // so the property to assert is that no STATIC field holds one. Listing the
+      // instance fields instead would pin two dozen names that churn with every
+      // analyzer, and would assert nothing about lifetime.
+      const statics: string[] = [];
+      for (const sf of project.getSourceFiles()) {
+        const path = sf.getFilePath();
+        if (
+          path.includes("__tests__") ||
+          !/src\/TRANSPILE\/1-Analyze\//.test(path)
+        )
+          continue;
+        for (const cls of sf.getClasses())
+          for (const prop of cls.getProperties()) {
+            if (!prop.isStatic()) continue;
+            try {
+              if (reachesParseNode(prop.getType()))
+                statics.push(`${cls.getName()}.${prop.getName()}`);
+            } catch {
+              /* unresolvable field */
+            }
           }
-        }
-    }
+      }
 
-    expect(statics).toEqual([]);
-  });
+      expect(statics).toEqual([]);
+    },
+    WALK_TIMEOUT_MS,
+  );
 });
