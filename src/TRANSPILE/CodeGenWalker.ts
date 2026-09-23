@@ -141,7 +141,7 @@ import FunctionContextManager from "./3-Render/codegen/helpers/FunctionContextMa
 import BitRangeHelper from "./3-Render/codegen/helpers/BitRangeHelper";
 import CodeGenState from "../transpiler/state/CodeGenState";
 import invariant from "../utils/invariant";
-import AdrProvenance from "../transpiler/AdrProvenance";
+import AdrProvenance from "../instrumentation/AdrProvenance";
 import SymbolRegistry from "../transpiler/state/SymbolRegistry";
 import PassByValueAnalyzer from "./2-Plan/PassByValueAnalyzer";
 import ParameterInputAdapter from "./3-Render/codegen/helpers/ParameterInputAdapter";

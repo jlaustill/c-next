@@ -4,7 +4,7 @@
  * Issue #63: Validation logic separated for independent testing
  */
 import CodeGenState from "../../../transpiler/state/CodeGenState";
-import AdrProvenance from "../../../transpiler/AdrProvenance";
+import AdrProvenance from "../../../instrumentation/AdrProvenance";
 // SonarCloud S3776: Extracted literal parsing to reduce complexity
 import QualifiedCName from "../../../utils/QualifiedCName";
 import QualifiedNameGenerator from "../../../utils/QualifiedNameGenerator";

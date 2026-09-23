@@ -43,7 +43,7 @@
  */
 
 import FunctionCallAnalyzer from "../TRANSPILE/1-Analyze/FunctionCallAnalyzer";
-import AdrProvenance from "./AdrProvenance";
+import AdrProvenance from "../instrumentation/AdrProvenance";
 import CodeGenState from "./state/CodeGenState";
 import type SymbolTable from "./state/SymbolTable";
 import type IParsedFile from "./types/IParsedFile";

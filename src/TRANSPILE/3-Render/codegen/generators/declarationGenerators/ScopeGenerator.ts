@@ -46,7 +46,7 @@ import TPlannedScopeMember from "../../types/TPlannedScopeMember";
 import TPlannedScopeVariable from "../../types/TPlannedScopeVariable";
 import registerGeneratorFor from "./RegisterGenerator";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";
-import AdrProvenance from "../../../../../transpiler/AdrProvenance";
+import AdrProvenance from "../../../../../instrumentation/AdrProvenance";
 import generateEnumHeader from "../../../headers/generators/generateEnumHeader";
 import generateBitmapHeader from "../../../headers/generators/generateBitmapHeader";
 import generateStructHeader from "../../../headers/generators/generateStructHeader";

@@ -31,7 +31,7 @@
  * `i32 < 0` emitting `signedIdx < 0U`, promoted to unsigned by C's usual
  * arithmetic conversions, and the test is dead.
  */
-import AdrProvenance from "../../../../../transpiler/AdrProvenance";
+import AdrProvenance from "../../../../../instrumentation/AdrProvenance";
 import BinaryExprUtils from "./BinaryExprUtils";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 import IGeneratorInput from "../IGeneratorInput";

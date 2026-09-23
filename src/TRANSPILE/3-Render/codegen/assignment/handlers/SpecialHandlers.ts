@@ -12,7 +12,7 @@ import TAssignmentHandler from "./TAssignmentHandler";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 import TTypeInfo from "../../../../../transpiler/types/TTypeInfo";
 import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator";
-import AdrProvenance from "../../../../../transpiler/AdrProvenance";
+import AdrProvenance from "../../../../../instrumentation/AdrProvenance";
 
 /** Maps C operators to clamp helper operation names */
 const CLAMP_OP_MAP: Record<string, string> = {

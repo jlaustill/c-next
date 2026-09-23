@@ -25,7 +25,7 @@ import invariant from "../utils/invariant";
 import ModificationFacts from "./ModificationFacts";
 import CallbackCompatibility from "./CallbackCompatibility";
 import AutoConstRule from "../utils/AutoConstRule";
-import AdrProvenance from "./AdrProvenance";
+import AdrProvenance from "../instrumentation/AdrProvenance";
 import CachedSymbolReader from "../utils/cache/CachedSymbolReader";
 import TJsonValue from "../utils/types/TJsonValue";
 import PublicInterface from "../TRANSPILE/2-Plan/PublicInterface";

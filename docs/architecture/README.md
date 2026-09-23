@@ -86,6 +86,7 @@ src/
     1-Write/
   types/
   utils/
+  instrumentation/
   cli/
   lib/
 ```
@@ -95,7 +96,7 @@ own layer, or of any earlier layer, and nothing else. So "which pass owns this m
 and "may it read that?" are both answerable from the path -- by a reader, and by a gate --
 without opening the file.
 
-**Every child of `src/` is a directory, and is one of three kinds.** There are no bare
+**Every child of `src/` is a directory, and is one of four kinds.** There are no bare
 files at the root: an entry point lives inside the root it starts.
 
 - **A layer** -- `PARSE/`, `TRANSPILE/` and `WRITE/`, each holding its passes, as above.
@@ -105,6 +106,25 @@ files at the root: an entry point lives inside the root it starts.
 - **Host** -- `cli/` and `lib/`. Outside the three layers, and the only place allowed to
   construct the pipeline. Each is entered through its own `index.ts`: the command-line
   tool and the library are separate concerns and do not share a starting point.
+- **Instrumentation** -- `instrumentation/`. Records facts about the RUN, never about the
+  program: where an ADR's rule fired, which toolchain features a run required. Written
+  from any layer, read once by the host, delivered on the run's result. It authors no fact
+  the program has, so it is not a state container, and it decides nothing, so it is not a
+  pass.
+
+  This kind was added by #1452, and it was added because the taxonomy's absence had
+  already misplaced both of its members: `AdrProvenance` sat in a state directory and the
+  toolchain-requirement accumulator sat inside `CodeGenState`, each landing wherever it
+  was least obviously wrong. A category with no name gets one location per member.
+
+  **It is the one root that may hold mutable state, and the reason is narrow.** Its
+  accumulators are written across several passes and read once at the end, which the rule
+  below otherwise forbids -- but what they accumulate is an observation of the run, not a
+  fact carried between passes, so nothing downstream branches on it. A pass that read
+  instrumentation back would be deriving program behavior from a report about itself;
+  that is the line, and it is why `instrumentation/` may not import a layer.
+  `scripts/__tests__/passes-hold-no-mutable-state.test.ts` scans the layers and not this
+  root, which is a stated exemption rather than an oversight.
 
 **An import may not go up and then back down into another root.**
 `../../types/ITranspileError` is legal; `../../lib/types/ITranspileError` is not. Anything

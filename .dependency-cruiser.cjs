@@ -232,6 +232,27 @@ module.exports = {
       to: { path: "^src/TRANSPILE/2-Plan/", reachable: true },
     },
     {
+      name: "instrumentation-cannot-import-a-layer",
+      comment:
+        "#1452: `instrumentation/` records facts about the RUN -- where an " +
+        "ADR's rule fired, which toolchain features a run required. Any layer " +
+        "may write to it, which is the point, and it may reach back into " +
+        "NONE of them. A module that observed a pass would be deriving the " +
+        "report from the thing being reported on, and a pass that could be " +
+        "reached from instrumentation could branch on its own observation. " +
+        "That is the line `docs/architecture/README.md` draws when it admits " +
+        "this root as the one place mutable cross-pass state is allowed, and " +
+        "without this rule that paragraph is prose with nothing behind it. " +
+        "`reachable` because the edge arrives through a helper as easily as " +
+        "directly (#1297).",
+      severity: "error",
+      from: { path: "^src/instrumentation/", pathNot: "__tests__" },
+      to: {
+        path: "^src/(PARSE|TRANSPILE|WRITE)/",
+        reachable: true,
+      },
+    },
+    {
       name: "analyze-cannot-import-render",
       comment:
         "#1322: `output/` is 2.2 Plan and 2.3 Render. 2.1 may not reach it -- " +

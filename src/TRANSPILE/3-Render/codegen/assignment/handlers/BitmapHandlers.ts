@@ -10,7 +10,7 @@
  * - SCOPED_REGISTER_MEMBER_BITMAP_FIELD: Scope.GPIO7.ICR1.LED <- value
  */
 import invariant from "../../../../../utils/invariant";
-import AdrProvenance from "../../../../../transpiler/AdrProvenance";
+import AdrProvenance from "../../../../../instrumentation/AdrProvenance";
 import type IBitmapFieldLayout from "../../../../../transpiler/types/IBitmapFieldLayout";
 import AssignmentKind from "../../../../../transpiler/types/AssignmentKind";
 import IAssignmentContext from "../../../../../transpiler/types/IAssignmentContext";

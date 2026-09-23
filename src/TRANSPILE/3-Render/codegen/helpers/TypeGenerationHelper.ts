@@ -31,7 +31,7 @@
 
 import TYPE_MAP from "../types/TYPE_MAP";
 import TIncludeHeader from "../../../../transpiler/types/TIncludeHeader";
-import AdrProvenance from "../../../../transpiler/AdrProvenance";
+import AdrProvenance from "../../../../instrumentation/AdrProvenance";
 import type INamedTypeResolution from "../../../../transpiler/types/INamedTypeResolution";
 import type IPlannedType from "../types/IPlannedType";
 

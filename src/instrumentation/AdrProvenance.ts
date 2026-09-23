@@ -34,17 +34,25 @@
  * gate watching it. Threading an instance through the call sites contradicts
  * the paragraph above, which is a recorded design decision, not an oversight.
  *
- * **`passes-hold-no-mutable-state.test.ts` is green on this file, and that is
- * placement rather than proof.** That guard scans `src/PARSE/` and
- * `src/TRANSPILE/`; this module sits under neither. A reader must not take its
- * green as box 4 being satisfied here -- it is not, deliberately, and the card
- * records the exception rather than the guard hiding it.
+ * The owner's call, taken 2026-09-23: box 4 governs PROGRAM state. A fact about
+ * the run is not one, so `src/instrumentation/` is admitted by
+ * `docs/architecture/README.md` as a fourth kind of root beside the layers, the
+ * shared contracts and the host -- and as the one root that may hold mutable
+ * state, because what it accumulates is an observation rather than a fact
+ * carried between passes. Nothing downstream branches on it.
  *
- * What would close it is a decision about whether box 4 governs program state
- * or also instrumentation about the run. That is the owner's call, not this
- * module's to assume.
+ * That exemption is stated, not incidental. `passes-hold-no-mutable-state.test.ts`
+ * scans the layers and not this root because instrumentation is not a pass, and
+ * the line it rests on is enforced: `instrumentation-cannot-import-a-layer`
+ * (`reachable: true`) stops this module reaching back into the thing it reports
+ * on. Mutation-checked -- an import of a 1-Analyze module produces twelve
+ * violations naming this file.
+ *
+ * The sibling arrives with the rest of #1452: the toolchain-requirement
+ * accumulator, still inside `CodeGenState` today, is the same kind of fact and
+ * belongs here too.
  */
-import type IRecordedAdrSite from "./types/IRecordedAdrSite";
+import type IRecordedAdrSite from "../transpiler/types/IRecordedAdrSite";
 
 class AdrProvenance {
   private static sites: IRecordedAdrSite[] = [];
