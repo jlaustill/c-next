@@ -6,6 +6,7 @@ import { ParserRuleContext } from "antlr4ng";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import ArrayDimensionParser from "../../utils/ArrayDimensionParser";
 import dimensionEvalOptions from "./dimensionEvalOptions";
+import DeclaredTypeFacts from "../../utils/DeclaredTypeFacts";
 import CodeGenState from "../../transpiler/state/CodeGenState";
 import INTEGER_TYPES from "../../transpiler/types/INTEGER_TYPES";
 import FLOAT_TYPES from "../../transpiler/types/FLOAT_TYPES";
@@ -76,17 +77,11 @@ class ExpressionTypeResolver {
    * Issue #103: Now checks both knownStructs AND SymbolTable.
    */
   static isStructType(typeName: string): boolean {
-    if (CodeGenState.symbols?.knownStructs.has(typeName)) {
-      return true;
-    }
-    // Issue #551: Bitmaps are struct-like (use pass-by-reference with -> access)
-    if (CodeGenState.symbols?.knownBitmaps.has(typeName)) {
-      return true;
-    }
-    if (CodeGenState.symbolTable.getStructFields(typeName)) {
-      return true;
-    }
-    return false;
+    return DeclaredTypeFacts.isStruct(
+      CodeGenState.symbols,
+      CodeGenState.symbolTable,
+      typeName,
+    );
   }
 
   /**

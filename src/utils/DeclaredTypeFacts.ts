@@ -34,6 +34,7 @@
  */
 import type IDeclaredTypeFacts from "../transpiler/types/IDeclaredTypeFacts";
 import type IDeclaredTypeSets from "../transpiler/types/IDeclaredTypeSets";
+import type IStructFieldLookup from "../transpiler/types/IStructFieldLookup";
 
 class DeclaredTypeFacts {
   /**
@@ -63,6 +64,44 @@ class DeclaredTypeFacts {
         ? (sets?.bitmapBitWidth.get(baseType) ?? 0)
         : fallbackBitWidth,
     };
+  }
+
+  /**
+   * Is this type name a struct? Bitmaps count -- they are struct-like and take
+   * the same pass-by-reference `->` treatment (#551).
+   *
+   * ## Why this is here and not at three call sites (#1656)
+   *
+   * It was at three, spelled the same way each time and reached by 19 callers:
+   * `CodeGenState.isKnownStruct`, `SymbolLookupHelper.isKnownStruct` (through
+   * `IOrchestrator`), and `ExpressionTypeResolver.isStructType` in 2-Plan,
+   * which alone has ten sites through `IOrchestrator.isStructType`. All three
+   * ran the identical three checks in the identical order; the 2-Plan copy
+   * differed from the `state/` copy only in `CodeGenState.` versus `this.`.
+   *
+   * They had not diverged in RESULT, which is why nothing caught them -- they
+   * had diverged in FAILURE MODE. See `IStructFieldLookup` for that, and for
+   * why the lookup is required rather than optional here.
+   *
+   * The per-file sets answer first because they are the file's own view; the
+   * run-wide table answers for a struct declared in an included header, which
+   * the per-file sets do not carry. Both are needed, which is why this takes
+   * two arguments rather than pretending one source suffices (#1312).
+   *
+   * `!== undefined` is deliberate. `getStructFields` returns a `Map`, and an
+   * empty `Map` is truthy, so all three call sites read a zero-field struct as
+   * known by accident rather than by decision. No such struct is reachable
+   * today -- `SymbolTable.addStructField` always sets a field on creation --
+   * so this states the existing behavior rather than changing it.
+   */
+  static isStruct(
+    sets: IDeclaredTypeSets | null,
+    fields: IStructFieldLookup,
+    typeName: string,
+  ): boolean {
+    if (sets?.knownStructs.has(typeName)) return true;
+    if (sets?.knownBitmaps.has(typeName)) return true;
+    return fields.getStructFields(typeName) !== undefined;
   }
 }
 

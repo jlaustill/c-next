@@ -65,6 +65,7 @@ import FunctionContextManager from "./helpers/FunctionContextManager";
 import IFunctionContextCallbacks from "./types/IFunctionContextCallbacks";
 // Global state for code generation (simplifies debugging, eliminates DI complexity)
 import CodeGenState from "../../../transpiler/state/CodeGenState";
+import DeclaredTypeFacts from "../../../utils/DeclaredTypeFacts";
 import CallbackTypedefFormatter from "./helpers/CallbackTypedefFormatter";
 // Issue #269: Pass-by-value analysis extracted from CodeGenerator
 import PassByValueAnalyzer from "../../2-Plan/PassByValueAnalyzer";
@@ -258,9 +259,8 @@ export default class CodeGenerator implements IOrchestrator {
    * Part of IOrchestrator interface.
    */
   isKnownStruct(typeName: string): boolean {
-    return SymbolLookupHelper.isKnownStruct(
-      CodeGenState.symbols?.knownStructs,
-      CodeGenState.symbols?.knownBitmaps,
+    return DeclaredTypeFacts.isStruct(
+      CodeGenState.symbols,
       CodeGenState.symbolTable,
       typeName,
     );

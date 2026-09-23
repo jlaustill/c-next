@@ -868,10 +868,7 @@ export default class CodeGenState {
    * Also includes bitmaps since they're struct-like (Issue #551).
    */
   static isKnownStruct(name: string): boolean {
-    if (this.symbols?.knownStructs.has(name)) return true;
-    if (this.symbols?.knownBitmaps.has(name)) return true;
-    if (this.symbolTable.getStructFields(name)) return true;
-    return false;
+    return DeclaredTypeFacts.isStruct(this.symbols, this.symbolTable, name);
   }
 
   /**

@@ -18,6 +18,7 @@ import CodeGenState from "../../../transpiler/state/CodeGenState";
  */
 function createMockTypeSymbols(overrides: Record<string, unknown> = {}) {
   return {
+    knownStructs: new Set<string>(),
     knownEnums: new Set<string>(),
     knownBitmaps: new Set<string>(),
     bitmapBitWidth: new Map<string, number>(),
