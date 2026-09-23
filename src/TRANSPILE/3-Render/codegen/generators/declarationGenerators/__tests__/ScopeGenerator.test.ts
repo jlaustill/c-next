@@ -25,7 +25,7 @@ import IPlannedScope from "../../../types/IPlannedScope";
 import TPlannedScopeMember from "../../../types/TPlannedScopeMember";
 import TPlannedScopeVariable from "../../../types/TPlannedScopeVariable";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
-import AdrProvenance from "../../../../../../transpiler/state/AdrProvenance";
+import AdrProvenance from "../../../../../../transpiler/AdrProvenance";
 import CodeGenState from "../../../../../../transpiler/state/CodeGenState";
 
 /**

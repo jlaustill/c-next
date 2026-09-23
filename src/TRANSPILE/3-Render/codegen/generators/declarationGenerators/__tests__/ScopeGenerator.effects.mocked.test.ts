@@ -18,7 +18,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-import AdrProvenance from "../../../../../../transpiler/state/AdrProvenance";
+import AdrProvenance from "../../../../../../transpiler/AdrProvenance";
 import IGeneratorInput from "../../IGeneratorInput";
 import IGeneratorState from "../../IGeneratorState";
 import IOrchestrator from "../../IOrchestrator";

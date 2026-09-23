@@ -24,7 +24,7 @@ import memberAccessChain from "../../memberAccessChain";
 import BitmapAccessHelper from "./BitmapAccessHelper";
 import BitRangeHelper from "../../helpers/BitRangeHelper";
 import NarrowingCastHelper from "../../helpers/NarrowingCastHelper";
-import AdrProvenance from "../../../../../transpiler/state/AdrProvenance";
+import AdrProvenance from "../../../../../transpiler/AdrProvenance";
 import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import SubscriptClassifier from "../../../../2-Plan/SubscriptClassifier";
 import SubscriptDepthValidator from "../../../../2-Plan/SubscriptDepthValidator";

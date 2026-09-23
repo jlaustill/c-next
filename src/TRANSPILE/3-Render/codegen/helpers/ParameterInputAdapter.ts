@@ -20,7 +20,7 @@
  * one defect rather than three bugs. Filed as #1639.
  */
 
-import AdrProvenance from "../../../../transpiler/state/AdrProvenance";
+import AdrProvenance from "../../../../transpiler/AdrProvenance";
 import IParameterInput from "../types/IParameterInput";
 import type IPlannedParameter from "../types/IPlannedParameter";
 import IParameterSymbol from "../../../../utils/types/IParameterSymbol";

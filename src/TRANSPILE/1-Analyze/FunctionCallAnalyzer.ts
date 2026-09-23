@@ -16,7 +16,7 @@ import ParserUtils from "../../utils/ParserUtils";
 import CodeGenState from "../../transpiler/state/CodeGenState";
 import ExpressionUnwrapper from "../../utils/ExpressionUnwrapper";
 import QualifiedCName from "../../utils/QualifiedCName";
-import AdrProvenance from "../../transpiler/state/AdrProvenance";
+import AdrProvenance from "../../transpiler/AdrProvenance";
 import DynamicAllocation from "./DynamicAllocation";
 import StdlibFunctions from "./StdlibFunctions";
 import CalleeNameResolver from "./helpers/CalleeNameResolver";
