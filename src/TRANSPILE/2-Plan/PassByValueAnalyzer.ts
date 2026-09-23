@@ -391,7 +391,6 @@ class PassByValueAnalyzer {
     // 1. Check for parameter modifications via assignment targets
     if (stmt.assignmentStatement()) {
       PassByValueAnalyzer.trackAssignmentModifications(
-        registry,
         funcName,
         paramSet,
         stmt,
@@ -433,7 +432,6 @@ class PassByValueAnalyzer {
    * SonarCloud S3776: Extracted from walkStatementForModifications().
    */
   private static trackAssignmentModifications(
-    registry: SymbolRegistry,
     funcName: string,
     paramSet: Set<string>,
     stmt: Parser.StatementContext,

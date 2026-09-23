@@ -18,7 +18,7 @@ import TPassByValueParams from "../../../../transpiler/types/TPassByValueParams"
  *
  * Every field is resolved from state that is either run-wide (`symbolTable`,
  * `outputExtensions`) or this file's own already-written entry in a
- * path-keyed accumulator (`TranspilerState`) -- never from a `CodeGenState`
+ * path-keyed accumulator the orchestrator holds -- never from a `CodeGenState`
  * field that `reset()` clears before the next file. `needsIsr`,
  * `generatedStructInits`, callback typedef resolution and ADR-006 auto-const
  * are exactly those `CodeGenState` fields, which is why they are captured

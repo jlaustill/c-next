@@ -5,7 +5,7 @@
  *
  * Both are written during discovery and read two stages later, and neither can
  * be re-derived at the point of use -- which is what put them on a mutable
- * accumulator in the first place. `TranspilerState` held them, and box 4 of
+ * accumulator in the first place. A state container held them, and box 4 of
  * #1452 forbids a module reachable from the pipeline holding state written in
  * one pass and read in another.
  *

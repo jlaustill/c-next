@@ -80,7 +80,6 @@ import IPipelineFile from "./types/IPipelineFile";
 import IPipelineInput from "./types/IPipelineInput";
 import TTranspileInput from "./types/TTranspileInput";
 import ITranspileError from "../lib/types/ITranspileError";
-import TranspilerState from "./state/TranspilerState";
 import runAnalyzers from "../TRANSPILE/1-Analyze/runAnalyzers";
 import Diagnostics from "../TRANSPILE/1-Analyze/Diagnostics";
 import type IDiagnostics from "./types/IDiagnostics";
@@ -153,7 +152,35 @@ class Transpiler {
    */
   private pragmaTargets: string[] = [];
   /** Issue #587: Encapsulated state for accumulated Maps/Sets */
-  private readonly state = new TranspilerState();
+  /**
+   * The run's own accumulations (#1452 box 1).
+   *
+   * These were a `TranspilerState` under `src/transpiler/state/`, which box 1
+   * deletes. They are not a pass's facts and never were -- they are what the
+   * ORCHESTRATOR accumulates while driving a run, written and read by this
+   * class alone, which is why inlining them removes an indirection rather than
+   * relocating a state container.
+   *
+   * `userIncludes` is keyed by source path, and by `${path}\u0000c-headers`
+   * for the #424 C-header half. The NUL separator is deliberate: no filesystem
+   * path contains one, so the two keyspaces cannot collide.
+   */
+  private readonly symbolCollectors = new Map<string, ICodeGenSymbols>();
+
+  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
+  private readonly perFilePassByValueParams = new Map<
+    string,
+    ReadonlyMap<string, ReadonlySet<string>>
+  >();
+
+  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
+  private readonly userIncludes = new Map<string, string[]>();
+
+  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
+  private readonly headerIncludeDirectives = new Map<string, string>();
+
+  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
+  private readonly processedHeaders = new Set<string>();
   /**
    * #1323: one file's fully-resolved header-render input, captured while its
    * `CodeGenState` was warm. `_renderHeaders` (Stage 5.5) reads this map ONCE,
@@ -1180,7 +1207,7 @@ class Transpiler {
       );
       // Issue #424: kept separate — added to the header only when it names a
       // macro that one of these supplies (see _headerNeedsMacroIncludes).
-      this.state.setUserIncludes(
+      this.userIncludes.set(
         `${sourcePath}\u0000c-headers`,
         IncludeExtractor.collectCHeaderIncludes(tree),
       );
@@ -1190,9 +1217,9 @@ class Transpiler {
       const passByValueCopy = MapUtils.deepCopyStringSetMap(passByValue);
 
       // Directly update state (no contribution round-trip)
-      this.state.setSymbolInfo(sourcePath, symbolInfo);
-      this.state.setPassByValueParams(sourcePath, passByValueCopy);
-      this.state.setUserIncludes(sourcePath, [...userIncludes]);
+      this.symbolCollectors.set(sourcePath, symbolInfo);
+      this.perFilePassByValueParams.set(sourcePath, passByValueCopy);
+      this.userIncludes.set(sourcePath, [...userIncludes]);
 
       // #1323: resolve this file's header-render input while its state is
       // warm (reads from state populated above), but do not render it here.
@@ -1272,7 +1299,7 @@ class Transpiler {
         onDebug: this.config.debugMode
           ? (msg) => console.log(`[DEBUG] ${msg}`)
           : undefined,
-        processedPaths: this.state.getProcessedHeadersSet(),
+        processedPaths: this.processedHeaders,
         fs: this.fs,
       },
     );
@@ -1338,7 +1365,7 @@ class Transpiler {
     for (const header of allHeaders) {
       const directive = resolved.headerIncludeDirectives.get(header.path);
       if (directive) {
-        this.state.setHeaderDirective(header.path, directive);
+        this.headerIncludeDirectives.set(header.path, directive);
       }
     }
 
@@ -1347,7 +1374,7 @@ class Transpiler {
       const includePath = resolve(cnxInclude.path);
       const directive = resolved.headerIncludeDirectives.get(includePath);
       if (directive) {
-        this.state.setHeaderDirective(includePath, directive);
+        this.headerIncludeDirectives.set(includePath, directive);
       }
     }
 
@@ -1442,7 +1469,11 @@ class Transpiler {
       await this.cacheManager.initialize();
     }
     // Issue #587: Reset accumulated state for new run
-    this.state.reset();
+    this.symbolCollectors.clear();
+    this.perFilePassByValueParams.clear();
+    this.userIncludes.clear();
+    this.headerIncludeDirectives.clear();
+    this.processedHeaders.clear();
     // ADR-049: the previous run's targets must not decide this run's budget
     this.pragmaTargets = [];
     // #1323: a stale entry here would let one run's header content leak into
@@ -1967,7 +1998,7 @@ class Transpiler {
       // Issue #497: Store the include directive for this header
       const directive = resolved.headerIncludeDirectives.get(header.path);
       if (directive) {
-        this.state.setHeaderDirective(header.path, directive);
+        this.headerIncludeDirectives.set(header.path, directive);
       }
     }
   }
@@ -2000,7 +2031,7 @@ class Transpiler {
       // Issue #854: Store header directive for cnext include types
       const directive = resolved.headerIncludeDirectives.get(includePath);
       if (directive) {
-        this.state.setHeaderDirective(includePath, directive);
+        this.headerIncludeDirectives.set(includePath, directive);
       }
 
       // Don't add if already in the list.
@@ -2286,7 +2317,7 @@ class Transpiler {
   ): Promise<boolean> {
     // Track as processed (for cycle detection)
     const absolutePath = resolve(file.path);
-    this.state.markHeaderProcessed(absolutePath);
+    this.processedHeaders.add(absolutePath);
 
     // Check cache first
     const restored = this.tryRestoreFromCache(file);
@@ -2814,11 +2845,11 @@ class Transpiler {
       ext,
     );
 
-    const typeInput = this.state.getSymbolInfo(sourcePath);
+    const typeInput = this.symbolCollectors.get(sourcePath);
     const passByValueParams =
-      this.state.getPassByValueParams(sourcePath) ??
+      this.perFilePassByValueParams.get(sourcePath) ??
       new Map<string, Set<string>>();
-    const cnxIncludes = this.state.getUserIncludes(sourcePath) ?? [];
+    const cnxIncludes = this.userIncludes.get(sourcePath) ?? [];
     // Issue #424: a dimension that is not a number is a macro the header names
     // but does not define, so the header must carry its source include.
     const cHeadersIncluded =
@@ -2826,7 +2857,7 @@ class Transpiler {
     const userIncludes = cHeadersIncluded
       ? [
           ...cnxIncludes,
-          ...(this.state.getUserIncludes(`${sourcePath}\u0000c-headers`) ?? []),
+          ...(this.userIncludes.get(`${sourcePath}\u0000c-headers`) ?? []),
         ]
       : cnxIncludes;
 
@@ -2841,7 +2872,7 @@ class Transpiler {
     // include ORDER stays here -- it decides which header wins, and that is not
     // a symbol fact.
     const externalTypeHeaders = ExternalTypeHeaderBuilder.build(
-      this.state.getAllHeaderDirectives(),
+      this.headerIncludeDirectives,
       {
         typesDeclaredIn: (file: string) =>
           this.program?.typesDeclaredIn(file) ?? new Set<string>(),
@@ -2956,7 +2987,9 @@ class Transpiler {
    * changed, both copies had to change together.
    *
    * The derivation sits at the orchestrator because it needs orchestrator state
-   * -- `this.state.getSymbolInfoByFileMap()` and `this.config.includeDirs`. It is
+   * -- the per-file symbol views it accumulates, and `this.config.includeDirs`.
+   * (#1452: this line used to cite `this.state.getSymbolInfoByFileMap()`, a
+   * method that has never existed in this repository.) It is
    * NOT blocked by the layer rule: `ICodeGenSymbols` lives in `transpiler/types/`,
    * not `output/`, and `logic/symbols/TransitiveEnumCollector.ts` already imports
    * it. Moving this into a Tier 2 `logic/symbols/` artifact is DoD items 1-2 of
