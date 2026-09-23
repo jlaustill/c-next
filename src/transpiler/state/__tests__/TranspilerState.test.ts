@@ -60,8 +60,10 @@ describe("TranspilerState", () => {
       expect(state.getSymbolInfo("/path/file1.cnx")).toBeDefined();
       expect(state.getPassByValueParams("/path/file1.cnx")).toBeDefined();
       expect(state.getUserIncludes("/path/file1.cnx")).toHaveLength(1);
-      expect(state.getHeaderDirective("/path/header.h")).toBeDefined();
-      expect(state.isHeaderProcessed("/path/header.h")).toBe(true);
+      expect(
+        state.getAllHeaderDirectives().get("/path/header.h"),
+      ).toBeDefined();
+      expect(state.getProcessedHeadersSet().has("/path/header.h")).toBe(true);
 
       // Reset
       state.reset();
@@ -70,8 +72,10 @@ describe("TranspilerState", () => {
       expect(state.getSymbolInfo("/path/file1.cnx")).toBeUndefined();
       expect(state.getPassByValueParams("/path/file1.cnx")).toBeUndefined();
       expect(state.getUserIncludes("/path/file1.cnx")).toHaveLength(0);
-      expect(state.getHeaderDirective("/path/header.h")).toBeUndefined();
-      expect(state.isHeaderProcessed("/path/header.h")).toBe(false);
+      expect(
+        state.getAllHeaderDirectives().get("/path/header.h"),
+      ).toBeUndefined();
+      expect(state.getProcessedHeadersSet().has("/path/header.h")).toBe(false);
     });
   });
 
@@ -135,12 +139,16 @@ describe("TranspilerState", () => {
     it("should store and retrieve header directives", () => {
       state.setHeaderDirective("/usr/include/stdint.h", "#include <stdint.h>");
 
-      const retrieved = state.getHeaderDirective("/usr/include/stdint.h");
+      const retrieved = state
+        .getAllHeaderDirectives()
+        .get("/usr/include/stdint.h");
       expect(retrieved).toBe("#include <stdint.h>");
     });
 
     it("should return undefined for missing directives", () => {
-      expect(state.getHeaderDirective("/nonexistent.h")).toBeUndefined();
+      expect(
+        state.getAllHeaderDirectives().get("/nonexistent.h"),
+      ).toBeUndefined();
     });
 
     it("should expose all directives via getAllHeaderDirectives", () => {
@@ -156,27 +164,27 @@ describe("TranspilerState", () => {
 
   describe("Processed Headers (Group 4)", () => {
     it("should track processed headers", () => {
-      expect(state.isHeaderProcessed("/path/header.h")).toBe(false);
+      expect(state.getProcessedHeadersSet().has("/path/header.h")).toBe(false);
 
       state.markHeaderProcessed("/path/header.h");
 
-      expect(state.isHeaderProcessed("/path/header.h")).toBe(true);
+      expect(state.getProcessedHeadersSet().has("/path/header.h")).toBe(true);
     });
 
     it("should handle multiple headers", () => {
       state.markHeaderProcessed("/a.h");
       state.markHeaderProcessed("/b.h");
 
-      expect(state.isHeaderProcessed("/a.h")).toBe(true);
-      expect(state.isHeaderProcessed("/b.h")).toBe(true);
-      expect(state.isHeaderProcessed("/c.h")).toBe(false);
+      expect(state.getProcessedHeadersSet().has("/a.h")).toBe(true);
+      expect(state.getProcessedHeadersSet().has("/b.h")).toBe(true);
+      expect(state.getProcessedHeadersSet().has("/c.h")).toBe(false);
     });
 
     it("should be idempotent for marking", () => {
       state.markHeaderProcessed("/header.h");
       state.markHeaderProcessed("/header.h");
 
-      expect(state.isHeaderProcessed("/header.h")).toBe(true);
+      expect(state.getProcessedHeadersSet().has("/header.h")).toBe(true);
     });
 
     it("should expose the Set via getProcessedHeadersSet", () => {

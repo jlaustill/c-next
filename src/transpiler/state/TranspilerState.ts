@@ -9,13 +9,19 @@
 import ICodeGenSymbols from "../types/ICodeGenSymbols";
 
 /**
- * Encapsulates the 6 accumulated state fields from Transpiler.
+ * The accumulators the Transpiler carries across a run.
  *
- * State groups:
- * - Group 1 (Header Generation): symbolCollectors, passByValueParams, userIncludes
- * - Group 2 (Symbol Resolution): symbolInfoByFile
- * - Group 3 (Cross-file Type Info): headerIncludeDirectives
- * - Group 4 (Cycle Prevention): processedHeaders
+ * The count this used to state was wrong in both directions -- it said "6"
+ * while holding eight, and still said "6" after #1452 removed one. A number in
+ * prose beside the thing it counts has nothing holding the two together, so it
+ * is gone rather than corrected; the fields below are the list.
+ *
+ * `symbolInfoByFile` was removed as dead (#1452): declared, cleared in
+ * `reset()`, and read or written nowhere. `getHeaderDirective` and
+ * `isHeaderProcessed` went with it -- zero production callers each, alive only
+ * on their own tests, which is the shape #1418 is open about. Their read-backs
+ * route through `getAllHeaderDirectives` and `getProcessedHeadersSet`, both of
+ * which production does call, so no assertion was lost.
  */
 class TranspilerState {
   // === Group 1: Header Generation State ===
@@ -56,11 +62,6 @@ class TranspilerState {
    */
   private readonly includeSearchPaths = new Map<string, readonly string[]>();
 
-  // === Group 2: Symbol Resolution State ===
-
-  /** Issue #465: Store ICodeGenSymbols per file during stage 3 for external enum resolution */
-  private readonly symbolInfoByFile = new Map<string, ICodeGenSymbols>();
-
   // === Group 3: Cross-file Type Info ===
 
   /**
@@ -86,7 +87,6 @@ class TranspilerState {
     this.userIncludes.clear();
     this.cnxIncludeRewrites.clear();
     this.includeSearchPaths.clear();
-    this.symbolInfoByFile.clear();
     this.headerIncludeDirectives.clear();
     this.processedHeaders.clear();
   }
@@ -196,8 +196,6 @@ class TranspilerState {
     return this.includeSearchPaths.get(filePath) ?? [];
   }
 
-  // === Symbol Info By File (Group 2) ===
-
   // === Header Include Directives (Group 3) ===
 
   /**
@@ -205,13 +203,6 @@ class TranspilerState {
    */
   setHeaderDirective(headerPath: string, directive: string): void {
     this.headerIncludeDirectives.set(headerPath, directive);
-  }
-
-  /**
-   * Get the include directive for a header path.
-   */
-  getHeaderDirective(headerPath: string): string | undefined {
-    return this.headerIncludeDirectives.get(headerPath);
   }
 
   /**
@@ -228,13 +219,6 @@ class TranspilerState {
    */
   markHeaderProcessed(absolutePath: string): void {
     this.processedHeaders.add(absolutePath);
-  }
-
-  /**
-   * Check if a header has been processed.
-   */
-  isHeaderProcessed(absolutePath: string): boolean {
-    return this.processedHeaders.has(absolutePath);
   }
 
   /**
