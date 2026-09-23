@@ -16,9 +16,10 @@
  *   4. State persists for the duration of one generate() call
  *
  * SymbolTable ownership:
- *   CodeGenState owns the single SymbolTable instance. It persists across
- *   reset() calls (which are per-file). The Transpiler clears it via
- *   CodeGenState.symbolTable.clear() at the start of each run().
+ *   CodeGenState holds the run's SymbolTable. It persists across reset()
+ *   calls (which are per-file). The Transpiler REPLACES it at the start of
+ *   each run -- #1452 box 5 deleted `clear()`, because a teardown listing
+ *   eleven of twelve indexes is what let #1177 fire.
  */
 
 import SymbolTable from "./SymbolTable";
@@ -110,8 +111,8 @@ export default class CodeGenState {
   static symbols: ICodeGenSymbols | null = null;
 
   /** External symbol table for cross-language interop (C headers).
-   * Owned by CodeGenState; persists across per-file reset() calls.
-   * Cleared via symbolTable.clear() at the start of each Transpiler run.
+   * Held by CodeGenState; persists across per-file reset() calls.
+   * REPLACED at the start of each Transpiler run (#1452 box 5).
    */
   /**
    * The artifact 1.4 Resolve emitted for this run (#1447).
@@ -617,8 +618,9 @@ export default class CodeGenState {
     // CodeGenerator.generate(), and a stale `false` here would let the next
     // file diagnose names a header it cannot see supplies.
     this.currentFileReachesForeignHeader = true;
-    // Note: symbolTable is NOT reset here — it persists across per-file generates.
-    // It is cleared via symbolTable.clear() at the start of each Transpiler run.
+    // Note: symbolTable is NOT reset here — it persists across per-file
+    // generates. The Transpiler replaces it at the start of each run (#1452
+    // box 5); there is no `clear()` to call.
 
     // Type tracking
     this.typeRegistry = new Map();
