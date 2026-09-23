@@ -996,19 +996,6 @@ describe("CodeGenWalker", () => {
       });
     });
 
-    describe("getModifiedParameters()", () => {
-      it("should return map of modified parameters", () => {
-        const { host } = createMinimalGenerator(`
-          void modify(u32 param) {
-            param <- 42;
-          }
-        `);
-
-        const modifiedParams = host.getModifiedParameters();
-        expect(modifiedParams).toBeInstanceOf(Map);
-      });
-    });
-
     describe("getFunctionUnmodifiedParams()", () => {
       it("should return map of unmodified parameters", () => {
         const { generator } = createMinimalGenerator(`
@@ -1017,17 +1004,6 @@ describe("CodeGenWalker", () => {
 
         const unmodifiedParams = generator.getFunctionUnmodifiedParams();
         expect(unmodifiedParams).toBeInstanceOf(Map);
-      });
-    });
-
-    describe("getFunctionParamLists()", () => {
-      it("should return function parameter lists", () => {
-        const { host } = createMinimalGenerator(`
-          void test(u32 a, u32 b) { }
-        `);
-
-        const paramLists = host.getFunctionParamLists();
-        expect(paramLists).toBeInstanceOf(Map);
       });
     });
 

@@ -10,6 +10,8 @@
  * for a callee nothing declares.
  */
 
+import type IModificationCollector from "../types/IModificationCollector";
+import SymbolRegistry from "../../../transpiler/state/SymbolRegistry";
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import PassByValueAnalyzer from "../PassByValueAnalyzer";
 import CodeGenState from "../../../transpiler/state/CodeGenState";
@@ -56,21 +58,27 @@ const declareCTypedef = (name: string, aliased: string): TCSymbol =>
  * caller's parameter came back marked as modified (auto-const withheld).
  */
 const callerParameterIsModified = (callee: string): boolean => {
-  CodeGenState.functionCallGraph.clear();
-  CodeGenState.functionParamLists.clear();
-  CodeGenState.modifiedParameters.clear();
+  // #1452: the accumulation is the call's own object now, not three statics,
+  // so the setup and the read-back are the same collector rather than a global
+  // both happen to reach.
+  const collect: IModificationCollector = {
+    registry: new SymbolRegistry(),
+    modifiedParameters: new Map(),
+    functionParamLists: new Map(),
+    functionCallGraph: new Map(),
+  };
 
   // The caller is known; the callee deliberately is not, so the propagator
   // must fall through to the resolver.
-  CodeGenState.functionParamLists.set("Caller__forward", ["value"]);
-  CodeGenState.modifiedParameters.set("Caller__forward", new Set());
-  CodeGenState.functionCallGraph.set("Caller__forward", [
+  collect.functionParamLists.set("Caller__forward", ["value"]);
+  collect.modifiedParameters.set("Caller__forward", new Set());
+  collect.functionCallGraph.set("Caller__forward", [
     { callee, paramIndex: 0, argParamName: "value" },
   ]);
 
-  PassByValueAnalyzer.propagateModifications();
+  PassByValueAnalyzer.propagateModifications(collect);
 
-  return CodeGenState.modifiedParameters.get("Caller__forward")!.has("value");
+  return collect.modifiedParameters.get("Caller__forward")!.has("value");
 };
 
 describe("PassByValueAnalyzer callee resolution (#1178)", () => {
@@ -272,18 +280,21 @@ describe("PassByValueAnalyzer callee resolution (#1178)", () => {
       // `void forward(handler cb, u8 value) { cb(value); }` -- `cb` is a value,
       // so no declaration will ever match it. Failing safe here fired on every
       // callback by construction.
-      CodeGenState.functionCallGraph.clear();
-      CodeGenState.functionParamLists.clear();
-      CodeGenState.modifiedParameters.clear();
-      CodeGenState.functionParamLists.set("forward", ["cb", "value"]);
-      CodeGenState.modifiedParameters.set("forward", new Set());
-      CodeGenState.functionCallGraph.set("forward", [
+      const collect: IModificationCollector = {
+        registry: new SymbolRegistry(),
+        modifiedParameters: new Map(),
+        functionParamLists: new Map(),
+        functionCallGraph: new Map(),
+      };
+      collect.functionParamLists.set("forward", ["cb", "value"]);
+      collect.modifiedParameters.set("forward", new Set());
+      collect.functionCallGraph.set("forward", [
         { callee: "cb", paramIndex: 0, argParamName: "value" },
       ]);
 
-      PassByValueAnalyzer.propagateModifications();
+      PassByValueAnalyzer.propagateModifications(collect);
 
-      expect(CodeGenState.modifiedParameters.get("forward")!.has("value")).toBe(
+      expect(collect.modifiedParameters.get("forward")!.has("value")).toBe(
         false,
       );
     });

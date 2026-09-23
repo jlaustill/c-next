@@ -13,6 +13,7 @@
  */
 
 import CodeGenState from "./state/CodeGenState";
+import type IModificationCollector from "../TRANSPILE/2-Plan/types/IModificationCollector";
 import SymbolRegistry from "./state/SymbolRegistry";
 import PassByValueAnalyzer from "../TRANSPILE/2-Plan/PassByValueAnalyzer";
 import type IFileSymbols from "./types/IFileSymbols";
@@ -43,13 +44,21 @@ class ModificationFacts {
     }>,
     registry: SymbolRegistry,
   ): IModificationFacts {
-    CodeGenState.modifiedParameters.clear();
-    CodeGenState.functionParamLists.clear();
-    CodeGenState.functionCallGraph.clear();
+    // #1452 box 4: the accumulation is this call's own, created here and gone
+    // when it returns. It used to be three mutable statics on `CodeGenState`
+    // that this method cleared and 2.3 Render cleared AGAIN before re-seeding
+    // them from the artifact below -- state two passes shared by accident of
+    // being global, when the authoritative copy was always the one returned.
+    const collect: IModificationCollector = {
+      registry,
+      modifiedParameters: new Map(),
+      functionParamLists: new Map(),
+      functionCallGraph: new Map(),
+    };
 
     for (const entry of declared) {
       PassByValueAnalyzer.collectFunctionParametersAndModifications(
-        registry,
+        collect,
         entry.parsed.tree,
       );
     }
@@ -69,6 +78,7 @@ class ModificationFacts {
       }
     }
     PassByValueAnalyzer.propagateModifications(
+      collect,
       (name: string): boolean =>
         cnextValueCNames.has(name) ||
         CodeGenState.symbolTable
@@ -77,15 +87,15 @@ class ModificationFacts {
     );
 
     const modifiedParameters = new Map<string, ReadonlySet<string>>();
-    for (const [name, params] of CodeGenState.modifiedParameters) {
+    for (const [name, params] of collect.modifiedParameters) {
       modifiedParameters.set(name, new Set(params));
     }
     const functionParamLists = new Map<string, ReadonlyArray<string>>();
-    for (const [name, params] of CodeGenState.functionParamLists) {
+    for (const [name, params] of collect.functionParamLists) {
       functionParamLists.set(name, [...params]);
     }
     const callGraph = new Map<string, ReadonlyArray<ICallGraphEntry>>();
-    for (const [name, calls] of CodeGenState.functionCallGraph) {
+    for (const [name, calls] of collect.functionCallGraph) {
       callGraph.set(name, [...calls]);
     }
 

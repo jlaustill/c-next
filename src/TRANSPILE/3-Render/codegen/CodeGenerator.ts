@@ -604,21 +604,6 @@ export default class CodeGenerator implements IOrchestrator {
   }
 
   /**
-   * Issue #558: Get the modified parameters map for cross-file propagation.
-   * Returns function name -> set of modified parameter names.
-   */
-  getModifiedParameters(): ReadonlyMap<string, Set<string>> {
-    return CodeGenState.modifiedParameters;
-  }
-
-  /**
-   * Issue #558: Get the function parameter lists for cross-file propagation.
-   */
-  getFunctionParamLists(): ReadonlyMap<string, string[]> {
-    return CodeGenState.functionParamLists;
-  }
-
-  /**
    * Issue #268: Check if a callee function's parameter at given index is modified.
    * Returns true if the callee modifies that parameter (should not have const).
    */

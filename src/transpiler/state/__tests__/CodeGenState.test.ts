@@ -1226,8 +1226,9 @@ describe("CodeGenState", () => {
 
     it("reads the whole-program fact when a Program is present", () => {
       CodeGenState.program = programWith(new Map([["mutate", new Set(["s"])]]));
-      // Contradict the per-file accumulator, so a pass cannot come from it.
-      CodeGenState.modifiedParameters = new Map();
+      // The per-file accumulator this used to contradict is gone (#1452), so
+      // the control is structural now: there is no second source a pass could
+      // come from.
 
       expect(CodeGenState.isParameterModifiedAnywhere("mutate", "s")).toBe(
         true,
@@ -1264,23 +1265,20 @@ describe("CodeGenState", () => {
       CodeGenState.program = null;
     });
 
-    it("falls back to the per-file map when there is no Program", () => {
-      // The only callers with no Program are unit tests driving codegen
-      // directly -- `transpile()` builds one for both input kinds. This asserts
-      // the branch those callers land on rather than leaving it to be assumed.
+    it("answers NOT modified when there is no Program", () => {
+      // #1452 retired this test's original subject. It asserted a FALLBACK to a
+      // per-file accumulator on `CodeGenState` -- the one this method's own
+      // docblock named as the bug in #1529 and #1552, empty while declarations
+      // are walked and absent entirely for an included function. The
+      // accumulator is gone, so there is no second source to fall back to and
+      // the branch cannot be tested because it no longer exists.
+      //
+      // What remains is the polarity, which is the part that was load-bearing:
+      // absent means NOT modified, so auto-const applies.
       CodeGenState.program = null;
-      CodeGenState.modifiedParameters = new Map([
-        ["localOnly", new Set(["target"])],
-      ]);
 
       expect(
         CodeGenState.isParameterModifiedAnywhere("localOnly", "target"),
-      ).toBe(true);
-      expect(
-        CodeGenState.isParameterModifiedAnywhere("localOnly", "other"),
-      ).toBe(false);
-      expect(
-        CodeGenState.isParameterModifiedAnywhere("unknownFn", "target"),
       ).toBe(false);
     });
   });

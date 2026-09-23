@@ -23,7 +23,6 @@
 
 import SymbolTable from "./SymbolTable";
 import type IProgram from "../types/IProgram";
-import type ICallGraphEntry from "../types/ICallGraphEntry";
 import type TIncludeHeader from "../types/TIncludeHeader";
 import TYPE_FORMING_KINDS from "../../PARSE/3-Declare/TYPE_FORMING_KINDS";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
@@ -305,16 +304,7 @@ export default class CodeGenState {
   // PASS-BY-VALUE ANALYSIS (Issue #269)
   // ===========================================================================
 
-  /** Tracks which parameters are modified (directly or transitively) */
-  static modifiedParameters: Map<string, Set<string>> = new Map();
-
   /** Parameters that should pass by value (small, unmodified primitives) */
-
-  /** Function call relationships for transitive modification analysis */
-  static functionCallGraph: Map<string, ICallGraphEntry[]> = new Map();
-
-  /** Function parameter lists for call graph analysis */
-  static functionParamLists: Map<string, string[]> = new Map();
 
   // ===========================================================================
   // OVERFLOW & DIVISION HELPERS (ADR-044, ADR-051)
@@ -650,9 +640,6 @@ export default class CodeGenState {
     // persist into code generation. It is cleared at the start of each Transpiler run.
 
     // Pass-by-value analysis
-    this.modifiedParameters = new Map();
-    this.functionCallGraph = new Map();
-    this.functionParamLists = new Map();
 
     // Overflow & division helpers
     this.usedClampOps = new Set();
@@ -1319,7 +1306,15 @@ export default class CodeGenState {
    * Check if a parameter in a function is modified.
    */
   static isParameterModified(funcName: string, paramName: string): boolean {
-    return this.modifiedParameters.get(funcName)?.has(paramName) ?? false;
+    // #1452: reads the artifact. This used to read a per-file accumulator on
+    // this class -- the one `isParameterModifiedAnywhere` below documents as
+    // the bug in #1529 and #1552, EMPTY while declarations are still walked and
+    // absent entirely for a function reached through an include. The
+    // accumulator is gone, so the two methods now answer from one place and the
+    // sibling's fallback is no longer a second source.
+    return (
+      this.program?.modifiedParameters().get(funcName)?.has(paramName) ?? false
+    );
   }
 
   /**
@@ -1356,22 +1351,18 @@ export default class CodeGenState {
     funcName: string,
     paramName: string,
   ): boolean {
-    const programWide = this.program?.modifiedParameters().get(funcName);
-    if (programWide) {
-      return programWide.has(paramName);
-    }
     return this.isParameterModified(funcName, paramName);
   }
 
   /**
    * Compute unmodified parameters for all functions on-demand.
    * Returns a map of function name -> Set of parameter names NOT modified.
-   * Computed from functionSignatures and modifiedParameters (no cached state).
+   * Computed from `functionSignatures` and the program's modification facts.
    */
   static getUnmodifiedParameters(): Map<string, Set<string>> {
     const result = new Map<string, Set<string>>();
     for (const [funcName, signature] of this.functionSignatures) {
-      const modifiedSet = this.modifiedParameters.get(funcName);
+      const modifiedSet = this.program?.modifiedParameters().get(funcName);
       const unmodified = new Set<string>();
       for (const param of signature.parameters) {
         if (!modifiedSet?.has(param.name)) {

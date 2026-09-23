@@ -1451,7 +1451,10 @@ class CodeGenWalker {
     const funcName = CodeGenState.currentFunctionName;
     if (!funcName) return false;
     return (
-      CodeGenState.modifiedParameters.get(funcName)?.has(paramName) ?? false
+      CodeGenState.program
+        ?.modifiedParameters()
+        .get(funcName)
+        ?.has(paramName) ?? false
     );
   }
 
@@ -1700,36 +1703,6 @@ class CodeGenWalker {
   private initializeHelperObjects(tree: Parser.ProgramContext): void {
     // Collect function/callback information
     this.collectFunctionsAndCallbacks(tree);
-    CodeGenWalker.seedWholeProgramFacts();
-  }
-
-  /**
-   * Take the parameter facts 1.4 Resolve authored.
-   *
-   * `PassByValueAnalyzer.analyze(tree)` used to stand here. It CLEARED these
-   * three maps and rebuilt them from one file plus whatever cross-file data had
-   * been injected — so the whole-program answer was thrown away once per file
-   * and approximated again. They are copied in now, because generation still
-   * adds to `modifiedParameters` as it walks a body; the copy is a working set,
-   * not a second derivation (#1511).
-   */
-  private static seedWholeProgramFacts(): void {
-    CodeGenState.modifiedParameters.clear();
-    CodeGenState.functionParamLists.clear();
-    CodeGenState.functionCallGraph.clear();
-
-    const program = CodeGenState.program;
-    if (!program) return;
-
-    for (const [funcName, params] of program.modifiedParameters()) {
-      CodeGenState.modifiedParameters.set(funcName, new Set(params));
-    }
-    for (const [funcName, params] of program.functionParamLists()) {
-      CodeGenState.functionParamLists.set(funcName, [...params]);
-    }
-    for (const [funcName, calls] of program.callGraph()) {
-      CodeGenState.functionCallGraph.set(funcName, [...calls]);
-    }
   }
 
   /**
