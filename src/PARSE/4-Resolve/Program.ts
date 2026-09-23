@@ -41,6 +41,7 @@ import type IConflict from "../../transpiler/types/IConflict";
 import type IModificationFacts from "../../transpiler/types/IModificationFacts";
 import type ICallGraphEntry from "../../transpiler/types/ICallGraphEntry";
 import type ICodeGenSymbols from "../../transpiler/types/ICodeGenSymbols";
+import type IDiscoveryFacts from "../../transpiler/types/IDiscoveryFacts";
 import type IVisibilityInput from "../../transpiler/types/IVisibilityInput";
 import TSymbolInfoAdapter from "../3-Declare/cnext/adapters/TSymbolInfoAdapter";
 import TransitiveEnumCollector from "./TransitiveEnumCollector";
@@ -48,6 +49,8 @@ import VisibleSymbols from "./VisibleSymbols";
 
 /** Shared empty result, so a miss does not allocate. */
 const EMPTY_NAMES: ReadonlySet<string> = new Set<string>();
+const EMPTY_REWRITES: ReadonlyMap<string, string> = new Map<string, string>();
+const EMPTY_PATHS: readonly string[] = [];
 
 /**
  * A program with no C or C++ headers behind it.
@@ -72,6 +75,11 @@ const NO_MODIFICATIONS: IModificationFacts = {
 };
 
 /** A program built without include information: nothing composes. */
+const NO_DISCOVERY: IDiscoveryFacts = {
+  cnxIncludeRewrites: new Map(),
+  includeSearchPaths: new Map(),
+};
+
 const NO_VISIBILITY: IVisibilityInput = {
   includeDirs: [],
   cnextIncludesByFile: new Map(),
@@ -93,6 +101,7 @@ class Program {
     modifications: IModificationFacts = NO_MODIFICATIONS,
     visibility: IVisibilityInput = NO_VISIBILITY,
     callbackCompatibleFunctions: ReadonlyMap<string, string> = new Map(),
+    discovery: IDiscoveryFacts = NO_DISCOVERY,
   ): IProgram {
     // Each derivation is its own step, in dependency order: the scope-type
     // index settles the types, settled types yield const values, const values
@@ -168,6 +177,10 @@ class Program {
         passByValueParams,
       callbackCompatibleFunctions: (): ReadonlyMap<string, string> =>
         callbackCompatibleFunctions,
+      cnxIncludeRewrites: (sourceFile: string): ReadonlyMap<string, string> =>
+        discovery.cnxIncludeRewrites.get(sourceFile) ?? EMPTY_REWRITES,
+      includeSearchPaths: (sourceFile: string): readonly string[] =>
+        discovery.includeSearchPaths.get(sourceFile) ?? EMPTY_PATHS,
     });
   }
 

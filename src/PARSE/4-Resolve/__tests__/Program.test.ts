@@ -398,6 +398,7 @@ describe("Program", () => {
       expect(keys).toEqual([
         "callGraph",
         "callbackCompatibleFunctions",
+        "cnxIncludeRewrites",
         "codeGenSymbolsFor",
         "conflicts",
         "constValue",
@@ -405,6 +406,7 @@ describe("Program", () => {
         "constValuesIn",
         "externalStructFields",
         "functionParamLists",
+        "includeSearchPaths",
         "isOpaqueType",
         "isScopeType",
         "knownEnums",

@@ -21,6 +21,7 @@ import HeaderParser from "../PARSE/2-Parse/HeaderParser";
 
 import CodeGenWalker from "../TRANSPILE/CodeGenWalker";
 import CodeGenState from "./state/CodeGenState";
+import invariant from "../utils/invariant";
 import ModificationFacts from "./ModificationFacts";
 import CallbackCompatibility from "./CallbackCompatibility";
 import AutoConstRule from "../utils/AutoConstRule";
@@ -210,6 +211,28 @@ class Transpiler {
    * says what is true: retention is the ORCHESTRATOR's bookkeeping, not
    * something a pass passes on.
    */
+  /**
+   * #1452: 1.1 Discover's include facts, accumulated here and handed to
+   * `Program.build` once. They used to live on `TranspilerState`, where they
+   * were written in Stage 1 and read in Stages 4d and 5 -- state written by one
+   * pass and read by another, which box 4 forbids.
+   *
+   * Written ONLY by the two discovery methods below and read ONLY at the freeze,
+   * so no later pass can reach these; what the later passes read is the frozen
+   * copy on `IProgram`. See `IDiscoveryFacts` for the ordering that makes that
+   * legal.
+   */
+  private readonly discoveredCnxIncludeRewrites = new Map<
+    string,
+    Map<string, string>
+  >();
+
+  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
+  private readonly discoveredIncludeSearchPaths = new Map<
+    string,
+    readonly string[]
+  >();
+
   private readonly retainedParses = new Map<string, IParsedFile>();
 
   /**
@@ -736,6 +759,10 @@ class Transpiler {
           ),
         },
         callbackCompatible,
+        {
+          cnxIncludeRewrites: this.discoveredCnxIncludeRewrites,
+          includeSearchPaths: this.discoveredIncludeSearchPaths,
+        },
       );
       // Passes after 1.4 read cross-file facts from the artifact rather than
       // re-deriving them. Set once per run, not per file.
@@ -929,11 +956,21 @@ class Transpiler {
       // #1322: the ADR-010 include facts are handed in rather than read off
       // CodeGenState, whose `sourcePath` is not written until `generate()` and
       // so holds another file's value here.
+      // #1452: asserted, not defaulted. Stage 3 builds `Program` and returns
+      // false on failure before this runs, so a null here is a broken stage
+      // order -- and `?? []` would answer it with an empty search path, which
+      // is a REAL answer meaning "discovery never saw this file". E0504 would
+      // go blind and nothing would fail. Same reasoning as the conflict check.
+      invariant(
+        this.program,
+        "1.4 Resolve built Program before a later pass read its discovery facts",
+      );
+
       return runAnalyzers(parsed.tree, parsed.comments, {
         cppMode: this.cppMode,
         includes: {
           sourcePath,
-          searchPaths: this.state.getIncludeSearchPaths(sourcePath),
+          searchPaths: this.program.includeSearchPaths(sourcePath),
           fileExists: (candidate: string) => this.fs.exists(candidate),
         },
       });
@@ -1009,7 +1046,18 @@ class Transpiler {
    * as `Program.settleEveryFile`'s deferred-type check.
    */
   private _requireSymbolInfo(sourcePath: string): ICodeGenSymbols {
-    const symbolInfo = this.program?.codeGenSymbolsFor(sourcePath);
+    // #1452: see `_analyzeFile` -- the include rewrites below are asserted
+    // rather than defaulted, for the same reason.
+    invariant(
+      this.program,
+      "1.4 Resolve built Program before a later pass read its discovery facts",
+    );
+    // Bound to a local because TypeScript drops the narrowing of a mutable
+    // class property across any intervening call, and this method makes
+    // several before the two reads below.
+    const program = this.program;
+
+    const symbolInfo = program.codeGenSymbolsFor(sourcePath);
     if (!symbolInfo) {
       throw new Error(
         `Internal error: no visible symbol view for ${sourcePath}; ` +
@@ -1056,6 +1104,19 @@ class Transpiler {
   private _transpileFile(file: IPipelineFile): IFileResult {
     const sourcePath = file.path;
 
+    // #1452: asserted, not defaulted. Stage 3 builds `Program` and returns
+    // false on failure before Stage 5 runs, so a null here is a broken stage
+    // order -- and defaulting the include rewrites to an empty map would be a
+    // REAL answer meaning "this file includes nothing", silently dropping every
+    // #1467 rewrite with no diagnostic. Bound to a local because TypeScript
+    // drops the narrowing of a mutable class property across any intervening
+    // call, and this method makes several before the reads below.
+    invariant(
+      this.program,
+      "1.4 Resolve built Program before Stage 5 read its discovery facts",
+    );
+    const program = this.program;
+
     // #1241: attribute ADR provenance from here, not from codegen. A rule firing
     // during header capture below would otherwise be credited to whichever file
     // was begun last -- or dropped on the first, which reads identically to
@@ -1089,7 +1150,7 @@ class Transpiler {
         cppMode: this.cppMode,
         symbolInfo,
         sourceRelativePath,
-        cnxIncludeRewrites: this.state.getCnxIncludeRewrites(sourcePath),
+        cnxIncludeRewrites: program.cnxIncludeRewrites(sourcePath),
         // #1515: decided here, from the rule's owner. 1.3 Declare used to
         // answer this, which put an emission decision in the parse layer.
         hasPublicInterface: PublicInterface.existsIn(
@@ -1101,7 +1162,7 @@ class Transpiler {
       const userIncludes = IncludeExtractor.collectUserIncludes(
         tree,
         this.outputExtensions.header,
-        this.state.getCnxIncludeRewrites(sourcePath),
+        program.cnxIncludeRewrites(sourcePath),
       );
       // Issue #424: kept separate — added to the header only when it names a
       // macro that one of these supplies (see _headerNeedsMacroIncludes).
@@ -1205,6 +1266,26 @@ class Transpiler {
     return headers;
   }
 
+  /**
+   * Issue #1467: record where each `.cnx` include of `sourcePath` resolves to.
+   * MERGED rather than replaced -- a file reached through more than one
+   * discovery pass contributes the same answers, and dropping the earlier map
+   * would lose the includes of whichever pass ran first.
+   */
+  private _recordCnxIncludeRewrites(
+    sourcePath: string,
+    rewrites: ReadonlyMap<string, string>,
+  ): void {
+    const existing = this.discoveredCnxIncludeRewrites.get(sourcePath);
+    if (!existing) {
+      this.discoveredCnxIncludeRewrites.set(sourcePath, new Map(rewrites));
+      return;
+    }
+    for (const [spec, headerPath] of rewrites) {
+      existing.set(spec, headerPath);
+    }
+  }
+
   private _discoverFromSource(
     source: string,
     workingDir: string,
@@ -1230,9 +1311,9 @@ class Transpiler {
     const resolved = resolver.resolve(source, sourcePath);
     this.warnings.push(...resolved.warnings);
     // Issue #1467: one resolution, read later by both the .c and the .h
-    this.state.setCnxIncludeRewrites(sourcePath, resolved.cnextIncludeRewrites);
+    this._recordCnxIncludeRewrites(sourcePath, resolved.cnextIncludeRewrites);
     // Issue #1322: the same list ADR-010's E0504 asks about in pass 2.1
-    this.state.setIncludeSearchPaths(sourcePath, searchPaths);
+    this.discoveredIncludeSearchPaths.set(sourcePath, [...searchPaths]);
 
     // Resolve C/C++ headers transitively
     const allHeaders = this._resolveHeadersTransitively(resolved.headers, [
@@ -1967,12 +2048,9 @@ class Transpiler {
     );
     const resolved = resolver.resolve(content, cnxFile.path);
     // Issue #1467: one resolution, read later by both the .c and the .h
-    this.state.setCnxIncludeRewrites(
-      cnxFile.path,
-      resolved.cnextIncludeRewrites,
-    );
+    this._recordCnxIncludeRewrites(cnxFile.path, resolved.cnextIncludeRewrites);
     // Issue #1322: the same list ADR-010's E0504 asks about in pass 2.1
-    this.state.setIncludeSearchPaths(cnxFile.path, searchPaths);
+    this.discoveredIncludeSearchPaths.set(cnxFile.path, [...searchPaths]);
 
     if (resolved.hasForeignInclude) {
       directForeignHeaderFiles.add(cnxPath);

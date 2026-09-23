@@ -16,8 +16,9 @@ interface IIncludeContext {
 
   /**
    * Directories an angle include is searched along, in priority order, as
-   * DISCOVERY built them. Never re-derived: see
-   * `TranspilerState.getIncludeSearchPaths` for what re-deriving cost.
+   * DISCOVERY built them. Never re-derived: see `IDiscoveryFacts` for what
+   * re-deriving cost, and for why the list is frozen onto the program artifact
+   * rather than read from a mutable accumulator (#1452).
    */
   readonly searchPaths: readonly string[];
 

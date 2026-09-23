@@ -175,6 +175,21 @@ interface IProgram {
    * signatures on a partial answer (#1511).
    */
   callbackCompatibleFunctions(): ReadonlyMap<string, string>;
+
+  /**
+   * Issue #1467: where each `.cnx` include of `sourceFile` resolves to. Empty
+   * when the file was never reached through discovery -- a real answer, not a
+   * default.
+   */
+  cnxIncludeRewrites(sourceFile: string): ReadonlyMap<string, string>;
+
+  /**
+   * Issue #1322: the directories an angle include from `sourceFile` is searched
+   * along, in discovery's priority order. Empty when the file was never
+   * discovered, which is also a real answer: a rule that guessed a search path
+   * would report against directories the run does not use.
+   */
+  includeSearchPaths(sourceFile: string): readonly string[];
 }
 
 export default IProgram;

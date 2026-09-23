@@ -38,30 +38,6 @@ class TranspilerState {
   /** Issue #424: Store user includes per file for header generation */
   private readonly userIncludes = new Map<string, string[]>();
 
-  /**
-   * Issue #1467: per source file, the author's `.cnx` include spelling mapped
-   * to the path its generated header is reachable at. Resolved ONCE during
-   * discovery by IncludeResolver, because that is the only point where a
-   * spelling and its resolved file are both in hand, and read later by both
-   * the `.c` and the `.h` path so neither re-derives it.
-   */
-  private readonly cnxIncludeRewrites = new Map<string, Map<string, string>>();
-
-  /**
-   * Issue #1322: per source file, the directories an angle include is searched
-   * along, in priority order, exactly as DISCOVERY built them.
-   *
-   * Recorded here because it cannot be re-derived. Discovery builds the list
-   * from the file's directory PLUS `--include` directories PLUS the config's,
-   * and codegen was re-deriving a narrower one from the file's directory alone
-   * -- so ADR-010's `.cnx`-alternative rule (E0504) was blind to any header
-   * reachable only through `--include`. Measured: with `ext.h` and `ext.cnx`
-   * side by side in an `--include` directory, `#include <ext.h>` transpiled at
-   * exit 0 with no diagnostic, while the same two files in the source's own
-   * directory reported E0504. One derivation, recorded once, read by the rule.
-   */
-  private readonly includeSearchPaths = new Map<string, readonly string[]>();
-
   // === Group 3: Cross-file Type Info ===
 
   /**
@@ -85,8 +61,6 @@ class TranspilerState {
     this.symbolCollectors.clear();
     this.passByValueParams.clear();
     this.userIncludes.clear();
-    this.cnxIncludeRewrites.clear();
-    this.includeSearchPaths.clear();
     this.headerIncludeDirectives.clear();
     this.processedHeaders.clear();
   }
@@ -149,51 +123,6 @@ class TranspilerState {
    */
   getUserIncludes(filePath: string): string[] {
     return this.userIncludes.get(filePath) ?? [];
-  }
-
-  // === Resolved Include Paths (Issue #1467) ===
-
-  /**
-   * Issue #1467: record where each `.cnx` include of `filePath` resolves to.
-   * Merged rather than replaced -- a file reached through more than one
-   * discovery pass contributes the same answers, and dropping the earlier map
-   * would lose the includes of whichever pass ran first.
-   */
-  setCnxIncludeRewrites(filePath: string, rewrites: Map<string, string>): void {
-    const existing = this.cnxIncludeRewrites.get(filePath);
-    if (!existing) {
-      this.cnxIncludeRewrites.set(filePath, new Map(rewrites));
-      return;
-    }
-    for (const [spec, headerPath] of rewrites) {
-      existing.set(spec, headerPath);
-    }
-  }
-
-  /**
-   * Issue #1467: the resolved include paths for `filePath`, empty when the file
-   * was never discovered through IncludeResolver.
-   */
-  getCnxIncludeRewrites(filePath: string): ReadonlyMap<string, string> {
-    return this.cnxIncludeRewrites.get(filePath) ?? new Map<string, string>();
-  }
-
-  /**
-   * Issue #1322: record the angle-include search path for `filePath`, as
-   * discovery built it. Written once per file, at the point the list exists.
-   */
-  setIncludeSearchPaths(filePath: string, paths: readonly string[]): void {
-    this.includeSearchPaths.set(filePath, [...paths]);
-  }
-
-  /**
-   * Issue #1322: where an angle include from `filePath` is searched. Empty when
-   * the file was never discovered -- which is a real answer, not a default: a
-   * file discovery never saw has no search path, and a rule that guessed one
-   * would report against directories the run does not use.
-   */
-  getIncludeSearchPaths(filePath: string): readonly string[] {
-    return this.includeSearchPaths.get(filePath) ?? [];
   }
 
   // === Header Include Directives (Group 3) ===
