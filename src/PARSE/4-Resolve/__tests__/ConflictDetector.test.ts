@@ -9,7 +9,7 @@
  * name, so push order and grouped order produce the same report -- the move is
  * order-preserving rather than merely order-compatible.
  */
-import SymbolRegistry from "../../../transpiler/state/SymbolRegistry";
+import SymbolRegistry from "../../3-Declare/SymbolRegistry";
 import { describe, it, expect, beforeEach } from "vitest";
 import ConflictDetector from "../ConflictDetector";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";

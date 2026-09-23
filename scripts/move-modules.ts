@@ -309,7 +309,14 @@ const MOVES: readonly IMove[] = [
       "nothing from `output/` or `TRANSPILE/`, so `state-cannot-import-output` " +
       "was already satisfied, and 1.3 Declare already imports `state/`, so the " +
       "edge that blocked 4-Resolve does not arise. Changed with maintainer " +
-      "approval, since a decided destination is not a call to make in passing.",
+      "approval, since a decided destination is not a call to make in passing." +
+      "\n\nSUPERSEDED by the `3-Declare/` entry at the end of this list " +
+      "(#1452 box 1). The move above happened and is kept as the record of it; " +
+      "`state/` is no longer a destination, because the card that owns it is " +
+      "removing the directory. The premise that needed re-examining is the " +
+      'sentence "it computes none: it ACCUMULATES" -- every write to the ' +
+      "table is ONE file's declarations, and the accumulation across files is " +
+      "`Transpiler`'s loop rather than the table's doing.",
   },
   {
     from: "src/transpiler/logic/symbols/__tests__/SymbolTable.test.ts",
@@ -627,6 +634,56 @@ const MOVES: readonly IMove[] = [
       "`IContextBuilderDeps` -- the interface that already carries seven " +
       "render thunks for exactly this reason, because the builder has always " +
       "needed render capabilities it must not import.",
+  },
+  // --- 1.3 Declare: what does this file declare? (#1452 box 1) ------------
+  {
+    from: "src/transpiler/state/SymbolRegistry.ts",
+    to: "src/PARSE/3-Declare/SymbolRegistry.ts",
+    because:
+      "#1452 box 1. The scope graph, and 1.3 Declare authors it: after the " +
+      "scope-creation fix, every `getOrCreateScope` caller is under " +
+      "`3-Declare/` and the guard in `passes-hold-no-mutable-state.test.ts` " +
+      "keeps it that way. It is an instance rather than a static class since " +
+      "box 3, so this is a relocation and not a dissolution -- there is no " +
+      "mutable static to carry into a pass root. It imports only `utils/` and " +
+      "`transpiler/types/`, so no rule constrains it from its own side.",
+  },
+  {
+    from: "src/transpiler/state/SymbolTable.ts",
+    to: "src/PARSE/3-Declare/SymbolTable.ts",
+    because:
+      "#1452 box 1, and this REVERSES the destination #1511 recorded, which " +
+      "is why the reasoning is spelled out.\n\n" +
+      "#1511 sent it to `state/` on the grounds that it is a mutable " +
+      "accumulator filled during Stage 2 and read by every later pass, which " +
+      "is what `state/` holds. That is a property of how it is USED, and the " +
+      "admission test at the top of this file asks a different question: what " +
+      "does the module COMPUTE, and with how many files open? Every write to " +
+      "the table is one file's declarations -- four collectors under " +
+      "`3-Declare/` plus the orchestrator that drives them per file -- so " +
+      "each thing it computes is computable with one parse tree open. The " +
+      "accumulation across files is `Transpiler`'s doing, not the table's.\n\n" +
+      "#1511 also recorded `4-Resolve/` as unreachable, and that part stands: " +
+      "`nothing-after-resolve-derives-cross-file-facts` forbids any pass after " +
+      "1.4 from importing it, and 34 modules under `TRANSPILE/` read the " +
+      "table. But that rule names `4-Resolve/` specifically. `3-Declare/` is " +
+      "already imported from `TRANSPILE/`, so the edge that blocked the one " +
+      "destination does not exist for this one.",
+  },
+  {
+    from: "src/transpiler/state/__tests__/SymbolRegistry.test.ts",
+    to: "src/PARSE/3-Declare/__tests__/SymbolRegistry.test.ts",
+    because: "Follows its subject.",
+  },
+  {
+    from: "src/transpiler/state/__tests__/SymbolTable.test.ts",
+    to: "src/PARSE/3-Declare/__tests__/SymbolTable.test.ts",
+    because: "Follows its subject.",
+  },
+  {
+    from: "src/transpiler/state/__tests__/SymbolTableRunIsolation.test.ts",
+    to: "src/PARSE/3-Declare/__tests__/SymbolTableRunIsolation.test.ts",
+    because: "Follows its subject -- #1452 box 5's teardown-absence guard.",
   },
 ];
 

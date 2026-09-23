@@ -18,7 +18,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import MemberChainAnalyzer from "../MemberChainAnalyzer";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";
-import SymbolTable from "../../../../../transpiler/state/SymbolTable";
+import SymbolTable from "../../../../../PARSE/3-Declare/SymbolTable";
 import createMockSymbols from "../../../../../transpiler/__tests__/codeGenSymbolsHelpers";
 import type TPlannedTargetOp from "../../../../../transpiler/types/TPlannedTargetOp";
 

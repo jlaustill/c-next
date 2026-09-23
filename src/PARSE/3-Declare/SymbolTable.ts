@@ -12,19 +12,19 @@ import DeclarationSite from "../../utils/DeclarationSite";
 import OpaqueTypeResolution from "../../utils/OpaqueTypeResolution";
 import { produce, enableMapSet } from "immer";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
-import IConflict from "../types/IConflict";
-import IStructFieldInfo from "../types/symbols/IStructFieldInfo";
-import IStructSymbolState from "../types/symbols/IStructSymbolState";
+import IConflict from "../../transpiler/types/IConflict";
+import IStructFieldInfo from "../../transpiler/types/symbols/IStructFieldInfo";
+import IStructSymbolState from "../../transpiler/types/symbols/IStructSymbolState";
 import TJsonSafe from "../../utils/types/TJsonSafe";
-import TSymbol from "../types/symbols/TSymbol";
-import TCSymbol from "../types/symbols/c/TCSymbol";
-import TCppSymbol from "../types/symbols/cpp/TCppSymbol";
-import TAnySymbol from "../types/symbols/TAnySymbol";
-import IStructSymbol from "../types/symbols/IStructSymbol";
-import IEnumSymbol from "../types/symbols/IEnumSymbol";
-import IFunctionSymbol from "../types/symbols/IFunctionSymbol";
+import TSymbol from "../../transpiler/types/symbols/TSymbol";
+import TCSymbol from "../../transpiler/types/symbols/c/TCSymbol";
+import TCppSymbol from "../../transpiler/types/symbols/cpp/TCppSymbol";
+import TAnySymbol from "../../transpiler/types/symbols/TAnySymbol";
+import IStructSymbol from "../../transpiler/types/symbols/IStructSymbol";
+import IEnumSymbol from "../../transpiler/types/symbols/IEnumSymbol";
+import IFunctionSymbol from "../../transpiler/types/symbols/IFunctionSymbol";
 import TypeResolver from "../../utils/TypeResolver";
-import type ITargetCapabilities from "../types/ITargetCapabilities";
+import type ITargetCapabilities from "../../transpiler/types/ITargetCapabilities";
 
 // Enable immer support for Map and Set (must be called once at module scope)
 enableMapSet();
@@ -310,7 +310,7 @@ class SymbolTable {
     structName: string,
     fields: ReadonlyMap<
       string,
-      import("../types/symbols/c/ICFieldInfo").default
+      import("../../transpiler/types/symbols/c/ICFieldInfo").default
     >,
   ): void {
     for (const [fieldName, fieldInfo] of fields) {

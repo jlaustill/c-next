@@ -22,7 +22,7 @@
  * journey twice.
  */
 import type ICallGraphEntry from "../../../transpiler/types/ICallGraphEntry";
-import type SymbolRegistry from "../../../transpiler/state/SymbolRegistry";
+import type SymbolRegistry from "../../../PARSE/3-Declare/SymbolRegistry";
 
 interface IModificationCollector {
   /** The run's scope graph, for resolving a callee to its declaring scope. */

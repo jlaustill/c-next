@@ -15,7 +15,7 @@ import type {
   DeclarationSpecifierContext,
 } from "../../2-Parse/c/grammar/CParser";
 import type TCSymbol from "../../../transpiler/types/symbols/c/TCSymbol";
-import SymbolTable from "../../../transpiler/state/SymbolTable";
+import SymbolTable from "../SymbolTable";
 import DeclaratorUtils from "./utils/DeclaratorUtils";
 import StructCollector from "./collectors/StructCollector";
 import EnumCollector from "./collectors/EnumCollector";

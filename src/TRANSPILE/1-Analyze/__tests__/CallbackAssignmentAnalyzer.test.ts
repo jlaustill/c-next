@@ -5,7 +5,7 @@ import CallbackAssignmentAnalyzer from "../CallbackAssignmentAnalyzer";
 import CNextResolver from "../../../PARSE/3-Declare/cnext";
 import CodeGenState from "../../../transpiler/state/CodeGenState";
 import Program from "../../../PARSE/4-Resolve/Program";
-import SymbolRegistry from "../../../transpiler/state/SymbolRegistry";
+import SymbolRegistry from "../../../PARSE/3-Declare/SymbolRegistry";
 import TSymbolInfoAdapter from "../../../PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
 
 /**

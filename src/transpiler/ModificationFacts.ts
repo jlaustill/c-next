@@ -14,7 +14,7 @@
 
 import CodeGenState from "./state/CodeGenState";
 import type IModificationCollector from "../TRANSPILE/2-Plan/types/IModificationCollector";
-import SymbolRegistry from "./state/SymbolRegistry";
+import SymbolRegistry from "../PARSE/3-Declare/SymbolRegistry";
 import PassByValueAnalyzer from "../TRANSPILE/2-Plan/PassByValueAnalyzer";
 import type IFileSymbols from "./types/IFileSymbols";
 import type IParsedFile from "./types/IParsedFile";

@@ -22,7 +22,7 @@
  *   eleven of twelve indexes is what let #1177 fire.
  */
 
-import SymbolTable from "./SymbolTable";
+import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import type IProgram from "../types/IProgram";
 import type TIncludeHeader from "../types/TIncludeHeader";
 import TYPE_FORMING_KINDS from "../../PARSE/3-Declare/TYPE_FORMING_KINDS";

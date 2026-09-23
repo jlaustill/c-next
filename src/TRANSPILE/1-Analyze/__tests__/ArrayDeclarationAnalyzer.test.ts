@@ -4,7 +4,7 @@ import CNextResolver from "../../../PARSE/3-Declare/cnext";
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import CodeGenState from "../../../transpiler/state/CodeGenState";
 import Program from "../../../PARSE/4-Resolve/Program";
-import SymbolRegistry from "../../../transpiler/state/SymbolRegistry";
+import SymbolRegistry from "../../../PARSE/3-Declare/SymbolRegistry";
 import ArrayDeclarationAnalyzer from "../ArrayDeclarationAnalyzer";
 
 /**

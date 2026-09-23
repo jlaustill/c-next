@@ -45,7 +45,7 @@ import ParserUtils from "../../utils/ParserUtils";
 import REJECTED_KEYWORDS from "../../transpiler/constants/REJECTED_KEYWORDS";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 import ScopeUtils from "../../utils/ScopeUtils";
-import SymbolTable from "../../transpiler/state/SymbolTable";
+import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import TChainRoot from "./types/TChainRoot";
 
 class UndeclaredValueListener extends CNextListener {

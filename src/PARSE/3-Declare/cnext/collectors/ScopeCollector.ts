@@ -13,7 +13,7 @@ import ScopeUtils from "../../../../utils/ScopeUtils";
 import TSymbol from "../../../../transpiler/types/symbols/TSymbol";
 import TVisibility from "../../../../transpiler/types/TVisibility";
 import IScopeCollectorResult from "../types/IScopeCollectorResult";
-import SymbolRegistry from "../../../../transpiler/state/SymbolRegistry";
+import SymbolRegistry from "../../SymbolRegistry";
 import BitmapCollector from "./BitmapCollector";
 import EnumCollector from "./EnumCollector";
 import StructCollector from "./StructCollector";

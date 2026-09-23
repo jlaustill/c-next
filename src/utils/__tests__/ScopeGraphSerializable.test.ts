@@ -16,7 +16,7 @@
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import ScopeUtils from "../ScopeUtils";
-import SymbolRegistry from "../../transpiler/state/SymbolRegistry";
+import SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
 import FunctionUtils from "../../tests/utils/FunctionUtils";
 import TTypeUtils from "../TTypeUtils";
 import JsonCodec from "../cache/JsonCodec";

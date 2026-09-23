@@ -1,5 +1,5 @@
 import CodeGenState from "../state/CodeGenState";
-import SymbolRegistry from "../state/SymbolRegistry";
+import SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
 import Program from "../../PARSE/4-Resolve/Program";
 
 /**

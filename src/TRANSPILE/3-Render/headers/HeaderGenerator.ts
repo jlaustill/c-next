@@ -6,7 +6,7 @@
  */
 
 import IHeaderSymbol from "./types/IHeaderSymbol";
-import SymbolTable from "../../../transpiler/state/SymbolTable";
+import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
 import HeaderSymbolAdapter from "./adapters/HeaderSymbolAdapter";
 import IHeaderOptions from "../codegen/types/IHeaderOptions";
 import IHeaderTypeInput from "./generators/IHeaderTypeInput";

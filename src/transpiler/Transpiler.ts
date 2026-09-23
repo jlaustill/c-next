@@ -39,10 +39,10 @@ import HeaderGeneratorUtils from "../TRANSPILE/3-Render/headers/HeaderGeneratorU
 import IHeaderEmissionFacts from "../TRANSPILE/3-Render/headers/types/IHeaderEmissionFacts";
 import IHeaderCallbackType from "./types/IHeaderCallbackType";
 import IncludeExtractor from "./logic/IncludeExtractor";
-import SymbolTable from "./state/SymbolTable";
+import SymbolTable from "../PARSE/3-Declare/SymbolTable";
 import ESourceLanguage from "../utils/types/ESourceLanguage";
 import CNextResolver from "../PARSE/3-Declare/cnext/index";
-import SymbolRegistry from "./state/SymbolRegistry";
+import SymbolRegistry from "../PARSE/3-Declare/SymbolRegistry";
 import Program from "../PARSE/4-Resolve/Program";
 import type IProgram from "./types/IProgram";
 import type IFileSymbols from "./types/IFileSymbols";

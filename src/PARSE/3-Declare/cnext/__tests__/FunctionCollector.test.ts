@@ -3,7 +3,7 @@ import parse from "./testHelpers";
 import TestScopeUtils from "./testUtils";
 import FunctionCollector from "../collectors/FunctionCollector";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
-import SymbolRegistry from "../../../../transpiler/state/SymbolRegistry";
+import SymbolRegistry from "../../SymbolRegistry";
 import TypeResolver from "../../../../utils/TypeResolver";
 
 let registry = new SymbolRegistry();

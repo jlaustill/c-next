@@ -40,8 +40,8 @@
  * through `IProgram`'s read surface and only 1.3 holds the registry itself.
  */
 import ScopeUtils from "../../utils/ScopeUtils";
-import type IScopeSymbol from "../types/symbols/IScopeSymbol";
-import type IFunctionSymbol from "../types/symbols/IFunctionSymbol";
+import type IScopeSymbol from "../../transpiler/types/symbols/IScopeSymbol";
+import type IFunctionSymbol from "../../transpiler/types/symbols/IFunctionSymbol";
 
 class SymbolRegistry {
   /** The global scope for this run. */

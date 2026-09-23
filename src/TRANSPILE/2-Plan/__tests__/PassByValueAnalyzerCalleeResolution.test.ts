@@ -11,11 +11,11 @@
  */
 
 import type IModificationCollector from "../types/IModificationCollector";
-import SymbolRegistry from "../../../transpiler/state/SymbolRegistry";
+import SymbolRegistry from "../../../PARSE/3-Declare/SymbolRegistry";
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import PassByValueAnalyzer from "../PassByValueAnalyzer";
 import CodeGenState from "../../../transpiler/state/CodeGenState";
-import SymbolTable from "../../../transpiler/state/SymbolTable";
+import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import type TCSymbol from "../../../transpiler/types/symbols/c/TCSymbol";
 import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";

@@ -8,7 +8,7 @@ import { describe, it, expect } from "vitest";
 import HeaderGenerator from "../HeaderGenerator";
 
 import IHeaderSymbol from "../types/IHeaderSymbol";
-import SymbolTable from "../../../../transpiler/state/SymbolTable";
+import SymbolTable from "../../../../PARSE/3-Declare/SymbolTable";
 import IHeaderTypeInput from "../generators/IHeaderTypeInput";
 import TTypeUtils from "../../../../utils/TTypeUtils";
 import type IFunctionSymbol from "../../../../transpiler/types/symbols/IFunctionSymbol";

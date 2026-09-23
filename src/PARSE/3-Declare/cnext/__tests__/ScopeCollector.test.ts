@@ -4,7 +4,7 @@ import parse from "./testHelpers";
 import ScopeCollector from "../collectors/ScopeCollector";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import SymbolGuards from "../../../../transpiler/types/symbols/SymbolGuards";
-import SymbolRegistry from "../../../../transpiler/state/SymbolRegistry";
+import SymbolRegistry from "../../SymbolRegistry";
 import TypeResolver from "../../../../utils/TypeResolver";
 
 let registry = new SymbolRegistry();

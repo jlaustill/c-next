@@ -6,19 +6,19 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import SymbolTable from "../SymbolTable";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
-import TSymbol from "../../types/symbols/TSymbol";
-import IVariableSymbol from "../../types/symbols/IVariableSymbol";
-import IFunctionSymbol from "../../types/symbols/IFunctionSymbol";
-import IStructSymbol from "../../types/symbols/IStructSymbol";
-import IEnumSymbol from "../../types/symbols/IEnumSymbol";
-import ITargetCapabilities from "../../types/ITargetCapabilities";
+import TSymbol from "../../../transpiler/types/symbols/TSymbol";
+import IVariableSymbol from "../../../transpiler/types/symbols/IVariableSymbol";
+import IFunctionSymbol from "../../../transpiler/types/symbols/IFunctionSymbol";
+import IStructSymbol from "../../../transpiler/types/symbols/IStructSymbol";
+import IEnumSymbol from "../../../transpiler/types/symbols/IEnumSymbol";
+import ITargetCapabilities from "../../../transpiler/types/ITargetCapabilities";
 import TTypeUtils from "../../../utils/TTypeUtils";
-import TCSymbol from "../../types/symbols/c/TCSymbol";
-import TCppSymbol from "../../types/symbols/cpp/TCppSymbol";
-import TestSymbolUtils from "../../../PARSE/3-Declare/cnext/__tests__/testSymbolUtils";
-import TVisibility from "../../types/TVisibility";
-import TestSourceSpan from "../../types/__testUtils__/testSourceSpan";
-import TestEnumMembers from "../../types/__testUtils__/testEnumMembers";
+import TCSymbol from "../../../transpiler/types/symbols/c/TCSymbol";
+import TCppSymbol from "../../../transpiler/types/symbols/cpp/TCppSymbol";
+import TestSymbolUtils from "../cnext/__tests__/testSymbolUtils";
+import TVisibility from "../../../transpiler/types/TVisibility";
+import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
+import TestEnumMembers from "../../../transpiler/types/__testUtils__/testEnumMembers";
 
 describe("SymbolTable", () => {
   let symbolTable: SymbolTable;

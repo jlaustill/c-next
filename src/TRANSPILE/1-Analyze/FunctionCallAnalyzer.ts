@@ -10,7 +10,7 @@
 import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import SymbolTable from "../../transpiler/state/SymbolTable";
+import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import IFunctionCallError from "./types/IFunctionCallError";
 import ParserUtils from "../../utils/ParserUtils";
 import CodeGenState from "../../transpiler/state/CodeGenState";
@@ -22,7 +22,7 @@ import StdlibFunctions from "./StdlibFunctions";
 import CalleeNameResolver from "./helpers/CalleeNameResolver";
 import EnclosingScope from "./helpers/EnclosingScope";
 import ScopeUtils from "../../utils/ScopeUtils";
-import SymbolRegistry from "../../transpiler/state/SymbolRegistry";
+import SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
 import IncludeDirective from "./helpers/IncludeDirective";
 
 /**

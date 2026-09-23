@@ -3,7 +3,7 @@ import parse from "./testHelpers";
 import CNextResolver from "../index";
 import DeferredTypes from "../../../4-Resolve/DeferredTypes";
 import SymbolGuards from "../../../../transpiler/types/symbols/SymbolGuards";
-import SymbolRegistry from "../../../../transpiler/state/SymbolRegistry";
+import SymbolRegistry from "../../SymbolRegistry";
 import TypeResolver from "../../../../utils/TypeResolver";
 
 let registry = new SymbolRegistry();

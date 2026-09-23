@@ -3,7 +3,7 @@ import AssignmentExpectedTypeResolver from "../AssignmentExpectedTypeResolver";
 import analyzePostfixOps from "../../../../../utils/PostfixAnalysisUtils";
 import CNextSourceParser from "../../../../../PARSE/2-Parse/CNextSourceParser";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";
-import SymbolTable from "../../../../../transpiler/state/SymbolTable";
+import SymbolTable from "../../../../../PARSE/3-Declare/SymbolTable";
 
 /**
  * Create a mock assignment target context by parsing a minimal assignment statement.

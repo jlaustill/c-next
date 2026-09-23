@@ -9,7 +9,7 @@ import * as Parser from "../../2-Parse/grammar/CNextParser";
 import ScopeUtils from "../../../utils/ScopeUtils";
 import TSymbol from "../../../transpiler/types/symbols/TSymbol";
 import IFileSymbols from "../../../transpiler/types/IFileSymbols";
-import SymbolRegistry from "../../../transpiler/state/SymbolRegistry";
+import SymbolRegistry from "../SymbolRegistry";
 import LiteralUtils from "../../../utils/LiteralUtils";
 import BitmapCollector from "./collectors/BitmapCollector";
 import EnumCollector from "./collectors/EnumCollector";

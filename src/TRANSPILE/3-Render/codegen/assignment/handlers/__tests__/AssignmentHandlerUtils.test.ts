@@ -4,7 +4,7 @@
 
 import { describe, it, expect } from "vitest";
 import AssignmentHandlerUtils from "../AssignmentHandlerUtils";
-import SymbolRegistry from "../../../../../../transpiler/state/SymbolRegistry";
+import SymbolRegistry from "../../../../../../PARSE/3-Declare/SymbolRegistry";
 import ScopeUtils from "../../../../../../utils/ScopeUtils";
 
 let registry = new SymbolRegistry();

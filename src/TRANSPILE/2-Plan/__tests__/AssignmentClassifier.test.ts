@@ -7,7 +7,7 @@ import AssignmentKind from "../../../transpiler/types/AssignmentKind";
 import AssignmentHandlerRegistry from "../../3-Render/codegen/assignment/index";
 import IAssignmentContext from "../../../transpiler/types/IAssignmentContext";
 import CodeGenState from "../../../transpiler/state/CodeGenState";
-import SymbolTable from "../../../transpiler/state/SymbolTable";
+import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
 import TTypeInfo from "../../../transpiler/types/TTypeInfo";
 import enterScope from "../../../transpiler/__tests__/enterScope";
 

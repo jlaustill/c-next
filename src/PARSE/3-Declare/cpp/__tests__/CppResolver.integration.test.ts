@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import CppResolver from "../index";
-import SymbolTable from "../../../../transpiler/state/SymbolTable";
+import SymbolTable from "../../SymbolTable";
 import TestHelpers from "./testHelpers";
 
 describe("CppResolver", () => {

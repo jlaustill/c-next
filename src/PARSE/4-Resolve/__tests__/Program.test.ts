@@ -3,7 +3,7 @@ import parse from "../../3-Declare/cnext/__tests__/testHelpers";
 import CNextResolver from "../../3-Declare/cnext/index";
 import Program from "../Program";
 import SymbolGuards from "../../../transpiler/types/symbols/SymbolGuards";
-import SymbolRegistry from "../../../transpiler/state/SymbolRegistry";
+import SymbolRegistry from "../../3-Declare/SymbolRegistry";
 import TypeResolver from "../../../utils/TypeResolver";
 import type IFileSymbols from "../../../transpiler/types/IFileSymbols";
 import type TSymbol from "../../../transpiler/types/symbols/TSymbol";

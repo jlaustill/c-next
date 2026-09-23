@@ -150,8 +150,8 @@ const ARTIFACTS: ReadonlyArray<readonly [string, string]> = [
   ["src/transpiler/types/symbols/TSymbol.ts", "TSymbol"],
   ["src/PARSE/4-Resolve/Program.ts", "Program"],
   ["src/PARSE/4-Resolve/VisibleSymbols.ts", "VisibleSymbols"],
-  ["src/transpiler/state/SymbolTable.ts", "SymbolTable"],
-  ["src/transpiler/state/SymbolRegistry.ts", "SymbolRegistry"],
+  ["src/PARSE/3-Declare/SymbolTable.ts", "SymbolTable"],
+  ["src/PARSE/3-Declare/SymbolRegistry.ts", "SymbolRegistry"],
   // The two artifacts whose RUNTIME values retain a tree through closures --
   // included precisely so the return-type check above is exercised on them.
   ["src/transpiler/types/IAssignmentContext.ts", "IAssignmentContext"],

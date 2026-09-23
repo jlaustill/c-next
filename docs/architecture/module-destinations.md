@@ -171,14 +171,54 @@ this".
 
 ## Blocked
 
-| module                                 | destination                                                                                                                                                                                            | blocked on                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `logic/symbols/SymbolTable.ts`         | `src/transpiler/state/SymbolTable.ts`                                                                                                                                                                  | **Destination changed, with maintainer approval.** `awaiting 1.4 Resolve` was unreachable, not merely waiting: `output/` (6 modules) and `TRANSPILE/` (7) import the table, and `nothing-after-resolve-derives-cross-file-facts` forbids either from reaching `4-Resolve/` transitively. No interface answers that — the rule is about the destination. `state/` is where it belongs on its own terms: it is a mutable accumulator filled during Stage 2 and read by every later pass, which is what `state/` holds, and the only rule constraining it (`state-cannot-import-output`) it already satisfied. 1.3 Declare already imports `state/`, so the edge that blocked 4-Resolve does not exist here (#1511) |
-| `cnext/adapters/TSymbolInfoAdapter.ts` | **split, half done** — `convert()` stays in 1.3; `mergeOpaqueTypes` is gone (#1511: the fact is `Program`'s, so there is nothing to merge in); `mergeExternalSymbols` is cross-file and belongs in 1.4 | the remaining half is still only reachable once `ICodeGenSymbols` stops being the per-file view codegen reads — it merges eighteen collections, of which #1511's twelve facts are a part                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| module                                 | destination                                                                                                                                                                                            | blocked on                                                                                                                                                                               |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cnext/adapters/TSymbolInfoAdapter.ts` | **split, half done** — `convert()` stays in 1.3; `mergeOpaqueTypes` is gone (#1511: the fact is `Program`'s, so there is nothing to merge in); `mergeExternalSymbols` is cross-file and belongs in 1.4 | the remaining half is still only reachable once `ICodeGenSymbols` stops being the per-file view codegen reads — it merges eighteen collections, of which #1511's twelve facts are a part |
 
-Those are the measurement behind "the pass split is not finished", and they are
-why `src/transpiler/logic/symbols/` still exists — holding `SymbolTable.ts`
-alone, since #1515 removed the edge that pinned `PublicInterface` there.
+That is the measurement behind "the pass split is not finished".
+`src/transpiler/logic/symbols/` no longer exists: #1511 moved `SymbolTable.ts`
+out of it, and #1452 moved it again — see below.
+
+## 1.3 Declare — the symbol artifacts (#1452 box 1)
+
+`src/transpiler/state/` is being removed, so the two modules it held that are
+not render state needed a destination that is not "state".
+
+| module              | destination                             | why                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `SymbolRegistry.ts` | `src/PARSE/3-Declare/SymbolRegistry.ts` | The scope graph, and 1.3 Declare authors it. Every `getOrCreateScope` caller now sits under `3-Declare/`; two did not, and turned a name-to-path lookup into a scope creation in 2.1 Analyze and 2.2 Plan. `SymbolRegistry.scopePathOf` is that read, and `passes-hold-no-mutable-state.test.ts` keeps creation where it belongs. An instance since #1452 box 3, so this is a relocation with no mutable static to carry into a pass root. |
+| `SymbolTable.ts`    | `src/PARSE/3-Declare/SymbolTable.ts`    | **Reverses the destination #1511 recorded.** See below.                                                                                                                                                                                                                                                                                                                                                                                    |
+
+### Why `SymbolTable` moved again
+
+#1511 placed it in `state/` with maintainer approval, on this reasoning:
+
+> The admission rule places a module in the pass that computes its fact, and
+> this computes none: it ACCUMULATES, filled from C/C++ headers in Stage 2 and
+> read by every later pass. That is what `state/` holds.
+
+The half of that which still stands is the part about `4-Resolve/`: it is
+genuinely unreachable, because `nothing-after-resolve-derives-cross-file-facts`
+forbids any pass after 1.4 from importing it, and **34** modules under
+`TRANSPILE/` read the table. That rule names `4-Resolve/` specifically, and
+`3-Declare/` is already imported from `TRANSPILE/`, so the edge that blocked the
+one destination does not exist for this one. Confirmed rather than assumed:
+`npm run depcruise` reports **0 errors** after the move, with no violation
+naming either module.
+
+The half that does not stand is _"it computes none: it ACCUMULATES"_. That is a
+property of how the table is USED, and the admission test asks what a module
+computes and with how many files open. Every write is one file's declarations —
+four collectors under `3-Declare/`, plus five sites in the orchestrator that
+drives them per file (`_publishResolvedFile`, `_collectExternalDeclarations`,
+`restoreCachedSymbols`, `parsePureCHeader`, `parseCppHeader`). Each is
+computable with one parse tree open. The accumulation across files is
+`Transpiler`'s loop, not the table's doing.
+
+Recording this here because #1511's row was right to demand maintainer approval
+for changing a decided destination, and the owner's direction on #1452 is that
+`src/transpiler/state/` goes away — which retires the destination rather than
+the reasoning behind it.
 
 ## Placed, but with no rows here
 

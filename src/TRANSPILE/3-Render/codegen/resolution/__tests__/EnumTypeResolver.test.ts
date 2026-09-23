@@ -7,7 +7,7 @@ import EnumTypeResolver from "../EnumTypeResolver";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 import ExpressionUnwrapper from "../../../../../utils/ExpressionUnwrapper";
 import ExpressionTypeResolver from "../../../../2-Plan/ExpressionTypeResolver";
-import SymbolTable from "../../../../../transpiler/state/SymbolTable";
+import SymbolTable from "../../../../../PARSE/3-Declare/SymbolTable";
 import createMockSymbols from "../../../../../transpiler/__tests__/codeGenSymbolsHelpers";
 import enterScope from "../../../../../transpiler/__tests__/enterScope";
 

@@ -24,7 +24,7 @@ import type IForeignSymbols from "./IForeignSymbols";
 import type IModificationFacts from "./IModificationFacts";
 import type IStructFieldInfo from "./symbols/IStructFieldInfo";
 import type IVisibilityInput from "./IVisibilityInput";
-import type SymbolRegistry from "../state/SymbolRegistry";
+import type SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
 
 interface IProgramInputs {
   /** Struct fields the C and C++ headers contributed, by type name. */

@@ -5,7 +5,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import SymbolRegistry from "../SymbolRegistry";
 import FunctionUtils from "../../../tests/utils/FunctionUtils";
 import TTypeUtils from "../../../utils/TTypeUtils";
-import TestSourceSpan from "../../types/__testUtils__/testSourceSpan";
+import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
 
 let registry = new SymbolRegistry();
 

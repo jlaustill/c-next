@@ -2,7 +2,7 @@
  * Tests for CodeGenState - centralized code generation state management
  */
 
-import SymbolTable from "../SymbolTable";
+import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
 import type IScopeSymbol from "../../types/symbols/IScopeSymbol";
 import { describe, it, expect, beforeEach } from "vitest";
 import type IProgram from "../../types/IProgram";
@@ -14,7 +14,7 @@ import IVariableSymbol from "../../types/symbols/IVariableSymbol";
 import ICVariableSymbol from "../../types/symbols/c/ICVariableSymbol";
 import TTypeUtils from "../../../utils/TTypeUtils";
 import TestSymbolUtils from "../../../PARSE/3-Declare/cnext/__tests__/testSymbolUtils";
-import SymbolRegistry from "../SymbolRegistry";
+import SymbolRegistry from "../../../PARSE/3-Declare/SymbolRegistry";
 import ScopeUtils from "../../../utils/ScopeUtils";
 import createMockSymbols from "../../__tests__/codeGenSymbolsHelpers";
 import UNRESOLVED_DIMENSION from "../../constants/UNRESOLVED_DIMENSION";

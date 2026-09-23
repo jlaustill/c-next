@@ -10,13 +10,13 @@ import CodeGenWalker from "../CodeGenWalker";
 import CodeGenerator from "../3-Render/codegen/CodeGenerator";
 import CNextSourceParser from "../../PARSE/2-Parse/CNextSourceParser";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import SymbolTable from "../../transpiler/state/SymbolTable";
+import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import CNextResolver from "../../PARSE/3-Declare/cnext/index";
 import TSymbolInfoAdapter from "../../PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
 import ICodeGenSymbols from "../../transpiler/types/ICodeGenSymbols";
 import TParameterInfo from "../../transpiler/types/TParameterInfo";
 import CodeGenState from "../../transpiler/state/CodeGenState";
-import SymbolRegistry from "../../transpiler/state/SymbolRegistry";
+import SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
 import DeferredTypes from "../../PARSE/4-Resolve/DeferredTypes";
 import type TSymbol from "../../transpiler/types/symbols/TSymbol";
 
