@@ -937,32 +937,18 @@ export default class CodeGenState {
     CodeGenState.isScopeType(qualifiedName);
 
   /**
-   * ADR-057: qualify a bare type name against the scope being generated.
-   *
-   * Binds `QualifiedCName.qualifyScopeType()` to this state's current scope and
-   * type sets, so every codegen site asks the question one way. Call this rather
-   * than re-pairing `currentScopePath` with `isScopeType()` at each site.
-   *
-   * Only bare names belong here — `this.T`, `global.T` and `Scope.T` carry an
-   * explicit answer in the syntax and must keep their own branches.
-   */
-  static qualifyScopeType(typeName: string): string {
-    return ScopeUtils.qualifyScopeType(
-      typeName,
-      this.currentScopePath,
-      CodeGenState.scopeTypePredicate,
-    );
-  }
-
-  /**
    * ADR-057: bind this state's type sets to `TypeBinding`'s injected deps.
    *
-   * The sibling of `qualifyScopeType` above, for the sites that resolve a whole
-   * `TypeContext` rather than a bare name. `isScopeType` is a static that reads
-   * `this.symbolTable`, so it cannot be passed unbound -- which is why five
-   * call sites each wrote the same closure, paired with `currentScopePath`,
-   * and why the rule against re-pairing them needed something to call instead
-   * of only saying not to.
+   * THE binding, for the sites that resolve a whole `TypeContext`.
+   * `isScopeType` is a static that reads `this.symbolTable`, so it cannot be
+   * passed unbound -- which is why five call sites each wrote the same closure,
+   * paired with `currentScopePath`, and why the rule against re-pairing them
+   * needed something to call instead of only saying not to.
+   *
+   * It had a bare-name sibling, `qualifyScopeType`, which CLAUDE.md told codegen
+   * to call. Nothing did: the bare-name path resolves in the symbols layer
+   * (`3-Declare/TypeBinding`), and codegen reaches the same decision through
+   * this method. Deleted under #1452 with the rule that named it.
    *
    * `resolveQualifiedType` stays the caller's: it is the one half that really
    * does differ, routing to a generator's C++ namespace resolution or to a

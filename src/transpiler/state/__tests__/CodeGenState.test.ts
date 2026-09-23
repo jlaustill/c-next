@@ -1038,43 +1038,15 @@ describe("CodeGenState", () => {
       expect(CodeGenState.isScopeType("A__B")).toBe(false);
     });
 
-    it("qualifyScopeType qualifies a bare scope-local type name", () => {
-      installMockSymbols({
-        knownEnums: new Set(["A__B"]),
-      });
-      enterScope("A");
-
-      expect(CodeGenState.qualifyScopeType("B")).toBe("A__B");
-    });
-
-    it("qualifyScopeType leaves names the scope does not declare", () => {
-      installMockSymbols({
-        knownEnums: new Set(["A__B"]),
-      });
-      enterScope("A");
-
-      expect(CodeGenState.qualifyScopeType("Other")).toBe("Other");
-    });
-
-    it("qualifyScopeType leaves names alone outside any scope", () => {
-      installMockSymbols({
-        knownEnums: new Set(["A__B"]),
-      });
-      enterScope(null);
-
-      expect(CodeGenState.qualifyScopeType("B")).toBe("B");
-    });
-
-    it("qualifyScopeType does not let a non-type member capture a global type", () => {
-      // Scope A has a function/variable named Config, but no *type* named
-      // Config — so Config must keep resolving to the global struct.
-      installMockSymbols({
-        knownStructs: new Set(["Config"]),
-      });
-      enterScope("A");
-
-      expect(CodeGenState.qualifyScopeType("Config")).toBe("Config");
-    });
+    // #1452: four `qualifyScopeType` cases lived here. The method had no
+    // production caller -- codegen binds the predicate through
+    // `typeBindingDeps` instead -- so it is deleted along with the CLAUDE.md
+    // rule that named it. The SEMANTICS stay covered on the live utility:
+    // `ScopeUtils.test.ts` asserts the chain-qualified lookup, the fall-through
+    // to a bare name when a scope member is not a type, and that a different
+    // scope's type is not reachable bare. What is gone with them is only the
+    // binding to `currentScopePath`, which `scopeTypePredicate`'s own test
+    // below covers.
   });
 
   describe("Local Variable Helpers", () => {
