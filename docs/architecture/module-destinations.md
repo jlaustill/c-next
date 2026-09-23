@@ -189,6 +189,35 @@ not render state needed a destination that is not "state".
 | `SymbolRegistry.ts` | `src/PARSE/3-Declare/SymbolRegistry.ts` | The scope graph, and 1.3 Declare authors it. Every `getOrCreateScope` caller now sits under `3-Declare/`; two did not, and turned a name-to-path lookup into a scope creation in 2.1 Analyze and 2.2 Plan. `SymbolRegistry.scopePathOf` is that read, and `passes-hold-no-mutable-state.test.ts` keeps creation where it belongs. An instance since #1452 box 3, so this is a relocation with no mutable static to carry into a pass root. |
 | `SymbolTable.ts`    | `src/PARSE/3-Declare/SymbolTable.ts`    | **Reverses the destination #1511 recorded.** See below.                                                                                                                                                                                                                                                                                                                                                                                    |
 
+## Instrumentation — facts about the run (#1452)
+
+`docs/architecture/README.md` admits `src/instrumentation/` as a fourth kind of
+root beside the layers, the shared contracts and the host. A module belongs here
+when what it accumulates is an OBSERVATION of the run rather than a fact the run
+computes — nothing downstream branches on it — and it is the one root that may
+hold mutable state.
+
+| module                         | destination                                    | why                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| ------------------------------ | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `state/AdrProvenance.ts`       | `src/instrumentation/AdrProvenance.ts`         | Records where an ADR's rule fired, so matrix occupancy can derive from codegen decisions and not only from diagnostic positions. A plain sink that classifies nothing. It is genuinely cross-pass — 17 `record` sites across 2.1 Analyze and 2.3 Render, read once at the end — so it does **not** satisfy #1452 box 4, and the owner's call on 2026-09-23 was that box 4 governs PROGRAM state, which a fact about the run is not. The exemption is stated, not incidental. |
+| `state/CodeGenState.ts` (part) | `src/instrumentation/ToolchainRequirements.ts` | #1143's requirement accumulator: two maps and four methods, extracted rather than moved whole. It claims **no** part of box 4's exemption, because it is not cross-pass — every write is inside 2.3 Render and every read is in the same `generate()` call for the same file. The module docblock carries that table so the claim is re-measurable.                                                                                                                          |
+
+`instrumentation-cannot-import-a-layer` (`reachable: true`) stops this root
+reaching back into what it reports on. Mutation-checked: an import of a
+1-Analyze module produces twelve violations.
+
+## Deleted rather than re-homed (#1452)
+
+Not every module in `state/` needed a destination. The architecture rule is that
+_a fact lives in the artifact of the pass that authored it_, and for these the
+artifact already existed — so the container was the only thing that had to go.
+
+| module                             | outcome                                                                                                                                                                                                                                                                                                                                                                                                          |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `state/TranspilerState.ts`         | **Deleted.** Its four discovery facts moved onto `IProgram`, the artifact 1.4 Resolve authors, which every later pass may already depend on as a type. Two further fields left first: one dead, and two methods with only test callers.                                                                                                                                                                          |
+| `SymbolTable.clear()`              | **Deleted, not extended** — #1177, and #1452 box 5. A teardown maintained by hand is the duplicate-decision shape this epic removes. It had already drifted: `externalDeclarationNames` was uncleared, it gates `hasExternalDeclaration`, that suppresses a diagnostic, and `ServeCommand` holds a `private static transpiler` — so the drift was reachable in the long-lived process rather than merely latent. |
+| `CodeGenState`'s modification trio | **Deleted.** 2.2 Plan filled three statics, `ModificationFacts.derive` snapshotted them onto `IProgram`, and 2.3 Render then cleared and re-seeded them from that same artifact. The authoritative copy was always `IProgram`'s; the statics were scratch space two passes shared by accident of being global. The collection is now the call's own object (`IModificationCollector`).                           |
+
 ### Why `SymbolTable` moved again
 
 #1511 placed it in `state/` with maintainer approval, on this reasoning:
