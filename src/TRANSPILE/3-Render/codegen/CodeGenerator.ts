@@ -74,6 +74,7 @@ import PassByValueAnalyzer from "../../2-Plan/PassByValueAnalyzer";
 // Extracted resolvers that use CodeGenState
 // Issue #797: Centralized C-style name generation
 import type IRecordedRequirement from "../../../transpiler/types/IRecordedRequirement";
+import ToolchainRequirements from "../../../instrumentation/ToolchainRequirements";
 
 /**
  * Code Generator - Transpiles C-Next to C
@@ -146,7 +147,7 @@ export default class CodeGenerator implements IOrchestrator {
 
         // Toolchain requirement effects (Issue #1143)
         case "requires":
-          CodeGenState.requireToolchain(effect.key, [
+          ToolchainRequirements.record(effect.key, [
             { sourcePath: CodeGenState.sourcePath ?? "", line: effect.line },
           ]);
           break;
@@ -225,9 +226,7 @@ export default class CodeGenerator implements IOrchestrator {
    * recording map.
    */
   getToolchainRequirements(): readonly IRecordedRequirement[] {
-    return Array.from(CodeGenState.recordedRequirements.entries()).map(
-      ([key, sites]) => ({ key, sites: [...sites] }),
-    );
+    return ToolchainRequirements.collect();
   }
 
   /**

@@ -24,6 +24,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import enterScope from "../../__tests__/enterScope";
+import ToolchainRequirements from "../../../instrumentation/ToolchainRequirements";
 
 /** Repo root, for the source-scanning guard in `scopeTypePredicate`. */
 const repoRootForGuard = join(
@@ -316,8 +317,13 @@ describe("CodeGenState", () => {
     });
 
     // #1143: only the two headers with a claiming emitter are recorded as
-    // deferred sites. "isr" is deliberately NOT one -- takeDeferredSites is
-    // called for float_static_assert and irq_wrappers alone.
+    // deferred sites. "isr" is deliberately NOT one --
+    // ToolchainRequirements.takeDeferredSites is called for
+    // float_static_assert and irq_wrappers alone.
+    //
+    // #1452 moved the sink to src/instrumentation/, so the observation is made
+    // there. The subject is still this funnel: requireInclude decides which
+    // headers defer, and that decision is what these four rows pin.
     it.each([
       ["float_static_assert", true],
       ["irq_wrappers", true],
@@ -326,7 +332,9 @@ describe("CodeGenState", () => {
     ] as const)("%s deferred-site recorded: %s", (header, recorded) => {
       CodeGenState.requireInclude(header, 42);
 
-      expect(CodeGenState.takeDeferredSites(header).length > 0).toBe(recorded);
+      expect(ToolchainRequirements.takeDeferredSites(header).length > 0).toBe(
+        recorded,
+      );
     });
   });
 

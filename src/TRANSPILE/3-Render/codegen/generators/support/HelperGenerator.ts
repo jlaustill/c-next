@@ -10,7 +10,7 @@
  */
 import TYPE_MAP from "../../types/TYPE_MAP";
 import OverflowHelperTemplates from "./OverflowHelperTemplates";
-import CodeGenState from "../../../../../transpiler/state/CodeGenState";
+import ToolchainRequirements from "../../../../../instrumentation/ToolchainRequirements";
 
 /**
  * Generate a safe arithmetic helper function (div or mod).
@@ -51,7 +51,7 @@ const generateOverflowHelpers = (
     // Issue #1143: this branch, and only this branch, pulls in a hosted libc.
     // Release-mode clamp helpers are freestanding-safe, so the requirement is
     // recorded here rather than wherever a clamp op happens to be registered.
-    CodeGenState.requireToolchain("overflow-panic-hosted-libc");
+    ToolchainRequirements.record("overflow-panic-hosted-libc");
     lines.push(
       "// ADR-044: Debug overflow helper functions (panic on overflow)",
       "#include <limits.h>",

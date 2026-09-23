@@ -34,9 +34,7 @@ import TTypeInfo from "../types/TTypeInfo";
 import TParameterInfo from "../types/TParameterInfo";
 import IFunctionSignature from "../types/IFunctionSignature";
 import ICallbackTypeInfo from "../types/ICallbackTypeInfo";
-import type IRequirementSite from "../types/IRequirementSite";
-import type TRequirementKey from "../types/TRequirementKey";
-import RequirementSites from "../../utils/RequirementSites";
+import ToolchainRequirements from "../../instrumentation/ToolchainRequirements";
 import ITargetCapabilities from "../types/ITargetCapabilities";
 import IAssignmentOverflowContext from "../types/IAssignmentOverflowContext";
 import TYPE_WIDTH from "../constants/TYPE_WIDTH";
@@ -316,33 +314,6 @@ export default class CodeGenState {
 
   /** Track which safe division helpers are needed: "div_u32", "mod_i16" */
   static usedSafeDivOps: Set<string> = new Set();
-
-  // ===========================================================================
-  // TOOLCHAIN REQUIREMENTS (Issue #1143)
-  // ===========================================================================
-
-  /**
-   * What the generated output for this file actually costs the user, recorded
-   * by each emitter as it produces the text.
-   *
-   * Consumers read this; nothing re-derives it. PR #1141 failed by re-deriving
-   * -- its #error guard keyed on `usedClampOps.size > 0` while the emission it
-   * described keyed on the template family, so 96 snapshots shipped a guard for
-   * a builtin they did not contain.
-   */
-  static recordedRequirements: Map<TRequirementKey, IRequirementSite[]> =
-    new Map();
-
-  /**
-   * Source sites for emissions that are DEFERRED to assembleGeneratedOutput --
-   * clamp helpers, IRQ wrappers, float asserts. Keyed by the request that
-   * triggered the deferral ("add_u32", "irq_wrappers", "float_static_assert").
-   *
-   * Kept separate from recordedRequirements because at request time the code
-   * has not been emitted yet, so there is nothing to record a requirement for.
-   * The emitter claims these sites when it actually produces the block.
-   */
-  static deferredRequirementSites: Map<string, IRequirementSite[]> = new Map();
 
   // ===========================================================================
   // CURRENT CONTEXT (changes during AST traversal)
@@ -647,11 +618,9 @@ export default class CodeGenState {
     this.usedClampOps = new Set();
     this.usedSafeDivOps = new Set();
 
-    // Toolchain requirements (Issue #1143). Both MUST be cleared per file:
-    // leaking them makes a project report attribute one file's CMSIS or C11
-    // cost to every later file.
-    this.recordedRequirements = new Map();
-    this.deferredRequirementSites = new Map();
+    // Issue #1143, #1452: the per-file requirement maps moved to
+    // src/instrumentation/ToolchainRequirements, which owns its own clearing.
+    ToolchainRequirements.reset();
 
     // Current context
     this.currentScopePath = "";
@@ -1859,60 +1828,19 @@ export default class CodeGenState {
   }
 
   /**
-   * Issue #1143: THE recording sink for toolchain requirements.
-   *
-   * Every requirement, from every transport -- generator effects, the include
-   * funnel, and direct calls from static helpers -- lands here. Call it from
-   * the branch that emits the text, never from a caller that infers which
-   * branch ran.
-   */
-  static requireToolchain(
-    key: TRequirementKey,
-    sites: readonly IRequirementSite[] = [],
-  ): void {
-    const existing = this.recordedRequirements.get(key);
-    if (existing === undefined) {
-      this.recordedRequirements.set(key, [...sites]);
-      return;
-    }
-    for (const site of sites) {
-      RequirementSites.addUnique(existing, site);
-    }
-  }
-
-  /**
-   * Issue #1143: Note where a deferred emission was requested, so the emitter
-   * can attribute it once it actually produces the block.
-   */
-  static noteDeferredSite(requestKey: string, line: number | null): void {
-    const site: IRequirementSite = {
-      sourcePath: this.sourcePath ?? "",
-      line,
-    };
-    const existing = this.deferredRequirementSites.get(requestKey);
-    if (existing === undefined) {
-      this.deferredRequirementSites.set(requestKey, [site]);
-      return;
-    }
-    RequirementSites.addUnique(existing, site);
-  }
-
-  /** Issue #1143: Sites recorded for a deferred emission. */
-  static takeDeferredSites(requestKey: string): readonly IRequirementSite[] {
-    return this.deferredRequirementSites.get(requestKey) ?? [];
-  }
-
-  /**
    * THE sink for include and deferred-emission requests.
    *
    * Every transport lands here -- generator effects via
    * `CodeGenerator.applyEffects`, the `requireInclude` callbacks injected into
-   * the static helpers, and direct calls from assignment handlers. It sits
-   * beside `requireToolchain` for the reason that one gives: the question
-   * "does this file need <string.h>?" gets exactly one recorded answer, so
-   * changing how that answer is REPRESENTED is one edit rather than one per
-   * writer.
+   * the static helpers, and direct calls from assignment handlers. One sink for
+   * the same reason `ToolchainRequirements.record` is one: the question "does
+   * this file need <string.h>?" gets exactly one recorded answer, so changing
+   * how that answer is REPRESENTED is one edit rather than one per writer.
    *
+   * #1452 moved the requirement half to `src/instrumentation/`, so the two no
+   * longer sit beside each other. They are still one decision made once -- this
+   * method is the only caller of `noteDeferredSite`, and the deferral keys below
+   * are the only ones it can produce.
    * It was a private method on `CodeGenerator` until #1449, which is why five
    * sites in `StringHandlers` set `needsString` raw instead -- a handler could
    * not reach the funnel, so it wrote the flag. That made the include decision
@@ -1934,12 +1862,17 @@ export default class CodeGenState {
     // recording a requirement for text that may never be emitted is exactly
     // the mistake that made #1141's guard fire on files without the construct.
     // Only the two headers that have a claiming emitter. "isr" was noted here
-    // and never read: takeDeferredSites is called for float_static_assert and
-    // irq_wrappers alone, and the ISR typedef carries no requirement. Keeping
+    // and never read: ToolchainRequirements.takeDeferredSites is called for
+    // float_static_assert and irq_wrappers alone, and the ISR typedef carries
+    // no requirement. Keeping
     // the deferred keys equal to the set that gets claimed is the property the
     // rest of this design leans on.
     if (header === "irq_wrappers" || header === "float_static_assert") {
-      this.noteDeferredSite(header, line);
+      ToolchainRequirements.noteDeferredSite(
+        header,
+        this.sourcePath ?? "",
+        line,
+      );
     }
 
     switch (header) {

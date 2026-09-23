@@ -191,6 +191,7 @@ interface FunctionSignature {
   }>;
 }
 import CodeGenerator from "./3-Render/codegen/CodeGenerator";
+import ToolchainRequirements from "../instrumentation/ToolchainRequirements";
 
 class CodeGenWalker {
   /**
@@ -1717,7 +1718,7 @@ class CodeGenWalker {
     // Issue #1143: every file carries its mode's baseline. Recorded here rather
     // than assumed by consumers, so "what does this file need?" has exactly one
     // answer source even for the trivial case.
-    CodeGenState.requireToolchain(
+    ToolchainRequirements.record(
       CodeGenState.cppMode ? "baseline-cpp" : "baseline-c",
     );
 
@@ -2004,8 +2005,10 @@ class CodeGenWalker {
       existingIncludeTargets,
       clampOps: CodeGenState.usedClampOps,
       safeDivOps: CodeGenState.usedSafeDivOps,
-      floatAssertSites: CodeGenState.takeDeferredSites("float_static_assert"),
-      irqWrapperSites: CodeGenState.takeDeferredSites("irq_wrappers"),
+      floatAssertSites: ToolchainRequirements.takeDeferredSites(
+        "float_static_assert",
+      ),
+      irqWrapperSites: ToolchainRequirements.takeDeferredSites("irq_wrappers"),
     };
   }
 
@@ -2049,7 +2052,7 @@ class CodeGenWalker {
     for (const block of [plan.floatStaticAssert, plan.irqWrappers]) {
       if (block === null) continue;
       for (const key of block.requirements) {
-        CodeGenState.requireToolchain(key, block.sites);
+        ToolchainRequirements.record(key, block.sites);
       }
     }
   }
@@ -3587,7 +3590,7 @@ class CodeGenWalker {
     // The text is identical in both modes, so the mode has to be recorded
     // here; no probe over the output could recover it.
     if (CodeGenState.cppMode) {
-      CodeGenState.requireToolchain("cpp-designated-initializer");
+      ToolchainRequirements.record("cpp-designated-initializer");
     }
     const fieldInits = fields.map((f) => `.${f.fieldName} = ${f.value}`);
 
@@ -3625,7 +3628,7 @@ class CodeGenWalker {
     // Issue #1143: a compound literal is C99, but is not ISO C++ at any
     // version -- GCC and Clang accept it as an extension.
     if (CodeGenState.cppMode) {
-      CodeGenState.requireToolchain("cpp-compound-literal");
+      ToolchainRequirements.record("cpp-compound-literal");
     }
     return `(${castType})${initializer}`;
   }
