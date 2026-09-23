@@ -8,18 +8,25 @@
  * - Parameter type resolution and registration
  * - Return type resolution (including main() special case)
  * - Function body enter/exit coordination
+ *
+ * ## It reads planned parameters, not parse nodes (#1445)
+ *
+ * It asked a `ParameterContext` three questions -- the name, whether it is an
+ * array, what its type is -- and everything after that comes from
+ * `CodeGenState` and the callback typedef. Those three answers arrive as
+ * `IPlannedFunctionParameter` now, and the type's alternatives come already
+ * classified by `TypeBinding`, 1.3 Declare's one ladder, rather than from a
+ * fourth walk here.
  */
 
-import * as Parser from "../../../../transpiler/logic/parser/grammar/CNextParser";
+import DeclaredTypeFacts from "../../../../utils/DeclaredTypeFacts";
 import CodeGenState from "../../../../transpiler/state/CodeGenState";
 import TYPE_WIDTH from "../../../../transpiler/constants/TYPE_WIDTH";
-import ArrayDimensionParser from "../../../../utils/ArrayDimensionParser";
-import dimensionEvalOptions from "./dimensionEvalOptions";
 import IFunctionContextCallbacks from "../types/IFunctionContextCallbacks";
 // Issue #895: Parse typedef signatures to determine pointer vs value params
 import TypedefParamParser from "./TypedefParamParser";
-import UNRESOLVED_DIMENSION from "../../../../transpiler/constants/UNRESOLVED_DIMENSION";
-import TypeBinding from "../../../../PARSE/3-Declare/TypeBinding";
+import type IPlannedFunctionParameter from "../types/IPlannedFunctionParameter";
+import type IPlannedType from "../types/IPlannedType";
 
 /**
  * Result from resolving parameter type information.
@@ -53,12 +60,11 @@ class FunctionContextManager {
     name: string,
     returnType: string,
     isMainWithArgs: boolean,
-    ctx: Parser.FunctionDeclarationContext,
+    firstParameterName: string | undefined,
   ): IReturnTypeAndParams {
     if (isMainWithArgs) {
       // Special case: main(u8 args[][]) -> int main(int argc, char *argv[])
-      const argsParam = ctx.parameterList()!.parameter()[0];
-      CodeGenState.mainArgsName = argsParam.IDENTIFIER().getText();
+      CodeGenState.mainArgsName = firstParameterName ?? null;
       return {
         actualReturnType: "int",
         initialParams: "int argc, char *argv[]",
@@ -74,15 +80,14 @@ class FunctionContextManager {
    * Process parameter list and register parameters in state.
    */
   static processParameterList(
-    params: Parser.ParameterListContext | null,
+    params: readonly IPlannedFunctionParameter[] | null,
     callbacks: IFunctionContextCallbacks,
   ): void {
     CodeGenState.currentParameters.clear();
     if (!params) return;
 
-    const paramList = params.parameter();
-    for (let i = 0; i < paramList.length; i++) {
-      FunctionContextManager.processParameter(paramList[i], callbacks, i);
+    for (let i = 0; i < params.length; i++) {
+      FunctionContextManager.processParameter(params[i], callbacks, i);
     }
   }
 
@@ -90,20 +95,15 @@ class FunctionContextManager {
    * Process a single parameter declaration.
    */
   static processParameter(
-    param: Parser.ParameterContext,
+    param: IPlannedFunctionParameter,
     callbacks: IFunctionContextCallbacks,
     paramIndex: number,
   ): void {
-    const name = param.IDENTIFIER().getText();
-    // Check both C-Next style (u8[8] param) and legacy style (u8 param[8])
-    const isArray =
-      param.arrayDimension().length > 0 || param.type().arrayType() !== null;
-    const isConst = param.constModifier() !== null;
-    const typeCtx = param.type();
+    const { name, isArray, isConst } = param;
 
     // Resolve type information
     const typeInfo = FunctionContextManager.resolveParameterTypeInfo(
-      typeCtx,
+      param.type,
       callbacks,
     );
 
@@ -166,87 +166,61 @@ class FunctionContextManager {
 
     // Register in typeRegistry
     FunctionContextManager.registerParameterType(
-      name,
       typeInfo,
       param,
-      isArray,
-      isConst,
       isTypedefStruct,
     );
   }
 
   /**
-   * Resolve type name and flags from a type context.
+   * Resolve type name and flags from a planned type.
+   *
+   * Strings are special and stay explicit: a top-level `string<32>` parameter
+   * reports the bare "string" (its capacity travels separately through
+   * stringCapacities), while a string ARRAY element keeps "string<32>". That
+   * asymmetry is load-bearing, so it is preserved rather than folded in.
+   *
+   * #1285: one ladder for the NAME, then ONE derivation of its consequences.
+   * Previously each of the six branches decided isStruct/isCallback for
+   * itself, so `isCallback` was hardcoded false in the scoped, qualified and
+   * global branches, and `arrayType().userType()` skipped the ADR-057
+   * qualification that the bare `userType()` branch applied -- `Mode[4] p`
+   * and `Mode p` in the same scope resolved to different names.
+   *
+   * #1445: that ladder is `TypeBinding`'s, asked once by the planner, so this
+   * reads its answer rather than being a fourth caller of it. What is left is
+   * the string asymmetry above, the primitive, and the consequences.
    */
   static resolveParameterTypeInfo(
-    typeCtx: Parser.TypeContext,
+    type: IPlannedType,
     callbacks: IFunctionContextCallbacks,
   ): IParameterTypeInfo {
-    // Strings are special and stay explicit: a top-level `string<32>` parameter
-    // reports the bare "string" (its capacity travels separately through
-    // stringCapacities), while a string ARRAY element keeps "string<32>". That
-    // asymmetry is load-bearing, so it is preserved rather than folded in.
-    const topLevelString = typeCtx.stringType();
-    if (topLevelString) {
+    if (type.isString) {
       return {
-        typeName: "string",
-        isStruct: false,
-        isCallback: false,
-        isString: true,
-      };
-    }
-    const arrayString = typeCtx.arrayType()?.stringType();
-    if (arrayString) {
-      return {
-        typeName: arrayString.getText(),
+        typeName: type.isArray ? (type.stringTypeText ?? "string") : "string",
         isStruct: false,
         isCallback: false,
         isString: true,
       };
     }
 
-    const primitive =
-      typeCtx.primitiveType() ?? typeCtx.arrayType()?.primitiveType();
-    if (primitive) {
+    if (type.primitiveName !== null) {
       return {
-        typeName: primitive.getText(),
+        typeName: type.primitiveName,
         isStruct: false,
         isCallback: false,
         isString: false,
       };
     }
 
-    // #1285: one ladder for the NAME, then ONE derivation of its consequences.
-    // Previously each of the six branches decided isStruct/isCallback for
-    // itself, so `isCallback` was hardcoded false in the scoped, qualified and
-    // global branches, and `arrayType().userType()` skipped the ADR-057
-    // qualification that the bare `userType()` branch applied -- `Mode[4] p`
-    // and `Mode p` in the same scope resolved to different names.
-    const deps = CodeGenState.typeBindingDeps((parts: string[]): string =>
-      callbacks.resolveQualifiedType(parts),
-    );
-    const arrayTypeCtx = typeCtx.arrayType();
-    const typeName =
-      TypeBinding.resolveNamedType(
-        typeCtx,
-        CodeGenState.currentScopePath,
-        deps,
-      ) ??
-      (arrayTypeCtx
-        ? TypeBinding.resolveNamedType(
-            arrayTypeCtx,
-            CodeGenState.currentScopePath,
-            deps,
-          )
-        : null);
-
-    // What is left is `templateType` and `void`. Neither is a symbol name, and
-    // querying knownStructs/callbackTypes with mangled template text
-    // (`FlexCAN_T4<CAN1,RX_SIZE_256,TX_SIZE_16>`) only fails to match by
-    // construction of those lookups rather than by intent.
-    if (typeName === null) {
+    // What is left when no branch named the type is `templateType` and `void`.
+    // Neither is a symbol name, and querying knownStructs/callbackTypes with
+    // mangled template text (`FlexCAN_T4<CAN1,RX_SIZE_256,TX_SIZE_16>`) only
+    // fails to match by construction of those lookups rather than by intent.
+    const typeName = type.named?.name;
+    if (typeName === undefined) {
       return {
-        typeName: typeCtx.getText(),
+        typeName: type.text,
         isStruct: false,
         isCallback: false,
         isString: false,
@@ -265,47 +239,37 @@ class FunctionContextManager {
    * Register a parameter in the type registry.
    */
   static registerParameterType(
-    name: string,
     typeInfo: IParameterTypeInfo,
-    param: Parser.ParameterContext,
-    isArray: boolean,
-    isConst: boolean,
+    param: IPlannedFunctionParameter,
     isTypedefStruct = false,
   ): void {
     const { typeName, isString } = typeInfo;
-    const typeCtx = param.type();
+    const { name, isArray, isConst } = param;
 
-    const isEnum = CodeGenState.symbols!.knownEnums.has(typeName);
-    const isBitmap = CodeGenState.symbols!.knownBitmaps.has(typeName);
-
-    // Extract array dimensions
-    const arrayDimensions = FunctionContextManager.extractParamArrayDimensions(
-      param,
-      typeCtx,
-      isArray,
+    const declared = DeclaredTypeFacts.of(
+      typeName,
+      CodeGenState.symbols,
+      TYPE_WIDTH[typeName] || 0,
     );
 
-    // Add string capacity dimension if applicable
-    const stringCapacity = FunctionContextManager.getStringCapacity(
-      typeCtx,
-      isString,
-    );
+    const arrayDimensions = [...param.arrayDimensions];
+
+    // The null terminator is decided HERE, not by the planner: a capacity is a
+    // language fact where a dimension is a C one. The planner sets
+    // `stringCapacity` only for a string type, so the `isString` the old form
+    // also tested is implied -- it is re-asked from `typeInfo` anyway, because
+    // that is the `isString` the registered entry records.
+    const stringCapacity = isString ? param.stringCapacity : undefined;
     if (isArray && stringCapacity !== undefined) {
       arrayDimensions.push(stringCapacity + 1);
     }
 
     const registeredType = {
       baseType: typeName,
-      bitWidth: isBitmap
-        ? CodeGenState.symbols!.bitmapBitWidth.get(typeName) || 0
-        : TYPE_WIDTH[typeName] || 0,
       isArray,
       arrayDimensions: arrayDimensions.length > 0 ? arrayDimensions : undefined,
       isConst,
-      isEnum,
-      enumTypeName: isEnum ? typeName : undefined,
-      isBitmap,
-      bitmapTypeName: isBitmap ? typeName : undefined,
+      ...declared,
       isString,
       stringCapacity,
       isParameter: true,
@@ -313,49 +277,6 @@ class FunctionContextManager {
       ...(isTypedefStruct && { isPointer: true }),
     };
     CodeGenState.setVariableTypeInfo(name, registeredType);
-  }
-
-  /**
-   * Extract array dimensions from parameter (C-style or C-Next style).
-   */
-  static extractParamArrayDimensions(
-    param: Parser.ParameterContext,
-    typeCtx: Parser.TypeContext,
-    isArray: boolean,
-  ): number[] {
-    if (!isArray) return [];
-
-    // Try C-style first (param.arrayDimension())
-    if (param.arrayDimension().length > 0) {
-      return ArrayDimensionParser.parseDimensions(
-        param.arrayDimension(),
-        dimensionEvalOptions(),
-      );
-    }
-
-    // C-Next style: get dimensions from arrayType
-    const arrayTypeCtx = typeCtx.arrayType();
-    if (!arrayTypeCtx) return [];
-
-    const dimensions: number[] = [];
-    for (const dim of arrayTypeCtx.arrayTypeDimension()) {
-      const expr = dim.expression();
-      if (!expr) continue;
-      // Issue #1159: fold through the shared evaluator, and keep the slot when
-      // the size does not fold so dimension i still matches subscript i.
-      //
-      // parseIntegerLiteral alone folds literals only, so a const-sized
-      // parameter recorded UNRESOLVED_DIMENSION and lost ADR-036 bounds
-      // checking while ParameterInputAdapter folded the same const for the
-      // signature -- `void fill(u8[SIZE] buf)` emitted `uint8_t buf[6]` and
-      // still accepted `buf[9]`.
-      const size = ArrayDimensionParser.parseSingleDimension(
-        expr,
-        dimensionEvalOptions(),
-      );
-      dimensions.push(size ?? UNRESOLVED_DIMENSION);
-    }
-    return dimensions;
   }
 
   /**
@@ -412,34 +333,6 @@ class FunctionContextManager {
       isParamPointer,
       isParamConst: isParamConst ?? false,
     };
-  }
-
-  /**
-   * Extract string capacity from a string type context.
-   */
-  static getStringCapacity(
-    typeCtx: Parser.TypeContext,
-    isString: boolean,
-  ): number | undefined {
-    if (!isString) return undefined;
-
-    // Check direct stringType (e.g., string<32> param)
-    if (typeCtx.stringType()) {
-      const intLiteral = typeCtx.stringType()!.INTEGER_LITERAL();
-      if (intLiteral) {
-        return Number.parseInt(intLiteral.getText(), 10);
-      }
-    }
-
-    // Check arrayType with stringType (e.g., string<32>[5] param)
-    if (typeCtx.arrayType()?.stringType()) {
-      const intLiteral = typeCtx.arrayType()!.stringType()!.INTEGER_LITERAL();
-      if (intLiteral) {
-        return Number.parseInt(intLiteral.getText(), 10);
-      }
-    }
-
-    return undefined;
   }
 
   /**

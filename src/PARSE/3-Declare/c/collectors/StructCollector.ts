@@ -4,7 +4,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import type { StructOrUnionSpecifierContext } from "../../../../transpiler/logic/parser/c/grammar/CParser";
+import type { StructOrUnionSpecifierContext } from "../../../2-Parse/c/grammar/CParser";
 import type ICStructSymbol from "../../../../transpiler/types/symbols/c/ICStructSymbol";
 import type ICFieldInfo from "../../../../transpiler/types/symbols/c/ICFieldInfo";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";

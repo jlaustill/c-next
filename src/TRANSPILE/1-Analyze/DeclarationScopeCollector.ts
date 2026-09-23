@@ -16,8 +16,8 @@
  */
 
 import { ParserRuleContext } from "antlr4ng";
-import { CNextListener } from "../../transpiler/logic/parser/grammar/CNextListener";
-import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
+import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
+import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import IScopeFrame from "./types/IScopeFrame";
 import IDeclaredVar from "./types/IDeclaredVar";
 import EnclosingScope from "./helpers/EnclosingScope";
@@ -71,10 +71,14 @@ class DeclarationScopeCollector extends CNextListener {
   /**
    * #1322: dimensions come from the TYPE, not from trailing brackets after the
    * name. C-Next declares an array as `u32[10] buffer`; the C-style
-   * `u32 buffer[10]` is rejected outright by
-   * `VariableDeclHelper.validateArrayDeclarationSyntax`, so a declaration that
-   * reaches here with trailing dimensions is one the transpiler will refuse
-   * anyway. Reading `arrayType()` is therefore reading the only spelling that
+   * `u32 buffer[10]` is rejected outright as E0874 by
+   * `ArrayDeclarationAnalyzer` (ADR-036), so a declaration that reaches here
+   * with trailing dimensions is one the transpiler will refuse anyway.
+   *
+   * #1445: this named `VariableDeclHelper.validateArrayDeclarationSyntax`,
+   * which has not existed since the rejection moved to 2.1 -- a reader who
+   * grepped for it found nothing and had no way to tell whether the rule had
+   * moved or been dropped. Reading `arrayType()` is therefore reading the only spelling that
    * can be valid, not the commoner of two.
    */
   private static dimensionsOf(

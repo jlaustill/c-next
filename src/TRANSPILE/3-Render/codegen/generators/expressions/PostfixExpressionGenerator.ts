@@ -11,8 +11,9 @@
  * This generator was extracted from CodeGenerator._generatePostfixExpr
  * to reduce the size and complexity of CodeGenerator.ts.
  */
-import * as Parser from "../../../../../transpiler/logic/parser/grammar/CNextParser";
 import IGeneratorOutput from "../IGeneratorOutput";
+import IPlannedPostfix from "../../types/IPlannedPostfix";
+import TPlannedPostfixOp from "../../types/TPlannedPostfixOp";
 import TGeneratorEffect from "../TGeneratorEffect";
 import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
@@ -33,7 +34,7 @@ import TTypeInfo from "../../../../../transpiler/types/TTypeInfo";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
 import invariant from "../../../../../utils/invariant";
-import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
+import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator";
 
 // ========================================================================
 // Tracking State
@@ -151,67 +152,6 @@ interface IPostfixContext {
   effects: TGeneratorEffect[];
 }
 
-/**
- * The variable a leading subscript chain applies to, plus where in the postfix
- * op list its subscripts begin.
- */
-interface ISubscriptBase {
-  /** Resolved variable name for type lookup (e.g. `flags`, `Sensor_flags`). */
-  name: string;
-  /**
-   * How the developer spelled it (e.g. `this.flags`). Diagnostics quote this
-   * rather than the resolved name, so the suggested fix is the text they
-   * actually wrote. (`Sensor_flags` does resolve as a bare name, but nobody
-   * writes it — echoing it back would read as a different variable.)
-   */
-  displayName: string;
-  /** Index of the first op that is a subscript on that variable. */
-  opOffset: number;
-}
-
-/**
- * Resolve the variable that a leading subscript chain indexes (Issue #1106).
- *
- * ADR-016 lets the same variable be reached three ways, and `postfixExpression`
- * parses each differently:
- *
- * - `flags[4][3]`        — primary is the IDENTIFIER; subscripts start at op 0
- * - `this.flags[4][3]`   — primary is `this`; `.flags` is op 0, subscripts at 1
- * - `global.flags[4][3]` — primary is `global`; likewise
- *
- * Returning the resolved name and offset for all three keeps depth validation
- * from having a hole that the bare-identifier form does not.
- */
-const resolveSubscriptBase = (
-  ctx: Parser.PostfixExpressionContext,
-  rootIdentifier: string | undefined,
-  ops: Parser.PostfixOpContext[],
-): ISubscriptBase | undefined => {
-  if (rootIdentifier) {
-    return { name: rootIdentifier, displayName: rootIdentifier, opOffset: 0 };
-  }
-
-  const prefix = ctx.primaryExpression().getText();
-  if (prefix !== "this" && prefix !== "global") {
-    return undefined;
-  }
-
-  const memberName = ops[0]?.IDENTIFIER()?.getText();
-  if (!memberName) {
-    return undefined;
-  }
-
-  // `this.x` is the scope-qualified variable `Scope_x`; `global.x` is plain `x`.
-  const name =
-    prefix === "this"
-      ? QualifiedNameGenerator.forMember(
-          CodeGenState.currentScopePath,
-          memberName,
-        )
-      : memberName;
-  return { name, displayName: `${prefix}.${memberName}`, opOffset: 1 };
-};
-
 // ========================================================================
 // Main Entry Point
 // ========================================================================
@@ -229,18 +169,17 @@ const resolveSubscriptBase = (
  * @returns Generated code and effects
  */
 const generatePostfixExpression = (
-  ctx: Parser.PostfixExpressionContext,
+  plan: IPlannedPostfix,
   input: IGeneratorInput,
   state: IGeneratorState,
   orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
 
-  const primary = ctx.primaryExpression();
-  const ops = ctx.postfixOp();
+  const ops = plan.ops;
 
   // Check if this is a struct parameter - we may need to handle -> access
-  const rootIdentifier = primary.IDENTIFIER()?.getText();
+  const rootIdentifier = plan.rootIdentifier;
   const paramInfo = rootIdentifier
     ? state.currentParameters.get(rootIdentifier)
     : null;
@@ -255,7 +194,7 @@ const generatePostfixExpression = (
   // dereferences a scalar parameter that became a pointer because it's
   // modified elsewhere in the function, so bit access (`v[4]`) reads
   // through the pointer instead of pointer-indexing past it.
-  const result: string = orchestrator.generatePrimaryExpr(primary);
+  const result: string = plan.renderPrimary();
 
   const primaryTypeInfo = rootIdentifier
     ? CodeGenState.getVariableTypeInfo(rootIdentifier)
@@ -269,15 +208,11 @@ const generatePostfixExpression = (
   // `primaryExpression postfixOp*` the prefix keyword is the primary and the
   // member access is ops[0] — so the base name and the subscript start offset
   // are resolved first, then the shared validator does the counting.
-  const subscriptBase = resolveSubscriptBase(ctx, rootIdentifier, ops);
-  if (subscriptBase) {
+  if (plan.subscriptBase) {
     SubscriptDepthValidator.validate(
-      CodeGenState.getVariableTypeInfo(subscriptBase.name),
-      SubscriptDepthValidator.countLeadingSubscripts(
-        ops,
-        subscriptBase.opOffset,
-      ),
-      subscriptBase.displayName,
+      CodeGenState.getVariableTypeInfo(plan.subscriptBase.name),
+      plan.leadingSubscriptCount,
+      plan.subscriptBase.displayName,
     );
   }
 
@@ -301,14 +236,13 @@ const generatePostfixExpression = (
   };
 
   for (const op of ops) {
-    if (op.IDENTIFIER()) {
-      const memberName = op.IDENTIFIER()!.getText();
-      handleMemberOp(memberName, tracking, postfixCtx);
-    } else if (op.expression().length > 0) {
+    if (op.kind === "member") {
+      handleMemberOp(op.name, tracking, postfixCtx);
+    } else if (op.kind === "subscript") {
       const subscriptResult = generateSubscriptAccess(
         {
           result: tracking.result,
-          op,
+          subscript: op,
           rootIdentifier,
           primaryTypeInfo,
           resolvedIdentifier: tracking.resolvedIdentifier,
@@ -341,11 +275,14 @@ const generatePostfixExpression = (
       // nothing to ask it. The use site is enclosed by a declaration like any
       // other expression, which is what makes the cell derivable at all.
       if (CodeGenState.isCrossFileDeclaration(tracking.result)) {
-        AdrProvenance.record("010", op.start?.line);
+        AdrProvenance.record("010", op.line);
       }
       const callResult = generateFunctionCall(
         tracking.result,
-        op.argumentList() || null,
+        // #1445: the plan is built by the orchestrator -- this is the only
+        // dispatcher, and keeping the derivation there is what lets the call
+        // generator name no parse type.
+        op.planArguments(),
         input,
         state,
         orchestrator,
@@ -1632,7 +1569,7 @@ interface SubscriptAccessResult {
  */
 interface ISubscriptAccessContext {
   result: string;
-  op: Parser.PostfixOpContext;
+  subscript: Extract<TPlannedPostfixOp, { kind: "subscript" }>;
   rootIdentifier: string | undefined;
   primaryTypeInfo:
     | { baseType: string; arrayDimensions?: (number | string)[] }
@@ -1656,7 +1593,6 @@ const generateSubscriptAccess = (
   orchestrator: IOrchestrator,
   effects: TGeneratorEffect[],
 ): SubscriptAccessResult => {
-  const exprs = ctx.op.expression();
   const output: SubscriptAccessResult = {
     result: ctx.result,
     currentStructType: ctx.currentStructType,
@@ -1665,20 +1601,34 @@ const generateSubscriptAccess = (
     subscriptDepth: ctx.subscriptDepth,
   };
 
-  if (exprs.length === 1) {
-    return handleSingleSubscript(ctx, exprs[0], input, orchestrator, output);
-  } else if (exprs.length === 2) {
-    return handleBitRangeSubscript(
-      ctx,
-      exprs,
-      state,
-      orchestrator,
-      effects,
-      output,
-    );
+  // The arity is checked BEFORE anything renders: the grammar admits only one
+  // or two indexes, and the old shape returned without generating for any
+  // other count.
+  const indexCount = ctx.subscript.indexCount;
+  if (indexCount !== 1 && indexCount !== 2) {
+    return output;
   }
 
-  return output;
+  // Set expectedType to size_t (unsigned) for indices per MISRA 7.2. This is
+  // what gives an index literal its U suffix regardless of element type, and it
+  // is why the plan hands over a render rather than a rendered string -- a
+  // value generated outside this window silently loses the suffix.
+  const indexes = CodeGenState.withExpectedType("size_t", () =>
+    ctx.subscript.renderIndexes(),
+  );
+
+  if (indexCount === 1) {
+    return handleSingleSubscript(ctx, indexes[0], input, orchestrator, output);
+  }
+
+  return handleBitRangeSubscript(
+    ctx,
+    indexes,
+    state,
+    orchestrator,
+    effects,
+    output,
+  );
 };
 
 /**
@@ -1686,17 +1636,11 @@ const generateSubscriptAccess = (
  */
 const handleSingleSubscript = (
   ctx: ISubscriptAccessContext,
-  expr: Parser.ExpressionContext,
+  index: string,
   input: IGeneratorInput,
   orchestrator: IOrchestrator,
   output: SubscriptAccessResult,
 ): SubscriptAccessResult => {
-  // Set expectedType to size_t (unsigned) for array indices per MISRA 7.2
-  // This ensures index literals get U suffix regardless of element type
-  const index = CodeGenState.withExpectedType("size_t", () =>
-    orchestrator.generateExpression(expr),
-  );
-
   // Check if result is a register member with bitmap type (throws)
   validateNotBitmapMember(ctx, input);
 
@@ -1861,25 +1805,20 @@ const handleDefaultSubscript = (
  */
 const handleBitRangeSubscript = (
   ctx: ISubscriptAccessContext,
-  exprs: Parser.ExpressionContext[],
+  indexes: readonly string[],
   state: IGeneratorState,
   orchestrator: IOrchestrator,
   effects: TGeneratorEffect[],
   output: SubscriptAccessResult,
 ): SubscriptAccessResult => {
-  // Set expectedType to size_t (unsigned) for bit indices per MISRA 7.2
-  // Bit positions are inherently unsigned values
-  const [start, width] = CodeGenState.withExpectedType("size_t", () => [
-    orchestrator.generateExpression(exprs[0]),
-    orchestrator.generateExpression(exprs[1]),
-  ]);
+  const [start, width] = indexes;
 
   // Issue #1094: resolve a const/macro width to its numeric value so the mask is
   // precomputed (byte-identical to a literal width) instead of a runtime
   // ((1U << W) - 1) — which is UB at full width (1U << 32) and uses the wrong
   // base type for >32-bit widths. The "U" suffix matches the literal path, which
   // generates bit widths under a size_t expectedType.
-  const widthConst = orchestrator.tryEvaluateConstant(exprs[1]);
+  const widthConst = ctx.subscript.foldWidth();
   const maskWidth = widthConst === undefined ? width : `${widthConst}U`;
 
   const isFloatType =

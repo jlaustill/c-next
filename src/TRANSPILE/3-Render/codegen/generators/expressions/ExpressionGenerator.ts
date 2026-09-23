@@ -1,93 +1,54 @@
 /**
  * Expression Generator Entry Point
  *
- * Top-level entry point for expression code generation.
- * Handles:
- * - Expression entry point (delegates to ternary)
- * - Ternary expressions with ADR-022 safety constraints
+ * Generates ternary expressions with ADR-022 safety constraints, and passes a
+ * non-ternary expression through.
+ *
+ * #1445 box 3: takes `TPlannedTernary`, not the node. The node was read for
+ * exactly one thing -- the number of `orExpression` children -- and each child
+ * was handed straight back to the orchestrator. The pass-through
+ * `generateExpression` that wrapped this is gone with it: it called
+ * `node.ternaryExpression()` and delegated, which is the walker's step, not a
+ * generator's.
  */
-import {
-  ExpressionContext,
-  TernaryExpressionContext,
-} from "../../../../../transpiler/logic/parser/grammar/CNextParser";
 import IGeneratorOutput from "../IGeneratorOutput";
 import TGeneratorEffect from "../TGeneratorEffect";
 import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IOrchestrator from "../IOrchestrator";
+import TGeneratorFn from "../TGeneratorFn";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";
-
-/**
- * Generate C code for an expression (entry point).
- *
- * Simply delegates to ternary expression handling.
- */
-const generateExpression = (
-  node: ExpressionContext,
-  input: IGeneratorInput,
-  state: IGeneratorState,
-  orchestrator: IOrchestrator,
-): IGeneratorOutput => {
-  return generateTernaryExpr(
-    node.ternaryExpression(),
-    input,
-    state,
-    orchestrator,
-  );
-};
+import type TPlannedTernary from "../../types/TPlannedTernary";
 
 /**
  * Generate C code for a ternary expression (ADR-022).
  *
- * Handles:
- * - Non-ternary path: single orExpression
- * - Ternary path: condition ? trueExpr : falseExpr
- *
- * Safety constraints enforced via orchestrator:
- * - Condition must be a comparison expression
- * - No nested ternary expressions in branches
+ * Safety constraints are enforced in pass 2.1, not here: #1322 moved every
+ * ADR-022 rule there -- nested ternary (E0710), the controlling-expression
+ * rule (E0701) and no function call in a condition (E0702).
  */
-const generateTernaryExpr = (
-  node: TernaryExpressionContext,
+const generateTernaryExpr: TGeneratorFn<TPlannedTernary> = (
+  planned: TPlannedTernary,
   _input: IGeneratorInput,
   _state: IGeneratorState,
-  orchestrator: IOrchestrator,
+  _orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
-  const orExprs = node.orExpression();
 
-  // Non-ternary path: just one orExpression
-  if (orExprs.length === 1) {
-    return { code: orchestrator.generateOrExpr(orExprs[0]), effects };
+  if (planned.kind === "value") {
+    return { code: planned.code, effects };
   }
 
-  // Ternary path: 3 orExpressions (condition, true branch, false branch)
-  const condition = orExprs[0];
-  const trueExpr = orExprs[1];
-  const falseExpr = orExprs[2];
+  // Parentheses are already present from the grammar.
+  //
+  // Issue #992: clear inDeclarationInit in the ARMS only -- a struct
+  // initializer inside one needs a compound literal, not a plain designated
+  // initializer. The condition keeps the flag as it stands.
+  const condition = planned.renderCondition();
+  const trueCode = CodeGenState.withoutDeclarationInit(planned.renderTrue);
+  const falseCode = CodeGenState.withoutDeclarationInit(planned.renderFalse);
 
-  // #1322: every ADR-022 ternary rule -- nested ternary (E0710), the
-  // controlling-expression rule (E0701) and no function call in a condition
-  // (E0702) -- is authored in pass 2.1.
-
-  // Generate C output - parentheses already present from grammar
-  // Issue #992: Clear inDeclarationInit in ternary arms — struct initializers
-  // inside ternary branches need compound literals, not plain designated initializers.
-  const condCode = orchestrator.generateOrExpr(condition);
-  const trueCode = CodeGenState.withoutDeclarationInit(() =>
-    orchestrator.generateOrExpr(trueExpr),
-  );
-  const falseCode = CodeGenState.withoutDeclarationInit(() =>
-    orchestrator.generateOrExpr(falseExpr),
-  );
-
-  return { code: `(${condCode}) ? ${trueCode} : ${falseCode}`, effects };
+  return { code: `(${condition}) ? ${trueCode} : ${falseCode}`, effects };
 };
 
-// Export all generators
-const expressionGenerators = {
-  generateExpression,
-  generateTernaryExpr,
-};
-
-export default expressionGenerators;
+export default generateTernaryExpr;

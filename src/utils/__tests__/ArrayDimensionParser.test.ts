@@ -4,10 +4,10 @@
  */
 
 import { describe, it, expect } from "vitest";
-import CNextSourceParser from "../../transpiler/logic/parser/CNextSourceParser";
+import CNextSourceParser from "../../PARSE/2-Parse/CNextSourceParser";
 import ArrayDimensionParser from "../ArrayDimensionParser";
 import UNRESOLVED_DIMENSION from "../../transpiler/constants/UNRESOLVED_DIMENSION";
-import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
 
 describe("ArrayDimensionParser", () => {

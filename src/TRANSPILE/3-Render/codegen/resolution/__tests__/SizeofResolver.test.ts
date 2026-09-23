@@ -1,201 +1,230 @@
 /**
  * Tests for SizeofResolver - sizeof expression generation
+ *
+ * #1445: these used to build mock parse contexts by hand and pass them
+ * `as never`, which meant the type checker said nothing about them -- a
+ * signature change reported zero errors while every case was wrong. The
+ * resolver takes a `TSizeofOperand` now, so the inputs are ordinary values the
+ * compiler checks.
+ *
+ * That also reaches the two cases the old file recorded as unreachable
+ * ("the mock structure required is too complex for unit testing"): the
+ * expression arm, and the thunk that must not be called.
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import SizeofResolver from "../SizeofResolver";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";
+import TParameterInfo from "../../../../../transpiler/types/TParameterInfo";
+import createMockSymbols from "../../../../../transpiler/__tests__/codeGenSymbolsHelpers";
+
+/** A parameter in the render-time table, with every flag off by default. */
+function declareParameter(
+  name: string,
+  overrides: Partial<TParameterInfo> = {},
+): void {
+  CodeGenState.currentParameters.set(name, {
+    name,
+    baseType: "u32",
+    isArray: false,
+    isStruct: false,
+    isConst: false,
+    isCallback: false,
+    isString: false,
+    ...overrides,
+  });
+}
 
 describe("SizeofResolver", () => {
   beforeEach(() => {
     CodeGenState.reset();
   });
 
-  describe("sizeofParameter", () => {
+  describe("user-type operand", () => {
     it("throws E0601 for array parameter", () => {
-      // Set up parameter info indicating array
-      CodeGenState.currentParameters.set("arr", {
-        name: "arr",
-        baseType: "u32",
-        isArray: true,
-        isStruct: false,
-        isConst: false,
-        isCallback: false,
-        isString: false,
-      });
-
-      const mockCallbacks = {
-        generateType: vi.fn(),
-        generateExpression: vi.fn(),
-        hasSideEffects: vi.fn().mockReturnValue(false),
-      };
-
-      // Create a mock context for sizeof(arr)
-      const mockTypeCtx = {
-        qualifiedType: () => null,
-        userType: () => ({ getText: () => "arr" }),
-        getText: () => "arr",
-      };
-
-      const mockCtx = {
-        type: () => mockTypeCtx,
-        expression: () => null,
-      };
+      declareParameter("arr", { isArray: true });
 
       expect(() =>
-        SizeofResolver.generate(mockCtx as never, mockCallbacks),
+        SizeofResolver.generate({ kind: "user-type", text: "arr" }),
       ).toThrow("E0601 rejects this in pass 2.1");
     });
 
     it("generates dereference for pass-by-reference parameter", () => {
-      // Non-array, non-callback, non-struct parameter is pass-by-reference
-      CodeGenState.currentParameters.set("value", {
-        name: "value",
-        baseType: "u32",
-        isArray: false,
-        isStruct: false,
-        isConst: false,
-        isCallback: false,
-        isString: false,
-      });
+      declareParameter("value");
 
-      const mockCallbacks = {
-        generateType: vi.fn(),
-        generateExpression: vi.fn(),
-        hasSideEffects: vi.fn().mockReturnValue(false),
-      };
+      expect(
+        SizeofResolver.generate({ kind: "user-type", text: "value" }),
+      ).toBe("sizeof(*value)");
+    });
 
-      const mockTypeCtx = {
-        qualifiedType: () => null,
-        userType: () => ({ getText: () => "value" }),
-        getText: () => "value",
-      };
+    it.each([
+      ["struct parameter", { isStruct: true }],
+      ["callback parameter", { isCallback: true }],
+    ])("passes %s by name, not by dereference", (_label, overrides) => {
+      declareParameter("p", overrides);
 
-      const mockCtx = {
-        type: () => mockTypeCtx,
-        expression: () => null,
-      };
+      expect(SizeofResolver.generate({ kind: "user-type", text: "p" })).toBe(
+        "sizeof(p)",
+      );
+    });
 
-      const result = SizeofResolver.generate(mockCtx as never, mockCallbacks);
+    /**
+     * The emitted name is written out literally, not read back from
+     * `emittedLocalName`: asserting against the same call the resolver makes
+     * compares the function to itself and passes however the resolver spells
+     * the name. Measured -- with the lookup bypassed that shape stayed green.
+     */
+    it("uses the emitted name of a shadowing local (ADR-057)", () => {
+      CodeGenState.localVariables.add("arr");
+      CodeGenState.registerLocalRename("arr", "main__arr");
 
-      expect(result).toBe("sizeof(*value)");
+      expect(SizeofResolver.generate({ kind: "user-type", text: "arr" })).toBe(
+        "sizeof(main__arr)",
+      );
     });
   });
 
-  describe("sizeofQualifiedType", () => {
+  describe("qualified-type operand", () => {
+    /** A thunk that records whether the resolver reached for a type name. */
+    function renderSpy(): {
+      renderTypeName: () => string;
+      calls: () => number;
+    } {
+      const spy = vi.fn().mockReturnValue("Scope__Type");
+      return { renderTypeName: spy, calls: () => spy.mock.calls.length };
+    }
+
     it("handles struct.member access for local variable", () => {
       CodeGenState.localVariables.add("myStruct");
+      const spy = renderSpy();
 
-      const mockCallbacks = {
-        generateType: vi.fn(),
-        generateExpression: vi.fn(),
-        hasSideEffects: vi.fn().mockReturnValue(false),
-      };
-
-      const mockQualifiedCtx = {
-        IDENTIFIER: () => [
-          { getText: () => "myStruct" },
-          { getText: () => "field" },
-        ],
-      };
-
-      const mockTypeCtx = {
-        qualifiedType: () => mockQualifiedCtx,
-        userType: () => null,
-        getText: () => "myStruct.field",
-      };
-
-      const mockCtx = {
-        type: () => mockTypeCtx,
-        expression: () => null,
-      };
-
-      const result = SizeofResolver.generate(mockCtx as never, mockCallbacks);
+      const result = SizeofResolver.generate({
+        kind: "qualified-type",
+        firstName: "myStruct",
+        memberName: "field",
+        renderTypeName: spy.renderTypeName,
+      });
 
       expect(result).toBe("sizeof(myStruct.field)");
+      // A member access names no type, so rendering one would register an
+      // include for a type the program never mentions.
+      expect(spy.calls()).toBe(0);
+    });
+
+    it("uses the emitted name when the local shadows a file-scope name", () => {
+      CodeGenState.localVariables.add("cfg");
+      CodeGenState.registerLocalRename("cfg", "main__cfg");
+
+      expect(
+        SizeofResolver.generate({
+          kind: "qualified-type",
+          firstName: "cfg",
+          memberName: "x",
+          renderTypeName: renderSpy().renderTypeName,
+        }),
+      ).toBe("sizeof(main__cfg.x)");
     });
 
     it("handles struct parameter with arrow notation", () => {
-      CodeGenState.currentParameters.set("param", {
-        name: "param",
-        baseType: "MyStruct",
-        isArray: false,
-        isStruct: true,
-        isConst: false,
-        isCallback: false,
-        isString: false,
-      });
+      declareParameter("param", { baseType: "MyStruct", isStruct: true });
 
-      const mockCallbacks = {
-        generateType: vi.fn(),
-        generateExpression: vi.fn(),
-        hasSideEffects: vi.fn().mockReturnValue(false),
-      };
-
-      const mockQualifiedCtx = {
-        IDENTIFIER: () => [
-          { getText: () => "param" },
-          { getText: () => "field" },
-        ],
-      };
-
-      const mockTypeCtx = {
-        qualifiedType: () => mockQualifiedCtx,
-        userType: () => null,
-        getText: () => "param.field",
-      };
-
-      const mockCtx = {
-        type: () => mockTypeCtx,
-        expression: () => null,
-      };
-
-      const result = SizeofResolver.generate(mockCtx as never, mockCallbacks);
-
-      expect(result).toBe("sizeof(param->field)");
+      expect(
+        SizeofResolver.generate({
+          kind: "qualified-type",
+          firstName: "param",
+          memberName: "field",
+          renderTypeName: renderSpy().renderTypeName,
+        }),
+      ).toBe("sizeof(param->field)");
     });
 
     it("handles non-struct parameter with dot notation", () => {
-      CodeGenState.currentParameters.set("param", {
-        name: "param",
-        baseType: "MyStruct",
-        isArray: false,
-        isStruct: false,
-        isConst: false,
-        isCallback: false,
-        isString: false,
+      declareParameter("param", { baseType: "MyStruct" });
+
+      expect(
+        SizeofResolver.generate({
+          kind: "qualified-type",
+          firstName: "param",
+          memberName: "field",
+          renderTypeName: renderSpy().renderTypeName,
+        }),
+      ).toBe("sizeof(param.field)");
+    });
+
+    it("treats an unknown first identifier as a global struct variable", () => {
+      const spy = renderSpy();
+
+      const result = SizeofResolver.generate({
+        kind: "qualified-type",
+        firstName: "config",
+        memberName: "field",
+        renderTypeName: spy.renderTypeName,
       });
 
-      const mockCallbacks = {
-        generateType: vi.fn(),
-        generateExpression: vi.fn(),
-        hasSideEffects: vi.fn().mockReturnValue(false),
-      };
+      expect(result).toBe("sizeof(config.field)");
+      expect(spy.calls()).toBe(0);
+    });
 
-      const mockQualifiedCtx = {
-        IDENTIFIER: () => [
-          { getText: () => "param" },
-          { getText: () => "field" },
-        ],
-      };
+    it("renders the type name when the first identifier is a scope", () => {
+      CodeGenState.symbols = createMockSymbols({
+        knownScopes: new Set(["Motor"]),
+      });
+      const spy = renderSpy();
 
-      const mockTypeCtx = {
-        qualifiedType: () => mockQualifiedCtx,
-        userType: () => null,
-        getText: () => "param.field",
-      };
+      const result = SizeofResolver.generate({
+        kind: "qualified-type",
+        firstName: "Motor",
+        memberName: "State",
+        renderTypeName: spy.renderTypeName,
+      });
 
-      const mockCtx = {
-        type: () => mockTypeCtx,
-        expression: () => null,
-      };
-
-      const result = SizeofResolver.generate(mockCtx as never, mockCallbacks);
-
-      expect(result).toBe("sizeof(param.field)");
+      expect(result).toBe("sizeof(Scope__Type)");
+      expect(spy.calls()).toBe(1);
     });
   });
 
-  // Note: sizeofExpression with side effects is tested via integration tests
-  // The mock structure required is too complex for unit testing
+  describe("plain-type operand", () => {
+    it("wraps the already-rendered C type name", () => {
+      expect(
+        SizeofResolver.generate({ kind: "plain-type", cTypeName: "uint32_t" }),
+      ).toBe("sizeof(uint32_t)");
+    });
+  });
+
+  describe("expression operand", () => {
+    it("wraps the generated expression", () => {
+      expect(
+        SizeofResolver.generate({
+          kind: "expression",
+          simpleIdentifier: null,
+          hasSideEffects: false,
+          code: "a + b",
+        }),
+      ).toBe("sizeof(a + b)");
+    });
+
+    it("throws E0601 when the operand names an array parameter", () => {
+      declareParameter("arr", { isArray: true });
+
+      expect(() =>
+        SizeofResolver.generate({
+          kind: "expression",
+          simpleIdentifier: "arr",
+          hasSideEffects: false,
+          code: "arr",
+        }),
+      ).toThrow("E0601 rejects this in pass 2.1");
+    });
+
+    it("throws E0602 when the operand has side effects", () => {
+      expect(() =>
+        SizeofResolver.generate({
+          kind: "expression",
+          simpleIdentifier: null,
+          hasSideEffects: true,
+          code: "f()",
+        }),
+      ).toThrow("E0602 rejects this in pass 2.1");
+    });
+  });
 });

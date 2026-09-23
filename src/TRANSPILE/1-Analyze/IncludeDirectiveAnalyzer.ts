@@ -40,8 +40,8 @@
 import { ParseTreeWalker } from "antlr4ng";
 import { dirname, join, resolve } from "node:path";
 
-import { CNextListener } from "../../transpiler/logic/parser/grammar/CNextListener";
-import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
+import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
+import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import ParserUtils from "../../utils/ParserUtils";
 import IncludeDirective from "./helpers/IncludeDirective";
 import IIncludeContext from "./types/IIncludeContext";

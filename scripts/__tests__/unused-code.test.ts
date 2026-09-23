@@ -10,10 +10,9 @@ import UnusedCode from "../unused-code/UnusedCode";
 
 /** The real shape: three distinct `-o` roots across four antlr scripts. */
 const SCRIPTS: Record<string, string> = {
-  antlr: "antlr4ng -o src/transpiler/logic/parser grammar/CNext.g4",
-  "antlr:c": "antlr4ng -o src/transpiler/logic/parser/c grammar/C.g4",
-  "antlr:cpp:lexer":
-    "antlr4ng -o src/transpiler/logic/parser/cpp grammar/CPP14Lexer.g4",
+  antlr: "antlr4ng -o src/PARSE/2-Parse grammar/CNext.g4",
+  "antlr:c": "antlr4ng -o src/PARSE/2-Parse/c grammar/C.g4",
+  "antlr:cpp:lexer": "antlr4ng -o src/PARSE/2-Parse/cpp grammar/CPP14Lexer.g4",
   "antlr:cpp": "npm run antlr:cpp:lexer && npm run antlr:cpp:parser",
   build: "esbuild src/index.ts",
 };
@@ -25,9 +24,9 @@ describe("UnusedCode.generatedRoots (#1556)", () => {
     // holding -- a dozen generated findings become "authored dead code" with
     // nothing pointing at the cause (#1580 review).
     expect(UnusedCode.generatedRoots(SCRIPTS)).toEqual([
-      "src/transpiler/logic/parser",
-      "src/transpiler/logic/parser/c",
-      "src/transpiler/logic/parser/cpp",
+      "src/PARSE/2-Parse",
+      "src/PARSE/2-Parse/c",
+      "src/PARSE/2-Parse/cpp",
     ]);
   });
 
@@ -78,9 +77,9 @@ describe("UnusedCode.isGenerated (#1556)", () => {
   const root = UnusedCode.generatedRoots(SCRIPTS);
 
   it.each([
-    ["src/transpiler/logic/parser/grammar/CNextParser.ts", true],
-    ["src/transpiler/logic/parser/c/grammar/CLexer.ts", true],
-    ["src/transpiler/logic/parser/cpp/grammar/CPP14Parser.ts", true],
+    ["src/PARSE/2-Parse/grammar/CNextParser.ts", true],
+    ["src/PARSE/2-Parse/c/grammar/CLexer.ts", true],
+    ["src/PARSE/2-Parse/cpp/grammar/CPP14Parser.ts", true],
   ])("treats %s as generated", (file, expected) => {
     expect(UnusedCode.isGenerated(file, root)).toBe(expected);
   });
@@ -88,7 +87,7 @@ describe("UnusedCode.isGenerated (#1556)", () => {
   it.each([
     // authored code INSIDE the generated root -- the case a bare prefix test
     // would wrongly exempt
-    ["src/transpiler/logic/parser/CNextSourceParser.ts", false],
+    ["src/PARSE/2-Parse/CNextSourceParser.ts", false],
     // a grammar directory OUTSIDE the root -- the case a bare "/grammar/" test
     // would wrongly exempt
     ["src/elsewhere/grammar/Handwritten.ts", false],
@@ -100,7 +99,7 @@ describe("UnusedCode.isGenerated (#1556)", () => {
 
 describe("UnusedCode.authored (#1556)", () => {
   const output = [
-    "src/transpiler/logic/parser/c/grammar/CParser.ts(4,1): error TS6133: 'Token' is declared but its value is never read.",
+    "src/PARSE/2-Parse/c/grammar/CParser.ts(4,1): error TS6133: 'Token' is declared but its value is never read.",
     "src/transpiler/state/CodeGenState.ts(906,10): error TS6133: 'isKnownRegister' is declared but its value is never read.",
     "src/utils/TTypeUtils.ts(165,10): error TS6138: Property 'isDeferred' is declared but its value is never read.",
     "src/TRANSPILE/3-Render/codegen/CodeGenerator.ts(12,6): error TS6196: 'TUnused' is declared but never used.",

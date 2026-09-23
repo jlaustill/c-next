@@ -2,36 +2,28 @@
  * MemberChainAnalyzer - Analyzes member access chains for bit access patterns
  *
  * Issue #644: Extracted from CodeGenerator to reduce file size.
- * Refactored to delegate to buildMemberAccessChain to eliminate code duplication.
+ * Issue #1445: the header used to claim this delegates to
+ * `buildMemberAccessChain`. It never imported it, and that function is now
+ * deleted as dead code. This class walks the chain itself.
  *
  * Used to detect bit access at the end of member chains, e.g.:
  * - grid[2][3].flags[0] - detects that [0] is bit access on flags
  * - point.x[3, 4] - detects bit range access on integer field
  *
  * Migrated to use CodeGenState instead of constructor DI.
+ *
+ * ## It walks a plan, not a parse tree (#1445)
+ *
+ * The chain is `TPlannedTargetOp[]`: a member's name, or a subscript's arity
+ * and a thunk for its rendered indexes. Everything the walk decides comes from
+ * `CodeGenState` -- the base's type, a struct field's type, whether a type is
+ * an integer -- so the tree was consulted only to tell a member access from a
+ * subscript, which the union now states.
  */
 
-import * as Parser from "../../../../transpiler/logic/parser/grammar/CNextParser";
 import CodeGenState from "../../../../transpiler/state/CodeGenState";
-
-/**
- * Result of analyzing a member chain for bit access.
- */
-interface IBitAccessAnalysisResult {
-  /** True if the last subscript is bit access on an integer */
-  isBitAccess: boolean;
-  /** The base target expression (without bit index) */
-  baseTarget?: string;
-  /** The bit index expression */
-  bitIndex?: string;
-  /** The base type of the target */
-  baseType?: string;
-}
-
-/**
- * Callback type for generating expression code.
- */
-type GenerateExpressionFn = (ctx: Parser.ExpressionContext) => string;
+import IBitAccessAnalysis from "../../../../transpiler/types/IBitAccessAnalysis";
+import TPlannedTargetOp from "../../../../transpiler/types/TPlannedTargetOp";
 
 /** Mutable state for tracking types through a member chain. */
 interface IChainState {
@@ -44,49 +36,40 @@ interface IChainState {
 /**
  * Analyzes member access chains to detect bit access patterns.
  *
- * Delegates to buildMemberAccessChain with type tracking and bit access
- * detection callbacks to determine if the final subscript is bit access.
+ * Walks the chain with type tracking to determine whether the final subscript
+ * is bit access. (#1445: this said "delegates to buildMemberAccessChain"; no
+ * such import ever existed and that function is now deleted.)
  */
 class MemberChainAnalyzer {
   /**
    * Analyze a member chain target to detect bit access at the end.
    *
    * For patterns like grid[2][3].flags[0], detects that [0] is bit access.
-   * Uses direct postfixTargetOp analysis with type tracking.
    *
-   * @param targetCtx - The assignment target context to analyze
-   * @param generateExpression - Callback to generate expression code
+   * @param baseName - the target's base identifier, or null if it has none
+   * @param ops - the postfix chain applied to it
    * @returns Analysis result with bit access information
    */
   static analyze(
-    targetCtx: Parser.AssignmentTargetContext,
-    generateExpression: GenerateExpressionFn,
-  ): IBitAccessAnalysisResult {
-    const baseId = targetCtx.IDENTIFIER()?.getText();
-    const postfixOps = targetCtx.postfixTargetOp();
-
-    if (!baseId || postfixOps.length === 0) {
+    baseName: string | null,
+    ops: readonly TPlannedTargetOp[],
+  ): IBitAccessAnalysis {
+    if (!baseName || ops.length === 0) {
       return { isBitAccess: false };
     }
 
-    // Check if the last postfix op is a single-expression subscript (potential bit access)
-    const lastOp = postfixOps.at(-1)!;
-    const lastExprs = lastOp.expression();
-    if (lastExprs.length !== 1 || lastOp.IDENTIFIER()) {
-      // Last op is member access or multi-expression subscript, not bit access
+    // Bit access is a single-index subscript at the end. A member access or a
+    // `[start, width]` range there is not one.
+    const lastOp = ops.at(-1)!;
+    if (lastOp.kind !== "subscript" || lastOp.indexCount !== 1) {
       return { isBitAccess: false };
     }
-
-    // Count total subscript operations
-    const subscriptCount = postfixOps.filter(
-      (op) => !op.IDENTIFIER() && op.expression().length > 0,
-    ).length;
 
     // Walk through the chain to find the type and array status before the last subscript
+    const leadingOps = ops.slice(0, -1);
     const targetInfo = MemberChainAnalyzer.resolveTargetTypeAndArrayStatus(
-      baseId,
-      postfixOps.slice(0, -1),
-      subscriptCount - 1, // subscripts before the last one
+      baseName,
+      leadingOps,
     );
     if (!targetInfo) {
       return { isBitAccess: false };
@@ -102,18 +85,12 @@ class MemberChainAnalyzer {
       return { isBitAccess: false };
     }
 
-    // Build the base target expression (everything except the last subscript)
-    const baseTarget = MemberChainAnalyzer.buildBaseTarget(
-      baseId,
-      postfixOps.slice(0, -1),
-      generateExpression,
-    );
-    const bitIndex = generateExpression(lastExprs[0]);
-
+    // Only now is anything rendered: every return above reached its answer
+    // from CodeGenState alone.
     return {
       isBitAccess: true,
-      baseTarget,
-      bitIndex,
+      baseTarget: MemberChainAnalyzer.buildBaseTarget(baseName, leadingOps),
+      bitIndex: lastOp.renderIndexes()[0],
       baseType: targetInfo.type,
     };
   }
@@ -121,11 +98,14 @@ class MemberChainAnalyzer {
   /**
    * Resolve the type and array status of the target by walking through postfix operations.
    * Returns the type and whether it's still an array before the last subscript.
+   *
+   * #1445: a third parameter counted the subscripts before the last one and
+   * was never read -- so the `filter` at the call site that computed it was
+   * dead too. Both are gone.
    */
   private static resolveTargetTypeAndArrayStatus(
     baseId: string,
-    ops: Parser.PostfixTargetOpContext[],
-    _subscriptsSoFar: number,
+    ops: readonly TPlannedTargetOp[],
   ): { type: string; isArray: boolean } | undefined {
     const baseTypeInfo = CodeGenState.getVariableTypeInfo(baseId);
     if (!baseTypeInfo) {
@@ -143,8 +123,13 @@ class MemberChainAnalyzer {
 
     for (let i = 0; i < ops.length; i++) {
       const op = ops[i];
-      if (op.IDENTIFIER()) {
-        const result = MemberChainAnalyzer.processMemberOp(op, ops, i, state);
+      if (op.kind === "member") {
+        const result = MemberChainAnalyzer.processMemberOp(
+          op.name,
+          ops,
+          i,
+          state,
+        );
         if (!result) {
           return undefined;
         }
@@ -161,12 +146,11 @@ class MemberChainAnalyzer {
    * Returns false if the access is invalid.
    */
   private static processMemberOp(
-    op: Parser.PostfixTargetOpContext,
-    ops: Parser.PostfixTargetOpContext[],
+    fieldName: string,
+    ops: readonly TPlannedTargetOp[],
     opIndex: number,
     state: IChainState,
   ): boolean {
-    const fieldName = op.IDENTIFIER()!.getText();
     if (!state.currentStructType) {
       return false;
     }
@@ -204,12 +188,11 @@ class MemberChainAnalyzer {
    * Count remaining subscript operations after the given index.
    */
   private static countRemainingSubscripts(
-    ops: Parser.PostfixTargetOpContext[],
+    ops: readonly TPlannedTargetOp[],
     afterIndex: number,
   ): number {
-    return ops
-      .slice(afterIndex + 1)
-      .filter((o) => !o.IDENTIFIER() && o.expression().length > 0).length;
+    return ops.slice(afterIndex + 1).filter((op) => op.kind === "subscript")
+      .length;
   }
 
   /**
@@ -251,26 +234,15 @@ class MemberChainAnalyzer {
    */
   private static buildBaseTarget(
     baseId: string,
-    ops: Parser.PostfixTargetOpContext[],
-    generateExpression: GenerateExpressionFn,
+    ops: readonly TPlannedTargetOp[],
   ): string {
     let result = baseId;
 
     for (const op of ops) {
-      if (op.IDENTIFIER()) {
-        result += "." + op.IDENTIFIER()!.getText();
+      if (op.kind === "member") {
+        result += "." + op.name;
       } else {
-        const exprs = op.expression();
-        if (exprs.length === 1) {
-          result += "[" + generateExpression(exprs[0]) + "]";
-        } else if (exprs.length === 2) {
-          result +=
-            "[" +
-            generateExpression(exprs[0]) +
-            ", " +
-            generateExpression(exprs[1]) +
-            "]";
-        }
+        result += "[" + op.renderIndexes().join(", ") + "]";
       }
     }
 

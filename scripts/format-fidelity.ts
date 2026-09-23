@@ -38,7 +38,7 @@ import { fileURLToPath } from "node:url";
 import chalk from "chalk";
 import * as prettier from "prettier";
 
-import CNextSourceParser from "../src/transpiler/logic/parser/CNextSourceParser";
+import CNextSourceParser from "../src/PARSE/2-Parse/CNextSourceParser";
 import Transpiler from "../src/transpiler/Transpiler";
 
 import FileScanner from "./utils/FileScanner";
@@ -98,8 +98,10 @@ function parseRejects(dir: string): Set<string> {
   const rejected = new Set<string>();
   for (const file of FileScanner.findFiles(dir, ".cnx")) {
     try {
-      const { errors } = CNextSourceParser.parse(readFileSync(file, "utf-8"));
-      if (errors.length > 0) rejected.add(relative(rootDir, file));
+      const { parseErrors } = CNextSourceParser.parse(
+        readFileSync(file, "utf-8"),
+      );
+      if (parseErrors.length > 0) rejected.add(relative(rootDir, file));
     } catch {
       rejected.add(relative(rootDir, file));
     }

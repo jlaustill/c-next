@@ -7,8 +7,8 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { CPP14Parser } from "../../../transpiler/logic/parser/cpp/grammar/CPP14Parser";
-import type { DeclSpecifierSeqContext } from "../../../transpiler/logic/parser/cpp/grammar/CPP14Parser";
+import { CPP14Parser } from "../../2-Parse/cpp/grammar/CPP14Parser";
+import type { DeclSpecifierSeqContext } from "../../2-Parse/cpp/grammar/CPP14Parser";
 import TCppSymbol from "../../../transpiler/types/symbols/cpp/TCppSymbol";
 import SymbolTable from "../../../transpiler/state/SymbolTable";
 import NamespaceCollector from "./collectors/NamespaceCollector";

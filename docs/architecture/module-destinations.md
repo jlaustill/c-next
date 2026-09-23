@@ -54,6 +54,30 @@ from `awaiting` to a real path, never back.
 
 ## PARSE
 
+### 1.2 Parse — `src/PARSE/2-Parse/`
+
+Moved as a tree (#1445 box 4, absorbing this card's 1.2 Parse rows and move at
+the maintainer's direction). `src/transpiler/logic/parser/` no longer exists.
+
+| module                           | why                                                                                                       |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `CNextSourceParser.ts`           | the pass itself: source text becomes one `IParsedFile`, once                                              |
+| `CommentScanner.ts`              | reads comments off the hidden channel of that parse; a fact about the parse, not about a pass above it    |
+| `HeaderParser.ts`                | the same for a C or C++ header                                                                            |
+| `grammar/**`                     | ANTLR's output for `grammar/CNext.g4` — the tree 1.2 produces, so it lives with the pass that produces it |
+| `c/grammar/**`, `cpp/grammar/**` | the same for the C and C++ grammars                                                                       |
+
+Two things this move needed that no previous pass move did, recorded so the next
+tree-move does not rediscover them:
+
+- **12 non-TypeScript files.** `.interp` and `.tokens` are ANTLR byproducts,
+  tracked in git and read by nothing in the repo. `ts-morph` does not know about
+  them, so `npm run move:modules` reports them as `not in the project` and exits
+  non-zero; they move by `git mv` alongside.
+- **The `antlr*` scripts' `-o` paths.** Five scripts in `package.json` write into
+  this directory. Had they not moved with it, the next `npm run antlr:all` would
+  have silently recreated the old tree beside the new one.
+
 ### 1.3 Declare — `src/PARSE/3-Declare/`
 
 | module                                 | why                                                                                                                                                                                       |
@@ -82,17 +106,68 @@ from `awaiting` to a real path, never back.
 
 ### 2.2 Plan — `src/TRANSPILE/2-Plan/`
 
-| module                     | why                                                                                                                                                               |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `EmissionPlan.ts`          | decides what C should exist for one file — the artifact 2.2 emits                                                                                                 |
-| `ComplianceAnnotations.ts` | which safety-standard rule shaped a construct, and the one rendering of the house form                                                                            |
-| `HeaderTypeNames.ts`       | every type name a file's public header will name — one enumeration, where two derivations each stopped at functions and variables (#1520)                         |
-| `PublicInterface.ts`       | which symbols form a file's public C interface — `isExported` minus ADR-030's `main` exemption minus "a scope is a container", which §2 assigns to `EmissionPlan` |
+| module                        | why                                                                                                                                                                         |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `EmissionPlan.ts`             | decides what C should exist for one file — the artifact 2.2 emits                                                                                                           |
+| `ComplianceAnnotations.ts`    | which safety-standard rule shaped a construct, and the one rendering of the house form                                                                                      |
+| `HeaderTypeNames.ts`          | every type name a file's public header will name — one enumeration, where two derivations each stopped at functions and variables (#1520)                                   |
+| `PublicInterface.ts`          | which symbols form a file's public C interface — `isExported` minus ADR-030's `main` exemption minus "a scope is a container", which §2 assigns to `EmissionPlan`           |
+| `StringLengthCounter.ts`      | which `.char_count` reads are worth hoisting into a cached `strlen` temp — a choice about what C exists, not how it reads (#1445 box 3)                                     |
+| `ExpressionTypeResolver.ts`   | the essential type of an expression — returns type names, never C text, and originates no diagnostic (#1445 box 3)                                                          |
+| `AssignmentContextBuilder.ts` | turns an assignment statement into the `IAssignmentContext` that `AssignmentClassifier` decides the kind from — the input half of a decision 2.2 already owns (#1445 box 3) |
+| `TypeRegistrationEngine.ts`   | walks declarations and writes the type facts every later decision reads — returns no text, so it fails the render admission test (#1445 box 3)                              |
+| `TypeRegistrationUtils.ts`    | the engine's write half; registers an enum- or bitmap-typed variable from the one `DeclaredTypeFacts` derivation (#1651)                                                    |
+| `dimensionEvalOptions.ts`     | the const-evaluation options both array-dimension paths must share, so the two cannot diverge on what folds                                                                 |
 
-Created here rather than moved: 2.2 Plan did not exist as a module anywhere, so
-there was nothing to relocate. #1323's `HeaderRenderer` (`HeaderEmissionPlanner` until #1449) is **not** listed
+`EmissionPlan`, `ComplianceAnnotations` and `HeaderTypeNames` were created here
+rather than moved: 2.2 Plan did not exist as a module anywhere, so for those
+there was nothing to relocate. That sentence used to cover the whole section and
+no longer does — `scripts/move-modules.ts` has since relocated ten modules into
+`2-Plan/`, `PublicInterface` and `StringLengthCounter` among them.
+
+**This table is incomplete, and deliberately says so rather than reading as
+complete.** It documents 10 of the 22 modules under `2-Plan/`; eight modules the
+manifest moved in have no row. Tracked as #1653 — each needs its own researched
+_why_, which is not something to bulk-generate from the manifest's `because`
+strings, since those argue the move and this column states the responsibility.
+
+#1323's `HeaderRenderer` (`HeaderEmissionPlanner` until #1449) is **not** listed
 — it renders header text from already-decided facts, which is 2.3 by the
 discriminator above.
+
+## Not a pass — `src/TRANSPILE/`
+
+| module             | why                                                                                                                                                                                             |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CodeGenWalker.ts` | walks one file's parse tree and drives 2.2 and 2.3 over it — the role `Transpiler` plays for a whole run, which is why `src/transpiler/` already holds three tree-walking modules (#1445 box 3) |
+
+It is not in `2-Plan/`, and that is a constraint rather than a preference:
+`plan-cannot-import-render` is `error` with `reachable: true`, and the walk
+imports sixteen generator functions and twenty-eight helpers from `3-Render/`.
+Every other pass directory forbids the same edge, so a walker that calls
+renderers cannot live in one. Putting it a level up says what is true — it
+sits above the passes and drives them.
+
+The split is **acyclic**, and that was measured rather than assumed: the half
+that stayed in `3-Render/` makes zero calls back into the walk, so
+`CodeGenWalker` depends on `CodeGenerator` and never the reverse. Fourteen of
+`CodeGenerator`'s methods are reached through the injected host.
+
+## Layer-neutral — `src/utils/`
+
+Not a pass, so these have no section above. The map is keyed on passes, which
+left modules moved _out_ of a pass and into `src/utils/` with nowhere to be
+recorded — three had moved there with no row anywhere.
+
+| module                             | why                                                                                                                                                                                                     |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `QualifiedNameGenerator.ts`        | builds a qualified C name from a scope path; imports only `SymbolRegistry` and `ScopeUtils`, and `2-Plan/` needs it too, which `plan-cannot-import-render` forbade while it sat in render (#1445 box 3) |
+| `ast/AssignmentTargetExtractor.ts` | a generic parse-tree walker two passes reach (#1322)                                                                                                                                                    |
+| `ast/ChildStatementCollector.ts`   | answers _what statements are inside this one?_ — a question about the tree, not about legality (#1322)                                                                                                  |
+
+A module arrives here when more than one pass reaches it and it decides nothing
+about the program — the admission test §1 states, answered "neither pass owns
+this".
 
 ## Blocked
 
@@ -128,13 +203,30 @@ so the gap is visible to whoever completes the map (#1450).
 
 The manifest entry in `scripts/move-modules.ts` carries the reason; the short
 form is that the admission test places a module in the pass that computes what
-it holds, every module here exists to turn settled decisions into text, and a
-partial move would leave `3-Render/` holding everything except the pass's own
-entry point (`CodeGenerator`).
+it holds, and every module here exists to turn settled decisions into text.
 
-**Zero of the 131 now expose a classification predicate** — the count was 27 of
-144 when the tree moved, and the difference is box 4: the decisions relocated to
-`2-Plan/` and the modules went with them. The discriminator §1 states — "would
+That reasoning named `CodeGenerator` as "the pass's own entry point", and
+**#1445 box 3 found it was not one.** Of its 258 members, 193 named a parse
+type or were reached only by members that did -- it was a tree WALKER that
+called renderers, not a renderer. Those 193 moved to
+`src/TRANSPILE/CodeGenWalker.ts` (below) and the 65 that stayed are the render
+pass's service surface: `IOrchestrator`, the emission-fact capture, output
+assembly. The render pass's entry point is now the walker calling into it from
+outside.
+
+**No module here exposes a classification predicate** — the count was 27 of 144
+when the tree moved, and the difference is box 4: the decisions relocated to
+`2-Plan/` and the modules went with them.
+
+The property is stated without a present-tense denominator on purpose. It used
+to read "zero of the 131", and 131 was ungated prose that nothing asserted:
+`render-decides-nothing.test.ts` gates the **property**, never the population
+size, so the number could only ever drift. It had — the tree held 156 non-test
+modules when this was corrected, off in the _opposite_ direction from the moves
+that prompted the check, because modules were added faster than #1445 box 3
+moved them out. `find src/TRANSPILE/3-Render -name '*.ts' ! -path '*__tests__*'
+! -name '*.test.ts' | wc -l` answers it in one line, which is why no sentence
+here should. The discriminator §1 states — "would
 removing the module change _what_ is emitted or only _how it reads_" — is what
 sorted them, phase by phase within 2.x, since a module that decides is in the
 wrong pass-_phase_, not the wrong pass, and this map keys destinations on the
@@ -184,10 +276,12 @@ five test guards that named the path. `vi.mock()` specifiers and inline
 
 ## Not yet placed
 
-The other three passes (1.1 Discover, 1.2 Parse, 3.1 Write) have no rows here,
-and neither do the 60 genuinely-shared modules or `cli/`, `lib/` and `index.ts`
-— §1's tree names no home for the last group, which is
+The other two passes (1.1 Discover, 3.1 Write) have no rows here, and neither do
+the 60 genuinely-shared modules or `cli/`, `lib/` and `index.ts` — §1's tree
+names no home for the last group, which is
 [#1466](https://github.com/jlaustill/c-next/issues/1466).
+
+1.2 Parse was in this list and is now placed above (#1445).
 
 ## Moving modules
 

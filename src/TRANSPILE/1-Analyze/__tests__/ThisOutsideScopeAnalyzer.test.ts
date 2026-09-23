@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import CNextSourceParser from "../../../transpiler/logic/parser/CNextSourceParser";
+import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import ThisOutsideScopeAnalyzer from "../ThisOutsideScopeAnalyzer";
 
 /**

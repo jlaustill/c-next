@@ -5,7 +5,7 @@
  * Produces TType-based IVariableSymbol with proper IScopeSymbol references.
  */
 
-import * as Parser from "../../../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../../2-Parse/grammar/CNextParser";
 import DimensionResolver from "../utils/DimensionResolver";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import IVariableSymbol from "../../../../transpiler/types/symbols/IVariableSymbol";

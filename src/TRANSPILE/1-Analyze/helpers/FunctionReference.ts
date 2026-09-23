@@ -23,7 +23,7 @@
  * one place the order is written, and every lookup walks it.
  */
 
-import * as Parser from "../../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
 import CodeGenState from "../../../transpiler/state/CodeGenState";
 import IFunctionSymbol from "../../../transpiler/types/symbols/IFunctionSymbol";
 import ExpressionUnwrapper from "../../../utils/ExpressionUnwrapper";

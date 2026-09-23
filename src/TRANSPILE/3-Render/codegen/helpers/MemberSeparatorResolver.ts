@@ -15,7 +15,7 @@
 import ISeparatorContext from "../types/ISeparatorContext";
 import IMemberSeparatorDeps from "../types/IMemberSeparatorDeps";
 import QualifiedCName from "../../../../utils/QualifiedCName";
-import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
+import QualifiedNameGenerator from "../../../../utils/QualifiedNameGenerator";
 
 /**
  * Input parameters for building a separator context

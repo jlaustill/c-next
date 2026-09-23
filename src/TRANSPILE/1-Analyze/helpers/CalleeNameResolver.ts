@@ -18,7 +18,7 @@
  * function of what the caller can see.
  */
 
-import * as Parser from "../../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
 import QualifiedCName from "../../../utils/QualifiedCName";
 import ScopeUtils from "../../../utils/ScopeUtils";
 import ICalleeResolution from "../types/ICalleeResolution";

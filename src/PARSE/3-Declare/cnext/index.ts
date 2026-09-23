@@ -5,7 +5,7 @@
  * Produces TType-based symbols with proper IScopeSymbol references.
  */
 
-import * as Parser from "../../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../2-Parse/grammar/CNextParser";
 import ScopeUtils from "../../../utils/ScopeUtils";
 import TSymbol from "../../../transpiler/types/symbols/TSymbol";
 import IFileSymbols from "../../../transpiler/types/IFileSymbols";

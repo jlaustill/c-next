@@ -25,7 +25,7 @@
  */
 
 import LiteralUtils from "./LiteralUtils.js";
-import * as Parser from "../transpiler/logic/parser/grammar/CNextParser.js";
+import * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
 import UNRESOLVED_DIMENSION from "../transpiler/constants/UNRESOLVED_DIMENSION.js";
 import BareIdentifier from "./BareIdentifier";
 

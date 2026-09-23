@@ -11,13 +11,15 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import generatePostfixExpression from "../PostfixExpressionGenerator";
+import type IPlannedPostfix from "../../../types/IPlannedPostfix";
+import type TPlannedPostfixOp from "../../../types/TPlannedPostfixOp";
 import type IGeneratorInput from "../../IGeneratorInput";
 import type IGeneratorState from "../../IGeneratorState";
 import type IOrchestrator from "../../IOrchestrator";
 import type ICodeGenSymbols from "../../../../../../transpiler/types/ICodeGenSymbols";
 import type TTypeInfo from "../../../../../../transpiler/types/TTypeInfo";
 import type TParameterInfo from "../../../../../../transpiler/types/TParameterInfo";
-import * as Parser from "../../../../../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../../../../../PARSE/2-Parse/grammar/CNextParser";
 import CodeGenState from "../../../../../../transpiler/state/CodeGenState";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
 import createMockSymbols from "../../../../../../transpiler/__tests__/codeGenSymbolsHelpers";
@@ -29,6 +31,20 @@ import createMockSymbols from "../../../../../../transpiler/__tests__/codeGenSym
 // ========================================================================
 // Test Helpers - Mock Input
 // ========================================================================
+
+/**
+ * The two planner operations this file stands in for.
+ *
+ * #1445 box 3: both were declared on `IOrchestrator` and called by **no
+ * production generator** -- `PostfixExpressionGenerator` takes `renderPrimary`
+ * and `foldWidth` as thunks and never asks the orchestrator for either. They
+ * were interface surface this test kept alive, and declaring them locally is
+ * what lets `IOrchestrator` shed its last parse types.
+ */
+interface IPostfixPlannerStub {
+  generatePrimaryExpr(ctx: Parser.PrimaryExpressionContext): string;
+  tryEvaluateConstant(ctx: Parser.ExpressionContext): number | undefined;
+}
 
 function createMockInput(overrides?: {
   symbols?: ICodeGenSymbols;
@@ -120,7 +136,7 @@ function createMockOrchestrator(overrides?: {
   addPendingTempDeclaration?: (decl: string) => void;
   isFloatShadowCurrent?: (name: string) => boolean;
   markFloatShadowCurrent?: (name: string) => void;
-}): IOrchestrator {
+}): IOrchestrator & IPostfixPlannerStub {
   return {
     getInput: vi.fn(),
     getState: vi.fn(),
@@ -145,6 +161,18 @@ function createMockOrchestrator(overrides?: {
     getExpressionEnumType: vi.fn(),
     isStringExpression: vi.fn(),
     getOperatorsFromChildren: vi.fn(),
+    // #1445: the call generator takes planned arguments, and the orchestrator
+    // is where they are built -- this is its only dispatcher. Mirrors what
+    // `CodeGenerator.planCallArguments` does against this file's mock nodes.
+    planCallArguments: vi.fn(
+      (ctx: { expression: () => { getText: () => string }[] } | null) =>
+        ctx?.expression().map((expression) => ({
+          simpleIdentifier: expression.getText(),
+          expressionType: () => null,
+          render: () => expression.getText(),
+          renderByReference: () => `&${expression.getText()}`,
+        })) ?? null,
+    ),
     getSimpleIdentifier: vi.fn(),
     generateFunctionArg: overrides?.generateFunctionArg ?? vi.fn(),
     isConstValue: vi.fn(),
@@ -178,7 +206,6 @@ function createMockOrchestrator(overrides?: {
     setCurrentFunctionReturnType: vi.fn(),
     enterFunctionBody: vi.fn(),
     exitFunctionBody: vi.fn(),
-    setMainArgsName: vi.fn(),
     isMainFunctionWithArgs: vi.fn(),
     updateFunctionParamsAutoConst: vi.fn(),
     markParameterModified: vi.fn(),
@@ -198,51 +225,136 @@ function createMockOrchestrator(overrides?: {
     markFloatShadowCurrent: overrides?.markFloatShadowCurrent ?? vi.fn(),
     hasFloatBitShadow: overrides?.hasFloatBitShadow ?? vi.fn(() => false),
     isFloatShadowCurrent: overrides?.isFloatShadowCurrent ?? vi.fn(() => false),
-  } as unknown as IOrchestrator;
+  } as unknown as IOrchestrator & IPostfixPlannerStub;
 }
 
 // ========================================================================
-// Test Helpers - Mock Parser Contexts
+// Test Helpers - Plans
 // ========================================================================
+//
+// #1445 box 3: the generator takes `IPlannedPostfix` now, so these build plans
+// where they used to build fake parse nodes. The SIGNATURES are unchanged on
+// purpose -- an op is still described by an identifier, a list of index
+// expressions or an argument list -- so every case below still reads as the
+// expression it is about.
 
-function createMockPrimaryExpression(
-  identifier?: string,
-): Parser.PrimaryExpressionContext {
-  return {
-    IDENTIFIER: () => (identifier ? { getText: () => identifier } : null),
-    getText: () => identifier ?? "expr",
-  } as unknown as Parser.PrimaryExpressionContext;
+/** A stand-in for an index expression: all the generator ever needed was text. */
+function createMockExpression(text: string): { getText: () => string } {
+  return { getText: () => text };
 }
 
 function createMockPostfixOp(options?: {
   identifier?: string;
-  expressions?: Parser.ExpressionContext[];
-  argumentList?: Parser.ArgumentListContext | null;
-}): Parser.PostfixOpContext {
+  expressions?: { getText: () => string }[];
+  argumentList?: { expression: () => { getText: () => string }[] } | null;
+}): TPlannedPostfixOp {
+  if (options?.identifier) {
+    return { kind: "member", name: options.identifier };
+  }
+
+  const expressions = options?.expressions ?? [];
+  if (expressions.length > 0) {
+    return {
+      kind: "subscript",
+      indexCount: expressions.length,
+      renderIndexes: () => expressions.map((expr) => expr.getText()),
+      // Rebound by `runPostfix` to the orchestrator's `tryEvaluateConstant`,
+      // which is where these cases configure the Issue #1094 fold.
+      foldWidth: () => undefined,
+      widthText: expressions[expressions.length - 1]?.getText(),
+    } as TPlannedPostfixOp & { widthText?: string };
+  }
+
   return {
-    IDENTIFIER: () =>
-      options?.identifier ? { getText: () => options.identifier } : null,
-    expression: () => options?.expressions ?? [],
-    argumentList: () => options?.argumentList ?? null,
-    start: { line: 1 },
-  } as unknown as Parser.PostfixOpContext;
+    kind: "call",
+    line: 1,
+    // Mirrors what `CodeGenerator.planCallArguments` does, against this file's
+    // argument-list stand-in. It lived on the mock orchestrator until the
+    // generator stopped asking for it.
+    planArguments: () =>
+      options?.argumentList?.expression().map((expression) => ({
+        simpleIdentifier: expression.getText(),
+        expressionType: () => null,
+        render: () => expression.getText(),
+        renderByReference: () => `&${expression.getText()}`,
+      })) ?? null,
+  };
 }
 
-function createMockExpression(text: string): Parser.ExpressionContext {
-  return {
-    getText: () => text,
-  } as unknown as Parser.ExpressionContext;
+/** A plan, plus the primary text `runPostfix` renders through the orchestrator. */
+interface IMockPostfixPlan extends IPlannedPostfix {
+  readonly primaryText: string;
 }
 
 function createMockPostfixExpressionContext(
   rootIdentifier: string | undefined,
-  ops: Parser.PostfixOpContext[],
-): Parser.PostfixExpressionContext {
+  ops: TPlannedPostfixOp[],
+): IMockPostfixPlan {
+  const primaryText = rootIdentifier ?? "expr";
+
+  // Issue #1106, as `CodeGenerator.resolveSubscriptBase` resolves it. Every
+  // case here names its primary, so this is always the bare-identifier arm --
+  // the `this`/`global` arm needs a primary that is NOT an IDENTIFIER, which
+  // these stand-ins cannot express and which the integration corpus covers.
+  const subscriptBase = rootIdentifier
+    ? { name: rootIdentifier, displayName: rootIdentifier }
+    : null;
+
+  let leadingSubscriptCount = 0;
+  for (const op of ops) {
+    if (op.kind !== "subscript") break;
+    leadingSubscriptCount++;
+  }
+
   return {
-    primaryExpression: () => createMockPrimaryExpression(rootIdentifier),
-    postfixOp: () => ops,
-    getText: () => rootIdentifier ?? "expr",
-  } as unknown as Parser.PostfixExpressionContext;
+    primaryText,
+    rootIdentifier,
+    renderPrimary: () => primaryText,
+    subscriptBase,
+    leadingSubscriptCount: subscriptBase ? leadingSubscriptCount : 0,
+    ops,
+  };
+}
+
+/**
+ * Run the generator, routing the primary through the orchestrator.
+ *
+ * The plan carries `renderPrimary`, but most cases below configure what the
+ * primary renders as via `createMockOrchestrator({ generatePrimaryExpr })` --
+ * so the binding happens here rather than at eighty-two call sites.
+ */
+function runPostfix(
+  plan: IMockPostfixPlan,
+  input: IGeneratorInput,
+  state: IGeneratorState,
+  orchestrator: IOrchestrator & IPostfixPlannerStub,
+) {
+  return generatePostfixExpression(
+    {
+      ...plan,
+      renderPrimary: () =>
+        orchestrator.generatePrimaryExpr({
+          getText: () => plan.primaryText,
+        } as unknown as Parser.PrimaryExpressionContext),
+      // Issue #1094's fold is configured per case as the orchestrator's
+      // `tryEvaluateConstant`, so it is bound here for the same reason the
+      // primary is.
+      ops: plan.ops.map((op) => {
+        if (op.kind !== "subscript") return op;
+        const widthText = (op as { widthText?: string }).widthText ?? "";
+        return {
+          ...op,
+          foldWidth: () =>
+            orchestrator.tryEvaluateConstant({
+              getText: () => widthText,
+            } as unknown as Parser.ExpressionContext),
+        };
+      }),
+    },
+    input,
+    state,
+    orchestrator,
+  );
 }
 
 // ========================================================================
@@ -264,7 +376,7 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "x",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("x");
       expect(result.effects).toHaveLength(0);
     });
@@ -292,7 +404,7 @@ describe("PostfixExpressionGenerator", () => {
         isCppMode: () => false,
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("(*point)");
     });
 
@@ -319,7 +431,7 @@ describe("PostfixExpressionGenerator", () => {
         isCppMode: () => true,
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("point");
     });
   });
@@ -335,7 +447,7 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "__GLOBAL_PREFIX__",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("counter");
     });
 
@@ -352,7 +464,7 @@ describe("PostfixExpressionGenerator", () => {
       // The shadowing local is emitted under a qualified C name, so the bare
       // spelling here still denotes the global. This used to throw; rejecting
       // it made a language guarantee unusable rather than fixing the codegen.
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
 
       expect(result.code).toBe("counter");
     });
@@ -386,7 +498,7 @@ describe("PostfixExpressionGenerator", () => {
         }),
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("config.value");
     });
   });
@@ -406,7 +518,7 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "__THIS_SCOPE__",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("Motor__length");
     });
 
@@ -433,7 +545,7 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "__THIS_SCOPE__",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("Motor__speed");
     });
 
@@ -452,7 +564,7 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "__THIS_SCOPE__",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("100");
     });
 
@@ -488,7 +600,7 @@ describe("PostfixExpressionGenerator", () => {
         }),
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("Motor__config.speed");
     });
 
@@ -517,7 +629,7 @@ describe("PostfixExpressionGenerator", () => {
         isKnownStruct: () => false,
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("Motor__value");
     });
 
@@ -536,7 +648,7 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "__THIS_SCOPE__",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("Motor__State");
     });
   });
@@ -567,9 +679,9 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "val",
       });
 
-      expect(() =>
-        generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow("E0886 rejects this in pass 2.1");
+      expect(() => runPostfix(ctx, input, state, orchestrator)).toThrow(
+        "E0886 rejects this in pass 2.1",
+      );
     });
   });
 
@@ -597,7 +709,7 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "str",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("64");
     });
   });
@@ -626,7 +738,7 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "str",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("65");
     });
   });
@@ -673,7 +785,7 @@ describe("PostfixExpressionGenerator", () => {
         },
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("64");
     });
 
@@ -718,7 +830,7 @@ describe("PostfixExpressionGenerator", () => {
         },
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("65");
     });
   });
@@ -752,7 +864,7 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "status",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("((status >> 0) & 1)");
     });
 
@@ -782,9 +894,9 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "status",
       });
 
-      expect(() =>
-        generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow("E0882 rejects this in pass 2.1");
+      expect(() => runPostfix(ctx, input, state, orchestrator)).toThrow(
+        "E0882 rejects this in pass 2.1",
+      );
     });
   });
 
@@ -801,7 +913,7 @@ describe("PostfixExpressionGenerator", () => {
         getScopeSeparator: () => "__",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("LED__on");
     });
 
@@ -818,7 +930,7 @@ describe("PostfixExpressionGenerator", () => {
         getScopeSeparator: (isCpp) => (isCpp ? "::" : "__"),
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("LED::on");
     });
   });
@@ -838,7 +950,7 @@ describe("PostfixExpressionGenerator", () => {
         getScopeSeparator: () => "__",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("Color__Red");
     });
 
@@ -860,7 +972,7 @@ describe("PostfixExpressionGenerator", () => {
         getScopeSeparator: () => "__",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("Color__Red");
     });
   });
@@ -879,7 +991,7 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "GPIO",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("GPIO__PIN0");
     });
 
@@ -900,7 +1012,7 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "GPIO",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("GPIO__PIN0");
     });
   });
@@ -937,7 +1049,7 @@ describe("PostfixExpressionGenerator", () => {
         }),
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("point->x");
     });
 
@@ -972,7 +1084,7 @@ describe("PostfixExpressionGenerator", () => {
         }),
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("point.x");
     });
   });
@@ -1001,7 +1113,7 @@ describe("PostfixExpressionGenerator", () => {
         generateExpression: () => "5",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("arr[5]");
     });
 
@@ -1027,7 +1139,7 @@ describe("PostfixExpressionGenerator", () => {
         generateExpression: () => "3",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("((val >> 3) & 1)");
     });
 
@@ -1045,7 +1157,7 @@ describe("PostfixExpressionGenerator", () => {
         generateExpression: () => "0",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       // Optimization: no shift when index is 0
       expect(result.code).toBe("((GPIO) & 1)");
     });
@@ -1074,9 +1186,9 @@ describe("PostfixExpressionGenerator", () => {
         generateExpression: () => "0",
       });
 
-      expect(() =>
-        generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow("E0883 rejects this in pass 2.1");
+      expect(() => runPostfix(ctx, input, state, orchestrator)).toThrow(
+        "E0883 rejects this in pass 2.1",
+      );
     });
   });
 
@@ -1106,7 +1218,7 @@ describe("PostfixExpressionGenerator", () => {
         generateBitMask: () => "0xFF",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("((val >> 4) & 0xFF)");
     });
 
@@ -1135,7 +1247,7 @@ describe("PostfixExpressionGenerator", () => {
         generateBitMask: () => "0xFF",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("((val) & 0xFF)");
     });
 
@@ -1168,7 +1280,7 @@ describe("PostfixExpressionGenerator", () => {
         tryEvaluateConstant: () => 32,
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       // Width resolved to "32U" (not the identifier "WIDTH"); u32 operand → not 64-bit.
       expect(generateBitMask).toHaveBeenCalledWith("32U", false);
       expect(result.code).toBe("((val) & 0xFFFFFFFFU)");
@@ -1196,7 +1308,7 @@ describe("PostfixExpressionGenerator", () => {
         tryEvaluateConstant: () => undefined,
       });
 
-      generatePostfixExpression(ctx, input, state, orchestrator);
+      runPostfix(ctx, input, state, orchestrator);
       // Non-const width: the generated expression string flows through unchanged.
       expect(generateBitMask).toHaveBeenCalledWith("n", false);
     });
@@ -1226,7 +1338,7 @@ describe("PostfixExpressionGenerator", () => {
         tryEvaluateConstant: () => 40,
       });
 
-      generatePostfixExpression(ctx, input, state, orchestrator);
+      runPostfix(ctx, input, state, orchestrator);
       // u64 operand → is64Bit true, so the mask uses a 64-bit base (1ULL).
       expect(generateBitMask).toHaveBeenCalledWith("40U", true);
     });
@@ -1260,7 +1372,7 @@ describe("PostfixExpressionGenerator", () => {
         isFloatShadowCurrent: () => false,
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       // Uses union member .u for bit access, not memcpy
       expect(result.code).toContain("__bits_f.u");
       expect(result.code).not.toContain("memcpy");
@@ -1299,9 +1411,9 @@ describe("PostfixExpressionGenerator", () => {
         generateExpression: (ctx) => ctx.getText(),
       });
 
-      expect(() =>
-        generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow("E0888 rejects this in pass 2.1");
+      expect(() => runPostfix(ctx, input, state, orchestrator)).toThrow(
+        "E0888 rejects this in pass 2.1",
+      );
     });
 
     it("uses union member when shadow is current (no re-assignment)", () => {
@@ -1331,7 +1443,7 @@ describe("PostfixExpressionGenerator", () => {
         isFloatShadowCurrent: () => true,
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).not.toContain("memcpy");
       // Uses union member .u for bit access
       expect(result.code).toBe("(__bits_f.u & 0xFF)");
@@ -1366,7 +1478,7 @@ describe("PostfixExpressionGenerator", () => {
         isFloatShadowCurrent: () => true,
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       // Const width "64U" passed; f64 union → 64-bit mask base.
       expect(generateBitMask).toHaveBeenCalledWith("64U", true);
       expect(result.code).toBe("(__bits_d.u & 0xFFFFFFFFFFFFFFFFULL)");
@@ -1390,7 +1502,7 @@ describe("PostfixExpressionGenerator", () => {
         generateFunctionArg: () => "1",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toContain("foo");
     });
   });
@@ -1422,7 +1534,7 @@ describe("PostfixExpressionGenerator", () => {
         generateExpression: () => "3",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       // Non-array parameters use array access (they become pointers in C)
       expect(result.code).toBe("buf[3]");
     });
@@ -1451,7 +1563,7 @@ describe("PostfixExpressionGenerator", () => {
         generateExpression: () => "3",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("((val >> 3) & 1)");
     });
   });
@@ -1469,7 +1581,7 @@ describe("PostfixExpressionGenerator", () => {
         getScopeSeparator: (isCpp) => (isCpp ? "::" : "."),
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("std::cout");
     });
   });
@@ -1488,7 +1600,7 @@ describe("PostfixExpressionGenerator", () => {
         getScopeSeparator: (isCpp) => (isCpp ? "::" : "__"),
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("std::cout");
     });
 
@@ -1506,7 +1618,7 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "__GLOBAL_PREFIX__",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("GPIO__PIN0");
     });
   });
@@ -1555,7 +1667,7 @@ describe("PostfixExpressionGenerator", () => {
         }),
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("Motor__length.value");
     });
   });
@@ -1577,7 +1689,7 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "MOTOR__CTRL",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("((MOTOR__CTRL >> 0) & 1)");
     });
 
@@ -1595,9 +1707,9 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "MOTOR__CTRL",
       });
 
-      expect(() =>
-        generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow("E0882 rejects this in pass 2.1");
+      expect(() => runPostfix(ctx, input, state, orchestrator)).toThrow(
+        "E0882 rejects this in pass 2.1",
+      );
     });
   });
 
@@ -1641,7 +1753,7 @@ describe("PostfixExpressionGenerator", () => {
         },
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("((device.flags >> 0) & 1)");
     });
 
@@ -1682,9 +1794,9 @@ describe("PostfixExpressionGenerator", () => {
         },
       });
 
-      expect(() =>
-        generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow("E0882 rejects this in pass 2.1");
+      expect(() => runPostfix(ctx, input, state, orchestrator)).toThrow(
+        "E0882 rejects this in pass 2.1",
+      );
     });
   });
 
@@ -1713,7 +1825,7 @@ describe("PostfixExpressionGenerator", () => {
         generateExpression: (ctx) => ctx.getText(),
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("matrix[0][1]");
     });
   });
@@ -1744,7 +1856,7 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "val",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("32");
     });
 
@@ -1773,7 +1885,7 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "color",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("32");
     });
 
@@ -1799,7 +1911,7 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "arr",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("512"); // 16 * 32 = 512
     });
 
@@ -1826,7 +1938,7 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "str",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("520"); // (64 + 1) * 8 = 520
     });
   });
@@ -1853,7 +1965,7 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "val",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("4"); // 32 / 8 = 4
     });
 
@@ -1879,7 +1991,7 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "arr",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("64"); // 16 * 4 = 64
     });
 
@@ -1906,7 +2018,7 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "str",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("65"); // 64 + 1 = 65
     });
   });
@@ -1934,7 +2046,7 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "arr",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("16");
     });
 
@@ -1948,7 +2060,7 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "args",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("argc");
     });
 
@@ -1973,9 +2085,9 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "val",
       });
 
-      expect(() =>
-        generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow(".element_count is only available on arrays");
+      expect(() => runPostfix(ctx, input, state, orchestrator)).toThrow(
+        ".element_count is only available on arrays",
+      );
     });
   });
 
@@ -2003,7 +2115,7 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "str",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("strlen(str)");
       expect(result.effects).toContainEqual({
         type: "include",
@@ -2032,9 +2144,9 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "val",
       });
 
-      expect(() =>
-        generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow(".char_count is only available on strings");
+      expect(() => runPostfix(ctx, input, state, orchestrator)).toThrow(
+        ".char_count is only available on strings",
+      );
     });
 
     it("throws error for args", () => {
@@ -2047,9 +2159,9 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "args",
       });
 
-      expect(() =>
-        generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow(".char_count is only available on strings");
+      expect(() => runPostfix(ctx, input, state, orchestrator)).toThrow(
+        ".char_count is only available on strings",
+      );
     });
   });
 
@@ -2076,7 +2188,7 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "arr",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toContain("dynamic dimension BUFFER_SIZE");
     });
 
@@ -2102,7 +2214,7 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "arr",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("BUFFER_SIZE");
     });
 
@@ -2116,9 +2228,9 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "args",
       });
 
-      expect(() =>
-        generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow(".bit_length is not supported on 'args'");
+      expect(() => runPostfix(ctx, input, state, orchestrator)).toThrow(
+        ".bit_length is not supported on 'args'",
+      );
     });
 
     it("throws error for byte_length on args", () => {
@@ -2131,9 +2243,9 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "args",
       });
 
-      expect(() =>
-        generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow(".byte_length is not supported on 'args'");
+      expect(() => runPostfix(ctx, input, state, orchestrator)).toThrow(
+        ".byte_length is not supported on 'args'",
+      );
     });
 
     it.each([
@@ -2150,9 +2262,9 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "val",
       });
 
-      expect(() =>
-        generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow("type not found in registry");
+      expect(() => runPostfix(ctx, input, state, orchestrator)).toThrow(
+        "type not found in registry",
+      );
     });
 
     it("throws error for string without capacity", () => {
@@ -2178,9 +2290,9 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "str",
       });
 
-      expect(() =>
-        generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow("unknown capacity");
+      expect(() => runPostfix(ctx, input, state, orchestrator)).toThrow(
+        "unknown capacity",
+      );
     });
 
     it("handles struct field bit_length for string member", () => {
@@ -2212,7 +2324,7 @@ describe("PostfixExpressionGenerator", () => {
         }),
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("264"); // (32 + 1) * 8 = 264
     });
 
@@ -2245,7 +2357,7 @@ describe("PostfixExpressionGenerator", () => {
         }),
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("2"); // 16 / 8 = 2
     });
 
@@ -2279,7 +2391,7 @@ describe("PostfixExpressionGenerator", () => {
         }),
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("64");
     });
 
@@ -2312,9 +2424,9 @@ describe("PostfixExpressionGenerator", () => {
         }),
       });
 
-      expect(() =>
-        generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow(".element_count is only available on arrays");
+      expect(() => runPostfix(ctx, input, state, orchestrator)).toThrow(
+        ".element_count is only available on arrays",
+      );
     });
 
     it("handles struct field char_count for string member", () => {
@@ -2346,7 +2458,7 @@ describe("PostfixExpressionGenerator", () => {
         }),
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("strlen(obj.name)");
     });
 
@@ -2379,9 +2491,9 @@ describe("PostfixExpressionGenerator", () => {
         }),
       });
 
-      expect(() =>
-        generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow(".char_count is only available on strings");
+      expect(() => runPostfix(ctx, input, state, orchestrator)).toThrow(
+        ".char_count is only available on strings",
+      );
     });
 
     it("throws error for unknown type char_count", () => {
@@ -2394,9 +2506,9 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "val",
       });
 
-      expect(() =>
-        generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow("type not found in registry");
+      expect(() => runPostfix(ctx, input, state, orchestrator)).toThrow(
+        "type not found in registry",
+      );
     });
 
     it("throws error for array with unknown dimensions for element_count", () => {
@@ -2421,9 +2533,9 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "arr",
       });
 
-      expect(() =>
-        generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow("unknown dimensions");
+      expect(() => runPostfix(ctx, input, state, orchestrator)).toThrow(
+        "unknown dimensions",
+      );
     });
 
     it("throws error for array with unknown dimensions for bit_length", () => {
@@ -2448,9 +2560,9 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "arr",
       });
 
-      expect(() =>
-        generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow("unknown dimensions");
+      expect(() => runPostfix(ctx, input, state, orchestrator)).toThrow(
+        "unknown dimensions",
+      );
     });
 
     it("handles enum array bit_length", () => {
@@ -2479,7 +2591,7 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "colors",
       });
 
-      const result = generatePostfixExpression(ctx, input, state, orchestrator);
+      const result = runPostfix(ctx, input, state, orchestrator);
       expect(result.code).toBe("128"); // 4 * 32 = 128
     });
 
@@ -2505,9 +2617,9 @@ describe("PostfixExpressionGenerator", () => {
         generatePrimaryExpr: () => "arr",
       });
 
-      expect(() =>
-        generatePostfixExpression(ctx, input, state, orchestrator),
-      ).toThrow("unsupported element type");
+      expect(() => runPostfix(ctx, input, state, orchestrator)).toThrow(
+        "unsupported element type",
+      );
     });
   });
 });

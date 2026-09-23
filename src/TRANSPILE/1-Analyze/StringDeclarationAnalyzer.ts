@@ -29,8 +29,8 @@
 
 import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 
-import { CNextListener } from "../../transpiler/logic/parser/grammar/CNextListener";
-import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
+import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
+import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import CodeGenState from "../../transpiler/state/CodeGenState";
 import ExpressionUnwrapper from "../../utils/ExpressionUnwrapper";
 import ParserUtils from "../../utils/ParserUtils";
@@ -367,7 +367,18 @@ class StringDeclarationListener extends CNextListener {
   private static isConstDeclaration(
     ctx: Parser.VariableDeclarationContext,
   ): boolean {
-    return ctx.getText().startsWith("const");
+    // Ask the grammar, not the text. The rule orders the modifiers
+    // `atomicModifier? volatileModifier? constModifier?`, so the text of
+    // `volatile const string s <- "x"` begins with the volatile keyword and a
+    // `startsWith("const")` test read it as NON-const -- rejecting valid
+    // C-Next with E0862 ("a non-const string requires an explicit capacity")
+    // on a declaration that is const. Every `atomic`/`volatile` unsized string was unreachable,
+    // which is also what hid the qualifier drop in `StringDeclHelper`'s
+    // unsized arm: nothing could get there to expose it.
+    //
+    // `VariableModifierBuilder.build` already asked this way; this was the
+    // second derivation of one predicate, and the text one was the wrong one.
+    return ctx.constModifier() !== null;
   }
 
   /**

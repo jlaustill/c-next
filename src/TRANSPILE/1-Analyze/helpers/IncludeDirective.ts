@@ -12,7 +12,7 @@
  * ADR-010's two forms are searched in different places.
  */
 
-import * as Parser from "../../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
 import IIncludeSpec from "../types/IIncludeSpec";
 
 /** `#include <path>` and `#include "path"`, each closed by its own delimiter. */

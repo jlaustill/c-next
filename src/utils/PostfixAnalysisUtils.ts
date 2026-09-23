@@ -4,7 +4,7 @@
  * Extracts common logic for analyzing assignment targets that may have
  * member access (a.b.c) or subscript access (a[i]).
  */
-import * as Parser from "../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
 
 /**
  * Result of analyzing postfix target operations.

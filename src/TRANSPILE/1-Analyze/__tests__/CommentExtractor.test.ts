@@ -5,8 +5,8 @@
 import { describe, it, expect, vi } from "vitest";
 import { Token } from "antlr4ng";
 import CommentExtractor from "../CommentExtractor";
-import CommentScanner from "../../../transpiler/logic/parser/CommentScanner";
-import { CNextLexer } from "../../../transpiler/logic/parser/grammar/CNextLexer";
+import CommentScanner from "../../../PARSE/2-Parse/CommentScanner";
+import { CNextLexer } from "../../../PARSE/2-Parse/grammar/CNextLexer";
 import ECommentType from "../../../transpiler/types/ECommentType";
 
 // Mock token factory
@@ -26,8 +26,14 @@ const createToken = (opts: {
   channel: opts.channel ?? Token.HIDDEN_CHANNEL,
 });
 
-// Mock CommonTokenStream factory - type matches what CommentExtractor expects
-type MockStream = ConstructorParameters<typeof CommentExtractor>[0];
+// Mock CommonTokenStream factory - type matches what CommentScanner expects.
+//
+// #1445: derived from `CommentScanner`, which is what these tests actually
+// construct. It was derived from `CommentExtractor` while that class also took
+// a stream, so the two agreed by coincidence; `CommentExtractor` now takes the
+// comments themselves, and the scanner is threaded explicitly below -- which is
+// the #1322 split stated in the test rather than assumed.
+type MockStream = ConstructorParameters<typeof CommentScanner>[0];
 
 const createMockStream = (
   tokens: ReturnType<typeof createToken>[],
@@ -399,7 +405,9 @@ describe("CommentExtractor", () => {
           }),
         ];
         const stream = createMockStream(tokens);
-        const extractor = new CommentExtractor(stream);
+        const extractor = new CommentExtractor(
+          new CommentScanner(stream).extractAll(),
+        );
 
         const errors = extractor.validate();
 
@@ -419,7 +427,9 @@ describe("CommentExtractor", () => {
           }),
         ];
         const stream = createMockStream(tokens);
-        const extractor = new CommentExtractor(stream);
+        const extractor = new CommentExtractor(
+          new CommentScanner(stream).extractAll(),
+        );
 
         const errors = extractor.validate();
 
@@ -439,7 +449,9 @@ describe("CommentExtractor", () => {
           }),
         ];
         const stream = createMockStream(tokens);
-        const extractor = new CommentExtractor(stream);
+        const extractor = new CommentExtractor(
+          new CommentScanner(stream).extractAll(),
+        );
 
         const errors = extractor.validate();
 
@@ -457,7 +469,9 @@ describe("CommentExtractor", () => {
           }),
         ];
         const stream = createMockStream(tokens);
-        const extractor = new CommentExtractor(stream);
+        const extractor = new CommentExtractor(
+          new CommentScanner(stream).extractAll(),
+        );
 
         const errors = extractor.validate();
 
@@ -476,7 +490,9 @@ describe("CommentExtractor", () => {
           }),
         ];
         const stream = createMockStream(tokens);
-        const extractor = new CommentExtractor(stream);
+        const extractor = new CommentExtractor(
+          new CommentScanner(stream).extractAll(),
+        );
 
         const errors = extractor.validate();
 
@@ -497,7 +513,9 @@ describe("CommentExtractor", () => {
           }),
         ];
         const stream = createMockStream(tokens);
-        const extractor = new CommentExtractor(stream);
+        const extractor = new CommentExtractor(
+          new CommentScanner(stream).extractAll(),
+        );
 
         const errors = extractor.validate();
 
@@ -517,7 +535,9 @@ describe("CommentExtractor", () => {
           }),
         ];
         const stream = createMockStream(tokens);
-        const extractor = new CommentExtractor(stream);
+        const extractor = new CommentExtractor(
+          new CommentScanner(stream).extractAll(),
+        );
 
         const errors = extractor.validate();
 
@@ -536,7 +556,9 @@ describe("CommentExtractor", () => {
           }),
         ];
         const stream = createMockStream(tokens);
-        const extractor = new CommentExtractor(stream);
+        const extractor = new CommentExtractor(
+          new CommentScanner(stream).extractAll(),
+        );
 
         const errors = extractor.validate();
 
@@ -555,7 +577,9 @@ describe("CommentExtractor", () => {
           }),
         ];
         const stream = createMockStream(tokens);
-        const extractor = new CommentExtractor(stream);
+        const extractor = new CommentExtractor(
+          new CommentScanner(stream).extractAll(),
+        );
 
         const errors = extractor.validate();
 
@@ -575,7 +599,9 @@ describe("CommentExtractor", () => {
           }),
         ];
         const stream = createMockStream(tokens);
-        const extractor = new CommentExtractor(stream);
+        const extractor = new CommentExtractor(
+          new CommentScanner(stream).extractAll(),
+        );
 
         const errors = extractor.validate();
 
@@ -592,7 +618,9 @@ describe("CommentExtractor", () => {
   describe("getErrors", () => {
     it("should return empty array before validation", () => {
       const stream = createMockStream([]);
-      const extractor = new CommentExtractor(stream);
+      const extractor = new CommentExtractor(
+        new CommentScanner(stream).extractAll(),
+      );
 
       expect(extractor.getErrors()).toEqual([]);
     });
@@ -608,7 +636,9 @@ describe("CommentExtractor", () => {
         }),
       ];
       const stream = createMockStream(tokens);
-      const extractor = new CommentExtractor(stream);
+      const extractor = new CommentExtractor(
+        new CommentScanner(stream).extractAll(),
+      );
 
       extractor.validate();
 

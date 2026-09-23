@@ -1,11 +1,21 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import AssignmentExpectedTypeResolver from "../AssignmentExpectedTypeResolver";
-import CNextSourceParser from "../../../../../transpiler/logic/parser/CNextSourceParser";
+import analyzePostfixOps from "../../../../../utils/PostfixAnalysisUtils";
+import CNextSourceParser from "../../../../../PARSE/2-Parse/CNextSourceParser";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 import SymbolTable from "../../../../../transpiler/state/SymbolTable";
 
 /**
  * Create a mock assignment target context by parsing a minimal assignment statement.
+ */
+/**
+ * Parse a target and reduce it to the shape the resolver now takes (#1445).
+ *
+ * The parse is still real -- these are not fabricated nodes. What changed is
+ * that the resolver no longer walks the node, so the walk happens here,
+ * mirroring `CodeGenerator.generateAssignment`. Six lines duplicated into a
+ * test is the cost of the resolver naming no parse type; the alternative was
+ * exporting the walk as production surface that only a test calls.
  */
 function parseAssignmentTarget(target: string) {
   const source = `void test() { ${target} <- 0; }`;
@@ -15,7 +25,22 @@ function parseAssignmentTarget(target: string) {
   const block = func!.block();
   const stmt = block!.statement(0)!;
   const assignStmt = stmt.assignmentStatement()!;
-  return assignStmt.assignmentTarget();
+  const targetCtx = assignStmt.assignmentTarget();
+
+  const postfixOps = targetCtx.postfixTargetOp();
+  const baseId = targetCtx.IDENTIFIER()?.getText();
+  const chain =
+    baseId && postfixOps.length > 0
+      ? analyzePostfixOps(baseId, postfixOps)
+      : { identifiers: [] as string[], hasSubscript: false };
+
+  return {
+    baseId,
+    identifiers: chain.identifiers,
+    hasSubscript: chain.hasSubscript,
+    hasRangeSubscript: postfixOps.some((op) => op.expression().length === 2),
+    hasPostfixOps: postfixOps.length > 0,
+  };
 }
 
 /**

@@ -15,8 +15,8 @@
  * gated.
  */
 
-import { CommonTokenStream } from "antlr4ng";
-import { ProgramContext } from "../../transpiler/logic/parser/grammar/CNextParser";
+import { ProgramContext } from "../../PARSE/2-Parse/grammar/CNextParser";
+import IComment from "../../transpiler/types/IComment";
 import CppClassInitializerAnalyzer from "./CppClassInitializerAnalyzer";
 import DefineDirectiveAnalyzer from "./DefineDirectiveAnalyzer";
 import IdentifierSyntaxAnalyzer from "./IdentifierSyntaxAnalyzer";
@@ -179,13 +179,13 @@ interface IAnalyzerStep {
  * Run all semantic analyzers on a parsed program.
  *
  * @param tree - The parsed program AST
- * @param tokenStream - Token stream for comment validation
+ * @param comments - 1.2 Parse's comments, for MISRA 3.1/3.2 validation
  * @param options - Optional configuration including external struct info
  * @returns Array of errors (empty if all pass)
  */
 function runAnalyzers(
   tree: ProgramContext,
-  tokenStream: CommonTokenStream,
+  comments: readonly IComment[],
   options: IAnalyzerOptions,
 ): ITranspileError[] {
   const errors: ITranspileError[] = [];
@@ -435,7 +435,7 @@ function runAnalyzers(
       // Last, and does not halt: comment findings are reported alongside
       // whatever else the file produced.
       label: "comment validation (MISRA C:2012 Rules 3.1, 3.2 -- ADR-043)",
-      run: () => new CommentExtractor(tokenStream).validate(),
+      run: () => new CommentExtractor(comments).validate(),
       format: (e) => `error[MISRA-${e.rule}]: ${e.message}`,
       advisory: true,
     },

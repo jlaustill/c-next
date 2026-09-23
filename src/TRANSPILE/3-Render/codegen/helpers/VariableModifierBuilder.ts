@@ -10,21 +10,8 @@
  * - Validation that atomic and volatile are not both specified
  */
 
+import IRenderedModifiers from "../types/IRenderedModifiers";
 import invariant from "../../../../utils/invariant";
-
-/**
- * Result from building variable modifiers.
- */
-interface IVariableModifiers {
-  /** "const " or "" */
-  const: string;
-  /** "volatile " for atomic modifier or "" */
-  atomic: string;
-  /** "volatile " for volatile modifier or "" */
-  volatile: string;
-  /** "extern " for top-level const in C++ or "" */
-  extern: string;
-}
 
 /**
  * Context interface for variable declarations that have modifiers.
@@ -58,7 +45,7 @@ class VariableModifierBuilder {
     inFunctionBody: boolean,
     hasInitializer: boolean = false,
     cppMode: boolean = false,
-  ): IVariableModifiers {
+  ): IRenderedModifiers {
     const hasConst = ctx.constModifier?.() ?? false;
     const constMod = hasConst ? "const " : "";
     const atomicMod = ctx.atomicModifier() ? "volatile " : "";
@@ -103,7 +90,7 @@ class VariableModifierBuilder {
    */
   static buildSimple(
     ctx: IModifierContext,
-  ): Pick<IVariableModifiers, "atomic" | "volatile"> {
+  ): Pick<IRenderedModifiers, "atomic" | "volatile"> {
     return {
       atomic: ctx.atomicModifier() ? "volatile " : "",
       volatile: ctx.volatileModifier() ? "volatile " : "",
@@ -116,7 +103,7 @@ class VariableModifierBuilder {
    * @param modifiers - The modifier object
    * @returns Combined string like "extern const volatile "
    */
-  static toPrefix(modifiers: IVariableModifiers): string {
+  static toPrefix(modifiers: IRenderedModifiers): string {
     return `${modifiers.extern}${modifiers.const}${modifiers.atomic}${modifiers.volatile}`;
   }
 }

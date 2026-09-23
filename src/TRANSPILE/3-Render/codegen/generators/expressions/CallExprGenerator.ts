@@ -6,12 +6,13 @@
  * - C-Next function calls with pass-by-reference semantics
  * - C function calls with pass-by-value semantics
  * - Const-to-non-const validation (ADR-013)
+ *
+ * #1445 box 3: takes `IPlannedCallArgument[]`, not nodes. It asked an argument
+ * node four things -- is it a bare identifier, what type is it, render it,
+ * render it by reference -- and three of those are deferred because exactly
+ * ONE render may happen per argument. See `IPlannedCallArgument`.
  */
 import invariant from "../../../../../utils/invariant";
-import {
-  ArgumentListContext,
-  ExpressionContext,
-} from "../../../../../transpiler/logic/parser/grammar/CNextParser";
 import IGeneratorOutput from "../IGeneratorOutput";
 import TGeneratorEffect from "../TGeneratorEffect";
 import IGeneratorInput from "../IGeneratorInput";
@@ -20,20 +21,21 @@ import IOrchestrator from "../IOrchestrator";
 import CallExprUtils from "./CallExprUtils";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 import C_TYPE_WIDTH from "../../types/C_TYPE_WIDTH";
+import type IPlannedCallArgument from "../../types/IPlannedCallArgument";
 
 /**
  * Issue #304: Wrap argument with static_cast if it's a C++ enum class
  * being passed to an integer parameter.
  *
  * @param argCode - The generated argument code
- * @param argExpr - The argument expression context (for type lookup)
+ * @param arg - The planned argument (for its type)
  * @param targetParamBaseType - The target parameter's base type (if known)
  * @param orchestrator - Orchestrator for type checking methods
  * @returns The argument code, possibly wrapped with static_cast
  */
 const wrapWithCppEnumCast = (
   argCode: string,
-  argExpr: ExpressionContext,
+  arg: IPlannedCallArgument,
   targetParamBaseType: string | undefined,
   orchestrator: IOrchestrator,
 ): string => {
@@ -41,7 +43,7 @@ const wrapWithCppEnumCast = (
     return argCode;
   }
 
-  const argType = orchestrator.getExpressionType(argExpr);
+  const argType = arg.expressionType();
   if (argType && orchestrator.isCppEnumClass(argType)) {
     if (orchestrator.isIntegerType(targetParamBaseType)) {
       const cType = CallExprUtils.mapTypeToCType(targetParamBaseType);
@@ -114,12 +116,11 @@ const _parameterExpectsAddressOf = (
  * or the argument is already an address-of expression.
  */
 const _resolveArgType = (
-  e: ExpressionContext,
+  arg: IPlannedCallArgument,
   argCode: string,
   typeInfoBaseType: string | undefined,
-  orchestrator: IOrchestrator,
 ): string | null => {
-  const exprType = orchestrator.getExpressionType(e);
+  const exprType = arg.expressionType();
   if (exprType) return exprType;
   if (argCode.startsWith("&")) return null;
   if (typeInfoBaseType) return typeInfoBaseType;
@@ -134,14 +135,14 @@ const _resolveArgType = (
  * Issue #872: Sets expectedType for MISRA 7.2 U suffix on unsigned literals.
  */
 const _generateCFunctionArg = (
-  e: ExpressionContext,
+  arg: IPlannedCallArgument,
   targetParam: IResolvedParam["param"],
   orchestrator: IOrchestrator,
 ): string => {
   // Issue #937: Check if argument is a callback-promoted parameter (already a pointer)
   // BEFORE generating the expression. If target expects a pointer and we have a
   // callback-promoted param, use the identifier directly instead of dereferencing.
-  const argIdentifier = orchestrator.getSimpleIdentifier(e);
+  const argIdentifier = arg.simpleIdentifier;
   const paramInfo = argIdentifier
     ? CodeGenState.currentParameters.get(argIdentifier)
     : undefined;
@@ -150,9 +151,12 @@ const _generateCFunctionArg = (
   // If target expects a pointer and argument is a callback-promoted param,
   // use the identifier directly (it's already a pointer matching the typedef)
   if (targetParam?.baseType?.endsWith("*") && isCallbackPromotedParam) {
+    // `argIdentifier` is non-null here only because `isCallbackPromotedParam`
+    // implies it -- `paramInfo` is undefined without it. That coupling is the
+    // assertion's only guard.
     return wrapWithCppEnumCast(
       argIdentifier!,
-      e,
+      arg,
       targetParam?.baseType,
       orchestrator,
     );
@@ -162,19 +166,24 @@ const _generateCFunctionArg = (
   // (bare enums in function args was never allowed - changing that requires ADR approval)
   const argCode = CodeGenState.withExpectedType(
     targetParam?.baseType,
-    () => orchestrator.generateExpression(e),
+    arg.render,
     true, // suppressEnumResolution
   );
 
   // Issue #322: Check if parameter expects a pointer and argument is a struct
   if (!targetParam?.baseType?.endsWith("*")) {
-    return wrapWithCppEnumCast(argCode, e, targetParam?.baseType, orchestrator);
+    return wrapWithCppEnumCast(
+      argCode,
+      arg,
+      targetParam?.baseType,
+      orchestrator,
+    );
   }
 
   // Resolve the argument's type (expression type → variable registry → C symbol
   // table for extern globals) to decide whether it needs address-of.
   const typeInfo = CodeGenState.getVariableTypeInfo(argCode);
-  const argType = _resolveArgType(e, argCode, typeInfo?.baseType, orchestrator);
+  const argType = _resolveArgType(arg, argCode, typeInfo?.baseType);
   // Issue #895 Bug B: a variable already inferred as a pointer must not get `&`.
   const isPointerVariable = typeInfo?.isPointer ?? false;
 
@@ -201,7 +210,7 @@ const _generateCFunctionArg = (
 
   return wrapWithCppEnumCast(
     finalArgCode,
-    e,
+    arg,
     targetParam?.baseType,
     orchestrator,
   );
@@ -257,7 +266,7 @@ const _shouldPassByValue = (
  * Generate C code for a function call.
  *
  * @param funcExpr - The function name or expression being called
- * @param argCtx - The argument list context (null for empty calls)
+ * @param args - The planned arguments (null when the call declares none)
  * @param input - Generator input (type registry, function signatures, etc.)
  * @param _state - Generator state (unused but part of signature)
  * @param orchestrator - Orchestrator for callbacks into CodeGenerator
@@ -265,33 +274,35 @@ const _shouldPassByValue = (
  */
 const generateFunctionCall = (
   funcExpr: string,
-  argCtx: ArgumentListContext | null,
+  args: readonly IPlannedCallArgument[] | null,
   input: IGeneratorInput,
   _state: IGeneratorState,
   orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
 
-  // Empty function call
-  if (!argCtx) {
+  // Empty function call. This test stays FIRST: a `safe_div` written with no
+  // argument list emits `safe_div()` here, BEFORE the four-argument invariant
+  // below can fire.
+  if (!args) {
     return { code: `${funcExpr}()`, effects };
   }
-
-  const argExprs = argCtx.expression();
 
   // Check if this is a C-Next function (uses pass-by-reference)
   const isCNextFunc = orchestrator.isCNextFunction(funcExpr);
 
   // ADR-051: Handle safe_div() and safe_mod() built-in functions
   if (funcExpr === "safe_div" || funcExpr === "safe_mod") {
-    return generateSafeDivMod(funcExpr, argExprs, orchestrator, effects);
+    return generateSafeDivMod(funcExpr, args, effects);
   }
 
   // Regular function call handling
   // #1322: a const argument to a non-const parameter is E0878 in pass 2.1.
   if (isCNextFunc) {
-    // Issue #268: Track pass-through modifications for auto-const
-    trackPassThroughModifications(funcExpr, argExprs, orchestrator);
+    // Issue #268: Track pass-through modifications for auto-const. Runs BEFORE
+    // any argument renders, and mutates auto-const state -- it must not be
+    // folded into the map below.
+    trackPassThroughModifications(funcExpr, args, orchestrator);
   }
 
   // Get function signature once for all arguments
@@ -299,9 +310,9 @@ const generateFunctionCall = (
 
   // Issue #992: Clear inDeclarationInit for function call arguments — struct
   // initializers inside function args need compound literals, not plain designated initializers.
-  const args = CodeGenState.withoutDeclarationInit(() =>
-    argExprs
-      .map((e, idx) => {
+  const rendered = CodeGenState.withoutDeclarationInit(() =>
+    args
+      .map((arg, idx) => {
         // Get parameter type info from local signature or cross-file SymbolTable
         const resolved = CallExprUtils.resolveTargetParam(
           sig,
@@ -313,7 +324,7 @@ const generateFunctionCall = (
 
         // C/C++ function: use pass-by-value semantics
         if (!isCNextFunc) {
-          return _generateCFunctionArg(e, targetParam, orchestrator);
+          return _generateCFunctionArg(arg, targetParam, orchestrator);
         }
 
         // C-Next function: check if target parameter should be passed by value
@@ -329,24 +340,24 @@ const generateFunctionCall = (
           // Issue #872: Set expectedType for MISRA 7.2 compliance, but suppress bare enum resolution
           const argCode = CodeGenState.withExpectedType(
             targetParam?.baseType,
-            () => orchestrator.generateExpression(e),
+            arg.render,
             true, // suppressEnumResolution
           );
           return wrapWithCppEnumCast(
             argCode,
-            e,
+            arg,
             targetParam?.baseType,
             orchestrator,
           );
         }
 
         // Target parameter is pass-by-reference: use & logic
-        return orchestrator.generateFunctionArg(e, targetParam?.baseType);
+        return arg.renderByReference(targetParam?.baseType);
       })
       .join(", "),
   );
 
-  return { code: `${funcExpr}(${args})`, effects };
+  return { code: `${funcExpr}(${rendered})`, effects };
 };
 
 /**
@@ -360,8 +371,7 @@ const generateFunctionCall = (
  */
 const generateSafeDivMod = (
   funcName: string,
-  argExprs: ExpressionContext[],
-  orchestrator: IOrchestrator,
+  args: readonly IPlannedCallArgument[],
   effects: TGeneratorEffect[],
 ): IGeneratorOutput => {
   // #1322: ADR-051's call shape is E0884 (four arguments) and E0885 (the first
@@ -369,12 +379,12 @@ const generateSafeDivMod = (
   // E0877 there -- that last one was accepted here and emitted `&K` into a
   // non-const pointer parameter.
   invariant(
-    argExprs.length === 4,
+    args.length === 4,
     `${funcName} takes four arguments -- E0884 rejects this in pass 2.1, before this runs`,
   );
 
   // Get the output parameter (first argument) to determine type
-  const outputArgId = orchestrator.getSimpleIdentifier(argExprs[0]);
+  const outputArgId = args[0].simpleIdentifier;
   invariant(
     outputArgId,
     `${funcName}'s first argument is a variable -- E0885 rejects this in pass 2.1, before this runs`,
@@ -395,10 +405,12 @@ const generateSafeDivMod = (
   );
 
   // Generate arguments: &output, numerator, divisor, defaultValue
-  const outputArg = `&${orchestrator.generateExpression(argExprs[0])}`;
-  const numeratorArg = orchestrator.generateExpression(argExprs[1]);
-  const divisorArg = orchestrator.generateExpression(argExprs[2]);
-  const defaultArg = orchestrator.generateExpression(argExprs[3]);
+  // These four render OUTSIDE `withoutDeclarationInit`, because the early
+  // return above precedes that scope. Every other route renders inside it.
+  const outputArg = `&${args[0].render()}`;
+  const numeratorArg = args[1].render();
+  const divisorArg = args[2].render();
+  const defaultArg = args[3].render();
 
   const helperName = CallExprUtils.generateSafeDivModHelperName(
     funcName as "safe_div" | "safe_mod",
@@ -432,11 +444,11 @@ const generateSafeDivMod = (
  */
 const trackPassThroughModifications = (
   funcName: string,
-  argExprs: ExpressionContext[],
+  args: readonly IPlannedCallArgument[],
   orchestrator: IOrchestrator,
 ): void => {
-  for (let argIdx = 0; argIdx < argExprs.length; argIdx++) {
-    const argId = orchestrator.getSimpleIdentifier(argExprs[argIdx]);
+  for (let argIdx = 0; argIdx < args.length; argIdx++) {
+    const argId = args[argIdx].simpleIdentifier;
     if (!argId) continue;
 
     // Check if this argument is a parameter of the current function

@@ -26,12 +26,26 @@ function createMockContext(
 
   return {
     identifiers,
-    subscripts: [],
+    ...HandlerTestUtils.subscriptsOf([]),
     isCompound: false,
     cnextOp: "<-",
     cOp: "=",
     generatedValue: '"hello"',
-    targetCtx: {} as never,
+    // #1445: renders, not nodes -- each delegates to the mocked generator the
+    // cases already configure, so a case that overrides
+    // `generateAssignmentTarget` or `analyzeMemberChainForBitAccess` still
+    // controls what this returns.
+    renderTarget: () =>
+      HandlerTestUtils.planner().generateAssignmentTarget(null as never),
+    analyzeTargetForBitAccess: () =>
+      HandlerTestUtils.planner().analyzeMemberChainForBitAccess(null as never),
+    targetLine: 1,
+    hasValue: true,
+    valueExpressionType: () => null,
+    valueIntegerType: () => null,
+    foldValue: () =>
+      HandlerTestUtils.planner().tryEvaluateConstant(null as never),
+    postfixOps: [],
     resolvedTarget,
     resolvedBaseIdentifier,
     ...overrides,
@@ -195,7 +209,7 @@ describe("StringHandlers", () => {
       ]);
       const ctx = createMockContext({
         identifiers: ["names"],
-        subscripts: [{} as never],
+        ...HandlerTestUtils.subscriptsOf([{} as never]),
       });
 
       const handler = stringHandlers.find(
@@ -221,7 +235,7 @@ describe("StringHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["config", "items"],
-        subscripts: [{} as never],
+        ...HandlerTestUtils.subscriptsOf([{} as never]),
       });
 
       const handler = stringHandlers.find(

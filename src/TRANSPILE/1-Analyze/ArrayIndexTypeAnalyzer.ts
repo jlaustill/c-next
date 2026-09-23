@@ -15,8 +15,8 @@
  */
 
 import { ParseTreeWalker } from "antlr4ng";
-import { CNextListener } from "../../transpiler/logic/parser/grammar/CNextListener";
-import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
+import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
+import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import IArrayIndexTypeError from "./types/IArrayIndexTypeError";
 import LiteralUtils from "../../utils/LiteralUtils";
 import ParserUtils from "../../utils/ParserUtils";

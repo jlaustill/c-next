@@ -178,7 +178,7 @@ class AssignmentClassifier {
     }
 
     const ids = ctx.identifiers;
-    if (ctx.subscripts.length !== 0) {
+    if (ctx.subscriptCount !== 0) {
       return null;
     }
 
@@ -325,7 +325,7 @@ class AssignmentClassifier {
     ctx: IAssignmentContext,
   ): AssignmentKind | null {
     // Need subscripts through memberAccess pattern
-    if (!ctx.hasMemberAccess || ctx.subscripts.length === 0) {
+    if (!ctx.hasMemberAccess || ctx.subscriptCount === 0) {
       return null;
     }
 
@@ -347,7 +347,7 @@ class AssignmentClassifier {
     // ranges were broken.
     const registerKind = AssignmentClassifier.classifyRegisterBitAccess(
       ids,
-      ctx.subscripts.length,
+      ctx.subscriptCount,
     );
     if (registerKind !== null) {
       return registerKind;
@@ -371,7 +371,7 @@ class AssignmentClassifier {
     if (ids.length === 1) {
       return AssignmentClassifier.classifyMultiDimArrayAccess(
         typeInfo,
-        ctx.subscripts.length,
+        ctx.subscriptCount,
       );
     }
 
@@ -380,7 +380,7 @@ class AssignmentClassifier {
       return AssignmentClassifier.classifyBitmapArrayField(
         ids[1],
         typeInfo,
-        ctx.subscripts.length,
+        ctx.subscriptCount,
       );
     }
 
@@ -504,7 +504,7 @@ class AssignmentClassifier {
       // register (#1244).
       const registerKind = AssignmentClassifier.classifyRegisterBitAccess(
         ctx.identifiers,
-        ctx.subscripts.length,
+        ctx.subscriptCount,
       );
       if (registerKind !== null) {
         return registerKind;
@@ -694,7 +694,9 @@ class AssignmentClassifier {
   ): AssignmentKind {
     // Check for scoped register first
     if (CodeGenState.symbols!.knownRegisters.has(scopedRegName)) {
-      const hasBitRange = ctx.postfixOps.some((op) => op.COMMA() !== null);
+      const hasBitRange = ctx.postfixOps.some(
+        (op) => op.kind === "subscript" && op.indexCount === 2,
+      );
       return hasBitRange
         ? AssignmentKind.SCOPED_REGISTER_BIT_RANGE
         : AssignmentKind.SCOPED_REGISTER_BIT;
@@ -726,7 +728,7 @@ class AssignmentClassifier {
       return null;
     }
 
-    if (!ctx.hasArrayAccess || ctx.subscripts.length === 0) {
+    if (!ctx.hasArrayAccess || ctx.subscriptCount === 0) {
       return null;
     }
 
@@ -768,9 +770,10 @@ class AssignmentClassifier {
     // this path and the read path share the decision, not just the check.
     SubscriptDepthValidator.validate(
       typeInfo ?? undefined,
+      // #1445: counted off the PLANNED ops, which carry `kind` -- the node's
+      // `expression().length` said the same thing and is no longer here.
       SubscriptDepthValidator.countLeadingSubscripts(
-        ctx.postfixOps,
-        memberOpCount,
+        ctx.postfixOps.slice(memberOpCount),
       ),
       displayName,
     );
@@ -788,12 +791,12 @@ class AssignmentClassifier {
       case "array_element":
         // Multi-dimensional array: matrix[i][j] has multiple subscript operations
         // but each with 1 expression (vs slice [0, 5] with 2 expressions in 1 op)
-        if (ctx.subscripts.length > 1) {
+        if (ctx.subscriptCount > 1) {
           // Check if last subscript is bit access on an integer array element
           // e.g., matrix[i][j][bit] where matrix is 2D integer array
           const numDims = typeInfo?.arrayDimensions?.length ?? 0;
           if (
-            ctx.subscripts.length === numDims + 1 &&
+            ctx.subscriptCount === numDims + 1 &&
             typeInfo &&
             TypeCheckUtils.isInteger(typeInfo.baseType)
           ) {
@@ -968,7 +971,7 @@ class AssignmentClassifier {
       !ctx.hasMemberAccess ||
       !ctx.hasArrayAccess ||
       !structFieldNames ||
-      ctx.subscripts.length !== 1
+      ctx.subscriptCount !== 1
     ) {
       return null;
     }

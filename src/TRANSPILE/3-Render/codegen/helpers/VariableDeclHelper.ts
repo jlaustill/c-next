@@ -1,73 +1,46 @@
 /**
- * VariableDeclHelper - Generates variable declarations
+ * VariableDeclHelper - Renders variable declarations
  *
  * Issue #792: Extracted from CodeGenerator to reduce file size.
  *
  * Handles:
  * - Variable declarations with initializers
- * - Array declarations with dimension parsing
- * - Array syntax validation (C-Next style vs C-style)
- * - Integer initializer validation
+ * - Array declarations with dimension placement
  * - C++ constructor declarations
  *
- * Uses CodeGenState for shared state and callback interfaces for
- * CodeGenerator dependencies.
+ * ## It renders a plan; it does not read a tree (#1445 box 3)
+ *
+ * This module used to take a `VariableDeclarationContext` and ask it the same
+ * questions repeatedly -- is there an initializer, is there an arrayType, what
+ * are the trailing dimensions -- across four helpers behind FOUR callback
+ * interfaces, each naming its own subset of grammar types. The questions are
+ * answered once now, by `CodeGenerator.planVariableDecl`, and what crosses is
+ * `TPlannedVariableDecl`.
+ *
+ * ## The planner writes state, and that is not an accident
+ *
+ * Building the plan registers the variable's type info, marks it as a pointer
+ * when its type was inferred as one, and resolves its emitted name -- in that
+ * order, because `emittedLocalName` is only correct after registration and
+ * ADR-045's string discrimination reads the registry that registration filled.
+ * The plan is therefore built immediately before it is rendered, in the same
+ * call. What is left here is assembly: prefixes, dimension placement, the
+ * MISRA Rule 10.3 cast, and the C++ assignment queue.
  */
 
-import ISubstringOps from "../types/ISubstringOps";
-import IStringConcatOps from "../types/IStringConcatOps";
-import * as Parser from "../../../../transpiler/logic/parser/grammar/CNextParser";
 import CodeGenState from "../../../../transpiler/state/CodeGenState";
 import invariant from "../../../../utils/invariant";
 import ArrayInitHelper from "./ArrayInitHelper";
 import CppModeHelper from "./CppModeHelper";
 import NarrowingCastHelper from "./NarrowingCastHelper";
 import StringDeclHelper from "./StringDeclHelper";
-import VariableModifierBuilder from "./VariableModifierBuilder";
+import IPlannedArrayDeclaration from "../types/IPlannedArrayDeclaration";
+import TPlannedVariableDecl from "../types/TPlannedVariableDecl";
+import TPlannedVariableInitializer from "../types/TPlannedVariableInitializer";
 import TYPE_MAP from "../types/TYPE_MAP";
-import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
-import LiteralUtils from "../../../../utils/LiteralUtils";
 
 /**
- * Callbacks for array type dimension generation.
- */
-interface IArrayTypeDimCallbacks {
-  /** Try to evaluate expression as constant value */
-  tryEvaluateConstant: (ctx: Parser.ExpressionContext) => number | undefined;
-  /** Generate expression code */
-  generateExpression: (ctx: Parser.ExpressionContext) => string;
-}
-
-/**
- * Callbacks for array declaration handling.
- */
-interface IArrayDeclCallbacks {
-  /** Generate expression code */
-  generateExpression: (ctx: Parser.ExpressionContext) => string;
-  /** Get type name from type context */
-  getTypeName: (ctx: Parser.TypeContext) => string;
-  /** Generate array dimensions from contexts */
-  generateArrayDimensions: (dims: Parser.ArrayDimensionContext[]) => string;
-  /** Try to evaluate expression as constant value */
-  tryEvaluateConstant: (ctx: Parser.ExpressionContext) => number | undefined;
-}
-
-/**
- * Callbacks for variable initializer generation.
- */
-interface IVariableInitCallbacks {
-  /** Generate expression code */
-  generateExpression: (ctx: Parser.ExpressionContext) => string;
-  /** Get type name from type context */
-  getTypeName: (ctx: Parser.TypeContext) => string;
-  /** Get zero initializer for a type */
-  getZeroInitializer: (ctx: Parser.TypeContext, isArray: boolean) => string;
-  /** Get expression type for validation */
-  getExpressionType: (ctx: Parser.ExpressionContext) => string | null;
-}
-
-/**
- * Result from handling array declaration.
+ * Result from rendering the array half of a declaration.
  */
 interface IArrayDeclResult {
   /** Whether array init was fully handled (early return) */
@@ -81,116 +54,11 @@ interface IArrayDeclResult {
 }
 
 /**
- * String concatenation operands extracted from expression.
- */
-/**
- * Callbacks for the full variable declaration orchestrator.
- */
-interface IVariableDeclCallbacks {
-  /** Generate expression code */
-  generateExpression: (ctx: Parser.ExpressionContext) => string;
-  /** Generate type code from type context */
-  generateType: (ctx: Parser.TypeContext) => string;
-  /** Get type name from type context */
-  getTypeName: (ctx: Parser.TypeContext) => string;
-  /** Generate array dimensions from contexts */
-  generateArrayDimensions: (dims: Parser.ArrayDimensionContext[]) => string;
-  /** Try to evaluate expression as constant value */
-  tryEvaluateConstant: (ctx: Parser.ExpressionContext) => number | undefined;
-  /** Get zero initializer for a type */
-  getZeroInitializer: (ctx: Parser.TypeContext, isArray: boolean) => string;
-  /** Get expression type for validation */
-  getExpressionType: (ctx: Parser.ExpressionContext) => string | null;
-  /** Infer variable type with C pointer handling */
-  inferVariableType: (
-    ctx: Parser.VariableDeclarationContext,
-    name: string,
-  ) => string;
-  /** Track local variable metadata */
-  trackLocalVariable: (
-    ctx: Parser.VariableDeclarationContext,
-    name: string,
-  ) => void;
-  /** Issue #895 Bug B: Mark variable as pointer in type registry */
-  markVariableAsPointer: (name: string) => void;
-  /** Get string concatenation operands */
-  getStringConcatOperands: (
-    ctx: Parser.ExpressionContext,
-  ) => IStringConcatOps | null;
-  /** Get substring extraction operands */
-  getSubstringOperands: (ctx: Parser.ExpressionContext) => ISubstringOps | null;
-  /** Get string expression capacity */
-  getStringExprCapacity: (exprCode: string) => number | null;
-  /** Request include for string operations */
-}
-
-/**
- * Generates variable declarations in C.
+ * Renders variable declarations in C.
  */
 class VariableDeclHelper {
   // ========================================================================
-  // Tier 1: Pure Utilities (no dependencies)
-  // ========================================================================
-
-  /**
-   * Parse first array dimension from arrayType syntax for size validation.
-   * Returns numeric value if dimension is a literal, null otherwise.
-   *
-   * @param typeCtx - Type context containing potential arrayType
-   * @returns First dimension as number, or null if not available/numeric
-   */
-  static parseArrayTypeDimension(typeCtx: Parser.TypeContext): number | null {
-    if (!typeCtx.arrayType()) {
-      return null;
-    }
-    const dims = typeCtx.arrayType()!.arrayTypeDimension();
-    if (dims.length === 0) {
-      return null;
-    }
-    const sizeExpr = dims[0].expression();
-    if (!sizeExpr) {
-      return null;
-    }
-    // `LiteralUtils`, not a local digit test. This answer MUST match
-    // `TypeRegistrationEngine.parseArrayTypeDimension`, which carries the same
-    // name and asks the same question of the same dimension; the two differ
-    // only in the shape of context they are handed. While this one folded
-    // decimal alone, `u8[0x8] a <- [7*]` registered a size of 8 and emitted
-    // `{7U}` -- one filled slot and seven zeroed ones, clean compile, exit 0.
-    return LiteralUtils.parseIntegerLiteral(sizeExpr.getText()) ?? null;
-  }
-
-  /**
-   * Parse first array dimension from arrayDimension contexts for validation.
-   * Returns numeric value if dimension is a literal, null otherwise.
-   *
-   * @param arrayDims - Array dimension contexts
-   * @returns First dimension as number, or null if not available/numeric
-   */
-  static parseFirstArrayDimension(
-    arrayDims: Parser.ArrayDimensionContext[],
-  ): number | null {
-    if (arrayDims.length === 0 || !arrayDims[0].expression()) {
-      return null;
-    }
-    // Same evaluator as its sibling above, for the same reason -- but note
-    // this line is NOT covered, and the fix here is by symmetry rather than by
-    // a reddened fixture. `arrayDimension` is the C-STYLE trailing form
-    // (`u8 arr[8]`), which `validateArrayDeclarationSyntax` rejects before
-    // codegen, so an unconditional throw on this line leaves 1249/1249 green
-    // while a throw at the top of the method reddens 20 -- every one of those
-    // stopping at the `length === 0` guard above. Kept aligned with the
-    // sibling anyway: the two must never differ in the answer, and a second
-    // evaluator that folds fewer forms is what produced the defect the
-    // `issue-1450-hex-array-dimension-fill` fixture pins.
-    return (
-      LiteralUtils.parseIntegerLiteral(arrayDims[0].expression()!.getText()) ??
-      null
-    );
-  }
-
-  // ========================================================================
-  // Tier 2: Simple Operations (CodeGenState + simple callbacks)
+  // Tier 1: Pure Operations (CodeGenState only)
   // ========================================================================
 
   /**
@@ -229,98 +97,23 @@ class VariableDeclHelper {
   }
 
   // ========================================================================
-  // Tier 3: Complex Operations (callbacks + ArrayInitHelper)
+  // Tier 2: Rendering one half of a declaration
   // ========================================================================
 
   /**
-   * Get array dimension string from arrayType syntax.
-   * Evaluates const expressions to their numeric values for C compatibility.
-   * Example: u16[8] -> "[8]", u16[4][4] -> "[4][4]"
-   *
-   * @param typeCtx - Type context containing arrayType
-   * @param callbacks - Callbacks for expression evaluation
-   * @returns Dimension string like "[8]" or "" if no arrayType
+   * Render the array half: dimensions, or a complete ADR-035 initializer.
    */
-  static getArrayTypeDimension(
-    typeCtx: Parser.TypeContext,
-    callbacks: IArrayTypeDimCallbacks,
-  ): string {
-    if (!typeCtx.arrayType()) {
-      return "";
-    }
-    const dims = typeCtx.arrayType()!.arrayTypeDimension();
-    let result = "";
-    for (const dim of dims) {
-      const sizeExpr = dim.expression();
-      if (!sizeExpr) {
-        result += "[]";
-        continue;
-      }
-      // Try to evaluate as constant first (required for C file-scope arrays)
-      // Fall back to expression text for macros, enums, etc.
-      const dimValue =
-        callbacks.tryEvaluateConstant(sizeExpr) ??
-        callbacks.generateExpression(sizeExpr);
-      result += `[${dimValue}]`;
-    }
-    return result;
-  }
-
-  /**
-   * Handle array declaration with dimension parsing and initialization.
-   * Handles both C-Next style arrayType syntax (u16[8] myArray) and
-   * traditional arrayDimension syntax.
-   *
-   * @param ctx - Variable declaration context
-   * @param typeCtx - Type context
-   * @param name - Variable name
-   * @param decl - Current declaration string
-   * @param callbacks - Callbacks for code generation
-   * @returns Result indicating if handled and any generated code
-   */
-  static handleArrayDeclaration(
-    ctx: Parser.VariableDeclarationContext,
-    typeCtx: Parser.TypeContext,
-    name: string,
+  static renderArrayDeclaration(
+    plan: IPlannedArrayDeclaration,
+    sourceName: string,
     decl: string,
-    callbacks: IArrayDeclCallbacks,
   ): IArrayDeclResult {
-    const arrayDims = ctx.arrayDimension();
-    const hasArrayTypeSyntax = typeCtx.arrayType() !== null;
-    const isArray = arrayDims.length > 0 || hasArrayTypeSyntax;
-
-    if (!isArray) {
+    if (!plan.isArray) {
       return { handled: false, code: "", decl, isArray: false };
     }
 
-    // Generate dimension string from arrayType syntax (u16[8] myArray)
-    const arrayTypeDimStr = VariableDeclHelper.getArrayTypeDimension(
-      typeCtx,
-      callbacks,
-    );
-
-    // Check for empty dimensions in both trailing brackets and arrayType
-    const hasEmptyArrayDim =
-      arrayDims.some((dim) => !dim.expression()) ||
-      (typeCtx
-        .arrayType()
-        ?.arrayTypeDimension()
-        .some((dim) => !dim.expression()) ??
-        false);
-
-    // Check if the empty dimension is specifically in arrayType (vs trailing arrayDims)
-    const hasEmptyArrayTypeDim =
-      typeCtx
-        .arrayType()
-        ?.arrayTypeDimension()
-        .some((dim) => !dim.expression()) ?? false;
-
-    const declaredSize =
-      VariableDeclHelper.parseArrayTypeDimension(typeCtx) ??
-      VariableDeclHelper.parseFirstArrayDimension(arrayDims);
-
     // ADR-035: Handle array initializers with size inference
-    if (ctx.expression()) {
+    if (plan.init) {
       // MISRA C:2012 Rule 9.3: an array declaration initializer is a declaration
       // initializer for its ELEMENTS too, so it takes withDeclarationInit exactly
       // as the scalar path below does. Without it a struct element formatted as a
@@ -328,31 +121,29 @@ class VariableDeclHelper {
       // cppcheck reads as a partially initialized array, while the scalar
       // `Point single = { .x = 1 }` on the next line was already plain. One
       // declaration-initializer decision, previously made in two places.
+      const init = plan.init;
       const arrayInitResult = CodeGenState.withDeclarationInit(() =>
         ArrayInitHelper.processArrayInit(
-          name,
-          typeCtx,
-          ctx.expression()!,
-          arrayDims,
-          hasEmptyArrayDim,
-          declaredSize,
+          sourceName,
+          plan.hasEmptyDimension,
+          plan.declaredSize,
           {
-            generateExpression: (exprCtx) =>
-              callbacks.generateExpression(exprCtx),
-            getTypeName: (typeCtxParam) => callbacks.getTypeName(typeCtxParam),
-            generateArrayDimensions: (dims) =>
-              callbacks.generateArrayDimensions(dims),
+            // Lazy, not pre-generated: each must run inside the
+            // `withExpectedType` window the helper opens.
+            generateExpression: init.renderExpression,
+            getTypeName: init.renderTypeName,
+            generateArrayDimensions: init.renderDimensions,
           },
         ),
       );
       if (arrayInitResult) {
         // Track as local array for type resolution
-        CodeGenState.localArrays.add(name);
+        CodeGenState.localArrays.add(sourceName);
         // When size inference happens and the empty dim is in arrayType,
         // dimensionSuffix already contains the inferred size - don't duplicate
-        const fullDimSuffix = hasEmptyArrayTypeDim
+        const fullDimSuffix = plan.hasEmptyArrayTypeDimension
           ? arrayInitResult.dimensionSuffix
-          : arrayTypeDimStr + arrayInitResult.dimensionSuffix;
+          : plan.arrayTypeDimensions + arrayInitResult.dimensionSuffix;
         return {
           handled: true,
           code: `${decl}${fullDimSuffix} = ${arrayInitResult.initValue};`,
@@ -364,49 +155,38 @@ class VariableDeclHelper {
 
     // Generate dimensions: arrayType dimension first, then arrayDimension dimensions
     const newDecl =
-      decl + arrayTypeDimStr + callbacks.generateArrayDimensions(arrayDims);
-    CodeGenState.localArrays.add(name);
+      decl + plan.arrayTypeDimensions + plan.renderCStyleDimensions();
+    CodeGenState.localArrays.add(sourceName);
 
     return { handled: false, code: "", decl: newDecl, isArray: true };
   }
 
   /**
-   * Generate variable initializer with validation.
-   * Handles zero initialization for uninitialized variables and
-   * validates enum and integer assignments.
-   *
-   * @param ctx - Variable declaration context
-   * @param typeCtx - Type context
-   * @param decl - Current declaration string
-   * @param isArray - Whether this is an array type
-   * @param callbacks - Callbacks for code generation and validation
-   * @returns Declaration string with initializer
+   * Render a variable's initializer, with the MISRA Rule 10.3 cast.
    */
-  static generateVariableInitializer(
-    ctx: Parser.VariableDeclarationContext,
-    typeCtx: Parser.TypeContext,
+  static renderVariableInitializer(
+    plan: TPlannedVariableInitializer,
     decl: string,
     isArray: boolean,
-    callbacks: IVariableInitCallbacks,
   ): string {
-    if (!ctx.expression()) {
+    if (plan.kind === "zero") {
       // ADR-015: Zero initialization for uninitialized variables
-      return `${decl} = ${callbacks.getZeroInitializer(typeCtx, isArray)}`;
+      return `${decl} = ${plan.render(isArray)}`;
     }
 
-    const typeName = callbacks.getTypeName(typeCtx);
+    const typeName = plan.renderTypeName();
 
     // #1322: ADR-024's initializer rules are E0868/E0869 in pass 2.1.
 
     // Issue #872: Set expectedType for MISRA 7.2 U suffix compliance
     // MISRA 10.3: Also check for cross-type-category conversions (int <-> float)
     return CodeGenState.withExpectedType(typeName, () => {
-      let exprCode = CodeGenState.withDeclarationInit(() =>
-        callbacks.generateExpression(ctx.expression()!),
-      );
+      let exprCode = CodeGenState.withDeclarationInit(plan.renderExpression);
 
-      // MISRA 10.3: Check for cross-type-category conversions (int <-> float)
-      const exprType = callbacks.getExpressionType(ctx.expression()!);
+      // MISRA 10.3: Check for cross-type-category conversions (int <-> float).
+      // Asked AFTER the render, and inside the window, because the question is
+      // what the expression turned out to be.
+      const exprType = plan.resolveExpressionType();
       if (
         exprType &&
         NarrowingCastHelper.isCrossTypeCategoryConversion(exprType, typeName)
@@ -436,204 +216,68 @@ class VariableDeclHelper {
   }
 
   // ========================================================================
-  // Tier 4: Orchestrators (main entry points)
+  // Tier 3: Orchestrator
   // ========================================================================
 
   /**
-   * Generate a complete variable declaration.
-   * This is the main entry point for variable declaration generation.
-   *
-   * Handles:
-   * - C++ constructor syntax
-   * - String declarations
-   * - Array declarations
-   * - Regular variable declarations with initializers
-   * - C++ class field assignments
-   *
-   * @param ctx - Variable declaration context
-   * @param callbacks - Callbacks for code generation
-   * @returns Complete variable declaration code
+   * Render the declaration a plan describes.
    */
-  static generateVariableDecl(
-    ctx: Parser.VariableDeclarationContext,
-    callbacks: IVariableDeclCallbacks,
+  static renderVariableDecl(plan: TPlannedVariableDecl): string {
+    switch (plan.kind) {
+      // Issue #375: C++ constructor syntax.
+      //
+      // ADR-057: emitted under the name registration decided on, not the
+      // source one -- the planner did the registering.
+      case "constructor":
+        return `${plan.type} ${plan.emittedName}(${plan.args.join(", ")});`;
+
+      // ADR-045: string types have their own three forms.
+      case "string":
+        return StringDeclHelper.generateStringDecl(
+          plan.string,
+          plan.emittedName,
+          plan.modifiers,
+          plan.isConst,
+        );
+
+      case "plain":
+        return VariableDeclHelper.renderPlainDecl(plan);
+    }
+  }
+
+  /**
+   * Render everything that is neither a constructor nor a string.
+   */
+  private static renderPlainDecl(
+    plan: Extract<TPlannedVariableDecl, { kind: "plain" }>,
   ): string {
-    // Issue #375: Check for C++ constructor syntax - early return
-    const constructorArgList = ctx.constructorArgumentList();
-    if (constructorArgList) {
-      return VariableDeclHelper.generateConstructorDecl(
-        ctx,
-        constructorArgList,
-        { generateType: callbacks.generateType },
-      );
-    }
-
-    // Issue #696: Use helper for modifier extraction and validation
-    // Issue #852 (MISRA Rule 8.5): Pass hasInitializer and cppMode for correct extern behavior
-    const hasInitializer = ctx.expression() !== null;
-    const modifiers = VariableModifierBuilder.build(
-      ctx,
-      CodeGenState.inFunctionBody,
-      hasInitializer,
-      CodeGenState.cppMode,
-    );
-
-    const name = ctx.IDENTIFIER().getText();
-    const typeCtx = ctx.type();
-
-    // #1322: a C-style array declaration (u16 arr[8]) is E0874 in pass 2.1
-    // (ADR-036).
-
-    const type = callbacks.inferVariableType(ctx, name);
-
-    // Track local variable metadata
-    callbacks.trackLocalVariable(ctx, name);
-
-    // ADR-057: the identifier this declaration is EMITTED under. Computed once,
-    // here, because the string and array paths below return before the plain
-    // declaration is assembled -- a second call further down would be a second
-    // place deciding the same thing. Registries keep the source name; only the
-    // generated text moves.
-    const emittedName = CodeGenState.emittedLocalName(name);
-
-    // Issue #895 Bug B: If type was inferred as pointer, mark it in the registry
-    if (type.endsWith("*")) {
-      callbacks.markVariableAsPointer(name);
-    }
-
-    // ADR-045: Handle bounded string type specially - early return
-    const stringResult = StringDeclHelper.generateStringDecl(
-      typeCtx,
-      emittedName,
-      ctx.expression() ?? null,
-      ctx.arrayDimension(),
-      modifiers,
-      ctx.constModifier() !== null,
-      {
-        generateExpression: (exprCtx) => callbacks.generateExpression(exprCtx),
-        generateArrayDimensions: (dims) =>
-          callbacks.generateArrayDimensions(dims),
-        getStringConcatOperands: (concatCtx) =>
-          callbacks.getStringConcatOperands(concatCtx),
-        getSubstringOperands: (substrCtx) =>
-          callbacks.getSubstringOperands(substrCtx),
-        getStringExprCapacity: (exprCode) =>
-          callbacks.getStringExprCapacity(exprCode),
-      },
-    );
-    if (stringResult.handled) {
-      return stringResult.code;
-    }
-
-    // Build base declaration.
     // ADR-057: the DECLARED identifier is the emitted one -- a local shadowing a
     // file-scope name carries a distinct C name so `global.x` still reaches
-    // past it. Every registry above stays keyed on the bare source name, which
-    // is what references in the source actually say; only the text moves.
-    const modifierPrefix = VariableModifierBuilder.toPrefix(modifiers);
-    let decl = `${modifierPrefix}${type} ${emittedName}`;
+    // past it. Every registry stays keyed on the bare source name, which is
+    // what references in the source actually say; only the text moves.
+    const base = `${plan.modifierPrefix}${plan.type} ${plan.emittedName}`;
 
-    // Handle array declarations - early return if array init handled
-    const arrayResult = VariableDeclHelper.handleArrayDeclaration(
-      ctx,
-      typeCtx,
-      name,
-      decl,
-      {
-        generateExpression: callbacks.generateExpression,
-        getTypeName: callbacks.getTypeName,
-        generateArrayDimensions: callbacks.generateArrayDimensions,
-        tryEvaluateConstant: callbacks.tryEvaluateConstant,
-      },
+    // Array declarations can complete the whole declaration themselves.
+    const arrayResult = VariableDeclHelper.renderArrayDeclaration(
+      plan.array,
+      plan.sourceName,
+      base,
     );
     if (arrayResult.handled) {
       return arrayResult.code;
     }
-    decl = arrayResult.decl;
 
-    // Handle initialization
-    decl = VariableDeclHelper.generateVariableInitializer(
-      ctx,
-      typeCtx,
-      decl,
+    const decl = VariableDeclHelper.renderVariableInitializer(
+      plan.initializer,
+      arrayResult.decl,
       arrayResult.isArray,
-      {
-        generateExpression: callbacks.generateExpression,
-        getTypeName: callbacks.getTypeName,
-        getZeroInitializer: callbacks.getZeroInitializer,
-        getExpressionType: callbacks.getExpressionType,
-      },
     );
 
     // Handle pending C++ class field assignments
-    return VariableDeclHelper.finalizeCppClassAssignments(name, decl);
-  }
-
-  /**
-   * Generate C++ constructor-style declaration.
-   * Validates that all arguments are const variables.
-   *
-   * Example: `Adafruit_MAX31856 thermocouple(pinConst);`
-   *
-   * @param ctx - Variable declaration context
-   * @param argListCtx - Constructor argument list context
-   * @param callbacks - Callbacks for type generation
-   * @returns Constructor declaration code
-   * @throws Error if argument not declared or not const
-   */
-  static generateConstructorDecl(
-    ctx: Parser.VariableDeclarationContext,
-    argListCtx: Parser.ConstructorArgumentListContext,
-    callbacks: Pick<IVariableDeclCallbacks, "generateType">,
-  ): string {
-    const type = callbacks.generateType(ctx.type());
-    const name = ctx.IDENTIFIER().getText();
-
-    // Collect and validate all arguments
-    const argIdentifiers = argListCtx.IDENTIFIER();
-    const resolvedArgs: string[] = [];
-
-    for (const argNode of argIdentifiers) {
-      const argName = argNode.getText();
-
-      // #1322: the "is not declared" (E0433) and "must be const" (E0432)
-      // rejections that stood here are authored in pass 2.1, which halts before
-      // codegen -- so an argument reaching this line is declared and const. The
-      // two copies of this rule also decided const-ness two different ways;
-      // `IDeclaredVar.isConst` is now the single answer.
-      //
-      // What survives is NAME resolution, which is codegen's own question: a
-      // scope member is emitted by its qualified C name. The type lookup that
-      // stood beside it existed only to answer the const question.
-      const isFileScope =
-        CodeGenState.getVariableTypeInfo(argName) !== undefined;
-      resolvedArgs.push(
-        isFileScope || !CodeGenState.currentScopePath
-          ? argName
-          : QualifiedNameGenerator.forMember(
-              CodeGenState.currentScopePath,
-              argName,
-            ),
-      );
-    }
-
-    // Track the variable in type registry (as an external C++ type)
-    CodeGenState.setVariableTypeInfo(name, {
-      baseType: type,
-      bitWidth: 0, // Unknown for C++ types
-      isArray: false,
-      arrayDimensions: [],
-      isConst: false,
-      isExternalCppType: true,
-    });
-
-    // Track as local variable if inside function body
-    if (CodeGenState.inFunctionBody) {
-      CodeGenState.registerLocalVariable(name);
-    }
-
-    // ADR-057: emit under the name registration decided on, not the source one.
-    return `${type} ${CodeGenState.emittedLocalName(name)}(${resolvedArgs.join(", ")});`;
+    return VariableDeclHelper.finalizeCppClassAssignments(
+      plan.sourceName,
+      decl,
+    );
   }
 }
 

@@ -33,24 +33,11 @@
  */
 
 import ITypeAccessors from "../../transpiler/types/ITypeAccessors";
+import type INamedTypeResolution from "../../transpiler/types/INamedTypeResolution";
 import type ITypeBindingDeps from "../../transpiler/types/ITypeBindingDeps";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ScopeUtils from "../../utils/ScopeUtils";
-import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
-
-/**
- * Which syntactic branch answered, what was written, and what it resolved to.
- *
- * `branch` is the part a resolved name cannot carry. `written` is the
- * identifier before any scope qualification, which a caller that must defer
- * has to record -- ADR-057 resolves from the parse tree, so the written form
- * is the input, not the output.
- */
-interface INamedTypeResolution {
-  readonly branch: "this" | "global" | "qualified" | "bare";
-  readonly written: string;
-  readonly name: string;
-}
+import * as Parser from "../2-Parse/grammar/CNextParser";
 
 /**
  * Static utility class resolving a type context to its C name.

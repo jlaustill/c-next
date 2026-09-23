@@ -2,8 +2,8 @@
  * Test helpers for C++ collector tests.
  */
 
-import HeaderParser from "../../../../transpiler/logic/parser/HeaderParser";
-import { TranslationUnitContext } from "../../../../transpiler/logic/parser/cpp/grammar/CPP14Parser";
+import HeaderParser from "../../../2-Parse/HeaderParser";
+import { TranslationUnitContext } from "../../../2-Parse/cpp/grammar/CPP14Parser";
 
 /**
  * Parse C++ source code and return the translation unit context.

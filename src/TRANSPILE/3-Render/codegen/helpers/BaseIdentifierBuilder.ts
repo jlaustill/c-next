@@ -9,7 +9,7 @@
  */
 
 import IBaseIdentifierResult from "../types/IBaseIdentifierResult";
-import QualifiedNameGenerator from "../utils/QualifiedNameGenerator";
+import QualifiedNameGenerator from "../../../../utils/QualifiedNameGenerator";
 
 /**
  * Static utility for building base identifiers

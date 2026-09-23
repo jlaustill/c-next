@@ -10,6 +10,7 @@
  * - SCOPED_REGISTER_MEMBER_BITMAP_FIELD: Scope.GPIO7.ICR1.LED <- value
  */
 import invariant from "../../../../../utils/invariant";
+import AdrProvenance from "../../../../../transpiler/state/AdrProvenance";
 import type IBitmapFieldLayout from "../../../../../transpiler/types/IBitmapFieldLayout";
 import AssignmentKind from "../../../../../transpiler/types/AssignmentKind";
 import IAssignmentContext from "../../../../../transpiler/types/IAssignmentContext";
@@ -17,7 +18,7 @@ import BitUtils from "../../../../../utils/BitUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
-import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
+import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator";
 import RegisterAccessMode from "../../../../../utils/RegisterAccessMode";
 
 /**
@@ -126,9 +127,7 @@ function handleBitmapArrayElementField(ctx: IAssignmentContext): string {
   const bitmapType = typeInfo!.bitmapTypeName!;
 
   const fieldInfo = getBitmapFieldInfo(bitmapType, fieldName);
-  const index = CodeGenState.requireGenerator().generateExpression(
-    ctx.subscripts[0],
-  );
+  const index = ctx.renderSubscript(0);
   const arrayElement = `${arrayName}[${index}]`;
 
   return generateBitmapWrite(arrayElement, fieldInfo, ctx.generatedValue);
@@ -232,9 +231,33 @@ function handleScopedRegisterMemberBitmapField(
 }
 
 /**
+ * Note that ADR-034's rule fired, for the matrix's occupancy derivation.
+ *
+ * Every handler in this module IS that rule -- lowering a named bitmap field
+ * to a mask-and-shift on its backing scalar -- so the recording sits at the
+ * registration boundary below rather than in six bodies. A seventh handler
+ * added to that array is recorded by construction, where six in-body calls
+ * would be six chances to add a handler and forget the line.
+ *
+ * #1241: this is what lets ADR-034's matrix derive occupancy at all. Occupancy
+ * comes from source POSITIONS, and a bitmap write that works emits no
+ * diagnostic and so supplies none -- every fixture exercising these rules
+ * counted as "a linked fixture with no derivable context", leaving all twelve
+ * declared cells reading unoccupied no matter how many fixtures reached them.
+ */
+function recordingAdr034(handler: TAssignmentHandler): TAssignmentHandler {
+  return (ctx) => {
+    AdrProvenance.record("034", ctx.targetLine);
+    return handler(ctx);
+  };
+}
+
+/**
  * All bitmap handlers for registration.
  */
-const bitmapHandlers: ReadonlyArray<[AssignmentKind, TAssignmentHandler]> = [
+const declaredBitmapHandlers: ReadonlyArray<
+  [AssignmentKind, TAssignmentHandler]
+> = [
   [AssignmentKind.BITMAP_FIELD_SINGLE_BIT, handleBitmapFieldSingleBit],
   [AssignmentKind.BITMAP_FIELD_MULTI_BIT, handleBitmapFieldMultiBit],
   [AssignmentKind.BITMAP_ARRAY_ELEMENT_FIELD, handleBitmapArrayElementField],
@@ -248,5 +271,13 @@ const bitmapHandlers: ReadonlyArray<[AssignmentKind, TAssignmentHandler]> = [
     handleScopedRegisterMemberBitmapField,
   ],
 ];
+
+const bitmapHandlers: ReadonlyArray<[AssignmentKind, TAssignmentHandler]> =
+  declaredBitmapHandlers.map(
+    ([kind, handler]): [AssignmentKind, TAssignmentHandler] => [
+      kind,
+      recordingAdr034(handler),
+    ],
+  );
 
 export default bitmapHandlers;

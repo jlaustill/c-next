@@ -1,7 +1,5 @@
-import { CommonTokenStream } from "antlr4ng";
-
 import ECommentType from "../../transpiler/types/ECommentType";
-import CommentScanner from "../../transpiler/logic/parser/CommentScanner";
+import CommentScanner from "../../PARSE/2-Parse/CommentScanner";
 import IComment from "../../transpiler/types/IComment";
 import ICommentError from "../../transpiler/types/ICommentError";
 
@@ -12,14 +10,22 @@ import ICommentError from "../../transpiler/types/ICommentError";
  * rejection half, and a rejection is 2.1's to author. The split is what lets
  * codegen read comments -- which it must, to re-attach them -- without
  * importing an analyzer.
+ *
+ * #1445: it takes the comments rather than the token stream they came off.
+ * Scanning was 2.1 re-deriving a fact about the PARSE, which is what the
+ * lifetime axis forbids -- so 1.2 now carries them on `IParsedFile` and this
+ * class names no parse type at all. `CommentScanner` remains imported for
+ * `markerLength`, a pure function of the comment kind; the confinement rule is
+ * direct rather than reachable, because its claim is about what a pass's
+ * source NAMES.
  */
 class CommentExtractor {
-  private readonly scanner: CommentScanner;
+  private readonly comments: readonly IComment[];
 
   private errors: ICommentError[] = [];
 
-  constructor(tokenStream: CommonTokenStream) {
-    this.scanner = new CommentScanner(tokenStream);
+  constructor(comments: readonly IComment[]) {
+    this.comments = comments;
   }
 
   /**
@@ -27,9 +33,8 @@ class CommentExtractor {
    */
   validate(): ICommentError[] {
     this.errors = [];
-    const comments = this.scanner.extractAll();
 
-    for (const comment of comments) {
+    for (const comment of this.comments) {
       this.validateMisra31(comment);
       this.validateMisra32(comment);
     }

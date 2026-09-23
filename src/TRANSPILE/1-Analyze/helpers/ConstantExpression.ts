@@ -20,7 +20,7 @@
  * while the VALUE lookups kept the flat one.
  */
 
-import * as Parser from "../../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
 import TYPE_WIDTH from "../../../transpiler/constants/TYPE_WIDTH";
 import CodeGenState from "../../../transpiler/state/CodeGenState";
 import ArrayDimensionParser from "../../../utils/ArrayDimensionParser";

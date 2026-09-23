@@ -2,15 +2,27 @@
  * Unit tests for FunctionContextManager
  *
  * Issue #793: Tests for the extracted function context manager.
+ *
+ * #1445: the manager reads planned parameters, so these build values rather
+ * than mock parse contexts cast `as never` -- a cast that made the whole
+ * surface invisible to the type checker, the same hole slices 12, 14 and 15
+ * found elsewhere.
+ *
+ * Two describes went with the methods they covered. `getStringCapacity` and
+ * `extractParamArrayDimensions` read a `TypeContext` and a `ParameterContext`
+ * and nothing else; their work is `CodeGenerator.planFunctionParameter`'s now,
+ * and the 1259 integration fixtures exercise it. `resolveParameterTypeInfo`'s
+ * qualified/scoped/global cases are likewise `TypeBinding`'s answer, supplied
+ * here as the classification rather than re-derived.
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import FunctionContextManager from "../FunctionContextManager";
-import UNRESOLVED_DIMENSION from "../../../../../transpiler/constants/UNRESOLVED_DIMENSION";
 import IFunctionContextCallbacks from "../../types/IFunctionContextCallbacks";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";
-import TestTypeAccessors from "../../../../../transpiler/types/__testUtils__/testTypeAccessors";
-import enterScope from "../../../../../transpiler/__tests__/enterScope";
+import type IPlannedType from "../../types/IPlannedType";
+import type IPlannedFunctionParameter from "../../types/IPlannedFunctionParameter";
+import type INamedTypeResolution from "../../../../../transpiler/types/INamedTypeResolution";
 
 /**
  * Helper to set up CodeGenState.symbols with minimal fields.
@@ -55,79 +67,47 @@ function setupSymbols(
 function createMockCallbacks(): IFunctionContextCallbacks {
   return {
     isStructType: vi.fn(() => false),
-    resolveQualifiedType: vi.fn((ids: string[]) => ids.join("__")),
   };
 }
 
-/**
- * Helper to create a mock parameter context.
- */
-function createMockParam(
-  name: string,
-  typeText: string,
-  options: {
-    isArray?: boolean;
-    isConst?: boolean;
-    isPrimitive?: boolean;
-    isUserType?: boolean;
-    isString?: boolean;
-    stringCapacity?: number;
-  } = {},
-): never {
-  const {
-    isArray,
-    isConst,
-    isPrimitive,
-    isUserType,
-    isString,
-    stringCapacity,
-  } = options;
-
+/** A planned type with every alternative absent unless a test fills one in. */
+function plannedType(overrides: Partial<IPlannedType> = {}): IPlannedType {
   return {
-    IDENTIFIER: () => ({ getText: () => name }),
-    arrayDimension: () => (isArray ? [{ expression: () => null }] : []),
-    constModifier: () => (isConst ? {} : null),
-    type: () => ({
-      getText: () => typeText,
-      primitiveType: () => (isPrimitive ? { getText: () => typeText } : null),
-      userType: () => (isUserType ? { getText: () => typeText } : null),
-      qualifiedType: () => null,
-      scopedType: () => null,
-      globalType: () => null,
-      stringType: () =>
-        isString
-          ? {
-              getText: () =>
-                stringCapacity ? `string<${stringCapacity}>` : "string",
-              INTEGER_LITERAL: () =>
-                stringCapacity
-                  ? { getText: () => String(stringCapacity) }
-                  : null,
-            }
-          : null,
-      arrayType: () => null,
-    }),
-  } as never;
+    named: null,
+    isString: false,
+    stringTypeText: undefined,
+    primitiveName: null,
+    isArray: false,
+    userTypeLine: undefined,
+    text: "",
+    ...overrides,
+  };
 }
 
-/**
- * Helper to create a mock function declaration context.
- */
-function createMockFunctionDecl(
-  returnType: string,
-  params: never[] = [],
-): never {
+/** A named-type branch as `TypeBinding` reports it. */
+function named(
+  branch: INamedTypeResolution["branch"],
+  written: string,
+  name: string = written,
+): INamedTypeResolution {
+  return { branch, written, name };
+}
+
+/** A planned parameter, with the type's alternatives already classified. */
+function plannedParam(
+  name: string,
+  type: IPlannedType,
+  overrides: Partial<IPlannedFunctionParameter> = {},
+): IPlannedFunctionParameter {
   return {
-    type: () => ({
-      getText: () => returnType,
-    }),
-    parameterList: () =>
-      params.length > 0
-        ? {
-            parameter: () => params,
-          }
-        : null,
-  } as never;
+    name,
+    isConst: false,
+    isArray: false,
+    arrayDimensions: [],
+    stringCapacity: undefined,
+    type,
+    ...overrides,
+  };
 }
 
 describe("FunctionContextManager", () => {
@@ -137,15 +117,12 @@ describe("FunctionContextManager", () => {
   });
 
   describe("resolveReturnTypeAndParams", () => {
-    it("returns int for main with args", () => {
-      const params = [createMockParam("args", "u8", { isArray: true })];
-      const ctx = createMockFunctionDecl("void", params);
-
+    it("returns int for main with args, and records the args name", () => {
       const result = FunctionContextManager.resolveReturnTypeAndParams(
         "main",
         "void",
         true,
-        ctx,
+        "args",
       );
 
       expect(result.actualReturnType).toBe("int");
@@ -154,13 +131,11 @@ describe("FunctionContextManager", () => {
     });
 
     it("returns int for main without args", () => {
-      const ctx = createMockFunctionDecl("void");
-
       const result = FunctionContextManager.resolveReturnTypeAndParams(
         "main",
         "void",
         false,
-        ctx,
+        undefined,
       );
 
       expect(result.actualReturnType).toBe("int");
@@ -168,13 +143,11 @@ describe("FunctionContextManager", () => {
     });
 
     it("preserves return type for non-main functions", () => {
-      const ctx = createMockFunctionDecl("u32");
-
       const result = FunctionContextManager.resolveReturnTypeAndParams(
         "myFunc",
         "u32",
         false,
-        ctx,
+        undefined,
       );
 
       expect(result.actualReturnType).toBe("u32");
@@ -202,14 +175,14 @@ describe("FunctionContextManager", () => {
 
     it("processes multiple parameters", () => {
       const callbacks = createMockCallbacks();
-      const params = {
-        parameter: () => [
-          createMockParam("x", "u32", { isPrimitive: true }),
-          createMockParam("y", "i32", { isPrimitive: true }),
-        ],
-      } as never;
 
-      FunctionContextManager.processParameterList(params, callbacks);
+      FunctionContextManager.processParameterList(
+        [
+          plannedParam("x", plannedType({ primitiveName: "u32" })),
+          plannedParam("y", plannedType({ primitiveName: "i32" })),
+        ],
+        callbacks,
+      );
 
       expect(CodeGenState.currentParameters.size).toBe(2);
       expect(CodeGenState.currentParameters.has("x")).toBe(true);
@@ -220,9 +193,12 @@ describe("FunctionContextManager", () => {
   describe("processParameter", () => {
     it("registers primitive parameter", () => {
       const callbacks = createMockCallbacks();
-      const param = createMockParam("x", "u32", { isPrimitive: true });
 
-      FunctionContextManager.processParameter(param, callbacks, 0);
+      FunctionContextManager.processParameter(
+        plannedParam("x", plannedType({ primitiveName: "u32" })),
+        callbacks,
+        0,
+      );
 
       const paramInfo = CodeGenState.currentParameters.get("x");
       expect(paramInfo).toBeDefined();
@@ -233,12 +209,19 @@ describe("FunctionContextManager", () => {
 
     it("registers array parameter", () => {
       const callbacks = createMockCallbacks();
-      const param = createMockParam("arr", "u8", {
-        isPrimitive: true,
-        isArray: true,
-      });
 
-      FunctionContextManager.processParameter(param, callbacks, 0);
+      FunctionContextManager.processParameter(
+        plannedParam(
+          "arr",
+          plannedType({ primitiveName: "u8", isArray: true }),
+          {
+            isArray: true,
+            arrayDimensions: [8],
+          },
+        ),
+        callbacks,
+        0,
+      );
 
       const paramInfo = CodeGenState.currentParameters.get("arr");
       expect(paramInfo).toBeDefined();
@@ -247,12 +230,14 @@ describe("FunctionContextManager", () => {
 
     it("registers const parameter", () => {
       const callbacks = createMockCallbacks();
-      const param = createMockParam("x", "u32", {
-        isPrimitive: true,
-        isConst: true,
-      });
 
-      FunctionContextManager.processParameter(param, callbacks, 0);
+      FunctionContextManager.processParameter(
+        plannedParam("x", plannedType({ primitiveName: "u32" }), {
+          isConst: true,
+        }),
+        callbacks,
+        0,
+      );
 
       const paramInfo = CodeGenState.currentParameters.get("x");
       expect(paramInfo).toBeDefined();
@@ -264,9 +249,12 @@ describe("FunctionContextManager", () => {
       (callbacks.isStructType as ReturnType<typeof vi.fn>).mockReturnValue(
         true,
       );
-      const param = createMockParam("point", "Point", { isUserType: true });
 
-      FunctionContextManager.processParameter(param, callbacks, 0);
+      FunctionContextManager.processParameter(
+        plannedParam("point", plannedType({ named: named("bare", "Point") })),
+        callbacks,
+        0,
+      );
 
       const paramInfo = CodeGenState.currentParameters.get("point");
       expect(paramInfo).toBeDefined();
@@ -276,12 +264,16 @@ describe("FunctionContextManager", () => {
 
     it("registers string parameter", () => {
       const callbacks = createMockCallbacks();
-      const param = createMockParam("name", "string<32>", {
-        isString: true,
-        stringCapacity: 32,
-      });
 
-      FunctionContextManager.processParameter(param, callbacks, 0);
+      FunctionContextManager.processParameter(
+        plannedParam(
+          "name",
+          plannedType({ isString: true, stringTypeText: "string<32>" }),
+          { stringCapacity: 32 },
+        ),
+        callbacks,
+        0,
+      );
 
       const paramInfo = CodeGenState.currentParameters.get("name");
       expect(paramInfo).toBeDefined();
@@ -291,21 +283,9 @@ describe("FunctionContextManager", () => {
 
   describe("resolveParameterTypeInfo", () => {
     it("resolves primitive type", () => {
-      const callbacks = createMockCallbacks();
-      const typeCtx = {
-        primitiveType: () => ({ getText: () => "u32" }),
-        userType: () => null,
-        qualifiedType: () => null,
-        scopedType: () => null,
-        globalType: () => null,
-        stringType: () => null,
-        arrayType: () => null,
-        getText: () => "u32",
-      } as never;
-
       const result = FunctionContextManager.resolveParameterTypeInfo(
-        typeCtx,
-        callbacks,
+        plannedType({ primitiveName: "u32", text: "u32" }),
+        createMockCallbacks(),
       );
 
       expect(result.typeName).toBe("u32");
@@ -319,19 +299,9 @@ describe("FunctionContextManager", () => {
       (callbacks.isStructType as ReturnType<typeof vi.fn>).mockReturnValue(
         true,
       );
-      const typeCtx = {
-        primitiveType: () => null,
-        userType: () => ({ getText: () => "Point" }),
-        qualifiedType: () => null,
-        scopedType: () => null,
-        globalType: () => null,
-        stringType: () => null,
-        arrayType: () => null,
-        getText: () => "Point",
-      } as never;
 
       const result = FunctionContextManager.resolveParameterTypeInfo(
-        typeCtx,
+        plannedType({ named: named("bare", "Point"), text: "Point" }),
         callbacks,
       );
 
@@ -339,202 +309,96 @@ describe("FunctionContextManager", () => {
       expect(result.isStruct).toBe(true);
     });
 
-    it("resolves qualified type using callback", () => {
-      const callbacks = createMockCallbacks();
-      const typeCtx = {
-        primitiveType: () => null,
-        userType: () => null,
-        qualifiedType: () => ({
-          IDENTIFIER: () => [
-            { getText: () => "Scope" },
-            { getText: () => "Type" },
-          ],
-        }),
-        scopedType: () => null,
-        globalType: () => null,
-        stringType: () => null,
-        arrayType: () => null,
-        getText: () => "Scope.Type",
-      } as never;
-
+    /**
+     * The four named branches arrive already resolved -- `TypeBinding` decided
+     * them, and what it decided is its own test's business. What THIS module
+     * decides is the consequence: struct-ness, callback-ness, and that the
+     * name is used verbatim.
+     */
+    it.each<[string, INamedTypeResolution, string]>([
+      [
+        "a qualified type",
+        named("qualified", "Scope.Type", "Scope__Type"),
+        "Scope__Type",
+      ],
+      [
+        "a scoped type",
+        named("this", "LocalType", "MyScope__LocalType"),
+        "MyScope__LocalType",
+      ],
+      ["a global type", named("global", "GlobalType"), "GlobalType"],
+    ])("uses the resolved name for %s", (_label, resolution, expected) => {
       const result = FunctionContextManager.resolveParameterTypeInfo(
-        typeCtx,
-        callbacks,
+        plannedType({ named: resolution, text: resolution.written }),
+        createMockCallbacks(),
       );
 
-      expect(callbacks.resolveQualifiedType).toHaveBeenCalledWith([
-        "Scope",
-        "Type",
-      ]);
-      expect(result.typeName).toBe("Scope__Type");
+      expect(result.typeName).toBe(expected);
     });
 
-    it("resolves scoped type with current scope", () => {
-      enterScope("MyScope");
-      const callbacks = createMockCallbacks();
-      const typeCtx = {
-        primitiveType: () => null,
-        userType: () => null,
-        qualifiedType: () => null,
-        scopedType: () => ({
-          IDENTIFIER: () => ({ getText: () => "LocalType" }),
-        }),
-        globalType: () => null,
-        stringType: () => null,
-        arrayType: () => null,
-        getText: () => "this.LocalType",
-      } as never;
-
+    it("resolves a top-level string to the bare name", () => {
       const result = FunctionContextManager.resolveParameterTypeInfo(
-        typeCtx,
-        callbacks,
+        plannedType({
+          isString: true,
+          stringTypeText: "string<32>",
+          text: "string<32>",
+        }),
+        createMockCallbacks(),
       );
 
-      expect(result.typeName).toBe("MyScope__LocalType");
-    });
-
-    it("resolves global type", () => {
-      const callbacks = createMockCallbacks();
-      const typeCtx = {
-        primitiveType: () => null,
-        userType: () => null,
-        qualifiedType: () => null,
-        scopedType: () => null,
-        globalType: () => ({
-          IDENTIFIER: () => ({ getText: () => "GlobalType" }),
-        }),
-        stringType: () => null,
-        arrayType: () => null,
-        getText: () => "global.GlobalType",
-      } as never;
-
-      const result = FunctionContextManager.resolveParameterTypeInfo(
-        typeCtx,
-        callbacks,
-      );
-
-      expect(result.typeName).toBe("GlobalType");
-    });
-
-    it("resolves string type", () => {
-      const callbacks = createMockCallbacks();
-      const typeCtx = {
-        primitiveType: () => null,
-        userType: () => null,
-        qualifiedType: () => null,
-        scopedType: () => null,
-        globalType: () => null,
-        stringType: () => ({
-          getText: () => "string<32>",
-          INTEGER_LITERAL: () => ({ getText: () => "32" }),
-        }),
-        arrayType: () => null,
-        getText: () => "string<32>",
-      } as never;
-
-      const result = FunctionContextManager.resolveParameterTypeInfo(
-        typeCtx,
-        callbacks,
-      );
-
+      // The capacity travels separately, through stringCapacities.
       expect(result.typeName).toBe("string");
       expect(result.isString).toBe(true);
     });
 
-    it("resolves array type with primitive base", () => {
-      const callbacks = createMockCallbacks();
-      const typeCtx = {
-        primitiveType: () => null,
-        userType: () => null,
-        qualifiedType: () => null,
-        scopedType: () => null,
-        globalType: () => null,
-        stringType: () => null,
-        arrayType: () =>
-          TestTypeAccessors.create({
-            primitiveType: () => ({ getText: () => "u8" }) as never,
-          }),
-        getText: () => "u8[10]",
-      } as never;
-
+    it("keeps the written text for a string ARRAY element", () => {
       const result = FunctionContextManager.resolveParameterTypeInfo(
-        typeCtx,
-        callbacks,
-      );
-
-      expect(result.typeName).toBe("u8");
-      expect(result.isStruct).toBe(false);
-    });
-
-    it("resolves array type with user type base", () => {
-      const callbacks = createMockCallbacks();
-      (callbacks.isStructType as ReturnType<typeof vi.fn>).mockReturnValue(
-        true,
-      );
-      const typeCtx = {
-        primitiveType: () => null,
-        userType: () => null,
-        qualifiedType: () => null,
-        scopedType: () => null,
-        globalType: () => null,
-        stringType: () => null,
-        arrayType: () =>
-          TestTypeAccessors.create({
-            userType: () => ({ getText: () => "Point" }) as never,
-          }),
-        getText: () => "Point[5]",
-      } as never;
-
-      const result = FunctionContextManager.resolveParameterTypeInfo(
-        typeCtx,
-        callbacks,
-      );
-
-      expect(result.typeName).toBe("Point");
-      expect(result.isStruct).toBe(true);
-    });
-
-    it("resolves array type with string base", () => {
-      const callbacks = createMockCallbacks();
-      const typeCtx = {
-        primitiveType: () => null,
-        userType: () => null,
-        qualifiedType: () => null,
-        scopedType: () => null,
-        globalType: () => null,
-        stringType: () => null,
-        arrayType: () =>
-          TestTypeAccessors.create({
-            stringType: () => ({ getText: () => "string<32>" }) as never,
-          }),
-        getText: () => "string<32>[5]",
-      } as never;
-
-      const result = FunctionContextManager.resolveParameterTypeInfo(
-        typeCtx,
-        callbacks,
+        plannedType({
+          isString: true,
+          isArray: true,
+          stringTypeText: "string<32>",
+          text: "string<32>[5]",
+        }),
+        createMockCallbacks(),
       );
 
       expect(result.typeName).toBe("string<32>");
       expect(result.isString).toBe(true);
     });
 
-    it("returns fallback for unknown type", () => {
+    it("resolves an array of primitives to the element type", () => {
+      const result = FunctionContextManager.resolveParameterTypeInfo(
+        plannedType({ primitiveName: "u8", isArray: true, text: "u8[10]" }),
+        createMockCallbacks(),
+      );
+
+      expect(result.typeName).toBe("u8");
+      expect(result.isStruct).toBe(false);
+    });
+
+    it("resolves an array of user types to the element type", () => {
       const callbacks = createMockCallbacks();
-      const typeCtx = {
-        primitiveType: () => null,
-        userType: () => null,
-        qualifiedType: () => null,
-        scopedType: () => null,
-        globalType: () => null,
-        stringType: () => null,
-        arrayType: () => null,
-        getText: () => "SomeUnknownType",
-      } as never;
+      (callbacks.isStructType as ReturnType<typeof vi.fn>).mockReturnValue(
+        true,
+      );
 
       const result = FunctionContextManager.resolveParameterTypeInfo(
-        typeCtx,
+        plannedType({
+          named: named("bare", "Point"),
+          isArray: true,
+          text: "Point[5]",
+        }),
         callbacks,
+      );
+
+      expect(result.typeName).toBe("Point");
+      expect(result.isStruct).toBe(true);
+    });
+
+    it("returns fallback for unknown type", () => {
+      const result = FunctionContextManager.resolveParameterTypeInfo(
+        plannedType({ text: "SomeUnknownType" }),
+        createMockCallbacks(),
       );
 
       expect(result.typeName).toBe("SomeUnknownType");
@@ -546,19 +410,14 @@ describe("FunctionContextManager", () => {
 
   describe("registerParameterType", () => {
     it("registers parameter in type registry", () => {
-      const param = createMockParam("x", "u32", { isPrimitive: true });
-
       FunctionContextManager.registerParameterType(
-        "x",
         {
           typeName: "u32",
           isStruct: false,
           isCallback: false,
           isString: false,
         },
-        param,
-        false,
-        false,
+        plannedParam("x", plannedType({ primitiveName: "u32" })),
       );
 
       const typeInfo = CodeGenState.getVariableTypeInfo("x");
@@ -569,19 +428,15 @@ describe("FunctionContextManager", () => {
 
     it("registers enum parameter with enumTypeName", () => {
       setupSymbols({ knownEnums: new Set(["Color"]) });
-      const param = createMockParam("color", "Color", { isUserType: true });
 
       FunctionContextManager.registerParameterType(
-        "color",
         {
           typeName: "Color",
           isStruct: false,
           isCallback: false,
           isString: false,
         },
-        param,
-        false,
-        false,
+        plannedParam("color", plannedType({ named: named("bare", "Color") })),
       );
 
       const typeInfo = CodeGenState.getVariableTypeInfo("color");
@@ -595,19 +450,15 @@ describe("FunctionContextManager", () => {
         knownBitmaps: new Set(["Flags"]),
         bitmapBitWidth: new Map([["Flags", 8]]),
       });
-      const param = createMockParam("flags", "Flags", { isUserType: true });
 
       FunctionContextManager.registerParameterType(
-        "flags",
         {
           typeName: "Flags",
           isStruct: false,
           isCallback: false,
           isString: false,
         },
-        param,
-        false,
-        false,
+        plannedParam("flags", plannedType({ named: named("bare", "Flags") })),
       );
 
       const typeInfo = CodeGenState.getVariableTypeInfo("flags");
@@ -615,6 +466,25 @@ describe("FunctionContextManager", () => {
       expect(typeInfo!.isBitmap).toBe(true);
       expect(typeInfo!.bitmapTypeName).toBe("Flags");
       expect(typeInfo!.bitWidth).toBe(8);
+    });
+
+    it("appends the null terminator to a string array's dimensions", () => {
+      FunctionContextManager.registerParameterType(
+        {
+          typeName: "string<32>",
+          isStruct: false,
+          isCallback: false,
+          isString: true,
+        },
+        plannedParam("names", plannedType({ isString: true, isArray: true }), {
+          isArray: true,
+          arrayDimensions: [5],
+          stringCapacity: 32,
+        }),
+      );
+
+      const typeInfo = CodeGenState.getVariableTypeInfo("names");
+      expect(typeInfo!.arrayDimensions).toEqual([5, 33]);
     });
   });
 
@@ -708,153 +578,6 @@ describe("FunctionContextManager", () => {
       FunctionContextManager.exitFunctionBody();
 
       expect(CodeGenState.mainArgsName).toBeNull();
-    });
-  });
-
-  describe("getStringCapacity", () => {
-    it("returns undefined for non-string types", () => {
-      const typeCtx = {
-        stringType: () => null,
-        arrayType: () => null,
-      } as never;
-
-      const result = FunctionContextManager.getStringCapacity(typeCtx, false);
-
-      expect(result).toBeUndefined();
-    });
-
-    it("extracts capacity from direct string type", () => {
-      const typeCtx = {
-        stringType: () => ({
-          INTEGER_LITERAL: () => ({ getText: () => "32" }),
-        }),
-        arrayType: () => null,
-      } as never;
-
-      const result = FunctionContextManager.getStringCapacity(typeCtx, true);
-
-      expect(result).toBe(32);
-    });
-
-    it("extracts capacity from array of strings", () => {
-      const typeCtx = {
-        stringType: () => null,
-        arrayType: () => ({
-          stringType: () => ({
-            INTEGER_LITERAL: () => ({ getText: () => "64" }),
-          }),
-        }),
-      } as never;
-
-      const result = FunctionContextManager.getStringCapacity(typeCtx, true);
-
-      expect(result).toBe(64);
-    });
-  });
-
-  describe("extractParamArrayDimensions", () => {
-    it("returns empty array for non-array parameters", () => {
-      const param = createMockParam("x", "u32", { isPrimitive: true });
-      const typeCtx = {
-        arrayType: () => null,
-      } as never;
-
-      const result = FunctionContextManager.extractParamArrayDimensions(
-        param,
-        typeCtx,
-        false,
-      );
-
-      expect(result).toEqual([]);
-    });
-
-    it("returns empty array when arrayType is null for array parameter", () => {
-      const param = {
-        arrayDimension: () => [],
-      } as never;
-      const typeCtx = {
-        arrayType: () => null,
-      } as never;
-
-      const result = FunctionContextManager.extractParamArrayDimensions(
-        param,
-        typeCtx,
-        true,
-      );
-
-      expect(result).toEqual([]);
-    });
-
-    it("parses C-Next style array dimensions from arrayType", () => {
-      const param = {
-        arrayDimension: () => [],
-      } as never;
-      const typeCtx = {
-        arrayType: () => ({
-          arrayTypeDimension: () => [
-            { expression: () => ({ getText: () => "10" }) },
-            { expression: () => ({ getText: () => "20" }) },
-          ],
-        }),
-      } as never;
-
-      const result = FunctionContextManager.extractParamArrayDimensions(
-        param,
-        typeCtx,
-        true,
-      );
-
-      expect(result).toEqual([10, 20]);
-    });
-
-    it("skips dimensions without expression", () => {
-      const param = {
-        arrayDimension: () => [],
-      } as never;
-      const typeCtx = {
-        arrayType: () => ({
-          arrayTypeDimension: () => [
-            { expression: () => ({ getText: () => "10" }) },
-            { expression: () => null },
-          ],
-        }),
-      } as never;
-
-      const result = FunctionContextManager.extractParamArrayDimensions(
-        param,
-        typeCtx,
-        true,
-      );
-
-      expect(result).toEqual([10]);
-    });
-
-    it("keeps the slot for a non-literal dimension so positions stay aligned", () => {
-      const param = {
-        arrayDimension: () => [],
-      } as never;
-      const typeCtx = {
-        arrayType: () => ({
-          arrayTypeDimension: () => [
-            { expression: () => ({ getText: () => "SIZE" }) },
-          ],
-        }),
-      } as never;
-
-      const result = FunctionContextManager.extractParamArrayDimensions(
-        param,
-        typeCtx,
-        true,
-      );
-
-      // Issue #1159: this previously asserted [] — the dimension was dropped.
-      // Dropping shifts every later dimension, so `u8[SIZE][4] grid` reported
-      // [4] and TypeValidator.checkArrayBounds validated subscript 0 against
-      // dimension 2's bound, falsely rejecting `grid[5][0]` on a [6][4] array.
-      // UNRESOLVED_DIMENSION holds the slot; checkArrayBounds skips it because
-      // it is not > 0. This also matches parseForParameters, which the C-style
-      // branch of this same function already delegates to.
-      expect(result).toEqual([UNRESOLVED_DIMENSION]);
     });
   });
 });

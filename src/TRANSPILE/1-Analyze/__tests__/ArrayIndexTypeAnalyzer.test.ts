@@ -4,8 +4,8 @@
  */
 import { describe, it, expect, afterEach } from "vitest";
 import { CharStream, CommonTokenStream } from "antlr4ng";
-import { CNextLexer } from "../../../transpiler/logic/parser/grammar/CNextLexer";
-import { CNextParser } from "../../../transpiler/logic/parser/grammar/CNextParser";
+import { CNextLexer } from "../../../PARSE/2-Parse/grammar/CNextLexer";
+import { CNextParser } from "../../../PARSE/2-Parse/grammar/CNextParser";
 import ArrayIndexTypeAnalyzer from "../ArrayIndexTypeAnalyzer";
 import CodeGenState from "../../../transpiler/state/CodeGenState";
 import createMockSymbols from "../../../transpiler/__tests__/codeGenSymbolsHelpers";

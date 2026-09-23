@@ -3,7 +3,7 @@
  * Extracted from CodeGenerator.ts.
  */
 import IComment from "../../../../../transpiler/types/IComment";
-import CommentScanner from "../../../../../transpiler/logic/parser/CommentScanner";
+import CommentScanner from "../../../../../PARSE/2-Parse/CommentScanner";
 import CommentFormatter from "../../CommentFormatter";
 
 /**

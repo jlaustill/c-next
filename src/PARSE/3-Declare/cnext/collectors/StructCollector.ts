@@ -5,7 +5,7 @@
  * Produces TType-based IStructSymbol with proper IScopeSymbol references.
  */
 
-import * as Parser from "../../../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../../2-Parse/grammar/CNextParser";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import IStructSymbol from "../../../../transpiler/types/symbols/IStructSymbol";
 import type IStructFieldSymbol from "../../../../transpiler/types/symbols/IStructFieldSymbol";

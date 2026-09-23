@@ -3,7 +3,7 @@
  * ADR-055 Phase 7: Direct TSymbol → ISymbolInfo conversion (no ISymbol intermediate)
  */
 
-import CNextSourceParser from "../transpiler/logic/parser/CNextSourceParser";
+import CNextSourceParser from "../PARSE/2-Parse/CNextSourceParser";
 import CNextResolver from "../PARSE/3-Declare/cnext/index";
 import DeferredTypes from "../PARSE/4-Resolve/DeferredTypes";
 import ScopeUtils from "../utils/ScopeUtils";
@@ -295,7 +295,7 @@ function convertScope(
  */
 function parseWithSymbols(source: string): IParseWithSymbolsResult {
   // Parse C-Next source
-  const { tree, errors } = CNextSourceParser.parse(source);
+  const { tree, parseErrors: errors } = CNextSourceParser.parse(source);
 
   // ADR-055 Phase 7: Direct TSymbol → ISymbolInfo conversion (no ISymbol intermediate)
   //
@@ -313,7 +313,11 @@ function parseWithSymbols(source: string): IParseWithSymbolsResult {
 
   return {
     success: errors.length === 0,
-    errors,
+    // A fresh ARRAY, so a caller who sorts or splices what it is handed does
+    // not reach into 1.2's artifact. The elements are still shared -- this is
+    // not a deep copy and does not make the errors detached, so do not stamp
+    // fields onto them in place (#1445).
+    errors: [...errors],
     symbols,
   };
 }

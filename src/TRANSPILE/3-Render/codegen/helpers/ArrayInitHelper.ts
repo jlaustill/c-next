@@ -11,7 +11,6 @@
  * Migrated to use CodeGenState instead of constructor DI.
  */
 
-import * as Parser from "../../../../transpiler/logic/parser/grammar/CNextParser";
 import CodeGenState from "../../../../transpiler/state/CodeGenState";
 import invariant from "../../../../utils/invariant";
 
@@ -30,14 +29,27 @@ interface IArrayInitResult {
 /**
  * Callbacks required for array initialization.
  * These need CodeGenerator context and cannot be replaced with static state.
+ *
+ * #1445 box 3: these are THUNKS, and the nodes they used to take are closed
+ * over by the caller. This module never read anything off those three
+ * contexts -- each was received and handed straight back to the callback the
+ * caller supplied -- so naming `ExpressionContext`, `TypeContext` and
+ * `ArrayDimensionContext` here bought a dependency on the grammar purely to
+ * pass values through.
+ *
+ * Thunks rather than pre-generated strings, deliberately. `getTypeName` must
+ * run BEFORE `generateExpression`, and `generateExpression` must run INSIDE
+ * the `CodeGenState.withExpectedType` window that this helper opens -- that
+ * window is the whole point of `_generateArrayInitValue`. Passing strings
+ * would evaluate them at the call site, outside it.
  */
 interface IArrayInitCallbacks {
-  /** Generate expression code */
-  generateExpression: (ctx: Parser.ExpressionContext) => string;
-  /** Get type name from type context */
-  getTypeName: (ctx: Parser.TypeContext) => string;
-  /** Generate array dimensions */
-  generateArrayDimensions: (dims: Parser.ArrayDimensionContext[]) => string;
+  /** Generate the initializer expression's code */
+  generateExpression: () => string;
+  /** Get the declared type's C name */
+  getTypeName: () => string;
+  /** Generate the declaration's array dimension suffix */
+  generateArrayDimensions: () => string;
 }
 
 /**
@@ -49,18 +61,12 @@ class ArrayInitHelper {
    * Returns null if not an array initializer pattern.
    *
    * @param name - Variable name
-   * @param typeCtx - Type context
-   * @param expression - Initializer expression
-   * @param arrayDims - Array dimension contexts
    * @param hasEmptyArrayDim - Whether any dimension is empty (for inference)
    * @param declaredSize - First dimension size if explicit, null otherwise
    * @param callbacks - Callbacks to CodeGenerator methods
    */
   static processArrayInit(
     name: string,
-    typeCtx: Parser.TypeContext,
-    expression: Parser.ExpressionContext,
-    arrayDims: Parser.ArrayDimensionContext[],
     hasEmptyArrayDim: boolean,
     declaredSize: number | null,
     callbacks: IArrayInitCallbacks,
@@ -68,11 +74,7 @@ class ArrayInitHelper {
     // Reset and generate initializer
     CodeGenState.resetArrayInitTracking();
 
-    const initValue = ArrayInitHelper._generateArrayInitValue(
-      typeCtx,
-      expression,
-      callbacks,
-    );
+    const initValue = ArrayInitHelper._generateArrayInitValue(callbacks);
 
     // Check if it was an array initializer
     if (!CodeGenState.wasArrayInit()) {
@@ -83,11 +85,7 @@ class ArrayInitHelper {
 
     const dimensionSuffix = hasEmptyArrayDim
       ? ArrayInitHelper._processSizeInference(name)
-      : ArrayInitHelper._processExplicitSize(
-          arrayDims,
-          declaredSize,
-          callbacks,
-        );
+      : ArrayInitHelper._processExplicitSize(declaredSize, callbacks);
 
     const finalInitValue = ArrayInitHelper._expandFillAllSyntax(
       initValue,
@@ -101,13 +99,11 @@ class ArrayInitHelper {
    * Generate the array initializer value with proper expected type
    */
   private static _generateArrayInitValue(
-    typeCtx: Parser.TypeContext,
-    expression: Parser.ExpressionContext,
     callbacks: IArrayInitCallbacks,
   ): string {
-    const typeName = callbacks.getTypeName(typeCtx);
+    const typeName = callbacks.getTypeName();
     return CodeGenState.withExpectedType(typeName, () =>
-      callbacks.generateExpression(expression),
+      callbacks.generateExpression(),
     );
   }
 
@@ -137,11 +133,10 @@ class ArrayInitHelper {
    * Process explicit array size with validation
    */
   private static _processExplicitSize(
-    arrayDims: Parser.ArrayDimensionContext[],
     declaredSize: number | null,
     callbacks: IArrayInitCallbacks,
   ): string {
-    const dimensionSuffix = callbacks.generateArrayDimensions(arrayDims);
+    const dimensionSuffix = callbacks.generateArrayDimensions();
 
     // #1322: the element count is E0866's in pass 2.1 (ADR-035); an
     // initializer shorter than the declaration would be emitted as C's

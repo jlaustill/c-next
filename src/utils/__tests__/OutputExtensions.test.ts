@@ -121,7 +121,9 @@ describe("OutputExtensions (#1319)", () => {
       .map((file) => file.slice(SRC_ROOT.length + 1));
 
     expect(defaults).toEqual([
-      ["TRANSPILE", "3-Render", "codegen", "CodeGenerator.ts"].join(sep),
+      // #1445 box 3: the site did not change, its file did. `generate()` takes
+      // the parse tree, so it moved to the walker with the rest of the walk.
+      ["TRANSPILE", "CodeGenWalker.ts"].join(sep),
     ]);
   });
 

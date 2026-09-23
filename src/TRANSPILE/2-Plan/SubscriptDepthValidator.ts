@@ -20,13 +20,25 @@ import TypeCheckUtils from "../../utils/TypeCheckUtils";
 import invariant from "../../utils/invariant";
 
 /**
- * Structural shape common to `postfixOp` (read path) and `postfixTargetOp`
- * (write path). Both expose their bracket contents via `expression()`: a
- * subscript has 1 (`[i]`) or 2 (`[start, width]`), while a member access or a
- * call has none.
+ * A planned postfix operation, which STATES its kind.
+ *
+ * #1445 review: there were two shapes here -- this one and an
+ * `IPostfixOpLike { expression(): unknown[] }` for raw nodes -- chosen between
+ * by a `"kind" in op` probe. In the one module whose stated purpose is that
+ * the read and write paths "cannot diverge on what counts as a subscript",
+ * that was the question being answered from two representations. Both callers
+ * pass planned ops now.
+ *
+ * The kind is the literal union rather than `string`, so a planner emitting a
+ * fourth kind is a compile error here instead of silently counting as
+ * not-a-subscript.
  */
-interface IPostfixOpLike {
-  expression(): unknown[];
+interface IPlannedOpLike {
+  readonly kind: "member" | "subscript" | "call";
+}
+
+function isSubscript(op: IPlannedOpLike): boolean {
+  return op.kind === "subscript";
 }
 
 class SubscriptDepthValidator {
@@ -48,12 +60,12 @@ class SubscriptDepthValidator {
    * from index 0.
    */
   static countLeadingSubscripts(
-    ops: readonly IPostfixOpLike[],
+    ops: readonly IPlannedOpLike[],
     startIndex = 0,
   ): number {
     let count = 0;
     for (let index = startIndex; index < ops.length; index++) {
-      if (ops[index].expression().length === 0) {
+      if (!isSubscript(ops[index])) {
         break;
       }
       count++;

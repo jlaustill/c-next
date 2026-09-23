@@ -1,205 +1,51 @@
+/**
+ * Unit tests for the ADR-025 switch generator.
+ *
+ * #1445 box 3: the generator takes `IPlannedSwitch`, so these build plans
+ * rather than six-accessor mock contexts cast `as unknown as`.
+ *
+ * Three describes folded into one. `generateCaseLabel`, `generateSwitchCase`
+ * and `generateDefaultCase` were exported only so a test could reach them with
+ * a context; label rendering is an internal pure function of the plan now, and
+ * every assertion they made is made here through the one entry point -- which
+ * is a stronger test, because it also pins where the label lands.
+ */
 import { describe, it, expect, vi } from "vitest";
-import switchGenerators from "../SwitchGenerator";
+import generateSwitch from "../SwitchGenerator";
 import IGeneratorInput from "../../IGeneratorInput";
 import IGeneratorState from "../../IGeneratorState";
 import IOrchestrator from "../../IOrchestrator";
-import * as Parser from "../../../../../../transpiler/logic/parser/grammar/CNextParser";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
-
-const {
-  generateSwitch,
-  generateSwitchCase,
-  generateCaseLabel,
-  generateDefaultCase,
-} = switchGenerators;
+import type IPlannedSwitch from "../../../types/IPlannedSwitch";
+import type IPlannedSwitchCase from "../../../types/IPlannedSwitchCase";
+import type TPlannedCaseLabel from "../../../types/TPlannedCaseLabel";
 
 // ========================================================================
-// Test Helpers - Mock Contexts
+// Test Helpers
 // ========================================================================
 
-/**
- * Create a mock case label context with a qualified type (e.g., State.IDLE)
- */
-function createQualifiedTypeCaseLabel(
-  parts: string[],
-): Parser.CaseLabelContext {
+/** A case with the given labels and body statements. */
+function switchCase(
+  labels: TPlannedCaseLabel[],
+  statements: string[] = [],
+): IPlannedSwitchCase {
+  return { labels, renderBody: () => statements };
+}
+
+/** A planned switch, with a single case unless more are given. */
+function planned(
+  overrides: Partial<IPlannedSwitch> & { cases?: IPlannedSwitchCase[] } = {},
+): IPlannedSwitch {
   return {
-    qualifiedType: () => ({
-      IDENTIFIER: () => parts.map((p) => ({ getText: () => p })),
-    }),
-    IDENTIFIER: () => null,
-    INTEGER_LITERAL: () => null,
-    HEX_LITERAL: () => null,
-    BINARY_LITERAL: () => null,
-    CHAR_LITERAL: () => null,
-    children: null,
-    start: { line: 1, column: 0 },
-  } as unknown as Parser.CaseLabelContext;
+    subject: "state",
+    subjectEnumType: undefined,
+    cases: [],
+    renderDefaultBody: null,
+    ...overrides,
+  };
 }
 
-/**
- * Create a mock case label context with an identifier
- */
-function createIdentifierCaseLabel(
-  id: string,
-  line = 1,
-  col = 0,
-): Parser.CaseLabelContext {
-  return {
-    qualifiedType: () => null,
-    IDENTIFIER: () => ({ getText: () => id }),
-    INTEGER_LITERAL: () => null,
-    HEX_LITERAL: () => null,
-    BINARY_LITERAL: () => null,
-    CHAR_LITERAL: () => null,
-    children: null,
-    start: { line, column: col },
-  } as unknown as Parser.CaseLabelContext;
-}
-
-/**
- * Create a mock case label context with an integer literal
- */
-function createIntegerCaseLabel(
-  value: string,
-  hasNegative = false,
-): Parser.CaseLabelContext {
-  return {
-    qualifiedType: () => null,
-    IDENTIFIER: () => null,
-    INTEGER_LITERAL: () => ({ getText: () => value }),
-    HEX_LITERAL: () => null,
-    BINARY_LITERAL: () => null,
-    CHAR_LITERAL: () => null,
-    children: hasNegative ? [{ getText: () => "-" }] : null,
-    start: { line: 1, column: 0 },
-  } as unknown as Parser.CaseLabelContext;
-}
-
-/**
- * Create a mock case label context with a hex literal
- */
-function createHexCaseLabel(
-  value: string,
-  hasNegative = false,
-): Parser.CaseLabelContext {
-  return {
-    qualifiedType: () => null,
-    IDENTIFIER: () => null,
-    INTEGER_LITERAL: () => null,
-    HEX_LITERAL: () => ({ getText: () => value }),
-    BINARY_LITERAL: () => null,
-    CHAR_LITERAL: () => null,
-    children: hasNegative ? [{ getText: () => "-" }] : null,
-    start: { line: 1, column: 0 },
-  } as unknown as Parser.CaseLabelContext;
-}
-
-/**
- * Create a mock case label context with a binary literal
- */
-function createBinaryCaseLabel(
-  value: string,
-  hasNegative = false,
-): Parser.CaseLabelContext {
-  return {
-    qualifiedType: () => null,
-    IDENTIFIER: () => null,
-    INTEGER_LITERAL: () => null,
-    HEX_LITERAL: () => null,
-    BINARY_LITERAL: () => ({ getText: () => value }),
-    CHAR_LITERAL: () => null,
-    children: hasNegative ? [{ getText: () => "-" }] : null,
-    start: { line: 1, column: 0 },
-  } as unknown as Parser.CaseLabelContext;
-}
-
-/**
- * Create a mock case label context with a character literal
- */
-function createCharCaseLabel(value: string): Parser.CaseLabelContext {
-  return {
-    qualifiedType: () => null,
-    IDENTIFIER: () => null,
-    INTEGER_LITERAL: () => null,
-    HEX_LITERAL: () => null,
-    BINARY_LITERAL: () => null,
-    CHAR_LITERAL: () => ({ getText: () => value }),
-    children: null,
-    start: { line: 1, column: 0 },
-  } as unknown as Parser.CaseLabelContext;
-}
-
-/**
- * Create a mock statement context
- */
-function createMockStatement(): Parser.StatementContext {
-  return {} as Parser.StatementContext;
-}
-
-/**
- * Create a mock block context with statements
- */
-function createMockBlock(
-  statements: Parser.StatementContext[] = [],
-): Parser.BlockContext {
-  return {
-    statement: () => statements,
-  } as unknown as Parser.BlockContext;
-}
-
-/**
- * Create a mock switch case context
- */
-function createMockSwitchCase(
-  labels: Parser.CaseLabelContext[],
-  statements: Parser.StatementContext[] = [],
-): Parser.SwitchCaseContext {
-  return {
-    caseLabel: () => labels,
-    block: () => createMockBlock(statements),
-  } as unknown as Parser.SwitchCaseContext;
-}
-
-/**
- * Create a mock default case context
- */
-function createMockDefaultCase(
-  statements: Parser.StatementContext[] = [],
-): Parser.DefaultCaseContext {
-  return {
-    block: () => createMockBlock(statements),
-  } as unknown as Parser.DefaultCaseContext;
-}
-
-/**
- * Create a mock expression context
- */
-function createMockExpression(): Parser.ExpressionContext {
-  return {} as Parser.ExpressionContext;
-}
-
-/**
- * Create a mock switch statement context
- */
-function createMockSwitchStatement(options: {
-  cases?: Parser.SwitchCaseContext[];
-  defaultCase?: Parser.DefaultCaseContext | null;
-}): Parser.SwitchStatementContext {
-  return {
-    expression: createMockExpression,
-    switchCase: () => options.cases ?? [],
-    defaultCase: () => options.defaultCase ?? null,
-  } as unknown as Parser.SwitchStatementContext;
-}
-
-// ========================================================================
-// Test Helpers - Mock Input/State/Orchestrator
-// ========================================================================
-
-/**
- * Create minimal mock input.
- */
+/** Create minimal mock input. */
 function createMockInput(options?: {
   enumMembers?: Map<string, Map<string, number>>;
 }): IGeneratorInput {
@@ -238,281 +84,186 @@ function createMockInput(options?: {
   } as unknown as IGeneratorInput;
 }
 
-/**
- * Create minimal mock state.
- */
 function createMockState(): IGeneratorState {
   return TestGeneratorState.create({ inFunctionBody: true });
 }
 
 /**
- * Create mock orchestrator for SwitchGenerator.
- * Methods used:
- * - generateExpression(expr) - for switch expression
- * - getExpressionEnumType(expr) - enum type resolution
- * - indent(text) - indentation
- * - generateStatement(stmt) - for statements in blocks
+ * The generator reaches the orchestrator for one thing now: `indent`. The
+ * subject and the enum type arrive on the plan, and the statements arrive
+ * from the case's own thunk.
  */
-function createMockOrchestrator(options?: {
-  exprCode?: string;
-  enumType?: string | null;
-  statementCode?: string;
-}): IOrchestrator {
-  const generateExpression = vi.fn(() => options?.exprCode ?? "state");
-  const getExpressionEnumType = vi.fn(() => options?.enumType ?? null);
-  const indent = vi.fn((text: string) => `    ${text}`);
-  const generateStatement = vi.fn(() => options?.statementCode ?? "x = 1;");
-
+function createMockOrchestrator(): IOrchestrator {
   return {
-    generateExpression,
-    getExpressionEnumType,
-    indent,
-    generateStatement,
+    indent: vi.fn((text: string) => `    ${text}`),
   } as unknown as IOrchestrator;
 }
 
+/** Run the generator on a plan. */
+function generate(switchPlan: IPlannedSwitch, input = createMockInput()) {
+  return generateSwitch(
+    switchPlan,
+    input,
+    createMockState(),
+    createMockOrchestrator(),
+  );
+}
+
+/** The rendered text of a switch whose single case carries one label. */
+function labelOf(label: TPlannedCaseLabel, input = createMockInput()): string {
+  const result = generate(planned({ cases: [switchCase([label])] }), input);
+  const line = result.code
+    .split("\n")
+    .find((candidate) => candidate.includes("case "));
+  return (
+    line
+      ?.trim()
+      .replace(/^case /, "")
+      .replace(/: \{$/, "") ?? ""
+  );
+}
+
 // ========================================================================
-// Tests - generateCaseLabel
+// Tests
 // ========================================================================
 
 describe("SwitchGenerator", () => {
-  describe("generateCaseLabel", () => {
-    describe("qualified type labels", () => {
-      it("converts qualified enum to C underscore format", () => {
-        const ctx = createQualifiedTypeCaseLabel(["State", "IDLE"]);
-        const input = createMockInput();
-        const state = createMockState();
-        const orchestrator = createMockOrchestrator();
-
-        const result = generateCaseLabel(ctx, input, state, orchestrator);
-
-        expect(result.code).toBe("State__IDLE");
-        expect(result.effects).toEqual([]);
-      });
-
-      it("handles multi-part qualified names", () => {
-        const ctx = createQualifiedTypeCaseLabel(["Motor", "State", "RUNNING"]);
-        const input = createMockInput();
-        const state = createMockState();
-        const orchestrator = createMockOrchestrator();
-
-        const result = generateCaseLabel(ctx, input, state, orchestrator);
-
-        expect(result.code).toBe("Motor__State__RUNNING");
-      });
+  describe("case labels", () => {
+    it.each<[string, TPlannedCaseLabel, string]>([
+      [
+        "a qualified enum, in C underscore format",
+        { kind: "qualified", parts: ["State", "IDLE"] },
+        "State__IDLE",
+      ],
+      [
+        "a multi-part qualified name",
+        { kind: "qualified", parts: ["Motor", "State", "RUNNING"] },
+        "Motor__State__RUNNING",
+      ],
+      [
+        "a plain identifier (a const)",
+        { kind: "identifier", name: "MAX_VALUE" },
+        "MAX_VALUE",
+      ],
+      [
+        "a positive integer",
+        { kind: "numeric", text: "42", negative: false },
+        "42",
+      ],
+      [
+        "a negative integer",
+        { kind: "numeric", text: "5", negative: true },
+        "-5",
+      ],
+      ["zero", { kind: "numeric", text: "0", negative: false }, "0"],
+      [
+        "a hex literal",
+        { kind: "numeric", text: "0xFF", negative: false },
+        "0xFF",
+      ],
+      [
+        "a negative hex literal",
+        { kind: "numeric", text: "0x10", negative: true },
+        "-0x10",
+      ],
+      [
+        "a binary literal, as hex",
+        { kind: "binary", text: "0b1010", negative: false },
+        "0xA",
+      ],
+      [
+        "a negative binary literal, as negative hex",
+        { kind: "binary", text: "0b1111", negative: true },
+        "-0xF",
+      ],
+      ["a char literal", { kind: "char", text: "'A'" }, "'A'"],
+      [
+        "an escape-sequence char literal",
+        { kind: "char", text: "'\\n'" },
+        "'\\n'",
+      ],
+      // The grammar admits nothing else today; the fall-through is preserved.
+      ["an unrecognized label, as empty", { kind: "none" }, ""],
+    ])("renders %s", (_label, planned_, expected) => {
+      expect(labelOf(planned_)).toBe(expected);
     });
 
-    describe("identifier labels", () => {
-      it("passes through plain identifiers (const variables)", () => {
-        const ctx = createIdentifierCaseLabel("MAX_VALUE");
-        const input = createMockInput();
-        const state = createMockState();
-        const orchestrator = createMockOrchestrator();
-
-        const result = generateCaseLabel(ctx, input, state, orchestrator);
-
-        expect(result.code).toBe("MAX_VALUE");
+    it("adds a ULL suffix above the 32-bit range (Issue #114)", () => {
+      // 2^32, which exceeds 0xFFFFFFFF
+      const rendered = labelOf({
+        kind: "binary",
+        text: "0b100000000000000000000000000000000",
+        negative: false,
       });
 
-      it("resolves unqualified enum member with type prefix (Issue #471)", () => {
-        const ctx = createIdentifierCaseLabel("IDLE");
-        const input = createMockInput({
-          enumMembers: new Map([
-            [
-              "State",
-              new Map([
-                ["IDLE", 0],
-                ["RUNNING", 1],
-              ]),
-            ],
-          ]),
-        });
-        const state = createMockState();
-        const orchestrator = createMockOrchestrator();
-
-        // Pass switchEnumType to enable resolution
-        const result = generateCaseLabel(
-          ctx,
-          input,
-          state,
-          orchestrator,
-          "State",
-        );
-
-        expect(result.code).toBe("State__IDLE");
-      });
+      expect(rendered).toContain("ULL");
+      expect(rendered).toBe("0x100000000ULL");
     });
 
-    describe("integer literals", () => {
-      it("handles positive integer literal", () => {
-        const ctx = createIntegerCaseLabel("42");
-        const input = createMockInput();
-        const state = createMockState();
-        const orchestrator = createMockOrchestrator();
-
-        const result = generateCaseLabel(ctx, input, state, orchestrator);
-
-        expect(result.code).toBe("42");
+    it("does not add ULL within the 32-bit range", () => {
+      const rendered = labelOf({
+        kind: "binary",
+        text: "0b11111111111111111111111111111111",
+        negative: false,
       });
 
-      it("handles negative integer literal", () => {
-        const ctx = createIntegerCaseLabel("5", true);
-        const input = createMockInput();
-        const state = createMockState();
-        const orchestrator = createMockOrchestrator();
-
-        const result = generateCaseLabel(ctx, input, state, orchestrator);
-
-        expect(result.code).toBe("-5");
-      });
-
-      it("handles zero", () => {
-        const ctx = createIntegerCaseLabel("0");
-        const input = createMockInput();
-        const state = createMockState();
-        const orchestrator = createMockOrchestrator();
-
-        const result = generateCaseLabel(ctx, input, state, orchestrator);
-
-        expect(result.code).toBe("0");
-      });
+      expect(rendered).not.toContain("ULL");
+      expect(rendered).toBe("0xFFFFFFFF");
     });
 
-    describe("hex literals", () => {
-      it("handles hex literal", () => {
-        const ctx = createHexCaseLabel("0xFF");
-        const input = createMockInput();
-        const state = createMockState();
-        const orchestrator = createMockOrchestrator();
-
-        const result = generateCaseLabel(ctx, input, state, orchestrator);
-
-        expect(result.code).toBe("0xFF");
+    it("resolves an unqualified enum member with its type prefix (Issue #471)", () => {
+      const input = createMockInput({
+        enumMembers: new Map([
+          [
+            "State",
+            new Map([
+              ["IDLE", 0],
+              ["RUNNING", 1],
+            ]),
+          ],
+        ]),
       });
 
-      it("handles negative hex literal", () => {
-        const ctx = createHexCaseLabel("0x10", true);
-        const input = createMockInput();
-        const state = createMockState();
-        const orchestrator = createMockOrchestrator();
+      const result = generate(
+        planned({
+          subjectEnumType: "State",
+          cases: [switchCase([{ kind: "identifier", name: "IDLE" }])],
+        }),
+        input,
+      );
 
-        const result = generateCaseLabel(ctx, input, state, orchestrator);
-
-        expect(result.code).toBe("-0x10");
-      });
+      expect(result.code).toContain("case State__IDLE: {");
     });
 
-    describe("binary literals", () => {
-      it("converts binary to hex", () => {
-        const ctx = createBinaryCaseLabel("0b1010");
-        const input = createMockInput();
-        const state = createMockState();
-        const orchestrator = createMockOrchestrator();
-
-        const result = generateCaseLabel(ctx, input, state, orchestrator);
-
-        expect(result.code).toBe("0xA");
+    it("leaves an identifier the enum does not declare alone", () => {
+      const input = createMockInput({
+        enumMembers: new Map([["State", new Map([["IDLE", 0]])]]),
       });
 
-      it("converts negative binary to negative hex", () => {
-        const ctx = createBinaryCaseLabel("0b1111", true);
-        const input = createMockInput();
-        const state = createMockState();
-        const orchestrator = createMockOrchestrator();
+      const result = generate(
+        planned({
+          subjectEnumType: "State",
+          cases: [switchCase([{ kind: "identifier", name: "MAX_VALUE" }])],
+        }),
+        input,
+      );
 
-        const result = generateCaseLabel(ctx, input, state, orchestrator);
-
-        expect(result.code).toBe("-0xF");
-      });
-
-      it("adds ULL suffix for large binary values (Issue #114)", () => {
-        // Value > 0xFFFFFFFF requires ULL suffix
-        const ctx = createBinaryCaseLabel(
-          "0b100000000000000000000000000000000",
-        ); // 2^32
-        const input = createMockInput();
-        const state = createMockState();
-        const orchestrator = createMockOrchestrator();
-
-        const result = generateCaseLabel(ctx, input, state, orchestrator);
-
-        expect(result.code).toContain("ULL");
-        expect(result.code).toBe("0x100000000ULL");
-      });
-
-      it("does not add ULL for values within 32-bit range", () => {
-        const ctx = createBinaryCaseLabel("0b11111111111111111111111111111111"); // 0xFFFFFFFF
-        const input = createMockInput();
-        const state = createMockState();
-        const orchestrator = createMockOrchestrator();
-
-        const result = generateCaseLabel(ctx, input, state, orchestrator);
-
-        expect(result.code).not.toContain("ULL");
-        expect(result.code).toBe("0xFFFFFFFF");
-      });
-    });
-
-    describe("character literals", () => {
-      it("handles character literal", () => {
-        const ctx = createCharCaseLabel("'A'");
-        const input = createMockInput();
-        const state = createMockState();
-        const orchestrator = createMockOrchestrator();
-
-        const result = generateCaseLabel(ctx, input, state, orchestrator);
-
-        expect(result.code).toBe("'A'");
-      });
-
-      it("handles escape sequence character", () => {
-        const ctx = createCharCaseLabel("'\\n'");
-        const input = createMockInput();
-        const state = createMockState();
-        const orchestrator = createMockOrchestrator();
-
-        const result = generateCaseLabel(ctx, input, state, orchestrator);
-
-        expect(result.code).toBe("'\\n'");
-      });
-    });
-
-    describe("empty case", () => {
-      it("returns empty string for unknown label type", () => {
-        const ctx = {
-          qualifiedType: () => null,
-          IDENTIFIER: () => null,
-          INTEGER_LITERAL: () => null,
-          HEX_LITERAL: () => null,
-          BINARY_LITERAL: () => null,
-          CHAR_LITERAL: () => null,
-          children: null,
-          start: { line: 1, column: 0 },
-        } as unknown as Parser.CaseLabelContext;
-        const input = createMockInput();
-        const state = createMockState();
-        const orchestrator = createMockOrchestrator();
-
-        const result = generateCaseLabel(ctx, input, state, orchestrator);
-
-        expect(result.code).toBe("");
-      });
+      expect(result.code).toContain("case MAX_VALUE: {");
     });
   });
 
-  // ========================================================================
-  // Tests - generateSwitchCase
-  // ========================================================================
-
-  describe("generateSwitchCase", () => {
-    it("generates single case with block", () => {
-      const label = createIntegerCaseLabel("1");
-      const ctx = createMockSwitchCase([label], [createMockStatement()]);
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({ statementCode: "x = 1;" });
-
-      const result = generateSwitchCase(ctx, input, state, orchestrator);
+  describe("cases", () => {
+    it("generates a single case with a block", () => {
+      const result = generate(
+        planned({
+          cases: [
+            switchCase(
+              [{ kind: "numeric", text: "1", negative: false }],
+              ["x = 1;"],
+            ),
+          ],
+        }),
+      );
 
       expect(result.code).toContain("case 1: {");
       expect(result.code).toContain("x = 1;");
@@ -520,241 +271,156 @@ describe("SwitchGenerator", () => {
       expect(result.code).toContain("}");
     });
 
-    it("generates multiple labels for fall-through (|| expansion)", () => {
-      const label1 = createIntegerCaseLabel("1");
-      const label2 = createIntegerCaseLabel("2");
-      const label3 = createIntegerCaseLabel("3");
-      const ctx = createMockSwitchCase(
-        [label1, label2, label3],
-        [createMockStatement()],
+    it("expands || into fall-through labels, the last opening the block", () => {
+      const result = generate(
+        planned({
+          cases: [
+            switchCase(
+              [
+                { kind: "numeric", text: "1", negative: false },
+                { kind: "numeric", text: "2", negative: false },
+                { kind: "numeric", text: "3", negative: false },
+              ],
+              ["handle();"],
+            ),
+          ],
+        }),
       );
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({
-        statementCode: "handle();",
-      });
 
-      const result = generateSwitchCase(ctx, input, state, orchestrator);
-
-      // First two are fall-through labels (no block)
-      expect(result.code).toContain("case 1:");
-      expect(result.code).toContain("case 2:");
-      // Last one has the block
+      // The first two fall through -- no block.
+      expect(result.code).toContain("case 1:\n");
+      expect(result.code).toContain("case 2:\n");
+      // The last one carries the block.
       expect(result.code).toContain("case 3: {");
       expect(result.code).toContain("handle();");
       expect(result.code).toContain("break;");
     });
 
-    it("passes switchEnumType to case label generation", () => {
-      const label = createIdentifierCaseLabel("IDLE");
-      const ctx = createMockSwitchCase([label], []);
-      const input = createMockInput({
-        enumMembers: new Map([["State", new Map([["IDLE", 0]])]]),
-      });
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator();
-
-      const result = generateSwitchCase(
-        ctx,
-        input,
-        state,
-        orchestrator,
-        "State",
+    it("handles an empty block", () => {
+      const result = generate(
+        planned({
+          cases: [
+            switchCase([{ kind: "numeric", text: "0", negative: false }]),
+          ],
+        }),
       );
-
-      expect(result.code).toContain("case State__IDLE: {");
-    });
-
-    it("handles empty block (no statements)", () => {
-      const label = createIntegerCaseLabel("0");
-      const ctx = createMockSwitchCase([label], []);
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator();
-
-      const result = generateSwitchCase(ctx, input, state, orchestrator);
 
       expect(result.code).toContain("case 0: {");
       expect(result.code).toContain("break;");
       expect(result.code).toContain("}");
     });
 
-    it("generates multiple statements in block", () => {
-      const label = createIntegerCaseLabel("5");
-      const ctx = createMockSwitchCase(
-        [label],
-        [createMockStatement(), createMockStatement(), createMockStatement()],
+    it("generates multiple statements in a block, in order", () => {
+      const result = generate(
+        planned({
+          cases: [
+            switchCase(
+              [{ kind: "numeric", text: "5", negative: false }],
+              ["a = 1;", "b = 2;", "c = 3;"],
+            ),
+          ],
+        }),
       );
-      const input = createMockInput();
-      const state = createMockState();
-      let callCount = 0;
-      const statementCodes = ["a = 1;", "b = 2;", "c = 3;"];
-      const orchestrator = {
-        indent: (text: string) => `    ${text}`,
-        generateStatement: vi.fn(() => statementCodes[callCount++]),
-      } as unknown as IOrchestrator;
-
-      const result = generateSwitchCase(ctx, input, state, orchestrator);
 
       expect(result.code).toContain("a = 1;");
       expect(result.code).toContain("b = 2;");
       expect(result.code).toContain("c = 3;");
+      expect(result.code.indexOf("a = 1;")).toBeLessThan(
+        result.code.indexOf("b = 2;"),
+      );
+    });
+
+    /** A statement that renders to nothing contributes no line. */
+    it("drops a statement that renders empty", () => {
+      const result = generate(
+        planned({
+          cases: [
+            switchCase(
+              [{ kind: "numeric", text: "1", negative: false }],
+              ["a = 1;", "", "b = 2;"],
+            ),
+          ],
+        }),
+      );
+
+      const lines = result.code.split("\n");
+      const opened = lines.indexOf("    case 1: {");
+      const broke = lines.indexOf("        break;");
+
+      // Exactly the two non-empty statements sit between the label and the
+      // break -- the empty one contributes no line at all, not a blank one.
+      expect(lines.slice(opened + 1, broke)).toEqual([
+        "        a = 1;",
+        "        b = 2;",
+      ]);
     });
   });
 
-  // ========================================================================
-  // Tests - generateDefaultCase
-  // ========================================================================
-
-  describe("generateDefaultCase", () => {
-    it("generates default case with block", () => {
-      const ctx = createMockDefaultCase([createMockStatement()]);
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({
-        statementCode: "error();",
-      });
-
-      const result = generateDefaultCase(ctx, input, state, orchestrator);
+  describe("default (Issue #855, MISRA C:2012 Rule 16.4)", () => {
+    it("renders the source's default when it declares one", () => {
+      const result = generate(
+        planned({
+          cases: [
+            switchCase([{ kind: "numeric", text: "1", negative: false }]),
+          ],
+          renderDefaultBody: () => ["error();"],
+        }),
+      );
 
       expect(result.code).toContain("default: {");
       expect(result.code).toContain("error();");
       expect(result.code).toContain("break;");
-      expect(result.code).toContain("}");
     });
 
-    it("handles empty default block", () => {
-      const ctx = createMockDefaultCase([]);
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator();
-
-      const result = generateDefaultCase(ctx, input, state, orchestrator);
+    it("emits an empty default when the source declares none", () => {
+      const result = generate(
+        planned({
+          cases: [
+            switchCase([{ kind: "numeric", text: "1", negative: false }]),
+          ],
+        }),
+      );
 
       expect(result.code).toContain("default: {");
       expect(result.code).toContain("break;");
-      expect(result.code).toContain("}");
-    });
-
-    it("returns empty effects", () => {
-      const ctx = createMockDefaultCase([]);
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator();
-
-      const result = generateDefaultCase(ctx, input, state, orchestrator);
-
-      expect(result.effects).toEqual([]);
     });
   });
 
-  // ========================================================================
-  // Tests - generateSwitch
-  // ========================================================================
-
-  describe("generateSwitch", () => {
-    it("generates basic switch statement", () => {
-      const caseCtx = createMockSwitchCase([createIntegerCaseLabel("1")], []);
-      const ctx = createMockSwitchStatement({ cases: [caseCtx] });
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({ exprCode: "value" });
-
-      const result = generateSwitch(ctx, input, state, orchestrator);
+  describe("the statement as a whole", () => {
+    it("opens on the subject and closes", () => {
+      const result = generate(
+        planned({
+          subject: "value",
+          cases: [
+            switchCase([{ kind: "numeric", text: "1", negative: false }]),
+          ],
+        }),
+      );
 
       expect(result.code).toContain("switch (value) {");
       expect(result.code).toContain("case 1: {");
-      expect(result.code).toContain("}");
+      expect(result.code.endsWith("}")).toBe(true);
     });
 
-    it("generates switch with multiple cases", () => {
-      const case1 = createMockSwitchCase([createIntegerCaseLabel("0")], []);
-      const case2 = createMockSwitchCase([createIntegerCaseLabel("1")], []);
-      const ctx = createMockSwitchStatement({ cases: [case1, case2] });
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({ exprCode: "state" });
+    it("renders every case, in order", () => {
+      const result = generate(
+        planned({
+          cases: [
+            switchCase([{ kind: "numeric", text: "0", negative: false }]),
+            switchCase([{ kind: "numeric", text: "1", negative: false }]),
+          ],
+        }),
+      );
 
-      const result = generateSwitch(ctx, input, state, orchestrator);
-
-      expect(result.code).toContain("switch (state) {");
       expect(result.code).toContain("case 0: {");
       expect(result.code).toContain("case 1: {");
-    });
-
-    it("generates switch with default case", () => {
-      const caseCtx = createMockSwitchCase([createIntegerCaseLabel("1")], []);
-      const defaultCtx = createMockDefaultCase([]);
-      const ctx = createMockSwitchStatement({
-        cases: [caseCtx],
-        defaultCase: defaultCtx,
-      });
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({ exprCode: "x" });
-
-      const result = generateSwitch(ctx, input, state, orchestrator);
-
-      expect(result.code).toContain("switch (x) {");
-      expect(result.code).toContain("case 1: {");
-      expect(result.code).toContain("default: {");
-    });
-
-    // #1322: the two cases here asserted that `generateSwitch` DELEGATES to
-    // `orchestrator.validateSwitchStatement` and propagates its throw. ADR-025's
-    // rules are E0711-E0714 in pass 2.1, which halts before codegen runs, so
-    // there is no delegation left to assert. Deleted rather than emptied: an
-    // `it` that calls the generator and checks nothing is green whatever the
-    // generator does. Covered by
-    // `1-Analyze/__tests__/SwitchStatementAnalyzer.test.ts`.
-
-    it("uses enum type from expression for case resolution (Issue #471)", () => {
-      const caseCtx = createMockSwitchCase(
-        [createIdentifierCaseLabel("IDLE")],
-        [],
+      expect(result.code.indexOf("case 0:")).toBeLessThan(
+        result.code.indexOf("case 1:"),
       );
-      const ctx = createMockSwitchStatement({ cases: [caseCtx] });
-      const input = createMockInput({
-        enumMembers: new Map([["State", new Map([["IDLE", 0]])]]),
-      });
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator({
-        exprCode: "currentState",
-        enumType: "State",
-      });
-
-      const result = generateSwitch(ctx, input, state, orchestrator);
-
-      expect(result.code).toContain("switch (currentState) {");
-      expect(result.code).toContain("case State__IDLE: {");
     });
 
-    it("calls getExpressionEnumType to determine switch type", () => {
-      const ctx = createMockSwitchStatement({ cases: [] });
-      const input = createMockInput();
-      const state = createMockState();
-      const getExpressionEnumType = vi.fn(() => null);
-      const orchestrator = {
-        generateExpression: vi.fn(() => "x"),
-        getExpressionEnumType,
-        indent: (t: string) => `    ${t}`,
-      } as unknown as IOrchestrator;
-
-      generateSwitch(ctx, input, state, orchestrator);
-
-      expect(getExpressionEnumType).toHaveBeenCalledOnce();
-    });
-
-    it("returns empty effects when no effects from cases", () => {
-      const caseCtx = createMockSwitchCase([createIntegerCaseLabel("1")], []);
-      const ctx = createMockSwitchStatement({ cases: [caseCtx] });
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator();
-
-      const result = generateSwitch(ctx, input, state, orchestrator);
-
-      expect(result.effects).toEqual([]);
+    it("returns empty effects", () => {
+      expect(generate(planned()).effects).toEqual([]);
     });
   });
 });

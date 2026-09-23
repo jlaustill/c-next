@@ -652,7 +652,7 @@ foo.expected.error    # Expected error (if test-error)
 ### Unit Tests
 
 - Location: `__tests__/` adjacent to module (e.g., `src/utils/cache/__tests__/CacheManager.test.ts`)
-- Parser imports: `import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser.js"`
+- Parser imports: `import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser.js"`
 - Direct parsing: `CNextSourceParser.parse(source)` when you just need AST
 - **Mock types**: `TTypeInfo` needs `baseType`, `bitWidth`, `isArray`, `isConst`; `TParameterInfo` needs `name`, `baseType`, `isArray`, `isStruct`, `isConst`, `isCallback`, `isString`
 - **IAssignmentContext changes**: Update `createMockContext` in ALL handler test files when adding fields

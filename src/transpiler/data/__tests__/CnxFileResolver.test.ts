@@ -7,11 +7,16 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdirSync, writeFileSync, rmSync, existsSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import CnxFileResolver from "../CnxFileResolver";
 
 describe("CnxFileResolver", () => {
-  const testDir = join(__dirname, "__test_cnx_resolver__");
+  // #1640: NOT under `src/`. A test that writes into the tree another
+  // test scans is the coupling -- `tmpdir()` has no scanner. The pid
+  // suffix keeps concurrent runs apart, which being under `__dirname`
+  // used to provide by accident.
+  const testDir = join(tmpdir(), `cnx-file-resolver-${process.pid}`);
   const srcDir = join(testDir, "src");
   const libDir = join(testDir, "lib");
 

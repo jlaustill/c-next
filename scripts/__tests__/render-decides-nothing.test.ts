@@ -80,7 +80,10 @@ const srcDir = join(rootDir, "src");
  */
 const CAPTURES = [
   {
-    file: join("src", "TRANSPILE", "3-Render", "codegen", "CodeGenerator.ts"),
+    // #1445 box 3: the capture is reached from `generate()`, which takes the
+    // parse tree, so it moved to the walker with the rest of the walk. It is
+    // still exactly one capture per artifact -- the file changed, not the rule.
+    file: join("src", "TRANSPILE", "CodeGenWalker.ts"),
     needle: "private captureEmissionFacts(",
   },
   {
@@ -145,13 +148,10 @@ const ANNOTATION_OWNER = join(
   "ComplianceAnnotations.ts",
 );
 const ORDER_DECIDER = join("src", "TRANSPILE", "2-Plan", "DeclarationPlan.ts");
-const ORDER_CLASSIFIER = join(
-  "src",
-  "TRANSPILE",
-  "3-Render",
-  "codegen",
-  "CodeGenerator.ts",
-);
+// #1445 box 3: `declarationKindOf` reasons about which grammar alternative a
+// declaration matched, so it moved to the walker with everything else that
+// asks the tree a question.
+const ORDER_CLASSIFIER = join("src", "TRANSPILE", "CodeGenWalker.ts");
 
 /**
  * A predicate that DECIDES, keyed on the verb in its name.
@@ -205,9 +205,19 @@ const PLAN_PASS = join("src", "TRANSPILE", "2-Plan") + sep;
  * the plan, which is precisely the event nothing else in the suite can observe.
  */
 const PLAN_DECISIONS: Readonly<Record<string, readonly string[]>> = {
-  AssignmentClassifier: ["codegen/CodeGenerator.ts"],
+  AssignmentClassifier: [
+    // #1445 box 3: `codegen/CodeGenerator.ts` stood here and is gone. The
+    // consultation did not disappear -- it moved to `TRANSPILE/CodeGenWalker.ts`
+    // with the walk, which is outside the render pass, so it is no longer a
+    // RENDER site consulting a plan. That is precisely the transition this
+    // roster exists to make visible in a diff.
+  ],
   CastRequirement: [
-    "codegen/CodeGenerator.ts",
+    // #1445 box 3 slice 38: `CodeGenerator` consulted this inline while
+    // walking a cast; the render half moved to `CastExprGenerator` and the
+    // consultation went with it. The site changed, the edge did not -- which
+    // is exactly the event this table exists to make visible in a diff.
+    "codegen/generators/expressions/CastExprGenerator.ts",
     "codegen/helpers/NarrowingCastHelper.ts",
   ],
   ComplianceAnnotations: [
@@ -215,18 +225,61 @@ const PLAN_DECISIONS: Readonly<Record<string, readonly string[]>> = {
     "codegen/generators/statements/ControlFlowGenerator.ts",
     "codegen/helpers/StructInitFunction.ts",
   ],
-  CppMemberHelper: ["codegen/CodeGenerator.ts"],
-  DeclarationPlan: ["codegen/CodeGenerator.ts"],
+  CppMemberHelper: [
+    // #1445 box 3: `codegen/CodeGenerator.ts` stood here and is gone. The
+    // consultation did not disappear -- it moved to `TRANSPILE/CodeGenWalker.ts`
+    // with the walk, which is outside the render pass, so it is no longer a
+    // RENDER site consulting a plan. That is precisely the transition this
+    // roster exists to make visible in a diff.
+  ],
+  DeclarationPlan: [
+    // #1445 box 3: `codegen/CodeGenerator.ts` stood here and is gone. The
+    // consultation did not disappear -- it moved to `TRANSPILE/CodeGenWalker.ts`
+    // with the walk, which is outside the render pass, so it is no longer a
+    // RENDER site consulting a plan. That is precisely the transition this
+    // roster exists to make visible in a diff.
+  ],
   MisraSuppressions: ["MisraSuppressionUtils.ts"],
+  // Still a render consultation: the emission-fact capture that stayed behind
+  // asks it directly, so this one did NOT move with the walk (#1445 box 3).
   PassByValueAnalyzer: ["codegen/CodeGenerator.ts"],
   PublicInterface: [
+    // #1445 box 3: `ScopeGenerator` used to ask this while walking its own
+    // members. It renders a plan now, so "does the header already define this
+    // type?" is answered once by `CodeGenerator.planScope` and arrives as the
+    // list of names the `.c` still owes -- which is the direction this guard
+    // exists to push, a decision moving toward the planner rather than away.
+    // #1445 box 3: `codegen/CodeGenerator.ts` stood here and is gone. The
+    // consultation did not disappear -- it moved to `TRANSPILE/CodeGenWalker.ts`
+    // with the walk, which is outside the render pass, so it is no longer a
+    // RENDER site consulting a plan. That is precisely the transition this
+    // roster exists to make visible in a diff.
     "codegen/generators/declarationGenerators/RegisterBlockPlacement.ts",
-    "codegen/generators/declarationGenerators/ScopeGenerator.ts",
   ],
   SubscriptClassifier: [
     "codegen/generators/expressions/PostfixExpressionGenerator.ts",
   ],
   SubscriptDepthValidator: [
+    // #1445 box 3 split this decider's two entry points between two modules,
+    // and both are pinned because both are real consultations.
+    //
+    // `countLeadingSubscripts` needs the OPS, so it is asked by
+    // `planPostfixExpression` -- through this same function, which keeps its
+    // node-shaped signature for the write path and so cannot diverge from it.
+    // `validate` needs the rendered base's type info, so it stays where that
+    // is known.
+    // #1445 box 3: `codegen/CodeGenerator.ts` stood here and is gone. The
+    // consultation did not disappear -- it moved to `TRANSPILE/CodeGenWalker.ts`
+    // with the walk, which is outside the render pass, so it is no longer a
+    // RENDER site consulting a plan. That is precisely the transition this
+    // roster exists to make visible in a diff.
+    // #1445 box 3 slice 37: `AssignmentContextBuilder` was listed here and is
+    // gone from this roster because it is no longer a RENDER site -- it moved
+    // to `2-Plan/`. The consultation it recorded did not disappear; it stopped
+    // crossing the pass boundary, which is the outcome this roster exists to
+    // track. A 2.2 module asking a 2.2 decision is not a render site
+    // consulting a plan, so listing it here would assert an edge that no
+    // longer exists.
     "codegen/generators/expressions/PostfixExpressionGenerator.ts",
   ],
 };

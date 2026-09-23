@@ -1,409 +1,287 @@
+/**
+ * Unit tests for the ADR-004 register generator.
+ *
+ * #1445 merged `generateRegister` and `generateScopedRegister` into one
+ * `registerGeneratorFor(path)`; this file merges the two suites that tested
+ * them. They had drifted into ~100 lines of duplicated scaffolding and two
+ * copies of the access-modifier and effects assertions, differing only in the
+ * macro prefix -- the S5976 cluster CLAUDE.md says to convert in the PR that
+ * creates it, and, against one implementation, the same two-places-to-edit
+ * shape the merge removed from the source.
+ *
+ * Everything that is one decision at both scopes runs under `describe.each`.
+ * What stays separate is what is genuinely scope-specific: the #1472 guards
+ * that nothing below the TypeBinding ladder re-qualifies a resolved name.
+ *
+ * #1445 box 3: the generator takes `IPlannedRegister`, so these build plans.
+ * The `cType` is the value `orchestrator.generateType` returned -- which is
+ * what the ADR-057 guards below are ABOUT, and stating it directly is a
+ * sharper test than routing it through a mock type map that had to be read
+ * backwards to see what was being asserted.
+ */
 import { describe, it, expect } from "vitest";
-import generateRegister from "../RegisterGenerator";
+import registerGeneratorFor from "../RegisterGenerator";
 import IGeneratorInput from "../../IGeneratorInput";
 import IGeneratorState from "../../IGeneratorState";
 import IOrchestrator from "../../IOrchestrator";
-import * as Parser from "../../../../../../transpiler/logic/parser/grammar/CNextParser";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
+import type IPlannedRegister from "../../../types/IPlannedRegister";
+import type IPlannedRegisterMember from "../../../../../../transpiler/types/IPlannedRegisterMember";
 
 // ========================================================================
 // Test Helpers
 // ========================================================================
 
-/**
- * Register member definition for test setup.
- */
-interface IRegisterMemberDef {
-  name: string;
-  type: string;
-  cType: string;
-  access: "ro" | "wo" | "rw";
-  offset: string;
+/** The C types the type ladder resolves the primitives to. */
+const C_TYPES: Record<string, string> = {
+  u8: "uint8_t",
+  u16: "uint16_t",
+  u32: "uint32_t",
+  u64: "uint64_t",
+  i8: "int8_t",
+  i16: "int16_t",
+  i32: "int32_t",
+  i64: "int64_t",
+};
+
+/** A planned member, with the C type the ladder resolved unless one is given. */
+function member(
+  name: string,
+  type: string,
+  access: IPlannedRegisterMember["access"],
+  offset: string,
+  cType: string = C_TYPES[type] ?? type,
+): IPlannedRegisterMember {
+  return { name, cType, access, offset };
 }
 
-/**
- * Create a minimal mock register member context.
- */
-function createMockRegisterMember(def: IRegisterMemberDef) {
-  return {
-    IDENTIFIER: () => ({ getText: () => def.name }),
-    type: () => ({ getText: () => def.type }),
-    accessModifier: () => ({ getText: () => def.access }),
-    expression: () => ({ __mockOffset: def.offset }),
-  };
-}
-
-/**
- * Create a minimal mock register declaration context.
- */
-function createMockRegisterContext(
+/** A planned register. */
+function planned(
   name: string,
   baseAddress: string,
-  members: IRegisterMemberDef[],
-): Parser.RegisterDeclarationContext {
-  return {
-    IDENTIFIER: () => ({ getText: () => name }),
-    expression: () => ({ __mockBaseAddress: baseAddress }),
-    registerMember: () => members.map(createMockRegisterMember),
-  } as unknown as Parser.RegisterDeclarationContext;
+  members: IPlannedRegisterMember[],
+): IPlannedRegister {
+  return { name, baseAddress, members };
 }
 
 /**
- * Create minimal mock input (RegisterGenerator doesn't use input).
+ * Create minimal mock input.
+ *
+ * Empty on purpose: this generator takes `_input`. The scoped suite used to
+ * build a twenty-field `symbols` object here, including a `knownBitmaps` set
+ * whose contents nothing could read -- scaffolding that looked like it was
+ * setting up the bitmap cases when the orchestrator's type map is what
+ * decided them.
  */
 function createMockInput(): IGeneratorInput {
   return {} as unknown as IGeneratorInput;
 }
 
-/**
- * Create minimal mock state (RegisterGenerator doesn't use state).
- */
+/** Create minimal mock state (this generator takes `_state`). */
 function createMockState(): IGeneratorState {
   return TestGeneratorState.create();
 }
 
 /**
- * Create mock orchestrator with generateExpression and generateType.
+ * The generator names the orchestrator and reads nothing from it now -- every
+ * operand arrives planned -- so an empty object is the honest mock.
  */
-function createMockOrchestrator(typeMap: Map<string, string>): IOrchestrator {
-  return {
-    generateExpression: (ctx: {
-      __mockBaseAddress?: string;
-      __mockOffset?: string;
-    }) => {
-      return ctx.__mockBaseAddress ?? ctx.__mockOffset ?? "0";
-    },
-    generateType: (ctx: { getText: () => string }) => {
-      const cnextType = ctx.getText();
-      return typeMap.get(cnextType) ?? cnextType;
-    },
-  } as unknown as IOrchestrator;
+function createMockOrchestrator(): IOrchestrator {
+  return {} as unknown as IOrchestrator;
+}
+
+/** Run the generator for one scope path. */
+function generate(scopePath: string, register: IPlannedRegister) {
+  return registerGeneratorFor(scopePath)(
+    register,
+    createMockInput(),
+    createMockState(),
+    createMockOrchestrator(),
+  );
 }
 
 // ========================================================================
-// Tests
+// Tests — identical at file scope and inside a scope, modulo the prefix
 // ========================================================================
 
-describe("RegisterGenerator", () => {
-  // Standard type mappings
-  const standardTypes = new Map([
-    ["u8", "uint8_t"],
-    ["u16", "uint16_t"],
-    ["u32", "uint32_t"],
-    ["u64", "uint64_t"],
-    ["i8", "int8_t"],
-    ["i16", "int16_t"],
-    ["i32", "int32_t"],
-    ["i64", "int64_t"],
-  ]);
-
+describe.each([
+  ["file scope", "", ""],
+  ["inside a scope", "Teensy4", "Teensy4__"],
+])("RegisterGenerator (%s)", (_label, scopePath, prefix) => {
   describe("basic register generation", () => {
     it("generates register with single rw member", () => {
-      const ctx = createMockRegisterContext("GPIO7", "0x42004000", [
-        {
-          name: "DR",
-          type: "u32",
-          cType: "uint32_t",
-          access: "rw",
-          offset: "0x00",
-        },
-      ]);
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator(standardTypes);
-
-      const result = generateRegister(ctx, input, state, orchestrator);
+      const result = generate(
+        scopePath,
+        planned("GPIO7", "0x42004000", [member("DR", "u32", "rw", "0x00")]),
+      );
 
       expect(result.code).toBe(
-        `/* Register: GPIO7 @ 0x42004000 */
-#define GPIO7__DR (*(volatile uint32_t*)(0x42004000 + 0x00))
+        `/* Register: ${prefix}GPIO7 @ 0x42004000 */
+#define ${prefix}GPIO7__DR (*(volatile uint32_t*)(0x42004000 + 0x00))
 `,
       );
       expect(result.effects).toEqual([]);
     });
 
     it("generates register with multiple members", () => {
-      const ctx = createMockRegisterContext("TIMER", "0x40000000", [
-        {
-          name: "CTRL",
-          type: "u32",
-          cType: "uint32_t",
-          access: "rw",
-          offset: "0x00",
-        },
-        {
-          name: "COUNT",
-          type: "u32",
-          cType: "uint32_t",
-          access: "ro",
-          offset: "0x04",
-        },
-        {
-          name: "LOAD",
-          type: "u32",
-          cType: "uint32_t",
-          access: "rw",
-          offset: "0x08",
-        },
-      ]);
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator(standardTypes);
+      const result = generate(
+        scopePath,
+        planned("TIMER", "0x40000000", [
+          member("CTRL", "u32", "rw", "0x00"),
+          member("COUNT", "u32", "ro", "0x04"),
+          member("LOAD", "u32", "rw", "0x08"),
+        ]),
+      );
 
-      const result = generateRegister(ctx, input, state, orchestrator);
-
-      expect(result.code).toContain("/* Register: TIMER @ 0x40000000 */");
       expect(result.code).toContain(
-        "#define TIMER__CTRL (*(volatile uint32_t*)(0x40000000 + 0x00))",
+        `/* Register: ${prefix}TIMER @ 0x40000000 */`,
       );
       expect(result.code).toContain(
-        "#define TIMER__COUNT (*(volatile uint32_t const *)(0x40000000 + 0x04))",
+        `#define ${prefix}TIMER__CTRL (*(volatile uint32_t*)(0x40000000 + 0x00))`,
       );
       expect(result.code).toContain(
-        "#define TIMER__LOAD (*(volatile uint32_t*)(0x40000000 + 0x08))",
+        `#define ${prefix}TIMER__COUNT (*(volatile uint32_t const *)(0x40000000 + 0x04))`,
+      );
+      expect(result.code).toContain(
+        `#define ${prefix}TIMER__LOAD (*(volatile uint32_t*)(0x40000000 + 0x08))`,
       );
     });
   });
 
   describe("access modifiers (ADR-004)", () => {
-    it("generates read-only member with const qualifier", () => {
-      const ctx = createMockRegisterContext("STATUS", "0x50000000", [
-        {
-          name: "FLAGS",
-          type: "u8",
-          cType: "uint8_t",
-          access: "ro",
-          offset: "0x00",
-        },
-      ]);
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator(standardTypes);
-
-      const result = generateRegister(ctx, input, state, orchestrator);
-
-      expect(result.code).toContain(
-        "#define STATUS__FLAGS (*(volatile uint8_t const *)(0x50000000 + 0x00))",
+    it.each([
+      ["read-only member gets a const qualifier", "ro", "uint8_t const *"],
+      ["write-only member does not", "wo", "uint8_t*"],
+      ["read-write member does not", "rw", "uint8_t*"],
+    ])("%s", (_case, access, cast) => {
+      const result = generate(
+        scopePath,
+        planned("STATUS", "0x50000000", [
+          member(
+            "FLAGS",
+            "u8",
+            access as IPlannedRegisterMember["access"],
+            "0x00",
+          ),
+        ]),
       );
-    });
-
-    it("generates write-only member without const qualifier", () => {
-      const ctx = createMockRegisterContext("COMMAND", "0x50000000", [
-        {
-          name: "SET",
-          type: "u16",
-          cType: "uint16_t",
-          access: "wo",
-          offset: "0x00",
-        },
-      ]);
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator(standardTypes);
-
-      const result = generateRegister(ctx, input, state, orchestrator);
 
       expect(result.code).toContain(
-        "#define COMMAND__SET (*(volatile uint16_t*)(0x50000000 + 0x00))",
-      );
-    });
-
-    it("generates read-write member without const qualifier", () => {
-      const ctx = createMockRegisterContext("CONFIG", "0x50000000", [
-        {
-          name: "VALUE",
-          type: "u32",
-          cType: "uint32_t",
-          access: "rw",
-          offset: "0x00",
-        },
-      ]);
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator(standardTypes);
-
-      const result = generateRegister(ctx, input, state, orchestrator);
-
-      expect(result.code).toContain(
-        "#define CONFIG__VALUE (*(volatile uint32_t*)(0x50000000 + 0x00))",
+        `#define ${prefix}STATUS__FLAGS (*(volatile ${cast})(0x50000000 + 0x00))`,
       );
     });
   });
 
   describe("various type widths", () => {
-    it("generates 8-bit register members", () => {
-      const ctx = createMockRegisterContext("BYTE_REG", "0x40000000", [
-        {
-          name: "DATA",
-          type: "u8",
-          cType: "uint8_t",
-          access: "rw",
-          offset: "0x00",
-        },
-      ]);
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator(standardTypes);
+    it.each([
+      ["8-bit", "u8", "uint8_t"],
+      ["16-bit", "u16", "uint16_t"],
+      ["32-bit", "u32", "uint32_t"],
+      ["64-bit", "u64", "uint64_t"],
+    ])("generates %s register members", (_case, cnextType, cType) => {
+      const result = generate(
+        scopePath,
+        planned("REG", "0x40000000", [member("DATA", cnextType, "rw", "0x00")]),
+      );
 
-      const result = generateRegister(ctx, input, state, orchestrator);
-
-      expect(result.code).toContain("volatile uint8_t*");
-    });
-
-    it("generates 16-bit register members", () => {
-      const ctx = createMockRegisterContext("WORD_REG", "0x40000000", [
-        {
-          name: "DATA",
-          type: "u16",
-          cType: "uint16_t",
-          access: "rw",
-          offset: "0x00",
-        },
-      ]);
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator(standardTypes);
-
-      const result = generateRegister(ctx, input, state, orchestrator);
-
-      expect(result.code).toContain("volatile uint16_t*");
-    });
-
-    it("generates 64-bit register members", () => {
-      const ctx = createMockRegisterContext("LONG_REG", "0x40000000", [
-        {
-          name: "DATA",
-          type: "u64",
-          cType: "uint64_t",
-          access: "rw",
-          offset: "0x00",
-        },
-      ]);
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator(standardTypes);
-
-      const result = generateRegister(ctx, input, state, orchestrator);
-
-      expect(result.code).toContain("volatile uint64_t*");
+      expect(result.code).toContain(`volatile ${cType}*`);
     });
   });
 
   describe("non-contiguous register layouts", () => {
     it("handles gaps in register offsets (like i.MX RT1062)", () => {
-      const ctx = createMockRegisterContext("GPIO", "0x401B8000", [
-        {
-          name: "DR",
-          type: "u32",
-          cType: "uint32_t",
-          access: "rw",
-          offset: "0x00",
-        },
-        {
-          name: "GDIR",
-          type: "u32",
-          cType: "uint32_t",
-          access: "rw",
-          offset: "0x04",
-        },
-        {
-          name: "PSR",
-          type: "u32",
-          cType: "uint32_t",
-          access: "ro",
-          offset: "0x08",
-        },
-        {
-          name: "ICR1",
-          type: "u32",
-          cType: "uint32_t",
-          access: "rw",
-          offset: "0x0C",
-        },
-        {
-          name: "ICR2",
-          type: "u32",
-          cType: "uint32_t",
-          access: "rw",
-          offset: "0x10",
-        },
-        // Gap at 0x14
-        {
-          name: "IMR",
-          type: "u32",
-          cType: "uint32_t",
-          access: "rw",
-          offset: "0x14",
-        },
-        {
-          name: "ISR",
-          type: "u32",
-          cType: "uint32_t",
-          access: "rw",
-          offset: "0x18",
-        },
-        // Large gap
-        {
-          name: "DR_SET",
-          type: "u32",
-          cType: "uint32_t",
-          access: "wo",
-          offset: "0x84",
-        },
-        {
-          name: "DR_CLEAR",
-          type: "u32",
-          cType: "uint32_t",
-          access: "wo",
-          offset: "0x88",
-        },
-        {
-          name: "DR_TOGGLE",
-          type: "u32",
-          cType: "uint32_t",
-          access: "wo",
-          offset: "0x8C",
-        },
-      ]);
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator(standardTypes);
-
-      const result = generateRegister(ctx, input, state, orchestrator);
+      const result = generate(
+        scopePath,
+        planned("GPIO", "0x401B8000", [
+          member("DR", "u32", "rw", "0x00"),
+          member("GDIR", "u32", "rw", "0x04"),
+          member("PSR", "u32", "ro", "0x08"),
+          member("ICR1", "u32", "rw", "0x0C"),
+          member("ICR2", "u32", "rw", "0x10"),
+          // Gap at 0x14
+          member("IMR", "u32", "rw", "0x14"),
+          member("ISR", "u32", "rw", "0x18"),
+          // Large gap
+          member("DR_SET", "u32", "wo", "0x84"),
+          member("DR_CLEAR", "u32", "wo", "0x88"),
+          member("DR_TOGGLE", "u32", "wo", "0x8C"),
+        ]),
+      );
 
       expect(result.code).toContain(
-        "#define GPIO__DR (*(volatile uint32_t*)(0x401B8000 + 0x00))",
+        `#define ${prefix}GPIO__DR (*(volatile uint32_t*)(0x401B8000 + 0x00))`,
       );
       expect(result.code).toContain(
-        "#define GPIO__DR_SET (*(volatile uint32_t*)(0x401B8000 + 0x84))",
+        `#define ${prefix}GPIO__DR_SET (*(volatile uint32_t*)(0x401B8000 + 0x84))`,
       );
       expect(result.code).toContain(
-        "#define GPIO__DR_CLEAR (*(volatile uint32_t*)(0x401B8000 + 0x88))",
+        `#define ${prefix}GPIO__DR_CLEAR (*(volatile uint32_t*)(0x401B8000 + 0x88))`,
       );
       expect(result.code).toContain(
-        "#define GPIO__DR_TOGGLE (*(volatile uint32_t*)(0x401B8000 + 0x8C))",
+        `#define ${prefix}GPIO__DR_TOGGLE (*(volatile uint32_t*)(0x401B8000 + 0x8C))`,
       );
     });
   });
 
   describe("effects", () => {
     it("returns empty effects array", () => {
-      const ctx = createMockRegisterContext("TEST", "0x40000000", [
-        {
-          name: "DATA",
-          type: "u32",
-          cType: "uint32_t",
-          access: "rw",
-          offset: "0x00",
-        },
-      ]);
-      const input = createMockInput();
-      const state = createMockState();
-      const orchestrator = createMockOrchestrator(standardTypes);
-
-      const result = generateRegister(ctx, input, state, orchestrator);
-
-      expect(result.effects).toEqual([]);
+      expect(
+        generate(
+          scopePath,
+          planned("TEST", "0x40000000", [member("DATA", "u32", "rw", "0x00")]),
+        ).effects,
+      ).toEqual([]);
     });
+  });
+});
+
+// ========================================================================
+// Tests — scope-specific: the ADR-057 resolution point is upstream
+// ========================================================================
+
+describe("RegisterGenerator (scoped bitmap type resolution)", () => {
+  it("emits the name the ladder resolved, without re-deriving it", () => {
+    // ADR-057 qualification belongs to `orchestrator.generateType`, which is
+    // the single resolution point. This generator is transparent to it: a
+    // bare `GPIO7Pins` inside `scope Teensy4` arrives ALREADY qualified.
+    // The ladder qualified it -- that is what production hands over.
+    const result = generate(
+      "Teensy4",
+      planned("GPIO7", "0x42004000", [
+        member("PINS", "GPIO7Pins", "rw", "0x00", "Teensy4__GPIO7Pins"),
+      ]),
+    );
+
+    expect(result.code).toContain("volatile Teensy4__GPIO7Pins*");
+  });
+
+  it("does not re-qualify a resolved name, so an explicit global. survives", () => {
+    // The regression guard for #1472. `global.GPIO7Pins` opts out of scope
+    // resolution, so the ladder hands over the BARE name -- while a
+    // same-named scoped bitmap also exists. The generator used to re-qualify
+    // that resolved name and probe the scoped key first, binding
+    // `Teensy4__GPIO7Pins` and typing the register with a bitmap whose bit
+    // names differ. By this point the two forms are byte-identical, which is
+    // exactly why nothing below the ladder may qualify.
+    // The `global.` branch returns the bare identifier.
+    const result = generate(
+      "Teensy4",
+      planned("GPIO7", "0x42004000", [
+        member("PINS", "GPIO7Pins", "rw", "0x00", "GPIO7Pins"),
+      ]),
+    );
+
+    expect(result.code).toContain("volatile GPIO7Pins*");
+    expect(result.code).not.toContain("Teensy4__GPIO7Pins");
+  });
+
+  it("keeps original type when scoped bitmap does not exist", () => {
+    const result = generate(
+      "Teensy4",
+      planned("GPIO7", "0x42004000", [member("DATA", "u32", "rw", "0x00")]),
+    );
+
+    expect(result.code).toContain("volatile uint32_t*");
+    expect(result.code).not.toContain("Teensy4__u32");
   });
 });

@@ -413,7 +413,7 @@ Severity follows the eslint model: `off` records that a cell **cannot exist**,
 | scope method       | same file           | error    |
 | global variable    | same file           | error    |
 | scope member       | same file           | warn     |
-| top-level function | imported direct     | warn     |
+| top-level function | imported direct     | error    |
 | scope method       | imported direct     | warn     |
 | global variable    | imported direct     | warn     |
 | scope member       | imported direct     | warn     |
@@ -423,10 +423,23 @@ Severity follows the eslint model: `off` records that a cell **cannot exist**,
 | scope member       | imported transitive | warn     |
 
 A bitmap's fields and a register member's type can both be declared in an
-included file, so every imported cell is reachable and none is `off`. They are
-`warn` rather than `error` because no fixture builds them yet: this pass
-relocated the rules and did not widen their coverage, and claiming `error`
-would record an obligation as met.
+included file, so every imported cell is reachable and none is `off`.
+
+`top-level function | imported direct` is `error`: #1651 built it. A bitmap
+declared one hop away was assigned as a struct member and emitted
+`shared.Active = 1` -- a member access on a scalar, rejected by the C compiler,
+with the same statement lowering correctly in the declaring file. That cell is
+now an obligation this ADR holds rather than one it hopes for, so a change that
+stops covering it fails the gate instead of quietly returning the matrix to the
+state that let the defect ship.
+
+The remaining imported cells stay `warn`: no fixture builds them yet, and
+claiming `error` would record an obligation as met. They were `warn` for that
+reason before an occupancy derivation existed for this ADR at all -- every one
+of its fixtures was "a linked fixture with no derivable context", because a
+bitmap write that works emits no diagnostic and so supplies no position. So the
+`warn`s below are a real coverage gap now, where previously they could not have
+read anything else.
 
 ## Interim Pattern (Until Implementation)
 

@@ -5,7 +5,9 @@
  * parser contexts, providing consistent null handling across the codebase.
  */
 
-import * as Parser from "../transpiler/logic/parser/grammar/CNextParser";
+import { ParserRuleContext, TerminalNode } from "antlr4ng";
+
+import * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
 import ISourcePosition from "./types/ISourcePosition";
 import type ISourceSpan from "../transpiler/types/ISourceSpan";
 
@@ -214,6 +216,37 @@ class ParserUtils {
     // Check for u8 args[][] (legacy - 2D array of bytes)
     const type = typeCtx.getText();
     return (type === "u8" || type === "i8") && dims.length === 2;
+  }
+
+  /**
+   * Extract operators from parse tree children in order.
+   *
+   * When parsing expressions like "a + b - c", ANTLR creates children
+   * with operands interleaved: [a, +, b, -, c]. This method extracts
+   * just the operators as terminal nodes.
+   *
+   * Note: Using children.filter() loses operator ordering when operators
+   * are detected using text.includes(), so we iterate explicitly.
+   *
+   * #1445: moved here from `CodegenParserUtils`, which held this one method
+   * and existed because it was "separated from src/utils/ParserUtils.ts to
+   * avoid circular dependencies". No cycle is possible: it imported `antlr4ng`
+   * and nothing else. So the module was a module for a reason that had stopped
+   * being true, and merging it is a deletion rather than a relocation -- the
+   * render layer still walks the tree here, through its orchestrator, exactly
+   * as before.
+   *
+   * @param ctx - The parser rule context containing operands and operators
+   * @returns Array of operator strings in the order they appear
+   */
+  static getOperatorsFromChildren(ctx: ParserRuleContext): string[] {
+    const operators: string[] = [];
+    for (const child of ctx.children) {
+      if (child instanceof TerminalNode) {
+        operators.push(child.getText());
+      }
+    }
+    return operators;
   }
 }
 

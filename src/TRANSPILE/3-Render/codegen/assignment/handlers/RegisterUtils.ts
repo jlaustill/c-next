@@ -30,17 +30,8 @@ class RegisterUtils {
    * Extract start, width, and mask from bit range subscripts.
    * Consolidates the common pattern of getting expressions and generating mask.
    */
-  static extractBitRangeParams(
-    subscripts: readonly unknown[],
-  ): IBitRangeParams {
-    const start = CodeGenState.requireGenerator().generateExpression(
-      subscripts[0],
-    );
-    const width = CodeGenState.requireGenerator().generateExpression(
-      subscripts[1],
-    );
-    const mask = BitUtils.generateMask(width);
-    return { start, width, mask };
+  static extractBitRangeParams(start: string, width: string): IBitRangeParams {
+    return { start, width, mask: BitUtils.generateMask(width) };
   }
 
   /**
@@ -50,16 +41,10 @@ class RegisterUtils {
   static tryGenerateMMIO(
     fullName: string,
     regName: string,
-    subscripts: readonly unknown[],
+    startConst: number | undefined,
+    widthConst: number | undefined,
     value: string,
   ): IOptimizationResult {
-    const startConst = CodeGenState.requireGenerator().tryEvaluateConstant(
-      subscripts[0],
-    );
-    const widthConst = CodeGenState.requireGenerator().tryEvaluateConstant(
-      subscripts[1],
-    );
-
     if (
       startConst === undefined ||
       widthConst === undefined ||

@@ -9,9 +9,7 @@
  * Migrated to use CodeGenState instead of constructor DI.
  */
 
-import * as Parser from "../../../../transpiler/logic/parser/grammar/CNextParser";
-import TOverflowBehavior from "../../../../transpiler/types/TOverflowBehavior";
-import analyzePostfixOps from "../../../../utils/PostfixAnalysisUtils";
+import IAssignmentOverflowContext from "../../../../transpiler/types/IAssignmentOverflowContext";
 import CodeGenState from "../../../../transpiler/state/CodeGenState";
 
 /**
@@ -21,46 +19,53 @@ interface IExpectedTypeResult {
   /** The resolved expected type (e.g., "u32", "Status"), or null if not resolved */
   expectedType: string | null;
   /** Assignment context for overflow behavior tracking */
-  assignmentContext: IAssignmentContext | null;
-}
-
-/**
- * Assignment context for overflow behavior tracking (ADR-044).
- */
-interface IAssignmentContext {
-  targetName: string;
-  targetType: string;
-  overflowBehavior: TOverflowBehavior;
+  assignmentContext: IAssignmentOverflowContext | null;
 }
 
 /**
  * Resolves expected type for assignment targets.
  */
+/**
+ * What an assignment target reduces to, once its node has been walked.
+ *
+ * `identifiers` and `hasSubscript` are `analyzePostfixOps`' output, and
+ * `hasRangeSubscript` is `postfixOps.some((op) => op.expression().length === 2)`
+ * -- the `[offset, length]` slice / bit-range form. `hasPostfixOps` is carried
+ * rather than derived from `identifiers.length`, because the two answer
+ * different questions and a reader should not have to work out that they
+ * currently agree.
+ */
+interface IPlannedAssignmentTarget {
+  readonly baseId: string | undefined;
+  readonly identifiers: readonly string[];
+  readonly hasSubscript: boolean;
+  readonly hasRangeSubscript: boolean;
+  readonly hasPostfixOps: boolean;
+}
+
 class AssignmentExpectedTypeResolver {
   /**
    * Resolve expected type for an assignment target.
    *
-   * @param targetCtx - The assignment target context
+   * #1445 box 3: takes the target's shape, not its node. Everything this
+   * class read off `AssignmentTargetContext` reduces to a name, a chain of
+   * names and two booleans -- `analyzePostfixOps` already produced two of
+   * them, and `hasRangeSubscript` was a `.some()` over one grammar predicate.
+   * The walk stays with the caller, which holds the tree.
+   *
+   * @param target - The target's resolved shape
    * @returns The resolved expected type and assignment context
    */
-  static resolve(
-    targetCtx: Parser.AssignmentTargetContext,
-  ): IExpectedTypeResult {
-    const postfixOps = targetCtx.postfixTargetOp();
-    const baseId = targetCtx.IDENTIFIER()?.getText();
+  static resolve(target: IPlannedAssignmentTarget): IExpectedTypeResult {
+    const { baseId, identifiers, hasSubscript } = target;
 
     // Case 1: Simple identifier (x <- value) - no postfix ops
-    if (baseId && postfixOps.length === 0) {
+    if (baseId && !target.hasPostfixOps) {
       return AssignmentExpectedTypeResolver.resolveForSimpleIdentifier(baseId);
     }
 
-    // Case 2: Has postfix ops - extract identifiers from chain
-    if (baseId && postfixOps.length > 0) {
-      const { identifiers, hasSubscript } = analyzePostfixOps(
-        baseId,
-        postfixOps,
-      );
-
+    // Case 2: Has postfix ops - the chain was extracted by the caller
+    if (baseId && target.hasPostfixOps) {
       // Case 2a: Member access only (no subscript)
       if (identifiers.length >= 2 && !hasSubscript) {
         return AssignmentExpectedTypeResolver.resolveForMemberChain(
@@ -73,7 +78,7 @@ class AssignmentExpectedTypeResolver {
       if (identifiers.length === 1 && hasSubscript) {
         return AssignmentExpectedTypeResolver.resolveForArrayElement(
           baseId,
-          postfixOps,
+          target.hasRangeSubscript,
         );
       }
 
@@ -88,17 +93,6 @@ class AssignmentExpectedTypeResolver {
 
     // Case 3: Complex patterns we can't resolve
     return { expectedType: null, assignmentContext: null };
-  }
-
-  /**
-   * True if any postfix subscript is the 2-expression `[offset, length]` form —
-   * an array slice or scalar bit-range write (vs a 1-expression element/bit
-   * access). The grammar models both as `'[' expression ',' expression ']'`.
-   */
-  private static hasRangeSubscript(
-    postfixOps: Parser.PostfixTargetOpContext[],
-  ): boolean {
-    return postfixOps.some((op) => op.expression().length === 2);
   }
 
   /**
@@ -130,7 +124,7 @@ class AssignmentExpectedTypeResolver {
    * Delegates to walkMemberChain shared implementation.
    */
   private static resolveForMemberChain(
-    identifiers: string[],
+    identifiers: readonly string[],
   ): IExpectedTypeResult {
     return AssignmentExpectedTypeResolver.walkMemberChain(identifiers);
   }
@@ -148,14 +142,14 @@ class AssignmentExpectedTypeResolver {
    */
   private static resolveForArrayElement(
     id: string,
-    postfixOps: Parser.PostfixTargetOpContext[],
+    hasRangeSubscript: boolean,
   ): IExpectedTypeResult {
     const typeInfo = CodeGenState.getVariableTypeInfo(id);
     if (!typeInfo?.isArray) {
       return { expectedType: null, assignmentContext: null };
     }
 
-    if (AssignmentExpectedTypeResolver.hasRangeSubscript(postfixOps)) {
+    if (hasRangeSubscript) {
       return { expectedType: null, assignmentContext: null };
     }
 
@@ -171,7 +165,7 @@ class AssignmentExpectedTypeResolver {
    * member-array-element patterns identically (both return final field type).
    */
   private static resolveForMemberArrayElement(
-    identifiers: string[],
+    identifiers: readonly string[],
   ): IExpectedTypeResult {
     return AssignmentExpectedTypeResolver.walkMemberChain(identifiers);
   }
@@ -182,7 +176,9 @@ class AssignmentExpectedTypeResolver {
    *
    * Issue #831: Uses SymbolTable as single source of truth for struct fields.
    */
-  private static walkMemberChain(identifiers: string[]): IExpectedTypeResult {
+  private static walkMemberChain(
+    identifiers: readonly string[],
+  ): IExpectedTypeResult {
     if (identifiers.length < 2) {
       return { expectedType: null, assignmentContext: null };
     }

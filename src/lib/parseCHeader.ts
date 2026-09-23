@@ -3,7 +3,7 @@
  * ADR-055 Phase 7: Direct TCSymbol → ISymbolInfo conversion (no ISymbol intermediate)
  */
 
-import HeaderParser from "../transpiler/logic/parser/HeaderParser";
+import HeaderParser from "../PARSE/2-Parse/HeaderParser";
 import CResolver from "../PARSE/3-Declare/c/index";
 import ISymbolInfo from "./types/ISymbolInfo";
 import IParseWithSymbolsResult from "./types/IParseWithSymbolsResult";

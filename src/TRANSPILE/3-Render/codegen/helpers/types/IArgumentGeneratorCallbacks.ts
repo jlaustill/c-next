@@ -3,30 +3,31 @@
  * These need CodeGenerator context and cannot be replaced with static state.
  *
  * Issue #794: Extracted from CodeGenerator to reduce file size.
+ *
+ * #1445 box 3: these are THUNKS, closing over the expression node at the call
+ * site. Every one of them took `Parser.ExpressionContext` as its first
+ * parameter and `ArgumentGenerator` never read a member off it --
+ * `grep -n 'ctx\.' ArgumentGenerator.ts` exits 1 -- so the node was threaded
+ * through five signatures and four private helpers purely to be handed back.
+ * `isCppMemberConversionRequired` keeps `targetType` because that is a string,
+ * not a node.
  */
-
-import * as Parser from "../../../../../transpiler/logic/parser/grammar/CNextParser";
 
 interface IArgumentGeneratorCallbacks {
   /** Determine if expression is an lvalue (member access or array access) */
-  getLvalueType: (ctx: Parser.ExpressionContext) => "member" | "array" | null;
+  getLvalueType: () => "member" | "array" | null;
 
   /** Check if member access is to an array field */
-  getMemberAccessArrayStatus: (
-    ctx: Parser.ExpressionContext,
-  ) => "array" | "not-array" | "unknown";
+  getMemberAccessArrayStatus: () => "array" | "not-array" | "unknown";
 
   /** Check if C++ mode needs temp variable for type conversion */
-  isCppMemberConversionRequired: (
-    ctx: Parser.ExpressionContext,
-    targetType?: string,
-  ) => boolean;
+  isCppMemberConversionRequired: (targetType?: string) => boolean;
 
   /** Check if expression is subscript access on a string variable */
-  isStringSubscriptAccess: (ctx: Parser.ExpressionContext) => boolean;
+  isStringSubscriptAccess: () => boolean;
 
   /** Generate expression code */
-  generateExpression: (ctx: Parser.ExpressionContext) => string;
+  generateExpression: () => string;
 }
 
 export default IArgumentGeneratorCallbacks;

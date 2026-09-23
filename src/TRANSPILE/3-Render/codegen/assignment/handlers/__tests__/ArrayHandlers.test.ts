@@ -25,7 +25,7 @@ const { mockGetExpressionType, mockGetIntegerExpressionType } = vi.hoisted(
   }),
 );
 
-vi.mock("../../../TypeResolver", () => ({
+vi.mock("../../../../../2-Plan/ExpressionTypeResolver", () => ({
   default: {
     getExpressionType: mockGetExpressionType,
     getIntegerExpressionType: mockGetIntegerExpressionType,
@@ -52,15 +52,31 @@ function createMockContext(
 
   return {
     identifiers,
-    subscripts: [{ mockValue: "i", start: { line: 1 } } as never],
+    // #1445: the context carries renders, not nodes. Each one DELEGATES to the
+    // mock the cases below already configure -- `generateExpression`,
+    // `tryEvaluateConstant` and the mocked `TypeResolver` -- so a case that
+    // says "the second fold returns undefined" still says it, in the same
+    // order, without a fake node to hang it on.
+    subscriptCount: 1,
+    renderSubscript: () =>
+      HandlerTestUtils.planner().generateExpression(null as never),
+    foldSubscript: () =>
+      HandlerTestUtils.planner().tryEvaluateConstant(null as never),
     isCompound: false,
     cnextOp: "<-",
     cOp: "=",
     generatedValue: "value",
-    targetCtx: {} as never,
-    // Truthy so slice codegen resolves the source type via the mocked
+    renderTarget: () => resolvedTarget,
+    analyzeTargetForBitAccess: () => ({ isBitAccess: false }) as never,
+    targetLine: 1,
+    // True so slice codegen resolves the source type via the mocked
     // TypeResolver.getExpressionType (Issue #1081 review).
-    valueCtx: {} as never,
+    hasValue: true,
+    valueExpressionType: () => mockGetExpressionType(null),
+    valueIntegerType: () => mockGetIntegerExpressionType(null),
+    foldValue: () =>
+      HandlerTestUtils.planner().tryEvaluateConstant(null as never),
+    postfixOps: [],
     hasThis: false,
     hasGlobal: false,
     hasMemberAccess: false,
@@ -165,10 +181,10 @@ describe("ArrayHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["matrix"],
-        subscripts: [
+        ...HandlerTestUtils.subscriptsOf([
           { mockValue: "i", start: { line: 1 } } as never,
           { mockValue: "j", start: { line: 1 } } as never,
-        ],
+        ]),
         subscriptDepth: 2,
         resolvedTarget: "matrix[i][j]",
         resolvedBaseIdentifier: "matrix",
@@ -189,11 +205,11 @@ describe("ArrayHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["cube"],
-        subscripts: [
+        ...HandlerTestUtils.subscriptsOf([
           { mockValue: "x", start: { line: 1 } } as never,
           { mockValue: "y", start: { line: 1 } } as never,
           { mockValue: "z", start: { line: 1 } } as never,
-        ],
+        ]),
         subscriptDepth: 3,
         resolvedTarget: "cube[x][y][z]",
         resolvedBaseIdentifier: "cube",
@@ -213,10 +229,10 @@ describe("ArrayHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["grid"],
-        subscripts: [
+        ...HandlerTestUtils.subscriptsOf([
           { mockValue: "0", start: { line: 1 } } as never,
           { mockValue: "1", start: { line: 1 } } as never,
-        ],
+        ]),
         isCompound: true,
         cOp: "-=",
         resolvedTarget: "grid[0][1]",
@@ -268,10 +284,10 @@ describe("ArrayHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["buffer"],
-        subscripts: [
+        ...HandlerTestUtils.subscriptsOf([
           { mockValue: "0", start: { line: 1 } } as never,
           { mockValue: "4", start: { line: 1 } } as never,
-        ],
+        ]),
         generatedValue: "source",
       });
 
@@ -304,10 +320,10 @@ describe("ArrayHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["arr16"],
-        subscripts: [
+        ...HandlerTestUtils.subscriptsOf([
           { mockValue: "0", start: { line: 1 } } as never,
           { mockValue: "8", start: { line: 1 } } as never,
-        ],
+        ]),
         generatedValue: "value",
       });
 
@@ -336,10 +352,10 @@ describe("ArrayHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["arr32"],
-        subscripts: [
+        ...HandlerTestUtils.subscriptsOf([
           { mockValue: "0", start: { line: 1 } } as never,
           { mockValue: "4", start: { line: 1 } } as never,
-        ],
+        ]),
         generatedValue: "value",
       });
 
@@ -362,10 +378,10 @@ describe("ArrayHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["arr64"],
-        subscripts: [
+        ...HandlerTestUtils.subscriptsOf([
           { mockValue: "4", start: { line: 1 } } as never,
           { mockValue: "8", start: { line: 1 } } as never,
-        ],
+        ]),
         generatedValue: "value",
       });
 
@@ -391,10 +407,10 @@ describe("ArrayHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["arr16"],
-        subscripts: [
+        ...HandlerTestUtils.subscriptsOf([
           { mockValue: "2", start: { line: 7 } } as never,
           { mockValue: "8", start: { line: 7 } } as never,
-        ],
+        ]),
         generatedValue: "value",
       });
 
@@ -417,10 +433,10 @@ describe("ArrayHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["buffer"],
-        subscripts: [
+        ...HandlerTestUtils.subscriptsOf([
           { mockValue: "0", start: { line: 1 } } as never,
           { mockValue: "4", start: { line: 1 } } as never,
-        ],
+        ]),
         generatedValue: "value",
       });
 
@@ -451,10 +467,10 @@ describe("ArrayHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["arrI"],
-        subscripts: [
+        ...HandlerTestUtils.subscriptsOf([
           { mockValue: "0", start: { line: 1 } } as never,
           { mockValue: "4", start: { line: 1 } } as never,
-        ],
+        ]),
         generatedValue: "value",
       });
 
@@ -485,10 +501,10 @@ describe("ArrayHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["str"],
-        subscripts: [
+        ...HandlerTestUtils.subscriptsOf([
           { mockValue: "5", start: { line: 1 } } as never,
           { mockValue: "2", start: { line: 1 } } as never,
-        ],
+        ]),
         generatedValue: "data",
       });
 
@@ -515,10 +531,10 @@ describe("ArrayHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["buffer"],
-        subscripts: [
+        ...HandlerTestUtils.subscriptsOf([
           { mockValue: "0", start: { line: 1 } } as never,
           { mockValue: "4", start: { line: 1 } } as never,
-        ],
+        ]),
         generatedValue: "expr",
       });
 
@@ -558,10 +574,10 @@ describe("ArrayHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["buffer"],
-        subscripts: [
+        ...HandlerTestUtils.subscriptsOf([
           { mockValue: "0", start: { line: 1 } } as never,
           { mockValue: "4", start: { line: 1 } } as never,
-        ],
+        ]),
         generatedValue: "a + b",
       });
 
@@ -592,10 +608,10 @@ describe("ArrayHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["arr16"],
-        subscripts: [
+        ...HandlerTestUtils.subscriptsOf([
           { mockValue: "0", start: { line: 7 } } as never,
           { mockValue: "3", start: { line: 7 } } as never,
-        ],
+        ]),
         generatedValue: "value",
       });
 
@@ -617,10 +633,10 @@ describe("ArrayHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["buffer"],
-        subscripts: [
+        ...HandlerTestUtils.subscriptsOf([
           { mockValue: "0", start: { line: 8 } } as never,
           { mockValue: "8", start: { line: 8 } } as never,
-        ],
+        ]),
         generatedValue: "value",
       });
 
@@ -642,10 +658,10 @@ describe("ArrayHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["buffer"],
-        subscripts: [
+        ...HandlerTestUtils.subscriptsOf([
           { mockValue: "0", start: { line: 9 } } as never,
           { mockValue: "4", start: { line: 9 } } as never,
-        ],
+        ]),
         generatedValue: "fval",
       });
 
@@ -664,10 +680,10 @@ describe("ArrayHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["arrF"],
-        subscripts: [
+        ...HandlerTestUtils.subscriptsOf([
           { mockValue: "0", start: { line: 9 } } as never,
           { mockValue: "4", start: { line: 9 } } as never,
-        ],
+        ]),
         generatedValue: "value",
       });
 
@@ -694,10 +710,10 @@ describe("ArrayHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["buffer"],
-        subscripts: [
+        ...HandlerTestUtils.subscriptsOf([
           { mockValue: "0", start: { line: 7 } } as never,
           { mockValue: "1", start: { line: 7 } } as never,
-        ],
+        ]),
         generatedValue: "-300",
       });
 
@@ -723,10 +739,10 @@ describe("ArrayHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["buffer"],
-        subscripts: [
+        ...HandlerTestUtils.subscriptsOf([
           { mockValue: "0", start: { line: 1 } } as never,
           { mockValue: "4", start: { line: 1 } } as never,
-        ],
+        ]),
         generatedValue: "-1",
       });
 
@@ -755,10 +771,10 @@ describe("ArrayHandlers", () => {
       ]);
       const ctx = createMockContext({
         identifiers: ["matrix"],
-        subscripts: [
+        ...HandlerTestUtils.subscriptsOf([
           { mockValue: "0", start: { line: 5 } } as never,
           { mockValue: "10", start: { line: 5 } } as never,
-        ],
+        ]),
       });
 
       expect(() => getHandler()!(ctx)).toThrow(
@@ -774,10 +790,10 @@ describe("ArrayHandlers", () => {
         tryEvaluateConstant: vi.fn().mockReturnValue(undefined),
       });
       const ctx = createMockContext({
-        subscripts: [
+        ...HandlerTestUtils.subscriptsOf([
           { mockValue: "i", start: { line: 3 } } as never,
           { mockValue: "10", start: { line: 3 } } as never,
-        ],
+        ]),
       });
 
       expect(() => getHandler()!(ctx)).toThrow(
@@ -796,10 +812,10 @@ describe("ArrayHandlers", () => {
           .mockReturnValueOnce(undefined),
       });
       const ctx = createMockContext({
-        subscripts: [
+        ...HandlerTestUtils.subscriptsOf([
           { mockValue: "0", start: { line: 3 } } as never,
           { mockValue: "len", start: { line: 3 } } as never,
-        ],
+        ]),
       });
 
       expect(() => getHandler()!(ctx)).toThrow(
@@ -819,10 +835,10 @@ describe("ArrayHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["buffer"],
-        subscripts: [
+        ...HandlerTestUtils.subscriptsOf([
           { mockValue: "40", start: { line: 7 } } as never,
           { mockValue: "20", start: { line: 7 } } as never,
-        ],
+        ]),
       });
 
       expect(() => getHandler()!(ctx)).toThrow("a slice span fits its buffer");
@@ -840,10 +856,10 @@ describe("ArrayHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["buffer"],
-        subscripts: [
+        ...HandlerTestUtils.subscriptsOf([
           { mockValue: "-1", start: { line: 2 } } as never,
           { mockValue: "10", start: { line: 2 } } as never,
-        ],
+        ]),
       });
 
       expect(() => getHandler()!(ctx)).toThrow(
@@ -863,10 +879,10 @@ describe("ArrayHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["buffer"],
-        subscripts: [
+        ...HandlerTestUtils.subscriptsOf([
           { mockValue: "0", start: { line: 2 } } as never,
           { mockValue: "0", start: { line: 2 } } as never,
-        ],
+        ]),
       });
 
       expect(() => getHandler()!(ctx)).toThrow("a slice length is positive");
@@ -884,10 +900,10 @@ describe("ArrayHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["buffer"],
-        subscripts: [
+        ...HandlerTestUtils.subscriptsOf([
           { mockValue: "0", start: { line: 2 } } as never,
           { mockValue: "-5", start: { line: 2 } } as never,
-        ],
+        ]),
       });
 
       expect(() => getHandler()!(ctx)).toThrow("a slice length is positive");
@@ -903,10 +919,10 @@ describe("ArrayHandlers", () => {
       });
       const ctx = createMockContext({
         identifiers: ["unknown"],
-        subscripts: [
+        ...HandlerTestUtils.subscriptsOf([
           { mockValue: "0", start: { line: 2 } } as never,
           { mockValue: "10", start: { line: 2 } } as never,
-        ],
+        ]),
       });
 
       expect(() => getHandler()!(ctx)).toThrow(

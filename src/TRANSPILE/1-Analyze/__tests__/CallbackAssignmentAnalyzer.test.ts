@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import CNextSourceParser from "../../../transpiler/logic/parser/CNextSourceParser";
+import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import CallbackAssignmentAnalyzer from "../CallbackAssignmentAnalyzer";
 import CNextResolver from "../../../PARSE/3-Declare/cnext";
 import CodeGenState from "../../../transpiler/state/CodeGenState";

@@ -4,149 +4,94 @@
  * Issue #644: Extracted from CodeGenerator to reduce file size.
  * Migrated to use CodeGenState instead of constructor DI.
  *
- * Handles all string-related declaration patterns:
+ * Handles all string-related declaration patterns (ADR-045):
  * - Bounded strings: string<64> name
- * - String arrays: string<64> arr[4]
+ * - String arrays: string<64>[4] items
  * - String concatenation: string<64> result <- str1 + str2
- * - Substring extraction: string<64> sub <- str.substring(0, 5)
+ * - Substring extraction: string<64> sub <- str[0, 5]
  * - Unsized const strings: const string name <- "literal"
+ *
+ * ## It renders a plan; it does not read a tree (#1445 box 3)
+ *
+ * Every question this file used to ask of a parse node -- which of the three
+ * string forms is this, what capacity does it declare, is the initializer a
+ * concatenation -- is answered by `VariableDeclHelper._planStringDecl` and
+ * arrives as `TPlannedStringDecl`. What is left here is the part that is
+ * genuinely rendering: the NUL-terminated `[capacity + 1]` convention, the
+ * bounded copy sequences, and the capacity diagnostics.
+ *
+ * The plan is built at the call site rather than in `CodeGenerator`, where
+ * every other planner on this branch sits, and that placement is MEASURED
+ * rather than preferred. `VariableDeclHelper.generateVariableDecl` calls
+ * `trackLocalVariable` -- which registers the declared variable's type info,
+ * string capacity included -- BEFORE it reaches the string path, so the
+ * variable's own name resolves inside its own initializer: `string<32> s <-
+ * s + "x"` is detected as a concatenation and rejected with E0864 for
+ * "capacity 33", which is 32 read back off `s`'s own declaration. Planning one
+ * frame earlier, in `CodeGenerator.generateVariableDecl`, would ask the
+ * registry before that registration and lose the diagnostic. (That the name
+ * resolves at all is a separate defect, filed as #1643; this comment records
+ * why the placement cannot be changed while it holds.)
  */
 
-import ISubstringOps from "../types/ISubstringOps";
+import IPlannedStringInit from "../types/IPlannedStringInit";
+import VariableModifierBuilder from "./VariableModifierBuilder";
+import IRenderedModifiers from "../types/IRenderedModifiers";
 import IStringConcatOps from "../types/IStringConcatOps";
-import ArrayDimensionParser from "../../../../utils/ArrayDimensionParser";
-import dimensionEvalOptions from "./dimensionEvalOptions";
-import * as Parser from "../../../../transpiler/logic/parser/grammar/CNextParser";
+import ISubstringOps from "../types/ISubstringOps";
+import TPlannedStringDecl from "../types/TPlannedStringDecl";
+import StringOperationsHelper from "./StringOperationsHelper";
 import StringUtils from "../../../../utils/StringUtils";
 import CodeGenState from "../../../../transpiler/state/CodeGenState";
 import invariant from "../../../../utils/invariant";
-
-/**
- * String concatenation operands extracted from expression.
- */
-/**
- * Declaration modifiers for string variable declarations.
- */
-interface IStringDeclModifiers {
-  extern: string;
-  const: string;
-  atomic: string;
-  volatile: string;
-}
-
-/**
- * Result from generating a string declaration.
- */
-interface IStringDeclResult {
-  /** The generated C code */
-  code: string;
-  /** Whether the declaration was handled (false = not a string type) */
-  handled: boolean;
-}
-
-/**
- * Callbacks required for string declaration generation.
- * These need CodeGenerator context and cannot be replaced with static state.
- */
-interface IStringDeclCallbacks {
-  /** Generate expression code */
-  generateExpression: (ctx: Parser.ExpressionContext) => string;
-  /** Generate array dimensions from contexts */
-  generateArrayDimensions: (dims: Parser.ArrayDimensionContext[]) => string;
-  /** Get string concatenation operands */
-  getStringConcatOperands: (
-    ctx: Parser.ExpressionContext,
-  ) => IStringConcatOps | null;
-  /** Get substring extraction operands */
-  getSubstringOperands: (ctx: Parser.ExpressionContext) => ISubstringOps | null;
-  /** Get string expression capacity */
-  getStringExprCapacity: (exprCode: string) => number | null;
-}
 
 /**
  * Generates string variable declarations in C.
  */
 class StringDeclHelper {
   /**
-   * Generate string declaration if the type is a string type.
-   * Returns { handled: false } if not a string type.
+   * Generate the declaration a string plan describes.
+   *
+   * @param name - the EMITTED identifier (ADR-057), not the source spelling
+   * @param isConst - whether the declaration carries `const`, which only the
+   *   unsized form consults: it is the difference between an inferred capacity
+   *   and E0862
    */
   static generateStringDecl(
-    typeCtx: Parser.TypeContext,
+    plan: TPlannedStringDecl,
     name: string,
-    expression: Parser.ExpressionContext | null,
-    arrayDims: Parser.ArrayDimensionContext[],
-    modifiers: IStringDeclModifiers,
+    modifiers: IRenderedModifiers,
     isConst: boolean,
-    callbacks: IStringDeclCallbacks,
-  ): IStringDeclResult {
-    // Issue #1029: Check for string array in arrayType syntax first
-    // For `string<32>[4] items`, the structure is: arrayType -> stringType arrayTypeDimension+
-    const arrayTypeCtx = typeCtx.arrayType?.();
-    if (arrayTypeCtx?.stringType?.()) {
-      return StringDeclHelper._generateStringArrayFromArrayType(
-        name,
-        arrayTypeCtx,
-        expression,
-        arrayDims,
-        modifiers,
-        callbacks,
-      );
-    }
-
-    const stringCtx = typeCtx.stringType();
-    if (!stringCtx) {
-      return { code: "", handled: false };
-    }
-
-    const intLiteral = stringCtx.INTEGER_LITERAL();
-
-    if (intLiteral) {
-      // Bounded string with explicit capacity
-      const capacity = Number.parseInt(intLiteral.getText(), 10);
-      return StringDeclHelper._generateBoundedStringDecl(
-        name,
-        capacity,
-        expression,
-        modifiers,
-        callbacks,
-      );
-    } else {
-      // Unsized string - requires const and literal
-      return StringDeclHelper._generateUnsizedStringDecl(
-        name,
-        expression,
-        modifiers,
-        isConst,
-      );
+  ): string {
+    switch (plan.kind) {
+      case "array":
+        return StringDeclHelper._generateStringArray(plan, name, modifiers);
+      case "bounded":
+        return StringDeclHelper._generateBoundedStringDecl(
+          plan.capacity,
+          plan.init,
+          name,
+          modifiers,
+        );
+      case "unsized":
+        return StringDeclHelper._generateUnsizedStringDecl(
+          plan.initText,
+          name,
+          modifiers,
+          isConst,
+        );
     }
   }
 
   /**
-   * Issue #1029: Generate string array declaration from arrayType syntax.
+   * Issue #1029: Generate string array declaration.
    * Handles: string<32>[4] items -> char items[4][33] = {0};
    */
-  private static _generateStringArrayFromArrayType(
+  private static _generateStringArray(
+    plan: Extract<TPlannedStringDecl, { kind: "array" }>,
     name: string,
-    arrayTypeCtx: Parser.ArrayTypeContext,
-    expression: Parser.ExpressionContext | null,
-    trailingArrayDims: Parser.ArrayDimensionContext[],
-    modifiers: IStringDeclModifiers,
-    callbacks: IStringDeclCallbacks,
-  ): IStringDeclResult {
-    const stringCtx = arrayTypeCtx.stringType()!;
-    const intLiteral = stringCtx.INTEGER_LITERAL();
-    if (!intLiteral) {
-      // Unsized string array - not supported
-      invariant(
-        false,
-        "a string array states its element capacity -- E0862 rejects an unsized one in pass 2.1",
-      );
-    }
-
-    const capacity = Number.parseInt(intLiteral.getText(), 10);
-    // Ensure string.h is included for strncpy operations
-
+    modifiers: IRenderedModifiers,
+  ): string {
     const {
       extern,
       const: constMod,
@@ -154,33 +99,7 @@ class StringDeclHelper {
       volatile: volatileMod,
     } = modifiers;
 
-    // Build array dimensions from arrayType (e.g., [4] from string<32>[4])
-    let arrayDimStr = "";
-    for (const dim of arrayTypeCtx.arrayTypeDimension()) {
-      const sizeExpr = dim.expression();
-      if (sizeExpr) {
-        // Issue #1127: fold a compile-time constant rather than emitting its
-        // source text. `string<32>[COUNT] items` produced
-        // `char items[COUNT][33] = {0}` -- a variably-modified type, which C
-        // rejects here outright ("variable-sized object may not be
-        // initialized") and which CLAUDE.md rules out.
-        const folded = ArrayDimensionParser.parseSingleDimension(
-          sizeExpr,
-          dimensionEvalOptions(),
-        );
-        arrayDimStr += `[${folded ?? sizeExpr.getText()}]`;
-      } else {
-        arrayDimStr += "[]";
-      }
-    }
-
-    // Add any trailing dimensions from variable declaration
-    arrayDimStr += callbacks.generateArrayDimensions(trailingArrayDims);
-
-    // Add string capacity dimension
-    arrayDimStr += `[${capacity + 1}]`;
-
-    let decl = `${extern}${constMod}${atomic}${volatileMod}char ${name}${arrayDimStr}`;
+    const decl = `${extern}${constMod}${atomic}${volatileMod}char ${name}${plan.dimensions}[${plan.elementCapacity + 1}]`;
 
     // Track as local array
     // ADR-057: `name` is the EMITTED identifier; every registry keys on the
@@ -188,13 +107,14 @@ class StringDeclHelper {
     CodeGenState.localArrays.add(CodeGenState.sourceLocalName(name));
 
     // No initializer - zero-initialize
-    if (!expression) {
-      return { code: `${decl} = {0};`, handled: true };
+    if (!plan.renderInit) {
+      return `${decl} = {0};`;
     }
 
-    // Reset array init tracking and generate initializer
+    // The array-initializer bookkeeping is written BY the render below and read
+    // immediately after, so the reset, the render and the reads are one window.
     CodeGenState.resetArrayInitTracking();
-    const initValue = callbacks.generateExpression(expression);
+    const initValue = plan.renderInit();
 
     // Check if it was an array initializer
     if (!CodeGenState.wasArrayInit()) {
@@ -205,66 +125,33 @@ class StringDeclHelper {
     }
 
     // Validate element count if declared size is available
-    const declaredSize =
-      StringDeclHelper._getArrayTypeDeclaredSize(arrayTypeCtx);
-    if (declaredSize !== null) {
+    if (plan.declaredSize !== null) {
       const isFillAll = CodeGenState.lastArrayFillValue !== undefined;
       const elementCount = CodeGenState.lastArrayInitCount;
 
-      if (!isFillAll && elementCount !== declaredSize) {
+      if (!isFillAll && elementCount !== plan.declaredSize) {
         invariant(
           false,
-          `a string array initializer matches its declared size -- E0866 rejects [${declaredSize}] against ${elementCount} element(s) in pass 2.1`,
+          `a string array initializer matches its declared size -- E0866 rejects [${plan.declaredSize}] against ${elementCount} element(s) in pass 2.1`,
         );
       }
     }
 
     // Handle fill-all expansion if needed
-    const finalInitValue = StringDeclHelper._expandFillAllForArrayType(
+    const finalInitValue = StringDeclHelper._expandFillAll(
       initValue,
-      arrayTypeCtx,
+      plan.declaredSize,
     );
 
     // MISRA C:2012 Rules 9.3/9.4 - String literals don't fill all inner array bytes,
     // but C standard guarantees zero-initialization of remaining elements
     const suppression =
       "// cppcheck-suppress misra-c2012-9.3\n// cppcheck-suppress misra-c2012-9.4\n";
-    return {
-      code: `${suppression}${decl} = ${finalInitValue};`,
-      handled: true,
-    };
+    return `${suppression}${decl} = ${finalInitValue};`;
   }
 
   /**
-   * Get the numeric size from the first arrayTypeDimension, or null if not numeric.
-   * Used by arrayType-based string arrays (string<N>[M]).
-   */
-  private static _getArrayTypeDeclaredSize(
-    arrayTypeCtx: Parser.ArrayTypeContext,
-  ): number | null {
-    const dims = arrayTypeCtx.arrayTypeDimension();
-    if (dims.length === 0) {
-      return null;
-    }
-    const firstDimExpr = dims[0].expression();
-    return StringDeclHelper._parseNumericSize(firstDimExpr);
-  }
-
-  /**
-   * Expand fill-all syntax for arrayType-based string arrays.
-   * Delegates to the common fill-all expansion logic with size from arrayType.
-   */
-  private static _expandFillAllForArrayType(
-    initValue: string,
-    arrayTypeCtx: Parser.ArrayTypeContext,
-  ): string {
-    const declaredSize =
-      StringDeclHelper._getArrayTypeDeclaredSize(arrayTypeCtx);
-    return StringDeclHelper._expandFillAll(initValue, declaredSize);
-  }
-
-  /**
-   * Common fill-all expansion logic shared between arrayType and arrayDimension paths.
+   * Expand fill-all syntax (`{= value}`) to one element per declared slot.
    */
   private static _expandFillAll(
     initValue: string,
@@ -289,106 +176,61 @@ class StringDeclHelper {
   }
 
   /**
-   * Parse a numeric size from an expression, or return null if not numeric.
-   * Shared helper to eliminate duplicate parsing logic.
-   */
-  private static _parseNumericSize(
-    expr: Parser.ExpressionContext | null | undefined,
-  ): number | null {
-    if (!expr) {
-      return null;
-    }
-    const sizeText = expr.getText();
-    if (!/^\d+$/.exec(sizeText)) {
-      return null;
-    }
-    return Number.parseInt(sizeText, 10);
-  }
-
-  /**
    * Generate bounded string declaration (string<N>).
    */
   private static _generateBoundedStringDecl(
-    name: string,
     capacity: number,
-    expression: Parser.ExpressionContext | null,
-    modifiers: IStringDeclModifiers,
-    callbacks: IStringDeclCallbacks,
-  ): IStringDeclResult {
+    init: IPlannedStringInit | null,
+    name: string,
+    modifiers: IRenderedModifiers,
+  ): string {
     const {
       extern,
       const: constMod,
       atomic,
       volatile: volatileMod,
     } = modifiers;
+    // #1164 / #1642: `atomic`/`volatile` belong on EVERY bounded arm. They were
+    // dropped on the no-initializer arm first and on the with-initializer arms
+    // second, each time producing a definition that conflicted with its own
+    // header while the transpiler exited 0.
+    const qualifiers = `${atomic}${volatileMod}`;
 
     // Simple bounded string without initializer
-    if (!expression) {
-      // #1164: `atomic`/`volatile` were dropped here while every other string
-      // declaration path carried them, so `atomic string<16> s;` produced a
-      // non-volatile definition against a `volatile` header declaration -- and,
-      // worse, an atomic that is not actually volatile.
-      return {
-        code: `${extern}${constMod}${atomic}${volatileMod}char ${name}[${capacity + 1}] = "";`,
-        handled: true,
-      };
+    if (!init) {
+      return `${extern}${constMod}${qualifiers}char ${name}[${capacity + 1}] = "";`;
     }
 
-    return StringDeclHelper._generateBoundedStringWithInit(
-      name,
-      capacity,
-      expression,
-      extern,
-      constMod,
-      callbacks,
-    );
-  }
-
-  /**
-   * Generate bounded string with initializer expression
-   */
-  private static _generateBoundedStringWithInit(
-    name: string,
-    capacity: number,
-    expression: Parser.ExpressionContext,
-    extern: string,
-    constMod: string,
-    callbacks: IStringDeclCallbacks,
-  ): IStringDeclResult {
-    // Check for string concatenation
-    const concatOps = callbacks.getStringConcatOperands(expression);
-    if (concatOps) {
+    // ADR-045 asks the four initializer forms in a fixed order, and the order is
+    // load-bearing: `renderSubstring` generates the index expressions when it
+    // answers, so it is asked only after `concat` has declined.
+    if (init.concat) {
       return StringDeclHelper._generateConcatDecl(
         name,
         capacity,
-        concatOps,
+        init.concat,
         constMod,
+        qualifiers,
       );
     }
 
-    // Check for substring extraction
-    const substringOps = callbacks.getSubstringOperands(expression);
+    const substringOps = init.renderSubstring();
     if (substringOps) {
       return StringDeclHelper._generateSubstringDecl(
         name,
         capacity,
         substringOps,
         constMod,
+        qualifiers,
       );
     }
 
     // Validate and check if it's a literal or variable
-    const exprText = expression.getText();
-    const isLiteral = StringDeclHelper._validateStringInit(
-      exprText,
-      capacity,
-      callbacks,
-    );
+    const isLiteral = StringDeclHelper._validateStringInit(init.text, capacity);
 
     if (isLiteral) {
       // String literal: can use direct initialization
-      const code = `${extern}${constMod}char ${name}[${capacity + 1}] = ${callbacks.generateExpression(expression)};`;
-      return { code, handled: true };
+      return `${extern}${constMod}${qualifiers}char ${name}[${capacity + 1}] = ${init.render()};`;
     }
 
     // String variable: cannot use C array initialization, so declare empty and
@@ -403,15 +245,15 @@ class StringDeclHelper {
       );
     }
 
-    const srcExpr = callbacks.generateExpression(expression);
+    const srcExpr = init.render();
     // Issue #1037: continuation lines carry no indent of their own — the block
     // emitter (CodeGenerator.generateBlock) prefixes every line.
     const lines: string[] = [];
     lines.push(
-      `${constMod}char ${name}[${capacity + 1}] = "";`,
+      `${constMod}${qualifiers}char ${name}[${capacity + 1}] = "";`,
       StringUtils.copyWithNull(name, srcExpr, capacity),
     );
-    return { code: lines.join("\n"), handled: true };
+    return lines.join("\n");
   }
 
   /**
@@ -421,7 +263,6 @@ class StringDeclHelper {
   private static _validateStringInit(
     exprText: string,
     capacity: number,
-    callbacks: IStringDeclCallbacks,
   ): boolean {
     // Validate string literal fits capacity
     if (exprText.startsWith('"') && exprText.endsWith('"')) {
@@ -436,7 +277,7 @@ class StringDeclHelper {
     }
 
     // Check for string variable assignment
-    const srcCapacity = callbacks.getStringExprCapacity(exprText);
+    const srcCapacity = StringOperationsHelper.getStringExprCapacity(exprText);
     if (srcCapacity !== null && srcCapacity > capacity) {
       invariant(
         false,
@@ -454,7 +295,8 @@ class StringDeclHelper {
     capacity: number,
     concatOps: IStringConcatOps,
     constMod: string,
-  ): IStringDeclResult {
+    qualifiers: string,
+  ): string {
     // String concatenation requires runtime function calls (strncpy, strncat)
     // which cannot exist at global scope in C
     if (!CodeGenState.inFunctionBody) {
@@ -480,10 +322,10 @@ class StringDeclHelper {
     // second path that has to be kept in step by hand.
     const lines: string[] = [];
     lines.push(
-      `${constMod}char ${name}[${capacity + 1}] = "";`,
+      `${constMod}${qualifiers}char ${name}[${capacity + 1}] = "";`,
       ...StringUtils.concat(name, concatOps.left, concatOps.right, capacity),
     );
-    return { code: lines.join("\n"), handled: true };
+    return lines.join("\n");
   }
 
   /**
@@ -494,7 +336,8 @@ class StringDeclHelper {
     capacity: number,
     substringOps: ISubstringOps,
     constMod: string,
-  ): IStringDeclResult {
+    qualifiers: string,
+  ): string {
     // Substring extraction requires runtime function calls (strncpy)
     // which cannot exist at global scope in C
     if (!CodeGenState.inFunctionBody) {
@@ -532,7 +375,7 @@ class StringDeclHelper {
     // Extraction sequence owned by StringUtils.substring (see _generateConcatDecl).
     const lines: string[] = [];
     lines.push(
-      `${constMod}char ${name}[${capacity + 1}] = "";`,
+      `${constMod}${qualifiers}char ${name}[${capacity + 1}] = "";`,
       ...StringUtils.substring(
         name,
         substringOps.source,
@@ -540,18 +383,18 @@ class StringDeclHelper {
         substringOps.lengthExpression,
       ),
     );
-    return { code: lines.join("\n"), handled: true };
+    return lines.join("\n");
   }
 
   /**
    * Generate unsized const string declaration.
    */
   private static _generateUnsizedStringDecl(
+    initText: string | null,
     name: string,
-    expression: Parser.ExpressionContext | null,
-    modifiers: IStringDeclModifiers,
+    modifiers: IRenderedModifiers,
     isConst: boolean,
-  ): IStringDeclResult {
+  ): string {
     if (!isConst) {
       invariant(
         false,
@@ -559,15 +402,14 @@ class StringDeclHelper {
       );
     }
 
-    if (!expression) {
+    if (initText === null) {
       invariant(
         false,
         "an unsized const string has an initializer to infer from -- E0862 rejects one without in pass 2.1",
       );
     }
 
-    const exprText = expression.getText();
-    if (!exprText.startsWith('"') || !exprText.endsWith('"')) {
+    if (!initText.startsWith('"') || !initText.endsWith('"')) {
       invariant(
         false,
         "an unsized const string infers from a LITERAL -- E0862 rejects any other initializer in pass 2.1",
@@ -575,7 +417,7 @@ class StringDeclHelper {
     }
 
     // Infer capacity from literal length
-    const inferredCapacity = StringUtils.literalLength(exprText);
+    const inferredCapacity = StringUtils.literalLength(initText);
 
     // Register in type registry with inferred capacity
     CodeGenState.setVariableTypeInfo(CodeGenState.sourceLocalName(name), {
@@ -588,8 +430,31 @@ class StringDeclHelper {
       stringCapacity: inferredCapacity,
     });
 
-    const code = `${modifiers.extern}const char ${name}[${inferredCapacity + 1}] = ${exprText};`;
-    return { code, handled: true };
+    // #1642's open box. This arm hand-assembled `${extern}const `, dropping
+    // `atomic`/`volatile` and hardcoding the `const` rather than reading the
+    // one the caller resolved -- so the `.h`, which derives the qualifier from
+    // the SYMBOL, emitted `extern volatile const char x[2];` against this
+    // file's `const char x[2] = "v";` and the translation unit did not
+    // compile. It was unreachable until the E0862 predicate beside it started
+    // asking the grammar instead of the declaration's text, which is why the
+    // bounded arms were fixed in #1642 and this one was not.
+    //
+    // `toPrefix` is the single encoder the bounded arms above spell out by
+    // hand; using it here is what makes a fifth arm impossible to forget.
+    //
+    // The hardcoded `const` was also STATING an invariant -- an unsized string
+    // is const, which E0862 enforces in 2.1 -- so dropping it silently would
+    // have traded one masked bug for another. Asserted instead, which is the
+    // same fact without the mask: if the invariant ever breaks, this says so
+    // rather than quietly emitting a non-const definition against a `const`
+    // declaration in the header.
+    invariant(
+      modifiers.const !== "",
+      "an unsized string is const -- E0862 rejects a non-const one in pass 2.1, before this runs",
+    );
+
+    const prefix = VariableModifierBuilder.toPrefix(modifiers);
+    return `${prefix}char ${name}[${inferredCapacity + 1}] = ${initText};`;
   }
 }
 

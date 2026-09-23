@@ -16,7 +16,6 @@
  *   typedef uint8_t MotorFlags;
  */
 import invariant from "../../../../../utils/invariant";
-import * as Parser from "../../../../../transpiler/logic/parser/grammar/CNextParser";
 import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IGeneratorOutput from "../IGeneratorOutput";
@@ -24,23 +23,25 @@ import IOrchestrator from "../IOrchestrator";
 import TGeneratorFn from "../TGeneratorFn";
 import TGeneratorEffect from "../TGeneratorEffect";
 import BitmapCommentUtils from "./BitmapCommentUtils";
-import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
+import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator";
 
 /**
  * Generate a C typedef from a C-Next bitmap declaration.
  *
  * ADR-034: Bitmaps provide type-safe bit field access.
  * The backing type (uint8_t, uint16_t, uint32_t) depends on the bitmap size.
+ *
+ * #1445 box 3: takes the declared NAME, not the declaration node. The backing
+ * type and the field layout both come from `input.symbols`, filled by 1.3
+ * Declare; the node was read once, for `.IDENTIFIER().getText()`.
  */
-const generateBitmap: TGeneratorFn<Parser.BitmapDeclarationContext> = (
-  node: Parser.BitmapDeclarationContext,
+const generateBitmap: TGeneratorFn<string> = (
+  name: string,
   input: IGeneratorInput,
   state: IGeneratorState,
   _orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
-
-  const name = node.IDENTIFIER().getText();
 
   // ADR-016: Apply scope prefix if inside a scope
   const fullName = QualifiedNameGenerator.forMember(

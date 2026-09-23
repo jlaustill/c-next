@@ -27,7 +27,7 @@
  */
 
 import { ParserRuleContext, ParseTree } from "antlr4ng";
-import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import IScopeFrame from "./types/IScopeFrame";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 import CodeGenState from "../../transpiler/state/CodeGenState";

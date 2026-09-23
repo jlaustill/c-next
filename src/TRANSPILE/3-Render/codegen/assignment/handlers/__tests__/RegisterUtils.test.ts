@@ -50,8 +50,7 @@ describe("RegisterUtils", () => {
     });
 
     it("extracts start, width, and mask from subscripts", () => {
-      const subscripts = [{ mockExpr: "4" }, { mockExpr: "8" }];
-      const result = RegisterUtils.extractBitRangeParams(subscripts);
+      const result = RegisterUtils.extractBitRangeParams("4", "8");
 
       expect(result.start).toBe("4");
       expect(result.width).toBe("8");
@@ -60,8 +59,7 @@ describe("RegisterUtils", () => {
     });
 
     it("handles dynamic expressions", () => {
-      const subscripts = [{ mockExpr: "offset" }, { mockExpr: "width_var" }];
-      const result = RegisterUtils.extractBitRangeParams(subscripts);
+      const result = RegisterUtils.extractBitRangeParams("offset", "width_var");
 
       expect(result.start).toBe("offset");
       expect(result.width).toBe("width_var");
@@ -82,12 +80,12 @@ describe("RegisterUtils", () => {
       HandlerTestUtils.setupMockGenerator({
         tryEvaluateConstant: vi.fn().mockReturnValue(undefined),
       });
-      const subscripts = [{}, {}];
 
       const result = RegisterUtils.tryGenerateMMIO(
         "GPIO7_DR",
         "GPIO7",
-        subscripts,
+        undefined,
+        undefined,
         "0xFF",
       );
 
@@ -101,12 +99,12 @@ describe("RegisterUtils", () => {
           .mockReturnValueOnce(3) // start = 3 (not byte-aligned)
           .mockReturnValueOnce(8), // width = 8
       });
-      const subscripts = [{}, {}];
 
       const result = RegisterUtils.tryGenerateMMIO(
         "GPIO7_DR",
         "GPIO7",
-        subscripts,
+        3,
+        8,
         "0xFF",
       );
 
@@ -120,12 +118,12 @@ describe("RegisterUtils", () => {
           .mockReturnValueOnce(0) // start = 0
           .mockReturnValueOnce(12), // width = 12 (non-standard)
       });
-      const subscripts = [{}, {}];
 
       const result = RegisterUtils.tryGenerateMMIO(
         "GPIO7_DR",
         "GPIO7",
-        subscripts,
+        0,
+        12,
         "0xFF",
       );
 
@@ -143,12 +141,12 @@ describe("RegisterUtils", () => {
         registerBaseAddresses: new Map(), // No base address
         registerMemberOffsets: new Map([["GPIO7_DR", "0x00"]]),
       });
-      const subscripts = [{}, {}];
 
       const result = RegisterUtils.tryGenerateMMIO(
         "GPIO7_DR",
         "GPIO7",
-        subscripts,
+        0,
+        8,
         "0xFF",
       );
 
@@ -162,12 +160,12 @@ describe("RegisterUtils", () => {
           .mockReturnValueOnce(0) // start = 0
           .mockReturnValueOnce(8), // width = 8
       });
-      const subscripts = [{}, {}];
 
       const result = RegisterUtils.tryGenerateMMIO(
         "GPIO7_DR",
         "GPIO7",
-        subscripts,
+        0,
+        8,
         "0xFF",
       );
 
@@ -184,12 +182,12 @@ describe("RegisterUtils", () => {
           .mockReturnValueOnce(8) // start = 8 (1 byte offset)
           .mockReturnValueOnce(16), // width = 16
       });
-      const subscripts = [{}, {}];
 
       const result = RegisterUtils.tryGenerateMMIO(
         "GPIO7_DR",
         "GPIO7",
-        subscripts,
+        8,
+        16,
         "0xABCD",
       );
 
@@ -206,12 +204,12 @@ describe("RegisterUtils", () => {
           .mockReturnValueOnce(0) // start = 0
           .mockReturnValueOnce(32), // width = 32
       });
-      const subscripts = [{}, {}];
 
       const result = RegisterUtils.tryGenerateMMIO(
         "GPIO7_DR",
         "GPIO7",
-        subscripts,
+        0,
+        32,
         "0xDEADBEEF",
       );
 

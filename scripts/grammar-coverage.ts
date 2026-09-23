@@ -15,12 +15,12 @@ import { join, dirname, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { ParseTreeWalker } from "antlr4ng";
-import CNextSourceParser from "../src/transpiler/logic/parser/CNextSourceParser";
+import CNextSourceParser from "../src/PARSE/2-Parse/CNextSourceParser";
 import IGrammarCoverageReport from "../src/TRANSPILE/1-Analyze/types/IGrammarCoverageReport";
 import GrammarCoverageReportBuilder from "../src/TRANSPILE/1-Analyze/types/GrammarCoverageReportBuilder";
 import GrammarCoverageListener from "../src/TRANSPILE/1-Analyze/GrammarCoverageListener";
-import { CNextLexer } from "../src/transpiler/logic/parser/grammar/CNextLexer";
-import { CNextParser } from "../src/transpiler/logic/parser/grammar/CNextParser";
+import { CNextLexer } from "../src/PARSE/2-Parse/grammar/CNextLexer";
+import { CNextParser } from "../src/PARSE/2-Parse/grammar/CNextParser";
 import chalk from "chalk";
 import FileScanner from "./utils/FileScanner";
 

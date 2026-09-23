@@ -5,7 +5,7 @@
  * Produces TType-based IRegisterSymbol with proper IScopeSymbol references.
  */
 
-import * as Parser from "../../../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../../2-Parse/grammar/CNextParser";
 import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import IRegisterSymbol from "../../../../transpiler/types/symbols/IRegisterSymbol";
 import type IRegisterMemberSymbol from "../../../../transpiler/types/symbols/IRegisterMemberSymbol";

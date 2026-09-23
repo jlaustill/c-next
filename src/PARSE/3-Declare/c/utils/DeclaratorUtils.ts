@@ -15,7 +15,7 @@ import type {
   StructDeclarationContext,
   StructDeclaratorContext,
   InitDeclaratorListContext,
-} from "../../../../transpiler/logic/parser/c/grammar/CParser";
+} from "../../../2-Parse/c/grammar/CParser";
 import SymbolUtils from "../../SymbolUtils";
 import IExtractedParameter from "../../shared/IExtractedParameter";
 import ParameterExtractorUtils from "../../shared/ParameterExtractorUtils";

@@ -13,8 +13,8 @@
 
 import { ParseTree, Token } from "antlr4ng";
 
-import CNextSourceParser from "../../src/transpiler/logic/parser/CNextSourceParser";
-import { CNextLexer } from "../../src/transpiler/logic/parser/grammar/CNextLexer";
+import CNextSourceParser from "../../src/PARSE/2-Parse/CNextSourceParser";
+import { CNextLexer } from "../../src/PARSE/2-Parse/grammar/CNextLexer";
 
 import Cst from "./cst";
 import ICommentAnchor from "./types/ICommentAnchor";
@@ -190,10 +190,10 @@ function attachToTerminals(
  * it alone rather than emit a guess.
  */
 function parse(source: string): TCstRoot {
-  const { tree, tokenStream, errors } = CNextSourceParser.parse(source);
+  const { tree, tokenStream, parseErrors } = CNextSourceParser.parse(source);
 
-  if (errors.length > 0) {
-    const first = errors[0];
+  if (parseErrors.length > 0) {
+    const first = parseErrors[0];
     throw syntaxError(first.message, first.line, first.column);
   }
 

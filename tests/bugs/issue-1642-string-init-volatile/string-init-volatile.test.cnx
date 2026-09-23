@@ -1,0 +1,34 @@
+// test-no-warnings
+// #1642: a bounded string declared `atomic` or `volatile` WITH an initializer
+// dropped the qualifier from the .c while the .h kept it, so the two files
+// disagreed and the translation unit did not compile:
+//
+//   error: conflicting types for 'withInit'; have 'char[17]'
+//   note: previous declaration of 'withInit' with type 'volatile char[17]'
+//
+// #1164 fixed the same drop on the WITHOUT-initializer branch, and that branch
+// is the negative control below: it was already correct and must stay so.
+
+atomic string<16> atomicWithInit <- "a";
+atomic string<16> atomicNoInit;
+
+volatile string<16> volatileWithInit <- "v";
+volatile string<16> volatileNoInit;
+
+// The UNSIZED arm, which is the box #1642 left open. Two bugs stacked here:
+// `isConstDeclaration` asked `getText().startsWith("const")`, and the grammar
+// puts `atomic`/`volatile` FIRST, so these read as non-const and were rejected
+// with E0862 before reaching codegen. That rejection is what hid the second
+// bug -- the unsized arm emits a hardcoded `const char`, dropping the
+// qualifier the .h still derives from the symbol.
+volatile const string unsizedVolatile <- "v";
+atomic const string unsizedAtomic <- "a";
+
+// Negative control: a non-string atomic was never affected, and an unqualified
+// string must not gain a qualifier.
+atomic u32 plainAtomic <- 1;
+string<16> unqualified <- "u";
+
+u8 main() {
+    return 0;
+}

@@ -5,7 +5,7 @@
  * Issue #589: Extracted from Transpiler.collectUserIncludes()
  */
 
-import * as Parser from "./parser/grammar/CNextParser.js";
+import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import type THeaderExtension from "../types/THeaderExtension";
 import IncludeRewriter from "../data/IncludeRewriter";
 

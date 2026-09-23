@@ -4,8 +4,8 @@
  */
 
 import { describe, it, expect } from "vitest";
-import CNextSourceParser from "../../../../../transpiler/logic/parser/CNextSourceParser";
-import * as Parser from "../../../../../transpiler/logic/parser/grammar/CNextParser";
+import CNextSourceParser from "../../../../2-Parse/CNextSourceParser";
+import * as Parser from "../../../../2-Parse/grammar/CNextParser";
 import DimensionResolver from "../DimensionResolver";
 
 describe("DimensionResolver", () => {

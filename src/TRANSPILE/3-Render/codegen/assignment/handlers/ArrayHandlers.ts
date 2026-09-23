@@ -7,14 +7,12 @@
  * - ARRAY_SLICE: buffer[0, 10] <- source
  */
 import ComplianceAnnotations from "../../../../2-Plan/ComplianceAnnotations";
-import * as Parser from "../../../../../transpiler/logic/parser/grammar/CNextParser";
 import AssignmentKind from "../../../../../transpiler/types/AssignmentKind";
 import IAssignmentContext from "../../../../../transpiler/types/IAssignmentContext";
 import TAssignmentHandler from "./TAssignmentHandler";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 import type TTypeInfo from "../../../../../transpiler/types/TTypeInfo";
 import CNEXT_TO_C_TYPE_MAP from "../../../../../utils/constants/TypeMappings";
-import TypeResolver from "../../TypeResolver";
 import invariant from "../../../../../utils/invariant";
 
 /** Matches the unsigned C-Next integer types (u8/u16/u32/u64). */
@@ -142,13 +140,13 @@ function unsignedCTypeForBytes(bytes: number): string {
  */
 function foldContextuallyTypedLiteral(
   directType: string | null,
-  valueCtx: Parser.ExpressionContext | null | undefined,
+  ctx: IAssignmentContext,
 ): number | undefined {
   const isContextuallyTyped = directType === "int" || directType === null;
-  if (!isContextuallyTyped || !valueCtx) {
+  if (!isContextuallyTyped || !ctx.hasValue) {
     return undefined;
   }
-  return CodeGenState.requireGenerator().tryEvaluateConstant(valueCtx);
+  return ctx.foldValue();
 }
 
 /**
@@ -186,9 +184,7 @@ function resolveSliceSource(
   // well-defined; `directType` tells us whether the source is composite so the
   // caller can bind it to a same-type temp before the unsigned cast — keeping
   // that cast off the composite itself (MISRA Rule 10.8).
-  const directType = ctx.valueCtx
-    ? TypeResolver.getExpressionType(ctx.valueCtx)
-    : null;
+  const directType = ctx.hasValue ? ctx.valueExpressionType() : null;
 
   // A bare integer literal has no fixed essential category; contextually type it
   // to the slice byte-width (ADR-052), with a compile-time fit check. A positive
@@ -198,14 +194,13 @@ function resolveSliceSource(
   // truncated (e.g. buf[0,1] <- -300 -> (uint8_t)(-300)) (Issue #1085 review).
   // A source that resolves to a fixed-width type (variable, struct field, …)
   // keeps that type and is not folded here.
-  const literalValue = foldContextuallyTypedLiteral(directType, ctx.valueCtx);
+  const literalValue = foldContextuallyTypedLiteral(directType, ctx);
   if (literalValue !== undefined) {
     return resolveLiteralSliceSource(ctx, rawName, lengthValue);
   }
 
   const sourceType =
-    directType ??
-    (ctx.valueCtx ? TypeResolver.getIntegerExpressionType(ctx.valueCtx) : null);
+    directType ?? (ctx.hasValue ? ctx.valueIntegerType() : null);
 
   if (sourceType === null) {
     return {
@@ -256,9 +251,7 @@ function resolveLiteralSliceSource(
   unsignedCType: string | null;
   isComposite: boolean;
 } {
-  const value = ctx.valueCtx
-    ? CodeGenState.requireGenerator().tryEvaluateConstant(ctx.valueCtx)
-    : undefined;
+  const value = ctx.hasValue ? ctx.foldValue() : undefined;
   if (value !== undefined) {
     // The literal is contextually typed to the slice byte-width (ADR-052), so it
     // must be representable in `length` bytes — either as an unsigned value
@@ -481,9 +474,7 @@ function handleArraySlice(ctx: IAssignmentContext): string {
   }
 
   // Validate offset is compile-time constant
-  const offsetValue = CodeGenState.requireGenerator().tryEvaluateConstant(
-    ctx.subscripts[0],
-  );
+  const offsetValue = ctx.foldSubscript(0);
   if (offsetValue === undefined) {
     invariant(
       false,
@@ -492,9 +483,7 @@ function handleArraySlice(ctx: IAssignmentContext): string {
   }
 
   // Validate length is compile-time constant
-  const lengthValue = CodeGenState.requireGenerator().tryEvaluateConstant(
-    ctx.subscripts[1],
-  );
+  const lengthValue = ctx.foldSubscript(1);
   if (lengthValue === undefined) {
     invariant(
       false,

@@ -16,7 +16,7 @@ import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 import invariant from "../../../../../utils/invariant";
-import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
+import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator";
 
 // #1322: `validateNotCompound` is gone -- E0857 in pass 2.1. It was defined
 // here AND in the sibling handler, verbatim: one rule, two copies, in a group
@@ -51,9 +51,7 @@ function copyIntoAssignmentTarget(
 ): string {
   const capacity = capacityOf(registryKey);
 
-  const target = CodeGenState.requireGenerator().generateAssignmentTarget(
-    ctx.targetCtx,
-  );
+  const target = ctx.renderTarget();
   return StringUtils.copyWithNull(target, ctx.generatedValue, capacity);
 }
 
@@ -175,9 +173,7 @@ function handleStringArrayElement(ctx: IAssignmentContext): string {
   const name = ctx.identifiers[0];
   const capacity = capacityOf(name);
 
-  const index = CodeGenState.requireGenerator().generateExpression(
-    ctx.subscripts[0],
-  );
+  const index = ctx.renderSubscript(0);
   return StringUtils.copyToArrayElement(
     name,
     index,
@@ -220,9 +216,7 @@ function handleStringStructArrayElement(ctx: IAssignmentContext): string {
   );
   const capacity = rawCapacity - 1;
 
-  const index = CodeGenState.requireGenerator().generateExpression(
-    ctx.subscripts[0],
-  );
+  const index = ctx.renderSubscript(0);
   return StringUtils.copyToStructFieldArrayElement(
     structName,
     fieldName,

@@ -6,12 +6,23 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdirSync, writeFileSync, rmSync, existsSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import IncludeResolver from "../IncludeResolver";
 import EFileType from "../types/EFileType";
 
 describe("IncludeResolver", () => {
-  const testDir = join(__dirname, "__test_include_resolver__");
+  // #1640: NOT under `src/`. `HeaderOwnership.test.ts` walks the whole source
+  // tree to prove one module owns a rule, vitest runs test files in parallel,
+  // and this directory existed only between a `beforeEach` and an `afterEach`
+  // -- so the walker could list it and then `statSync` a path that was already
+  // gone. The guard then failed with ENOENT instead of its own assertion, which
+  // teaches people to re-run a guard rather than read it.
+  //
+  // The coupling was writing into the directory another test scans. `tmpdir()`
+  // has no scanner. A per-process suffix keeps two concurrent runs apart, which
+  // the old location got for free by being unique.
+  const testDir = join(tmpdir(), `cnx-include-resolver-${process.pid}`);
   const includeDir = join(testDir, "include");
   const srcDir = join(testDir, "src");
 

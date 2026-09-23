@@ -341,9 +341,9 @@ jobs:
           path: |
             dist/
             prettier-plugin/dist/
-            src/transpiler/logic/parser/grammar/
-            src/transpiler/logic/parser/c/grammar/
-            src/transpiler/logic/parser/cpp/grammar/
+            src/PARSE/2-Parse/grammar/
+            src/PARSE/2-Parse/c/grammar/
+            src/PARSE/2-Parse/cpp/grammar/
 
   # ============================================================================
   # STAGE 2: Integration tests — full pipeline (transpile + compile + execute)

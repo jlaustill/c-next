@@ -2,10 +2,26 @@
  * Include directive and preprocessor handling.
  * Extracted from CodeGenerator.ts.
  */
-import * as Parser from "../../../../../transpiler/logic/parser/grammar/CNextParser";
 import IncludeRewriter from "../../../../../transpiler/data/IncludeRewriter";
 import type THeaderExtension from "../../../../../transpiler/types/THeaderExtension";
 import invariant from "../../../../../utils/invariant";
+import type IPlannedDirective from "../../types/IPlannedDirective";
+
+/*
+ * One preprocessor directive, reduced to what emission needs (#1445 box 3):
+ * the three directive functions below read their nodes for exactly two
+ * things, WHICH shape the parser matched and the directive's own text. The
+ * shape is `IPlannedDirective`, which also says why `text` is handed over
+ * verbatim.
+ *
+ * The `.trim()` stays HERE, on the string, rather than moving to the caller
+ * with the walk. It is load-bearing and measurable: `getText()` on
+ * `#define MY_FLAG  ` really does keep the trailing spaces (verified by
+ * running the parser), while `#ifdef DEBUG` has none. Trimming at the caller
+ * would move a tested behavior out from under the only test that can reach
+ * it -- `.cnx` fixtures are prettier-formatted, so a define with trailing
+ * whitespace cannot survive in the corpus to cover it.
+ */
 
 /**
  * Issue #349, #1467: Options for include transformation
@@ -72,23 +88,21 @@ const transformIncludeDirective = (
  * define passes through, and nothing else can reach here.
  */
 const processDefineDirective = (
-  ctx: Parser.DefineDirectiveContext,
+  directive: IPlannedDirective,
 ): string | null => {
   invariant(
-    !ctx.DEFINE_FUNCTION() && !ctx.DEFINE_WITH_VALUE(),
+    directive.kind !== "define-function" && directive.kind !== "define-value",
     "E0501/E0502 reject this in pass 2.1, before this runs",
   );
-  return ctx.DEFINE_FLAG() ? ctx.getText().trim() : null;
+  return directive.kind === "define-flag" ? directive.text.trim() : null;
 };
 
 /**
  * Process a conditional compilation directive (#ifdef, #ifndef, #else, #endif)
  * These are passed through unchanged
  */
-const processConditionalDirective = (
-  ctx: Parser.ConditionalDirectiveContext,
-): string => {
-  return ctx.getText().trim();
+const processConditionalDirective = (directive: IPlannedDirective): string => {
+  return directive.text.trim();
 };
 
 /**
@@ -99,13 +113,13 @@ const processConditionalDirective = (
  * - Conditional directives: pass through
  */
 const processPreprocessorDirective = (
-  ctx: Parser.PreprocessorDirectiveContext,
+  directive: IPlannedDirective,
 ): string | null => {
-  if (ctx.defineDirective()) {
-    return processDefineDirective(ctx.defineDirective()!);
+  if (directive.kind.startsWith("define-")) {
+    return processDefineDirective(directive);
   }
-  if (ctx.conditionalDirective()) {
-    return processConditionalDirective(ctx.conditionalDirective()!);
+  if (directive.kind === "conditional") {
+    return processConditionalDirective(directive);
   }
   return null;
 };

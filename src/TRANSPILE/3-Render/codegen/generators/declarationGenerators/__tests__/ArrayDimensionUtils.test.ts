@@ -1,127 +1,102 @@
-import { describe, it, expect, vi } from "vitest";
+/**
+ * Unit tests for the array dimension renderers.
+ *
+ * #1445 box 3: they take planned dimensions and a capacity, so these state
+ * those directly rather than through `as never` mock contexts and a mock
+ * orchestrator whose two methods had to be read backwards to see which branch
+ * a case was exercising.
+ *
+ * What moved out with the contexts is `CodeGenerator.planArrayTypeDimensions`
+ * -- the fold-or-generate decision (Issue #1159) -- which the 1259 integration
+ * fixtures exercise.
+ */
+import { describe, it, expect } from "vitest";
 import ArrayDimensionUtils from "../ArrayDimensionUtils";
-import IOrchestrator from "../../IOrchestrator";
+import type IPlannedDimension from "../../../types/IPlannedDimension";
+
+/** A sized dimension. */
+function sized(text: string): IPlannedDimension {
+  return { renderSize: () => text };
+}
+
+/** The unsized `[]`. */
+const UNSIZED: IPlannedDimension = { renderSize: null };
 
 describe("ArrayDimensionUtils", () => {
-  const createMockOrchestrator = (
-    constValue?: number,
-    exprText = "EXPR",
-  ): IOrchestrator => {
-    return {
-      tryEvaluateConstant: vi.fn().mockReturnValue(constValue),
-      generateExpression: vi.fn().mockReturnValue(exprText),
-    } as unknown as IOrchestrator;
-  };
-
-  describe("generateArrayTypeDimension", () => {
-    it("returns empty string for null context", () => {
-      const orchestrator = createMockOrchestrator();
-      const result = ArrayDimensionUtils.generateArrayTypeDimension(
-        null,
-        orchestrator,
-      );
-      expect(result).toBe("");
+  describe("renderArrayTypeDimensions", () => {
+    it("returns empty string when the type is not an array type", () => {
+      expect(ArrayDimensionUtils.renderArrayTypeDimensions(null)).toBe("");
     });
 
-    it("returns [] for context with no expression", () => {
-      const orchestrator = createMockOrchestrator();
-      const ctx = {
-        arrayTypeDimension: () => [{ expression: () => null }],
-      };
-      const result = ArrayDimensionUtils.generateArrayTypeDimension(
-        ctx as never,
-        orchestrator,
+    it("returns [] for an unsized dimension", () => {
+      expect(ArrayDimensionUtils.renderArrayTypeDimensions([UNSIZED])).toBe(
+        "[]",
       );
-      expect(result).toBe("[]");
     });
 
-    it("returns constant dimension when evaluable", () => {
-      const orchestrator = createMockOrchestrator(16);
-      const ctx = {
-        arrayTypeDimension: () => [
-          { expression: () => ({ getText: () => "16" }) },
-        ],
-      };
-      const result = ArrayDimensionUtils.generateArrayTypeDimension(
-        ctx as never,
-        orchestrator,
+    it("renders a sized dimension", () => {
+      expect(ArrayDimensionUtils.renderArrayTypeDimensions([sized("16")])).toBe(
+        "[16]",
       );
-      expect(result).toBe("[16]");
-      expect(orchestrator.tryEvaluateConstant).toHaveBeenCalled();
     });
 
-    it("falls back to expression generation for non-constant", () => {
-      const orchestrator = createMockOrchestrator(undefined, "BUFFER_SIZE");
-      const mockExpr = { getText: () => "BUFFER_SIZE" };
-      const ctx = {
-        arrayTypeDimension: () => [{ expression: () => mockExpr }],
+    /**
+     * Issue #1159: the planner folds a compile-time constant to its value and
+     * falls back to expression generation otherwise. Either way it arrives
+     * here as text, which is the point of the split -- this renderer cannot
+     * tell them apart and has no reason to.
+     */
+    it("renders a non-constant dimension as whatever it resolved to", () => {
+      expect(
+        ArrayDimensionUtils.renderArrayTypeDimensions([sized("BUFFER_SIZE")]),
+      ).toBe("[BUFFER_SIZE]");
+    });
+
+    it("renders every dimension, in order", () => {
+      expect(
+        ArrayDimensionUtils.renderArrayTypeDimensions([sized("4"), sized("8")]),
+      ).toBe("[4][8]");
+    });
+
+    it("mixes sized and unsized dimensions", () => {
+      expect(
+        ArrayDimensionUtils.renderArrayTypeDimensions([UNSIZED, sized("4")]),
+      ).toBe("[][4]");
+    });
+
+    it("renders each size exactly once", () => {
+      let renders = 0;
+      const counting: IPlannedDimension = {
+        renderSize: () => {
+          renders += 1;
+          return "4";
+        },
       };
-      const result = ArrayDimensionUtils.generateArrayTypeDimension(
-        ctx as never,
-        orchestrator,
-      );
-      expect(result).toBe("[BUFFER_SIZE]");
-      expect(orchestrator.generateExpression).toHaveBeenCalledWith(mockExpr);
+
+      ArrayDimensionUtils.renderArrayTypeDimensions([counting, counting]);
+
+      expect(renders).toBe(2);
+    });
+
+    it("renders nothing for an empty dimension list", () => {
+      expect(ArrayDimensionUtils.renderArrayTypeDimensions([])).toBe("");
     });
   });
 
-  describe("generateStringCapacityDim", () => {
-    it("returns empty string for non-string type", () => {
-      const ctx = {
-        stringType: () => null,
-      };
-      const result = ArrayDimensionUtils.generateStringCapacityDim(
-        ctx as never,
-      );
-      expect(result).toBe("");
+  describe("renderStringCapacityDimension", () => {
+    it("returns empty string when the type is not a bounded string", () => {
+      expect(ArrayDimensionUtils.renderStringCapacityDimension(null)).toBe("");
     });
 
-    it("returns empty string for string without capacity", () => {
-      const ctx = {
-        stringType: () => ({
-          INTEGER_LITERAL: () => null,
-        }),
-      };
-      const result = ArrayDimensionUtils.generateStringCapacityDim(
-        ctx as never,
+    it.each([
+      [32, "[33]"],
+      [8, "[9]"],
+      [64, "[65]"],
+      [255, "[256]"],
+    ])("adds the null terminator to capacity %i", (capacity, expected) => {
+      expect(ArrayDimensionUtils.renderStringCapacityDimension(capacity)).toBe(
+        expected,
       );
-      expect(result).toBe("");
-    });
-
-    it("returns capacity + 1 for string with capacity", () => {
-      const ctx = {
-        stringType: () => ({
-          INTEGER_LITERAL: () => ({
-            getText: () => "32",
-          }),
-        }),
-      };
-      const result = ArrayDimensionUtils.generateStringCapacityDim(
-        ctx as never,
-      );
-      expect(result).toBe("[33]");
-    });
-
-    it("handles various capacity values", () => {
-      const testCases = [
-        { input: "8", expected: "[9]" },
-        { input: "64", expected: "[65]" },
-        { input: "255", expected: "[256]" },
-      ];
-
-      for (const { input, expected } of testCases) {
-        const ctx = {
-          stringType: () => ({
-            INTEGER_LITERAL: () => ({
-              getText: () => input,
-            }),
-          }),
-        };
-        const result = ArrayDimensionUtils.generateStringCapacityDim(
-          ctx as never,
-        );
-        expect(result).toBe(expected);
-      }
     });
   });
 });

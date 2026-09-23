@@ -4,71 +4,55 @@
  * Issue #644: Tests for the extracted member chain analyzer.
  * Updated to use unified postfixTargetOp grammar after consolidation.
  * Migrated to use CodeGenState instead of constructor DI.
+ *
+ * #1445: the chain is `TPlannedTargetOp[]` now, so these build values rather
+ * than mock parse contexts cast `as unknown as Parser.AssignmentTargetContext`
+ * -- a cast that made the whole surface invisible to the type checker.
+ *
+ * The thunks also let a test assert something the callback version could not:
+ * that a chain the walk rejects renders NO index. Rendering one queues a
+ * pending temp declaration, so an eager version would leak one per rejected
+ * chain.
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
 import MemberChainAnalyzer from "../MemberChainAnalyzer";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 import SymbolTable from "../../../../../transpiler/state/SymbolTable";
-import type * as Parser from "../../../../../transpiler/logic/parser/grammar/CNextParser";
+import createMockSymbols from "../../../../../transpiler/__tests__/codeGenSymbolsHelpers";
+import type TPlannedTargetOp from "../../../../../transpiler/types/TPlannedTargetOp";
 
-/** Mock type for PostfixTargetOpContext */
-interface IMockPostfixOp {
-  IDENTIFIER: () => { getText: () => string } | null;
-  expression: () => { getText: () => string }[];
+/** A member access step: `.memberName` */
+function member(name: string): TPlannedTargetOp {
+  return { kind: "member", name };
 }
 
-/**
- * Create a mock PostfixTargetOpContext for member access: .memberName
- */
-function createMemberOp(memberName: string): IMockPostfixOp {
+/** A single-index subscript step: `[expr]` */
+function subscript(index: string): TPlannedTargetOp {
+  return { kind: "subscript", indexCount: 1, renderIndexes: () => [index] };
+}
+
+/** A bit-range step: `[start, width]` */
+function bitRange(start: string, width: string): TPlannedTargetOp {
   return {
-    IDENTIFIER: () => ({ getText: () => memberName }),
-    expression: () => [],
+    kind: "subscript",
+    indexCount: 2,
+    renderIndexes: () => [start, width],
   };
-}
-
-/**
- * Create a mock PostfixTargetOpContext for subscript access: [expr]
- */
-function createSubscriptOp(exprValue: string): IMockPostfixOp {
-  return {
-    IDENTIFIER: () => null,
-    expression: () => [{ getText: () => exprValue }],
-  };
-}
-
-/**
- * Create a mock PostfixTargetOpContext for bit range access: [start, width]
- */
-function createBitRangeOp(start: string, width: string): IMockPostfixOp {
-  return {
-    IDENTIFIER: () => null,
-    expression: () => [{ getText: () => start }, { getText: () => width }],
-  };
-}
-
-/**
- * Create a mock AssignmentTargetContext
- */
-function createTargetCtx(baseId: string | null, postfixOps: IMockPostfixOp[]) {
-  return {
-    IDENTIFIER: () => (baseId ? { getText: () => baseId } : null),
-    postfixTargetOp: () => postfixOps,
-  } as unknown as Parser.AssignmentTargetContext;
-}
-
-/**
- * Mock generateExpression callback - just returns getText() of the context
- */
-function mockGenerateExpression(ctx: Parser.ExpressionContext): string {
-  return (ctx as unknown as { getText(): string }).getText();
 }
 
 describe("MemberChainAnalyzer", () => {
   beforeEach(() => {
     CodeGenState.reset();
   });
+
+  /** A base identifier and the chain applied to it. */
+  function createTarget(
+    baseName: string | null,
+    ops: TPlannedTargetOp[],
+  ): { baseName: string | null; ops: TPlannedTargetOp[] } {
+    return { baseName, ops };
+  }
 
   /**
    * Helper to set up struct fields in CodeGenState.symbolTable
@@ -95,53 +79,23 @@ describe("MemberChainAnalyzer", () => {
       );
     }
 
-    // Also mark struct as known (for isKnownStruct checks)
-    if (!CodeGenState.symbols) {
-      CodeGenState.symbols = {
-        knownStructs: new Set(),
-        knownScopes: new Set(),
-        knownEnums: new Set(),
-        knownBitmaps: new Set(),
-        knownVariables: new Set(),
-        knownRegisters: new Set(),
-        structFields: new Map(),
-        structFieldArrays: new Map(),
-        structFieldDimensions: new Map(),
-        enumMembers: new Map(),
-        bitmapFields: new Map(),
-        bitmapBackingType: new Map(),
-        bitmapBitWidth: new Map(),
-        scopeMembers: new Map(),
-        scopeMemberVisibility: new Map(),
-        scopedRegisters: new Map(),
-        registerMemberAccess: new Map(),
-        registerMemberTypes: new Map(),
-        registerBaseAddresses: new Map(),
-        registerMemberOffsets: new Map(),
-        registerMemberCTypes: new Map(),
-        scopePrivateConstValues: new Map(),
-        functionReturnTypes: new Map(),
-      };
-    }
+    // Also mark struct as known (for isKnownStruct checks).
+    // #1445: this wrote out all 23 fields of ICodeGenSymbols by hand, a copy
+    // of `createMockSymbols` that a new field would have broken silently.
+    CodeGenState.symbols ??= createMockSymbols({});
     (CodeGenState.symbols.knownStructs as Set<string>).add(structName);
   }
 
   describe("analyze", () => {
     it("returns isBitAccess false when no base identifier", () => {
-      const targetCtx = createTargetCtx(null, []);
-      const result = MemberChainAnalyzer.analyze(
-        targetCtx,
-        mockGenerateExpression,
-      );
+      const target = createTarget(null, []);
+      const result = MemberChainAnalyzer.analyze(target.baseName, target.ops);
       expect(result.isBitAccess).toBe(false);
     });
 
     it("returns isBitAccess false when no postfix operations", () => {
-      const targetCtx = createTargetCtx("x", []);
-      const result = MemberChainAnalyzer.analyze(
-        targetCtx,
-        mockGenerateExpression,
-      );
+      const target = createTarget("x", []);
+      const result = MemberChainAnalyzer.analyze(target.baseName, target.ops);
       expect(result.isBitAccess).toBe(false);
     });
 
@@ -157,11 +111,8 @@ describe("MemberChainAnalyzer", () => {
       pointFields.set("flags", "u8");
       setupStructFields("Point", pointFields);
 
-      const targetCtx = createTargetCtx("point", [createMemberOp("flags")]);
-      const result = MemberChainAnalyzer.analyze(
-        targetCtx,
-        mockGenerateExpression,
-      );
+      const target = createTarget("point", [member("flags")]);
+      const result = MemberChainAnalyzer.analyze(target.baseName, target.ops);
       expect(result.isBitAccess).toBe(false);
     });
 
@@ -174,11 +125,8 @@ describe("MemberChainAnalyzer", () => {
         isConst: false,
       });
 
-      const targetCtx = createTargetCtx("flags", [createBitRangeOp("0", "8")]);
-      const result = MemberChainAnalyzer.analyze(
-        targetCtx,
-        mockGenerateExpression,
-      );
+      const target = createTarget("flags", [bitRange("0", "8")]);
+      const result = MemberChainAnalyzer.analyze(target.baseName, target.ops);
       expect(result.isBitAccess).toBe(false);
     });
 
@@ -195,15 +143,9 @@ describe("MemberChainAnalyzer", () => {
         isConst: false,
       });
 
-      const targetCtx = createTargetCtx("point", [
-        createMemberOp("flags"),
-        createSubscriptOp("3"),
-      ]);
+      const target = createTarget("point", [member("flags"), subscript("3")]);
 
-      const result = MemberChainAnalyzer.analyze(
-        targetCtx,
-        mockGenerateExpression,
-      );
+      const result = MemberChainAnalyzer.analyze(target.baseName, target.ops);
 
       expect(result.isBitAccess).toBe(true);
       expect(result.baseTarget).toBe("point.flags");
@@ -224,15 +166,9 @@ describe("MemberChainAnalyzer", () => {
         isConst: false,
       });
 
-      const targetCtx = createTargetCtx("grid", [
-        createMemberOp("items"),
-        createSubscriptOp("0"),
-      ]);
+      const target = createTarget("grid", [member("items"), subscript("0")]);
 
-      const result = MemberChainAnalyzer.analyze(
-        targetCtx,
-        mockGenerateExpression,
-      );
+      const result = MemberChainAnalyzer.analyze(target.baseName, target.ops);
 
       // items is an array, so [0] is array access, not bit access
       expect(result.isBitAccess).toBe(false);
@@ -251,15 +187,9 @@ describe("MemberChainAnalyzer", () => {
         isConst: false,
       });
 
-      const targetCtx = createTargetCtx("point", [
-        createMemberOp("name"),
-        createSubscriptOp("0"),
-      ]);
+      const target = createTarget("point", [member("name"), subscript("0")]);
 
-      const result = MemberChainAnalyzer.analyze(
-        targetCtx,
-        mockGenerateExpression,
-      );
+      const result = MemberChainAnalyzer.analyze(target.baseName, target.ops);
 
       // name is a string, not an integer, so no bit access
       expect(result.isBitAccess).toBe(false);
@@ -279,16 +209,13 @@ describe("MemberChainAnalyzer", () => {
         arrayDimensions: [4],
       });
 
-      const targetCtx = createTargetCtx("devices", [
-        createSubscriptOp("0"),
-        createMemberOp("flags"),
-        createSubscriptOp("7"),
+      const target = createTarget("devices", [
+        subscript("0"),
+        member("flags"),
+        subscript("7"),
       ]);
 
-      const result = MemberChainAnalyzer.analyze(
-        targetCtx,
-        mockGenerateExpression,
-      );
+      const result = MemberChainAnalyzer.analyze(target.baseName, target.ops);
 
       expect(result.isBitAccess).toBe(true);
       expect(result.baseTarget).toBe("devices[0].flags");
@@ -306,15 +233,9 @@ describe("MemberChainAnalyzer", () => {
         arrayDimensions: [4, 4],
       });
 
-      const targetCtx = createTargetCtx("matrix", [
-        createSubscriptOp("0"),
-        createSubscriptOp("1"),
-      ]);
+      const target = createTarget("matrix", [subscript("0"), subscript("1")]);
 
-      const result = MemberChainAnalyzer.analyze(
-        targetCtx,
-        mockGenerateExpression,
-      );
+      const result = MemberChainAnalyzer.analyze(target.baseName, target.ops);
 
       // This is 2D array access, not bit access
       expect(result.isBitAccess).toBe(false);
@@ -331,16 +252,13 @@ describe("MemberChainAnalyzer", () => {
         arrayDimensions: [4, 4],
       });
 
-      const targetCtx = createTargetCtx("matrix", [
-        createSubscriptOp("0"),
-        createSubscriptOp("1"),
-        createSubscriptOp("3"),
+      const target = createTarget("matrix", [
+        subscript("0"),
+        subscript("1"),
+        subscript("3"),
       ]);
 
-      const result = MemberChainAnalyzer.analyze(
-        targetCtx,
-        mockGenerateExpression,
-      );
+      const result = MemberChainAnalyzer.analyze(target.baseName, target.ops);
 
       expect(result.isBitAccess).toBe(true);
       expect(result.baseTarget).toBe("matrix[0][1]");
@@ -350,17 +268,48 @@ describe("MemberChainAnalyzer", () => {
 
     it("returns false for unknown base variable", () => {
       // unknownVar.field[0] - unknownVar not in typeRegistry
-      const targetCtx = createTargetCtx("unknownVar", [
-        createMemberOp("field"),
-        createSubscriptOp("0"),
+      const target = createTarget("unknownVar", [
+        member("field"),
+        subscript("0"),
       ]);
 
-      const result = MemberChainAnalyzer.analyze(
-        targetCtx,
-        mockGenerateExpression,
-      );
+      const result = MemberChainAnalyzer.analyze(target.baseName, target.ops);
 
       expect(result.isBitAccess).toBe(false);
+    });
+
+    /**
+     * The laziness, asserted rather than commented. Rendering an index queues
+     * a pending temp declaration in some shapes, so a chain the walk rejects
+     * must render nothing -- and most chains are rejected.
+     */
+    it("renders no index for a chain that is not bit access", () => {
+      CodeGenState.setVariableTypeInfo("matrix", {
+        baseType: "u8",
+        bitWidth: 8,
+        isArray: true,
+        isConst: false,
+        arrayDimensions: [4, 4],
+      });
+
+      let rendered = 0;
+      const counting = (index: string): TPlannedTargetOp => ({
+        kind: "subscript",
+        indexCount: 1,
+        renderIndexes: () => {
+          rendered += 1;
+          return [index];
+        },
+      });
+
+      // matrix[0][1] is 2D array access, so the walk rejects it.
+      const result = MemberChainAnalyzer.analyze("matrix", [
+        counting("0"),
+        counting("1"),
+      ]);
+
+      expect(result.isBitAccess).toBe(false);
+      expect(rendered).toBe(0);
     });
 
     it("returns false for member access on non-struct", () => {
@@ -372,15 +321,9 @@ describe("MemberChainAnalyzer", () => {
         isConst: false,
       });
 
-      const targetCtx = createTargetCtx("x", [
-        createMemberOp("field"),
-        createSubscriptOp("0"),
-      ]);
+      const target = createTarget("x", [member("field"), subscript("0")]);
 
-      const result = MemberChainAnalyzer.analyze(
-        targetCtx,
-        mockGenerateExpression,
-      );
+      const result = MemberChainAnalyzer.analyze(target.baseName, target.ops);
 
       expect(result.isBitAccess).toBe(false);
     });

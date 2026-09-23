@@ -3,32 +3,53 @@
  *
  * Issue #644: Tests for the extracted string declaration helper.
  * Migrated to use CodeGenState instead of constructor DI.
+ *
+ * #1445 box 3: these took hand-built parse nodes -- `{ stringType: () => ({
+ * INTEGER_LITERAL: () => ({ getText: () => "64" }) }) } as never` -- one per
+ * case, 56 of them. The cast was load-bearing: it silenced the compiler about
+ * a shape that was not a `TypeContext`, which also silenced it about the
+ * helper's signature changing underneath. They are plain `TPlannedStringDecl`
+ * values now, checked by the compiler, and the tree navigation they were
+ * imitating is tested in VariableDeclHelper.test.ts where it now lives.
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import StringDeclHelper from "../StringDeclHelper";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";
+import type IPlannedStringInit from "../../types/IPlannedStringInit";
+import type IRenderedModifiers from "../../types/IRenderedModifiers";
+import type TPlannedStringDecl from "../../types/TPlannedStringDecl";
 
-/**
- * Default callbacks for testing.
- */
-const defaultCallbacks = {
-  generateExpression: vi.fn((ctx: { getText: () => string }) => ctx.getText()),
-  generateArrayDimensions: vi.fn(
-    (dims: { expression: () => { getText: () => string } | null }[]) =>
-      dims
-        .map((d) => {
-          const expr = d.expression();
-          return expr ? `[${expr.getText()}]` : "[]";
-        })
-        .join(""),
-  ),
-  getStringConcatOperands: vi.fn(() => null),
-  getSubstringOperands: vi.fn(() => null),
-  getStringExprCapacity: vi.fn(() => null),
+const NO_MODS: IRenderedModifiers = {
+  extern: "",
+  const: "",
+  atomic: "",
+  volatile: "",
 };
 
-// #1322: the `throws error ...` cases below now assert INVARIANTS, not
+/**
+ * A bounded string's initializer, defaulting every arm to "declines".
+ * Each case overrides only the arm it is about, so a test that says nothing
+ * about substrings cannot accidentally take that branch.
+ */
+function init(overrides: Partial<IPlannedStringInit> = {}): IPlannedStringInit {
+  return {
+    concat: null,
+    renderSubstring: () => null,
+    text: '""',
+    render: () => '""',
+    ...overrides,
+  };
+}
+
+function bounded(
+  capacity: number,
+  initializer: IPlannedStringInit | null = null,
+): TPlannedStringDecl {
+  return { kind: "bounded", capacity, init: initializer };
+}
+
+// #1322: the `asserts the invariant ...` cases below assert INVARIANTS, not
 // diagnostics. ADR-045's declaration rules are E0862-E0866 in pass 2.1, which
 // halts before codegen runs, so a declaration reaching this helper has already
 // been checked. The assertion is the safety net for a DIVERGENCE between the
@@ -44,1028 +65,718 @@ describe("StringDeclHelper", () => {
     vi.clearAllMocks();
   });
 
-  describe("generateStringDecl", () => {
-    it("returns handled: false for non-string types", () => {
-      const typeCtx = {
-        stringType: () => null,
-      } as never;
-
-      const result = StringDeclHelper.generateStringDecl(
-        typeCtx,
-        "myVar",
-        null,
-        [],
-        { extern: "", const: "", atomic: "", volatile: "" },
-        false,
-        defaultCallbacks,
-      );
-
-      expect(result.handled).toBe(false);
-    });
-
+  describe("bounded strings", () => {
     it("generates bounded string with literal initializer", () => {
-      const typeCtx = {
-        stringType: () => ({
-          INTEGER_LITERAL: () => ({ getText: () => "64" }),
-        }),
-      } as never;
-
-      const expression = {
-        getText: () => '"Hello"',
-      } as never;
-
-      const result = StringDeclHelper.generateStringDecl(
-        typeCtx,
+      const code = StringDeclHelper.generateStringDecl(
+        bounded(64, init({ text: '"Hello"', render: () => '"Hello"' })),
         "greeting",
-        expression,
-        [],
-        { extern: "", const: "", atomic: "", volatile: "" },
+        NO_MODS,
         false,
-        defaultCallbacks,
       );
 
-      expect(result.handled).toBe(true);
-      expect(result.code).toContain("char greeting[65]");
-      expect(result.code).toContain('"Hello"');
+      expect(code).toBe('char greeting[65] = "Hello";');
     });
 
     it("generates empty bounded string without initializer", () => {
-      const typeCtx = {
-        stringType: () => ({
-          INTEGER_LITERAL: () => ({ getText: () => "32" }),
-        }),
-      } as never;
-
-      const result = StringDeclHelper.generateStringDecl(
-        typeCtx,
+      const code = StringDeclHelper.generateStringDecl(
+        bounded(32),
         "buffer",
-        null,
-        [],
-        { extern: "", const: "", atomic: "", volatile: "" },
+        NO_MODS,
         false,
-        defaultCallbacks,
       );
 
-      expect(result.handled).toBe(true);
-      expect(result.code).toBe('char buffer[33] = "";');
+      expect(code).toBe('char buffer[33] = "";');
     });
 
     it("generates const bounded string", () => {
-      const typeCtx = {
-        stringType: () => ({
-          INTEGER_LITERAL: () => ({ getText: () => "10" }),
-        }),
-      } as never;
-
-      const expression = {
-        getText: () => '"Test"',
-      } as never;
-
-      const result = StringDeclHelper.generateStringDecl(
-        typeCtx,
+      const code = StringDeclHelper.generateStringDecl(
+        bounded(10, init({ text: '"Test"', render: () => '"Test"' })),
         "label",
-        expression,
-        [],
-        { extern: "", const: "const ", atomic: "", volatile: "" },
+        { ...NO_MODS, const: "const " },
         true,
-        defaultCallbacks,
       );
 
-      expect(result.handled).toBe(true);
-      expect(result.code).toContain("const char label[11]");
+      expect(code).toBe('const char label[11] = "Test";');
+    });
+
+    it("generates extern bounded string", () => {
+      const code = StringDeclHelper.generateStringDecl(
+        bounded(16),
+        "shared",
+        { ...NO_MODS, extern: "extern " },
+        false,
+      );
+
+      expect(code).toBe('extern char shared[17] = "";');
     });
 
     it("asserts the invariant for string literal exceeding capacity", () => {
-      const typeCtx = {
-        stringType: () => ({
-          INTEGER_LITERAL: () => ({ getText: () => "5" }),
-        }),
-      } as never;
-
-      const expression = {
-        getText: () => '"HelloWorld"', // 10 chars, exceeds 5
-      } as never;
-
       expect(() =>
         StringDeclHelper.generateStringDecl(
-          typeCtx,
+          bounded(5, init({ text: '"This is way too long"' })),
           "small",
-          expression,
-          [],
-          { extern: "", const: "", atomic: "", volatile: "" },
+          NO_MODS,
           false,
-          defaultCallbacks,
         ),
       ).toThrow("a string literal fits its declared capacity");
     });
+  });
 
-    it("asserts the invariant for non-const unsized string", () => {
-      const typeCtx = {
-        stringType: () => ({
-          INTEGER_LITERAL: () => null,
-        }),
-      } as never;
+  // #1642: a bounded string WITH an initializer dropped atomic/volatile while
+  // the header kept them -- `conflicting types`, in C and C++, exit 0. The
+  // qualifiers have to reach every arm, so every arm is asserted rather than
+  // the one that was reported.
+  describe("atomic/volatile reach every bounded arm (#1164, #1642)", () => {
+    const ATOMIC: IRenderedModifiers = { ...NO_MODS, atomic: "volatile " };
+
+    it("carries them with no initializer", () => {
+      expect(
+        StringDeclHelper.generateStringDecl(bounded(16), "s", ATOMIC, false),
+      ).toBe('volatile char s[17] = "";');
+    });
+
+    it("carries them on the literal arm", () => {
+      expect(
+        StringDeclHelper.generateStringDecl(
+          bounded(16, init({ text: '"a"', render: () => '"a"' })),
+          "s",
+          ATOMIC,
+          false,
+        ),
+      ).toBe('volatile char s[17] = "a";');
+    });
+
+    it("carries them on the copy arm", () => {
+      CodeGenState.setVariableTypeInfo("src", {
+        baseType: "char",
+        bitWidth: 8,
+        isArray: true,
+        isConst: false,
+        isString: true,
+        stringCapacity: 8,
+      });
+
+      const code = StringDeclHelper.generateStringDecl(
+        bounded(16, init({ text: "src", render: () => "src" })),
+        "s",
+        ATOMIC,
+        false,
+      );
+
+      expect(code.split("\n")[0]).toBe('volatile char s[17] = "";');
+    });
+
+    it("carries them on the concat arm", () => {
+      const code = StringDeclHelper.generateStringDecl(
+        bounded(
+          16,
+          init({
+            concat: {
+              left: "a",
+              right: "b",
+              leftCapacity: 4,
+              rightCapacity: 4,
+            },
+          }),
+        ),
+        "s",
+        ATOMIC,
+        false,
+      );
+
+      expect(code.split("\n")[0]).toBe('volatile char s[17] = "";');
+    });
+
+    it("carries them on the substring arm", () => {
+      const code = StringDeclHelper.generateStringDecl(
+        bounded(
+          16,
+          init({
+            renderSubstring: () => ({
+              source: "src",
+              start: "0",
+              lengthExpression: "3",
+              sourceCapacity: 8,
+            }),
+          }),
+        ),
+        "s",
+        ATOMIC,
+        false,
+      );
+
+      expect(code.split("\n")[0]).toBe('volatile char s[17] = "";');
+    });
+  });
+
+  // ADR-045 asks the four initializer forms in a fixed order and the order is
+  // load-bearing, because asking costs something on two of the arms: taking a
+  // substring generates the index expressions, and rendering the initializer
+  // generates the whole thing -- either can request an include or queue a C++
+  // temp into the enclosing block. An arm that is not taken must raise no
+  // effect at all, so these assert that the unused thunks are never called,
+  // not merely that the right code comes out.
+  describe("initializer discrimination order", () => {
+    it("does not ask for a substring when the initializer is a concatenation", () => {
+      const renderSubstring = vi.fn(() => null);
+      const render = vi.fn(() => "unused");
+
+      StringDeclHelper.generateStringDecl(
+        bounded(
+          16,
+          init({
+            concat: {
+              left: "a",
+              right: "b",
+              leftCapacity: 4,
+              rightCapacity: 4,
+            },
+            renderSubstring,
+            render,
+          }),
+        ),
+        "s",
+        NO_MODS,
+        false,
+      );
+
+      expect(renderSubstring).not.toHaveBeenCalled();
+      expect(render).not.toHaveBeenCalled();
+    });
+
+    it("does not render the initializer when it is a substring", () => {
+      const render = vi.fn(() => "unused");
+
+      StringDeclHelper.generateStringDecl(
+        bounded(
+          16,
+          init({
+            renderSubstring: () => ({
+              source: "src",
+              start: "0",
+              lengthExpression: "3",
+              sourceCapacity: 8,
+            }),
+            render,
+          }),
+        ),
+        "s",
+        NO_MODS,
+        false,
+      );
+
+      expect(render).not.toHaveBeenCalled();
+    });
+
+    it("renders the initializer only when neither operand form matched", () => {
+      const render = vi.fn(() => '"x"');
+
+      StringDeclHelper.generateStringDecl(
+        bounded(16, init({ text: '"x"', render })),
+        "s",
+        NO_MODS,
+        false,
+      );
+
+      expect(render).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("string variable assignment validation", () => {
+    function declareSource(name: string, capacity: number): void {
+      CodeGenState.setVariableTypeInfo(name, {
+        baseType: "char",
+        bitWidth: 8,
+        isArray: true,
+        isConst: false,
+        isString: true,
+        stringCapacity: capacity,
+      });
+    }
+
+    it("asserts the invariant when source string capacity exceeds destination", () => {
+      declareSource("bigString", 100);
 
       expect(() =>
         StringDeclHelper.generateStringDecl(
-          typeCtx,
-          "invalid",
-          null,
-          [],
-          { extern: "", const: "", atomic: "", volatile: "" },
+          bounded(10, init({ text: "bigString", render: () => "bigString" })),
+          "small",
+          NO_MODS,
           false,
-          defaultCallbacks,
+        ),
+      ).toThrow("a string source fits its destination");
+    });
+
+    it("allows assignment when source capacity fits", () => {
+      declareSource("src", 20);
+
+      const code = StringDeclHelper.generateStringDecl(
+        bounded(50, init({ text: "src", render: () => "src" })),
+        "dest",
+        NO_MODS,
+        false,
+      );
+
+      expect(code).toContain("char dest[51]");
+      expect(code).toContain("strncpy");
+    });
+
+    it("does not indent continuation lines (the block emitter owns indentation) — Issue #1037", () => {
+      declareSource("src", 20);
+
+      const code = StringDeclHelper.generateStringDecl(
+        bounded(50, init({ text: "src", render: () => "src" })),
+        "dest",
+        NO_MODS,
+        false,
+      );
+
+      for (const line of code.split("\n").slice(1)) {
+        expect(line.startsWith(" ")).toBe(false);
+      }
+    });
+
+    it("asserts the invariant for string variable initialization at global scope", () => {
+      CodeGenState.inFunctionBody = false;
+      declareSource("src", 20);
+
+      expect(() =>
+        StringDeclHelper.generateStringDecl(
+          bounded(50, init({ text: "src", render: () => "src" })),
+          "dest",
+          NO_MODS,
+          false,
+        ),
+      ).toThrow("a string at file scope is initialized by a literal");
+    });
+  });
+
+  describe("string concatenation", () => {
+    const CONCAT = {
+      left: "first",
+      right: "second",
+      leftCapacity: 10,
+      rightCapacity: 10,
+    };
+
+    it("generates concatenation code in function body", () => {
+      const code = StringDeclHelper.generateStringDecl(
+        bounded(50, init({ concat: CONCAT })),
+        "full",
+        NO_MODS,
+        false,
+      );
+
+      expect(code).toContain('char full[51] = "";');
+      expect(code).toContain("strncpy");
+      expect(code).toContain("strncat");
+    });
+
+    it("asserts the invariant for concatenation at global scope", () => {
+      CodeGenState.inFunctionBody = false;
+
+      expect(() =>
+        StringDeclHelper.generateStringDecl(
+          bounded(50, init({ concat: CONCAT })),
+          "full",
+          NO_MODS,
+          false,
+        ),
+      ).toThrow("a string at file scope is initialized by a literal");
+    });
+
+    it("asserts the invariant when combined capacity exceeds destination", () => {
+      expect(() =>
+        StringDeclHelper.generateStringDecl(
+          bounded(
+            10,
+            init({
+              concat: { ...CONCAT, leftCapacity: 20, rightCapacity: 20 },
+            }),
+          ),
+          "tooSmall",
+          NO_MODS,
+          false,
+        ),
+      ).toThrow("a concatenation fits its destination");
+    });
+
+    it("generates const concatenation declaration", () => {
+      const code = StringDeclHelper.generateStringDecl(
+        bounded(50, init({ concat: CONCAT })),
+        "full",
+        { ...NO_MODS, const: "const " },
+        true,
+      );
+
+      expect(code).toContain('const char full[51] = "";');
+    });
+  });
+
+  describe("substring extraction", () => {
+    function substring(
+      overrides: Partial<{
+        source: string;
+        start: string;
+        lengthExpression: string;
+        sourceCapacity: number;
+      }> = {},
+    ): IPlannedStringInit {
+      return init({
+        renderSubstring: () => ({
+          source: "source",
+          start: "0",
+          lengthExpression: "5",
+          sourceCapacity: 20,
+          ...overrides,
+        }),
+      });
+    }
+
+    it("generates substring extraction code in function body", () => {
+      const code = StringDeclHelper.generateStringDecl(
+        bounded(10, substring()),
+        "part",
+        NO_MODS,
+        false,
+      );
+
+      expect(code).toContain('char part[11] = "";');
+      expect(code).toContain("strncpy");
+    });
+
+    it("asserts the invariant for substring at global scope", () => {
+      CodeGenState.inFunctionBody = false;
+
+      expect(() =>
+        StringDeclHelper.generateStringDecl(
+          bounded(10, substring()),
+          "part",
+          NO_MODS,
+          false,
+        ),
+      ).toThrow("a string at file scope is initialized by a literal");
+    });
+
+    it("asserts the invariant when substring bounds exceed source capacity", () => {
+      expect(() =>
+        StringDeclHelper.generateStringDecl(
+          bounded(
+            50,
+            substring({
+              start: "15",
+              lengthExpression: "10",
+              sourceCapacity: 20,
+            }),
+          ),
+          "part",
+          NO_MODS,
+          false,
+        ),
+      ).toThrow("substring bounds stay within the source");
+    });
+
+    it("asserts the invariant when substring length exceeds destination capacity", () => {
+      expect(() =>
+        StringDeclHelper.generateStringDecl(
+          bounded(
+            5,
+            substring({
+              start: "0",
+              lengthExpression: "10",
+              sourceCapacity: 20,
+            }),
+          ),
+          "part",
+          NO_MODS,
+          false,
+        ),
+      ).toThrow("a substring fits its destination");
+    });
+
+    it("skips bounds check when start is not numeric", () => {
+      const code = StringDeclHelper.generateStringDecl(
+        bounded(50, substring({ start: "offset", lengthExpression: "10" })),
+        "part",
+        NO_MODS,
+        false,
+      );
+
+      expect(code).toContain('char part[51] = "";');
+    });
+
+    it("skips length check when length is not numeric", () => {
+      const code = StringDeclHelper.generateStringDecl(
+        bounded(5, substring({ start: "0", lengthExpression: "len" })),
+        "part",
+        NO_MODS,
+        false,
+      );
+
+      expect(code).toContain('char part[6] = "";');
+    });
+
+    it("generates const substring declaration", () => {
+      const code = StringDeclHelper.generateStringDecl(
+        bounded(10, substring()),
+        "part",
+        { ...NO_MODS, const: "const " },
+        true,
+      );
+
+      expect(code).toContain('const char part[11] = "";');
+    });
+  });
+
+  describe("unsized const strings", () => {
+    it("generates unsized const string with literal initializer", () => {
+      // #1642: `NO_MODS` cannot reach this arm -- an unsized string is const,
+      // which E0862 enforces in 2.1 -- and passing it here is what let the arm
+      // hardcode `const ` and drop `atomic`/`volatile` for years without a
+      // test noticing. The realistic input carries the const the caller
+      // resolved.
+      const code = StringDeclHelper.generateStringDecl(
+        { kind: "unsized", initText: '"Hello World"' },
+        "message",
+        { ...NO_MODS, const: "const " },
+        true,
+      );
+
+      expect(code).toBe('const char message[12] = "Hello World";');
+    });
+
+    it("carries atomic and volatile onto the unsized arm (#1642)", () => {
+      const code = StringDeclHelper.generateStringDecl(
+        { kind: "unsized", initText: '"v"' },
+        "flag",
+        { extern: "", const: "const ", atomic: "", volatile: "volatile " },
+        true,
+      );
+
+      // The header derives the qualifier from the SYMBOL, so a definition
+      // without it is `conflicting types` at the first translation unit that
+      // includes its own header.
+      expect(code).toBe('const volatile char flag[2] = "v";');
+    });
+
+    it("refuses a non-const unsized string rather than emitting one", () => {
+      expect(() =>
+        StringDeclHelper.generateStringDecl(
+          { kind: "unsized", initText: '"x"' },
+          "loose",
+          NO_MODS,
+          true,
+        ),
+      ).toThrow(/unsized string is const/);
+    });
+
+    it("registers the inferred capacity in the type registry", () => {
+      StringDeclHelper.generateStringDecl(
+        { kind: "unsized", initText: '"abc"' },
+        "msg",
+        { ...NO_MODS, const: "const " },
+        true,
+      );
+
+      expect(CodeGenState.getVariableTypeInfo("msg")?.stringCapacity).toBe(3);
+    });
+
+    it("asserts the invariant for non-const unsized string", () => {
+      expect(() =>
+        StringDeclHelper.generateStringDecl(
+          { kind: "unsized", initText: '"x"' },
+          "bad",
+          { ...NO_MODS, const: "const " },
+          false,
         ),
       ).toThrow("a non-const string states its capacity");
     });
 
     it("asserts the invariant for unsized const string without initializer", () => {
-      const typeCtx = {
-        stringType: () => ({
-          INTEGER_LITERAL: () => null,
-        }),
-      } as never;
-
       expect(() =>
         StringDeclHelper.generateStringDecl(
-          typeCtx,
-          "invalid",
-          null,
-          [],
-          { extern: "", const: "const ", atomic: "", volatile: "" },
+          { kind: "unsized", initText: null },
+          "bad",
+          { ...NO_MODS, const: "const " },
           true,
-          defaultCallbacks,
         ),
       ).toThrow("an unsized const string has an initializer to infer from");
     });
 
     it("asserts the invariant for unsized const string with non-literal", () => {
-      const typeCtx = {
-        stringType: () => ({
-          INTEGER_LITERAL: () => null,
-        }),
-      } as never;
-
-      const expression = {
-        getText: () => "otherVar",
-      } as never;
-
       expect(() =>
         StringDeclHelper.generateStringDecl(
-          typeCtx,
-          "invalid",
-          expression,
-          [],
-          { extern: "", const: "const ", atomic: "", volatile: "" },
+          { kind: "unsized", initText: "someVar" },
+          "bad",
+          { ...NO_MODS, const: "const " },
           true,
-          defaultCallbacks,
         ),
       ).toThrow("an unsized const string infers from a LITERAL");
     });
-
-    it("generates unsized const string with literal initializer", () => {
-      const typeCtx = {
-        stringType: () => ({
-          INTEGER_LITERAL: () => null,
-        }),
-      } as never;
-
-      const expression = {
-        getText: () => '"Hello"',
-      } as never;
-
-      const result = StringDeclHelper.generateStringDecl(
-        typeCtx,
-        "greeting",
-        expression,
-        [],
-        { extern: "", const: "const ", atomic: "", volatile: "" },
-        true,
-        defaultCallbacks,
-      );
-
-      expect(result.handled).toBe(true);
-      expect(result.code).toBe('const char greeting[6] = "Hello";');
-      expect(CodeGenState.getVariableTypeInfo("greeting")).toMatchObject({
-        baseType: "char",
-        isString: true,
-        stringCapacity: 5,
-      });
-    });
-
-    it("generates extern bounded string", () => {
-      const typeCtx = {
-        stringType: () => ({
-          INTEGER_LITERAL: () => ({ getText: () => "20" }),
-        }),
-      } as never;
-
-      const expression = {
-        getText: () => '"External"',
-      } as never;
-
-      const result = StringDeclHelper.generateStringDecl(
-        typeCtx,
-        "extStr",
-        expression,
-        [],
-        { extern: "extern ", const: "", atomic: "", volatile: "" },
-        false,
-        defaultCallbacks,
-      );
-
-      expect(result.handled).toBe(true);
-      expect(result.code).toContain("extern char extStr[21]");
-    });
   });
 
-  describe("string variable assignment validation", () => {
-    it("asserts the invariant when source string capacity exceeds destination", () => {
-      const callbacks = {
-        ...defaultCallbacks,
-        getStringExprCapacity: vi.fn(() => 100),
+  describe("string arrays (Issue #1029)", () => {
+    function array(
+      overrides: Partial<Extract<TPlannedStringDecl, { kind: "array" }>> = {},
+    ): TPlannedStringDecl {
+      return {
+        kind: "array",
+        elementCapacity: 32,
+        dimensions: "[4]",
+        declaredSize: 4,
+        renderInit: null,
+        ...overrides,
       };
+    }
 
-      const typeCtx = {
-        stringType: () => ({
-          INTEGER_LITERAL: () => ({ getText: () => "32" }),
-        }),
-      } as never;
-
-      const expression = {
-        getText: () => "largeString", // Not a literal, so capacity check will run
-      } as never;
-
-      expect(() =>
-        StringDeclHelper.generateStringDecl(
-          typeCtx,
-          "small",
-          expression,
-          [],
-          { extern: "", const: "", atomic: "", volatile: "" },
-          false,
-          callbacks,
-        ),
-      ).toThrow(
-        "a string source fits its destination -- E0864 rejects string<100> into string<32>",
-      );
+    it("generates string array without initializer", () => {
+      expect(
+        StringDeclHelper.generateStringDecl(array(), "items", NO_MODS, false),
+      ).toBe("char items[4][33] = {0};");
     });
 
-    it("allows assignment when source capacity fits", () => {
-      // Issue #1044: String variable initialization uses a bounded strncpy
-      // (shared with the reassignment path), not an unsafe strcpy (CWE-120).
-      const callbacks = {
-        ...defaultCallbacks,
-        getStringExprCapacity: vi.fn(() => 20),
-        generateExpression: vi.fn(() => "smallString"),
-      };
-
-      const typeCtx = {
-        stringType: () => ({
-          INTEGER_LITERAL: () => ({ getText: () => "32" }),
+    it("generates string array with initializer", () => {
+      const code = StringDeclHelper.generateStringDecl(
+        array({
+          elementCapacity: 10,
+          dimensions: "[2]",
+          declaredSize: 2,
+          renderInit: () => {
+            CodeGenState.lastArrayInitCount = 2;
+            CodeGenState.lastArrayFillValue = undefined;
+            return '{"One", "Two"}';
+          },
         }),
-      } as never;
-
-      const expression = {
-        getText: () => "smallString",
-      } as never;
-
-      const result = StringDeclHelper.generateStringDecl(
-        typeCtx,
-        "dest",
-        expression,
-        [],
-        { extern: "", const: "", atomic: "", volatile: "" },
-        false,
-        callbacks,
-      );
-
-      expect(result.handled).toBe(true);
-      // Issue #1044: bounded copy, not strcpy
-      expect(result.code).toContain('char dest[33] = "";');
-      expect(result.code).toContain("(void) strncpy(dest, smallString, 32);");
-      expect(result.code).toContain("dest[32] = '\\0';");
-      expect(result.code).not.toContain("strcpy(dest, smallString)");
-    });
-
-    it("does not indent continuation lines (the block emitter owns indentation) — Issue #1037", () => {
-      // indentLevel = 1 (beforeEach). generateBlock prefixes every line of a
-      // statement, so the helper must NOT add its own indent or continuation
-      // lines double-indent.
-      const callbacks = {
-        ...defaultCallbacks,
-        getStringExprCapacity: vi.fn(() => 20),
-        generateExpression: vi.fn(() => "smallString"),
-      };
-
-      const typeCtx = {
-        stringType: () => ({
-          INTEGER_LITERAL: () => ({ getText: () => "32" }),
-        }),
-      } as never;
-
-      const expression = {
-        getText: () => "smallString",
-      } as never;
-
-      const result = StringDeclHelper.generateStringDecl(
-        typeCtx,
-        "dest",
-        expression,
-        [],
-        { extern: "", const: "", atomic: "", volatile: "" },
-        false,
-        callbacks,
-      );
-
-      const lines = result.code.split("\n");
-      expect(lines[0]).toBe('char dest[33] = "";');
-      // Continuation line must have no leading whitespace of its own.
-      expect(lines[1]).toBe(
-        "(void) strncpy(dest, smallString, 32); dest[32] = '\\0';",
-      );
-    });
-
-    it("asserts the invariant for string variable initialization at global scope", () => {
-      // Issue #1030: String variable initialization requires function body
-      CodeGenState.inFunctionBody = false;
-      const callbacks = {
-        ...defaultCallbacks,
-        getStringExprCapacity: vi.fn(() => 20),
-      };
-
-      const typeCtx = {
-        stringType: () => ({
-          INTEGER_LITERAL: () => ({ getText: () => "32" }),
-        }),
-      } as never;
-
-      const expression = {
-        getText: () => "sourceVar",
-      } as never;
-
-      expect(() =>
-        StringDeclHelper.generateStringDecl(
-          typeCtx,
-          "dest",
-          expression,
-          [],
-          { extern: "", const: "", atomic: "", volatile: "" },
-          false,
-          callbacks,
-        ),
-      ).toThrow(
-        "a string at file scope is initialized by a literal -- E0863 rejects a copy from a variable",
-      );
-    });
-  });
-
-  describe("string concatenation", () => {
-    it("generates concatenation code in function body", () => {
-      const concatOps = {
-        left: "str1",
-        right: "str2",
-        leftCapacity: 10,
-        rightCapacity: 10,
-      };
-      const callbacks = {
-        ...defaultCallbacks,
-        getStringConcatOperands: vi.fn(() => concatOps),
-      };
-
-      const typeCtx = {
-        stringType: () => ({
-          INTEGER_LITERAL: () => ({ getText: () => "32" }),
-        }),
-      } as never;
-
-      const expression = {
-        getText: () => "str1 + str2",
-      } as never;
-
-      const result = StringDeclHelper.generateStringDecl(
-        typeCtx,
-        "combined",
-        expression,
-        [],
-        { extern: "", const: "", atomic: "", volatile: "" },
-        false,
-        callbacks,
-      );
-
-      expect(result.handled).toBe(true);
-      // Issue #1037: every line carries no indent of its own (the block emitter
-      // prefixes each line); continuation lines must not double-indent.
-      const concatLines = result.code.split("\n");
-      expect(concatLines[0]).toBe('char combined[33] = "";');
-      expect(concatLines[1]).toBe("(void) strncpy(combined, str1, 32);");
-      expect(concatLines[2]).toBe(
-        "(void) strncat(combined, str2, 32 - strlen(combined));",
-      );
-      expect(concatLines[3]).toBe("combined[32] = '\\0';");
-    });
-
-    it("asserts the invariant for concatenation at global scope", () => {
-      CodeGenState.inFunctionBody = false;
-      const concatOps = {
-        left: "str1",
-        right: "str2",
-        leftCapacity: 10,
-        rightCapacity: 10,
-      };
-      const callbacks = {
-        ...defaultCallbacks,
-        getStringConcatOperands: vi.fn(() => concatOps),
-      };
-
-      const typeCtx = {
-        stringType: () => ({
-          INTEGER_LITERAL: () => ({ getText: () => "32" }),
-        }),
-      } as never;
-
-      const expression = {
-        getText: () => "str1 + str2",
-      } as never;
-
-      expect(() =>
-        StringDeclHelper.generateStringDecl(
-          typeCtx,
-          "combined",
-          expression,
-          [],
-          { extern: "", const: "", atomic: "", volatile: "" },
-          false,
-          callbacks,
-        ),
-      ).toThrow(
-        "a string at file scope is initialized by a literal -- E0863 rejects a concatenation",
-      );
-    });
-
-    it("asserts the invariant when combined capacity exceeds destination", () => {
-      const concatOps = {
-        left: "str1",
-        right: "str2",
-        leftCapacity: 20,
-        rightCapacity: 20,
-      };
-      const callbacks = {
-        ...defaultCallbacks,
-        getStringConcatOperands: vi.fn(() => concatOps),
-      };
-
-      const typeCtx = {
-        stringType: () => ({
-          INTEGER_LITERAL: () => ({ getText: () => "30" }),
-        }),
-      } as never;
-
-      const expression = {
-        getText: () => "str1 + str2",
-      } as never;
-
-      expect(() =>
-        StringDeclHelper.generateStringDecl(
-          typeCtx,
-          "combined",
-          expression,
-          [],
-          { extern: "", const: "", atomic: "", volatile: "" },
-          false,
-          callbacks,
-        ),
-      ).toThrow(
-        "a concatenation fits its destination -- E0864 rejects 40 into string<30>",
-      );
-    });
-
-    it("generates const concatenation declaration", () => {
-      const concatOps = {
-        left: "str1",
-        right: "str2",
-        leftCapacity: 5,
-        rightCapacity: 5,
-      };
-      const callbacks = {
-        ...defaultCallbacks,
-        getStringConcatOperands: vi.fn(() => concatOps),
-      };
-
-      const typeCtx = {
-        stringType: () => ({
-          INTEGER_LITERAL: () => ({ getText: () => "20" }),
-        }),
-      } as never;
-
-      const expression = {
-        getText: () => "str1 + str2",
-      } as never;
-
-      const result = StringDeclHelper.generateStringDecl(
-        typeCtx,
-        "combined",
-        expression,
-        [],
-        { extern: "", const: "const ", atomic: "", volatile: "" },
-        true,
-        callbacks,
-      );
-
-      expect(result.code).toContain('const char combined[21] = "";');
-    });
-  });
-
-  describe("substring extraction", () => {
-    it("generates substring extraction code in function body", () => {
-      const substringOps = {
-        source: "srcStr",
-        start: "0",
-        lengthExpression: "5",
-        sourceCapacity: 32,
-      };
-      const callbacks = {
-        ...defaultCallbacks,
-        getSubstringOperands: vi.fn(() => substringOps),
-      };
-
-      const typeCtx = {
-        stringType: () => ({
-          INTEGER_LITERAL: () => ({ getText: () => "10" }),
-        }),
-      } as never;
-
-      const expression = {
-        getText: () => "srcStr.substring(0, 5)",
-      } as never;
-
-      const result = StringDeclHelper.generateStringDecl(
-        typeCtx,
-        "sub",
-        expression,
-        [],
-        { extern: "", const: "", atomic: "", volatile: "" },
-        false,
-        callbacks,
-      );
-
-      expect(result.handled).toBe(true);
-      // Issue #1037: continuation lines carry no indent of their own.
-      const subLines = result.code.split("\n");
-      expect(subLines[0]).toBe('char sub[11] = "";');
-      expect(subLines[1]).toBe("(void) strncpy(sub, srcStr + 0, 5);");
-      expect(subLines[2]).toBe("sub[5] = '\\0';");
-    });
-
-    it("asserts the invariant for substring at global scope", () => {
-      CodeGenState.inFunctionBody = false;
-      const substringOps = {
-        source: "srcStr",
-        start: "0",
-        lengthExpression: "5",
-        sourceCapacity: 32,
-      };
-      const callbacks = {
-        ...defaultCallbacks,
-        getSubstringOperands: vi.fn(() => substringOps),
-      };
-
-      const typeCtx = {
-        stringType: () => ({
-          INTEGER_LITERAL: () => ({ getText: () => "10" }),
-        }),
-      } as never;
-
-      const expression = {
-        getText: () => "srcStr.substring(0, 5)",
-      } as never;
-
-      expect(() =>
-        StringDeclHelper.generateStringDecl(
-          typeCtx,
-          "sub",
-          expression,
-          [],
-          { extern: "", const: "", atomic: "", volatile: "" },
-          false,
-          callbacks,
-        ),
-      ).toThrow(
-        "a string at file scope is initialized by a literal -- E0863 rejects a substring",
-      );
-    });
-
-    it("asserts the invariant when substring bounds exceed source capacity", () => {
-      const substringOps = {
-        source: "srcStr",
-        start: "30",
-        lengthExpression: "10",
-        sourceCapacity: 32, // start + length = 40 > 32
-      };
-      const callbacks = {
-        ...defaultCallbacks,
-        getSubstringOperands: vi.fn(() => substringOps),
-      };
-
-      const typeCtx = {
-        stringType: () => ({
-          INTEGER_LITERAL: () => ({ getText: () => "20" }),
-        }),
-      } as never;
-
-      const expression = {
-        getText: () => "srcStr.substring(30, 10)",
-      } as never;
-
-      expect(() =>
-        StringDeclHelper.generateStringDecl(
-          typeCtx,
-          "sub",
-          expression,
-          [],
-          { extern: "", const: "", atomic: "", volatile: "" },
-          false,
-          callbacks,
-        ),
-      ).toThrow(
-        "substring bounds stay within the source -- E0865 rejects [30, 10] against string<32>",
-      );
-    });
-
-    it("asserts the invariant when substring length exceeds destination capacity", () => {
-      const substringOps = {
-        source: "srcStr",
-        start: "0",
-        lengthExpression: "20",
-        sourceCapacity: 32,
-      };
-      const callbacks = {
-        ...defaultCallbacks,
-        getSubstringOperands: vi.fn(() => substringOps),
-      };
-
-      const typeCtx = {
-        stringType: () => ({
-          INTEGER_LITERAL: () => ({ getText: () => "10" }),
-        }),
-      } as never;
-
-      const expression = {
-        getText: () => "srcStr.substring(0, 20)",
-      } as never;
-
-      expect(() =>
-        StringDeclHelper.generateStringDecl(
-          typeCtx,
-          "sub",
-          expression,
-          [],
-          { extern: "", const: "", atomic: "", volatile: "" },
-          false,
-          callbacks,
-        ),
-      ).toThrow(
-        "a substring fits its destination -- E0864 rejects 20 into string<10>",
-      );
-    });
-
-    it("skips bounds check when start is not numeric", () => {
-      const substringOps = {
-        source: "srcStr",
-        start: "startVar", // Non-numeric
-        lengthExpression: "5",
-        sourceCapacity: 32,
-      };
-      const callbacks = {
-        ...defaultCallbacks,
-        getSubstringOperands: vi.fn(() => substringOps),
-      };
-
-      const typeCtx = {
-        stringType: () => ({
-          INTEGER_LITERAL: () => ({ getText: () => "10" }),
-        }),
-      } as never;
-
-      const expression = {
-        getText: () => "srcStr.substring(startVar, 5)",
-      } as never;
-
-      const result = StringDeclHelper.generateStringDecl(
-        typeCtx,
-        "sub",
-        expression,
-        [],
-        { extern: "", const: "", atomic: "", volatile: "" },
-        false,
-        callbacks,
-      );
-
-      expect(result.handled).toBe(true);
-      expect(result.code).toContain(
-        "(void) strncpy(sub, srcStr + startVar, 5)",
-      );
-    });
-
-    it("skips length check when length is not numeric", () => {
-      const substringOps = {
-        source: "srcStr",
-        start: "0",
-        lengthExpression: "lenVar", // Non-numeric
-        sourceCapacity: 32,
-      };
-      const callbacks = {
-        ...defaultCallbacks,
-        getSubstringOperands: vi.fn(() => substringOps),
-      };
-
-      const typeCtx = {
-        stringType: () => ({
-          INTEGER_LITERAL: () => ({ getText: () => "10" }),
-        }),
-      } as never;
-
-      const expression = {
-        getText: () => "srcStr.substring(0, lenVar)",
-      } as never;
-
-      const result = StringDeclHelper.generateStringDecl(
-        typeCtx,
-        "sub",
-        expression,
-        [],
-        { extern: "", const: "", atomic: "", volatile: "" },
-        false,
-        callbacks,
-      );
-
-      expect(result.handled).toBe(true);
-      expect(result.code).toContain("(void) strncpy(sub, srcStr + 0, lenVar)");
-    });
-
-    it("generates const substring declaration", () => {
-      const substringOps = {
-        source: "srcStr",
-        start: "5",
-        lengthExpression: "3",
-        sourceCapacity: 32,
-      };
-      const callbacks = {
-        ...defaultCallbacks,
-        getSubstringOperands: vi.fn(() => substringOps),
-      };
-
-      const typeCtx = {
-        stringType: () => ({
-          INTEGER_LITERAL: () => ({ getText: () => "10" }),
-        }),
-      } as never;
-
-      const expression = {
-        getText: () => "srcStr.substring(5, 3)",
-      } as never;
-
-      const result = StringDeclHelper.generateStringDecl(
-        typeCtx,
-        "sub",
-        expression,
-        [],
-        { extern: "", const: "const ", atomic: "", volatile: "" },
-        true,
-        callbacks,
-      );
-
-      expect(result.code).toContain('const char sub[11] = "";');
-    });
-  });
-
-  // #1322a: the C-style string-array path these exercised is deleted. Every
-  // route into it -- `string<8> items[3]`, `items[]`, and the fill-all form --
-  // is intercepted by `VariableDeclHelper.validateArrayDeclarationSyntax` with
-  // the C-style-array error (#1014-#1017), verified by probing all three. These
-  // tests reached it by calling `generate` directly with trailing dimensions
-  // that the grammar path can no longer deliver.
-  //
-  // The prefix form `string<8>[3] names` is unaffected and covered by
-  // `tests/string-array-init/`, including the size-mismatch diagnostic.
-
-  describe("string arrays from arrayType syntax (Issue #1029)", () => {
-    it("generates string array from arrayType without initializer", () => {
-      // Simulates: string<32>[4] items;
-      const typeCtx = {
-        stringType: () => null, // Not directly on typeCtx
-        arrayType: () => ({
-          stringType: () => ({
-            INTEGER_LITERAL: () => ({ getText: () => "32" }),
-          }),
-          arrayTypeDimension: () => [
-            { expression: () => ({ getText: () => "4" }) },
-          ],
-        }),
-      } as never;
-
-      const result = StringDeclHelper.generateStringDecl(
-        typeCtx,
-        "items",
-        null,
-        [],
-        { extern: "", const: "", atomic: "", volatile: "" },
-        false,
-        defaultCallbacks,
-      );
-
-      expect(result.handled).toBe(true);
-      expect(result.code).toBe("char items[4][33] = {0};");
-    });
-
-    it("generates string array from arrayType with initializer", () => {
-      const callbacks = {
-        ...defaultCallbacks,
-        generateExpression: vi.fn(() => {
-          CodeGenState.lastArrayInitCount = 2;
-          CodeGenState.lastArrayFillValue = undefined;
-          return '{"One", "Two"}';
-        }),
-      };
-
-      // Simulates: string<10>[2] labels <- ["One", "Two"];
-      const typeCtx = {
-        stringType: () => null,
-        arrayType: () => ({
-          stringType: () => ({
-            INTEGER_LITERAL: () => ({ getText: () => "10" }),
-          }),
-          arrayTypeDimension: () => [
-            { expression: () => ({ getText: () => "2" }) },
-          ],
-        }),
-      } as never;
-
-      const expression = {
-        getText: () => '["One", "Two"]',
-      } as never;
-
-      const result = StringDeclHelper.generateStringDecl(
-        typeCtx,
         "labels",
-        expression,
-        [],
-        { extern: "", const: "", atomic: "", volatile: "" },
+        NO_MODS,
         false,
-        callbacks,
       );
 
-      expect(result.handled).toBe(true);
-      expect(result.code).toContain("[2]");
-      expect(result.code).toContain("[11]"); // capacity + 1
-      expect(result.code).toContain('{"One", "Two"}');
+      expect(code).toContain("char labels[2][11]");
+      expect(code).toContain('{"One", "Two"}');
     });
 
-    it("generates string array from arrayType with trailing dimensions", () => {
-      // Simulates: string<10>[2] matrix[3]; (2D string array)
-      const typeCtx = {
-        stringType: () => null,
-        arrayType: () => ({
-          stringType: () => ({
-            INTEGER_LITERAL: () => ({ getText: () => "10" }),
-          }),
-          arrayTypeDimension: () => [
-            { expression: () => ({ getText: () => "2" }) },
-          ],
-        }),
-      } as never;
-
-      const trailingDims = [
-        { expression: () => ({ getText: () => "3" }) },
-      ] as never[];
-
-      const result = StringDeclHelper.generateStringDecl(
-        typeCtx,
-        "matrix",
-        null,
-        trailingDims,
-        { extern: "", const: "", atomic: "", volatile: "" },
-        false,
-        defaultCallbacks,
-      );
-
-      expect(result.handled).toBe(true);
-      expect(result.code).toBe("char matrix[2][3][11] = {0};");
-    });
-
-    it("asserts the invariant for unsized string array from arrayType", () => {
-      // Simulates: string[4] items; (missing capacity)
-      const typeCtx = {
-        stringType: () => null,
-        arrayType: () => ({
-          stringType: () => ({
-            INTEGER_LITERAL: () => null, // No capacity
-          }),
-          arrayTypeDimension: () => [
-            { expression: () => ({ getText: () => "4" }) },
-          ],
-        }),
-      } as never;
-
-      expect(() =>
+    it("carries trailing dimensions the planner already rendered", () => {
+      expect(
         StringDeclHelper.generateStringDecl(
-          typeCtx,
-          "items",
-          null,
-          [],
-          { extern: "", const: "", atomic: "", volatile: "" },
+          array({ elementCapacity: 10, dimensions: "[2][3]", declaredSize: 2 }),
+          "matrix",
+          NO_MODS,
           false,
-          defaultCallbacks,
         ),
-      ).toThrow("a string array states its element capacity");
+      ).toBe("char matrix[2][3][11] = {0};");
     });
 
-    it("validates element count matches declared size from arrayType", () => {
-      const callbacks = {
-        ...defaultCallbacks,
-        generateExpression: vi.fn(() => {
-          CodeGenState.lastArrayInitCount = 2; // Only 2 elements
-          CodeGenState.lastArrayFillValue = undefined;
-          return '{"One", "Two"}';
-        }),
-      };
-
-      // Simulates: string<10>[4] items <- ["One", "Two"]; (size mismatch)
-      const typeCtx = {
-        stringType: () => null,
-        arrayType: () => ({
-          stringType: () => ({
-            INTEGER_LITERAL: () => ({ getText: () => "10" }),
-          }),
-          arrayTypeDimension: () => [
-            { expression: () => ({ getText: () => "4" }) }, // Declared size = 4
-          ],
-        }),
-      } as never;
-
-      const expression = {
-        getText: () => '["One", "Two"]',
-      } as never;
-
+    it("validates element count matches declared size", () => {
       expect(() =>
         StringDeclHelper.generateStringDecl(
-          typeCtx,
+          array({
+            elementCapacity: 10,
+            declaredSize: 4,
+            renderInit: () => {
+              CodeGenState.lastArrayInitCount = 2;
+              CodeGenState.lastArrayFillValue = undefined;
+              return '{"One", "Two"}';
+            },
+          }),
           "items",
-          expression,
-          [],
-          { extern: "", const: "", atomic: "", volatile: "" },
+          NO_MODS,
           false,
-          callbacks,
         ),
       ).toThrow(
         "a string array initializer matches its declared size -- E0866 rejects [4] against 2 element(s)",
       );
     });
 
-    it("tracks local arrays from arrayType in localArrays set", () => {
-      const typeCtx = {
-        stringType: () => null,
-        arrayType: () => ({
-          stringType: () => ({
-            INTEGER_LITERAL: () => ({ getText: () => "20" }),
-          }),
-          arrayTypeDimension: () => [
-            { expression: () => ({ getText: () => "3" }) },
-          ],
-        }),
-      } as never;
+    it("asserts the invariant when the initializer is not a list", () => {
+      expect(() =>
+        StringDeclHelper.generateStringDecl(
+          array({ renderInit: () => "other" }),
+          "items",
+          NO_MODS,
+          false,
+        ),
+      ).toThrow("a string array is initialized from literals");
+    });
 
-      StringDeclHelper.generateStringDecl(
-        typeCtx,
-        "tracked",
-        null,
-        [],
-        { extern: "", const: "", atomic: "", volatile: "" },
+    // #1644: a fill-all expands to one element per DECLARED slot, so a plan
+    // whose declaredSize did not fold leaves the literal alone -- which is the
+    // shape the hex and const spellings used to produce.
+    it("expands a fill-all across every declared slot", () => {
+      const code = StringDeclHelper.generateStringDecl(
+        array({
+          elementCapacity: 8,
+          dimensions: "[3]",
+          declaredSize: 3,
+          renderInit: () => {
+            CodeGenState.lastArrayInitCount = 1;
+            CodeGenState.lastArrayFillValue = '"ab"';
+            return '{"ab"}';
+          },
+        }),
+        "filled",
+        NO_MODS,
         false,
-        defaultCallbacks,
+      );
+
+      expect(code).toContain('{"ab", "ab", "ab"}');
+    });
+
+    it("leaves the fill alone when the declared size did not fold", () => {
+      const code = StringDeclHelper.generateStringDecl(
+        array({
+          elementCapacity: 8,
+          dimensions: "[SIZE]",
+          declaredSize: null,
+          renderInit: () => {
+            CodeGenState.lastArrayInitCount = 1;
+            CodeGenState.lastArrayFillValue = '"ab"';
+            return '{"ab"}';
+          },
+        }),
+        "unfolded",
+        NO_MODS,
+        false,
+      );
+
+      expect(code).toContain('{"ab"}');
+    });
+
+    it('does not expand an empty-string fill (C handles {""} correctly)', () => {
+      const code = StringDeclHelper.generateStringDecl(
+        array({
+          elementCapacity: 8,
+          dimensions: "[3]",
+          declaredSize: 3,
+          renderInit: () => {
+            CodeGenState.lastArrayInitCount = 1;
+            CodeGenState.lastArrayFillValue = '""';
+            return '{""}';
+          },
+        }),
+        "empties",
+        NO_MODS,
+        false,
+      );
+
+      expect(code).toContain('{""}');
+    });
+
+    it("tracks local arrays in localArrays set", () => {
+      StringDeclHelper.generateStringDecl(
+        array({ elementCapacity: 20, dimensions: "[3]", declaredSize: 3 }),
+        "tracked",
+        NO_MODS,
+        false,
       );
 
       expect(CodeGenState.localArrays.has("tracked")).toBe(true);
     });
 
-    it("generates string array from arrayType with modifiers", () => {
-      const typeCtx = {
-        stringType: () => null,
-        arrayType: () => ({
-          stringType: () => ({
-            INTEGER_LITERAL: () => ({ getText: () => "8" }),
-          }),
-          arrayTypeDimension: () => [
-            { expression: () => ({ getText: () => "2" }) },
-          ],
-        }),
-      } as never;
-
-      const result = StringDeclHelper.generateStringDecl(
-        typeCtx,
+    it("generates string array with modifiers", () => {
+      const code = StringDeclHelper.generateStringDecl(
+        array({ elementCapacity: 8, dimensions: "[2]", declaredSize: 2 }),
         "data",
-        null,
-        [],
         {
           extern: "extern ",
           const: "const ",
@@ -1073,11 +784,9 @@ describe("StringDeclHelper", () => {
           volatile: "volatile ",
         },
         true,
-        defaultCallbacks,
       );
 
-      expect(result.handled).toBe(true);
-      expect(result.code).toContain("extern const volatile char data[2][9]");
+      expect(code).toContain("extern const volatile char data[2][9]");
     });
   });
 });

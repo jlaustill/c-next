@@ -6,13 +6,13 @@
  * - Recursive unary (e.g., !!x, --x)
  * - Delegates to postfix for base case
  */
-import { UnaryExpressionContext } from "../../../../../transpiler/logic/parser/grammar/CNextParser";
 import IGeneratorOutput from "../IGeneratorOutput";
 import TGeneratorEffect from "../TGeneratorEffect";
 import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IOrchestrator from "../IOrchestrator";
-import TypeResolver from "../../TypeResolver";
+import TGeneratorFn from "../TGeneratorFn";
+import ExpressionTypeResolver from "../../../../2-Plan/ExpressionTypeResolver";
 import TYPE_MAP from "../../types/TYPE_MAP";
 import CppModeHelper from "../../helpers/CppModeHelper";
 
@@ -29,32 +29,44 @@ const INT64_MIN_LITERAL = "9223372036854775808";
  *
  * Handles prefix operators (!, -, ~, &) and delegates to postfix
  * expression for the base case (no prefix operator).
+ *
+ * #1445 box 3: takes the operator and the operand's ALREADY-GENERATED code,
+ * not the node. The node was read for three things and inspected for none of
+ * them -- `postfixExpression()` and `unaryExpression()` were handed straight
+ * back to the orchestrator, and `getText()` only ever had its first character
+ * examined. The recursion stays with the caller, which is the tree-walker.
  */
-const generateUnaryExpr = (
-  node: UnaryExpressionContext,
+interface IPlannedUnary {
+  /**
+   * The prefix operator, or null when there is none.
+   *
+   * Null covers BOTH shapes that return the operand unchanged: the base case
+   * (the operand is a postfix expression) and the grammar-impossible fallback
+   * the old code kept. They produced identical output before, so collapsing
+   * them loses nothing -- stated because it looks like two cases becoming one.
+   */
+  readonly operator: "!" | "-" | "~" | "&" | null;
+
+  /** The operand's generated C. */
+  readonly operandCode: string;
+
+  /**
+   * The operand's resolved type. LAZY: only `~` consults it, and resolving it
+   * eagerly would do strictly more work than the node-taking version did.
+   */
+  readonly operandType: () => string | null;
+}
+
+const generateUnaryExpr: TGeneratorFn<IPlannedUnary> = (
+  unary: IPlannedUnary,
   _input: IGeneratorInput,
   _state: IGeneratorState,
-  orchestrator: IOrchestrator,
+  _orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
-  // Base case: no unary operator, delegate to postfix
-  if (node.postfixExpression()) {
-    // Delegate to orchestrator for postfix expression
-    // This allows CodeGenerator to handle postfix until it's extracted
-    return {
-      code: orchestrator.generatePostfixExpr(node.postfixExpression()!),
-      effects: [],
-    };
-  }
+  const inner = unary.operandCode;
 
-  // Recursive case: unary operator applied
-  // Call orchestrator.generateUnaryExpr for the inner expression
-  // (this may come back to us or use CodeGenerator's version)
-  const inner = orchestrator.generateUnaryExpr(node.unaryExpression()!);
-  const text = node.getText();
-
-  // Determine the operator and generate output
-  if (text.startsWith("!")) return { code: `!${inner}`, effects: [] };
-  if (text.startsWith("-")) {
+  if (unary.operator === "!") return { code: `!${inner}`, effects: [] };
+  if (unary.operator === "-") {
     // MISRA 10.3: Handle problematic negative literals that overflow in C
     // -2147483648 is parsed as -(2147483648) where 2147483648 > INT32_MAX
     // Must use INT32_MIN or INT64_MIN to avoid the overflow
@@ -70,19 +82,17 @@ const generateUnaryExpr = (
     }
     return { code: `-${inner}`, effects };
   }
-  if (text.startsWith("~")) {
-    const innerType = TypeResolver.getUnaryExpressionType(
-      node.unaryExpression()!,
-    );
-    if (innerType && TypeResolver.isUnsignedType(innerType)) {
+  if (unary.operator === "~") {
+    const innerType = unary.operandType();
+    if (innerType && ExpressionTypeResolver.isUnsignedType(innerType)) {
       const cType = TYPE_MAP[innerType] ?? innerType;
       return { code: CppModeHelper.cast(cType, `~${inner}`), effects: [] };
     }
     return { code: `~${inner}`, effects: [] };
   }
-  if (text.startsWith("&")) return { code: `&${inner}`, effects: [] };
+  if (unary.operator === "&") return { code: `&${inner}`, effects: [] };
 
-  // Fallback (shouldn't happen with valid grammar)
+  // No operator: the base case, and the grammar-impossible fallback.
   return { code: inner, effects: [] };
 };
 

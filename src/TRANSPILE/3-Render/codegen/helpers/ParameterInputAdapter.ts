@@ -2,20 +2,30 @@
  * ParameterInputAdapter - Adapts different input formats to IParameterInput
  *
  * Provides two conversion methods:
- * - fromAST(): For CodeGenerator, converts Parser.ParameterContext + CodeGenState
+ * - fromAST(): For CodeGenerator, converts IPlannedParameter + CodeGenState
  * - fromSymbol(): For HeaderGenerator, converts IParameterSymbol
  *
  * Both produce normalized IParameterInput for use with ParameterSignatureBuilder.
+ *
+ * #1445: `fromAST` keeps its name and takes a record of facts now rather than
+ * a `ParameterContext` and three callbacks that each took another parse node.
+ * Everything those callbacks did was turn a node into a string; every decision
+ * after that is about strings and `CodeGenState`, which is why this module
+ * names no parse type at all.
+ *
+ * The two methods therefore differ in WHICH record they read, not in kind --
+ * which is what makes the remaining problem tractable. They are still two
+ * derivations of one parameter, from two sources, and the .c/.h divergences
+ * this file keeps recording (#914, #1164, #1545) are three instances of that
+ * one defect rather than three bugs. Filed as #1639.
  */
 
-import * as Parser from "../../../../transpiler/logic/parser/grammar/CNextParser";
 import AdrProvenance from "../../../../transpiler/state/AdrProvenance";
 import IParameterInput from "../types/IParameterInput";
+import type IPlannedParameter from "../types/IPlannedParameter";
 import IParameterSymbol from "../../../../utils/types/IParameterSymbol";
 import ICallbackTypeInfo from "../../../../transpiler/types/ICallbackTypeInfo";
-import ArrayDimensionParser from "../../../../utils/ArrayDimensionParser";
 import AutoConstRule from "../../../../utils/AutoConstRule";
-import dimensionEvalOptions from "./dimensionEvalOptions";
 
 /**
  * Dependencies required by fromAST() to resolve types and state.
@@ -23,15 +33,6 @@ import dimensionEvalOptions from "./dimensionEvalOptions";
  * making the adapter more testable.
  */
 interface IFromASTDeps {
-  /** Get C-Next type name from type context (e.g., 'u32', 'Point') */
-  getTypeName: (type: Parser.TypeContext) => string;
-
-  /** Generate C type from type context (e.g., 'uint32_t', 'Point') */
-  generateType: (type: Parser.TypeContext) => string;
-
-  /** Generate expression string (for array dimension expressions) */
-  generateExpression: (expr: Parser.ExpressionContext) => string;
-
   /** Map of callback type names to their info */
   callbackTypes: ReadonlyMap<string, ICallbackTypeInfo>;
 
@@ -112,13 +113,10 @@ class ParameterInputAdapter {
    * @returns Normalized IParameterInput
    */
   static fromAST(
-    ctx: Parser.ParameterContext,
+    planned: IPlannedParameter,
     deps: IFromASTDeps,
   ): IParameterInput {
-    const isConst = ctx.constModifier() !== null;
-    const typeName = deps.getTypeName(ctx.type());
-    const name = ctx.IDENTIFIER().getText();
-    const mappedType = deps.generateType(ctx.type());
+    const { name, typeName, mappedType, isConst } = planned;
 
     // Check for callback type
     const callbackInfo = deps.callbackTypes.get(typeName);
@@ -132,28 +130,13 @@ class ParameterInputAdapter {
     }
 
     // Check for array type
-    const arrayTypeCtx = ctx.type().arrayType();
-    if (arrayTypeCtx) {
-      return this._buildArrayInputFromAST(
-        arrayTypeCtx,
-        name,
-        typeName,
-        mappedType,
-        isConst,
-        deps,
-      );
+    if (planned.renderDimensions) {
+      return this._buildArrayInputFromAST(planned, deps);
     }
 
     // Check for string type (non-array)
-    const stringTypeCtx = ctx.type().stringType();
-    if (stringTypeCtx) {
-      return this._buildStringInput(
-        name,
-        typeName,
-        isConst,
-        deps,
-        stringTypeCtx,
-      );
+    if (planned.isString) {
+      return this._buildStringInput(planned, deps);
     }
 
     // Determine classification for non-array, non-string types
@@ -176,14 +159,18 @@ class ParameterInputAdapter {
       // reported positions. Occupancy is per ADR, not per code, so a cell
       // occupied by one half says nothing about the other: deleting this line
       // leaves `scope method / same file` green.
-      AdrProvenance.record("030", ctx.start?.line);
+      //
+      // #1445: the position comes from the planned parameter now. It is the
+      // same position -- `ctx.start?.line` of the parameter context -- read
+      // once by the planner instead of here.
+      AdrProvenance.record("030", planned.line);
     }
     const isAutoConst = this._autoConst(
       typeName,
       isConst,
       false,
       deps,
-      ctx.start?.line,
+      planned.line,
     );
 
     // Issue #895/#958: Force pass-by-reference for callback or typedef struct types
@@ -347,49 +334,23 @@ class ParameterInputAdapter {
    * Build IParameterInput for an array parameter from AST.
    */
   private static _buildArrayInputFromAST(
-    arrayTypeCtx: Parser.ArrayTypeContext,
-    name: string,
-    typeName: string,
-    mappedType: string,
-    isConst: boolean,
+    planned: IPlannedParameter,
     deps: IFromASTDeps,
   ): IParameterInput {
-    const allDims = arrayTypeCtx.arrayTypeDimension();
+    const { name, typeName, mappedType, isConst, isString } = planned;
 
-    // Build dimension strings.
-    //
-    // Issue #1159: fold a compile-time constant to its value first. Emitting
-    // the identifier makes `u8[SIZE] buf` a VLA parameter (`uint8_t buf[SIZE]`)
-    // while the matching local declaration folds to `uint8_t b[6]` — the same
-    // const rendered two ways in one .c, and a construct CLAUDE.md rules out
-    // ("resolves consts to their value, no C VLA"). generateExpression stays
-    // as the fallback for dimensions that are genuinely not constant.
-    const dims: string[] = allDims.map(
-      (d: Parser.ArrayTypeDimensionContext) => {
-        const expr = d.expression();
-        if (!expr) {
-          return "";
-        }
-        const folded = ArrayDimensionParser.parseSingleDimension(
-          expr,
-          dimensionEvalOptions(),
-        );
-        return folded === undefined
-          ? deps.generateExpression(expr)
-          : String(folded);
-      },
-    );
+    // Issue #1159 is decided by the planner: a dimension that is a
+    // compile-time constant is folded to its value, because emitting the
+    // identifier makes `u8[SIZE] buf` a VLA parameter while the matching local
+    // declaration folds to `uint8_t b[6]` -- the same const rendered two ways
+    // in one .c, and a construct CLAUDE.md rules out.
+    const dims: string[] = [...planned.renderDimensions!()];
 
-    // Check for string array (string<N>[M])
-    const stringTypeCtx = arrayTypeCtx.stringType();
-    const isString = stringTypeCtx !== null;
-
-    if (isString && stringTypeCtx) {
-      const intLiteral = stringTypeCtx.INTEGER_LITERAL();
-      if (intLiteral) {
-        const capacity = Number.parseInt(intLiteral.getText(), 10);
-        dims.push(String(capacity + 1));
-      }
+    // The null terminator is decided HERE, not by the planner: `string<8>[2]`
+    // is two 9-byte rows, and a capacity is a language fact where a dimension
+    // is a C one.
+    if (isString && planned.stringCapacity !== undefined) {
+      dims.push(String(planned.stringCapacity + 1));
     }
 
     // ADR-006: Arrays are pass-by-reference and mutable by default, so the rule
@@ -407,7 +368,7 @@ class ParameterInputAdapter {
         isConst,
         true,
         deps,
-        arrayTypeCtx.start?.line,
+        planned.arrayTypeLine,
       ),
       isArray: true,
       arrayDimensions: dims,
@@ -502,16 +463,11 @@ class ParameterInputAdapter {
    * Build IParameterInput for a non-array string parameter.
    */
   private static _buildStringInput(
-    name: string,
-    typeName: string,
-    isConst: boolean,
+    planned: IPlannedParameter,
     deps: IFromASTDeps,
-    stringTypeCtx: Parser.StringTypeContext,
   ): IParameterInput {
-    const intLiteral = stringTypeCtx.INTEGER_LITERAL();
-    const capacity = intLiteral
-      ? Number.parseInt(intLiteral.getText(), 10)
-      : undefined;
+    const { name, typeName, isConst } = planned;
+    const capacity = planned.stringCapacity;
     // #1545: the same rule the general path uses. This line previously omitted
     // the callback term, so a callback-compatible function's unmodified string
     // parameter took `const char*` in the .c while the .h kept `char*` -- the
@@ -521,7 +477,7 @@ class ParameterInputAdapter {
       isConst,
       false,
       deps,
-      stringTypeCtx.start?.line,
+      planned.stringTypeLine,
     );
 
     return {

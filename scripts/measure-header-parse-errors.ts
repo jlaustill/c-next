@@ -20,8 +20,8 @@ import { execFileSync } from "child_process";
 
 import { CharStream, CommonTokenStream } from "antlr4ng";
 
-import { CLexer } from "../src/transpiler/logic/parser/c/grammar/CLexer";
-import { CParser } from "../src/transpiler/logic/parser/c/grammar/CParser";
+import { CLexer } from "../src/PARSE/2-Parse/c/grammar/CLexer";
+import { CParser } from "../src/PARSE/2-Parse/c/grammar/CParser";
 
 /** Every `.h` under `tests/`, the corpus the cited counts are taken over. */
 function headerFiles(): string[] {

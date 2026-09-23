@@ -1,29 +1,63 @@
 /**
  * Unit tests for ParameterInputAdapter
  *
- * Tests the adapter that normalizes AST and symbol data into IParameterInput.
+ * Tests the adapter that normalizes planned-AST and symbol data into
+ * IParameterInput.
+ *
+ * #1445: `fromAST` takes an `IPlannedParameter` now, so the AST half builds
+ * plans instead of parsing source. The `typeName`/`mappedType` values below
+ * are what the old mocks produced for the same sources -- `getTypeName` was
+ * `type.getText()`, so an array parameter's type name carries its dimensions,
+ * and `generateType` stripped them before the map lookup.
+ *
+ * What moved out with the contexts is `CodeGenerator.planParameter`: the
+ * mapping from a parameter context to this record, exercised by the 1254
+ * integration fixtures.
  */
 
 import { describe, it, expect } from "vitest";
 import ParameterInputAdapter from "../ParameterInputAdapter";
 import IParameterSymbol from "../../../../../utils/types/IParameterSymbol";
-import CNextSourceParser from "../../../../../transpiler/logic/parser/CNextSourceParser";
-import * as Parser from "../../../../../transpiler/logic/parser/grammar/CNextParser";
 import ICallbackTypeInfo from "../../../../../transpiler/types/ICallbackTypeInfo";
+import type IPlannedParameter from "../../types/IPlannedParameter";
 
-/**
- * Extract the first parameter context from a function declaration.
- */
-function getParameterContext(source: string): Parser.ParameterContext {
-  const result = CNextSourceParser.parse(source);
-  const decl = result.tree.declaration(0);
-  const funcDecl = decl?.functionDeclaration();
-  const paramList = funcDecl?.parameterList();
-  const params = paramList?.parameter();
-  if (!params || params.length === 0) {
-    throw new Error("No parameters found in parsed source");
-  }
-  return params[0];
+const TYPE_MAP: Record<string, string> = {
+  u8: "uint8_t",
+  u16: "uint16_t",
+  u32: "uint32_t",
+  u64: "uint64_t",
+  i32: "int32_t",
+  f32: "float",
+  f64: "double",
+  bool: "bool",
+};
+
+/** What the old `generateType` mock did: strip dimensions, then map. */
+function mapTypeName(typeName: string): string {
+  const base = typeName.replace(/\[.*$/, "");
+  return TYPE_MAP[base] ?? base;
+}
+
+/** A planned parameter, with everything absent unless a test fills it in. */
+function planned(
+  overrides: Partial<IPlannedParameter> & { name: string; typeName: string },
+): IPlannedParameter {
+  return {
+    isConst: false,
+    mappedType: mapTypeName(overrides.typeName),
+    renderDimensions: null,
+    isString: false,
+    stringCapacity: undefined,
+    line: 1,
+    stringTypeLine: 1,
+    arrayTypeLine: 1,
+    ...overrides,
+  };
+}
+
+/** Dimensions a test supplies, wrapped as the thunk the plan carries. */
+function dimensions(...dims: string[]): () => readonly string[] {
+  return () => dims;
 }
 
 /**
@@ -36,31 +70,12 @@ function createDefaultASTDeps(overrides?: {
   isKnownEnum?: boolean;
   callbackTypes?: ReadonlyMap<string, ICallbackTypeInfo>;
 }) {
-  const typeMap: Record<string, string> = {
-    u8: "uint8_t",
-    u16: "uint16_t",
-    u32: "uint32_t",
-    u64: "uint64_t",
-    i32: "int32_t",
-    f32: "float",
-    f64: "double",
-    bool: "bool",
-  };
-
   return {
-    getTypeName: (type: Parser.TypeContext) => type.getText(),
-    generateType: (type: Parser.TypeContext) => {
-      const text = type.getText();
-      // Strip array dimensions for mapped type
-      const baseName = text.replace(/\[.*$/, "");
-      return typeMap[baseName] ?? baseName;
-    },
-    generateExpression: (expr: Parser.ExpressionContext) => expr.getText(),
     callbackTypes:
       overrides?.callbackTypes ?? new Map<string, ICallbackTypeInfo>(),
     isKnownStruct: () => overrides?.isKnownStruct ?? false,
     isKnownEnum: () => overrides?.isKnownEnum ?? false,
-    typeMap,
+    typeMap: TYPE_MAP,
     isModified: overrides?.isModified ?? false,
     isPassByValue: overrides?.isPassByValue ?? false,
     isCallbackCompatible: false,
@@ -363,10 +378,10 @@ describe("ParameterInputAdapter", () => {
 
   describe("fromAST", () => {
     it("converts basic primitive parameter", () => {
-      const ctx = getParameterContext("void foo(u32 value) {}");
-      const deps = createDefaultASTDeps();
-
-      const result = ParameterInputAdapter.fromAST(ctx, deps);
+      const result = ParameterInputAdapter.fromAST(
+        planned({ name: "value", typeName: "u32" }),
+        createDefaultASTDeps(),
+      );
 
       expect(result.name).toBe("value");
       expect(result.baseType).toBe("u32");
@@ -380,10 +395,10 @@ describe("ParameterInputAdapter", () => {
     });
 
     it("converts const parameter", () => {
-      const ctx = getParameterContext("void foo(const u32 value) {}");
-      const deps = createDefaultASTDeps();
-
-      const result = ParameterInputAdapter.fromAST(ctx, deps);
+      const result = ParameterInputAdapter.fromAST(
+        planned({ name: "value", typeName: "u32", isConst: true }),
+        createDefaultASTDeps(),
+      );
 
       expect(result.isConst).toBe(true);
       expect(result.isAutoConst).toBe(false);
@@ -407,50 +422,39 @@ describe("ParameterInputAdapter", () => {
         boolean,
       ]
     >([
-      [
-        "unmodified non-const parameter",
-        "void foo(u32 value) {}",
-        false,
-        {},
-        true,
-      ],
-      ["modified parameter", "void foo(u32 value) {}", true, {}, false],
+      ["unmodified non-const parameter", "u32", false, {}, true],
+      ["modified parameter", "u32", true, {}, false],
       // Issue #995: a non-opaque type still gets auto-const ...
       [
         "non-opaque type, isOpaqueType returns false",
-        "void foo(Point p) {}",
+        "Point",
         false,
         { isOpaqueType: () => false },
         true,
       ],
       // ... and so does one whose deps supply no `isOpaqueType` at all.
-      [
-        "user type, isOpaqueType not provided",
-        "void foo(Point p) {}",
-        false,
-        {},
-        true,
-      ],
+      ["user type, isOpaqueType not provided", "Point", false, {}, true],
     ])(
       "derives isAutoConst for %s",
-      (_label, source, isModified, depsOverride, expected) => {
-        const ctx = getParameterContext(source);
-        const deps = {
-          ...createDefaultASTDeps({ isModified }),
-          ...depsOverride,
-        };
-
-        const result = ParameterInputAdapter.fromAST(ctx, deps);
+      (_label, typeName, isModified, depsOverride, expected) => {
+        const result = ParameterInputAdapter.fromAST(
+          planned({ name: "value", typeName }),
+          { ...createDefaultASTDeps({ isModified }), ...depsOverride },
+        );
 
         expect(result.isAutoConst).toBe(expected);
       },
     );
 
     it("converts array parameter with dimension", () => {
-      const ctx = getParameterContext("void foo(u32[10] arr) {}");
-      const deps = createDefaultASTDeps();
-
-      const result = ParameterInputAdapter.fromAST(ctx, deps);
+      const result = ParameterInputAdapter.fromAST(
+        planned({
+          name: "arr",
+          typeName: "u32[10]",
+          renderDimensions: dimensions("10"),
+        }),
+        createDefaultASTDeps(),
+      );
 
       expect(result.isArray).toBe(true);
       expect(result.arrayDimensions).toEqual(["10"]);
@@ -459,10 +463,14 @@ describe("ParameterInputAdapter", () => {
     });
 
     it("converts multi-dimensional array parameter", () => {
-      const ctx = getParameterContext("void foo(u8[4][4] matrix) {}");
-      const deps = createDefaultASTDeps();
-
-      const result = ParameterInputAdapter.fromAST(ctx, deps);
+      const result = ParameterInputAdapter.fromAST(
+        planned({
+          name: "matrix",
+          typeName: "u8[4][4]",
+          renderDimensions: dimensions("4", "4"),
+        }),
+        createDefaultASTDeps(),
+      );
 
       expect(result.isArray).toBe(true);
       expect(result.arrayDimensions).toEqual(["4", "4"]);
@@ -471,20 +479,65 @@ describe("ParameterInputAdapter", () => {
     // Issue #986: ADR-006 says arrays are mutable by default.
     // Arrays should never get auto-const, even when unmodified.
     it("does not set auto-const for unmodified array parameter", () => {
-      const ctx = getParameterContext("void foo(u8[8] data) {}");
-      const deps = createDefaultASTDeps({ isModified: false });
-
-      const result = ParameterInputAdapter.fromAST(ctx, deps);
+      const result = ParameterInputAdapter.fromAST(
+        planned({
+          name: "data",
+          typeName: "u8[8]",
+          renderDimensions: dimensions("8"),
+        }),
+        createDefaultASTDeps({ isModified: false }),
+      );
 
       expect(result.isArray).toBe(true);
       expect(result.isAutoConst).toBe(false); // Arrays never get auto-const
     });
 
-    it("converts non-array string parameter", () => {
-      const ctx = getParameterContext("void foo(string<32> name) {}");
-      const deps = createDefaultASTDeps();
+    /**
+     * The dimensions are a thunk, and a callback parameter returns before any
+     * of them is needed. Rendering one is not free -- a non-constant dimension
+     * goes through expression generation, which can queue a pending temp
+     * declaration -- so a rendered-then-discarded dimension leaks it.
+     */
+    it("renders no dimension for a parameter whose type is a callback", () => {
+      let rendered = 0;
+      const callbackTypes = new Map<string, ICallbackTypeInfo>([
+        [
+          "handleClick",
+          {
+            functionName: "handleClick",
+            returnType: "void",
+            parameters: [],
+            typedefName: "handleClick_fp",
+          },
+        ],
+      ]);
 
-      const result = ParameterInputAdapter.fromAST(ctx, deps);
+      const result = ParameterInputAdapter.fromAST(
+        planned({
+          name: "onClick",
+          typeName: "handleClick",
+          renderDimensions: () => {
+            rendered += 1;
+            return ["4"];
+          },
+        }),
+        createDefaultASTDeps({ callbackTypes }),
+      );
+
+      expect(result.isCallback).toBe(true);
+      expect(rendered).toBe(0);
+    });
+
+    it("converts non-array string parameter", () => {
+      const result = ParameterInputAdapter.fromAST(
+        planned({
+          name: "name",
+          typeName: "string<32>",
+          isString: true,
+          stringCapacity: 32,
+        }),
+        createDefaultASTDeps(),
+      );
 
       expect(result.isString).toBe(true);
       expect(result.isArray).toBe(false);
@@ -506,10 +559,11 @@ describe("ParameterInputAdapter", () => {
           },
         ],
       ]);
-      const ctx = getParameterContext("void foo(handleClick onClick) {}");
-      const deps = createDefaultASTDeps({ callbackTypes });
 
-      const result = ParameterInputAdapter.fromAST(ctx, deps);
+      const result = ParameterInputAdapter.fromAST(
+        planned({ name: "onClick", typeName: "handleClick" }),
+        createDefaultASTDeps({ callbackTypes }),
+      );
 
       expect(result.isCallback).toBe(true);
       expect(result.callbackTypedefName).toBe("handleClick_fp");
@@ -518,29 +572,35 @@ describe("ParameterInputAdapter", () => {
     });
 
     it("sets isPassByReference for known struct", () => {
-      const ctx = getParameterContext("void foo(Point p) {}");
-      const deps = createDefaultASTDeps({ isKnownStruct: true });
-
-      const result = ParameterInputAdapter.fromAST(ctx, deps);
+      const result = ParameterInputAdapter.fromAST(
+        planned({ name: "p", typeName: "Point" }),
+        createDefaultASTDeps({ isKnownStruct: true }),
+      );
 
       expect(result.isPassByReference).toBe(true);
       expect(result.isPassByValue).toBe(false);
     });
 
     it("sets isPassByValue when pre-computed", () => {
-      const ctx = getParameterContext("void foo(f32 value) {}");
-      const deps = createDefaultASTDeps({ isPassByValue: true });
-
-      const result = ParameterInputAdapter.fromAST(ctx, deps);
+      const result = ParameterInputAdapter.fromAST(
+        planned({ name: "value", typeName: "f32" }),
+        createDefaultASTDeps({ isPassByValue: true }),
+      );
 
       expect(result.isPassByValue).toBe(true);
     });
 
     it("converts string array with capacity (string<N>[M])", () => {
-      const ctx = getParameterContext("void foo(string<32>[5] names) {}");
-      const deps = createDefaultASTDeps();
-
-      const result = ParameterInputAdapter.fromAST(ctx, deps);
+      const result = ParameterInputAdapter.fromAST(
+        planned({
+          name: "names",
+          typeName: "string<32>[5]",
+          renderDimensions: dimensions("5"),
+          isString: true,
+          stringCapacity: 32,
+        }),
+        createDefaultASTDeps(),
+      );
 
       expect(result.isArray).toBe(true);
       expect(result.isString).toBe(true);
@@ -550,26 +610,23 @@ describe("ParameterInputAdapter", () => {
     });
 
     it("passes through forceConst from deps (Issue #895)", () => {
-      const ctx = getParameterContext("void foo(Point area) {}");
-      const deps = {
-        ...createDefaultASTDeps({ isKnownStruct: true }),
-        forceConst: true,
-      };
-
-      const result = ParameterInputAdapter.fromAST(ctx, deps);
+      const result = ParameterInputAdapter.fromAST(
+        planned({ name: "area", typeName: "Point" }),
+        { ...createDefaultASTDeps({ isKnownStruct: true }), forceConst: true },
+      );
 
       expect(result.forceConst).toBe(true);
     });
 
     it("passes through forcePassByReference and forceConst together", () => {
-      const ctx = getParameterContext("void foo(Point area) {}");
-      const deps = {
-        ...createDefaultASTDeps({ isKnownStruct: true }),
-        forcePassByReference: true,
-        forceConst: true,
-      };
-
-      const result = ParameterInputAdapter.fromAST(ctx, deps);
+      const result = ParameterInputAdapter.fromAST(
+        planned({ name: "area", typeName: "Point" }),
+        {
+          ...createDefaultASTDeps({ isKnownStruct: true }),
+          forcePassByReference: true,
+          forceConst: true,
+        },
+      );
 
       expect(result.forcePointerSyntax).toBe(true);
       expect(result.forceConst).toBe(true);
@@ -577,23 +634,23 @@ describe("ParameterInputAdapter", () => {
     });
 
     it("forceConst defaults to undefined when not provided", () => {
-      const ctx = getParameterContext("void foo(Point area) {}");
-      const deps = createDefaultASTDeps({ isKnownStruct: true });
-
-      const result = ParameterInputAdapter.fromAST(ctx, deps);
+      const result = ParameterInputAdapter.fromAST(
+        planned({ name: "area", typeName: "Point" }),
+        createDefaultASTDeps({ isKnownStruct: true }),
+      );
 
       expect(result.forceConst).toBeUndefined();
     });
 
     // Issue #995: Opaque handles pass through isOpaqueHandle; builder applies rule
     it("passes through isOpaqueHandle for opaque type parameter", () => {
-      const ctx = getParameterContext("void foo(widget_t w) {}");
-      const deps = {
-        ...createDefaultASTDeps({ isModified: false }),
-        isOpaqueType: (typeName: string) => typeName === "widget_t",
-      };
-
-      const result = ParameterInputAdapter.fromAST(ctx, deps);
+      const result = ParameterInputAdapter.fromAST(
+        planned({ name: "w", typeName: "widget_t" }),
+        {
+          ...createDefaultASTDeps({ isModified: false }),
+          isOpaqueType: (typeName: string) => typeName === "widget_t",
+        },
+      );
 
       // Adapter still passes the detection through; the builder still applies
       // its own guard as a backstop.
@@ -611,15 +668,15 @@ describe("ParameterInputAdapter", () => {
 
     // Issue #995: Opaque handles don't set forcePointerSyntax — builder handles it
     it("does not set forcePointerSyntax for opaque type (builder handles it)", () => {
-      const ctx = getParameterContext("void foo(widget_t w) {}");
-      const deps = {
-        ...createDefaultASTDeps({ isModified: false }),
-        isOpaqueType: (typeName: string) => typeName === "widget_t",
-        isTypedefStructType: () => false, // Not a typedef struct
-        isKnownEnum: () => false,
-      };
-
-      const result = ParameterInputAdapter.fromAST(ctx, deps);
+      const result = ParameterInputAdapter.fromAST(
+        planned({ name: "w", typeName: "widget_t" }),
+        {
+          ...createDefaultASTDeps({ isModified: false }),
+          isOpaqueType: (typeName: string) => typeName === "widget_t",
+          isTypedefStructType: () => false, // Not a typedef struct
+          isKnownEnum: () => false,
+        },
+      );
 
       // forcePointerSyntax not set by adapter for opaque handles
       // (builder uses isOpaqueHandle instead)

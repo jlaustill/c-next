@@ -8,7 +8,7 @@
 import IRegisterNameResult from "./IRegisterNameResult";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
 import invariant from "../../../../../utils/invariant";
-import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
+import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator";
 
 /**
  * Validate that compound assignment operators are not used with bit field access.

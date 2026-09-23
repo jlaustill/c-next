@@ -11,7 +11,7 @@ import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 import TTypeInfo from "../../../../../transpiler/types/TTypeInfo";
-import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
+import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator";
 import AdrProvenance from "../../../../../transpiler/state/AdrProvenance";
 
 /** Maps C operators to clamp helper operation names */
@@ -61,9 +61,7 @@ function getTargetTypeInfo(ctx: IAssignmentContext): {
  */
 function handleAtomicRMW(ctx: IAssignmentContext): string {
   const { typeInfo } = getTargetTypeInfo(ctx);
-  const target = CodeGenState.requireGenerator().generateAssignmentTarget(
-    ctx.targetCtx,
-  );
+  const target = ctx.renderTarget();
 
   return CodeGenState.requireGenerator().generateAtomicRMW(
     target,
@@ -81,9 +79,7 @@ function handleAtomicRMW(ctx: IAssignmentContext): string {
  */
 function handleOverflowClamp(ctx: IAssignmentContext): string {
   const { typeInfo } = getTargetTypeInfo(ctx);
-  const target = CodeGenState.requireGenerator().generateAssignmentTarget(
-    ctx.targetCtx,
-  );
+  const target = ctx.renderTarget();
 
   // Floats use native C arithmetic (overflow to infinity)
   if (TypeCheckUtils.usesNativeArithmetic(typeInfo!.baseType)) {
@@ -98,7 +94,7 @@ function handleOverflowClamp(ctx: IAssignmentContext): string {
     // which reaches a different decision and would otherwise leave every
     // compound-only fixture without a derivable context. Recorded past the float and
     // helper-lookup gates, so only an actually-lowered clamp claims a cell.
-    AdrProvenance.record("044", ctx.targetCtx.start?.line);
+    AdrProvenance.record("044", ctx.targetLine);
     CodeGenState.markClampOpUsed(helperOp, typeInfo!.baseType);
     return `${target} = cnx_clamp_${helperOp}_${typeInfo!.baseType}(${target}, ${ctx.generatedValue});`;
   }

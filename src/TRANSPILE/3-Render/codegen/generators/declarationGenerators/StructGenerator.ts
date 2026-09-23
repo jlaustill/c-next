@@ -13,8 +13,12 @@
  *
  * ADR-029: Structs with callback fields get an auto-generated init function.
  * ADR-036: Multi-dimensional array support in struct fields.
+ *
+ * #1445 box 3: takes `IPlannedStruct`, not the node. What is left here is what
+ * this generator should decide -- which fields are callbacks, which need an
+ * explicit zero, and whether tracked dimensions override the written ones --
+ * none of which is a question about the tree.
  */
-import * as Parser from "../../../../../transpiler/logic/parser/grammar/CNextParser";
 import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IGeneratorOutput from "../IGeneratorOutput";
@@ -22,70 +26,56 @@ import IOrchestrator from "../IOrchestrator";
 import TGeneratorFn from "../TGeneratorFn";
 import TGeneratorEffect from "../TGeneratorEffect";
 import ICodeGenSymbols from "../../../../../transpiler/types/ICodeGenSymbols";
-import ArrayDimensionUtils from "./ArrayDimensionUtils";
 import IStructFieldInit from "../../types/IStructFieldInit";
 import StructInitFunction from "../../helpers/StructInitFunction";
+import type IPlannedStruct from "../../types/IPlannedStruct";
+import type IPlannedStructField from "../../types/IPlannedStructField";
 
 /**
  * Generate a callback field declaration for a struct.
  */
 function generateCallbackField(
-  fieldName: string,
+  field: IPlannedStructField,
   callbackInfo: { typedefName: string },
-  isArray: boolean,
-  arrayDims: Parser.ArrayDimensionContext[],
-  orchestrator: IOrchestrator,
 ): string {
-  if (isArray) {
-    const dims = orchestrator.generateArrayDimensions(arrayDims);
-    return `    ${callbackInfo.typedefName} ${fieldName}${dims};`;
+  if (field.hasNameDimensions) {
+    return `    ${callbackInfo.typedefName} ${field.name}${field.renderNameDimensions()};`;
   }
-  return `    ${callbackInfo.typedefName} ${fieldName};`;
+  return `    ${callbackInfo.typedefName} ${field.name};`;
 }
 
 /**
  * Generate a regular (non-callback) field declaration for a struct.
  */
 function generateRegularField(
-  fieldName: string,
+  field: IPlannedStructField,
   structName: string,
-  member: Parser.StructMemberContext,
-  isArray: boolean,
-  arrayDims: Parser.ArrayDimensionContext[],
   input: IGeneratorInput,
-  orchestrator: IOrchestrator,
 ): string {
-  const type = orchestrator.generateType(member.type());
-
-  // Check for arrayType syntax: u8[16] data -> member.type().arrayType()
-  // Use optional chaining for mock compatibility in tests
-  const arrayTypeCtx = member.type().arrayType?.() ?? null;
-  const arrayTypeDimStr = ArrayDimensionUtils.generateArrayTypeDimension(
-    arrayTypeCtx,
-    orchestrator,
-  );
-  const hasArrayTypeSyntax = arrayTypeCtx !== null;
+  const type = field.renderCType();
 
   // Check if we have tracked dimensions for this field (includes string capacity for string arrays)
   const fieldDims = getTrackedFieldDimensions(
     input.symbols,
     structName,
-    fieldName,
+    field.name,
   );
 
   if (fieldDims !== undefined) {
-    // Use tracked dimensions (includes string capacity for string arrays)
+    // Use tracked dimensions (includes string capacity for string arrays).
+    // Neither dimension render runs on this branch, which is why both arrive
+    // as thunks: rendering them here would register effects for dimensions
+    // this field does not emit.
     const dimsStr = fieldDims.map((d) => `[${d}]`).join("");
-    return `    ${type} ${fieldName}${dimsStr};`;
+    return `    ${type} ${field.name}${dimsStr};`;
   }
 
-  if (hasArrayTypeSyntax || isArray) {
+  if (field.hasTypeDimensions || field.hasNameDimensions) {
     // Combine arrayType dimension (if any) with arrayDimension dimensions
-    const dims = orchestrator.generateArrayDimensions(arrayDims);
-    return `    ${type} ${fieldName}${arrayTypeDimStr}${dims};`;
+    return `    ${type} ${field.name}${field.renderTypeDimensions()}${field.renderNameDimensions()};`;
   }
 
-  return `    ${type} ${fieldName};`;
+  return `    ${type} ${field.name};`;
 }
 
 /**
@@ -113,14 +103,14 @@ function getTrackedFieldDimensions(
  * - Array fields with tracked dimensions (ADR-036)
  * - String array fields with capacity tracking
  */
-const generateStruct: TGeneratorFn<Parser.StructDeclarationContext> = (
-  node: Parser.StructDeclarationContext,
+const generateStruct: TGeneratorFn<IPlannedStruct> = (
+  planned: IPlannedStruct,
   input: IGeneratorInput,
   state: IGeneratorState,
   orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
   const effects: TGeneratorEffect[] = [];
-  const name = node.IDENTIFIER().getText();
+  const { name } = planned;
   // #1566: the fields the ADR-029 init function assigns, in declaration order.
   // Only the ones whose correct value is NOT zero -- everything else is covered
   // by zeroing the aggregate once, so no array-ness is re-derived here.
@@ -137,12 +127,9 @@ const generateStruct: TGeneratorFn<Parser.StructDeclarationContext> = (
   // Issue #296: Use named struct for forward declaration compatibility
   lines.push(`typedef struct ${name} {`);
 
-  for (const member of node.structMember()) {
-    const fieldName = member.IDENTIFIER().getText();
-    const typeName = orchestrator.getTypeName(member.type());
-    // ADR-036: arrayDimension() now returns an array for multi-dimensional support
-    const arrayDims = member.arrayDimension();
-    const isArray = arrayDims.length > 0;
+  for (const field of planned.fields) {
+    const fieldName = field.name;
+    const typeName = field.typeName;
 
     // ADR-029: Check if this is a callback type field
     if (input.callbackTypes.has(typeName)) {
@@ -161,15 +148,7 @@ const generateStruct: TGeneratorFn<Parser.StructDeclarationContext> = (
         typeName,
       });
 
-      lines.push(
-        generateCallbackField(
-          fieldName,
-          callbackInfo,
-          isArray,
-          arrayDims,
-          orchestrator,
-        ),
-      );
+      lines.push(generateCallbackField(field, callbackInfo));
     } else {
       // An enum is the one non-callback field whose zero is not the aggregate's
       // zero: `enum Mode { IDLE <- 5, RUNNING }` has no enumerator 0, so zeroing
@@ -181,22 +160,12 @@ const generateStruct: TGeneratorFn<Parser.StructDeclarationContext> = (
       if (input.symbols?.knownEnums.has(typeName) === true) {
         assignments.push({
           fieldName,
-          initializer: orchestrator.getZeroInitializer(member.type(), false),
+          initializer: field.renderZeroInitializer(),
         });
       }
 
       // Regular field handling
-      lines.push(
-        generateRegularField(
-          fieldName,
-          name,
-          member,
-          isArray,
-          arrayDims,
-          input,
-          orchestrator,
-        ),
-      );
+      lines.push(generateRegularField(field, name, input));
     }
   }
 

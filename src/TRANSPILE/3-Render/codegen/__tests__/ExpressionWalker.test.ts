@@ -3,15 +3,15 @@
  * These helpers extract expressions from statements for modification analysis.
  */
 import { describe, it, expect } from "vitest";
-import CNextSourceParser from "../../../../transpiler/logic/parser/CNextSourceParser";
-import * as Parser from "../../../../transpiler/logic/parser/grammar/CNextParser";
+import CNextSourceParser from "../../../../PARSE/2-Parse/CNextSourceParser";
+import * as Parser from "../../../../PARSE/2-Parse/grammar/CNextParser";
 import Transpiler from "../../../../transpiler/Transpiler";
 
 /**
  * Helper to parse C-Next source and get the first statement from main().
  */
 function parseFirstStatement(source: string): Parser.StatementContext {
-  const { tree, errors } = CNextSourceParser.parse(source);
+  const { tree, parseErrors: errors } = CNextSourceParser.parse(source);
   if (errors.length > 0) {
     throw new Error(`Parse failed: ${errors.map((e) => e.message).join(", ")}`);
   }

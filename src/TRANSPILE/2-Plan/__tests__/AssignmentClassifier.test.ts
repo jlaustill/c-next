@@ -27,11 +27,22 @@ function createMockContext(
     overrides.resolvedBaseIdentifier ?? resolvedTarget.split(/[[.]/)[0];
 
   return {
-    statementCtx: {} as IAssignmentContext["statementCtx"],
-    targetCtx: {} as IAssignmentContext["targetCtx"],
-    valueCtx: null,
+    renderTarget: () => resolvedTarget,
+    analyzeTargetForBitAccess: () =>
+      ({
+        isBitAccess: false,
+      }) as IAssignmentContext["analyzeTargetForBitAccess"] extends () => infer R
+        ? R
+        : never,
+    targetLine: 1,
+    hasValue: false,
+    valueExpressionType: () => null,
+    valueIntegerType: () => null,
+    foldValue: () => undefined,
     identifiers: ["x"],
-    subscripts: [],
+    subscriptCount: 0,
+    renderSubscript: () => "0",
+    foldSubscript: () => undefined,
     postfixOps: [],
     hasThis: false,
     hasGlobal: false,
@@ -268,7 +279,7 @@ describe("AssignmentClassifier - Integer Bit Access", () => {
 
     const ctx = createMockContext({
       identifiers: ["flags"],
-      subscripts: [{} as IAssignmentContext["subscripts"][0]], // Mock subscript
+      subscriptCount: 1, // Mock subscript
       hasArrayAccess: true,
       isSimpleIdentifier: false,
     });
@@ -284,10 +295,7 @@ describe("AssignmentClassifier - Integer Bit Access", () => {
 
     const ctx = createMockContext({
       identifiers: ["flags"],
-      subscripts: [
-        {} as IAssignmentContext["subscripts"][0],
-        {} as IAssignmentContext["subscripts"][0],
-      ],
+      subscriptCount: 2,
       hasArrayAccess: true,
       isSimpleIdentifier: false,
       lastSubscriptExprCount: 2, // bit range has 2 expressions [start, width]
@@ -319,7 +327,7 @@ describe("AssignmentClassifier - Array Access", () => {
 
     const ctx = createMockContext({
       identifiers: ["arr"],
-      subscripts: [{} as IAssignmentContext["subscripts"][0]],
+      subscriptCount: 1,
       hasArrayAccess: true,
       isSimpleIdentifier: false,
     });
@@ -340,10 +348,7 @@ describe("AssignmentClassifier - Array Access", () => {
 
     const ctx = createMockContext({
       identifiers: ["buffer"],
-      subscripts: [
-        {} as IAssignmentContext["subscripts"][0],
-        {} as IAssignmentContext["subscripts"][0],
-      ],
+      subscriptCount: 2,
       hasArrayAccess: true,
       isSimpleIdentifier: false,
       lastSubscriptExprCount: 2, // slice has 2 expressions [start, length]
@@ -508,7 +513,7 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
 
     const ctx = createMockContext({
       identifiers: ["arr"],
-      subscripts: [{} as IAssignmentContext["subscripts"][0]],
+      subscriptCount: 1,
       hasGlobal: true,
       hasArrayAccess: true,
       postfixOpsCount: 1,
@@ -540,7 +545,7 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
 
     const ctx = createMockContext({
       identifiers: ["data"],
-      subscripts: [{} as IAssignmentContext["subscripts"][0]],
+      subscriptCount: 1,
       hasThis: true,
       hasArrayAccess: true,
       postfixOpsCount: 1,
@@ -566,7 +571,7 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
 
     const ctx = createMockContext({
       identifiers: ["flags"],
-      subscripts: [{} as IAssignmentContext["subscripts"][0]],
+      subscriptCount: 1,
       hasThis: true,
       hasArrayAccess: true,
       postfixOpsCount: 1,
@@ -588,10 +593,7 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
 
     const ctx = createMockContext({
       identifiers: ["value"],
-      subscripts: [
-        {} as IAssignmentContext["subscripts"][0],
-        {} as IAssignmentContext["subscripts"][0],
-      ],
+      subscriptCount: 2,
       hasThis: true,
       hasArrayAccess: true,
       postfixOpsCount: 1,
@@ -615,7 +617,7 @@ describe("AssignmentClassifier - Prefix Patterns", () => {
 
     const ctx = createMockContext({
       identifiers: ["data"],
-      subscripts: [{} as IAssignmentContext["subscripts"][0]],
+      subscriptCount: 1,
       hasThis: true,
       hasArrayAccess: true,
       postfixOpsCount: 1,
@@ -643,7 +645,7 @@ describe("AssignmentClassifier - Register Bit Access", () => {
 
     const ctx = createMockContext({
       identifiers: ["GPIO7", "DR_SET"],
-      subscripts: [{} as IAssignmentContext["subscripts"][0]],
+      subscriptCount: 1,
       hasMemberAccess: true,
       hasArrayAccess: true,
       isSimpleIdentifier: false,
@@ -660,10 +662,7 @@ describe("AssignmentClassifier - Register Bit Access", () => {
 
     const ctx = createMockContext({
       identifiers: ["GPIO7", "DR_SET"],
-      subscripts: [
-        {} as IAssignmentContext["subscripts"][0],
-        {} as IAssignmentContext["subscripts"][0],
-      ],
+      subscriptCount: 2,
       hasMemberAccess: true,
       hasArrayAccess: true,
       isSimpleIdentifier: false,
@@ -682,7 +681,7 @@ describe("AssignmentClassifier - Register Bit Access", () => {
 
     const ctx = createMockContext({
       identifiers: ["GPIO7", "DR_SET"],
-      subscripts: [{} as IAssignmentContext["subscripts"][0]],
+      subscriptCount: 1,
       hasThis: true,
       hasArrayAccess: true,
       postfixOpsCount: 2,
@@ -768,7 +767,7 @@ describe("AssignmentClassifier - Bitmap Array Element Field", () => {
 
     const ctx = createMockContext({
       identifiers: ["flagsArr", "Active"],
-      subscripts: [{} as IAssignmentContext["subscripts"][0]],
+      subscriptCount: 1,
       hasMemberAccess: true,
       hasArrayAccess: true,
       isSimpleIdentifier: false,
@@ -801,11 +800,7 @@ describe("AssignmentClassifier - Multi-dim Array Bit Indexing", () => {
 
     const ctx = createMockContext({
       identifiers: ["matrix"],
-      subscripts: [
-        {} as IAssignmentContext["subscripts"][0],
-        {} as IAssignmentContext["subscripts"][0],
-        {} as IAssignmentContext["subscripts"][0],
-      ],
+      subscriptCount: 3,
       hasMemberAccess: true,
       hasArrayAccess: true,
       isSimpleIdentifier: false,
@@ -828,10 +823,7 @@ describe("AssignmentClassifier - Multi-dim Array Bit Indexing", () => {
 
     const ctx = createMockContext({
       identifiers: ["matrix"],
-      subscripts: [
-        {} as IAssignmentContext["subscripts"][0],
-        {} as IAssignmentContext["subscripts"][0],
-      ],
+      subscriptCount: 2,
       hasMemberAccess: true,
       hasArrayAccess: true,
       isSimpleIdentifier: false,
@@ -858,15 +850,19 @@ describe("AssignmentClassifier - Scoped Register Bit Range", () => {
 
     const ctx = createMockContext({
       identifiers: ["GPIO7", "ICR1"],
-      subscripts: [
-        {} as IAssignmentContext["subscripts"][0],
-        {} as IAssignmentContext["subscripts"][0],
-      ],
+      subscriptCount: 2,
       hasThis: true,
       hasArrayAccess: true,
       postfixOpsCount: 3,
       postfixOps: [
-        { COMMA: () => ({}) } as unknown as IAssignmentContext["postfixOps"][0],
+        // #1445: the plan says "this is a bit range" directly. The node mock
+        // said it as `COMMA: () => ({})`, which is the same claim spelled as a
+        // token that happens to be present.
+        {
+          kind: "subscript",
+          indexCount: 2,
+          renderIndexes: () => ["0", "1"],
+        } as IAssignmentContext["postfixOps"][0],
       ],
       isSimpleIdentifier: false,
     });
@@ -891,7 +887,7 @@ describe("AssignmentClassifier - Register Bit via MemberWithSubscript", () => {
 
     const ctx = createMockContext({
       identifiers: ["TIMER", "CTRL"],
-      subscripts: [{} as IAssignmentContext["subscripts"][0]],
+      subscriptCount: 1,
       hasMemberAccess: true,
       hasArrayAccess: true,
       isSimpleIdentifier: false,
@@ -908,10 +904,7 @@ describe("AssignmentClassifier - Register Bit via MemberWithSubscript", () => {
 
     const ctx = createMockContext({
       identifiers: ["TIMER", "CTRL"],
-      subscripts: [
-        {} as IAssignmentContext["subscripts"][0],
-        {} as IAssignmentContext["subscripts"][0],
-      ],
+      subscriptCount: 2,
       // A bit range is ONE op carrying TWO expressions, so both counts are 2.
       // This was left at the default 1 — a state no real bit range produces —
       // which is why the test passed while `PORT.Set[8, 8]` emitted
@@ -934,7 +927,7 @@ describe("AssignmentClassifier - Register Bit via MemberWithSubscript", () => {
 
     const ctx = createMockContext({
       identifiers: ["Teensy4", "GPIO7", "DR_SET"],
-      subscripts: [{} as IAssignmentContext["subscripts"][0]],
+      subscriptCount: 1,
       hasMemberAccess: true,
       hasArrayAccess: true,
       isSimpleIdentifier: false,
@@ -977,10 +970,7 @@ describe("AssignmentClassifier - Bare Scope-Qualified Subscripts", () => {
 
       const ctx = createMockContext({
         identifiers: ["Hw", "GPIO", "Mode"],
-        subscripts: Array.from(
-          { length: subscriptCount },
-          () => ({}) as IAssignmentContext["subscripts"][0],
-        ),
+        subscriptCount,
         lastSubscriptExprCount,
         hasMemberAccess: true,
         hasArrayAccess: true,
@@ -1035,10 +1025,7 @@ describe("AssignmentClassifier - Bare Scope-Qualified Subscripts", () => {
 
       const ctx = createMockContext({
         identifiers: ["Other", "member"],
-        subscripts: Array.from(
-          { length: subscriptCount },
-          () => ({}) as IAssignmentContext["subscripts"][0],
-        ),
+        subscriptCount,
         lastSubscriptExprCount,
         hasMemberAccess: true,
         hasArrayAccess: true,
@@ -1054,7 +1041,7 @@ describe("AssignmentClassifier - Bare Scope-Qualified Subscripts", () => {
 
     const ctx = createMockContext({
       identifiers: ["Other", "config", "field"],
-      subscripts: [{} as IAssignmentContext["subscripts"][0]],
+      subscriptCount: 1,
       lastSubscriptExprCount: 2,
       hasMemberAccess: true,
       hasArrayAccess: true,
@@ -1090,7 +1077,7 @@ describe("AssignmentClassifier - Bare Scope-Qualified Subscripts", () => {
 
       const ctx = createMockContext({
         identifiers: ["Other", "member"],
-        subscripts: [{} as IAssignmentContext["subscripts"][0]],
+        subscriptCount: 1,
         lastSubscriptExprCount: 2,
         hasMemberAccess: true,
         hasArrayAccess: true,
@@ -1153,7 +1140,7 @@ describe("AssignmentClassifier - Member Chain", () => {
 
     const ctx = createMockContext({
       identifiers: ["config", "items"],
-      subscripts: [{} as IAssignmentContext["subscripts"][0]],
+      subscriptCount: 1,
       hasMemberAccess: true,
       hasArrayAccess: true,
       isSimpleIdentifier: false,
@@ -1250,7 +1237,7 @@ describe("AssignmentClassifier - previously unnamed kinds", () => {
     const ctx = createMockContext({
       identifiers: ["names"],
       generatedValue: '"hi"',
-      subscripts: [{} as IAssignmentContext["subscripts"][0]],
+      subscriptCount: 1,
       hasArrayAccess: true,
       isSimpleIdentifier: false,
     });
@@ -1277,7 +1264,7 @@ describe("AssignmentClassifier - previously unnamed kinds", () => {
     const ctx = createMockContext({
       identifiers: ["config", "items"],
       generatedValue: '"hi"',
-      subscripts: [{} as IAssignmentContext["subscripts"][0]],
+      subscriptCount: 1,
       hasMemberAccess: true,
       hasArrayAccess: true,
       memberAccessDepth: 1,
@@ -1301,7 +1288,7 @@ describe("AssignmentClassifier - previously unnamed kinds", () => {
 
     const ctx = createMockContext({
       identifiers: ["config", "items"],
-      subscripts: [{} as IAssignmentContext["subscripts"][0]],
+      subscriptCount: 1,
       hasGlobal: true,
       hasMemberAccess: true,
       hasArrayAccess: true,

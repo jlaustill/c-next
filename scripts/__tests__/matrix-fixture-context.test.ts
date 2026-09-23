@@ -7,7 +7,7 @@
  * the four contexts and require four different answers.
  */
 
-import CNextSourceParser from "../../src/transpiler/logic/parser/CNextSourceParser";
+import CNextSourceParser from "../../src/PARSE/2-Parse/CNextSourceParser";
 import FixtureContext from "../matrix/FixtureContext";
 
 const contextOf = (source: string, line: number) =>

@@ -4,11 +4,11 @@
  */
 
 import { CharStream, CommonTokenStream } from "antlr4ng";
-import { CNextLexer } from "../../../../transpiler/logic/parser/grammar/CNextLexer";
+import { CNextLexer } from "../../../2-Parse/grammar/CNextLexer";
 import {
   CNextParser,
   ProgramContext,
-} from "../../../../transpiler/logic/parser/grammar/CNextParser";
+} from "../../../2-Parse/grammar/CNextParser";
 
 /**
  * Parse a C-Next code string into a ProgramContext.

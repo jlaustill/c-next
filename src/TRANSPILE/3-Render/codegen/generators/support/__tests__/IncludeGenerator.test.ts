@@ -253,16 +253,29 @@ describe("IncludeGenerator", () => {
   // ==========================================================================
 
   describe("processDefineDirective", () => {
+    // #1445: these take `{ kind, text }` now -- the node they used to fake is
+    // walked by `CodeGenerator.processPreprocessorDirective`, which passes
+    // `getText()` VERBATIM. The `.trim()` stays in the generator, so these
+    // tests still reach it: `getText()` on `#define MY_FLAG  ` really does keep
+    // the trailing spaces (verified by running the parser), and a `.cnx`
+    // fixture cannot cover that because `.cnx` files are prettier-formatted.
+    //
+    // The old mocks were cast with `as any`, which is why this signature
+    // change type-checked clean while twelve tests failed at runtime.
     it("passes through flag-only define", () => {
-      const mockCtx = {
-        getText: () => "#define MY_FLAG\n",
-        DEFINE_FUNCTION: () => null,
-        DEFINE_WITH_VALUE: () => null,
-        DEFINE_FLAG: () => ({ getText: () => "#define MY_FLAG" }),
-        start: { line: 5 },
-      };
+      const result = processDefineDirective({
+        kind: "define-flag",
+        text: "#define MY_FLAG",
+      });
+      expect(result).toBe("#define MY_FLAG");
+    });
 
-      const result = processDefineDirective(mockCtx as any);
+    it("trims the trailing whitespace getText() keeps on a define", () => {
+      // measured: the parser really does return "#define MY_FLAG  " here
+      const result = processDefineDirective({
+        kind: "define-flag",
+        text: "#define MY_FLAG  ",
+      });
       expect(result).toBe("#define MY_FLAG");
     });
 
@@ -271,45 +284,28 @@ describe("IncludeGenerator", () => {
     // hand-built contexts these six tests mocked. What remains here is the
     // invariant that says so.
     it("asserts a function-like macro cannot reach codegen", () => {
-      const mockCtx = {
-        getText: () => "#define ADD(a,b) ((a)+(b))",
-        DEFINE_FUNCTION: () => ({
-          getText: () => "#define ADD(a,b) ((a)+(b))",
+      expect(() =>
+        processDefineDirective({
+          kind: "define-function",
+          text: "#define ADD(a,b) ((a)+(b))",
         }),
-        DEFINE_WITH_VALUE: () => null,
-        DEFINE_FLAG: () => null,
-        start: { line: 10 },
-      };
-
-      expect(() => processDefineDirective(mockCtx as any)).toThrow(
-        "E0501/E0502 reject this in pass 2.1",
-      );
+      ).toThrow("E0501/E0502 reject this in pass 2.1");
     });
 
     it("asserts a value define cannot reach codegen", () => {
-      const mockCtx = {
-        getText: () => "#define MAX_SIZE 100",
-        DEFINE_FUNCTION: () => null,
-        DEFINE_WITH_VALUE: () => ({ getText: () => "#define MAX_SIZE 100" }),
-        DEFINE_FLAG: () => null,
-        start: { line: 15 },
-      };
-
-      expect(() => processDefineDirective(mockCtx as any)).toThrow(
-        "E0501/E0502 reject this in pass 2.1",
-      );
+      expect(() =>
+        processDefineDirective({
+          kind: "define-value",
+          text: "#define MAX_SIZE 100",
+        }),
+      ).toThrow("E0501/E0502 reject this in pass 2.1");
     });
 
     it("returns null when no define token matched", () => {
-      const mockCtx = {
-        getText: () => "something else",
-        DEFINE_FUNCTION: () => null,
-        DEFINE_WITH_VALUE: () => null,
-        DEFINE_FLAG: () => null,
-        start: { line: 1 },
-      };
-
-      const result = processDefineDirective(mockCtx as any);
+      const result = processDefineDirective({
+        kind: "define-other",
+        text: "something else",
+      });
       expect(result).toBeNull();
     });
   });
@@ -320,26 +316,23 @@ describe("IncludeGenerator", () => {
 
   describe("processConditionalDirective", () => {
     it.each([
-      ["passes through #ifdef directive", "#ifdef DEBUG\n", "#ifdef DEBUG"],
-      [
-        "passes through #ifndef directive",
-        "#ifndef GUARD_H\n",
-        "#ifndef GUARD_H",
-      ],
-      ["passes through #else directive", "#else\n", "#else"],
-      ["passes through #endif directive", "#endif\n", "#endif"],
-      [
-        "trims whitespace from directive",
-        "  #ifdef FEATURE  \n",
-        "#ifdef FEATURE",
-      ],
-    ])("%s", (_label, source, source2) => {
-      const mockCtx = {
-        getText: () => source,
-      };
+      ["passes through #ifdef directive", "#ifdef DEBUG"],
+      ["passes through #ifndef directive", "#ifndef GUARD_H"],
+      ["passes through #else directive", "#else"],
+      ["passes through #endif directive", "#endif"],
+    ])("%s", (_label, text) => {
+      expect(processConditionalDirective({ kind: "conditional", text })).toBe(
+        text,
+      );
+    });
 
-      const result = processConditionalDirective(mockCtx as any);
-      expect(result).toBe(source2);
+    it("trims whitespace from directive", () => {
+      expect(
+        processConditionalDirective({
+          kind: "conditional",
+          text: "  #ifdef FEATURE  ",
+        }),
+      ).toBe("#ifdef FEATURE");
     });
   });
 
@@ -349,64 +342,33 @@ describe("IncludeGenerator", () => {
 
   describe("processPreprocessorDirective", () => {
     it("delegates to processDefineDirective for defines", () => {
-      const mockDefineCtx = {
-        getText: () => "#define FLAG\n",
-        DEFINE_FUNCTION: () => null,
-        DEFINE_WITH_VALUE: () => null,
-        DEFINE_FLAG: () => ({ getText: () => "#define FLAG" }),
-        start: { line: 1 },
-      };
-
-      const mockCtx = {
-        defineDirective: () => mockDefineCtx,
-        conditionalDirective: () => null,
-      };
-
-      const result = processPreprocessorDirective(mockCtx as any);
+      const result = processPreprocessorDirective({
+        kind: "define-flag",
+        text: "#define FLAG",
+      });
       expect(result).toBe("#define FLAG");
     });
 
     it("delegates to processConditionalDirective for conditionals", () => {
-      const mockCondCtx = {
-        getText: () => "#ifdef TEST\n",
-      };
-
-      const mockCtx = {
-        defineDirective: () => null,
-        conditionalDirective: () => mockCondCtx,
-      };
-
-      const result = processPreprocessorDirective(mockCtx as any);
+      const result = processPreprocessorDirective({
+        kind: "conditional",
+        text: "#ifdef TEST",
+      });
       expect(result).toBe("#ifdef TEST");
     });
 
     it("returns null for unrecognized directive", () => {
-      const mockCtx = {
-        defineDirective: () => null,
-        conditionalDirective: () => null,
-      };
-
-      const result = processPreprocessorDirective(mockCtx as any);
+      const result = processPreprocessorDirective({ kind: "none", text: "" });
       expect(result).toBeNull();
     });
 
     it("propagates error from define directive", () => {
-      const mockDefineCtx = {
-        getText: () => "#define FUNC(x)",
-        DEFINE_FUNCTION: () => ({ getText: () => "#define FUNC(x)" }),
-        DEFINE_WITH_VALUE: () => null,
-        DEFINE_FLAG: () => null,
-        start: { line: 5 },
-      };
-
-      const mockCtx = {
-        defineDirective: () => mockDefineCtx,
-        conditionalDirective: () => null,
-      };
-
-      expect(() => processPreprocessorDirective(mockCtx as any)).toThrow(
-        /E0501/,
-      );
+      expect(() =>
+        processPreprocessorDirective({
+          kind: "define-function",
+          text: "#define FUNC(x)",
+        }),
+      ).toThrow(/E0501/);
     });
   });
 

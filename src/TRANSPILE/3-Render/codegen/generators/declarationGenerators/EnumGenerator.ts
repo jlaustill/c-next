@@ -13,29 +13,31 @@
  *   } State;
  */
 import invariant from "../../../../../utils/invariant";
-import * as Parser from "../../../../../transpiler/logic/parser/grammar/CNextParser";
 import IGeneratorInput from "../IGeneratorInput";
 import IGeneratorState from "../IGeneratorState";
 import IGeneratorOutput from "../IGeneratorOutput";
 import IOrchestrator from "../IOrchestrator";
 import TGeneratorFn from "../TGeneratorFn";
 import QualifiedCName from "../../../../../utils/QualifiedCName";
-import QualifiedNameGenerator from "../../utils/QualifiedNameGenerator";
+import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator";
 
 /**
  * Generate a C typedef enum from a C-Next enum declaration.
  *
  * ADR-017: Enums are strongly-typed with explicit integer backing.
  * Members are prefixed with the enum name to avoid C namespace collisions.
+ *
+ * #1445 box 3: takes the declared NAME, not the declaration node. The node was
+ * read once, for `.IDENTIFIER().getText()`; the members and their values come
+ * from `input.symbols.enumMembers`, which 1.3 Declare filled. Rendering an
+ * enum never needed the tree -- it needed a name to look the enum up by.
  */
-const generateEnum: TGeneratorFn<Parser.EnumDeclarationContext> = (
-  node: Parser.EnumDeclarationContext,
+const generateEnum: TGeneratorFn<string> = (
+  name: string,
   input: IGeneratorInput,
   state: IGeneratorState,
   _orchestrator: IOrchestrator,
 ): IGeneratorOutput => {
-  const name = node.IDENTIFIER().getText();
-
   // ADR-016: Apply scope prefix if inside a scope
   const fullName = QualifiedNameGenerator.forMember(
     state.currentScopePath,

@@ -3,24 +3,11 @@ import generateEnum from "../EnumGenerator";
 import IGeneratorInput from "../../IGeneratorInput";
 import IGeneratorState from "../../IGeneratorState";
 import IOrchestrator from "../../IOrchestrator";
-import * as Parser from "../../../../../../transpiler/logic/parser/grammar/CNextParser";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
 
 // ========================================================================
 // Test Helpers
 // ========================================================================
-
-/**
- * Create a minimal mock enum declaration context.
- * EnumGenerator only uses node.IDENTIFIER().getText()
- */
-function createMockEnumContext(name: string): Parser.EnumDeclarationContext {
-  return {
-    IDENTIFIER: () => ({
-      getText: () => name,
-    }),
-  } as unknown as Parser.EnumDeclarationContext;
-}
 
 /**
  * Create minimal mock input with enum members.
@@ -91,12 +78,11 @@ describe("EnumGenerator", () => {
         ["RUNNING", 1],
         ["ERROR", 2],
       ]);
-      const ctx = createMockEnumContext("State");
       const input = createMockInput("State", members);
       const state = createMockState();
       const orchestrator = createMockOrchestrator();
 
-      const result = generateEnum(ctx, input, state, orchestrator);
+      const result = generateEnum("State", input, state, orchestrator);
 
       expect(result.code).toBe(
         `typedef enum {
@@ -115,12 +101,11 @@ describe("EnumGenerator", () => {
         ["WARNING", 100],
         ["CRITICAL", 255],
       ]);
-      const ctx = createMockEnumContext("Severity");
       const input = createMockInput("Severity", members);
       const state = createMockState();
       const orchestrator = createMockOrchestrator();
 
-      const result = generateEnum(ctx, input, state, orchestrator);
+      const result = generateEnum("Severity", input, state, orchestrator);
 
       expect(result.code).toBe(
         `typedef enum {
@@ -134,12 +119,11 @@ describe("EnumGenerator", () => {
 
     it("generates single-member enum", () => {
       const members = new Map([["ONLY", 42]]);
-      const ctx = createMockEnumContext("Single");
       const input = createMockInput("Single", members);
       const state = createMockState();
       const orchestrator = createMockOrchestrator();
 
-      const result = generateEnum(ctx, input, state, orchestrator);
+      const result = generateEnum("Single", input, state, orchestrator);
 
       expect(result.code).toBe(
         `typedef enum {
@@ -157,12 +141,11 @@ describe("EnumGenerator", () => {
         ["HIGH", 1],
       ]);
       // Note: The enum name in symbols already includes scope prefix
-      const ctx = createMockEnumContext("Level");
       const input = createMockInput("Motor__Level", members);
       const state = createMockState("Motor");
       const orchestrator = createMockOrchestrator();
 
-      const result = generateEnum(ctx, input, state, orchestrator);
+      const result = generateEnum("Level", input, state, orchestrator);
 
       expect(result.code).toBe(
         `typedef enum {
@@ -176,12 +159,11 @@ describe("EnumGenerator", () => {
 
   describe("error handling", () => {
     it("throws error when enum not found in registry", () => {
-      const ctx = createMockEnumContext("Unknown");
       const input = createMockInput("DifferentEnum", new Map());
       const state = createMockState();
       const orchestrator = createMockOrchestrator();
 
-      expect(() => generateEnum(ctx, input, state, orchestrator)).toThrow(
+      expect(() => generateEnum("Unknown", input, state, orchestrator)).toThrow(
         "was collected by the resolver, so its qualified name is in enumMembers",
       );
     });
@@ -190,12 +172,11 @@ describe("EnumGenerator", () => {
   describe("effects", () => {
     it("returns empty effects array", () => {
       const members = new Map([["A", 0]]);
-      const ctx = createMockEnumContext("Test");
       const input = createMockInput("Test", members);
       const state = createMockState();
       const orchestrator = createMockOrchestrator();
 
-      const result = generateEnum(ctx, input, state, orchestrator);
+      const result = generateEnum("Test", input, state, orchestrator);
 
       expect(result.effects).toEqual([]);
     });

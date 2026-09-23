@@ -142,6 +142,22 @@ const MOVES: readonly IMove[] = [
       "anti-pattern -- and #1322 is about to author 145 more diagnostics, each " +
       "of which would have to pick a home.",
   },
+  // --- 1.2 Parse: text becomes one tree, once -----------------------------
+  {
+    from: "src/transpiler/logic/parser",
+    to: "src/PARSE/2-Parse",
+    because:
+      "#1445 box 4, absorbing #1443's 1.2 Parse rows and move at the " +
+      "maintainer's direction. `docs/architecture/README.md` \u00a71 places 1.2 " +
+      "Parse at `src/PARSE/2-Parse`, and #1443's own table already adjudicates " +
+      "this directory there -- so this records an answer that exists rather " +
+      "than inventing one. It moves WHOLE: the three hand-written modules " +
+      "(`CNextSourceParser`, `CommentScanner`, `HeaderParser`) are the pass, " +
+      "and the twelve files under `grammar/`, `c/grammar/` and `cpp/grammar/` " +
+      "are ANTLR's output for it. The `antlr*` scripts' `-o` paths move with " +
+      "them, or the next `npm run antlr:all` silently recreates the old tree " +
+      "beside the new one.",
+  },
   // --- 1.3 Declare: per-file identity and declaration ---------------------
   {
     from: "src/transpiler/logic/symbols/cnext",
@@ -477,6 +493,140 @@ const MOVES: readonly IMove[] = [
     from: "src/TRANSPILE/3-Render/codegen/helpers/__tests__/CppMemberHelper.test.ts",
     to: "src/TRANSPILE/2-Plan/__tests__/CppMemberHelper.test.ts",
     because: "Tests live beside the module they exercise.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/analysis/StringLengthCounter.ts",
+    to: "src/TRANSPILE/2-Plan/StringLengthCounter.ts",
+    because:
+      "#1445 box 3. It renders nothing -- it walks a tree and returns " +
+      "`Map<string, number>`, the count of `.char_count` accesses per string " +
+      "variable, which is the input to the strlen-caching decision. Deciding " +
+      "WHICH lengths are worth hoisting into a temp is a choice about what C " +
+      "exists, not how it reads, which is 2.2's job by the same argument " +
+      "`CppMemberHelper` moved on. It does not belong in 2.1 either: its key " +
+      "is the ADR-057 emitted C identifier, which 2.1 cannot produce. Its one " +
+      "state touch is `CodeGenState.getVariableTypeInfo`, and 2-Plan already " +
+      "reaches that from `AssignmentClassifier` and `PassByValueAnalyzer`, so " +
+      "no layer rule moves.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/analysis/__tests__/StringLengthCounter.test.ts",
+    to: "src/TRANSPILE/2-Plan/__tests__/StringLengthCounter.test.ts",
+    because: "Tests live beside the module they exercise.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/utils/QualifiedNameGenerator.ts",
+    to: "src/utils/QualifiedNameGenerator.ts",
+    because:
+      "#1445 box 3, enabling. It builds a qualified C name from a scope path " +
+      "and a member name -- it imports `IFunctionSymbol`, `SymbolRegistry` " +
+      "and `ScopeUtils` and nothing from the render layer, so nothing about " +
+      "it was ever render-specific. CLAUDE.md already treats qualified-name " +
+      "encoding as `ScopeUtils`' territory (`getTranspiledCName` is named as " +
+      "the single encoder, with an instruction never to re-derive a name by " +
+      "hand), and this is the builder that instruction points at. Filed under " +
+      "render it is unreachable from `2-Plan/` -- `plan-cannot-import-render` " +
+      "is `error` and `reachable` -- which is what blocked `TypeResolver` " +
+      "below, whose only render import is one `forMember` call. " +
+      "`PassByValueAnalyzer` already carries a comment explaining that it " +
+      "cannot use this module for exactly that reason.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/utils/__tests__/QualifiedNameGenerator.test.ts",
+    to: "src/utils/__tests__/QualifiedNameGenerator.test.ts",
+    because: "Tests live beside the module they exercise.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/TypeResolver.ts",
+    to: "src/TRANSPILE/2-Plan/ExpressionTypeResolver.ts",
+    because:
+      "#1445 box 3. It answers *what is the essential type of this " +
+      "expression?* -- `getExpressionType`, `getPostfixExpressionType`, " +
+      "`getCompositeIntegerType`, `getCompositeOverflowBehavior` -- and " +
+      "returns type names, never C text. It emits no diagnostic (zero " +
+      "`throw`/`invariant` sites), so it is a pure query about the program, " +
+      "which is 2.2's side of the *decides vs formats* discriminator. Its " +
+      "only render import was one `QualifiedNameGenerator.forMember` call, " +
+      "and that module moves to `utils/` above.\n\n" +
+      "Renamed because the old name collided: `CodeGenerator` imported this " +
+      "AND `src/utils/TypeResolver`, aliasing the latter `SymbolTypeResolver` " +
+      "at the import site. That alias was the only thing telling a reader " +
+      "which of the two answered which question, and it existed in one file. " +
+      "`ExpressionTypeResolver` says it in the name.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/__tests__/TypeResolver.test.ts",
+    to: "src/TRANSPILE/2-Plan/__tests__/ExpressionTypeResolver.test.ts",
+    because: "Tests live beside the module they exercise.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/helpers/TypeRegistrationEngine.ts",
+    to: "src/TRANSPILE/2-Plan/TypeRegistrationEngine.ts",
+    because:
+      "#1445 box 3. It returns no text -- it walks declarations and writes " +
+      "type facts into the registry every later decision reads. The render " +
+      "admission test is *would removing this change WHAT is emitted or only " +
+      "HOW it reads*, and removing this leaves codegen with no types at all, " +
+      "so it fails the test the pass is defined by. It also originates zero " +
+      "diagnostics.\n\n" +
+      "Recorded honestly: this is a move out of a pass it does not belong " +
+      "in, not a claim that 2.2 is its final home. Type facts about " +
+      "declarations arguably belong further upstream in 1.3 Declare or 1.4 " +
+      "Resolve, and the reason they are computed here at all is that the " +
+      "registry is per-file and codegen-scoped. That is a larger question " +
+      "than box 3, and this move does not foreclose it.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/helpers/__tests__/TypeRegistrationEngine.test.ts",
+    to: "src/TRANSPILE/2-Plan/__tests__/TypeRegistrationEngine.test.ts",
+    because: "Tests live beside the module they exercise.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/TypeRegistrationUtils.ts",
+    to: "src/TRANSPILE/2-Plan/TypeRegistrationUtils.ts",
+    because:
+      "#1445 box 3, with the engine above -- it is the engine's write half " +
+      "and has no other production caller. Its imports became layer-neutral " +
+      "under #1651, which replaced its hand-spelled enum/bitmap quintuple " +
+      "with `DeclaredTypeFacts`; before that it would have dragged the " +
+      "render-side derivation along with it.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/__tests__/TypeRegistrationUtils.test.ts",
+    to: "src/TRANSPILE/2-Plan/__tests__/TypeRegistrationUtils.test.ts",
+    because: "Tests live beside the module they exercise.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/helpers/dimensionEvalOptions.ts",
+    to: "src/TRANSPILE/2-Plan/dimensionEvalOptions.ts",
+    because:
+      "#1445 box 3, with the engine above. Thirty-two lines binding the " +
+      "const-evaluation options both dimension-resolving paths must share; " +
+      "`ArrayDimensionParser` in `utils/` names it in a comment as the thing " +
+      "that prevents those two diverging. It imports `CodeGenState` and " +
+      "`TYPE_WIDTH` and nothing else.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/helpers/__tests__/dimensionEvalOptions.test.ts",
+    to: "src/TRANSPILE/2-Plan/__tests__/dimensionEvalOptions.test.ts",
+    because: "Tests live beside the module they exercise.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/codegen/assignment/AssignmentContextBuilder.ts",
+    to: "src/TRANSPILE/2-Plan/AssignmentContextBuilder.ts",
+    because:
+      "#1445 box 3. It turns an assignment statement into `IAssignmentContext`, " +
+      "which `2-Plan/AssignmentClassifier` consumes to decide the " +
+      "`AssignmentKind` -- so it is the input half of a decision 2.2 already " +
+      "owns, sitting a pass downstream of it. Remove it and nothing is " +
+      "classified at all, which is the render admission test failing.\n\n" +
+      "`AssignmentOperatorMapper` deliberately does NOT come along: it is the " +
+      "one place a C-Next operator becomes its C FORM, which is text, and it " +
+      "is ADR-001's provenance site. Rather than reclassify it to satisfy " +
+      "`plan-cannot-import-render`, it is injected through " +
+      "`IContextBuilderDeps` -- the interface that already carries seven " +
+      "render thunks for exactly this reason, because the builder has always " +
+      "needed render capabilities it must not import.",
   },
 ];
 

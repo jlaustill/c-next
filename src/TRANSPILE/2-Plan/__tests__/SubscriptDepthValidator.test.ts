@@ -25,10 +25,16 @@ const array = (baseType: string, dims: number[]): TTypeInfo => ({
  * has 1 (`[i]`) or 2 (`[start, width]`) expressions, a member access or call
  * has none.
  */
-const subscriptOp = (expressionCount = 1) => ({
-  expression: () => new Array(expressionCount).fill(null),
-});
-const nonSubscriptOp = () => ({ expression: () => [] });
+// #1445 review: planned ops, which STATE their kind. These used to mock the
+// raw-node shape (`expression(): unknown[]`) while the write path passed
+// planned ops, so the validator had to choose between two representations with
+// a `"kind" in op` probe -- in the one module that exists so the two paths
+// cannot disagree. `expressionCount` is kept on the subscript arm because the
+// bit-range case below is about ONE op with two expressions, which is a real
+// distinction the count must not conflate.
+const subscriptOp = (expressionCount = 1) =>
+  ({ kind: "subscript", indexCount: expressionCount }) as const;
+const nonSubscriptOp = () => ({ kind: "member" }) as const;
 
 describe("SubscriptDepthValidator.countLeadingSubscripts", () => {
   it("counts a run of subscript ops", () => {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import CNextSourceParser from "../../transpiler/logic/parser/CNextSourceParser";
+import CNextSourceParser from "../../PARSE/2-Parse/CNextSourceParser";
 import OverflowBehaviorUtils from "../OverflowBehaviorUtils";
-import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 
 /**
  * Issue #1303: the one decoder for ADR-044's `clamp`/`wrap` modifier.
@@ -14,7 +14,7 @@ import * as Parser from "../../transpiler/logic/parser/grammar/CNextParser";
 const modifierFor = (
   declaration: string,
 ): Parser.OverflowModifierContext | null => {
-  const { tree, errors } = CNextSourceParser.parse(declaration);
+  const { tree, parseErrors: errors } = CNextSourceParser.parse(declaration);
   if (errors.length > 0) {
     throw new Error(`unparsable fixture: ${errors[0].message}`);
   }

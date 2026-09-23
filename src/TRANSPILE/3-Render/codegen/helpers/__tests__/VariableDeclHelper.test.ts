@@ -1,34 +1,54 @@
 /**
  * Unit tests for VariableDeclHelper
  *
- * Issue #792: Tests for extracted variable declaration logic
+ * Issue #792: Tests for extracted variable declaration logic.
+ *
+ * #1445 box 3: this module renders a plan now, so the cases that used to parse
+ * real source and hand it over behind four callback interfaces are plan
+ * literals. What moved OUT of this file moved with the code: the tree-reading
+ * half is `CodeGenerator.plan*`, and its cases live in
+ * `CodeGenerator.coverage.test.ts` where they run against real declarations.
+ *
+ * What is asserted here is assembly -- where the dimensions go, which branch
+ * completes the declaration itself, the MISRA Rule 10.3 cast, and the C++
+ * assignment queue.
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import VariableDeclHelper from "../VariableDeclHelper";
 import CodeGenState from "../../../../../transpiler/state/CodeGenState";
-import CNextSourceParser from "../../../../../transpiler/logic/parser/CNextSourceParser";
-import * as Parser from "../../../../../transpiler/logic/parser/grammar/CNextParser";
+import IPlannedArrayDeclaration from "../../types/IPlannedArrayDeclaration";
+import TPlannedVariableDecl from "../../types/TPlannedVariableDecl";
+import TPlannedVariableInitializer from "../../types/TPlannedVariableInitializer";
 
 /**
- * Helper to parse a variable declaration from source code.
+ * An initializer render that sets the array-init bookkeeping, the way a real
+ * one does. `ArrayInitHelper.processArrayInit` resets that tracking, renders,
+ * and then reads it back -- so a thunk that only returns a string is not an
+ * array initializer as far as the helper is concerned, and the whole branch is
+ * skipped.
  */
-function parseVarDecl(source: string): Parser.VariableDeclarationContext {
-  const result = CNextSourceParser.parse(source);
-  const decl = result.tree.declaration(0);
-  const varDecl = decl?.variableDeclaration();
-  if (!varDecl) {
-    throw new Error(`Failed to parse variable declaration from: ${source}`);
-  }
-  return varDecl;
+function arrayInitRender(elementCount: number, value = "{1, 2}") {
+  return () => {
+    CodeGenState.lastArrayInitCount = elementCount;
+    CodeGenState.lastArrayFillValue = undefined;
+    return value;
+  };
 }
 
-/**
- * Helper to parse a type context from source code.
- */
-function parseType(source: string): Parser.TypeContext {
-  const varDecl = parseVarDecl(source);
-  return varDecl.type();
+function arrayPlan(
+  overrides: Partial<IPlannedArrayDeclaration> = {},
+): IPlannedArrayDeclaration {
+  return {
+    isArray: false,
+    hasEmptyDimension: false,
+    hasEmptyArrayTypeDimension: false,
+    declaredSize: null,
+    arrayTypeDimensions: "",
+    renderCStyleDimensions: () => "",
+    init: null,
+    ...overrides,
+  };
 }
 
 describe("VariableDeclHelper", () => {
@@ -36,283 +56,307 @@ describe("VariableDeclHelper", () => {
     CodeGenState.reset();
   });
 
-  // ========================================================================
-  // Tier 1: Pure Utilities
-  // ========================================================================
-
-  describe("parseArrayTypeDimension", () => {
-    it.each([
-      ["non-array types", "u8 x;", null],
-      ["literal array type", "u8[10] x;", 10],
-      ["empty array dimension", "u8[] x;", null],
-      ["expression dimension", "u8[SIZE] x;", null],
-    ])("parseArrayTypeDimension returns %s", (_label, source, expected) => {
-      // toBeNull() is toBe(null), so the numeric row belongs in the same table
-      // rather than sitting between the null rows as SonarCloud grouped it.
-      expect(
-        VariableDeclHelper.parseArrayTypeDimension(parseType(source)),
-      ).toBe(expected);
-    });
-  });
-
-  describe("parseFirstArrayDimension", () => {
-    it("returns null for empty array", () => {
-      expect(VariableDeclHelper.parseFirstArrayDimension([])).toBeNull();
-    });
-
-    it("returns null for empty dimension expression", () => {
-      const varDecl = parseVarDecl("u8 x[];");
-      const dims = varDecl.arrayDimension();
-      expect(VariableDeclHelper.parseFirstArrayDimension(dims)).toBeNull();
-    });
-
-    it("returns numeric value for literal dimension", () => {
-      // Note: arrayTypeDimension != arrayDimension, so we test with arrayDimension
-      const varDecl = parseVarDecl("u8 x[5];");
-      const arrayDims = varDecl.arrayDimension();
-      expect(VariableDeclHelper.parseFirstArrayDimension(arrayDims)).toBe(5);
-    });
-
-    it("returns null for expression dimension", () => {
-      const varDecl = parseVarDecl("u8 x[SIZE];");
-      const dims = varDecl.arrayDimension();
-      expect(VariableDeclHelper.parseFirstArrayDimension(dims)).toBeNull();
-    });
-  });
-
-  // ========================================================================
-  // Tier 2: Simple Operations
-  // ========================================================================
-
-  // #1322: the `validateIntegerInitializer` suite that stood here is gone with the method. ADR-024's
-  // rules are E0868/E0869 in pass 2.1, covered by
-  // `1-Analyze/__tests__/IntegerConversionAnalyzer.test.ts` against real source
-  // rather than a text API.
-
   describe("finalizeCppClassAssignments", () => {
-    beforeEach(() => {
-      CodeGenState.reset();
+    it("adds a semicolon when no assignments are pending", () => {
+      expect(
+        VariableDeclHelper.finalizeCppClassAssignments("x", "MyClass x"),
+      ).toBe("MyClass x;");
     });
 
-    it("returns simple declaration with semicolon when no pending assignments", () => {
-      const result = VariableDeclHelper.finalizeCppClassAssignments(
-        "x",
-        "MyClass x",
-      );
-      expect(result).toBe("MyClass x;");
-    });
-
-    it("appends assignments in function body", () => {
+    it("appends the queued assignments and drains the queue", () => {
       CodeGenState.inFunctionBody = true;
-      CodeGenState.pendingCppClassAssignments = ["field1 = value1"];
+      CodeGenState.pendingCppClassAssignments = ["a = 1;", "b = 2;"];
 
       const result = VariableDeclHelper.finalizeCppClassAssignments(
-        "x",
-        "MyClass x",
+        "obj",
+        "MyClass obj",
       );
 
-      expect(result).toBe("MyClass x;\nx.field1 = value1");
-      expect(CodeGenState.pendingCppClassAssignments).toHaveLength(0);
+      expect(result).toBe("MyClass obj;\nobj.a = 1;\nobj.b = 2;");
+      expect(CodeGenState.pendingCppClassAssignments).toEqual([]);
     });
 
-    it("asserts a pending assignment outside a function body cannot reach here", () => {
-      // #1322: this asserted the E0508 rejection, which reported `1:0` against
-      // whichever declaration happened to drain the queue rather than the
-      // initializer that filled it. Pass 2.1 rejects it at the initializer.
+    // #1322: this method DRAINS a queue another node filled, so the assertion
+    // is about where the drain happens, not about the declaration it names.
+    it("asserts the invariant when the queue is non-empty outside a function", () => {
       CodeGenState.inFunctionBody = false;
-      CodeGenState.pendingCppClassAssignments = ["field1 = value1"];
+      CodeGenState.pendingCppClassAssignments = ["a = 1;"];
 
-      expect(() => {
-        VariableDeclHelper.finalizeCppClassAssignments("x", "MyClass x");
-      }).toThrow("E0508 rejects this in pass 2.1");
+      expect(() =>
+        VariableDeclHelper.finalizeCppClassAssignments("obj", "MyClass obj"),
+      ).toThrow("E0508");
     });
   });
 
-  // ========================================================================
-  // Tier 3: Complex Operations
-  // ========================================================================
-
-  describe("getArrayTypeDimension", () => {
-    it("returns empty string for non-array type", () => {
-      const typeCtx = parseType("u8 x;");
-      const result = VariableDeclHelper.getArrayTypeDimension(typeCtx, {
-        tryEvaluateConstant: () => undefined,
-        generateExpression: (ctx) => ctx.getText(),
-      });
-      expect(result).toBe("");
-    });
-
-    it("returns dimension string for literal", () => {
-      const typeCtx = parseType("u8[10] x;");
-      const result = VariableDeclHelper.getArrayTypeDimension(typeCtx, {
-        tryEvaluateConstant: () => 10,
-        generateExpression: (ctx) => ctx.getText(),
-      });
-      expect(result).toBe("[10]");
-    });
-
-    it("returns empty bracket for unsized dimension", () => {
-      const typeCtx = parseType("u8[] x;");
-      const result = VariableDeclHelper.getArrayTypeDimension(typeCtx, {
-        tryEvaluateConstant: () => undefined,
-        generateExpression: (ctx) => ctx.getText(),
-      });
-      expect(result).toBe("[]");
-    });
-
-    it("falls back to expression for non-const", () => {
-      const typeCtx = parseType("u8[SIZE] x;");
-      const result = VariableDeclHelper.getArrayTypeDimension(typeCtx, {
-        tryEvaluateConstant: () => undefined,
-        generateExpression: () => "SIZE",
-      });
-      expect(result).toBe("[SIZE]");
-    });
-  });
-
-  describe("handleArrayDeclaration", () => {
-    beforeEach(() => {
-      CodeGenState.reset();
-    });
-
-    it("returns not handled for non-array", () => {
-      const varDecl = parseVarDecl("u8 x;");
-      const typeCtx = varDecl.type();
-      const result = VariableDeclHelper.handleArrayDeclaration(
-        varDecl,
-        typeCtx,
+  describe("renderArrayDeclaration", () => {
+    it("reports not-an-array and leaves the declaration alone", () => {
+      const result = VariableDeclHelper.renderArrayDeclaration(
+        arrayPlan(),
         "x",
         "uint8_t x",
-        {
-          generateExpression: (ctx) => ctx.getText(),
-          getTypeName: () => "u8",
-          generateArrayDimensions: () => "",
-          tryEvaluateConstant: () => undefined,
-        },
       );
-      expect(result.handled).toBe(false);
-      expect(result.isArray).toBe(false);
+
+      expect(result).toEqual({
+        handled: false,
+        code: "",
+        decl: "uint8_t x",
+        isArray: false,
+      });
     });
 
-    it("returns array with dimension for C-Next style", () => {
-      const varDecl = parseVarDecl("u8[10] arr;");
-      const typeCtx = varDecl.type();
-      const result = VariableDeclHelper.handleArrayDeclaration(
-        varDecl,
-        typeCtx,
+    it("appends the type's dimensions then the trailing ones", () => {
+      const result = VariableDeclHelper.renderArrayDeclaration(
+        arrayPlan({
+          isArray: true,
+          arrayTypeDimensions: "[10]",
+          renderCStyleDimensions: () => "[2]",
+        }),
         "arr",
         "uint8_t arr",
-        {
-          generateExpression: (ctx) => ctx.getText(),
-          getTypeName: () => "u8",
-          generateArrayDimensions: () => "",
-          tryEvaluateConstant: () => 10,
-        },
       );
+
       expect(result.handled).toBe(false);
       expect(result.isArray).toBe(true);
-      expect(result.decl).toBe("uint8_t arr[10]");
+      expect(result.decl).toBe("uint8_t arr[10][2]");
+    });
+
+    // ADR-057: registries key on the SOURCE name, which is what references in
+    // the source say -- only the emitted text moves.
+    it("tracks the array under its source name", () => {
+      VariableDeclHelper.renderArrayDeclaration(
+        arrayPlan({ isArray: true, arrayTypeDimensions: "[4]" }),
+        "arr",
+        "uint8_t main__arr",
+      );
+
+      expect(CodeGenState.localArrays.has("arr")).toBe(true);
+    });
+
+    it("completes the declaration itself when the initializer is processed", () => {
+      const result = VariableDeclHelper.renderArrayDeclaration(
+        arrayPlan({
+          isArray: true,
+          declaredSize: 2,
+          arrayTypeDimensions: "[2]",
+          init: {
+            renderExpression: arrayInitRender(2),
+            renderTypeName: () => "u8",
+            renderDimensions: () => "",
+          },
+        }),
+        "arr",
+        "uint8_t arr",
+      );
+
+      expect(result.handled).toBe(true);
+      expect(result.code).toBe("uint8_t arr[2] = {1, 2};");
+    });
+
+    // ADR-035 size inference fills an empty dimension in the TYPE, so the
+    // inferred suffix already carries it and the declared dimensions must not
+    // be prepended a second time.
+    it("does not prepend the type's dimensions when the empty one was inferred", () => {
+      const result = VariableDeclHelper.renderArrayDeclaration(
+        arrayPlan({
+          isArray: true,
+          hasEmptyDimension: true,
+          hasEmptyArrayTypeDimension: true,
+          arrayTypeDimensions: "[]",
+          init: {
+            renderExpression: arrayInitRender(2),
+            renderTypeName: () => "u8",
+            renderDimensions: () => "",
+          },
+        }),
+        "arr",
+        "uint8_t arr",
+      );
+
+      expect(result.handled).toBe(true);
+      expect(result.code).toBe("uint8_t arr[2] = {1, 2};");
     });
   });
 
-  describe("generateVariableInitializer", () => {
-    beforeEach(() => {
-      CodeGenState.reset();
+  describe("renderVariableInitializer", () => {
+    it("renders the zero initializer for the ADR-015 arm", () => {
+      const plan: TPlannedVariableInitializer = {
+        kind: "zero",
+        render: (isArray) => (isArray ? "{0}" : "0"),
+      };
+
+      expect(
+        VariableDeclHelper.renderVariableInitializer(plan, "uint8_t x", false),
+      ).toBe("uint8_t x = 0");
+      expect(
+        VariableDeclHelper.renderVariableInitializer(
+          plan,
+          "uint8_t x[2]",
+          true,
+        ),
+      ).toBe("uint8_t x[2] = {0}");
     });
 
-    it("returns zero initializer for uninitialized variable", () => {
-      const varDecl = parseVarDecl("u8 x;");
-      const typeCtx = varDecl.type();
-      const result = VariableDeclHelper.generateVariableInitializer(
-        varDecl,
-        typeCtx,
-        "uint8_t x",
-        false,
-        {
-          generateExpression: (ctx) => ctx.getText(),
-          getTypeName: () => "u8",
-          getZeroInitializer: () => "0",
-          getExpressionType: () => "u8",
-        },
-      );
-      expect(result).toBe("uint8_t x = 0");
+    it("renders an expression initializer", () => {
+      expect(
+        VariableDeclHelper.renderVariableInitializer(
+          {
+            kind: "expression",
+            renderTypeName: () => "u8",
+            renderExpression: () => "42",
+            resolveExpressionType: () => "u8",
+          },
+          "uint8_t x",
+          false,
+        ),
+      ).toBe("uint8_t x = 42");
     });
 
-    it("generates expression for initialized variable", () => {
-      const varDecl = parseVarDecl("u8 x <- 42;");
-      const typeCtx = varDecl.type();
-      const result = VariableDeclHelper.generateVariableInitializer(
-        varDecl,
-        typeCtx,
-        "uint8_t x",
-        false,
+    // Issue #872: the declared type is the expected type for the whole render,
+    // which is what puts MISRA C:2012 Rule 7.2's suffix on an unsigned literal.
+    it("renders the expression inside the declared type's expectedType window", () => {
+      let seen: string | null = null;
+
+      VariableDeclHelper.renderVariableInitializer(
         {
-          generateExpression: () => "42",
-          getTypeName: () => "u8",
-          getZeroInitializer: () => "0",
-          getExpressionType: () => "u8",
+          kind: "expression",
+          renderTypeName: () => "u32",
+          renderExpression: () => {
+            seen = CodeGenState.expectedType;
+            return "1";
+          },
+          resolveExpressionType: () => "u32",
         },
+        "uint32_t x",
+        false,
       );
-      expect(result).toBe("uint8_t x = 42");
+
+      expect(seen).toBe("u32");
+    });
+
+    // MISRA 10.3: the question is what the expression TURNED OUT to be, so it
+    // is asked after the render rather than before.
+    it("asks for the expression's type after rendering it", () => {
+      const order: string[] = [];
+
+      VariableDeclHelper.renderVariableInitializer(
+        {
+          kind: "expression",
+          renderTypeName: () => "f32",
+          renderExpression: () => {
+            order.push("render");
+            return "n";
+          },
+          resolveExpressionType: () => {
+            order.push("resolve");
+            return "u8";
+          },
+        },
+        "float x",
+        false,
+      );
+
+      expect(order).toEqual(["render", "resolve"]);
+    });
+
+    it.each([
+      ["int to float", "u8", "f32", "(float)"],
+      ["float to int", "f32", "u8", "(uint8_t)"],
+    ])(
+      "adds the MISRA 10.3 cast for a %s conversion",
+      (_label, exprType, typeName, expected) => {
+        const result = VariableDeclHelper.renderVariableInitializer(
+          {
+            kind: "expression",
+            renderTypeName: () => typeName,
+            renderExpression: () => "n",
+            resolveExpressionType: () => exprType,
+          },
+          "decl",
+          false,
+        );
+
+        expect(result).toContain(expected);
+      },
+    );
+
+    it("adds no cast when both sides are the same category", () => {
+      expect(
+        VariableDeclHelper.renderVariableInitializer(
+          {
+            kind: "expression",
+            renderTypeName: () => "u32",
+            renderExpression: () => "n",
+            resolveExpressionType: () => "u8",
+          },
+          "uint32_t x",
+          false,
+        ),
+      ).toBe("uint32_t x = n");
     });
   });
 
-  // ========================================================================
-  // Tier 4: Orchestrators
-  // ========================================================================
+  describe("renderVariableDecl", () => {
+    it("renders the constructor arm (Issue #375)", () => {
+      const plan: TPlannedVariableDecl = {
+        kind: "constructor",
+        type: "MAX31856",
+        emittedName: "thermo",
+        args: ["pinConst"],
+      };
 
-  describe("generateConstructorDecl", () => {
-    beforeEach(() => {
-      CodeGenState.reset();
-      // Set up a const variable in the type registry for constructor argument
-      CodeGenState.setVariableTypeInfo("pinConst", {
-        baseType: "u8",
-        bitWidth: 8,
-        isArray: false,
-        arrayDimensions: [],
-        isConst: true,
-      });
-    });
-
-    it("generates constructor declaration with const args", () => {
-      const varDecl = parseVarDecl("MAX31856 thermo(pinConst);");
-      const argListCtx = varDecl.constructorArgumentList()!;
-
-      const result = VariableDeclHelper.generateConstructorDecl(
-        varDecl,
-        argListCtx,
-        { generateType: () => "MAX31856" },
+      expect(VariableDeclHelper.renderVariableDecl(plan)).toBe(
+        "MAX31856 thermo(pinConst);",
       );
-
-      expect(result).toBe("MAX31856 thermo(pinConst);");
     });
 
-    // #1322: this drove codegen directly with an argument pass 2.1 now
-    // rejects (E0432 / E0433), so the pipeline halts before this code runs.
-    // The rule is covered by
-    // `1-Analyze/__tests__/ConstructorArgumentAnalyzer.test.ts` and by
-    // `tests/constructor-syntax/error-non-const-arg` and
-    // `error-undeclared-arg`, which now assert a real position.
+    it("renders the plain arm with its modifier prefix and emitted name", () => {
+      const plan: TPlannedVariableDecl = {
+        kind: "plain",
+        sourceName: "x",
+        emittedName: "main__x",
+        modifierPrefix: "const ",
+        type: "uint8_t",
+        array: arrayPlan(),
+        initializer: { kind: "zero", render: () => "0" },
+      };
 
-    // #1322: this drove codegen directly with an argument pass 2.1 now
-    // rejects (E0432 / E0433), so the pipeline halts before this code runs.
-    // The rule is covered by
-    // `1-Analyze/__tests__/ConstructorArgumentAnalyzer.test.ts` and by
-    // `tests/constructor-syntax/error-non-const-arg` and
-    // `error-undeclared-arg`, which now assert a real position.
+      expect(VariableDeclHelper.renderVariableDecl(plan)).toBe(
+        "const uint8_t main__x = 0;",
+      );
+    });
 
-    it("tracks the variable in type registry", () => {
-      const varDecl = parseVarDecl("MAX31856 thermo(pinConst);");
-      const argListCtx = varDecl.constructorArgumentList()!;
+    // The array half can finish the declaration on its own, and when it does
+    // the initializer must not be rendered a second time.
+    it("stops at the array arm when it completed the declaration", () => {
+      const renderExpression = vi.fn(() => "unused");
+      const plan: TPlannedVariableDecl = {
+        kind: "plain",
+        sourceName: "arr",
+        emittedName: "arr",
+        modifierPrefix: "",
+        type: "uint8_t",
+        array: arrayPlan({
+          isArray: true,
+          declaredSize: 2,
+          arrayTypeDimensions: "[2]",
+          init: {
+            renderExpression: arrayInitRender(2),
+            renderTypeName: () => "u8",
+            renderDimensions: () => "",
+          },
+        }),
+        initializer: {
+          kind: "expression",
+          renderTypeName: () => "u8",
+          renderExpression,
+          resolveExpressionType: () => "u8",
+        },
+      };
 
-      VariableDeclHelper.generateConstructorDecl(varDecl, argListCtx, {
-        generateType: () => "MAX31856",
-      });
-
-      const typeInfo = CodeGenState.getVariableTypeInfo("thermo");
-      expect(typeInfo).toBeDefined();
-      expect(typeInfo!.baseType).toBe("MAX31856");
-      expect(typeInfo!.isExternalCppType).toBe(true);
+      expect(VariableDeclHelper.renderVariableDecl(plan)).toBe(
+        "uint8_t arr[2] = {1, 2};",
+      );
+      expect(renderExpression).not.toHaveBeenCalled();
     });
   });
 });

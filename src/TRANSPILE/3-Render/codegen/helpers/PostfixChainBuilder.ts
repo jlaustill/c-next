@@ -45,11 +45,7 @@ class PostfixChainBuilder {
         );
         identifierChain.push(op.memberName);
       } else {
-        result = PostfixChainBuilder.processSubscript(
-          result,
-          op.expressions,
-          deps,
-        );
+        result = PostfixChainBuilder.processSubscript(result, op);
       }
       isFirstOp = false;
     }
@@ -77,19 +73,21 @@ class PostfixChainBuilder {
    */
   private static processSubscript(
     result: string,
-    expressions: unknown[],
-    deps: IPostfixChainDeps,
+    op: IPostfixOperation,
   ): string {
-    if (expressions.length === 1) {
+    // #1652: the count decides, and only then does the render happen -- inside
+    // the branch, never before it. Rendering an index queues a pending temp
+    // declaration, so hoisting these calls above the `if` would queue one for
+    // the shape that returns `result` unchanged.
+    if (op.indexCount === 1) {
       // Single subscript: array access or single bit
-      const indexExpr = deps.generateExpression(expressions[0]);
+      const [indexExpr] = op.renderIndexes();
       return `${result}[${indexExpr}]`;
     }
 
-    if (expressions.length === 2) {
+    if (op.indexCount === 2) {
       // Bit range: [start, width]
-      const start = deps.generateExpression(expressions[0]);
-      const width = deps.generateExpression(expressions[1]);
+      const [start, width] = op.renderIndexes();
       return `${result}[${start}, ${width}]`;
     }
 

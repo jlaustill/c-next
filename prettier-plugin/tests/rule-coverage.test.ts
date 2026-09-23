@@ -10,7 +10,7 @@
  * without teaching the printer to lay it out fails here.
  */
 
-import { CNextParser } from "../../src/transpiler/logic/parser/grammar/CNextParser";
+import { CNextParser } from "../../src/PARSE/2-Parse/grammar/CNextParser";
 import CNextPrinter from "../src/printer";
 
 describe("grammar rule coverage", () => {

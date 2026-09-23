@@ -4,7 +4,7 @@
  * to ensure consistent array size inference from initializers.
  */
 
-import * as Parser from "../../../../transpiler/logic/parser/grammar/CNextParser";
+import * as Parser from "../../../2-Parse/grammar/CNextParser";
 
 class ArrayInitializerUtils {
   /**

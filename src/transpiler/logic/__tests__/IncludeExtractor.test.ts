@@ -4,7 +4,7 @@
 
 import { describe, it, expect } from "vitest";
 import IncludeExtractor from "../IncludeExtractor";
-import CNextSourceParser from "../parser/CNextSourceParser";
+import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 
 describe("IncludeExtractor", () => {
   describe("collectUserIncludes", () => {

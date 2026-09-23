@@ -13,7 +13,7 @@ import type {
   DeclaratorContext,
   DeclarationSpecifiersContext,
   DeclarationSpecifierContext,
-} from "../../../transpiler/logic/parser/c/grammar/CParser";
+} from "../../2-Parse/c/grammar/CParser";
 import type TCSymbol from "../../../transpiler/types/symbols/c/TCSymbol";
 import SymbolTable from "../../../transpiler/state/SymbolTable";
 import DeclaratorUtils from "./utils/DeclaratorUtils";

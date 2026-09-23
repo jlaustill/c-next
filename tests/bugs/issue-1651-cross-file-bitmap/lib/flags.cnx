@@ -1,0 +1,8 @@
+bitmap8 Flags {
+    Active[1],
+    Ready[1],
+    Level[3],
+    Reserved[3]
+}
+
+Flags shared <- 0;

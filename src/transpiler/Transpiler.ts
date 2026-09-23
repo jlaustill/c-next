@@ -15,11 +15,11 @@ import type IConflict from "./types/IConflict";
 import IFileSystem from "./types/IFileSystem";
 import NodeFileSystem from "./NodeFileSystem";
 
-import * as Parser from "./logic/parser/grammar/CNextParser";
-import CNextSourceParser from "./logic/parser/CNextSourceParser";
-import HeaderParser from "./logic/parser/HeaderParser";
+import * as Parser from "../PARSE/2-Parse/grammar/CNextParser";
+import CNextSourceParser from "../PARSE/2-Parse/CNextSourceParser";
+import HeaderParser from "../PARSE/2-Parse/HeaderParser";
 
-import CodeGenerator from "../TRANSPILE/3-Render/codegen/CodeGenerator";
+import CodeGenWalker from "../TRANSPILE/CodeGenWalker";
 import CodeGenState from "./state/CodeGenState";
 import ModificationFacts from "./ModificationFacts";
 import CallbackCompatibility from "./CallbackCompatibility";
@@ -75,7 +75,6 @@ import ParserUtils from "../utils/ParserUtils";
 import ITranspilerConfig from "./types/ITranspilerConfig";
 import ITranspilerResult from "./types/ITranspilerResult";
 import IFileResult from "./types/IFileResult";
-import IDeclaredFile from "./types/IDeclaredFile";
 import IPipelineFile from "./types/IPipelineFile";
 import IPipelineInput from "./types/IPipelineInput";
 import TTranspileInput from "./types/TTranspileInput";
@@ -102,7 +101,7 @@ import TargetResolver from "../utils/TargetResolver";
 class Transpiler {
   private readonly config: Required<ITranspilerConfig>;
   private readonly preprocessor: Preprocessor;
-  private readonly codeGenerator: CodeGenerator;
+  private readonly codeGenerator: CodeGenWalker;
   private readonly headerGenerator: HeaderGenerator;
   private readonly warnings: string[];
   private readonly cacheManager: CacheManager | null;
@@ -195,7 +194,23 @@ class Transpiler {
    */
   private program: IProgram | null = null;
 
-  private readonly declaredFiles = new Map<string, IDeclaredFile>();
+  /**
+   * The parses retained for Stage 5, keyed by source path.
+   *
+   * #1445 box 2: this was a `Map<string, IDeclaredFile>`, and `IDeclaredFile`
+   * was `{ parsed: IParsedFile; symbols: readonly TSymbol[] }` -- so the record
+   * 1.3 appeared to hand forward RE-EXPORTED the tree, which is the one thing
+   * the lifetime rule forbids. It was never 1.3's artifact: `_declareFile`
+   * returns `IFileSymbols`, and this map came from #1301 purely so Stage 5
+   * could reuse Stage 3's parse.
+   *
+   * Its `symbols` half had **no reader** -- every use of the map reached
+   * `.parsed` and nothing else -- so the bundle was carrying a dead field in
+   * order to look like an artifact. Holding 1.2's artifact under its own name
+   * says what is true: retention is the ORCHESTRATOR's bookkeeping, not
+   * something a pass passes on.
+   */
+  private readonly retainedParses = new Map<string, IParsedFile>();
 
   /**
    * Issue #593: Centralized analyzer for cross-file const inference in C++ mode.
@@ -270,7 +285,7 @@ class Transpiler {
     this.preprocessor = new Preprocessor(
       Transpiler._toolchainForCompileDb(compileDb),
     );
-    this.codeGenerator = new CodeGenerator();
+    this.codeGenerator = new CodeGenWalker();
     this.headerGenerator = new HeaderGenerator();
     this.warnings = [];
 
@@ -379,7 +394,11 @@ class Transpiler {
       // and a throw -- that one could never observe a non-empty map, so deleting it
       // reddened nothing. Two sites for one invariant is the duplication CLAUDE.md
       // calls the worst anti-pattern, and the unreachable half is the #1143 shape.
-      this.declaredFiles.clear();
+      this.retainedParses.clear();
+
+      // #1445 box 2: the walker holds the token stream and the comment scanner
+      // over it on its own fields, which the map clear above cannot reach.
+      this.codeGenerator.releaseParseState();
     }
   }
 
@@ -764,28 +783,32 @@ class Transpiler {
         readonly fileSymbols: IFileSymbols;
       } {
     const content = file.source ?? this.fs.readFile(file.path);
-    const { tree, tokenStream, errors, declarationCount } =
-      CNextSourceParser.parse(content);
+    const parsed = CNextSourceParser.parse(content);
 
-    // Parse errors — return them with original line/column and sourcePath
-    if (errors.length > 0) {
-      return { errors: errors.map((e) => ({ ...e, sourcePath: file.path })) };
+    // Parse errors — return them with original line/column and sourcePath.
+    // #1445: 1.2 carries its own errors, so the artifact is what comes back
+    // and this stamps the path the text came from -- the one fact 1.2 cannot
+    // know, because it parses a string.
+    if (parsed.parseErrors.length > 0) {
+      return {
+        errors: parsed.parseErrors.map((e) => ({
+          ...e,
+          sourcePath: file.path,
+        })),
+      };
     }
 
     // ADR-049: record the file's declared target while its tree is in hand, so
     // Stage 4c can resolve a run-level budget without re-parsing or re-deriving.
-    const pragmaTarget = TargetResolver.fromPragma(tree);
+    const pragmaTarget = TargetResolver.fromPragma(parsed.tree);
     if (pragmaTarget) {
       this.pragmaTargets.push(pragmaTarget);
     }
 
     try {
       // ADR-055 Phase 7: Use composable collectors via CNextResolver
-      const fileSymbols = this._declareFile(tree, file.path);
-      return {
-        parsed: { tree, tokenStream, declarationCount },
-        fileSymbols,
-      };
+      const fileSymbols = this._declareFile(parsed.tree, file.path);
+      return { parsed, fileSymbols };
     } catch (err) {
       return { errors: [Transpiler._collectionError(err)] };
     }
@@ -819,12 +842,7 @@ class Transpiler {
       // design's one real expense, so it is not paid for a consumer that does not
       // exist.
       if (Transpiler._producesOutput(file)) {
-        this.declaredFiles.set(file.path, {
-          tree: parsed.tree,
-          tokenStream: parsed.tokenStream,
-          declarationCount: parsed.declarationCount,
-          symbols: tSymbols,
-        });
+        this.retainedParses.set(file.path, parsed);
       }
 
       // ADR-055 Phase 7: Store TSymbol directly in SymbolTable (no ISymbol conversion)
@@ -904,14 +922,14 @@ class Transpiler {
     AdrProvenance.beginFile(sourcePath);
 
     try {
-      const declared = this._requireDeclared(sourcePath);
+      const parsed = this._requireRetainedParse(sourcePath);
 
       this._establishPerFileCodeGenState(file, sourcePath);
 
       // #1322: the ADR-010 include facts are handed in rather than read off
       // CodeGenState, whose `sourcePath` is not written until `generate()` and
       // so holds another file's value here.
-      return runAnalyzers(declared.tree, declared.tokenStream, {
+      return runAnalyzers(parsed.tree, parsed.comments, {
         cppMode: this.cppMode,
         includes: {
           sourcePath,
@@ -939,7 +957,7 @@ class Transpiler {
     const sourcePath = file.path;
     const errors = diagnostics.forFile(sourcePath);
     const declarationCount =
-      this.declaredFiles.get(sourcePath)?.declarationCount ?? 0;
+      this.retainedParses.get(sourcePath)?.declarationCount ?? 0;
 
     return errors.length > 0
       ? this.buildErrorResult(sourcePath, [...errors], declarationCount)
@@ -963,8 +981,8 @@ class Transpiler {
    * guard. It surfaces as a user-facing `Code generation failed: ...` at line 1,
    * since the message carries no `N:M` prefix for `parseErrorLocation` to find.
    */
-  private _requireDeclared(sourcePath: string): IDeclaredFile {
-    const declared = this.declaredFiles.get(sourcePath);
+  private _requireRetainedParse(sourcePath: string): IParsedFile {
+    const declared = this.retainedParses.get(sourcePath);
     if (!declared) {
       throw new Error(
         `${sourcePath} reached code generation without being declared`,
@@ -1046,8 +1064,8 @@ class Transpiler {
     AdrProvenance.beginFile(sourcePath);
 
     try {
-      const declared = this._requireDeclared(sourcePath);
-      const { tree, tokenStream, declarationCount } = declared;
+      const { tree, tokenStream, declarationCount } =
+        this._requireRetainedParse(sourcePath);
 
       // Parse only mode
       if (this.config.parseOnly) {

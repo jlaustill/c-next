@@ -1,41 +1,38 @@
 /**
- * StringOperationsHelper - String operation detection and extraction
+ * StringOperationsHelper - what ADR-045's string operations render as.
  *
  * Extracted from CodeGenerator to reduce file size.
- * Handles detection of string concatenation and substring patterns.
  *
  * ADR-045: String type support
- * Issue #707: Uses ExpressionUnwrapper for tree navigation
+ *
+ * ## It asks the type registry, not the tree (#1445)
+ *
+ * Every question here is answered from a NAME and the render-time type
+ * registry: how long is this literal, how wide is this declared string. The
+ * tree navigation that used to sit in front of those questions --
+ * "is this expression a two-operand `+`", "is it an identifier with one
+ * subscript" -- moved to `ExpressionUnwrapper`, which is what that utility is
+ * for and which keeps both shapes unit-tested.
+ *
+ * That split is also an ORDERING, not just a relocation. Generating an index
+ * expression can allocate a C++ temp and queue its declaration, so the caller
+ * asks `getStringExprCapacity` -- which is what makes `s[i]` a substring
+ * rather than an array index -- BEFORE it generates anything it might discard.
+ * A helper that took the generated code and then decided would have had the
+ * decision arrive too late to be free.
  */
 
 import ISubstringOps from "../types/ISubstringOps";
 import IStringConcatOps from "../types/IStringConcatOps";
-import * as Parser from "../../../../transpiler/logic/parser/grammar/CNextParser";
 import CodeGenState from "../../../../transpiler/state/CodeGenState";
 import StringUtils from "../../../../utils/StringUtils";
-import ExpressionUnwrapper from "../../../../utils/ExpressionUnwrapper";
 import BareIdentifier from "../../../../utils/BareIdentifier";
 
 /**
- * String concatenation operands extracted from expression.
- */
-/**
- * Callbacks for substring operand extraction.
- */
-interface ISubstringCallbacks {
-  /** Generate expression code */
-  generateExpression: (ctx: Parser.ExpressionContext) => string;
-}
-
-/**
- * Helper for string operation detection and extraction.
+ * Helper for string operation rendering.
  * All methods are static - uses CodeGenState for shared state.
  */
 class StringOperationsHelper {
-  // ========================================================================
-  // Tier 1: Pure Utilities (no callbacks needed)
-  // ========================================================================
-
   /**
    * Get the capacity of a string expression.
    * For string literals, capacity equals content length.
@@ -64,45 +61,23 @@ class StringOperationsHelper {
   }
 
   /**
-   * Check if an expression is a string concatenation (contains + with string operands).
-   * Returns the operand expressions and capacities if it is, null otherwise.
+   * The operands of a string concatenation, given the two addition operands.
    *
-   * ADR-045: String concatenation detection for strncpy/strncat generation.
-   * Issue #707: Uses ExpressionUnwrapper for tree navigation.
+   * ADR-045: concatenation detection for strncpy/strncat generation. Null
+   * unless BOTH operands are strings -- `str + 5` is not a concatenation, and
+   * neither is `1 + 2`.
    *
-   * @param ctx - Expression context to check
-   * @returns Concatenation operands or null if not a string concat
+   * @param leftText - source text of the left operand
+   * @param rightText - source text of the right operand
    */
   static getStringConcatOperands(
-    ctx: Parser.ExpressionContext,
+    leftText: string,
+    rightText: string,
   ): IStringConcatOps | null {
-    // Navigate to the additive expression level using ExpressionUnwrapper
-    const add = ExpressionUnwrapper.getAdditiveExpression(ctx);
-    if (!add) return null;
-    const multExprs = add.multiplicativeExpression();
-
-    // Need exactly 2 operands for simple concatenation
-    if (multExprs.length !== 2) return null;
-
-    // Check if this is addition (not subtraction)
-    // Use MINUS() token check instead of text.includes("-") to avoid
-    // false positives from identifiers/literals containing hyphens
-    if (add.MINUS().length > 0) return null;
-
-    // Get the operand texts
-    const leftText = multExprs[0].getText();
-    const rightText = multExprs[1].getText();
-
-    // Check if at least one operand is a string
     const leftCapacity = StringOperationsHelper.getStringExprCapacity(leftText);
     const rightCapacity =
       StringOperationsHelper.getStringExprCapacity(rightText);
 
-    if (leftCapacity === null && rightCapacity === null) {
-      return null; // Neither is a string
-    }
-
-    // If one is null, it's not a valid string concatenation
     if (leftCapacity === null || rightCapacity === null) {
       return null;
     }
@@ -115,71 +90,47 @@ class StringOperationsHelper {
     };
   }
 
-  // ========================================================================
-  // Tier 2: Operations with Callbacks
-  // ========================================================================
-
   /**
-   * Check if an expression is a substring extraction (string[start, length]).
-   * Returns the source string, start, length, and source capacity if it is.
+   * The operands of a substring extraction, or null when `sourceName` is not a
+   * string -- which is what makes `s[i]` a substring rather than an array
+   * index.
    *
-   * ADR-045: Substring extraction detection for safe string slicing.
-   * Issue #707: Uses ExpressionUnwrapper for tree navigation.
-   * Issue #140: Handles both [start, length] and single-char [index] patterns.
+   * ADR-045: safe string slicing. Issue #140: `source[i]` is sugar for
+   * `source[i, 1]`, which is the whole difference between the one-index and
+   * two-index forms -- the grammar admits no other arity.
    *
-   * @param ctx - Expression context to check
-   * @param callbacks - Callbacks for expression generation
-   * @returns Substring operands or null if not a substring extraction
+   * ## The indexes arrive as a thunk, and that is the point
+   *
+   * Generating an expression is not free, and it cannot be taken back: it
+   * can queue a pending temp declaration into the enclosing block --
+   * `ArgumentGenerator.createCppMemberConversionTemp` for a C++ member
+   * conversion, and the float bit-range shadow union in the postfix generator
+   * both do. So an index generated for an expression that turns out NOT to be
+   * a substring leaks a declaration for a value nothing reads.
+   *
+   * Taking generated strings and deciding afterwards would put that decision
+   * one step too late, and taking the capacity as a parameter would move the
+   * decision to the caller. Taking a thunk keeps the decision here and makes
+   * the order impossible to get wrong at a call site. It is asserted rather
+   * than remembered: a unit test counts the invocations and fails if the
+   * lookup stops coming first -- measured, because reordering it reddens 0 of
+   * the 1254 integration fixtures.
    */
   static getSubstringOperands(
-    ctx: Parser.ExpressionContext,
-    callbacks: ISubstringCallbacks,
+    sourceName: string,
+    generateIndexes: () => readonly string[],
   ): ISubstringOps | null {
-    // Navigate to the postfix expression level using shared utility
-    const postfix = ExpressionUnwrapper.getPostfixExpression(ctx);
-    if (!postfix) return null;
+    const sourceCapacity =
+      StringOperationsHelper.getStringExprCapacity(sourceName);
+    if (sourceCapacity === null) return null;
 
-    const primary = postfix.primaryExpression();
-    const ops = postfix.postfixOp();
-
-    // Need exactly one postfix operation (the [start, length])
-    if (ops.length !== 1) return null;
-
-    const op = ops[0];
-    const exprs = op.expression();
-
-    // Get the source variable name first
-    const sourceId = primary.IDENTIFIER();
-    if (!sourceId) return null;
-
-    const sourceName = sourceId.getText();
-
-    // Check if source is a string type
-    const typeInfo = CodeGenState.getVariableTypeInfo(sourceName);
-    if (!typeInfo?.isString || typeInfo.stringCapacity === undefined) {
-      return null;
-    }
-
-    // Issue #140: Handle both [start, length] pattern (2 expressions)
-    // and single-character access [index] pattern (1 expression, treated as [index, 1])
-    if (exprs.length === 2) {
-      return {
-        source: sourceName,
-        start: callbacks.generateExpression(exprs[0]),
-        lengthExpression: callbacks.generateExpression(exprs[1]),
-        sourceCapacity: typeInfo.stringCapacity,
-      };
-    } else if (exprs.length === 1) {
-      // Single-character access: source[i] is sugar for source[i, 1]
-      return {
-        source: sourceName,
-        start: callbacks.generateExpression(exprs[0]),
-        lengthExpression: "1",
-        sourceCapacity: typeInfo.stringCapacity,
-      };
-    }
-
-    return null;
+    const indexCodes = generateIndexes();
+    return {
+      source: sourceName,
+      start: indexCodes[0],
+      lengthExpression: indexCodes[1] ?? "1",
+      sourceCapacity,
+    };
   }
 }
 
