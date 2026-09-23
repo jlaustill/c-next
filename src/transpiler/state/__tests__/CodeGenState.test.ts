@@ -2,6 +2,7 @@
  * Tests for CodeGenState - centralized code generation state management
  */
 
+import type IScopeSymbol from "../../types/symbols/IScopeSymbol";
 import { describe, it, expect, beforeEach } from "vitest";
 import type IProgram from "../../types/IProgram";
 import installMockSymbols from "../../__tests__/installMockSymbols";
@@ -76,6 +77,25 @@ function createCVariableSymbol(
     isArray: overrides.isArray,
     arrayDimensions: overrides.arrayDimensions,
   };
+}
+
+let registry = new SymbolRegistry();
+
+beforeEach(() => {
+  registry = new SymbolRegistry();
+});
+
+/**
+ * #1452 box 3: register a scope AND publish the graph, because
+ * `setCurrentScopeByPath` reads it off `CodeGenState.program` now rather than
+ * off a global registry. Both halves live here so the tests below -- which call
+ * the guarded method directly on purpose -- state what they are setting up
+ * rather than repeating the wiring.
+ */
+function registerScope(path: string): IScopeSymbol {
+  const scope = registry.getOrCreateScope(path);
+  CodeGenState.program = Program.build([], { registry });
+  return scope;
 }
 
 describe("CodeGenState", () => {
@@ -344,7 +364,7 @@ describe("CodeGenState", () => {
       // The contract is a path, not a leaf. This proves the API is chain-capable,
       // so the fix for #1304 is on the caller side: codegen can only supply a
       // leaf today because `scopeMember` admits no `scopeDeclaration`.
-      const inner = SymbolRegistry.getOrCreateScope("Outer.Inner");
+      const inner = registerScope("Outer.Inner");
 
       CodeGenState.setCurrentScopeByPath("Outer.Inner");
 
@@ -361,21 +381,21 @@ describe("CodeGenState", () => {
       // silently lost the outer component. #1304 closes that -- the registry is
       // the authority, so a path it does not know is a broken promise about the
       // symbols pass rather than something to create here.
-      SymbolRegistry.getOrCreateScope("Outer.Inner");
+      registerScope("Outer.Inner");
 
       expect(() => CodeGenState.setCurrentScopeByPath("Inner")).toThrow();
 
       // The failed entry must not have left the state half-updated, and must
       // not have registered `Inner` as a side effect.
       expect(CodeGenState.currentScopePath).toBe("");
-      expect(SymbolRegistry.getScope("Inner")).toBeNull();
+      expect(registry.getScope("Inner")).toBeNull();
     });
 
     it("setCurrentScopeByPath still enters a scope the registry knows", () => {
       // NEGATIVE CONTROL for the guard above: it must fire only on a path the
       // registry does not hold, not on every entry. Without this the assertion
       // above would pass just as well if the method rejected everything.
-      SymbolRegistry.getOrCreateScope("Outer.Inner");
+      registerScope("Outer.Inner");
 
       expect(() =>
         CodeGenState.setCurrentScopeByPath("Outer.Inner"),
@@ -1067,10 +1087,9 @@ describe("CodeGenState", () => {
   // through the accessor analyzers actually call.
   describe("external struct fields, via Program", () => {
     it("returns empty map when no struct fields exist", () => {
-      CodeGenState.program = Program.build(
-        [],
-        CodeGenState.symbolTable.getAllStructFields(),
-      );
+      CodeGenState.program = Program.build([], {
+        headerStructFields: CodeGenState.symbolTable.getAllStructFields(),
+      });
       const result = CodeGenState.getExternalStructFields();
       expect(result.size).toBe(0);
     });
@@ -1092,10 +1111,9 @@ describe("CodeGenState", () => {
       // Use restoreStructFields to populate the symbol table
       CodeGenState.symbolTable.restoreStructFields(structFields);
 
-      CodeGenState.program = Program.build(
-        [],
-        CodeGenState.symbolTable.getAllStructFields(),
-      );
+      CodeGenState.program = Program.build([], {
+        headerStructFields: CodeGenState.symbolTable.getAllStructFields(),
+      });
       const result = CodeGenState.getExternalStructFields();
 
       expect(result.has("Point")).toBe(true);
@@ -1119,10 +1137,9 @@ describe("CodeGenState", () => {
       structFields.set("Buffer", bufferFields);
       CodeGenState.symbolTable.restoreStructFields(structFields);
 
-      CodeGenState.program = Program.build(
-        [],
-        CodeGenState.symbolTable.getAllStructFields(),
-      );
+      CodeGenState.program = Program.build([], {
+        headerStructFields: CodeGenState.symbolTable.getAllStructFields(),
+      });
       const result = CodeGenState.getExternalStructFields();
 
       expect(result.has("Buffer")).toBe(true);
@@ -1146,10 +1163,9 @@ describe("CodeGenState", () => {
       structFields.set("ArrayOnly", arrayOnlyFields);
       CodeGenState.symbolTable.restoreStructFields(structFields);
 
-      CodeGenState.program = Program.build(
-        [],
-        CodeGenState.symbolTable.getAllStructFields(),
-      );
+      CodeGenState.program = Program.build([], {
+        headerStructFields: CodeGenState.symbolTable.getAllStructFields(),
+      });
       const result = CodeGenState.getExternalStructFields();
 
       // Struct should not be included since all fields are arrays
@@ -1182,10 +1198,9 @@ describe("CodeGenState", () => {
       structFields.set("Simple", simpleFields);
       CodeGenState.symbolTable.restoreStructFields(structFields);
 
-      CodeGenState.program = Program.build(
-        [],
-        CodeGenState.symbolTable.getAllStructFields(),
-      );
+      CodeGenState.program = Program.build([], {
+        headerStructFields: CodeGenState.symbolTable.getAllStructFields(),
+      });
       const result = CodeGenState.getExternalStructFields();
 
       // Mixed struct should have only non-array fields
@@ -1584,7 +1599,7 @@ describe("CodeGenState", () => {
       // this; `Inner` is registered directly because `withScopePath` is what
       // enters it.
       enterScope("Outer");
-      SymbolRegistry.getOrCreateScope("Inner");
+      registerScope("Inner");
       const before = CodeGenState.currentScopePath;
 
       expect(() =>
@@ -1604,7 +1619,7 @@ describe("CodeGenState", () => {
       // this; `Inner` is registered directly because `withScopePath` is what
       // enters it.
       enterScope("Outer");
-      SymbolRegistry.getOrCreateScope("Inner");
+      registerScope("Inner");
       const before = CodeGenState.currentScopePath;
 
       const seen = CodeGenState.withScopePath(
@@ -1677,12 +1692,11 @@ describe("CodeGenState", () => {
    */
   describe("scope identity comes from the registry, not the caller's string (#1295, #1304)", () => {
     beforeEach(() => {
-      SymbolRegistry.reset();
       CodeGenState.reset();
     });
 
     it("resolves a member through the whole path when the scope is registered", () => {
-      SymbolRegistry.getOrCreateScope("Outer.Inner");
+      registerScope("Outer.Inner");
       CodeGenState.setScopeMembers("Outer.Inner", new Set(["token"]));
 
       CodeGenState.setCurrentScopeByPath("Outer.Inner");
@@ -1699,7 +1713,7 @@ describe("CodeGenState", () => {
      * just as well if every name were qualified.
      */
     it("leaves a name that is not a member unqualified", () => {
-      SymbolRegistry.getOrCreateScope("Outer.Inner");
+      registerScope("Outer.Inner");
       CodeGenState.setScopeMembers("Outer.Inner", new Set(["token"]));
       CodeGenState.setCurrentScopeByPath("Outer.Inner");
 

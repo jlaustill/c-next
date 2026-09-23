@@ -8,7 +8,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import Transpiler from "../../../../transpiler/Transpiler";
 import MockFileSystem from "../../../../transpiler/__tests__/MockFileSystem";
-import SymbolRegistry from "../../../../transpiler/state/SymbolRegistry";
 import CodeGenState from "../../../../transpiler/state/CodeGenState";
 
 describe("CodeGenerator requireInclude", () => {
@@ -19,7 +18,6 @@ describe("CodeGenerator requireInclude", () => {
     // Every transpile here omits sourcePath, so all symbols land under the
     // "<string>" placeholder. Without a reset they accumulate across tests and
     // one test reads another's output.
-    SymbolRegistry.reset();
     CodeGenState.reset();
   });
 

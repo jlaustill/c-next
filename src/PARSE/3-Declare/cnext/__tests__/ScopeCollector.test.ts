@@ -7,10 +7,14 @@ import SymbolGuards from "../../../../transpiler/types/symbols/SymbolGuards";
 import SymbolRegistry from "../../../../transpiler/state/SymbolRegistry";
 import TypeResolver from "../../../../utils/TypeResolver";
 
+let registry = new SymbolRegistry();
+
+beforeEach(() => {
+  registry = new SymbolRegistry();
+});
+
 describe("ScopeCollector", () => {
-  beforeEach(() => {
-    SymbolRegistry.reset();
-  });
+  beforeEach(() => {});
 
   // Issue #1334: a scope may be reopened (ADR-016), so it has MANY declaration
   // sites. getOrCreateScope caches by path and this collector used to assign
@@ -29,7 +33,7 @@ describe("ScopeCollector", () => {
     ): ReturnType<typeof ScopeCollector.collect> => {
       const tree = parse(code);
       const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
-      return ScopeCollector.collect(scopeCtx, sourceFile, new Set());
+      return ScopeCollector.collect(registry, scopeCtx, sourceFile, new Set());
     };
 
     it("records every block of a scope spanning four files", () => {
@@ -76,7 +80,12 @@ describe("ScopeCollector", () => {
       `;
       const tree = parse(code);
       const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
-      const result = ScopeCollector.collect(scopeCtx, "test.cnx", new Set());
+      const result = ScopeCollector.collect(
+        registry,
+        scopeCtx,
+        "test.cnx",
+        new Set(),
+      );
 
       expect(result.scopeSymbol.kind).toBe("scope");
       expect(result.scopeSymbol.name).toBe("Motor");
@@ -100,7 +109,12 @@ describe("ScopeCollector", () => {
       `;
       const tree = parse(code);
       const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
-      const result = ScopeCollector.collect(scopeCtx, "test.cnx", new Set());
+      const result = ScopeCollector.collect(
+        registry,
+        scopeCtx,
+        "test.cnx",
+        new Set(),
+      );
 
       expect(result.scopeSymbol.members).toEqual(["init", "update"]);
       // init() is public by default (no modifier)
@@ -137,7 +151,12 @@ describe("ScopeCollector", () => {
       `;
       const tree = parse(code);
       const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
-      const result = ScopeCollector.collect(scopeCtx, "test.cnx", new Set());
+      const result = ScopeCollector.collect(
+        registry,
+        scopeCtx,
+        "test.cnx",
+        new Set(),
+      );
 
       expect(result.scopeSymbol.members).toEqual(["position", "speed"]);
       expect(result.scopeSymbol.memberVisibility.get("position")).toBe(
@@ -172,7 +191,12 @@ describe("ScopeCollector", () => {
       `;
       const tree = parse(code);
       const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
-      const result = ScopeCollector.collect(scopeCtx, "test.cnx", new Set());
+      const result = ScopeCollector.collect(
+        registry,
+        scopeCtx,
+        "test.cnx",
+        new Set(),
+      );
 
       expect(result.scopeSymbol.members).toEqual(["State"]);
 
@@ -199,7 +223,12 @@ describe("ScopeCollector", () => {
       `;
       const tree = parse(code);
       const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
-      const result = ScopeCollector.collect(scopeCtx, "test.cnx", new Set());
+      const result = ScopeCollector.collect(
+        registry,
+        scopeCtx,
+        "test.cnx",
+        new Set(),
+      );
 
       // Struct has bare name with scope reference
       const structSymbol = result.memberSymbols.find(
@@ -228,7 +257,12 @@ describe("ScopeCollector", () => {
       `;
       const tree = parse(code);
       const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
-      const result = ScopeCollector.collect(scopeCtx, "test.cnx", new Set());
+      const result = ScopeCollector.collect(
+        registry,
+        scopeCtx,
+        "test.cnx",
+        new Set(),
+      );
 
       // Bitmap has bare name with scope reference
       const bitmapSymbol = result.memberSymbols.find(
@@ -257,7 +291,12 @@ describe("ScopeCollector", () => {
       `;
       const tree = parse(code);
       const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
-      const result = ScopeCollector.collect(scopeCtx, "test.cnx", new Set());
+      const result = ScopeCollector.collect(
+        registry,
+        scopeCtx,
+        "test.cnx",
+        new Set(),
+      );
 
       // Register has bare name with scope reference
       const regSymbol = result.memberSymbols.find((s) => s.name === "CTRL");
@@ -289,7 +328,12 @@ describe("ScopeCollector", () => {
       `;
       const tree = parse(code);
       const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
-      const result = ScopeCollector.collect(scopeCtx, "test.cnx", new Set());
+      const result = ScopeCollector.collect(
+        registry,
+        scopeCtx,
+        "test.cnx",
+        new Set(),
+      );
 
       expect(result.scopeSymbol.members).toEqual(["position", "init", "State"]);
       expect(result.memberSymbols).toHaveLength(3);
@@ -328,6 +372,7 @@ describe("ScopeCollector", () => {
       const isScopeType = (qualifiedName: string): boolean =>
         knownBitmaps.has(qualifiedName);
       const result = ScopeCollector.collect(
+        registry,
         scopeCtx,
         "test.cnx",
         knownBitmaps,
@@ -361,6 +406,7 @@ describe("ScopeCollector", () => {
       const isScopeType = (qualifiedName: string): boolean =>
         knownBitmaps.has(qualifiedName);
       const result = ScopeCollector.collect(
+        registry,
         scopeCtx,
         "test.cnx",
         knownBitmaps,
@@ -385,7 +431,12 @@ describe("ScopeCollector", () => {
       `;
       const tree = parse(code);
       const scopeCtx = tree.declaration(0)!.scopeDeclaration()!;
-      const result = ScopeCollector.collect(scopeCtx, "test.cnx", new Set());
+      const result = ScopeCollector.collect(
+        registry,
+        scopeCtx,
+        "test.cnx",
+        new Set(),
+      );
 
       expect(result.scopeSymbol.span.line).toBe(3);
     });

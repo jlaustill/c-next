@@ -24,14 +24,18 @@ const noForeign = {
   structTagsWithBodies: new Set<string>(),
 };
 
+let registry = new SymbolRegistry();
+
+beforeEach(() => {
+  registry = new SymbolRegistry();
+});
+
 describe("Program", () => {
   // CLAUDE.md, "Test isolation": CNextResolver writes to the SymbolRegistry.
-  beforeEach(() => {
-    SymbolRegistry.reset();
-  });
+  beforeEach(() => {});
 
   const declare = (code: string, sourceFile: string): IFileSymbols =>
-    CNextResolver.resolve(parse(code), sourceFile);
+    CNextResolver.resolve(parse(code), sourceFile, registry);
 
   const find = (symbols: ReadonlyArray<TSymbol>, name: string): TSymbol => {
     const found = symbols.find((symbol) => symbol.name === name);
@@ -56,7 +60,7 @@ describe("Program", () => {
 
       Program.build([lib, use]);
 
-      const scope = SymbolRegistry.getScope("Chip");
+      const scope = registry.getScope("Chip");
       expect(scope).toBeDefined();
       const area = scope!.functions.find((f) => f.name === "area");
       expect(area).toBeDefined();
@@ -82,9 +86,9 @@ describe("Program", () => {
       const program = Program.build([lib, use]);
 
       const fromProgram = find(program.symbolsInFile("use.cnx"), "area");
-      const fromRegistry = SymbolRegistry.getScope("Chip")!.functions.find(
-        (f) => f.name === "area",
-      );
+      const fromRegistry = registry
+        .getScope("Chip")!
+        .functions.find((f) => f.name === "area");
 
       expect(fromRegistry).toBe(fromProgram);
     });
@@ -110,7 +114,7 @@ describe("Program", () => {
 
       Program.build([lib, a, b]);
 
-      const functions = SymbolRegistry.getScope("Chip")!.functions;
+      const functions = registry.getScope("Chip")!.functions;
       for (const name of ["areaA", "areaB"]) {
         const fn = functions.find((f) => f.name === name);
         expect(fn, name).toBeDefined();
@@ -253,9 +257,12 @@ describe("Program", () => {
     const typesIn = (
       kinds: ReadonlyArray<[string, string]>,
     ): ReadonlySet<string> =>
-      Program.build([], new Map(), {
-        ...noForeign,
-        c: kinds.map(([name, kind]) => cSymbol(name, kind)),
+      Program.build([], {
+        headerStructFields: new Map(),
+        foreign: {
+          ...noForeign,
+          c: kinds.map(([name, kind]) => cSymbol(name, kind)),
+        },
       }).typesDeclaredIn("types.h");
 
     it.each([["struct"], ["type"], ["enum"], ["class"]])(
@@ -304,11 +311,14 @@ describe("Program", () => {
       typedefToTag: Array<[string, string]>,
       structTagsWithBodies: string[],
     ) =>
-      Program.build([], new Map(), {
-        ...noForeign,
-        opaqueTypedefs: new Set(opaqueTypedefs),
-        typedefToTag: new Map(typedefToTag),
-        structTagsWithBodies: new Set(structTagsWithBodies),
+      Program.build([], {
+        headerStructFields: new Map(),
+        foreign: {
+          ...noForeign,
+          opaqueTypedefs: new Set(opaqueTypedefs),
+          typedefToTag: new Map(typedefToTag),
+          structTagsWithBodies: new Set(structTagsWithBodies),
+        },
       });
 
     it("is opaque when the tag never received a body", () => {
@@ -406,6 +416,7 @@ describe("Program", () => {
         "constValuesIn",
         "externalStructFields",
         "functionParamLists",
+        "globalScope",
         "includeSearchPaths",
         "isOpaqueType",
         "isScopeType",
@@ -413,6 +424,9 @@ describe("Program", () => {
         "modifiedParameters",
         "opaqueTypes",
         "passByValueParams",
+        "resolveFunction",
+        "scope",
+        "scopePathOf",
         "sourceFiles",
         "symbolByCName",
         "symbolsInFile",

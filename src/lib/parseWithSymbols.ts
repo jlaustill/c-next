@@ -3,6 +3,7 @@
  * ADR-055 Phase 7: Direct TSymbol → ISymbolInfo conversion (no ISymbol intermediate)
  */
 
+import SymbolRegistry from "../transpiler/state/SymbolRegistry";
 import CNextSourceParser from "../PARSE/2-Parse/CNextSourceParser";
 import CNextResolver from "../PARSE/3-Declare/cnext/index";
 import DeferredTypes from "../PARSE/4-Resolve/DeferredTypes";
@@ -305,7 +306,14 @@ function parseWithSymbols(source: string): IParseWithSymbolsResult {
   // get an internal error on any scope that names a type bare. This entry point
   // takes a single source with no include context, so the program IS this file
   // and its own declared scope types are the whole-program set.
-  const declared = CNextResolver.resolve(tree, "<source>");
+  // #1378, closed by construction (#1452 box 3): this path never reset the
+  // global registry, so scopes from a previously parsed source leaked into the
+  // next call. There is no global to reset now -- each call gets its own.
+  const declared = CNextResolver.resolve(
+    tree,
+    "<source>",
+    new SymbolRegistry(),
+  );
   const tSymbols = DeferredTypes.settle(declared.symbols, (qualifiedName) =>
     declared.declaredScopeTypes.has(qualifiedName),
   );

@@ -28,7 +28,7 @@ function parse(source: string) {
 function analyze(source: string) {
   const tree = parse(source);
   CodeGenState.symbols = TSymbolInfoAdapter.convert(
-    CNextResolver.resolve(tree, "test.cnx").symbols,
+    CNextResolver.resolve(tree, "test.cnx", registry).symbols,
   );
   // Same precondition as E0426: the analyzer declines unless the transpiler
   // knows the file's whole name universe. These sources include nothing.
@@ -36,10 +36,14 @@ function analyze(source: string) {
   return new UndeclaredValueAnalyzer().analyze(tree);
 }
 
+let registry = new SymbolRegistry();
+
+beforeEach(() => {
+  registry = new SymbolRegistry();
+});
+
 describe("UndeclaredValueAnalyzer", () => {
-  beforeEach(() => {
-    SymbolRegistry.reset();
-  });
+  beforeEach(() => {});
 
   afterEach(() => {
     CodeGenState.reset();

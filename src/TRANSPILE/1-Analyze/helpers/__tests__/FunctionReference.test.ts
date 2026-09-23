@@ -19,17 +19,22 @@ import FunctionReference from "../FunctionReference";
  * a global -- sharing a name make the order observable at all.
  */
 const build = (source: string) => {
-  SymbolRegistry.reset();
   const { tree } = CNextSourceParser.parse(source);
-  CodeGenState.program = Program.build([CNextResolver.resolve(tree, "a.cnx")]);
+  CodeGenState.program = Program.build([
+    CNextResolver.resolve(tree, "a.cnx", registry),
+  ]);
 };
 
-beforeEach(() => {
-  SymbolRegistry.reset();
-});
+beforeEach(() => {});
 
 afterEach(() => {
   CodeGenState.reset();
+});
+
+let registry = new SymbolRegistry();
+
+beforeEach(() => {
+  registry = new SymbolRegistry();
 });
 
 describe("FunctionReference.candidates -- the ADR-057 order", () => {

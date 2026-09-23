@@ -315,10 +315,9 @@ describe("runAnalyzers", () => {
         "field2",
         "u32",
       );
-      CodeGenState.program = Program.build(
-        [],
-        CodeGenState.symbolTable.getAllStructFields(),
-      );
+      CodeGenState.program = Program.build([], {
+        headerStructFields: CodeGenState.symbolTable.getAllStructFields(),
+      });
 
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
@@ -370,10 +369,9 @@ describe("runAnalyzers", () => {
         visibility: "public",
       });
       CodeGenState.symbolTable.addStructField("CppMessage", "pgn", "u16");
-      CodeGenState.program = Program.build(
-        [],
-        CodeGenState.symbolTable.getAllStructFields(),
-      );
+      CodeGenState.program = Program.build([], {
+        headerStructFields: CodeGenState.symbolTable.getAllStructFields(),
+      });
 
       // No options passed - should use CodeGenState.symbolTable
       const errors = runAnalyzers(tree, comments, {

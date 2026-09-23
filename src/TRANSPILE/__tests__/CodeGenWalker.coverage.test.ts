@@ -50,7 +50,7 @@ function setupGenerator(
   }
 
   const symbolTable = new SymbolTable();
-  const tSymbols = CNextResolver.resolve(tree, "test.cnx").symbols;
+  const tSymbols = CNextResolver.resolve(tree, "test.cnx", registry).symbols;
   // Issue #831: Register TSymbols in SymbolTable (single source of truth)
   symbolTable.addTSymbols(tSymbols);
   const symbols = TSymbolInfoAdapter.convert(tSymbols);
@@ -84,16 +84,15 @@ function installProgramFor(
   tree: Parser.ProgramContext,
   sourcePath = "test.cnx",
 ): void {
-  const declared = CNextResolver.resolve(tree, sourcePath);
-  const modifications = ModificationFacts.derive([
-    { parsed: { tree } as never, fileSymbols: declared },
-  ]);
-  CodeGenState.program = Program.build(
-    [declared],
-    new Map(),
-    undefined,
-    modifications,
+  const declared = CNextResolver.resolve(tree, sourcePath, registry);
+  const modifications = ModificationFacts.derive(
+    [{ parsed: { tree } as never, fileSymbols: declared }],
+    registry,
   );
+  CodeGenState.program = Program.build([declared], {
+    modifications,
+    registry,
+  });
 }
 
 /** Generate with the whole-program artifact in place — see #1511. */
@@ -107,13 +106,18 @@ function generateWithProgram(
   return generator.generate(tree, tokenStream, options);
 }
 
+let registry = new SymbolRegistry();
+
+beforeEach(() => {
+  registry = new SymbolRegistry();
+});
+
 describe("CodeGenWalker Coverage Tests", () => {
   beforeEach(() => {
     CodeGenState.reset();
     // CLAUDE.md, "Test isolation": this file drives CNextResolver, which writes
     // to the SymbolRegistry. Without this, every test inherits the scopes the
     // previous one registered.
-    SymbolRegistry.reset();
   });
 
   // ==========================================================================
@@ -682,7 +686,11 @@ describe("CodeGenWalker Coverage Tests", () => {
       // Mark NamedPoint as requiring 'struct' keyword (simulates C header import)
       symbolTable.markNeedsStructKeyword("NamedPoint");
 
-      const tSymbols = CNextResolver.resolve(tree, "test.cnx").symbols;
+      const tSymbols = CNextResolver.resolve(
+        tree,
+        "test.cnx",
+        registry,
+      ).symbols;
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       // #1445 box 3: the walk and the render-side services are two objects now.
@@ -725,7 +733,11 @@ describe("CodeGenWalker Coverage Tests", () => {
       const symbolTable = new SymbolTable();
       // Do NOT mark as needing struct keyword (simulates typedef'd struct)
 
-      const tSymbols = CNextResolver.resolve(tree, "test.cnx").symbols;
+      const tSymbols = CNextResolver.resolve(
+        tree,
+        "test.cnx",
+        registry,
+      ).symbols;
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       // #1445 box 3: the walk and the render-side services are two objects now.
@@ -759,7 +771,11 @@ describe("CodeGenWalker Coverage Tests", () => {
       const symbolTable = new SymbolTable();
       symbolTable.markNeedsStructKeyword("CppPoint");
 
-      const tSymbols = CNextResolver.resolve(tree, "test.cnx").symbols;
+      const tSymbols = CNextResolver.resolve(
+        tree,
+        "test.cnx",
+        registry,
+      ).symbols;
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       // #1445 box 3: the walk and the render-side services are two objects now.
@@ -1244,7 +1260,11 @@ describe("CodeGenWalker Coverage Tests", () => {
       const { tree, tokenStream } = CNextSourceParser.parse(source);
 
       const symbolTable = new SymbolTable();
-      const tSymbols = CNextResolver.resolve(tree, "test.cnx").symbols;
+      const tSymbols = CNextResolver.resolve(
+        tree,
+        "test.cnx",
+        registry,
+      ).symbols;
       symbolTable.addTSymbols(tSymbols);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1439,7 +1459,11 @@ describe("CodeGenWalker Coverage Tests", () => {
       const { tree, tokenStream } = CNextSourceParser.parse(source);
 
       const symbolTable = new SymbolTable();
-      const tSymbols = CNextResolver.resolve(tree, "test.cnx").symbols;
+      const tSymbols = CNextResolver.resolve(
+        tree,
+        "test.cnx",
+        registry,
+      ).symbols;
       symbolTable.addTSymbols(tSymbols);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
@@ -1483,7 +1507,11 @@ describe("CodeGenWalker Coverage Tests", () => {
       const { tree, tokenStream } = CNextSourceParser.parse(source);
 
       const symbolTable = new SymbolTable();
-      const tSymbols = CNextResolver.resolve(tree, "test.cnx").symbols;
+      const tSymbols = CNextResolver.resolve(
+        tree,
+        "test.cnx",
+        registry,
+      ).symbols;
       symbolTable.addTSymbols(tSymbols);
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 

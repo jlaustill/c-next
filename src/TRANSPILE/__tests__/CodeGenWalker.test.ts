@@ -33,7 +33,7 @@ function declareAndResolveAs(
   tree: Parser.ProgramContext,
   sourcePath: string,
 ): TSymbol[] {
-  const declared = CNextResolver.resolve(tree, sourcePath);
+  const declared = CNextResolver.resolve(tree, sourcePath, registry);
   return DeferredTypes.settle(declared.symbols, (qualifiedName) =>
     declared.declaredScopeTypes.has(qualifiedName),
   );
@@ -112,16 +112,15 @@ function installProgramFor(
   tree: Parser.ProgramContext,
   sourcePath = "test.cnx",
 ): void {
-  const declared = CNextResolver.resolve(tree, sourcePath);
-  const modifications = ModificationFacts.derive([
-    { parsed: { tree } as never, fileSymbols: declared },
-  ]);
-  CodeGenState.program = Program.build(
-    [declared],
-    new Map(),
-    undefined,
-    modifications,
+  const declared = CNextResolver.resolve(tree, sourcePath, registry);
+  const modifications = ModificationFacts.derive(
+    [{ parsed: { tree } as never, fileSymbols: declared }],
+    registry,
   );
+  CodeGenState.program = Program.build([declared], {
+    modifications,
+    registry,
+  });
 }
 
 /**
@@ -144,10 +143,15 @@ function generateWithProgram(
   return generator.generate(tree, tokenStream, options);
 }
 
+let registry = new SymbolRegistry();
+
+beforeEach(() => {
+  registry = new SymbolRegistry();
+});
+
 describe("CodeGenWalker", () => {
   // Reset SymbolRegistry before each test to prevent state pollution
   beforeEach(() => {
-    SymbolRegistry.reset();
     // CodeGenState.symbolTable is a run-wide singleton. ADR-057's shadow
     // predicate asks it whether a bare name is already taken at file scope, so
     // symbols left by an earlier test in this file make an unrelated local look
@@ -385,7 +389,7 @@ describe("CodeGenWalker", () => {
         // #1304: entering a scope the registry does not hold is an invariant
         // violation now, not a silent orphan. A unit test that skips the
         // symbols pass registers the scope itself.
-        SymbolRegistry.getOrCreateScope("MyScope");
+        registry.getOrCreateScope("MyScope");
 
         host.applyEffects([{ type: "set-scope", name: "MyScope" }]);
 
@@ -780,7 +784,7 @@ describe("CodeGenWalker", () => {
       it("should set and track current scope", () => {
         const { host } = createMinimalGenerator(`void foo() { }`);
         // #1304: see the note on "should process set-scope effects".
-        SymbolRegistry.getOrCreateScope("MyScope");
+        registry.getOrCreateScope("MyScope");
 
         host.setCurrentScope("MyScope");
         expect(host.getState().currentScopePath).toBe("MyScope");

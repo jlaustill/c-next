@@ -36,23 +36,27 @@ function makeInit(): ReturnType<typeof FunctionUtils.create> {
   });
 }
 
+let registry = new SymbolRegistry();
+
+beforeEach(() => {
+  registry = new SymbolRegistry();
+});
+
 describe("the symbol graph is serializable (#1298)", () => {
-  beforeEach(() => {
-    SymbolRegistry.reset();
-  });
+  beforeEach(() => {});
 
   it("encodes the global scope without exhausting the stack", () => {
-    const global = SymbolRegistry.getGlobalScope();
+    const global = registry.getGlobalScope();
     expect(() => JsonCodec.encode(global)).not.toThrow();
   });
 
   it("encodes a nested scope without exhausting the stack", () => {
-    const inner = SymbolRegistry.getOrCreateScope("Outer.Inner");
+    const inner = registry.getOrCreateScope("Outer.Inner");
     expect(() => JsonCodec.encode(inner)).not.toThrow();
   });
 
   it("round-trips a nested scope with its identity intact", () => {
-    const inner = SymbolRegistry.getOrCreateScope("Outer.Inner");
+    const inner = registry.getOrCreateScope("Outer.Inner");
     const revived = JsonCodec.decode(
       JsonCodec.encode(inner) as TJsonValue,
     ) as Record<string, unknown>;
@@ -73,16 +77,16 @@ describe("the symbol graph is serializable (#1298)", () => {
     // back. Restore `scope: IScopeSymbol` on IFunctionSymbol alone and this
     // recurses scope -> functions[0] -> scope, while every test above stays
     // green because none of them registers a member.
-    const scope = SymbolRegistry.getOrCreateScope("Motor");
-    SymbolRegistry.registerFunction(makeInit());
+    const scope = registry.getOrCreateScope("Motor");
+    registry.registerFunction(makeInit());
 
     expect(scope.functions).toHaveLength(1);
     expect(() => JsonCodec.encode(scope)).not.toThrow();
   });
 
   it("round-trips a scope with its member, both identities intact", () => {
-    const scope = SymbolRegistry.getOrCreateScope("Motor");
-    SymbolRegistry.registerFunction(makeInit());
+    const scope = registry.getOrCreateScope("Motor");
+    registry.registerFunction(makeInit());
 
     const revived = JsonCodec.decode(
       JsonCodec.encode(scope) as TJsonValue,

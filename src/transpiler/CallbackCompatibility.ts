@@ -45,6 +45,7 @@
 import FunctionCallAnalyzer from "../TRANSPILE/1-Analyze/FunctionCallAnalyzer";
 import AdrProvenance from "../instrumentation/AdrProvenance";
 import CodeGenState from "./state/CodeGenState";
+import SymbolRegistry from "./state/SymbolRegistry";
 import type SymbolTable from "./state/SymbolTable";
 import type IParsedFile from "./types/IParsedFile";
 
@@ -57,6 +58,7 @@ class CallbackCompatibility {
   static derive(
     declared: ReadonlyArray<{ readonly parsed: IParsedFile }>,
     symbolTable: SymbolTable,
+    registry: SymbolRegistry,
   ): ReadonlyMap<string, string> {
     CodeGenState.callbackCompatibleFunctions = new Map();
     // Asserted, not inherited from call order: nothing this pass walks is
@@ -73,6 +75,7 @@ class CallbackCompatibility {
     for (const entry of declared) {
       for (const name of FunctionCallAnalyzer.declaredFunctionNames(
         entry.parsed.tree,
+        registry,
       )) {
         programFunctions.add(name);
       }
@@ -80,7 +83,7 @@ class CallbackCompatibility {
 
     for (const entry of declared) {
       // Diagnostics discarded: the per-file run reports them.
-      new FunctionCallAnalyzer(programFunctions).analyze(
+      new FunctionCallAnalyzer(programFunctions, registry).analyze(
         entry.parsed.tree,
         symbolTable,
       );

@@ -24,7 +24,6 @@ import SymbolTable from "../../transpiler/state/SymbolTable";
 import CodeGenState from "../../transpiler/state/CodeGenState";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
 import ScopeUtils from "../../utils/ScopeUtils";
-import SymbolRegistry from "../../transpiler/state/SymbolRegistry";
 
 /**
  * Tracks the initialization state of a variable
@@ -556,9 +555,9 @@ class InitializationAnalyzer {
 
     // #1298: the whole scope PATH, not its leaf name, so a nested scope keeps
     // its outer components when its members are qualified.
-    const scopePath = ScopeUtils.pathOf(
-      SymbolRegistry.getOrCreateScope(scopeDecl.IDENTIFIER().getText()),
-    );
+    const scopePath =
+      CodeGenState.program?.scopePathOf(scopeDecl.IDENTIFIER().getText()) ??
+      scopeDecl.IDENTIFIER().getText();
 
     // Phase 1: Find all members assigned in any scope function
     const assignedMembers = this._findAssignedScopeMembers(scopeDecl);

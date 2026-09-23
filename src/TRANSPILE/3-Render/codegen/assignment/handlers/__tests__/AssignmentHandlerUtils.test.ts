@@ -7,6 +7,12 @@ import AssignmentHandlerUtils from "../AssignmentHandlerUtils";
 import SymbolRegistry from "../../../../../../transpiler/state/SymbolRegistry";
 import ScopeUtils from "../../../../../../utils/ScopeUtils";
 
+let registry = new SymbolRegistry();
+
+beforeEach(() => {
+  registry = new SymbolRegistry();
+});
+
 describe("AssignmentHandlerUtils", () => {
   // #1322: compound assignment on a bit index, bit range, slice or string is
   // E0857 in pass 2.1 -- one decision where this was six throws with four
@@ -102,7 +108,7 @@ describe("AssignmentHandlerUtils", () => {
       // #1285: the previous signature took a scope NAME, so the caller in
       // RegisterHandlers read `.name` off the scope symbol it already held and
       // dropped every outer component. Passing the symbol keeps the chain.
-      SymbolRegistry.getOrCreateScope("Board");
+      registry.getOrCreateScope("Board");
       const inner = ScopeUtils.createScope("Teensy4", "Board");
       const result = AssignmentHandlerUtils.buildScopedRegisterName(
         ScopeUtils.pathOf(inner),

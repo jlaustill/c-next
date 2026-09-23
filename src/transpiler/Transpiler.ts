@@ -193,6 +193,13 @@ class Transpiler {
    * recomputing one. Null until Stage 3 completes, which is the only window
    * in which nothing is entitled to ask.
    */
+  /**
+   * #1452 box 3: the run's scope graph. One per run, constructed here and
+   * threaded -- there is no global to clear, so a test cannot forget to.
+   */
+  private symbolRegistry = new SymbolRegistry();
+
+  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
   private program: IProgram | null = null;
 
   /**
@@ -721,47 +728,54 @@ class Transpiler {
       // the running total, extracting its own contribution and restoring the
       // globals it clobbered -- so "does this callee modify its parameter?"
       // answered differently depending on how many files had gone before.
-      const modifications = ModificationFacts.derive(declared);
+      const modifications = ModificationFacts.derive(
+        declared,
+        this.symbolRegistry,
+      );
       // #1511: derived over every tree before anything renders. Accumulated
       // during rendering, this map was partial for whichever file went first.
       const callbackCompatible = CallbackCompatibility.derive(
         declared,
         CodeGenState.symbolTable,
+        this.symbolRegistry,
       );
 
       this.program = Program.build(
         declared.map((entry) => entry.fileSymbols),
-        CodeGenState.symbolTable.getAllStructFields(),
-        // #1511: the C and C++ halves of the conflict question. Both are in the
-        // table by now -- Stage 2 put them there -- and the C-Next half is the
-        // first argument, so `Program` can derive a fact that used to wait for
-        // an accumulator to finish filling.
-        // #1511: everything the C/C++ headers contributed. The opacity inputs
-        // are the RAW bookkeeping, not the verdict -- `Program` resolves which
-        // typedefs never received a body. Read here because #985 phantom-body
-        // recovery has already run (Stage 2), so the state is final.
         {
-          c: CodeGenState.symbolTable.getAllCSymbols(),
-          cpp: CodeGenState.symbolTable.getAllCppSymbols(),
-          opaqueTypedefs: new Set(CodeGenState.symbolTable.getAllOpaqueTypes()),
-          typedefToTag: new Map(CodeGenState.symbolTable.getAllTypedefToTag()),
-          structTagsWithBodies: new Set(
-            CodeGenState.symbolTable.getAllStructTagsWithBodies(),
-          ),
-        },
-        modifications,
-        {
-          includeDirs: this.config.includeDirs ?? [],
-          cnextIncludesByFile: new Map(
-            declared
-              .filter((entry) => entry.file.cnextIncludes !== undefined)
-              .map((entry) => [entry.file.path, entry.file.cnextIncludes!]),
-          ),
-        },
-        callbackCompatible,
-        {
-          cnxIncludeRewrites: this.discoveredCnxIncludeRewrites,
-          includeSearchPaths: this.discoveredIncludeSearchPaths,
+          headerStructFields: CodeGenState.symbolTable.getAllStructFields(),
+          // #1511: everything the C/C++ headers contributed. The opacity inputs
+          // are the RAW bookkeeping, not the verdict -- `Program` resolves which
+          // typedefs never received a body. Read here because #985 phantom-body
+          // recovery has already run (Stage 2), so the state is final.
+          foreign: {
+            c: CodeGenState.symbolTable.getAllCSymbols(),
+            cpp: CodeGenState.symbolTable.getAllCppSymbols(),
+            opaqueTypedefs: new Set(
+              CodeGenState.symbolTable.getAllOpaqueTypes(),
+            ),
+            typedefToTag: new Map(
+              CodeGenState.symbolTable.getAllTypedefToTag(),
+            ),
+            structTagsWithBodies: new Set(
+              CodeGenState.symbolTable.getAllStructTagsWithBodies(),
+            ),
+          },
+          modifications,
+          visibility: {
+            includeDirs: this.config.includeDirs ?? [],
+            cnextIncludesByFile: new Map(
+              declared
+                .filter((entry) => entry.file.cnextIncludes !== undefined)
+                .map((entry) => [entry.file.path, entry.file.cnextIncludes!]),
+            ),
+          },
+          callbackCompatibleFunctions: callbackCompatible,
+          discovery: {
+            cnxIncludeRewrites: this.discoveredCnxIncludeRewrites,
+            includeSearchPaths: this.discoveredIncludeSearchPaths,
+          },
+          registry: this.symbolRegistry,
         },
       );
       // Passes after 1.4 read cross-file facts from the artifact rather than
@@ -1437,7 +1451,7 @@ class Transpiler {
     // Issue #634: Reset symbol table for new run
     CodeGenState.symbolTable.clear();
     // Reset SymbolRegistry for new run (new IFunctionSymbol type system)
-    SymbolRegistry.reset();
+    this.symbolRegistry = new SymbolRegistry();
     // Reset callback-compatible functions for new run
     // (populated by FunctionCallAnalyzer, persists through CodeGenState.reset())
     CodeGenState.callbackCompatibleFunctions = new Map();
@@ -2970,7 +2984,11 @@ class Transpiler {
     // seed silently short. Neither is true now -- 1.4 Resolve settles those
     // references against the whole program, after every file is declared, so
     // order cannot affect the result.
-    const declared = CNextResolver.resolve(tree, sourcePath);
+    const declared = CNextResolver.resolve(
+      tree,
+      sourcePath,
+      this.symbolRegistry,
+    );
 
     return declared;
   }

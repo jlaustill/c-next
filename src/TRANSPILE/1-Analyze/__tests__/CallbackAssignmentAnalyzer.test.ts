@@ -32,11 +32,12 @@ import TSymbolInfoAdapter from "../../../PARSE/3-Declare/cnext/adapters/TSymbolI
  * were carrying the whole rule.
  */
 const build = (source: string) => {
-  SymbolRegistry.reset();
   const { tree } = CNextSourceParser.parse(source);
-  CodeGenState.program = Program.build([CNextResolver.resolve(tree, "a.cnx")]);
+  CodeGenState.program = Program.build([
+    CNextResolver.resolve(tree, "a.cnx", registry),
+  ]);
   CodeGenState.symbols = TSymbolInfoAdapter.convert(
-    CNextResolver.resolve(tree, "a.cnx").symbols,
+    CNextResolver.resolve(tree, "a.cnx", registry).symbols,
   );
   return new CallbackAssignmentAnalyzer().analyze(tree);
 };
@@ -45,6 +46,12 @@ const findings = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
   return new CallbackAssignmentAnalyzer().analyze(tree);
 };
+
+let registry = new SymbolRegistry();
+
+beforeEach(() => {
+  registry = new SymbolRegistry();
+});
 
 describe("CallbackAssignmentAnalyzer", () => {
   it("returns no findings when the program's symbols are absent", () => {

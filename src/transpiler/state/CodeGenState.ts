@@ -52,7 +52,6 @@ import ScopeUtils from "../../utils/ScopeUtils";
 import invariant from "../../utils/invariant";
 import type ITypeBindingDeps from "../types/ITypeBindingDeps";
 import type IDeclarationPlan from "../types/IDeclarationPlan";
-import SymbolRegistry from "./SymbolRegistry";
 import DEFAULT_TARGET from "../constants/DEFAULT_TARGET";
 
 /**
@@ -1727,7 +1726,7 @@ export default class CodeGenState {
       this.currentScopePath = "";
       return;
     }
-    const scope = SymbolRegistry.getScope(name);
+    const scope = this.program?.scope(name) ?? null;
     invariant(
       scope !== null,
       `a scope entered during generation was registered by the symbols pass (got "${name}")`,

@@ -142,7 +142,6 @@ import BitRangeHelper from "./3-Render/codegen/helpers/BitRangeHelper";
 import CodeGenState from "../transpiler/state/CodeGenState";
 import invariant from "../utils/invariant";
 import AdrProvenance from "../instrumentation/AdrProvenance";
-import SymbolRegistry from "../transpiler/state/SymbolRegistry";
 import PassByValueAnalyzer from "./2-Plan/PassByValueAnalyzer";
 import ParameterInputAdapter from "./3-Render/codegen/helpers/ParameterInputAdapter";
 import ParameterSignatureBuilder from "./3-Render/codegen/helpers/ParameterSignatureBuilder";
@@ -2212,7 +2211,7 @@ class CodeGenWalker {
           // #1298: resolve the scope PATH rather than reading back mutable
           // state, so the generated name does not depend on when it is asked.
           this._registerScopeFunction(
-            ScopeUtils.pathOf(SymbolRegistry.getOrCreateScope(scopeName)),
+            CodeGenState.program?.scopePathOf(scopeName) ?? scopeName,
             funcDecl,
           );
         }
@@ -2251,6 +2250,7 @@ class CodeGenWalker {
     const fullName = QualifiedNameGenerator.forFunctionInScope(
       declaringScopePath,
       funcName,
+      CodeGenState.program,
     );
     CodeGenState.knownFunctions.add(fullName);
     // ADR-013: Track function signature for const checking
@@ -3121,9 +3121,7 @@ class CodeGenWalker {
     // qualifies against every outer component instead of re-joining one level.
     // `getOrCreateScope` is the same resolver `setCurrentScopeByPath` uses, and
     // it is cached, so this is one decision asked twice -- not two decisions.
-    const declaringScopePath = ScopeUtils.pathOf(
-      SymbolRegistry.getOrCreateScope(name),
-    );
+    const declaringScopePath = CodeGenState.program?.scopePathOf(name) ?? name;
     const members = ctx.scopeMember();
 
     return {
@@ -3223,6 +3221,7 @@ class CodeGenWalker {
         fullName: QualifiedNameGenerator.forFunctionInScope(
           declaringScopePath,
           funcDecl.IDENTIFIER().getText(),
+          CodeGenState.program,
         ),
         declaredTypeText: funcDecl.type().getText(),
         renderReturnType: () => this.generateType(funcDecl.type()),

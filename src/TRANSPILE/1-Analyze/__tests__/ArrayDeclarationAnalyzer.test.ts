@@ -27,15 +27,20 @@ const errors = (source: string) => {
  */
 const errorsWithProgram = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  SymbolRegistry.reset();
   CodeGenState.program = Program.build([
-    CNextResolver.resolve(tree, "collide.cnx"),
+    CNextResolver.resolve(tree, "collide.cnx", registry),
   ]);
   return new ArrayDeclarationAnalyzer().analyze(tree);
 };
 
 afterEach(() => {
   CodeGenState.reset();
+});
+
+let registry = new SymbolRegistry();
+
+beforeEach(() => {
+  registry = new SymbolRegistry();
 });
 
 describe("ArrayDeclarationAnalyzer", () => {

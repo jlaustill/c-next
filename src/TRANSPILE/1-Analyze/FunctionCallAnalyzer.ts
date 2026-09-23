@@ -265,7 +265,16 @@ class FunctionCallAnalyzer {
    *        supplied by the whole-program callback pass. Omitted for a per-file
    *        run -- see the field.
    */
-  public constructor(programFunctions: ReadonlySet<string> = new Set()) {
+  /**
+   * #1452 box 3: `registry` is supplied only by the Stage 3 caller
+   * (`CallbackCompatibility.derive`), which runs BEFORE `Program.build` and so
+   * cannot reach the scope graph through the artifact. The 2.1 caller leaves it
+   * undefined and reads `IProgram`, which exists by then.
+   */
+  public constructor(
+    programFunctions: ReadonlySet<string> = new Set(),
+    private readonly registry?: SymbolRegistry,
+  ) {
     this.programFunctions = programFunctions;
   }
 
@@ -349,7 +358,10 @@ class FunctionCallAnalyzer {
    * and cross-file functions from includes (allowed without local definition).
    */
   private collectAllLocalFunctions(tree: Parser.ProgramContext): void {
-    for (const name of FunctionCallAnalyzer.declaredFunctionNames(tree)) {
+    for (const name of FunctionCallAnalyzer.declaredFunctionNames(
+      tree,
+      this.registry,
+    )) {
       this.allLocalFunctions.add(name);
     }
   }
@@ -366,6 +378,7 @@ class FunctionCallAnalyzer {
    */
   public static declaredFunctionNames(
     tree: Parser.ProgramContext,
+    registry?: SymbolRegistry,
   ): Set<string> {
     const names = new Set<string>();
     for (const decl of tree.declaration()) {
@@ -376,9 +389,13 @@ class FunctionCallAnalyzer {
       // Scope member functions
       if (decl.scopeDeclaration()) {
         const scopeDecl = decl.scopeDeclaration()!;
-        const scopePath = ScopeUtils.pathOf(
-          SymbolRegistry.getOrCreateScope(scopeDecl.IDENTIFIER().getText()),
-        );
+        const scopePath = registry
+          ? ScopeUtils.pathOf(
+              registry.getOrCreateScope(scopeDecl.IDENTIFIER().getText()),
+            )
+          : (CodeGenState.program?.scopePathOf(
+              scopeDecl.IDENTIFIER().getText(),
+            ) ?? scopeDecl.IDENTIFIER().getText());
         for (const member of scopeDecl.scopeMember()) {
           if (member.functionDeclaration()) {
             const funcName = member

@@ -13,6 +13,7 @@
  */
 
 import CodeGenState from "./state/CodeGenState";
+import SymbolRegistry from "./state/SymbolRegistry";
 import PassByValueAnalyzer from "../TRANSPILE/2-Plan/PassByValueAnalyzer";
 import type IFileSymbols from "./types/IFileSymbols";
 import type IParsedFile from "./types/IParsedFile";
@@ -40,6 +41,7 @@ class ModificationFacts {
       readonly parsed: IParsedFile;
       readonly fileSymbols: IFileSymbols;
     }>,
+    registry: SymbolRegistry,
   ): IModificationFacts {
     CodeGenState.modifiedParameters.clear();
     CodeGenState.functionParamLists.clear();
@@ -47,6 +49,7 @@ class ModificationFacts {
 
     for (const entry of declared) {
       PassByValueAnalyzer.collectFunctionParametersAndModifications(
+        registry,
         entry.parsed.tree,
       );
     }

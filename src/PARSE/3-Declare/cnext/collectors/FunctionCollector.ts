@@ -94,6 +94,7 @@ class FunctionCollector {
    * @returns The function symbol
    */
   static collectAndRegister(
+    registry: SymbolRegistry,
     ctx: Parser.FunctionDeclarationContext,
     sourceFile: string,
     scopePath: string,
@@ -112,7 +113,7 @@ class FunctionCollector {
     );
 
     // 3. Register in SymbolRegistry
-    SymbolRegistry.registerFunction(symbol);
+    registry.registerFunction(symbol);
 
     return symbol;
   }

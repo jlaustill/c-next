@@ -5,7 +5,6 @@ import { tmpdir } from "node:os";
 import Transpiler from "../Transpiler";
 import HeaderGenerator from "../../TRANSPILE/3-Render/headers/HeaderGenerator";
 import CodeGenState from "../state/CodeGenState";
-import SymbolRegistry from "../state/SymbolRegistry";
 
 /**
  * Issue #1323: `_renderHeaders` (Stage 5.5) promotes a header-render failure
@@ -22,7 +21,6 @@ describe("header render failure promotion (#1323)", () => {
 
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), "cnext-header-render-failure-"));
-    SymbolRegistry.reset();
     CodeGenState.reset();
   });
 

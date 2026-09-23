@@ -59,10 +59,9 @@ describe("InitializationAnalyzer", () => {
       CodeGenState.symbolTable.addStructField("CppMessage", "pgn", "u16");
 
       // Build external struct fields from symbol table
-      CodeGenState.program = Program.build(
-        [],
-        CodeGenState.symbolTable.getAllStructFields(),
-      );
+      CodeGenState.program = Program.build([], {
+        headerStructFields: CodeGenState.symbolTable.getAllStructFields(),
+      });
 
       const analyzer = new InitializationAnalyzer();
       const errors = analyzer.analyze(tree, CodeGenState.symbolTable);
@@ -116,10 +115,9 @@ describe("InitializationAnalyzer", () => {
       CodeGenState.symbolTable.addStructField("CppStruct", "value", "u32");
 
       // Build external struct fields from symbol table
-      CodeGenState.program = Program.build(
-        [],
-        CodeGenState.symbolTable.getAllStructFields(),
-      );
+      CodeGenState.program = Program.build([], {
+        headerStructFields: CodeGenState.symbolTable.getAllStructFields(),
+      });
 
       const analyzer = new InitializationAnalyzer();
       const errors = analyzer.analyze(tree, CodeGenState.symbolTable);
@@ -150,10 +148,9 @@ describe("InitializationAnalyzer", () => {
       CodeGenState.symbolTable.addStructField("CStruct", "value", "u32");
 
       // Build external struct fields from symbol table (as pipeline does)
-      CodeGenState.program = Program.build(
-        [],
-        CodeGenState.symbolTable.getAllStructFields(),
-      );
+      CodeGenState.program = Program.build([], {
+        headerStructFields: CodeGenState.symbolTable.getAllStructFields(),
+      });
 
       const analyzer = new InitializationAnalyzer();
       const errors = analyzer.analyze(tree, CodeGenState.symbolTable);

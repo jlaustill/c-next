@@ -27,15 +27,19 @@ function parse(source: string) {
 function analyze(source: string) {
   const tree = parse(source);
   CodeGenState.symbols = TSymbolInfoAdapter.convert(
-    CNextResolver.resolve(tree, "test.cnx").symbols,
+    CNextResolver.resolve(tree, "test.cnx", registry).symbols,
   );
   return ReturnValueUseAnalyzer.analyze(tree);
 }
 
+let registry = new SymbolRegistry();
+
+beforeEach(() => {
+  registry = new SymbolRegistry();
+});
+
 describe("ReturnValueUseAnalyzer", () => {
-  beforeEach(() => {
-    SymbolRegistry.reset();
-  });
+  beforeEach(() => {});
 
   afterEach(() => {
     CodeGenState.reset();
