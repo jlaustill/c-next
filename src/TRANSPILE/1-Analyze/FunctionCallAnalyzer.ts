@@ -389,13 +389,12 @@ class FunctionCallAnalyzer {
       // Scope member functions
       if (decl.scopeDeclaration()) {
         const scopeDecl = decl.scopeDeclaration()!;
+        const scopeName = scopeDecl.IDENTIFIER().getText();
+        // Both arms ask one question -- what path does this scope NAME have?
+        // -- of whichever artifact this caller was handed.
         const scopePath = registry
-          ? ScopeUtils.pathOf(
-              registry.getOrCreateScope(scopeDecl.IDENTIFIER().getText()),
-            )
-          : (CodeGenState.program?.scopePathOf(
-              scopeDecl.IDENTIFIER().getText(),
-            ) ?? scopeDecl.IDENTIFIER().getText());
+          ? registry.scopePathOf(scopeName)
+          : (CodeGenState.program?.scopePathOf(scopeName) ?? scopeName);
         for (const member of scopeDecl.scopeMember()) {
           if (member.functionDeclaration()) {
             const funcName = member

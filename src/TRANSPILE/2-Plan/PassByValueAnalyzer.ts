@@ -296,8 +296,8 @@ class PassByValueAnalyzer {
         const scopeDecl = decl.scopeDeclaration()!;
         // #1298: the whole scope PATH, so qualification keeps every outer
         // component.
-        const scopePath = ScopeUtils.pathOf(
-          collect.registry.getOrCreateScope(scopeDecl.IDENTIFIER().getText()),
+        const scopePath = collect.registry.scopePathOf(
+          scopeDecl.IDENTIFIER().getText(),
         );
 
         for (const member of scopeDecl.scopeMember()) {

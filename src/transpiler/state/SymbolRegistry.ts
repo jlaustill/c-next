@@ -78,6 +78,28 @@ class SymbolRegistry {
   }
 
   /**
+   * The dotted path a scope NAME resolves to, without creating anything.
+   *
+   * #1452: two passes after 1.3 Declare asked this question by calling
+   * `getOrCreateScope(name)` and reading `pathOf` off the result -- the exact
+   * misuse the method below warns against, written out twice. It answered
+   * correctly only because a name it had not seen produces a scope whose
+   * `cnxScopedName` IS that name, so the orphan it created was equal to the
+   * fallback and nothing downstream noticed.
+   *
+   * The cost was that 2.1 Analyze and 2.2 Plan could both grow the registry, so
+   * "a later pass never mutates 1.3's artifact" was a property that held by
+   * measurement (120 fixtures, zero creations) rather than by construction.
+   * With this it holds by construction, and the duplicated derivation becomes
+   * one decision -- which is also the question `IProgram.scopePathOf` answers,
+   * for the caller that has the program rather than the registry.
+   */
+  scopePathOf(name: string): string {
+    const scope = this.getScope(name);
+    return scope ? ScopeUtils.pathOf(scope) : name;
+  }
+
+  /**
    * Get or create a scope by its dotted path.
    *
    * For simple names (e.g., "Test"), creates scope with global parent.
