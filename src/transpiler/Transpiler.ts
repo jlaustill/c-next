@@ -1480,7 +1480,14 @@ class Transpiler {
     // the next, the same shape #1143's toolchain-requirements leak was.
     this.headerEmissionFactsByPath.clear();
     // Issue #634: Reset symbol table for new run
-    CodeGenState.symbolTable.clear();
+    // #1452 box 5 / #1177: a run BUILDS its table rather than clearing one.
+    // `clear()` listed eleven of twelve indexes -- `externalDeclarationNames`
+    // was added and the teardown was not, so names recovered from one run
+    // silenced a diagnostic in the next. `ServeCommand` holds a static
+    // transpiler, so that second run is a real one. Adding the twelfth line
+    // would have fixed this instance and left the shape; construction leaves no
+    // teardown to drift from.
+    CodeGenState.symbolTable = new SymbolTable();
     // Reset SymbolRegistry for new run (new IFunctionSymbol type system)
     this.symbolRegistry = new SymbolRegistry();
     // Reset callback-compatible functions for new run

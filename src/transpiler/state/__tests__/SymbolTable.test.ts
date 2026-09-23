@@ -505,9 +505,9 @@ describe("SymbolTable", () => {
       expect(all).toHaveLength(2);
     });
 
-    it("should clear opaque types on clear()", () => {
+    it("does not carry opaque types into the next run", () => {
       symbolTable.markOpaqueType("widget_t");
-      symbolTable.clear();
+      symbolTable = new SymbolTable();
       expect(symbolTable.isOpaqueType("widget_t")).toBe(false);
     });
 
@@ -610,7 +610,7 @@ describe("SymbolTable", () => {
 
     it("should clear typedef struct types on clear()", () => {
       symbolTable.markTypedefStructType("widget_t", "widget.h");
-      symbolTable.clear();
+      symbolTable = new SymbolTable();
       expect(symbolTable.isTypedefStructType("widget_t")).toBe(false);
     });
 
@@ -708,7 +708,7 @@ describe("SymbolTable", () => {
     it("should clear all struct state on clear()", () => {
       symbolTable.registerStructTagAlias("_foo", "foo_t");
       symbolTable.markStructTagHasBody("_foo");
-      symbolTable.clear();
+      symbolTable = new SymbolTable();
       expect(symbolTable.getStructTagAlias("_foo")).toBeUndefined();
       expect(symbolTable.getAllStructTagsWithBodies()).toHaveLength(0);
     });
@@ -744,7 +744,7 @@ describe("SymbolTable", () => {
       symbolTable.addEnumBitWidth("SmallEnum", 8);
       symbolTable.markTypedefStructType("handle_t", "handle.h");
 
-      symbolTable.clear();
+      symbolTable = new SymbolTable();
 
       expect(symbolTable.getAllSymbols()).toHaveLength(0);
       expect(symbolTable.getStructFieldType("Point", "x")).toBeUndefined();

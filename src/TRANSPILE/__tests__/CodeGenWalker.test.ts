@@ -156,7 +156,7 @@ describe("CodeGenWalker", () => {
     // predicate asks it whether a bare name is already taken at file scope, so
     // symbols left by an earlier test in this file make an unrelated local look
     // like it shadows something and change the generated name.
-    CodeGenState.symbolTable.clear();
+    CodeGenState.symbolTable = new SymbolTable();
   });
 
   describe("generate()", () => {

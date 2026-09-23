@@ -45,7 +45,7 @@ describe("runAnalyzers", () => {
   // Reset CodeGenState before each test
   beforeEach(() => {
     CodeGenState.reset();
-    CodeGenState.symbolTable.clear();
+    CodeGenState.symbolTable = new SymbolTable();
   });
 
   // ========================================================================

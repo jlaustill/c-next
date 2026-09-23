@@ -2,6 +2,7 @@
  * Tests for CodeGenState - centralized code generation state management
  */
 
+import SymbolTable from "../SymbolTable";
 import type IScopeSymbol from "../../types/symbols/IScopeSymbol";
 import { describe, it, expect, beforeEach } from "vitest";
 import type IProgram from "../../types/IProgram";
@@ -101,7 +102,7 @@ function registerScope(path: string): IScopeSymbol {
 describe("CodeGenState", () => {
   beforeEach(() => {
     CodeGenState.reset();
-    CodeGenState.symbolTable.clear();
+    CodeGenState.symbolTable = new SymbolTable();
   });
 
   describe("reset()", () => {

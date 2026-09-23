@@ -1206,27 +1206,6 @@ class SymbolTable {
   // ========================================================================
   // Clear / Reset
   // ========================================================================
-
-  /**
-   * Clear all symbols
-   */
-  clear(): void {
-    // C-Next
-    this.tSymbols.clear();
-    this.tSymbolsByCName.clear();
-    this.tSymbolsByFile.clear();
-    // C
-    this.cSymbols.clear();
-    this.cSymbolsByFile.clear();
-    // C++
-    this.cppSymbols.clear();
-    this.cppSymbolsByFile.clear();
-    // Auxiliary
-    this.structFields.clear();
-    this.needsStructKeyword.clear();
-    this.structState = createInitialStructState();
-    this.enumBitWidth.clear();
-  }
 }
 
 export default SymbolTable;
