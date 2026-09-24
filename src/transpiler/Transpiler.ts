@@ -1490,9 +1490,10 @@ class Transpiler {
     CodeGenState.symbolTable = new SymbolTable();
     // Reset SymbolRegistry for new run (new IFunctionSymbol type system)
     this.symbolRegistry = new SymbolRegistry();
-    // Reset callback-compatible functions for new run
-    // (populated by FunctionCallAnalyzer, persists through CodeGenState.reset())
-    CodeGenState.callbackCompatibleFunctions = new Map();
+    // #1452: the callback map needed a per-RUN reset here because it was a
+    // mutable static that `CodeGenState.reset()` deliberately skipped.
+    // `CallbackCompatibility.derive` returns it now, so there is nothing to
+    // clear -- the run's answer is built fresh and handed to `Program`.
     // #1447: the previous run's Program is not this run's artifact. Nothing
     // may read one across runs, and leaving a stale one reachable is the
     // shape #1323's header-content leak had.

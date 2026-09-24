@@ -265,6 +265,8 @@ class FunctionCallAnalyzer {
    *        supplied by the whole-program callback pass. Omitted for a per-file
    *        run -- see the field.
    */
+  private readonly callbacksFound = new Map<string, string>();
+
   /**
    * #1452 box 3: `registry` is supplied only by the Stage 3 caller
    * (`CallbackCompatibility.derive`), which runs BEFORE `Program.build` and so
@@ -276,6 +278,26 @@ class FunctionCallAnalyzer {
     private readonly registry?: SymbolRegistry,
   ) {
     this.programFunctions = programFunctions;
+  }
+
+  /**
+   * ADR-029 callbacks this analyzer recognized: function name to the typedef it
+   * is used as.
+   *
+   * #1452: this accumulated into a mutable static on `CodeGenState` that
+   * `reset()` deliberately skipped, so entries would survive between files.
+   * `CallbackCompatibility.derive` cleared it, ran this analyzer over every
+   * tree for the side effect, and snapshotted it onto `IProgram` -- the same
+   * shape as the modification trio, and the same fix: the accumulation is the
+   * analyzer's own, and the caller that wants the whole program's answer merges
+   * what each run reports.
+   *
+   * The per-file 2.1 run (`runAnalyzers`) simply does not read it. That write
+   * was dead -- nothing consulted the static after `derive` had snapshotted it
+   * -- and it is what made a per-RUN reset necessary in `Transpiler`.
+   */
+  public callbackCompatibleFunctions(): ReadonlyMap<string, string> {
+    return this.callbacksFound;
   }
 
   /**
@@ -698,7 +720,7 @@ class FunctionCallAnalyzer {
       this.programFunctions.has(lookupName)
     ) {
       // Store function name -> typedef name mapping
-      CodeGenState.callbackCompatibleFunctions.set(lookupName, typedefName);
+      this.callbacksFound.set(lookupName, typedefName);
     }
   }
 

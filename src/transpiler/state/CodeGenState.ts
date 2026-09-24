@@ -116,8 +116,10 @@ export default class CodeGenState {
    * The artifact 1.4 Resolve emitted for this run (#1447).
    *
    * Run-wide, so it is NOT cleared by `reset()` -- that runs per file. The
-   * Transpiler clears it at the start of each run, the same way
-   * `callbackCompatibleFunctions` is handled.
+   * Transpiler clears it at the start of each run. It used to share that
+   * treatment with `callbackCompatibleFunctions`, which #1452 removed: an
+   * artifact reference and an accumulator needed the same clearing for
+   * different reasons, and only one of them still exists.
    */
   static program: IProgram | null = null;
 
@@ -287,17 +289,6 @@ export default class CodeGenState {
    * Maps function name -> typedef name (e.g., "my_flush" -> "flush_cb_t")
    * Issue #895: We need the typedef name to look up parameter types.
    */
-  /**
-   * The ANALYZER'S OUTPUT CHANNEL for callback compatibility, not the answer.
-   *
-   * #1511: nothing reads this to decide anything. `FunctionCallAnalyzer` writes
-   * it as it walks a file, and `CallbackCompatibility.derive` harvests it once
-   * over every tree; consumers ask `Program`. It stayed a static because that is
-   * how the analyzer reports the fact, and giving it a second reader is what
-   * made the map order-dependent in the first place — a file rendered early saw
-   * only what had been analyzed so far.
-   */
-  static callbackCompatibleFunctions: Map<string, string> = new Map();
 
   // ===========================================================================
   // PASS-BY-VALUE ANALYSIS (Issue #269)
@@ -608,8 +599,6 @@ export default class CodeGenState {
     this.publicCallbackTypeReferences = new Set();
     this.emittedCallbackTypedefs = new Set();
     this.pendingCallbackTypedefs = [];
-    // Note: callbackCompatibleFunctions is NOT reset here — it's populated by
-    // FunctionCallAnalyzer (which runs before CodeGenerator.generate()) and must
     // persist into code generation. It is cleared at the start of each Transpiler run.
 
     // Pass-by-value analysis
