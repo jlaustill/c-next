@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import ControllingExpressionAnalyzer from "../ControllingExpressionAnalyzer";
+import testAnalysisContext from "./testAnalysisContext";
 
 /**
  * #1322. ADR-022's controlling-expression rule -- E0701 (MISRA C:2012 Rule
@@ -15,7 +16,7 @@ import ControllingExpressionAnalyzer from "../ControllingExpressionAnalyzer";
  */
 const errors = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new ControllingExpressionAnalyzer().analyze(tree);
+  return new ControllingExpressionAnalyzer(testAnalysisContext()).analyze(tree);
 };
 
 const inIf = (condition: string): string =>

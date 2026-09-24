@@ -191,7 +191,10 @@ class UndeclaredValueAnalyzer {
     ParseTreeWalker.DEFAULT.walk(declarations, tree);
 
     ParseTreeWalker.DEFAULT.walk(
-      new UndeclaredValueListener(this, new ScopeFrameResolver(declarations)),
+      new UndeclaredValueListener(
+        this,
+        new ScopeFrameResolver(declarations, this.context.symbolTable),
+      ),
       tree,
     );
     return this.errors;

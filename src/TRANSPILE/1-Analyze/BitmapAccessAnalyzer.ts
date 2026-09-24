@@ -233,7 +233,7 @@ class BitmapAccessAnalyzer {
     const declarations = new DeclarationScopeCollector();
     ParseTreeWalker.DEFAULT.walk(declarations, tree);
     const listener = new BitmapAccessListener(
-      new ScopeFrameResolver(declarations),
+      new ScopeFrameResolver(declarations, this.context.symbolTable),
       this.context,
     );
     ParseTreeWalker.DEFAULT.walk(listener, tree);

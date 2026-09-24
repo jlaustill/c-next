@@ -217,6 +217,32 @@ module.exports = {
       to: { path: "^src/PARSE/4-Resolve/", reachable: true },
     },
     {
+      name: "analyzers-cannot-reach-codegen-state",
+      comment:
+        "#1456: 2.1 Analyze must not reach `CodeGenState`. It is 2.3 Render's " +
+        "container, and it mixes facts that exist when the analyzers run with " +
+        "facts a LATER pass populates -- so an analyzer reading the second " +
+        "kind gets whatever the previous file, or the previous RUN, left " +
+        "there. That is not hypothetical: #1430 suppressed E0427 through a " +
+        "stale `knownFunctions`, and #1432 let a SIGNED ARRAY SUBSCRIPT reach " +
+        "generated C at exit 0 because `typeRegistry` still held an unrelated " +
+        "run's `u8 idx`. " +
+        "What an analyzer may read now travels on `IAnalysisContext`, built " +
+        "by the orchestrator from artifacts that are settled before 2.1 " +
+        "begins. `reachable: true` because the coupling came back through " +
+        "helpers twice -- `OperandTypeResolver` and `FunctionReference` each " +
+        "reached the container on behalf of an analyzer that did not name it. " +
+        "`__tests__` is excluded: `testAnalysisContext` reads the same facts " +
+        "off `CodeGenState` so several hundred existing assertions keep their " +
+        "setup, and nothing outside `__tests__` calls it.",
+      severity: "error",
+      from: {
+        path: "^src/TRANSPILE/1-Analyze/",
+        pathNot: "__tests__",
+      },
+      to: { path: "^src/transpiler/state/CodeGenState", reachable: true },
+    },
+    {
       name: "analyze-cannot-import-plan",
       comment:
         "#1322: 2.1 Analyze answers *is this program legal?* and 2.2 Plan " +

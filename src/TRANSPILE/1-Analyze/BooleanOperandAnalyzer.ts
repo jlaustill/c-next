@@ -184,7 +184,7 @@ class BooleanOperandAnalyzer {
 
     const listener = new BooleanOperandListener(
       this,
-      new ScopeFrameResolver(collector),
+      new ScopeFrameResolver(collector, this.context.symbolTable),
       this.context,
     );
 

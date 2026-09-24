@@ -131,6 +131,7 @@ describe("dependency-cruiser layer rules (#1297)", () => {
     expect(names.sort()).toEqual([
       "analyze-cannot-import-plan",
       "analyze-cannot-import-render",
+      "analyzers-cannot-reach-codegen-state",
       "data-cannot-import-logic",
       "data-cannot-import-output",
       "declare-cannot-import-resolve",

@@ -21,10 +21,10 @@ import IArrayIndexTypeError from "./types/IArrayIndexTypeError";
 import LiteralUtils from "../../utils/LiteralUtils";
 import ParserUtils from "../../utils/ParserUtils";
 import TypeConstants from "../../utils/constants/TypeConstants";
-import CodeGenState from "../../transpiler/state/CodeGenState";
 import DeclaredTypeFacts from "../../utils/DeclaredTypeFacts";
 import StructFieldFacts from "../../utils/StructFieldFacts";
 import type IAnalysisContext from "./types/IAnalysisContext";
+import DeclaredVariableFacts from "../../utils/DeclaredVariableFacts";
 
 /**
  * First pass: Collect variable declarations with their types
@@ -273,7 +273,11 @@ class IndexTypeListener extends CNextListener {
     if (localType) return localType;
 
     // Fall back to CodeGenState for cross-file variables
-    const typeInfo = CodeGenState.declaredVariableType(varName);
+    const typeInfo = DeclaredVariableFacts.typeInfoOf(
+      this.context.symbols,
+      this.context.symbolTable,
+      varName,
+    );
     if (typeInfo) return typeInfo.baseType;
 
     return null;

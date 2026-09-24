@@ -242,7 +242,7 @@ class ConstAssignmentAnalyzer {
     ParseTreeWalker.DEFAULT.walk(declarations, tree);
 
     const listener = new ConstAssignmentListener(
-      new ScopeFrameResolver(declarations),
+      new ScopeFrameResolver(declarations, this.context.symbolTable),
       this.context,
     );
     ParseTreeWalker.DEFAULT.walk(listener, tree);

@@ -19,7 +19,8 @@ import IScopeFrame from "./types/IScopeFrame";
 import IDeclaredVar from "./types/IDeclaredVar";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
 import TChainRoot from "./types/TChainRoot";
-import CodeGenState from "../../transpiler/state/CodeGenState";
+import DeclaredVariableFacts from "../../utils/DeclaredVariableFacts";
+import type SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 
 class ScopeFrameResolver {
   private readonly globalFrame: IScopeFrame;
@@ -27,7 +28,10 @@ class ScopeFrameResolver {
   // eslint-disable-next-line @typescript-eslint/lines-between-class-members
   private readonly frameOf: Map<ParserRuleContext, IScopeFrame>;
 
-  constructor(collector: DeclarationScopeCollector) {
+  constructor(
+    collector: DeclarationScopeCollector,
+    private readonly symbolTable: SymbolTable,
+  ) {
     this.globalFrame = collector.getGlobalFrame();
     this.frameOf = collector.getFrameOf();
   }
@@ -66,7 +70,7 @@ class ScopeFrameResolver {
   public typeOfName(name: string, frame: IScopeFrame): string | null {
     return (
       this.typeOfNameLexical(name, frame) ??
-      CodeGenState.getCNextVariableTypeName(name)
+      DeclaredVariableFacts.typeNameOf(this.symbolTable, name)
     );
   }
 
@@ -158,7 +162,7 @@ class ScopeFrameResolver {
   ): string | null {
     const declared = this.declarationFor(root, name, frame)?.typeText ?? null;
     if (declared !== null || root === "this") return declared;
-    return CodeGenState.getCNextVariableTypeName(name);
+    return DeclaredVariableFacts.typeNameOf(this.symbolTable, name);
   }
 
   /**

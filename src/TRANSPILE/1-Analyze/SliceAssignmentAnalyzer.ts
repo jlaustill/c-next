@@ -39,7 +39,6 @@ import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
-import CodeGenState from "../../transpiler/state/CodeGenState";
 import ParserUtils from "../../utils/ParserUtils";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
 import IDeclaredVar from "./types/IDeclaredVar";
@@ -49,6 +48,7 @@ import OperandTypeResolver from "./OperandTypeResolver";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 import ConstantExpression from "./helpers/ConstantExpression";
 import type IAnalysisContext from "./types/IAnalysisContext";
+import DeclaredVariableFacts from "../../utils/DeclaredVariableFacts";
 
 /** `string<N>` holds N characters plus the terminator. */
 const STRING_TERMINATOR_BYTES = 1;
@@ -122,7 +122,11 @@ class SliceAssignmentListener extends CNextListener {
     const lexical = this.scopes.declarationOfNameLexical(name, frame);
     if (lexical !== null) return lexical;
 
-    const info = CodeGenState.declaredVariableType(name);
+    const info = DeclaredVariableFacts.typeInfoOf(
+      this.context.symbols,
+      this.context.symbolTable,
+      name,
+    );
     if (info === undefined) return null;
     return {
       typeText: info.baseType,
@@ -385,7 +389,7 @@ class SliceAssignmentAnalyzer {
     ParseTreeWalker.DEFAULT.walk(declarations, tree);
 
     const listener = new SliceAssignmentListener(
-      new ScopeFrameResolver(declarations),
+      new ScopeFrameResolver(declarations, this.context.symbolTable),
       this.context,
     );
     ParseTreeWalker.DEFAULT.walk(listener, tree);

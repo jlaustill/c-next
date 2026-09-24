@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import DeclarationScopeCollector from "../DeclarationScopeCollector";
 import ScopeFrameResolver from "../ScopeFrameResolver";
+import CodeGenState from "../../../transpiler/state/CodeGenState";
 
 /**
  * #1322. `IScopeFrame.vars` recorded a declared name against its type TEXT and
@@ -86,7 +87,10 @@ describe("DeclarationScopeCollector records what a declaration says", () => {
 describe("ScopeFrameResolver reads the widened record", () => {
   it("still answers with the type text for its existing callers", () => {
     const collector = collect("u32 count <- 0;");
-    const resolver = new ScopeFrameResolver(collector);
+    const resolver = new ScopeFrameResolver(
+      collector,
+      CodeGenState.symbolTable,
+    );
     expect(
       resolver.typeOfNameLexical("count", collector.getGlobalFrame()),
     ).toBe("u32");
@@ -94,7 +98,10 @@ describe("ScopeFrameResolver reads the widened record", () => {
 
   it("answers the whole declaration for a caller that needs more", () => {
     const collector = collect("u32[10] buffer;");
-    const resolver = new ScopeFrameResolver(collector);
+    const resolver = new ScopeFrameResolver(
+      collector,
+      CodeGenState.symbolTable,
+    );
     const declared = resolver.declarationOfNameLexical(
       "buffer",
       collector.getGlobalFrame(),
@@ -104,7 +111,10 @@ describe("ScopeFrameResolver reads the widened record", () => {
 
   it("returns null for a name no frame declares", () => {
     const collector = collect("u32 count <- 0;");
-    const resolver = new ScopeFrameResolver(collector);
+    const resolver = new ScopeFrameResolver(
+      collector,
+      CodeGenState.symbolTable,
+    );
     expect(
       resolver.declarationOfNameLexical("absent", collector.getGlobalFrame()),
     ).toBeNull();

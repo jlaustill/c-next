@@ -42,6 +42,7 @@ import ScopeFrameResolver from "./ScopeFrameResolver";
 import BinaryOperatorLevelListener from "./BinaryOperatorLevelListener";
 import ParserUtils from "../../utils/ParserUtils";
 import TypeConstants from "../../utils/constants/TypeConstants";
+import type IAnalysisContext from "./types/IAnalysisContext";
 
 /** Essential type category of an operand, or null when it cannot be resolved. */
 type Category = "signed" | "unsigned" | null;
@@ -187,6 +188,9 @@ class MixedCategoryListener extends CNextListener {
  * Analyzer that detects binary operations mixing essential type categories.
  */
 class MixedTypeCategoryAnalyzer {
+  /** #1456: handed in rather than read off shared state. */
+  constructor(private readonly context: IAnalysisContext) {}
+
   private errors: IMixedTypeCategoryError[] = [];
 
   /**
@@ -200,7 +204,7 @@ class MixedTypeCategoryAnalyzer {
 
     const listener = new MixedCategoryListener(
       this,
-      new ScopeFrameResolver(collector),
+      new ScopeFrameResolver(collector, this.context.symbolTable),
     );
 
     // Every binary level EXCEPT shift: Rule 10.4 governs only operators subject

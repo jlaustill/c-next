@@ -463,7 +463,7 @@ class ShiftAnalyzer {
     // Second pass: detect shift with signed operands
     const listener = new ShiftListener(
       this,
-      new ScopeFrameResolver(declarations),
+      new ScopeFrameResolver(declarations, this.context.symbolTable),
       this.context,
     );
     ParseTreeWalker.DEFAULT.walk(listener, tree);

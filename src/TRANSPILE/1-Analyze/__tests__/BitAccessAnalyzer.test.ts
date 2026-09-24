@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import BitAccessAnalyzer from "../BitAccessAnalyzer";
+import testAnalysisContext from "./testAnalysisContext";
 
 /**
  * #1322. ADR-007's bit access: E0856 (deeper than the base's shape allows) and
@@ -11,7 +12,7 @@ import BitAccessAnalyzer from "../BitAccessAnalyzer";
  */
 const errors = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new BitAccessAnalyzer().analyze(tree);
+  return new BitAccessAnalyzer(testAnalysisContext()).analyze(tree);
 };
 
 describe("BitAccessAnalyzer (E0856)", () => {

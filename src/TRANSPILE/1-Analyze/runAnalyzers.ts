@@ -278,7 +278,7 @@ function runAnalyzers(
     },
     {
       label: "float modulo (% with f32/f64)",
-      run: () => new FloatModuloAnalyzer().analyze(tree),
+      run: () => new FloatModuloAnalyzer(context).analyze(tree),
     },
     {
       label: "array index type (ADR-054: unsigned indexes only)",
@@ -299,7 +299,7 @@ function runAnalyzers(
     {
       label:
         "mixed essential type category (MISRA C:2012 Rule 10.4, ADR-024 / Issue #1091)",
-      run: () => new MixedTypeCategoryAnalyzer().analyze(tree),
+      run: () => new MixedTypeCategoryAnalyzer(context).analyze(tree),
     },
     {
       label: "return paths (ADR-067: non-void must return on all paths)",
@@ -337,7 +337,7 @@ function runAnalyzers(
     },
     {
       label: "C++ constructor arguments must be declared const (ADR-013, #375)",
-      run: () => new ConstructorArgumentAnalyzer().analyze(tree),
+      run: () => new ConstructorArgumentAnalyzer(context).analyze(tree),
     },
     {
       label: "`return` inside a critical section (ADR-050, E0853)",
@@ -369,7 +369,7 @@ function runAnalyzers(
     },
     {
       label: "controlling expressions (ADR-022, MISRA 14.4/13.5, E0701/E0702)",
-      run: () => new ControllingExpressionAnalyzer().analyze(tree),
+      run: () => new ControllingExpressionAnalyzer(context).analyze(tree),
     },
     {
       label: "string declarations (ADR-045, E0862-E0866)",
@@ -436,7 +436,7 @@ function runAnalyzers(
     },
     {
       label: "bit indexing depth and scope (ADR-007/036, E0856/E0888)",
-      run: () => new BitAccessAnalyzer().analyze(tree),
+      run: () => new BitAccessAnalyzer(context).analyze(tree),
     },
     {
       // Last, and does not halt: comment findings are reported alongside

@@ -210,7 +210,10 @@ class EnumTypeSafetyAnalyzer {
     const declarations = new DeclarationScopeCollector();
     ParseTreeWalker.DEFAULT.walk(declarations, tree);
 
-    const scopes = new ScopeFrameResolver(declarations);
+    const scopes = new ScopeFrameResolver(
+      declarations,
+      this.context.symbolTable,
+    );
     const listener = new EnumTypeSafetyListener(
       scopes,
       new EnumValueResolver(scopes, this.context),

@@ -31,7 +31,6 @@ import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import CodeGenState from "../../transpiler/state/CodeGenState";
 import ExpressionUnwrapper from "../../utils/ExpressionUnwrapper";
 import ParserUtils from "../../utils/ParserUtils";
 import StringUtils from "../../utils/StringUtils";
@@ -41,6 +40,7 @@ import IStringDeclarationError from "./types/IStringDeclarationError";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 import ConstantExpression from "./helpers/ConstantExpression";
 import type IAnalysisContext from "./types/IAnalysisContext";
+import DeclaredVariableFacts from "../../utils/DeclaredVariableFacts";
 
 /** What a string-valued expression can hold, or null if it is not one. */
 interface IStringSource {
@@ -282,7 +282,11 @@ class StringDeclarationListener extends CNextListener {
     if (!/^[A-Za-z_]\w*$/.test(name)) return null;
     const declared = this.scopes.declarationOfNameLexical(name, frame);
     if (declared?.stringCapacity != null) return declared.stringCapacity;
-    const info = CodeGenState.declaredVariableType(name);
+    const info = DeclaredVariableFacts.typeInfoOf(
+      this.context.symbols,
+      this.context.symbolTable,
+      name,
+    );
     return info?.isString && info.stringCapacity !== undefined
       ? info.stringCapacity
       : null;
@@ -433,7 +437,7 @@ class StringDeclarationAnalyzer {
     ParseTreeWalker.DEFAULT.walk(declarations, tree);
 
     const listener = new StringDeclarationListener(
-      new ScopeFrameResolver(declarations),
+      new ScopeFrameResolver(declarations, this.context.symbolTable),
       this.context,
     );
     ParseTreeWalker.DEFAULT.walk(listener, tree);

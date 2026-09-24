@@ -36,6 +36,7 @@ import DeclarationScopeCollector from "./DeclarationScopeCollector";
 import IControllingExpressionError from "./types/IControllingExpressionError";
 import IScopeFrame from "./types/IScopeFrame";
 import ScopeFrameResolver from "./ScopeFrameResolver";
+import type IAnalysisContext from "./types/IAnalysisContext";
 
 const CALL_HELP = "Store the function result in a variable first.";
 
@@ -213,12 +214,15 @@ class ControllingExpressionListener extends CNextListener {
 }
 
 class ControllingExpressionAnalyzer {
+  /** #1456: handed in rather than read off shared state. */
+  constructor(private readonly context: IAnalysisContext) {}
+
   public analyze(tree: Parser.ProgramContext): IControllingExpressionError[] {
     const declarations = new DeclarationScopeCollector();
     ParseTreeWalker.DEFAULT.walk(declarations, tree);
 
     const listener = new ControllingExpressionListener(
-      new ScopeFrameResolver(declarations),
+      new ScopeFrameResolver(declarations, this.context.symbolTable),
     );
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();

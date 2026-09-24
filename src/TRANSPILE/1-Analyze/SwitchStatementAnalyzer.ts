@@ -273,7 +273,7 @@ class SwitchStatementAnalyzer {
     ParseTreeWalker.DEFAULT.walk(declarations, tree);
 
     const listener = new SwitchStatementListener(
-      new ScopeFrameResolver(declarations),
+      new ScopeFrameResolver(declarations, this.context.symbolTable),
       this.context,
     );
     ParseTreeWalker.DEFAULT.walk(listener, tree);

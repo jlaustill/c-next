@@ -332,7 +332,7 @@ class IntegerConversionAnalyzer {
     ParseTreeWalker.DEFAULT.walk(declarations, tree);
 
     const listener = new IntegerConversionListener(
-      new ScopeFrameResolver(declarations),
+      new ScopeFrameResolver(declarations, this.context.symbolTable),
       this.context,
     );
     ParseTreeWalker.DEFAULT.walk(listener, tree);

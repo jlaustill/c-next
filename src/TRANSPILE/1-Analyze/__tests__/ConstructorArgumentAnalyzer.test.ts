@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import ConstructorArgumentAnalyzer from "../ConstructorArgumentAnalyzer";
+import testAnalysisContext from "./testAnalysisContext";
 
 /**
  * #1322. A C++ constructor argument must name a `const` variable (ADR-013,
@@ -22,7 +23,7 @@ import ConstructorArgumentAnalyzer from "../ConstructorArgumentAnalyzer";
  */
 const errors = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new ConstructorArgumentAnalyzer().analyze(tree);
+  return new ConstructorArgumentAnalyzer(testAnalysisContext()).analyze(tree);
 };
 
 describe("ConstructorArgumentAnalyzer", () => {

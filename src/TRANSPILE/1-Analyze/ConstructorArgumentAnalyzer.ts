@@ -31,6 +31,7 @@ import ParserUtils from "../../utils/ParserUtils";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 import IConstructorArgumentError from "./types/IConstructorArgumentError";
+import type IAnalysisContext from "./types/IAnalysisContext";
 
 class ConstructorArgumentListener extends CNextListener {
   private readonly found: IConstructorArgumentError[] = [];
@@ -82,12 +83,15 @@ class ConstructorArgumentListener extends CNextListener {
 }
 
 class ConstructorArgumentAnalyzer {
+  /** #1456: handed in rather than read off shared state. */
+  constructor(private readonly context: IAnalysisContext) {}
+
   public analyze(tree: Parser.ProgramContext): IConstructorArgumentError[] {
     const declarations = new DeclarationScopeCollector();
     ParseTreeWalker.DEFAULT.walk(declarations, tree);
 
     const listener = new ConstructorArgumentListener(
-      new ScopeFrameResolver(declarations),
+      new ScopeFrameResolver(declarations, this.context.symbolTable),
     );
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();

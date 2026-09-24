@@ -8,6 +8,7 @@ import { CharStream, CommonTokenStream } from "antlr4ng";
 import { CNextLexer } from "../../../PARSE/2-Parse/grammar/CNextLexer";
 import { CNextParser } from "../../../PARSE/2-Parse/grammar/CNextParser";
 import MixedTypeCategoryAnalyzer from "../MixedTypeCategoryAnalyzer";
+import testAnalysisContext from "./testAnalysisContext";
 
 function parse(source: string) {
   const charStream = CharStream.fromString(source);
@@ -18,7 +19,9 @@ function parse(source: string) {
 }
 
 function analyze(source: string) {
-  return new MixedTypeCategoryAnalyzer().analyze(parse(source));
+  return new MixedTypeCategoryAnalyzer(testAnalysisContext()).analyze(
+    parse(source),
+  );
 }
 
 describe("MixedTypeCategoryAnalyzer", () => {
