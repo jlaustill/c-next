@@ -26,14 +26,36 @@ import type SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
  * is a REAL answer meaning "none", not a missing one.
  */
 interface IAnalysisContext {
-  /** What THIS file can see: its own declarations plus its `.cnx` includes. */
-  readonly symbols: ICodeGenSymbols;
+  /**
+   * What THIS file can see: its own declarations plus its `.cnx` includes.
+   *
+   * Nullable, unlike `program`. Production always has one --
+   * `_requireSymbolInfo` throws rather than returning undefined -- but several
+   * analyzers answer "no symbol view" DELIBERATELY, with "no evidence is not
+   * evidence of absence", and `UndeclaredTypeAnalyzer` has a test for it whose
+   * own comment records that no integration fixture can construct the state.
+   * Making this non-nullable would delete that behavior by making it
+   * unrepresentable, which is a decision about diagnostics rather than about
+   * where a fact lives -- so #1456 moves the fact and leaves the question.
+   */
+  readonly symbols: ICodeGenSymbols | null;
 
   /** 1.4 Resolve's artifact -- every cross-file fact, settled before 2.1. */
   readonly program: IProgram;
 
   /** What the program declares, C and C++ headers included. */
   readonly symbolTable: SymbolTable;
+
+  /**
+   * Whether this file can see a C/C++ header, which is what decides if an
+   * unresolved name is a defect or a type the compiler will supply.
+   *
+   * The orchestrator computes it per file in `_establishPerFileCodeGenState`,
+   * the single site #1430 forced it into. It travels here rather than on
+   * `CodeGenState` for the same reason as the rest: 2.1 reads it, and 2.3
+   * happens to be where it was parked.
+   */
+  readonly reachesForeignHeader: boolean;
 }
 
 export default IAnalysisContext;

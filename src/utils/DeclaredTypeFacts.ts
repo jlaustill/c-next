@@ -50,10 +50,8 @@ class DeclaredTypeFacts {
     sets: IDeclaredTypeSets | null,
     fallbackBitWidth: number,
   ): IDeclaredTypeFacts {
-    // An absent symbol view means "nothing is known yet", never "not an enum"
-    // -- the reading `isKnownEnum`/`isKnownBitmap` already encode with `?? false`.
-    const isEnum = sets?.knownEnums.has(baseType) ?? false;
-    const isBitmap = sets?.knownBitmaps.has(baseType) ?? false;
+    const isEnum = DeclaredTypeFacts.isEnum(sets, baseType);
+    const isBitmap = DeclaredTypeFacts.isBitmap(sets, baseType);
 
     return {
       isEnum,
@@ -64,6 +62,31 @@ class DeclaredTypeFacts {
         ? (sets?.bitmapBitWidth.get(baseType) ?? 0)
         : fallbackBitWidth,
     };
+  }
+
+  /**
+   * Is this name a declared enum / bitmap / scope?
+   *
+   * #1456: one-line set lookups, but they had exactly one home --
+   * `CodeGenState.isKnownEnum` and friends -- so 2.1 Analyze had to read
+   * render state to ask. Both callers share these now: `CodeGenState`
+   * delegates, and an analyzer passes the view its `IAnalysisContext` carries.
+   *
+   * The `?? false` is the existing reading of an absent symbol view: "nothing
+   * is known yet", never "not an enum".
+   */
+  static isEnum(sets: IDeclaredTypeSets | null, name: string): boolean {
+    return sets?.knownEnums.has(name) ?? false;
+  }
+
+  /** @see isEnum */
+  static isBitmap(sets: IDeclaredTypeSets | null, name: string): boolean {
+    return sets?.knownBitmaps.has(name) ?? false;
+  }
+
+  /** @see isEnum */
+  static isScope(sets: IDeclaredTypeSets | null, name: string): boolean {
+    return sets?.knownScopes.has(name) ?? false;
   }
 
   /**

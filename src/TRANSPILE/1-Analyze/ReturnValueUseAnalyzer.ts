@@ -29,12 +29,13 @@
 import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import CodeGenState from "../../transpiler/state/CodeGenState";
 import StdlibFunctions from "./StdlibFunctions";
 import CalleeNameResolver from "./helpers/CalleeNameResolver";
 import EnclosingScope from "./helpers/EnclosingScope";
 import IReturnValueUseError from "./types/IReturnValueUseError";
 import type SymbolTable from "../../PARSE/3-Declare/SymbolTable";
+import DeclaredTypeFacts from "../../utils/DeclaredTypeFacts";
+import type IAnalysisContext from "./types/IAnalysisContext";
 
 class ReturnValueUseListener extends CNextListener {
   public readonly errors: IReturnValueUseError[] = [];
@@ -48,6 +49,7 @@ class ReturnValueUseListener extends CNextListener {
   constructor(
     knownScopes: ReadonlySet<string>,
     private readonly symbolTable: SymbolTable,
+    private readonly context: IAnalysisContext,
   ) {
     super();
     this.knownScopes = knownScopes;
@@ -80,7 +82,9 @@ class ReturnValueUseListener extends CNextListener {
       this.enclosing.current(),
       // Scopes reached through an included .cnx are not in this file's
       // declarations; CodeGenState.knownScopes is merged across includes.
-      (name) => this.knownScopes.has(name) || CodeGenState.isKnownScope(name),
+      (name) =>
+        this.knownScopes.has(name) ||
+        DeclaredTypeFacts.isScope(this.context.symbols, name),
     );
     if (!resolved) return;
 
@@ -88,6 +92,7 @@ class ReturnValueUseListener extends CNextListener {
       resolved,
       this.enclosing.current(),
       this.symbolTable,
+      this.context,
     );
     if (!funcName) return;
 
@@ -195,8 +200,11 @@ class ReturnValueUseAnalyzer {
     resolved: { name: string; isGlobalCall: boolean },
     currentScopePath: string,
     symbolTable: SymbolTable,
+    context: IAnalysisContext,
   ): string | null {
-    if (ReturnValueUseAnalyzer.returnsAValue(resolved.name, symbolTable)) {
+    if (
+      ReturnValueUseAnalyzer.returnsAValue(resolved.name, symbolTable, context)
+    ) {
       return resolved.name;
     }
 
@@ -207,7 +215,7 @@ class ReturnValueUseAnalyzer {
     );
     if (
       fallback &&
-      ReturnValueUseAnalyzer.returnsAValue(fallback, symbolTable)
+      ReturnValueUseAnalyzer.returnsAValue(fallback, symbolTable, context)
     ) {
       return fallback;
     }
@@ -219,13 +227,17 @@ class ReturnValueUseAnalyzer {
    * True only when C-Next can see a non-void return type for `name`.
    * Unresolvable names answer false: outside the rule's domain, not exempt.
    */
-  static returnsAValue(name: string, symbolTable: SymbolTable): boolean {
+  static returnsAValue(
+    name: string,
+    symbolTable: SymbolTable,
+    context: IAnalysisContext,
+  ): boolean {
     const builtin = StdlibFunctions.builtinReturnType(name);
     if (builtin !== null) {
       return builtin !== "void";
     }
 
-    const declared = CodeGenState.getFunctionReturnType(name);
+    const declared = context.symbols?.functionReturnTypes.get(name);
     if (declared !== undefined) {
       return declared !== "void";
     }
@@ -294,10 +306,12 @@ class ReturnValueUseAnalyzer {
   static analyze(
     tree: Parser.ProgramContext,
     symbolTable: SymbolTable,
+    context: IAnalysisContext,
   ): IReturnValueUseError[] {
     const listener = new ReturnValueUseListener(
       ReturnValueUseAnalyzer.collectScopes(tree),
       symbolTable,
+      context,
     );
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors;

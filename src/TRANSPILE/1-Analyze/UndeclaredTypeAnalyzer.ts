@@ -39,7 +39,6 @@ import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import BUILTIN_TYPE_NAMES from "../../transpiler/constants/BUILTIN_TYPE_NAMES";
-import CodeGenState from "../../transpiler/state/CodeGenState";
 import EnclosingScope from "./helpers/EnclosingScope";
 import ICodeGenSymbols from "../../transpiler/types/ICodeGenSymbols";
 import IUndeclaredTypeError from "./types/IUndeclaredTypeError";
@@ -149,7 +148,7 @@ class UndeclaredTypeAnalyzer {
     // spelling of "is this a C-Next include?" (it missed `.cnext`) and stopped
     // at one hop -- so a macro reached through a `.cnx` include was REJECTED,
     // code that main compiles.
-    if (CodeGenState.currentFileReachesForeignHeader) {
+    if (this.context.reachesForeignHeader) {
       return this.errors;
     }
 
@@ -166,7 +165,7 @@ class UndeclaredTypeAnalyzer {
     typeName: string,
     scope: ReturnType<EnclosingScope["current"]>,
   ): boolean {
-    const symbols = CodeGenState.symbols;
+    const symbols = this.context.symbols;
     if (!symbols) {
       // Nothing to check against; stay silent rather than reject on no evidence.
       // This is the ONLY answer to "no symbol view" in this class: `isRegister`
@@ -210,7 +209,7 @@ class UndeclaredTypeAnalyzer {
       scope,
       // Reached only after `isVisibleType` returned false, which requires a
       // symbol view -- see its guard.
-      CodeGenState.symbols!,
+      this.context.symbols!,
       this.context.symbolTable,
       (name, fileSymbols) => NameExistence.isRegisterName(name, fileSymbols),
     );

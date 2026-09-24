@@ -11,6 +11,7 @@ import TSymbolInfoAdapter from "../../../PARSE/3-Declare/cnext/adapters/TSymbolI
 import SymbolRegistry from "../../../PARSE/3-Declare/SymbolRegistry";
 import CodeGenState from "../../../transpiler/state/CodeGenState";
 import ReturnValueUseAnalyzer from "../ReturnValueUseAnalyzer";
+import testAnalysisContext from "./testAnalysisContext";
 
 function parse(source: string) {
   const charStream = CharStream.fromString(source);
@@ -29,7 +30,11 @@ function analyze(source: string) {
   CodeGenState.symbols = TSymbolInfoAdapter.convert(
     CNextResolver.resolve(tree, "test.cnx", registry).symbols,
   );
-  return ReturnValueUseAnalyzer.analyze(tree, CodeGenState.symbolTable);
+  return ReturnValueUseAnalyzer.analyze(
+    tree,
+    CodeGenState.symbolTable,
+    testAnalysisContext(),
+  );
 }
 
 let registry = new SymbolRegistry();

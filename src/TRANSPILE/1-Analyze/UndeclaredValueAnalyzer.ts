@@ -35,7 +35,6 @@ import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import BUILTIN_TYPE_NAMES from "../../transpiler/constants/BUILTIN_TYPE_NAMES";
 import ChainRoot from "./helpers/ChainRoot";
-import CodeGenState from "../../transpiler/state/CodeGenState";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
 import ICodeGenSymbols from "../../transpiler/types/ICodeGenSymbols";
 import IScopeFrame from "./types/IScopeFrame";
@@ -184,7 +183,7 @@ class UndeclaredValueAnalyzer {
     // Same precondition as E0426, and the value axis needs it MORE: a `#define`
     // never reaches the symbol table at all, so `_isKnownForeignName` -- which
     // does catch a header typedef -- has nothing to fall back on for a macro.
-    if (CodeGenState.currentFileReachesForeignHeader) {
+    if (this.context.reachesForeignHeader) {
       return this.errors;
     }
 
@@ -226,7 +225,7 @@ class UndeclaredValueAnalyzer {
     frame: IScopeFrame,
     scopes: ScopeFrameResolver,
   ): boolean {
-    const symbols = CodeGenState.symbols;
+    const symbols = this.context.symbols;
 
     if (root === null) {
       return (
@@ -236,6 +235,7 @@ class UndeclaredValueAnalyzer {
           frame.scopePath,
           scopes,
           this.context.symbolTable,
+          this.context,
         ) ||
         (symbols !== null &&
           symbols !== undefined &&
@@ -315,6 +315,7 @@ class UndeclaredValueAnalyzer {
     scopePath: string,
     scopes: ScopeFrameResolver,
     symbolTable: SymbolTable,
+    context: IAnalysisContext,
   ): boolean {
     // A declared variable in an enclosing lexical frame of THIS file.
     //
@@ -330,8 +331,10 @@ class UndeclaredValueAnalyzer {
       return true;
     }
 
-    const symbols = CodeGenState.symbols;
+    const symbols = context.symbols;
     if (!symbols) {
+      // No evidence is not evidence of absence -- the same reading every
+      // `symbols` guard in 2.1 carries.
       return true;
     }
 

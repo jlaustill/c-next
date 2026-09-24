@@ -1016,6 +1016,7 @@ class Transpiler {
           symbols,
           program: this.program,
           symbolTable: CodeGenState.symbolTable,
+          reachesForeignHeader: file.reachesForeignHeader ?? true,
         },
         includes: {
           sourcePath,

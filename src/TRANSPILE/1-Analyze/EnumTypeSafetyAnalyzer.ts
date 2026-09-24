@@ -47,7 +47,6 @@ import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import CodeGenState from "../../transpiler/state/CodeGenState";
 import ParserUtils from "../../utils/ParserUtils";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
 import EnumValueResolver from "./EnumValueResolver";
@@ -56,6 +55,7 @@ import IScopeFrame from "./types/IScopeFrame";
 import OperandTypeResolver from "./OperandTypeResolver";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 import type IAnalysisContext from "./types/IAnalysisContext";
+import DeclaredTypeFacts from "../../utils/DeclaredTypeFacts";
 
 const ASSIGN_HELP =
   "ADR-017: an enum is its own type, not an integer. Assign one of its members, or convert explicitly with a cast.";
@@ -149,7 +149,7 @@ class EnumTypeSafetyListener extends CNextListener {
     expression: Parser.ExpressionContext,
     frame: IScopeFrame,
   ): void {
-    if (!CodeGenState.isKnownEnum(targetType)) return;
+    if (!DeclaredTypeFacts.isEnum(this.context.symbols, targetType)) return;
 
     const verdict = this.values.classify(expression, frame);
     if (

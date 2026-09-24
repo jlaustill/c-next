@@ -30,12 +30,12 @@ import { ParserRuleContext, ParseTree } from "antlr4ng";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import IScopeFrame from "./types/IScopeFrame";
 import ScopeFrameResolver from "./ScopeFrameResolver";
-import CodeGenState from "../../transpiler/state/CodeGenState";
 import TypeResolver from "../../utils/TypeResolver";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ScopeUtils from "../../utils/ScopeUtils";
 import ChainRoot from "./helpers/ChainRoot";
 import type IAnalysisContext from "./types/IAnalysisContext";
+import StructFieldFacts from "../../utils/StructFieldFacts";
 
 /** One step of a member/subscript/call chain. */
 interface IChainStep {
@@ -142,11 +142,19 @@ class OperandTypeResolver {
    * rejoined here, once, rather than at each caller that happens to care.
    */
   private fieldType(structType: string, field: string): string | null {
-    const base = CodeGenState.getStructFieldType(structType, field);
+    const base = StructFieldFacts.typeOf(
+      this.context.symbols,
+      structType,
+      field,
+    );
     if (base === undefined) {
       return this.importedFieldType(structType, field);
     }
-    const dimensions = CodeGenState.getStructFieldDimensions(structType, field);
+    const dimensions = StructFieldFacts.dimensionsOf(
+      this.context.symbols,
+      structType,
+      field,
+    );
     if (dimensions === undefined || dimensions.length === 0) return base;
     return base + dimensions.map((d) => `[${d}]`).join("");
   }
@@ -154,7 +162,7 @@ class OperandTypeResolver {
   /**
    * The same fact for a struct declared in an INCLUDED `.cnx`.
    *
-   * `CodeGenState.symbols.structFields` holds the structs a file DECLARES, not
+   * `this.context.symbols?.structFields` holds the structs a file DECLARES, not
    * the ones it can see: `#include "shapes.cnx"` then `Frame f; f.data[9]`
    * left every chain through `f` unresolved, so each rule reading this walk
    * went quiet at the include boundary while passing every same-file fixture.
@@ -205,7 +213,7 @@ class OperandTypeResolver {
         // built with QualifiedCName -- the single encoder -- rather than
         // re-derived by hand (CLAUDE.md).
         return (
-          CodeGenState.getFunctionReturnType(
+          this.context.symbols?.functionReturnTypes.get(
             QualifiedCName.fromParts(nameParts),
           ) ?? null
         );

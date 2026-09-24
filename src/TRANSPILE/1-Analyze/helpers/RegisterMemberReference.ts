@@ -21,12 +21,13 @@
 
 import { ParserRuleContext } from "antlr4ng";
 
-import CodeGenState from "../../../transpiler/state/CodeGenState";
 import QualifiedCName from "../../../utils/QualifiedCName";
 import ScopeUtils from "../../../utils/ScopeUtils";
 import IRegisterMember from "../types/IRegisterMember";
 import TChainRoot from "../types/TChainRoot";
 import ScopeFrameResolver from "../ScopeFrameResolver";
+import type IAnalysisContext from "../types/IAnalysisContext";
+import type ICodeGenSymbols from "../../../transpiler/types/ICodeGenSymbols";
 
 class RegisterMemberReference {
   /**
@@ -56,6 +57,7 @@ class RegisterMemberReference {
    */
   /** The one register `this.R` can name: R in the enclosing scope. */
   private static thisCandidate(
+    symbols: ICodeGenSymbols,
     chain: string[],
     here: string,
   ): { reg: string; at: number }[] {
@@ -64,7 +66,7 @@ class RegisterMemberReference {
       scopePath: here,
       name: chain[0],
     });
-    return RegisterMemberReference.isRegister(inScope)
+    return RegisterMemberReference.isRegister(symbols, inScope)
       ? [{ reg: inScope, at: 1 }]
       : [];
   }
@@ -75,6 +77,7 @@ class RegisterMemberReference {
    * own, then another scope's through `S.R.M`.
    */
   private static searchCandidates(
+    symbols: ICodeGenSymbols,
     root: TChainRoot,
     chain: string[],
     here: string,
@@ -85,18 +88,18 @@ class RegisterMemberReference {
     const candidates: { reg: string; at: number }[] = [];
 
     // `global.` bypasses shadowing by construction; a bare name does not.
-    if (!isShadowed && RegisterMemberReference.isRegister(chain[0])) {
+    if (!isShadowed && RegisterMemberReference.isRegister(symbols, chain[0])) {
       candidates.push({ reg: chain[0], at: 1 });
     }
     if (root === null && here !== "") {
       const inScope = scoped(here, chain[0]);
-      if (RegisterMemberReference.isRegister(inScope)) {
+      if (RegisterMemberReference.isRegister(symbols, inScope)) {
         candidates.push({ reg: inScope, at: 1 });
       }
     }
     if (chain.length >= 3) {
       const crossScope = scoped(chain[0], chain[1]);
-      if (RegisterMemberReference.isRegister(crossScope)) {
+      if (RegisterMemberReference.isRegister(symbols, crossScope)) {
         candidates.push({ reg: crossScope, at: 2 });
       }
     }
@@ -104,8 +107,8 @@ class RegisterMemberReference {
   }
 
   /** Whether the program declares a register under this C name. */
-  private static isRegister(cName: string): boolean {
-    return CodeGenState.symbols?.knownRegisters.has(cName) ?? false;
+  private static isRegister(symbols: ICodeGenSymbols, cName: string): boolean {
+    return symbols.knownRegisters.has(cName);
   }
 
   /**
@@ -117,14 +120,21 @@ class RegisterMemberReference {
    * these are two functions.
    */
   private static registerCandidates(
+    symbols: ICodeGenSymbols,
     root: TChainRoot,
     chain: string[],
     here: string,
     isShadowed: boolean,
   ): { reg: string; at: number }[] {
     return root === "this"
-      ? RegisterMemberReference.thisCandidate(chain, here)
-      : RegisterMemberReference.searchCandidates(root, chain, here, isShadowed);
+      ? RegisterMemberReference.thisCandidate(symbols, chain, here)
+      : RegisterMemberReference.searchCandidates(
+          symbols,
+          root,
+          chain,
+          here,
+          isShadowed,
+        );
   }
 
   /** The register member a chain names, or null when it names none. */
@@ -133,8 +143,9 @@ class RegisterMemberReference {
     chain: string[],
     node: ParserRuleContext,
     scopes: ScopeFrameResolver,
+    context: IAnalysisContext,
   ): IRegisterMember | null {
-    const symbols = CodeGenState.symbols;
+    const symbols = context.symbols;
     if (!symbols || chain.length < 2) return null;
 
     const frame = scopes.frameFor(node);
@@ -144,6 +155,7 @@ class RegisterMemberReference {
 
     const prefix = root === null ? "" : `${root}.`;
     for (const { reg, at } of RegisterMemberReference.registerCandidates(
+      symbols,
       root,
       chain,
       frame.scopePath,

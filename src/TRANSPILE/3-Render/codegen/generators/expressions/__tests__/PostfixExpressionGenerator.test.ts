@@ -64,6 +64,7 @@ function createMockInput(overrides?: {
     functionSignatures: new Map(),
     knownFunctions: new Set(),
     knownStructs: new Set(),
+    knownScopes: new Set<string>(),
     constValues: new Map(),
     callbackTypes: new Map(),
     callbackFieldTypes: new Map(),
@@ -2309,6 +2310,7 @@ describe("PostfixExpressionGenerator", () => {
       ]);
       const symbols = createMockSymbols({
         knownStructs: new Set(["MyStruct"]),
+        knownScopes: new Set<string>(),
       });
       const ctx = createMockPostfixExpressionContext("obj", [
         createMockPostfixOp({ identifier: "name" }),
@@ -2342,6 +2344,7 @@ describe("PostfixExpressionGenerator", () => {
       ]);
       const symbols = createMockSymbols({
         knownStructs: new Set(["MyStruct"]),
+        knownScopes: new Set<string>(),
       });
       const ctx = createMockPostfixExpressionContext("obj", [
         createMockPostfixOp({ identifier: "value" }),
@@ -2375,6 +2378,7 @@ describe("PostfixExpressionGenerator", () => {
       ]);
       const symbols = createMockSymbols({
         knownStructs: new Set(["MyStruct"]),
+        knownScopes: new Set<string>(),
       });
       const ctx = createMockPostfixExpressionContext("obj", [
         createMockPostfixOp({ identifier: "data" }),
@@ -2409,6 +2413,7 @@ describe("PostfixExpressionGenerator", () => {
       ]);
       const symbols = createMockSymbols({
         knownStructs: new Set(["MyStruct"]),
+        knownScopes: new Set<string>(),
       });
       const ctx = createMockPostfixExpressionContext("obj", [
         createMockPostfixOp({ identifier: "value" }),
@@ -2443,6 +2448,7 @@ describe("PostfixExpressionGenerator", () => {
       ]);
       const symbols = createMockSymbols({
         knownStructs: new Set(["MyStruct"]),
+        knownScopes: new Set<string>(),
       });
       const ctx = createMockPostfixExpressionContext("obj", [
         createMockPostfixOp({ identifier: "name" }),
@@ -2476,6 +2482,7 @@ describe("PostfixExpressionGenerator", () => {
       ]);
       const symbols = createMockSymbols({
         knownStructs: new Set(["MyStruct"]),
+        knownScopes: new Set<string>(),
       });
       const ctx = createMockPostfixExpressionContext("obj", [
         createMockPostfixOp({ identifier: "value" }),

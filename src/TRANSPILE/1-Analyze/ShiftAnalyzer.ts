@@ -43,7 +43,6 @@ import IShiftError from "./types/IShiftError";
 import ParserUtils from "../../utils/ParserUtils";
 import TypeConstants from "../../utils/constants/TypeConstants";
 import ExpressionUtils from "../../utils/ExpressionUtils";
-import CodeGenState from "../../transpiler/state/CodeGenState";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 import OperandTypeResolver from "./OperandTypeResolver";
@@ -53,6 +52,7 @@ import ScopeUtils from "../../utils/ScopeUtils";
 import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
 import TChainRoot from "./types/TChainRoot";
 import type IAnalysisContext from "./types/IAnalysisContext";
+import StructFieldFacts from "../../utils/StructFieldFacts";
 
 /**
  * Second pass: Detect shift operations with signed operands
@@ -339,7 +339,8 @@ class ShiftListener extends CNextListener {
       if (memberIdent) {
         // Member access: .fieldName
         const fieldName = memberIdent.getText();
-        const fieldType = CodeGenState.getStructFieldType(
+        const fieldType = StructFieldFacts.typeOf(
+          this.context.symbols,
           currentType,
           fieldName,
         );

@@ -7,6 +7,7 @@ import { CharStream, CommonTokenStream } from "antlr4ng";
 import { CNextLexer } from "../../../PARSE/2-Parse/grammar/CNextLexer";
 import { CNextParser } from "../../../PARSE/2-Parse/grammar/CNextParser";
 import DivisionByZeroAnalyzer from "../DivisionByZeroAnalyzer";
+import testAnalysisContext from "./testAnalysisContext";
 
 /**
  * Helper to parse C-Next code and return the AST
@@ -32,7 +33,7 @@ describe("DivisionByZeroAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new DivisionByZeroAnalyzer();
+      const analyzer = new DivisionByZeroAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -48,7 +49,7 @@ describe("DivisionByZeroAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new DivisionByZeroAnalyzer();
+      const analyzer = new DivisionByZeroAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -64,7 +65,7 @@ describe("DivisionByZeroAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new DivisionByZeroAnalyzer();
+      const analyzer = new DivisionByZeroAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -78,7 +79,7 @@ describe("DivisionByZeroAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new DivisionByZeroAnalyzer();
+      const analyzer = new DivisionByZeroAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -93,7 +94,7 @@ describe("DivisionByZeroAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new DivisionByZeroAnalyzer();
+      const analyzer = new DivisionByZeroAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -106,7 +107,7 @@ describe("DivisionByZeroAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new DivisionByZeroAnalyzer();
+      const analyzer = new DivisionByZeroAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -126,7 +127,7 @@ describe("DivisionByZeroAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new DivisionByZeroAnalyzer();
+      const analyzer = new DivisionByZeroAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -141,7 +142,7 @@ describe("DivisionByZeroAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new DivisionByZeroAnalyzer();
+      const analyzer = new DivisionByZeroAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -156,7 +157,7 @@ describe("DivisionByZeroAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new DivisionByZeroAnalyzer();
+      const analyzer = new DivisionByZeroAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -170,7 +171,7 @@ describe("DivisionByZeroAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new DivisionByZeroAnalyzer();
+      const analyzer = new DivisionByZeroAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       // Non-const variables are not tracked (runtime value)
@@ -192,7 +193,7 @@ describe("DivisionByZeroAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new DivisionByZeroAnalyzer();
+      const analyzer = new DivisionByZeroAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(3);
@@ -214,7 +215,7 @@ describe("DivisionByZeroAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new DivisionByZeroAnalyzer();
+      const analyzer = new DivisionByZeroAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -234,7 +235,7 @@ describe("DivisionByZeroAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new DivisionByZeroAnalyzer();
+      const analyzer = new DivisionByZeroAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors[0].helpText).toContain("safe_div");
@@ -247,7 +248,7 @@ describe("DivisionByZeroAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new DivisionByZeroAnalyzer();
+      const analyzer = new DivisionByZeroAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors[0].helpText).toContain("safe_mod");
@@ -258,7 +259,7 @@ describe("DivisionByZeroAnalyzer", () => {
   u32 x <- 10 / 0;
 }`;
       const tree = parse(code);
-      const analyzer = new DivisionByZeroAnalyzer();
+      const analyzer = new DivisionByZeroAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors[0].line).toBe(2);
@@ -279,7 +280,7 @@ describe("DivisionByZeroAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new DivisionByZeroAnalyzer();
+      const analyzer = new DivisionByZeroAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -293,7 +294,7 @@ describe("DivisionByZeroAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new DivisionByZeroAnalyzer();
+      const analyzer = new DivisionByZeroAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -308,7 +309,7 @@ describe("DivisionByZeroAnalyzer", () => {
     it("should handle empty program", () => {
       const code = ``;
       const tree = parse(code);
-      const analyzer = new DivisionByZeroAnalyzer();
+      const analyzer = new DivisionByZeroAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -322,7 +323,7 @@ describe("DivisionByZeroAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new DivisionByZeroAnalyzer();
+      const analyzer = new DivisionByZeroAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -335,7 +336,7 @@ describe("DivisionByZeroAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new DivisionByZeroAnalyzer();
+      const analyzer = new DivisionByZeroAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       // Unary prefix causes postfixExpression() to be null in isZero
@@ -349,7 +350,7 @@ describe("DivisionByZeroAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new DivisionByZeroAnalyzer();
+      const analyzer = new DivisionByZeroAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       // Parenthesized expression hits isZero fall-through (neither literal nor identifier)
@@ -369,7 +370,7 @@ describe("DivisionByZeroAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new DivisionByZeroAnalyzer();
+      const analyzer = new DivisionByZeroAnalyzer(testAnalysisContext());
       analyzer.analyze(tree);
 
       const errors = analyzer.getErrors();

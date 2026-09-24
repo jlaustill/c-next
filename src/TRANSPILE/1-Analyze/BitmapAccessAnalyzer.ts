@@ -26,7 +26,6 @@ import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import CodeGenState from "../../transpiler/state/CodeGenState";
 import LiteralUtils from "../../utils/LiteralUtils";
 import ParserUtils from "../../utils/ParserUtils";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
@@ -36,11 +35,15 @@ import RegisterMemberReference from "./helpers/RegisterMemberReference";
 import IBitmapAccessError from "./types/IBitmapAccessError";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 import TChainRoot from "./types/TChainRoot";
+import type IAnalysisContext from "./types/IAnalysisContext";
 
 class BitmapAccessListener extends CNextListener {
   private readonly found: IBitmapAccessError[] = [];
 
-  public constructor(private readonly scopes: ScopeFrameResolver) {
+  public constructor(
+    private readonly scopes: ScopeFrameResolver,
+    private readonly context: IAnalysisContext,
+  ) {
     super();
   }
 
@@ -95,7 +98,7 @@ class BitmapAccessListener extends CNextListener {
     if (bitmapAt === null) return;
 
     // E0881: the value must fit the field it is written to.
-    const layout = CodeGenState.symbols?.bitmapFields
+    const layout = this.context.symbols?.bitmapFields
       .get(bitmapAt.bitmap)
       ?.get(bitmapAt.field);
     if (layout === undefined) return;
@@ -122,7 +125,7 @@ class BitmapAccessListener extends CNextListener {
     ops: readonly (Parser.PostfixOpContext | Parser.PostfixTargetOpContext)[],
     node: ParserRuleContext,
   ): { bitmap: string; field: string } | null {
-    const bitmaps = CodeGenState.symbols?.bitmapFields;
+    const bitmaps = this.context.symbols?.bitmapFields;
     if (!bitmaps || chain.length === 0) return null;
 
     const found = this.bitmapOf(chain, root, node);
@@ -177,7 +180,7 @@ class BitmapAccessListener extends CNextListener {
     root: TChainRoot,
     node: ParserRuleContext,
   ): { bitmap: string; at: number } | null {
-    const symbols = CodeGenState.symbols;
+    const symbols = this.context.symbols;
     if (!symbols) return null;
 
     const member = RegisterMemberReference.resolve(
@@ -185,6 +188,7 @@ class BitmapAccessListener extends CNextListener {
       chain,
       node,
       this.scopes,
+      this.context,
     );
     if (member !== null) {
       const type = symbols.registerMemberTypes.get(member.key);
@@ -222,11 +226,15 @@ class BitmapAccessListener extends CNextListener {
 }
 
 class BitmapAccessAnalyzer {
+  /** #1456: handed in rather than read off shared state. */
+  constructor(private readonly context: IAnalysisContext) {}
+
   public analyze(tree: Parser.ProgramContext): IBitmapAccessError[] {
     const declarations = new DeclarationScopeCollector();
     ParseTreeWalker.DEFAULT.walk(declarations, tree);
     const listener = new BitmapAccessListener(
       new ScopeFrameResolver(declarations),
+      this.context,
     );
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();

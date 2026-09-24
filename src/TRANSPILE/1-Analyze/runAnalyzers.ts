@@ -262,7 +262,11 @@ function runAnalyzers(
     },
     {
       label: "call analysis (ADR-030: define-before-use)",
-      run: () => new FunctionCallAnalyzer().analyze(tree, symbolTable),
+      run: () =>
+        new FunctionCallAnalyzer(new Set(), undefined, context).analyze(
+          tree,
+          symbolTable,
+        ),
     },
     {
       label: "NULL checks (ADR-047: C library interop)",
@@ -270,7 +274,7 @@ function runAnalyzers(
     },
     {
       label: "division by zero (ADR-051: compile-time detection)",
-      run: () => new DivisionByZeroAnalyzer().analyze(tree),
+      run: () => new DivisionByZeroAnalyzer(context).analyze(tree),
     },
     {
       label: "float modulo (% with f32/f64)",
@@ -278,7 +282,7 @@ function runAnalyzers(
     },
     {
       label: "array index type (ADR-054: unsigned indexes only)",
-      run: () => new ArrayIndexTypeAnalyzer().analyze(tree),
+      run: () => new ArrayIndexTypeAnalyzer(context).analyze(tree),
     },
     {
       label:
@@ -304,7 +308,7 @@ function runAnalyzers(
     {
       label:
         "return-value use (ADR-070 / MISRA C:2012 Rule 17.7 at source level)",
-      run: () => ReturnValueUseAnalyzer.analyze(tree, symbolTable),
+      run: () => ReturnValueUseAnalyzer.analyze(tree, symbolTable, context),
     },
     // ---------------------------------------------------------------------
     // #1322 relocations: appended as a BLOCK, never inserted among the steps
@@ -329,7 +333,7 @@ function runAnalyzers(
     {
       label:
         "compound assignment needs a whole storage location (ADR-007, E0857)",
-      run: () => new CompoundAssignmentAnalyzer().analyze(tree),
+      run: () => new CompoundAssignmentAnalyzer(context).analyze(tree),
     },
     {
       label: "C++ constructor arguments must be declared const (ADR-013, #375)",
@@ -381,7 +385,7 @@ function runAnalyzers(
     },
     {
       label: "scope access (ADR-016, E0435-E0437)",
-      run: () => new ScopeAccessAnalyzer().analyze(tree),
+      run: () => new ScopeAccessAnalyzer(context).analyze(tree),
     },
     {
       label: "register access modifiers (ADR-004, E0870-E0872)",
@@ -416,7 +420,7 @@ function runAnalyzers(
     },
     {
       label: "bitmap access (ADR-034, E0881-E0883)",
-      run: () => new BitmapAccessAnalyzer().analyze(tree),
+      run: () => new BitmapAccessAnalyzer(context).analyze(tree),
     },
     {
       label: "safe_div/safe_mod call shape (ADR-051, E0884/E0885)",

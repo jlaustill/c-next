@@ -30,6 +30,7 @@ function sets(
 ): IDeclaredTypeSets {
   return {
     knownStructs: new Set(structs),
+    knownScopes: new Set<string>(),
     knownEnums: new Set<string>(),
     knownBitmaps: new Set(bitmaps),
     bitmapBitWidth: new Map<string, number>(),

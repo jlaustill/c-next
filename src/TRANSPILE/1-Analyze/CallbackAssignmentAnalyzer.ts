@@ -45,7 +45,6 @@ import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import CodeGenState from "../../transpiler/state/CodeGenState";
 import IFunctionSymbol from "../../transpiler/types/symbols/IFunctionSymbol";
 import ParserUtils from "../../utils/ParserUtils";
 import TypeResolver from "../../utils/TypeResolver";
@@ -121,7 +120,7 @@ class CallbackAssignmentListener extends CNextListener {
     if (structName === null) return;
     const fieldName = ctx.IDENTIFIER().getText();
     this.check(
-      CodeGenState.symbols?.structFields.get(structName)?.get(fieldName) ??
+      this.context.symbols?.structFields.get(structName)?.get(fieldName) ??
         null,
       ctx.expression(),
       { verb: "assign", description: `callback field '${fieldName}'` },
@@ -252,15 +251,15 @@ class CallbackAssignmentListener extends CNextListener {
 
   private collectFieldTypes(): ReadonlySet<string> {
     return new Set([
-      ...CallbackAssignmentListener.fieldTypesInFileView(),
+      ...this.fieldTypesInFileView(),
       ...this.fieldTypesInProgram(),
     ]);
   }
 
   /** Field types of the structs this file declares. */
-  private static fieldTypesInFileView(): string[] {
+  private fieldTypesInFileView(): string[] {
     const types: string[] = [];
-    for (const fields of CodeGenState.symbols?.structFields.values() ?? []) {
+    for (const fields of this.context.symbols?.structFields.values() ?? []) {
       types.push(...fields.values());
     }
     return types;

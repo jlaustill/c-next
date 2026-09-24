@@ -33,11 +33,12 @@ import { ParseTreeWalker } from "antlr4ng";
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import ParserUtils from "../../utils/ParserUtils";
-import CodeGenState from "../../transpiler/state/CodeGenState";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 import ICompoundAssignmentError from "./types/ICompoundAssignmentError";
 import ChainRoot from "./helpers/ChainRoot";
+import StructFieldFacts from "../../utils/StructFieldFacts";
+import type IAnalysisContext from "./types/IAnalysisContext";
 
 /** What made a target unusable, in words the message can name. */
 type TRejection = "bit index" | "bit range or slice" | "string";
@@ -45,7 +46,10 @@ type TRejection = "bit index" | "bit range or slice" | "string";
 class CompoundAssignmentListener extends CNextListener {
   private readonly found: ICompoundAssignmentError[] = [];
 
-  public constructor(private readonly scopes: ScopeFrameResolver) {
+  public constructor(
+    private readonly scopes: ScopeFrameResolver,
+    private readonly context: IAnalysisContext,
+  ) {
     super();
   }
 
@@ -110,7 +114,7 @@ class CompoundAssignmentListener extends CNextListener {
    * chain-following analyzer. This used to derive the key privately, which
    * left the other four resolving nothing for the same structs.
    */
-  private static afterMember(
+  private afterMember(
     typeName: string | null,
     field: string | undefined,
   ): {
@@ -122,8 +126,10 @@ class CompoundAssignmentListener extends CNextListener {
     }
     return {
       dimensions:
-        CodeGenState.getStructFieldDimensions(typeName, field) ?? null,
-      typeName: CodeGenState.getStructFieldType(typeName, field) ?? null,
+        StructFieldFacts.dimensionsOf(this.context.symbols, typeName, field) ??
+        null,
+      typeName:
+        StructFieldFacts.typeOf(this.context.symbols, typeName, field) ?? null,
     };
   }
 
@@ -163,10 +169,7 @@ class CompoundAssignmentListener extends CNextListener {
         continue;
       }
 
-      const stepped = CompoundAssignmentListener.afterMember(
-        typeName,
-        op.IDENTIFIER()?.getText(),
-      );
+      const stepped = this.afterMember(typeName, op.IDENTIFIER()?.getText());
       dimensions = stepped.dimensions;
       typeName = stepped.typeName;
     }
@@ -195,6 +198,9 @@ class CompoundAssignmentListener extends CNextListener {
 }
 
 class CompoundAssignmentAnalyzer {
+  /** #1456: handed in rather than read off shared state. */
+  constructor(private readonly context: IAnalysisContext) {}
+
   /**
    * A declared type text naming a bounded string.
    *
@@ -211,6 +217,7 @@ class CompoundAssignmentAnalyzer {
 
     const listener = new CompoundAssignmentListener(
       new ScopeFrameResolver(declarations),
+      this.context,
     );
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();

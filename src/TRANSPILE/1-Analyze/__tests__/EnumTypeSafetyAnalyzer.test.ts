@@ -18,6 +18,7 @@ const withEnums = (...names: string[]): void => {
   CodeGenState.symbols = {
     knownEnums: new Set(names),
     knownStructs: new Set<string>(),
+    knownScopes: new Set<string>(),
     knownBitmaps: new Set<string>(),
     structFields: new Map(),
     structFieldDimensions: new Map(),

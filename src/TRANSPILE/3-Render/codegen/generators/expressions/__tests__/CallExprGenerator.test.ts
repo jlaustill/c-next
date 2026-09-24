@@ -66,6 +66,7 @@ function createMockInput(
     functionSignatures: new Map(),
     knownFunctions: new Set(),
     knownStructs: new Set(),
+    knownScopes: new Set<string>(),
     constValues: new Map(),
     callbackTypes: new Map(),
     callbackFieldTypes: new Map(),

@@ -30,7 +30,6 @@ import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import CodeGenState from "../../transpiler/state/CodeGenState";
 import ParserUtils from "../../utils/ParserUtils";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
 import SafeDivision from "./helpers/SafeDivision";
@@ -98,7 +97,7 @@ class SafeDivisionListener extends CNextListener {
   /** Whether anything at all declares this name where the call stands. */
   private isDeclared(name: string, at: ParserRuleContext): boolean {
     if (this.isVariable(name, at)) return true;
-    const symbols = CodeGenState.symbols;
+    const symbols = this.context.symbols;
     return (
       symbols?.functionReturnTypes.has(name) === true ||
       this.context.program.symbolByCName(name) !== undefined

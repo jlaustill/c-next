@@ -16,7 +16,6 @@
 import { ParserRuleContext } from "antlr4ng";
 
 import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
-import CodeGenState from "../../../transpiler/state/CodeGenState";
 import TypeResolver from "../../../utils/TypeResolver";
 import OperandTypeResolver from "../OperandTypeResolver";
 import IScopeFrame from "../types/IScopeFrame";
@@ -39,12 +38,16 @@ class StructInitializerType {
     );
     return typeText === null
       ? null
-      : StructInitializerType.structNamed(typeText, frame.scopePath);
+      : StructInitializerType.structNamed(typeText, frame.scopePath, context);
   }
 
   /** The struct a type spelling names, as keyed in `structFields`, or null. */
-  static structNamed(typeText: string, scopePath: string): string | null {
-    const fields = CodeGenState.symbols?.structFields;
+  static structNamed(
+    typeText: string,
+    scopePath: string,
+    context: IAnalysisContext,
+  ): string | null {
+    const fields = context.symbols?.structFields;
     if (!fields) return null;
     return (
       FunctionReference.candidatesForTypeText(typeText, scopePath).find((c) =>
@@ -178,7 +181,7 @@ class StructInitializerType {
     );
     if (structName === null) return null;
     return (
-      CodeGenState.symbols?.structFields
+      context.symbols?.structFields
         .get(structName)
         ?.get(field.IDENTIFIER().getText()) ?? null
     );

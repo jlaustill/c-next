@@ -21,7 +21,6 @@ import ExpressionUtils from "../../utils/ExpressionUtils";
 import ParserUtils from "../../utils/ParserUtils";
 import analyzePostfixOps from "../../utils/PostfixAnalysisUtils";
 import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
-import CodeGenState from "../../transpiler/state/CodeGenState";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
 import ScopeUtils from "../../utils/ScopeUtils";
 import type IAnalysisContext from "./types/IAnalysisContext";
@@ -457,7 +456,7 @@ class InitializationAnalyzer {
     }
 
     // Check external structs from CodeGenState
-    return CodeGenState.getExternalStructFields().get(structName);
+    return this.context.program.externalStructFields().get(structName);
   }
 
   /**

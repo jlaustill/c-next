@@ -27,7 +27,6 @@ import { ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import CodeGenState from "../../transpiler/state/CodeGenState";
 import ParserUtils from "../../utils/ParserUtils";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
 import EnumValueResolver from "./EnumValueResolver";
@@ -47,7 +46,7 @@ class SwitchStatementListener extends CNextListener {
 
   public constructor(
     private readonly scopes: ScopeFrameResolver,
-    context: IAnalysisContext,
+    private readonly context: IAnalysisContext,
   ) {
     super();
     this.types = new OperandTypeResolver(scopes, context);
@@ -111,7 +110,7 @@ class SwitchStatementListener extends CNextListener {
     label: Parser.CaseLabelContext,
     switchEnum: string | null,
   ): boolean {
-    const symbols = CodeGenState.symbols;
+    const symbols = this.context.symbols;
     const name = label.IDENTIFIER()?.getText();
     if (!symbols || name === undefined) return false;
     if (switchEnum !== null && symbols.enumMembers.get(switchEnum)?.has(name)) {
@@ -138,7 +137,7 @@ class SwitchStatementListener extends CNextListener {
     cases: readonly Parser.SwitchCaseContext[],
     switchEnum: string | null,
   ): boolean {
-    const symbols = CodeGenState.symbols;
+    const symbols = this.context.symbols;
     if (!symbols) return false;
     let reported = false;
     for (const caseCtx of cases) {
@@ -189,7 +188,7 @@ class SwitchStatementListener extends CNextListener {
     cases: readonly Parser.SwitchCaseContext[],
     defaultCase: Parser.DefaultCaseContext | null,
   ): void {
-    const variants = CodeGenState.symbols?.enumMembers.get(enumTypeName);
+    const variants = this.context.symbols?.enumMembers.get(enumTypeName);
     if (!variants) return;
 
     const total = variants.size;

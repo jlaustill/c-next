@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import CompoundAssignmentAnalyzer from "../CompoundAssignmentAnalyzer";
+import testAnalysisContext from "./testAnalysisContext";
 
 /**
  * #1322. A compound operator (`+<-`, `|<-`, …) is a read-modify-write, and
@@ -24,7 +25,7 @@ import CompoundAssignmentAnalyzer from "../CompoundAssignmentAnalyzer";
  */
 const errors = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new CompoundAssignmentAnalyzer().analyze(tree);
+  return new CompoundAssignmentAnalyzer(testAnalysisContext()).analyze(tree);
 };
 
 const inMain = (body: string): string =>

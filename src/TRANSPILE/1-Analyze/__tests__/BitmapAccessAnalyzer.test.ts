@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import CodeGenState from "../../../transpiler/state/CodeGenState";
 import BitmapAccessAnalyzer from "../BitmapAccessAnalyzer";
+import testAnalysisContext from "./testAnalysisContext";
 
 /**
  * #1322. ADR-034's three access rules: E0881 (a literal too wide for the
@@ -47,7 +48,7 @@ const flags = () =>
 
 const errors = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new BitmapAccessAnalyzer().analyze(tree);
+  return new BitmapAccessAnalyzer(testAnalysisContext()).analyze(tree);
 };
 
 afterEach(() => {

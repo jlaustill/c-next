@@ -13,7 +13,6 @@ import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
 import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import IFunctionCallError from "./types/IFunctionCallError";
 import ParserUtils from "../../utils/ParserUtils";
-import CodeGenState from "../../transpiler/state/CodeGenState";
 import ExpressionUnwrapper from "../../utils/ExpressionUnwrapper";
 import QualifiedCName from "../../utils/QualifiedCName";
 import AdrProvenance from "../../instrumentation/AdrProvenance";
@@ -477,7 +476,7 @@ class FunctionCallAnalyzer {
   public isCallbackType(name: string): boolean {
     return (
       this.allLocalFunctions.has(name) ||
-      (CodeGenState.symbols?.functionReturnTypes.has(name) ?? false)
+      (this.context?.symbols?.functionReturnTypes.has(name) ?? false)
     );
   }
 

@@ -49,7 +49,6 @@ import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import CodeGenState from "../../transpiler/state/CodeGenState";
 import ParserUtils from "../../utils/ParserUtils";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
 import EnumMemberSuggestion from "./helpers/EnumMemberSuggestion";
@@ -61,6 +60,7 @@ import ScopeFrameResolver from "./ScopeFrameResolver";
 import UndeclaredValueAnalyzer from "./UndeclaredValueAnalyzer";
 import TypeText from "./helpers/TypeText";
 import type IAnalysisContext from "./types/IAnalysisContext";
+import StructFieldFacts from "../../utils/StructFieldFacts";
 
 /** A type name as written at the position that establishes it, or null. */
 type TExpected = string | null;
@@ -86,7 +86,7 @@ class BareEnumMemberListener extends CNextListener {
   override enterPostfixExpression = (
     ctx: Parser.PostfixExpressionContext,
   ): void => {
-    const symbols = CodeGenState.symbols;
+    const symbols = this.context.symbols;
     const primary = ctx.primaryExpression();
     const name = primary?.IDENTIFIER()?.getText();
     if (!symbols || !primary || name === undefined) return;
@@ -105,6 +105,7 @@ class BareEnumMemberListener extends CNextListener {
         frame.scopePath,
         this.scopes,
         this.context.symbolTable,
+        this.context,
       )
     ) {
       return;
@@ -258,7 +259,11 @@ class BareEnumMemberListener extends CNextListener {
       structText,
       frame,
     )) {
-      const type = CodeGenState.getStructFieldType(spelling, fieldName);
+      const type = StructFieldFacts.typeOf(
+        this.context.symbols,
+        spelling,
+        fieldName,
+      );
       if (type !== undefined) return type;
     }
     return null;

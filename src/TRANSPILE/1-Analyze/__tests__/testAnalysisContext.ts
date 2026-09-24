@@ -1,6 +1,5 @@
 import CodeGenState from "../../../transpiler/state/CodeGenState";
 import Program from "../../../PARSE/4-Resolve/Program";
-import createMockSymbols from "../../../transpiler/__tests__/codeGenSymbolsHelpers";
 import type IAnalysisContext from "../types/IAnalysisContext";
 
 /**
@@ -25,9 +24,10 @@ import type IAnalysisContext from "../types/IAnalysisContext";
 const testAnalysisContext = (
   overrides: Partial<IAnalysisContext> = {},
 ): IAnalysisContext => ({
-  symbols: CodeGenState.symbols ?? createMockSymbols(),
+  symbols: CodeGenState.symbols,
   program: CodeGenState.program ?? Program.build([], {}),
   symbolTable: CodeGenState.symbolTable,
+  reachesForeignHeader: CodeGenState.currentFileReachesForeignHeader,
   ...overrides,
 });
 

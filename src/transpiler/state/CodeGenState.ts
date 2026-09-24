@@ -51,6 +51,7 @@ import invariant from "../../utils/invariant";
 import type ITypeBindingDeps from "../types/ITypeBindingDeps";
 import type IDeclarationPlan from "../types/IDeclarationPlan";
 import DEFAULT_TARGET from "../constants/DEFAULT_TARGET";
+import StructFieldFacts from "../../utils/StructFieldFacts";
 
 /**
  * Default target capabilities (safe fallback)
@@ -821,21 +822,14 @@ export default class CodeGenState {
    * Check if a type name is a known scope.
    */
   static isKnownScope(name: string): boolean {
-    return this.symbols?.knownScopes.has(name) ?? false;
+    return DeclaredTypeFacts.isScope(this.symbols, name);
   }
 
   /**
    * Check if a type name is a known enum.
    */
   static isKnownEnum(name: string): boolean {
-    return this.symbols?.knownEnums.has(name) ?? false;
-  }
-
-  /**
-   * Check if a type name is a known bitmap.
-   */
-  static isKnownBitmap(name: string): boolean {
-    return this.symbols?.knownBitmaps.has(name) ?? false;
+    return DeclaredTypeFacts.isEnum(this.symbols, name);
   }
 
   /**
@@ -1038,26 +1032,6 @@ export default class CodeGenState {
     const base = TypeResolver.getTypeName(symbol.type);
     const dimensions = symbol.arrayDimensions ?? [];
     return base + dimensions.map((d) => `[${d}]`).join("");
-  }
-
-  /**
-   * Integer value of a const C-Next variable as the SymbolTable records it,
-   * wherever it was declared.
-   *
-   * Issue #1220: the analyzer-facing companion to getCNextVariableTypeName,
-   * and deliberately NOT `CodeGenState.constValues`. That map is cleared by
-   * CodeGenerator.generate(), so it still holds the consts of the file
-   * generated just before this one; dependencies happen to be generated before
-   * their dependents today, which makes the stale map agree by coincidence
-   * rather than by rule.
-   *
-   * #1447: asked of `Program` rather than the symbol table. Both are
-   * order-independent, but only one of them is the pass that OWNS the fact --
-   * "what is this const worth" spans files, so after 1.4 it is read from the
-   * artifact rather than re-derived from whatever the table has accumulated.
-   */
-  static getCNextConstValue(name: string): number | undefined {
-    return this.program?.constValue(name);
   }
 
   /**
@@ -1484,19 +1458,7 @@ export default class CodeGenState {
    * safe to put under a caller in `output/` as well as the analyzers.
    */
   private static resolvedStructKey(structName: string): string | undefined {
-    const fields = this.symbols?.structFields;
-    if (fields === undefined) return undefined;
-    if (fields.has(structName)) return structName;
-
-    const cut = structName.lastIndexOf(".");
-    if (cut === -1) return undefined;
-    // Never spelled by hand -- `getTranspiledCName` is the single encoder
-    // (CLAUDE.md), and the whole PATH is the scope, not just its last segment.
-    const key = ScopeUtils.getTranspiledCName({
-      scopePath: structName.slice(0, cut),
-      name: structName.slice(cut + 1),
-    });
-    return fields.has(key) ? key : undefined;
+    return StructFieldFacts.keyFor(this.symbols, structName);
   }
 
   /**
@@ -1506,28 +1468,7 @@ export default class CodeGenState {
     structName: string,
     fieldName: string,
   ): string | undefined {
-    const key = CodeGenState.resolvedStructKey(structName);
-    return key === undefined
-      ? undefined
-      : this.symbols?.structFields.get(key)?.get(fieldName);
-  }
-
-  /**
-   * A struct field's declared array dimensions, or undefined where the struct
-   * or the field is not established. An empty array means a declared scalar --
-   * a distinction its callers depend on, so it is not collapsed to undefined.
-   */
-  static getStructFieldDimensions(
-    structName: string,
-    fieldName: string,
-  ): readonly (number | string)[] | undefined {
-    const key = CodeGenState.resolvedStructKey(structName);
-    if (key === undefined) return undefined;
-    const dimensions = this.symbols?.structFieldDimensions
-      .get(key)
-      ?.get(fieldName);
-    if (dimensions !== undefined) return dimensions;
-    return this.symbols?.structFields.get(key)?.has(fieldName) ? [] : undefined;
+    return StructFieldFacts.typeOf(this.symbols, structName, fieldName);
   }
 
   /**

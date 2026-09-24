@@ -11,6 +11,13 @@ interface IDeclaredTypeSets {
    * carry this set, so the widening costs no caller a field.
    */
   readonly knownStructs: ReadonlySet<string>;
+
+  /**
+   * Widened for `DeclaredTypeFacts.isScope` (#1456), on the same argument
+   * `knownStructs` carries above: every supplier is an `ICodeGenSymbols` or a
+   * structural stand-in, and all of them already have this set.
+   */
+  readonly knownScopes: ReadonlySet<string>;
   readonly knownEnums: ReadonlySet<string>;
   readonly knownBitmaps: ReadonlySet<string>;
   readonly bitmapBitWidth: ReadonlyMap<string, number>;

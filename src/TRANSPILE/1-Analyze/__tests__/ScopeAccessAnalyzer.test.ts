@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import CodeGenState from "../../../transpiler/state/CodeGenState";
 import ScopeAccessAnalyzer from "../ScopeAccessAnalyzer";
+import testAnalysisContext from "./testAnalysisContext";
 
 /**
  * #1322. ADR-016's scope-access rules -- E0435 (own scope by name), E0436
@@ -41,7 +42,7 @@ const symbols = (opts: {
 
 const errors = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new ScopeAccessAnalyzer().analyze(tree);
+  return new ScopeAccessAnalyzer(testAnalysisContext()).analyze(tree);
 };
 
 afterEach(() => {

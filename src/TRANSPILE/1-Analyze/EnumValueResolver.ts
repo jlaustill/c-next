@@ -16,7 +16,6 @@
 import { ParserRuleContext, ParseTree } from "antlr4ng";
 
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import CodeGenState from "../../transpiler/state/CodeGenState";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ScopeCandidates from "./helpers/ScopeCandidates";
 import ScopeUtils from "../../utils/ScopeUtils";
@@ -26,6 +25,7 @@ import OperandTypeResolver from "./OperandTypeResolver";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 import TChainRoot from "./types/TChainRoot";
 import type IAnalysisContext from "./types/IAnalysisContext";
+import DeclaredTypeFacts from "../../utils/DeclaredTypeFacts";
 
 /** An expression's kind, as ADR-017's rules need to see it. */
 type TValueKind =
@@ -44,7 +44,10 @@ const INTEGER_LITERAL = /^-?(?:\d+|0[xX][0-9a-fA-F]+|0[bB][01]+)$/;
 class EnumValueResolver {
   private readonly types: OperandTypeResolver;
 
-  public constructor(scopes: ScopeFrameResolver, context: IAnalysisContext) {
+  public constructor(
+    scopes: ScopeFrameResolver,
+    private readonly context: IAnalysisContext,
+  ) {
     this.types = new OperandTypeResolver(scopes, context);
   }
 
@@ -166,7 +169,8 @@ class EnumValueResolver {
     );
 
     for (const candidate of candidates) {
-      if (CodeGenState.isKnownEnum(candidate)) return candidate;
+      if (DeclaredTypeFacts.isEnum(this.context.symbols, candidate))
+        return candidate;
     }
     return null;
   }
