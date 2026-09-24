@@ -49,7 +49,7 @@ const symbols = (
 
 const errors = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new BareEnumMemberAnalyzer().analyze(tree);
+  return new BareEnumMemberAnalyzer(CodeGenState.symbolTable).analyze(tree);
 };
 
 afterEach(() => {

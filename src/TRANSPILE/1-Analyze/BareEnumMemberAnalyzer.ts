@@ -60,6 +60,7 @@ import OperandTypeResolver from "./OperandTypeResolver";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 import UndeclaredValueAnalyzer from "./UndeclaredValueAnalyzer";
 import TypeText from "./helpers/TypeText";
+import type SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 
 /** A type name as written at the position that establishes it, or null. */
 type TExpected = string | null;
@@ -69,7 +70,10 @@ class BareEnumMemberListener extends CNextListener {
   private readonly types: OperandTypeResolver;
   private readonly values: EnumValueResolver;
 
-  public constructor(private readonly scopes: ScopeFrameResolver) {
+  public constructor(
+    private readonly scopes: ScopeFrameResolver,
+    private readonly symbolTable: SymbolTable,
+  ) {
     super();
     this.types = new OperandTypeResolver(scopes);
     this.values = new EnumValueResolver(scopes);
@@ -100,6 +104,7 @@ class BareEnumMemberListener extends CNextListener {
         frame,
         frame.scopePath,
         this.scopes,
+        this.symbolTable,
       )
     ) {
       return;
@@ -304,12 +309,16 @@ class BareEnumMemberListener extends CNextListener {
 }
 
 class BareEnumMemberAnalyzer {
+  /** #1456: what the program declares, handed in rather than read off state. */
+  constructor(private readonly symbolTable: SymbolTable) {}
+
   public analyze(tree: Parser.ProgramContext): IBareEnumMemberError[] {
     const declarations = new DeclarationScopeCollector();
     ParseTreeWalker.DEFAULT.walk(declarations, tree);
 
     const listener = new BareEnumMemberListener(
       new ScopeFrameResolver(declarations),
+      this.symbolTable,
     );
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();

@@ -33,7 +33,7 @@ function analyze(source: string) {
   // Same precondition as E0426: the analyzer declines unless the transpiler
   // knows the file's whole name universe. These sources include nothing.
   CodeGenState.currentFileReachesForeignHeader = false;
-  return new UndeclaredValueAnalyzer().analyze(tree);
+  return new UndeclaredValueAnalyzer(CodeGenState.symbolTable).analyze(tree);
 }
 
 let registry = new SymbolRegistry();

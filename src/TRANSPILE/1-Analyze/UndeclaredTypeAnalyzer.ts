@@ -121,6 +121,14 @@ class UndeclaredTypeListener extends CNextListener {
 class UndeclaredTypeAnalyzer {
   private readonly errors: IUndeclaredTypeError[] = [];
 
+  /**
+   * #1456: what the program declares, handed in rather than read off
+   * `CodeGenState`. Constructor rather than a parameter on `analyze`, because
+   * `isVisibleType` and `isRegister` are called by the listener and need it
+   * too -- a parameter would have to reach them through the walk.
+   */
+  constructor(private readonly symbolTable: SymbolTable) {}
+
   analyze(tree: Parser.ProgramContext): IUndeclaredTypeError[] {
     this.errors.length = 0;
 
@@ -171,8 +179,9 @@ class UndeclaredTypeAnalyzer {
       typeName,
       scope,
       symbols,
-      (name, fileSymbols, symbolTable) =>
-        NameExistence.isTypeName(name, fileSymbols, symbolTable),
+      this.symbolTable,
+      (name, fileSymbols, table) =>
+        NameExistence.isTypeName(name, fileSymbols, table),
     );
   }
 
@@ -201,6 +210,7 @@ class UndeclaredTypeAnalyzer {
       // Reached only after `isVisibleType` returned false, which requires a
       // symbol view -- see its guard.
       CodeGenState.symbols!,
+      this.symbolTable,
       (name, fileSymbols) => NameExistence.isRegisterName(name, fileSymbols),
     );
   }
@@ -219,14 +229,13 @@ class UndeclaredTypeAnalyzer {
     typeName: string,
     scope: ReturnType<EnclosingScope["current"]>,
     symbols: ICodeGenSymbols,
+    symbolTable: SymbolTable,
     test: (
       name: string,
       symbols: ICodeGenSymbols,
       symbolTable: SymbolTable,
     ) => boolean,
   ): boolean {
-    const symbolTable = CodeGenState.symbolTable;
-
     if (scope) {
       const qualified = ScopeUtils.qualifyInScope(typeName, scope);
       if (test(qualified, symbols, symbolTable)) {

@@ -41,7 +41,7 @@ function analyze(source: string) {
   // declines unless the transpiler knows the file's whole name universe, so the
   // fail-safe direction is silence. These sources include nothing.
   CodeGenState.currentFileReachesForeignHeader = false;
-  return new UndeclaredTypeAnalyzer().analyze(tree);
+  return new UndeclaredTypeAnalyzer(CodeGenState.symbolTable).analyze(tree);
 }
 
 const REGISTER = `register Control @ 0x40000000 { DR: u32 rw @ 0x00, }`;
@@ -168,7 +168,9 @@ describe("UndeclaredTypeAnalyzer", () => {
       // guard rather than passing for the other reason.
       const tree = parse(`u32 main() { Nowhere c; return 0; }`);
       CodeGenState.currentFileReachesForeignHeader = false;
-      expect(new UndeclaredTypeAnalyzer().analyze(tree)).toHaveLength(0);
+      expect(
+        new UndeclaredTypeAnalyzer(CodeGenState.symbolTable).analyze(tree),
+      ).toHaveLength(0);
     });
 
     it("stays silent when the file can reach a foreign header (#985)", () => {
@@ -181,7 +183,9 @@ describe("UndeclaredTypeAnalyzer", () => {
         CNextResolver.resolve(tree, "test.cnx", registry).symbols,
       );
       CodeGenState.currentFileReachesForeignHeader = true;
-      expect(new UndeclaredTypeAnalyzer().analyze(tree)).toHaveLength(0);
+      expect(
+        new UndeclaredTypeAnalyzer(CodeGenState.symbolTable).analyze(tree),
+      ).toHaveLength(0);
     });
   });
 });

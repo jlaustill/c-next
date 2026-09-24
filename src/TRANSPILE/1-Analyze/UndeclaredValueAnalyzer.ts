@@ -170,6 +170,13 @@ class UndeclaredValueListener extends CNextListener {
 class UndeclaredValueAnalyzer {
   private readonly errors: IUndeclaredValueError[] = [];
 
+  /**
+   * #1456: what the program declares, handed in rather than read off
+   * `CodeGenState`. Constructor rather than a parameter on `analyze`, because
+   * the predicates below are reached from the listener's walk.
+   */
+  constructor(private readonly symbolTable: SymbolTable) {}
+
   analyze(tree: Parser.ProgramContext): IUndeclaredValueError[] {
     this.errors.length = 0;
 
@@ -227,6 +234,7 @@ class UndeclaredValueAnalyzer {
           frame,
           frame.scopePath,
           scopes,
+          this.symbolTable,
         ) ||
         (symbols !== null &&
           symbols !== undefined &&
@@ -246,7 +254,7 @@ class UndeclaredValueAnalyzer {
     // `#include`, which this file's frames never held. The include-filtered
     // predicate is the cross-file half, exactly as it is for a bare name.
     if (root === "global") {
-      return NameExistence.isValueName(name, symbols, CodeGenState.symbolTable);
+      return NameExistence.isValueName(name, symbols, this.symbolTable);
     }
 
     // `this.` outside any scope is E0431's to reject, and two diagnostics for
@@ -259,7 +267,7 @@ class UndeclaredValueAnalyzer {
       name,
       frame.scopePath,
       symbols,
-      CodeGenState.symbolTable,
+      this.symbolTable,
     );
   }
 
@@ -305,6 +313,7 @@ class UndeclaredValueAnalyzer {
     frame: IScopeFrame,
     scopePath: string,
     scopes: ScopeFrameResolver,
+    symbolTable: SymbolTable,
   ): boolean {
     // A declared variable in an enclosing lexical frame of THIS file.
     //
@@ -356,7 +365,6 @@ class UndeclaredValueAnalyzer {
     // `scopeMemberVisibility`, written by the same `processScope`, ARE merged,
     // so the three disagree about what "visible" means. What actually answers
     // cross-file here is the run-wide `symbolTable` term below.
-    const symbolTable = CodeGenState.symbolTable;
     if (NameExistence.isValueName(name, symbols, symbolTable)) {
       return true;
     }

@@ -29,7 +29,7 @@ function analyze(source: string) {
   CodeGenState.symbols = TSymbolInfoAdapter.convert(
     CNextResolver.resolve(tree, "test.cnx", registry).symbols,
   );
-  return ReturnValueUseAnalyzer.analyze(tree);
+  return ReturnValueUseAnalyzer.analyze(tree, CodeGenState.symbolTable);
 }
 
 let registry = new SymbolRegistry();

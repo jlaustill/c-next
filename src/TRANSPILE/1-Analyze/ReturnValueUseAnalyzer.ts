@@ -34,6 +34,7 @@ import StdlibFunctions from "./StdlibFunctions";
 import CalleeNameResolver from "./helpers/CalleeNameResolver";
 import EnclosingScope from "./helpers/EnclosingScope";
 import IReturnValueUseError from "./types/IReturnValueUseError";
+import type SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 
 class ReturnValueUseListener extends CNextListener {
   public readonly errors: IReturnValueUseError[] = [];
@@ -44,7 +45,10 @@ class ReturnValueUseListener extends CNextListener {
   /** Scope names in this file, for resolving `global.Scope.member()`. */
   private readonly knownScopes: ReadonlySet<string>;
 
-  constructor(knownScopes: ReadonlySet<string>) {
+  constructor(
+    knownScopes: ReadonlySet<string>,
+    private readonly symbolTable: SymbolTable,
+  ) {
     super();
     this.knownScopes = knownScopes;
   }
@@ -83,6 +87,7 @@ class ReturnValueUseListener extends CNextListener {
     const funcName = ReturnValueUseAnalyzer.nonVoidCallee(
       resolved,
       this.enclosing.current(),
+      this.symbolTable,
     );
     if (!funcName) return;
 
@@ -189,8 +194,9 @@ class ReturnValueUseAnalyzer {
   static nonVoidCallee(
     resolved: { name: string; isGlobalCall: boolean },
     currentScopePath: string,
+    symbolTable: SymbolTable,
   ): string | null {
-    if (ReturnValueUseAnalyzer.returnsAValue(resolved.name)) {
+    if (ReturnValueUseAnalyzer.returnsAValue(resolved.name, symbolTable)) {
       return resolved.name;
     }
 
@@ -199,7 +205,10 @@ class ReturnValueUseAnalyzer {
       currentScopePath,
       resolved.isGlobalCall,
     );
-    if (fallback && ReturnValueUseAnalyzer.returnsAValue(fallback)) {
+    if (
+      fallback &&
+      ReturnValueUseAnalyzer.returnsAValue(fallback, symbolTable)
+    ) {
       return fallback;
     }
 
@@ -210,7 +219,7 @@ class ReturnValueUseAnalyzer {
    * True only when C-Next can see a non-void return type for `name`.
    * Unresolvable names answer false: outside the rule's domain, not exempt.
    */
-  static returnsAValue(name: string): boolean {
+  static returnsAValue(name: string, symbolTable: SymbolTable): boolean {
     const builtin = StdlibFunctions.builtinReturnType(name);
     if (builtin !== null) {
       return builtin !== "void";
@@ -225,7 +234,10 @@ class ReturnValueUseAnalyzer {
     // the symbol table rather than through CodeGenState.symbols, which only
     // merges .cnx includes. ADR-070 rejects blanket-exempting external C
     // precisely because these returns ARE visible -- just by a different route.
-    const external = ReturnValueUseAnalyzer.externalReturnType(name);
+    const external = ReturnValueUseAnalyzer.externalReturnType(
+      name,
+      symbolTable,
+    );
     if (external !== null) {
       return external !== "void";
     }
@@ -247,12 +259,19 @@ class ReturnValueUseAnalyzer {
    * by a different route than CodeGenState.symbols, which merges only .cnx
    * includes.
    */
-  static externalReturnType(name: string): string | null {
+  static externalReturnType(
+    name: string,
+    symbolTable: SymbolTable,
+  ): string | null {
     // .hpp symbols land in a separate index from .h ones; ICppFunctionSymbol
     // is structurally identical, so one lookup covers both.
-    const sym =
-      CodeGenState.symbolTable?.getCSymbol?.(name) ??
-      CodeGenState.symbolTable?.getCppSymbol?.(name);
+    //
+    // #1456: the `?.` on the table AND on both methods is gone. Neither can be
+    // absent -- `SymbolTable` declares both -- so the optional call was a guard
+    // that could not fire, and it would have turned a genuinely missing method
+    // into `null`, which reads here as "this function returns nothing" rather
+    // than as an error.
+    const sym = symbolTable.getCSymbol(name) ?? symbolTable.getCppSymbol(name);
     if (sym?.kind !== "function") return null;
     return sym.type ?? null;
   }
@@ -272,9 +291,13 @@ class ReturnValueUseAnalyzer {
   }
 
   /** Run the analysis over a parsed program. */
-  static analyze(tree: Parser.ProgramContext): IReturnValueUseError[] {
+  static analyze(
+    tree: Parser.ProgramContext,
+    symbolTable: SymbolTable,
+  ): IReturnValueUseError[] {
     const listener = new ReturnValueUseListener(
       ReturnValueUseAnalyzer.collectScopes(tree),
+      symbolTable,
     );
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors;

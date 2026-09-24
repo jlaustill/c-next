@@ -62,6 +62,7 @@ describe("runAnalyzers", () => {
       `);
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
+        symbolTable: new SymbolTable(),
         includes: NO_INCLUDES,
       });
       expect(errors).toHaveLength(0);
@@ -71,6 +72,7 @@ describe("runAnalyzers", () => {
       const { tree, comments } = parseWithComments(``);
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
+        symbolTable: new SymbolTable(),
         includes: NO_INCLUDES,
       });
       expect(errors).toHaveLength(0);
@@ -86,6 +88,7 @@ describe("runAnalyzers", () => {
       const { tree, comments } = parseWithComments(`u8 value_ <- 1;`);
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
+        symbolTable: new SymbolTable(),
         includes: NO_INCLUDES,
       });
 
@@ -100,6 +103,7 @@ describe("runAnalyzers", () => {
       const { tree, comments } = parseWithComments(`u8 my__value <- 1;`);
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
+        symbolTable: new SymbolTable(),
         includes: NO_INCLUDES,
       });
 
@@ -116,6 +120,7 @@ describe("runAnalyzers", () => {
       `);
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
+        symbolTable: new SymbolTable(),
         includes: NO_INCLUDES,
       });
 
@@ -136,6 +141,7 @@ describe("runAnalyzers", () => {
       `);
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
+        symbolTable: new SymbolTable(),
         includes: NO_INCLUDES,
       });
 
@@ -166,6 +172,7 @@ describe("runAnalyzers", () => {
       `);
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
+        symbolTable: new SymbolTable(),
         includes: NO_INCLUDES,
       });
 
@@ -192,6 +199,7 @@ describe("runAnalyzers", () => {
       `);
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
+        symbolTable: new SymbolTable(),
         includes: NO_INCLUDES,
       });
 
@@ -216,6 +224,7 @@ describe("runAnalyzers", () => {
       `);
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
+        symbolTable: new SymbolTable(),
         includes: NO_INCLUDES,
       });
 
@@ -238,6 +247,7 @@ describe("runAnalyzers", () => {
       `);
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
+        symbolTable: new SymbolTable(),
         includes: NO_INCLUDES,
       });
 
@@ -261,6 +271,7 @@ describe("runAnalyzers", () => {
       `);
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
+        symbolTable: new SymbolTable(),
         includes: NO_INCLUDES,
       });
 
@@ -281,6 +292,7 @@ describe("runAnalyzers", () => {
       const { tree, comments } = parseWithComments(code);
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
+        symbolTable: new SymbolTable(),
         includes: NO_INCLUDES,
       });
 
@@ -321,6 +333,7 @@ describe("runAnalyzers", () => {
 
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
+        symbolTable: new SymbolTable(),
         includes: NO_INCLUDES,
       });
       expect(errors).toHaveLength(0);
@@ -352,15 +365,20 @@ describe("runAnalyzers", () => {
       expect(errors).toHaveLength(0);
     });
 
-    it("should use CodeGenState.symbolTable by default", () => {
+    it("consults the table the CALLER passed, not shared state", () => {
+      // #1456: this used to be "should use CodeGenState.symbolTable by
+      // default" and covered the `options.symbolTable ?? CodeGenState.symbolTable`
+      // fallback, which is gone. Rewritten rather than deleted, because the
+      // property worth keeping is that the table actually reaches the
+      // analyzers -- only the route changed.
       const { tree, comments } = parseWithComments(`
         void main() {
           u32 x <- 5;
         }
       `);
 
-      // Set up C++ class in CodeGenState.symbolTable
-      CodeGenState.symbolTable.addCppSymbol({
+      const caller = new SymbolTable();
+      caller.addCppSymbol({
         name: "CppMessage",
         kind: "class",
         sourceLanguage: ESourceLanguage.Cpp,
@@ -368,14 +386,14 @@ describe("runAnalyzers", () => {
         span: TestSourceSpan.at(1),
         visibility: "public",
       });
-      CodeGenState.symbolTable.addStructField("CppMessage", "pgn", "u16");
+      caller.addStructField("CppMessage", "pgn", "u16");
       CodeGenState.program = Program.build([], {
-        headerStructFields: CodeGenState.symbolTable.getAllStructFields(),
+        headerStructFields: caller.getAllStructFields(),
       });
 
-      // No options passed - should use CodeGenState.symbolTable
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
+        symbolTable: caller,
         includes: NO_INCLUDES,
       });
       expect(errors).toHaveLength(0);
@@ -395,6 +413,7 @@ describe("runAnalyzers", () => {
       `);
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
+        symbolTable: new SymbolTable(),
         includes: NO_INCLUDES,
       });
 

@@ -64,7 +64,6 @@ import ThisOutsideScopeAnalyzer from "./ThisOutsideScopeAnalyzer";
 import CommentExtractor from "./CommentExtractor";
 import ITranspileError from "../../lib/types/ITranspileError";
 import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
-import CodeGenState from "../../transpiler/state/CodeGenState";
 import IncludeDirectiveAnalyzer from "./IncludeDirectiveAnalyzer";
 import IIncludeContext from "./types/IIncludeContext";
 
@@ -73,11 +72,16 @@ import IIncludeContext from "./types/IIncludeContext";
  */
 interface IAnalyzerOptions {
   /**
-   * Symbol table containing external function definitions from C/C++ headers
-   * Used by FunctionCallAnalyzer to recognize external functions.
-   * Falls back to CodeGenState.symbolTable if not provided.
+   * What the program DECLARES, C and C++ headers included.
+   *
+   * REQUIRED, for the reason `includes` below gives at greater length: an
+   * optional-with-a-fallback field is a guard that cannot fire. It used to
+   * default to `CodeGenState.symbolTable`, which meant four analyzer sites
+   * each reached shared state for a fact the caller was holding twenty lines
+   * above the call -- and #1432 is what that shape costs when the shared
+   * answer is stale rather than merely redundant.
    */
-  symbolTable?: SymbolTable;
+  readonly symbolTable: SymbolTable;
 
   /**
    * #1322: the file being analyzed, and where its angle includes are searched.
@@ -192,9 +196,8 @@ function runAnalyzers(
   const formatWithCode = (e: IAnalyzerError) =>
     `error[${e.code}]: ${e.message}`;
 
-  // External function definitions from C/C++ headers, for the two steps that
-  // need them. Read from CodeGenState unless the caller supplied one.
-  const symbolTable = options.symbolTable ?? CodeGenState.symbolTable;
+  // #1456: the caller's, always. No fallback to shared state -- see the field.
+  const symbolTable = options.symbolTable;
 
   const steps: readonly IAnalyzerStep[] = [
     {
@@ -249,13 +252,13 @@ function runAnalyzers(
       // nothing feeds an unknown type into every later question, so the
       // diagnostics after it would name a consequence rather than the cause.
       label: "undefined type references (#1312)",
-      run: () => new UndeclaredTypeAnalyzer().analyze(tree),
+      run: () => new UndeclaredTypeAnalyzer(symbolTable).analyze(tree),
     },
     {
       // After the type check, so a file whose type is undefined reports the
       // type rather than every use of it.
       label: "undefined value references (#1353)",
-      run: () => new UndeclaredValueAnalyzer().analyze(tree),
+      run: () => new UndeclaredValueAnalyzer(symbolTable).analyze(tree),
     },
     {
       label: "call analysis (ADR-030: define-before-use)",
@@ -301,7 +304,7 @@ function runAnalyzers(
     {
       label:
         "return-value use (ADR-070 / MISRA C:2012 Rule 17.7 at source level)",
-      run: () => ReturnValueUseAnalyzer.analyze(tree),
+      run: () => ReturnValueUseAnalyzer.analyze(tree, symbolTable),
     },
     // ---------------------------------------------------------------------
     // #1322 relocations: appended as a BLOCK, never inserted among the steps
@@ -346,7 +349,7 @@ function runAnalyzers(
       // "did you mean 'Status.YELLOW'" is the useful answer; the type-safety
       // step would call the same line a non-enum value.
       label: "bare enum members (ADR-017, E0424)",
-      run: () => new BareEnumMemberAnalyzer().analyze(tree),
+      run: () => new BareEnumMemberAnalyzer(symbolTable).analyze(tree),
     },
     {
       label: "enum type safety (ADR-017, E0428/E0434)",
