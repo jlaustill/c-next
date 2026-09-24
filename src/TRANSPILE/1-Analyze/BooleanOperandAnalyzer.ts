@@ -56,7 +56,7 @@ class BooleanOperandListener extends CNextListener {
   constructor(
     analyzer: BooleanOperandAnalyzer,
     scopes: ScopeFrameResolver,
-    private readonly context: IAnalysisContext,
+    context: IAnalysisContext,
   ) {
     super();
     this.analyzer = analyzer;

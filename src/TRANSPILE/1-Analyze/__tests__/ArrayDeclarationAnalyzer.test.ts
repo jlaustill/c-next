@@ -6,7 +6,7 @@ import CodeGenState from "../../../transpiler/state/CodeGenState";
 import Program from "../../../PARSE/4-Resolve/Program";
 import SymbolRegistry from "../../../PARSE/3-Declare/SymbolRegistry";
 import ArrayDeclarationAnalyzer from "../ArrayDeclarationAnalyzer";
-import testAnalysisContext from "../__testUtils__/testAnalysisContext";
+import testAnalysisContext from "./testAnalysisContext";
 
 /**
  * #1322. ADR-036's declaration shape (E0874 C-style, E0875 unbounded

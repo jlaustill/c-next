@@ -7,7 +7,7 @@ import CodeGenState from "../../../transpiler/state/CodeGenState";
 import Program from "../../../PARSE/4-Resolve/Program";
 import SymbolRegistry from "../../../PARSE/3-Declare/SymbolRegistry";
 import TSymbolInfoAdapter from "../../../PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
-import testAnalysisContext from "../__testUtils__/testAnalysisContext";
+import testAnalysisContext from "./testAnalysisContext";
 
 /**
  * #1322. ADR-029's callback typing: E0879 (a function whose declared signature

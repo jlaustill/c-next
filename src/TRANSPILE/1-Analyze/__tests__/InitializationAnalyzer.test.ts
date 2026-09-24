@@ -13,7 +13,7 @@ import CodeGenState from "../../../transpiler/state/CodeGenState";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
 import Program from "../../../PARSE/4-Resolve/Program";
-import testAnalysisContext from "../__testUtils__/testAnalysisContext";
+import testAnalysisContext from "./testAnalysisContext";
 
 /**
  * Parse C-Next source code into an AST

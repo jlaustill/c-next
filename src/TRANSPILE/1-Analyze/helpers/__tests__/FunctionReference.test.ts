@@ -6,7 +6,7 @@ import CodeGenState from "../../../../transpiler/state/CodeGenState";
 import Program from "../../../../PARSE/4-Resolve/Program";
 import SymbolRegistry from "../../../../PARSE/3-Declare/SymbolRegistry";
 import FunctionReference from "../FunctionReference";
-import testAnalysisContext from "../../__testUtils__/testAnalysisContext";
+import testAnalysisContext from "../../__tests__/testAnalysisContext";
 
 /**
  * #1322. Which C-Next function a spelling denotes, and -- the part that is a

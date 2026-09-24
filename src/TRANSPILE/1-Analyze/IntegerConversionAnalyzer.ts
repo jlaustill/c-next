@@ -68,7 +68,7 @@ class IntegerConversionListener extends CNextListener {
 
   public constructor(
     private readonly scopes: ScopeFrameResolver,
-    private readonly context: IAnalysisContext,
+    context: IAnalysisContext,
   ) {
     super();
     this.types = new OperandTypeResolver(scopes, context);

@@ -18,7 +18,7 @@ import TSymbolInfoAdapter from "../../../PARSE/3-Declare/cnext/adapters/TSymbolI
 import SymbolRegistry from "../../../PARSE/3-Declare/SymbolRegistry";
 import CodeGenState from "../../../transpiler/state/CodeGenState";
 import UndeclaredTypeAnalyzer from "../UndeclaredTypeAnalyzer";
-import testAnalysisContext from "../__testUtils__/testAnalysisContext";
+import testAnalysisContext from "./testAnalysisContext";
 
 function parse(source: string) {
   const charStream = CharStream.fromString(source);

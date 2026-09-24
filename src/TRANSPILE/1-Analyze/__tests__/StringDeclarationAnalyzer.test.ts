@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import CodeGenState from "../../../transpiler/state/CodeGenState";
 import StringDeclarationAnalyzer from "../StringDeclarationAnalyzer";
-import testAnalysisContext from "../__testUtils__/testAnalysisContext";
+import testAnalysisContext from "./testAnalysisContext";
 
 /**
  * #1322. ADR-045's string declaration rules -- E0862 (a capacity has to be

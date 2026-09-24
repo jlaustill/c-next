@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import CodeGenState from "../../../transpiler/state/CodeGenState";
 import ArrayIndexBoundsAnalyzer from "../ArrayIndexBoundsAnalyzer";
-import testAnalysisContext from "../__testUtils__/testAnalysisContext";
+import testAnalysisContext from "./testAnalysisContext";
 
 /**
  * #1322. ADR-036's constant index bounds (E0854), replacing

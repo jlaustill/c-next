@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import SafeDivisionAnalyzer from "../SafeDivisionAnalyzer";
-import testAnalysisContext from "../__testUtils__/testAnalysisContext";
+import testAnalysisContext from "./testAnalysisContext";
 
 /**
  * #1322. ADR-051's call shape: E0884 (four arguments) and E0885 (the first is

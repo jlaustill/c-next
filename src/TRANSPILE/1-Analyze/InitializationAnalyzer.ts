@@ -59,10 +59,7 @@ class InitializationListener extends CNextListener {
   /** Track nesting depth inside functions/methods (0 = global level) */
   private functionDepth: number = 0;
 
-  constructor(
-    analyzer: InitializationAnalyzer,
-    private readonly context: IAnalysisContext,
-  ) {
+  constructor(analyzer: InitializationAnalyzer) {
     super();
     this.analyzer = analyzer;
   }
@@ -518,7 +515,7 @@ class InitializationAnalyzer {
     this.createGlobalScope(tree);
 
     // Second pass: analyze initialization
-    const listener = new InitializationListener(this, this.context);
+    const listener = new InitializationListener(this);
     ParseTreeWalker.DEFAULT.walk(listener, tree);
 
     return this.errors;
