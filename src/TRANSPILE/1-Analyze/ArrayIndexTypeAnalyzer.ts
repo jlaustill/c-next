@@ -266,7 +266,7 @@ class IndexTypeListener extends CNextListener {
     if (localType) return localType;
 
     // Fall back to CodeGenState for cross-file variables
-    const typeInfo = CodeGenState.getVariableTypeInfo(varName);
+    const typeInfo = CodeGenState.declaredVariableType(varName);
     if (typeInfo) return typeInfo.baseType;
 
     return null;

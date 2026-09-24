@@ -1061,13 +1061,20 @@ export default class CodeGenState {
   }
 
   /**
-   * Get type info for a variable.
-   * Checks local typeRegistry first, then falls back to SymbolTable
-   * for cross-file variables from included .cnx files.
+   * Get type info for a variable, as CODEGEN sees it.
+   *
+   * Checks the local typeRegistry first, then the declared answer below, so a
+   * generated file's own variables win over the cross-file ones.
    *
    * Issue #786: This unified lookup ensures cross-file variables
    * (defined in included files) are found even before code generation
    * registers them locally.
+   *
+   * **Not reachable from 2.1 Analyze.** `typeRegistry` is filled by
+   * `CodeGenerator.generate()` and cleared by `reset()`, both after the
+   * analyzers run, so an analyzer calling this reads a map that belongs to a
+   * different file -- see `declaredVariableType` below, which is the question
+   * an analyzer is actually asking.
    */
   static getVariableTypeInfo(name: string): TTypeInfo | undefined {
     // First check the local type registry (current file's variables)
@@ -1090,6 +1097,31 @@ export default class CodeGenState {
       }
     }
 
+    return this.declaredVariableType(name);
+  }
+
+  /**
+   * What a variable's type is according to what the program DECLARES -- the
+   * answer that does not depend on which file has been generated.
+   *
+   * #1432. This is the tail of `getVariableTypeInfo` above, split out rather
+   * than copied, so the symbol-table half stays one decision: a change to how
+   * a C struct global is read reaches codegen and the analyzers together.
+   * What codegen has and 2.1 does not is the `typeRegistry` probe, and that is
+   * the whole difference between the two methods.
+   *
+   * An analyzer that probed the registry got the PREVIOUS RUN's answer, because
+   * nothing clears it between runs and `ServeCommand` holds a static
+   * transpiler. A function-local `u8 idx` left by one run made a file-scope
+   * `i32 idx` in the next look unsigned, and E0850 -- which exists to reject a
+   * signed array subscript, undefined behavior in C -- did not fire. The
+   * transpile reported success.
+   *
+   * `getCNextVariableTypeName` and `getCNextConstValue` were already written
+   * symbol-table-only for this reason under #1220; this is the third accessor
+   * and the one the array-index, slice and string analyzers reach.
+   */
+  static declaredVariableType(name: string): TTypeInfo | undefined {
     // ADR-055 Phase 7: Fall back to SymbolTable for cross-file C-Next variables only.
     const symbol = this.getCNextVariableSymbol(name);
     if (symbol) {

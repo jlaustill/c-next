@@ -118,7 +118,7 @@ class SliceAssignmentListener extends CNextListener {
     const lexical = this.scopes.declarationOfNameLexical(name, frame);
     if (lexical !== null) return lexical;
 
-    const info = CodeGenState.getVariableTypeInfo(name);
+    const info = CodeGenState.declaredVariableType(name);
     if (info === undefined) return null;
     return {
       typeText: info.baseType,

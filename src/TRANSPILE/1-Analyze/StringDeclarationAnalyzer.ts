@@ -278,7 +278,7 @@ class StringDeclarationListener extends CNextListener {
     if (!/^[A-Za-z_]\w*$/.test(name)) return null;
     const declared = this.scopes.declarationOfNameLexical(name, frame);
     if (declared?.stringCapacity != null) return declared.stringCapacity;
-    const info = CodeGenState.getVariableTypeInfo(name);
+    const info = CodeGenState.declaredVariableType(name);
     return info?.isString && info.stringCapacity !== undefined
       ? info.stringCapacity
       : null;
