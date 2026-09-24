@@ -77,7 +77,7 @@ class CallbackCompatibility {
     for (const entry of declared) {
       for (const name of FunctionCallAnalyzer.declaredFunctionNames(
         entry.parsed.tree,
-        registry,
+        (scopeName) => registry.scopePathOf(scopeName),
       )) {
         programFunctions.add(name);
       }

@@ -39,6 +39,7 @@ import ScopeFrameResolver from "./ScopeFrameResolver";
 import OperandTypeResolver from "./OperandTypeResolver";
 import BinaryOperatorLevelListener from "./BinaryOperatorLevelListener";
 import ParserUtils from "../../utils/ParserUtils";
+import type IAnalysisContext from "./types/IAnalysisContext";
 
 /**
  * Second pass: report essentially Boolean operands of guarded operators.
@@ -52,11 +53,15 @@ class BooleanOperandListener extends CNextListener {
   // eslint-disable-next-line @typescript-eslint/lines-between-class-members
   private readonly types: OperandTypeResolver;
 
-  constructor(analyzer: BooleanOperandAnalyzer, scopes: ScopeFrameResolver) {
+  constructor(
+    analyzer: BooleanOperandAnalyzer,
+    scopes: ScopeFrameResolver,
+    private readonly context: IAnalysisContext,
+  ) {
     super();
     this.analyzer = analyzer;
     this.scopes = scopes;
-    this.types = new OperandTypeResolver(scopes);
+    this.types = new OperandTypeResolver(scopes, context);
   }
 
   /**
@@ -164,6 +169,10 @@ class BooleanOperandListener extends CNextListener {
 class BooleanOperandAnalyzer {
   private errors: IBooleanOperandError[] = [];
 
+  /** #1456: handed in rather than read off shared state. */
+  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
+  constructor(private readonly context: IAnalysisContext) {}
+
   /**
    * Analyze the parse tree for Boolean operands of inappropriate operators.
    */
@@ -176,6 +185,7 @@ class BooleanOperandAnalyzer {
     const listener = new BooleanOperandListener(
       this,
       new ScopeFrameResolver(collector),
+      this.context,
     );
 
     // Every binary level EXCEPT equality: comparing two bools with = / != is

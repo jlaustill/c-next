@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import CodeGenState from "../../../transpiler/state/CodeGenState";
 import IntegerConversionAnalyzer from "../IntegerConversionAnalyzer";
+import testAnalysisContext from "../__testUtils__/testAnalysisContext";
 
 /**
  * #1322. ADR-024's integer conversions -- E0868 (a literal out of range) and
@@ -12,7 +13,7 @@ import IntegerConversionAnalyzer from "../IntegerConversionAnalyzer";
  */
 const errors = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new IntegerConversionAnalyzer().analyze(tree);
+  return new IntegerConversionAnalyzer(testAnalysisContext()).analyze(tree);
 };
 
 /**

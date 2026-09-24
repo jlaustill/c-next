@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import CodeGenState from "../../../transpiler/state/CodeGenState";
 import SliceAssignmentAnalyzer from "../SliceAssignmentAnalyzer";
+import testAnalysisContext from "../__testUtils__/testAnalysisContext";
 
 /**
  * #1322. ADR-052's slice rules -- E0858 (what may be sliced), E0859 (the span
@@ -16,7 +17,7 @@ import SliceAssignmentAnalyzer from "../SliceAssignmentAnalyzer";
  */
 const errors = (body: string) => {
   const { tree } = CNextSourceParser.parse(`void f() {\n${body}\n}`);
-  return new SliceAssignmentAnalyzer().analyze(tree);
+  return new SliceAssignmentAnalyzer(testAnalysisContext()).analyze(tree);
 };
 
 const codes = (body: string) => errors(body).map((e) => e.code);

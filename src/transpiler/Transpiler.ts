@@ -992,7 +992,7 @@ class Transpiler {
     try {
       const parsed = this._requireRetainedParse(sourcePath);
 
-      this._establishPerFileCodeGenState(file, sourcePath);
+      const symbols = this._establishPerFileCodeGenState(file, sourcePath);
 
       // #1322: the ADR-010 include facts are handed in rather than read off
       // CodeGenState, whose `sourcePath` is not written until `generate()` and
@@ -1009,10 +1009,14 @@ class Transpiler {
 
       return runAnalyzers(parsed.tree, parsed.comments, {
         cppMode: this.cppMode,
-        // #1456: handed over rather than reached for. Four analyzer sites used
-        // to read `CodeGenState.symbolTable` themselves for a fact this caller
-        // already holds.
-        symbolTable: CodeGenState.symbolTable,
+        // #1456: handed over rather than reached for. Nineteen analyzer sites
+        // used to read these off `CodeGenState` themselves, for facts this
+        // caller is already holding.
+        context: {
+          symbols,
+          program: this.program,
+          symbolTable: CodeGenState.symbolTable,
+        },
         includes: {
           sourcePath,
           searchPaths: this.program.includeSearchPaths(sourcePath),

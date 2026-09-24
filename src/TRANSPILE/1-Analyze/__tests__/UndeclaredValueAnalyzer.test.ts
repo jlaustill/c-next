@@ -16,6 +16,7 @@ import TSymbolInfoAdapter from "../../../PARSE/3-Declare/cnext/adapters/TSymbolI
 import SymbolRegistry from "../../../PARSE/3-Declare/SymbolRegistry";
 import CodeGenState from "../../../transpiler/state/CodeGenState";
 import UndeclaredValueAnalyzer from "../UndeclaredValueAnalyzer";
+import testAnalysisContext from "../__testUtils__/testAnalysisContext";
 
 function parse(source: string) {
   const charStream = CharStream.fromString(source);
@@ -33,7 +34,7 @@ function analyze(source: string) {
   // Same precondition as E0426: the analyzer declines unless the transpiler
   // knows the file's whole name universe. These sources include nothing.
   CodeGenState.currentFileReachesForeignHeader = false;
-  return new UndeclaredValueAnalyzer(CodeGenState.symbolTable).analyze(tree);
+  return new UndeclaredValueAnalyzer(testAnalysisContext()).analyze(tree);
 }
 
 let registry = new SymbolRegistry();

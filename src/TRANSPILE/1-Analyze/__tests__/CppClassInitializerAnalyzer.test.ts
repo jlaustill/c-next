@@ -6,6 +6,7 @@ import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
 import CppClassInitializerAnalyzer from "../CppClassInitializerAnalyzer";
+import testAnalysisContext from "../__testUtils__/testAnalysisContext";
 
 /**
  * #1322. Issue #517's rule (E0508), replacing a codegen throw that reported
@@ -32,7 +33,7 @@ const withCppClass = (className: string) => {
 };
 
 const analyze = (source: string, table: SymbolTable, cppMode = true) =>
-  new CppClassInitializerAnalyzer().analyze(
+  new CppClassInitializerAnalyzer(testAnalysisContext()).analyze(
     CNextSourceParser.parse(source).tree,
     cppMode,
     table,

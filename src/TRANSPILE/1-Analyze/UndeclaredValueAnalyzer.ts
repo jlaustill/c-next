@@ -47,6 +47,7 @@ import ScopeFrameResolver from "./ScopeFrameResolver";
 import ScopeUtils from "../../utils/ScopeUtils";
 import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import TChainRoot from "./types/TChainRoot";
+import type IAnalysisContext from "./types/IAnalysisContext";
 
 class UndeclaredValueListener extends CNextListener {
   private readonly analyzer: UndeclaredValueAnalyzer;
@@ -175,7 +176,7 @@ class UndeclaredValueAnalyzer {
    * `CodeGenState`. Constructor rather than a parameter on `analyze`, because
    * the predicates below are reached from the listener's walk.
    */
-  constructor(private readonly symbolTable: SymbolTable) {}
+  constructor(private readonly context: IAnalysisContext) {}
 
   analyze(tree: Parser.ProgramContext): IUndeclaredValueError[] {
     this.errors.length = 0;
@@ -234,7 +235,7 @@ class UndeclaredValueAnalyzer {
           frame,
           frame.scopePath,
           scopes,
-          this.symbolTable,
+          this.context.symbolTable,
         ) ||
         (symbols !== null &&
           symbols !== undefined &&
@@ -254,7 +255,7 @@ class UndeclaredValueAnalyzer {
     // `#include`, which this file's frames never held. The include-filtered
     // predicate is the cross-file half, exactly as it is for a bare name.
     if (root === "global") {
-      return NameExistence.isValueName(name, symbols, this.symbolTable);
+      return NameExistence.isValueName(name, symbols, this.context.symbolTable);
     }
 
     // `this.` outside any scope is E0431's to reject, and two diagnostics for
@@ -267,7 +268,7 @@ class UndeclaredValueAnalyzer {
       name,
       frame.scopePath,
       symbols,
-      this.symbolTable,
+      this.context.symbolTable,
     );
   }
 

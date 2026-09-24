@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import CodeGenState from "../../../transpiler/state/CodeGenState";
 import BareEnumMemberAnalyzer from "../BareEnumMemberAnalyzer";
+import testAnalysisContext from "../__testUtils__/testAnalysisContext";
 
 /**
  * #1322. ADR-017's bare-member rule (E0424): an enum member written bare is
@@ -49,7 +50,7 @@ const symbols = (
 
 const errors = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new BareEnumMemberAnalyzer(CodeGenState.symbolTable).analyze(tree);
+  return new BareEnumMemberAnalyzer(testAnalysisContext()).analyze(tree);
 };
 
 afterEach(() => {

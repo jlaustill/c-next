@@ -6,6 +6,7 @@ import CodeGenState from "../../../transpiler/state/CodeGenState";
 import Program from "../../../PARSE/4-Resolve/Program";
 import SymbolRegistry from "../../../PARSE/3-Declare/SymbolRegistry";
 import ArrayDeclarationAnalyzer from "../ArrayDeclarationAnalyzer";
+import testAnalysisContext from "../__testUtils__/testAnalysisContext";
 
 /**
  * #1322. ADR-036's declaration shape (E0874 C-style, E0875 unbounded
@@ -17,7 +18,7 @@ import ArrayDeclarationAnalyzer from "../ArrayDeclarationAnalyzer";
  */
 const errors = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new ArrayDeclarationAnalyzer().analyze(tree);
+  return new ArrayDeclarationAnalyzer(testAnalysisContext()).analyze(tree);
 };
 
 /**
@@ -30,7 +31,7 @@ const errorsWithProgram = (source: string) => {
   CodeGenState.program = Program.build([
     CNextResolver.resolve(tree, "collide.cnx", registry),
   ]);
-  return new ArrayDeclarationAnalyzer().analyze(tree);
+  return new ArrayDeclarationAnalyzer(testAnalysisContext()).analyze(tree);
 };
 
 afterEach(() => {

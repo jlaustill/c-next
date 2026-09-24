@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import CodeGenState from "../../../transpiler/state/CodeGenState";
 import RegisterAccessAnalyzer from "../RegisterAccessAnalyzer";
+import testAnalysisContext from "../__testUtils__/testAnalysisContext";
 
 /**
  * #1322. ADR-004's access modifiers -- E0870 (a `wo` member read), E0871 (an
@@ -43,7 +44,7 @@ const symbols = (
 
 const errors = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new RegisterAccessAnalyzer().analyze(tree);
+  return new RegisterAccessAnalyzer(testAnalysisContext()).analyze(tree);
 };
 
 const inMain = (body: string): string => `void main() {\n${body}\n}`;

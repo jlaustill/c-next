@@ -55,6 +55,7 @@ import StructInitializerType from "./helpers/StructInitializerType";
 import OperandTypeResolver from "./OperandTypeResolver";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 import ICallbackAssignmentError from "./types/ICallbackAssignmentError";
+import type IAnalysisContext from "./types/IAnalysisContext";
 
 /** Where a function name landed, for the message. */
 interface ISlot {
@@ -69,6 +70,7 @@ class CallbackAssignmentListener extends CNextListener {
   public constructor(
     private readonly scopes: ScopeFrameResolver,
     private readonly operands: OperandTypeResolver,
+    private readonly context: IAnalysisContext,
   ) {
     super();
   }
@@ -110,7 +112,12 @@ class CallbackAssignmentListener extends CNextListener {
     const init = ctx.parent?.parent;
     if (!(init instanceof Parser.StructInitializerContext)) return;
     const frame = this.scopes.frameFor(ctx);
-    const structName = StructInitializerType.of(init, frame, this.operands);
+    const structName = StructInitializerType.of(
+      init,
+      frame,
+      this.operands,
+      this.context,
+    );
     if (structName === null) return;
     const fieldName = ctx.IDENTIFIER().getText();
     this.check(
@@ -128,7 +135,7 @@ class CallbackAssignmentListener extends CNextListener {
     const call = ctx.postfixOp().find((op) => op.LPAREN() !== null);
     if (call === undefined) return;
     const frame = this.scopes.frameFor(ctx);
-    const callee = FunctionReference.ofCall(ctx, frame.scopePath);
+    const callee = FunctionReference.ofCall(ctx, frame.scopePath, this.context);
     if (callee === null) return;
     const args = call.argumentList()?.expression() ?? [];
     args.forEach((arg, index) => {
@@ -179,9 +186,13 @@ class CallbackAssignmentListener extends CNextListener {
   ): void {
     if (slotTypeText === null) return;
     const scopePath = this.scopes.frameFor(value).scopePath;
-    const expected = FunctionReference.ofTypeText(slotTypeText, scopePath);
+    const expected = FunctionReference.ofTypeText(
+      slotTypeText,
+      scopePath,
+      this.context,
+    );
     if (expected === null) return;
-    const actual = FunctionReference.ofValue(value, scopePath);
+    const actual = FunctionReference.ofValue(value, scopePath, this.context);
     if (actual === null) return;
 
     const valueText = value.getText();
@@ -235,14 +246,14 @@ class CallbackAssignmentListener extends CNextListener {
    * assignment, in an enclosing scope, or in an include did not count.
    */
   private isFieldType(cName: string): boolean {
-    this.fieldTypes ??= CallbackAssignmentListener.collectFieldTypes();
+    this.fieldTypes ??= this.collectFieldTypes();
     return this.fieldTypes.has(cName);
   }
 
-  private static collectFieldTypes(): ReadonlySet<string> {
+  private collectFieldTypes(): ReadonlySet<string> {
     return new Set([
       ...CallbackAssignmentListener.fieldTypesInFileView(),
-      ...CallbackAssignmentListener.fieldTypesInProgram(),
+      ...this.fieldTypesInProgram(),
     ]);
   }
 
@@ -256,8 +267,8 @@ class CallbackAssignmentListener extends CNextListener {
   }
 
   /** Field types of every struct the program declares, in any file. */
-  private static fieldTypesInProgram(): string[] {
-    const program = CodeGenState.program;
+  private fieldTypesInProgram(): string[] {
+    const program = this.context.program;
     if (!program) return [];
     const types: string[] = [];
     for (const sourceFile of program.sourceFiles()) {
@@ -305,13 +316,17 @@ class CallbackAssignmentListener extends CNextListener {
 }
 
 class CallbackAssignmentAnalyzer {
+  /** #1456: handed in rather than read off shared state. */
+  constructor(private readonly context: IAnalysisContext) {}
+
   public analyze(tree: Parser.ProgramContext): ICallbackAssignmentError[] {
     const declarations = new DeclarationScopeCollector();
     ParseTreeWalker.DEFAULT.walk(declarations, tree);
     const scopes = new ScopeFrameResolver(declarations);
     const listener = new CallbackAssignmentListener(
       scopes,
-      new OperandTypeResolver(scopes),
+      new OperandTypeResolver(scopes, this.context),
+      this.context,
     );
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();

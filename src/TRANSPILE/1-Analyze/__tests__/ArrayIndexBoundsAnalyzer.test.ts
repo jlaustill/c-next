@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import CodeGenState from "../../../transpiler/state/CodeGenState";
 import ArrayIndexBoundsAnalyzer from "../ArrayIndexBoundsAnalyzer";
+import testAnalysisContext from "../__testUtils__/testAnalysisContext";
 
 /**
  * #1322. ADR-036's constant index bounds (E0854), replacing
@@ -15,7 +16,7 @@ import ArrayIndexBoundsAnalyzer from "../ArrayIndexBoundsAnalyzer";
  */
 const errors = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new ArrayIndexBoundsAnalyzer().analyze(tree);
+  return new ArrayIndexBoundsAnalyzer(testAnalysisContext()).analyze(tree);
 };
 
 const structs = (

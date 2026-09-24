@@ -49,12 +49,18 @@ import TypeText from "./helpers/TypeText";
 import ParserUtils from "../../utils/ParserUtils";
 import IArrayDeclarationError from "./types/IArrayDeclarationError";
 import ConstantExpression from "./helpers/ConstantExpression";
+import type IAnalysisContext from "./types/IAnalysisContext";
 
 /** A declared dimension: its size when it can be known here, else null. */
 type TDimension = number | null;
 
 class ArrayDeclarationListener extends CNextListener {
   private readonly found: IArrayDeclarationError[] = [];
+
+  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
+  constructor(private readonly context: IAnalysisContext) {
+    super();
+  }
 
   // eslint-disable-next-line @typescript-eslint/lines-between-class-members
   private readonly enclosing = new EnclosingScope();
@@ -182,7 +188,9 @@ class ArrayDeclarationListener extends CNextListener {
 
     const sizes: TDimension[] = dimensions.map((d) => {
       const expr = d.expression();
-      return expr === null ? null : ConstantExpression.valueIn(expr, scopePath);
+      return expr === null
+        ? null
+        : ConstantExpression.valueIn(expr, scopePath, this.context.program);
     });
     this.checkLevel(initializer, sizes, 0);
   }
@@ -258,8 +266,11 @@ class ArrayDeclarationListener extends CNextListener {
 }
 
 class ArrayDeclarationAnalyzer {
+  /** #1456: handed in rather than read off shared state. */
+  constructor(private readonly context: IAnalysisContext) {}
+
   public analyze(tree: Parser.ProgramContext): IArrayDeclarationError[] {
-    const listener = new ArrayDeclarationListener();
+    const listener = new ArrayDeclarationListener(this.context);
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();
   }

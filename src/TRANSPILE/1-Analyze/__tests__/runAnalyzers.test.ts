@@ -10,6 +10,7 @@ import CodeGenState from "../../../transpiler/state/CodeGenState";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
 import Program from "../../../PARSE/4-Resolve/Program";
+import testAnalysisContext from "../__testUtils__/testAnalysisContext";
 
 /**
  * #1322: what a file under analysis is, for a test that has no file.
@@ -62,7 +63,7 @@ describe("runAnalyzers", () => {
       `);
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
-        symbolTable: new SymbolTable(),
+        context: testAnalysisContext({ symbolTable: new SymbolTable() }),
         includes: NO_INCLUDES,
       });
       expect(errors).toHaveLength(0);
@@ -72,7 +73,7 @@ describe("runAnalyzers", () => {
       const { tree, comments } = parseWithComments(``);
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
-        symbolTable: new SymbolTable(),
+        context: testAnalysisContext({ symbolTable: new SymbolTable() }),
         includes: NO_INCLUDES,
       });
       expect(errors).toHaveLength(0);
@@ -88,7 +89,7 @@ describe("runAnalyzers", () => {
       const { tree, comments } = parseWithComments(`u8 value_ <- 1;`);
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
-        symbolTable: new SymbolTable(),
+        context: testAnalysisContext({ symbolTable: new SymbolTable() }),
         includes: NO_INCLUDES,
       });
 
@@ -103,7 +104,7 @@ describe("runAnalyzers", () => {
       const { tree, comments } = parseWithComments(`u8 my__value <- 1;`);
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
-        symbolTable: new SymbolTable(),
+        context: testAnalysisContext({ symbolTable: new SymbolTable() }),
         includes: NO_INCLUDES,
       });
 
@@ -120,7 +121,7 @@ describe("runAnalyzers", () => {
       `);
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
-        symbolTable: new SymbolTable(),
+        context: testAnalysisContext({ symbolTable: new SymbolTable() }),
         includes: NO_INCLUDES,
       });
 
@@ -141,7 +142,7 @@ describe("runAnalyzers", () => {
       `);
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
-        symbolTable: new SymbolTable(),
+        context: testAnalysisContext({ symbolTable: new SymbolTable() }),
         includes: NO_INCLUDES,
       });
 
@@ -172,7 +173,7 @@ describe("runAnalyzers", () => {
       `);
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
-        symbolTable: new SymbolTable(),
+        context: testAnalysisContext({ symbolTable: new SymbolTable() }),
         includes: NO_INCLUDES,
       });
 
@@ -199,7 +200,7 @@ describe("runAnalyzers", () => {
       `);
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
-        symbolTable: new SymbolTable(),
+        context: testAnalysisContext({ symbolTable: new SymbolTable() }),
         includes: NO_INCLUDES,
       });
 
@@ -224,7 +225,7 @@ describe("runAnalyzers", () => {
       `);
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
-        symbolTable: new SymbolTable(),
+        context: testAnalysisContext({ symbolTable: new SymbolTable() }),
         includes: NO_INCLUDES,
       });
 
@@ -247,7 +248,7 @@ describe("runAnalyzers", () => {
       `);
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
-        symbolTable: new SymbolTable(),
+        context: testAnalysisContext({ symbolTable: new SymbolTable() }),
         includes: NO_INCLUDES,
       });
 
@@ -271,7 +272,7 @@ describe("runAnalyzers", () => {
       `);
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
-        symbolTable: new SymbolTable(),
+        context: testAnalysisContext({ symbolTable: new SymbolTable() }),
         includes: NO_INCLUDES,
       });
 
@@ -292,7 +293,7 @@ describe("runAnalyzers", () => {
       const { tree, comments } = parseWithComments(code);
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
-        symbolTable: new SymbolTable(),
+        context: testAnalysisContext({ symbolTable: new SymbolTable() }),
         includes: NO_INCLUDES,
       });
 
@@ -333,7 +334,7 @@ describe("runAnalyzers", () => {
 
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
-        symbolTable: new SymbolTable(),
+        context: testAnalysisContext({ symbolTable: new SymbolTable() }),
         includes: NO_INCLUDES,
       });
       expect(errors).toHaveLength(0);
@@ -358,7 +359,7 @@ describe("runAnalyzers", () => {
       });
 
       const errors = runAnalyzers(tree, comments, {
-        symbolTable,
+        context: testAnalysisContext({ symbolTable }),
         cppMode: false,
         includes: NO_INCLUDES,
       });
@@ -393,7 +394,7 @@ describe("runAnalyzers", () => {
 
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
-        symbolTable: caller,
+        context: testAnalysisContext({ symbolTable: caller }),
         includes: NO_INCLUDES,
       });
       expect(errors).toHaveLength(0);
@@ -413,7 +414,7 @@ describe("runAnalyzers", () => {
       `);
       const errors = runAnalyzers(tree, comments, {
         cppMode: false,
-        symbolTable: new SymbolTable(),
+        context: testAnalysisContext({ symbolTable: new SymbolTable() }),
         includes: NO_INCLUDES,
       });
 

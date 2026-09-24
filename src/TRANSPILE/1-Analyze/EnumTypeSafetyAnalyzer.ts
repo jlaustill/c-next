@@ -55,6 +55,7 @@ import IEnumTypeSafetyError from "./types/IEnumTypeSafetyError";
 import IScopeFrame from "./types/IScopeFrame";
 import OperandTypeResolver from "./OperandTypeResolver";
 import ScopeFrameResolver from "./ScopeFrameResolver";
+import type IAnalysisContext from "./types/IAnalysisContext";
 
 const ASSIGN_HELP =
   "ADR-017: an enum is its own type, not an integer. Assign one of its members, or convert explicitly with a cast.";
@@ -67,6 +68,7 @@ class EnumTypeSafetyListener extends CNextListener {
   public constructor(
     private readonly scopes: ScopeFrameResolver,
     private readonly values: EnumValueResolver,
+    private readonly context: IAnalysisContext,
   ) {
     super();
   }
@@ -106,10 +108,10 @@ class EnumTypeSafetyListener extends CNextListener {
     if (!expression) return;
 
     const frame = this.scopes.frameFor(ctx);
-    const target = new OperandTypeResolver(this.scopes).typeOfAssignmentTarget(
-      ctx.assignmentTarget(),
-      frame,
-    );
+    const target = new OperandTypeResolver(
+      this.scopes,
+      this.context,
+    ).typeOfAssignmentTarget(ctx.assignmentTarget(), frame);
     if (target === null) return;
     this.checkAssignment(target, expression, frame);
   };
@@ -201,6 +203,9 @@ class EnumTypeSafetyListener extends CNextListener {
 }
 
 class EnumTypeSafetyAnalyzer {
+  /** #1456: handed in rather than read off shared state. */
+  constructor(private readonly context: IAnalysisContext) {}
+
   public analyze(tree: Parser.ProgramContext): IEnumTypeSafetyError[] {
     const declarations = new DeclarationScopeCollector();
     ParseTreeWalker.DEFAULT.walk(declarations, tree);
@@ -208,7 +213,8 @@ class EnumTypeSafetyAnalyzer {
     const scopes = new ScopeFrameResolver(declarations);
     const listener = new EnumTypeSafetyListener(
       scopes,
-      new EnumValueResolver(scopes),
+      new EnumValueResolver(scopes, this.context),
+      this.context,
     );
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();

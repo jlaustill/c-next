@@ -48,6 +48,7 @@ import ISliceAssignmentError from "./types/ISliceAssignmentError";
 import OperandTypeResolver from "./OperandTypeResolver";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 import ConstantExpression from "./helpers/ConstantExpression";
+import type IAnalysisContext from "./types/IAnalysisContext";
 
 /** `string<N>` holds N characters plus the terminator. */
 const STRING_TERMINATOR_BYTES = 1;
@@ -62,9 +63,12 @@ class SliceAssignmentListener extends CNextListener {
   private readonly found: ISliceAssignmentError[] = [];
   private readonly types: OperandTypeResolver;
 
-  public constructor(private readonly scopes: ScopeFrameResolver) {
+  public constructor(
+    private readonly scopes: ScopeFrameResolver,
+    private readonly context: IAnalysisContext,
+  ) {
     super();
-    this.types = new OperandTypeResolver(scopes);
+    this.types = new OperandTypeResolver(scopes, context);
   }
 
   public errors(): ISliceAssignmentError[] {
@@ -353,8 +357,11 @@ class SliceAssignmentListener extends CNextListener {
    */
   private constantOf(expr: Parser.ExpressionContext): number | undefined {
     return (
-      ConstantExpression.valueIn(expr, this.scopes.frameFor(expr).scopePath) ??
-      undefined
+      ConstantExpression.valueIn(
+        expr,
+        this.scopes.frameFor(expr).scopePath,
+        this.context.program,
+      ) ?? undefined
     );
   }
 
@@ -370,12 +377,16 @@ class SliceAssignmentListener extends CNextListener {
 }
 
 class SliceAssignmentAnalyzer {
+  /** #1456: handed in rather than read off shared state. */
+  constructor(private readonly context: IAnalysisContext) {}
+
   public analyze(tree: Parser.ProgramContext): ISliceAssignmentError[] {
     const declarations = new DeclarationScopeCollector();
     ParseTreeWalker.DEFAULT.walk(declarations, tree);
 
     const listener = new SliceAssignmentListener(
       new ScopeFrameResolver(declarations),
+      this.context,
     );
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();

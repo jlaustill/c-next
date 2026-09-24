@@ -6,6 +6,7 @@ import CodeGenState from "../../../../transpiler/state/CodeGenState";
 import Program from "../../../../PARSE/4-Resolve/Program";
 import SymbolRegistry from "../../../../PARSE/3-Declare/SymbolRegistry";
 import FunctionReference from "../FunctionReference";
+import testAnalysisContext from "../../__testUtils__/testAnalysisContext";
 
 /**
  * #1322. Which C-Next function a spelling denotes, and -- the part that is a
@@ -104,14 +105,22 @@ describe("FunctionReference.ofTypeText -- the order, observed", () => {
         "}",
       ].join("\n"),
     );
-    const found = FunctionReference.ofTypeText("handler", "S");
+    const found = FunctionReference.ofTypeText(
+      "handler",
+      "S",
+      testAnalysisContext(),
+    );
     expect(found).not.toBeNull();
     expect(FunctionReference.cNameOf(found!)).toBe("S__handler");
   });
 
   it("falls back to the global one when the scope declares none", () => {
     build("u8 handler() { return 1; }\nscope S {\n    public void go() {}\n}");
-    const found = FunctionReference.ofTypeText("handler", "S");
+    const found = FunctionReference.ofTypeText(
+      "handler",
+      "S",
+      testAnalysisContext(),
+    );
     expect(FunctionReference.cNameOf(found!)).toBe("handler");
   });
 
@@ -124,18 +133,28 @@ describe("FunctionReference.ofTypeText -- the order, observed", () => {
         "}",
       ].join("\n"),
     );
-    const found = FunctionReference.ofTypeText("global.handler", "S");
+    const found = FunctionReference.ofTypeText(
+      "global.handler",
+      "S",
+      testAnalysisContext(),
+    );
     expect(FunctionReference.cNameOf(found!)).toBe("handler");
   });
 
   it("answers null for a name the program does not declare as a function", () => {
     build("u8 value <- 1;");
-    expect(FunctionReference.ofTypeText("value", "")).toBeNull();
-    expect(FunctionReference.ofTypeText("missing", "")).toBeNull();
+    expect(
+      FunctionReference.ofTypeText("value", "", testAnalysisContext()),
+    ).toBeNull();
+    expect(
+      FunctionReference.ofTypeText("missing", "", testAnalysisContext()),
+    ).toBeNull();
   });
 
   it("answers null with no program at all, rather than throwing", () => {
     CodeGenState.reset();
-    expect(FunctionReference.ofTypeText("handler", "")).toBeNull();
+    expect(
+      FunctionReference.ofTypeText("handler", "", testAnalysisContext()),
+    ).toBeNull();
   });
 });

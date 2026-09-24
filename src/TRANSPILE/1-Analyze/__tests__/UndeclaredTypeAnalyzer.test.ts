@@ -18,6 +18,7 @@ import TSymbolInfoAdapter from "../../../PARSE/3-Declare/cnext/adapters/TSymbolI
 import SymbolRegistry from "../../../PARSE/3-Declare/SymbolRegistry";
 import CodeGenState from "../../../transpiler/state/CodeGenState";
 import UndeclaredTypeAnalyzer from "../UndeclaredTypeAnalyzer";
+import testAnalysisContext from "../__testUtils__/testAnalysisContext";
 
 function parse(source: string) {
   const charStream = CharStream.fromString(source);
@@ -41,7 +42,7 @@ function analyze(source: string) {
   // declines unless the transpiler knows the file's whole name universe, so the
   // fail-safe direction is silence. These sources include nothing.
   CodeGenState.currentFileReachesForeignHeader = false;
-  return new UndeclaredTypeAnalyzer(CodeGenState.symbolTable).analyze(tree);
+  return new UndeclaredTypeAnalyzer(testAnalysisContext()).analyze(tree);
 }
 
 const REGISTER = `register Control @ 0x40000000 { DR: u32 rw @ 0x00, }`;
@@ -169,7 +170,7 @@ describe("UndeclaredTypeAnalyzer", () => {
       const tree = parse(`u32 main() { Nowhere c; return 0; }`);
       CodeGenState.currentFileReachesForeignHeader = false;
       expect(
-        new UndeclaredTypeAnalyzer(CodeGenState.symbolTable).analyze(tree),
+        new UndeclaredTypeAnalyzer(testAnalysisContext()).analyze(tree),
       ).toHaveLength(0);
     });
 
@@ -184,7 +185,7 @@ describe("UndeclaredTypeAnalyzer", () => {
       );
       CodeGenState.currentFileReachesForeignHeader = true;
       expect(
-        new UndeclaredTypeAnalyzer(CodeGenState.symbolTable).analyze(tree),
+        new UndeclaredTypeAnalyzer(testAnalysisContext()).analyze(tree),
       ).toHaveLength(0);
     });
   });

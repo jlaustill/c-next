@@ -13,6 +13,7 @@ import CodeGenState from "../../../transpiler/state/CodeGenState";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
 import Program from "../../../PARSE/4-Resolve/Program";
+import testAnalysisContext from "../__testUtils__/testAnalysisContext";
 
 /**
  * Parse C-Next source code into an AST
@@ -63,7 +64,7 @@ describe("InitializationAnalyzer", () => {
         headerStructFields: CodeGenState.symbolTable.getAllStructFields(),
       });
 
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree, CodeGenState.symbolTable);
 
       // Should have NO errors - C++ class is initialized by constructor
@@ -85,7 +86,7 @@ describe("InitializationAnalyzer", () => {
       // No C++ symbols in symbol table - MyStruct is a C-Next struct
       const symbolTable = new SymbolTable();
 
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree, symbolTable);
 
       // SHOULD have an error - C-Next struct is NOT initialized
@@ -119,7 +120,7 @@ describe("InitializationAnalyzer", () => {
         headerStructFields: CodeGenState.symbolTable.getAllStructFields(),
       });
 
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree, CodeGenState.symbolTable);
 
       // Should have NO errors - C++ structs also have default constructors
@@ -152,7 +153,7 @@ describe("InitializationAnalyzer", () => {
         headerStructFields: CodeGenState.symbolTable.getAllStructFields(),
       });
 
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree, CodeGenState.symbolTable);
 
       // SHOULD have an error - C structs don't have constructors
@@ -173,7 +174,7 @@ describe("InitializationAnalyzer", () => {
       const tree = parse(code);
 
       // No symbol table passed - should still work
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       // Should have an error for uninitialized local struct
@@ -195,7 +196,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -209,7 +210,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors.length).toBeGreaterThan(0);
@@ -225,7 +226,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -238,7 +239,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -264,7 +265,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       // Both branches initialize x, so using x after if-else is safe
@@ -283,7 +284,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       // Without else, x might not be initialized
@@ -309,7 +310,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       // Deterministic for-loop (0 to 4) will definitely run
@@ -334,7 +335,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       // p.x initialized before loop, p.y initialized in deterministic loop
@@ -349,7 +350,7 @@ describe("InitializationAnalyzer", () => {
 
   describe("write context tracking", () => {
     it("should track write context state correctly", () => {
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
 
       expect(analyzer.isInWriteContext()).toBe(false);
 
@@ -369,7 +370,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       // x is assigned (write context) then read - no error
@@ -383,7 +384,7 @@ describe("InitializationAnalyzer", () => {
 
   describe("declareParameter edge cases", () => {
     it("should create implicit scope when declaring parameter without active scope", () => {
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
 
       // Call declareParameter without entering a scope first
       // This should trigger the implicit scope creation guard
@@ -400,7 +401,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const freshAnalyzer = new InitializationAnalyzer();
+      const freshAnalyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = freshAnalyzer.analyze(tree);
       expect(errors).toHaveLength(0);
     });
@@ -426,7 +427,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -445,7 +446,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -465,7 +466,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -486,7 +487,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -507,7 +508,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -529,7 +530,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -554,7 +555,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -579,7 +580,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -599,7 +600,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       // forAssignment path: i already initialized, loop is deterministic (0 < 4)
@@ -617,7 +618,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -636,7 +637,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       // bound is 0, so loop never runs — non-deterministic
@@ -657,7 +658,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       // forAssignment with non-zero init is non-deterministic, sum may not be set
@@ -684,7 +685,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -702,7 +703,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -722,7 +723,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -742,7 +743,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -758,7 +759,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -783,7 +784,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -805,7 +806,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -822,7 +823,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -842,7 +843,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -858,7 +859,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -876,7 +877,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -896,7 +897,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -924,7 +925,7 @@ describe("InitializationAnalyzer", () => {
           }
         `;
         const tree = parse(code);
-        const analyzer = new InitializationAnalyzer();
+        const analyzer = new InitializationAnalyzer(testAnalysisContext());
         const errors = analyzer.analyze(tree);
 
         expect(errors.length).toBeGreaterThan(0);
@@ -942,7 +943,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       // Simple assignment initializes the variable, so no error
@@ -957,7 +958,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       // Array is uninitialized, reading arr[0] for compound assignment is an error
@@ -974,7 +975,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -1005,7 +1006,7 @@ describe("InitializationAnalyzer", () => {
         visibility: "public",
       });
 
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree, symbolTable);
 
       // C++ enums don't have constructors - should flag as uninitialized
@@ -1031,7 +1032,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -1050,7 +1051,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       // value is assigned in init(), so get() can read it
@@ -1068,7 +1069,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       // value is never assigned - should error
@@ -1096,7 +1097,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       // count is assigned inside do-while in init()
@@ -1120,7 +1121,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       // value is assigned in if branch
@@ -1144,7 +1145,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       // total is assigned in for loop
@@ -1164,7 +1165,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       // data is assigned via this.data
@@ -1189,7 +1190,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       // result is assigned in switch cases
@@ -1215,7 +1216,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       // counter is assigned in while loop
@@ -1240,7 +1241,7 @@ describe("InitializationAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new InitializationAnalyzer();
+      const analyzer = new InitializationAnalyzer(testAnalysisContext());
       const errors = analyzer.analyze(tree);
 
       // result is assigned in default case

@@ -35,6 +35,7 @@ import TypeResolver from "../../utils/TypeResolver";
 import QualifiedCName from "../../utils/QualifiedCName";
 import ScopeUtils from "../../utils/ScopeUtils";
 import ChainRoot from "./helpers/ChainRoot";
+import type IAnalysisContext from "./types/IAnalysisContext";
 
 /** One step of a member/subscript/call chain. */
 interface IChainStep {
@@ -49,8 +50,11 @@ const BOOLEAN_TYPE_NAME = "bool";
 class OperandTypeResolver {
   private readonly scopes: ScopeFrameResolver;
 
-  constructor(scopes: ScopeFrameResolver) {
+  private readonly context: IAnalysisContext;
+
+  constructor(scopes: ScopeFrameResolver, context: IAnalysisContext) {
     this.scopes = scopes;
+    this.context = context;
   }
 
   /**
@@ -137,10 +141,10 @@ class OperandTypeResolver {
    * (`elementType` strips one `[...]` per subscript), so the two halves are
    * rejoined here, once, rather than at each caller that happens to care.
    */
-  private static fieldType(structType: string, field: string): string | null {
+  private fieldType(structType: string, field: string): string | null {
     const base = CodeGenState.getStructFieldType(structType, field);
     if (base === undefined) {
-      return OperandTypeResolver.importedFieldType(structType, field);
+      return this.importedFieldType(structType, field);
     }
     const dimensions = CodeGenState.getStructFieldDimensions(structType, field);
     if (dimensions === undefined || dimensions.length === 0) return base;
@@ -164,11 +168,8 @@ class OperandTypeResolver {
    * be declared at all -- the walk only ever asks about a type a declaration
    * already named.
    */
-  private static importedFieldType(
-    structType: string,
-    field: string,
-  ): string | null {
-    const symbol = CodeGenState.program?.symbolByCName(structType);
+  private importedFieldType(structType: string, field: string): string | null {
+    const symbol = this.context.program.symbolByCName(structType);
     if (symbol?.kind !== "struct") return null;
     const fieldSymbol = symbol.fields.get(field);
     if (fieldSymbol === undefined) return null;
@@ -221,7 +222,7 @@ class OperandTypeResolver {
       if (step.isSubscript) {
         current = OperandTypeResolver.elementType(current);
       } else if (step.member) {
-        current = OperandTypeResolver.fieldType(current, step.member);
+        current = this.fieldType(current, step.member);
       } else {
         return null;
       }

@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import CodeGenState from "../../../transpiler/state/CodeGenState";
 import SwitchStatementAnalyzer from "../SwitchStatementAnalyzer";
+import testAnalysisContext from "../__testUtils__/testAnalysisContext";
 
 /**
  * #1322. ADR-025's switch rules, E0711-E0714, replacing five throws in
@@ -28,7 +29,7 @@ const withEnum = (name: string, ...members: string[]): void => {
 
 const errors = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new SwitchStatementAnalyzer().analyze(tree);
+  return new SwitchStatementAnalyzer(testAnalysisContext()).analyze(tree);
 };
 
 afterEach(() => {

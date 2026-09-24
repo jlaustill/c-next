@@ -24,6 +24,7 @@ import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import CodeGenState from "../../transpiler/state/CodeGenState";
 import ESourceLanguage from "../../utils/types/ESourceLanguage";
 import ScopeUtils from "../../utils/ScopeUtils";
+import type IAnalysisContext from "./types/IAnalysisContext";
 
 /**
  * Tracks the initialization state of a variable
@@ -58,7 +59,10 @@ class InitializationListener extends CNextListener {
   /** Track nesting depth inside functions/methods (0 = global level) */
   private functionDepth: number = 0;
 
-  constructor(analyzer: InitializationAnalyzer) {
+  constructor(
+    analyzer: InitializationAnalyzer,
+    private readonly context: IAnalysisContext,
+  ) {
     super();
     this.analyzer = analyzer;
   }
@@ -425,6 +429,9 @@ class InitializationListener extends CNextListener {
  * Analyzes C-Next AST for use-before-initialization errors
  */
 class InitializationAnalyzer {
+  /** #1456: handed in rather than read off shared state. */
+  constructor(private readonly context: IAnalysisContext) {}
+
   private errors: IInitializationError[] = [];
 
   private scopeStack: ScopeStack<IVariableState> = new ScopeStack();
@@ -511,7 +518,7 @@ class InitializationAnalyzer {
     this.createGlobalScope(tree);
 
     // Second pass: analyze initialization
-    const listener = new InitializationListener(this);
+    const listener = new InitializationListener(this, this.context);
     ParseTreeWalker.DEFAULT.walk(listener, tree);
 
     return this.errors;
@@ -556,7 +563,7 @@ class InitializationAnalyzer {
     // #1298: the whole scope PATH, not its leaf name, so a nested scope keeps
     // its outer components when its members are qualified.
     const scopePath =
-      CodeGenState.program?.scopePathOf(scopeDecl.IDENTIFIER().getText()) ??
+      this.context.program.scopePathOf(scopeDecl.IDENTIFIER().getText()) ??
       scopeDecl.IDENTIFIER().getText();
 
     // Phase 1: Find all members assigned in any scope function

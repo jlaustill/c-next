@@ -35,6 +35,7 @@ import ISwitchStatementError from "./types/ISwitchStatementError";
 import OperandTypeResolver from "./OperandTypeResolver";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 import EnumMemberSuggestion from "./helpers/EnumMemberSuggestion";
+import type IAnalysisContext from "./types/IAnalysisContext";
 
 /** MISRA C:2012 Rule 16.6: a switch needs at least two clauses. */
 const MINIMUM_CLAUSES = 2;
@@ -44,10 +45,13 @@ class SwitchStatementListener extends CNextListener {
   private readonly types: OperandTypeResolver;
   private readonly values: EnumValueResolver;
 
-  public constructor(private readonly scopes: ScopeFrameResolver) {
+  public constructor(
+    private readonly scopes: ScopeFrameResolver,
+    private readonly context: IAnalysisContext,
+  ) {
     super();
-    this.types = new OperandTypeResolver(scopes);
-    this.values = new EnumValueResolver(scopes);
+    this.types = new OperandTypeResolver(scopes, context);
+    this.values = new EnumValueResolver(scopes, context);
   }
 
   public errors(): ISwitchStatementError[] {
@@ -262,12 +266,16 @@ class SwitchStatementListener extends CNextListener {
 }
 
 class SwitchStatementAnalyzer {
+  /** #1456: handed in rather than read off shared state. */
+  constructor(private readonly context: IAnalysisContext) {}
+
   public analyze(tree: Parser.ProgramContext): ISwitchStatementError[] {
     const declarations = new DeclarationScopeCollector();
     ParseTreeWalker.DEFAULT.walk(declarations, tree);
 
     const listener = new SwitchStatementListener(
       new ScopeFrameResolver(declarations),
+      this.context,
     );
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();

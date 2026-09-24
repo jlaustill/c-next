@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import CodeGenState from "../../../transpiler/state/CodeGenState";
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import EnumTypeSafetyAnalyzer from "../EnumTypeSafetyAnalyzer";
+import testAnalysisContext from "../__testUtils__/testAnalysisContext";
 
 /**
  * #1322. ADR-017 enum type safety: E0428 (assignment) and E0434 (comparison),
@@ -26,7 +27,7 @@ const withEnums = (...names: string[]): void => {
 
 const errors = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new EnumTypeSafetyAnalyzer().analyze(tree);
+  return new EnumTypeSafetyAnalyzer(testAnalysisContext()).analyze(tree);
 };
 
 afterEach(() => {

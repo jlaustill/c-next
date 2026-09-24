@@ -24,6 +24,7 @@ import EnclosingScope from "./helpers/EnclosingScope";
 import ScopeUtils from "../../utils/ScopeUtils";
 import SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
 import IncludeDirective from "./helpers/IncludeDirective";
+import type IAnalysisContext from "./types/IAnalysisContext";
 
 /**
  * C-Next built-in functions
@@ -276,6 +277,7 @@ class FunctionCallAnalyzer {
   public constructor(
     programFunctions: ReadonlySet<string> = new Set(),
     private readonly registry?: SymbolRegistry,
+    private readonly context?: IAnalysisContext,
   ) {
     this.programFunctions = programFunctions;
   }
@@ -379,10 +381,21 @@ class FunctionCallAnalyzer {
    * Used to distinguish between local functions (subject to define-before-use)
    * and cross-file functions from includes (allowed without local definition).
    */
+  /**
+   * What path a scope NAME has, from whichever artifact this instance was
+   * handed: `SymbolRegistry` at Stage 3, before `Program` is built, and the
+   * 2.1 context after. Falling back to the bare name is what the registry does
+   * for a name it has not seen, so the two agree on an unknown scope.
+   */
+  private scopePathOf(scopeName: string): string {
+    if (this.registry) return this.registry.scopePathOf(scopeName);
+    return this.context?.program.scopePathOf(scopeName) ?? scopeName;
+  }
+
   private collectAllLocalFunctions(tree: Parser.ProgramContext): void {
     for (const name of FunctionCallAnalyzer.declaredFunctionNames(
       tree,
-      this.registry,
+      (scopeName) => this.scopePathOf(scopeName),
     )) {
       this.allLocalFunctions.add(name);
     }
@@ -400,7 +413,7 @@ class FunctionCallAnalyzer {
    */
   public static declaredFunctionNames(
     tree: Parser.ProgramContext,
-    registry?: SymbolRegistry,
+    scopePathOf: (scopeName: string) => string,
   ): Set<string> {
     const names = new Set<string>();
     for (const decl of tree.declaration()) {
@@ -412,11 +425,12 @@ class FunctionCallAnalyzer {
       if (decl.scopeDeclaration()) {
         const scopeDecl = decl.scopeDeclaration()!;
         const scopeName = scopeDecl.IDENTIFIER().getText();
-        // Both arms ask one question -- what path does this scope NAME have?
-        // -- of whichever artifact this caller was handed.
-        const scopePath = registry
-          ? registry.scopePathOf(scopeName)
-          : (CodeGenState.program?.scopePathOf(scopeName) ?? scopeName);
+        // #1456: one question, asked once. This used to branch on whether a
+        // registry was supplied -- Stage 3 has one and 2.1 does not -- and the
+        // 2.1 arm read `CodeGenState.program`. The caller answers instead,
+        // from whichever artifact it holds, so there is no branch to keep in
+        // step and no shared state to reach.
+        const scopePath = scopePathOf(scopeName);
         for (const member of scopeDecl.scopeMember()) {
           if (member.functionDeclaration()) {
             const funcName = member

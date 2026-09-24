@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import CodeGenState from "../../../transpiler/state/CodeGenState";
 import LengthPropertyAnalyzer from "../LengthPropertyAnalyzer";
+import testAnalysisContext from "../__testUtils__/testAnalysisContext";
 
 /**
  * #1322. ADR-058's length properties, E0867, replacing eighteen throws in
@@ -16,7 +17,7 @@ import LengthPropertyAnalyzer from "../LengthPropertyAnalyzer";
  */
 const errors = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new LengthPropertyAnalyzer().analyze(tree);
+  return new LengthPropertyAnalyzer(testAnalysisContext()).analyze(tree);
 };
 
 const inMain = (decls: string, expr: string): string =>

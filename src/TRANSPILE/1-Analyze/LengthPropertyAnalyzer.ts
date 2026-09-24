@@ -50,6 +50,7 @@ import PROPERTY_NAMES from "./helpers/PROPERTY_NAMES";
 import ILengthPropertyError from "./types/ILengthPropertyError";
 import OperandTypeResolver from "./OperandTypeResolver";
 import ScopeFrameResolver from "./ScopeFrameResolver";
+import type IAnalysisContext from "./types/IAnalysisContext";
 
 /** The CLI argument vector, which answers only `.element_count`. */
 const ARGS_PARAMETER = "args";
@@ -58,9 +59,12 @@ class LengthPropertyListener extends CNextListener {
   private readonly found: ILengthPropertyError[] = [];
   private readonly types: OperandTypeResolver;
 
-  public constructor(private readonly scopes: ScopeFrameResolver) {
+  public constructor(
+    private readonly scopes: ScopeFrameResolver,
+    private readonly context: IAnalysisContext,
+  ) {
     super();
-    this.types = new OperandTypeResolver(scopes);
+    this.types = new OperandTypeResolver(scopes, context);
   }
 
   public errors(): ILengthPropertyError[] {
@@ -224,12 +228,16 @@ class LengthPropertyListener extends CNextListener {
 }
 
 class LengthPropertyAnalyzer {
+  /** #1456: handed in rather than read off shared state. */
+  constructor(private readonly context: IAnalysisContext) {}
+
   public analyze(tree: Parser.ProgramContext): ILengthPropertyError[] {
     const declarations = new DeclarationScopeCollector();
     ParseTreeWalker.DEFAULT.walk(declarations, tree);
 
     const listener = new LengthPropertyListener(
       new ScopeFrameResolver(declarations),
+      this.context,
     );
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();

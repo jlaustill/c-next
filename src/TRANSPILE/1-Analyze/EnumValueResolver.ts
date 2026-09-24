@@ -25,6 +25,7 @@ import IScopeFrame from "./types/IScopeFrame";
 import OperandTypeResolver from "./OperandTypeResolver";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 import TChainRoot from "./types/TChainRoot";
+import type IAnalysisContext from "./types/IAnalysisContext";
 
 /** An expression's kind, as ADR-017's rules need to see it. */
 type TValueKind =
@@ -43,8 +44,8 @@ const INTEGER_LITERAL = /^-?(?:\d+|0[xX][0-9a-fA-F]+|0[bB][01]+)$/;
 class EnumValueResolver {
   private readonly types: OperandTypeResolver;
 
-  public constructor(scopes: ScopeFrameResolver) {
-    this.types = new OperandTypeResolver(scopes);
+  public constructor(scopes: ScopeFrameResolver, context: IAnalysisContext) {
+    this.types = new OperandTypeResolver(scopes, context);
   }
 
   public classify(ctx: ParserRuleContext, frame: IScopeFrame): TValueKind {

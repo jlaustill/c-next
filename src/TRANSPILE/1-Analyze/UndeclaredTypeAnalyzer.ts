@@ -47,6 +47,7 @@ import NameExistence from "../../PARSE/3-Declare/NameExistence";
 import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import ParserUtils from "../../utils/ParserUtils";
 import ScopeUtils from "../../utils/ScopeUtils";
+import type IAnalysisContext from "./types/IAnalysisContext";
 
 class UndeclaredTypeListener extends CNextListener {
   private readonly analyzer: UndeclaredTypeAnalyzer;
@@ -127,7 +128,7 @@ class UndeclaredTypeAnalyzer {
    * `isVisibleType` and `isRegister` are called by the listener and need it
    * too -- a parameter would have to reach them through the walk.
    */
-  constructor(private readonly symbolTable: SymbolTable) {}
+  constructor(private readonly context: IAnalysisContext) {}
 
   analyze(tree: Parser.ProgramContext): IUndeclaredTypeError[] {
     this.errors.length = 0;
@@ -179,7 +180,7 @@ class UndeclaredTypeAnalyzer {
       typeName,
       scope,
       symbols,
-      this.symbolTable,
+      this.context.symbolTable,
       (name, fileSymbols, table) =>
         NameExistence.isTypeName(name, fileSymbols, table),
     );
@@ -210,7 +211,7 @@ class UndeclaredTypeAnalyzer {
       // Reached only after `isVisibleType` returned false, which requires a
       // symbol view -- see its guard.
       CodeGenState.symbols!,
-      this.symbolTable,
+      this.context.symbolTable,
       (name, fileSymbols) => NameExistence.isRegisterName(name, fileSymbols),
     );
   }

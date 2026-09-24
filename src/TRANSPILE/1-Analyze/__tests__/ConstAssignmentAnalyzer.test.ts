@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import ConstAssignmentAnalyzer from "../ConstAssignmentAnalyzer";
+import testAnalysisContext from "../__testUtils__/testAnalysisContext";
 
 /**
  * #1322. ADR-013's const enforcement: E0877 (an assignment to or through a
@@ -15,7 +16,7 @@ import ConstAssignmentAnalyzer from "../ConstAssignmentAnalyzer";
  */
 const errors = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new ConstAssignmentAnalyzer().analyze(tree);
+  return new ConstAssignmentAnalyzer(testAnalysisContext()).analyze(tree);
 };
 
 describe("ConstAssignmentAnalyzer (E0877)", () => {

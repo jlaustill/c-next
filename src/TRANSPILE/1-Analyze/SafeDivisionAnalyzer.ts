@@ -36,6 +36,7 @@ import DeclarationScopeCollector from "./DeclarationScopeCollector";
 import SafeDivision from "./helpers/SafeDivision";
 import ISafeDivisionError from "./types/ISafeDivisionError";
 import ScopeFrameResolver from "./ScopeFrameResolver";
+import type IAnalysisContext from "./types/IAnalysisContext";
 
 /** ADR-051 fixes the signature at four. */
 const REQUIRED_ARGUMENTS = 4;
@@ -43,7 +44,10 @@ const REQUIRED_ARGUMENTS = 4;
 class SafeDivisionListener extends CNextListener {
   private readonly found: ISafeDivisionError[] = [];
 
-  public constructor(private readonly scopes: ScopeFrameResolver) {
+  public constructor(
+    private readonly scopes: ScopeFrameResolver,
+    private readonly context: IAnalysisContext,
+  ) {
     super();
   }
 
@@ -97,7 +101,7 @@ class SafeDivisionListener extends CNextListener {
     const symbols = CodeGenState.symbols;
     return (
       symbols?.functionReturnTypes.has(name) === true ||
-      CodeGenState.program?.symbolByCName(name) !== undefined
+      this.context.program.symbolByCName(name) !== undefined
     );
   }
 
@@ -105,7 +109,7 @@ class SafeDivisionListener extends CNextListener {
   private isVariable(name: string, at: ParserRuleContext): boolean {
     const frame = this.scopes.frameFor(at);
     if (this.scopes.declarationOfNameLexical(name, frame) !== null) return true;
-    return CodeGenState.program?.symbolByCName(name)?.kind === "variable";
+    return this.context.program.symbolByCName(name)?.kind === "variable";
   }
 
   private report(
@@ -120,11 +124,15 @@ class SafeDivisionListener extends CNextListener {
 }
 
 class SafeDivisionAnalyzer {
+  /** #1456: handed in rather than read off shared state. */
+  constructor(private readonly context: IAnalysisContext) {}
+
   public analyze(tree: Parser.ProgramContext): ISafeDivisionError[] {
     const declarations = new DeclarationScopeCollector();
     ParseTreeWalker.DEFAULT.walk(declarations, tree);
     const listener = new SafeDivisionListener(
       new ScopeFrameResolver(declarations),
+      this.context,
     );
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();

@@ -52,6 +52,7 @@ import ScopeCandidates from "./helpers/ScopeCandidates";
 import ScopeUtils from "../../utils/ScopeUtils";
 import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
 import TChainRoot from "./types/TChainRoot";
+import type IAnalysisContext from "./types/IAnalysisContext";
 
 /**
  * Second pass: Detect shift operations with signed operands
@@ -64,11 +65,15 @@ class ShiftListener extends CNextListener {
 
   private readonly types: OperandTypeResolver;
 
-  constructor(analyzer: ShiftAnalyzer, scopes: ScopeFrameResolver) {
+  constructor(
+    analyzer: ShiftAnalyzer,
+    scopes: ScopeFrameResolver,
+    private readonly context: IAnalysisContext,
+  ) {
     super();
     this.analyzer = analyzer;
     this.scopes = scopes;
-    this.types = new OperandTypeResolver(scopes);
+    this.types = new OperandTypeResolver(scopes, context);
   }
 
   /**
@@ -254,7 +259,7 @@ class ShiftListener extends CNextListener {
         : ScopeUtils.getTranspiledCName({ scopePath: here, name });
     const candidates = ScopeCandidates.forRoot(root, scoped, [name]);
     for (const cName of candidates) {
-      const value = CodeGenState.program?.constValue(cName);
+      const value = this.context.program.constValue(cName);
       if (value !== undefined) return value;
     }
     return null;
@@ -440,6 +445,10 @@ class ShiftListener extends CNextListener {
 class ShiftAnalyzer {
   private errors: IShiftError[] = [];
 
+  /** #1456: handed in rather than read off shared state. */
+  // eslint-disable-next-line @typescript-eslint/lines-between-class-members
+  constructor(private readonly context: IAnalysisContext) {}
+
   /**
    * Analyze the parse tree for shift operations
    */
@@ -454,6 +463,7 @@ class ShiftAnalyzer {
     const listener = new ShiftListener(
       this,
       new ScopeFrameResolver(declarations),
+      this.context,
     );
     ParseTreeWalker.DEFAULT.walk(listener, tree);
 

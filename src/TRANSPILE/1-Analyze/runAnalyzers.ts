@@ -63,25 +63,24 @@ import NestedTernaryAnalyzer from "./NestedTernaryAnalyzer";
 import ThisOutsideScopeAnalyzer from "./ThisOutsideScopeAnalyzer";
 import CommentExtractor from "./CommentExtractor";
 import ITranspileError from "../../lib/types/ITranspileError";
-import SymbolTable from "../../PARSE/3-Declare/SymbolTable";
 import IncludeDirectiveAnalyzer from "./IncludeDirectiveAnalyzer";
 import IIncludeContext from "./types/IIncludeContext";
+import type IAnalysisContext from "./types/IAnalysisContext";
 
 /**
  * Options for running analyzers
  */
 interface IAnalyzerOptions {
   /**
-   * What the program DECLARES, C and C++ headers included.
+   * What 2.1 is allowed to know about the program -- see `IAnalysisContext`.
    *
    * REQUIRED, for the reason `includes` below gives at greater length: an
-   * optional-with-a-fallback field is a guard that cannot fire. It used to
-   * default to `CodeGenState.symbolTable`, which meant four analyzer sites
-   * each reached shared state for a fact the caller was holding twenty lines
-   * above the call -- and #1432 is what that shape costs when the shared
-   * answer is stale rather than merely redundant.
+   * optional-with-a-fallback field is a guard that cannot fire. These facts
+   * used to be read off `CodeGenState` at nineteen analyzer sites, for things
+   * the caller is holding twenty lines above the call, and #1430 and #1432 are
+   * what that costs once the shared answer is stale rather than redundant.
    */
-  readonly symbolTable: SymbolTable;
+  readonly context: IAnalysisContext;
 
   /**
    * #1322: the file being analyzed, and where its angle includes are searched.
@@ -197,7 +196,8 @@ function runAnalyzers(
     `error[${e.code}]: ${e.message}`;
 
   // #1456: the caller's, always. No fallback to shared state -- see the field.
-  const symbolTable = options.symbolTable;
+  const context = options.context;
+  const symbolTable = context.symbolTable;
 
   const steps: readonly IAnalyzerStep[] = [
     {
@@ -222,7 +222,7 @@ function runAnalyzers(
       label:
         "C++ class initializers (Issue #517: no statement position at file scope)",
       run: () =>
-        new CppClassInitializerAnalyzer().analyze(
+        new CppClassInitializerAnalyzer(context).analyze(
           tree,
           options.cppMode,
           symbolTable,
@@ -245,20 +245,20 @@ function runAnalyzers(
     },
     {
       label: "initialization (Rust-style use-before-init)",
-      run: () => new InitializationAnalyzer().analyze(tree, symbolTable),
+      run: () => new InitializationAnalyzer(context).analyze(tree, symbolTable),
     },
     {
       // Before the call and essential-type analyses: a type that denotes
       // nothing feeds an unknown type into every later question, so the
       // diagnostics after it would name a consequence rather than the cause.
       label: "undefined type references (#1312)",
-      run: () => new UndeclaredTypeAnalyzer(symbolTable).analyze(tree),
+      run: () => new UndeclaredTypeAnalyzer(context).analyze(tree),
     },
     {
       // After the type check, so a file whose type is undefined reports the
       // type rather than every use of it.
       label: "undefined value references (#1353)",
-      run: () => new UndeclaredValueAnalyzer(symbolTable).analyze(tree),
+      run: () => new UndeclaredValueAnalyzer(context).analyze(tree),
     },
     {
       label: "call analysis (ADR-030: define-before-use)",
@@ -283,14 +283,14 @@ function runAnalyzers(
     {
       label:
         "shift operands and amounts (MISRA C:2012 Rules 10.1 and 12.2, E0805/E0873)",
-      run: () => new ShiftAnalyzer().analyze(tree),
+      run: () => new ShiftAnalyzer(context).analyze(tree),
     },
     {
       // Before the Rule 10.4 check, so a bool in an arithmetic expression is
       // reported as "not a number" rather than as a category mismatch with
       // whatever it was combined with.
       label: "boolean operands (MISRA C:2012 Rule 10.1, Issue #1183)",
-      run: () => new BooleanOperandAnalyzer().analyze(tree),
+      run: () => new BooleanOperandAnalyzer(context).analyze(tree),
     },
     {
       label:
@@ -349,19 +349,19 @@ function runAnalyzers(
       // "did you mean 'Status.YELLOW'" is the useful answer; the type-safety
       // step would call the same line a non-enum value.
       label: "bare enum members (ADR-017, E0424)",
-      run: () => new BareEnumMemberAnalyzer(symbolTable).analyze(tree),
+      run: () => new BareEnumMemberAnalyzer(context).analyze(tree),
     },
     {
       label: "enum type safety (ADR-017, E0428/E0434)",
-      run: () => new EnumTypeSafetyAnalyzer().analyze(tree),
+      run: () => new EnumTypeSafetyAnalyzer(context).analyze(tree),
     },
     {
       label: "slice assignment (ADR-007, E0858-E0861)",
-      run: () => new SliceAssignmentAnalyzer().analyze(tree),
+      run: () => new SliceAssignmentAnalyzer(context).analyze(tree),
     },
     {
       label: "switch statements (ADR-025, E0711-E0714)",
-      run: () => new SwitchStatementAnalyzer().analyze(tree),
+      run: () => new SwitchStatementAnalyzer(context).analyze(tree),
     },
     {
       label: "controlling expressions (ADR-022, MISRA 14.4/13.5, E0701/E0702)",
@@ -369,15 +369,15 @@ function runAnalyzers(
     },
     {
       label: "string declarations (ADR-045, E0862-E0866)",
-      run: () => new StringDeclarationAnalyzer().analyze(tree),
+      run: () => new StringDeclarationAnalyzer(context).analyze(tree),
     },
     {
       label: "length properties (ADR-058, E0867)",
-      run: () => new LengthPropertyAnalyzer().analyze(tree),
+      run: () => new LengthPropertyAnalyzer(context).analyze(tree),
     },
     {
       label: "integer conversions (ADR-024, E0868/E0869)",
-      run: () => new IntegerConversionAnalyzer().analyze(tree),
+      run: () => new IntegerConversionAnalyzer(context).analyze(tree),
     },
     {
       label: "scope access (ADR-016, E0435-E0437)",
@@ -385,7 +385,7 @@ function runAnalyzers(
     },
     {
       label: "register access modifiers (ADR-004, E0870-E0872)",
-      run: () => new RegisterAccessAnalyzer().analyze(tree),
+      run: () => new RegisterAccessAnalyzer(context).analyze(tree),
     },
     {
       // After controlling expressions: the always-true check assumes E0701
@@ -396,19 +396,19 @@ function runAnalyzers(
     {
       label:
         "array declarations and initializers (ADR-035/036, E0866/E0874-E0876)",
-      run: () => new ArrayDeclarationAnalyzer().analyze(tree),
+      run: () => new ArrayDeclarationAnalyzer(context).analyze(tree),
     },
     {
       label: "constant array index bounds (ADR-036, E0854)",
-      run: () => new ArrayIndexBoundsAnalyzer().analyze(tree),
+      run: () => new ArrayIndexBoundsAnalyzer(context).analyze(tree),
     },
     {
       label: "const enforcement (ADR-013, E0877/E0878)",
-      run: () => new ConstAssignmentAnalyzer().analyze(tree),
+      run: () => new ConstAssignmentAnalyzer(context).analyze(tree),
     },
     {
       label: "callback typing (ADR-029, E0879/E0880)",
-      run: () => new CallbackAssignmentAnalyzer().analyze(tree),
+      run: () => new CallbackAssignmentAnalyzer(context).analyze(tree),
     },
     {
       label: "struct initializers (ADR-014, E0356/E0357)",
@@ -420,7 +420,7 @@ function runAnalyzers(
     },
     {
       label: "safe_div/safe_mod call shape (ADR-051, E0884/E0885)",
-      run: () => new SafeDivisionAnalyzer().analyze(tree),
+      run: () => new SafeDivisionAnalyzer(context).analyze(tree),
     },
     {
       label: "sizeof operands (ADR-023, E0601/E0602)",

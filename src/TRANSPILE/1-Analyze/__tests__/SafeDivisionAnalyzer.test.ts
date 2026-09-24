@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import SafeDivisionAnalyzer from "../SafeDivisionAnalyzer";
+import testAnalysisContext from "../__testUtils__/testAnalysisContext";
 
 /**
  * #1322. ADR-051's call shape: E0884 (four arguments) and E0885 (the first is
@@ -14,7 +15,7 @@ import SafeDivisionAnalyzer from "../SafeDivisionAnalyzer";
  */
 const errors = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new SafeDivisionAnalyzer().analyze(tree);
+  return new SafeDivisionAnalyzer(testAnalysisContext()).analyze(tree);
 };
 
 const wrap = (body: string) =>

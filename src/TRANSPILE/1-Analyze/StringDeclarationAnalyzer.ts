@@ -40,6 +40,7 @@ import IScopeFrame from "./types/IScopeFrame";
 import IStringDeclarationError from "./types/IStringDeclarationError";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 import ConstantExpression from "./helpers/ConstantExpression";
+import type IAnalysisContext from "./types/IAnalysisContext";
 
 /** What a string-valued expression can hold, or null if it is not one. */
 interface IStringSource {
@@ -50,7 +51,10 @@ interface IStringSource {
 class StringDeclarationListener extends CNextListener {
   private readonly found: IStringDeclarationError[] = [];
 
-  public constructor(private readonly scopes: ScopeFrameResolver) {
+  public constructor(
+    private readonly scopes: ScopeFrameResolver,
+    private readonly context: IAnalysisContext,
+  ) {
     super();
   }
 
@@ -405,6 +409,7 @@ class StringDeclarationListener extends CNextListener {
     return ConstantExpression.valueIn(
       expr,
       this.scopes.frameFor(expr).scopePath,
+      this.context.program,
     );
   }
 
@@ -420,12 +425,16 @@ class StringDeclarationListener extends CNextListener {
 }
 
 class StringDeclarationAnalyzer {
+  /** #1456: handed in rather than read off shared state. */
+  constructor(private readonly context: IAnalysisContext) {}
+
   public analyze(tree: Parser.ProgramContext): IStringDeclarationError[] {
     const declarations = new DeclarationScopeCollector();
     ParseTreeWalker.DEFAULT.walk(declarations, tree);
 
     const listener = new StringDeclarationListener(
       new ScopeFrameResolver(declarations),
+      this.context,
     );
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();

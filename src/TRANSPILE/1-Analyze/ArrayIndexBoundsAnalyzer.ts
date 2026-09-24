@@ -33,7 +33,6 @@ import { ParserRuleContext, ParseTreeWalker } from "antlr4ng";
 
 import { CNextListener } from "../../PARSE/2-Parse/grammar/CNextListener";
 import * as Parser from "../../PARSE/2-Parse/grammar/CNextParser";
-import CodeGenState from "../../transpiler/state/CodeGenState";
 import LiteralUtils from "../../utils/LiteralUtils";
 import ParserUtils from "../../utils/ParserUtils";
 import DeclarationScopeCollector from "./DeclarationScopeCollector";
@@ -42,6 +41,8 @@ import OperandTypeResolver from "./OperandTypeResolver";
 import ScopeFrameResolver from "./ScopeFrameResolver";
 import TypeText from "./helpers/TypeText";
 import ConstantExpression from "./helpers/ConstantExpression";
+import type IAnalysisContext from "./types/IAnalysisContext";
+import type IProgram from "../../transpiler/types/IProgram";
 
 /** One subscript in a chain: its expressions, and how many ops follow it. */
 interface ISubscript {
@@ -55,9 +56,12 @@ class ArrayIndexBoundsListener extends CNextListener {
   private readonly found: IArrayIndexBoundsError[] = [];
   private readonly types: OperandTypeResolver;
 
-  public constructor(private readonly scopes: ScopeFrameResolver) {
+  public constructor(
+    private readonly scopes: ScopeFrameResolver,
+    private readonly context: IAnalysisContext,
+  ) {
     super();
-    this.types = new OperandTypeResolver(scopes);
+    this.types = new OperandTypeResolver(scopes, context);
   }
 
   public errors(): IArrayIndexBoundsError[] {
@@ -111,11 +115,13 @@ class ArrayIndexBoundsListener extends CNextListener {
     const bound = ArrayIndexBoundsListener.leadingDimension(
       prefixType,
       scopePath,
+      this.context.program,
     );
     if (bound === null) return;
     const index = ConstantExpression.valueIn(
       subscript.expressions[0],
       scopePath,
+      this.context.program,
     );
     if (index === null) return;
     const { line, column } = ParserUtils.getPosition(subscript.at);
@@ -185,6 +191,7 @@ class ArrayIndexBoundsListener extends CNextListener {
   private static leadingDimension(
     typeText: string,
     scopePath: string,
+    program: IProgram,
   ): number | null {
     const inner = TypeText.firstDimension(typeText);
     if (inner === null) return null;
@@ -195,17 +202,21 @@ class ArrayIndexBoundsListener extends CNextListener {
     // UNRESOLVED_DIMENSION was.
     const literal = LiteralUtils.parseIntegerLiteral(inner);
     if (literal !== undefined) return literal;
-    return CodeGenState.program?.constValuesIn(scopePath).get(inner) ?? null;
+    return program.constValuesIn(scopePath).get(inner) ?? null;
   }
 }
 
 class ArrayIndexBoundsAnalyzer {
+  /** #1456: handed in rather than read off shared state. */
+  constructor(private readonly context: IAnalysisContext) {}
+
   public analyze(tree: Parser.ProgramContext): IArrayIndexBoundsError[] {
     const declarations = new DeclarationScopeCollector();
     ParseTreeWalker.DEFAULT.walk(declarations, tree);
 
     const listener = new ArrayIndexBoundsListener(
       new ScopeFrameResolver(declarations),
+      this.context,
     );
     ParseTreeWalker.DEFAULT.walk(listener, tree);
     return listener.errors();

@@ -7,6 +7,7 @@ import CodeGenState from "../../../transpiler/state/CodeGenState";
 import Program from "../../../PARSE/4-Resolve/Program";
 import SymbolRegistry from "../../../PARSE/3-Declare/SymbolRegistry";
 import TSymbolInfoAdapter from "../../../PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
+import testAnalysisContext from "../__testUtils__/testAnalysisContext";
 
 /**
  * #1322. ADR-029's callback typing: E0879 (a function whose declared signature
@@ -39,12 +40,12 @@ const build = (source: string) => {
   CodeGenState.symbols = TSymbolInfoAdapter.convert(
     CNextResolver.resolve(tree, "a.cnx", registry).symbols,
   );
-  return new CallbackAssignmentAnalyzer().analyze(tree);
+  return new CallbackAssignmentAnalyzer(testAnalysisContext()).analyze(tree);
 };
 
 const findings = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new CallbackAssignmentAnalyzer().analyze(tree);
+  return new CallbackAssignmentAnalyzer(testAnalysisContext()).analyze(tree);
 };
 
 let registry = new SymbolRegistry();
