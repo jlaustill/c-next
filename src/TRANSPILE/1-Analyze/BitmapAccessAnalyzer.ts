@@ -98,7 +98,7 @@ class BitmapAccessListener extends CNextListener {
     if (bitmapAt === null) return;
 
     // E0881: the value must fit the field it is written to.
-    const layout = this.context.symbols?.bitmapFields
+    const layout = this.context.symbols.bitmapFields
       .get(bitmapAt.bitmap)
       ?.get(bitmapAt.field);
     if (layout === undefined) return;
@@ -125,7 +125,7 @@ class BitmapAccessListener extends CNextListener {
     ops: readonly (Parser.PostfixOpContext | Parser.PostfixTargetOpContext)[],
     node: ParserRuleContext,
   ): { bitmap: string; field: string } | null {
-    const bitmaps = this.context.symbols?.bitmapFields;
+    const bitmaps = this.context.symbols.bitmapFields;
     if (!bitmaps || chain.length === 0) return null;
 
     const found = this.bitmapOf(chain, root, node);
@@ -181,7 +181,6 @@ class BitmapAccessListener extends CNextListener {
     node: ParserRuleContext,
   ): { bitmap: string; at: number } | null {
     const symbols = this.context.symbols;
-    if (!symbols) return null;
 
     const member = RegisterMemberReference.resolve(
       root,

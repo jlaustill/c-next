@@ -165,20 +165,10 @@ class UndeclaredTypeAnalyzer {
     typeName: string,
     scope: ReturnType<EnclosingScope["current"]>,
   ): boolean {
-    const symbols = this.context.symbols;
-    if (!symbols) {
-      // Nothing to check against; stay silent rather than reject on no evidence.
-      // This is the ONLY answer to "no symbol view" in this class: `isRegister`
-      // runs only after this returned false, which cannot happen when `symbols`
-      // is null, so a second guard there would be unreachable AND would answer
-      // the opposite way.
-      return true;
-    }
-
     return UndeclaredTypeAnalyzer._eitherSpelling(
       typeName,
       scope,
-      symbols,
+      this.context.symbols,
       this.context.symbolTable,
       (name, fileSymbols, table) =>
         NameExistence.isTypeName(name, fileSymbols, table),
@@ -209,7 +199,7 @@ class UndeclaredTypeAnalyzer {
       scope,
       // Reached only after `isVisibleType` returned false, which requires a
       // symbol view -- see its guard.
-      this.context.symbols!,
+      this.context.symbols,
       this.context.symbolTable,
       (name, fileSymbols) => NameExistence.isRegisterName(name, fileSymbols),
     );

@@ -137,8 +137,6 @@ class SwitchStatementListener extends CNextListener {
     cases: readonly Parser.SwitchCaseContext[],
     switchEnum: string | null,
   ): boolean {
-    const symbols = this.context.symbols;
-    if (!symbols) return false;
     let reported = false;
     for (const caseCtx of cases) {
       for (const label of caseCtx.caseLabel()) {
@@ -188,7 +186,7 @@ class SwitchStatementListener extends CNextListener {
     cases: readonly Parser.SwitchCaseContext[],
     defaultCase: Parser.DefaultCaseContext | null,
   ): void {
-    const variants = this.context.symbols?.enumMembers.get(enumTypeName);
+    const variants = this.context.symbols.enumMembers.get(enumTypeName);
     if (!variants) return;
 
     const total = variants.size;

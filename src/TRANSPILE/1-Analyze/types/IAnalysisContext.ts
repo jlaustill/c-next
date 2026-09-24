@@ -29,16 +29,18 @@ interface IAnalysisContext {
   /**
    * What THIS file can see: its own declarations plus its `.cnx` includes.
    *
-   * Nullable, unlike `program`. Production always has one --
-   * `_requireSymbolInfo` throws rather than returning undefined -- but several
-   * analyzers answer "no symbol view" DELIBERATELY, with "no evidence is not
-   * evidence of absence", and `UndeclaredTypeAnalyzer` has a test for it whose
-   * own comment records that no integration fixture can construct the state.
-   * Making this non-nullable would delete that behavior by making it
-   * unrepresentable, which is a decision about diagnostics rather than about
-   * where a fact lives -- so #1456 moves the fact and leaves the question.
+   * Non-null, like `program`. There is one producer --
+   * `Transpiler._requireSymbolInfo` -- and it returns `ICodeGenSymbols` or
+   * throws, so 2.1 never runs without a view.
+   *
+   * Six analyzers used to guard on `if (!symbols)` with "no evidence is not
+   * evidence of absence". That reads as intentional behavior and was not: the
+   * state they guarded against is one production cannot enter, and the only
+   * caller that could construct it was a unit test. A guard for an
+   * unrepresentable state is dead code that a test keeps alive (#1418), so the
+   * type forbids the state instead and the guards are gone.
    */
-  readonly symbols: ICodeGenSymbols | null;
+  readonly symbols: ICodeGenSymbols;
 
   /** 1.4 Resolve's artifact -- every cross-file fact, settled before 2.1. */
   readonly program: IProgram;

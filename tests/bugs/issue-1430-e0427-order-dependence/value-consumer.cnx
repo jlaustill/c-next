@@ -1,5 +1,18 @@
 // Helper for #1430. Does NOT include func-source.cnx, so `sharedHelper` is
 // undefined HERE whichever order the entry lists the includes in.
+//
+// WHAT THIS PAIR COVERS, and what it does not (#1456). It asserts E0427 fires
+// on a cross-file value reference, under both include orders, with two
+// controls. It does NOT catch the defect #1430 is named for: restoring the
+// `CodeGenState.knownFunctions` read leaves both fixtures GREEN -- measured.
+// #1320 hoisted 2.1 Analyze whole-program, so during analysis in a fresh
+// process that set is empty and the stale read has nothing stale to return,
+// and every fixture runs one program in one process.
+//
+// The leak that survives is cross-RUN, and
+// `src/transpiler/__tests__/CrossRunKnownFunctions.test.ts` is what catches
+// it: two runs through one `Transpiler`, mutation-checked, where this pair
+// stays green and that one reddens.
 
 u32 localHelper() {
     return 7;

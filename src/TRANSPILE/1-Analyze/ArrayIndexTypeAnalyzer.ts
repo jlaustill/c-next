@@ -338,7 +338,7 @@ class IndexTypeListener extends CNextListener {
     // Function call (e.g., getIndex())
     if (op.LPAREN()) {
       const returnType =
-        this.context.symbols?.functionReturnTypes.get(currentType);
+        this.context.symbols.functionReturnTypes.get(currentType);
       return returnType ?? null;
     }
 

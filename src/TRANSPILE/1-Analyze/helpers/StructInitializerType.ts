@@ -47,7 +47,7 @@ class StructInitializerType {
     scopePath: string,
     context: IAnalysisContext,
   ): string | null {
-    const fields = context.symbols?.structFields;
+    const fields = context.symbols.structFields;
     if (!fields) return null;
     return (
       FunctionReference.candidatesForTypeText(typeText, scopePath).find((c) =>
@@ -181,7 +181,7 @@ class StructInitializerType {
     );
     if (structName === null) return null;
     return (
-      context.symbols?.structFields
+      context.symbols.structFields
         .get(structName)
         ?.get(field.IDENTIFIER().getText()) ?? null
     );

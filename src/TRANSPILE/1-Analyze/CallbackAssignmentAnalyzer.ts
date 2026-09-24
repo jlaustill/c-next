@@ -120,8 +120,7 @@ class CallbackAssignmentListener extends CNextListener {
     if (structName === null) return;
     const fieldName = ctx.IDENTIFIER().getText();
     this.check(
-      this.context.symbols?.structFields.get(structName)?.get(fieldName) ??
-        null,
+      this.context.symbols.structFields.get(structName)?.get(fieldName) ?? null,
       ctx.expression(),
       { verb: "assign", description: `callback field '${fieldName}'` },
     );
@@ -259,7 +258,7 @@ class CallbackAssignmentListener extends CNextListener {
   /** Field types of the structs this file declares. */
   private fieldTypesInFileView(): string[] {
     const types: string[] = [];
-    for (const fields of this.context.symbols?.structFields.values() ?? []) {
+    for (const fields of this.context.symbols.structFields.values() ?? []) {
       types.push(...fields.values());
     }
     return types;

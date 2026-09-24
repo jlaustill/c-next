@@ -7,7 +7,7 @@
  * The integration fixtures in `tests/bugs/issue-1336-register-in-type-position`
  * assert the diagnostic end to end, but they cannot reach every branch here: a
  * `test-error` fixture stops the analyzer pipeline at the first analyzer that
- * returns errors, and no fixture can construct the "no symbol view" state at all.
+ * returns errors.
  */
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { CharStream, CommonTokenStream } from "antlr4ng";
@@ -162,17 +162,24 @@ describe("UndeclaredTypeAnalyzer", () => {
       expect(analyze(`u32 main() { u32 x <- 1; return x; }`)).toHaveLength(0);
     });
 
-    it("stays silent when there is no symbol view", () => {
-      // No evidence is not evidence of absence: with no symbols the analyzer
-      // must not reject. No integration fixture can construct this state.
-      // The foreign-header precondition is cleared so this proves the SYMBOL
-      // guard rather than passing for the other reason.
-      const tree = parse(`u32 main() { Nowhere c; return 0; }`);
-      CodeGenState.currentFileReachesForeignHeader = false;
-      expect(
-        new UndeclaredTypeAnalyzer(testAnalysisContext()).analyze(tree),
-      ).toHaveLength(0);
-    });
+    // #1456: "stays silent when there is no symbol view" lived here. It set
+    // `CodeGenState.symbols` to null and asserted the analyzer reported
+    // nothing, and its own comment recorded that "no integration fixture can
+    // construct this state".
+    //
+    // That is the tell. A test cannot document intentional behavior of a
+    // state the program cannot enter: `Transpiler._requireSymbolInfo` is the
+    // single producer and it returns `ICodeGenSymbols` or throws, so 2.1 never
+    // runs without a view. What the test actually held up was a defensive
+    // guard in `isVisibleType`, reachable only from the test itself -- the
+    // #1418 shape, where a unit test is the sole caller keeping a branch
+    // alive.
+    //
+    // `IAnalysisContext.symbols` is non-nullable now, so the state is
+    // unrepresentable rather than guarded, and six `if (!symbols)` branches
+    // went with it. The case below is the one that always mattered: a file
+    // that CAN see a foreign header stays silent for a reason production
+    // reaches.
 
     it("stays silent when the file can reach a foreign header (#985)", () => {
       // A C/C++ header is not parsed into the symbol table, so an unresolved

@@ -162,7 +162,7 @@ class OperandTypeResolver {
   /**
    * The same fact for a struct declared in an INCLUDED `.cnx`.
    *
-   * `this.context.symbols?.structFields` holds the structs a file DECLARES, not
+   * `this.context.symbols.structFields` holds the structs a file DECLARES, not
    * the ones it can see: `#include "shapes.cnx"` then `Frame f; f.data[9]`
    * left every chain through `f` unresolved, so each rule reading this walk
    * went quiet at the include boundary while passing every same-file fixture.
@@ -213,7 +213,7 @@ class OperandTypeResolver {
         // built with QualifiedCName -- the single encoder -- rather than
         // re-derived by hand (CLAUDE.md).
         return (
-          this.context.symbols?.functionReturnTypes.get(
+          this.context.symbols.functionReturnTypes.get(
             QualifiedCName.fromParts(nameParts),
           ) ?? null
         );

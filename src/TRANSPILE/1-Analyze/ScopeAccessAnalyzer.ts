@@ -179,9 +179,9 @@ class ScopeAccessListener extends CNextListener {
 
   /** E0436: a private member reached from another scope or from file scope. */
   private reportPrivate(access: IAccess, here: string): boolean {
-    if (!this.context.symbols?.knownScopes.has(access.scope)) return false;
+    if (!this.context.symbols.knownScopes.has(access.scope)) return false;
     if (access.scope === here) return false;
-    const visibility = this.context.symbols?.scopeMemberVisibility
+    const visibility = this.context.symbols.scopeMemberVisibility
       .get(access.scope)
       ?.get(access.member);
     if (visibility !== "private") return false;
@@ -209,7 +209,6 @@ class ScopeAccessListener extends CNextListener {
   ): void {
     if (access.viaGlobal || here === "") return;
     const symbols = this.context.symbols;
-    if (!symbols) return;
 
     const isEnum = symbols.knownEnums.has(access.scope);
     const isRegister = symbols.knownRegisters.has(access.scope);
@@ -239,7 +238,7 @@ class ScopeAccessListener extends CNextListener {
       scopePath: access.scope,
       name: access.member,
     });
-    return this.context.symbols?.scopedRegisters?.has(cName) ?? false;
+    return this.context.symbols.scopedRegisters?.has(cName) ?? false;
   }
 
   private report(

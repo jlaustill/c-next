@@ -237,7 +237,7 @@ class ReturnValueUseAnalyzer {
       return builtin !== "void";
     }
 
-    const declared = context.symbols?.functionReturnTypes.get(name);
+    const declared = context.symbols.functionReturnTypes.get(name);
     if (declared !== undefined) {
       return declared !== "void";
     }

@@ -250,10 +250,6 @@ class UndeclaredValueAnalyzer {
       return true;
     }
 
-    if (!symbols) {
-      return true;
-    }
-
     // `global.x` may still name a file-scope variable that arrived through an
     // `#include`, which this file's frames never held. The include-filtered
     // predicate is the cross-file half, exactly as it is for a bare name.
@@ -335,11 +331,6 @@ class UndeclaredValueAnalyzer {
     }
 
     const symbols = context.symbols;
-    if (!symbols) {
-      // No evidence is not evidence of absence -- the same reading every
-      // `symbols` guard in 2.1 carries.
-      return true;
-    }
 
     // A function referenced as a value (ADR-029 function-as-type), a type used
     // as the base of `Type.MEMBER`, a register, which is a value at an address
