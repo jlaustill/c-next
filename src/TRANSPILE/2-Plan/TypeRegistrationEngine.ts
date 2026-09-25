@@ -34,6 +34,25 @@ interface ITypeRegistrationCallbacks {
 }
 
 /**
+ * How a variable is declared, independent of which type branch handles it.
+ *
+ * Six private branches took these four as loose parameters, in the same order,
+ * alongside the name, the type carrier and the two collaborators -- eight
+ * apiece, which SonarCloud S107 flags at seven. Passing them as one value is
+ * not a count trick: the four travel together through every branch and no
+ * branch varies them, so a fifth declaration modifier is one edit rather than
+ * six signatures. Deliberately NOT merged with `ITypeRegistrationCallbacks`,
+ * which is the collaborator surface and has a different lifetime.
+ */
+interface IDeclaredShape {
+  /** Trailing `[N]` dimensions on the declarator, if any. */
+  arrayDim: Parser.ArrayDimensionContext[] | null;
+  isConst: boolean;
+  overflowBehavior: TOverflowBehavior;
+  isAtomic: boolean;
+}
+
+/**
  * Static class that registers variable types from the AST.
  * Called during Stage 2 of code generation, before generating any code.
  */
@@ -240,14 +259,18 @@ class TypeRegistrationEngine {
 
     const isAtomic = varDecl.atomicModifier() !== null;
 
+    const shape: IDeclaredShape = {
+      arrayDim,
+      isConst,
+      overflowBehavior,
+      isAtomic,
+    };
+
     if (
       TypeRegistrationEngine._tryRegisterStringType(
         registryName,
         typeCtx,
-        arrayDim,
-        isConst,
-        overflowBehavior,
-        isAtomic,
+        shape,
         callbacks,
         state,
       )
@@ -259,10 +282,7 @@ class TypeRegistrationEngine {
       TypeRegistrationEngine._registerArrayTypeVariable(
         registryName,
         typeCtx.arrayType()!,
-        arrayDim,
-        isConst,
-        overflowBehavior,
-        isAtomic,
+        shape,
         callbacks,
         state,
       );
@@ -283,10 +303,7 @@ class TypeRegistrationEngine {
       TypeRegistrationEngine._tryRegisterEnumOrBitmapType(
         registryName,
         baseType,
-        isConst,
-        arrayDim,
-        overflowBehavior,
-        isAtomic,
+        shape,
         callbacks,
         state,
       )
@@ -297,10 +314,7 @@ class TypeRegistrationEngine {
     TypeRegistrationEngine._registerStandardType(
       registryName,
       baseType,
-      arrayDim,
-      isConst,
-      overflowBehavior,
-      isAtomic,
+      shape,
       callbacks,
       state,
     );
@@ -313,13 +327,11 @@ class TypeRegistrationEngine {
   private static _tryRegisterStringType(
     registryName: string,
     typeCtx: Parser.TypeContext,
-    arrayDim: Parser.ArrayDimensionContext[] | null,
-    isConst: boolean,
-    overflowBehavior: TOverflowBehavior,
-    isAtomic: boolean,
+    shape: IDeclaredShape,
     callbacks: ITypeRegistrationCallbacks,
     state: TranspileState,
   ): boolean {
+    const { arrayDim, isConst, overflowBehavior, isAtomic } = shape;
     const stringCtx = typeCtx.stringType();
     if (!stringCtx) {
       return false;
@@ -366,13 +378,11 @@ class TypeRegistrationEngine {
   private static _registerStringArrayType(
     registryName: string,
     arrayTypeCtx: Parser.ArrayTypeContext,
-    arrayDim: Parser.ArrayDimensionContext[] | null,
-    isConst: boolean,
-    overflowBehavior: TOverflowBehavior,
-    isAtomic: boolean,
+    shape: IDeclaredShape,
     callbacks: ITypeRegistrationCallbacks,
     state: TranspileState,
   ): void {
+    const { arrayDim, isConst, overflowBehavior, isAtomic } = shape;
     const stringCtx = arrayTypeCtx.stringType()!;
     const intLiteral = stringCtx.INTEGER_LITERAL();
     if (!intLiteral) {
@@ -425,22 +435,17 @@ class TypeRegistrationEngine {
   private static _registerArrayTypeVariable(
     registryName: string,
     arrayTypeCtx: Parser.ArrayTypeContext,
-    arrayDim: Parser.ArrayDimensionContext[] | null,
-    isConst: boolean,
-    overflowBehavior: TOverflowBehavior,
-    isAtomic: boolean,
+    shape: IDeclaredShape,
     callbacks: ITypeRegistrationCallbacks,
     state: TranspileState,
   ): void {
+    const { arrayDim, isConst, overflowBehavior, isAtomic } = shape;
     // Issue #1029: Handle string arrays (string<N>[M]) - must check before primitiveType/userType
     if (arrayTypeCtx.stringType()) {
       TypeRegistrationEngine._registerStringArrayType(
         registryName,
         arrayTypeCtx,
-        arrayDim,
-        isConst,
-        overflowBehavior,
-        isAtomic,
+        shape,
         callbacks,
         state,
       );
@@ -452,10 +457,7 @@ class TypeRegistrationEngine {
       const registered = TypeRegistrationEngine._tryRegisterUserTypeArray(
         registryName,
         arrayTypeCtx,
-        arrayDim,
-        isConst,
-        overflowBehavior,
-        isAtomic,
+        shape,
         callbacks,
         state,
       );
@@ -560,23 +562,19 @@ class TypeRegistrationEngine {
   private static _tryRegisterUserTypeArray(
     registryName: string,
     arrayTypeCtx: Parser.ArrayTypeContext,
-    arrayDim: Parser.ArrayDimensionContext[] | null,
-    isConst: boolean,
-    overflowBehavior: TOverflowBehavior,
-    isAtomic: boolean,
+    shape: IDeclaredShape,
     callbacks: ITypeRegistrationCallbacks,
     state: TranspileState,
   ): boolean {
     const baseType = arrayTypeCtx.userType()!.getText();
-    const combinedArrayDim = arrayDim ?? [];
+    const combinedArrayDim = shape.arrayDim ?? [];
 
     const registered = TypeRegistrationEngine._tryRegisterEnumOrBitmapType(
       registryName,
       baseType,
-      isConst,
-      combinedArrayDim,
-      overflowBehavior,
-      isAtomic,
+      // The declarator's trailing dimensions, defaulted to none: an
+      // `arrayType` carries its own and the two are combined below.
+      { ...shape, arrayDim: combinedArrayDim },
       callbacks,
       state,
     );
@@ -655,13 +653,11 @@ class TypeRegistrationEngine {
   private static _registerStandardType(
     registryName: string,
     baseType: string,
-    arrayDim: Parser.ArrayDimensionContext[] | null,
-    isConst: boolean,
-    overflowBehavior: TOverflowBehavior,
-    isAtomic: boolean,
+    shape: IDeclaredShape,
     callbacks: ITypeRegistrationCallbacks,
     state: TranspileState,
   ): void {
+    const { arrayDim, isConst, overflowBehavior, isAtomic } = shape;
     const bitWidth = TypeRegistrationEngine._bitWidthOf(baseType);
     const isArray = arrayDim !== null && arrayDim.length > 0;
     const arrayDimensions = isArray
@@ -690,13 +686,11 @@ class TypeRegistrationEngine {
   private static _tryRegisterEnumOrBitmapType(
     name: string,
     baseType: string,
-    isConst: boolean,
-    arrayDim: Parser.ArrayDimensionContext[] | null,
-    overflowBehavior: TOverflowBehavior,
-    isAtomic: boolean,
+    shape: IDeclaredShape,
     callbacks: ITypeRegistrationCallbacks,
     state: TranspileState,
   ): boolean {
+    const { arrayDim, isConst, overflowBehavior, isAtomic } = shape;
     const registrationOptions = {
       name,
       baseType,
