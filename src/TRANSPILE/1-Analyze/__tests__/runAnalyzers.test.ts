@@ -366,6 +366,14 @@ describe("runAnalyzers", () => {
       // fallback, which is gone. Rewritten rather than deleted, because the
       // property worth keeping is that the table actually reaches the
       // analyzers -- only the route changed.
+      //
+      // The SOURCE has to consult the table, and this one does not: with
+      // `void main() { u32 x <- 5; }`, handing every analyzer a fresh empty
+      // table instead of the caller's leaves this green, so it asserts the
+      // route rather than proving it. The two neighbors above have the same
+      // shape. Making it prove the route needs a fact the caller's table
+      // carries and the mock `symbols` view does not -- see #1663, which holds
+      // the measurement rather than leaving this comment as the only record.
       const { tree, comments } = parseWithComments(`
         void main() {
           u32 x <- 5;

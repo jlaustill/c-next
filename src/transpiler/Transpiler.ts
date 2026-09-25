@@ -1535,13 +1535,22 @@ class Transpiler {
     this.codeGenerator.transpileState.program = null;
     // Issue #1241: the previous run's ADR provenance is not this run's evidence
     AdrProvenance.reset();
-    // #1143, #1452: the same for the toolchain ledger, which is the other
-    // mutable static under `src/instrumentation/`. Its only other clear site is
-    // `TranspileState.reset()`, which runs inside `generate()` -- so a run that
-    // plans nothing (parse-only, or 2.1 rejected some file so #1320 plans NO
-    // file) never reaches it, and `collect()` reports the previous run's last
-    // file's cost. Cleared here so the boundary is the run, like every fact
-    // above it.
+    // #1143, #1452: the toolchain ledger, and unlike everything above it this
+    // one cannot change any output. It is MEMORY HYGIENE, stated as such.
+    //
+    // The comment here used to claim it stopped a run that plans nothing from
+    // reporting the previous run's cost. It cannot: every reader runs after
+    // `generate()`'s own `reset()` -- `collect()` from `buildBanner` inside
+    // `generate()` and from `_transpileFile` immediately after it,
+    // `takeDeferredSites()` from inside `generate()` -- so a run that plans no
+    // file never reads the ledger at all. Verified by deleting this line: 7438
+    // unit tests and 1263 fixtures stay green, which is why no regression test
+    // could be written for it.
+    //
+    // Kept because `ServeCommand` holds a `private static transpiler`, so
+    // without it the last run's entries sit in a process-wide map until the
+    // next file is planned. A line that provably changes no output needs to say
+    // so, or the next reader preserves it for the reason it does not have.
     ToolchainRequirements.reset();
   }
 
