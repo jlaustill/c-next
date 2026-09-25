@@ -3,6 +3,7 @@
  * ADR-055 Phase 5/7: Converts TSymbol to IHeaderSymbol (ISymbol methods removed in Phase 7)
  */
 import { describe, it, expect } from "vitest";
+import RenderState from "../../../RenderState";
 import HeaderSymbolAdapter from "../HeaderSymbolAdapter";
 import IVariableSymbol from "../../../../../transpiler/types/symbols/IVariableSymbol";
 import IFunctionSymbol from "../../../../../transpiler/types/symbols/IFunctionSymbol";
@@ -18,7 +19,13 @@ import TestSourceSpan from "../../../../../transpiler/types/__testUtils__/testSo
 import TestEnumMembers from "../../../../../transpiler/types/__testUtils__/testEnumMembers";
 import TestMembers from "../../../../../transpiler/types/__testUtils__/testMembers";
 
+let state: RenderState;
+
 describe("HeaderSymbolAdapter", () => {
+  beforeEach(() => {
+    state = new RenderState();
+  });
+
   // ========================================================================
   // fromTSymbol - TSymbol to IHeaderSymbol Conversion
   // ========================================================================
@@ -43,7 +50,7 @@ describe("HeaderSymbolAdapter", () => {
         isArray: false,
       };
 
-      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);
+      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol, state);
 
       expect(result.name).toBe("counter");
       expect(result.kind).toBe("variable");
@@ -70,7 +77,7 @@ describe("HeaderSymbolAdapter", () => {
         isArray: false,
       };
 
-      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);
+      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol, state);
 
       expect(result.name).toBe("Motor__speed");
       expect(result.type).toBe("f32");
@@ -98,7 +105,7 @@ describe("HeaderSymbolAdapter", () => {
         arrayDimensions: [256, 4],
       };
 
-      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);
+      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol, state);
 
       expect(result.isArray).toBe(true);
       expect(result.arrayDimensions).toEqual(["256", "4"]);
@@ -123,7 +130,7 @@ describe("HeaderSymbolAdapter", () => {
         isArray: false,
       };
 
-      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);
+      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol, state);
 
       expect(result.isConst).toBe(true);
     });
@@ -146,7 +153,7 @@ describe("HeaderSymbolAdapter", () => {
         visibility: "public",
       };
 
-      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);
+      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol, state);
 
       expect(result.name).toBe("init");
       expect(result.kind).toBe("function");
@@ -178,7 +185,7 @@ describe("HeaderSymbolAdapter", () => {
         visibility: "public",
       };
 
-      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);
+      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol, state);
 
       expect(result.name).toBe("Motor__setSpeed");
       expect(result.type).toBe("void");
@@ -213,7 +220,7 @@ describe("HeaderSymbolAdapter", () => {
         visibility: "public",
       };
 
-      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);
+      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol, state);
 
       expect(result.parameters?.[0].isArray).toBe(true);
       expect(result.parameters?.[0].isConst).toBe(true);
@@ -252,7 +259,7 @@ describe("HeaderSymbolAdapter", () => {
         ),
       };
 
-      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);
+      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol, state);
 
       expect(result.name).toBe("Point");
       expect(result.kind).toBe("struct");
@@ -273,7 +280,7 @@ describe("HeaderSymbolAdapter", () => {
         fields: new Map(),
       };
 
-      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);
+      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol, state);
 
       expect(result.name).toBe("Geometry__Vector");
       expect(result.parent).toBe("Geometry");
@@ -295,7 +302,7 @@ describe("HeaderSymbolAdapter", () => {
         members: TestEnumMembers.of("EColor", { RED: 0, GREEN: 1, BLUE: 2 }),
       };
 
-      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);
+      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol, state);
 
       expect(result.name).toBe("EColor");
       expect(result.kind).toBe("enum");
@@ -315,7 +322,7 @@ describe("HeaderSymbolAdapter", () => {
         members: TestEnumMembers.of("EMode", { OFF: 0, ON: 1 }),
       };
 
-      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);
+      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol, state);
 
       expect(result.name).toBe("Motor__EMode");
       expect(result.parent).toBe("Motor");
@@ -345,7 +352,7 @@ describe("HeaderSymbolAdapter", () => {
         ),
       };
 
-      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);
+      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol, state);
 
       expect(result.name).toBe("Flags");
       expect(result.kind).toBe("bitmap");
@@ -368,7 +375,7 @@ describe("HeaderSymbolAdapter", () => {
         fields: new Map(),
       };
 
-      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);
+      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol, state);
 
       expect(result.name).toBe("Motor__Status");
       expect(result.type).toBe("u16");
@@ -398,7 +405,7 @@ describe("HeaderSymbolAdapter", () => {
         ),
       };
 
-      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);
+      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol, state);
 
       expect(result.name).toBe("GPIO");
       expect(result.kind).toBe("register");
@@ -419,7 +426,7 @@ describe("HeaderSymbolAdapter", () => {
         members: new Map(),
       };
 
-      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);
+      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol, state);
 
       expect(result.name).toBe("Motor__CTRL");
       expect(result.parent).toBe("Motor");
@@ -445,7 +452,7 @@ describe("HeaderSymbolAdapter", () => {
         declarationSites: new Set<string>(),
       };
 
-      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);
+      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol, state);
 
       expect(result.name).toBe("Motor");
       expect(result.kind).toBe("scope");
@@ -476,7 +483,7 @@ describe("HeaderSymbolAdapter", () => {
         declarationSites: new Set<string>(),
       };
 
-      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);
+      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol, state);
 
       expect(result.name).toBe("Inner");
       expect(result.parent).toBe("Outer");
@@ -515,7 +522,7 @@ describe("HeaderSymbolAdapter", () => {
         },
       ];
 
-      const results = HeaderSymbolAdapter.fromTSymbols(tSymbols);
+      const results = HeaderSymbolAdapter.fromTSymbols(tSymbols, state);
 
       expect(results).toHaveLength(2);
       expect(results[0].name).toBe("var1");
@@ -550,7 +557,7 @@ describe("HeaderSymbolAdapter", () => {
         arrayDimensions: ["DEVICE_COUNT"],
       };
 
-      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);
+      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol, state);
 
       expect(result.arrayDimensions).toEqual(["DEVICE_COUNT"]);
     });
@@ -575,7 +582,7 @@ describe("HeaderSymbolAdapter", () => {
         arrayDimensions: ["EColor.COUNT"],
       };
 
-      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);
+      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol, state);
 
       // Qualified enum access should be converted to C-style underscore notation
       expect(result.arrayDimensions).toEqual(["EColor__COUNT"]);
@@ -610,6 +617,7 @@ describe("HeaderSymbolAdapter", () => {
       it("strips global. and adds no scope prefix", () => {
         const result = HeaderSymbolAdapter.fromTSymbol(
           makeArrayVar("Motor", "global.EColor.COUNT"),
+          state,
         );
 
         expect(result.arrayDimensions).toEqual(["EColor__COUNT"]);
@@ -618,6 +626,7 @@ describe("HeaderSymbolAdapter", () => {
       it("strips this. and prefixes the declaring scope", () => {
         const result = HeaderSymbolAdapter.fromTSymbol(
           makeArrayVar("Motor", "this.State.COUNT"),
+          state,
         );
 
         // `this` must not survive as a name component
@@ -625,10 +634,11 @@ describe("HeaderSymbolAdapter", () => {
       });
 
       it("leaves a bare dotted path unprefixed when the scope has no such enum", () => {
-        // CodeGenState has no registered enums here, so the bare path resolves
+        // RenderState has no registered enums here, so the bare path resolves
         // global-first — matching the .c path for a top-level enum.
         const result = HeaderSymbolAdapter.fromTSymbol(
           makeArrayVar("Motor", "Global.COUNT"),
+          state,
         );
 
         expect(result.arrayDimensions).toEqual(["Global__COUNT"]);
@@ -637,6 +647,7 @@ describe("HeaderSymbolAdapter", () => {
       it("leaves a non-qualified dimension untouched", () => {
         const result = HeaderSymbolAdapter.fromTSymbol(
           makeArrayVar("Motor", "DEVICE_COUNT"),
+          state,
         );
 
         expect(result.arrayDimensions).toEqual(["DEVICE_COUNT"]);
@@ -667,7 +678,7 @@ describe("HeaderSymbolAdapter", () => {
         visibility: "public",
       };
 
-      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol);
+      const result = HeaderSymbolAdapter.fromTSymbol(tSymbol, state);
 
       expect(result.parameters?.[0].isAutoConst).toBe(true);
     });

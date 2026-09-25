@@ -8,11 +8,21 @@
 import type IBitAccessAnalysis from "./IBitAccessAnalysis";
 import type TPlannedTargetOp from "./TPlannedTargetOp";
 import TTypeInfo from "./TTypeInfo";
+import type RenderState from "../../TRANSPILE/3-Render/RenderState";
 
 /**
  * Context extracted from assignment statement for classification.
  */
 interface IAssignmentContext {
+  /**
+   * 2.3 Render's per-file working state (#1452 box 4).
+   *
+   * Handlers are module-level functions that receive only this context, so it
+   * is their channel to the state -- the same role the orchestrator plays for
+   * the generators.
+   */
+  readonly state: RenderState;
+
   // === The target, as renders rather than as a node ===
 
   /**

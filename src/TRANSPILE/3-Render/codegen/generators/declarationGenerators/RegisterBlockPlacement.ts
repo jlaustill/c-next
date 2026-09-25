@@ -10,8 +10,8 @@
  * decision (#1300 made the same argument for scope types), and a block
  * emitted in both files would redefine every macro.
  */
-import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 import PublicInterface from "../../../../2-Plan/PublicInterface";
+import type RenderState from "../../../RenderState";
 
 class RegisterBlockPlacement {
   /**
@@ -21,16 +21,16 @@ class RegisterBlockPlacement {
    * @param cName - The register's transpiled C name (`GPIO7`, `Board__R`)
    * @param block - The rendered comment-and-`#define` block
    */
-  static place(cName: string, block: string): string {
+  static place(cName: string, block: string, state: RenderState): string {
     const definedInHeader =
-      CodeGenState.sourcePath !== null &&
+      state.sourcePath !== null &&
       PublicInterface.definesTypeInHeader(
-        CodeGenState.symbolTable,
-        CodeGenState.sourcePath,
+        state.symbolTable,
+        state.sourcePath,
         cName,
       );
     if (!definedInHeader) return block;
-    CodeGenState.exportedRegisterBlocks.push(block);
+    state.exportedRegisterBlocks.push(block);
     return "";
   }
 }

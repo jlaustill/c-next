@@ -7,7 +7,7 @@
 import type IBitmapFieldLayout from "../../../../../../transpiler/types/IBitmapFieldLayout";
 import { describe, it, expect } from "vitest";
 import BitmapAccessHelper from "../BitmapAccessHelper";
-import RenderState from "../../../../../../transpiler/state/RenderState";
+import RenderState from "../../../../RenderState";
 
 describe("BitmapAccessHelper", () => {
   describe("generate", () => {

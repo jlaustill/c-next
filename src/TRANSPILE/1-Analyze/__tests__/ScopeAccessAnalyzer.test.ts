@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
-import CodeGenState from "../../../transpiler/state/CodeGenState";
+import RenderState from "../../3-Render/RenderState";
 import ScopeAccessAnalyzer from "../ScopeAccessAnalyzer";
 import testAnalysisContext from "./testAnalysisContext";
 
@@ -21,7 +21,7 @@ const symbols = (opts: {
   registers?: string[];
 }): void => {
   const scopes = opts.scopes ?? {};
-  CodeGenState.symbols = {
+  state.symbols = {
     knownScopes: new Set(Object.keys(scopes)),
     knownEnums: new Set(opts.enums ?? []),
     knownRegisters: new Set(opts.registers ?? []),
@@ -37,17 +37,19 @@ const symbols = (opts: {
     structFields: new Map(),
     structFieldDimensions: new Map(),
     functionReturnTypes: new Map(),
-  } as unknown as typeof CodeGenState.symbols;
+  } as unknown as typeof state.symbols;
 };
 
 const errors = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new ScopeAccessAnalyzer(testAnalysisContext()).analyze(tree);
+  return new ScopeAccessAnalyzer(testAnalysisContext(state)).analyze(tree);
 };
 
 afterEach(() => {
-  CodeGenState.reset();
+  state = new RenderState();
 });
+
+let state: RenderState;
 
 describe("ScopeAccessAnalyzer", () => {
   describe("E0435 -- own scope by name", () => {

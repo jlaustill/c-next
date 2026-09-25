@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
-import CodeGenState from "../../../transpiler/state/CodeGenState";
+import RenderState from "../../3-Render/RenderState";
 import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
 import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
@@ -33,15 +33,17 @@ const withCppClass = (className: string) => {
 };
 
 const analyze = (source: string, table: SymbolTable, cppMode = true) =>
-  new CppClassInitializerAnalyzer(testAnalysisContext()).analyze(
+  new CppClassInitializerAnalyzer(testAnalysisContext(state)).analyze(
     CNextSourceParser.parse(source).tree,
     cppMode,
     table,
   );
 
 afterEach(() => {
-  CodeGenState.reset();
+  state = new RenderState();
 });
+
+let state: RenderState;
 
 describe("CppClassInitializerAnalyzer (E0508)", () => {
   it("rejects a global initializer at the literal, not at a later declaration", () => {

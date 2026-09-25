@@ -16,11 +16,12 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import VariableDeclHelper from "../VariableDeclHelper";
-import CodeGenState from "../../../../../transpiler/state/CodeGenState";
+import RenderState from "../../../RenderState";
 import IPlannedArrayDeclaration from "../../types/IPlannedArrayDeclaration";
 import TPlannedVariableDecl from "../../types/TPlannedVariableDecl";
 import TPlannedVariableInitializer from "../../types/TPlannedVariableInitializer";
-import RenderState from "../../../../../transpiler/state/RenderState";
+
+let state: RenderState;
 
 /**
  * An initializer render that sets the array-init bookkeeping, the way a real
@@ -31,8 +32,8 @@ import RenderState from "../../../../../transpiler/state/RenderState";
  */
 function arrayInitRender(elementCount: number, value = "{1, 2}") {
   return () => {
-    CodeGenState.lastArrayInitCount = elementCount;
-    CodeGenState.lastArrayFillValue = undefined;
+    state.lastArrayInitCount = elementCount;
+    state.lastArrayFillValue = undefined;
     return value;
   };
 }
@@ -54,37 +55,42 @@ function arrayPlan(
 
 describe("VariableDeclHelper", () => {
   beforeEach(() => {
-    CodeGenState.reset();
+    state = new RenderState();
   });
 
   describe("finalizeCppClassAssignments", () => {
     it("adds a semicolon when no assignments are pending", () => {
       expect(
-        VariableDeclHelper.finalizeCppClassAssignments("x", "MyClass x"),
+        VariableDeclHelper.finalizeCppClassAssignments("x", "MyClass x", state),
       ).toBe("MyClass x;");
     });
 
     it("appends the queued assignments and drains the queue", () => {
-      CodeGenState.inFunctionBody = true;
-      CodeGenState.pendingCppClassAssignments = ["a = 1;", "b = 2;"];
+      state.inFunctionBody = true;
+      state.pendingCppClassAssignments = ["a = 1;", "b = 2;"];
 
       const result = VariableDeclHelper.finalizeCppClassAssignments(
         "obj",
         "MyClass obj",
+        state,
       );
 
       expect(result).toBe("MyClass obj;\nobj.a = 1;\nobj.b = 2;");
-      expect(CodeGenState.pendingCppClassAssignments).toEqual([]);
+      expect(state.pendingCppClassAssignments).toEqual([]);
     });
 
     // #1322: this method DRAINS a queue another node filled, so the assertion
     // is about where the drain happens, not about the declaration it names.
     it("asserts the invariant when the queue is non-empty outside a function", () => {
-      CodeGenState.inFunctionBody = false;
-      CodeGenState.pendingCppClassAssignments = ["a = 1;"];
+      state.inFunctionBody = false;
+      state.pendingCppClassAssignments = ["a = 1;"];
 
       expect(() =>
-        VariableDeclHelper.finalizeCppClassAssignments("obj", "MyClass obj"),
+        VariableDeclHelper.finalizeCppClassAssignments(
+          "obj",
+          "MyClass obj",
+          state,
+        ),
       ).toThrow("E0508");
     });
   });
@@ -95,7 +101,7 @@ describe("VariableDeclHelper", () => {
         arrayPlan(),
         "x",
         "uint8_t x",
-        new RenderState(),
+        state,
       );
 
       expect(result).toEqual({
@@ -115,7 +121,7 @@ describe("VariableDeclHelper", () => {
         }),
         "arr",
         "uint8_t arr",
-        new RenderState(),
+        state,
       );
 
       expect(result.handled).toBe(false);
@@ -130,10 +136,10 @@ describe("VariableDeclHelper", () => {
         arrayPlan({ isArray: true, arrayTypeDimensions: "[4]" }),
         "arr",
         "uint8_t main__arr",
-        new RenderState(),
+        state,
       );
 
-      expect(CodeGenState.localArrays.has("arr")).toBe(true);
+      expect(state.localArrays.has("arr")).toBe(true);
     });
 
     it("completes the declaration itself when the initializer is processed", () => {
@@ -150,7 +156,7 @@ describe("VariableDeclHelper", () => {
         }),
         "arr",
         "uint8_t arr",
-        new RenderState(),
+        state,
       );
 
       expect(result.handled).toBe(true);
@@ -175,7 +181,7 @@ describe("VariableDeclHelper", () => {
         }),
         "arr",
         "uint8_t arr",
-        new RenderState(),
+        state,
       );
 
       expect(result.handled).toBe(true);
@@ -195,7 +201,7 @@ describe("VariableDeclHelper", () => {
           plan,
           "uint8_t x",
           false,
-          new RenderState(),
+          state,
         ),
       ).toBe("uint8_t x = 0");
       expect(
@@ -203,7 +209,7 @@ describe("VariableDeclHelper", () => {
           plan,
           "uint8_t x[2]",
           true,
-          new RenderState(),
+          state,
         ),
       ).toBe("uint8_t x[2] = {0}");
     });
@@ -219,7 +225,7 @@ describe("VariableDeclHelper", () => {
           },
           "uint8_t x",
           false,
-          new RenderState(),
+          state,
         ),
       ).toBe("uint8_t x = 42");
     });
@@ -270,7 +276,7 @@ describe("VariableDeclHelper", () => {
         },
         "float x",
         false,
-        new RenderState(),
+        state,
       );
 
       expect(order).toEqual(["render", "resolve"]);
@@ -291,7 +297,7 @@ describe("VariableDeclHelper", () => {
           },
           "decl",
           false,
-          new RenderState(),
+          state,
         );
 
         expect(result).toContain(expected);
@@ -309,7 +315,7 @@ describe("VariableDeclHelper", () => {
           },
           "uint32_t x",
           false,
-          new RenderState(),
+          state,
         ),
       ).toBe("uint32_t x = n");
     });
@@ -324,9 +330,9 @@ describe("VariableDeclHelper", () => {
         args: ["pinConst"],
       };
 
-      expect(
-        VariableDeclHelper.renderVariableDecl(plan, new RenderState()),
-      ).toBe("MAX31856 thermo(pinConst);");
+      expect(VariableDeclHelper.renderVariableDecl(plan, state)).toBe(
+        "MAX31856 thermo(pinConst);",
+      );
     });
 
     it("renders the plain arm with its modifier prefix and emitted name", () => {
@@ -340,9 +346,9 @@ describe("VariableDeclHelper", () => {
         initializer: { kind: "zero", render: () => "0" },
       };
 
-      expect(
-        VariableDeclHelper.renderVariableDecl(plan, new RenderState()),
-      ).toBe("const uint8_t main__x = 0;");
+      expect(VariableDeclHelper.renderVariableDecl(plan, state)).toBe(
+        "const uint8_t main__x = 0;",
+      );
     });
 
     // The array half can finish the declaration on its own, and when it does
@@ -373,9 +379,9 @@ describe("VariableDeclHelper", () => {
         },
       };
 
-      expect(
-        VariableDeclHelper.renderVariableDecl(plan, new RenderState()),
-      ).toBe("uint8_t arr[2] = {1, 2};");
+      expect(VariableDeclHelper.renderVariableDecl(plan, state)).toBe(
+        "uint8_t arr[2] = {1, 2};",
+      );
       expect(renderExpression).not.toHaveBeenCalled();
     });
   });

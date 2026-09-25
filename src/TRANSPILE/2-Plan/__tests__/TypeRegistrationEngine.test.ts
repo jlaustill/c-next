@@ -6,7 +6,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import TypeRegistrationEngine from "../TypeRegistrationEngine";
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
-import CodeGenState from "../../../transpiler/state/CodeGenState";
+import RenderState from "../../3-Render/RenderState";
 import * as Parser from "../../../PARSE/2-Parse/grammar/CNextParser";
 import createMockSymbols from "../../../transpiler/__tests__/codeGenSymbolsHelpers";
 import enterScope from "../../../transpiler/__tests__/enterScope";
@@ -29,26 +29,37 @@ function parseTypeContext(source: string): Parser.TypeContext | null {
   return decl?.type() ?? null;
 }
 
+let state: RenderState;
+
 describe("TypeRegistrationEngine", () => {
   describe("parseArrayTypeDimension", () => {
     it("returns number for integer literal dimension", () => {
       const ctx = parseArrayType("u8[10] buffer;");
       expect(ctx).not.toBeNull();
-      const result = TypeRegistrationEngine.parseArrayTypeDimension(ctx!);
+      const result = TypeRegistrationEngine.parseArrayTypeDimension(
+        ctx!,
+        state,
+      );
       expect(result).toBe(10);
     });
 
     it("returns undefined for empty dimension", () => {
       const ctx = parseArrayType("u8[] buffer;");
       expect(ctx).not.toBeNull();
-      const result = TypeRegistrationEngine.parseArrayTypeDimension(ctx!);
+      const result = TypeRegistrationEngine.parseArrayTypeDimension(
+        ctx!,
+        state,
+      );
       expect(result).toBeUndefined();
     });
 
     it("returns undefined for non-numeric dimension", () => {
       const ctx = parseArrayType("u8[SIZE] buffer;");
       expect(ctx).not.toBeNull();
-      const result = TypeRegistrationEngine.parseArrayTypeDimension(ctx!);
+      const result = TypeRegistrationEngine.parseArrayTypeDimension(
+        ctx!,
+        state,
+      );
       expect(result).toBeUndefined();
     });
   });
@@ -74,14 +85,18 @@ describe("TypeRegistrationEngine", () => {
     ])("%s", (_label, source, argument2, expected) => {
       const ctx = parseTypeContext(source);
       expect(ctx).not.toBeNull();
-      const result = TypeRegistrationEngine.resolveBaseType(ctx!, argument2);
+      const result = TypeRegistrationEngine.resolveBaseType(
+        ctx!,
+        argument2,
+        state,
+      );
       expect(result).toBe(expected);
     });
 
     it("returns null for string types", () => {
       const ctx = parseTypeContext("string<64> buffer;");
       expect(ctx).not.toBeNull();
-      const result = TypeRegistrationEngine.resolveBaseType(ctx!, "");
+      const result = TypeRegistrationEngine.resolveBaseType(ctx!, "", state);
       expect(result).toBeNull();
     });
   });
@@ -94,21 +109,21 @@ describe("TypeRegistrationEngine", () => {
 
     beforeEach(() => {
       vi.clearAllMocks();
-      CodeGenState.reset();
-      CodeGenState.symbols = createMockSymbols();
+      state = new RenderState();
+      state.symbols = createMockSymbols();
     });
 
     afterEach(() => {
-      CodeGenState.reset();
+      state = new RenderState();
     });
 
     it("registers global variable types", () => {
       const source = `u32 counter;`;
       const tree = CNextSourceParser.parse(source).tree;
 
-      TypeRegistrationEngine.register(tree, mockCallbacks);
+      TypeRegistrationEngine.register(tree, mockCallbacks, state);
 
-      const info = CodeGenState.getVariableTypeInfo("counter");
+      const info = state.getVariableTypeInfo("counter");
       expect(info).not.toBeNull();
       expect(info?.baseType).toBe("u32");
       expect(info?.bitWidth).toBe(32);
@@ -119,16 +134,16 @@ describe("TypeRegistrationEngine", () => {
       const source = `const u32 SIZE <- 10;`;
       const tree = CNextSourceParser.parse(source).tree;
 
-      TypeRegistrationEngine.register(tree, mockCallbacks);
+      TypeRegistrationEngine.register(tree, mockCallbacks, state);
 
-      expect(CodeGenState.constValues.get("SIZE")).toBe(10);
+      expect(state.constValues.get("SIZE")).toBe(10);
     });
 
     it("requires string include for string types", () => {
       const source = `string<64> message;`;
       const tree = CNextSourceParser.parse(source).tree;
 
-      TypeRegistrationEngine.register(tree, mockCallbacks);
+      TypeRegistrationEngine.register(tree, mockCallbacks, state);
 
       expect(mockCallbacks.requireInclude).toHaveBeenCalledWith("string");
     });
@@ -137,9 +152,9 @@ describe("TypeRegistrationEngine", () => {
       const source = `string<32>[4] items;`;
       const tree = CNextSourceParser.parse(source).tree;
 
-      TypeRegistrationEngine.register(tree, mockCallbacks);
+      TypeRegistrationEngine.register(tree, mockCallbacks, state);
 
-      const info = CodeGenState.getVariableTypeInfo("items");
+      const info = state.getVariableTypeInfo("items");
       expect(info).not.toBeNull();
       expect(info?.baseType).toBe("char");
       expect(info?.isArray).toBe(true);
@@ -153,9 +168,9 @@ describe("TypeRegistrationEngine", () => {
       const source = `string<16>[2][3] matrix;`;
       const tree = CNextSourceParser.parse(source).tree;
 
-      TypeRegistrationEngine.register(tree, mockCallbacks);
+      TypeRegistrationEngine.register(tree, mockCallbacks, state);
 
-      const info = CodeGenState.getVariableTypeInfo("matrix");
+      const info = state.getVariableTypeInfo("matrix");
       expect(info).not.toBeNull();
       expect(info?.baseType).toBe("char");
       expect(info?.isArray).toBe(true);
@@ -169,14 +184,14 @@ describe("TypeRegistrationEngine", () => {
       const source = `string<32>[4] items;`;
       const tree = CNextSourceParser.parse(source).tree;
 
-      TypeRegistrationEngine.register(tree, mockCallbacks);
+      TypeRegistrationEngine.register(tree, mockCallbacks, state);
 
       expect(mockCallbacks.requireInclude).toHaveBeenCalledWith("string");
     });
 
     it("registers global type arrays", () => {
       // Set up a scope context to test global.Type[N] pattern
-      enterScope("Motor");
+      enterScope(state, "Motor");
 
       const source = `
         scope Motor {
@@ -186,14 +201,14 @@ describe("TypeRegistrationEngine", () => {
       `;
       const tree = CNextSourceParser.parse(source).tree;
 
-      TypeRegistrationEngine.register(tree, mockCallbacks);
+      TypeRegistrationEngine.register(tree, mockCallbacks, state);
 
-      const info = CodeGenState.getVariableTypeInfo("Motor__states");
+      const info = state.getVariableTypeInfo("Motor__states");
       expect(info).not.toBeNull();
       expect(info?.baseType).toBe("State");
       expect(info?.isArray).toBe(true);
 
-      enterScope(null);
+      enterScope(state, null);
     });
 
     it("registers qualified type arrays (Scope.Type[N])", () => {
@@ -205,16 +220,16 @@ describe("TypeRegistrationEngine", () => {
       `;
       const tree = CNextSourceParser.parse(source).tree;
 
-      TypeRegistrationEngine.register(tree, mockCallbacks);
+      TypeRegistrationEngine.register(tree, mockCallbacks, state);
 
-      const info = CodeGenState.getVariableTypeInfo("allStates");
+      const info = state.getVariableTypeInfo("allStates");
       expect(info).not.toBeNull();
       expect(info?.baseType).toBe("Motor__State");
       expect(info?.isArray).toBe(true);
     });
 
     it("registers scoped type arrays (this.Type[N])", () => {
-      enterScope("Motor");
+      enterScope(state, "Motor");
 
       const source = `
         scope Motor {
@@ -224,14 +239,14 @@ describe("TypeRegistrationEngine", () => {
       `;
       const tree = CNextSourceParser.parse(source).tree;
 
-      TypeRegistrationEngine.register(tree, mockCallbacks);
+      TypeRegistrationEngine.register(tree, mockCallbacks, state);
 
-      const info = CodeGenState.getVariableTypeInfo("Motor__localStates");
+      const info = state.getVariableTypeInfo("Motor__localStates");
       expect(info).not.toBeNull();
       expect(info?.baseType).toBe("Motor__State");
       expect(info?.isArray).toBe(true);
 
-      enterScope(null);
+      enterScope(state, null);
     });
   });
 });

@@ -40,7 +40,7 @@ function tryHandleCompoundNarrowingCast(
 
   const cType = TYPE_MAP[baseType] ?? baseType;
   const expr = `(${target} ${binaryOp} ${ctx.generatedValue})`;
-  const castExpr = CppModeHelper.cast(cType, expr);
+  const castExpr = CppModeHelper.cast(cType, expr, ctx.state);
   return `${target} = ${castExpr};`;
 }
 
@@ -79,6 +79,7 @@ function tryHandleIntToFloatConversion(
   const castedValue = NarrowingCastHelper.wrapIntToFloat(
     ctx.generatedValue,
     targetType,
+    ctx.state,
   );
   return `${target} ${ctx.cOp} ${castedValue};`;
 }

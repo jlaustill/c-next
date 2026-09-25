@@ -3,12 +3,12 @@
  *
  * Issue #644: Tests for the extracted float bit write helper.
  * Issue #857: Updated for union-based type punning (MISRA 21.15 compliance).
- * Migrated to use CodeGenState instead of constructor DI.
+ * Migrated to use RenderState instead of constructor DI.
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import FloatBitHelper from "../FloatBitHelper";
-import CodeGenState from "../../../../../transpiler/state/CodeGenState";
+import RenderState from "../../../RenderState";
 import type TTypeInfo from "../../../../../transpiler/types/TTypeInfo";
 import type TIncludeHeader from "../../../../../transpiler/types/TIncludeHeader";
 
@@ -21,11 +21,13 @@ interface IFloatBitCallbacks {
   requireInclude: (header: TIncludeHeader) => void;
 }
 
+let state: RenderState;
+
 describe("FloatBitHelper", () => {
   let callbacks: IFloatBitCallbacks;
 
   beforeEach(() => {
-    CodeGenState.reset();
+    state = new RenderState();
 
     callbacks = {
       generateBitMask: vi.fn((width, _is64Bit) => `((1U << ${width}) - 1)`),
@@ -52,6 +54,7 @@ describe("FloatBitHelper", () => {
         null,
         "true",
         callbacks,
+        state,
       );
 
       expect(result).toBeNull();
@@ -73,6 +76,7 @@ describe("FloatBitHelper", () => {
         null,
         "true",
         callbacks,
+        state,
       );
 
       // Union declaration
@@ -110,6 +114,7 @@ describe("FloatBitHelper", () => {
         null,
         "false",
         callbacks,
+        state,
       );
 
       expect(result).toContain(
@@ -133,6 +138,7 @@ describe("FloatBitHelper", () => {
         "8",
         "value",
         callbacks,
+        state,
       );
 
       expect(result).toContain(
@@ -150,7 +156,7 @@ describe("FloatBitHelper", () => {
       };
 
       // Pre-declare the shadow
-      CodeGenState.floatBitShadows.add("__bits_myFloat");
+      state.floatBitShadows.add("__bits_myFloat");
 
       const result = FloatBitHelper.generateFloatBitWrite(
         "myFloat",
@@ -159,6 +165,7 @@ describe("FloatBitHelper", () => {
         null,
         "true",
         callbacks,
+        state,
       );
 
       expect(result).not.toContain("union { float f; uint32_t u; }");
@@ -174,8 +181,8 @@ describe("FloatBitHelper", () => {
       };
 
       // Pre-declare and mark as current
-      CodeGenState.floatBitShadows.add("__bits_myFloat");
-      CodeGenState.floatShadowCurrent.add("__bits_myFloat");
+      state.floatBitShadows.add("__bits_myFloat");
+      state.floatShadowCurrent.add("__bits_myFloat");
 
       const result = FloatBitHelper.generateFloatBitWrite(
         "myFloat",
@@ -184,6 +191,7 @@ describe("FloatBitHelper", () => {
         null,
         "true",
         callbacks,
+        state,
       );
 
       expect(result).not.toContain("union { float f; uint32_t u; }");
@@ -208,9 +216,10 @@ describe("FloatBitHelper", () => {
         null,
         "true",
         callbacks,
+        state,
       );
 
-      expect(CodeGenState.floatShadowCurrent.has("__bits_myFloat")).toBe(true);
+      expect(state.floatShadowCurrent.has("__bits_myFloat")).toBe(true);
     });
   });
 });

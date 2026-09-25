@@ -10,10 +10,10 @@ import ComplianceAnnotations from "../../../../2-Plan/ComplianceAnnotations";
 import AssignmentKind from "../../../../../transpiler/types/AssignmentKind";
 import IAssignmentContext from "../../../../../transpiler/types/IAssignmentContext";
 import TAssignmentHandler from "./TAssignmentHandler";
-import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 import type TTypeInfo from "../../../../../transpiler/types/TTypeInfo";
 import CNEXT_TO_C_TYPE_MAP from "../../../../../utils/constants/TypeMappings";
 import invariant from "../../../../../utils/invariant";
+import type RenderState from "../../../RenderState";
 
 /** Matches the unsigned C-Next integer types (u8/u16/u32/u64). */
 const UNSIGNED_INT_RE = /^u(8|16|32|64)$/;
@@ -349,6 +349,7 @@ function materializeSliceSource(
   },
   value: string,
   lengthValue: number,
+  state: RenderState,
 ): string {
   if (
     src.isComposite &&
@@ -356,9 +357,9 @@ function materializeSliceSource(
     src.unsignedCType !== null &&
     src.cType !== src.unsignedCType
   ) {
-    const signedName = CodeGenState.getNextTempVarName();
+    const signedName = state.getNextTempVarName();
     writes.push(`const ${src.cType} ${signedName} = ${value};`);
-    const unsignedName = CodeGenState.getNextTempVarName();
+    const unsignedName = state.getNextTempVarName();
     writes.push(
       `const ${src.unsignedCType} ${unsignedName} = (${src.unsignedCType})${signedName};`,
     );
@@ -366,7 +367,7 @@ function materializeSliceSource(
   }
 
   const tempType = src.unsignedCType ?? unsignedCTypeForBytes(lengthValue);
-  const tempName = CodeGenState.getNextTempVarName();
+  const tempName = state.getNextTempVarName();
   writes.push(`const ${tempType} ${tempName} = (${tempType})(${value});`);
   return tempName;
 }
@@ -434,6 +435,7 @@ function buildSliceWrites(
       src,
       ctx.generatedValue,
       geometry.lengthValue,
+      ctx.state,
     );
   }
 
@@ -460,7 +462,7 @@ function handleArraySlice(ctx: IAssignmentContext): string {
 
   // Use resolvedBaseIdentifier for type lookup (includes scope prefix)
   const name = ctx.resolvedBaseIdentifier;
-  const typeInfo = CodeGenState.getVariableTypeInfo(name);
+  const typeInfo = ctx.state.getVariableTypeInfo(name);
 
   // Validate 1D array only
   if (typeInfo?.arrayDimensions && typeInfo.arrayDimensions.length > 1) {

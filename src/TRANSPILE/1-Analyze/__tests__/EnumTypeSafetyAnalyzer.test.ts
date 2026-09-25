@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import CodeGenState from "../../../transpiler/state/CodeGenState";
+import RenderState from "../../3-Render/RenderState";
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import EnumTypeSafetyAnalyzer from "../EnumTypeSafetyAnalyzer";
 import testAnalysisContext from "./testAnalysisContext";
@@ -10,12 +10,12 @@ import testAnalysisContext from "./testAnalysisContext";
  * replacing EIGHT throws in `output/` -- five in `EnumAssignmentValidator` and
  * three in `BinaryExprUtils`.
  *
- * The rule needs `knownEnums`, which lives on `CodeGenState.symbols` and is
+ * The rule needs `knownEnums`, which lives on `state.symbols` and is
  * populated before `runAnalyzers`. These tests set it directly, which is why
  * `reset()` runs after each one (CLAUDE.md, analyzer test isolation).
  */
 const withEnums = (...names: string[]): void => {
-  CodeGenState.symbols = {
+  state.symbols = {
     knownEnums: new Set(names),
     knownStructs: new Set<string>(),
     knownScopes: new Set<string>(),
@@ -23,17 +23,19 @@ const withEnums = (...names: string[]): void => {
     structFields: new Map(),
     structFieldDimensions: new Map(),
     functionReturnTypes: new Map(),
-  } as unknown as typeof CodeGenState.symbols;
+  } as unknown as typeof state.symbols;
 };
 
 const errors = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new EnumTypeSafetyAnalyzer(testAnalysisContext()).analyze(tree);
+  return new EnumTypeSafetyAnalyzer(testAnalysisContext(state)).analyze(tree);
 };
 
 afterEach(() => {
-  CodeGenState.reset();
+  state = new RenderState();
 });
+
+let state: RenderState;
 
 describe("EnumTypeSafetyAnalyzer", () => {
   describe("assignment (E0428)", () => {

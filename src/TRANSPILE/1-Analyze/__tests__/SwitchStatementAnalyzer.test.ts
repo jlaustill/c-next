@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
-import CodeGenState from "../../../transpiler/state/CodeGenState";
+import RenderState from "../../3-Render/RenderState";
 import SwitchStatementAnalyzer from "../SwitchStatementAnalyzer";
 import testAnalysisContext from "./testAnalysisContext";
 
@@ -16,7 +16,7 @@ import testAnalysisContext from "./testAnalysisContext";
  * as a MINUS token plus a HEX_LITERAL rather than as one negative literal.
  */
 const withEnum = (name: string, ...members: string[]): void => {
-  CodeGenState.symbols = {
+  state.symbols = {
     knownEnums: new Set([name]),
     knownStructs: new Set<string>(),
     knownScopes: new Set<string>(),
@@ -25,17 +25,19 @@ const withEnum = (name: string, ...members: string[]): void => {
     structFieldDimensions: new Map(),
     functionReturnTypes: new Map(),
     enumMembers: new Map([[name, new Map(members.map((m, i) => [m, i]))]]),
-  } as unknown as typeof CodeGenState.symbols;
+  } as unknown as typeof state.symbols;
 };
 
 const errors = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new SwitchStatementAnalyzer(testAnalysisContext()).analyze(tree);
+  return new SwitchStatementAnalyzer(testAnalysisContext(state)).analyze(tree);
 };
 
 afterEach(() => {
-  CodeGenState.reset();
+  state = new RenderState();
 });
+
+let state: RenderState;
 
 describe("SwitchStatementAnalyzer", () => {
   it("rejects a switch on a bool, with a real position", () => {

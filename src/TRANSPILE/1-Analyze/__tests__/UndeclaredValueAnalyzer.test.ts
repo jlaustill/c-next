@@ -14,7 +14,7 @@ import { CNextParser } from "../../../PARSE/2-Parse/grammar/CNextParser";
 import CNextResolver from "../../../PARSE/3-Declare/cnext/index";
 import TSymbolInfoAdapter from "../../../PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
 import SymbolRegistry from "../../../PARSE/3-Declare/SymbolRegistry";
-import CodeGenState from "../../../transpiler/state/CodeGenState";
+import RenderState from "../../3-Render/RenderState";
 import UndeclaredValueAnalyzer from "../UndeclaredValueAnalyzer";
 import testAnalysisContext from "./testAnalysisContext";
 
@@ -28,13 +28,13 @@ function parse(source: string) {
 
 function analyze(source: string) {
   const tree = parse(source);
-  CodeGenState.symbols = TSymbolInfoAdapter.convert(
+  state.symbols = TSymbolInfoAdapter.convert(
     CNextResolver.resolve(tree, "test.cnx", registry).symbols,
   );
   // Same precondition as E0426: the analyzer declines unless the transpiler
   // knows the file's whole name universe. These sources include nothing.
-  CodeGenState.currentFileReachesForeignHeader = false;
-  return new UndeclaredValueAnalyzer(testAnalysisContext()).analyze(tree);
+  state.currentFileReachesForeignHeader = false;
+  return new UndeclaredValueAnalyzer(testAnalysisContext(state)).analyze(tree);
 }
 
 let registry = new SymbolRegistry();
@@ -43,11 +43,13 @@ beforeEach(() => {
   registry = new SymbolRegistry();
 });
 
+let state: RenderState;
+
 describe("UndeclaredValueAnalyzer", () => {
   beforeEach(() => {});
 
   afterEach(() => {
-    CodeGenState.reset();
+    state = new RenderState();
   });
 
   describe("the scope-qualified spelling", () => {

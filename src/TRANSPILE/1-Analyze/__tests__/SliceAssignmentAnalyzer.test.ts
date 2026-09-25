@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
-import CodeGenState from "../../../transpiler/state/CodeGenState";
+import RenderState from "../../3-Render/RenderState";
 import SliceAssignmentAnalyzer from "../SliceAssignmentAnalyzer";
 import testAnalysisContext from "./testAnalysisContext";
 
@@ -17,14 +17,16 @@ import testAnalysisContext from "./testAnalysisContext";
  */
 const errors = (body: string) => {
   const { tree } = CNextSourceParser.parse(`void f() {\n${body}\n}`);
-  return new SliceAssignmentAnalyzer(testAnalysisContext()).analyze(tree);
+  return new SliceAssignmentAnalyzer(testAnalysisContext(state)).analyze(tree);
 };
 
 const codes = (body: string) => errors(body).map((e) => e.code);
 
 afterEach(() => {
-  CodeGenState.reset();
+  state = new RenderState();
 });
+
+let state: RenderState;
 
 describe("SliceAssignmentAnalyzer", () => {
   describe("E0858 -- what can be sliced at all", () => {

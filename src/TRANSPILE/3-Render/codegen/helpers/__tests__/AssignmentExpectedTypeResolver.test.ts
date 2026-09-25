@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import AssignmentExpectedTypeResolver from "../AssignmentExpectedTypeResolver";
 import analyzePostfixOps from "../../../../../utils/PostfixAnalysisUtils";
 import CNextSourceParser from "../../../../../PARSE/2-Parse/CNextSourceParser";
-import CodeGenState from "../../../../../transpiler/state/CodeGenState";
+import RenderState from "../../../RenderState";
 import SymbolTable from "../../../../../PARSE/3-Declare/SymbolTable";
 
 /**
@@ -44,7 +44,7 @@ function parseAssignmentTarget(target: string) {
 }
 
 /**
- * Helper to set up struct fields in CodeGenState.symbolTable
+ * Helper to set up struct fields in state.symbolTable
  * Issue #831: SymbolTable is now the single source of truth for struct fields
  */
 function setupStructFields(
@@ -52,18 +52,18 @@ function setupStructFields(
   fields: Map<string, string>,
 ): void {
   // Initialize symbolTable if not set
-  if (!CodeGenState.symbolTable) {
-    CodeGenState.symbolTable = new SymbolTable();
+  if (!state.symbolTable) {
+    state.symbolTable = new SymbolTable();
   }
 
   // Register struct fields in SymbolTable
   for (const [fieldName, fieldType] of fields) {
-    CodeGenState.symbolTable.addStructField(structName, fieldName, fieldType);
+    state.symbolTable.addStructField(structName, fieldName, fieldType);
   }
 
   // Also mark struct as known (for isKnownStruct checks)
-  if (!CodeGenState.symbols) {
-    CodeGenState.symbols = {
+  if (!state.symbols) {
+    state.symbols = {
       knownStructs: new Set(),
       knownScopes: new Set(),
       knownEnums: new Set(),
@@ -89,18 +89,20 @@ function setupStructFields(
       functionReturnTypes: new Map(),
     };
   }
-  (CodeGenState.symbols.knownStructs as Set<string>).add(structName);
+  (state.symbols.knownStructs as Set<string>).add(structName);
 }
+
+let state: RenderState;
 
 describe("AssignmentExpectedTypeResolver", () => {
   beforeEach(() => {
-    CodeGenState.reset();
+    state = new RenderState();
   });
 
   describe("resolve()", () => {
     describe("simple identifier", () => {
       it("should resolve expected type for known variable", () => {
-        CodeGenState.setVariableTypeInfo("counter", {
+        state.setVariableTypeInfo("counter", {
           baseType: "u32",
           bitWidth: 32,
           isArray: false,
@@ -108,7 +110,7 @@ describe("AssignmentExpectedTypeResolver", () => {
         });
         const target = parseAssignmentTarget("counter");
 
-        const result = AssignmentExpectedTypeResolver.resolve(target);
+        const result = AssignmentExpectedTypeResolver.resolve(target, state);
 
         expect(result.expectedType).toBe("u32");
         expect(result.assignmentContext).toEqual({
@@ -119,7 +121,7 @@ describe("AssignmentExpectedTypeResolver", () => {
       });
 
       it("should use specified overflow behavior", () => {
-        CodeGenState.setVariableTypeInfo("counter", {
+        state.setVariableTypeInfo("counter", {
           baseType: "u8",
           bitWidth: 8,
           isArray: false,
@@ -128,7 +130,7 @@ describe("AssignmentExpectedTypeResolver", () => {
         });
         const target = parseAssignmentTarget("counter");
 
-        const result = AssignmentExpectedTypeResolver.resolve(target);
+        const result = AssignmentExpectedTypeResolver.resolve(target, state);
 
         expect(result.assignmentContext?.overflowBehavior).toBe("wrap");
       });
@@ -136,7 +138,7 @@ describe("AssignmentExpectedTypeResolver", () => {
       it("should return null for unknown variable", () => {
         const target = parseAssignmentTarget("unknown");
 
-        const result = AssignmentExpectedTypeResolver.resolve(target);
+        const result = AssignmentExpectedTypeResolver.resolve(target, state);
 
         expect(result.expectedType).toBeNull();
         expect(result.assignmentContext).toBeNull();
@@ -145,7 +147,7 @@ describe("AssignmentExpectedTypeResolver", () => {
 
     describe("member access", () => {
       it("should resolve expected type for struct field", () => {
-        CodeGenState.setVariableTypeInfo("config", {
+        state.setVariableTypeInfo("config", {
           baseType: "Config",
           bitWidth: 0,
           isArray: false,
@@ -154,13 +156,13 @@ describe("AssignmentExpectedTypeResolver", () => {
         setupStructFields("Config", new Map([["status", "Status"]]));
         const target = parseAssignmentTarget("config.status");
 
-        const result = AssignmentExpectedTypeResolver.resolve(target);
+        const result = AssignmentExpectedTypeResolver.resolve(target, state);
 
         expect(result.expectedType).toBe("Status");
       });
 
       it("should walk nested struct chain", () => {
-        CodeGenState.setVariableTypeInfo("app", {
+        state.setVariableTypeInfo("app", {
           baseType: "App",
           bitWidth: 0,
           isArray: false,
@@ -170,13 +172,13 @@ describe("AssignmentExpectedTypeResolver", () => {
         setupStructFields("Config", new Map([["mode", "Mode"]]));
         const target = parseAssignmentTarget("app.config.mode");
 
-        const result = AssignmentExpectedTypeResolver.resolve(target);
+        const result = AssignmentExpectedTypeResolver.resolve(target, state);
 
         expect(result.expectedType).toBe("Mode");
       });
 
       it("should return null for non-struct root", () => {
-        CodeGenState.setVariableTypeInfo("counter", {
+        state.setVariableTypeInfo("counter", {
           baseType: "u32",
           bitWidth: 32,
           isArray: false,
@@ -184,13 +186,13 @@ describe("AssignmentExpectedTypeResolver", () => {
         });
         const target = parseAssignmentTarget("counter.value");
 
-        const result = AssignmentExpectedTypeResolver.resolve(target);
+        const result = AssignmentExpectedTypeResolver.resolve(target, state);
 
         expect(result.expectedType).toBeNull();
       });
 
       it("should return null for unknown field", () => {
-        CodeGenState.setVariableTypeInfo("config", {
+        state.setVariableTypeInfo("config", {
           baseType: "Config",
           bitWidth: 0,
           isArray: false,
@@ -199,7 +201,7 @@ describe("AssignmentExpectedTypeResolver", () => {
         setupStructFields("Config", new Map([["status", "Status"]]));
         const target = parseAssignmentTarget("config.unknown");
 
-        const result = AssignmentExpectedTypeResolver.resolve(target);
+        const result = AssignmentExpectedTypeResolver.resolve(target, state);
 
         expect(result.expectedType).toBeNull();
       });
@@ -208,7 +210,7 @@ describe("AssignmentExpectedTypeResolver", () => {
     describe("array access", () => {
       // Issue #872: Array element assignments need expectedType for MISRA 7.2 U suffix
       it("should resolve expected type for simple array element access", () => {
-        CodeGenState.setVariableTypeInfo("arr", {
+        state.setVariableTypeInfo("arr", {
           baseType: "u32",
           bitWidth: 32,
           isArray: true,
@@ -216,13 +218,13 @@ describe("AssignmentExpectedTypeResolver", () => {
         });
         const target = parseAssignmentTarget("arr[0]");
 
-        const result = AssignmentExpectedTypeResolver.resolve(target);
+        const result = AssignmentExpectedTypeResolver.resolve(target, state);
 
         expect(result.expectedType).toBe("u32");
       });
 
       it("should resolve expected type for u8 array element access", () => {
-        CodeGenState.setVariableTypeInfo("buffer", {
+        state.setVariableTypeInfo("buffer", {
           baseType: "u8",
           bitWidth: 8,
           isArray: true,
@@ -230,13 +232,13 @@ describe("AssignmentExpectedTypeResolver", () => {
         });
         const target = parseAssignmentTarget("buffer[5]");
 
-        const result = AssignmentExpectedTypeResolver.resolve(target);
+        const result = AssignmentExpectedTypeResolver.resolve(target, state);
 
         expect(result.expectedType).toBe("u8");
       });
 
       it("should resolve expected type for struct member array access", () => {
-        CodeGenState.setVariableTypeInfo("pkt", {
+        state.setVariableTypeInfo("pkt", {
           baseType: "Packet",
           bitWidth: 0,
           isArray: false,
@@ -244,20 +246,21 @@ describe("AssignmentExpectedTypeResolver", () => {
         });
         setupStructFields("Packet", new Map([["header", "u8"]]));
         // Mark header as an array field
-        if (CodeGenState.symbols) {
-          (
-            CodeGenState.symbols.structFieldArrays as Map<string, Set<string>>
-          ).set("Packet", new Set(["header"]));
+        if (state.symbols) {
+          (state.symbols.structFieldArrays as Map<string, Set<string>>).set(
+            "Packet",
+            new Set(["header"]),
+          );
         }
         const target = parseAssignmentTarget("pkt.header[0]");
 
-        const result = AssignmentExpectedTypeResolver.resolve(target);
+        const result = AssignmentExpectedTypeResolver.resolve(target, state);
 
         expect(result.expectedType).toBe("u8");
       });
 
       it("should resolve expected type for multi-dimensional array element", () => {
-        CodeGenState.setVariableTypeInfo("matrix", {
+        state.setVariableTypeInfo("matrix", {
           baseType: "u8",
           bitWidth: 8,
           isArray: true,
@@ -266,7 +269,7 @@ describe("AssignmentExpectedTypeResolver", () => {
         });
         const target = parseAssignmentTarget("matrix[0][0]");
 
-        const result = AssignmentExpectedTypeResolver.resolve(target);
+        const result = AssignmentExpectedTypeResolver.resolve(target, state);
 
         expect(result.expectedType).toBe("u8");
       });
@@ -274,7 +277,7 @@ describe("AssignmentExpectedTypeResolver", () => {
       it("should return null for unknown array variable", () => {
         const target = parseAssignmentTarget("unknown[0]");
 
-        const result = AssignmentExpectedTypeResolver.resolve(target);
+        const result = AssignmentExpectedTypeResolver.resolve(target, state);
 
         expect(result.expectedType).toBeNull();
       });
@@ -285,7 +288,7 @@ describe("AssignmentExpectedTypeResolver", () => {
       // resolver must return null for the slice form — unlike a 1-expression
       // element access, which keeps the element type for the MISRA 7.2 U suffix.
       it("should return null for an array slice (2-expression subscript)", () => {
-        CodeGenState.setVariableTypeInfo("buffer", {
+        state.setVariableTypeInfo("buffer", {
           baseType: "u8",
           bitWidth: 8,
           isArray: true,
@@ -293,7 +296,7 @@ describe("AssignmentExpectedTypeResolver", () => {
         });
         const target = parseAssignmentTarget("buffer[0, 4]");
 
-        const result = AssignmentExpectedTypeResolver.resolve(target);
+        const result = AssignmentExpectedTypeResolver.resolve(target, state);
 
         expect(result.expectedType).toBeNull();
       });

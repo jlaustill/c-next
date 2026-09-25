@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import accessGenerators from "../AccessExprGenerator";
 import TTypeInfo from "../../../../../../transpiler/types/TTypeInfo";
-import RenderState from "../../../../../../transpiler/state/RenderState";
+import RenderState from "../../../../RenderState";
 
 describe("AccessExprGenerator", () => {
   describe("generateCapacityProperty", () => {

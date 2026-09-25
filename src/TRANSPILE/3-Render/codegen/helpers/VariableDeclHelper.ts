@@ -28,7 +28,6 @@
  * MISRA Rule 10.3 cast, and the C++ assignment queue.
  */
 
-import CodeGenState from "../../../../transpiler/state/CodeGenState";
 import invariant from "../../../../utils/invariant";
 import ArrayInitHelper from "./ArrayInitHelper";
 import CppModeHelper from "./CppModeHelper";
@@ -38,7 +37,7 @@ import IPlannedArrayDeclaration from "../types/IPlannedArrayDeclaration";
 import TPlannedVariableDecl from "../types/TPlannedVariableDecl";
 import TPlannedVariableInitializer from "../types/TPlannedVariableInitializer";
 import TYPE_MAP from "../types/TYPE_MAP";
-import type RenderState from "../../../../transpiler/state/RenderState";
+import type RenderState from "../../RenderState";
 
 /**
  * Result from rendering the array half of a declaration.
@@ -81,19 +80,23 @@ class VariableDeclHelper {
    * @param decl - Current declaration string
    * @returns Final declaration with semicolon and any pending assignments
    */
-  static finalizeCppClassAssignments(name: string, decl: string): string {
-    if (CodeGenState.pendingCppClassAssignments.length === 0) {
+  static finalizeCppClassAssignments(
+    name: string,
+    decl: string,
+    state: RenderState,
+  ): string {
+    if (state.pendingCppClassAssignments.length === 0) {
       return `${decl};`;
     }
 
     invariant(
-      CodeGenState.inFunctionBody,
+      state.inFunctionBody,
       "E0508 rejects this in pass 2.1, before this runs",
     );
-    const assignments = CodeGenState.pendingCppClassAssignments
+    const assignments = state.pendingCppClassAssignments
       .map((a) => `${name}.${a}`)
       .join("\n");
-    CodeGenState.pendingCppClassAssignments = [];
+    state.pendingCppClassAssignments = [];
     return `${decl};\n${assignments}`;
   }
 
@@ -137,11 +140,12 @@ class VariableDeclHelper {
             getTypeName: init.renderTypeName,
             generateArrayDimensions: init.renderDimensions,
           },
+          state,
         ),
       );
       if (arrayInitResult) {
         // Track as local array for type resolution
-        CodeGenState.localArrays.add(sourceName);
+        state.localArrays.add(sourceName);
         // When size inference happens and the empty dim is in arrayType,
         // dimensionSuffix already contains the inferred size - don't duplicate
         const fullDimSuffix = plan.hasEmptyArrayTypeDimension
@@ -159,7 +163,7 @@ class VariableDeclHelper {
     // Generate dimensions: arrayType dimension first, then arrayDimension dimensions
     const newDecl =
       decl + plan.arrayTypeDimensions + plan.renderCStyleDimensions();
-    CodeGenState.localArrays.add(sourceName);
+    state.localArrays.add(sourceName);
 
     return { handled: false, code: "", decl: newDecl, isArray: true };
   }
@@ -200,7 +204,11 @@ class VariableDeclHelper {
           NarrowingCastHelper.isIntegerCategory(exprType) &&
           NarrowingCastHelper.isFloatCategory(typeName)
         ) {
-          exprCode = NarrowingCastHelper.wrapIntToFloat(exprCode, typeName);
+          exprCode = NarrowingCastHelper.wrapIntToFloat(
+            exprCode,
+            typeName,
+            state,
+          );
         }
         // Float to int: add explicit cast for MISRA compliance
         // Note: For safety, users should use explicit cast in C-Next source: (i32)float
@@ -211,7 +219,7 @@ class VariableDeclHelper {
           NarrowingCastHelper.isIntegerCategory(typeName)
         ) {
           const cType = TYPE_MAP[typeName] ?? typeName;
-          exprCode = CppModeHelper.cast(cType, exprCode);
+          exprCode = CppModeHelper.cast(cType, exprCode, state);
         }
       }
 
@@ -245,6 +253,7 @@ class VariableDeclHelper {
           plan.emittedName,
           plan.modifiers,
           plan.isConst,
+          state,
         );
 
       case "plain":
@@ -287,6 +296,7 @@ class VariableDeclHelper {
     return VariableDeclHelper.finalizeCppClassAssignments(
       plan.sourceName,
       decl,
+      state,
     );
   }
 }

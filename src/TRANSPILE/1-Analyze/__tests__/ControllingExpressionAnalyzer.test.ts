@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, beforeEach } from "vitest";
+import RenderState from "../../3-Render/RenderState";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import ControllingExpressionAnalyzer from "../ControllingExpressionAnalyzer";
@@ -16,13 +17,21 @@ import testAnalysisContext from "./testAnalysisContext";
  */
 const errors = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new ControllingExpressionAnalyzer(testAnalysisContext()).analyze(tree);
+  return new ControllingExpressionAnalyzer(testAnalysisContext(state)).analyze(
+    tree,
+  );
 };
 
 const inIf = (condition: string): string =>
   `bool flag <- true;\nu32 n <- 1;\nvoid t() {\n    if (${condition}) { }\n}`;
 
+let state: RenderState;
+
 describe("ControllingExpressionAnalyzer", () => {
+  beforeEach(() => {
+    state = new RenderState();
+  });
+
   describe("E0701 -- a condition must be a comparison", () => {
     it("rejects a bare value, with a real position", () => {
       const found = errors(inIf("n"));

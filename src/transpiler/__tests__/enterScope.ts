@@ -1,11 +1,11 @@
-import CodeGenState from "../state/CodeGenState";
+import RenderState from "../../TRANSPILE/3-Render/RenderState";
 import SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
 import Program from "../../PARSE/4-Resolve/Program";
 
 /**
  * Enter a scope in a unit test, registering it with the symbol registry first.
  *
- * #1304: `CodeGenState.setCurrentScopeByPath` now asserts that the path is one
+ * #1304: `state.setCurrentScopeByPath` now asserts that the path is one
  * the symbols pass registered. It used to call `getOrCreateScope`, so a path the
  * registry did not know was silently CREATED as a fresh scope parented to global
  * -- after which `currentScopePath` was that orphan's one-level name, #1295's
@@ -28,7 +28,7 @@ import Program from "../../PARSE/4-Resolve/Program";
  */
 /**
  * #1452 box 3: the registry is an instance now, and `setCurrentScopeByPath`
- * reads the scope graph off `CodeGenState.program` rather than a global. Both
+ * reads the scope graph off `state.program` rather than a global. Both
  * facts live HERE rather than at the sixty-odd call sites, which is the whole
  * reason this wrapper exists -- adding a parameter would have been the sentence
  * written sixty times, one indirection later.
@@ -39,12 +39,12 @@ import Program from "../../PARSE/4-Resolve/Program";
  */
 const registry = new SymbolRegistry();
 
-function enterScope(path: string | null): void {
+function enterScope(state: RenderState, path: string | null): void {
   if (path !== null) {
     registry.getOrCreateScope(path);
-    CodeGenState.program = Program.build([], { registry });
+    state.program = Program.build([], { registry });
   }
-  CodeGenState.setCurrentScopeByPath(path);
+  state.setCurrentScopeByPath(path);
 }
 
 export default enterScope;

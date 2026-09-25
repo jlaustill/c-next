@@ -6,8 +6,8 @@
  */
 import BitUtils from "../../../../../utils/BitUtils";
 import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
-import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 import RegisterAccessMode from "../../../../../utils/RegisterAccessMode";
+import type RenderState from "../../../RenderState";
 
 /** Result from extracting bit range expressions */
 interface IBitRangeParams {
@@ -44,6 +44,7 @@ class RegisterUtils {
     startConst: number | undefined,
     widthConst: number | undefined,
     value: string,
+    state: RenderState,
   ): IOptimizationResult {
     if (
       startConst === undefined ||
@@ -54,9 +55,8 @@ class RegisterUtils {
       return { success: false };
     }
 
-    const baseAddr = CodeGenState.symbols!.registerBaseAddresses.get(regName);
-    const memberOffset =
-      CodeGenState.symbols!.registerMemberOffsets.get(fullName);
+    const baseAddr = state.symbols!.registerBaseAddresses.get(regName);
+    const memberOffset = state.symbols!.registerMemberOffsets.get(fullName);
 
     if (baseAddr === undefined || memberOffset === undefined) {
       return { success: false };

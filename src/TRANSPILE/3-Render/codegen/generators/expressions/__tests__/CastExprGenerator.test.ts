@@ -13,8 +13,7 @@
  */
 import { describe, it, expect, afterEach, beforeEach } from "vitest";
 import generateCast from "../CastExprGenerator";
-import CodeGenState from "../../../../../../transpiler/state/CodeGenState";
-import RenderState from "../../../../../../transpiler/state/RenderState";
+import RenderState from "../../../../RenderState";
 
 const plan = (
   targetType: string,
@@ -31,7 +30,7 @@ describe("CastExprGenerator", () => {
   });
 
   afterEach(() => {
-    CodeGenState.reset();
+    state = new RenderState();
   });
 
   describe("plain casts", () => {
@@ -50,7 +49,7 @@ describe("CastExprGenerator", () => {
     });
 
     it("uses static_cast in C++ mode", () => {
-      CodeGenState.cppMode = true;
+      state.cppMode = true;
 
       expect(generateCast(plan("uint8_t", "u8", "x", "u32"), state)).toBe(
         "static_cast<uint8_t>(x)",

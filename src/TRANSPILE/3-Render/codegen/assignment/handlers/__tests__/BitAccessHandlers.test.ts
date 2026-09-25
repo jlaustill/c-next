@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import bitAccessHandlers from "../BitAccessHandlers";
 import AssignmentKind from "../../../../../../transpiler/types/AssignmentKind";
 import IAssignmentContext from "../../../../../../transpiler/types/IAssignmentContext";
-import CodeGenState from "../../../../../../transpiler/state/CodeGenState";
+import RenderState from "../../../../RenderState";
 import HandlerTestUtils from "./handlerTestUtils";
 
 /**
@@ -60,11 +60,13 @@ function createMockContext(
   } as IAssignmentContext;
 }
 
+let state: RenderState;
+
 describe("BitAccessHandlers", () => {
   beforeEach(() => {
-    CodeGenState.reset();
-    HandlerTestUtils.setupMockGenerator();
-    HandlerTestUtils.setupMockSymbols();
+    state = new RenderState();
+    HandlerTestUtils.setupMockGenerator(state);
+    HandlerTestUtils.setupMockSymbols(state);
   });
 
   describe("handler registration", () => {
@@ -91,8 +93,10 @@ describe("BitAccessHandlers", () => {
       )?.[1];
 
     it("generates single bit read-modify-write", () => {
-      HandlerTestUtils.setupMockTypeRegistry([["flags", { baseType: "u32" }]]);
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockTypeRegistry(state, [
+        ["flags", { baseType: "u32" }],
+      ]);
+      HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi.fn().mockReturnValue("3"),
       });
       const ctx = createMockContext();
@@ -105,8 +109,10 @@ describe("BitAccessHandlers", () => {
     });
 
     it("uses 1ULL for 64-bit types", () => {
-      HandlerTestUtils.setupMockTypeRegistry([["flags", { baseType: "u64" }]]);
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockTypeRegistry(state, [
+        ["flags", { baseType: "u64" }],
+      ]);
+      HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi.fn().mockReturnValue("32"),
       });
       const ctx = createMockContext({
@@ -119,8 +125,10 @@ describe("BitAccessHandlers", () => {
     });
 
     it("uses 1ULL for signed 64-bit types", () => {
-      HandlerTestUtils.setupMockTypeRegistry([["flags", { baseType: "i64" }]]);
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockTypeRegistry(state, [
+        ["flags", { baseType: "i64" }],
+      ]);
+      HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi.fn().mockReturnValue("bit"),
       });
       const ctx = createMockContext();
@@ -132,8 +140,10 @@ describe("BitAccessHandlers", () => {
     });
 
     it("converts true to 1", () => {
-      HandlerTestUtils.setupMockTypeRegistry([["flags", { baseType: "u8" }]]);
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockTypeRegistry(state, [
+        ["flags", { baseType: "u8" }],
+      ]);
+      HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi.fn().mockReturnValue("0"),
       });
       const ctx = createMockContext({
@@ -146,8 +156,10 @@ describe("BitAccessHandlers", () => {
     });
 
     it("converts false to 0", () => {
-      HandlerTestUtils.setupMockTypeRegistry([["flags", { baseType: "u8" }]]);
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockTypeRegistry(state, [
+        ["flags", { baseType: "u8" }],
+      ]);
+      HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi.fn().mockReturnValue("0"),
       });
       const ctx = createMockContext({
@@ -160,11 +172,13 @@ describe("BitAccessHandlers", () => {
     });
 
     it("delegates to float bit write for float types", () => {
-      HandlerTestUtils.setupMockTypeRegistry([["f", { baseType: "f32" }]]);
+      HandlerTestUtils.setupMockTypeRegistry(state, [
+        ["f", { baseType: "f32" }],
+      ]);
       const generateFloatBitWrite = vi
         .fn()
         .mockReturnValue("float_bit_write_result");
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         generateFloatBitWrite,
         generateExpression: vi.fn().mockReturnValue("3"),
       });
@@ -193,8 +207,10 @@ describe("BitAccessHandlers", () => {
       )?.[1];
 
     it("generates bit range read-modify-write", () => {
-      HandlerTestUtils.setupMockTypeRegistry([["flags", { baseType: "u32" }]]);
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockTypeRegistry(state, [
+        ["flags", { baseType: "u32" }],
+      ]);
+      HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("0")
@@ -216,8 +232,10 @@ describe("BitAccessHandlers", () => {
     });
 
     it("uses correct mask for bit range", () => {
-      HandlerTestUtils.setupMockTypeRegistry([["data", { baseType: "u16" }]]);
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockTypeRegistry(state, [
+        ["data", { baseType: "u16" }],
+      ]);
+      HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("4")
@@ -240,8 +258,10 @@ describe("BitAccessHandlers", () => {
     });
 
     it("uses ULL suffix for 64-bit bit range mask", () => {
-      HandlerTestUtils.setupMockTypeRegistry([["flags", { baseType: "u64" }]]);
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockTypeRegistry(state, [
+        ["flags", { baseType: "u64" }],
+      ]);
+      HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("32")
@@ -262,11 +282,13 @@ describe("BitAccessHandlers", () => {
     });
 
     it("delegates to float bit write for float types", () => {
-      HandlerTestUtils.setupMockTypeRegistry([["f", { baseType: "f32" }]]);
+      HandlerTestUtils.setupMockTypeRegistry(state, [
+        ["f", { baseType: "f32" }],
+      ]);
       const generateFloatBitWrite = vi
         .fn()
         .mockReturnValue("float_range_write_result");
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         generateFloatBitWrite,
         generateExpression: vi
           .fn()
@@ -301,10 +323,10 @@ describe("BitAccessHandlers", () => {
       )?.[1];
 
     it("generates array element bit assignment for 1D array", () => {
-      HandlerTestUtils.setupMockTypeRegistry([
+      HandlerTestUtils.setupMockTypeRegistry(state, [
         ["arr", { baseType: "u32", arrayDimensions: [10] }],
       ]);
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("i")
@@ -325,10 +347,10 @@ describe("BitAccessHandlers", () => {
     });
 
     it("generates array element bit assignment for 2D array", () => {
-      HandlerTestUtils.setupMockTypeRegistry([
+      HandlerTestUtils.setupMockTypeRegistry(state, [
         ["matrix", { baseType: "u16", arrayDimensions: [10, 10] }],
       ]);
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("i")
@@ -351,10 +373,10 @@ describe("BitAccessHandlers", () => {
     });
 
     it("uses 1ULL for 64-bit array element", () => {
-      HandlerTestUtils.setupMockTypeRegistry([
+      HandlerTestUtils.setupMockTypeRegistry(state, [
         ["arr", { baseType: "u64", arrayDimensions: [5] }],
       ]);
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("0")
@@ -374,7 +396,7 @@ describe("BitAccessHandlers", () => {
     });
 
     it("throws when variable is not an array", () => {
-      HandlerTestUtils.setupMockTypeRegistry([
+      HandlerTestUtils.setupMockTypeRegistry(state, [
         ["notArray", { baseType: "u32" }],
       ]);
       const ctx = createMockContext({
@@ -394,7 +416,7 @@ describe("BitAccessHandlers", () => {
       )?.[1];
 
     it("generates bit range write through struct chain", () => {
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("0") // array index

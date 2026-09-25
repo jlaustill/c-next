@@ -139,7 +139,6 @@ import type IPlannedFunctionParameter from "./3-Render/codegen/types/IPlannedFun
 import type ITypeAccessors from "../transpiler/types/ITypeAccessors";
 import FunctionContextManager from "./3-Render/codegen/helpers/FunctionContextManager";
 import BitRangeHelper from "./3-Render/codegen/helpers/BitRangeHelper";
-import CodeGenState from "../transpiler/state/CodeGenState";
 import invariant from "../utils/invariant";
 import AdrProvenance from "../instrumentation/AdrProvenance";
 import PassByValueAnalyzer from "./2-Plan/PassByValueAnalyzer";
@@ -192,7 +191,7 @@ interface FunctionSignature {
 }
 import CodeGenerator from "./3-Render/codegen/CodeGenerator";
 import ToolchainRequirements from "../instrumentation/ToolchainRequirements";
-import type RenderState from "../transpiler/state/RenderState";
+import type RenderState from "./3-Render/RenderState";
 
 class CodeGenWalker {
   /**
@@ -403,9 +402,9 @@ class CodeGenWalker {
     // Generate the C type using the helper with dependencies
     return TypeGenerationHelper.generate(plan, {
       checkNeedsStructKeyword: (name) =>
-        CodeGenState.symbolTable.checkNeedsStructKeyword(name),
+        this.host.state.symbolTable.checkNeedsStructKeyword(name),
       isCrossFileDeclaration: (name) =>
-        CodeGenState.isCrossFileDeclaration(name),
+        this.host.state.isCrossFileDeclaration(name),
     });
   }
 
@@ -427,14 +426,14 @@ class CodeGenWalker {
   private planType(ctx: Parser.TypeContext): IPlannedType {
     const array = ctx.arrayType();
     const accessors: ITypeAccessors = array ?? ctx;
-    const deps = CodeGenState.typeBindingDeps((identifiers) =>
+    const deps = this.host.state.typeBindingDeps((identifiers) =>
       this.resolveQualifiedType(identifiers),
     );
 
     return {
       named: TypeBinding.classifyNamedType(
         accessors,
-        CodeGenState.currentScopePath,
+        this.host.state.currentScopePath,
         deps,
       ),
       isString: accessors.stringType() !== null,
@@ -476,7 +475,8 @@ class CodeGenWalker {
       operator,
       operandCode: this.generateUnaryExpr(operand),
       // lazy: only `~` consults it
-      operandType: () => ExpressionTypeResolver.getUnaryExpressionType(operand),
+      operandType: () =>
+        ExpressionTypeResolver.getUnaryExpressionType(operand, this.host.state),
     });
   }
 
@@ -526,7 +526,7 @@ class CodeGenWalker {
     const name =
       prefix === "this"
         ? QualifiedNameGenerator.forMember(
-            CodeGenState.currentScopePath,
+            this.host.state.currentScopePath,
             memberName,
           )
         : memberName;
@@ -829,9 +829,13 @@ class CodeGenWalker {
       // Asked AFTER the operands render, which is where they are asked today:
       // both read the type registry, and asking earlier asks about a state the
       // operands have not reached.
-      clampType: () => ExpressionTypeResolver.getCompositeIntegerType(ctx),
+      clampType: () =>
+        ExpressionTypeResolver.getCompositeIntegerType(ctx, this.host.state),
       clampBehavior: () =>
-        ExpressionTypeResolver.getCompositeOverflowBehavior(ctx),
+        ExpressionTypeResolver.getCompositeOverflowBehavior(
+          ctx,
+          this.host.state,
+        ),
       adrLine: ctx.start?.line,
       renderOperands: children.map(
         (child) => () =>
@@ -854,9 +858,13 @@ class CodeGenWalker {
       kind: "arithmetic",
       defaultOperator: "*",
       operators: this.getOperatorsFromChildren(ctx),
-      clampType: () => ExpressionTypeResolver.getCompositeIntegerType(ctx),
+      clampType: () =>
+        ExpressionTypeResolver.getCompositeIntegerType(ctx, this.host.state),
       clampBehavior: () =>
-        ExpressionTypeResolver.getCompositeOverflowBehavior(ctx),
+        ExpressionTypeResolver.getCompositeOverflowBehavior(
+          ctx,
+          this.host.state,
+        ),
       adrLine: ctx.start?.line,
       // `generateUnaryExpr` applies its own effects, so a leaf contributes
       // none here -- matching the empty array the multiplicative tail passed.
@@ -884,15 +892,21 @@ class CodeGenWalker {
     // second arm was dead: the only caller is `SwitchGenerator`, which passes
     // `node.expression()`. The resolver's `!("ternaryExpression" in ctx)` guard
     // existed to discriminate the union and could therefore never fire.
-    return EnumTypeResolver.resolve(ctx.getText(), () => {
-      const postfix = ExpressionUnwrapper.getPostfixExpression(ctx);
-      if (!postfix) return null;
-      const resolvedType =
-        ExpressionTypeResolver.getPostfixExpressionType(postfix);
-      return resolvedType && CodeGenState.isKnownEnum(resolvedType)
-        ? resolvedType
-        : null;
-    });
+    return EnumTypeResolver.resolve(
+      ctx.getText(),
+      () => {
+        const postfix = ExpressionUnwrapper.getPostfixExpression(ctx);
+        if (!postfix) return null;
+        const resolvedType = ExpressionTypeResolver.getPostfixExpressionType(
+          postfix,
+          this.host.state,
+        );
+        return resolvedType && this.host.state.isKnownEnum(resolvedType)
+          ? resolvedType
+          : null;
+      },
+      this.host.state,
+    );
   }
 
   /**
@@ -912,7 +926,7 @@ class CodeGenWalker {
 
     // Check if it's a simple variable of string type
     if (BareIdentifier.matches(text)) {
-      const typeInfo = CodeGenState.getVariableTypeInfo(text);
+      const typeInfo = this.host.state.getVariableTypeInfo(text);
       if (typeInfo?.isString) {
         return true;
       }
@@ -955,7 +969,7 @@ class CodeGenWalker {
     }
 
     const arrayName = arrayAccessMatch[1];
-    const typeInfo = CodeGenState.getVariableTypeInfo(arrayName);
+    const typeInfo = this.host.state.getVariableTypeInfo(arrayName);
     if (!typeInfo) {
       return false;
     }
@@ -1008,7 +1022,7 @@ class CodeGenWalker {
     const [, varName, fieldName] = memberMatch;
 
     // Get the struct variable's type
-    const typeInfo = CodeGenState.getVariableTypeInfo(varName);
+    const typeInfo = this.host.state.getVariableTypeInfo(varName);
     if (!typeInfo) {
       return false;
     }
@@ -1021,7 +1035,7 @@ class CodeGenWalker {
     }
 
     // Look up the field type from the struct
-    const fieldType = CodeGenState.getStructFieldType(
+    const fieldType = this.host.state.getStructFieldType(
       structTypeName,
       fieldName,
     );
@@ -1063,15 +1077,20 @@ class CodeGenWalker {
     // member off the node -- it threaded it through five callbacks and four
     // private helpers only to hand it back -- so the node stays here, where
     // the tree already is.
-    return ArgumentGenerator.generateArg(simpleId, targetParamBaseType, {
-      state: this.host.state,
-      generateExpression: () => this.generateExpression(ctx),
-      getLvalueType: () => this.getLvalueType(ctx),
-      getMemberAccessArrayStatus: () => this.getMemberAccessArrayStatus(ctx),
-      isCppMemberConversionRequired: (t) =>
-        this.isCppMemberConversionRequired(ctx, t),
-      isStringSubscriptAccess: () => this.isStringSubscriptAccess(ctx),
-    });
+    return ArgumentGenerator.generateArg(
+      simpleId,
+      targetParamBaseType,
+      {
+        state: this.host.state,
+        generateExpression: () => this.generateExpression(ctx),
+        getLvalueType: () => this.getLvalueType(ctx),
+        getMemberAccessArrayStatus: () => this.getMemberAccessArrayStatus(ctx),
+        isCppMemberConversionRequired: (t) =>
+          this.isCppMemberConversionRequired(ctx, t),
+        isStringSubscriptAccess: () => this.isStringSubscriptAccess(ctx),
+      },
+      this.host.state,
+    );
   }
 
   /**
@@ -1079,7 +1098,7 @@ class CodeGenWalker {
    * Part of IOrchestrator interface.
    */
   getExpressionType(ctx: Parser.ExpressionContext): string | null {
-    return ExpressionTypeResolver.getExpressionType(ctx);
+    return ExpressionTypeResolver.getExpressionType(ctx, this.host.state);
   }
 
   /**
@@ -1146,9 +1165,9 @@ class CodeGenWalker {
     }
 
     // Issue #250: Prepend any pending temp variable declarations (C++ mode)
-    if (CodeGenState.pendingTempDeclarations.length > 0) {
-      const tempDecls = CodeGenState.pendingTempDeclarations.join("\n");
-      CodeGenState.pendingTempDeclarations = [];
+    if (this.host.state.pendingTempDeclarations.length > 0) {
+      const tempDecls = this.host.state.pendingTempDeclarations.join("\n");
+      this.host.state.pendingTempDeclarations = [];
       return tempDecls + "\n" + result;
     }
 
@@ -1181,10 +1200,10 @@ class CodeGenWalker {
     // to enable proper register validation (requiring global. when shadowed).
     let resolvedIdentifier = identifier ?? "";
     if (!hasGlobal && !hasThis && identifier) {
-      const isParameter = CodeGenState.currentParameters.has(identifier);
-      const isLocalVariable = CodeGenState.localVariables.has(identifier);
+      const isParameter = this.host.state.currentParameters.has(identifier);
+      const isLocalVariable = this.host.state.localVariables.has(identifier);
       const isKnownRegister =
-        CodeGenState.symbols?.knownRegisters.has(identifier);
+        this.host.state.symbols?.knownRegisters.has(identifier);
       // Issue #1100: Parameters with postfix ops (array/bit subscript, member
       // access) must resolve through the same dereference logic as a bare
       // parameter reference (ParameterDereferenceResolver), not skip it.
@@ -1196,7 +1215,7 @@ class CodeGenWalker {
       // (which AssignmentContextBuilder reduces to base identifier `(*v)`)
       // instead of assigning through the raw pointer.
       if (isParameter) {
-        const paramInfo = CodeGenState.currentParameters.get(identifier)!;
+        const paramInfo = this.host.state.currentParameters.get(identifier)!;
         resolvedIdentifier = ParameterDereferenceResolver.resolve(
           identifier,
           paramInfo,
@@ -1213,6 +1232,7 @@ class CodeGenWalker {
           identifier,
           isLocalVariable,
           (name: string) => this.host.isKnownStruct(name),
+          this.host.state,
           ctx.start?.line,
         );
         if (resolved !== null) {
@@ -1227,7 +1247,7 @@ class CodeGenWalker {
       hasGlobal || hasThis ? safeIdentifier : resolvedIdentifier,
       hasGlobal,
       hasThis,
-      CodeGenState.currentScopePath,
+      this.host.state.currentScopePath,
     );
 
     // No postfix operations - return base
@@ -1264,7 +1284,7 @@ class CodeGenWalker {
     if (dim.expression()) {
       // Bug #8: At file scope, resolve const values to numeric literals
       // because C doesn't allow const variables as array sizes at file scope
-      if (!CodeGenState.inFunctionBody) {
+      if (!this.host.state.inFunctionBody) {
         const constValue = this.tryEvaluateConstant(dim.expression()!);
         if (constValue !== undefined) {
           return `[${constValue}]`;
@@ -1290,8 +1310,8 @@ class CodeGenWalker {
     // alternatives -- TypeBinding recurses into all of them.
     const resolved = TypeBinding.resolveName(
       ctx,
-      CodeGenState.currentScopePath,
-      CodeGenState.typeBindingDeps((identifiers) =>
+      this.host.state.currentScopePath,
+      this.host.state.typeBindingDeps((identifiers) =>
         this.resolveQualifiedType(identifiers),
       ),
     );
@@ -1306,7 +1326,7 @@ class CodeGenWalker {
     // Both sites are one mechanism (provenance at the point of resolution), not
     // the two the matrix guidance warns against mixing: neither depends on a
     // diagnostic, and a fixture is credited once per position either way.
-    if (resolved !== null && CodeGenState.isCrossFileDeclaration(resolved)) {
+    if (resolved !== null && this.host.state.isCrossFileDeclaration(resolved)) {
       AdrProvenance.record("010", ctx.start?.line);
     }
     return resolved ?? ctx.getText();
@@ -1320,7 +1340,7 @@ class CodeGenWalker {
     // hot path for exactly the divergences this work closes.
     return ArrayDimensionParser.parseSingleDimension(
       ctx,
-      dimensionEvalOptions(),
+      dimensionEvalOptions(this.renderState),
     );
   }
 
@@ -1340,7 +1360,7 @@ class CodeGenWalker {
     const resolved = this._resolveTypeNameFromContext(typeCtx);
     if (resolved) {
       // Check if enum
-      if (CodeGenState.symbols!.knownEnums.has(resolved.name)) {
+      if (this.host.state.symbols!.knownEnums.has(resolved.name)) {
         return this._getEnumZeroValue(resolved.name, resolved.separator);
       }
       // Issue #1004: struct/class zero-init. C++ value-initialization ({})
@@ -1438,7 +1458,7 @@ class CodeGenWalker {
   private emitTypedefsForUndeclaredCallbackTypes(): void {
     for (const funcName of this.host.state.callbackTypeReferences) {
       if (
-        !CodeGenState.callbackTypes.has(funcName) ||
+        !this.host.state.callbackTypes.has(funcName) ||
         this.host.state.emittedCallbackTypedefs.has(funcName)
       ) {
         continue;
@@ -1463,10 +1483,10 @@ class CodeGenWalker {
    * This is the unified source of truth for modification tracking.
    */
   private _isCurrentParameterModified(paramName: string): boolean {
-    const funcName = CodeGenState.currentFunctionName;
+    const funcName = this.host.state.currentFunctionName;
     if (!funcName) return false;
     return (
-      CodeGenState.program
+      this.host.state.program
         ?.modifiedParameters()
         .get(funcName)
         ?.has(paramName) ?? false
@@ -1540,11 +1560,16 @@ class CodeGenWalker {
     return {
       isFloatType: (typeName: string) => this._isFloatType(typeName),
       isKnownPrimitive: (typeName: string) => this._isKnownPrimitive(typeName),
-      knownEnums: CodeGenState.symbols!.knownEnums,
+      knownEnums: this.host.state.symbols!.knownEnums,
       isParameterPassByValue: (funcName: string, paramName: string) =>
-        PassByValueAnalyzer.isParameterPassByValueByName(funcName, paramName),
-      currentFunctionName: CodeGenState.currentFunctionName,
-      maybeDereference: (id: string) => CppModeHelper.maybeDereference(id),
+        PassByValueAnalyzer.isParameterPassByValueByName(
+          funcName,
+          paramName,
+          this.host.state,
+        ),
+      currentFunctionName: this.host.state.currentFunctionName,
+      maybeDereference: (id: string) =>
+        CppModeHelper.maybeDereference(id, this.host.state),
     };
   }
 
@@ -1556,10 +1581,10 @@ class CodeGenWalker {
     return {
       isKnownScope: (name: string) => this.host.isKnownScope(name),
       isKnownRegister: (name: string) =>
-        CodeGenState.symbols!.knownRegisters.has(name),
+        this.host.state.symbols!.knownRegisters.has(name),
       getStructParamSeparator: () =>
         memberAccessChain.getStructParamSeparator({
-          cppMode: CodeGenState.cppMode,
+          cppMode: this.host.state.cppMode,
         }),
     };
   }
@@ -1573,7 +1598,7 @@ class CodeGenWalker {
   private _isCppClassWithConstructor(typeName: string): boolean {
     return CppConstructorHelper.hasConstructor(
       typeName,
-      CodeGenState.symbolTable,
+      this.host.state.symbolTable,
     );
   }
 
@@ -1630,7 +1655,7 @@ class CodeGenWalker {
       options?.symbolInfo,
       "the pipeline always supplies options.symbolInfo to generate(); its absence is a caller/API error, not a program error",
     );
-    CodeGenState.symbols = options.symbolInfo;
+    this.host.state.symbols = options.symbolInfo;
 
     // ADR-029 + #1491: register function-as-types reached through an include
     // BEFORE anything can reference one. Must run after `symbols` is set and
@@ -1659,19 +1684,19 @@ class CodeGenWalker {
     tokenStream: CommonTokenStream | undefined,
   ): void {
     this.host.state.debugMode = options?.debugMode ?? false;
-    CodeGenState.sourcePath = options?.sourcePath ?? null;
+    this.host.state.sourcePath = options?.sourcePath ?? null;
     // #1241: Transpiler._analyzeFile sets the provenance file before analyzers
     // run; re-assert it here for API callers that drive the generator directly
     // and never go through that path. (Said `_transpileFile` until #1320
     // hoisted analysis out of it into its own pass -- by the time
     // `_transpileFile` runs, every file's analyzers are already done.)
-    AdrProvenance.beginFile(CodeGenState.sourcePath);
+    AdrProvenance.beginFile(this.host.state.sourcePath);
     this.host.state.cnxIncludeRewrites =
       options?.cnxIncludeRewrites ?? new Map<string, string>();
-    CodeGenState.cppMode = options?.cppMode ?? false;
-    CodeGenState.pendingTempDeclarations = [];
-    CodeGenState.tempVarCounter = 0;
-    CodeGenState.pendingCppClassAssignments = [];
+    this.host.state.cppMode = options?.cppMode ?? false;
+    this.host.state.pendingTempDeclarations = [];
+    this.host.state.tempVarCounter = 0;
+    this.host.state.pendingCppClassAssignments = [];
 
     this.tokenStream = tokenStream ?? null;
     this.commentExtractor = this.tokenStream
@@ -1683,26 +1708,26 @@ class CodeGenWalker {
    * Reset all generator state for a fresh generation pass.
    */
   private resetGeneratorState(targetCapabilities: ITargetCapabilities): void {
-    // Reset global state (CodeGenState.reset() handles all field initialization)
-    CodeGenState.reset(targetCapabilities);
+    // Reset global state (this.host.state.reset() handles all field initialization)
+    this.host.state.reset(targetCapabilities);
     this.host.state.reset();
 
     // Set generator reference for handlers to use
     // #1652 removed `ICodeGenApi`'s four parse-node members, and every one that
     // remains is implemented on the host. The walker used to be assigned here
     // and forward all five, which made a sixth member two places to write.
-    CodeGenState.generator = this.host;
+    this.host.state.generator = this.host;
   }
 
   /**
    * Initialize symbol data and const values from symbol table.
    */
   private initializeSymbolData(): void {
-    const symbols = CodeGenState.symbols!;
+    const symbols = this.host.state.symbols!;
 
-    // Copy symbol data to CodeGenState.scopeMembers
+    // Copy symbol data to this.host.state.scopeMembers
     for (const [scopeName, members] of symbols.scopeMembers) {
-      CodeGenState.setScopeMembers(scopeName, new Set(members));
+      this.host.state.setScopeMembers(scopeName, new Set(members));
     }
 
     // Issue #461: seed constValues for this file's generation.
@@ -1713,7 +1738,9 @@ class CodeGenWalker {
     // through an include is worth the same as one declared beside the use and
     // only 1.4 sees both. Copied into a mutable map because generation adds
     // file-local consts to it as it goes.
-    CodeGenState.constValues = new Map(CodeGenState.program?.constValues());
+    this.host.state.constValues = new Map(
+      this.host.state.program?.constValues(),
+    );
   }
 
   /**
@@ -1737,7 +1764,7 @@ class CodeGenWalker {
     // than assumed by consumers, so "what does this file need?" has exactly one
     // answer source even for the trivial case.
     ToolchainRequirements.record(
-      CodeGenState.cppMode ? "baseline-cpp" : "baseline-c",
+      this.host.state.cppMode ? "baseline-cpp" : "baseline-c",
     );
 
     // 2.2 Plan's fact, recorded where it is KNOWN rather than recovered from
@@ -1754,13 +1781,13 @@ class CodeGenWalker {
     // itself.
     // #1515: supplied by the caller, which asked `PublicInterface`. Not read
     // off `ICodeGenSymbols`, where 1.3 Declare used to put it.
-    if (options?.hasPublicInterface && CodeGenState.sourcePath) {
+    if (options?.hasPublicInterface && this.host.state.sourcePath) {
       const pathToUse =
         options?.sourceRelativePath ||
-        CodeGenState.sourcePath.replace(/^.*[\\/]/, "");
+        this.host.state.sourcePath.replace(/^.*[\\/]/, "");
       // Issue #933: Use .hpp extension in C++ mode to match header file
       // Issue #1319: read the run's extension; do not re-derive it from the mode
-      const ext = CodeGenState.outputExtensions.header;
+      const ext = this.host.state.outputExtensions.header;
       const headerName = pathToUse.replace(/\.cnx$|\.cnext$/, ext);
       output.push(`#include "${headerName}"`, "");
       sourceIncludeTargets.push(`"${headerName}"`);
@@ -1826,7 +1853,7 @@ class CodeGenWalker {
    * claim a cost the header does not carry.
    */
   private buildBanner(): readonly string[] {
-    const sourcePath = CodeGenState.sourcePath;
+    const sourcePath = this.host.state.sourcePath;
     const generatedLine = sourcePath
       ? ` * Generated by C-Next Transpiler from: ${basename(sourcePath)}`
       : " * Generated by C-Next Transpiler";
@@ -1835,7 +1862,7 @@ class CodeGenWalker {
 
     const requires = ToolchainRequirementUtils.describeForBanner(
       this.host.getToolchainRequirements(),
-      CodeGenState.cppMode ? "cpp" : "c",
+      this.host.state.cppMode ? "cpp" : "c",
     );
     for (const line of requires) {
       lines.push(` * ${line}`);
@@ -1995,7 +2022,7 @@ class CodeGenWalker {
    * them.
    *
    * The `.c` counterpart of `Transpiler._captureHeaderEmissionFacts`, and
-   * captured at the same kind of moment: `CodeGenState.reset()` runs per file,
+   * captured at the same kind of moment: `this.host.state.reset()` runs per file,
    * so every field below is correct for exactly the window between this file's
    * declarations being generated and the next file's `generate()`.
    *
@@ -2146,9 +2173,9 @@ class CodeGenWalker {
    */
   private transformIncludeDirective(includeText: string): string {
     return includeTransformIncludeDirective(includeText, {
-      sourcePath: CodeGenState.sourcePath,
+      sourcePath: this.host.state.sourcePath,
       rewrites: this.host.state.cnxIncludeRewrites,
-      headerExtension: CodeGenState.outputExtensions.header,
+      headerExtension: this.host.state.outputExtensions.header,
     });
   }
 
@@ -2188,7 +2215,7 @@ class CodeGenWalker {
 
     // Scope context for scoped type resolution (`this.Type`), restored on exit
     // even if a member throws.
-    CodeGenState.withScopePath(scopeName, () => {
+    this.host.state.withScopePath(scopeName, () => {
       // #1281/#1285: functions first, THEN everything that can reference one.
       // A struct field naming a scope-local function-as-type asks isScopeType
       // whether that name is a type, and the answer comes from callbackTypes --
@@ -2205,7 +2232,7 @@ class CodeGenWalker {
           // #1298: resolve the scope PATH rather than reading back mutable
           // state, so the generated name does not depend on when it is asked.
           this._registerScopeFunction(
-            CodeGenState.program?.scopePathOf(scopeName) ?? scopeName,
+            this.host.state.program?.scopePathOf(scopeName) ?? scopeName,
             funcDecl,
           );
         }
@@ -2244,9 +2271,9 @@ class CodeGenWalker {
     const fullName = QualifiedNameGenerator.forFunctionInScope(
       declaringScopePath,
       funcName,
-      CodeGenState.program,
+      this.host.state.program,
     );
-    CodeGenState.knownFunctions.add(fullName);
+    this.host.state.knownFunctions.add(fullName);
     // ADR-013: Track function signature for const checking
     const sig = this.extractFunctionSignature(
       fullName,
@@ -2272,7 +2299,7 @@ class CodeGenWalker {
       const fieldType = this.getTypeName(member.type());
 
       // Track callback field types (needed for typedef generation)
-      if (CodeGenState.callbackTypes.has(fieldType)) {
+      if (this.host.state.callbackTypes.has(fieldType)) {
         this.host.state.callbackFieldTypes.set(
           `${structName}.${fieldName}`,
           fieldType,
@@ -2289,7 +2316,7 @@ class CodeGenWalker {
     funcDecl: Parser.FunctionDeclarationContext,
   ): void {
     const name = funcDecl.IDENTIFIER().getText();
-    CodeGenState.knownFunctions.add(name);
+    this.host.state.knownFunctions.add(name);
     // ADR-013: Track function signature for const checking
     const sig = this.extractFunctionSignature(
       name,
@@ -2310,11 +2337,15 @@ class CodeGenWalker {
    * SonarCloud S3776: Refactored to use helper methods.
    */
   private registerAllVariableTypes(tree: Parser.ProgramContext): void {
-    TypeRegistrationEngine.register(tree, {
-      tryEvaluateConstant: (ctx) => this.tryEvaluateConstant(ctx),
-      requireInclude: (header) => this.host.state.requireInclude(header),
-      resolveQualifiedType: (ids) => this.resolveQualifiedType(ids),
-    });
+    TypeRegistrationEngine.register(
+      tree,
+      {
+        tryEvaluateConstant: (ctx) => this.tryEvaluateConstant(ctx),
+        requireInclude: (header) => this.host.state.requireInclude(header),
+        resolveQualifiedType: (ids) => this.resolveQualifiedType(ids),
+      },
+      this.host.state,
+    );
   }
 
   /**
@@ -2376,7 +2407,7 @@ class CodeGenWalker {
     if (cStyleDimensions.length > 0) {
       return ArrayDimensionParser.parseDimensions(
         cStyleDimensions,
-        dimensionEvalOptions(),
+        dimensionEvalOptions(this.renderState),
       );
     }
 
@@ -2387,7 +2418,7 @@ class CodeGenWalker {
       if (!expression) return [];
       const size = ArrayDimensionParser.parseSingleDimension(
         expression,
-        dimensionEvalOptions(),
+        dimensionEvalOptions(this.renderState),
       );
       return [size ?? UNRESOLVED_DIMENSION];
     });
@@ -2509,7 +2540,7 @@ class CodeGenWalker {
     const isStruct = this.host.isStructType(typeName);
 
     // ADR-029: a parameter whose type is itself a function-as-type.
-    const cbInfo = CodeGenState.callbackTypes.get(typeName);
+    const cbInfo = this.host.state.callbackTypes.get(typeName);
     if (cbInfo) {
       // Function pointers are already pointers.
       return {
@@ -2571,7 +2602,7 @@ class CodeGenWalker {
    * an include.
    */
   private registerIncludedCallbackTypes(): void {
-    const symbols = CodeGenState.symbols;
+    const symbols = this.host.state.symbols;
     if (!symbols) {
       return;
     }
@@ -2579,13 +2610,13 @@ class CodeGenWalker {
     // The per-file VISIBLE set: what this file declares, plus what its includes
     // contribute via mergeExternalSymbols. Keyed by transpiled C name.
     for (const cName of symbols.functionReturnTypes.keys()) {
-      if (CodeGenState.callbackTypes.has(cName)) {
+      if (this.host.state.callbackTypes.has(cName)) {
         continue;
       }
 
       // Run-wide identity lookup -- the exact-name index, never the bare-name
       // one, which returns empty for every scoped symbol (#1139).
-      const symbol = CodeGenState.symbolTable
+      const symbol = this.host.state.symbolTable
         .getOverloadsByCName(cName)
         .find(
           (candidate) =>
@@ -2594,7 +2625,7 @@ class CodeGenWalker {
         ) as IFunctionSymbol | undefined;
 
       if (symbol) {
-        CodeGenState.callbackTypes.set(
+        this.host.state.callbackTypes.set(
           cName,
           this.callbackInfoFromSymbol(cName, symbol),
         );
@@ -2635,6 +2666,7 @@ class CodeGenWalker {
             param.isConst,
             isStruct,
             isString,
+            this.host.state,
           ),
           isPointer,
           isStruct,
@@ -2680,6 +2712,7 @@ class CodeGenWalker {
     isExplicitConst: boolean,
     isStruct: boolean,
     isString: boolean,
+    state: RenderState,
   ): boolean {
     if (isExplicitConst) {
       return true;
@@ -2687,7 +2720,7 @@ class CodeGenWalker {
     if (!isStruct && !isString) {
       return false;
     }
-    return !CodeGenState.isParameterModifiedAnywhere(funcName, paramName);
+    return !state.isParameterModifiedAnywhere(funcName, paramName);
   }
 
   /**
@@ -2740,6 +2773,7 @@ class CodeGenWalker {
           isConst,
           isStruct,
           isString,
+          this.host.state,
         );
 
         let arrayDims: string;
@@ -2763,7 +2797,7 @@ class CodeGenWalker {
               }
               const folded = ArrayDimensionParser.parseSingleDimension(
                 expr,
-                dimensionEvalOptions(),
+                dimensionEvalOptions(this.renderState),
               );
               return `[${folded ?? this.generateExpression(expr)}]`;
             })
@@ -2784,7 +2818,7 @@ class CodeGenWalker {
       }
     }
 
-    CodeGenState.callbackTypes.set(name, {
+    this.host.state.callbackTypes.set(name, {
       functionName: name,
       returnType,
       parameters,
@@ -2814,6 +2848,7 @@ class CodeGenWalker {
     return StringOperationsHelper.getStringConcatOperands(
       operands[0],
       operands[1],
+      this.host.state,
     );
   }
 
@@ -2830,8 +2865,10 @@ class CodeGenWalker {
     const subscript = ExpressionUnwrapper.getSubscriptedIdentifier(ctx);
     if (subscript === null) return null;
 
-    return StringOperationsHelper.getSubstringOperands(subscript.name, () =>
-      subscript.indexes.map((index) => this.generateExpression(index)),
+    return StringOperationsHelper.getSubstringOperands(
+      subscript.name,
+      () => subscript.indexes.map((index) => this.generateExpression(index)),
+      this.host.state,
     );
   }
 
@@ -2845,7 +2882,7 @@ class CodeGenWalker {
   private getUnaryExpressionType(
     ctx: Parser.UnaryExpressionContext,
   ): string | null {
-    return ExpressionTypeResolver.getUnaryExpressionType(ctx);
+    return ExpressionTypeResolver.getUnaryExpressionType(ctx, this.host.state);
   }
 
   /**
@@ -2888,7 +2925,7 @@ class CodeGenWalker {
     ctx: Parser.ExpressionContext,
     targetParamBaseType?: string,
   ): boolean {
-    if (!CodeGenState.cppMode) return false;
+    if (!this.host.state.cppMode) return false;
     if (!targetParamBaseType) return false;
 
     const postfix = ExpressionUnwrapper.getPostfixExpression(ctx);
@@ -2902,7 +2939,7 @@ class CodeGenWalker {
     const ops = postfix.postfixOp();
 
     // Case 1: Direct parameter member access (cfg.value)
-    const paramInfo = CodeGenState.currentParameters.get(baseId);
+    const paramInfo = this.host.state.currentParameters.get(baseId);
     if (paramInfo) {
       return CppMemberHelper.needsParamMemberConversion(
         paramInfo,
@@ -2942,7 +2979,7 @@ class CodeGenWalker {
     baseId: string,
     targetParamBaseType: string,
   ): boolean {
-    const typeInfo = CodeGenState.getVariableTypeInfo(baseId);
+    const typeInfo = this.host.state.getVariableTypeInfo(baseId);
     return CppMemberHelper.needsComplexMemberConversion(
       this._toPostfixOps(ops),
       typeInfo,
@@ -2969,8 +3006,8 @@ class CodeGenWalker {
     const baseId = primary.IDENTIFIER()?.getText();
     if (!baseId) return false;
 
-    const typeInfo = CodeGenState.getVariableTypeInfo(baseId);
-    const paramInfo = CodeGenState.currentParameters.get(baseId);
+    const typeInfo = this.host.state.getVariableTypeInfo(baseId);
+    const paramInfo = this.host.state.currentParameters.get(baseId);
 
     return CppMemberHelper.isStringSubscriptPattern(
       hasPostfixOps,
@@ -3023,11 +3060,11 @@ class CodeGenWalker {
     // 2. Parameter: currentParameters.get(baseId).baseType
     let structType: string | undefined;
 
-    const typeInfo = CodeGenState.getVariableTypeInfo(baseId);
+    const typeInfo = this.host.state.getVariableTypeInfo(baseId);
     if (typeInfo) {
       structType = typeInfo.baseType;
     } else {
-      const paramInfo = CodeGenState.currentParameters.get(baseId);
+      const paramInfo = this.host.state.currentParameters.get(baseId);
       if (paramInfo) {
         structType = paramInfo.baseType;
       }
@@ -3117,7 +3154,8 @@ class CodeGenWalker {
     // qualifies against every outer component instead of re-joining one level.
     // `getOrCreateScope` is the same resolver `setCurrentScopeByPath` uses, and
     // it is cached, so this is one decision asked twice -- not two decisions.
-    const declaringScopePath = CodeGenState.program?.scopePathOf(name) ?? name;
+    const declaringScopePath =
+      this.host.state.program?.scopePathOf(name) ?? name;
     const members = ctx.scopeMember();
 
     return {
@@ -3169,10 +3207,10 @@ class CodeGenWalker {
       nameNode.IDENTIFIER().getText(),
     );
     const definedInHeader =
-      CodeGenState.sourcePath !== null &&
+      this.host.state.sourcePath !== null &&
       PublicInterface.definesTypeInHeader(
-        CodeGenState.symbolTable,
-        CodeGenState.sourcePath,
+        this.host.state.symbolTable,
+        this.host.state.sourcePath,
         fullName,
       );
     return definedInHeader ? null : fullName;
@@ -3217,7 +3255,7 @@ class CodeGenWalker {
         fullName: QualifiedNameGenerator.forFunctionInScope(
           declaringScopePath,
           funcDecl.IDENTIFIER().getText(),
-          CodeGenState.program,
+          this.host.state.program,
         ),
         declaredTypeText: funcDecl.type().getText(),
         renderReturnType: () => this.generateType(funcDecl.type()),
@@ -3561,12 +3599,12 @@ class CodeGenWalker {
     // so designated initializers { .field = value } don't work with them.
     // We check the SymbolTable for a constructor symbol (TypeName::TypeName).
     const isCppClass =
-      CodeGenState.cppMode && this._isCppClassWithConstructor(typeName);
+      this.host.state.cppMode && this._isCppClassWithConstructor(typeName);
 
     // Issue #834: For named struct tags (no typedef), we need 'struct' prefix in C mode
     const needsStructKeyword =
-      !CodeGenState.cppMode &&
-      CodeGenState.symbolTable.checkNeedsStructKeyword(typeName);
+      !this.host.state.cppMode &&
+      this.host.state.symbolTable.checkNeedsStructKeyword(typeName);
     const castType = TypeGenerationHelper.generateUserType(
       typeName,
       needsStructKeyword,
@@ -3582,7 +3620,7 @@ class CodeGenWalker {
     // Issue #831: SymbolTable is the single source of truth for struct fields
     // (both C-Next and C/C++ header structs)
     const structFieldTypes =
-      CodeGenState.symbolTable?.getStructFieldTypes(typeName);
+      this.host.state.symbolTable?.getStructFieldTypes(typeName);
 
     const fields = fieldList.fieldInitializer().map((field) => {
       const fieldName = field.IDENTIFIER().getText();
@@ -3596,7 +3634,7 @@ class CodeGenWalker {
     // Issue #517: For C++ classes, store assignments for later and return {}
     if (isCppClass) {
       for (const { fieldName, value } of fields) {
-        CodeGenState.pendingCppClassAssignments.push(
+        this.host.state.pendingCppClassAssignments.push(
           `${fieldName} = ${value};`,
         );
       }
@@ -3609,7 +3647,7 @@ class CodeGenWalker {
     // which is how this repo's own -std=c++14 harness compiles the output.
     // The text is identical in both modes, so the mode has to be recorded
     // here; no probe over the output could recover it.
-    if (CodeGenState.cppMode) {
+    if (this.host.state.cppMode) {
       ToolchainRequirements.record("cpp-designated-initializer");
     }
     const fieldInits = fields.map((f) => `.${f.fieldName} = ${f.value}`);
@@ -3635,19 +3673,19 @@ class CodeGenWalker {
     // Compound literals like (struct { ... }){ ... } create incompatible types in C++
     // because each struct { ... } definition creates a distinct nominal type.
     if (
-      CodeGenState.cppMode &&
+      this.host.state.cppMode &&
       (typeName.startsWith("struct {") || typeName.startsWith("union {"))
     ) {
       return initializer;
     }
 
-    if (!CodeGenState.inFunctionBody) {
+    if (!this.host.state.inFunctionBody) {
       return initializer;
     }
 
     // Issue #1143: a compound literal is C99, but is not ISO C++ at any
     // version -- GCC and Clang accept it as an extension.
-    if (CodeGenState.cppMode) {
+    if (this.host.state.cppMode) {
       ToolchainRequirements.record("cpp-compound-literal");
     }
     return `(${castType})${initializer}`;
@@ -3686,8 +3724,8 @@ class CodeGenWalker {
       // Fill-all: [0*] -> {0}
       const fillValue = this.generateExpression(ctx.expression()!);
       // Store element count as 0 to signal fill-all (size comes from declaration)
-      CodeGenState.lastArrayInitCount = 0;
-      CodeGenState.lastArrayFillValue = fillValue;
+      this.host.state.lastArrayInitCount = 0;
+      this.host.state.lastArrayFillValue = fillValue;
       return `{${fillValue}}`;
     }
 
@@ -3711,8 +3749,8 @@ class CodeGenWalker {
     }
 
     // Store element count for size inference
-    CodeGenState.lastArrayInitCount = generatedElements.length;
-    CodeGenState.lastArrayFillValue = undefined;
+    this.host.state.lastArrayInitCount = generatedElements.length;
+    this.host.state.lastArrayFillValue = undefined;
 
     return `{${generatedElements.join(", ")}}`;
   }
@@ -3778,7 +3816,10 @@ class CodeGenWalker {
     const callbackInfo =
       paramIndex === undefined
         ? null
-        : FunctionContextManager.getCallbackTypedefParamInfo(paramIndex);
+        : FunctionContextManager.getCallbackTypedefParamInfo(
+            paramIndex,
+            this.host.state,
+          );
     const isPassByValue = callbackInfo
       ? !callbackInfo.isParamPointer
       : this._isPassByValueType(typeName, name);
@@ -3789,21 +3830,24 @@ class CodeGenWalker {
     // suppressed it for every parameter of the function -- `error: conflicting
     // types`, the same defect one parameter over.
     const isCallbackCompatible =
-      FunctionContextManager.callbackTypedefType() !== undefined;
+      FunctionContextManager.callbackTypedefType(this.host.state) !== undefined;
 
     // Build normalized input using adapter
     // Issue #895: Force pass-by-reference and const from typedef signature
     const forcePassByReference = callbackInfo?.isParamPointer ?? false;
     const forceConst = callbackInfo?.isParamConst ?? false;
     const input = ParameterInputAdapter.fromAST(this.planParameter(ctx), {
-      callbackTypes: CodeGenState.callbackTypes,
+      callbackTypes: this.host.state.callbackTypes,
       isKnownStruct: (t) => {
         if (this.host.isKnownStruct(t)) return true;
         // ADR-057: check qualified name for scope-local struct types only
-        const qualified = CodeGenState.currentScopePath
-          ? QualifiedNameGenerator.forMember(CodeGenState.currentScopePath, t)
+        const qualified = this.host.state.currentScopePath
+          ? QualifiedNameGenerator.forMember(
+              this.host.state.currentScopePath,
+              t,
+            )
           : t;
-        return CodeGenState.symbols?.knownStructs.has(qualified) ?? false;
+        return this.host.state.symbols?.knownStructs.has(qualified) ?? false;
       },
       typeMap: TYPE_MAP,
       isModified,
@@ -3812,19 +3856,22 @@ class CodeGenWalker {
       forcePassByReference,
       forceConst,
       isTypedefStructType: (t) =>
-        CodeGenState.symbolTable?.isTypedefStructType(t) ?? false,
+        this.host.state.symbolTable?.isTypedefStructType(t) ?? false,
       // #1545: the one named accessor, which is also what _isPassByValueType
       // asks, so the auto-const rule and the pass-by-value decision cannot
       // disagree about what an enum is. `t` arrives from getTypeName, which
       // resolves through the ADR-057 isScopeType predicate, so this is already
       // the qualified lookup the scope rule calls for.
-      isKnownEnum: (t) => CodeGenState.isKnownEnum(t),
+      isKnownEnum: (t) => this.host.state.isKnownEnum(t),
       // Issue #995: Opaque handles should not get auto-const
-      isOpaqueType: (t) => CodeGenState.isOpaqueType(t),
+      isOpaqueType: (t) => this.host.state.isOpaqueType(t),
     });
 
     // Use shared builder with C/C++ mode
-    return ParameterSignatureBuilder.build(input, CppModeHelper.refOrPtr());
+    return ParameterSignatureBuilder.build(
+      input,
+      CppModeHelper.refOrPtr(this.host.state),
+    );
   }
 
   /**
@@ -3890,7 +3937,7 @@ class CodeGenWalker {
 
     const folded = ArrayDimensionParser.parseSingleDimension(
       expression,
-      dimensionEvalOptions(),
+      dimensionEvalOptions(this.renderState),
     );
     return folded === undefined
       ? this.generateExpression(expression)
@@ -3904,14 +3951,15 @@ class CodeGenWalker {
     // ISR, float, enum types
     if (typeName === "ISR") return true;
     if (this._isFloatType(typeName)) return true;
-    if (CodeGenState.symbols?.knownEnums.has(typeName)) return true;
+    if (this.host.state.symbols?.knownEnums.has(typeName)) return true;
 
     // Small unmodified primitives
     if (
-      CodeGenState.currentFunctionName &&
+      this.host.state.currentFunctionName &&
       PassByValueAnalyzer.isParameterPassByValueByName(
-        CodeGenState.currentFunctionName,
+        this.host.state.currentFunctionName,
         name,
+        this.host.state,
       )
     ) {
       return true;
@@ -3938,7 +3986,7 @@ class CodeGenWalker {
     // (`isKnownStruct`) is the one no fixture satisfies.
     //
     // #1545 attempted to route this through
-    // `CodeGenState.callbackTypedefTypeFor` so that "is this function
+    // `this.host.state.callbackTypedefTypeFor` so that "is this function
     // callback-compatible" had ONE spelling. Reverted here on the reasoning
     // directly above: requiring the typedef type to resolve would make this
     // branch unreachable in precisely the case it exists to serve. The
@@ -3947,10 +3995,10 @@ class CodeGenWalker {
     // decided -- for both, in one place, rather than by quietly aligning the
     // spellings here.
     if (
-      CodeGenState.currentFunctionName &&
-      CodeGenState.program
+      this.host.state.currentFunctionName &&
+      this.host.state.program
         ?.callbackCompatibleFunctions()
-        .has(CodeGenState.currentFunctionName) &&
+        .has(this.host.state.currentFunctionName) &&
       this.host.isKnownStruct(typeName)
     ) {
       return true;
@@ -3986,9 +4034,9 @@ class CodeGenWalker {
     // Issue #852 (MISRA Rule 8.5): hasInitializer and cppMode drive extern
     const modifiers = VariableModifierBuilder.build(
       ctx,
-      CodeGenState.inFunctionBody,
+      this.host.state.inFunctionBody,
       ctx.expression() !== null,
-      CodeGenState.cppMode,
+      this.host.state.cppMode,
     );
 
     const name = ctx.IDENTIFIER().getText();
@@ -4006,7 +4054,7 @@ class CodeGenWalker {
     // declaration is assembled -- a second call would be a second place
     // deciding the same thing. Registries keep the source name; only the
     // generated text moves.
-    const emittedName = CodeGenState.emittedLocalName(name);
+    const emittedName = this.host.state.emittedLocalName(name);
 
     // Issue #895 Bug B: If type was inferred as pointer, mark it in the registry
     if (type.endsWith("*")) {
@@ -4069,11 +4117,11 @@ class CodeGenWalker {
     const args = argListCtx.IDENTIFIER().map((argNode) => {
       const argName = argNode.getText();
       const isFileScope =
-        CodeGenState.getVariableTypeInfo(argName) !== undefined;
-      return isFileScope || !CodeGenState.currentScopePath
+        this.host.state.getVariableTypeInfo(argName) !== undefined;
+      return isFileScope || !this.host.state.currentScopePath
         ? argName
         : QualifiedNameGenerator.forMember(
-            CodeGenState.currentScopePath,
+            this.host.state.currentScopePath,
             argName,
           );
     });
@@ -4082,7 +4130,7 @@ class CodeGenWalker {
     // `isExternalCppType` flag here; it was written at this one site and read
     // at none, from #375 (closed 2026-01-24) until it was removed. knip does
     // not analyze interface members, so nothing reported it.
-    CodeGenState.setVariableTypeInfo(name, {
+    this.host.state.setVariableTypeInfo(name, {
       baseType: type,
       bitWidth: 0, // Unknown for C++ types
       isArray: false,
@@ -4091,15 +4139,15 @@ class CodeGenWalker {
     });
 
     // Track as local variable if inside function body
-    if (CodeGenState.inFunctionBody) {
-      CodeGenState.registerLocalVariable(name);
+    if (this.host.state.inFunctionBody) {
+      this.host.state.registerLocalVariable(name);
     }
 
     return {
       kind: "constructor",
       type,
       // ADR-057: emit under the name registration decided on, not the source one.
-      emittedName: CodeGenState.emittedLocalName(name),
+      emittedName: this.host.state.emittedLocalName(name),
       args,
     };
   }
@@ -4182,8 +4230,7 @@ class CodeGenWalker {
       // methods that had to be kept in step by hand, and the comment saying so
       // is what this deletes.
       declaredSize:
-        CodeGenWalker.foldFirstDimension(typeDims) ??
-        CodeGenWalker.foldFirstDimension(arrayDims),
+        this.foldFirstDimension(typeDims) ?? this.foldFirstDimension(arrayDims),
       // One renderer for the type's dimensions, not two. This used to call a
       // private twin of `ArrayDimensionUtils.renderArrayTypeDimensions` that
       // re-derived the same rule -- fold a constant, else generate, `[]` when
@@ -4212,7 +4259,7 @@ class CodeGenWalker {
    * used to expand a fill-all must equal the size emitted in the declarator, or
    * the array is the declared length with the wrong contents (#1644).
    */
-  private static foldFirstDimension(
+  private foldFirstDimension(
     dims: readonly {
       expression(): Parser.ExpressionContext | null;
     }[],
@@ -4224,7 +4271,7 @@ class CodeGenWalker {
     return (
       ArrayDimensionParser.parseSingleDimension(
         sizeExpr,
-        dimensionEvalOptions(),
+        dimensionEvalOptions(this.renderState),
       ) ?? null
     );
   }
@@ -4356,7 +4403,7 @@ class CodeGenWalker {
         // initialized") and which CLAUDE.md rules out.
         const folded = ArrayDimensionParser.parseSingleDimension(
           sizeExpr,
-          dimensionEvalOptions(),
+          dimensionEvalOptions(this.renderState),
         );
         dimensions += `[${folded ?? sizeExpr.getText()}]`;
       } else {
@@ -4376,7 +4423,7 @@ class CodeGenWalker {
       // #1644: the SAME call the loop above renders the declarator with. The
       // size used to expand a fill-all must equal the size emitted in `[...]`,
       // or the array is the declared length with the wrong contents.
-      declaredSize: CodeGenWalker.foldFirstDimension(dims),
+      declaredSize: this.foldFirstDimension(dims),
       renderInit: expression ? () => this.generateExpression(expression) : null,
     };
   }
@@ -4403,7 +4450,7 @@ class CodeGenWalker {
     const type = this.generateDeclaredType(ctx.type());
 
     // Issue #958: C-header typedef struct types always need pointer semantics
-    if (CodeGenState.symbolTable?.isTypedefStructType(type)) {
+    if (this.host.state.symbolTable?.isTypedefStructType(type)) {
       return `${type}*`;
     }
 
@@ -4449,7 +4496,7 @@ class CodeGenWalker {
     }
 
     // Look up C function in symbol table
-    const cFunc = CodeGenState.symbolTable?.getCSymbol(funcName);
+    const cFunc = this.host.state.symbolTable?.getCSymbol(funcName);
     if (cFunc?.kind !== "function") {
       return null;
     }
@@ -4542,7 +4589,7 @@ class CodeGenWalker {
     }
 
     // Verify this is actually a C function (not a C-Next scope function)
-    const cFunc = CodeGenState.symbolTable?.getCSymbol(funcName);
+    const cFunc = this.host.state.symbolTable?.getCSymbol(funcName);
     if (cFunc?.kind === "function") {
       return funcName;
     }
@@ -4564,22 +4611,26 @@ class CodeGenWalker {
     ctx: Parser.VariableDeclarationContext,
     name: string,
   ): void {
-    if (!CodeGenState.inFunctionBody) {
+    if (!this.host.state.inFunctionBody) {
       return;
     }
 
-    TypeRegistrationEngine.trackVariable(ctx, {
-      tryEvaluateConstant: (expr) => this.tryEvaluateConstant(expr),
-      requireInclude: (header) => this.host.state.requireInclude(header),
-      resolveQualifiedType: (ids) => this.resolveQualifiedType(ids),
-    });
-    CodeGenState.registerLocalVariable(name);
+    TypeRegistrationEngine.trackVariable(
+      ctx,
+      {
+        tryEvaluateConstant: (expr) => this.tryEvaluateConstant(expr),
+        requireInclude: (header) => this.host.state.requireInclude(header),
+        resolveQualifiedType: (ids) => this.resolveQualifiedType(ids),
+      },
+      this.host.state,
+    );
+    this.host.state.registerLocalVariable(name);
 
     // Bug #8: Track local const values for array size and bit index resolution
     if (ctx.constModifier() && ctx.expression()) {
       const constValue = this.tryEvaluateConstant(ctx.expression()!);
       if (constValue !== undefined) {
-        CodeGenState.constValues.set(name, constValue);
+        this.host.state.constValues.set(name, constValue);
       }
     }
   }
@@ -4590,9 +4641,9 @@ class CodeGenWalker {
    * (e.g., initialized from a C function returning T*).
    */
   private _markVariableAsPointer(name: string): void {
-    const typeInfo = CodeGenState.getVariableTypeInfo(name);
+    const typeInfo = this.host.state.getVariableTypeInfo(name);
     if (typeInfo) {
-      CodeGenState.setVariableTypeInfo(name, {
+      this.host.state.setVariableTypeInfo(name, {
         ...typeInfo,
         isPointer: true,
       });
@@ -4608,7 +4659,7 @@ class CodeGenWalker {
     enumName: string,
     separator: string = QualifiedCName.SEPARATOR,
   ): string {
-    const members = CodeGenState.symbols!.enumMembers.get(enumName);
+    const members = this.host.state.symbols!.enumMembers.get(enumName);
     if (!members) {
       return `(${enumName})0`;
     }
@@ -4644,8 +4695,10 @@ class CodeGenWalker {
     // grammar from ~3000 lines away, and getting it wrong fails open.
     const name = TypeBinding.resolveNamedType(
       typeCtx,
-      CodeGenState.currentScopePath,
-      CodeGenState.typeBindingDeps((parts) => this.resolveQualifiedType(parts)),
+      this.host.state.currentScopePath,
+      this.host.state.typeBindingDeps((parts) =>
+        this.resolveQualifiedType(parts),
+      ),
     );
     if (name === null) {
       return null;
@@ -4666,9 +4719,9 @@ class CodeGenWalker {
    * Analyze a member chain target to detect bit access at the end.
    * Issue #644: Delegates to MemberChainAnalyzer.
    */
-  /** Public for handler access via CodeGenState.generator */
+  /** Public for handler access via this.host.state.generator */
   /**
-   * Dispatched through `ICodeGenApi` via `CodeGenState.requireGenerator()`, so
+   * Dispatched through `ICodeGenApi` via `this.host.state.requireGenerator()`, so
    * no call site ever names this class. knip cannot follow that indirection.
    *
    * @public
@@ -4679,6 +4732,7 @@ class CodeGenWalker {
     return MemberChainAnalyzer.analyze(
       targetCtx.IDENTIFIER()?.getText() ?? null,
       targetCtx.postfixTargetOp().map((op) => this.planTargetOp(op)),
+      this.host.state,
     );
   }
 
@@ -4722,14 +4776,19 @@ class CodeGenWalker {
       baseId && postfixOps.length > 0
         ? analyzePostfixOps(baseId, postfixOps)
         : { identifiers: [] as string[], hasSubscript: false };
-    const resolved = AssignmentExpectedTypeResolver.resolve({
-      baseId,
-      identifiers: chain.identifiers,
-      hasSubscript: chain.hasSubscript,
-      // the `[offset, length]` slice / bit-range form
-      hasRangeSubscript: postfixOps.some((op) => op.expression().length === 2),
-      hasPostfixOps: postfixOps.length > 0,
-    });
+    const resolved = AssignmentExpectedTypeResolver.resolve(
+      {
+        baseId,
+        identifiers: chain.identifiers,
+        hasSubscript: chain.hasSubscript,
+        // the `[offset, length]` slice / bit-range form
+        hasRangeSubscript: postfixOps.some(
+          (op) => op.expression().length === 2,
+        ),
+        hasPostfixOps: postfixOps.length > 0,
+      },
+      this.host.state,
+    );
     if (resolved.assignmentContext) {
       this.host.state.assignmentContext = resolved.assignmentContext;
     }
@@ -4764,7 +4823,7 @@ class CodeGenWalker {
     if (targetCtx.postfixTargetOp().length === 0) {
       const assignedName = targetCtx.IDENTIFIER()?.getText();
       if (assignedName !== undefined) {
-        CodeGenState.floatShadowCurrent.delete(
+        this.host.state.floatShadowCurrent.delete(
           BitRangeHelper.getShadowVarName(assignedName),
         );
       }
@@ -4773,7 +4832,8 @@ class CodeGenWalker {
     // ADR-065: Dispatch to assignment handlers
     // Build context, classify, and dispatch - all patterns handled by handlers
     const assignCtx = buildAssignmentContext(ctx, {
-      typeRegistry: CodeGenState.getTypeRegistryView(),
+      typeRegistry: this.host.state.getTypeRegistryView(),
+      state: this.host.state,
       // Already rendered, inside the expectedType window above -- never again.
       generatedValue: () => value,
       generateAssignmentTarget: (target) =>
@@ -4782,14 +4842,18 @@ class CodeGenWalker {
         this.analyzeMemberChainForBitAccess(target),
       generateExpression: (expr) => this.generateExpression(expr),
       tryEvaluateConstant: (expr) => this.tryEvaluateConstant(expr),
-      expressionType: (expr) => ExpressionTypeResolver.getExpressionType(expr),
+      expressionType: (expr) =>
+        ExpressionTypeResolver.getExpressionType(expr, this.host.state),
       integerExpressionType: (expr) =>
-        ExpressionTypeResolver.getIntegerExpressionType(expr),
+        ExpressionTypeResolver.getIntegerExpressionType(expr, this.host.state),
       toCOperator: (cnextOp, line) =>
         AssignmentOperatorMapper.toCOperator(cnextOp, line),
     });
     // ADR-065: Handlers access CodeGenState directly, no deps needed
-    const assignmentKind = AssignmentClassifier.classify(assignCtx);
+    const assignmentKind = AssignmentClassifier.classify(
+      assignCtx,
+      this.host.state,
+    );
     const handler = AssignmentHandlerRegistry.getHandler(assignmentKind);
     return handler(assignCtx);
   }
@@ -4800,19 +4864,21 @@ class CodeGenWalker {
   private _buildSimpleIdentifierDeps(): ISimpleIdentifierDeps {
     return {
       getParameterInfo: (name: string) =>
-        CodeGenState.currentParameters.get(name),
+        this.host.state.currentParameters.get(name),
       resolveParameter: (name: string, paramInfo: TParameterInfo) =>
         ParameterDereferenceResolver.resolve(
           name,
           paramInfo,
           this._buildParameterDereferenceDeps(),
         ),
-      isLocalVariable: (name: string) => CodeGenState.localVariables.has(name),
+      isLocalVariable: (name: string) =>
+        this.host.state.localVariables.has(name),
       resolveBareIdentifier: (name: string, isLocal: boolean, line?: number) =>
         TypeValidator.resolveBareIdentifier(
           name,
           isLocal,
           (n: string) => this.host.isKnownStruct(n),
+          this.host.state,
           line,
         ),
     };
@@ -4845,7 +4911,7 @@ class CodeGenWalker {
     hasGlobal: boolean,
     hasThis: boolean,
   ): IPostfixChainDeps {
-    const paramInfo = CodeGenState.currentParameters.get(firstId);
+    const paramInfo = this.host.state.currentParameters.get(firstId);
     const isStructParam = paramInfo?.isStruct ?? false;
     const isCppAccess = hasGlobal && this.host.isCppScopeSymbol(firstId);
     const separatorDeps = this._buildMemberSeparatorDeps();
@@ -4858,7 +4924,7 @@ class CodeGenWalker {
           firstId,
           hasGlobal,
           hasThis,
-          currentScopePath: CodeGenState.currentScopePath,
+          currentScopePath: this.host.state.currentScopePath,
           isStructParam,
           isCppAccess,
           forcePointerSemantics,
@@ -4914,10 +4980,17 @@ class CodeGenWalker {
     const statements = ctx.statement();
     const thenStmt = statements[0];
 
-    const lengthCounts = StringLengthCounter.countExpression(conditionCtx);
+    const lengthCounts = StringLengthCounter.countExpression(
+      conditionCtx,
+      this.host.state,
+    );
     const thenBlock = thenStmt.block();
     if (thenBlock) {
-      StringLengthCounter.countBlockInto(thenBlock, lengthCounts);
+      StringLengthCounter.countBlockInto(
+        thenBlock,
+        lengthCounts,
+        this.host.state,
+      );
     }
 
     return {
@@ -5223,12 +5296,12 @@ class CodeGenWalker {
    */
   private _resolveIdentifierExpression(id: string, line?: number): string {
     // Special case: main function's args parameter -> argv
-    if (CodeGenState.mainArgsName && id === CodeGenState.mainArgsName) {
+    if (this.host.state.mainArgsName && id === this.host.state.mainArgsName) {
       return "argv";
     }
 
     // ADR-006: Check if it's a function parameter
-    const paramInfo = CodeGenState.currentParameters.get(id);
+    const paramInfo = this.host.state.currentParameters.get(id);
     if (paramInfo) {
       return ParameterDereferenceResolver.resolve(
         id,
@@ -5238,17 +5311,18 @@ class CodeGenWalker {
     }
 
     // ADR-016: Resolve bare identifier using local -> scope -> global priority
-    const isLocalVariable = CodeGenState.localVariables.has(id);
+    const isLocalVariable = this.host.state.localVariables.has(id);
     const resolved = TypeValidator.resolveBareIdentifier(
       id,
       isLocalVariable,
       (name: string) => this.host.isKnownStruct(name),
+      this.host.state,
       line,
     );
     if (resolved !== null) {
       // Issue #741: Check if this is a private const that should be inlined
       const constValue =
-        CodeGenState.symbols!.scopePrivateConstValues.get(resolved);
+        this.host.state.symbols!.scopePrivateConstValues.get(resolved);
       if (constValue !== undefined) {
         return constValue;
       }
@@ -5277,9 +5351,9 @@ class CodeGenWalker {
     } else if (
       // Type-aware resolution: check only the expected enum type
       this.host.state.expectedType &&
-      CodeGenState.symbols!.knownEnums.has(this.host.state.expectedType)
+      this.host.state.symbols!.knownEnums.has(this.host.state.expectedType)
     ) {
-      const members = CodeGenState.symbols!.enumMembers.get(
+      const members = this.host.state.symbols!.enumMembers.get(
         this.host.state.expectedType,
       );
       if (members?.has(id)) {
@@ -5294,7 +5368,7 @@ class CodeGenWalker {
     // 2.1 (ADR-017). Reaching here with a match means the emission would put a
     // bare `RED` into C, so it is asserted rather than guessed at.
     const matchingEnums: string[] = [];
-    for (const [enumName, members] of CodeGenState.symbols!.enumMembers) {
+    for (const [enumName, members] of this.host.state.symbols!.enumMembers) {
       if (members.has(id)) {
         matchingEnums.push(enumName);
       }
@@ -5312,12 +5386,16 @@ class CodeGenWalker {
    * Uses extracted literal generator
    */
   private _generateLiteralExpression(ctx: Parser.LiteralContext): string {
-    const result = generateLiteral(ctx.getText(), this.host.getState());
+    const result = generateLiteral(
+      ctx.getText(),
+      this.host.getState(),
+      this.renderState,
+    );
     this.host.applyEffects(result.effects);
 
     // Issue #304/#644: Transform NULL → nullptr in C++ mode
     if (result.code === "NULL") {
-      return CppModeHelper.nullLiteral();
+      return CppModeHelper.nullLiteral(this.host.state);
     }
 
     return result.code;
@@ -5349,10 +5427,13 @@ class CodeGenWalker {
 
   /**
    * ADR-023: Generate sizeof expression
-   * Delegates to SizeofResolver which uses CodeGenState.
+   * Delegates to SizeofResolver which uses this.host.state.
    */
   private generateSizeofExpr(ctx: Parser.SizeofExpressionContext): string {
-    return SizeofResolver.generate(this.planSizeofOperand(ctx));
+    return SizeofResolver.generate(
+      this.planSizeofOperand(ctx),
+      this.host.state,
+    );
   }
 
   /**

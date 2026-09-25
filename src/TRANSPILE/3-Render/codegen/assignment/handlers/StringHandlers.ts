@@ -14,9 +14,9 @@ import IAssignmentContext from "../../../../../transpiler/types/IAssignmentConte
 import StringUtils from "../../../../../utils/StringUtils";
 import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
-import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 import invariant from "../../../../../utils/invariant";
 import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator";
+import type RenderState from "../../../RenderState";
 
 // #1322: `validateNotCompound` is gone -- E0857 in pass 2.1. It was defined
 // here AND in the sibling handler, verbatim: one rule, two copies, in a group
@@ -29,8 +29,8 @@ import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator"
  * builds differs -- bare, scope-qualified, or an array's base name -- but the
  * question and its answer do not, so only the key is the caller's business.
  */
-function capacityOf(registryKey: string): number {
-  const typeInfo = CodeGenState.getVariableTypeInfo(registryKey);
+function capacityOf(registryKey: string, state: RenderState): number {
+  const typeInfo = state.getVariableTypeInfo(registryKey);
   return typeInfo!.stringCapacity!;
 }
 
@@ -49,7 +49,7 @@ function copyIntoAssignmentTarget(
   ctx: IAssignmentContext,
   registryKey: string,
 ): string {
-  const capacity = capacityOf(registryKey);
+  const capacity = capacityOf(registryKey, ctx.state);
 
   const target = ctx.renderTarget();
   return StringUtils.copyWithNull(target, ctx.generatedValue, capacity);
@@ -61,7 +61,7 @@ function copyIntoAssignmentTarget(
  * corrected the reason I first wrote here.
  *
  * `needsString` is not settled early. It is OVER-DETERMINED: instrumenting
- * `CodeGenState.requireInclude` shows three independent channels raising it
+ * `ctx.state.requireInclude` shows three independent channels raising it
  * across the corpus -- the effect channel during expression rendering (632
  * raises), `CodeGenerator.generateType` (~499), and type registration (460).
  * Any one of them can be removed and the flag is still true, which is exactly
@@ -90,10 +90,14 @@ function handleSimpleStringAssignment(ctx: IAssignmentContext): string {
  *
  * Shared helper for struct field string handlers.
  */
-function getStructFieldType(structName: string, fieldName: string): string {
+function getStructFieldType(
+  structName: string,
+  fieldName: string,
+  state: RenderState,
+): string {
   // Issue #831: Use SymbolTable as single source of truth for struct fields
-  const structType = getStructType(structName);
-  const fieldType = CodeGenState.symbolTable?.getStructFieldType(
+  const structType = getStructType(structName, state);
+  const fieldType = state.symbolTable?.getStructFieldType(
     structType,
     fieldName,
   );
@@ -114,8 +118,8 @@ function getStructFieldType(structName: string, fieldName: string): string {
  *
  * Shared helper for struct field handlers.
  */
-function getStructType(structName: string): string {
-  const structTypeInfo = CodeGenState.getVariableTypeInfo(structName);
+function getStructType(structName: string, state: RenderState): string {
+  const structTypeInfo = state.getVariableTypeInfo(structName);
   // #1322: classified "dead -- delete" by #1321's audit, and it is indeed
   // unreachable: STRING_STRUCT_FIELD is produced only via
   // `AssignmentClassifier._resolveStructType`, which runs the identical
@@ -142,7 +146,7 @@ function handleStringThisMember(ctx: IAssignmentContext): string {
   // alongside a claim that had gone false ("leaf key, matching forMember"); the
   // false half deserved deleting and this half did not.
   const scopedName = QualifiedNameGenerator.forMember(
-    CodeGenState.currentScopePath,
+    ctx.state.currentScopePath,
     memberName,
   );
   return copyIntoAssignmentTarget(ctx, scopedName);
@@ -155,7 +159,7 @@ function handleStringStructField(ctx: IAssignmentContext): string {
   const structName = ctx.identifiers[0];
   const fieldName = ctx.identifiers[1];
 
-  const fieldType = getStructFieldType(structName, fieldName);
+  const fieldType = getStructFieldType(structName, fieldName, ctx.state);
   const capacity = TypeCheckUtils.getStringCapacity(fieldType)!;
 
   return StringUtils.copyToStructField(
@@ -171,7 +175,7 @@ function handleStringStructField(ctx: IAssignmentContext): string {
  */
 function handleStringArrayElement(ctx: IAssignmentContext): string {
   const name = ctx.identifiers[0];
-  const capacity = capacityOf(name);
+  const capacity = capacityOf(name, ctx.state);
 
   const index = ctx.renderSubscript(0);
   return StringUtils.copyToArrayElement(
@@ -189,9 +193,10 @@ function handleStringStructArrayElement(ctx: IAssignmentContext): string {
   const structName = ctx.identifiers[0];
   const fieldName = ctx.identifiers[1];
 
-  const structType = getStructType(structName);
-  const dimensions =
-    CodeGenState.symbols!.structFieldDimensions.get(structType)?.get(fieldName);
+  const structType = getStructType(structName, ctx.state);
+  const dimensions = ctx.state
+    .symbols!.structFieldDimensions.get(structType)
+    ?.get(fieldName);
 
   // `_classifyStructArrayElementString` required `dimensions.length >= 1` from
   // the same map with the same keys before producing this kind.

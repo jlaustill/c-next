@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, beforeEach } from "vitest";
+import RenderState from "../../3-Render/RenderState";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import ConstAssignmentAnalyzer from "../ConstAssignmentAnalyzer";
@@ -16,10 +17,16 @@ import testAnalysisContext from "./testAnalysisContext";
  */
 const errors = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new ConstAssignmentAnalyzer(testAnalysisContext()).analyze(tree);
+  return new ConstAssignmentAnalyzer(testAnalysisContext(state)).analyze(tree);
 };
 
+let state: RenderState;
+
 describe("ConstAssignmentAnalyzer (E0877)", () => {
+  beforeEach(() => {
+    state = new RenderState();
+  });
+
   it("rejects every assignment operator on a const variable, at the target", () => {
     const found = errors(
       "const u32 K <- 1;\nvoid f() {\n    K <- 2;\n    K +<- 1;\n    K <<<- 1;\n}",

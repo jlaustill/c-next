@@ -20,13 +20,13 @@
  */
 
 import DeclaredTypeFacts from "../../../../utils/DeclaredTypeFacts";
-import CodeGenState from "../../../../transpiler/state/CodeGenState";
 import TYPE_WIDTH from "../../../../transpiler/constants/TYPE_WIDTH";
 import IFunctionContextCallbacks from "../types/IFunctionContextCallbacks";
 // Issue #895: Parse typedef signatures to determine pointer vs value params
 import TypedefParamParser from "./TypedefParamParser";
 import type IPlannedFunctionParameter from "../types/IPlannedFunctionParameter";
 import type IPlannedType from "../types/IPlannedType";
+import type RenderState from "../../RenderState";
 
 /**
  * Result from resolving parameter type information.
@@ -61,10 +61,11 @@ class FunctionContextManager {
     returnType: string,
     isMainWithArgs: boolean,
     firstParameterName: string | undefined,
+    state: RenderState,
   ): IReturnTypeAndParams {
     if (isMainWithArgs) {
       // Special case: main(u8 args[][]) -> int main(int argc, char *argv[])
-      CodeGenState.mainArgsName = firstParameterName ?? null;
+      state.mainArgsName = firstParameterName ?? null;
       return {
         actualReturnType: "int",
         initialParams: "int argc, char *argv[]",
@@ -82,12 +83,13 @@ class FunctionContextManager {
   static processParameterList(
     params: readonly IPlannedFunctionParameter[] | null,
     callbacks: IFunctionContextCallbacks,
+    state: RenderState,
   ): void {
-    CodeGenState.currentParameters.clear();
+    state.currentParameters.clear();
     if (!params) return;
 
     for (let i = 0; i < params.length; i++) {
-      FunctionContextManager.processParameter(params[i], callbacks, i);
+      FunctionContextManager.processParameter(params[i], callbacks, i, state);
     }
   }
 
@@ -98,6 +100,7 @@ class FunctionContextManager {
     param: IPlannedFunctionParameter,
     callbacks: IFunctionContextCallbacks,
     paramIndex: number,
+    state: RenderState,
   ): void {
     const { name, isArray, isConst } = param;
 
@@ -105,12 +108,13 @@ class FunctionContextManager {
     const typeInfo = FunctionContextManager.resolveParameterTypeInfo(
       param.type,
       callbacks,
+      state,
     );
 
     // Issue #895: For callback-compatible functions, check the typedef signature
     // to determine if the param should be a pointer or value
     const callbackTypedefInfo =
-      FunctionContextManager.getCallbackTypedefParamInfo(paramIndex);
+      FunctionContextManager.getCallbackTypedefParamInfo(paramIndex, state);
     const isCallbackPointerParam = callbackTypedefInfo?.isParamPointer ?? false;
 
     // Issue #958: Check if type is a typedef'd struct from C headers
@@ -144,7 +148,7 @@ class FunctionContextManager {
       !typeInfo.isStruct &&
       !isArray &&
       !typeInfo.isString &&
-      !CodeGenState.isOpaqueType(typeInfo.typeName);
+      !state.isOpaqueType(typeInfo.typeName);
 
     // Issue #958: typedef struct params need pointer semantics (like callback pointer params)
     const forcePointerSemantics = isCallbackPointerParam || isTypedefStruct;
@@ -162,12 +166,13 @@ class FunctionContextManager {
       // Issue #895/#958: Force pointer semantics for callback-compatible and typedef struct params
       forcePointerSemantics,
     };
-    CodeGenState.currentParameters.set(name, paramInfo);
+    state.currentParameters.set(name, paramInfo);
 
     // Register in typeRegistry
     FunctionContextManager.registerParameterType(
       typeInfo,
       param,
+      state,
       isTypedefStruct,
     );
   }
@@ -194,6 +199,7 @@ class FunctionContextManager {
   static resolveParameterTypeInfo(
     type: IPlannedType,
     callbacks: IFunctionContextCallbacks,
+    state: RenderState,
   ): IParameterTypeInfo {
     if (type.isString) {
       return {
@@ -230,7 +236,7 @@ class FunctionContextManager {
     return {
       typeName,
       isStruct: callbacks.isStructType(typeName),
-      isCallback: CodeGenState.callbackTypes.has(typeName),
+      isCallback: state.callbackTypes.has(typeName),
       isString: false,
     };
   }
@@ -241,6 +247,7 @@ class FunctionContextManager {
   static registerParameterType(
     typeInfo: IParameterTypeInfo,
     param: IPlannedFunctionParameter,
+    state: RenderState,
     isTypedefStruct = false,
   ): void {
     const { typeName, isString } = typeInfo;
@@ -248,7 +255,7 @@ class FunctionContextManager {
 
     const declared = DeclaredTypeFacts.of(
       typeName,
-      CodeGenState.symbols,
+      state.symbols,
       TYPE_WIDTH[typeName] || 0,
     );
 
@@ -276,7 +283,7 @@ class FunctionContextManager {
       // Issue #958: typedef struct params are already pointers — prevent &arg in call sites
       ...(isTypedefStruct && { isPointer: true }),
     };
-    CodeGenState.setVariableTypeInfo(name, registeredType);
+    state.setVariableTypeInfo(name, registeredType);
   }
 
   /**
@@ -294,15 +301,13 @@ class FunctionContextManager {
    * `void onTwo(char* msg, char* tag)` -- `error: conflicting types`, which is
    * the defect #1545 exists to remove, one parameter over.
    */
-  static callbackTypedefType(): string | undefined {
-    if (CodeGenState.currentFunctionName === null) return undefined;
+  static callbackTypedefType(state: RenderState): string | undefined {
+    if (state.currentFunctionName === null) return undefined;
 
     // #1545 review: delegates rather than restating the two steps. This is the
-    // current-function convenience over CodeGenState.callbackTypedefTypeFor,
+    // current-function convenience over state.callbackTypedefTypeFor,
     // which is the one home for the predicate.
-    return CodeGenState.callbackTypedefTypeFor(
-      CodeGenState.currentFunctionName,
-    );
+    return state.callbackTypedefTypeFor(state.currentFunctionName);
   }
 
   /**
@@ -311,11 +316,12 @@ class FunctionContextManager {
    */
   static getCallbackTypedefParamInfo(
     paramIndex: number,
+    state: RenderState,
   ): { isParamPointer: boolean; isParamConst: boolean } | null {
     // main's renamed result fields (#1450), with #1545's extracted lookup --
-    // the two steps live in CodeGenState.callbackTypedefTypeFor now, so this
+    // the two steps live in state.callbackTypedefTypeFor now, so this
     // site and the header's cannot spell the predicate differently.
-    const typedefType = FunctionContextManager.callbackTypedefType();
+    const typedefType = FunctionContextManager.callbackTypedefType(state);
     if (!typedefType) return null;
 
     const isParamPointer = TypedefParamParser.isParamPointer(
@@ -338,30 +344,30 @@ class FunctionContextManager {
   /**
    * Clear parameter tracking when leaving a function.
    */
-  static clearParameters(): void {
+  static clearParameters(state: RenderState): void {
     // ADR-025: Remove parameter types from typeRegistry
-    for (const name of CodeGenState.currentParameters.keys()) {
-      CodeGenState.deleteVariableTypeInfo(name);
+    for (const name of state.currentParameters.keys()) {
+      state.deleteVariableTypeInfo(name);
     }
-    CodeGenState.currentParameters.clear();
-    CodeGenState.localArrays.clear();
+    state.currentParameters.clear();
+    state.localArrays.clear();
   }
 
   /**
    * Enter function body - clears local variables and sets inFunctionBody flag.
    * This is a simpler version used when only body lifecycle is needed.
    */
-  static enterFunctionBody(): void {
-    CodeGenState.enterFunctionBody();
+  static enterFunctionBody(state: RenderState): void {
+    state.enterFunctionBody();
   }
 
   /**
    * Exit function body - clears local variables and inFunctionBody flag.
    * This is a simpler version used when only body lifecycle is needed.
    */
-  static exitFunctionBody(): void {
-    CodeGenState.mainArgsName = null;
-    CodeGenState.exitFunctionBody();
+  static exitFunctionBody(state: RenderState): void {
+    state.mainArgsName = null;
+    state.exitFunctionBody();
   }
 }
 

@@ -16,10 +16,9 @@ import generateTernaryExpr from "../ExpressionGenerator";
 import IGeneratorInput from "../../IGeneratorInput";
 import IGeneratorState from "../../IGeneratorState";
 import IOrchestrator from "../../IOrchestrator";
-import CodeGenState from "../../../../../../transpiler/state/CodeGenState";
+import RenderState from "../../../../RenderState";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
 import type TPlannedTernary from "../../../types/TPlannedTernary";
-import RenderState from "../../../../../../transpiler/state/RenderState";
 
 /** Minimal mock input. */
 function createMockInput(): IGeneratorInput {
@@ -131,7 +130,6 @@ describe("generateTernaryExpr", () => {
 
   describe("inDeclarationInit clearing (Issue #992)", () => {
     beforeEach(() => {
-      CodeGenState.reset();
       renderState = new RenderState();
     });
 

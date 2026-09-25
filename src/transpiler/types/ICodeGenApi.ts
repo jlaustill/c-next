@@ -5,7 +5,7 @@
  * Handlers cast CodeGenState.generator to this interface.
  */
 import type TTypeInfo from "./TTypeInfo";
-import type RenderState from "../state/RenderState";
+import type RenderState from "../../TRANSPILE/3-Render/RenderState";
 
 interface ICodeGenApi {
   /**

@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
 import helperGenerators from "../HelperGenerator";
-import CodeGenState from "../../../../../../transpiler/state/CodeGenState";
 
 const { generateOverflowHelpers, generateSafeDivHelpers } = helperGenerators;
 
@@ -10,9 +9,7 @@ const { generateOverflowHelpers, generateSafeDivHelpers } = helperGenerators;
  * leak today, which makes it a trap rather than a failure -- the same reason
  * CLAUDE.md already requires this for analyzer tests.
  */
-afterEach(() => {
-  CodeGenState.reset();
-});
+afterEach(() => {});
 
 describe("HelperGenerator - generateOverflowHelpers", () => {
   describe("empty input", () => {

@@ -2,13 +2,12 @@
  * Unit tests for ArrayInitHelper
  *
  * Issue #644: Tests for the extracted array initialization helper.
- * Migrated to use CodeGenState instead of constructor DI.
+ * Migrated to use RenderState instead of constructor DI.
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import ArrayInitHelper from "../ArrayInitHelper";
-import CodeGenState from "../../../../../transpiler/state/CodeGenState";
-import RenderState from "../../../../../transpiler/state/RenderState";
+import RenderState from "../../../RenderState";
 
 /**
  * Default callbacks for testing.
@@ -22,20 +21,23 @@ const defaultCallbacks = {
   generateArrayDimensions: vi.fn(() => "[3]"),
 };
 
+let state: RenderState;
+
 describe("ArrayInitHelper", () => {
   beforeEach(() => {
-    CodeGenState.reset();
+    state = new RenderState();
     vi.clearAllMocks();
   });
 
   describe("processArrayInit", () => {
     it("returns null when not an array initializer", () => {
-      // CodeGenState not modified by generateExpression mock (stays at 0)
+      // RenderState not modified by generateExpression mock (stays at 0)
       const result = ArrayInitHelper.processArrayInit(
         "arr",
         false,
         3,
         defaultCallbacks,
+        state,
       );
 
       expect(result).toBeNull();
@@ -43,7 +45,7 @@ describe("ArrayInitHelper", () => {
 
     it("handles size inference with array initializer", () => {
       // Add existing type to registry
-      CodeGenState.setVariableTypeInfo("arr", {
+      state.setVariableTypeInfo("arr", {
         baseType: "u8",
         bitWidth: 8,
         isArray: true,
@@ -54,7 +56,7 @@ describe("ArrayInitHelper", () => {
         state: new RenderState(),
         generateExpression: vi.fn(() => {
           // Simulate generateExpression setting array init state
-          CodeGenState.lastArrayInitCount = 3;
+          state.lastArrayInitCount = 3;
           return "{1, 2, 3}";
         }),
         getTypeName: vi.fn(() => "u8"),
@@ -66,20 +68,21 @@ describe("ArrayInitHelper", () => {
         true, // hasEmptyArrayDim
         null, // no declared size
         callbacks,
+        state,
       );
 
       expect(result).not.toBeNull();
       expect(result!.isArrayInit).toBe(true);
       expect(result!.dimensionSuffix).toBe("[3]");
       expect(result!.initValue).toBe("{1, 2, 3}");
-      expect(CodeGenState.localArrays.has("arr")).toBe(true);
+      expect(state.localArrays.has("arr")).toBe(true);
     });
 
     it("asserts, since #1322, that the fill-all form never reaches an inferred size (E0876 owns it)", () => {
       const callbacks = {
         state: new RenderState(),
         generateExpression: vi.fn(() => {
-          CodeGenState.lastArrayFillValue = "0";
+          state.lastArrayFillValue = "0";
           return "{0}";
         }),
         getTypeName: vi.fn(() => "u8"),
@@ -92,6 +95,7 @@ describe("ArrayInitHelper", () => {
           true, // hasEmptyArrayDim
           null,
           callbacks,
+          state,
         ),
       ).toThrow("E0876 rejects the fill-all form");
     });
@@ -100,7 +104,7 @@ describe("ArrayInitHelper", () => {
       const callbacks = {
         state: new RenderState(),
         generateExpression: vi.fn(() => {
-          CodeGenState.lastArrayInitCount = 2; // Only 2 elements
+          state.lastArrayInitCount = 2; // Only 2 elements
           return "{1, 2}";
         }),
         getTypeName: vi.fn(() => "u8"),
@@ -113,6 +117,7 @@ describe("ArrayInitHelper", () => {
           false,
           3, // declared size
           callbacks,
+          state,
         ),
       ).toThrow("E0866 rejects 2 for [3]");
     });
@@ -121,7 +126,7 @@ describe("ArrayInitHelper", () => {
       const callbacks = {
         state: new RenderState(),
         generateExpression: vi.fn(() => {
-          CodeGenState.lastArrayFillValue = "1";
+          state.lastArrayFillValue = "1";
           return "{1}";
         }),
         getTypeName: vi.fn(() => "u8"),
@@ -133,6 +138,7 @@ describe("ArrayInitHelper", () => {
         false,
         3,
         callbacks,
+        state,
       );
 
       expect(result).not.toBeNull();
@@ -143,7 +149,7 @@ describe("ArrayInitHelper", () => {
       const callbacks = {
         state: new RenderState(),
         generateExpression: vi.fn(() => {
-          CodeGenState.lastArrayFillValue = "0";
+          state.lastArrayFillValue = "0";
           return "{0}";
         }),
         getTypeName: vi.fn(() => "u8"),
@@ -155,6 +161,7 @@ describe("ArrayInitHelper", () => {
         false,
         3,
         callbacks,
+        state,
       );
 
       expect(result).not.toBeNull();

@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, beforeEach } from "vitest";
+import RenderState from "../../3-Render/RenderState";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import BitAccessAnalyzer from "../BitAccessAnalyzer";
@@ -12,10 +13,16 @@ import testAnalysisContext from "./testAnalysisContext";
  */
 const errors = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new BitAccessAnalyzer(testAnalysisContext()).analyze(tree);
+  return new BitAccessAnalyzer(testAnalysisContext(state)).analyze(tree);
 };
 
+let state: RenderState;
+
 describe("BitAccessAnalyzer (E0856)", () => {
+  beforeEach(() => {
+    state = new RenderState();
+  });
+
   it("rejects a second subscript on a scalar, as a read AND as a write", () => {
     // A target is an `assignmentTarget`, not a postfix expression -- a
     // different node type. Reading only expressions caught neither fixture.

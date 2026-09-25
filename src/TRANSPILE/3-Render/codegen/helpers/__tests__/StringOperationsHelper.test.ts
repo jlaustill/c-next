@@ -10,11 +10,11 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import StringOperationsHelper from "../StringOperationsHelper";
-import CodeGenState from "../../../../../transpiler/state/CodeGenState";
+import RenderState from "../../../RenderState";
 
 /** A declared `string<capacity>` in the render-time type registry. */
 function declareString(name: string, capacity: number): void {
-  CodeGenState.setVariableTypeInfo(name, {
+  state.setVariableTypeInfo(name, {
     baseType: "char",
     bitWidth: 8,
     isArray: true,
@@ -25,9 +25,11 @@ function declareString(name: string, capacity: number): void {
   });
 }
 
+let state: RenderState;
+
 describe("StringOperationsHelper", () => {
   beforeEach(() => {
-    CodeGenState.reset();
+    state = new RenderState();
   });
 
   // ========================================================================
@@ -36,12 +38,18 @@ describe("StringOperationsHelper", () => {
 
   describe("getStringExprCapacity", () => {
     it("returns literal length for string literal", () => {
-      const capacity = StringOperationsHelper.getStringExprCapacity('"hello"');
+      const capacity = StringOperationsHelper.getStringExprCapacity(
+        '"hello"',
+        state,
+      );
       expect(capacity).toBe(5);
     });
 
     it("returns literal length for empty string", () => {
-      const capacity = StringOperationsHelper.getStringExprCapacity('""');
+      const capacity = StringOperationsHelper.getStringExprCapacity(
+        '""',
+        state,
+      );
       expect(capacity).toBe(0);
     });
 
@@ -51,19 +59,22 @@ describe("StringOperationsHelper", () => {
       ["complex expression", "a + b"],
     ])("returns null for %s", (_label, expression) => {
       expect(
-        StringOperationsHelper.getStringExprCapacity(expression),
+        StringOperationsHelper.getStringExprCapacity(expression, state),
       ).toBeNull();
     });
 
     it("returns capacity from type registry for string variable", () => {
       declareString("myStr", 32);
 
-      const capacity = StringOperationsHelper.getStringExprCapacity("myStr");
+      const capacity = StringOperationsHelper.getStringExprCapacity(
+        "myStr",
+        state,
+      );
       expect(capacity).toBe(32);
     });
 
     it("returns null for non-string variable", () => {
-      CodeGenState.setVariableTypeInfo("myInt", {
+      state.setVariableTypeInfo("myInt", {
         baseType: "u32",
         bitWidth: 32,
         isArray: false,
@@ -71,7 +82,10 @@ describe("StringOperationsHelper", () => {
         isConst: false,
       });
 
-      const capacity = StringOperationsHelper.getStringExprCapacity("myInt");
+      const capacity = StringOperationsHelper.getStringExprCapacity(
+        "myInt",
+        state,
+      );
       expect(capacity).toBeNull();
     });
   });
@@ -90,6 +104,7 @@ describe("StringOperationsHelper", () => {
       const result = StringOperationsHelper.getStringConcatOperands(
         "str1",
         "str2",
+        state,
       );
 
       expect(result).toEqual({
@@ -104,6 +119,7 @@ describe("StringOperationsHelper", () => {
       const result = StringOperationsHelper.getStringConcatOperands(
         '"hello"',
         '"world"',
+        state,
       );
 
       expect(result).toEqual({
@@ -118,6 +134,7 @@ describe("StringOperationsHelper", () => {
       const result = StringOperationsHelper.getStringConcatOperands(
         "str1",
         '"hello-world"',
+        state,
       );
 
       expect(result).not.toBeNull();
@@ -130,7 +147,7 @@ describe("StringOperationsHelper", () => {
       ["only the right operand is a string", "5", "str2"],
     ])("returns null when %s", (_label, left, right) => {
       expect(
-        StringOperationsHelper.getStringConcatOperands(left, right),
+        StringOperationsHelper.getStringConcatOperands(left, right, state),
       ).toBeNull();
     });
   });
@@ -146,7 +163,11 @@ describe("StringOperationsHelper", () => {
 
     it("keeps both generated indexes for the [start, length] form", () => {
       expect(
-        StringOperationsHelper.getSubstringOperands("myStr", () => ["0", "5"]),
+        StringOperationsHelper.getSubstringOperands(
+          "myStr",
+          () => ["0", "5"],
+          state,
+        ),
       ).toEqual({
         source: "myStr",
         start: "0",
@@ -157,7 +178,11 @@ describe("StringOperationsHelper", () => {
 
     it("gives the single-index form a length of 1 (issue #140)", () => {
       expect(
-        StringOperationsHelper.getSubstringOperands("myStr", () => ["3"]),
+        StringOperationsHelper.getSubstringOperands(
+          "myStr",
+          () => ["3"],
+          state,
+        ),
       ).toEqual({
         source: "myStr",
         start: "3",
@@ -167,10 +192,11 @@ describe("StringOperationsHelper", () => {
     });
 
     it("carries generated code through, not source text", () => {
-      const ops = StringOperationsHelper.getSubstringOperands("myStr", () => [
-        "generated_idx",
-        "generated_len",
-      ]);
+      const ops = StringOperationsHelper.getSubstringOperands(
+        "myStr",
+        () => ["generated_idx", "generated_len"],
+        state,
+      );
 
       expect(ops).not.toBeNull();
       expect(ops!.start).toBe("generated_idx");
@@ -181,7 +207,7 @@ describe("StringOperationsHelper", () => {
       ["a non-string variable", "myInt"],
       ["an undeclared name", "unknown"],
     ])("returns null for %s", (_label, sourceName) => {
-      CodeGenState.setVariableTypeInfo("myInt", {
+      state.setVariableTypeInfo("myInt", {
         baseType: "u32",
         bitWidth: 32,
         isArray: false,
@@ -190,7 +216,11 @@ describe("StringOperationsHelper", () => {
       });
 
       expect(
-        StringOperationsHelper.getSubstringOperands(sourceName, () => ["0"]),
+        StringOperationsHelper.getSubstringOperands(
+          sourceName,
+          () => ["0"],
+          state,
+        ),
       ).toBeNull();
     });
 
@@ -210,6 +240,7 @@ describe("StringOperationsHelper", () => {
           generated += 1;
           return ["0", "5"];
         },
+        state,
       );
 
       expect(ops).toBeNull();

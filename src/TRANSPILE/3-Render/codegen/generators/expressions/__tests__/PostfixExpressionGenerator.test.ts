@@ -20,10 +20,9 @@ import type ICodeGenSymbols from "../../../../../../transpiler/types/ICodeGenSym
 import type TTypeInfo from "../../../../../../transpiler/types/TTypeInfo";
 import type TParameterInfo from "../../../../../../transpiler/types/TParameterInfo";
 import * as Parser from "../../../../../../PARSE/2-Parse/grammar/CNextParser";
-import CodeGenState from "../../../../../../transpiler/state/CodeGenState";
+import RenderState from "../../../../RenderState";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
 import createMockSymbols from "../../../../../../transpiler/__tests__/codeGenSymbolsHelpers";
-import RenderState from "../../../../../../transpiler/state/RenderState";
 
 // ========================================================================
 // Test Helpers - Mock Symbols
@@ -47,15 +46,17 @@ interface IPostfixPlannerStub {
   tryEvaluateConstant(ctx: Parser.ExpressionContext): number | undefined;
 }
 
+let sharedRenderState = new RenderState();
+
 function createMockInput(overrides?: {
   symbols?: ICodeGenSymbols;
   typeRegistry?: Map<string, TTypeInfo>;
 }): IGeneratorInput {
-  // Also populate CodeGenState with the type registry entries
-  // This is needed because PostfixExpressionGenerator now uses CodeGenState directly
+  // Also populate RenderState with the type registry entries
+  // This is needed because PostfixExpressionGenerator now uses RenderState directly
   const typeRegistry = overrides?.typeRegistry ?? new Map<string, TTypeInfo>();
   for (const [name, info] of typeRegistry) {
-    CodeGenState.setVariableTypeInfo(name, info);
+    sharedRenderState.setVariableTypeInfo(name, info);
   }
 
   return {
@@ -141,7 +142,7 @@ function createMockOrchestrator(overrides?: {
 }): IOrchestrator & IPostfixPlannerStub {
   return {
     // #1452: the generator reads render state off its orchestrator.
-    state: new RenderState(),
+    state: sharedRenderState,
     getInput: vi.fn(),
     getState: vi.fn(),
     applyEffects: vi.fn(),
@@ -366,9 +367,9 @@ function runPostfix(
 // ========================================================================
 
 describe("PostfixExpressionGenerator", () => {
-  // Reset CodeGenState before each test to avoid state pollution
+  // Reset RenderState before each test to avoid state pollution
   beforeEach(() => {
-    CodeGenState.reset();
+    sharedRenderState = new RenderState();
   });
 
   describe("basic expression generation", () => {

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
-import CodeGenState from "../../../transpiler/state/CodeGenState";
+import RenderState from "../../3-Render/RenderState";
 import BitmapAccessAnalyzer from "../BitmapAccessAnalyzer";
 import testAnalysisContext from "./testAnalysisContext";
 
@@ -16,7 +16,7 @@ import testAnalysisContext from "./testAnalysisContext";
  * is reached.
  */
 const symbols = (overrides: Record<string, unknown>) => {
-  CodeGenState.symbols = {
+  state.symbols = {
     knownStructs: new Set<string>(),
     knownEnums: new Set<string>(),
     knownScopes: new Set<string>(),
@@ -32,7 +32,7 @@ const symbols = (overrides: Record<string, unknown>) => {
     registerMemberTypes: new Map(),
     functionReturnTypes: new Map(),
     ...overrides,
-  } as unknown as typeof CodeGenState.symbols;
+  } as unknown as typeof state.symbols;
 };
 
 const flags = () =>
@@ -48,12 +48,14 @@ const flags = () =>
 
 const errors = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new BitmapAccessAnalyzer(testAnalysisContext()).analyze(tree);
+  return new BitmapAccessAnalyzer(testAnalysisContext(state)).analyze(tree);
 };
 
 afterEach(() => {
-  CodeGenState.reset();
+  state = new RenderState();
 });
+
+let state: RenderState;
 
 describe("BitmapAccessAnalyzer (E0881)", () => {
   it("rejects a value wider than the field, in every literal base", () => {

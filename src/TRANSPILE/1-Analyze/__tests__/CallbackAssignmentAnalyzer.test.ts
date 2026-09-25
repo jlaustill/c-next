@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import CallbackAssignmentAnalyzer from "../CallbackAssignmentAnalyzer";
 import CNextResolver from "../../../PARSE/3-Declare/cnext";
-import CodeGenState from "../../../transpiler/state/CodeGenState";
+import RenderState from "../../3-Render/RenderState";
 import Program from "../../../PARSE/4-Resolve/Program";
 import SymbolRegistry from "../../../PARSE/3-Declare/SymbolRegistry";
 import TSymbolInfoAdapter from "../../../PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
@@ -34,18 +34,22 @@ import testAnalysisContext from "./testAnalysisContext";
  */
 const build = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  CodeGenState.program = Program.build([
+  state.program = Program.build([
     CNextResolver.resolve(tree, "a.cnx", registry),
   ]);
-  CodeGenState.symbols = TSymbolInfoAdapter.convert(
+  state.symbols = TSymbolInfoAdapter.convert(
     CNextResolver.resolve(tree, "a.cnx", registry).symbols,
   );
-  return new CallbackAssignmentAnalyzer(testAnalysisContext()).analyze(tree);
+  return new CallbackAssignmentAnalyzer(testAnalysisContext(state)).analyze(
+    tree,
+  );
 };
 
 const findings = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new CallbackAssignmentAnalyzer(testAnalysisContext()).analyze(tree);
+  return new CallbackAssignmentAnalyzer(testAnalysisContext(state)).analyze(
+    tree,
+  );
 };
 
 let registry = new SymbolRegistry();
@@ -53,6 +57,8 @@ let registry = new SymbolRegistry();
 beforeEach(() => {
   registry = new SymbolRegistry();
 });
+
+let state: RenderState;
 
 describe("CallbackAssignmentAnalyzer", () => {
   it("returns no findings when the program's symbols are absent", () => {
@@ -131,7 +137,7 @@ describe("CallbackAssignmentAnalyzer", () => {
     ].join("\n");
 
     afterEach(() => {
-      CodeGenState.reset();
+      state = new RenderState();
     });
 
     it("reports E0879 when the declared signature differs, in each slot", () => {

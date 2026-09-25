@@ -1,34 +1,36 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import TypeValidator from "../TypeValidator";
-import CodeGenState from "../../../../transpiler/state/CodeGenState";
+import RenderState from "../../RenderState";
 import createMockSymbols from "../../../../transpiler/__tests__/codeGenSymbolsHelpers";
 import enterScope from "../../../../transpiler/__tests__/enterScope";
 
+let state: RenderState;
+
 describe("TypeValidator.resolveBareIdentifier", () => {
   beforeEach(() => {
-    CodeGenState.reset();
-    CodeGenState.setScopeMembers("Motor", new Set(["speed", "maxSpeed"]));
-    CodeGenState.setVariableTypeInfo("globalCounter", {
+    state = new RenderState();
+    state.setScopeMembers("Motor", new Set(["speed", "maxSpeed"]));
+    state.setVariableTypeInfo("globalCounter", {
       baseType: "u32",
       bitWidth: 32,
       isArray: false,
       isConst: false,
     });
-    CodeGenState.setVariableTypeInfo("Motor__speed", {
+    state.setVariableTypeInfo("Motor__speed", {
       baseType: "u32",
       bitWidth: 32,
       isArray: false,
       isConst: false,
     });
-    enterScope("Motor");
-    CodeGenState.symbols = createMockSymbols({
+    enterScope(state, "Motor");
+    state.symbols = createMockSymbols({
       knownScopes: new Set(["Motor", "LED"]),
       knownRegisters: new Set(["GPIO"]),
       knownEnums: new Set(["State"]),
       knownStructs: new Set(["Point"]),
       scopeMembers: new Map([["Motor", new Set(["speed", "maxSpeed"])]]),
     });
-    CodeGenState.knownFunctions = new Set(["globalFunc", "Motor__stop"]);
+    state.knownFunctions = new Set(["globalFunc", "Motor__stop"]);
   });
 
   describe("inside a scope", () => {
@@ -37,6 +39,7 @@ describe("TypeValidator.resolveBareIdentifier", () => {
         "localVar",
         true,
         () => false,
+        state,
       );
       expect(result).toBeNull();
     });
@@ -46,6 +49,7 @@ describe("TypeValidator.resolveBareIdentifier", () => {
         "speed",
         false,
         () => false,
+        state,
       );
       expect(result).toBe("Motor__speed");
     });
@@ -55,6 +59,7 @@ describe("TypeValidator.resolveBareIdentifier", () => {
         "globalCounter",
         false,
         () => false,
+        state,
       );
       expect(result).toBe("globalCounter");
     });
@@ -64,6 +69,7 @@ describe("TypeValidator.resolveBareIdentifier", () => {
         "globalFunc",
         false,
         () => false,
+        state,
       );
       expect(result).toBe("globalFunc");
     });
@@ -73,6 +79,7 @@ describe("TypeValidator.resolveBareIdentifier", () => {
         "stop",
         false,
         () => false,
+        state,
       );
       // 'stop' should check if Motor_stop exists as a function
       expect(result).toBe("Motor__stop");
@@ -83,6 +90,7 @@ describe("TypeValidator.resolveBareIdentifier", () => {
         "unknownName",
         false,
         () => false,
+        state,
       );
       expect(result).toBeNull();
     });
@@ -90,7 +98,7 @@ describe("TypeValidator.resolveBareIdentifier", () => {
 
   describe("outside a scope", () => {
     beforeEach(() => {
-      enterScope(null);
+      enterScope(state, null);
     });
 
     it("returns null for local variables", () => {
@@ -98,6 +106,7 @@ describe("TypeValidator.resolveBareIdentifier", () => {
         "localVar",
         true,
         () => false,
+        state,
       );
       expect(result).toBeNull();
     });
@@ -107,6 +116,7 @@ describe("TypeValidator.resolveBareIdentifier", () => {
         "globalCounter",
         false,
         () => false,
+        state,
       );
       expect(result).toBeNull();
     });
@@ -115,25 +125,25 @@ describe("TypeValidator.resolveBareIdentifier", () => {
   describe("resolveForMemberAccess", () => {
     it("prefers scope name over global variable for member access", () => {
       // Setup: global variable 'LED' exists AND scope 'LED' exists
-      CodeGenState.setVariableTypeInfo("LED", {
+      state.setVariableTypeInfo("LED", {
         baseType: "u8",
         bitWidth: 8,
         isArray: false,
         isConst: false,
       });
 
-      const result = TypeValidator.resolveForMemberAccess("LED");
+      const result = TypeValidator.resolveForMemberAccess("LED", state);
       expect(result).toBe("LED"); // Returns scope name, not transformed
       expect(result).not.toBe("Motor_LED"); // Should NOT be scope-prefixed
     });
 
     it("returns scope name when it exists", () => {
-      const result = TypeValidator.resolveForMemberAccess("LED");
+      const result = TypeValidator.resolveForMemberAccess("LED", state);
       expect(result).toBe("LED");
     });
 
     it("returns null for unknown identifiers", () => {
-      const result = TypeValidator.resolveForMemberAccess("Unknown");
+      const result = TypeValidator.resolveForMemberAccess("Unknown", state);
       expect(result).toBeNull();
     });
   });

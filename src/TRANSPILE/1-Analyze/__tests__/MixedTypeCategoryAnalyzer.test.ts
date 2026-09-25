@@ -3,7 +3,8 @@
  * Tests detection of binary operators combining mixed essential type categories
  * (MISRA C:2012 Rule 10.4, ADR-024 / Issue #1091).
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
+import RenderState from "../../3-Render/RenderState";
 import { CharStream, CommonTokenStream } from "antlr4ng";
 import { CNextLexer } from "../../../PARSE/2-Parse/grammar/CNextLexer";
 import { CNextParser } from "../../../PARSE/2-Parse/grammar/CNextParser";
@@ -19,12 +20,18 @@ function parse(source: string) {
 }
 
 function analyze(source: string) {
-  return new MixedTypeCategoryAnalyzer(testAnalysisContext()).analyze(
+  return new MixedTypeCategoryAnalyzer(testAnalysisContext(state)).analyze(
     parse(source),
   );
 }
 
+let state: RenderState;
+
 describe("MixedTypeCategoryAnalyzer", () => {
+  beforeEach(() => {
+    state = new RenderState();
+  });
+
   describe("mixed-category operands (rejected)", () => {
     it("rejects unsigned + signed (u32 + i32)", () => {
       const errors = analyze(`

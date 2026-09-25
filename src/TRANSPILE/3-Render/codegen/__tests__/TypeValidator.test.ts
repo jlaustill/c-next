@@ -5,7 +5,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import createMockSymbols from "../../../../transpiler/__tests__/codeGenSymbolsHelpers";
-import CodeGenState from "../../../../transpiler/state/CodeGenState";
+import RenderState from "../../RenderState";
 import type ICodeGenSymbols from "../../../../transpiler/types/ICodeGenSymbols";
 import type ICallbackTypeInfo from "../../../../transpiler/types/ICallbackTypeInfo";
 import type TParameterInfo from "../../../../transpiler/types/TParameterInfo";
@@ -32,38 +32,38 @@ interface SetupStateOptions {
 }
 
 function setupState(options: SetupStateOptions = {}): void {
-  CodeGenState.reset();
+  state = new RenderState();
   if (options.symbols) {
-    CodeGenState.symbols = options.symbols;
+    state.symbols = options.symbols;
   } else {
-    CodeGenState.symbols = createMockSymbols();
+    state.symbols = createMockSymbols();
   }
   if (options.typeRegistry) {
     for (const [k, v] of options.typeRegistry) {
-      CodeGenState.setVariableTypeInfo(k, v);
+      state.setVariableTypeInfo(k, v);
     }
   }
   if (options.callbackTypes) {
     for (const [k, v] of options.callbackTypes) {
-      CodeGenState.callbackTypes.set(k, v);
+      state.callbackTypes.set(k, v);
     }
   }
   if (options.knownFunctions) {
-    CodeGenState.knownFunctions = options.knownFunctions;
+    state.knownFunctions = options.knownFunctions;
   }
   if (options.currentScopePath !== undefined) {
-    enterScope(options.currentScopePath);
+    enterScope(state, options.currentScopePath);
   }
   if (options.scopeMembers) {
     for (const [scope, members] of options.scopeMembers) {
-      CodeGenState.setScopeMembers(scope, members);
+      state.setScopeMembers(scope, members);
     }
   }
   if (options.currentParameters) {
-    CodeGenState.currentParameters = options.currentParameters;
+    state.currentParameters = options.currentParameters;
   }
   if (options.localVariables) {
-    CodeGenState.localVariables = options.localVariables;
+    state.localVariables = options.localVariables;
   }
 }
 
@@ -85,9 +85,11 @@ function setupState(options: SetupStateOptions = {}): void {
 // Tests - Include Validation (ADR-010)
 // ========================================================================
 
+let state: RenderState;
+
 describe("TypeValidator", () => {
   beforeEach(() => {
-    CodeGenState.reset();
+    state = new RenderState();
   });
 
   afterEach(() => {
@@ -133,6 +135,7 @@ describe("TypeValidator", () => {
         "State",
         false,
         () => false,
+        state,
       );
       expect(result).toBeNull();
     });
@@ -143,6 +146,7 @@ describe("TypeValidator", () => {
         "Point",
         false,
         () => true,
+        state,
       );
       expect(result).toBeNull();
     });
@@ -154,6 +158,7 @@ describe("TypeValidator", () => {
         "GPIO",
         false,
         () => false,
+        state,
       );
       expect(result).toBeNull();
     });

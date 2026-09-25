@@ -9,7 +9,6 @@ import AssignmentKind from "../../../../../transpiler/types/AssignmentKind";
 import IAssignmentContext from "../../../../../transpiler/types/IAssignmentContext";
 import TypeCheckUtils from "../../../../../utils/TypeCheckUtils";
 import TAssignmentHandler from "./TAssignmentHandler";
-import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 import TTypeInfo from "../../../../../transpiler/types/TTypeInfo";
 import QualifiedNameGenerator from "../../../../../utils/QualifiedNameGenerator";
 import AdrProvenance from "../../../../../instrumentation/AdrProvenance";
@@ -32,25 +31,25 @@ function getTargetTypeInfo(ctx: IAssignmentContext): {
 
   // Simple identifier
   if (ctx.isSimpleIdentifier) {
-    return { typeInfo: CodeGenState.getVariableTypeInfo(id) };
+    return { typeInfo: ctx.state.getVariableTypeInfo(id) };
   }
 
   // this.member: lookup using scoped name
-  if (ctx.isSimpleThisAccess && CodeGenState.currentScopePath) {
+  if (ctx.isSimpleThisAccess && ctx.state.currentScopePath) {
     const scopedName = QualifiedNameGenerator.forMember(
-      CodeGenState.currentScopePath,
+      ctx.state.currentScopePath,
       id,
     );
-    return { typeInfo: CodeGenState.getVariableTypeInfo(scopedName) };
+    return { typeInfo: ctx.state.getVariableTypeInfo(scopedName) };
   }
 
   // global.member: lookup using direct name
   if (ctx.isSimpleGlobalAccess) {
-    return { typeInfo: CodeGenState.getVariableTypeInfo(id) };
+    return { typeInfo: ctx.state.getVariableTypeInfo(id) };
   }
 
   // Fallback to direct lookup
-  return { typeInfo: CodeGenState.getVariableTypeInfo(id) };
+  return { typeInfo: ctx.state.getVariableTypeInfo(id) };
 }
 
 /**
@@ -63,12 +62,9 @@ function handleAtomicRMW(ctx: IAssignmentContext): string {
   const { typeInfo } = getTargetTypeInfo(ctx);
   const target = ctx.renderTarget();
 
-  return CodeGenState.requireGenerator().generateAtomicRMW(
-    target,
-    ctx.cOp,
-    ctx.generatedValue,
-    typeInfo!,
-  );
+  return ctx.state
+    .requireGenerator()
+    .generateAtomicRMW(target, ctx.cOp, ctx.generatedValue, typeInfo!);
 }
 
 /**
@@ -95,10 +91,9 @@ function handleOverflowClamp(ctx: IAssignmentContext): string {
     // compound-only fixture without a derivable context. Recorded past the float and
     // helper-lookup gates, so only an actually-lowered clamp claims a cell.
     AdrProvenance.record("044", ctx.targetLine);
-    CodeGenState.requireGenerator().state.markClampOpUsed(
-      helperOp,
-      typeInfo!.baseType,
-    );
+    ctx.state
+      .requireGenerator()
+      .state.markClampOpUsed(helperOp, typeInfo!.baseType);
     return `${target} = cnx_clamp_${helperOp}_${typeInfo!.baseType}(${target}, ${ctx.generatedValue});`;
   }
 

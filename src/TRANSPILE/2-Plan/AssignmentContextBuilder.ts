@@ -24,6 +24,7 @@ import IAssignmentContext from "../../transpiler/types/IAssignmentContext";
 import IBitAccessAnalysis from "../../transpiler/types/IBitAccessAnalysis";
 import TPlannedTargetOp from "../../transpiler/types/TPlannedTargetOp";
 import TTypeInfo from "../../transpiler/types/TTypeInfo";
+import type RenderState from "../3-Render/RenderState";
 
 /**
  * Dependencies for building context.
@@ -31,6 +32,13 @@ import TTypeInfo from "../../transpiler/types/TTypeInfo";
 interface IContextBuilderDeps {
   /** Type registry: variable name -> type info */
   readonly typeRegistry: ReadonlyMap<string, TTypeInfo>;
+
+  /**
+   * 2.3 Render's per-file working state (#1452 box 4), carried onto the built
+   * context so the handlers that receive it have a channel to the same
+   * instance rather than reaching for a mutable static.
+   */
+  readonly state: RenderState;
 
   /**
    * The value expression, already generated.
@@ -241,6 +249,7 @@ function buildAssignmentContext(
   const isSimpleGlobalAccess = hasGlobal && postfixOps.length === 0;
 
   return {
+    state: deps.state,
     renderTarget: () => deps.generateAssignmentTarget(targetCtx),
     analyzeTargetForBitAccess: () =>
       deps.analyzeMemberChainForBitAccess(targetCtx),

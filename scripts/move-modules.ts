@@ -685,6 +685,35 @@ const MOVES: readonly IMove[] = [
     to: "src/PARSE/3-Declare/__tests__/SymbolTableRunIsolation.test.ts",
     because: "Follows its subject -- #1452 box 5's teardown-absence guard.",
   },
+  // --- 2.3 Render: the per-file working state ----------------------------
+  {
+    from: "src/transpiler/state/RenderState.ts",
+    to: "src/TRANSPILE/3-Render/RenderState.ts",
+    because:
+      "#1452 boxes 1 and 4. `CodeGenState` and `TranspilerState` were mutable " +
+      "STATICS, which is why they had a directory of their own rather than a " +
+      "pass: a static belongs to the process, not to a pass, so the admission " +
+      "test at the top of this file had nothing to ask. Merged into one " +
+      "instance owned by `CodeGenerator`, the test applies again and answers " +
+      "2.3: every field is a fact about the ONE file being rendered -- the " +
+      "include flags, the expectedType window, the emitted-name and " +
+      "clamp-mark tables -- and every write is 2.3's. `state/` then holds " +
+      "nothing, which is box 1.",
+  },
+  {
+    from: "src/transpiler/state/__tests__/CodeGenState.test.ts",
+    to: "src/TRANSPILE/3-Render/__tests__/RenderState.test.ts",
+    because: "Follows its subject, under the name of the class it now tests.",
+  },
+  {
+    from: "src/transpiler/state/__tests__/RenderState.test.ts",
+    to: "src/TRANSPILE/3-Render/__tests__/RenderState.includes.test.ts",
+    because:
+      "Follows its subject. Renamed because it lands beside the file above " +
+      "and the two cannot share a name; this is the half that pins the " +
+      "include sink and the toolchain-requirement deferrals, with their " +
+      "negative controls.",
+  },
 ];
 
 /** Every `.ts` file under a path, or the path itself when it is a file. */

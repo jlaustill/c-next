@@ -19,13 +19,13 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import FunctionContextManager from "../FunctionContextManager";
 import IFunctionContextCallbacks from "../../types/IFunctionContextCallbacks";
-import CodeGenState from "../../../../../transpiler/state/CodeGenState";
+import RenderState from "../../../RenderState";
 import type IPlannedType from "../../types/IPlannedType";
 import type IPlannedFunctionParameter from "../../types/IPlannedFunctionParameter";
 import type INamedTypeResolution from "../../../../../transpiler/types/INamedTypeResolution";
 
 /**
- * Helper to set up CodeGenState.symbols with minimal fields.
+ * Helper to set up state.symbols with minimal fields.
  */
 function setupSymbols(
   overrides: {
@@ -34,7 +34,7 @@ function setupSymbols(
     bitmapBitWidth?: Map<string, number>;
   } = {},
 ): void {
-  CodeGenState.symbols = {
+  state.symbols = {
     knownScopes: new Set(),
     knownStructs: new Set(),
     knownRegisters: new Set(),
@@ -110,9 +110,11 @@ function plannedParam(
   };
 }
 
+let state: RenderState;
+
 describe("FunctionContextManager", () => {
   beforeEach(() => {
-    CodeGenState.reset();
+    state = new RenderState();
     setupSymbols();
   });
 
@@ -123,11 +125,12 @@ describe("FunctionContextManager", () => {
         "void",
         true,
         "args",
+        state,
       );
 
       expect(result.actualReturnType).toBe("int");
       expect(result.initialParams).toBe("int argc, char *argv[]");
-      expect(CodeGenState.mainArgsName).toBe("args");
+      expect(state.mainArgsName).toBe("args");
     });
 
     it("returns int for main without args", () => {
@@ -136,6 +139,7 @@ describe("FunctionContextManager", () => {
         "void",
         false,
         undefined,
+        state,
       );
 
       expect(result.actualReturnType).toBe("int");
@@ -148,6 +152,7 @@ describe("FunctionContextManager", () => {
         "u32",
         false,
         undefined,
+        state,
       );
 
       expect(result.actualReturnType).toBe("u32");
@@ -157,7 +162,7 @@ describe("FunctionContextManager", () => {
 
   describe("processParameterList", () => {
     it("clears existing parameters", () => {
-      CodeGenState.currentParameters.set("existing", {
+      state.currentParameters.set("existing", {
         name: "existing",
         baseType: "u32",
         isArray: false,
@@ -168,9 +173,9 @@ describe("FunctionContextManager", () => {
       });
       const callbacks = createMockCallbacks();
 
-      FunctionContextManager.processParameterList(null, callbacks);
+      FunctionContextManager.processParameterList(null, callbacks, state);
 
-      expect(CodeGenState.currentParameters.size).toBe(0);
+      expect(state.currentParameters.size).toBe(0);
     });
 
     it("processes multiple parameters", () => {
@@ -182,11 +187,12 @@ describe("FunctionContextManager", () => {
           plannedParam("y", plannedType({ primitiveName: "i32" })),
         ],
         callbacks,
+        state,
       );
 
-      expect(CodeGenState.currentParameters.size).toBe(2);
-      expect(CodeGenState.currentParameters.has("x")).toBe(true);
-      expect(CodeGenState.currentParameters.has("y")).toBe(true);
+      expect(state.currentParameters.size).toBe(2);
+      expect(state.currentParameters.has("x")).toBe(true);
+      expect(state.currentParameters.has("y")).toBe(true);
     });
   });
 
@@ -198,9 +204,10 @@ describe("FunctionContextManager", () => {
         plannedParam("x", plannedType({ primitiveName: "u32" })),
         callbacks,
         0,
+        state,
       );
 
-      const paramInfo = CodeGenState.currentParameters.get("x");
+      const paramInfo = state.currentParameters.get("x");
       expect(paramInfo).toBeDefined();
       expect(paramInfo!.baseType).toBe("u32");
       expect(paramInfo!.isArray).toBe(false);
@@ -221,9 +228,10 @@ describe("FunctionContextManager", () => {
         ),
         callbacks,
         0,
+        state,
       );
 
-      const paramInfo = CodeGenState.currentParameters.get("arr");
+      const paramInfo = state.currentParameters.get("arr");
       expect(paramInfo).toBeDefined();
       expect(paramInfo!.isArray).toBe(true);
     });
@@ -237,9 +245,10 @@ describe("FunctionContextManager", () => {
         }),
         callbacks,
         0,
+        state,
       );
 
-      const paramInfo = CodeGenState.currentParameters.get("x");
+      const paramInfo = state.currentParameters.get("x");
       expect(paramInfo).toBeDefined();
       expect(paramInfo!.isConst).toBe(true);
     });
@@ -254,9 +263,10 @@ describe("FunctionContextManager", () => {
         plannedParam("point", plannedType({ named: named("bare", "Point") })),
         callbacks,
         0,
+        state,
       );
 
-      const paramInfo = CodeGenState.currentParameters.get("point");
+      const paramInfo = state.currentParameters.get("point");
       expect(paramInfo).toBeDefined();
       expect(paramInfo!.isStruct).toBe(true);
       expect(callbacks.isStructType).toHaveBeenCalledWith("Point");
@@ -273,9 +283,10 @@ describe("FunctionContextManager", () => {
         ),
         callbacks,
         0,
+        state,
       );
 
-      const paramInfo = CodeGenState.currentParameters.get("name");
+      const paramInfo = state.currentParameters.get("name");
       expect(paramInfo).toBeDefined();
       expect(paramInfo!.isString).toBe(true);
     });
@@ -286,6 +297,7 @@ describe("FunctionContextManager", () => {
       const result = FunctionContextManager.resolveParameterTypeInfo(
         plannedType({ primitiveName: "u32", text: "u32" }),
         createMockCallbacks(),
+        state,
       );
 
       expect(result.typeName).toBe("u32");
@@ -303,6 +315,7 @@ describe("FunctionContextManager", () => {
       const result = FunctionContextManager.resolveParameterTypeInfo(
         plannedType({ named: named("bare", "Point"), text: "Point" }),
         callbacks,
+        state,
       );
 
       expect(result.typeName).toBe("Point");
@@ -331,6 +344,7 @@ describe("FunctionContextManager", () => {
       const result = FunctionContextManager.resolveParameterTypeInfo(
         plannedType({ named: resolution, text: resolution.written }),
         createMockCallbacks(),
+        state,
       );
 
       expect(result.typeName).toBe(expected);
@@ -344,6 +358,7 @@ describe("FunctionContextManager", () => {
           text: "string<32>",
         }),
         createMockCallbacks(),
+        state,
       );
 
       // The capacity travels separately, through stringCapacities.
@@ -360,6 +375,7 @@ describe("FunctionContextManager", () => {
           text: "string<32>[5]",
         }),
         createMockCallbacks(),
+        state,
       );
 
       expect(result.typeName).toBe("string<32>");
@@ -370,6 +386,7 @@ describe("FunctionContextManager", () => {
       const result = FunctionContextManager.resolveParameterTypeInfo(
         plannedType({ primitiveName: "u8", isArray: true, text: "u8[10]" }),
         createMockCallbacks(),
+        state,
       );
 
       expect(result.typeName).toBe("u8");
@@ -389,6 +406,7 @@ describe("FunctionContextManager", () => {
           text: "Point[5]",
         }),
         callbacks,
+        state,
       );
 
       expect(result.typeName).toBe("Point");
@@ -399,6 +417,7 @@ describe("FunctionContextManager", () => {
       const result = FunctionContextManager.resolveParameterTypeInfo(
         plannedType({ text: "SomeUnknownType" }),
         createMockCallbacks(),
+        state,
       );
 
       expect(result.typeName).toBe("SomeUnknownType");
@@ -418,9 +437,10 @@ describe("FunctionContextManager", () => {
           isString: false,
         },
         plannedParam("x", plannedType({ primitiveName: "u32" })),
+        state,
       );
 
-      const typeInfo = CodeGenState.getVariableTypeInfo("x");
+      const typeInfo = state.getVariableTypeInfo("x");
       expect(typeInfo).toBeDefined();
       expect(typeInfo!.baseType).toBe("u32");
       expect(typeInfo!.isParameter).toBe(true);
@@ -437,9 +457,10 @@ describe("FunctionContextManager", () => {
           isString: false,
         },
         plannedParam("color", plannedType({ named: named("bare", "Color") })),
+        state,
       );
 
-      const typeInfo = CodeGenState.getVariableTypeInfo("color");
+      const typeInfo = state.getVariableTypeInfo("color");
       expect(typeInfo).toBeDefined();
       expect(typeInfo!.isEnum).toBe(true);
       expect(typeInfo!.enumTypeName).toBe("Color");
@@ -459,9 +480,10 @@ describe("FunctionContextManager", () => {
           isString: false,
         },
         plannedParam("flags", plannedType({ named: named("bare", "Flags") })),
+        state,
       );
 
-      const typeInfo = CodeGenState.getVariableTypeInfo("flags");
+      const typeInfo = state.getVariableTypeInfo("flags");
       expect(typeInfo).toBeDefined();
       expect(typeInfo!.isBitmap).toBe(true);
       expect(typeInfo!.bitmapTypeName).toBe("Flags");
@@ -481,16 +503,17 @@ describe("FunctionContextManager", () => {
           arrayDimensions: [5],
           stringCapacity: 32,
         }),
+        state,
       );
 
-      const typeInfo = CodeGenState.getVariableTypeInfo("names");
+      const typeInfo = state.getVariableTypeInfo("names");
       expect(typeInfo!.arrayDimensions).toEqual([5, 33]);
     });
   });
 
   describe("clearParameters", () => {
     it("removes parameters from type registry", () => {
-      CodeGenState.currentParameters.set("x", {
+      state.currentParameters.set("x", {
         name: "x",
         baseType: "u32",
         isArray: false,
@@ -499,7 +522,7 @@ describe("FunctionContextManager", () => {
         isCallback: false,
         isString: false,
       });
-      CodeGenState.setVariableTypeInfo("x", {
+      state.setVariableTypeInfo("x", {
         baseType: "u32",
         bitWidth: 32,
         isArray: false,
@@ -507,13 +530,13 @@ describe("FunctionContextManager", () => {
         isParameter: true,
       });
 
-      FunctionContextManager.clearParameters();
+      FunctionContextManager.clearParameters(state);
 
-      expect(CodeGenState.getVariableTypeInfo("x")).toBeUndefined();
+      expect(state.getVariableTypeInfo("x")).toBeUndefined();
     });
 
     it("clears currentParameters map", () => {
-      CodeGenState.currentParameters.set("x", {
+      state.currentParameters.set("x", {
         name: "x",
         baseType: "u32",
         isArray: false,
@@ -523,61 +546,61 @@ describe("FunctionContextManager", () => {
         isString: false,
       });
 
-      FunctionContextManager.clearParameters();
+      FunctionContextManager.clearParameters(state);
 
-      expect(CodeGenState.currentParameters.size).toBe(0);
+      expect(state.currentParameters.size).toBe(0);
     });
 
     it("clears localArrays set", () => {
-      CodeGenState.localArrays.add("arr");
+      state.localArrays.add("arr");
 
-      FunctionContextManager.clearParameters();
+      FunctionContextManager.clearParameters(state);
 
-      expect(CodeGenState.localArrays.size).toBe(0);
+      expect(state.localArrays.size).toBe(0);
     });
   });
 
   describe("enterFunctionBody", () => {
     it("sets inFunctionBody to true", () => {
-      CodeGenState.inFunctionBody = false;
+      state.inFunctionBody = false;
 
-      FunctionContextManager.enterFunctionBody();
+      FunctionContextManager.enterFunctionBody(state);
 
-      expect(CodeGenState.inFunctionBody).toBe(true);
+      expect(state.inFunctionBody).toBe(true);
     });
 
     it("clears local variables", () => {
-      CodeGenState.localVariables.add("var");
+      state.localVariables.add("var");
 
-      FunctionContextManager.enterFunctionBody();
+      FunctionContextManager.enterFunctionBody(state);
 
-      expect(CodeGenState.localVariables.size).toBe(0);
+      expect(state.localVariables.size).toBe(0);
     });
 
     it("clears float bit shadows", () => {
-      CodeGenState.floatBitShadows.add("shadow");
+      state.floatBitShadows.add("shadow");
 
-      FunctionContextManager.enterFunctionBody();
+      FunctionContextManager.enterFunctionBody(state);
 
-      expect(CodeGenState.floatBitShadows.size).toBe(0);
+      expect(state.floatBitShadows.size).toBe(0);
     });
   });
 
   describe("exitFunctionBody", () => {
     it("sets inFunctionBody to false", () => {
-      CodeGenState.inFunctionBody = true;
+      state.inFunctionBody = true;
 
-      FunctionContextManager.exitFunctionBody();
+      FunctionContextManager.exitFunctionBody(state);
 
-      expect(CodeGenState.inFunctionBody).toBe(false);
+      expect(state.inFunctionBody).toBe(false);
     });
 
     it("clears mainArgsName", () => {
-      CodeGenState.mainArgsName = "args";
+      state.mainArgsName = "args";
 
-      FunctionContextManager.exitFunctionBody();
+      FunctionContextManager.exitFunctionBody(state);
 
-      expect(CodeGenState.mainArgsName).toBeNull();
+      expect(state.mainArgsName).toBeNull();
     });
   });
 });

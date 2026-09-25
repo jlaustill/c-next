@@ -1,30 +1,29 @@
 /**
- * Tests for CodeGenState - centralized code generation state management
+ * Tests for RenderState - centralized code generation state management
  */
 
 import SymbolTable from "../../../PARSE/3-Declare/SymbolTable";
-import type IScopeSymbol from "../../types/symbols/IScopeSymbol";
+import type IScopeSymbol from "../../../transpiler/types/symbols/IScopeSymbol";
 import { describe, it, expect, beforeEach } from "vitest";
-import type IProgram from "../../types/IProgram";
-import installMockSymbols from "../../__tests__/installMockSymbols";
-import CodeGenState from "../CodeGenState";
-import TTypeInfo from "../../types/TTypeInfo";
+import type IProgram from "../../../transpiler/types/IProgram";
+import installMockSymbols from "../../../transpiler/__tests__/installMockSymbols";
+import RenderState from "../RenderState";
+import TTypeInfo from "../../../transpiler/types/TTypeInfo";
 import ESourceLanguage from "../../../utils/types/ESourceLanguage";
-import IVariableSymbol from "../../types/symbols/IVariableSymbol";
-import ICVariableSymbol from "../../types/symbols/c/ICVariableSymbol";
+import IVariableSymbol from "../../../transpiler/types/symbols/IVariableSymbol";
+import ICVariableSymbol from "../../../transpiler/types/symbols/c/ICVariableSymbol";
 import TTypeUtils from "../../../utils/TTypeUtils";
 import TestSymbolUtils from "../../../PARSE/3-Declare/cnext/__tests__/testSymbolUtils";
 import SymbolRegistry from "../../../PARSE/3-Declare/SymbolRegistry";
 import ScopeUtils from "../../../utils/ScopeUtils";
-import createMockSymbols from "../../__tests__/codeGenSymbolsHelpers";
-import UNRESOLVED_DIMENSION from "../../constants/UNRESOLVED_DIMENSION";
-import TestSourceSpan from "../../types/__testUtils__/testSourceSpan";
+import createMockSymbols from "../../../transpiler/__tests__/codeGenSymbolsHelpers";
+import UNRESOLVED_DIMENSION from "../../../transpiler/constants/UNRESOLVED_DIMENSION";
+import TestSourceSpan from "../../../transpiler/types/__testUtils__/testSourceSpan";
 import Program from "../../../PARSE/4-Resolve/Program";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
-import enterScope from "../../__tests__/enterScope";
-import RenderState from "../RenderState";
+import enterScope from "../../../transpiler/__tests__/enterScope";
 
 /** Repo root, for the source-scanning guard in `scopeTypePredicate`. */
 const repoRootForGuard = join(
@@ -89,28 +88,30 @@ beforeEach(() => {
 
 /**
  * #1452 box 3: register a scope AND publish the graph, because
- * `setCurrentScopeByPath` reads it off `CodeGenState.program` now rather than
+ * `setCurrentScopeByPath` reads it off `state.program` now rather than
  * off a global registry. Both halves live here so the tests below -- which call
  * the guarded method directly on purpose -- state what they are setting up
  * rather than repeating the wiring.
  */
 function registerScope(path: string): IScopeSymbol {
   const scope = registry.getOrCreateScope(path);
-  CodeGenState.program = Program.build([], { registry });
+  state.program = Program.build([], { registry });
   return scope;
 }
 
-describe("CodeGenState", () => {
+let state: RenderState;
+
+describe("RenderState", () => {
   beforeEach(() => {
-    CodeGenState.reset();
-    CodeGenState.symbolTable = new SymbolTable();
+    state = new RenderState();
+    state.symbolTable = new SymbolTable();
   });
 
   describe("reset()", () => {
     it("resets all state to initial values", () => {
       // Set some state
-      enterScope("TestScope");
-      CodeGenState.currentFunctionName = "testFunc";
+      enterScope(state, "TestScope");
+      state.currentFunctionName = "testFunc";
       // #1452: `indentLevel` moved to `RenderState`, which owns its own
       // clearing, so the two resets are asserted side by side rather than one
       // standing in for the other.
@@ -119,12 +120,12 @@ describe("CodeGenState", () => {
       render.needsStdint = true;
 
       // Reset
-      CodeGenState.reset();
+      state = new RenderState();
       render.reset();
 
       // Verify reset
-      expect(CodeGenState.currentScopePath).toBe("");
-      expect(CodeGenState.currentFunctionName).toBeNull();
+      expect(state.currentScopePath).toBe("");
+      expect(state.currentFunctionName).toBeNull();
       expect(render.indentLevel).toBe(0);
       expect(render.needsStdint).toBe(false);
     });
@@ -132,11 +133,11 @@ describe("CodeGenState", () => {
     it("resets generator reference", () => {
       // Simulate having a generator set
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      CodeGenState.generator = {} as any;
+      state.generator = {} as any;
 
-      CodeGenState.reset();
+      state = new RenderState();
 
-      expect(CodeGenState.generator).toBeNull();
+      expect(state.generator).toBeNull();
     });
 
     it("accepts custom target capabilities", () => {
@@ -152,64 +153,62 @@ describe("CodeGenState", () => {
         significantInternalIdentifierChars: 63,
       };
 
-      CodeGenState.reset(customTarget);
+      state.reset(customTarget);
 
-      expect(CodeGenState.targetCapabilities).toEqual(customTarget);
+      expect(state.targetCapabilities).toEqual(customTarget);
     });
   });
 
   describe("Scope Member Helpers", () => {
     it("getScopeMembers returns undefined for unknown scope", () => {
-      expect(CodeGenState.getScopeMembers("UnknownScope")).toBeUndefined();
+      expect(state.getScopeMembers("UnknownScope")).toBeUndefined();
     });
 
     it("getScopeMembers returns members for known scope", () => {
       const members = new Set(["member1", "member2"]);
-      CodeGenState.setScopeMembers("TestScope", members);
+      state.setScopeMembers("TestScope", members);
 
-      expect(CodeGenState.getScopeMembers("TestScope")).toBe(members);
+      expect(state.getScopeMembers("TestScope")).toBe(members);
     });
 
     it("isCurrentScopeMember returns false when not in a scope", () => {
-      enterScope(null);
-      expect(CodeGenState.isCurrentScopeMember("anyMember")).toBe(false);
+      enterScope(state, null);
+      expect(state.isCurrentScopeMember("anyMember")).toBe(false);
     });
 
     it("isCurrentScopeMember returns false for non-member", () => {
-      enterScope("TestScope");
-      CodeGenState.setScopeMembers("TestScope", new Set(["member1"]));
+      enterScope(state, "TestScope");
+      state.setScopeMembers("TestScope", new Set(["member1"]));
 
-      expect(CodeGenState.isCurrentScopeMember("nonMember")).toBe(false);
+      expect(state.isCurrentScopeMember("nonMember")).toBe(false);
     });
 
     it("isCurrentScopeMember returns true for member", () => {
-      enterScope("TestScope");
-      CodeGenState.setScopeMembers("TestScope", new Set(["member1"]));
+      enterScope(state, "TestScope");
+      state.setScopeMembers("TestScope", new Set(["member1"]));
 
-      expect(CodeGenState.isCurrentScopeMember("member1")).toBe(true);
+      expect(state.isCurrentScopeMember("member1")).toBe(true);
     });
   });
 
   describe("resolveIdentifier()", () => {
     it("returns identifier unchanged when not in a scope", () => {
-      enterScope(null);
-      expect(CodeGenState.resolveIdentifier("varName")).toBe("varName");
+      enterScope(state, null);
+      expect(state.resolveIdentifier("varName")).toBe("varName");
     });
 
     it("returns identifier unchanged when not a scope member", () => {
-      enterScope("TestScope");
-      CodeGenState.setScopeMembers("TestScope", new Set(["member1"]));
+      enterScope(state, "TestScope");
+      state.setScopeMembers("TestScope", new Set(["member1"]));
 
-      expect(CodeGenState.resolveIdentifier("varName")).toBe("varName");
+      expect(state.resolveIdentifier("varName")).toBe("varName");
     });
 
     it("returns scoped name for scope member", () => {
-      enterScope("TestScope");
-      CodeGenState.setScopeMembers("TestScope", new Set(["member1"]));
+      enterScope(state, "TestScope");
+      state.setScopeMembers("TestScope", new Set(["member1"]));
 
-      expect(CodeGenState.resolveIdentifier("member1")).toBe(
-        "TestScope__member1",
-      );
+      expect(state.resolveIdentifier("member1")).toBe("TestScope__member1");
     });
   });
 
@@ -221,41 +220,35 @@ describe("CodeGenState", () => {
     });
 
     it("getStructFieldType returns undefined without symbols", () => {
-      CodeGenState.symbols = null;
-      expect(
-        CodeGenState.getStructFieldType("MyStruct", "field1"),
-      ).toBeUndefined();
+      state.symbols = null;
+      expect(state.getStructFieldType("MyStruct", "field1")).toBeUndefined();
     });
 
     it("getStructFieldType returns field type with symbols", () => {
-      CodeGenState.symbols = mockSymbols;
-      expect(CodeGenState.getStructFieldType("MyStruct", "field1")).toBe("u32");
+      state.symbols = mockSymbols;
+      expect(state.getStructFieldType("MyStruct", "field1")).toBe("u32");
     });
 
     it("isStructFieldArray returns false without symbols", () => {
-      CodeGenState.symbols = null;
-      expect(CodeGenState.isStructFieldArray("MyStruct", "arrayField")).toBe(
-        false,
-      );
+      state.symbols = null;
+      expect(state.isStructFieldArray("MyStruct", "arrayField")).toBe(false);
     });
 
     it("isStructFieldArray returns true for array field", () => {
-      CodeGenState.symbols = mockSymbols;
-      expect(CodeGenState.isStructFieldArray("MyStruct", "arrayField")).toBe(
-        true,
-      );
+      state.symbols = mockSymbols;
+      expect(state.isStructFieldArray("MyStruct", "arrayField")).toBe(true);
     });
 
     it("isStructFieldArray returns false for non-array field", () => {
-      CodeGenState.symbols = mockSymbols;
-      expect(CodeGenState.isStructFieldArray("MyStruct", "field1")).toBe(false);
+      state.symbols = mockSymbols;
+      expect(state.isStructFieldArray("MyStruct", "field1")).toBe(false);
     });
   });
 
   describe("getEnumMembers()", () => {
     it("returns undefined without symbols", () => {
-      CodeGenState.symbols = null;
-      expect(CodeGenState.getEnumMembers("MyEnum")).toBeUndefined();
+      state.symbols = null;
+      expect(state.getEnumMembers("MyEnum")).toBeUndefined();
     });
 
     it("returns enum members when available", () => {
@@ -263,27 +256,27 @@ describe("CodeGenState", () => {
         ["VALUE1", 0],
         ["VALUE2", 1],
       ]);
-      installMockSymbols({
+      installMockSymbols(state, {
         knownEnums: new Set(["MyEnum"]),
         enumMembers: new Map([["MyEnum", enumMembers]]),
       });
 
-      expect(CodeGenState.getEnumMembers("MyEnum")).toBe(enumMembers);
+      expect(state.getEnumMembers("MyEnum")).toBe(enumMembers);
     });
   });
 
   describe("getFunctionReturnType()", () => {
     it("returns undefined without symbols", () => {
-      CodeGenState.symbols = null;
-      expect(CodeGenState.getFunctionReturnType("myFunc")).toBeUndefined();
+      state.symbols = null;
+      expect(state.getFunctionReturnType("myFunc")).toBeUndefined();
     });
 
     it("returns return type when available", () => {
-      installMockSymbols({
+      installMockSymbols(state, {
         functionReturnTypes: new Map([["myFunc", "u32"]]),
       });
 
-      expect(CodeGenState.getFunctionReturnType("myFunc")).toBe("u32");
+      expect(state.getFunctionReturnType("myFunc")).toBe("u32");
     });
   });
 
@@ -296,26 +289,26 @@ describe("CodeGenState", () => {
         isConst: false,
       };
 
-      CodeGenState.registerType("myVar", typeInfo);
+      state.registerType("myVar", typeInfo);
 
-      expect(CodeGenState.getVariableTypeInfo("myVar")).toBe(typeInfo);
+      expect(state.getVariableTypeInfo("myVar")).toBe(typeInfo);
     });
 
     it("registerConstValue adds to constValues", () => {
-      CodeGenState.registerConstValue("MY_CONST", 42);
-      expect(CodeGenState.constValues.get("MY_CONST")).toBe(42);
+      state.registerConstValue("MY_CONST", 42);
+      expect(state.constValues.get("MY_CONST")).toBe(42);
     });
 
     it("registerLocalVariable adds to localVariables", () => {
-      CodeGenState.registerLocalVariable("localVar");
-      expect(CodeGenState.localVariables.has("localVar")).toBe(true);
-      expect(CodeGenState.localArrays.has("localVar")).toBe(false);
+      state.registerLocalVariable("localVar");
+      expect(state.localVariables.has("localVar")).toBe(true);
+      expect(state.localArrays.has("localVar")).toBe(false);
     });
 
     it("registerLocalVariable with isArray adds to both sets", () => {
-      CodeGenState.registerLocalVariable("localArr", true);
-      expect(CodeGenState.localVariables.has("localArr")).toBe(true);
-      expect(CodeGenState.localArrays.has("localArr")).toBe(true);
+      state.registerLocalVariable("localArr", true);
+      expect(state.localVariables.has("localArr")).toBe(true);
+      expect(state.localArrays.has("localArr")).toBe(true);
     });
 
     it("setCurrentScopeByPath resolves a DOTTED PATH to the registered scope", () => {
@@ -324,13 +317,13 @@ describe("CodeGenState", () => {
       // leaf today because `scopeMember` admits no `scopeDeclaration`.
       const inner = registerScope("Outer.Inner");
 
-      CodeGenState.setCurrentScopeByPath("Outer.Inner");
+      state.setCurrentScopeByPath("Outer.Inner");
 
-      expect(CodeGenState.currentScopePath).toBe("Outer.Inner");
+      expect(state.currentScopePath).toBe("Outer.Inner");
       expect(ScopeUtils.pathOf(inner)).toBe("Outer.Inner");
-      expect(
-        ScopeUtils.qualifyInScope("tick", CodeGenState.currentScopePath),
-      ).toBe("Outer__Inner__tick");
+      expect(ScopeUtils.qualifyInScope("tick", state.currentScopePath)).toBe(
+        "Outer__Inner__tick",
+      );
     });
 
     it("setCurrentScopeByPath with a LEAF now fails loudly (#1304)", () => {
@@ -341,11 +334,11 @@ describe("CodeGenState", () => {
       // symbols pass rather than something to create here.
       registerScope("Outer.Inner");
 
-      expect(() => CodeGenState.setCurrentScopeByPath("Inner")).toThrow();
+      expect(() => state.setCurrentScopeByPath("Inner")).toThrow();
 
       // The failed entry must not have left the state half-updated, and must
       // not have registered `Inner` as a side effect.
-      expect(CodeGenState.currentScopePath).toBe("");
+      expect(state.currentScopePath).toBe("");
       expect(registry.getScope("Inner")).toBeNull();
     });
 
@@ -355,73 +348,65 @@ describe("CodeGenState", () => {
       // above would pass just as well if the method rejected everything.
       registerScope("Outer.Inner");
 
-      expect(() =>
-        CodeGenState.setCurrentScopeByPath("Outer.Inner"),
-      ).not.toThrow();
-      expect(CodeGenState.currentScopePath).toBe("Outer.Inner");
-      expect(
-        ScopeUtils.qualifyInScope("tick", CodeGenState.currentScopePath),
-      ).toBe("Outer__Inner__tick");
+      expect(() => state.setCurrentScopeByPath("Outer.Inner")).not.toThrow();
+      expect(state.currentScopePath).toBe("Outer.Inner");
+      expect(ScopeUtils.qualifyInScope("tick", state.currentScopePath)).toBe(
+        "Outer__Inner__tick",
+      );
     });
 
     it("registerLocalVariable leaves a non-shadowing local under its own name", () => {
-      CodeGenState.currentFunctionName = "Counter__test";
+      state.currentFunctionName = "Counter__test";
 
-      CodeGenState.registerLocalVariable("fresh");
+      state.registerLocalVariable("fresh");
 
-      expect(CodeGenState.emittedLocalName("fresh")).toBe("fresh");
+      expect(state.emittedLocalName("fresh")).toBe("fresh");
     });
 
     it("registerLocalVariable qualifies a local that shadows a global function", () => {
-      CodeGenState.currentFunctionName = "Counter__test";
-      CodeGenState.knownFunctions.add("count");
+      state.currentFunctionName = "Counter__test";
+      state.knownFunctions.add("count");
 
-      CodeGenState.registerLocalVariable("count");
+      state.registerLocalVariable("count");
 
-      expect(CodeGenState.emittedLocalName("count")).toBe(
-        "Counter__test__count",
-      );
+      expect(state.emittedLocalName("count")).toBe("Counter__test__count");
     });
 
     it("registerLocalVariable does not qualify when there is no function context", () => {
-      CodeGenState.currentFunctionName = null;
-      CodeGenState.knownFunctions.add("count");
+      state.currentFunctionName = null;
+      state.knownFunctions.add("count");
 
-      CodeGenState.registerLocalVariable("count");
+      state.registerLocalVariable("count");
 
-      expect(CodeGenState.emittedLocalName("count")).toBe("count");
+      expect(state.emittedLocalName("count")).toBe("count");
     });
 
     it("shadowsFileScopeSymbol ignores an enclosing local", () => {
-      CodeGenState.localVariables.add("outer");
-      CodeGenState.knownFunctions.add("outer");
+      state.localVariables.add("outer");
+      state.knownFunctions.add("outer");
 
       // Already local, so C block scoping already gives the right answer and
       // neither `this.` nor `global.` can name an enclosing local.
-      expect(CodeGenState.shadowsFileScopeSymbol("outer")).toBe(false);
+      expect(state.shadowsFileScopeSymbol("outer")).toBe(false);
     });
 
     it("shadowsFileScopeSymbol is false for an unknown name", () => {
-      expect(CodeGenState.shadowsFileScopeSymbol("nothingNamedThis")).toBe(
-        false,
-      );
+      expect(state.shadowsFileScopeSymbol("nothingNamedThis")).toBe(false);
     });
 
     it("exitFunctionBody drops the rename map with the other locals", () => {
-      CodeGenState.currentFunctionName = "Counter__test";
-      CodeGenState.knownFunctions.add("count");
-      CodeGenState.registerLocalVariable("count");
-      expect(CodeGenState.emittedLocalName("count")).toBe(
-        "Counter__test__count",
-      );
+      state.currentFunctionName = "Counter__test";
+      state.knownFunctions.add("count");
+      state.registerLocalVariable("count");
+      expect(state.emittedLocalName("count")).toBe("Counter__test__count");
 
-      CodeGenState.exitFunctionBody();
+      state.exitFunctionBody();
 
       // A rename surviving into the next function would rewrite an unrelated
       // local of the same name.
-      expect(CodeGenState.emittedLocalName("count")).toBe("count");
-      expect(CodeGenState.localVariables.size).toBe(0);
-      expect(CodeGenState.localArrays.size).toBe(0);
+      expect(state.emittedLocalName("count")).toBe("count");
+      expect(state.localVariables.size).toBe(0);
+      expect(state.localArrays.size).toBe(0);
     });
 
     it("registerCallbackType adds to callbackTypes", () => {
@@ -442,9 +427,9 @@ describe("CodeGenState", () => {
         typedefName: "ClickHandler",
       };
 
-      CodeGenState.registerCallbackType("MyCallback", info);
+      state.registerCallbackType("MyCallback", info);
 
-      expect(CodeGenState.callbackTypes.get("MyCallback")).toBe(info);
+      expect(state.callbackTypes.get("MyCallback")).toBe(info);
     });
   });
 
@@ -457,18 +442,18 @@ describe("CodeGenState", () => {
         isConst: false,
       };
 
-      CodeGenState.setVariableTypeInfo("localVar", typeInfo);
+      state.setVariableTypeInfo("localVar", typeInfo);
 
-      expect(CodeGenState.getVariableTypeInfo("localVar")).toBe(typeInfo);
+      expect(state.getVariableTypeInfo("localVar")).toBe(typeInfo);
     });
 
     it("getVariableTypeInfo returns undefined for unknown variable", () => {
-      expect(CodeGenState.getVariableTypeInfo("unknownVar")).toBeUndefined();
+      expect(state.getVariableTypeInfo("unknownVar")).toBeUndefined();
     });
 
     it("getVariableTypeInfo falls back to SymbolTable for C-Next variables", () => {
       // Add a C-Next variable to SymbolTable (simulating cross-file include)
-      CodeGenState.symbolTable.addTSymbol(
+      state.symbolTable.addTSymbol(
         createCNextVariableSymbol({
           name: "crossFileVar",
           type: TTypeUtils.createPrimitive("u16"),
@@ -477,7 +462,7 @@ describe("CodeGenState", () => {
         }),
       );
 
-      const result = CodeGenState.getVariableTypeInfo("crossFileVar");
+      const result = state.getVariableTypeInfo("crossFileVar");
 
       expect(result).toBeDefined();
       expect(result?.baseType).toBe("u16");
@@ -488,22 +473,22 @@ describe("CodeGenState", () => {
 
     it("getVariableTypeInfo does not use C header symbols for primitive types", () => {
       // Add a C header variable with primitive type (should NOT be used)
-      CodeGenState.symbolTable.addCSymbol(
+      state.symbolTable.addCSymbol(
         createCVariableSymbol({
           name: "cHeaderVar",
           type: "uint32_t",
         }),
       );
 
-      expect(CodeGenState.getVariableTypeInfo("cHeaderVar")).toBeUndefined();
+      expect(state.getVariableTypeInfo("cHeaderVar")).toBeUndefined();
     });
 
     it("getVariableTypeInfo returns type info for C header struct variables (Issue #978)", () => {
       // Register font_t as a typedef struct type
-      CodeGenState.symbolTable.markTypedefStructType("font_t", "fake_lib.h");
+      state.symbolTable.markTypedefStructType("font_t", "fake_lib.h");
 
       // Add a C header variable with struct type
-      CodeGenState.symbolTable.addCSymbol(
+      state.symbolTable.addCSymbol(
         createCVariableSymbol({
           name: "big_font",
           type: "font_t",
@@ -511,7 +496,7 @@ describe("CodeGenState", () => {
         }),
       );
 
-      const result = CodeGenState.getVariableTypeInfo("big_font");
+      const result = state.getVariableTypeInfo("big_font");
       expect(result).toBeDefined();
       expect(result?.baseType).toBe("font_t");
       expect(result?.isConst).toBe(true);
@@ -521,17 +506,17 @@ describe("CodeGenState", () => {
 
     it("getVariableTypeInfo returns type info for C struct via getStructFields path (Issue #978)", () => {
       // Register struct fields directly (non-typedef struct, e.g., `struct point`)
-      CodeGenState.symbolTable.addStructField("point", "x", "int32_t");
-      CodeGenState.symbolTable.addStructField("point", "y", "int32_t");
+      state.symbolTable.addStructField("point", "x", "int32_t");
+      state.symbolTable.addStructField("point", "y", "int32_t");
 
-      CodeGenState.symbolTable.addCSymbol(
+      state.symbolTable.addCSymbol(
         createCVariableSymbol({
           name: "origin",
           type: "point",
         }),
       );
 
-      const result = CodeGenState.getVariableTypeInfo("origin");
+      const result = state.getVariableTypeInfo("origin");
       expect(result).toBeDefined();
       expect(result?.baseType).toBe("point");
       expect(result?.bitWidth).toBe(0);
@@ -539,24 +524,24 @@ describe("CodeGenState", () => {
 
     it("getVariableTypeInfo detects pointer type from C symbol (Issue #978)", () => {
       // Register font_t as a struct
-      CodeGenState.symbolTable.markTypedefStructType("font_t", "lib.h");
+      state.symbolTable.markTypedefStructType("font_t", "lib.h");
 
       // Pointer variable: type includes * (set by VariableCollector)
-      CodeGenState.symbolTable.addCSymbol(
+      state.symbolTable.addCSymbol(
         createCVariableSymbol({
           name: "font_ptr",
           type: "font_t*",
         }),
       );
 
-      const result = CodeGenState.getVariableTypeInfo("font_ptr");
+      const result = state.getVariableTypeInfo("font_ptr");
       expect(result).toBeDefined();
       expect(result?.baseType).toBe("font_t");
       expect(result?.isPointer).toBe(true);
     });
 
     it("getVariableTypeInfo ignores C array variables with primitive types", () => {
-      CodeGenState.symbolTable.addCSymbol(
+      state.symbolTable.addCSymbol(
         createCVariableSymbol({
           name: "lookup_table",
           type: "uint8_t",
@@ -565,32 +550,32 @@ describe("CodeGenState", () => {
         }),
       );
 
-      expect(CodeGenState.getVariableTypeInfo("lookup_table")).toBeUndefined();
+      expect(state.getVariableTypeInfo("lookup_table")).toBeUndefined();
     });
 
     it("getVariableTypeInfo ignores C volatile register variables", () => {
-      CodeGenState.symbolTable.addCSymbol(
+      state.symbolTable.addCSymbol(
         createCVariableSymbol({
           name: "status_reg",
           type: "uint32_t",
         }),
       );
 
-      expect(CodeGenState.getVariableTypeInfo("status_reg")).toBeUndefined();
+      expect(state.getVariableTypeInfo("status_reg")).toBeUndefined();
     });
 
     it("getVariableTypeInfo prefers TSymbol over CSymbol with same name (Issue #978)", () => {
       // Both C-Next and C symbols exist with same name
-      CodeGenState.symbolTable.markTypedefStructType("config_t", "config.h");
+      state.symbolTable.markTypedefStructType("config_t", "config.h");
 
-      CodeGenState.symbolTable.addTSymbol(
+      state.symbolTable.addTSymbol(
         createCNextVariableSymbol({
           name: "config",
           type: TTypeUtils.createPrimitive("u32"),
         }),
       );
 
-      CodeGenState.symbolTable.addCSymbol(
+      state.symbolTable.addCSymbol(
         createCVariableSymbol({
           name: "config",
           type: "config_t",
@@ -598,7 +583,7 @@ describe("CodeGenState", () => {
       );
 
       // TSymbol should win (checked first in priority order)
-      const result = CodeGenState.getVariableTypeInfo("config");
+      const result = state.getVariableTypeInfo("config");
       expect(result?.baseType).toBe("u32");
     });
 
@@ -610,9 +595,9 @@ describe("CodeGenState", () => {
         isArray: false,
         isConst: true,
       };
-      CodeGenState.setVariableTypeInfo("mixedVar", localInfo);
+      state.setVariableTypeInfo("mixedVar", localInfo);
 
-      CodeGenState.symbolTable.addTSymbol(
+      state.symbolTable.addTSymbol(
         createCNextVariableSymbol({
           name: "mixedVar",
           type: TTypeUtils.createPrimitive("u8"),
@@ -620,83 +605,83 @@ describe("CodeGenState", () => {
       );
 
       // Should return local info, not SymbolTable info
-      const result = CodeGenState.getVariableTypeInfo("mixedVar");
+      const result = state.getVariableTypeInfo("mixedVar");
       expect(result?.baseType).toBe("i32");
       expect(result?.isConst).toBe(true);
     });
 
     it("hasVariableTypeInfo returns true for local registry", () => {
-      CodeGenState.setVariableTypeInfo("localVar", {
+      state.setVariableTypeInfo("localVar", {
         baseType: "u8",
         bitWidth: 8,
         isArray: false,
         isConst: false,
       });
 
-      expect(CodeGenState.hasVariableTypeInfo("localVar")).toBe(true);
+      expect(state.hasVariableTypeInfo("localVar")).toBe(true);
     });
 
     it("hasVariableTypeInfo returns true for C-Next SymbolTable variable", () => {
-      CodeGenState.symbolTable.addTSymbol(
+      state.symbolTable.addTSymbol(
         createCNextVariableSymbol({
           name: "crossFileVar",
           type: TTypeUtils.createPrimitive("u32"),
         }),
       );
 
-      expect(CodeGenState.hasVariableTypeInfo("crossFileVar")).toBe(true);
+      expect(state.hasVariableTypeInfo("crossFileVar")).toBe(true);
     });
 
     it("hasVariableTypeInfo returns false for unknown variable", () => {
-      expect(CodeGenState.hasVariableTypeInfo("unknownVar")).toBe(false);
+      expect(state.hasVariableTypeInfo("unknownVar")).toBe(false);
     });
 
     it("hasVariableTypeInfo returns false for C header primitive variable", () => {
-      CodeGenState.symbolTable.addCSymbol(
+      state.symbolTable.addCSymbol(
         createCVariableSymbol({
           name: "cVar",
           type: "int",
         }),
       );
 
-      expect(CodeGenState.hasVariableTypeInfo("cVar")).toBe(false);
+      expect(state.hasVariableTypeInfo("cVar")).toBe(false);
     });
 
     it("hasVariableTypeInfo returns true for C header struct variable (Issue #978)", () => {
-      CodeGenState.symbolTable.markTypedefStructType("widget_t", "widget.h");
-      CodeGenState.symbolTable.addCSymbol(
+      state.symbolTable.markTypedefStructType("widget_t", "widget.h");
+      state.symbolTable.addCSymbol(
         createCVariableSymbol({
           name: "my_widget",
           type: "widget_t",
         }),
       );
 
-      expect(CodeGenState.hasVariableTypeInfo("my_widget")).toBe(true);
+      expect(state.hasVariableTypeInfo("my_widget")).toBe(true);
     });
 
     it("hasVariableTypeInfo returns true for C struct via getStructFields path (Issue #978)", () => {
-      CodeGenState.symbolTable.addStructField("vec2", "x", "float");
-      CodeGenState.symbolTable.addStructField("vec2", "y", "float");
+      state.symbolTable.addStructField("vec2", "x", "float");
+      state.symbolTable.addStructField("vec2", "y", "float");
 
-      CodeGenState.symbolTable.addCSymbol(
+      state.symbolTable.addCSymbol(
         createCVariableSymbol({
           name: "position",
           type: "vec2",
         }),
       );
 
-      expect(CodeGenState.hasVariableTypeInfo("position")).toBe(true);
+      expect(state.hasVariableTypeInfo("position")).toBe(true);
     });
 
     it("hasVariableTypeInfo returns false for C pointer to non-struct type", () => {
-      CodeGenState.symbolTable.addCSymbol(
+      state.symbolTable.addCSymbol(
         createCVariableSymbol({
           name: "data_ptr",
           type: "uint8_t*",
         }),
       );
 
-      expect(CodeGenState.hasVariableTypeInfo("data_ptr")).toBe(false);
+      expect(state.hasVariableTypeInfo("data_ptr")).toBe(false);
     });
 
     it("setVariableTypeInfo and deleteVariableTypeInfo work correctly", () => {
@@ -707,28 +692,28 @@ describe("CodeGenState", () => {
         isConst: false,
       };
 
-      CodeGenState.setVariableTypeInfo("tempVar", typeInfo);
-      expect(CodeGenState.getVariableTypeInfo("tempVar")).toBe(typeInfo);
+      state.setVariableTypeInfo("tempVar", typeInfo);
+      expect(state.getVariableTypeInfo("tempVar")).toBe(typeInfo);
 
-      CodeGenState.deleteVariableTypeInfo("tempVar");
-      expect(CodeGenState.getVariableTypeInfo("tempVar")).toBeUndefined();
+      state.deleteVariableTypeInfo("tempVar");
+      expect(state.getVariableTypeInfo("tempVar")).toBeUndefined();
     });
 
     it("getTypeRegistryView returns readonly view", () => {
-      CodeGenState.setVariableTypeInfo("var1", {
+      state.setVariableTypeInfo("var1", {
         baseType: "u8",
         bitWidth: 8,
         isArray: false,
         isConst: false,
       });
-      CodeGenState.setVariableTypeInfo("var2", {
+      state.setVariableTypeInfo("var2", {
         baseType: "u16",
         bitWidth: 16,
         isArray: false,
         isConst: false,
       });
 
-      const view = CodeGenState.getTypeRegistryView();
+      const view = state.getTypeRegistryView();
 
       expect(view.size).toBe(2);
       expect(view.has("var1")).toBe(true);
@@ -743,21 +728,21 @@ describe("CodeGenState", () => {
         isConst: false,
       };
 
-      CodeGenState.setVariableTypeInfo("aliasVar", typeInfo);
+      state.setVariableTypeInfo("aliasVar", typeInfo);
 
       // getTypeInfo should return same result
-      expect(CodeGenState.getTypeInfo("aliasVar")).toBe(typeInfo);
+      expect(state.getTypeInfo("aliasVar")).toBe(typeInfo);
     });
 
     it("convertSymbolToTypeInfo handles string<N> types", () => {
-      CodeGenState.symbolTable.addTSymbol(
+      state.symbolTable.addTSymbol(
         createCNextVariableSymbol({
           name: "myString",
           type: TTypeUtils.createString(32),
         }),
       );
 
-      const result = CodeGenState.getVariableTypeInfo("myString");
+      const result = state.getVariableTypeInfo("myString");
 
       expect(result?.baseType).toBe("char");
       expect(result?.bitWidth).toBe(8);
@@ -767,18 +752,18 @@ describe("CodeGenState", () => {
 
     it("convertSymbolToTypeInfo handles enum types", () => {
       // Register an enum
-      installMockSymbols({
+      installMockSymbols(state, {
         knownEnums: new Set(["EColor"]),
       });
 
-      CodeGenState.symbolTable.addTSymbol(
+      state.symbolTable.addTSymbol(
         createCNextVariableSymbol({
           name: "color",
           type: TTypeUtils.createEnum("EColor"),
         }),
       );
 
-      const result = CodeGenState.getVariableTypeInfo("color");
+      const result = state.getVariableTypeInfo("color");
 
       expect(result?.baseType).toBe("EColor");
       expect(result?.isEnum).toBe(true);
@@ -786,7 +771,7 @@ describe("CodeGenState", () => {
     });
 
     it("convertSymbolToTypeInfo handles const and atomic", () => {
-      CodeGenState.symbolTable.addTSymbol(
+      state.symbolTable.addTSymbol(
         createCNextVariableSymbol({
           name: "constAtomicVar",
           type: TTypeUtils.createPrimitive("u32"),
@@ -797,14 +782,14 @@ describe("CodeGenState", () => {
         }),
       );
 
-      const result = CodeGenState.getVariableTypeInfo("constAtomicVar");
+      const result = state.getVariableTypeInfo("constAtomicVar");
 
       expect(result?.isConst).toBe(true);
       expect(result?.isAtomic).toBe(true);
     });
 
     it("convertSymbolToTypeInfo keeps the slot of a dimension it cannot fold (#1360)", () => {
-      CodeGenState.symbolTable.addTSymbol(
+      state.symbolTable.addTSymbol(
         createCNextVariableSymbol({
           name: "arrayVar",
           type: TTypeUtils.createPrimitive("u8"),
@@ -813,7 +798,7 @@ describe("CodeGenState", () => {
         }),
       );
 
-      const result = CodeGenState.getVariableTypeInfo("arrayVar");
+      const result = state.getVariableTypeInfo("arrayVar");
 
       // This used to assert [10, 20]. Dropping the slot slides every later
       // bound one position left, so checkArrayBounds validated dimension 3's
@@ -828,7 +813,7 @@ describe("CodeGenState", () => {
       // Negative control for the case above: only a dimension that genuinely
       // cannot be folded becomes UNRESOLVED_DIMENSION. A numeric string carries a real
       // bound and must keep it, or the check would silently stop enforcing it.
-      CodeGenState.symbolTable.addTSymbol(
+      state.symbolTable.addTSymbol(
         createCNextVariableSymbol({
           name: "numericStringDims",
           type: TTypeUtils.createPrimitive("u8"),
@@ -837,7 +822,7 @@ describe("CodeGenState", () => {
         }),
       );
 
-      const result = CodeGenState.getVariableTypeInfo("numericStringDims");
+      const result = state.getVariableTypeInfo("numericStringDims");
 
       expect(result?.arrayDimensions).toEqual([16, 3]);
     });
@@ -845,88 +830,86 @@ describe("CodeGenState", () => {
 
   describe("Float Bit Shadow Helpers", () => {
     it("registerFloatBitShadow adds to floatBitShadows", () => {
-      CodeGenState.registerFloatBitShadow("myFloat_bits");
-      expect(CodeGenState.floatBitShadows.has("myFloat_bits")).toBe(true);
+      state.registerFloatBitShadow("myFloat_bits");
+      expect(state.floatBitShadows.has("myFloat_bits")).toBe(true);
     });
 
     it("hasFloatBitShadow returns correct value", () => {
-      expect(CodeGenState.hasFloatBitShadow("myFloat_bits")).toBe(false);
-      CodeGenState.registerFloatBitShadow("myFloat_bits");
-      expect(CodeGenState.hasFloatBitShadow("myFloat_bits")).toBe(true);
+      expect(state.hasFloatBitShadow("myFloat_bits")).toBe(false);
+      state.registerFloatBitShadow("myFloat_bits");
+      expect(state.hasFloatBitShadow("myFloat_bits")).toBe(true);
     });
 
     it("markFloatShadowCurrent adds to floatShadowCurrent", () => {
-      CodeGenState.markFloatShadowCurrent("myFloat_bits");
-      expect(CodeGenState.floatShadowCurrent.has("myFloat_bits")).toBe(true);
+      state.markFloatShadowCurrent("myFloat_bits");
+      expect(state.floatShadowCurrent.has("myFloat_bits")).toBe(true);
     });
 
     it("isFloatShadowCurrent returns correct value", () => {
-      expect(CodeGenState.isFloatShadowCurrent("myFloat_bits")).toBe(false);
-      CodeGenState.markFloatShadowCurrent("myFloat_bits");
-      expect(CodeGenState.isFloatShadowCurrent("myFloat_bits")).toBe(true);
+      expect(state.isFloatShadowCurrent("myFloat_bits")).toBe(false);
+      state.markFloatShadowCurrent("myFloat_bits");
+      expect(state.isFloatShadowCurrent("myFloat_bits")).toBe(true);
     });
   });
 
   describe("C++ Mode Helpers", () => {
     it("addPendingTempDeclaration adds declaration", () => {
-      CodeGenState.addPendingTempDeclaration("int cnx_tmp0 = x;");
-      expect(CodeGenState.pendingTempDeclarations).toContain(
-        "int cnx_tmp0 = x;",
-      );
+      state.addPendingTempDeclaration("int cnx_tmp0 = x;");
+      expect(state.pendingTempDeclarations).toContain("int cnx_tmp0 = x;");
     });
 
     it("flushPendingTempDeclarations returns and clears declarations", () => {
-      CodeGenState.addPendingTempDeclaration("int cnx_tmp0 = x;");
-      CodeGenState.addPendingTempDeclaration("int cnx_tmp1 = y;");
+      state.addPendingTempDeclaration("int cnx_tmp0 = x;");
+      state.addPendingTempDeclaration("int cnx_tmp1 = y;");
 
-      const decls = CodeGenState.flushPendingTempDeclarations();
+      const decls = state.flushPendingTempDeclarations();
 
       expect(decls).toHaveLength(2);
       expect(decls).toContain("int cnx_tmp0 = x;");
       expect(decls).toContain("int cnx_tmp1 = y;");
-      expect(CodeGenState.pendingTempDeclarations).toHaveLength(0);
+      expect(state.pendingTempDeclarations).toHaveLength(0);
     });
 
     it("getNextTempVarName returns incrementing names", () => {
-      CodeGenState.reset(); // Reset counter
-      expect(CodeGenState.getNextTempVarName()).toBe("cnx_tmp0");
-      expect(CodeGenState.getNextTempVarName()).toBe("cnx_tmp1");
-      expect(CodeGenState.getNextTempVarName()).toBe("cnx_tmp2");
+      state = new RenderState(); // Reset counter
+      expect(state.getNextTempVarName()).toBe("cnx_tmp0");
+      expect(state.getNextTempVarName()).toBe("cnx_tmp1");
+      expect(state.getNextTempVarName()).toBe("cnx_tmp2");
     });
   });
 
   describe("Symbol Lookup Helpers", () => {
     it("isKnownEnum returns false without symbols", () => {
-      CodeGenState.symbols = null;
-      expect(CodeGenState.isKnownEnum("MyEnum")).toBe(false);
+      state.symbols = null;
+      expect(state.isKnownEnum("MyEnum")).toBe(false);
     });
 
     it("isKnownEnum returns true for known enum", () => {
-      installMockSymbols({
+      installMockSymbols(state, {
         knownEnums: new Set(["MyEnum"]),
       });
 
-      expect(CodeGenState.isKnownEnum("MyEnum")).toBe(true);
-      expect(CodeGenState.isKnownEnum("UnknownEnum")).toBe(false);
+      expect(state.isKnownEnum("MyEnum")).toBe(true);
+      expect(state.isKnownEnum("UnknownEnum")).toBe(false);
     });
 
     it("isKnownScope returns false without symbols", () => {
-      CodeGenState.symbols = null;
-      expect(CodeGenState.isKnownScope("MyScope")).toBe(false);
+      state.symbols = null;
+      expect(state.isKnownScope("MyScope")).toBe(false);
     });
 
     it("isKnownScope returns true for known scope", () => {
-      installMockSymbols({
+      installMockSymbols(state, {
         knownScopes: new Set(["MyScope"]),
       });
 
-      expect(CodeGenState.isKnownScope("MyScope")).toBe(true);
-      expect(CodeGenState.isKnownScope("UnknownScope")).toBe(false);
+      expect(state.isKnownScope("MyScope")).toBe(true);
+      expect(state.isKnownScope("UnknownScope")).toBe(false);
     });
 
     it("isOpaqueType returns false without a program", () => {
-      CodeGenState.program = null;
-      expect(CodeGenState.isOpaqueType("widget_t")).toBe(false);
+      state.program = null;
+      expect(state.isOpaqueType("widget_t")).toBe(false);
     });
 
     it("isOpaqueType returns true for opaque type", () => {
@@ -934,35 +917,35 @@ describe("CodeGenState", () => {
       // `ICodeGenSymbols.opaqueTypes` set that `mergeOpaqueTypes` patched the
       // whole-program answer into; both are gone, so the question has one owner.
       const opaque = new Set(["widget_t", "display_t"]);
-      CodeGenState.program = {
+      state.program = {
         isOpaqueType: (name: string) => opaque.has(name),
       } as unknown as IProgram;
 
-      expect(CodeGenState.isOpaqueType("widget_t")).toBe(true);
-      expect(CodeGenState.isOpaqueType("display_t")).toBe(true);
-      expect(CodeGenState.isOpaqueType("Point")).toBe(false);
+      expect(state.isOpaqueType("widget_t")).toBe(true);
+      expect(state.isOpaqueType("display_t")).toBe(true);
+      expect(state.isOpaqueType("Point")).toBe(false);
 
-      CodeGenState.program = null;
+      state.program = null;
     });
   });
 
   describe("Scope Type Qualification (ADR-057)", () => {
     it("isScopeType matches enums, structs and bitmaps by qualified name", () => {
-      installMockSymbols({
+      installMockSymbols(state, {
         knownEnums: new Set(["A__B"]),
         knownStructs: new Set(["A__S"]),
         knownBitmaps: new Set(["A__Flags"]),
       });
 
-      expect(CodeGenState.isScopeType("A__B")).toBe(true);
-      expect(CodeGenState.isScopeType("A__S")).toBe(true);
-      expect(CodeGenState.isScopeType("A__Flags")).toBe(true);
-      expect(CodeGenState.isScopeType("A__Nope")).toBe(false);
+      expect(state.isScopeType("A__B")).toBe(true);
+      expect(state.isScopeType("A__S")).toBe(true);
+      expect(state.isScopeType("A__Flags")).toBe(true);
+      expect(state.isScopeType("A__Nope")).toBe(false);
     });
 
     it("isScopeType returns false without symbols", () => {
-      CodeGenState.symbols = null;
-      expect(CodeGenState.isScopeType("A__B")).toBe(false);
+      state.symbols = null;
+      expect(state.isScopeType("A__B")).toBe(false);
     });
 
     // #1452: four `qualifyScopeType` cases lived here. The method had no
@@ -978,15 +961,15 @@ describe("CodeGenState", () => {
 
   describe("Local Variable Helpers", () => {
     it("isLocalVariable returns correct value", () => {
-      expect(CodeGenState.isLocalVariable("myVar")).toBe(false);
-      CodeGenState.localVariables.add("myVar");
-      expect(CodeGenState.isLocalVariable("myVar")).toBe(true);
+      expect(state.isLocalVariable("myVar")).toBe(false);
+      state.localVariables.add("myVar");
+      expect(state.isLocalVariable("myVar")).toBe(true);
     });
 
     it("isLocalArray returns correct value", () => {
-      expect(CodeGenState.isLocalArray("myArr")).toBe(false);
-      CodeGenState.localArrays.add("myArr");
-      expect(CodeGenState.isLocalArray("myArr")).toBe(true);
+      expect(state.isLocalArray("myArr")).toBe(false);
+      state.localArrays.add("myArr");
+      expect(state.isLocalArray("myArr")).toBe(true);
     });
   });
 
@@ -995,10 +978,10 @@ describe("CodeGenState", () => {
   // through the accessor analyzers actually call.
   describe("external struct fields, via Program", () => {
     it("returns empty map when no struct fields exist", () => {
-      CodeGenState.program = Program.build([], {
-        headerStructFields: CodeGenState.symbolTable.getAllStructFields(),
+      state.program = Program.build([], {
+        headerStructFields: state.symbolTable.getAllStructFields(),
       });
-      const result = CodeGenState.getExternalStructFields();
+      const result = state.getExternalStructFields();
       expect(result.size).toBe(0);
     });
 
@@ -1017,12 +1000,12 @@ describe("CodeGenState", () => {
       structFields.set("Point", pointFields);
 
       // Use restoreStructFields to populate the symbol table
-      CodeGenState.symbolTable.restoreStructFields(structFields);
+      state.symbolTable.restoreStructFields(structFields);
 
-      CodeGenState.program = Program.build([], {
-        headerStructFields: CodeGenState.symbolTable.getAllStructFields(),
+      state.program = Program.build([], {
+        headerStructFields: state.symbolTable.getAllStructFields(),
       });
-      const result = CodeGenState.getExternalStructFields();
+      const result = state.getExternalStructFields();
 
       expect(result.has("Point")).toBe(true);
       const fields = result.get("Point");
@@ -1043,12 +1026,12 @@ describe("CodeGenState", () => {
       bufferFields.set("data", { type: "u8", arrayDimensions: [256] }); // Array
 
       structFields.set("Buffer", bufferFields);
-      CodeGenState.symbolTable.restoreStructFields(structFields);
+      state.symbolTable.restoreStructFields(structFields);
 
-      CodeGenState.program = Program.build([], {
-        headerStructFields: CodeGenState.symbolTable.getAllStructFields(),
+      state.program = Program.build([], {
+        headerStructFields: state.symbolTable.getAllStructFields(),
       });
-      const result = CodeGenState.getExternalStructFields();
+      const result = state.getExternalStructFields();
 
       expect(result.has("Buffer")).toBe(true);
       const fields = result.get("Buffer");
@@ -1069,12 +1052,12 @@ describe("CodeGenState", () => {
       arrayOnlyFields.set("values", { type: "i32", arrayDimensions: [5] });
 
       structFields.set("ArrayOnly", arrayOnlyFields);
-      CodeGenState.symbolTable.restoreStructFields(structFields);
+      state.symbolTable.restoreStructFields(structFields);
 
-      CodeGenState.program = Program.build([], {
-        headerStructFields: CodeGenState.symbolTable.getAllStructFields(),
+      state.program = Program.build([], {
+        headerStructFields: state.symbolTable.getAllStructFields(),
       });
-      const result = CodeGenState.getExternalStructFields();
+      const result = state.getExternalStructFields();
 
       // Struct should not be included since all fields are arrays
       expect(result.has("ArrayOnly")).toBe(false);
@@ -1104,12 +1087,12 @@ describe("CodeGenState", () => {
 
       structFields.set("Mixed", mixedFields);
       structFields.set("Simple", simpleFields);
-      CodeGenState.symbolTable.restoreStructFields(structFields);
+      state.symbolTable.restoreStructFields(structFields);
 
-      CodeGenState.program = Program.build([], {
-        headerStructFields: CodeGenState.symbolTable.getAllStructFields(),
+      state.program = Program.build([], {
+        headerStructFields: state.symbolTable.getAllStructFields(),
       });
-      const result = CodeGenState.getExternalStructFields();
+      const result = state.getExternalStructFields();
 
       // Mixed struct should have only non-array fields
       expect(result.get("Mixed")?.size).toBe(2);
@@ -1132,49 +1115,39 @@ describe("CodeGenState", () => {
       ({ modifiedParameters: () => modified }) as unknown as IProgram;
 
     it("reads the whole-program fact when a Program is present", () => {
-      CodeGenState.program = programWith(new Map([["mutate", new Set(["s"])]]));
+      state.program = programWith(new Map([["mutate", new Set(["s"])]]));
       // The per-file accumulator this used to contradict is gone (#1452), so
       // the control is structural now: there is no second source a pass could
       // come from.
 
-      expect(CodeGenState.isParameterModifiedAnywhere("mutate", "s")).toBe(
-        true,
-      );
+      expect(state.isParameterModifiedAnywhere("mutate", "s")).toBe(true);
 
-      CodeGenState.program = null;
+      state.program = null;
     });
 
     it("treats a function absent from the program as NOT modified", () => {
       // The polarity that matters: an absent entry means auto-const APPLIES,
       // matching what the prototype does. Reading it the other way is what made
       // an included function-as-type lose its const (#1552).
-      CodeGenState.program = programWith(new Map());
+      state.program = programWith(new Map());
 
-      expect(CodeGenState.isParameterModifiedAnywhere("record", "s")).toBe(
-        false,
-      );
+      expect(state.isParameterModifiedAnywhere("record", "s")).toBe(false);
 
-      CodeGenState.program = null;
+      state.program = null;
     });
 
     it("treats a known function's unlisted parameter as NOT modified", () => {
-      CodeGenState.program = programWith(
-        new Map([["partly", new Set(["written"])]]),
-      );
+      state.program = programWith(new Map([["partly", new Set(["written"])]]));
 
-      expect(
-        CodeGenState.isParameterModifiedAnywhere("partly", "written"),
-      ).toBe(true);
-      expect(CodeGenState.isParameterModifiedAnywhere("partly", "read")).toBe(
-        false,
-      );
+      expect(state.isParameterModifiedAnywhere("partly", "written")).toBe(true);
+      expect(state.isParameterModifiedAnywhere("partly", "read")).toBe(false);
 
-      CodeGenState.program = null;
+      state.program = null;
     });
 
     it("answers NOT modified when there is no Program", () => {
       // #1452 retired this test's original subject. It asserted a FALLBACK to a
-      // per-file accumulator on `CodeGenState` -- the one this method's own
+      // per-file accumulator on `RenderState` -- the one this method's own
       // docblock named as the bug in #1529 and #1552, empty while declarations
       // are walked and absent entirely for an included function. The
       // accumulator is gone, so there is no second source to fall back to and
@@ -1182,11 +1155,11 @@ describe("CodeGenState", () => {
       //
       // What remains is the polarity, which is the part that was load-bearing:
       // absent means NOT modified, so auto-const applies.
-      CodeGenState.program = null;
+      state.program = null;
 
-      expect(
-        CodeGenState.isParameterModifiedAnywhere("localOnly", "target"),
-      ).toBe(false);
+      expect(state.isParameterModifiedAnywhere("localOnly", "target")).toBe(
+        false,
+      );
     });
   });
 
@@ -1227,18 +1200,18 @@ describe("CodeGenState", () => {
       // before they can be entered. `enterScope` is main's helper for exactly
       // this; `Inner` is registered directly because `withScopePath` is what
       // enters it.
-      enterScope("Outer");
+      enterScope(state, "Outer");
       registerScope("Inner");
-      const before = CodeGenState.currentScopePath;
+      const before = state.currentScopePath;
 
       expect(() =>
-        CodeGenState.withScopePath("Inner", () => {
-          expect(CodeGenState.currentScopePath).toBe("Inner");
+        state.withScopePath("Inner", () => {
+          expect(state.currentScopePath).toBe("Inner");
           throw new Error("boom");
         }),
       ).toThrow("boom");
 
-      expect(CodeGenState.currentScopePath).toBe(before);
+      expect(state.currentScopePath).toBe(before);
     });
 
     it("restores the previous scope path on the ordinary path too", () => {
@@ -1247,32 +1220,28 @@ describe("CodeGenState", () => {
       // before they can be entered. `enterScope` is main's helper for exactly
       // this; `Inner` is registered directly because `withScopePath` is what
       // enters it.
-      enterScope("Outer");
+      enterScope(state, "Outer");
       registerScope("Inner");
-      const before = CodeGenState.currentScopePath;
+      const before = state.currentScopePath;
 
-      const seen = CodeGenState.withScopePath(
-        "Inner",
-        () => CodeGenState.currentScopePath,
-      );
+      const seen = state.withScopePath("Inner", () => state.currentScopePath);
 
       expect(seen).toBe("Inner");
-      expect(CodeGenState.currentScopePath).toBe(before);
+      expect(state.currentScopePath).toBe(before);
     });
   });
 
   describe("scopeTypePredicate", () => {
     it("survives being passed unbound, which is why it exists", () => {
-      const predicate: (name: string) => boolean =
-        CodeGenState.scopeTypePredicate;
+      const predicate: (name: string) => boolean = state.scopeTypePredicate;
 
       expect(() => predicate("NoSuchType")).not.toThrow();
       expect(predicate("NoSuchType")).toBe(false);
     });
 
-    it("is the only closure in src/ that binds CodeGenState.isScopeType", () => {
-      const owner = join("src", "transpiler", "state", "CodeGenState.ts");
-      const binds = /CodeGenState\s*\.\s*isScopeType\s*\(/;
+    it("is the only closure in src/ that binds state.isScopeType", () => {
+      const owner = join("src", "transpiler", "state", "state.ts");
+      const binds = /RenderState\s*\.\s*isScopeType\s*\(/;
 
       const walk = (dir: string): string[] =>
         readdirSync(dir).flatMap((entry) => {
@@ -1285,7 +1254,7 @@ describe("CodeGenState", () => {
         });
 
       // Comments are stripped first. `NameExistence` explains at length why
-      // `CodeGenState.isScopeType()` cannot serve its purpose, and a guard that
+      // `state.isScopeType()` cannot serve its purpose, and a guard that
       // forbade naming the method in prose would forbid exactly the
       // documentation that keeps the next person from reaching for it.
       const code = (source: string): string =>
@@ -1321,20 +1290,18 @@ describe("CodeGenState", () => {
    */
   describe("scope identity comes from the registry, not the caller's string (#1295, #1304)", () => {
     beforeEach(() => {
-      CodeGenState.reset();
+      state = new RenderState();
     });
 
     it("resolves a member through the whole path when the scope is registered", () => {
       registerScope("Outer.Inner");
-      CodeGenState.setScopeMembers("Outer.Inner", new Set(["token"]));
+      state.setScopeMembers("Outer.Inner", new Set(["token"]));
 
-      CodeGenState.setCurrentScopeByPath("Outer.Inner");
+      state.setCurrentScopeByPath("Outer.Inner");
 
-      expect(CodeGenState.currentScopePath).toBe("Outer.Inner");
-      expect(CodeGenState.isCurrentScopeMember("token")).toBe(true);
-      expect(CodeGenState.resolveIdentifier("token")).toBe(
-        "Outer__Inner__token",
-      );
+      expect(state.currentScopePath).toBe("Outer.Inner");
+      expect(state.isCurrentScopeMember("token")).toBe(true);
+      expect(state.resolveIdentifier("token")).toBe("Outer__Inner__token");
     });
 
     /**
@@ -1343,11 +1310,11 @@ describe("CodeGenState", () => {
      */
     it("leaves a name that is not a member unqualified", () => {
       registerScope("Outer.Inner");
-      CodeGenState.setScopeMembers("Outer.Inner", new Set(["token"]));
-      CodeGenState.setCurrentScopeByPath("Outer.Inner");
+      state.setScopeMembers("Outer.Inner", new Set(["token"]));
+      state.setCurrentScopeByPath("Outer.Inner");
 
-      expect(CodeGenState.isCurrentScopeMember("hidden")).toBe(false);
-      expect(CodeGenState.resolveIdentifier("hidden")).toBe("hidden");
+      expect(state.isCurrentScopeMember("hidden")).toBe(false);
+      expect(state.resolveIdentifier("hidden")).toBe("hidden");
     });
   });
 });

@@ -3,6 +3,7 @@
  * Extracted from CodeGenerator to improve testability.
  */
 
+import type RenderState from "../../RenderState";
 import NarrowingCastHelper from "./NarrowingCastHelper";
 
 /**
@@ -25,6 +26,12 @@ interface IIntegerBitReadOptions {
   mask: string;
   sourceType?: string; // Optional: source variable type for cast detection
   targetType?: string; // Optional: target variable type for cast
+
+  /**
+   * 2.3 Render's per-file working state (#1452 box 4), needed only for the
+   * MISRA 10.3 cast, which asks the run's C++ mode.
+   */
+  state: RenderState;
 }
 
 /**
@@ -60,7 +67,7 @@ class BitRangeHelper {
    * with MISRA 10.3 compliant cast if needed.
    */
   static buildIntegerBitReadExpr(options: IIntegerBitReadOptions): string {
-    const { varName, start, mask, sourceType, targetType } = options;
+    const { varName, start, mask, sourceType, targetType, state } = options;
 
     let expr: string;
     if (start === "0") {
@@ -71,7 +78,7 @@ class BitRangeHelper {
 
     // If target type provided, wrap with MISRA cast if needed
     if (sourceType && targetType) {
-      return NarrowingCastHelper.wrap(expr, sourceType, targetType);
+      return NarrowingCastHelper.wrap(expr, sourceType, targetType, state);
     }
 
     return expr;

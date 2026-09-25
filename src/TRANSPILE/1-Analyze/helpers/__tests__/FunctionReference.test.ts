@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import CNextResolver from "../../../../PARSE/3-Declare/cnext";
 import CNextSourceParser from "../../../../PARSE/2-Parse/CNextSourceParser";
-import CodeGenState from "../../../../transpiler/state/CodeGenState";
+import RenderState from "../../../3-Render/RenderState";
 import Program from "../../../../PARSE/4-Resolve/Program";
 import SymbolRegistry from "../../../../PARSE/3-Declare/SymbolRegistry";
 import FunctionReference from "../FunctionReference";
@@ -21,7 +21,7 @@ import testAnalysisContext from "../../__tests__/testAnalysisContext";
  */
 const build = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  CodeGenState.program = Program.build([
+  state.program = Program.build([
     CNextResolver.resolve(tree, "a.cnx", registry),
   ]);
 };
@@ -29,7 +29,7 @@ const build = (source: string) => {
 beforeEach(() => {});
 
 afterEach(() => {
-  CodeGenState.reset();
+  state = new RenderState();
 });
 
 let registry = new SymbolRegistry();
@@ -37,6 +37,8 @@ let registry = new SymbolRegistry();
 beforeEach(() => {
   registry = new SymbolRegistry();
 });
+
+let state: RenderState;
 
 describe("FunctionReference.candidates -- the ADR-057 order", () => {
   it("tries the enclosing scope's member before the file-scope name", () => {
@@ -108,7 +110,7 @@ describe("FunctionReference.ofTypeText -- the order, observed", () => {
     const found = FunctionReference.ofTypeText(
       "handler",
       "S",
-      testAnalysisContext(),
+      testAnalysisContext(state),
     );
     expect(found).not.toBeNull();
     expect(FunctionReference.cNameOf(found!)).toBe("S__handler");
@@ -119,7 +121,7 @@ describe("FunctionReference.ofTypeText -- the order, observed", () => {
     const found = FunctionReference.ofTypeText(
       "handler",
       "S",
-      testAnalysisContext(),
+      testAnalysisContext(state),
     );
     expect(FunctionReference.cNameOf(found!)).toBe("handler");
   });
@@ -136,7 +138,7 @@ describe("FunctionReference.ofTypeText -- the order, observed", () => {
     const found = FunctionReference.ofTypeText(
       "global.handler",
       "S",
-      testAnalysisContext(),
+      testAnalysisContext(state),
     );
     expect(FunctionReference.cNameOf(found!)).toBe("handler");
   });
@@ -144,17 +146,17 @@ describe("FunctionReference.ofTypeText -- the order, observed", () => {
   it("answers null for a name the program does not declare as a function", () => {
     build("u8 value <- 1;");
     expect(
-      FunctionReference.ofTypeText("value", "", testAnalysisContext()),
+      FunctionReference.ofTypeText("value", "", testAnalysisContext(state)),
     ).toBeNull();
     expect(
-      FunctionReference.ofTypeText("missing", "", testAnalysisContext()),
+      FunctionReference.ofTypeText("missing", "", testAnalysisContext(state)),
     ).toBeNull();
   });
 
   it("answers null with no program at all, rather than throwing", () => {
-    CodeGenState.reset();
+    state = new RenderState();
     expect(
-      FunctionReference.ofTypeText("handler", "", testAnalysisContext()),
+      FunctionReference.ofTypeText("handler", "", testAnalysisContext(state)),
     ).toBeNull();
   });
 });

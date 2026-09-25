@@ -14,7 +14,7 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import SizeofResolver from "../SizeofResolver";
-import CodeGenState from "../../../../../transpiler/state/CodeGenState";
+import RenderState from "../../../RenderState";
 import TParameterInfo from "../../../../../transpiler/types/TParameterInfo";
 import createMockSymbols from "../../../../../transpiler/__tests__/codeGenSymbolsHelpers";
 
@@ -23,7 +23,7 @@ function declareParameter(
   name: string,
   overrides: Partial<TParameterInfo> = {},
 ): void {
-  CodeGenState.currentParameters.set(name, {
+  state.currentParameters.set(name, {
     name,
     baseType: "u32",
     isArray: false,
@@ -35,9 +35,11 @@ function declareParameter(
   });
 }
 
+let state: RenderState;
+
 describe("SizeofResolver", () => {
   beforeEach(() => {
-    CodeGenState.reset();
+    state = new RenderState();
   });
 
   describe("user-type operand", () => {
@@ -45,7 +47,7 @@ describe("SizeofResolver", () => {
       declareParameter("arr", { isArray: true });
 
       expect(() =>
-        SizeofResolver.generate({ kind: "user-type", text: "arr" }),
+        SizeofResolver.generate({ kind: "user-type", text: "arr" }, state),
       ).toThrow("E0601 rejects this in pass 2.1");
     });
 
@@ -53,7 +55,7 @@ describe("SizeofResolver", () => {
       declareParameter("value");
 
       expect(
-        SizeofResolver.generate({ kind: "user-type", text: "value" }),
+        SizeofResolver.generate({ kind: "user-type", text: "value" }, state),
       ).toBe("sizeof(*value)");
     });
 
@@ -63,9 +65,9 @@ describe("SizeofResolver", () => {
     ])("passes %s by name, not by dereference", (_label, overrides) => {
       declareParameter("p", overrides);
 
-      expect(SizeofResolver.generate({ kind: "user-type", text: "p" })).toBe(
-        "sizeof(p)",
-      );
+      expect(
+        SizeofResolver.generate({ kind: "user-type", text: "p" }, state),
+      ).toBe("sizeof(p)");
     });
 
     /**
@@ -75,12 +77,12 @@ describe("SizeofResolver", () => {
      * the name. Measured -- with the lookup bypassed that shape stayed green.
      */
     it("uses the emitted name of a shadowing local (ADR-057)", () => {
-      CodeGenState.localVariables.add("arr");
-      CodeGenState.registerLocalRename("arr", "main__arr");
+      state.localVariables.add("arr");
+      state.registerLocalRename("arr", "main__arr");
 
-      expect(SizeofResolver.generate({ kind: "user-type", text: "arr" })).toBe(
-        "sizeof(main__arr)",
-      );
+      expect(
+        SizeofResolver.generate({ kind: "user-type", text: "arr" }, state),
+      ).toBe("sizeof(main__arr)");
     });
   });
 
@@ -95,15 +97,18 @@ describe("SizeofResolver", () => {
     }
 
     it("handles struct.member access for local variable", () => {
-      CodeGenState.localVariables.add("myStruct");
+      state.localVariables.add("myStruct");
       const spy = renderSpy();
 
-      const result = SizeofResolver.generate({
-        kind: "qualified-type",
-        firstName: "myStruct",
-        memberName: "field",
-        renderTypeName: spy.renderTypeName,
-      });
+      const result = SizeofResolver.generate(
+        {
+          kind: "qualified-type",
+          firstName: "myStruct",
+          memberName: "field",
+          renderTypeName: spy.renderTypeName,
+        },
+        state,
+      );
 
       expect(result).toBe("sizeof(myStruct.field)");
       // A member access names no type, so rendering one would register an
@@ -112,16 +117,19 @@ describe("SizeofResolver", () => {
     });
 
     it("uses the emitted name when the local shadows a file-scope name", () => {
-      CodeGenState.localVariables.add("cfg");
-      CodeGenState.registerLocalRename("cfg", "main__cfg");
+      state.localVariables.add("cfg");
+      state.registerLocalRename("cfg", "main__cfg");
 
       expect(
-        SizeofResolver.generate({
-          kind: "qualified-type",
-          firstName: "cfg",
-          memberName: "x",
-          renderTypeName: renderSpy().renderTypeName,
-        }),
+        SizeofResolver.generate(
+          {
+            kind: "qualified-type",
+            firstName: "cfg",
+            memberName: "x",
+            renderTypeName: renderSpy().renderTypeName,
+          },
+          state,
+        ),
       ).toBe("sizeof(main__cfg.x)");
     });
 
@@ -129,12 +137,15 @@ describe("SizeofResolver", () => {
       declareParameter("param", { baseType: "MyStruct", isStruct: true });
 
       expect(
-        SizeofResolver.generate({
-          kind: "qualified-type",
-          firstName: "param",
-          memberName: "field",
-          renderTypeName: renderSpy().renderTypeName,
-        }),
+        SizeofResolver.generate(
+          {
+            kind: "qualified-type",
+            firstName: "param",
+            memberName: "field",
+            renderTypeName: renderSpy().renderTypeName,
+          },
+          state,
+        ),
       ).toBe("sizeof(param->field)");
     });
 
@@ -142,41 +153,50 @@ describe("SizeofResolver", () => {
       declareParameter("param", { baseType: "MyStruct" });
 
       expect(
-        SizeofResolver.generate({
-          kind: "qualified-type",
-          firstName: "param",
-          memberName: "field",
-          renderTypeName: renderSpy().renderTypeName,
-        }),
+        SizeofResolver.generate(
+          {
+            kind: "qualified-type",
+            firstName: "param",
+            memberName: "field",
+            renderTypeName: renderSpy().renderTypeName,
+          },
+          state,
+        ),
       ).toBe("sizeof(param.field)");
     });
 
     it("treats an unknown first identifier as a global struct variable", () => {
       const spy = renderSpy();
 
-      const result = SizeofResolver.generate({
-        kind: "qualified-type",
-        firstName: "config",
-        memberName: "field",
-        renderTypeName: spy.renderTypeName,
-      });
+      const result = SizeofResolver.generate(
+        {
+          kind: "qualified-type",
+          firstName: "config",
+          memberName: "field",
+          renderTypeName: spy.renderTypeName,
+        },
+        state,
+      );
 
       expect(result).toBe("sizeof(config.field)");
       expect(spy.calls()).toBe(0);
     });
 
     it("renders the type name when the first identifier is a scope", () => {
-      CodeGenState.symbols = createMockSymbols({
+      state.symbols = createMockSymbols({
         knownScopes: new Set(["Motor"]),
       });
       const spy = renderSpy();
 
-      const result = SizeofResolver.generate({
-        kind: "qualified-type",
-        firstName: "Motor",
-        memberName: "State",
-        renderTypeName: spy.renderTypeName,
-      });
+      const result = SizeofResolver.generate(
+        {
+          kind: "qualified-type",
+          firstName: "Motor",
+          memberName: "State",
+          renderTypeName: spy.renderTypeName,
+        },
+        state,
+      );
 
       expect(result).toBe("sizeof(Scope__Type)");
       expect(spy.calls()).toBe(1);
@@ -186,7 +206,10 @@ describe("SizeofResolver", () => {
   describe("plain-type operand", () => {
     it("wraps the already-rendered C type name", () => {
       expect(
-        SizeofResolver.generate({ kind: "plain-type", cTypeName: "uint32_t" }),
+        SizeofResolver.generate(
+          { kind: "plain-type", cTypeName: "uint32_t" },
+          state,
+        ),
       ).toBe("sizeof(uint32_t)");
     });
   });
@@ -194,12 +217,15 @@ describe("SizeofResolver", () => {
   describe("expression operand", () => {
     it("wraps the generated expression", () => {
       expect(
-        SizeofResolver.generate({
-          kind: "expression",
-          simpleIdentifier: null,
-          hasSideEffects: false,
-          code: "a + b",
-        }),
+        SizeofResolver.generate(
+          {
+            kind: "expression",
+            simpleIdentifier: null,
+            hasSideEffects: false,
+            code: "a + b",
+          },
+          state,
+        ),
       ).toBe("sizeof(a + b)");
     });
 
@@ -207,23 +233,29 @@ describe("SizeofResolver", () => {
       declareParameter("arr", { isArray: true });
 
       expect(() =>
-        SizeofResolver.generate({
-          kind: "expression",
-          simpleIdentifier: "arr",
-          hasSideEffects: false,
-          code: "arr",
-        }),
+        SizeofResolver.generate(
+          {
+            kind: "expression",
+            simpleIdentifier: "arr",
+            hasSideEffects: false,
+            code: "arr",
+          },
+          state,
+        ),
       ).toThrow("E0601 rejects this in pass 2.1");
     });
 
     it("throws E0602 when the operand has side effects", () => {
       expect(() =>
-        SizeofResolver.generate({
-          kind: "expression",
-          simpleIdentifier: null,
-          hasSideEffects: true,
-          code: "f()",
-        }),
+        SizeofResolver.generate(
+          {
+            kind: "expression",
+            simpleIdentifier: null,
+            hasSideEffects: true,
+            code: "f()",
+          },
+          state,
+        ),
       ).toThrow("E0602 rejects this in pass 2.1");
     });
   });

@@ -16,7 +16,7 @@ import IGeneratorOutput from "../IGeneratorOutput";
 import TTypeInfo from "../../../../../transpiler/types/TTypeInfo";
 import NarrowingCastHelper from "../../helpers/NarrowingCastHelper";
 import invariant from "../../../../../utils/invariant";
-import type RenderState from "../../../../../transpiler/state/RenderState";
+import type RenderState from "../../../RenderState";
 
 /**
  * Generate code for .capacity property access.
@@ -87,7 +87,7 @@ const generateBitmapFieldAccess = (
   const targetType = state.expectedType;
   if (targetType) {
     // Bitmap operations on small types produce int in C
-    expr = NarrowingCastHelper.wrap(expr, "int", targetType);
+    expr = NarrowingCastHelper.wrap(expr, "int", targetType, state);
   }
 
   return { code: expr, effects: [] };

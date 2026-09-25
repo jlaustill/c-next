@@ -9,7 +9,7 @@ import { CNextParser } from "../../../PARSE/2-Parse/grammar/CNextParser";
 import CNextResolver from "../../../PARSE/3-Declare/cnext/index";
 import TSymbolInfoAdapter from "../../../PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
 import SymbolRegistry from "../../../PARSE/3-Declare/SymbolRegistry";
-import CodeGenState from "../../../transpiler/state/CodeGenState";
+import RenderState from "../../3-Render/RenderState";
 import ReturnValueUseAnalyzer from "../ReturnValueUseAnalyzer";
 import testAnalysisContext from "./testAnalysisContext";
 
@@ -27,13 +27,13 @@ function parse(source: string) {
  */
 function analyze(source: string) {
   const tree = parse(source);
-  CodeGenState.symbols = TSymbolInfoAdapter.convert(
+  state.symbols = TSymbolInfoAdapter.convert(
     CNextResolver.resolve(tree, "test.cnx", registry).symbols,
   );
   return ReturnValueUseAnalyzer.analyze(
     tree,
-    CodeGenState.symbolTable,
-    testAnalysisContext(),
+    state.symbolTable,
+    testAnalysisContext(state),
   );
 }
 
@@ -43,11 +43,13 @@ beforeEach(() => {
   registry = new SymbolRegistry();
 });
 
+let state: RenderState;
+
 describe("ReturnValueUseAnalyzer", () => {
   beforeEach(() => {});
 
   afterEach(() => {
-    CodeGenState.reset();
+    state = new RenderState();
   });
 
   describe("flags a discarded non-void return (E0708)", () => {

@@ -8,7 +8,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import bitmapHandlers from "../BitmapHandlers";
 import AssignmentKind from "../../../../../../transpiler/types/AssignmentKind";
 import IAssignmentContext from "../../../../../../transpiler/types/IAssignmentContext";
-import CodeGenState from "../../../../../../transpiler/state/CodeGenState";
+import RenderState from "../../../../RenderState";
 import HandlerTestUtils from "./handlerTestUtils";
 import enterScope from "../../../../../../transpiler/__tests__/enterScope";
 
@@ -62,11 +62,13 @@ function createMockContext(
   } as IAssignmentContext;
 }
 
+let state: RenderState;
+
 describe("BitmapHandlers", () => {
   beforeEach(() => {
-    CodeGenState.reset();
-    HandlerTestUtils.setupMockGenerator();
-    HandlerTestUtils.setupMockSymbols();
+    state = new RenderState();
+    HandlerTestUtils.setupMockGenerator(state);
+    HandlerTestUtils.setupMockSymbols(state);
   });
 
   describe("handler registration", () => {
@@ -95,10 +97,10 @@ describe("BitmapHandlers", () => {
       )?.[1];
 
     it("generates single-bit read-modify-write", () => {
-      HandlerTestUtils.setupMockTypeRegistry([
+      HandlerTestUtils.setupMockTypeRegistry(state, [
         ["flags", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
       ]);
-      HandlerTestUtils.setupMockSymbols({
+      HandlerTestUtils.setupMockSymbols(state, {
         bitmapFields: new Map([
           ["StatusFlags", new Map([["Running", { offset: 0, width: 1 }]])],
         ]),
@@ -113,10 +115,10 @@ describe("BitmapHandlers", () => {
     });
 
     it("generates single-bit write with correct offset", () => {
-      HandlerTestUtils.setupMockTypeRegistry([
+      HandlerTestUtils.setupMockTypeRegistry(state, [
         ["flags", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
       ]);
-      HandlerTestUtils.setupMockSymbols({
+      HandlerTestUtils.setupMockSymbols(state, {
         bitmapFields: new Map([
           ["StatusFlags", new Map([["Active", { offset: 3, width: 1 }]])],
         ]),
@@ -131,10 +133,10 @@ describe("BitmapHandlers", () => {
     });
 
     it("throws on unknown bitmap field", () => {
-      HandlerTestUtils.setupMockTypeRegistry([
+      HandlerTestUtils.setupMockTypeRegistry(state, [
         ["flags", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
       ]);
-      HandlerTestUtils.setupMockSymbols({
+      HandlerTestUtils.setupMockSymbols(state, {
         bitmapFields: new Map([["StatusFlags", new Map()]]),
       });
       const ctx = createMockContext({
@@ -166,10 +168,10 @@ describe("BitmapHandlers", () => {
       )?.[1];
 
     it("generates multi-bit read-modify-write with mask", () => {
-      HandlerTestUtils.setupMockTypeRegistry([
+      HandlerTestUtils.setupMockTypeRegistry(state, [
         ["flags", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
       ]);
-      HandlerTestUtils.setupMockSymbols({
+      HandlerTestUtils.setupMockSymbols(state, {
         bitmapFields: new Map([
           ["StatusFlags", new Map([["Mode", { offset: 4, width: 3 }]])],
         ]),
@@ -188,10 +190,10 @@ describe("BitmapHandlers", () => {
     });
 
     it("generates correct mask for 2-bit field", () => {
-      HandlerTestUtils.setupMockTypeRegistry([
+      HandlerTestUtils.setupMockTypeRegistry(state, [
         ["config", { bitmapTypeName: "Config", baseType: "u8" }],
       ]);
-      HandlerTestUtils.setupMockSymbols({
+      HandlerTestUtils.setupMockSymbols(state, {
         bitmapFields: new Map([
           ["Config", new Map([["Priority", { offset: 0, width: 2 }]])],
         ]),
@@ -214,13 +216,13 @@ describe("BitmapHandlers", () => {
       )?.[1];
 
     it("generates array element bitmap field assignment", () => {
-      HandlerTestUtils.setupMockTypeRegistry([
+      HandlerTestUtils.setupMockTypeRegistry(state, [
         ["flagsArray", { bitmapTypeName: "StatusFlags", baseType: "u8" }],
       ]);
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi.fn().mockReturnValue("i"),
       });
-      HandlerTestUtils.setupMockSymbols({
+      HandlerTestUtils.setupMockSymbols(state, {
         bitmapFields: new Map([
           ["StatusFlags", new Map([["Active", { offset: 0, width: 1 }]])],
         ]),
@@ -244,10 +246,10 @@ describe("BitmapHandlers", () => {
       )?.[1];
 
     it("generates struct member bitmap field assignment", () => {
-      HandlerTestUtils.setupMockTypeRegistry([
+      HandlerTestUtils.setupMockTypeRegistry(state, [
         ["device", { baseType: "Device" }],
       ]);
-      HandlerTestUtils.setupMockSymbols({
+      HandlerTestUtils.setupMockSymbols(state, {
         bitmapFields: new Map([
           ["StatusFlags", new Map([["Active", { offset: 2, width: 1 }]])],
         ]),
@@ -274,7 +276,7 @@ describe("BitmapHandlers", () => {
       )?.[1];
 
     it("generates register member bitmap field assignment", () => {
-      HandlerTestUtils.setupMockSymbols({
+      HandlerTestUtils.setupMockSymbols(state, {
         bitmapFields: new Map([
           ["MotorCtrl", new Map([["Running", { offset: 0, width: 1 }]])],
         ]),
@@ -298,8 +300,8 @@ describe("BitmapHandlers", () => {
       )?.[1];
 
     it("generates this-prefixed scoped register bitmap field", () => {
-      enterScope("Motor");
-      HandlerTestUtils.setupMockSymbols({
+      enterScope(state, "Motor");
+      HandlerTestUtils.setupMockSymbols(state, {
         bitmapFields: new Map([
           ["ICR1Bits", new Map([["LED", { offset: 6, width: 2 }]])],
         ]),
@@ -318,8 +320,8 @@ describe("BitmapHandlers", () => {
     });
 
     it("generates scope-prefixed register bitmap field", () => {
-      HandlerTestUtils.setupMockGenerator({});
-      HandlerTestUtils.setupMockSymbols({
+      HandlerTestUtils.setupMockGenerator(state, {});
+      HandlerTestUtils.setupMockSymbols(state, {
         bitmapFields: new Map([
           ["ICR1Bits", new Map([["LED", { offset: 6, width: 2 }]])],
         ]),
@@ -343,8 +345,8 @@ describe("BitmapHandlers", () => {
     // that is a dead branch's only caller is what keeps the branch alive.
 
     it("generates write-only pattern for wo register", () => {
-      enterScope("Motor");
-      HandlerTestUtils.setupMockSymbols({
+      enterScope(state, "Motor");
+      HandlerTestUtils.setupMockSymbols(state, {
         bitmapFields: new Map([
           ["SetBits", new Map([["LED", { offset: 0, width: 1 }]])],
         ]),
@@ -364,8 +366,8 @@ describe("BitmapHandlers", () => {
     });
 
     it("generates write-only pattern for w1s register", () => {
-      enterScope("Motor");
-      HandlerTestUtils.setupMockSymbols({
+      enterScope(state, "Motor");
+      HandlerTestUtils.setupMockSymbols(state, {
         bitmapFields: new Map([
           ["SetBits", new Map([["LED", { offset: 3, width: 1 }]])],
         ]),
@@ -384,8 +386,8 @@ describe("BitmapHandlers", () => {
     });
 
     it("generates write-only pattern for w1c register", () => {
-      enterScope("Motor");
-      HandlerTestUtils.setupMockSymbols({
+      enterScope(state, "Motor");
+      HandlerTestUtils.setupMockSymbols(state, {
         bitmapFields: new Map([
           ["ClearBits", new Map([["LED", { offset: 5, width: 1 }]])],
         ]),

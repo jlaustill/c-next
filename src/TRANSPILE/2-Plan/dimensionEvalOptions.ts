@@ -16,15 +16,15 @@
  * dimension form becomes resolvable everywhere at once.
  */
 
-import CodeGenState from "../../transpiler/state/CodeGenState";
 import TYPE_WIDTH from "../../transpiler/constants/TYPE_WIDTH";
+import type RenderState from "../3-Render/RenderState";
 
 /**
  * Build the constant-folding options for an array dimension from current state.
  */
-function dimensionEvalOptions() {
+function dimensionEvalOptions(state: RenderState) {
   return {
-    constValues: CodeGenState.constValues,
+    constValues: state.constValues,
     typeWidths: TYPE_WIDTH,
   };
 }

@@ -10,8 +10,8 @@ import IHeaderSymbol from "../types/IHeaderSymbol";
 import IParameterSymbol from "../../../../utils/types/IParameterSymbol";
 import TypeResolver from "../../../../utils/TypeResolver";
 import ScopeUtils from "../../../../utils/ScopeUtils";
-import CodeGenState from "../../../../transpiler/state/CodeGenState";
 import type TType from "../../../../transpiler/types/TType";
+import type RenderState from "../../RenderState";
 
 /**
  * Adapter to convert TSymbol to IHeaderSymbol
@@ -20,12 +20,12 @@ class HeaderSymbolAdapter {
   /**
    * Convert a TSymbol to IHeaderSymbol
    */
-  static fromTSymbol(symbol: TSymbol): IHeaderSymbol {
+  static fromTSymbol(symbol: TSymbol, state: RenderState): IHeaderSymbol {
     switch (symbol.kind) {
       case "function":
-        return HeaderSymbolAdapter.convertFunction(symbol);
+        return HeaderSymbolAdapter.convertFunction(symbol, state);
       case "variable":
-        return HeaderSymbolAdapter.convertVariable(symbol);
+        return HeaderSymbolAdapter.convertVariable(symbol, state);
       case "struct":
         return HeaderSymbolAdapter.convertStruct(symbol);
       case "enum":
@@ -42,8 +42,8 @@ class HeaderSymbolAdapter {
   /**
    * Convert an array of TSymbols to IHeaderSymbols
    */
-  static fromTSymbols(symbols: TSymbol[]): IHeaderSymbol[] {
-    return symbols.map((s) => HeaderSymbolAdapter.fromTSymbol(s));
+  static fromTSymbols(symbols: TSymbol[], state: RenderState): IHeaderSymbol[] {
+    return symbols.map((s) => HeaderSymbolAdapter.fromTSymbol(s, state));
   }
 
   // ========================================================================
@@ -52,6 +52,7 @@ class HeaderSymbolAdapter {
 
   private static convertFunction(
     func: import("../../../../transpiler/types/symbols/IFunctionSymbol").default,
+    state: RenderState,
   ): IHeaderSymbol {
     // Convert TType return type to string
     const returnTypeStr = TypeResolver.getTypeName(func.returnType);
@@ -68,7 +69,7 @@ class HeaderSymbolAdapter {
         type: TypeResolver.getTypeName(p.type),
         isConst: p.isConst,
         isArray: p.isArray,
-        arrayDimensions: HeaderSymbolAdapter.headerArrayDimensions(p),
+        arrayDimensions: HeaderSymbolAdapter.headerArrayDimensions(p, state),
         isAutoConst: p.isAutoConst,
       };
     });
@@ -92,6 +93,7 @@ class HeaderSymbolAdapter {
 
   private static convertVariable(
     variable: import("../../../../transpiler/types/symbols/IVariableSymbol").default,
+    state: RenderState,
   ): IHeaderSymbol {
     // Get transpiled C name (scope-prefixed)
     const cName = ScopeUtils.getTranspiledCName(variable);
@@ -104,7 +106,11 @@ class HeaderSymbolAdapter {
     const arrayDimensions = variable.arrayDimensions?.map((d) =>
       typeof d === "number"
         ? String(d)
-        : HeaderSymbolAdapter.resolveArrayDimension(d, variable.scopePath),
+        : HeaderSymbolAdapter.resolveArrayDimension(
+            d,
+            variable.scopePath,
+            state,
+          ),
     );
 
     return {
@@ -131,14 +137,17 @@ class HeaderSymbolAdapter {
    * not, so it declared `char arr[5]` against a `char arr[5][33]` definition
    * (#1164).
    */
-  private static headerArrayDimensions(parameter: {
-    readonly type: TType;
-    readonly arrayDimensions?: ReadonlyArray<number | string>;
-  }): string[] | undefined {
+  private static headerArrayDimensions(
+    parameter: {
+      readonly type: TType;
+      readonly arrayDimensions?: ReadonlyArray<number | string>;
+    },
+    state: RenderState,
+  ): string[] | undefined {
     const dimensions = parameter.arrayDimensions?.map((d) =>
       typeof d === "number"
         ? String(d)
-        : HeaderSymbolAdapter.resolveConstDimension(d),
+        : HeaderSymbolAdapter.resolveConstDimension(d, state),
     );
     if (!dimensions) {
       return undefined;
@@ -171,8 +180,11 @@ class HeaderSymbolAdapter {
    *
    * Enum-qualified dimensions keep their own resolution path.
    */
-  private static resolveConstDimension(dimension: string): string {
-    const constValue = CodeGenState.constValues.get(dimension);
+  private static resolveConstDimension(
+    dimension: string,
+    state: RenderState,
+  ): string {
+    const constValue = state.constValues.get(dimension);
     return constValue === undefined ? dimension : String(constValue);
   }
 
@@ -282,13 +294,17 @@ class HeaderSymbolAdapter {
    * @example resolveArrayDimension("global.EColor.COUNT", "Motor") => "EColor__COUNT"
    * @example resolveArrayDimension("10", "Motor") => "10"
    */
-  private static resolveArrayDimension(dim: string, scopePath: string): string {
+  private static resolveArrayDimension(
+    dim: string,
+    scopePath: string,
+    state: RenderState,
+  ): string {
     // Issue #1127: the rule itself lives on ScopeUtils so the struct-field path
     // applies the same one. This wrapper only binds the predicate.
     return ScopeUtils.resolveDimensionName(
       dim,
       scopePath,
-      (qualified: string) => CodeGenState.isKnownEnum(qualified),
+      (qualified: string) => state.isKnownEnum(qualified),
     );
   }
 }

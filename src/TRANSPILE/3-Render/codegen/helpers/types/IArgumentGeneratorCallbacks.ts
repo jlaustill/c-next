@@ -1,4 +1,4 @@
-import type RenderState from "../../../../../transpiler/state/RenderState";
+import type RenderState from "../../../RenderState";
 /**
  * Callbacks required for argument generation.
  * These need CodeGenerator context and cannot be replaced with static state.

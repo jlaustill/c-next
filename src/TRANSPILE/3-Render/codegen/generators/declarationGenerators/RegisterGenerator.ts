@@ -73,7 +73,7 @@ const registerGeneratorFor =
     planned: IPlannedRegister,
     _input: IGeneratorInput,
     _state: IGeneratorState,
-    _orchestrator: IOrchestrator,
+    orchestrator: IOrchestrator,
   ): IGeneratorOutput => {
     const fullName = QualifiedNameGenerator.forMember(
       declaringScopePath,
@@ -87,7 +87,11 @@ const registerGeneratorFor =
     ];
 
     return {
-      code: RegisterBlockPlacement.place(fullName, lines.join("\n")),
+      code: RegisterBlockPlacement.place(
+        fullName,
+        lines.join("\n"),
+        orchestrator.state,
+      ),
       effects: [],
     };
   };

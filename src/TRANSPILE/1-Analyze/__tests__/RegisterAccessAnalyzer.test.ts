@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
-import CodeGenState from "../../../transpiler/state/CodeGenState";
+import RenderState from "../../3-Render/RenderState";
 import RegisterAccessAnalyzer from "../RegisterAccessAnalyzer";
 import testAnalysisContext from "./testAnalysisContext";
 
@@ -26,7 +26,7 @@ const symbols = (
       access.set(`${reg}__${member}`, mod);
     }
   }
-  CodeGenState.symbols = {
+  state.symbols = {
     knownScopes: new Set(opts.scopes ?? []),
     knownEnums: new Set<string>(),
     knownRegisters: new Set(Object.keys(registers)),
@@ -39,19 +39,21 @@ const symbols = (
     structFields: new Map(),
     structFieldDimensions: new Map(),
     functionReturnTypes: new Map(),
-  } as unknown as typeof CodeGenState.symbols;
+  } as unknown as typeof state.symbols;
 };
 
 const errors = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new RegisterAccessAnalyzer(testAnalysisContext()).analyze(tree);
+  return new RegisterAccessAnalyzer(testAnalysisContext(state)).analyze(tree);
 };
 
 const inMain = (body: string): string => `void main() {\n${body}\n}`;
 
 afterEach(() => {
-  CodeGenState.reset();
+  state = new RenderState();
 });
+
+let state: RenderState;
 
 describe("RegisterAccessAnalyzer", () => {
   describe("E0870 -- a write-only member is read", () => {

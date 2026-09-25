@@ -15,7 +15,7 @@ import CNextResolver from "../../PARSE/3-Declare/cnext/index";
 import TSymbolInfoAdapter from "../../PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
 import ICodeGenSymbols from "../../transpiler/types/ICodeGenSymbols";
 import TParameterInfo from "../../transpiler/types/TParameterInfo";
-import CodeGenState from "../../transpiler/state/CodeGenState";
+import RenderState from "../3-Render/RenderState";
 import SymbolRegistry from "../../PARSE/3-Declare/SymbolRegistry";
 import DeferredTypes from "../../PARSE/4-Resolve/DeferredTypes";
 import type TSymbol from "../../transpiler/types/symbols/TSymbol";
@@ -72,12 +72,13 @@ function setupGenerator(source: string): {
   // the walk accumulates read the SAME instance the walk drove.
   const host = new CodeGenerator();
   const generator = new CodeGenWalker(host);
-  // Set symbolTable in CodeGenState before generate (CodeGenState owns SymbolTable)
-  CodeGenState.symbolTable = symbolTable;
+  const state = host.state;
+  // Set symbolTable in RenderState before generate (RenderState owns SymbolTable)
+  state.symbolTable = symbolTable;
   // #1511: the whole-program facts codegen reads. Without them every small
   // primitive parameter looks ineligible for pass-by-value and comes out a
   // pointer.
-  installProgramFor(tree);
+  installProgramFor(state, tree);
   // Generate to initialize the generator state
   generateWithProgram(generator, tree, tokenStream, {
     symbolInfo: symbols,
@@ -109,6 +110,7 @@ function createMinimalGenerator(source: string): {
  * with a real run rather than approximating one.
  */
 function installProgramFor(
+  state: RenderState,
   tree: Parser.ProgramContext,
   sourcePath = "test.cnx",
 ): void {
@@ -116,8 +118,9 @@ function installProgramFor(
   const modifications = ModificationFacts.derive(
     [{ parsed: { tree } as never, fileSymbols: declared }],
     registry,
+    state,
   );
-  CodeGenState.program = Program.build([declared], {
+  state.program = Program.build([declared], {
     modifications,
     registry,
   });
@@ -139,7 +142,11 @@ function generateWithProgram(
   tokenStream: Parameters<CodeGenWalker["generate"]>[1],
   options: Parameters<CodeGenWalker["generate"]>[2],
 ): ReturnType<CodeGenWalker["generate"]> {
-  installProgramFor(tree, options?.sourcePath ?? "test.cnx");
+  installProgramFor(
+    generator.renderState,
+    tree,
+    options?.sourcePath ?? "test.cnx",
+  );
   return generator.generate(tree, tokenStream, options);
 }
 
@@ -150,14 +157,12 @@ beforeEach(() => {
 });
 
 describe("CodeGenWalker", () => {
-  // Reset SymbolRegistry before each test to prevent state pollution
-  beforeEach(() => {
-    // CodeGenState.symbolTable is a run-wide singleton. ADR-057's shadow
-    // predicate asks it whether a bare name is already taken at file scope, so
-    // symbols left by an earlier test in this file make an unrelated local look
-    // like it shadows something and change the generated name.
-    CodeGenState.symbolTable = new SymbolTable();
-  });
+  // #1452 box 4: each test builds its own `CodeGenerator`, so its `SymbolTable`
+  // arrives empty with the instance. The reset that stood here existed because
+  // the table was a mutable static that carried an earlier test's symbols into
+  // the next one -- ADR-057's shadow predicate then read an unrelated local as
+  // shadowing something and changed the generated name. There is nothing left
+  // to reset.
 
   describe("generate()", () => {
     it("should generate basic C code from empty program", () => {
@@ -9136,7 +9141,7 @@ describe("CodeGenWalker", () => {
         // produced the right output for the wrong reason.
         const symbolTable = new SymbolTable();
         symbolTable.addTSymbols(tSymbols);
-        CodeGenState.symbolTable = symbolTable;
+        host.state.symbolTable = symbolTable;
 
         const code = generateWithProgram(generator, tree, tokenStream, {
           symbolInfo: symbols,
@@ -9261,12 +9266,12 @@ describe("CodeGenWalker", () => {
         const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         // #831/#1285: register the symbols, as Transpiler.ts:429 does. Passing only
-        // `symbolInfo` leaves CodeGenState.symbolTable empty -- a state the real
+        // `symbolInfo` leaves state.symbolTable empty -- a state the real
         // pipeline never reaches, and one in which kind-aware type resolution
         // silently finds nothing. 390 sites in this file share this shape and pass
         // because they do not assert on scope-qualified names; these two do.
-        CodeGenState.symbolTable = new SymbolTable();
-        CodeGenState.symbolTable.addTSymbols(tSymbols);
+        host.state.symbolTable = new SymbolTable();
+        host.state.symbolTable.addTSymbols(tSymbols);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
@@ -9374,7 +9379,7 @@ describe("CodeGenWalker", () => {
         // Issue #831: Register TSymbols in SymbolTable (single source of truth)
         const symbolTable = new SymbolTable();
         symbolTable.addTSymbols(tSymbols);
-        CodeGenState.symbolTable = symbolTable;
+        host.state.symbolTable = symbolTable;
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {
@@ -10109,12 +10114,12 @@ describe("CodeGenWalker", () => {
         const generator = new CodeGenWalker(host);
         const tSymbols = declareAndResolve(tree);
         // #831/#1285: register the symbols, as Transpiler.ts:429 does. Passing only
-        // `symbolInfo` leaves CodeGenState.symbolTable empty -- a state the real
+        // `symbolInfo` leaves state.symbolTable empty -- a state the real
         // pipeline never reaches, and one in which kind-aware type resolution
         // silently finds nothing. 390 sites in this file share this shape and pass
         // because they do not assert on scope-qualified names; these two do.
-        CodeGenState.symbolTable = new SymbolTable();
-        CodeGenState.symbolTable.addTSymbols(tSymbols);
+        host.state.symbolTable = new SymbolTable();
+        host.state.symbolTable.addTSymbols(tSymbols);
         const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
         const code = generateWithProgram(generator, tree, tokenStream, {

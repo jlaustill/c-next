@@ -2,7 +2,7 @@
  * Issue #1307 review: Stage 4c must report against the budget the *build* asks
  * for, not against whatever codegen left in a static.
  *
- * `CodeGenState.targetCapabilities` is assigned only inside
+ * `state.targetCapabilities` is assigned only inside
  * `CodeGenerator.generate()` — Stage 5, per file — so reading it at Stage 4c
  * yields the module default on a fresh process and the previously generated
  * file's target in a long-lived one (`cnext serve`, the VS Code path, any API
@@ -20,7 +20,7 @@ import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import Transpiler from "../Transpiler";
-import CodeGenState from "../state/CodeGenState";
+import RenderState from "../../TRANSPILE/3-Render/RenderState";
 import DEFAULT_TARGET from "../constants/DEFAULT_TARGET";
 
 /** Two members that are distinct at 31 characters but collide at 6. */
@@ -33,7 +33,13 @@ i32 main() {
     return 0;
 }`;
 
+let state: RenderState;
+
 describe("External identifier significance (#1307)", () => {
+  beforeEach(() => {
+    state = new RenderState();
+  });
+
   let tempDir: string;
 
   beforeEach(() => {
@@ -42,7 +48,7 @@ describe("External identifier significance (#1307)", () => {
 
   afterEach(() => {
     rmSync(tempDir, { recursive: true, force: true });
-    CodeGenState.targetCapabilities = DEFAULT_TARGET;
+    state.targetCapabilities = DEFAULT_TARGET;
   });
 
   async function transpile(source: string, target?: string) {
@@ -64,7 +70,7 @@ describe("External identifier significance (#1307)", () => {
 
     // Exactly what generating a file for a 6-significant-character target
     // would leave in the static that Stage 4c used to read.
-    CodeGenState.targetCapabilities = {
+    state.targetCapabilities = {
       ...DEFAULT_TARGET,
       significantExternalIdentifierChars: 6,
     };

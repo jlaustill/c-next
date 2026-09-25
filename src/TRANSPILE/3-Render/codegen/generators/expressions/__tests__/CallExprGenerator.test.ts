@@ -4,11 +4,10 @@ import IGeneratorInput from "../../IGeneratorInput";
 import IGeneratorState from "../../IGeneratorState";
 import IOrchestrator from "../../IOrchestrator";
 import * as Parser from "../../../../../../PARSE/2-Parse/grammar/CNextParser";
-import CodeGenState from "../../../../../../transpiler/state/CodeGenState";
+import RenderState from "../../../../RenderState";
 import TTypeInfo from "../../../../../../transpiler/types/TTypeInfo";
 import TestGeneratorState from "../../__tests__/testGeneratorState";
 import type IPlannedCallArgument from "../../../types/IPlannedCallArgument";
-import RenderState from "../../../../../../transpiler/state/RenderState";
 
 // ========================================================================
 // Test Helpers
@@ -52,12 +51,12 @@ function planArguments(
 function createMockInput(
   overrides: Partial<IGeneratorInput> = {},
 ): IGeneratorInput {
-  // Also populate CodeGenState with the type registry entries
-  // This is needed because CallExprGenerator now uses CodeGenState directly
+  // Also populate RenderState with the type registry entries
+  // This is needed because CallExprGenerator now uses RenderState directly
   const typeRegistry =
     (overrides.typeRegistry as Map<string, TTypeInfo>) ?? new Map();
   for (const [name, info] of typeRegistry) {
-    CodeGenState.setVariableTypeInfo(name, info);
+    sharedRenderState.setVariableTypeInfo(name, info);
   }
 
   return {
@@ -141,9 +140,9 @@ function createMockOrchestrator(
 // ========================================================================
 
 describe("CallExprGenerator", () => {
-  // Reset CodeGenState before each test to avoid state pollution
+  // Reset RenderState before each test to avoid state pollution
   beforeEach(() => {
-    CodeGenState.reset();
+    sharedRenderState = new RenderState();
   });
 
   describe("empty function call", () => {
@@ -434,10 +433,11 @@ describe("CallExprGenerator", () => {
         ],
       ]);
       const input = createMockInput({ functionSignatures: sigs });
-      const state = createMockState();
+      const generatorState = createMockState();
 
-      // Set up CodeGenState.currentParameters to simulate callback-promoted param
-      CodeGenState.currentParameters.set("buf", {
+      // Set up the render state's currentParameters to simulate a
+      // callback-promoted param.
+      sharedRenderState.currentParameters.set("buf", {
         name: "buf",
         baseType: "u8",
         isArray: false,
@@ -461,7 +461,7 @@ describe("CallExprGenerator", () => {
         "draw_bitmap",
         planArguments(orchestrator, argExpressions),
         input,
-        state,
+        generatorState,
         orchestrator,
       );
 
@@ -469,7 +469,7 @@ describe("CallExprGenerator", () => {
       expect(result.code).toBe("draw_bitmap(buf)");
 
       // Clean up
-      CodeGenState.currentParameters.clear();
+      sharedRenderState.currentParameters.clear();
     });
   });
 

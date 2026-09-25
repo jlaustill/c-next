@@ -2,7 +2,8 @@
  * Unit tests for FloatModuloAnalyzer
  * Tests detection of modulo operator with floating-point types
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
+import RenderState from "../../3-Render/RenderState";
 import { CharStream, CommonTokenStream } from "antlr4ng";
 import { CNextLexer } from "../../../PARSE/2-Parse/grammar/CNextLexer";
 import { CNextParser } from "../../../PARSE/2-Parse/grammar/CNextParser";
@@ -20,7 +21,13 @@ function parse(source: string) {
   return parser.program();
 }
 
+let state: RenderState;
+
 describe("FloatModuloAnalyzer", () => {
+  beforeEach(() => {
+    state = new RenderState();
+  });
+
   // ========================================================================
   // Float Variable Detection
   // ========================================================================
@@ -34,7 +41,7 @@ describe("FloatModuloAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new FloatModuloAnalyzer(testAnalysisContext());
+      const analyzer = new FloatModuloAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -50,7 +57,7 @@ describe("FloatModuloAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new FloatModuloAnalyzer(testAnalysisContext());
+      const analyzer = new FloatModuloAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -65,7 +72,7 @@ describe("FloatModuloAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new FloatModuloAnalyzer(testAnalysisContext());
+      const analyzer = new FloatModuloAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -81,7 +88,7 @@ describe("FloatModuloAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new FloatModuloAnalyzer(testAnalysisContext());
+      const analyzer = new FloatModuloAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -101,7 +108,7 @@ describe("FloatModuloAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new FloatModuloAnalyzer(testAnalysisContext());
+      const analyzer = new FloatModuloAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -115,7 +122,7 @@ describe("FloatModuloAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new FloatModuloAnalyzer(testAnalysisContext());
+      const analyzer = new FloatModuloAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -135,7 +142,7 @@ describe("FloatModuloAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new FloatModuloAnalyzer(testAnalysisContext());
+      const analyzer = new FloatModuloAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -149,7 +156,7 @@ describe("FloatModuloAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new FloatModuloAnalyzer(testAnalysisContext());
+      const analyzer = new FloatModuloAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -171,7 +178,7 @@ describe("FloatModuloAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new FloatModuloAnalyzer(testAnalysisContext());
+      const analyzer = new FloatModuloAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -184,7 +191,7 @@ describe("FloatModuloAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new FloatModuloAnalyzer(testAnalysisContext());
+      const analyzer = new FloatModuloAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -199,7 +206,7 @@ describe("FloatModuloAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new FloatModuloAnalyzer(testAnalysisContext());
+      const analyzer = new FloatModuloAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -219,7 +226,7 @@ describe("FloatModuloAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new FloatModuloAnalyzer(testAnalysisContext());
+      const analyzer = new FloatModuloAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -233,7 +240,7 @@ describe("FloatModuloAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new FloatModuloAnalyzer(testAnalysisContext());
+      const analyzer = new FloatModuloAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -247,7 +254,7 @@ describe("FloatModuloAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new FloatModuloAnalyzer(testAnalysisContext());
+      const analyzer = new FloatModuloAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -261,7 +268,7 @@ describe("FloatModuloAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new FloatModuloAnalyzer(testAnalysisContext());
+      const analyzer = new FloatModuloAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -281,7 +288,7 @@ describe("FloatModuloAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new FloatModuloAnalyzer(testAnalysisContext());
+      const analyzer = new FloatModuloAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors[0].helpText).toContain("fmod()");
@@ -293,7 +300,7 @@ describe("FloatModuloAnalyzer", () => {
   f32 result <- x % 3;
 }`;
       const tree = parse(code);
-      const analyzer = new FloatModuloAnalyzer(testAnalysisContext());
+      const analyzer = new FloatModuloAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors[0].line).toBe(3);
@@ -315,7 +322,7 @@ describe("FloatModuloAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new FloatModuloAnalyzer(testAnalysisContext());
+      const analyzer = new FloatModuloAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(2);
@@ -330,7 +337,7 @@ describe("FloatModuloAnalyzer", () => {
     it("should handle empty program", () => {
       const code = ``;
       const tree = parse(code);
-      const analyzer = new FloatModuloAnalyzer(testAnalysisContext());
+      const analyzer = new FloatModuloAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -344,7 +351,7 @@ describe("FloatModuloAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new FloatModuloAnalyzer(testAnalysisContext());
+      const analyzer = new FloatModuloAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -359,7 +366,7 @@ describe("FloatModuloAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new FloatModuloAnalyzer(testAnalysisContext());
+      const analyzer = new FloatModuloAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       // Integer operands with parenthesized expression: isFloatOperand
@@ -380,7 +387,7 @@ describe("FloatModuloAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new FloatModuloAnalyzer(testAnalysisContext());
+      const analyzer = new FloatModuloAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -394,7 +401,7 @@ describe("FloatModuloAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new FloatModuloAnalyzer(testAnalysisContext());
+      const analyzer = new FloatModuloAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -408,7 +415,7 @@ describe("FloatModuloAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new FloatModuloAnalyzer(testAnalysisContext());
+      const analyzer = new FloatModuloAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);

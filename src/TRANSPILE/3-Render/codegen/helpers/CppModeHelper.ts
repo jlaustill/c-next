@@ -1,3 +1,4 @@
+import type RenderState from "../../RenderState";
 /**
  * CppModeHelper - Utilities for C/C++ mode-specific code generation
  *
@@ -8,8 +9,6 @@
  *
  * Migrated to use CodeGenState instead of constructor DI.
  */
-
-import CodeGenState from "../../../../transpiler/state/CodeGenState";
 
 /**
  * Static helper class for C/C++ mode-specific code generation patterns.
@@ -23,8 +22,8 @@ class CppModeHelper {
    * @param expr - The expression to potentially wrap
    * @returns The expression with address-of operator in C mode
    */
-  static maybeAddressOf(expr: string): string {
-    return CodeGenState.cppMode ? expr : `&${expr}`;
+  static maybeAddressOf(expr: string, state: RenderState): string {
+    return state.cppMode ? expr : `&${expr}`;
   }
 
   /**
@@ -35,8 +34,8 @@ class CppModeHelper {
    * @param expr - The expression to potentially dereference
    * @returns The expression with dereference in C mode
    */
-  static maybeDereference(expr: string): string {
-    return CodeGenState.cppMode ? expr : `(*${expr})`;
+  static maybeDereference(expr: string, state: RenderState): string {
+    return state.cppMode ? expr : `(*${expr})`;
   }
 
   /**
@@ -46,8 +45,8 @@ class CppModeHelper {
    *
    * @returns The type modifier character
    */
-  static refOrPtr(): string {
-    return CodeGenState.cppMode ? "&" : "*";
+  static refOrPtr(state: RenderState): string {
+    return state.cppMode ? "&" : "*";
   }
 
   /**
@@ -57,8 +56,8 @@ class CppModeHelper {
    *
    * @returns The null pointer literal
    */
-  static nullLiteral(): string {
-    return CodeGenState.cppMode ? "nullptr" : "NULL";
+  static nullLiteral(state: RenderState): string {
+    return state.cppMode ? "nullptr" : "NULL";
   }
 
   /**
@@ -70,10 +69,8 @@ class CppModeHelper {
    * @param expr - The expression to cast
    * @returns The cast expression
    */
-  static cast(type: string, expr: string): string {
-    return CodeGenState.cppMode
-      ? `static_cast<${type}>(${expr})`
-      : `(${type})${expr}`;
+  static cast(type: string, expr: string, state: RenderState): string {
+    return state.cppMode ? `static_cast<${type}>(${expr})` : `(${type})${expr}`;
   }
 
   /**
@@ -85,8 +82,12 @@ class CppModeHelper {
    * @param expr - The expression to cast
    * @returns The cast expression
    */
-  static reinterpretCast(type: string, expr: string): string {
-    return CodeGenState.cppMode
+  static reinterpretCast(
+    type: string,
+    expr: string,
+    state: RenderState,
+  ): string {
+    return state.cppMode
       ? `reinterpret_cast<${type}>(${expr})`
       : `(${type})${expr}`;
   }

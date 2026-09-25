@@ -22,7 +22,7 @@ import TYPE_LIMITS from "../../types/TYPE_LIMITS";
 import CppModeHelper from "../../helpers/CppModeHelper";
 import CastRequirement from "../../../../2-Plan/CastRequirement";
 import type IPlannedCast from "../../types/IPlannedCast";
-import type RenderState from "../../../../../transpiler/state/RenderState";
+import type RenderState from "../../../RenderState";
 
 /**
  * ADR-024 / Issue #632: a float-to-integer cast clamps rather than invoking
@@ -42,7 +42,7 @@ function renderClampedCast(
 
   if (!maxValue) {
     // Unknown type, fall back to raw cast - Issue #644
-    return CppModeHelper.cast(plan.targetType, plan.operandCode);
+    return CppModeHelper.cast(plan.targetType, plan.operandCode, state);
   }
 
   // Mark that we need limits.h for the type limit macros
@@ -58,9 +58,9 @@ function renderClampedCast(
   const maxComparison = `((${floatCastType})${maxValue})`;
 
   const expr = plan.operandCode;
-  const finalCast = CppModeHelper.cast(plan.targetType, `(${expr})`);
-  const castMax = CppModeHelper.cast(plan.targetType, maxValue);
-  const castMin = CppModeHelper.cast(plan.targetType, minValue);
+  const finalCast = CppModeHelper.cast(plan.targetType, `(${expr})`, state);
+  const castMax = CppModeHelper.cast(plan.targetType, maxValue, state);
+  const castMin = CppModeHelper.cast(plan.targetType, minValue, state);
   return `((${expr}) > ${maxComparison} ? ${castMax} : (${expr}) < ${minComparison} ? ${castMin} : ${finalCast})`;
 }
 
@@ -75,7 +75,7 @@ function generateCast(plan: IPlannedCast, state: RenderState): string {
     return renderClampedCast(plan, plan.operandType!, state);
   }
 
-  return CppModeHelper.cast(plan.targetType, plan.operandCode);
+  return CppModeHelper.cast(plan.targetType, plan.operandCode, state);
 }
 
 export default generateCast;

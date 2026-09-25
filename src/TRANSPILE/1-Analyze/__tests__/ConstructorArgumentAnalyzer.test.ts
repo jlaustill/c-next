@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, beforeEach } from "vitest";
+import RenderState from "../../3-Render/RenderState";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
 import ConstructorArgumentAnalyzer from "../ConstructorArgumentAnalyzer";
@@ -23,10 +24,18 @@ import testAnalysisContext from "./testAnalysisContext";
  */
 const errors = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new ConstructorArgumentAnalyzer(testAnalysisContext()).analyze(tree);
+  return new ConstructorArgumentAnalyzer(testAnalysisContext(state)).analyze(
+    tree,
+  );
 };
 
+let state: RenderState;
+
 describe("ConstructorArgumentAnalyzer", () => {
+  beforeEach(() => {
+    state = new RenderState();
+  });
+
   it("rejects a mutable argument, with a real position", () => {
     const found = errors(
       "u8 mutablePin <- 10;\nAdafruit_MAX31856 probe(mutablePin);",

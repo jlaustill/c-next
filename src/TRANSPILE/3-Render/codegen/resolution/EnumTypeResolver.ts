@@ -36,10 +36,10 @@
  * - Function calls returning enum types
  */
 
-import CodeGenState from "../../../../transpiler/state/CodeGenState";
 import QualifiedCName from "../../../../utils/QualifiedCName";
 import QualifiedNameGenerator from "../../../../utils/QualifiedNameGenerator";
 import BareIdentifier from "../../../../utils/BareIdentifier";
+import type RenderState from "../../RenderState";
 
 /**
  * Resolves enum types from expressions.
@@ -53,23 +53,27 @@ export default class EnumTypeResolver {
   static resolve(
     text: string,
     resolvePostfixEnumType: () => string | null,
+    state: RenderState,
   ): string | null {
     // Check if it's a function call returning an enum
-    const enumReturnType = this.getFunctionCallEnumType(text);
+    const enumReturnType = this.getFunctionCallEnumType(text, state);
     if (enumReturnType) {
       return enumReturnType;
     }
 
     // Check if it's a simple identifier that's an enum variable
     if (BareIdentifier.matches(text)) {
-      const typeInfo = CodeGenState.getVariableTypeInfo(text);
+      const typeInfo = state.getVariableTypeInfo(text);
       if (typeInfo?.isEnum && typeInfo.enumTypeName) {
         return typeInfo.enumTypeName;
       }
     }
 
     // Check member access patterns: EnumType.MEMBER, Scope.EnumType.MEMBER, etc.
-    const memberResult = this.getEnumTypeFromMemberAccess(text.split("."));
+    const memberResult = this.getEnumTypeFromMemberAccess(
+      text.split("."),
+      state,
+    );
     if (memberResult) {
       return memberResult;
     }
@@ -83,80 +87,84 @@ export default class EnumTypeResolver {
   /**
    * Check if parts represent an enum member access and return the enum type.
    */
-  private static getEnumTypeFromMemberAccess(parts: string[]): string | null {
+  private static getEnumTypeFromMemberAccess(
+    parts: string[],
+    state: RenderState,
+  ): string | null {
     if (parts.length < 2) {
       return null;
     }
 
     // ADR-016: Check this.State.IDLE pattern
-    const thisEnumType = this.getEnumTypeFromThisEnum(parts);
+    const thisEnumType = this.getEnumTypeFromThisEnum(parts, state);
     if (thisEnumType) return thisEnumType;
 
     // Issue #478: Check global.Enum.Member pattern
-    const globalEnumType = this.getEnumTypeFromGlobalEnum(parts);
+    const globalEnumType = this.getEnumTypeFromGlobalEnum(parts, state);
     if (globalEnumType) return globalEnumType;
 
     // ADR-016: Check this.variable pattern
-    const thisVarType = this.getEnumTypeFromThisVariable(parts);
+    const thisVarType = this.getEnumTypeFromThisVariable(parts, state);
     if (thisVarType) return thisVarType;
 
     // Check simple enum: State.IDLE
     const possibleEnum = parts[0];
-    if (CodeGenState.isKnownEnum(possibleEnum)) {
+    if (state.isKnownEnum(possibleEnum)) {
       return possibleEnum;
     }
 
     // Check scoped enum: Motor.State.IDLE -> Motor_State
-    return this.getEnumTypeFromScopedEnum(parts);
+    return this.getEnumTypeFromScopedEnum(parts, state);
   }
 
   /**
    * ADR-016: Check this.State.IDLE pattern (this.Enum.Member inside scope)
    */
-  private static getEnumTypeFromThisEnum(parts: string[]): string | null {
-    if (
-      parts[0] !== "this" ||
-      !CodeGenState.currentScopePath ||
-      parts.length < 3
-    ) {
+  private static getEnumTypeFromThisEnum(
+    parts: string[],
+    state: RenderState,
+  ): string | null {
+    if (parts[0] !== "this" || !state.currentScopePath || parts.length < 3) {
       return null;
     }
     const enumName = parts[1];
     const scopedEnumName = QualifiedNameGenerator.forMember(
-      CodeGenState.currentScopePath,
+      state.currentScopePath,
       enumName,
     );
-    return CodeGenState.isKnownEnum(scopedEnumName) ? scopedEnumName : null;
+    return state.isKnownEnum(scopedEnumName) ? scopedEnumName : null;
   }
 
   /**
    * Issue #478: Check global.Enum.Member pattern (global.ECategory.CAT_A)
    */
-  private static getEnumTypeFromGlobalEnum(parts: string[]): string | null {
+  private static getEnumTypeFromGlobalEnum(
+    parts: string[],
+    state: RenderState,
+  ): string | null {
     if (parts[0] !== "global" || parts.length < 3) {
       return null;
     }
     const enumName = parts[1];
-    return CodeGenState.isKnownEnum(enumName) ? enumName : null;
+    return state.isKnownEnum(enumName) ? enumName : null;
   }
 
   /**
    * ADR-016: Check this.variable pattern (this.varName where varName is enum type)
    */
-  private static getEnumTypeFromThisVariable(parts: string[]): string | null {
-    if (
-      parts[0] !== "this" ||
-      !CodeGenState.currentScopePath ||
-      parts.length !== 2
-    ) {
+  private static getEnumTypeFromThisVariable(
+    parts: string[],
+    state: RenderState,
+  ): string | null {
+    if (parts[0] !== "this" || !state.currentScopePath || parts.length !== 2) {
       return null;
     }
     const varName = parts[1];
     const scopedVarName = QualifiedNameGenerator.forMember(
-      CodeGenState.currentScopePath,
+      state.currentScopePath,
       varName,
     );
-    const typeInfo = CodeGenState.getVariableTypeInfo(scopedVarName);
+    const typeInfo = state.getVariableTypeInfo(scopedVarName);
     if (typeInfo?.isEnum && typeInfo.enumTypeName) {
       return typeInfo.enumTypeName;
     }
@@ -166,7 +174,10 @@ export default class EnumTypeResolver {
   /**
    * Check scoped enum: Motor.State.IDLE -> Motor_State
    */
-  private static getEnumTypeFromScopedEnum(parts: string[]): string | null {
+  private static getEnumTypeFromScopedEnum(
+    parts: string[],
+    state: RenderState,
+  ): string | null {
     if (parts.length < 3) {
       return null;
     }
@@ -177,7 +188,7 @@ export default class EnumTypeResolver {
     // declaring scope symbol. Those are different operations; `forMember` now
     // takes a symbol and this one stays textual.
     const scopedEnumName = QualifiedCName.fromParts([scopeName, enumName]);
-    return CodeGenState.isKnownEnum(scopedEnumName) ? scopedEnumName : null;
+    return state.isKnownEnum(scopedEnumName) ? scopedEnumName : null;
   }
 
   /**
@@ -189,7 +200,10 @@ export default class EnumTypeResolver {
    * - global.func() or global.func(args) - global function from inside scope
    * - global.Scope.method() or global.Scope.method(args) - scope method from inside another scope
    */
-  private static getFunctionCallEnumType(text: string): string | null {
+  private static getFunctionCallEnumType(
+    text: string,
+    state: RenderState,
+  ): string | null {
     // Check if this looks like a function call (contains parentheses)
     const parenIndex = text.indexOf("(");
     if (parenIndex === -1) {
@@ -206,21 +220,21 @@ export default class EnumTypeResolver {
       // Simple function call: func()
       fullFuncName = parts[0];
     } else if (parts.length === 2) {
-      if (parts[0] === "this" && CodeGenState.currentScopePath) {
+      if (parts[0] === "this" && state.currentScopePath) {
         // this.method() -> Scope_method
         fullFuncName = QualifiedNameGenerator.forMember(
-          CodeGenState.currentScopePath,
+          state.currentScopePath,
           parts[1],
         );
       } else if (parts[0] === "global") {
         // global.func() -> func
         fullFuncName = parts[1];
-      } else if (CodeGenState.isKnownScope(parts[0])) {
+      } else if (state.isKnownScope(parts[0])) {
         // Scope.method() -> Scope_method
         fullFuncName = QualifiedCName.fromParts([parts[0], parts[1]]);
       }
     } else if (parts.length === 3) {
-      if (parts[0] === "global" && CodeGenState.isKnownScope(parts[1])) {
+      if (parts[0] === "global" && state.isKnownScope(parts[1])) {
         // global.Scope.method() -> Scope_method
         fullFuncName = QualifiedCName.fromParts([parts[1], parts[2]]);
       }
@@ -231,13 +245,13 @@ export default class EnumTypeResolver {
     }
 
     // Look up the function's return type
-    const returnType = CodeGenState.getFunctionReturnType(fullFuncName);
+    const returnType = state.getFunctionReturnType(fullFuncName);
     if (!returnType) {
       return null;
     }
 
     // Check if the return type is an enum
-    if (CodeGenState.isKnownEnum(returnType)) {
+    if (state.isKnownEnum(returnType)) {
       return returnType;
     }
 

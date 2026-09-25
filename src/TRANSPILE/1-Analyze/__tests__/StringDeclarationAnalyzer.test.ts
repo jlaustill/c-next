@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
-import CodeGenState from "../../../transpiler/state/CodeGenState";
+import RenderState from "../../3-Render/RenderState";
 import StringDeclarationAnalyzer from "../StringDeclarationAnalyzer";
 import testAnalysisContext from "./testAnalysisContext";
 
@@ -18,15 +18,19 @@ import testAnalysisContext from "./testAnalysisContext";
  */
 const errors = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new StringDeclarationAnalyzer(testAnalysisContext()).analyze(tree);
+  return new StringDeclarationAnalyzer(testAnalysisContext(state)).analyze(
+    tree,
+  );
 };
 
 const codes = (source: string) => errors(source).map((e) => e.code);
 const inMain = (body: string) => `void f() {\n${body}\n}`;
 
 afterEach(() => {
-  CodeGenState.reset();
+  state = new RenderState();
 });
+
+let state: RenderState;
 
 describe("StringDeclarationAnalyzer", () => {
   describe("E0862 -- a capacity has to be stated, or inferable", () => {

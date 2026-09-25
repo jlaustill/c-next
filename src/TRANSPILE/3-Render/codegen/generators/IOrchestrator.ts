@@ -16,7 +16,7 @@ import IGeneratorInput from "./IGeneratorInput";
 import IGeneratorState from "./IGeneratorState";
 import TGeneratorEffect from "./TGeneratorEffect";
 import TTypeInfo from "../../../../transpiler/types/TTypeInfo";
-import type RenderState from "../../../../transpiler/state/RenderState";
+import type RenderState from "../../RenderState";
 
 interface IOrchestrator {
   /**

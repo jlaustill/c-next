@@ -3,7 +3,8 @@
  * Tests detection of shift operators with signed integer types (E0805), and
  * of shift amounts outside the shifted operand's width (E0873, #1322).
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
+import RenderState from "../../3-Render/RenderState";
 import { CharStream, CommonTokenStream } from "antlr4ng";
 import { CNextLexer } from "../../../PARSE/2-Parse/grammar/CNextLexer";
 import { CNextParser } from "../../../PARSE/2-Parse/grammar/CNextParser";
@@ -21,7 +22,13 @@ function parse(source: string) {
   return parser.program();
 }
 
+let state: RenderState;
+
 describe("ShiftAnalyzer", () => {
+  beforeEach(() => {
+    state = new RenderState();
+  });
+
   // ========================================================================
   // Signed Variable Left Shift Detection
   // ========================================================================
@@ -35,7 +42,7 @@ describe("ShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new ShiftAnalyzer(testAnalysisContext());
+      const analyzer = new ShiftAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -52,7 +59,7 @@ describe("ShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new ShiftAnalyzer(testAnalysisContext());
+      const analyzer = new ShiftAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -67,7 +74,7 @@ describe("ShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new ShiftAnalyzer(testAnalysisContext());
+      const analyzer = new ShiftAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -82,7 +89,7 @@ describe("ShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new ShiftAnalyzer(testAnalysisContext());
+      const analyzer = new ShiftAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -103,7 +110,7 @@ describe("ShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new ShiftAnalyzer(testAnalysisContext());
+      const analyzer = new ShiftAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -119,7 +126,7 @@ describe("ShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new ShiftAnalyzer(testAnalysisContext());
+      const analyzer = new ShiftAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -139,7 +146,7 @@ describe("ShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new ShiftAnalyzer(testAnalysisContext());
+      const analyzer = new ShiftAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -153,7 +160,7 @@ describe("ShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new ShiftAnalyzer(testAnalysisContext());
+      const analyzer = new ShiftAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -175,7 +182,7 @@ describe("ShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new ShiftAnalyzer(testAnalysisContext());
+      const analyzer = new ShiftAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -196,7 +203,7 @@ describe("ShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new ShiftAnalyzer(testAnalysisContext());
+      const analyzer = new ShiftAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -210,7 +217,7 @@ describe("ShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new ShiftAnalyzer(testAnalysisContext());
+      const analyzer = new ShiftAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -224,7 +231,7 @@ describe("ShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new ShiftAnalyzer(testAnalysisContext());
+      const analyzer = new ShiftAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -238,7 +245,7 @@ describe("ShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new ShiftAnalyzer(testAnalysisContext());
+      const analyzer = new ShiftAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -251,7 +258,7 @@ describe("ShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new ShiftAnalyzer(testAnalysisContext());
+      const analyzer = new ShiftAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -270,7 +277,7 @@ describe("ShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new ShiftAnalyzer(testAnalysisContext());
+      const analyzer = new ShiftAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -291,7 +298,7 @@ describe("ShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new ShiftAnalyzer(testAnalysisContext());
+      const analyzer = new ShiftAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors[0].helpText).toContain("undefined");
@@ -304,7 +311,7 @@ describe("ShiftAnalyzer", () => {
   i32 result <- x << 2;
 }`;
       const tree = parse(code);
-      const analyzer = new ShiftAnalyzer(testAnalysisContext());
+      const analyzer = new ShiftAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors[0].line).toBe(3);
@@ -326,7 +333,7 @@ describe("ShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new ShiftAnalyzer(testAnalysisContext());
+      const analyzer = new ShiftAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(2);
@@ -341,7 +348,7 @@ describe("ShiftAnalyzer", () => {
     it("should handle empty program", () => {
       const code = ``;
       const tree = parse(code);
-      const analyzer = new ShiftAnalyzer(testAnalysisContext());
+      const analyzer = new ShiftAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -355,7 +362,7 @@ describe("ShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new ShiftAnalyzer(testAnalysisContext());
+      const analyzer = new ShiftAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -372,7 +379,7 @@ describe("ShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new ShiftAnalyzer(testAnalysisContext());
+      const analyzer = new ShiftAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -392,7 +399,7 @@ describe("ShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new ShiftAnalyzer(testAnalysisContext());
+      const analyzer = new ShiftAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -407,7 +414,7 @@ describe("ShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new ShiftAnalyzer(testAnalysisContext());
+      const analyzer = new ShiftAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -427,7 +434,7 @@ describe("ShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new ShiftAnalyzer(testAnalysisContext());
+      const analyzer = new ShiftAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -444,7 +451,7 @@ describe("ShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new ShiftAnalyzer(testAnalysisContext());
+      const analyzer = new ShiftAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -460,7 +467,7 @@ describe("ShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new ShiftAnalyzer(testAnalysisContext());
+      const analyzer = new ShiftAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -475,7 +482,7 @@ describe("ShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new ShiftAnalyzer(testAnalysisContext());
+      const analyzer = new ShiftAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -490,7 +497,7 @@ describe("ShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new ShiftAnalyzer(testAnalysisContext());
+      const analyzer = new ShiftAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -505,7 +512,7 @@ describe("ShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new ShiftAnalyzer(testAnalysisContext());
+      const analyzer = new ShiftAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -519,7 +526,7 @@ describe("ShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new ShiftAnalyzer(testAnalysisContext());
+      const analyzer = new ShiftAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -535,7 +542,7 @@ describe("ShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new ShiftAnalyzer(testAnalysisContext());
+      const analyzer = new ShiftAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(2);
@@ -558,7 +565,7 @@ describe("ShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new ShiftAnalyzer(testAnalysisContext());
+      const analyzer = new ShiftAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -582,7 +589,7 @@ describe("ShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new ShiftAnalyzer(testAnalysisContext());
+      const analyzer = new ShiftAnalyzer(testAnalysisContext(state));
       // Without CodeGenState.symbols populated, this won't detect the issue
       // The integration test covers this case
       const errors = analyzer.analyze(tree);
@@ -600,7 +607,7 @@ describe("ShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new ShiftAnalyzer(testAnalysisContext());
+      const analyzer = new ShiftAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(0);
@@ -616,7 +623,7 @@ describe("ShiftAnalyzer", () => {
         }
       `;
       const tree = parse(code);
-      const analyzer = new ShiftAnalyzer(testAnalysisContext());
+      const analyzer = new ShiftAnalyzer(testAnalysisContext(state));
       const errors = analyzer.analyze(tree);
 
       expect(errors).toHaveLength(1);
@@ -628,7 +635,7 @@ describe("ShiftAnalyzer", () => {
 
 describe("ShiftAnalyzer -- E0873 shift amount (MISRA C:2012 Rule 12.2)", () => {
   const errors = (code: string) =>
-    new ShiftAnalyzer(testAnalysisContext()).analyze(parse(code));
+    new ShiftAnalyzer(testAnalysisContext(state)).analyze(parse(code));
   const inMain = (body: string) => `void main() {\n    u8 a <- 1;\n${body}\n}`;
 
   it("rejects an amount at or beyond the width, at the amount's position", () => {

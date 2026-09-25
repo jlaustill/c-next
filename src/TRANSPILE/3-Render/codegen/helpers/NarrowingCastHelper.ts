@@ -8,6 +8,7 @@
  * which MISRA flags when assigned back to narrower types without explicit cast.
  */
 
+import type RenderState from "../../RenderState";
 import CppModeHelper from "./CppModeHelper";
 import TYPE_MAP from "../types/TYPE_MAP";
 import CastRequirement from "../../../2-Plan/CastRequirement";
@@ -66,7 +67,12 @@ class NarrowingCastHelper {
    * @param targetType - Type of the assignment target (C-Next type)
    * @returns Expression with cast wrapper if needed, or original expression
    */
-  static wrap(expr: string, sourceType: string, targetType: string): string {
+  static wrap(
+    expr: string,
+    sourceType: string,
+    targetType: string,
+    state: RenderState,
+  ): string {
     if (!CastRequirement.forConversion(sourceType, targetType)) {
       return expr;
     }
@@ -78,7 +84,7 @@ class NarrowingCastHelper {
 
     // Get C type name for the target
     const cType = TYPE_MAP[targetType] ?? targetType;
-    return CppModeHelper.cast(cType, expr);
+    return CppModeHelper.cast(cType, expr, state);
   }
 
   /**
@@ -155,9 +161,13 @@ class NarrowingCastHelper {
    * @param targetType - The float target type (f32/f64)
    * @returns Expression with cast
    */
-  static wrapIntToFloat(expr: string, targetType: string): string {
+  static wrapIntToFloat(
+    expr: string,
+    targetType: string,
+    state: RenderState,
+  ): string {
     const floatType = NarrowingCastHelper.getCFloatType(targetType);
-    return CppModeHelper.cast(floatType, expr);
+    return CppModeHelper.cast(floatType, expr, state);
   }
 }
 

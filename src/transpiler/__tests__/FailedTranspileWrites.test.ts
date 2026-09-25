@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import CodeGenState from "../state/CodeGenState";
 import Transpiler from "../Transpiler";
 
 /**
@@ -21,7 +20,6 @@ describe("a failed transpile writes no .c to disk (#1233)", () => {
 
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), "cnext-1233-"));
-    CodeGenState.reset();
   });
 
   afterEach(() => {

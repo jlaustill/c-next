@@ -16,7 +16,7 @@ import { CNextParser } from "../../../PARSE/2-Parse/grammar/CNextParser";
 import CNextResolver from "../../../PARSE/3-Declare/cnext/index";
 import TSymbolInfoAdapter from "../../../PARSE/3-Declare/cnext/adapters/TSymbolInfoAdapter";
 import SymbolRegistry from "../../../PARSE/3-Declare/SymbolRegistry";
-import CodeGenState from "../../../transpiler/state/CodeGenState";
+import RenderState from "../../3-Render/RenderState";
 import UndeclaredTypeAnalyzer from "../UndeclaredTypeAnalyzer";
 import testAnalysisContext from "./testAnalysisContext";
 
@@ -35,14 +35,14 @@ function parse(source: string) {
  */
 function analyze(source: string) {
   const tree = parse(source);
-  CodeGenState.symbols = TSymbolInfoAdapter.convert(
+  state.symbols = TSymbolInfoAdapter.convert(
     CNextResolver.resolve(tree, "test.cnx", registry).symbols,
   );
   // Defaults to `true`, and `reset()` restores it to `true` -- the analyzer
   // declines unless the transpiler knows the file's whole name universe, so the
   // fail-safe direction is silence. These sources include nothing.
-  CodeGenState.currentFileReachesForeignHeader = false;
-  return new UndeclaredTypeAnalyzer(testAnalysisContext()).analyze(tree);
+  state.currentFileReachesForeignHeader = false;
+  return new UndeclaredTypeAnalyzer(testAnalysisContext(state)).analyze(tree);
 }
 
 const REGISTER = `register Control @ 0x40000000 { DR: u32 rw @ 0x00, }`;
@@ -53,11 +53,13 @@ beforeEach(() => {
   registry = new SymbolRegistry();
 });
 
+let state: RenderState;
+
 describe("UndeclaredTypeAnalyzer", () => {
   beforeEach(() => {});
 
   afterEach(() => {
-    CodeGenState.reset();
+    state = new RenderState();
   });
 
   describe("a register in a type position (E0429, #1336)", () => {
@@ -163,7 +165,7 @@ describe("UndeclaredTypeAnalyzer", () => {
     });
 
     // #1456: "stays silent when there is no symbol view" lived here. It set
-    // `CodeGenState.symbols` to null and asserted the analyzer reported
+    // `state.symbols` to null and asserted the analyzer reported
     // nothing, and its own comment recorded that "no integration fixture can
     // construct this state".
     //
@@ -187,12 +189,12 @@ describe("UndeclaredTypeAnalyzer", () => {
       // Rejecting valid interop code is a regression; not diagnosing is the
       // status quo -- so the analyzer declines rather than guesses.
       const tree = parse(`u32 main() { Nowhere c; return 0; }`);
-      CodeGenState.symbols = TSymbolInfoAdapter.convert(
+      state.symbols = TSymbolInfoAdapter.convert(
         CNextResolver.resolve(tree, "test.cnx", registry).symbols,
       );
-      CodeGenState.currentFileReachesForeignHeader = true;
+      state.currentFileReachesForeignHeader = true;
       expect(
-        new UndeclaredTypeAnalyzer(testAnalysisContext()).analyze(tree),
+        new UndeclaredTypeAnalyzer(testAnalysisContext(state)).analyze(tree),
       ).toHaveLength(0);
     });
   });

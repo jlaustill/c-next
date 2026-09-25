@@ -11,7 +11,7 @@ import type IBitmapFieldLayout from "../../../../../transpiler/types/IBitmapFiel
 import accessGenerators from "./AccessExprGenerator";
 import TGeneratorEffect from "../TGeneratorEffect";
 import invariant from "../../../../../utils/invariant";
-import type RenderState from "../../../../../transpiler/state/RenderState";
+import type RenderState from "../../../RenderState";
 
 interface BitmapAccessResult {
   code: string;

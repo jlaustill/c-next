@@ -4,7 +4,8 @@
  * applied to an essentially Boolean operand
  * (MISRA C:2012 Rule 10.1, Issue #1183).
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
+import RenderState from "../../3-Render/RenderState";
 import { CharStream, CommonTokenStream } from "antlr4ng";
 import { CNextLexer } from "../../../PARSE/2-Parse/grammar/CNextLexer";
 import { CNextParser } from "../../../PARSE/2-Parse/grammar/CNextParser";
@@ -20,7 +21,7 @@ function parse(source: string) {
 }
 
 function analyze(source: string) {
-  return new BooleanOperandAnalyzer(testAnalysisContext()).analyze(
+  return new BooleanOperandAnalyzer(testAnalysisContext(state)).analyze(
     parse(source),
   );
 }
@@ -37,7 +38,13 @@ function inMain(statement: string) {
   `;
 }
 
+let state: RenderState;
+
 describe("BooleanOperandAnalyzer", () => {
+  beforeEach(() => {
+    state = new RenderState();
+  });
+
   describe("bool operands of guarded operators (rejected)", () => {
     it.each([
       ["+", "bool c <- a + b;"],

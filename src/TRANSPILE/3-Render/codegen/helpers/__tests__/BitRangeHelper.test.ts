@@ -4,7 +4,9 @@
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import BitRangeHelper from "../BitRangeHelper";
-import CodeGenState from "../../../../../transpiler/state/CodeGenState";
+import RenderState from "../../../RenderState";
+
+let state: RenderState;
 
 describe("BitRangeHelper", () => {
   describe("buildFloatBitReadExpr", () => {
@@ -76,6 +78,7 @@ describe("BitRangeHelper", () => {
   describe("buildIntegerBitReadExpr", () => {
     it("should generate expression without shift when start is 0", () => {
       const result = BitRangeHelper.buildIntegerBitReadExpr({
+        state,
         varName: "flags",
         start: "0",
         mask: "0xFF",
@@ -86,6 +89,7 @@ describe("BitRangeHelper", () => {
 
     it("should generate expression with shift when start is non-zero", () => {
       const result = BitRangeHelper.buildIntegerBitReadExpr({
+        state,
         varName: "status",
         start: "4",
         mask: "0xF",
@@ -96,6 +100,7 @@ describe("BitRangeHelper", () => {
 
     it("should handle large start positions", () => {
       const result = BitRangeHelper.buildIntegerBitReadExpr({
+        state,
         varName: "data",
         start: "56",
         mask: "0xFF",
@@ -106,6 +111,7 @@ describe("BitRangeHelper", () => {
 
     it("should handle complex variable names", () => {
       const result = BitRangeHelper.buildIntegerBitReadExpr({
+        state,
         varName: "config.registers[0]",
         start: "8",
         mask: "0xFFFF",
@@ -117,12 +123,13 @@ describe("BitRangeHelper", () => {
 
   describe("buildIntegerBitReadExpr with target type", () => {
     beforeEach(() => {
-      CodeGenState.reset();
-      CodeGenState.cppMode = false;
+      state = new RenderState();
+      state.cppMode = false;
     });
 
     it("adds cast when target type is narrower than source", () => {
       const result = BitRangeHelper.buildIntegerBitReadExpr({
+        state,
         varName: "value",
         start: "0",
         mask: "0xFFU",
@@ -134,6 +141,7 @@ describe("BitRangeHelper", () => {
 
     it("returns plain expression when no narrowing", () => {
       const result = BitRangeHelper.buildIntegerBitReadExpr({
+        state,
         varName: "value",
         start: "8",
         mask: "0xFFFFU",
@@ -145,6 +153,7 @@ describe("BitRangeHelper", () => {
 
     it("returns plain expression when types not provided (backward compatible)", () => {
       const result = BitRangeHelper.buildIntegerBitReadExpr({
+        state,
         varName: "value",
         start: "0",
         mask: "0xFFU",
@@ -153,8 +162,9 @@ describe("BitRangeHelper", () => {
     });
 
     it("uses static_cast in C++ mode", () => {
-      CodeGenState.cppMode = true;
+      state.cppMode = true;
       const result = BitRangeHelper.buildIntegerBitReadExpr({
+        state,
         varName: "value",
         start: "0",
         mask: "0xFFU",

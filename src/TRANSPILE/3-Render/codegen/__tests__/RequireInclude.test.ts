@@ -8,17 +8,12 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import Transpiler from "../../../../transpiler/Transpiler";
 import MockFileSystem from "../../../../transpiler/__tests__/MockFileSystem";
-import CodeGenState from "../../../../transpiler/state/CodeGenState";
 
 describe("CodeGenerator requireInclude", () => {
   let mockFs: MockFileSystem;
 
   beforeEach(() => {
     mockFs = new MockFileSystem();
-    // Every transpile here omits sourcePath, so all symbols land under the
-    // "<string>" placeholder. Without a reset they accumulate across tests and
-    // one test reads another's output.
-    CodeGenState.reset();
   });
 
   describe("stdint includes", () => {

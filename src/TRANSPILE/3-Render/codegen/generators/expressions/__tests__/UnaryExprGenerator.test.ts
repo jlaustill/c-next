@@ -18,7 +18,7 @@ import generateUnaryExpr from "../UnaryExprGenerator";
 import type IGeneratorInput from "../../IGeneratorInput";
 import type IGeneratorState from "../../IGeneratorState";
 import type IOrchestrator from "../../IOrchestrator";
-import CodeGenState from "../../../../../../transpiler/state/CodeGenState";
+import RenderState from "../../../../RenderState";
 
 vi.mock("../../../../../2-Plan/ExpressionTypeResolver", () => {
   return {
@@ -63,10 +63,16 @@ const run = (
 // Tests
 // ========================================================================
 
+let state: RenderState;
+
 describe("UnaryExprGenerator", () => {
+  beforeEach(() => {
+    state = new RenderState();
+  });
+
   afterEach(() => {
     vi.mocked(ExpressionTypeResolver.isUnsignedType).mockReset();
-    CodeGenState.cppMode = false;
+    state.cppMode = false;
   });
 
   describe("bitwise NOT on unsigned types", () => {
@@ -89,7 +95,7 @@ describe("UnaryExprGenerator", () => {
     });
 
     it("should use static_cast in C++ mode", () => {
-      CodeGenState.cppMode = true;
+      state.cppMode = true;
       vi.mocked(ExpressionTypeResolver.isUnsignedType).mockReturnValue(true);
 
       const result = run("~", "c", "u8");

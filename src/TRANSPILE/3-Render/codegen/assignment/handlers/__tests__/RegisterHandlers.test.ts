@@ -7,7 +7,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import registerHandlers from "../RegisterHandlers";
 import AssignmentKind from "../../../../../../transpiler/types/AssignmentKind";
 import IAssignmentContext from "../../../../../../transpiler/types/IAssignmentContext";
-import CodeGenState from "../../../../../../transpiler/state/CodeGenState";
+import RenderState from "../../../../RenderState";
 import HandlerTestUtils from "./handlerTestUtils";
 import enterScope from "../../../../../../transpiler/__tests__/enterScope";
 
@@ -62,11 +62,13 @@ function createMockContext(
   } as IAssignmentContext;
 }
 
+let state: RenderState;
+
 describe("RegisterHandlers", () => {
   beforeEach(() => {
-    CodeGenState.reset();
-    HandlerTestUtils.setupMockGenerator();
-    HandlerTestUtils.setupMockSymbols();
+    state = new RenderState();
+    HandlerTestUtils.setupMockGenerator(state);
+    HandlerTestUtils.setupMockSymbols(state);
   });
 
   describe("handler registration", () => {
@@ -91,7 +93,7 @@ describe("RegisterHandlers", () => {
       )?.[1];
 
     it("generates read-modify-write for read-write register", () => {
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi.fn().mockReturnValue("LED_BIT"),
       });
       const ctx = createMockContext();
@@ -104,10 +106,10 @@ describe("RegisterHandlers", () => {
     });
 
     it("generates simple write for write-only register", () => {
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi.fn().mockReturnValue("LED_BIT"),
       });
-      HandlerTestUtils.setupMockSymbols({
+      HandlerTestUtils.setupMockSymbols(state, {
         registerMemberAccess: new Map([["GPIO7__DR_SET", "wo"]]),
       });
       const ctx = createMockContext();
@@ -118,10 +120,10 @@ describe("RegisterHandlers", () => {
     });
 
     it("throws on write-only register with false value", () => {
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi.fn().mockReturnValue("LED_BIT"),
       });
-      HandlerTestUtils.setupMockSymbols({
+      HandlerTestUtils.setupMockSymbols(state, {
         registerMemberAccess: new Map([["GPIO7__DR_SET", "wo"]]),
       });
       const ctx = createMockContext({ generatedValue: "false" });
@@ -130,10 +132,10 @@ describe("RegisterHandlers", () => {
     });
 
     it("throws on write-only register with 0 value", () => {
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi.fn().mockReturnValue("0"),
       });
-      HandlerTestUtils.setupMockSymbols({
+      HandlerTestUtils.setupMockSymbols(state, {
         registerMemberAccess: new Map([["GPIO7__DR_SET", "w1s"]]),
       });
       const ctx = createMockContext({ generatedValue: "0" });
@@ -149,10 +151,10 @@ describe("RegisterHandlers", () => {
     // `tests/compound-assign/` and `tests/string-assignment/`.
 
     it("handles scoped register prefix correctly", () => {
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi.fn().mockReturnValue("5"),
       });
-      HandlerTestUtils.setupMockSymbols({
+      HandlerTestUtils.setupMockSymbols(state, {
         knownScopes: new Set(["Motor"]),
       });
       const ctx = createMockContext({
@@ -172,7 +174,7 @@ describe("RegisterHandlers", () => {
       )?.[1];
 
     it("generates read-modify-write for bit range", () => {
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("0")
@@ -194,13 +196,13 @@ describe("RegisterHandlers", () => {
     });
 
     it("generates simple write for write-only bit range", () => {
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("0")
           .mockReturnValueOnce("8"),
       });
-      HandlerTestUtils.setupMockSymbols({
+      HandlerTestUtils.setupMockSymbols(state, {
         registerMemberAccess: new Map([["GPIO7__DR_SET", "wo"]]),
       });
       const ctx = createMockContext({
@@ -219,13 +221,13 @@ describe("RegisterHandlers", () => {
     });
 
     it("throws on write-only bit range with 0 value", () => {
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("0")
           .mockReturnValueOnce("8"),
       });
-      HandlerTestUtils.setupMockSymbols({
+      HandlerTestUtils.setupMockSymbols(state, {
         registerMemberAccess: new Map([["GPIO7__DR_SET", "w1c"]]),
       });
       const ctx = createMockContext({
@@ -240,7 +242,7 @@ describe("RegisterHandlers", () => {
     });
 
     it("generates MMIO optimization for byte-aligned access", () => {
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("0")
@@ -250,7 +252,7 @@ describe("RegisterHandlers", () => {
           .mockReturnValueOnce(0)
           .mockReturnValueOnce(8),
       });
-      HandlerTestUtils.setupMockSymbols({
+      HandlerTestUtils.setupMockSymbols(state, {
         registerMemberAccess: new Map([["GPIO7__DR_SET", "wo"]]),
         registerBaseAddresses: new Map([["GPIO7", "0x40000000"]]),
         registerMemberOffsets: new Map([["GPIO7__DR_SET", "0x04"]]),
@@ -271,7 +273,7 @@ describe("RegisterHandlers", () => {
     });
 
     it("generates MMIO with byte offset for non-zero start", () => {
-      HandlerTestUtils.setupMockGenerator({
+      HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("8")
@@ -281,7 +283,7 @@ describe("RegisterHandlers", () => {
           .mockReturnValueOnce(8)
           .mockReturnValueOnce(16),
       });
-      HandlerTestUtils.setupMockSymbols({
+      HandlerTestUtils.setupMockSymbols(state, {
         registerMemberAccess: new Map([["GPIO7__DR_SET", "wo"]]),
         registerBaseAddresses: new Map([["GPIO7", "0x40000000"]]),
         registerMemberOffsets: new Map([["GPIO7__DR_SET", "0x04"]]),
@@ -308,8 +310,8 @@ describe("RegisterHandlers", () => {
       )?.[1];
 
     it("generates read-modify-write for scoped register bit", () => {
-      enterScope("Motor");
-      HandlerTestUtils.setupMockGenerator({
+      enterScope(state, "Motor");
+      HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi.fn().mockReturnValue("LED_BIT"),
       });
       const ctx = createMockContext({
@@ -324,11 +326,11 @@ describe("RegisterHandlers", () => {
     });
 
     it("generates simple write for write-only scoped register", () => {
-      enterScope("Motor");
-      HandlerTestUtils.setupMockGenerator({
+      enterScope(state, "Motor");
+      HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi.fn().mockReturnValue("LED_BIT"),
       });
-      HandlerTestUtils.setupMockSymbols({
+      HandlerTestUtils.setupMockSymbols(state, {
         registerMemberAccess: new Map([["Motor__GPIO7__DR_SET", "wo"]]),
       });
       const ctx = createMockContext({
@@ -348,11 +350,11 @@ describe("RegisterHandlers", () => {
     // that is a dead branch's only caller is what keeps the branch alive.
 
     it("throws on write-only register with false value", () => {
-      enterScope("Motor");
-      HandlerTestUtils.setupMockGenerator({
+      enterScope(state, "Motor");
+      HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi.fn().mockReturnValue("LED_BIT"),
       });
-      HandlerTestUtils.setupMockSymbols({
+      HandlerTestUtils.setupMockSymbols(state, {
         registerMemberAccess: new Map([["Motor__GPIO7__DR_SET", "w1s"]]),
       });
       const ctx = createMockContext({
@@ -372,8 +374,8 @@ describe("RegisterHandlers", () => {
       )?.[1];
 
     it("generates read-modify-write for scoped register bit range", () => {
-      enterScope("Motor");
-      HandlerTestUtils.setupMockGenerator({
+      enterScope(state, "Motor");
+      HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("6")
@@ -397,14 +399,14 @@ describe("RegisterHandlers", () => {
     });
 
     it("generates simple write for write-only scoped register bit range", () => {
-      enterScope("Motor");
-      HandlerTestUtils.setupMockGenerator({
+      enterScope(state, "Motor");
+      HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("6")
           .mockReturnValueOnce("2"),
       });
-      HandlerTestUtils.setupMockSymbols({
+      HandlerTestUtils.setupMockSymbols(state, {
         registerMemberAccess: new Map([["Motor__GPIO7__ICR1", "wo"]]),
       });
       const ctx = createMockContext({
@@ -424,8 +426,8 @@ describe("RegisterHandlers", () => {
     });
 
     it("generates MMIO optimization for byte-aligned scoped access", () => {
-      enterScope("Motor");
-      HandlerTestUtils.setupMockGenerator({
+      enterScope(state, "Motor");
+      HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("0")
@@ -435,7 +437,7 @@ describe("RegisterHandlers", () => {
           .mockReturnValueOnce(0)
           .mockReturnValueOnce(32),
       });
-      HandlerTestUtils.setupMockSymbols({
+      HandlerTestUtils.setupMockSymbols(state, {
         registerMemberAccess: new Map([["Motor__GPIO7__ICR1", "wo"]]),
         registerBaseAddresses: new Map([["Motor__GPIO7", "0x40000000"]]),
         registerMemberOffsets: new Map([["Motor__GPIO7__ICR1", "0x08"]]),
@@ -463,14 +465,14 @@ describe("RegisterHandlers", () => {
     // that is a dead branch's only caller is what keeps the branch alive.
 
     it("throws on write-only bit range with 0 value", () => {
-      enterScope("Motor");
-      HandlerTestUtils.setupMockGenerator({
+      enterScope(state, "Motor");
+      HandlerTestUtils.setupMockGenerator(state, {
         generateExpression: vi
           .fn()
           .mockReturnValueOnce("6")
           .mockReturnValueOnce("2"),
       });
-      HandlerTestUtils.setupMockSymbols({
+      HandlerTestUtils.setupMockSymbols(state, {
         registerMemberAccess: new Map([["Motor__GPIO7__ICR1", "w1c"]]),
       });
       const ctx = createMockContext({

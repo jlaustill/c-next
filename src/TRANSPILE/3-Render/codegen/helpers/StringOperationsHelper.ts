@@ -24,9 +24,9 @@
 
 import ISubstringOps from "../types/ISubstringOps";
 import IStringConcatOps from "../types/IStringConcatOps";
-import CodeGenState from "../../../../transpiler/state/CodeGenState";
 import StringUtils from "../../../../utils/StringUtils";
 import BareIdentifier from "../../../../utils/BareIdentifier";
+import type RenderState from "../../RenderState";
 
 /**
  * Helper for string operation rendering.
@@ -43,7 +43,10 @@ class StringOperationsHelper {
    * @param exprCode - Expression code text (e.g., "hello" or varName)
    * @returns Capacity in characters, or null if not a string
    */
-  static getStringExprCapacity(exprCode: string): number | null {
+  static getStringExprCapacity(
+    exprCode: string,
+    state: RenderState,
+  ): number | null {
     // String literal - capacity equals content length
     if (exprCode.startsWith('"') && exprCode.endsWith('"')) {
       return StringUtils.literalLength(exprCode);
@@ -51,7 +54,7 @@ class StringOperationsHelper {
 
     // Variable - check type registry
     if (BareIdentifier.matches(exprCode)) {
-      const typeInfo = CodeGenState.getVariableTypeInfo(exprCode);
+      const typeInfo = state.getVariableTypeInfo(exprCode);
       if (typeInfo?.isString && typeInfo.stringCapacity !== undefined) {
         return typeInfo.stringCapacity;
       }
@@ -73,10 +76,16 @@ class StringOperationsHelper {
   static getStringConcatOperands(
     leftText: string,
     rightText: string,
+    state: RenderState,
   ): IStringConcatOps | null {
-    const leftCapacity = StringOperationsHelper.getStringExprCapacity(leftText);
-    const rightCapacity =
-      StringOperationsHelper.getStringExprCapacity(rightText);
+    const leftCapacity = StringOperationsHelper.getStringExprCapacity(
+      leftText,
+      state,
+    );
+    const rightCapacity = StringOperationsHelper.getStringExprCapacity(
+      rightText,
+      state,
+    );
 
     if (leftCapacity === null || rightCapacity === null) {
       return null;
@@ -119,9 +128,12 @@ class StringOperationsHelper {
   static getSubstringOperands(
     sourceName: string,
     generateIndexes: () => readonly string[],
+    state: RenderState,
   ): ISubstringOps | null {
-    const sourceCapacity =
-      StringOperationsHelper.getStringExprCapacity(sourceName);
+    const sourceCapacity = StringOperationsHelper.getStringExprCapacity(
+      sourceName,
+      state,
+    );
     if (sourceCapacity === null) return null;
 
     const indexCodes = generateIndexes();

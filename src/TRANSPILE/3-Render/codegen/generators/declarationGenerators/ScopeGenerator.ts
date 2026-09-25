@@ -30,7 +30,7 @@
  * unevaluated on arrival, even though every one of them is needed
  * unconditionally.
  *
- * Wrapping the planner in `CodeGenState.withScopePath` would make eager renders
+ * Wrapping the planner in `state.withScopePath` would make eager renders
  * resolve correctly and would still be wrong: the bodies have to render inside
  * `enterFunctionContext`, so they would stay thunks while everything else moved
  * ahead of them -- and in C++ that shifts `getNextTempVarName` allocation
@@ -45,12 +45,12 @@ import TGeneratorFn from "../TGeneratorFn";
 import TPlannedScopeMember from "../../types/TPlannedScopeMember";
 import TPlannedScopeVariable from "../../types/TPlannedScopeVariable";
 import registerGeneratorFor from "./RegisterGenerator";
-import CodeGenState from "../../../../../transpiler/state/CodeGenState";
 import AdrProvenance from "../../../../../instrumentation/AdrProvenance";
 import generateEnumHeader from "../../../headers/generators/generateEnumHeader";
 import generateBitmapHeader from "../../../headers/generators/generateBitmapHeader";
 import generateStructHeader from "../../../headers/generators/generateStructHeader";
 import type IHeaderTypeInput from "../../../headers/generators/IHeaderTypeInput";
+import type RenderState from "../../../RenderState";
 
 /**
  * The header's own per-type emitters, by kind.
@@ -82,6 +82,7 @@ const HEADER_TYPE_EMITTERS: Readonly<
 function renderTypeDefinitions(
   plan: IPlannedScope,
   input: IGeneratorInput,
+  state: RenderState,
 ): string[] {
   const symbols = input.symbols;
   if (!symbols || plan.typeDefinitions.length === 0) {
@@ -90,8 +91,8 @@ function renderTypeDefinitions(
 
   const typeInput: IHeaderTypeInput = {
     ...symbols,
-    symbolTable: CodeGenState.symbolTable,
-    callbackTypes: CodeGenState.callbackTypes,
+    symbolTable: state.symbolTable,
+    callbackTypes: state.callbackTypes,
   };
 
   return [
@@ -322,7 +323,7 @@ const generateScope: TGeneratorFn<IPlannedScope> = (
   const lines: string[] = [
     `/* Scope: ${plan.name} */`,
     // #1300: types first, grouped by kind, before anything that can name them.
-    ...renderTypeDefinitions(plan, input),
+    ...renderTypeDefinitions(plan, input, orchestrator.state),
   ];
 
   for (const member of plan.members) {

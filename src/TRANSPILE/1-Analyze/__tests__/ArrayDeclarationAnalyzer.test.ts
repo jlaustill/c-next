@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import CNextResolver from "../../../PARSE/3-Declare/cnext";
 import CNextSourceParser from "../../../PARSE/2-Parse/CNextSourceParser";
-import CodeGenState from "../../../transpiler/state/CodeGenState";
+import RenderState from "../../3-Render/RenderState";
 import Program from "../../../PARSE/4-Resolve/Program";
 import SymbolRegistry from "../../../PARSE/3-Declare/SymbolRegistry";
 import ArrayDeclarationAnalyzer from "../ArrayDeclarationAnalyzer";
@@ -18,7 +18,7 @@ import testAnalysisContext from "./testAnalysisContext";
  */
 const errors = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  return new ArrayDeclarationAnalyzer(testAnalysisContext()).analyze(tree);
+  return new ArrayDeclarationAnalyzer(testAnalysisContext(state)).analyze(tree);
 };
 
 /**
@@ -28,14 +28,14 @@ const errors = (source: string) => {
  */
 const errorsWithProgram = (source: string) => {
   const { tree } = CNextSourceParser.parse(source);
-  CodeGenState.program = Program.build([
+  state.program = Program.build([
     CNextResolver.resolve(tree, "collide.cnx", registry),
   ]);
-  return new ArrayDeclarationAnalyzer(testAnalysisContext()).analyze(tree);
+  return new ArrayDeclarationAnalyzer(testAnalysisContext(state)).analyze(tree);
 };
 
 afterEach(() => {
-  CodeGenState.reset();
+  state = new RenderState();
 });
 
 let registry = new SymbolRegistry();
@@ -43,6 +43,8 @@ let registry = new SymbolRegistry();
 beforeEach(() => {
   registry = new SymbolRegistry();
 });
+
+let state: RenderState;
 
 describe("ArrayDeclarationAnalyzer", () => {
   describe("E0874 -- C-style declarations and parameters", () => {

@@ -6,10 +6,10 @@
  * qualifiedType, userType) that each had identical enum/bitmap handling.
  */
 
-import CodeGenState from "../../transpiler/state/CodeGenState";
 import TOverflowBehavior from "../../transpiler/types/TOverflowBehavior";
 import type IDeclaredTypeSets from "../../transpiler/types/IDeclaredTypeSets";
 import DeclaredTypeFacts from "../../utils/DeclaredTypeFacts";
+import type RenderState from "../3-Render/RenderState";
 
 /**
  * Common options for type registration.
@@ -34,12 +34,13 @@ class TypeRegistrationUtils {
   static tryRegisterEnumType(
     symbols: IDeclaredTypeSets,
     options: ITypeRegistrationOptions,
+    state: RenderState,
   ): boolean {
     if (!symbols.knownEnums.has(options.baseType)) {
       return false;
     }
 
-    CodeGenState.setVariableTypeInfo(options.name, {
+    state.setVariableTypeInfo(options.name, {
       baseType: options.baseType,
       isArray: false,
       isConst: options.isConst,
@@ -63,6 +64,7 @@ class TypeRegistrationUtils {
     symbols: IDeclaredTypeSets,
     options: ITypeRegistrationOptions,
     arrayDimensions: number[] | undefined,
+    state: RenderState,
   ): boolean {
     if (!symbols.knownBitmaps.has(options.baseType)) {
       return false;
@@ -73,7 +75,7 @@ class TypeRegistrationUtils {
     // miss a field, inside the one function that had it right.
     const isArray = arrayDimensions !== undefined && arrayDimensions.length > 0;
 
-    CodeGenState.setVariableTypeInfo(options.name, {
+    state.setVariableTypeInfo(options.name, {
       baseType: options.baseType,
       isArray,
       ...(isArray && { arrayDimensions }),
