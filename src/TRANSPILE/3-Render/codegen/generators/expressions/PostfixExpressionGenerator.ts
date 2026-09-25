@@ -456,13 +456,13 @@ const handleThisScopeLength = (
     return false;
   }
   // #1322: `this` outside a scope is E0431 in 2.1.
-  const members = state.scopeMembers.get(orchestrator.state.currentScopePath);
+  const members = state.scopeMembers.get(state.currentScopePath);
   if (!members?.has("length")) {
     return false;
   }
 
   tracking.result = QualifiedNameGenerator.forMember(
-    orchestrator.state.currentScopePath,
+    state.currentScopePath,
     memberName,
   );
   tracking.resolvedIdentifier = tracking.result;
@@ -1387,7 +1387,7 @@ const tryScopeMemberAccess = (
   // #1322: `this` outside a scope is E0431 in 2.1.
   const output = initializeMemberOutput(ctx);
   const fullName = QualifiedNameGenerator.forMember(
-    orchestrator.state.currentScopePath,
+    state.currentScopePath,
     ctx.memberName,
   );
   const constValue = input.symbols!.scopePrivateConstValues.get(fullName);

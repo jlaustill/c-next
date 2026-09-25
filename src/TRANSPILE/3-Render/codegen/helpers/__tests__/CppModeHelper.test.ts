@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import CppModeHelper from "../CppModeHelper";
 import RenderState from "../../../RenderState";
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("CppModeHelper", () => {
   beforeEach(() => {

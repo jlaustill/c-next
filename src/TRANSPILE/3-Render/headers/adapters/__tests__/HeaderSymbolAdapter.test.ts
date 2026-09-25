@@ -19,7 +19,7 @@ import TestSourceSpan from "../../../../../transpiler/types/__testUtils__/testSo
 import TestEnumMembers from "../../../../../transpiler/types/__testUtils__/testEnumMembers";
 import TestMembers from "../../../../../transpiler/types/__testUtils__/testMembers";
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("HeaderSymbolAdapter", () => {
   beforeEach(() => {

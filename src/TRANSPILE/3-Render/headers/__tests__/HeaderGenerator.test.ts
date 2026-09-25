@@ -17,7 +17,7 @@ import ESourceLanguage from "../../../../utils/types/ESourceLanguage";
 import TestSymbolUtils from "../../../../PARSE/3-Declare/cnext/__tests__/testSymbolUtils";
 import TestSourceSpan from "../../../../transpiler/types/__testUtils__/testSourceSpan";
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("HeaderGenerator", () => {
   beforeEach(() => {

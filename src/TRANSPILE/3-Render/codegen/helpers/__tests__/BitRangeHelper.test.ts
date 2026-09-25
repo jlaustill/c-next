@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import BitRangeHelper from "../BitRangeHelper";
 import RenderState from "../../../RenderState";
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("BitRangeHelper", () => {
   describe("buildFloatBitReadExpr", () => {

@@ -99,7 +99,7 @@ function registerScope(path: string): IScopeSymbol {
   return scope;
 }
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("RenderState", () => {
   beforeEach(() => {

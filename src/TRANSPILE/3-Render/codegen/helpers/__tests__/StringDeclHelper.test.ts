@@ -57,7 +57,7 @@ function bounded(
 // what prove the net is there. Kept and re-aimed rather than deleted: they
 // were the only coverage of these conditions, and an assertion nothing
 // exercises is the guard-that-cannot-fail shape.
-let state: RenderState;
+let state = new RenderState();
 
 describe("StringDeclHelper", () => {
   beforeEach(() => {

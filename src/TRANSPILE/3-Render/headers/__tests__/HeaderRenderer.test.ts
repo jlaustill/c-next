@@ -12,7 +12,7 @@ import IHeaderSymbol from "../types/IHeaderSymbol";
 import IHeaderOptions from "../../codegen/types/IHeaderOptions";
 import RenderState from "../../RenderState";
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("HeaderRenderer", () => {
   afterEach(() => {

@@ -21,7 +21,7 @@ const defaultCallbacks = {
   generateArrayDimensions: vi.fn(() => "[3]"),
 };
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("ArrayInitHelper", () => {
   beforeEach(() => {

@@ -21,7 +21,7 @@ import IPlannedArrayDeclaration from "../../types/IPlannedArrayDeclaration";
 import TPlannedVariableDecl from "../../types/TPlannedVariableDecl";
 import TPlannedVariableInitializer from "../../types/TPlannedVariableInitializer";
 
-let state: RenderState;
+let state = new RenderState();
 
 /**
  * An initializer render that sets the array-init bookkeeping, the way a real

@@ -36,7 +36,11 @@ import ExpressionTypeResolver from "../../../../../2-Plan/ExpressionTypeResolver
 
 const mockInput = {} as IGeneratorInput;
 const mockState = {} as IGeneratorState;
-const mockOrchestrator = {} as IOrchestrator;
+const state = new RenderState();
+
+// #1452: the generator reads the run's C++ mode off the orchestrator's render
+// state, for the MISRA 10.1/10.3 cast. That is the only member it touches.
+const mockOrchestrator = { state } as unknown as IOrchestrator;
 
 /** The generator's whole input: an operator, the operand's code, its type. */
 function planned(
@@ -63,13 +67,7 @@ const run = (
 // Tests
 // ========================================================================
 
-let state: RenderState;
-
 describe("UnaryExprGenerator", () => {
-  beforeEach(() => {
-    state = new RenderState();
-  });
-
   afterEach(() => {
     vi.mocked(ExpressionTypeResolver.isUnsignedType).mockReset();
     state.cppMode = false;

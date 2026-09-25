@@ -110,7 +110,7 @@ function plannedParam(
   };
 }
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("FunctionContextManager", () => {
   beforeEach(() => {

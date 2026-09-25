@@ -17,7 +17,7 @@ import RenderState from "../../../../RenderState";
 // with it -- the function's real input was always a string.
 const mockState = {} as IGeneratorState;
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("LiteralGenerator", () => {
   beforeEach(() => {

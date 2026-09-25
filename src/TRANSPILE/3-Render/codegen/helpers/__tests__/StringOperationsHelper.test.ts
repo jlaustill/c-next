@@ -25,7 +25,7 @@ function declareString(name: string, capacity: number): void {
   });
 }
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("StringOperationsHelper", () => {
   beforeEach(() => {

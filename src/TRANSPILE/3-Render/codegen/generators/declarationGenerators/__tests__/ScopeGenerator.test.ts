@@ -72,6 +72,7 @@ function createMockOrchestrator(options?: {
   isTypedefStruct?: boolean;
 }): IOrchestrator {
   return strictStub<IOrchestrator>({
+    state,
     setCurrentScope: vi.fn(),
     getCallbackTypedefName: vi.fn(() => options?.callbackTypedef ?? null),
     isOpaqueType: vi.fn(() => options?.isOpaque ?? false),
@@ -132,7 +133,7 @@ function declarationsOf(code: string): string[] {
   return code.split("\n").filter((line) => line.trim() !== "");
 }
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("ScopeGenerator", () => {
   beforeEach(() => {

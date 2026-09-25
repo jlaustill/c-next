@@ -21,7 +21,7 @@ interface IFloatBitCallbacks {
   requireInclude: (header: TIncludeHeader) => void;
 }
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("FloatBitHelper", () => {
   let callbacks: IFloatBitCallbacks;

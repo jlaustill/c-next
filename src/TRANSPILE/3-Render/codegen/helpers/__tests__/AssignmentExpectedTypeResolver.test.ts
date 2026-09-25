@@ -92,7 +92,7 @@ function setupStructFields(
   (state.symbols.knownStructs as Set<string>).add(structName);
 }
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("AssignmentExpectedTypeResolver", () => {
   beforeEach(() => {

@@ -9,7 +9,7 @@ import RenderState from "../../../RenderState";
 import IArgumentGeneratorCallbacks from "../types/IArgumentGeneratorCallbacks";
 import enterScope from "../../../../../transpiler/__tests__/enterScope";
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("ArgumentGenerator", () => {
   // #1445: the callbacks are thunks and `generateArg` takes no node, so the 22

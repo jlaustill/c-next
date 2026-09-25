@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import NarrowingCastHelper from "../NarrowingCastHelper";
 import RenderState from "../../../RenderState";
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("NarrowingCastHelper", () => {
   beforeEach(() => {

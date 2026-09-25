@@ -12,7 +12,7 @@ import RenderState from "../RenderState";
 import ToolchainRequirements from "../../../instrumentation/ToolchainRequirements";
 
 describe("RenderState", () => {
-  let state: RenderState;
+  let state = new RenderState();
 
   beforeEach(() => {
     state = new RenderState();

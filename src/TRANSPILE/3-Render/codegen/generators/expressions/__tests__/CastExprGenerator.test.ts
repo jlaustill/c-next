@@ -23,7 +23,7 @@ const plan = (
 ) => ({ targetType, targetTypeName, operandCode, operandType });
 
 describe("CastExprGenerator", () => {
-  let state: RenderState;
+  let state = new RenderState();
 
   beforeEach(() => {
     state = new RenderState();
