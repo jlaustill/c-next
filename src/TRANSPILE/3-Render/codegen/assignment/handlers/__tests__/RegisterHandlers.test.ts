@@ -58,11 +58,15 @@ function createMockContext(
     isSimpleGlobalAccess: false,
     resolvedTarget,
     resolvedBaseIdentifier,
+    // #1452 box 4: a handler reaches 2.3's per-file state through the context
+    // it is handed, so the mock context carries the same instance the test
+    // set its facts up on.
+    state,
     ...overrides,
   } as IAssignmentContext;
 }
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("RegisterHandlers", () => {
   beforeEach(() => {

@@ -8,7 +8,7 @@ import RegisterUtils from "../RegisterUtils";
 import RenderState from "../../../../RenderState";
 import HandlerTestUtils from "./handlerTestUtils";
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("RegisterUtils", () => {
   describe("isWriteOnlyRegister", () => {

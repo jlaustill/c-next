@@ -85,7 +85,7 @@ function setupState(options: SetupStateOptions = {}): void {
 // Tests - Include Validation (ADR-010)
 // ========================================================================
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("TypeValidator", () => {
   beforeEach(() => {

@@ -48,6 +48,10 @@ function createMockContext(
     postfixOps: [],
     resolvedTarget,
     resolvedBaseIdentifier,
+    // #1452 box 4: a handler reaches 2.3's per-file state through the context
+    // it is handed, so the mock context carries the same instance the test
+    // set its facts up on.
+    state,
     ...overrides,
   } as IAssignmentContext;
 }
@@ -57,7 +61,7 @@ function createMockContext(
 // over-determined, raised by the effect channel, by `generateType` and by type
 // registration, so six more raisers in the handlers changed nothing. What these
 // tests are FOR is the emitted `strncpy`, and that is untouched.
-let state: RenderState;
+let state = new RenderState();
 
 describe("StringHandlers", () => {
   beforeEach(() => {

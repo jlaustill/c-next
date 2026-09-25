@@ -4,7 +4,7 @@ import RenderState from "../../RenderState";
 import createMockSymbols from "../../../../transpiler/__tests__/codeGenSymbolsHelpers";
 import enterScope from "../../../../transpiler/__tests__/enterScope";
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("TypeValidator.resolveBareIdentifier", () => {
   beforeEach(() => {

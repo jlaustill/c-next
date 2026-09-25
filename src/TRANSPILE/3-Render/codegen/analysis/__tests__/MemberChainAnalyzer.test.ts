@@ -41,7 +41,7 @@ function bitRange(start: string, width: string): TPlannedTargetOp {
   };
 }
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("MemberChainAnalyzer", () => {
   beforeEach(() => {

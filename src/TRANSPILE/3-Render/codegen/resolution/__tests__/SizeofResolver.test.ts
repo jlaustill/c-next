@@ -35,7 +35,7 @@ function declareParameter(
   });
 }
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("SizeofResolver", () => {
   beforeEach(() => {

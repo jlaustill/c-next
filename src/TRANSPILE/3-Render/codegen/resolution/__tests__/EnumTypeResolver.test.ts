@@ -16,7 +16,7 @@ import enterScope from "../../../../../transpiler/__tests__/enterScope";
 // `as never` casts these tests carried are gone. The thunk returns null
 // throughout because none of these cases reach the fallback -- the mock never
 // had a tree for it to walk either.
-let state: RenderState;
+let state = new RenderState();
 
 describe("EnumTypeResolver", () => {
   beforeEach(() => {
