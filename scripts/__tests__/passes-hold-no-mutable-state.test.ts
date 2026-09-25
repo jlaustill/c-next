@@ -70,6 +70,39 @@ const rootDir = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const PASS_ROOTS = ["src/PARSE", "src/TRANSPILE"];
 
 /**
+ * Scanned alongside the pass roots, with its four holders listed below.
+ *
+ * `src/instrumentation/` did not exist when this file was written, and #1452
+ * created it -- so the four mutable statics this card RELOCATED there sat
+ * outside every root this guard scans. The box-4 guard could not fail on the
+ * state the box is about, which is the shape the header above spends its length
+ * arguing against, arriving through a new directory rather than a new field.
+ *
+ * Adding the root does not forbid them: `docs/architecture/README.md` admits
+ * instrumentation as the one root that may hold mutable state, and that
+ * decision stands. It makes the exemption a LIST rather than a geography. A
+ * comment in `ToolchainRequirements` already said "do not read its presence in
+ * this root as a precedent"; a comment is not a gate, and a fifth static added
+ * here now fails this file instead of relying on the next reader having read
+ * that sentence.
+ */
+const INSTRUMENTATION_ROOT = "src/instrumentation";
+
+/**
+ * The four, each named with what it accumulates.
+ *
+ * An observation OF the run, which nothing downstream branches on -- that is
+ * the admission test for this root. A holder that fails it does not belong here
+ * whatever directory it sits in, and the list is where that gets argued.
+ */
+const INSTRUMENTATION_HOLDERS = [
+  "src/instrumentation/AdrProvenance.ts:58",
+  "src/instrumentation/AdrProvenance.ts:59",
+  "src/instrumentation/ToolchainRequirements.ts:56",
+  "src/instrumentation/ToolchainRequirements.ts:67",
+];
+
+/**
  * A mutable static class member.
  *
  * Anchored on the member name so a method cannot match: `static foo()` and the
@@ -114,7 +147,7 @@ function sourceFiles(dir: string): string[] {
 /** Every `path:line` under the pass roots whose line declares mutable state. */
 function holders(includeGenerated: boolean): string[] {
   const found: string[] = [];
-  for (const root of PASS_ROOTS) {
+  for (const root of [...PASS_ROOTS, INSTRUMENTATION_ROOT]) {
     for (const path of sourceFiles(join(rootDir, root))) {
       const relative = path.slice(rootDir.length + 1);
       if (!includeGenerated && GENERATED_GRAMMAR.test(relative)) continue;
@@ -159,7 +192,17 @@ function scopeCreators(): string[] {
 
 describe("the passes hold no mutable state (#1452 box 4)", () => {
   it("names no module under a pass root that holds mutable state", () => {
-    expect(holders(false)).toEqual([]);
+    expect(holders(false)).toEqual(INSTRUMENTATION_HOLDERS);
+  });
+
+  it("still reaches the instrumentation holders it exempts", () => {
+    // Population control for the exemption itself. An allowlist that stops
+    // matching reads exactly like a clean tree -- it would make the assertion
+    // above pass for the wrong reason, which is the defect this arm was added
+    // to fix rather than to repeat one level down.
+    expect(
+      holders(false).filter((site) => site.startsWith(INSTRUMENTATION_ROOT)),
+    ).toEqual(INSTRUMENTATION_HOLDERS);
   });
 
   it("scans the pass roots at all", () => {

@@ -114,6 +114,60 @@ const allRules = (): IRule[] => {
   return forbidden as IRule[];
 };
 
+/**
+ * A path pattern's alternatives, each as a pattern of its own.
+ *
+ * `^src/(PARSE|TRANSPILE|WRITE)/` is one regex that matches `src/PARSE/...`, so
+ * testing it whole reports it live while `WRITE` inside it matches nothing. That
+ * is the dead-path defect one level down, and the assertion below could not see
+ * it: a fourth root added and mis-spelled inside an alternation would silently
+ * stop being forbidden with this gate green.
+ *
+ * Groups are expanded as a cartesian product, so `Symbol(Table|Registry)\.ts$`
+ * yields both real files. A pattern using a construct this does not model --
+ * a non-capturing or lookaround group, or a quantified one -- is returned
+ * UNEXPANDED rather than mangled, which is the conservative direction: it
+ * degrades to the previous whole-pattern check instead of inventing branches
+ * that were never written. Nested groups need no test of their own: the group
+ * pattern below excludes parentheses from its own body, so it simply does not
+ * match one.
+ *
+ * The first draft of this rejected EVERY group, because its guard spelled the
+ * unsupported set `[()*+?]` -- which contains `)`, so `\([^)]*[()*+?]` matched
+ * any group at its own closing paren. It read as working and expanded nothing.
+ * Caught by mutation, which is the only reason this comment exists.
+ */
+const expandAlternations = (path: string): string[] => {
+  if (/\(\?/.test(path) || /\)[*+?{]/.test(path)) return [path];
+
+  const group = /\(([^()|]+(?:\|[^()|]+)+)\)/;
+  let out = [path];
+
+  for (let depth = 0; depth < 4; depth += 1) {
+    const next = out.flatMap((candidate) => {
+      const found = group.exec(candidate);
+      if (!found) return [candidate];
+      return found[1].split("|").map((alt) => candidate.replace(found[0], alt));
+    });
+    if (next.length === out.length && next.every((v, i) => v === out[i])) break;
+    out = next;
+  }
+
+  return out;
+};
+
+/**
+ * Alternatives that name a path deliberately before it exists.
+ *
+ * `src/WRITE/` is 3.1 Write, the one pass with no modules yet: naming it in
+ * `instrumentation-cannot-import-a-layer` is a forward reference, so the rule
+ * already forbids the edge on the day that directory appears. Listed here
+ * rather than tolerated by the gate being unable to see it -- an exemption that
+ * is invisible is the shape this file exists to reject, and a list is a thing a
+ * reviewer can disagree with.
+ */
+const FORWARD_REFERENCES = ["^src/WRITE/"];
+
 const layerRules = (): IRule[] => {
   const config: unknown = require(CONFIG_PATH);
   const forbidden = (config as { forbidden?: unknown }).forbidden;
@@ -189,7 +243,9 @@ describe("dependency-cruiser layer rules (#1297)", () => {
 
     const dead = allRules().flatMap((rule) =>
       [...paths(rule.from), ...paths(rule.to)]
+        .flatMap(expandAlternations)
         .filter((path) => /^\^?(src|scripts)\//.test(path))
+        .filter((path) => !FORWARD_REFERENCES.includes(path))
         .filter((path) => {
           const pattern = new RegExp(path);
           return !tracked.some((file) => pattern.test(file));
