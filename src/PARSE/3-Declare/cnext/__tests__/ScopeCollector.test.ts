@@ -14,8 +14,6 @@ beforeEach(() => {
 });
 
 describe("ScopeCollector", () => {
-  beforeEach(() => {});
-
   // Issue #1334: a scope may be reopened (ADR-016), so it has MANY declaration
   // sites. getOrCreateScope caches by path and this collector used to assign
   // sourceFile/sourceLine on the shared object unconditionally, so a reopened

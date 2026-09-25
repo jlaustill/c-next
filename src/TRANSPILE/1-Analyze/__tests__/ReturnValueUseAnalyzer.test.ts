@@ -46,8 +46,6 @@ beforeEach(() => {
 let state = new TranspileState();
 
 describe("ReturnValueUseAnalyzer", () => {
-  beforeEach(() => {});
-
   afterEach(() => {
     state = new TranspileState();
   });

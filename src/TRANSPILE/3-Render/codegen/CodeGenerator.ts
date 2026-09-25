@@ -5,7 +5,6 @@
 
 import ReservedCnxName from "../../../utils/ReservedCnxName";
 
-import TYPE_WIDTH from "../../../transpiler/constants/TYPE_WIDTH";
 // Issue #60: BITMAP_SIZE and BITMAP_BACKING_TYPE moved to SymbolCollector
 import TTypeInfo from "../../../transpiler/types/TTypeInfo";
 import ExpressionTypeResolver from "../../2-Plan/ExpressionTypeResolver";
@@ -583,7 +582,7 @@ export default class CodeGenerator implements IOrchestrator {
    * Computed on-demand from functionSignatures and modifiedParameters.
    */
   getFunctionUnmodifiedParams(): ReadonlyMap<string, Set<string>> {
-    return this.state.getUnmodifiedParameters(this.state.program);
+    return this.state.getUnmodifiedParameters();
   }
 
   /**
@@ -594,7 +593,7 @@ export default class CodeGenerator implements IOrchestrator {
   updateFunctionParamsAutoConst(_functionName: string): void {
     // No-op: Unmodified parameters are now computed on-demand from
     // this.state.functionSignatures and this.state.modifiedParameters
-    // via this.state.getUnmodifiedParameters(this.state.program).
+    // via this.state.getUnmodifiedParameters().
   }
 
   /**
@@ -668,49 +667,34 @@ export default class CodeGenerator implements IOrchestrator {
    * Get struct field info for .length calculations.
    * Part of IOrchestrator interface.
    *
-   * Issue #831: SymbolTable is the single source of truth for struct fields
-   * (both C-Next and C header structs).
+   * Delegated, not re-implemented. This body was a second copy that asked
+   * `symbolTable` alone -- a bare `structFields.get(name)` with no key
+   * derivation -- so it answered `null` for a SCOPE-declared struct, whose
+   * fields are recorded under the transpiled key. #1322 fixed that on the state
+   * by falling back through `resolvedStructKey`, and the fix reached
+   * `AssignmentClassifier` and `BitmapHandlers` while the six sites that come
+   * through `IOrchestrator` kept the old answer.
    */
   getStructFieldInfo(
     structType: string,
     fieldName: string,
   ): { type: string; dimensions?: (number | string)[] } | null {
-    const fieldInfo = this.state.symbolTable?.getStructFieldInfo(
-      structType,
-      fieldName,
-    );
-    if (fieldInfo) {
-      return {
-        type: fieldInfo.type,
-        dimensions: fieldInfo.arrayDimensions,
-      };
-    }
-    return null;
+    return this.state.getStructFieldInfo(structType, fieldName);
   }
 
   /**
    * Get member type info for struct access chains.
    * Part of IOrchestrator interface.
+   *
+   * Delegated for the same reason, plus #1127: this copy still dropped a
+   * non-numeric dimension with `filter(typeof d === "number")` instead of
+   * mapping it to `UNRESOLVED_DIMENSION`, which shifts every dimension after it
+   * -- so `u8[EColor.COUNT][3]` came back as `[3]` and put dimension 2's bound
+   * in dimension 1's slot. Both defects were fixed once on the state and left
+   * standing here.
    */
   getMemberTypeInfo(structType: string, memberName: string): TTypeInfo | null {
-    const fieldInfo = this.getStructFieldInfo(structType, memberName);
-    if (!fieldInfo) return null;
-
-    const isArray =
-      (fieldInfo.dimensions !== undefined && fieldInfo.dimensions.length > 0) ||
-      (this.state.symbols!.structFieldArrays.get(structType)?.has(memberName) ??
-        false);
-    const dims = fieldInfo.dimensions?.filter(
-      (d): d is number => typeof d === "number",
-    );
-
-    return {
-      baseType: fieldInfo.type,
-      bitWidth: TYPE_WIDTH[fieldInfo.type] ?? 32,
-      isConst: false,
-      isArray,
-      arrayDimensions: dims && dims.length > 0 ? dims : undefined,
-    };
+    return this.state.getMemberTypeInfo(structType, memberName);
   }
 
   /**

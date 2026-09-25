@@ -160,8 +160,12 @@ class MemberChainAnalyzer {
       return false;
     }
 
-    // Issue #831: Use SymbolTable as single source of truth for struct fields
-    const fieldInfo = transpileState.symbolTable?.getStructFieldInfo(
+    // Issue #831: SymbolTable is the single source of truth for struct fields,
+    // asked through the state's accessor rather than reached for directly --
+    // #1322's scope-declared-struct key fallback lives there, and a chain
+    // through a scope-declared struct dead-ended here without it, silently, with
+    // no diagnostic to say the chain went unresolved.
+    const fieldInfo = transpileState.getStructFieldInfo(
       state.currentStructType,
       fieldName,
     );
@@ -173,8 +177,7 @@ class MemberChainAnalyzer {
 
     // Check if this field is an array (has array dimensions)
     state.isCurrentArray =
-      fieldInfo.arrayDimensions !== undefined &&
-      fieldInfo.arrayDimensions.length > 0;
+      fieldInfo.dimensions !== undefined && fieldInfo.dimensions.length > 0;
 
     // If the field type is a struct, update currentStructType
     state.currentStructType = transpileState.isKnownStruct(state.currentType)

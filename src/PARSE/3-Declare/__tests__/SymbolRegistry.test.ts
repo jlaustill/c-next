@@ -14,8 +14,6 @@ beforeEach(() => {
 });
 
 describe("SymbolRegistry", () => {
-  beforeEach(() => {});
-
   describe("getGlobalScope", () => {
     it("returns the global scope singleton", () => {
       const global = registry.getGlobalScope();

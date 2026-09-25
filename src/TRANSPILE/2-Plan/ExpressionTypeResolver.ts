@@ -788,23 +788,25 @@ class ExpressionTypeResolver {
 
   /**
    * Get type info for a struct member field.
-   * Issue #831: SymbolTable is the single source of truth for struct fields.
+   *
+   * Issue #831: SymbolTable is the single source of truth for struct fields,
+   * asked through the state's accessor. Reaching `symbolTable` directly was a
+   * third copy of this lookup, and the three each "made SymbolTable
+   * authoritative" independently -- so none of them picked up #1322's key
+   * fallback for a struct declared inside a scope, whose fields are recorded
+   * under the transpiled key.
    */
   static getMemberTypeInfo(
     structType: string,
     memberName: string,
     state: TranspileState,
   ): { isArray: boolean; baseType: string } | undefined {
-    const fieldInfo = state.symbolTable?.getStructFieldInfo(
-      structType,
-      memberName,
-    );
-    if (!fieldInfo) return undefined;
+    const fieldInfo = state.getStructFieldInfo(structType, memberName);
+    if (fieldInfo === null) return undefined;
 
     return {
       isArray:
-        fieldInfo.arrayDimensions !== undefined &&
-        fieldInfo.arrayDimensions.length > 0,
+        fieldInfo.dimensions !== undefined && fieldInfo.dimensions.length > 0,
       baseType: fieldInfo.type,
     };
   }

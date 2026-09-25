@@ -143,11 +143,7 @@ class TranspileState {
    * @param header - The header to require (stdint, stdbool, string, ...)
    * @param line - The `.cnx` line that asked, for deferred attribution
    */
-  requireInclude(
-    header: TIncludeHeader,
-    line: number | null = null,
-    sourcePath = "",
-  ): void {
+  requireInclude(header: TIncludeHeader, line: number | null = null): void {
     // Issue #1143: three of these "headers" are really deferred code-emission
     // requests. Record where they were asked for, so the emitter that finally
     // produces the block can attribute its requirement to a .cnx line. No
@@ -160,8 +156,19 @@ class TranspileState {
     // no requirement. Keeping
     // the deferred keys equal to the set that gets claimed is the property the
     // rest of this design leans on.
+    // #1452: the path comes off THIS object, the way it did when the two halves
+    // shared a class. It was briefly a defaulted third parameter, which no
+    // caller ever supplied -- so every site recorded `sourcePath: ""`, and
+    // `ResultPrinter.printSites` filters those out and falls back to the
+    // generic `from <incurredBy>` line. A defaulted parameter for a fact the
+    // receiver already holds is a channel nobody uses, and the default is the
+    // wrong answer rather than a missing one.
     if (header === "irq_wrappers" || header === "float_static_assert") {
-      ToolchainRequirements.noteDeferredSite(header, sourcePath, line);
+      ToolchainRequirements.noteDeferredSite(
+        header,
+        this.sourcePath ?? "",
+        line,
+      );
     }
 
     switch (header) {
@@ -289,14 +296,20 @@ class TranspileState {
    * Returns a map of function name -> Set of parameter names NOT modified.
    * Computed from `functionSignatures` and the program's modification facts.
    *
-   * #1452: the artifact is handed in rather than reached for. 1.4 Resolve owns
-   * it, and this is render state -- the two travel together at the call site
-   * instead of one holding a reference to the other.
+   * Reads `this.program`, like the siblings that answer the same question
+   * (`isParameterModified`, `isParameterModifiedAnywhere`). It took the artifact
+   * as a parameter for one revision, and the only caller passed
+   * `this.state.program` -- the receiver's own field -- so the separation it
+   * claimed did not exist while the `| null` left a second caller free to supply
+   * a program that disagrees with every other reader. Worse, the `?.` answered
+   * "every parameter is unmodified" for a missing artifact, which is the vacuous
+   * const comparison `TypeValidator`'s own comment records as the reason ADR-029
+   * callback checking could not stay in 2.3.
    */
-  getUnmodifiedParameters(program: IProgram | null): Map<string, Set<string>> {
+  getUnmodifiedParameters(): Map<string, Set<string>> {
     const result = new Map<string, Set<string>>();
     for (const [funcName, signature] of this.functionSignatures) {
-      const modifiedSet = program?.modifiedParameters().get(funcName);
+      const modifiedSet = this.program?.modifiedParameters().get(funcName);
       const unmodified = new Set<string>();
       for (const param of signature.parameters) {
         if (!modifiedSet?.has(param.name)) {
@@ -489,7 +502,7 @@ class TranspileState {
   requireGenerator(): ICodeGenApi {
     if (this.generator === null) {
       throw new Error(
-        "this.generator is not set; codegen accessed before initialization.",
+        "TranspileState.generator is not set; codegen accessed before initialization.",
       );
     }
     return this.generator;
@@ -539,17 +552,6 @@ class TranspileState {
 
   /** Track C-Next defined functions */
   knownFunctions: Set<string> = new Set();
-
-  /**
-   * #1399 review: whether the file being analyzed can see a C/C++ header,
-   * directly or through any `.cnx` it includes. Set by `Transpiler` from the
-   * resolver's categorization before `runAnalyzers`.
-   *
-   * Defaults to `true` so an unset value declines rather than diagnoses: a
-   * false positive stops valid code compiling, a false negative is the status
-   * quo.
-   */
-  currentFileReachesForeignHeader = true;
 
   /** ADR-029: Callback types registry (function-as-type pattern) */
   callbackTypes: Map<string, ICallbackTypeInfo> = new Map();
@@ -912,7 +914,7 @@ class TranspileState {
   /**
    * `isScopeType` as a VALUE, bound to this class.
    *
-   * `isScopeType` is a static that reads `this.symbolTable`, so a bare
+   * `isScopeType` is an instance method reading `this.symbolTable`, so a bare
    * reference to it loses its receiver and throws. Six sites each wrote the
    * same closure to work around that -- five feeding `ITypeBindingDeps`, one
    * feeding `ITypeGenerationDeps`, which CLAUDE.md keeps separate so
@@ -929,7 +931,7 @@ class TranspileState {
    * ADR-057: bind this state's type sets to `TypeBinding`'s injected deps.
    *
    * THE binding, for the sites that resolve a whole `TypeContext`.
-   * `isScopeType` is a static that reads `this.symbolTable`, so it cannot be
+   * `isScopeType` is an instance method reading `this.symbolTable`, so it cannot be
    * passed unbound -- which is why five call sites each wrote the same closure,
    * paired with `currentScopePath`, and why the rule against re-pairing them
    * needed something to call instead of only saying not to.
@@ -1642,10 +1644,6 @@ class TranspileState {
 
     // Symbol data
     this.symbols = null;
-    // Back to the declining default: reset() runs at the start of
-    // CodeGenerator.generate(), and a stale `false` here would let the next
-    // file diagnose names a header it cannot see supplies.
-    this.currentFileReachesForeignHeader = true;
     // Note: symbolTable is NOT reset here — it persists across per-file
     // generates. The Transpiler replaces it at the start of each run (#1452
     // box 5); there is no `clear()` to call.

@@ -25,6 +25,7 @@ import ModificationFacts from "./ModificationFacts";
 import CallbackCompatibility from "./CallbackCompatibility";
 import AutoConstRule from "../utils/AutoConstRule";
 import AdrProvenance from "../instrumentation/AdrProvenance";
+import ToolchainRequirements from "../instrumentation/ToolchainRequirements";
 import CachedSymbolReader from "../utils/cache/CachedSymbolReader";
 import TJsonValue from "../utils/types/TJsonValue";
 import PublicInterface from "../TRANSPILE/2-Plan/PublicInterface";
@@ -994,7 +995,7 @@ class Transpiler {
     try {
       const parsed = this._requireRetainedParse(sourcePath);
 
-      const symbols = this._establishPerFileCodeGenState(file, sourcePath);
+      const symbols = this._establishPerFileCodeGenState(sourcePath);
 
       // #1322: the ADR-010 include facts are handed in rather than read off
       // CodeGenState, whose `sourcePath` is not written until `generate()` and
@@ -1120,28 +1121,26 @@ class Transpiler {
   }
 
   /**
-   * Establish the per-file `CodeGenState` a pass is about to read.
+   * Publish the per-file symbol view 2.2 Plan and 2.3 Render read off the state.
    *
-   * `_analyzeFile` and `_transpileFile` each read this same pair of facts
-   * immediately before their own pass runs -- one during Stage 4d's whole-
-   * program analysis, the other during Stage 5's per-file emission. Sharing
-   * the call site's neighbor (`_requireSymbolInfo`) but re-deriving these two
-   * lines at each site is the shape #1430 was: a per-file fact established
-   * twice, with nothing forcing the two copies to agree if either ever
-   * changes. Extracted so there is exactly one place that establishes it.
+   * `_analyzeFile` and `_transpileFile` each need it immediately before their
+   * own pass runs -- one during Stage 4d's whole-program analysis, the other
+   * during Stage 5's per-file emission -- so it is established once here rather
+   * than assigned at both sites.
+   *
+   * It also set `currentFileReachesForeignHeader` from
+   * `file.reachesForeignHeader ?? true`, for the reason this docblock gave: one
+   * place per per-file fact. #1456 then moved the one thing that READ it onto
+   * `IAnalysisContext`, which `_analyzeFile` fills from the same expression --
+   * so the extraction that existed to stop the fact being derived twice was
+   * holding the copy nobody read, and the `?? true` that survives is the only
+   * one. `reset()` also restored the field to `true` at the top of `generate()`,
+   * i.e. immediately after this wrote it, so a render-side reader would have
+   * seen the declining default rather than the file's answer.
    */
-  private _establishPerFileCodeGenState(
-    file: IPipelineFile,
-    sourcePath: string,
-  ): ICodeGenSymbols {
+  private _establishPerFileCodeGenState(sourcePath: string): ICodeGenSymbols {
     const symbolInfo = this._requireSymbolInfo(sourcePath);
     this.codeGenerator.transpileState.symbols = symbolInfo;
-
-    // #1399 review: computed during discovery from the resolver's own
-    // categorization, not re-derived from `#include` token text here.
-    this.codeGenerator.transpileState.currentFileReachesForeignHeader =
-      file.reachesForeignHeader ?? true;
-
     return symbolInfo;
   }
 
@@ -1188,7 +1187,7 @@ class Transpiler {
       // #1320: 2.1 Analyze already ran, whole-program, in Stage 4d. What is left
       // here is 2.2 Plan and 2.3 Render. The per-file state codegen reads is
       // still established per file -- it is `generate()`'s input, not analysis's.
-      const symbolInfo = this._establishPerFileCodeGenState(file, sourcePath);
+      const symbolInfo = this._establishPerFileCodeGenState(sourcePath);
 
       // Generate code
       // Use file's sourceRelativePath (source mode) or compute from PathResolver (files mode)
@@ -1244,12 +1243,12 @@ class Transpiler {
       }
 
       // Issue #1143: read after header-facts CAPTURE, and before the next
-      // file's this.codeGenerator.transpileState.reset() clears the recording map. This covers a
+      // file's TranspileState.reset() clears the recording map. This covers a
       // requirement that capturing a header's facts triggers (e.g. through
       // convertToHeaderSymbols) -- it does NOT cover one the RENDER might
       // trigger, since #1323 moved rendering to Stage 5.5, after every file's
       // requirements have already been read here and reset() has run N times.
-      // Currently unreachable rather than wrong: this.codeGenerator.transpileState.requireToolchain
+      // Currently unreachable rather than wrong: TranspileState.requireToolchain
       // has no caller under output/headers/, so no render path records one --
       // but this read does not guarantee that stays true, and #1143 is
       // precisely the bug class where an ordering assumption like that broke
@@ -1487,6 +1486,15 @@ class Transpiler {
     this.userIncludes.clear();
     this.headerIncludeDirectives.clear();
     this.processedHeaders.clear();
+    // #1452: 1.1 Discover's two maps. `TranspilerState.reset()` cleared these
+    // alongside the five above, and re-writing that teardown as inline calls
+    // dropped them -- the drift this method's own SymbolTable comment below
+    // records, in the commit that recorded it. `IDiscoveryFacts` documents
+    // "empty means this run never discovered the file" as a REAL answer that
+    // ADR-010's E0504 reads, and `Program.build` is handed both by reference,
+    // so a retained entry answers for a file the run never saw.
+    this.discoveredCnxIncludeRewrites.clear();
+    this.discoveredIncludeSearchPaths.clear();
     // ADR-049: the previous run's targets must not decide this run's budget
     this.pragmaTargets = [];
     // #1323: a stale entry here would let one run's header content leak into
@@ -1504,7 +1512,7 @@ class Transpiler {
     // Reset SymbolRegistry for new run (new IFunctionSymbol type system)
     this.symbolRegistry = new SymbolRegistry();
     // #1452: the callback map needed a per-RUN reset here because it was a
-    // mutable static that `this.codeGenerator.transpileState.reset()` deliberately skipped.
+    // mutable static that `TranspileState.reset()` deliberately skipped.
     // `CallbackCompatibility.derive` returns it now, so there is nothing to
     // clear -- the run's answer is built fresh and handed to `Program`.
     // #1447: the previous run's Program is not this run's artifact. Nothing
@@ -1514,6 +1522,14 @@ class Transpiler {
     this.codeGenerator.transpileState.program = null;
     // Issue #1241: the previous run's ADR provenance is not this run's evidence
     AdrProvenance.reset();
+    // #1143, #1452: the same for the toolchain ledger, which is the other
+    // mutable static under `src/instrumentation/`. Its only other clear site is
+    // `TranspileState.reset()`, which runs inside `generate()` -- so a run that
+    // plans nothing (parse-only, or 2.1 rejected some file so #1320 plans NO
+    // file) never reaches it, and `collect()` reports the previous run's last
+    // file's cost. Cleared here so the boundary is the run, like every fact
+    // above it.
+    ToolchainRequirements.reset();
   }
 
   /**
@@ -1851,7 +1867,7 @@ class Transpiler {
   private _checkExternalIdentifierSignificance(
     result: ITranspilerResult,
   ): boolean {
-    // NOT this.codeGenerator.transpileState.targetCapabilities: codegen assigns that in Stage 5, one
+    // NOT TranspileState.targetCapabilities: codegen assigns that in Stage 5, one
     // stage after this runs, so it holds the module default on a fresh process
     // and the previous file's target in a long-lived one (#1307 review). The
     // budget a whole-program check reports against has to be the build's.
@@ -2749,10 +2765,10 @@ class Transpiler {
    * return value ever reads `CodeGenState` again -- see `IHeaderEmissionFacts`.
    *
    * Still call this exactly once per file, from `_transpileFile()`, while
-   * that file's state is warm: `this.codeGenerator.transpileState.needsISR`,
+   * that file's state is warm: `TranspileState.needsISR`,
    * `generatedStructInits`, `callbackTypes` and the auto-const/opaque
    * resolution inside `convertToHeaderSymbols` are ALL per-file, cleared by
-   * `this.codeGenerator.transpileState.reset()` before the next file transpiles. Capturing them
+   * `TranspileState.reset()` before the next file transpiles. Capturing them
    * into `IHeaderEmissionFacts` here, at the only moment they are correct for
    * THIS file, is what lets the render move later.
    *
@@ -2957,9 +2973,9 @@ class Transpiler {
         needsIsrTypedef: this.codeGenerator.transpileState.needsISR,
         // #1205: same shape -- the .c records which init functions it
         // emitted, the header declares exactly those. Copied, not aliased:
-        // this record must stay frozen once captured, and this.codeGenerator.transpileState.reset()
+        // this record must stay frozen once captured, and TranspileState.reset()
         // happens to rebind this field to a new Set rather than clearing it in
-        // place (this.codeGenerator.transpileState.ts) -- true today, but not a contract anything
+        // place (TranspileState.ts) -- true today, but not a contract anything
         // enforces, so a live reference here would be correct only by
         // coincidence with reset()'s current implementation.
         generatedStructInits: new Set(
@@ -2991,7 +3007,7 @@ class Transpiler {
   /**
    * ADR-029: Build callback types for header generation.
    * Only includes callbacks that are actually used as struct field types.
-   * Converts this.codeGenerator.transpileState.callbackTypes to the format expected by IHeaderTypeInput.
+   * Converts TranspileState.callbackTypes to the format expected by IHeaderTypeInput.
    */
   private _buildCallbackTypesForHeader(): ReadonlyMap<
     string,
@@ -3133,7 +3149,7 @@ class Transpiler {
       const updatedParams = headerSymbol.parameters.map((param) => {
         // ADR-029 / #1164: a parameter whose declared type IS a callback
         // function takes that function's typedef, exactly as the .c does via
-        // this.codeGenerator.transpileState.callbackTypes. Without this the header emitted the bare
+        // TranspileState.callbackTypes. Without this the header emitted the bare
         // function name as a type ("const onReceive*"), which both contradicts
         // the .c's "onReceive_fp" and collides with the function's own
         // prototype ("redeclared as different kind of symbol").
@@ -3176,7 +3192,7 @@ class Transpiler {
           isArray: param.isArray,
           // #1545 review: this is the WHOLE-PROGRAM enum view (`allKnownEnums`
           // = program.knownEnums()), while the body supplies the PER-FILE one
-          // (this.codeGenerator.transpileState.isKnownEnum). CLAUDE.md names that pair as #1312 --
+          // (TranspileState.isKnownEnum). CLAUDE.md names that pair as #1312 --
           // a sibling never included is absent from one and present in the
           // other. Deliberate on both sides: each matches the enum view ITS
           // OWN pass-by-value decision reads, so neither introduces a new

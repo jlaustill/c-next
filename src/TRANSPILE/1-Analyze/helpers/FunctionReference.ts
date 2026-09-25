@@ -89,7 +89,7 @@ class FunctionReference {
     const resolved = CalleeNameResolver.resolveDetailed(
       postfix,
       scopePath,
-      (name) => context.symbols.knownScopes.has(name) ?? false,
+      (name) => context.symbols.knownScopes.has(name),
     );
     if (resolved === null) return null;
     return FunctionReference.lookup(
@@ -124,7 +124,7 @@ class FunctionReference {
         name,
         op,
         scopePath,
-        (name) => context.symbols.knownScopes.has(name) ?? false,
+        (name) => context.symbols.knownScopes.has(name),
       );
       if (next === null) return null;
       name = next;

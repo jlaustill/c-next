@@ -43,8 +43,6 @@ beforeEach(() => {
 });
 
 describe("the symbol graph is serializable (#1298)", () => {
-  beforeEach(() => {});
-
   it("encodes the global scope without exhausting the stack", () => {
     const global = registry.getGlobalScope();
     expect(() => JsonCodec.encode(global)).not.toThrow();

@@ -196,10 +196,13 @@ class Program {
         discovery.includeSearchPaths.get(sourceFile) ?? EMPTY_PATHS,
       scope: (path: string): IScopeSymbol | null =>
         registry?.getScope(path) ?? null,
-      scopePathOf: (name: string): string => {
-        const found = registry?.getScope(name);
-        return found ? ScopeUtils.pathOf(found) : name;
-      },
+      // Delegated like every sibling in this literal, rather than re-spelling
+      // the body: `SymbolRegistry.scopePathOf` already falls back to the bare
+      // name on a miss, and its own doc names this as the same decision. The
+      // two spellings are the two arms `FunctionCallAnalyzer.scopePathOf`
+      // selects between, so it could not have noticed them diverging.
+      scopePathOf: (name: string): string =>
+        registry?.scopePathOf(name) ?? name,
       globalScope: (): IScopeSymbol =>
         registry?.getGlobalScope() ?? ScopeUtils.createGlobalScope(),
       resolveFunction: (

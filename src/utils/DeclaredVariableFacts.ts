@@ -24,6 +24,16 @@ import type TTypeInfo from "../transpiler/types/TTypeInfo";
  * registry: it reads the PREVIOUS run's variables, and a signed array
  * subscript reaches generated C with the transpile reporting success.
  */
+
+/**
+ * ADR-045 `string<N>`, with N captured.
+ *
+ * Module scope so it is compiled once. `fromSymbol` is the symbol-table arm of
+ * every cross-file variable type resolution -- hundreds of calls per file -- and
+ * the pattern never varies.
+ */
+const STRING_CAPACITY = /^string<(\d+)>$/;
+
 class DeclaredVariableFacts {
   /**
    * The C-Next variable symbol a bare name resolves to in the SymbolTable, or
@@ -83,9 +93,7 @@ class DeclaredVariableFacts {
   ): TTypeInfo {
     const typeName = TypeResolver.getTypeName(symbol.type);
 
-    // Parse string capacity using regex
-    const stringPattern = /^string<(\d+)>$/;
-    const stringMatch = stringPattern.exec(typeName);
+    const stringMatch = STRING_CAPACITY.exec(typeName);
     const isString = stringMatch !== null;
     const stringCapacity = stringMatch
       ? Number.parseInt(stringMatch[1], 10)

@@ -16,7 +16,6 @@ describe("CNextResolver Integration", () => {
   // CLAUDE.md, "Test isolation": CNextResolver writes to the SymbolRegistry, so
   // without this every test in this file inherits the scopes the previous one
   // registered.
-  beforeEach(() => {});
 
   describe("single declaration types", () => {
     it("resolves top-level struct", () => {

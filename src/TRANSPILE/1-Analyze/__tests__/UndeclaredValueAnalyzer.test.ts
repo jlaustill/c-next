@@ -33,8 +33,9 @@ function analyze(source: string) {
   );
   // Same precondition as E0426: the analyzer declines unless the transpiler
   // knows the file's whole name universe. These sources include nothing.
-  state.currentFileReachesForeignHeader = false;
-  return new UndeclaredValueAnalyzer(testAnalysisContext(state)).analyze(tree);
+  return new UndeclaredValueAnalyzer(
+    testAnalysisContext(state, { reachesForeignHeader: false }),
+  ).analyze(tree);
 }
 
 let registry = new SymbolRegistry();
@@ -46,8 +47,6 @@ beforeEach(() => {
 let state = new TranspileState();
 
 describe("UndeclaredValueAnalyzer", () => {
-  beforeEach(() => {});
-
   afterEach(() => {
     state = new TranspileState();
   });

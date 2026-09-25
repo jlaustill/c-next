@@ -40,7 +40,15 @@ import Program from "../../PARSE/4-Resolve/Program";
 const registry = new SymbolRegistry();
 
 function enterScope(state: TranspileState, path: string | null): void {
-  if (path !== null) {
+  // Only when the state's own program cannot already answer for the path.
+  // Rebuilding unconditionally REPLACED whatever program the test had set with
+  // an empty one built from this module's private registry -- so a test that
+  // installed the real resolver output (`#1511`: without it pass-by-value
+  // eligibility answers "not eligible" for everything and emits pointers where
+  // a real run emits values) silently lost it on the next `enterScope` call,
+  // and every later assertion ran against the degenerate program the helper it
+  // shares a card with exists to prevent.
+  if (path !== null && state.program?.scope(path) == null) {
     registry.getOrCreateScope(path);
     state.program = Program.build([], { registry });
   }

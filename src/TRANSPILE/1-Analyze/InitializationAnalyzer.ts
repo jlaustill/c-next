@@ -558,9 +558,12 @@ class InitializationAnalyzer {
 
     // #1298: the whole scope PATH, not its leaf name, so a nested scope keeps
     // its outer components when its members are qualified.
-    const scopePath =
-      this.context.program.scopePathOf(scopeDecl.IDENTIFIER().getText()) ??
-      scopeDecl.IDENTIFIER().getText();
+    // No `??` fallback: `IProgram.scopePathOf` returns `string` and already
+    // answers the bare name on a miss, so a second fallback here is a guard
+    // that cannot fire and reads as if the method could answer null.
+    const scopePath = this.context.program.scopePathOf(
+      scopeDecl.IDENTIFIER().getText(),
+    );
 
     // Phase 1: Find all members assigned in any scope function
     const assignedMembers = this._findAssignedScopeMembers(scopeDecl);

@@ -29,7 +29,12 @@ const testAnalysisContext = (
   symbols: state.symbols ?? createMockSymbols(),
   program: state.program ?? Program.build([], {}),
   symbolTable: state.symbolTable,
-  reachesForeignHeader: state.currentFileReachesForeignHeader,
+  // #1456 owns this fact; #1452 deleted the write-only copy that used to
+  // sit on the state, so the DEFAULT is stated here. `true` is the declining
+  // direction -- a false positive stops valid interop code compiling, a false
+  // negative is the status quo -- and a test that needs `false` passes it
+  // through `overrides`, which is where the fact travels in production too.
+  reachesForeignHeader: true,
   ...overrides,
 });
 

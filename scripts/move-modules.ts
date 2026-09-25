@@ -734,6 +734,23 @@ const MOVES: readonly IMove[] = [
       "through a shared mutable object rather than through 2.2's artifact -- " +
       "and box 2 stays unchecked on the card, saying so.",
   },
+  {
+    from: "src/TRANSPILE/3-Render/__tests__/RenderState.test.ts",
+    to: "src/TRANSPILE/__tests__/TranspileState.test.ts",
+    because:
+      "Follows its subject to the corrected destination above. The row that " +
+      "sent it to `3-Render/__tests__/` was left uncorrected while the " +
+      "implementation's was fixed, so replaying the manifest landed the class " +
+      "at `src/TRANSPILE/` and its tests one directory deeper, with their " +
+      "relative imports pointing at a tree the branch does not have. Two of " +
+      "the three stale `to:` paths in this file carry a `SUPERSEDED` note; " +
+      "these two carried none, so they read as current answers.",
+  },
+  {
+    from: "src/TRANSPILE/3-Render/__tests__/RenderState.includes.test.ts",
+    to: "src/TRANSPILE/__tests__/TranspileState.includes.test.ts",
+    because: "Follows its subject, for the reason the row above gives.",
+  },
 ];
 
 /** Every `.ts` file under a path, or the path itself when it is a file. */

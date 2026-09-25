@@ -1242,10 +1242,30 @@ describe("TranspileState", () => {
       // #1452: the module that owns the predicate. The path recorded here was
       // `src/transpiler/state/state.ts`, which has never existed, so the
       // exclusion covered no file -- it passed only because the owner spells
-      // the call `this.isScopeType(` and the pattern below looks for the class
-      // name. Pointed at the real file so the exclusion means what it says.
+      // the call `this.isScopeType(` and the pattern looked for the class name.
+      // Pointed at the real file so the exclusion means what it says.
       const owner = join("src", "TRANSPILE", "TranspileState.ts");
-      const binds = /TranspileState\s*\.\s*isScopeType\s*\(/;
+
+      // Matches the RECEIVER, not the class. The pattern was
+      // `/TranspileState\s*\.\s*isScopeType\s*\(/` -- the static-call spelling,
+      // which stopped existing the moment box 4 made the class an instance.
+      // Every way a site can actually re-bind the predicate today spells it
+      // `state.isScopeType(`, `ctx.state.isScopeType(` or
+      // `this.host.state.isScopeType(`, and the class-name pattern matched none
+      // of them: a seventh duplicate closure was added as a probe and this
+      // assertion stayed green. Mutation-checked in both directions -- see the
+      // control below, which is what makes the new pattern's reach checkable
+      // rather than asserted.
+      const binds = /\.\s*isScopeType\s*\(/;
+
+      // POPULATION CONTROL for `binds`. An emptiness claim over a pattern that
+      // matches nothing is the failure this assertion just had, so prove the
+      // pattern fires on the shape it forbids before trusting that it found
+      // none. `state.` is the spelling five call sites used before
+      // `typeBindingDeps()` collapsed them.
+      expect(
+        binds.test("const dup = (n: string) => state.isScopeType(n);"),
+      ).toBe(true);
 
       const walk = (dir: string): string[] =>
         readdirSync(dir).flatMap((entry) => {

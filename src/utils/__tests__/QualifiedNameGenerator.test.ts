@@ -29,8 +29,6 @@ beforeEach(() => {
 });
 
 describe("QualifiedNameGenerator", () => {
-  beforeEach(() => {});
-
   describe("forFunction", () => {
     it("returns bare name for global scope function", () => {
       const func = FunctionUtils.create({

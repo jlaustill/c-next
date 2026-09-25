@@ -38,11 +38,12 @@ function analyze(source: string) {
   state.symbols = TSymbolInfoAdapter.convert(
     CNextResolver.resolve(tree, "test.cnx", registry).symbols,
   );
-  // Defaults to `true`, and `reset()` restores it to `true` -- the analyzer
-  // declines unless the transpiler knows the file's whole name universe, so the
-  // fail-safe direction is silence. These sources include nothing.
-  state.currentFileReachesForeignHeader = false;
-  return new UndeclaredTypeAnalyzer(testAnalysisContext(state)).analyze(tree);
+  // `true` is the declining default -- the analyzer stays silent unless the
+  // transpiler knows the file's whole name universe. These sources include
+  // nothing, so the diagnostic is in scope.
+  return new UndeclaredTypeAnalyzer(
+    testAnalysisContext(state, { reachesForeignHeader: false }),
+  ).analyze(tree);
 }
 
 const REGISTER = `register Control @ 0x40000000 { DR: u32 rw @ 0x00, }`;
@@ -56,8 +57,6 @@ beforeEach(() => {
 let state = new TranspileState();
 
 describe("UndeclaredTypeAnalyzer", () => {
-  beforeEach(() => {});
-
   afterEach(() => {
     state = new TranspileState();
   });
@@ -192,9 +191,10 @@ describe("UndeclaredTypeAnalyzer", () => {
       state.symbols = TSymbolInfoAdapter.convert(
         CNextResolver.resolve(tree, "test.cnx", registry).symbols,
       );
-      state.currentFileReachesForeignHeader = true;
       expect(
-        new UndeclaredTypeAnalyzer(testAnalysisContext(state)).analyze(tree),
+        new UndeclaredTypeAnalyzer(
+          testAnalysisContext(state, { reachesForeignHeader: true }),
+        ).analyze(tree),
       ).toHaveLength(0);
     });
   });

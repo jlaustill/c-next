@@ -26,8 +26,6 @@ const build = (source: string) => {
   ]);
 };
 
-beforeEach(() => {});
-
 afterEach(() => {
   state = new TranspileState();
 });

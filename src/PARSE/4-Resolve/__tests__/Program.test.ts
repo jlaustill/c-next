@@ -32,7 +32,6 @@ beforeEach(() => {
 
 describe("Program", () => {
   // CLAUDE.md, "Test isolation": CNextResolver writes to the SymbolRegistry.
-  beforeEach(() => {});
 
   const declare = (code: string, sourceFile: string): IFileSymbols =>
     CNextResolver.resolve(parse(code), sourceFile, registry);
