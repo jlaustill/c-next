@@ -1708,9 +1708,11 @@ class CodeGenWalker {
    * Reset all generator state for a fresh generation pass.
    */
   private resetGeneratorState(targetCapabilities: ITargetCapabilities): void {
-    // Reset global state (this.host.state.reset() handles all field initialization)
+    // One reset, because there is one state. Two classes stood here --
+    // `CodeGenState.reset(targetCapabilities)` and `TranspilerState.reset()` --
+    // and merging them under #1452 left the second call clobbering the first's
+    // argument, so `--target` silently fell back to the default capabilities.
     this.host.state.reset(targetCapabilities);
-    this.host.state.reset();
 
     // Set generator reference for handlers to use
     // #1652 removed `ICodeGenApi`'s four parse-node members, and every one that

@@ -33,7 +33,7 @@ i32 main() {
     return 0;
 }`;
 
-let state: RenderState;
+let state = new RenderState();
 
 describe("External identifier significance (#1307)", () => {
   beforeEach(() => {

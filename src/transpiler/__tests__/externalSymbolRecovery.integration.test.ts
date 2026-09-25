@@ -16,7 +16,6 @@ import { mkdtempSync, writeFileSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import Transpiler from "../Transpiler";
-import RenderState from "../../TRANSPILE/3-Render/RenderState";
 import Preprocessor from "../logic/preprocessor/Preprocessor";
 import detectCppSyntax from "../logic/detectCppSyntax";
 
@@ -68,13 +67,7 @@ scope Demo {
 }
 `;
 
-let state: RenderState;
-
 describe("external-symbol recovery (integration)", () => {
-  beforeEach(() => {
-    state = new RenderState();
-  });
-
   let dir: string;
   const available = new Preprocessor().isAvailable();
 
@@ -150,7 +143,7 @@ describe("external-symbol recovery (integration)", () => {
     const result = await transpiler.transpile({ kind: "files" });
     expect(result.success).toBe(true);
 
-    const external = state.getExternalStructFields();
+    const external = transpiler.getExternalStructFields();
     expect(external.has("widget_cfg_t")).toBe(true);
     expect([...(external.get("widget_cfg_t") ?? [])]).toContain("mode");
   });

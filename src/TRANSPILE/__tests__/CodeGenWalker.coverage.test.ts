@@ -56,11 +56,11 @@ function setupGenerator(
   const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
   // #1445 box 3: the walk and the render-side services are two objects now.
-  // The host is constructed here and injected, so assertions about the state
+  // The host is constructed here and injected, so assertions about the host.state
   // the walk accumulates read the SAME instance the walk drove.
   const host = new CodeGenerator();
   const generator = new CodeGenWalker(host);
-  state.symbolTable = symbolTable;
+  host.state.symbolTable = symbolTable;
   const code = generateWithProgram(generator, tree, tokenStream, {
     symbolInfo: symbols,
     sourcePath: "test.cnx",
@@ -81,6 +81,7 @@ function setupGenerator(
  * with a real run rather than approximating one.
  */
 function installProgramFor(
+  state: RenderState,
   tree: Parser.ProgramContext,
   sourcePath = "test.cnx",
 ): void {
@@ -103,7 +104,11 @@ function generateWithProgram(
   tokenStream: Parameters<CodeGenWalker["generate"]>[1],
   options: Parameters<CodeGenWalker["generate"]>[2],
 ): ReturnType<CodeGenWalker["generate"]> {
-  installProgramFor(tree, options?.sourcePath ?? "test.cnx");
+  installProgramFor(
+    generator.renderState,
+    tree,
+    options?.sourcePath ?? "test.cnx",
+  );
   return generator.generate(tree, tokenStream, options);
 }
 
@@ -113,16 +118,7 @@ beforeEach(() => {
   registry = new SymbolRegistry();
 });
 
-let state: RenderState;
-
 describe("CodeGenWalker Coverage Tests", () => {
-  beforeEach(() => {
-    state = new RenderState();
-    // CLAUDE.md, "Test isolation": this file drives CNextResolver, which writes
-    // to the SymbolRegistry. Without this, every test inherits the scopes the
-    // previous one registered.
-  });
-
   // ==========================================================================
   // NEW CODE IN PR: _isArrayAccessStringExpression (lines 811-852)
   // ==========================================================================
@@ -276,8 +272,8 @@ describe("CodeGenWalker Coverage Tests", () => {
       const { host } = setupGenerator(source);
 
       // Manually set up scope context to test the resolution path
-      enterScope(state, "Motor");
-      state.setScopeMembers("Motor", new Set(["speed", "setSpeed"]));
+      enterScope(host.state, "Motor");
+      host.state.setScopeMembers("Motor", new Set(["speed", "setSpeed"]));
 
       // Now resolve should return prefixed name (line 633)
       const resolved = host.resolveIdentifier("speed");
@@ -287,8 +283,8 @@ describe("CodeGenWalker Coverage Tests", () => {
     it("should return unchanged identifier when not a scope member", () => {
       const { host } = setupGenerator("u32 globalVar; void main() {}");
 
-      enterScope(state, "Motor");
-      state.setScopeMembers("Motor", new Set(["speed"]));
+      enterScope(host.state, "Motor");
+      host.state.setScopeMembers("Motor", new Set(["speed"]));
 
       // globalVar is not in Motor scope members
       const resolved = host.resolveIdentifier("globalVar");
@@ -298,7 +294,7 @@ describe("CodeGenWalker Coverage Tests", () => {
     it("should return unchanged identifier when not in any scope", () => {
       const { host } = setupGenerator("u32 globalVar; void main() {}");
 
-      enterScope(state, null);
+      enterScope(host.state, null);
 
       const resolved = host.resolveIdentifier("globalVar");
       expect(resolved).toBe("globalVar");
@@ -571,13 +567,13 @@ describe("CodeGenWalker Coverage Tests", () => {
           }
         }
       `;
-      const { code } = setupGenerator(source);
+      const { code, host } = setupGenerator(source);
       // The member write lands in the .c; the accessor block itself is
       // recorded for the header, which is the only file a #define can be
       // exported from (#1453).
       expect(code).toContain("GPIO__PORTA__DR = val");
       expect(code).not.toContain("#define GPIO__PORTA__DR");
-      const block = state.exportedRegisterBlocks.join("\n");
+      const block = host.state.exportedRegisterBlocks.join("\n");
       expect(block).toContain("/* Register: GPIO__PORTA @ 0x40000000 */");
       // Address format is 0x40000000 + 0x00
       expect(block).toContain(
@@ -697,11 +693,11 @@ describe("CodeGenWalker Coverage Tests", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       // #1445 box 3: the walk and the render-side services are two objects now.
-      // The host is constructed here and injected, so assertions about the state
+      // The host is constructed here and injected, so assertions about the host.state
       // the walk accumulates read the SAME instance the walk drove.
       const host = new CodeGenerator();
       const generator = new CodeGenWalker(host);
-      state.symbolTable = symbolTable;
+      host.state.symbolTable = symbolTable;
       const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -744,11 +740,11 @@ describe("CodeGenWalker Coverage Tests", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       // #1445 box 3: the walk and the render-side services are two objects now.
-      // The host is constructed here and injected, so assertions about the state
+      // The host is constructed here and injected, so assertions about the host.state
       // the walk accumulates read the SAME instance the walk drove.
       const host = new CodeGenerator();
       const generator = new CodeGenWalker(host);
-      state.symbolTable = symbolTable;
+      host.state.symbolTable = symbolTable;
       const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -782,11 +778,11 @@ describe("CodeGenWalker Coverage Tests", () => {
       const symbols = TSymbolInfoAdapter.convert(tSymbols);
 
       // #1445 box 3: the walk and the render-side services are two objects now.
-      // The host is constructed here and injected, so assertions about the state
+      // The host is constructed here and injected, so assertions about the host.state
       // the walk accumulates read the SAME instance the walk drove.
       const host = new CodeGenerator();
       const generator = new CodeGenWalker(host);
-      state.symbolTable = symbolTable;
+      host.state.symbolTable = symbolTable;
       const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -1286,11 +1282,11 @@ describe("CodeGenWalker Coverage Tests", () => {
       }
 
       // #1445 box 3: the walk and the render-side services are two objects now.
-      // The host is constructed here and injected, so assertions about the state
+      // The host is constructed here and injected, so assertions about the host.state
       // the walk accumulates read the SAME instance the walk drove.
       const host = new CodeGenerator();
       const generator = new CodeGenWalker(host);
-      state.symbolTable = symbolTable;
+      host.state.symbolTable = symbolTable;
 
       return generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
@@ -1484,11 +1480,11 @@ describe("CodeGenWalker Coverage Tests", () => {
       symbolTable.addStructField("Outer", "dummy", "SeaDash_Parse_Result");
 
       // #1445 box 3: the walk and the render-side services are two objects now.
-      // The host is constructed here and injected, so assertions about the state
+      // The host is constructed here and injected, so assertions about the host.state
       // the walk accumulates read the SAME instance the walk drove.
       const host = new CodeGenerator();
       const generator = new CodeGenWalker(host);
-      state.symbolTable = symbolTable;
+      host.state.symbolTable = symbolTable;
       const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",
@@ -1522,11 +1518,11 @@ describe("CodeGenWalker Coverage Tests", () => {
       symbolTable.addStructField("Data", "value", "some_plain_type");
 
       // #1445 box 3: the walk and the render-side services are two objects now.
-      // The host is constructed here and injected, so assertions about the state
+      // The host is constructed here and injected, so assertions about the host.state
       // the walk accumulates read the SAME instance the walk drove.
       const host = new CodeGenerator();
       const generator = new CodeGenWalker(host);
-      state.symbolTable = symbolTable;
+      host.state.symbolTable = symbolTable;
       const code = generateWithProgram(generator, tree, tokenStream, {
         symbolInfo: symbols,
         sourcePath: "test.cnx",

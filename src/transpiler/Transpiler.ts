@@ -3290,6 +3290,20 @@ class Transpiler {
   }
 
   /**
+   * The external-struct snapshot `InitializationAnalyzer` consults, for
+   * inspection after a run.
+   *
+   * #1452 box 4: this was reachable as a mutable static, which is why no
+   * accessor existed. The state belongs to this transpiler's `CodeGenerator`
+   * now, so the one regression that asserts on it -- #985's recovered structs
+   * must reach the snapshot, which requires the snapshot to be taken AFTER
+   * recovery -- asks the instance that ran.
+   */
+  getExternalStructFields(): ReadonlyMap<string, ReadonlySet<string>> {
+    return this.codeGenerator.renderState.getExternalStructFields();
+  }
+
+  /**
    * Check if C++ output was detected during transpilation.
    * This is set when C++ syntax is found in included headers (e.g., Arduino.h).
    */
